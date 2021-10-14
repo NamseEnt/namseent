@@ -10,7 +10,6 @@
     "build": "ts-node scripts/build.ts"
   },
   "author": "",
-  "license": "ISC",
   "devDependencies": {
     "@types/fs-extra": "^9.0.12",
     "@types/koa": "^2.13.4",
