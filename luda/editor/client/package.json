@@ -1,0 +1,12 @@
+{
+  "name": "luda-editor",
+  "version": "1.0.0",
+  "scripts": {
+    "watch": "namui src/index.ts --watch"
+  },
+  "dependencies": {
+    "luda-editor-common": "workspace:^1.0.0",
+    "namui": "workspace:^1.0.0",
+    "typescript": "workspace:^4.4.3"
+  }
+}

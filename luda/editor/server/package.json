@@ -1,0 +1,25 @@
+{
+  "name": "luda-editor-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "start": "ts-node src/index.ts",
+    "watch": "ts-node-dev src/index.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/jest": "^27.0.2",
+    "@types/node": "^16.10.2",
+    "@types/ws": "^8.2.0",
+    "jest": "^27.0.0",
+    "luda-editor-common": "workspace:^1.0.0",
+    "ts-jest": "^27.0.5",
+    "ts-node": "^10.2.1",
+    "ts-node-dev": "^1.1.8",
+    "typescript": "workspace:^4.4.3",
+    "ws": "^8.2.3"
+  }
+}

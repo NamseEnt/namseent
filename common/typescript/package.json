@@ -1,0 +1,8 @@
+{
+  "name": "typescript",
+  "version": "4.4.3",
+  "dependencies": {
+    "namseent": "workspace:^1.0.0",
+    "typescript": "=4.4.3"
+  }
+}

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<head>
+  <title>CanvasKit (Skia via Web Assembly)</title>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <script
+    type="text/javascript"
+    src="/engine/node_modules/canvaskit-wasm/bin/canvaskit.js"
+  ></script>
+  <script>
+    CanvasKitInit({
+      locateFile: (file) => "/engine/node_modules/canvaskit-wasm/bin/" + file,
+    }).then((CanvasKit) => {
+      globalThis.CanvasKit = CanvasKit;
+      start(CanvasKit);
+    });
+  </script>
+  <script src="build/bundle.js"></script>
+</body>

@@ -1,0 +1,13 @@
+{
+  "extends": "typescript/tsconfig.json",
+  "compilerOptions": {
+    "lib": ["DOM", "ESNext"],
+    "outDir": "lib",
+    "noEmit": false,
+    "declaration": true,
+    "inlineSourceMap": true, // TODO : turn off for production build
+    "inlineSources": true // TODO : turn off for production build
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "**/*.spec.ts"]
+}

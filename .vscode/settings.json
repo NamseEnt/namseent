@@ -1,0 +1,9 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/lib": true
+  },
+  "cSpell.words": ["namui"],
+  "editor.formatOnSave": true
+}
