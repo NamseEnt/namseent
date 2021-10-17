@@ -26,10 +26,12 @@ importers:
     specifiers:
       luda-editor-common: workspace:^1.0.0
       namui: workspace:^1.0.0
+      nanoid: ^3.1.28
       typescript: workspace:^4.4.3
     dependencies:
       luda-editor-common: link:../common
       namui: link:../../../namui
+      nanoid: 3.1.28
       typescript: link:../../../common/typescript
 
   luda/editor/common:

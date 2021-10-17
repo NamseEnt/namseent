@@ -1,5 +1,14 @@
-import { MouseEvent, EngineContext, Vector, RenderingData } from "../../type";
-import { getInOutRenderingDataLists } from "./getInOutRenderingDataLists";
+import {
+  MouseEvent,
+  EngineContext,
+  Vector,
+  RenderingData,
+  MouseEventExceptTranslated,
+} from "../../type";
+import {
+  getInOutRenderingDataLists,
+  RenderingDataWithVector,
+} from "./getInOutRenderingDataLists";
 
 type EventHandlers<TTarget, TEventType> = {
   [P in keyof TTarget as TTarget[P] extends ((event: any) => void) | undefined
@@ -14,26 +23,46 @@ type EventHandlerNames<TEventType> = keyof Required<
 
 export function handleMouseEvent(
   context: EngineContext,
-  event: MouseEvent,
-  handlerName: EventHandlerNames<MouseEvent>,
+  event: MouseEventExceptTranslated,
+  inHandlerName: EventHandlerNames<MouseEvent>,
+  outHandlerName?: EventHandlerNames<MouseEvent>,
 ) {
   const { lastRenderedTree: renderingTree } = context;
   if (!renderingTree) {
     return;
   }
 
-  const clickVector = new Vector(event.x, event.y);
+  const mouseVector = new Vector(event.x, event.y);
 
-  const { in: clickInRenderingDataList } = getInOutRenderingDataLists(
-    renderingTree,
-    clickVector,
-  );
+  const { in: inRenderingDataList, out: outRenderingDataList } =
+    getInOutRenderingDataLists(renderingTree, mouseVector);
 
-  clickInRenderingDataList.forEach((x) => {
-    const handler = x[handlerName];
+  (
+    [
+      [inRenderingDataList, inHandlerName],
+      [outRenderingDataList, outHandlerName],
+    ] as const
+  ).forEach(([renderingDataList, handlerName]) => {
+    if (!handlerName) {
+      return;
+    }
+    invokeHandler(renderingDataList, event, handlerName);
+  });
+}
+
+function invokeHandler(
+  renderingDataWithVectors: RenderingDataWithVector[],
+  event: MouseEventExceptTranslated,
+  handlerName: EventHandlerNames<MouseEvent>,
+): void {
+  renderingDataWithVectors.forEach(({ renderingData, translated }) => {
+    const handler = renderingData[handlerName];
     if (!handler) {
       return;
     }
-    handler(event);
+    handler({
+      ...event,
+      translated,
+    });
   });
 }

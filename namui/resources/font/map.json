@@ -1,3 +1,11 @@
 {
-    "ko": "ko/NotoSansKR-Medium.otf"
+    "ko": {
+        "100": "ko/NotoSansKR-Thin.otf",
+        "300": "ko/NotoSansKR-Light.otf",
+        "350": "ko/NotoSansKR-DemiLight.otf",
+        "400": "ko/NotoSansKR-Regular.otf",
+        "500": "ko/NotoSansKR-Medium.otf",
+        "700": "ko/NotoSansKR-Bold.otf",
+        "900": "ko/NotoSansKR-Black.otf"
+    }
 }

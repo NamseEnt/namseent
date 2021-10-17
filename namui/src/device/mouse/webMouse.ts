@@ -1,7 +1,9 @@
 import { engineInternal } from "../../engine/engine";
-import { MouseEvent as NamuiMouseEvent } from "../../type";
+import { MouseEventExceptTranslated } from "../../type";
 
-export function toNamuiMouseEvent(mouseEvent: MouseEvent): NamuiMouseEvent {
+export function toNamuiMouseEvent(
+  mouseEvent: MouseEvent,
+): MouseEventExceptTranslated {
   return {
     x: mouseEvent.offsetX,
     y: mouseEvent.offsetY,

@@ -10,8 +10,15 @@ export async function getFontFileUrl(
   typefaceType: TypefaceType,
 ): Promise<string> {
   const fontFileUrlMap = await fontFileUrlMapPromise;
-  if (!fontFileUrlMap[typefaceType.language]) {
+  const languageFontWeightFilePathMap = fontFileUrlMap[typefaceType.language];
+  if (!languageFontWeightFilePathMap) {
     throw new Error(`No font file URL for ${typefaceType.language}`);
   }
-  return `${baseUrl}/${fontFileUrlMap[typefaceType.language]}`;
+  const filePath = languageFontWeightFilePathMap[typefaceType.fontWeight];
+  if (!filePath) {
+    throw new Error(
+      `No font file URL for ${typefaceType.fontWeight} in ${typefaceType.language}`,
+    );
+  }
+  return `${baseUrl}/${filePath}`;
 }

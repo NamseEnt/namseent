@@ -2,7 +2,22 @@ import { Font, FontMgr } from "canvaskit-wasm";
 import { Language } from "../l10n/type";
 import { TypefaceStorage } from "./TypefaceStorage";
 
-export type FontType = { serif: boolean; size: number; language: Language };
+// TODO: Support fallback (https://developer.mozilla.org/ko/docs/Web/CSS/font-weight)
+export const FontWeight = {
+  thin: 100,
+  light: 300,
+  regular: 400,
+  medium: 500,
+  bold: 700,
+  black: 900,
+} as const;
+export type FontWeight = typeof FontWeight[keyof typeof FontWeight];
+export type FontType = {
+  serif: boolean;
+  size: number;
+  language: Language;
+  fontWeight: FontWeight;
+};
 export interface IFontStorage {
   getFont(option: FontType): Font;
   dispose(): void;
@@ -31,6 +46,7 @@ export class FontStorage implements IFontStorage {
     const typeface = this.typefaceStorage.getTypeface({
       language: fontType.language,
       serif: fontType.serif,
+      fontWeight: fontType.fontWeight,
     });
     return new CanvasKit.Font(typeface, fontType.size);
   }

@@ -1,15 +1,20 @@
 import { Vector, RenderingData, DrawCommand, RenderingTree } from "../../type";
 import { visitRenderingTreeWithVector } from "./visitRenderingTree";
 
+export type RenderingDataWithVector = {
+  renderingData: RenderingData;
+  translated: Vector;
+};
+
 export function getInOutRenderingDataLists(
   renderingTree: RenderingTree,
   vector: Vector,
 ): {
-  in: RenderingData[];
-  out: RenderingData[];
+  in: RenderingDataWithVector[];
+  out: RenderingDataWithVector[];
 } {
-  const vectorInRenderingDataList: RenderingData[] = [];
-  const vectorOutRenderingDataList: RenderingData[] = [];
+  const vectorInRenderingDataList: RenderingDataWithVector[] = [];
+  const vectorOutRenderingDataList: RenderingDataWithVector[] = [];
 
   visitRenderingTreeWithVector(renderingTree, vector, (node, localVector) => {
     if (!node || node instanceof Array || "type" in node) {
@@ -22,7 +27,10 @@ export function getInOutRenderingDataLists(
       ? vectorInRenderingDataList
       : vectorOutRenderingDataList;
 
-    listToPush.push(renderingData);
+    listToPush.push({
+      renderingData,
+      translated: localVector,
+    });
   });
 
   return {
@@ -72,7 +80,7 @@ function isVectorInDrawCommand(
     }
   }
 
-  console.log(
+  console.debug(
     "this type of drawCommand is not supported yet for checking vector being in",
     drawCommand,
   );

@@ -35,9 +35,12 @@ export function renderTrackBody(
         },
       },
       onMouseUp(event) {
-        console.log("onMouseUp", event);
         if (event.button === MouseButton.right) {
+          const clickMs =
+            state.layout.startMs + event.translated.x * state.layout.msPerPixel;
           state.contextMenu = {
+            type: "trackBody",
+            clickMs,
             x: event.x,
             y: event.y,
             trackId: props.track.id,

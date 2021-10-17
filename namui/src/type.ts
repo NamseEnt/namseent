@@ -118,10 +118,16 @@ export enum MouseButton {
 export type MouseEvent = {
   x: number;
   y: number;
+  translated: {
+    x: number;
+    y: number;
+  };
   button: MouseButton;
   isLeftButtonDown: boolean;
   isRightButtonDown: boolean;
 };
+
+export type MouseEventExceptTranslated = Omit<MouseEvent, "translated">;
 
 export type WheelEvent = {
   deltaX: number;

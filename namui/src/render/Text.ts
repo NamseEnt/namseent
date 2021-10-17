@@ -1,5 +1,6 @@
 import { Color, Font } from "canvaskit-wasm";
 import { getLeftInAlign, getBottomOfBaseline } from "../draw/drawText";
+import { FontType } from "../font/FontStorage";
 import { Language } from "../l10n/type";
 import {
   DrawCommand,
@@ -16,11 +17,7 @@ export type TextParam = {
   y: number;
   align: TextAlign;
   baseline: TextBaseline;
-  fontType: {
-    serif: boolean;
-    size: number;
-    language: Language;
-  };
+  fontType: FontType;
   style: {
     border?: {
       width: number;

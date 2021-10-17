@@ -24,7 +24,15 @@ export class WebMouseEventManager
     this.eventNameEventListenerTuples = eventNames.map((eventName) => {
       const callbacks = this.eventNameCallbacksMap[eventName];
       const eventListener = (event: MouseEvent) => {
-        callbacks.forEach((callback) => callback(toNamuiMouseEvent(event)));
+        const namuiEventExceptTranslated = toNamuiMouseEvent(event);
+        const namuiEvent = {
+          ...namuiEventExceptTranslated,
+          translated: {
+            x: namuiEventExceptTranslated.x,
+            y: namuiEventExceptTranslated.y,
+          },
+        };
+        callbacks.forEach((callback) => callback(namuiEvent));
       };
       window.addEventListener(eventName, eventListener);
       return { eventName, eventListener };

@@ -1,3 +1,4 @@
+export { FontWeight } from "./font/FontStorage";
 export { Clip } from "./render/Clip";
 export { engine } from "./engine/engine";
 export { Rect } from "./render/Rect";

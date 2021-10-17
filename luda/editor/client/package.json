@@ -7,6 +7,7 @@
   "dependencies": {
     "luda-editor-common": "workspace:^1.0.0",
     "namui": "workspace:^1.0.0",
+    "nanoid": "^3.1.28",
     "typescript": "workspace:^4.4.3"
   }
 }

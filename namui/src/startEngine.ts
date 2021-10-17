@@ -9,14 +9,10 @@ import { getSavedState } from "./build/hotReload/getSavedState";
 import { setHotReload } from "./build/hotReload/hotReload";
 import { isHotReloaded } from "./build/hotReload/isHotReloaded";
 import { ImageLoader } from "./image/ImageLoader";
-import { handleMouseClick } from "./device/mouse/handleMouseClick";
 import { EngineContext, Render } from "./type";
 import { BuildErrorNotifier } from "./build/BuildErrorNotifier";
 import { WebTextInputController } from "./textInput/WebTextInputController";
-import { handleMouseInOut } from "./device/mouse/handleMouseInOut";
 import { webEngine } from "./engine/webEngine";
-import { MouseButtonManager } from "./device/mouse/mouseButton/MouseButtonManager";
-import { handleMouseDown } from "./device/mouse/handleMouseDown";
 import { toNamuiMouseEvent } from "./device/mouse/webMouse";
 import { engineInternal } from "./engine/engine";
 import { handleMouseEvent } from "./device/mouse/handleMouseEvent";
@@ -93,13 +89,18 @@ export async function startEngine<TState>(
 
     // TODO : Move this into webEngine
     canvasElement.onclick = (event) => {
-      handleMouseClick(engineContext, toNamuiMouseEvent(event));
+      handleMouseEvent(
+        engineContext,
+        toNamuiMouseEvent(event),
+        "onClick",
+        "onClickOut",
+      );
     };
     canvasElement.onmousemove = (event) => {
-      handleMouseInOut(engineContext, toNamuiMouseEvent(event));
+      handleMouseEvent(engineContext, toNamuiMouseEvent(event), "onMouseMove");
     };
     canvasElement.onmousedown = (event) => {
-      handleMouseDown(engineContext, toNamuiMouseEvent(event));
+      handleMouseEvent(engineContext, toNamuiMouseEvent(event), "onMouseDown");
     };
     canvasElement.onmouseup = (event) => {
       handleMouseEvent(engineContext, toNamuiMouseEvent(event), "onMouseUp");

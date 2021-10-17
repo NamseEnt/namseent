@@ -9,6 +9,7 @@ import {
   Image,
   Translate,
   ImageFit,
+  FontWeight,
 } from "namui";
 import fileSystem from "../fileSystem/fileSystem";
 import { ImageEditorState } from "./type";
@@ -86,6 +87,7 @@ function renderImageListHeader({
           serif: false,
           language: Language.ko,
           size: 20,
+          fontWeight: FontWeight.regular,
         },
         style: {
           color: ColorUtil.White,

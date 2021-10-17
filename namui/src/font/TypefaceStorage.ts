@@ -1,7 +1,12 @@
-import { FontMgr, Typeface } from "canvaskit-wasm";
+import { Typeface } from "canvaskit-wasm";
 import { Language } from "../l10n/type";
+import { FontWeight } from "./FontStorage";
 
-export type TypefaceType = { serif: boolean; language: Language };
+export type TypefaceType = {
+  serif: boolean;
+  language: Language;
+  fontWeight: FontWeight;
+};
 export interface ITypefaceStorage {
   getTypeface(option: TypefaceType): Typeface;
   loadTypeface(option: TypefaceType, url: string): Promise<void>;
@@ -37,7 +42,11 @@ export class TypefaceStorage implements ITypefaceStorage {
     return typeface;
   }
 
-  private toKey(TypefaceType: TypefaceType): string {
-    return `${TypefaceType.serif ? "serif" : "sans"}-${TypefaceType.language}`;
+  private toKey(typefaceType: TypefaceType): string {
+    return [
+      typefaceType.serif ? "serif" : "sans",
+      typefaceType.language,
+      typefaceType.fontWeight,
+    ].join("-");
   }
 }
