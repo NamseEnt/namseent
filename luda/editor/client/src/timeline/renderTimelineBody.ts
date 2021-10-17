@@ -31,7 +31,53 @@ export function renderTimelineBody(
     );
   });
 
-  const settingZoom = AfterDraw(({ translated }) => {
+  return [
+    Rect({
+      x: 0,
+      y: 0,
+      width: props.width,
+      height: props.height,
+      style: {
+        fill: {
+          color: ColorUtil.Color01(0.4, 0.4, 0.4),
+        },
+        stroke: {
+          color: ColorUtil.Black,
+          width: 1,
+        },
+      },
+    }),
+    Clip(
+      {
+        path: new CanvasKit.Path().addRect(
+          CanvasKit.XYWHRect(0, 0, props.width, props.height),
+        ),
+        clipOp: CanvasKit.ClipOp.Intersect,
+      },
+      trackBodies,
+    ),
+    setWheelZoomHandler(state),
+    setWheelMoveHandler(state),
+  ];
+}
+
+function setWheelMoveHandler(state: TimelineState): RenderingTree {
+  engine.wheel.onWheel(({ deltaY }) => {
+    if (!engine.keyboard.isKeyPress(Key.Shift)) {
+      return;
+    }
+
+    const { msPerPixel, startMs } = state.layout;
+
+    const nextStartMs = startMs + deltaY * msPerPixel;
+
+    state.layout.startMs = nextStartMs;
+  });
+  return;
+}
+
+function setWheelZoomHandler(state: TimelineState): RenderingTree {
+  return AfterDraw(({ translated }) => {
     const timelineBodyGlobalLeft = translated.x;
     engine.wheel.onWheel(({ deltaY }) => {
       if (!engine.keyboard.isKeyPress(Key.Alt)) {
@@ -69,32 +115,4 @@ export function renderTimelineBody(
       state.layout.startMs = nextStartMs;
     });
   });
-
-  return [
-    Rect({
-      x: 0,
-      y: 0,
-      width: props.width,
-      height: props.height,
-      style: {
-        fill: {
-          color: ColorUtil.Color01(0.4, 0.4, 0.4),
-        },
-        stroke: {
-          color: ColorUtil.Black,
-          width: 1,
-        },
-      },
-    }),
-    Clip(
-      {
-        path: new CanvasKit.Path().addRect(
-          CanvasKit.XYWHRect(0, 0, props.width, props.height),
-        ),
-        clipOp: CanvasKit.ClipOp.Intersect,
-      },
-      trackBodies,
-    ),
-    settingZoom,
-  ];
 }
