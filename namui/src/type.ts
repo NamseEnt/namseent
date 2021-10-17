@@ -27,7 +27,6 @@ declare global {
   var buildServerConnection: BuildServerConnection;
   var buildErrorNotifier: BuildErrorNotifier;
   var textInputController: ITextInputController;
-  var mouseButtonManager: IMouseButtonManager;
   interface Array<T> {
     remove(o: T): void;
   }
@@ -110,9 +109,16 @@ export type DrawCall = {
   commands: DrawCommand[];
 };
 
+export enum MouseButton {
+  left = 0,
+  center = 1,
+  right = 2,
+}
+
 export type MouseEvent = {
   x: number;
   y: number;
+  button: MouseButton;
   isLeftButtonDown: boolean;
   isRightButtonDown: boolean;
 };
@@ -133,6 +139,7 @@ export type RenderingData = {
   onMouseOut?: MouseEventCallback;
   onMouseMove?: MouseEventCallback; // TODO
   onMouseDown?: MouseEventCallback;
+  onMouseUp?: MouseEventCallback;
 };
 
 export type MakeParagraph = (

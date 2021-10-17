@@ -18,6 +18,7 @@ startEngine(
       },
       tracks: [
         {
+          id: "track1",
           clips: [
             {
               id: "1-1",
@@ -37,6 +38,7 @@ startEngine(
           ],
         },
         {
+          id: "track2",
           clips: [
             {
               id: "2-1",

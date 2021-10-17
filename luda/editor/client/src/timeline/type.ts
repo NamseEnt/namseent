@@ -11,6 +11,11 @@ export type TimelineState = {
   tracks: Track[];
   actionState?: ResizeClip | DragClip;
   clipIdMouseIn?: string;
+  contextMenu?: {
+    x: number;
+    y: number;
+    trackId: string;
+  };
 };
 
 export type ResizeClip = {
@@ -25,6 +30,7 @@ export type DragClip = {
 };
 
 export type Track = {
+  id: string;
   clips: Clip[];
 };
 

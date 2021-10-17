@@ -1,14 +1,36 @@
+import { IManagerInternal } from "../../IManager";
 import { IMouseButtonManager } from "./IMouseButtonManager";
 
-export class MouseButtonManager implements IMouseButtonManager {
+export class MouseButtonManager
+  implements IMouseButtonManager, IManagerInternal
+{
   private readonly mouseDownButtonSet: Set<number> = new Set();
+  private readonly eventListenerTuples = [
+    [
+      "mousedown",
+      (event: MouseEvent) => {
+        this.mouseDownButtonSet.add(event.button);
+      },
+    ],
+    [
+      "mouseup",
+      (event: MouseEvent) => {
+        this.mouseDownButtonSet.delete(event.button);
+      },
+    ],
+  ] as const;
 
   constructor() {
-    document.body.addEventListener("mousedown", (event) => {
-      this.mouseDownButtonSet.add(event.button);
+    this.eventListenerTuples.forEach(([eventName, listener]) => {
+      document.addEventListener(eventName, listener);
     });
-    document.body.addEventListener("mouseup", (event) => {
-      this.mouseDownButtonSet.delete(event.button);
+  }
+  resetBeforeRender(): void {
+    return;
+  }
+  destroy(): void {
+    this.eventListenerTuples.forEach(([eventName, listener]) => {
+      document.removeEventListener(eventName, listener);
     });
   }
 
@@ -16,6 +38,6 @@ export class MouseButtonManager implements IMouseButtonManager {
     return this.mouseDownButtonSet.has(0);
   }
   public get isRightMouseButtonDown(): boolean {
-    return this.mouseDownButtonSet.has(1);
+    return this.mouseDownButtonSet.has(2);
   }
 }

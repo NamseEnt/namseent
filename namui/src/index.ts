@@ -16,6 +16,7 @@ export {
   TextBaseline,
   ImageFit,
   Cursor,
+  MouseButton,
 } from "./type";
 export { Selection } from "./textInput/ITextInputController";
 export { Code } from "./device/keyboard/Code";

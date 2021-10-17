@@ -19,6 +19,7 @@ import { MouseButtonManager } from "./device/mouse/mouseButton/MouseButtonManage
 import { handleMouseDown } from "./device/mouse/handleMouseDown";
 import { toNamuiMouseEvent } from "./device/mouse/webMouse";
 import { engineInternal } from "./engine/engine";
+import { handleMouseEvent } from "./device/mouse/handleMouseEvent";
 
 // TODO : Put everything in globalThis.namui
 globalThis.typefaceStorage ??= new TypefaceStorage();
@@ -28,7 +29,6 @@ globalThis.buildErrorNotifier ??= new BuildErrorNotifier(
   globalThis.buildServerConnection,
 );
 globalThis.textInputController ??= new WebTextInputController();
-globalThis.mouseButtonManager ??= new MouseButtonManager();
 
 export async function startEngine<TState>(
   state: TState,
@@ -101,7 +101,13 @@ export async function startEngine<TState>(
     canvasElement.onmousedown = (event) => {
       handleMouseDown(engineContext, toNamuiMouseEvent(event));
     };
+    canvasElement.onmouseup = (event) => {
+      handleMouseEvent(engineContext, toNamuiMouseEvent(event), "onMouseUp");
+    };
     canvasElement.onwheel = (event) => {};
+    canvasElement.oncontextmenu = (event) => {
+      event.preventDefault();
+    };
 
     requestAnimationFrame(() => {
       onAnimationFrame(engineContext);

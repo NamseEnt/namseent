@@ -13,6 +13,7 @@ export function Rect({
   onMouseOut,
   onMouseMove,
   onMouseDown,
+  onMouseUp,
 }: {
   x: number;
   y: number;
@@ -33,6 +34,7 @@ export function Rect({
   onMouseOut?: MouseEventCallback;
   onMouseMove?: MouseEventCallback;
   onMouseDown?: MouseEventCallback;
+  onMouseUp?: MouseEventCallback;
 }): RenderingTree {
   const borderRectPath = new CanvasKit.Path().addRect(
     CanvasKit.XYWHRect(x, y, width, height),
@@ -79,5 +81,6 @@ export function Rect({
     onMouseOut,
     onMouseMove,
     onMouseDown,
+    onMouseUp,
   };
 }

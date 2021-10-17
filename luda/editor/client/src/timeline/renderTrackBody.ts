@@ -1,4 +1,11 @@
-import { ColorUtil, Rect, RenderingTree } from "namui";
+import {
+  AfterDraw,
+  ColorUtil,
+  engine,
+  MouseButton,
+  Rect,
+  RenderingTree,
+} from "namui";
 import { Track, TimelineState } from "./type";
 import { renderClip } from "./renderClip";
 
@@ -11,6 +18,7 @@ export function renderTrackBody(
   state: TimelineState,
 ): RenderingTree {
   const { clips } = props.track;
+
   return [
     Rect({
       x: 0,
@@ -25,6 +33,16 @@ export function renderTrackBody(
           color: ColorUtil.Black,
           width: 1,
         },
+      },
+      onMouseUp(event) {
+        console.log("onMouseUp", event);
+        if (event.button === MouseButton.right) {
+          state.contextMenu = {
+            x: event.x,
+            y: event.y,
+            trackId: props.track.id,
+          };
+        }
       },
     }),
     clips.map((clip) => {
