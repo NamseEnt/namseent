@@ -11,7 +11,6 @@ export function Rect({
   onClickOut,
   onMouseIn,
   onMouseOut,
-  onMouseMove,
   onMouseDown,
   onMouseUp,
 }: {
@@ -32,7 +31,6 @@ export function Rect({
   onClickOut?: MouseEventCallback;
   onMouseIn?: MouseEventCallback;
   onMouseOut?: MouseEventCallback;
-  onMouseMove?: MouseEventCallback;
   onMouseDown?: MouseEventCallback;
   onMouseUp?: MouseEventCallback;
 }): RenderingTree {
@@ -79,7 +77,6 @@ export function Rect({
     onClickOut,
     onMouseIn,
     onMouseOut,
-    onMouseMove,
     onMouseDown,
     onMouseUp,
   };

@@ -97,7 +97,12 @@ export async function startEngine<TState>(
       );
     };
     canvasElement.onmousemove = (event) => {
-      handleMouseEvent(engineContext, toNamuiMouseEvent(event), "onMouseMove");
+      handleMouseEvent(
+        engineContext,
+        toNamuiMouseEvent(event),
+        "onMouseIn",
+        "onMouseOut",
+      );
     };
     canvasElement.onmousedown = (event) => {
       handleMouseEvent(engineContext, toNamuiMouseEvent(event), "onMouseDown");
