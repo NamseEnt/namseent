@@ -9,10 +9,11 @@ import {
   TextBaseline,
   Translate,
 } from "namui";
-import { TimelineState } from "./type";
+import { ContextMenu, TimelineState } from "../type";
 import { nanoid } from "nanoid";
 
 type ContextMenuItem = {
+  id: string;
   label: string;
   onClick: () => void;
 };
@@ -24,6 +25,7 @@ export function renderContextMenu(state: TimelineState): RenderingTree {
   }
   const contextMenuItems: ContextMenuItem[] = [
     {
+      id: "0",
       label: "클립 추가하기",
       onClick: () => {
         const track = state.tracks.find(
@@ -50,7 +52,9 @@ export function renderContextMenu(state: TimelineState): RenderingTree {
         renderContextMenuItem({
           contextMenuItem,
           state,
+          contextMenu,
           menuItemHeight,
+          menuItemWidth: menuWidth,
         }),
       ]),
   );
@@ -68,7 +72,7 @@ export function renderContextMenu(state: TimelineState): RenderingTree {
           },
         },
         onClickOut() {
-          state.contextMenu = undefined;
+          closeContextMenu(state);
         },
       }),
       renderingContextMenuItems,
@@ -78,26 +82,62 @@ export function renderContextMenu(state: TimelineState): RenderingTree {
 function renderContextMenuItem({
   contextMenuItem,
   state,
+  contextMenu,
   menuItemHeight,
+  menuItemWidth,
 }: {
   contextMenuItem: ContextMenuItem;
   state: TimelineState;
+  contextMenu: ContextMenu;
   menuItemHeight: number;
+  menuItemWidth: number;
 }): RenderingTree {
-  return Text({
-    x: 5,
-    y: 0,
-    text: contextMenuItem.label,
-    align: TextAlign.left,
-    baseline: TextBaseline.top,
-    style: {
-      color: ColorUtil.White,
-    },
-    fontType: {
-      language: Language.ko,
-      serif: false,
-      size: 12,
-      fontWeight: FontWeight.regular,
-    },
-  });
+  const isMouseInItem = contextMenu.mouseInItemId === contextMenuItem.id;
+  return [
+    Rect({
+      x: 0,
+      y: 0,
+      width: menuItemWidth,
+      height: menuItemHeight,
+      style: {
+        fill: {
+          color: isMouseInItem
+            ? ColorUtil.Color0255(41, 42, 128)
+            : ColorUtil.Transparent,
+        },
+      },
+      onMouseIn() {
+        contextMenu.mouseInItemId = contextMenuItem.id;
+      },
+      onMouseOut() {
+        if (contextMenu.mouseInItemId === contextMenuItem.id) {
+          contextMenu.mouseInItemId = undefined;
+        }
+      },
+      onClick() {
+        contextMenuItem.onClick();
+        closeContextMenu(state);
+      },
+    }),
+    Text({
+      x: 5,
+      y: 0,
+      text: contextMenuItem.label,
+      align: TextAlign.left,
+      baseline: TextBaseline.top,
+      style: {
+        color: ColorUtil.White,
+      },
+      fontType: {
+        language: Language.ko,
+        serif: false,
+        size: 12,
+        fontWeight: FontWeight.regular,
+      },
+    }),
+  ];
+}
+
+function closeContextMenu(state: TimelineState): void {
+  state.contextMenu = undefined;
 }
