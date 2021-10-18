@@ -3,50 +3,58 @@ import { Code } from "./Code";
 import { IKeyboardManager } from "./IKeyboardManager";
 import { Key } from "./Key";
 
-// [key in keyof WindowEventMap]?: (event: WindowEventMap[key]) => void;
-
 export class WebKeyboardManager implements IKeyboardManager, IManagerInternal {
   private readonly pressingCodeSet: Set<Code> = new Set();
   private readonly pressingKeySet: Set<Key> = new Set();
-  private readonly eventNameAndListenerTuples = [
-    [
-      "keydown",
-      (event: KeyboardEvent) => {
-        const { code, key } = event;
-        if (code in Code) {
-          this.pressingCodeSet.add(code as Code);
-        }
-        if (key in Key) {
-          this.pressingKeySet.add(key as Key);
-        }
+  private readonly eventNameAndListenerTuples: {
+    [key in keyof DocumentEventMap]?: (event: DocumentEventMap[key]) => void;
+  } = {
+    keydown: (event: KeyboardEvent) => {
+      const { code, key } = event;
+      if (code in Code) {
+        this.pressingCodeSet.add(code as Code);
+      }
+      if (key in Key) {
+        this.pressingKeySet.add(key as Key);
+      }
 
-        if (key === Key.Alt) {
-          event.preventDefault();
-        }
-      },
-    ],
-    [
-      "keyup",
-      (event: KeyboardEvent) => {
-        const { code, key } = event;
-        if (code in Code) {
-          this.pressingCodeSet.delete(code as Code);
-        }
-        if (key in Key) {
-          this.pressingKeySet.delete(key as Key);
-        }
-      },
-    ],
-  ] as const;
+      if (key === Key.Alt) {
+        event.preventDefault();
+      }
+    },
+    keyup: (event: KeyboardEvent) => {
+      const { code, key } = event;
+      if (code in Code) {
+        this.pressingCodeSet.delete(code as Code);
+      }
+      if (key in Key) {
+        this.pressingKeySet.delete(key as Key);
+      }
+    },
+    blur: (event: FocusEvent) => {
+      this.pressingCodeSet.clear();
+      this.pressingKeySet.clear();
+    },
+    visibilitychange: () => {
+      if (document.hidden) {
+        this.pressingCodeSet.clear();
+        this.pressingKeySet.clear();
+      }
+    },
+  };
   constructor() {
-    this.eventNameAndListenerTuples.forEach(([eventName, listener]) => {
-      document.addEventListener(eventName, listener);
-    });
+    Object.entries(this.eventNameAndListenerTuples).forEach(
+      ([eventName, listener]) => {
+        window.addEventListener(eventName, listener as any);
+      },
+    );
   }
   destroy(): void {
-    this.eventNameAndListenerTuples.forEach(([eventName, listener]) => {
-      document.removeEventListener(eventName, listener);
-    });
+    Object.entries(this.eventNameAndListenerTuples).forEach(
+      ([eventName, listener]) => {
+        window.removeEventListener(eventName, listener as any);
+      },
+    );
   }
   isKeyPress(key: Key): boolean {
     return this.pressingKeySet.has(key);
