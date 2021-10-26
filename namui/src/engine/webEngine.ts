@@ -1,3 +1,4 @@
+import { IManagerInternal } from "../device/IManager";
 import { WebKeyboardManager } from "../device/keyboard/WebKeyboardManager";
 import { MouseButtonManager } from "../device/mouse/mouseButton/MouseButtonManager";
 import { WebMouseEventManager } from "../device/mouse/mouseEvent/WebMouseEventManager";
@@ -8,27 +9,7 @@ import { WebWheelManager } from "../device/wheel/WebWheelManager";
 import { WebTextInputManager } from "../textInput/WebTextInputManager";
 import { IEngineInternal } from "./IEngine";
 
-export const webEngine: IEngineInternal = {
-  resetBeforeRender() {
-    webEngine.mousePointer.resetBeforeRender();
-    webEngine.mousePosition.resetBeforeRender();
-    webEngine.mouseEvent.resetBeforeRender();
-    webEngine.screen.resetBeforeRender();
-    webEngine.wheel.resetBeforeRender();
-    webEngine.keyboard.resetBeforeRender();
-    webEngine.mouseButton.resetBeforeRender();
-    webEngine.textInput.resetBeforeRender();
-  },
-  destroy() {
-    webEngine.mousePointer.destroy();
-    webEngine.mousePosition.destroy();
-    webEngine.mouseEvent.destroy();
-    webEngine.screen.destroy();
-    webEngine.wheel.destroy();
-    webEngine.keyboard.destroy();
-    webEngine.mouseButton.destroy();
-    webEngine.textInput.destroy();
-  },
+const managerMap = {
   mousePointer: new WebMousePointerManager(),
   mousePosition: new WebMousePositionManager(),
   mouseEvent: new WebMouseEventManager(),
@@ -37,4 +18,19 @@ export const webEngine: IEngineInternal = {
   keyboard: new WebKeyboardManager(),
   mouseButton: new MouseButtonManager(),
   textInput: new WebTextInputManager(),
+} as const;
+
+const managers = Object.values(managerMap) as IManagerInternal[];
+
+export const webEngine: IEngineInternal = {
+  resetBeforeRender() {
+    managers.forEach((manager) => manager.resetBeforeRender?.());
+  },
+  destroy() {
+    managers.forEach((manager) => manager.destroy());
+  },
+  afterRender() {
+    managers.forEach((manager) => manager.afterRender?.());
+  },
+  ...managerMap,
 };

@@ -147,10 +147,13 @@ function onAnimationFrame<TState>(engineContext: EngineContext<TState>): void {
     engineContext.deleteGarbages();
 
     // Phase 0. Reset Engine
-    webEngine.resetBeforeRender();
+    webEngine.resetBeforeRender?.();
 
     // Phase 1. Render
     const renderingTree = engineContext.render(engineContext.state);
+
+    // Phase 2. Post Render
+    webEngine.afterRender?.();
 
     // Phase 2. Draw
     draw(engineContext, renderingTree);

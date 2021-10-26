@@ -1,4 +1,5 @@
 export interface IManagerInternal {
-  resetBeforeRender(): void;
+  resetBeforeRender?: () => void;
   destroy(): void;
+  afterRender?: () => void;
 }
