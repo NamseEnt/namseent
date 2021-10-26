@@ -21,6 +21,6 @@ export {
   Vector,
   XywhRect,
 } from "./type";
-export { Selection } from "./textInput/ITextInputController";
+export { Selection } from "./textInput/ITextInputManager";
 export { Code } from "./device/keyboard/Code";
 export { Key } from "./device/keyboard/Key";

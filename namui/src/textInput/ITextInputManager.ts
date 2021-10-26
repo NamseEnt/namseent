@@ -1,6 +1,6 @@
-export interface ITextInputController {
+export interface ITextInputManager {
   updateSelection(selection: Selection | undefined): void;
-  setFocus(text: string, onChange: OnTextInputChange): void;
+  setFocus(param: { text: string; onChange: OnTextInputChange }): void;
   outFocus(): void;
 }
 

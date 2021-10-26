@@ -10,7 +10,7 @@ import { Rect } from "../Rect";
 import {
   OnTextInputChange,
   Selection,
-} from "../../textInput/ITextInputController";
+} from "../../textInput/ITextInputManager";
 import { engine, Translate } from "../..";
 import { FontType } from "../../font/FontStorage";
 import { drawTextsDividedBySelection } from "./drawTextsDividedBySelection";
@@ -56,10 +56,13 @@ export function TextInput(param: {
 }): RenderingTree {
   // TODO : Update selection by param.
   if (param.focus) {
-    globalThis.textInputController.setFocus(param.text, param.onChange);
-    globalThis.textInputController.updateSelection(param.selection);
+    engine.textInput.setFocus({
+      text: param.text,
+      onChange: param.onChange,
+    });
+    engine.textInput.updateSelection(param.selection);
   } else {
-    globalThis.textInputController.outFocus();
+    engine.textInput.outFocus();
   }
 
   const onClick = (event: MouseEvent) => {

@@ -1,6 +1,6 @@
 import { RenderingTree, TextAlign, TextBaseline } from "../../type";
 import { Rect } from "../Rect";
-import { Selection } from "../../textInput/ITextInputController";
+import { Selection } from "../../textInput/ITextInputManager";
 import { ColorUtil } from "../..";
 import { FontType } from "../../font/FontStorage";
 import { Font } from "canvaskit-wasm";

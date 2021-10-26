@@ -6,6 +6,7 @@ import { IMousePointerManager } from "../device/mouse/mousePointer/IMousePointer
 import { IMousePositionManager } from "../device/mouse/mousePosition/IMousePositionManager";
 import { IScreenManager } from "../device/screen/IScreenManager";
 import { IWheelManager } from "../device/wheel/IWheelManager";
+import { ITextInputManager } from "../textInput/ITextInputManager";
 
 export interface IEngine {
   mousePointer: IMousePointerManager;
@@ -14,6 +15,7 @@ export interface IEngine {
   screen: IScreenManager;
   wheel: IWheelManager;
   keyboard: IKeyboardManager;
+  textInput: ITextInputManager;
 }
 
 export interface IEngineInternal extends IManagerInternal {
@@ -24,4 +26,5 @@ export interface IEngineInternal extends IManagerInternal {
   screen: IScreenManager & IManagerInternal;
   wheel: IWheelManager & IManagerInternal;
   keyboard: IKeyboardManager & IManagerInternal;
+  textInput: ITextInputManager & IManagerInternal;
 }

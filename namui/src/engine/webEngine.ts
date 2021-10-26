@@ -5,6 +5,7 @@ import { WebMousePointerManager } from "../device/mouse/mousePointer/WebMousePoi
 import { WebMousePositionManager } from "../device/mouse/mousePosition/WebMousePositionManager";
 import { WebScreenManager } from "../device/screen/WebScreenManager";
 import { WebWheelManager } from "../device/wheel/WebWheelManager";
+import { WebTextInputManager } from "../textInput/WebTextInputManager";
 import { IEngineInternal } from "./IEngine";
 
 export const webEngine: IEngineInternal = {
@@ -15,6 +16,8 @@ export const webEngine: IEngineInternal = {
     webEngine.screen.resetBeforeRender();
     webEngine.wheel.resetBeforeRender();
     webEngine.keyboard.resetBeforeRender();
+    webEngine.mouseButton.resetBeforeRender();
+    webEngine.textInput.resetBeforeRender();
   },
   destroy() {
     webEngine.mousePointer.destroy();
@@ -24,6 +27,7 @@ export const webEngine: IEngineInternal = {
     webEngine.wheel.destroy();
     webEngine.keyboard.destroy();
     webEngine.mouseButton.destroy();
+    webEngine.textInput.destroy();
   },
   mousePointer: new WebMousePointerManager(),
   mousePosition: new WebMousePositionManager(),
@@ -32,4 +36,5 @@ export const webEngine: IEngineInternal = {
   wheel: new WebWheelManager(),
   keyboard: new WebKeyboardManager(),
   mouseButton: new MouseButtonManager(),
+  textInput: new WebTextInputManager(),
 };

@@ -14,9 +14,6 @@ import { BuildServerConnection } from "./build/BuildServerConnection";
 import { FontStorage } from "./font/FontStorage";
 import { TypefaceStorage } from "./font/TypefaceStorage";
 import { IImageLoader } from "./image/ImageLoader";
-import { IKeyboardManager } from "./device/keyboard/IKeyboardManager";
-import { IMouseButtonManager } from "./device/mouse/mouseButton/IMouseButtonManager";
-import { ITextInputController } from "./textInput/ITextInputController";
 import { SpecialRenderingCommand } from "./types/SpecialRenderingCommand";
 
 declare global {
@@ -26,7 +23,6 @@ declare global {
   var fontStorage: FontStorage;
   var buildServerConnection: BuildServerConnection;
   var buildErrorNotifier: BuildErrorNotifier;
-  var textInputController: ITextInputController;
   interface Array<T> {
     remove(o: T): void;
   }

@@ -1,6 +1,6 @@
 import { getTextWidth, Text, TextParam } from "../Text";
 import { RenderingTree, TextAlign } from "../../type";
-import { Selection } from "../../textInput/ITextInputController";
+import { Selection } from "../../textInput/ITextInputManager";
 import { ColorUtil } from "../..";
 
 export function drawTextsDividedBySelection(

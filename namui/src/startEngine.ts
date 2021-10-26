@@ -11,7 +11,6 @@ import { isHotReloaded } from "./build/hotReload/isHotReloaded";
 import { ImageLoader } from "./image/ImageLoader";
 import { EngineContext, Render } from "./type";
 import { BuildErrorNotifier } from "./build/BuildErrorNotifier";
-import { WebTextInputController } from "./textInput/WebTextInputController";
 import { webEngine } from "./engine/webEngine";
 import { toNamuiMouseEvent } from "./device/mouse/webMouse";
 import { engineInternal } from "./engine/engine";
@@ -24,7 +23,6 @@ globalThis.buildServerConnection ??= new BuildServerConnection();
 globalThis.buildErrorNotifier ??= new BuildErrorNotifier(
   globalThis.buildServerConnection,
 );
-globalThis.textInputController ??= new WebTextInputController();
 
 export async function startEngine<TState>(
   state: TState,
@@ -49,7 +47,6 @@ export async function startEngine<TState>(
           engineContext.surface.delete();
           engineContext.deleteGarbages();
           canvasElement.remove();
-          globalThis.textInputController.outFocus();
           engineInternal.destroy();
         },
         currentScript,
