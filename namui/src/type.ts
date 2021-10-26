@@ -212,4 +212,5 @@ export class Vector {
 export enum Cursor {
   eastWestResize = "eastWestResize",
   default = "default",
+  text = "text",
 }

@@ -20,6 +20,8 @@ export class WebMousePointerManager
         return "default";
       case Cursor.eastWestResize:
         return "ew-resize";
+      case Cursor.text:
+        return "text";
       default:
         throw new Error(`Unknown cursor ${cursor}`);
     }

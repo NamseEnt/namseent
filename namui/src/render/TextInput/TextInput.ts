@@ -11,11 +11,12 @@ import {
   OnTextInputChange,
   Selection,
 } from "../../textInput/ITextInputManager";
-import { engine, Translate } from "../..";
+import { Cursor, engine, Translate } from "../..";
 import { FontType } from "../../font/FontStorage";
 import { drawTextsDividedBySelection } from "./drawTextsDividedBySelection";
 import { getSelectionOnClick } from "./getSelection";
 import { drawSelection } from "./drawSelection";
+import { AfterDraw } from "../AfterDraw";
 
 export function TextInput(param: {
   text: string;
@@ -100,6 +101,17 @@ export function TextInput(param: {
       ...param,
       x: 0,
       y: 0,
+    }),
+    AfterDraw(({ translated }) => {
+      engine.mousePosition.mousePosition;
+      const isMouseIn =
+        translated.x <= engine.mousePosition.mousePosition.x &&
+        translated.x + param.width >= engine.mousePosition.mousePosition.x &&
+        translated.y <= engine.mousePosition.mousePosition.y &&
+        translated.y + param.height >= engine.mousePosition.mousePosition.y;
+      if (isMouseIn) {
+        engine.mousePointer.setCursor(Cursor.text);
+      }
     }),
   ]);
 }
