@@ -55,10 +55,10 @@ export function renderClip(
           width: shouldHighlight ? 3 : 1,
         },
       },
-      onMouseIn: () => {
+      onMouseMoveIn: () => {
         timelineState.clipIdMouseIn = clipState.id;
       },
-      onMouseOut: () => {
+      onMouseMoveOut: () => {
         if (timelineState.clipIdMouseIn === clipState.id) {
           timelineState.clipIdMouseIn = undefined;
         }
@@ -163,11 +163,11 @@ function renderSash(
           color: shouldHighlight ? ColorUtil.Blue : ColorUtil.Transparent,
         },
       },
-      onMouseIn: () => {
+      onMouseMoveIn: () => {
         // TODO : what if mouse is on two contiguous clips's sashes?
         clipState.mouseIn = side;
       },
-      onMouseOut: () => {
+      onMouseMoveOut: () => {
         if (clipState.mouseIn === side) {
           clipState.mouseIn = undefined;
         }

@@ -106,10 +106,10 @@ function renderContextMenuItem({
             : ColorUtil.Transparent,
         },
       },
-      onMouseIn() {
+      onMouseMoveIn() {
         contextMenu.mouseInItemId = contextMenuItem.id;
       },
-      onMouseOut() {
+      onMouseMoveOut() {
         if (contextMenu.mouseInItemId === contextMenuItem.id) {
           contextMenu.mouseInItemId = undefined;
         }

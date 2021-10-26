@@ -49,6 +49,36 @@ startEngine(
         },
       ],
     },
+    cameraAngleEditorState: {
+      layout: {
+        rect: {
+          x: 100,
+          y: 100,
+          width: 800,
+          height: 800,
+        },
+      },
+      cameraAngle: {
+        imageSourceUrl: "resources/images/피디-기본-미소.png",
+        sourceRect: {
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 100,
+        },
+        destRect: {
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 100,
+        },
+      },
+      propertyTextEditor: {
+        textInput: {
+          targetId: undefined,
+        },
+      },
+    },
   },
   render,
   {
