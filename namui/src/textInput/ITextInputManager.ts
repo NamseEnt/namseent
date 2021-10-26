@@ -1,7 +1,9 @@
 export interface ITextInputManager {
-  updateSelection(selection: Selection | undefined): void;
-  setFocus(param: { text: string; onChange: OnTextInputChange }): void;
-  outFocus(): void;
+  setFocus(param: {
+    text: string;
+    selection: Selection | undefined;
+    onChange: OnTextInputChange;
+  }): void;
 }
 
 // NOTE : Not same with Web's Selection. start would be greater than end.

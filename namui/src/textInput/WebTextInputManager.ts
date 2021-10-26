@@ -17,6 +17,15 @@ export class WebTextInputManager
       }
     | undefined = undefined;
   private isFocus: boolean = false;
+  private setFocusParam?: {
+    text: string;
+    selection: Selection | undefined;
+    onChange: OnTextInputChange;
+  };
+  private lastSetFocusParam?: {
+    text: string;
+    selection: Selection | undefined;
+  };
   private readonly eventListenerTuples = [
     [
       "mousedown",
@@ -60,7 +69,60 @@ export class WebTextInputManager
     }
   }
   resetBeforeRender(): void {
-    // nothing
+    this.setFocusParam = undefined;
+  }
+  afterRender() {
+    this.updateFocus();
+  }
+  private updateFocus() {
+    if (!this.setFocusParam) {
+      this.outFocus();
+      return;
+    }
+
+    const isSameSetFocusParam = this.checkIsSameSetFocusParam();
+    if (isSameSetFocusParam) {
+      return;
+    }
+
+    const { onChange, selection, text } = this.setFocusParam;
+    this.inputElement.focus({ preventScroll: true });
+    this.inputElement.value = text;
+    this.isFocus = true;
+    this.onChangeCallback = onChange;
+    const direction = !selection
+      ? "none"
+      : selection.start <= selection.end
+      ? "forward"
+      : "backward";
+    const min = !selection ? null : Math.min(selection.start, selection.end);
+    const max = !selection ? null : Math.max(selection.start, selection.end);
+    this.inputElement.setSelectionRange(min, max, direction);
+    this.lastSetFocusParam = {
+      text: this.setFocusParam.text,
+      selection: this.setFocusParam.selection
+        ? {
+            ...this.setFocusParam.selection,
+          }
+        : undefined,
+    };
+  }
+  private checkIsSameSetFocusParam(): boolean {
+    if (!this.setFocusParam) {
+      throw new Error("setFocusParam is undefined");
+    }
+
+    if (!this.lastSetFocusParam) {
+      return false;
+    }
+
+    return (
+      this.lastSetFocusParam.text === this.setFocusParam.text &&
+      this.lastSetFocusParam.selection?.start ===
+        this.setFocusParam.selection?.start &&
+      this.lastSetFocusParam.selection?.end ===
+        this.setFocusParam.selection?.end
+    );
   }
   destroy(): void {
     this.inputElement.remove();
@@ -69,29 +131,12 @@ export class WebTextInputManager
       document.removeEventListener(eventName, listener);
     });
   }
-  public updateSelection(selection: Selection | undefined): void {
-    this.inputElement.focus();
-    const direction = !selection
-      ? "none"
-      : selection.start <= selection.end
-      ? "forward"
-      : "backward";
-    const min = !selection ? null : Math.min(selection.start, selection.end);
-    const max = !selection ? null : Math.max(selection.start, selection.end);
-
-    this.inputElement.setSelectionRange(min, max, direction);
-  }
-  public setFocus({
-    text,
-    onChange,
-  }: {
+  public setFocus(param: {
     text: string;
+    selection: Selection | undefined;
     onChange: OnTextInputChange;
   }): void {
-    this.inputElement.focus({ preventScroll: true });
-    this.inputElement.value = text;
-    this.isFocus = true;
-    this.onChangeCallback = onChange;
+    this.setFocusParam = param;
   }
   private onChangeSomething() {
     if (!this.onChangeCallback) {
@@ -102,6 +147,14 @@ export class WebTextInputManager
       text: this.inputElement.value,
       selection,
     });
+    this.lastSetFocusParam = {
+      text: this.inputElement.value,
+      selection: selection
+        ? {
+            ...selection,
+          }
+        : undefined,
+    };
   }
   public outFocus() {
     this.isFocus = false;
@@ -111,6 +164,7 @@ export class WebTextInputManager
     this.onChangeSomething();
     this.inputElement.value = "";
     this.onChangeCallback = undefined;
+    this.lastSetFocusParam = undefined;
   }
   private getSelection(): Selection | undefined {
     if (

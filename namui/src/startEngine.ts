@@ -47,7 +47,7 @@ export async function startEngine<TState>(
           engineContext.surface.delete();
           engineContext.deleteGarbages();
           canvasElement.remove();
-          engineInternal.destroy();
+          engineInternal.destroy?.();
         },
         currentScript,
       });

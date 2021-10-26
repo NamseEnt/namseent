@@ -59,14 +59,13 @@ export function TextInput(param: {
   if (param.focus) {
     engine.textInput.setFocus({
       text: param.text,
+      selection: param.selection,
       onChange: param.onChange,
     });
-    engine.textInput.updateSelection(param.selection);
-  } else {
-    engine.textInput.outFocus();
   }
 
   const onClick = (event: MouseEvent) => {
+    param.onClick(event);
     const selection = getSelectionOnClick({
       x: event.translated.x,
       align: param.align,
@@ -80,7 +79,6 @@ export function TextInput(param: {
       text: param.text,
       selection,
     });
-    param.onClick(event);
   };
 
   return Translate({ x: param.x, y: param.y }, [

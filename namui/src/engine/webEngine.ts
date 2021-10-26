@@ -27,7 +27,7 @@ export const webEngine: IEngineInternal = {
     managers.forEach((manager) => manager.resetBeforeRender?.());
   },
   destroy() {
-    managers.forEach((manager) => manager.destroy());
+    managers.forEach((manager) => manager.destroy?.());
   },
   afterRender() {
     managers.forEach((manager) => manager.afterRender?.());
