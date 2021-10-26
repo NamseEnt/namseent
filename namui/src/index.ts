@@ -2,7 +2,7 @@ export { FontWeight } from "./font/FontStorage";
 export { Clip } from "./render/Clip";
 export { engine } from "./engine/engine";
 export { Rect } from "./render/Rect";
-export { TextInput } from "./render/TextInput";
+export { TextInput } from "./render/TextInput/TextInput";
 export { Translate } from "./render/Translate";
 export { Image } from "./render/Image";
 export { Text } from "./render/Text";
