@@ -18,6 +18,8 @@ export {
   ImageFit,
   Cursor,
   MouseButton,
+  Vector,
+  XywhRect,
 } from "./type";
 export { Selection } from "./textInput/ITextInputController";
 export { Code } from "./device/keyboard/Code";

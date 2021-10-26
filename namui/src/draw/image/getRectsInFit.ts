@@ -1,5 +1,5 @@
 import { InputRect } from "canvaskit-wasm";
-import { ImageFit, XYWHRect } from "../../type";
+import { ImageFit, XywhRect } from "../../type";
 
 export function getRectsInFit({
   fit,
@@ -18,7 +18,7 @@ export function getRectsInFit({
   srcRect: InputRect;
   destRect: InputRect;
 } {
-  const { srcRect, destRect } = getXYWHRectsInFit({
+  const { srcRect, destRect } = getXywhRectsInFit({
     fit,
     imageSize,
     commandRect,
@@ -39,17 +39,17 @@ export function getRectsInFit({
   };
 }
 
-function getXYWHRectsInFit({
+function getXywhRectsInFit({
   fit,
   imageSize,
   commandRect,
 }: {
   fit: ImageFit;
   imageSize: { width: number; height: number };
-  commandRect: XYWHRect;
+  commandRect: XywhRect;
 }): {
-  srcRect: XYWHRect;
-  destRect: XYWHRect;
+  srcRect: XywhRect;
+  destRect: XywhRect;
 } {
   switch (fit) {
     case ImageFit.fill: {
@@ -94,12 +94,12 @@ function getXYWHRectsInFit({
       return calculateNoneFitRects({ imageSize, commandRect });
     }
     case ImageFit.scaleDown: {
-      const containFitSrcDest = getXYWHRectsInFit({
+      const containFitSrcDest = getXywhRectsInFit({
         fit: ImageFit.contain,
         imageSize,
         commandRect,
       });
-      const noneFitSrcDest = getXYWHRectsInFit({
+      const noneFitSrcDest = getXywhRectsInFit({
         fit: ImageFit.contain,
         imageSize,
         commandRect,
@@ -119,8 +119,8 @@ function calculateNoneFitRects({
   imageSize: { width: number; height: number };
   commandRect: { x: number; y: number; width: number; height: number };
 }): {
-  srcRect: XYWHRect;
-  destRect: XYWHRect;
+  srcRect: XywhRect;
+  destRect: XywhRect;
 } {
   const srcX =
     imageSize.width <= commandRect.width
@@ -163,7 +163,7 @@ function calculateContainFitDestRect({
 }: {
   imageSize: { width: number; height: number };
   commandRect: { x: number; y: number; width: number; height: number };
-}): XYWHRect {
+}): XywhRect {
   if (
     imageSize.width / imageSize.height ===
     commandRect.width / commandRect.height
@@ -206,7 +206,7 @@ function calculateCoverFitSrcRect({
 }: {
   imageSize: { width: number; height: number };
   commandRect: { x: number; y: number; width: number; height: number };
-}): XYWHRect {
+}): XywhRect {
   if (
     imageSize.width / imageSize.height ===
     commandRect.width / commandRect.height

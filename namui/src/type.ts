@@ -158,21 +158,21 @@ export type RenderingFunctionArgs = {
   makeParagraph: MakeParagraph;
 };
 
-export type XYWHRect = {
+export type XywhRect = {
   x: number;
   y: number;
   width: number;
   height: number;
 };
 
-export type LTRBRect = {
+export type LtrbRect = {
   left: number;
   top: number;
   right: number;
   bottom: number;
 };
 
-export type Rect = XYWHRect | LTRBRect;
+export type Rect = XywhRect | LtrbRect;
 
 export type RenderingTree =
   | RenderingTree[]
