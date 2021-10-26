@@ -137,8 +137,8 @@ export type RenderingData = {
   drawCalls: DrawCall[];
   onClick?: MouseEventCallback;
   onClickOut?: MouseEventCallback;
-  onMouseIn?: MouseEventCallback;
-  onMouseOut?: MouseEventCallback;
+  onMouseMoveIn?: MouseEventCallback;
+  onMouseMoveOut?: MouseEventCallback;
   onMouseDown?: MouseEventCallback;
   onMouseUp?: MouseEventCallback;
 };

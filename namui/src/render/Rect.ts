@@ -9,8 +9,8 @@ export function Rect({
   style: { stroke, fill },
   onClick,
   onClickOut,
-  onMouseIn,
-  onMouseOut,
+  onMouseMoveIn,
+  onMouseMoveOut,
   onMouseDown,
   onMouseUp,
 }: {
@@ -29,8 +29,8 @@ export function Rect({
   };
   onClick?: MouseEventCallback;
   onClickOut?: MouseEventCallback;
-  onMouseIn?: MouseEventCallback;
-  onMouseOut?: MouseEventCallback;
+  onMouseMoveIn?: MouseEventCallback;
+  onMouseMoveOut?: MouseEventCallback;
   onMouseDown?: MouseEventCallback;
   onMouseUp?: MouseEventCallback;
 }): RenderingTree {
@@ -75,8 +75,8 @@ export function Rect({
     ],
     onClick,
     onClickOut,
-    onMouseIn,
-    onMouseOut,
+    onMouseMoveIn,
+    onMouseMoveOut,
     onMouseDown,
     onMouseUp,
   };

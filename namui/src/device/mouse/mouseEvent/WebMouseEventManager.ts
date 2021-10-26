@@ -49,7 +49,7 @@ export class WebMouseEventManager
   onMouseUp(callback: MouseEventCallback): void {
     this.eventNameCallbacksMap.mouseup.add(callback);
   }
-  onMouseOut(callback: MouseEventCallback): void {
+  onMouseMoveOut(callback: MouseEventCallback): void {
     this.eventNameCallbacksMap.mouseout.add(callback);
   }
   resetBeforeRender(): void {

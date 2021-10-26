@@ -22,7 +22,7 @@ function renderRect(children?: RenderingTree): RenderingTree {
           width: 1,
         },
       },
-      onMouseIn: (event) => {
+      onMouseMoveIn: (event) => {
         console.log("hi");
       },
     }),
