@@ -18,8 +18,14 @@ export class WebMousePointerManager
     switch (cursor) {
       case Cursor.default:
         return "default";
-      case Cursor.eastWestResize:
+      case Cursor.topBottomResize:
+        return "ns-resize";
+      case Cursor.leftRightResize:
         return "ew-resize";
+      case Cursor.leftTopRightBottomResize:
+        return "nwse-resize";
+      case Cursor.rightTopLeftBottomResize:
+        return "nesw-resize";
       case Cursor.text:
         return "text";
       default:

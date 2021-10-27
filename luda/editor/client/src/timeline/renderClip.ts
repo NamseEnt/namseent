@@ -32,7 +32,7 @@ export function renderClip(
   const sashWidth = 4;
 
   if (clipState.mouseIn) {
-    engine.mousePointer.setCursor(Cursor.eastWestResize);
+    engine.mousePointer.setCursor(Cursor.leftRightResize);
   }
 
   const shouldHighlight =
