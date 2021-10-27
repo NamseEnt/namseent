@@ -153,7 +153,7 @@ function onAnimationFrame<TState>(engineContext: EngineContext<TState>): void {
     const renderingTree = engineContext.render(engineContext.state);
 
     // Phase 2. Post Render
-    webEngine.afterRender?.();
+    webEngine.afterRender?.(renderingTree);
 
     // Phase 2. Draw
     draw(engineContext, renderingTree);
