@@ -78,6 +78,9 @@ startEngine(
           targetId: undefined,
         },
       },
+      wysiwygEditor: {
+        crop: {},
+      },
     },
   },
   render,

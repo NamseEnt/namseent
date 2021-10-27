@@ -1,4 +1,4 @@
-import { Selection, XywhRect } from "namui";
+import { Selection, Vector, XywhRect } from "namui";
 
 export type CameraAngleEditorState = {
   layout: {
@@ -7,6 +7,14 @@ export type CameraAngleEditorState = {
   cameraAngle: CameraAngle;
   propertyTextEditor: {
     textInput: TextInputState;
+  };
+  wysiwygEditor: {
+    crop: {
+      dragging?: {
+        handleId: string;
+        lastMousePosition: Vector;
+      };
+    };
   };
 };
 export type CameraAngle = {
