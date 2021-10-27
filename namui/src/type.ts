@@ -139,6 +139,7 @@ export type RenderingData = {
   onClickOut?: MouseEventCallback;
   onMouseMoveIn?: MouseEventCallback;
   onMouseMoveOut?: MouseEventCallback;
+  onMouseIn?: () => void;
   onMouseDown?: MouseEventCallback;
   onMouseUp?: MouseEventCallback;
 };

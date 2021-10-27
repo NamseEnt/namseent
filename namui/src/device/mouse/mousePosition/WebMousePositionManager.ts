@@ -1,11 +1,12 @@
 import { Vector } from "../../../type";
 import { IManagerInternal } from "../../IManager";
+import { BaseMousePositionManager } from "./BaseMousePositionManager";
 import { IMousePositionManager } from "./IMousePositionManager";
 
 export class WebMousePositionManager
+  extends BaseMousePositionManager
   implements IMousePositionManager, IManagerInternal
 {
-  public mousePosition: Vector = new Vector(0, 0);
   private readonly mouseEventNames = [
     "click",
     "contextmenu",
@@ -19,6 +20,7 @@ export class WebMousePositionManager
     "mouseup",
   ] as const;
   constructor() {
+    super();
     this.onMouseEvent = this.onMouseEvent.bind(this);
 
     this.mouseEventNames.forEach((eventName) =>
