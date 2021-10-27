@@ -23,7 +23,15 @@ export namespace ColorUtil {
     }
     return Color01(clamp(r) / 255, clamp(g) / 255, clamp(b) / 255, a);
   }
-
+  export function Grayscale01(grayscale: number, a?: number): CanvasKit.Color {
+    return Color01(grayscale, grayscale, grayscale, a);
+  }
+  export function Grayscale0255(
+    grayscale: number,
+    a?: number,
+  ): CanvasKit.Color {
+    return Color0255(grayscale, grayscale, grayscale, a);
+  }
   function clamp(color0255: number) {
     return Math.round(Math.max(0, Math.min(color0255 || 0, 255)));
   }
