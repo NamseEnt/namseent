@@ -122,7 +122,7 @@ function handleActionState(
 function registerDraggingActionResetCallback(state: TimelineState): void {
   const actionResetEventRegisters = [
     (callback: () => void) => engine.mouseEvent.onMouseUp(callback),
-    (callback: () => void) => engine.mouseEvent.onMouseMoveOut(callback),
+    (callback: () => void) => engine.mouseEvent.onMouseOut(callback),
     (callback: () => void) => {
       engine.screen.onVisibilityChange((visible) => {
         if (!visible) {

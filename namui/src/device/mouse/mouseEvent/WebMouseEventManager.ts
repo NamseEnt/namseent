@@ -3,7 +3,7 @@ import { IManagerInternal } from "../../IManager";
 import { toNamuiMouseEvent } from "../webMouse";
 import { IMouseEventManager } from "./IMouseEventManager";
 
-const eventNames = ["mousedown", "mouseup", "mouseout"] as const;
+const eventNames = ["mousedown", "mouseup", "mouseout", "mousemove"] as const;
 
 export class WebMouseEventManager
   implements IMouseEventManager, IManagerInternal
@@ -14,6 +14,7 @@ export class WebMouseEventManager
     mousedown: new Set(),
     mouseup: new Set(),
     mouseout: new Set(),
+    mousemove: new Set(),
   };
   private readonly eventNameEventListenerTuples: {
     eventName: typeof eventNames[number];
@@ -49,8 +50,11 @@ export class WebMouseEventManager
   onMouseUp(callback: MouseEventCallback): void {
     this.eventNameCallbacksMap.mouseup.add(callback);
   }
-  onMouseMoveOut(callback: MouseEventCallback): void {
+  onMouseOut(callback: MouseEventCallback): void {
     this.eventNameCallbacksMap.mouseout.add(callback);
+  }
+  onMouseMove(callback: MouseEventCallback): void {
+    this.eventNameCallbacksMap.mousemove.add(callback);
   }
   resetBeforeRender(): void {
     Object.values(this.eventNameCallbacksMap).forEach((callbacks) =>
