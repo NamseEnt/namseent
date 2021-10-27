@@ -201,8 +201,17 @@ export type RenderingElement<TArgs> = (args: TArgs) => RenderingTree;
 
 export class Vector {
   constructor(public readonly x: number, public readonly y: number) {}
+  public static from({ x, y }: { x: number; y: number }): Vector {
+    return new Vector(x, y);
+  }
   translate(dx: number, dy: number): Vector {
     return new Vector(this.x + dx, this.y + dy);
+  }
+  sub(other: Vector): Vector {
+    return new Vector(this.x - other.x, this.y - other.y);
+  }
+  add(other: Vector): Vector {
+    return new Vector(this.x + other.x, this.y + other.y);
   }
   toString(): string {
     return `(${this.x}, ${this.y})`;
