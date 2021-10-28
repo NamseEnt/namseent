@@ -227,3 +227,23 @@ export enum Cursor {
   default = "default",
   text = "text",
 }
+
+// this is static class
+export const Convert = {
+  LtrbToXywh(rect: LtrbRect): XywhRect {
+    return {
+      x: rect.left,
+      y: rect.top,
+      width: rect.right - rect.left,
+      height: rect.bottom - rect.top,
+    };
+  },
+  XywhToLtrb(rect: XywhRect): LtrbRect {
+    return {
+      left: rect.x,
+      top: rect.y,
+      right: rect.x + rect.width,
+      bottom: rect.y + rect.height,
+    };
+  },
+};

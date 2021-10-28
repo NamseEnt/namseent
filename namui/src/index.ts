@@ -20,6 +20,7 @@ export {
   MouseButton,
   Vector,
   XywhRect,
+  Convert,
 } from "./type";
 export { Selection } from "./textInput/ITextInputManager";
 export { Code } from "./device/keyboard/Code";
