@@ -1,3 +1,4 @@
+import { RenderingTree } from "..";
 import { IManagerInternal } from "../device/IManager";
 import { WebKeyboardManager } from "../device/keyboard/WebKeyboardManager";
 import { MouseButtonManager } from "../device/mouse/mouseButton/MouseButtonManager";
@@ -6,8 +7,9 @@ import { WebMousePointerManager } from "../device/mouse/mousePointer/WebMousePoi
 import { WebMousePositionManager } from "../device/mouse/mousePosition/WebMousePositionManager";
 import { WebScreenManager } from "../device/screen/WebScreenManager";
 import { WebWheelManager } from "../device/wheel/WebWheelManager";
+import { IImageLoader, ImageLoader } from "../image/ImageLoader";
 import { WebTextInputManager } from "../textInput/WebTextInputManager";
-import { IEngineInternal } from "./IEngine";
+import { EngineContext } from "../type";
 
 const managerMap = {
   mousePointer: new WebMousePointerManager(),
@@ -22,15 +24,25 @@ const managerMap = {
 
 const managers = Object.values(managerMap) as IManagerInternal[];
 
-export const webEngine: IEngineInternal = {
+export const webEngine = {
   resetBeforeRender() {
     managers.forEach((manager) => manager.resetBeforeRender?.());
   },
   destroy() {
     managers.forEach((manager) => manager.destroy?.());
   },
-  afterRender(renderingTree) {
+  afterRender(renderingTree: RenderingTree) {
     managers.forEach((manager) => manager.afterRender?.(renderingTree));
+  },
+  get imageLoader(): IImageLoader {
+    if (!this._imageLoader) {
+      throw new Error("engine is not initialized");
+    }
+    return this._imageLoader;
+  },
+  _imageLoader: undefined as IImageLoader | undefined,
+  init(engineContext: EngineContext) {
+    this._imageLoader = new ImageLoader(engineContext.canvasKit);
   },
   ...managerMap,
 };

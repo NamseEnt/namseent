@@ -1,3 +1,4 @@
+import { engine } from "../../engine/engine";
 import { EngineContext, ImageDrawCommand } from "../../type";
 import { getRectsInFit } from "./getRectsInFit";
 
@@ -5,8 +6,9 @@ export function drawImage(
   engineContext: EngineContext,
   command: ImageDrawCommand,
 ): void {
-  const { canvas, imageLoader } = engineContext;
+  const { canvas } = engineContext;
   const { x, y, url, size, fit } = command;
+  const { imageLoader } = engine;
   const image = imageLoader.tryLoad(url);
   if (!image) {
     return;

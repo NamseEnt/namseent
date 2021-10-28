@@ -194,7 +194,6 @@ export type EngineContext<TState = any> = {
     last60FrameTimeMs: number;
   };
   isStopped: boolean;
-  imageLoader: IImageLoader;
   fontStorage: FontStorage;
 };
 

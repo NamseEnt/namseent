@@ -80,9 +80,10 @@ export async function startEngine<TState>(
         frameCount: 0,
       },
       isStopped: false,
-      imageLoader: new ImageLoader(canvasKit),
       fontStorage,
     };
+
+    engineInternal.init(engineContext);
 
     // TODO : Move this into webEngine
     canvasElement.onclick = (event) => {

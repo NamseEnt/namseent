@@ -1,7 +1,7 @@
 import { CanvasKit, Image } from "canvaskit-wasm";
 
 export interface IImageLoader {
-  tryLoad(url: string): Image | null;
+  tryLoad(url: string): Image | undefined;
 }
 
 export class ImageLoader implements IImageLoader {
@@ -10,7 +10,7 @@ export class ImageLoader implements IImageLoader {
 
   // non-gc canvasKit
   constructor(private readonly canvasKit: CanvasKit) {}
-  tryLoad(url: string): Image | null {
+  tryLoad(url: string): Image | undefined {
     const image = this.loadedMap.get(url);
     if (image) {
       return image;
@@ -18,7 +18,7 @@ export class ImageLoader implements IImageLoader {
     if (!this.loadingMap.has(url)) {
       this.loadingMap.set(url, this.startLoad(url));
     }
-    return null;
+    return undefined;
   }
   private async startLoad(url: string): Promise<void> {
     try {
@@ -27,7 +27,7 @@ export class ImageLoader implements IImageLoader {
         console.error(
           `Failed to load image: ${url}, status: ${
             response.status
-          }, ${await response.text()}`
+          }, ${await response.text()}`,
         );
         return;
       }
