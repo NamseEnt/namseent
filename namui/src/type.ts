@@ -84,6 +84,7 @@ export type ImageDrawCommand = {
     height: number;
   };
   fit: ImageFit;
+  paint?: Paint;
 };
 
 export function ImageDrawCommand(

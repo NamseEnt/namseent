@@ -1,4 +1,6 @@
-import { ImageDrawCommand, RenderingTree, ImageFit } from "../type";
+import { Paint } from "canvaskit-wasm";
+import { RenderingData } from "..";
+import { ImageDrawCommand, ImageFit } from "../type";
 
 export function Image({
   position: { x, y },
@@ -16,9 +18,10 @@ export function Image({
   };
   style: {
     fit: ImageFit;
+    paint?: Paint;
   };
   url: string;
-}): RenderingTree {
+}): RenderingData {
   const imageDrawCommand: ImageDrawCommand = {
     type: "image",
     x,
@@ -26,6 +29,7 @@ export function Image({
     url,
     size,
     fit: style.fit,
+    paint: style.paint,
   };
 
   return {

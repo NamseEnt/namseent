@@ -1,3 +1,4 @@
+import { ColorUtil } from "../..";
 import { engine } from "../../engine/engine";
 import { EngineContext, ImageDrawCommand } from "../../type";
 import { getRectsInFit } from "./getRectsInFit";
@@ -30,10 +31,17 @@ export function drawImage(
     },
   });
 
-  const fillPaint = new CanvasKit.Paint();
-  fillPaint.setStyle(CanvasKit.PaintStyle.Fill);
+  const paint = command.paint ?? new CanvasKit.Paint();
+  const didCreatePaint = !command.paint;
 
-  canvas.drawImageRect(image, srcRect, destRect, fillPaint);
+  if (didCreatePaint) {
+    paint.setStyle(CanvasKit.PaintStyle.Fill);
+    paint.setColor(ColorUtil.Grayscale01(0.5));
+  }
 
-  fillPaint.delete();
+  canvas.drawImageRect(image, srcRect, destRect, paint);
+
+  if (didCreatePaint) {
+    paint.delete();
+  }
 }
