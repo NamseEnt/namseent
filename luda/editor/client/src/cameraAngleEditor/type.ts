@@ -15,6 +15,15 @@ export type CameraAngleEditorState = {
         lastMousePosition: Vector;
       };
     };
+    image: {
+      dragging?: {
+        handleId: string;
+        lastMousePosition: Vector;
+      };
+      source?: {
+        widthHeightRatio: number;
+      };
+    };
   };
 };
 export type CameraAngle = {

@@ -80,6 +80,7 @@ startEngine(
       },
       wysiwygEditor: {
         crop: {},
+        image: {},
       },
     },
   },
