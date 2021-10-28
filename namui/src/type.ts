@@ -95,11 +95,17 @@ export function ImageDrawCommand(
   };
 }
 
-export type DrawCommand =
-  | { type: "path"; path: Path; paint: Paint }
-  // | { paragraph: Paragraph; x: number; y: number }
-  | ImageDrawCommand
-  | TextDrawCommand;
+export type PathDrawCommand = { type: "path"; path: Path; paint: Paint };
+export function PathDrawCommand(
+  command: Omit<PathDrawCommand, "type">,
+): PathDrawCommand {
+  return {
+    ...command,
+    type: "path",
+  };
+}
+
+export type DrawCommand = PathDrawCommand | ImageDrawCommand | TextDrawCommand;
 
 export type DrawCall = {
   commands: DrawCommand[];
@@ -143,6 +149,9 @@ export type RenderingData = {
   onMouseDown?: MouseEventCallback;
   onMouseUp?: MouseEventCallback;
 };
+export function RenderingData(renderingData: RenderingData): RenderingData {
+  return renderingData;
+}
 
 export type MakeParagraph = (
   style: ParagraphStyle,
