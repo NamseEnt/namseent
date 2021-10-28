@@ -226,6 +226,8 @@ export enum Cursor {
   rightTopLeftBottomResize = "rightTopLeftBottomResize",
   default = "default",
   text = "text",
+  grab = "grab",
+  move = "move",
 }
 
 // this is static class

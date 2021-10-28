@@ -28,6 +28,10 @@ export class WebMousePointerManager
         return "nesw-resize";
       case Cursor.text:
         return "text";
+      case Cursor.grab:
+        return "grab";
+      case Cursor.move:
+        return "move";
       default:
         throw new Error(`Unknown cursor ${cursor}`);
     }
