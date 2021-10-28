@@ -213,6 +213,9 @@ export class Vector {
   add(other: Vector): Vector {
     return new Vector(this.x + other.x, this.y + other.y);
   }
+  cross(other: Vector): number {
+    return this.x * other.y - this.y * other.x;
+  }
   toString(): string {
     return `(${this.x}, ${this.y})`;
   }
