@@ -24,6 +24,8 @@ export {
   PathDrawCommand,
   RenderingData,
   Convert,
+  Render,
+  RenderExact,
 } from "./type";
 export { Selection } from "./textInput/ITextInputManager";
 export { Code } from "./device/keyboard/Code";

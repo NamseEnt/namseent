@@ -14,6 +14,7 @@ import { BuildServerConnection } from "./build/BuildServerConnection";
 import { FontStorage } from "./font/FontStorage";
 import { TypefaceStorage } from "./font/TypefaceStorage";
 import { IImageLoader } from "./image/ImageLoader";
+import { DeepReadonly } from "./types/DeepReadonly";
 import { SpecialRenderingCommand } from "./types/SpecialRenderingCommand";
 
 declare global {
@@ -188,7 +189,13 @@ export type RenderingTree =
   | undefined
   | false;
 
-export type Render<TState> = (state: TState) => RenderingTree;
+export type Render<TState extends {}, TProps = void> = TProps extends void
+  ? (state: TState) => RenderingTree
+  : (state: TState, props: DeepReadonly<TProps>) => RenderingTree;
+
+export type RenderExact<TState extends {}, TProps = void> = TProps extends void
+  ? (state: TState) => RenderingData
+  : (state: TState, props: DeepReadonly<TProps>) => RenderingData;
 
 export type EngineContext<TState = any> = {
   render: Render<TState>;
