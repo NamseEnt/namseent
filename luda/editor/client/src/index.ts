@@ -79,8 +79,7 @@ startEngine(
         },
       },
       wysiwygEditor: {
-        crop: {},
-        image: {},
+        resizer: {},
       },
     },
   },

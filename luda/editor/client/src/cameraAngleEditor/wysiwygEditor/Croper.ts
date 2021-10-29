@@ -3,13 +3,16 @@ import {
   Cursor,
   engine,
   Rect,
+  Render,
   RenderingTree,
   Translate,
   Vector,
 } from "namui";
 import { CameraAngleEditorState } from "../type";
 
-export function renderCropRect(state: CameraAngleEditorState): RenderingTree {
+export const Croper: Render<CameraAngleEditorState> = (
+  state: CameraAngleEditorState,
+) => {
   const { destRect } = state.cameraAngle;
   return [
     Translate(destRect, [
@@ -27,7 +30,7 @@ export function renderCropRect(state: CameraAngleEditorState): RenderingTree {
       renderHandles(state),
     ]),
   ];
-}
+};
 
 function renderHandles(state: CameraAngleEditorState): RenderingTree {
   const { destRect } = state.cameraAngle;
@@ -40,12 +43,20 @@ function renderHandles(state: CameraAngleEditorState): RenderingTree {
   const handleThickness = 6;
 
   const handles: {
-    id: string;
+    id:
+      | "crop-top-left"
+      | "crop-top"
+      | "crop-top-right"
+      | "crop-left"
+      | "crop-right"
+      | "crop-bottom-left"
+      | "crop-bottom"
+      | "crop-bottom-right";
     polyPoints: Vector[];
     cursor: Cursor;
   }[] = [
     {
-      id: "top",
+      id: "crop-top",
       polyPoints: [
         new Vector(center.x - handleSize / 2, 0),
         new Vector(center.x + handleSize / 2, 0),
@@ -55,7 +66,7 @@ function renderHandles(state: CameraAngleEditorState): RenderingTree {
       cursor: Cursor.topBottomResize,
     },
     {
-      id: "bottom",
+      id: "crop-bottom",
       polyPoints: [
         new Vector(
           center.x - handleSize / 2,
@@ -71,7 +82,7 @@ function renderHandles(state: CameraAngleEditorState): RenderingTree {
       cursor: Cursor.topBottomResize,
     },
     {
-      id: "left",
+      id: "crop-left",
       polyPoints: [
         new Vector(0, center.y - handleSize / 2),
         new Vector(handleThickness, center.y - handleSize / 2),
@@ -81,7 +92,7 @@ function renderHandles(state: CameraAngleEditorState): RenderingTree {
       cursor: Cursor.leftRightResize,
     },
     {
-      id: "right",
+      id: "crop-right",
       polyPoints: [
         new Vector(destRect.width - handleThickness, center.y - handleSize / 2),
         new Vector(destRect.width, center.y - handleSize / 2),
@@ -91,7 +102,7 @@ function renderHandles(state: CameraAngleEditorState): RenderingTree {
       cursor: Cursor.leftRightResize,
     },
     {
-      id: "left top",
+      id: "crop-top-left",
       polyPoints: [
         new Vector(0, 0),
         new Vector(handleSize, 0),
@@ -103,7 +114,7 @@ function renderHandles(state: CameraAngleEditorState): RenderingTree {
       cursor: Cursor.leftTopRightBottomResize,
     },
     {
-      id: "right top",
+      id: "crop-top-right",
       polyPoints: [
         new Vector(destRect.width, 0),
         new Vector(destRect.width, handleSize),
@@ -115,7 +126,7 @@ function renderHandles(state: CameraAngleEditorState): RenderingTree {
       cursor: Cursor.rightTopLeftBottomResize,
     },
     {
-      id: "left bottom",
+      id: "crop-bottom-left",
       polyPoints: [
         new Vector(0, destRect.height),
         new Vector(handleSize, destRect.height),
@@ -127,7 +138,7 @@ function renderHandles(state: CameraAngleEditorState): RenderingTree {
       cursor: Cursor.rightTopLeftBottomResize,
     },
     {
-      id: "right bottom",
+      id: "crop-bottom-right",
       polyPoints: [
         new Vector(destRect.width, destRect.height),
         new Vector(destRect.width, destRect.height - handleSize),
@@ -149,12 +160,9 @@ function renderHandles(state: CameraAngleEditorState): RenderingTree {
     },
   ];
 
-  engine.mouseEvent.onMouseUp(() => {
-    state.wysiwygEditor.crop.dragging = undefined;
-  });
   engine.mouseEvent.onMouseMove((event) => {
-    const { dragging } = state.wysiwygEditor.crop;
-    if (!dragging) {
+    const { dragging } = state.wysiwygEditor;
+    if (!dragging || !dragging.targetId.startsWith("crop-")) {
       return;
     }
     const mouseVector = Vector.from(event);
@@ -162,18 +170,18 @@ function renderHandles(state: CameraAngleEditorState): RenderingTree {
 
     console.log(diff.x, diff.y);
 
-    if (dragging.handleId.includes("top")) {
+    if (dragging.targetId.includes("top")) {
       state.cameraAngle.destRect.y += diff.y;
       state.cameraAngle.destRect.height -= diff.y;
     }
-    if (dragging.handleId.includes("bottom")) {
+    if (dragging.targetId.includes("bottom")) {
       state.cameraAngle.destRect.height += diff.y;
     }
-    if (dragging.handleId.includes("left")) {
+    if (dragging.targetId.includes("left")) {
       state.cameraAngle.destRect.x += diff.x;
       state.cameraAngle.destRect.width -= diff.x;
     }
-    if (dragging.handleId.includes("right")) {
+    if (dragging.targetId.includes("right")) {
       state.cameraAngle.destRect.width += diff.x;
     }
 
@@ -219,8 +227,8 @@ function renderHandles(state: CameraAngleEditorState): RenderingTree {
           engine.mousePointer.setCursor(handle.cursor);
         },
         onMouseDown(event) {
-          state.wysiwygEditor.crop.dragging = {
-            handleId: handle.id,
+          state.wysiwygEditor.dragging = {
+            targetId: handle.id,
             lastMousePosition: Vector.from(event),
           };
         },

@@ -11,7 +11,7 @@ import {
   Translate,
 } from "namui";
 import { renderPropertyTextEditor } from "./propertyTextEditor/renderPropertyTextEditor";
-import { renderWysiwygEditor } from "./wysiwygEditor/renderWysiwygEditor";
+import { WysiwygEditor } from "./wysiwygEditor/WysiwygEditor";
 import { CameraAngleEditorState } from "./type";
 
 export function renderCameraAngleEditor(
@@ -54,7 +54,7 @@ export function renderCameraAngleEditor(
             x: 400,
             y: 0,
           },
-          renderWysiwygEditor(state),
+          WysiwygEditor(state),
         ),
       ],
     ),

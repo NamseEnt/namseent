@@ -9,17 +9,28 @@ export type CameraAngleEditorState = {
     textInput: TextInputState;
   };
   wysiwygEditor: {
-    crop: {
-      dragging?: {
-        handleId: string;
-        lastMousePosition: Vector;
-      };
+    dragging?: {
+      targetId:
+        | "move"
+        | "crop-top-left"
+        | "crop-top"
+        | "crop-top-right"
+        | "crop-left"
+        | "crop-right"
+        | "crop-bottom-left"
+        | "crop-bottom"
+        | "crop-bottom-right"
+        | "resize-top-left"
+        | "resize-top"
+        | "resize-top-right"
+        | "resize-left"
+        | "resize-right"
+        | "resize-bottom-left"
+        | "resize-bottom"
+        | "resize-bottom-right";
+      lastMousePosition: Vector;
     };
-    image: {
-      dragging?: {
-        handleId: string;
-        lastMousePosition: Vector;
-      };
+    resizer: {
       source?: {
         widthHeightRatio: number;
       };
