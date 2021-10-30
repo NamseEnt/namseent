@@ -9,6 +9,7 @@ import {
   Translate,
 } from "namui";
 import { SubtitleEditorState } from "../type";
+import { renderCheckboxInput } from "./renderCheckboxInput";
 import { renderColorInput } from "./renderColorInput/renderColorInput";
 import { renderNumberInput } from "./renderNumberInput";
 import { renderRows } from "./renderRows";
@@ -74,6 +75,14 @@ export function renderPropertyEditor(
           },
           state.textInput,
         ),
+      },
+      {
+        height: 20,
+        renderingData: renderCheckboxInput({
+          label: "serif",
+          onChange: (value) => (state.subtitle.fontType.serif = value),
+          value: state.subtitle.fontType.serif,
+        }),
       },
       {
         height:
