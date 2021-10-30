@@ -1,4 +1,4 @@
-import { startEngine } from "namui";
+import { ColorUtil, startEngine } from "namui";
 import { render } from "./render";
 
 startEngine(
@@ -80,6 +80,41 @@ startEngine(
       },
       wysiwygEditor: {
         resizer: {},
+      },
+    },
+    subtitleEditorState: {
+      layout: {
+        rect: {
+          x: 100,
+          y: 100,
+          width: 400,
+          height: 800,
+        },
+        videoSize: {
+          width: 1280,
+          height: 720,
+        },
+      },
+      textInput: {},
+      subtitle: {
+        text: "[여기에 텍스트 입력]",
+        placement: {
+          margin: {
+            vertical: 48,
+          },
+        },
+        style: {
+          backgroundColor: ColorUtil.Black,
+          fontColor: ColorUtil.White,
+          fontSize: 24,
+        },
+      },
+      colorInput: {
+        targetId: undefined,
+        hue: 0,
+        saturation: 0,
+        lightness: 0,
+        alpha: 1,
       },
     },
   },
