@@ -32,13 +32,156 @@ export function renderPropertyEditor(
     renderRows([
       {
         height: 20,
+        renderingData: Text({
+          x: 0,
+          y: 0,
+          align: TextAlign.left,
+          baseline: TextBaseline.top,
+          fontType: {
+            language: Language.ko,
+            serif: false,
+            fontWeight: FontWeight.regular,
+            size: 12,
+          },
+          style: {
+            color: ColorUtil.Black,
+          },
+          text: "Font",
+        }),
+      },
+      {
+        height: 20,
         renderingData: renderTextInput(
           {
             width: props.layout.width,
             label: "text",
             onChange: (value) => (state.subtitle.text = value),
             value: state.subtitle.text,
-            textInputId: "text",
+            textInputId: "subtitleEditorState.subtitle.text",
+          },
+          state.textInput,
+        ),
+      },
+      {
+        height: 20,
+        renderingData: renderNumberInput(
+          {
+            width: props.layout.width,
+            label: "size",
+            onChange: (value) => (state.subtitle.fontType.size = value),
+            value: state.subtitle.fontType.size,
+            textInputId: "subtitleEditorState.subtitle.fontType.size",
+          },
+          state.textInput,
+        ),
+      },
+      {
+        height:
+          state.colorInput.targetId ===
+          "subtitleEditorState.subtitle.style.color"
+            ? 120
+            : 20,
+        renderingData: renderColorInput(
+          {
+            width: props.layout.width,
+            label: "color",
+            colorInputId: "subtitleEditorState.subtitle.style.color",
+            value: state.subtitle.style.color,
+            onChange: (color) => (state.subtitle.style.color = color),
+          },
+          state.colorInput,
+        ),
+      },
+      {
+        height: 20,
+        renderingData: undefined,
+      },
+      {
+        height: 20,
+        renderingData: Text({
+          x: 0,
+          y: 0,
+          align: TextAlign.left,
+          baseline: TextBaseline.top,
+          fontType: {
+            language: Language.ko,
+            serif: false,
+            fontWeight: FontWeight.regular,
+            size: 12,
+          },
+          style: {
+            color: ColorUtil.Black,
+          },
+          text: "Background",
+        }),
+      },
+      {
+        height:
+          state.colorInput.targetId ===
+          "subtitleEditorState.subtitle.style.background.color"
+            ? 120
+            : 20,
+        renderingData: renderColorInput(
+          {
+            width: props.layout.width,
+            label: "color",
+            colorInputId: "subtitleEditorState.subtitle.style.background.color",
+            value: state.subtitle.style.background.color,
+            onChange: (color) =>
+              (state.subtitle.style.background.color = color),
+          },
+          state.colorInput,
+        ),
+      },
+      {
+        height: 20,
+        renderingData: undefined,
+      },
+      {
+        height: 20,
+        renderingData: Text({
+          x: 0,
+          y: 0,
+          align: TextAlign.left,
+          baseline: TextBaseline.top,
+          fontType: {
+            language: Language.ko,
+            serif: false,
+            fontWeight: FontWeight.regular,
+            size: 12,
+          },
+          style: {
+            color: ColorUtil.Black,
+          },
+          text: "Border",
+        }),
+      },
+      {
+        height:
+          state.colorInput.targetId ===
+          "subtitleEditorState.subtitle.style.border.color"
+            ? 120
+            : 20,
+        renderingData: renderColorInput(
+          {
+            width: props.layout.width,
+            label: "color",
+            colorInputId: "subtitleEditorState.subtitle.style.border.color",
+            value: state.subtitle.style.border.color,
+            onChange: (color) => (state.subtitle.style.border.color = color),
+          },
+          state.colorInput,
+        ),
+      },
+      {
+        height: 20,
+        renderingData: renderNumberInput(
+          {
+            width: props.layout.width,
+            label: "width",
+            onChange: (value) => (state.subtitle.style.border.width = value),
+            value: state.subtitle.style.border.width,
+            textInputId: "subtitleEditorState.subtitle.style.border.width",
           },
           state.textInput,
         ),
@@ -63,51 +206,52 @@ export function renderPropertyEditor(
           style: {
             color: ColorUtil.Black,
           },
-          text: "style",
+          text: "Drop shadow",
         }),
+      },
+      {
+        height:
+          state.colorInput.targetId ===
+          "subtitleEditorState.subtitle.style.dropShadow.color"
+            ? 120
+            : 20,
+        renderingData: renderColorInput(
+          {
+            width: props.layout.width,
+            label: "color",
+            colorInputId: "subtitleEditorState.subtitle.style.dropShadow.color",
+            value: state.subtitle.style.dropShadow.color,
+            onChange: (color) =>
+              (state.subtitle.style.dropShadow.color = color),
+          },
+          state.colorInput,
+        ),
       },
       {
         height: 20,
         renderingData: renderNumberInput(
           {
             width: props.layout.width,
-            label: "fontSize",
-            onChange: (value) => (state.subtitle.style.fontSize = value),
-            value: state.subtitle.style.fontSize,
-            textInputId: "fontSize",
+            label: "x",
+            onChange: (value) => (state.subtitle.style.dropShadow.x = value),
+            value: state.subtitle.style.dropShadow.x,
+            textInputId: "subtitleEditorState.subtitle.style.dropShadow.x",
           },
           state.textInput,
         ),
       },
       {
-        height: state.colorInput.targetId === "fontColor" ? 120 : 20,
-        renderingData: renderColorInput(
-          {
-            width: props.layout.width,
-            label: "fontColor",
-            colorInputId: "fontColor",
-            value: state.subtitle.style.fontColor,
-            onChange: (color) => (state.subtitle.style.fontColor = color),
-          },
-          state.colorInput,
-        ),
-      },
-      {
-        height: state.colorInput.targetId === "backgroundColor" ? 120 : 20,
-        renderingData: renderColorInput(
-          {
-            width: props.layout.width,
-            label: "backgroundColor",
-            colorInputId: "backgroundColor",
-            value: state.subtitle.style.backgroundColor,
-            onChange: (color) => (state.subtitle.style.backgroundColor = color),
-          },
-          state.colorInput,
-        ),
-      },
-      {
         height: 20,
-        renderingData: undefined,
+        renderingData: renderNumberInput(
+          {
+            width: props.layout.width,
+            label: "y",
+            onChange: (value) => (state.subtitle.style.dropShadow.y = value),
+            value: state.subtitle.style.dropShadow.y,
+            textInputId: "subtitleEditorState.subtitle.style.dropShadow.y",
+          },
+          state.textInput,
+        ),
       },
     ]),
   );

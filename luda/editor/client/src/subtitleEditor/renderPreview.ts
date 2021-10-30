@@ -1,8 +1,6 @@
 import {
   Clip,
   ColorUtil,
-  FontWeight,
-  Language,
   Rect,
   RenderingTree,
   Text,
@@ -77,15 +75,19 @@ export function renderPreview(props: {
           align: TextAlign.center,
           baseline: TextBaseline.bottom,
           fontType: {
-            language: Language.ko,
-            serif: false,
-            fontWeight: FontWeight.regular,
-            size: props.subtitle.style.fontSize * reductionRatio,
+            ...props.subtitle.fontType,
+            size: props.subtitle.fontType.size * reductionRatio,
           },
           style: {
-            color: props.subtitle.style.fontColor,
-            background: {
-              color: props.subtitle.style.backgroundColor,
+            ...props.subtitle.style,
+            border: {
+              ...props.subtitle.style.border,
+              width: props.subtitle.style.border.width * reductionRatio,
+            },
+            dropShadow: {
+              ...props.subtitle.style.dropShadow,
+              x: props.subtitle.style.dropShadow.x * reductionRatio,
+              y: props.subtitle.style.dropShadow.y * reductionRatio,
             },
           },
           text: props.subtitle.text,

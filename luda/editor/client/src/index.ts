@@ -1,4 +1,4 @@
-import { ColorUtil, startEngine } from "namui";
+import { ColorUtil, FontWeight, Language, startEngine } from "namui";
 import { render } from "./render";
 
 startEngine(
@@ -98,10 +98,26 @@ startEngine(
       textInput: {},
       subtitle: {
         text: "[여기에 텍스트 입력]",
+        fontType: {
+          serif: false,
+          size: 24,
+          language: Language.ko,
+          fontWeight: FontWeight.regular,
+        },
         style: {
-          backgroundColor: ColorUtil.Black,
-          fontColor: ColorUtil.White,
-          fontSize: 24,
+          color: ColorUtil.White,
+          background: {
+            color: ColorUtil.Black,
+          },
+          border: {
+            color: ColorUtil.Transparent,
+            width: 4,
+          },
+          dropShadow: {
+            x: 4,
+            y: 4,
+            color: ColorUtil.Transparent,
+          },
         },
       },
       colorInput: {

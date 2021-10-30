@@ -1,4 +1,5 @@
 import { Selection, XywhRect } from "namui";
+import { FontType } from "namui/lib/font/FontStorage";
 
 export type SubtitleEditorState = {
   layout: {
@@ -19,13 +20,24 @@ export type Subtitle = {
   // startMs: number;
   // endMs: number;
   text: string;
+  fontType: FontType;
   style: SubtitleStyle;
 };
 
 export type SubtitleStyle = {
-  fontSize: number;
-  fontColor: Float32Array;
-  backgroundColor: Float32Array;
+  color: Float32Array;
+  background: {
+    color: Float32Array;
+  };
+  border: {
+    color: Float32Array;
+    width: number;
+  };
+  dropShadow: {
+    x: number;
+    y: number;
+    color: Float32Array;
+  };
 };
 
 export type TextInputState = {
