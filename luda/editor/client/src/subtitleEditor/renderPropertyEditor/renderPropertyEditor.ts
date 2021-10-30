@@ -109,39 +109,6 @@ export function renderPropertyEditor(
         height: 20,
         renderingData: undefined,
       },
-      {
-        height: 20,
-        renderingData: Text({
-          x: 0,
-          y: 0,
-          align: TextAlign.left,
-          baseline: TextBaseline.top,
-          fontType: {
-            language: Language.ko,
-            serif: false,
-            fontWeight: FontWeight.regular,
-            size: 12,
-          },
-          style: {
-            color: ColorUtil.Black,
-          },
-          text: "placement",
-        }),
-      },
-      {
-        height: 20,
-        renderingData: renderNumberInput(
-          {
-            width: props.layout.width,
-            label: "marginVertical",
-            onChange: (value) =>
-              (state.subtitle.placement.margin.vertical = value),
-            value: state.subtitle.placement.margin.vertical,
-            textInputId: "marginVertical",
-          },
-          state.textInput,
-        ),
-      },
     ]),
   );
 }

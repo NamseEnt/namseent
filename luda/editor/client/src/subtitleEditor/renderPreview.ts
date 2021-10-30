@@ -73,10 +73,7 @@ export function renderPreview(props: {
         }),
         Text({
           x: previewX + previewWidth / 2,
-          y:
-            previewY +
-            previewHeight -
-            props.subtitle.placement.margin.vertical * reductionRatio,
+          y: previewY + previewHeight - 48 * reductionRatio,
           align: TextAlign.center,
           baseline: TextBaseline.bottom,
           fontType: {

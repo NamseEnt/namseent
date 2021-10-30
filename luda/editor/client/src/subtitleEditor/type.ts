@@ -20,21 +20,12 @@ export type Subtitle = {
   // endMs: number;
   text: string;
   style: SubtitleStyle;
-  placement: SubtitlePlacement;
 };
 
 export type SubtitleStyle = {
   fontSize: number;
   fontColor: Float32Array;
   backgroundColor: Float32Array;
-};
-
-export type SubtitlePlacement = {
-  margin: SubtitleMargin;
-};
-
-export type SubtitleMargin = {
-  vertical: number;
 };
 
 export type TextInputState = {

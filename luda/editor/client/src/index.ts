@@ -98,11 +98,6 @@ startEngine(
       textInput: {},
       subtitle: {
         text: "[여기에 텍스트 입력]",
-        placement: {
-          margin: {
-            vertical: 48,
-          },
-        },
         style: {
           backgroundColor: ColorUtil.Black,
           fontColor: ColorUtil.White,
