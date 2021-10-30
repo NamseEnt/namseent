@@ -8,7 +8,7 @@ import {
   TextBaseline,
   Translate,
 } from "namui";
-import { SubtitleEditorState } from "../type";
+import { SubtitleEditorState, SubtitleFontSize } from "../type";
 import { renderCheckboxInput } from "./renderCheckboxInput";
 import { renderColorInput } from "./renderColorInput/renderColorInput";
 import { renderNumberInput } from "./renderNumberInput";
@@ -65,23 +65,37 @@ export function renderPropertyEditor(
       },
       {
         height: 20,
-        renderingData: renderNumberInput(
-          {
-            width: props.layout.width,
-            label: "size",
-            onChange: (value) => (state.subtitle.fontType.size = value),
-            value: state.subtitle.fontType.size,
-            textInputId: "subtitleEditorState.subtitle.fontType.size",
-          },
-          state.textInput,
-        ),
-      },
-      {
-        height: 20,
         renderingData: renderCheckboxInput({
           label: "serif",
           onChange: (value) => (state.subtitle.fontType.serif = value),
           value: state.subtitle.fontType.serif,
+        }),
+      },
+      {
+        height: 20,
+        renderingData: renderCheckboxInput({
+          label: "small",
+          onChange: () =>
+            (state.subtitle.fontType.size = SubtitleFontSize.small),
+          value: state.subtitle.fontType.size === SubtitleFontSize.small,
+        }),
+      },
+      {
+        height: 20,
+        renderingData: renderCheckboxInput({
+          label: "regular",
+          onChange: () =>
+            (state.subtitle.fontType.size = SubtitleFontSize.regular),
+          value: state.subtitle.fontType.size === SubtitleFontSize.regular,
+        }),
+      },
+      {
+        height: 20,
+        renderingData: renderCheckboxInput({
+          label: "large",
+          onChange: () =>
+            (state.subtitle.fontType.size = SubtitleFontSize.large),
+          value: state.subtitle.fontType.size === SubtitleFontSize.large,
         }),
       },
       {
