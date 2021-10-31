@@ -69,6 +69,7 @@ export function renderColorInput(
   },
   state: ColorInputState,
 ): RenderingTree {
+  const borderWidth = 1;
   const backgroundGradientPainter = new CanvasKit.Paint();
   backgroundGradientPainter.setShader(
     CanvasKit.Shader.MakeLinearGradient(
@@ -112,7 +113,12 @@ export function renderColorInput(
             {
               type: "path",
               path: new CanvasKit.Path().addRect(
-                CanvasKit.XYWHRect(150, 0, 20, 20),
+                CanvasKit.XYWHRect(
+                  150 + borderWidth,
+                  0 + borderWidth,
+                  20 - 2 * borderWidth,
+                  20 - 2 * borderWidth,
+                ),
               ),
               paint: backgroundGradientPainter,
             },
@@ -121,9 +127,10 @@ export function renderColorInput(
       ],
     },
     Rect({
-      x: 150,
-      y: 0,
-      width: 20,
+      x: 150 + borderWidth,
+      y: 0 + borderWidth,
+      width: 20 - 2 * borderWidth,
+      height: 20 - 2 * borderWidth,
       style: {
         fill: {
           color: props.value,
@@ -136,7 +143,6 @@ export function renderColorInput(
           width: 1,
         },
       },
-      height: 20,
       onClick() {
         if (state.targetId !== props.colorInputId) {
           const { hue, saturation, lightness, alpha } = convertColorToHsl(
