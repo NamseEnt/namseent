@@ -111,11 +111,11 @@ startEngine(
           },
           border: {
             color: ColorUtil.Transparent,
-            width: 4,
+            width: 1,
           },
           dropShadow: {
-            x: 4,
-            y: 4,
+            x: 1,
+            y: 1,
             color: ColorUtil.Transparent,
           },
         },

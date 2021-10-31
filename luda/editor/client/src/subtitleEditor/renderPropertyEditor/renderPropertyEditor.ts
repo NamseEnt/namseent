@@ -75,8 +75,12 @@ export function renderPropertyEditor(
         height: 20,
         renderingData: renderCheckboxInput({
           label: "small",
-          onChange: () =>
-            (state.subtitle.fontType.size = SubtitleFontSize.small),
+          onChange: () => {
+            state.subtitle.fontType.size = SubtitleFontSize.small;
+            state.subtitle.style.border.width = SubtitleFontSize.small / 24;
+            state.subtitle.style.dropShadow.x = SubtitleFontSize.small / 24;
+            state.subtitle.style.dropShadow.y = SubtitleFontSize.small / 24;
+          },
           value: state.subtitle.fontType.size === SubtitleFontSize.small,
         }),
       },
@@ -84,8 +88,12 @@ export function renderPropertyEditor(
         height: 20,
         renderingData: renderCheckboxInput({
           label: "regular",
-          onChange: () =>
-            (state.subtitle.fontType.size = SubtitleFontSize.regular),
+          onChange: () => {
+            state.subtitle.fontType.size = SubtitleFontSize.regular;
+            state.subtitle.style.border.width = SubtitleFontSize.regular / 24;
+            state.subtitle.style.dropShadow.x = SubtitleFontSize.regular / 24;
+            state.subtitle.style.dropShadow.y = SubtitleFontSize.regular / 24;
+          },
           value: state.subtitle.fontType.size === SubtitleFontSize.regular,
         }),
       },
@@ -93,8 +101,12 @@ export function renderPropertyEditor(
         height: 20,
         renderingData: renderCheckboxInput({
           label: "large",
-          onChange: () =>
-            (state.subtitle.fontType.size = SubtitleFontSize.large),
+          onChange: () => {
+            state.subtitle.fontType.size = SubtitleFontSize.large;
+            state.subtitle.style.border.width = SubtitleFontSize.large / 24;
+            state.subtitle.style.dropShadow.x = SubtitleFontSize.large / 24;
+            state.subtitle.style.dropShadow.y = SubtitleFontSize.large / 24;
+          },
           value: state.subtitle.fontType.size === SubtitleFontSize.large,
         }),
       },
@@ -198,19 +210,6 @@ export function renderPropertyEditor(
       },
       {
         height: 20,
-        renderingData: renderNumberInput(
-          {
-            width: props.layout.width,
-            label: "width",
-            onChange: (value) => (state.subtitle.style.border.width = value),
-            value: state.subtitle.style.border.width,
-            textInputId: "subtitleEditorState.subtitle.style.border.width",
-          },
-          state.textInput,
-        ),
-      },
-      {
-        height: 20,
         renderingData: undefined,
       },
       {
@@ -248,32 +247,6 @@ export function renderPropertyEditor(
               (state.subtitle.style.dropShadow.color = color),
           },
           state.colorInput,
-        ),
-      },
-      {
-        height: 20,
-        renderingData: renderNumberInput(
-          {
-            width: props.layout.width,
-            label: "x",
-            onChange: (value) => (state.subtitle.style.dropShadow.x = value),
-            value: state.subtitle.style.dropShadow.x,
-            textInputId: "subtitleEditorState.subtitle.style.dropShadow.x",
-          },
-          state.textInput,
-        ),
-      },
-      {
-        height: 20,
-        renderingData: renderNumberInput(
-          {
-            width: props.layout.width,
-            label: "y",
-            onChange: (value) => (state.subtitle.style.dropShadow.y = value),
-            value: state.subtitle.style.dropShadow.y,
-            textInputId: "subtitleEditorState.subtitle.style.dropShadow.y",
-          },
-          state.textInput,
         ),
       },
     ]),
