@@ -1,4 +1,4 @@
-import { CanvasKit, EmbindObject, Shader } from "canvaskit-wasm";
+import { CanvasKit, EmbindObject } from "canvaskit-wasm";
 
 export function getGcCanvasKitPackage(canvasKit: CanvasKit): {
   gcCanvasKit: CanvasKit;
@@ -22,10 +22,10 @@ export function getGcCanvasKitPackage(canvasKit: CanvasKit): {
       Path: makeItGc(canvasKit.Path, garbages) as any,
       Shader: {
         ...canvasKit.Shader,
-        MakeLinearGradient: makeItGcAlt(
-          canvasKit.Shader.MakeLinearGradient,
+        MakeLinearGradient: makeItGc(
+          canvasKit.Shader.MakeLinearGradient as any,
           garbages,
-        ),
+        ) as any,
       },
     },
     deleteGarbages,
@@ -33,15 +33,15 @@ export function getGcCanvasKitPackage(canvasKit: CanvasKit): {
   };
 }
 
-function makeItGc<T extends EmbindObject<any>>(
-  constructor: { new (): T },
+function makeItGc<T extends EmbindObject<any>, P extends unknown[]>(
+  constructor: { new (...params: P): T },
   garbages: EmbindObject<any>[],
 ): {
   new (): T;
 } {
   const prototype = constructor.prototype;
-  const gcConstructor = function (this: T): T {
-    const paint = new constructor();
+  const gcConstructor = function (this: T, ...params: P): T {
+    const paint = new constructor(...params);
     garbages.push(paint);
     return paint;
   };
@@ -51,15 +51,4 @@ function makeItGc<T extends EmbindObject<any>>(
   });
 
   return gcConstructor as any;
-}
-
-function makeItGcAlt<T extends EmbindObject<any>, P extends any[]>(
-  constructor: (...params: P) => T,
-  garbages: EmbindObject<any>[],
-) {
-  return function (...params: P): T {
-    const shader = constructor(...params);
-    garbages.push(shader);
-    return shader;
-  };
 }
