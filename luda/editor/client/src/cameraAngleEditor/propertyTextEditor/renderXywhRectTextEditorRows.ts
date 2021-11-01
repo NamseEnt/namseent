@@ -71,7 +71,8 @@ export function renderXywhRectTextEditorRow(
       value: state.rect[props.key].toString(),
       textInputId: props.textInputId,
       onChange: (text) => {
-        const value = parseInt(text) || 0;
+        // TODO : Do not update data before finish editing
+        const value = parseFloat(text) || 0;
         state.rect[props.key] = value;
       },
     },
