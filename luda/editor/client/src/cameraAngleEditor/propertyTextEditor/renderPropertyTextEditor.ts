@@ -27,20 +27,20 @@ export function renderPropertyTextEditor(
     gap,
     ...renderXywhRectTextEditorRows(
       {
-        label: "sourceRect",
+        label: "source01Rect",
       },
       {
-        rect: state.cameraAngle.sourceRect,
+        rect: state.cameraAngle.source01Rect,
         textInput: state.propertyTextEditor.textInput,
       },
     ),
     gap,
     ...renderXywhRectTextEditorRows(
       {
-        label: "destRect",
+        label: "dest01Rect",
       },
       {
-        rect: state.cameraAngle.destRect,
+        rect: state.cameraAngle.dest01Rect,
         textInput: state.propertyTextEditor.textInput,
       },
     ),

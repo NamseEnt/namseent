@@ -74,17 +74,17 @@ startEngine(
       },
       cameraAngle: {
         imageSourceUrl: "resources/images/피디-기본-미소.png",
-        sourceRect: {
+        source01Rect: {
           x: 0,
           y: 0,
-          width: 100,
-          height: 100,
+          width: 1,
+          height: 1,
         },
-        destRect: {
+        dest01Rect: {
           x: 0,
           y: 0,
-          width: 100,
-          height: 100,
+          width: 1,
+          height: 1,
         },
       },
       propertyTextEditor: {

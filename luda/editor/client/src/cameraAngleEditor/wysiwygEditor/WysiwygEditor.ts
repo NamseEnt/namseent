@@ -11,16 +11,18 @@ import {
   Cursor,
   Translate,
   Rect,
+  WhSize,
 } from "namui";
-import { CameraAngleEditorState } from "../type";
+import { CameraAngleEditorState, ImageSource } from "../type";
 import { Croper } from "./Croper";
 import { Resizer } from "./Resizer";
 
 export const WysiwygEditor: Render<CameraAngleEditorState> = (
   state: CameraAngleEditorState,
 ) => {
-  const source = getImageSource(state);
-  if (!source) {
+  const containerSize: WhSize = state.layout.sub.wysiwygEditor;
+  const imageSource = getImageSource(state, containerSize);
+  if (!imageSource) {
     return;
   }
 
@@ -47,9 +49,9 @@ export const WysiwygEditor: Render<CameraAngleEditorState> = (
             },
           },
         }),
-        OuterImage(state),
-        InnerImage(state),
-        Resizer(state, source),
+        OuterImage(state, { containerSize }),
+        InnerImage(state, { containerSize }),
+        Resizer(state, { containerSize, imageSource }),
         Croper(state),
       ],
     ),
@@ -58,7 +60,8 @@ export const WysiwygEditor: Render<CameraAngleEditorState> = (
 
 function getImageSource(
   state: CameraAngleEditorState,
-): CameraAngleEditorState["wysiwygEditor"]["resizer"]["source"] {
+  containerSize: WhSize,
+): ImageSource | undefined {
   if (state.wysiwygEditor.resizer.source) {
     return state.wysiwygEditor.resizer.source;
   }
@@ -69,8 +72,18 @@ function getImageSource(
     state.wysiwygEditor.resizer.source = {
       widthHeightRatio,
     };
-    state.cameraAngle.sourceRect.width =
-      state.cameraAngle.sourceRect.height * widthHeightRatio;
+
+    const containerWhRatio = containerSize.width / containerSize.height;
+    if (widthHeightRatio > 1) {
+      state.cameraAngle.source01Rect.width = 1;
+      state.cameraAngle.source01Rect.height =
+        containerWhRatio / widthHeightRatio;
+    } else {
+      state.cameraAngle.source01Rect.height = 1;
+      state.cameraAngle.source01Rect.width =
+        (1 / containerWhRatio) * widthHeightRatio;
+    }
+
     return state.wysiwygEditor.resizer.source;
   }
 
@@ -81,16 +94,18 @@ const SourceImage: RenderExact<
   CameraAngleEditorState,
   {
     paint?: Paint;
+    containerSize: WhSize;
   }
 > = (state, props) => {
   return Image({
     position: {
-      x: state.cameraAngle.sourceRect.x,
-      y: state.cameraAngle.sourceRect.y,
+      x: props.containerSize.width * state.cameraAngle.source01Rect.x,
+      y: props.containerSize.height * state.cameraAngle.source01Rect.y,
     },
     size: {
-      width: state.cameraAngle.sourceRect.width,
-      height: state.cameraAngle.sourceRect.height,
+      width: props.containerSize.width * state.cameraAngle.source01Rect.width,
+      height:
+        props.containerSize.height * state.cameraAngle.source01Rect.height,
     },
     style: {
       fit: ImageFit.fill,
@@ -100,7 +115,12 @@ const SourceImage: RenderExact<
   });
 };
 
-const OuterImage: Render<CameraAngleEditorState> = (state) => {
+const OuterImage: Render<
+  CameraAngleEditorState,
+  {
+    containerSize: WhSize;
+  }
+> = (state, props) => {
   const outsideImagePaint = new CanvasKit.Paint();
   outsideImagePaint.setStyle(CanvasKit.PaintStyle.Fill);
   outsideImagePaint.setColorFilter(
@@ -113,19 +133,29 @@ const OuterImage: Render<CameraAngleEditorState> = (state) => {
     {
       path: new CanvasKit.Path().addRect(
         CanvasKit.XYWHRect(
-          state.cameraAngle.destRect.x,
-          state.cameraAngle.destRect.y,
-          state.cameraAngle.destRect.width,
-          state.cameraAngle.destRect.height,
+          props.containerSize.width * state.cameraAngle.dest01Rect.x,
+          props.containerSize.height * state.cameraAngle.dest01Rect.y,
+          props.containerSize.width * state.cameraAngle.dest01Rect.width,
+          props.containerSize.height * state.cameraAngle.dest01Rect.height,
         ),
       ),
       clipOp: CanvasKit.ClipOp.Difference,
     },
-    [SourceImage(state, { paint: outsideImagePaint })],
+    [
+      SourceImage(state, {
+        paint: outsideImagePaint,
+        containerSize: props.containerSize,
+      }),
+    ],
   );
 };
 
-const InnerImage: Render<CameraAngleEditorState> = (state) => {
+const InnerImage: Render<
+  CameraAngleEditorState,
+  {
+    containerSize: WhSize;
+  }
+> = (state, props) => {
   engine.mouseEvent.onMouseMove((event) => {
     const { dragging } = state.wysiwygEditor;
     if (!dragging || dragging.targetId !== "move") {
@@ -133,8 +163,8 @@ const InnerImage: Render<CameraAngleEditorState> = (state) => {
     }
     const mouseVector = Vector.from(event);
     const diff = mouseVector.sub(dragging.lastMousePosition);
-    state.cameraAngle.sourceRect.x += diff.x;
-    state.cameraAngle.sourceRect.y += diff.y;
+    state.cameraAngle.source01Rect.x += diff.x / props.containerSize.width;
+    state.cameraAngle.source01Rect.y += diff.y / props.containerSize.height;
     dragging.lastMousePosition = mouseVector;
   });
 
@@ -142,17 +172,17 @@ const InnerImage: Render<CameraAngleEditorState> = (state) => {
     {
       path: new CanvasKit.Path().addRect(
         CanvasKit.XYWHRect(
-          state.cameraAngle.destRect.x,
-          state.cameraAngle.destRect.y,
-          state.cameraAngle.destRect.width,
-          state.cameraAngle.destRect.height,
+          props.containerSize.width * state.cameraAngle.dest01Rect.x,
+          props.containerSize.height * state.cameraAngle.dest01Rect.y,
+          props.containerSize.width * state.cameraAngle.dest01Rect.width,
+          props.containerSize.height * state.cameraAngle.dest01Rect.height,
         ),
       ),
       clipOp: CanvasKit.ClipOp.Intersect,
     },
     [
       {
-        ...SourceImage(state, {}),
+        ...SourceImage(state, { containerSize: props.containerSize }),
         onMouseDown(event) {
           state.wysiwygEditor.dragging = {
             targetId: "move",

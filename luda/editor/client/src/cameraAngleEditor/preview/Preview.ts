@@ -9,10 +9,14 @@ import {
   Translate,
 } from "namui";
 import { CameraAngleEditorState } from "../type";
+import { getDestRect, getSourceRect } from "../wysiwygEditor/getRect";
 
 export const Preview: Render<CameraAngleEditorState> = (
   state: CameraAngleEditorState,
 ) => {
+  const sourceRect = getSourceRect(state);
+  const destRect = getDestRect(state);
+
   return [
     Translate(
       {
@@ -46,14 +50,14 @@ export const Preview: Render<CameraAngleEditorState> = (
             Clip(
               {
                 path: new CanvasKit.Path().addRect(
-                  Convert.xywhToCanvasKit(state.cameraAngle.destRect),
+                  Convert.xywhToCanvasKit(destRect),
                 ),
                 clipOp: CanvasKit.ClipOp.Intersect,
               },
               [
                 Image({
-                  position: state.cameraAngle.sourceRect,
-                  size: state.cameraAngle.sourceRect,
+                  position: sourceRect,
+                  size: sourceRect,
                   url: state.cameraAngle.imageSourceUrl,
                   style: {
                     fit: ImageFit.fill,

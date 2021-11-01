@@ -11,19 +11,30 @@ import {
   AfterDraw,
   Convert,
   Render,
+  WhSize,
+  XywhRect,
+  LtrbRect,
 } from "namui";
-import { LtrbRect } from "namui/lib/type";
-import { CameraAngleEditorState } from "../type";
+import { CameraAngleEditorState, ImageSource } from "../type";
+import { getSourceRect } from "./getRect";
+import { update01Rect } from "./update01Rect";
 
 export const Resizer: Render<
   CameraAngleEditorState,
   {
-    widthHeightRatio: number;
+    containerSize: WhSize;
+    imageSource: ImageSource;
   }
 > = (state, props) => {
+  const sourceRect: XywhRect = {
+    x: props.containerSize.width * state.cameraAngle.source01Rect.x,
+    y: props.containerSize.height * state.cameraAngle.source01Rect.y,
+    width: props.containerSize.width * state.cameraAngle.source01Rect.width,
+    height: props.containerSize.height * state.cameraAngle.source01Rect.height,
+  };
   return [
     Rect({
-      ...state.cameraAngle.sourceRect,
+      ...sourceRect,
       style: {
         stroke: {
           color: ColorUtil.Grayscale01(0.2),
@@ -33,83 +44,28 @@ export const Resizer: Render<
     }),
     Translate(
       {
-        x: state.cameraAngle.sourceRect.x,
-        y: state.cameraAngle.sourceRect.y,
+        ...sourceRect,
       },
       [
-        renderImageSizeHandles(
-          {
-            widthHeightRatio: props.widthHeightRatio,
-          },
-          state,
-        ),
+        ImageSizeHandles(state, {
+          imageSource: props.imageSource,
+        }),
       ],
     ),
   ];
 };
+export const ImageSizeHandles: Render<
+  CameraAngleEditorState,
+  {
+    imageSource: ImageSource;
+  }
+> = (state, props) => {
+  const {
+    imageSource: { widthHeightRatio },
+  } = props;
 
-function renderImageSizeHandles(
-  props: {
-    widthHeightRatio: number;
-  },
-  state: CameraAngleEditorState,
-): RenderingTree {
-  const { sourceRect } = state.cameraAngle;
   const handleRadius = 5;
-  const handles: {
-    id:
-      | "resize-top-left"
-      | "resize-top"
-      | "resize-top-right"
-      | "resize-left"
-      | "resize-right"
-      | "resize-bottom-left"
-      | "resize-bottom"
-      | "resize-bottom-right";
-    position: Vector;
-    cursor: Cursor;
-  }[] = [
-    {
-      id: "resize-top-left",
-      position: new Vector(0, 0),
-      cursor: Cursor.leftTopRightBottomResize,
-    },
-    {
-      id: "resize-top",
-      position: new Vector(sourceRect.width / 2, 0),
-      cursor: Cursor.topBottomResize,
-    },
-    {
-      id: "resize-top-right",
-      position: new Vector(sourceRect.width, 0),
-      cursor: Cursor.rightTopLeftBottomResize,
-    },
-    {
-      id: "resize-left",
-      position: new Vector(0, sourceRect.height / 2),
-      cursor: Cursor.leftRightResize,
-    },
-    {
-      id: "resize-right",
-      position: new Vector(sourceRect.width, sourceRect.height / 2),
-      cursor: Cursor.leftRightResize,
-    },
-    {
-      id: "resize-bottom-left",
-      position: new Vector(0, sourceRect.height),
-      cursor: Cursor.rightTopLeftBottomResize,
-    },
-    {
-      id: "resize-bottom",
-      position: new Vector(sourceRect.width / 2, sourceRect.height),
-      cursor: Cursor.topBottomResize,
-    },
-    {
-      id: "resize-bottom-right",
-      position: new Vector(sourceRect.width, sourceRect.height),
-      cursor: Cursor.leftTopRightBottomResize,
-    },
-  ];
+  const handles = getHandles(state);
 
   return [
     ...handles.map((handle) => {
@@ -158,22 +114,25 @@ function renderImageSizeHandles(
       });
     }),
     AfterDraw(({ translated }) => {
+      const sourceRect = getSourceRect(state);
       const container = new Vector(
         translated.x - sourceRect.x,
         translated.y - sourceRect.y,
       );
+
       engine.mouseEvent.onMouseMove((event) => {
         const { dragging } = state.wysiwygEditor;
         if (!dragging || !dragging.targetId.startsWith("resize-")) {
           return;
         }
+        const sourceRect = getSourceRect(state);
         const { targetId } = dragging;
         const mouseVector = Vector.from(event);
         const diff = mouseVector.sub(dragging.lastMousePosition);
 
         const mouseLocalVector = mouseVector.sub(container);
         const handleId = targetId.substring("resize-".length);
-        const isDiagonal = targetId.includes("-");
+        const isDiagonal = handleId.includes("-");
 
         if (isDiagonal) {
           const centerPoint = new Vector(
@@ -204,7 +163,7 @@ function renderImageSizeHandles(
               case "bottom-left":
                 return isCcw ? "left" : "bottom";
               default:
-                throw new Error("unreachable");
+                throw new Error(`unreachable - ${handleId}`);
             }
           }
           const main = getMain();
@@ -217,47 +176,104 @@ function renderImageSizeHandles(
             main,
             sub,
             mouseLocalVector,
-            widthHeightRatio: props.widthHeightRatio,
+            widthHeightRatio,
           });
           const nextRect = Convert.ltrbToXywh(nextLtrbRect);
-          sourceRect.x = nextRect.x;
-          sourceRect.y = nextRect.y;
-          sourceRect.width = nextRect.width;
-          sourceRect.height = nextRect.height;
+          update01Rect(state, state.cameraAngle.source01Rect, nextRect);
         } else {
+          const nextRect: XywhRect = { ...sourceRect };
           if (handleId === "top" || handleId === "bottom") {
             let deltaWidth: number;
 
             if (handleId === "top") {
-              sourceRect.y += diff.y;
-              sourceRect.height -= diff.y;
-              deltaWidth = -diff.y * props.widthHeightRatio;
+              nextRect.y += diff.y;
+              nextRect.height -= diff.y;
+              deltaWidth = -diff.y * widthHeightRatio;
             } else {
-              sourceRect.height += diff.y;
-              deltaWidth = diff.y * props.widthHeightRatio;
+              nextRect.height += diff.y;
+              deltaWidth = diff.y * widthHeightRatio;
             }
 
-            sourceRect.x -= deltaWidth / 2;
-            sourceRect.width += deltaWidth;
+            nextRect.x -= deltaWidth / 2;
+            nextRect.width += deltaWidth;
           } else {
             let deltaHeight: number;
 
             if (handleId === "left") {
-              sourceRect.x += diff.x;
-              sourceRect.width -= diff.x;
-              deltaHeight = -diff.x / props.widthHeightRatio;
+              nextRect.x += diff.x;
+              nextRect.width -= diff.x;
+              deltaHeight = -diff.x / widthHeightRatio;
             } else {
-              sourceRect.width += diff.x;
-              deltaHeight = diff.x / props.widthHeightRatio;
+              nextRect.width += diff.x;
+              deltaHeight = diff.x / widthHeightRatio;
             }
 
-            sourceRect.y -= deltaHeight / 2;
-            sourceRect.height += deltaHeight;
+            nextRect.y -= deltaHeight / 2;
+            nextRect.height += deltaHeight;
           }
+          update01Rect(state, state.cameraAngle.source01Rect, nextRect);
         }
         dragging.lastMousePosition = mouseVector;
       });
     }),
+  ];
+};
+
+function getHandles(state: CameraAngleEditorState): {
+  id:
+    | "resize-top-left"
+    | "resize-top"
+    | "resize-top-right"
+    | "resize-left"
+    | "resize-right"
+    | "resize-bottom-left"
+    | "resize-bottom"
+    | "resize-bottom-right";
+  position: Vector;
+  cursor: Cursor;
+}[] {
+  const sourceRect: XywhRect = getSourceRect(state);
+  return [
+    {
+      id: "resize-top-left",
+      position: new Vector(0, 0),
+      cursor: Cursor.leftTopRightBottomResize,
+    },
+    {
+      id: "resize-top",
+      position: new Vector(sourceRect.width / 2, 0),
+      cursor: Cursor.topBottomResize,
+    },
+    {
+      id: "resize-top-right",
+      position: new Vector(sourceRect.width, 0),
+      cursor: Cursor.rightTopLeftBottomResize,
+    },
+    {
+      id: "resize-left",
+      position: new Vector(0, sourceRect.height / 2),
+      cursor: Cursor.leftRightResize,
+    },
+    {
+      id: "resize-right",
+      position: new Vector(sourceRect.width, sourceRect.height / 2),
+      cursor: Cursor.leftRightResize,
+    },
+    {
+      id: "resize-bottom-left",
+      position: new Vector(0, sourceRect.height),
+      cursor: Cursor.rightTopLeftBottomResize,
+    },
+    {
+      id: "resize-bottom",
+      position: new Vector(sourceRect.width / 2, sourceRect.height),
+      cursor: Cursor.topBottomResize,
+    },
+    {
+      id: "resize-bottom-right",
+      position: new Vector(sourceRect.width, sourceRect.height),
+      cursor: Cursor.leftTopRightBottomResize,
+    },
   ];
 }
 

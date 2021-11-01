@@ -35,18 +35,19 @@ export type CameraAngleEditorState = {
       lastMousePosition: Vector;
     };
     resizer: {
-      source?: {
-        widthHeightRatio: number;
-      };
+      source?: ImageSource;
     };
   };
 };
 export type CameraAngle = {
   imageSourceUrl: string;
-  sourceRect: XywhRect;
-  destRect: XywhRect;
+  source01Rect: XywhRect;
+  dest01Rect: XywhRect;
 };
 export type TextInputState = {
   targetId?: string;
   selection?: Selection;
+};
+export type ImageSource = {
+  widthHeightRatio: number;
 };

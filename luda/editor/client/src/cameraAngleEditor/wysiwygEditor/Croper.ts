@@ -7,13 +7,16 @@ import {
   RenderingTree,
   Translate,
   Vector,
+  XywhRect,
 } from "namui";
 import { CameraAngleEditorState } from "../type";
+import { getDestRect } from "./getRect";
+import { update01Rect } from "./update01Rect";
 
 export const Croper: Render<CameraAngleEditorState> = (
   state: CameraAngleEditorState,
 ) => {
-  const { destRect } = state.cameraAngle;
+  const destRect = getDestRect(state);
   return [
     Translate(destRect, [
       Rect({
@@ -27,13 +30,104 @@ export const Croper: Render<CameraAngleEditorState> = (
           },
         },
       }),
-      renderHandles(state),
+      Handles(state),
     ]),
   ];
 };
 
-function renderHandles(state: CameraAngleEditorState): RenderingTree {
-  const { destRect } = state.cameraAngle;
+const Handles: Render<CameraAngleEditorState> = (state) => {
+  const handles = getHandles(state);
+  engine.mouseEvent.onMouseMove((event) => {
+    const { dragging } = state.wysiwygEditor;
+    if (!dragging || !dragging.targetId.startsWith("crop-")) {
+      return;
+    }
+    const mouseVector = Vector.from(event);
+    const diff = mouseVector.sub(dragging.lastMousePosition);
+    const nextRect = getDestRect(state);
+
+    if (dragging.targetId.includes("top")) {
+      nextRect.y += diff.y;
+      nextRect.height -= diff.y;
+    }
+    if (dragging.targetId.includes("bottom")) {
+      nextRect.height += diff.y;
+    }
+    if (dragging.targetId.includes("left")) {
+      nextRect.x += diff.x;
+      nextRect.width -= diff.x;
+    }
+    if (dragging.targetId.includes("right")) {
+      nextRect.width += diff.x;
+    }
+    update01Rect(state, state.cameraAngle.dest01Rect, nextRect);
+
+    dragging.lastMousePosition = mouseVector;
+  });
+
+  return [
+    handles.map((handle) => {
+      const flattenedPointArray = handle.polyPoints.reduce((acc, point) => {
+        acc.push(point.x, point.y);
+        return acc;
+      }, [] as number[]);
+
+      const path = new CanvasKit.Path().addPoly(flattenedPointArray, true);
+
+      const strokePaint = new CanvasKit.Paint();
+      strokePaint.setStyle(CanvasKit.PaintStyle.Stroke);
+      strokePaint.setStrokeWidth(1);
+      strokePaint.setColor(ColorUtil.White);
+
+      const fillPaint = new CanvasKit.Paint();
+      fillPaint.setStyle(CanvasKit.PaintStyle.Fill);
+      fillPaint.setColor(ColorUtil.Black);
+
+      return {
+        drawCalls: [
+          {
+            commands: [
+              {
+                type: "path",
+                path,
+                paint: fillPaint,
+              },
+              {
+                type: "path",
+                path,
+                paint: strokePaint,
+              },
+            ],
+          },
+        ],
+        onMouseIn() {
+          engine.mousePointer.setCursor(handle.cursor);
+        },
+        onMouseDown(event) {
+          state.wysiwygEditor.dragging = {
+            targetId: handle.id,
+            lastMousePosition: Vector.from(event),
+          };
+        },
+      };
+    }),
+  ];
+};
+
+function getHandles(state: CameraAngleEditorState): {
+  id:
+    | "crop-top-left"
+    | "crop-top"
+    | "crop-top-right"
+    | "crop-left"
+    | "crop-right"
+    | "crop-bottom-left"
+    | "crop-bottom"
+    | "crop-bottom-right";
+  polyPoints: Vector[];
+  cursor: Cursor;
+}[] {
+  const destRect = getDestRect(state);
   const center = {
     x: destRect.width / 2,
     y: destRect.height / 2,
@@ -41,20 +135,7 @@ function renderHandles(state: CameraAngleEditorState): RenderingTree {
 
   const handleSize = 24;
   const handleThickness = 6;
-
-  const handles: {
-    id:
-      | "crop-top-left"
-      | "crop-top"
-      | "crop-top-right"
-      | "crop-left"
-      | "crop-right"
-      | "crop-bottom-left"
-      | "crop-bottom"
-      | "crop-bottom-right";
-    polyPoints: Vector[];
-    cursor: Cursor;
-  }[] = [
+  return [
     {
       id: "crop-top",
       polyPoints: [
@@ -158,81 +239,5 @@ function renderHandles(state: CameraAngleEditorState): RenderingTree {
       ],
       cursor: Cursor.leftTopRightBottomResize,
     },
-  ];
-
-  engine.mouseEvent.onMouseMove((event) => {
-    const { dragging } = state.wysiwygEditor;
-    if (!dragging || !dragging.targetId.startsWith("crop-")) {
-      return;
-    }
-    const mouseVector = Vector.from(event);
-    const diff = mouseVector.sub(dragging.lastMousePosition);
-
-    console.log(diff.x, diff.y);
-
-    if (dragging.targetId.includes("top")) {
-      state.cameraAngle.destRect.y += diff.y;
-      state.cameraAngle.destRect.height -= diff.y;
-    }
-    if (dragging.targetId.includes("bottom")) {
-      state.cameraAngle.destRect.height += diff.y;
-    }
-    if (dragging.targetId.includes("left")) {
-      state.cameraAngle.destRect.x += diff.x;
-      state.cameraAngle.destRect.width -= diff.x;
-    }
-    if (dragging.targetId.includes("right")) {
-      state.cameraAngle.destRect.width += diff.x;
-    }
-
-    dragging.lastMousePosition = mouseVector;
-  });
-
-  return [
-    handles.map((handle) => {
-      const flattenedPointArray = handle.polyPoints.reduce((acc, point) => {
-        acc.push(point.x, point.y);
-        return acc;
-      }, [] as number[]);
-
-      const path = new CanvasKit.Path().addPoly(flattenedPointArray, true);
-
-      const strokePaint = new CanvasKit.Paint();
-      strokePaint.setStyle(CanvasKit.PaintStyle.Stroke);
-      strokePaint.setStrokeWidth(1);
-      strokePaint.setColor(ColorUtil.White);
-
-      const fillPaint = new CanvasKit.Paint();
-      fillPaint.setStyle(CanvasKit.PaintStyle.Fill);
-      fillPaint.setColor(ColorUtil.Black);
-
-      return {
-        drawCalls: [
-          {
-            commands: [
-              {
-                type: "path",
-                path,
-                paint: fillPaint,
-              },
-              {
-                type: "path",
-                path,
-                paint: strokePaint,
-              },
-            ],
-          },
-        ],
-        onMouseIn() {
-          engine.mousePointer.setCursor(handle.cursor);
-        },
-        onMouseDown(event) {
-          state.wysiwygEditor.dragging = {
-            targetId: handle.id,
-            lastMousePosition: Vector.from(event),
-          };
-        },
-      };
-    }),
   ];
 }
