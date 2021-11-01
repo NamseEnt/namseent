@@ -26,6 +26,8 @@ export {
   Convert,
   Render,
   RenderExact,
+  WhSize,
+  LtrbRect,
 } from "./type";
 export { Selection } from "./textInput/ITextInputManager";
 export { Code } from "./device/keyboard/Code";

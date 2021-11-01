@@ -272,3 +272,8 @@ export const Convert = {
     return CanvasKit.XYWHRect(rect.x, rect.y, rect.width, rect.height);
   },
 };
+
+export type WhSize = {
+  width: number;
+  height: number;
+};
