@@ -2,6 +2,7 @@ import {
   ColorUtil,
   Cursor,
   engine,
+  Mathu,
   Rect,
   Render,
   RenderingTree,
@@ -45,15 +46,20 @@ const Handles: Render<CameraAngleEditorState> = (state) => {
     const mouseVector = Vector.from(event);
     const diff = mouseVector.sub(dragging.lastMousePosition);
     const nextRect = getDestRect(state);
-
-    if (dragging.targetId.includes("top")) {
+    if (
+      dragging.targetId.includes("top") &&
+      Mathu.in(nextRect.y + diff.y, 0, state.layout.sub.wysiwygEditor.height)
+    ) {
       nextRect.y += diff.y;
       nextRect.height -= diff.y;
     }
     if (dragging.targetId.includes("bottom")) {
       nextRect.height += diff.y;
     }
-    if (dragging.targetId.includes("left")) {
+    if (
+      dragging.targetId.includes("left") &&
+      Mathu.in(nextRect.x + diff.x, 0, state.layout.sub.wysiwygEditor.width)
+    ) {
       nextRect.x += diff.x;
       nextRect.width -= diff.x;
     }
