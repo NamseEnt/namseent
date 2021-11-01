@@ -8,6 +8,7 @@ import {
   Surface,
   Canvas,
   Font,
+  InputRect,
 } from "canvaskit-wasm";
 import { BuildErrorNotifier } from "./build/BuildErrorNotifier";
 import { BuildServerConnection } from "./build/BuildServerConnection";
@@ -251,7 +252,7 @@ export enum Cursor {
 
 // this is static class
 export const Convert = {
-  LtrbToXywh(rect: LtrbRect): XywhRect {
+  ltrbToXywh(rect: LtrbRect): XywhRect {
     return {
       x: rect.left,
       y: rect.top,
@@ -259,12 +260,15 @@ export const Convert = {
       height: rect.bottom - rect.top,
     };
   },
-  XywhToLtrb(rect: XywhRect): LtrbRect {
+  xywhToLtrb(rect: XywhRect): LtrbRect {
     return {
       left: rect.x,
       top: rect.y,
       right: rect.x + rect.width,
       bottom: rect.y + rect.height,
     };
+  },
+  xywhToCanvasKit(rect: XywhRect): InputRect {
+    return CanvasKit.XYWHRect(rect.x, rect.y, rect.width, rect.height);
   },
 };
