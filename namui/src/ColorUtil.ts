@@ -32,6 +32,34 @@ export namespace ColorUtil {
   ): CanvasKit.Color {
     return Color0255(grayscale, grayscale, grayscale, a);
   }
+  export function ColorHSL01(h: number, s: number, l: number, a?: number) {
+    const hue = (h * 360) % 360;
+    const hueStage = hue / 60;
+    const primaryChroma = (1 - Math.abs(2 * l - 1)) * s;
+    const secondaryChroma = primaryChroma * (1 - Math.abs((hueStage % 2) - 1));
+    const [baseR, baseG, baseB] =
+      hueStage < 1
+        ? [primaryChroma, secondaryChroma, 0]
+        : hueStage < 2
+        ? [secondaryChroma, primaryChroma, 0]
+        : hueStage < 3
+        ? [0, primaryChroma, secondaryChroma]
+        : hueStage < 4
+        ? [0, secondaryChroma, primaryChroma]
+        : hueStage < 5
+        ? [secondaryChroma, 0, primaryChroma]
+        : hueStage < 6
+        ? [primaryChroma, 0, secondaryChroma]
+        : [0, 0, 0];
+    const lightnessFactor = l - primaryChroma / 2;
+    return Color01(
+      baseR + lightnessFactor,
+      baseG + lightnessFactor,
+      baseB + lightnessFactor,
+      a,
+    );
+  }
+
   function clamp(color0255: number) {
     return Math.round(Math.max(0, Math.min(color0255 || 0, 255)));
   }

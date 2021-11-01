@@ -20,21 +20,28 @@ export function getGcCanvasKitPackage(canvasKit: CanvasKit): {
       ...canvasKit,
       Paint: makeItGc(canvasKit.Paint, garbages),
       Path: makeItGc(canvasKit.Path, garbages) as any,
+      Shader: {
+        ...canvasKit.Shader,
+        MakeLinearGradient: makeItGc(
+          canvasKit.Shader.MakeLinearGradient as any,
+          garbages,
+        ) as any,
+      },
     },
     deleteGarbages,
     garbages,
   };
 }
 
-function makeItGc<T extends EmbindObject<any>>(
-  constructor: { new (): T },
-  garbages: EmbindObject<any>[]
+function makeItGc<T extends EmbindObject<any>, P extends unknown[]>(
+  constructor: { new (...params: P): T },
+  garbages: EmbindObject<any>[],
 ): {
   new (): T;
 } {
   const prototype = constructor.prototype;
-  const gcConstructor = function (this: T): T {
-    const paint = new constructor();
+  const gcConstructor = function (this: T, ...params: P): T {
+    const paint = new constructor(...params);
     garbages.push(paint);
     return paint;
   };
