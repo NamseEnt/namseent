@@ -39,7 +39,14 @@ export function drawImage(
     paint.setColor(ColorUtil.Grayscale01(0.5));
   }
 
-  canvas.drawImageRect(image, srcRect, destRect, paint);
+  canvas.drawImageRectOptions(
+    image,
+    srcRect,
+    destRect,
+    CanvasKit.FilterMode.Linear,
+    CanvasKit.MipmapMode.Linear,
+    paint,
+  );
 
   if (didCreatePaint) {
     paint.delete();
