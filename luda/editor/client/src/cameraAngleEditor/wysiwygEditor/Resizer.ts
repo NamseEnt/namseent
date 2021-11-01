@@ -213,13 +213,13 @@ function renderImageSizeHandles(
             .replace("-", "") as keyof LtrbRect;
 
           const nextLtrbRect = resizeRect({
-            rect: Convert.XywhToLtrb(sourceRect),
+            rect: Convert.xywhToLtrb(sourceRect),
             main,
             sub,
             mouseLocalVector,
             widthHeightRatio: props.widthHeightRatio,
           });
-          const nextRect = Convert.LtrbToXywh(nextLtrbRect);
+          const nextRect = Convert.ltrbToXywh(nextLtrbRect);
           sourceRect.x = nextRect.x;
           sourceRect.y = nextRect.y;
           sourceRect.width = nextRect.width;

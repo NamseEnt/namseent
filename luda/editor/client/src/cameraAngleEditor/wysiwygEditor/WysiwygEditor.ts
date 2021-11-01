@@ -9,6 +9,8 @@ import {
   RenderExact,
   Vector,
   Cursor,
+  Translate,
+  Rect,
 } from "namui";
 import { CameraAngleEditorState } from "../type";
 import { Croper } from "./Croper";
@@ -27,10 +29,30 @@ export const WysiwygEditor: Render<CameraAngleEditorState> = (
   });
 
   return [
-    OuterImage(state),
-    InnerImage(state),
-    Resizer(state, source),
-    Croper(state),
+    Translate(
+      {
+        x: state.layout.sub.wysiwygEditor.x,
+        y: state.layout.sub.wysiwygEditor.y,
+      },
+      [
+        Rect({
+          x: 0,
+          y: 0,
+          width: state.layout.sub.wysiwygEditor.width,
+          height: state.layout.sub.wysiwygEditor.height,
+          style: {
+            stroke: {
+              color: ColorUtil.Black,
+              width: 2,
+            },
+          },
+        }),
+        OuterImage(state),
+        InnerImage(state),
+        Resizer(state, source),
+        Croper(state),
+      ],
+    ),
   ];
 };
 

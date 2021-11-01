@@ -3,6 +3,10 @@ import { Selection, Vector, XywhRect } from "namui";
 export type CameraAngleEditorState = {
   layout: {
     rect: XywhRect;
+    sub: {
+      wysiwygEditor: XywhRect;
+      preview: XywhRect;
+    };
   };
   cameraAngle: CameraAngle;
   propertyTextEditor: {

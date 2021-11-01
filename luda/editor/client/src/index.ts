@@ -57,6 +57,20 @@ startEngine(
           width: 800,
           height: 800,
         },
+        sub: {
+          wysiwygEditor: {
+            x: 400,
+            y: 0,
+            width: 400,
+            height: (400 / 16) * 9,
+          },
+          preview: {
+            x: 400,
+            y: 400,
+            width: 400,
+            height: (400 / 16) * 9,
+          },
+        },
       },
       cameraAngle: {
         imageSourceUrl: "resources/images/피디-기본-미소.png",

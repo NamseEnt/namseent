@@ -13,6 +13,7 @@ import {
 import { renderPropertyTextEditor } from "./propertyTextEditor/renderPropertyTextEditor";
 import { WysiwygEditor } from "./wysiwygEditor/WysiwygEditor";
 import { CameraAngleEditorState } from "./type";
+import { Preview } from "./preview/Preview";
 
 export function renderCameraAngleEditor(
   state: CameraAngleEditorState,
@@ -49,13 +50,8 @@ export function renderCameraAngleEditor(
           },
         }),
         renderPropertyTextEditor(state),
-        Translate(
-          {
-            x: 400,
-            y: 0,
-          },
-          WysiwygEditor(state),
-        ),
+        WysiwygEditor(state),
+        Preview(state),
       ],
     ),
   );

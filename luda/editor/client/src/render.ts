@@ -18,6 +18,6 @@ type State = {
 export function render(state: State): RenderingTree {
   // return renderImageEditor(state.imageEditorState);
   // return renderTimeline(state.timelineState);
-  // return renderCameraAngleEditor(state.cameraAngleEditorState);
-  return renderSubtitleEditor(state.subtitleEditorState);
+  return renderCameraAngleEditor(state.cameraAngleEditorState);
+  // return renderSubtitleEditor(state.subtitleEditorState);
 }
