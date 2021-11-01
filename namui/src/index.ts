@@ -32,3 +32,8 @@ export {
 export { Selection } from "./textInput/ITextInputManager";
 export { Code } from "./device/keyboard/Code";
 export { Key } from "./device/keyboard/Key";
+
+import { IMathu } from "./Mathu/IMathu";
+import { Mathu } from "./Mathu/Mathu";
+const mathu: IMathu = new Mathu();
+export { mathu as Mathu };

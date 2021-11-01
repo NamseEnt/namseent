@@ -4,6 +4,6 @@
     "**/node_modules": true,
     "**/lib": true
   },
-  "cSpell.words": ["Ltrb", "namui"],
+  "cSpell.words": ["Ltrb", "Mathu", "namui"],
   "editor.formatOnSave": true
 }

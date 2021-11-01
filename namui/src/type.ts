@@ -28,6 +28,9 @@ declare global {
   interface Array<T> {
     remove(o: T): void;
   }
+  interface Math {
+    clamp(value: number, min: number, max: number): number;
+  }
 }
 
 Array.prototype.remove = function (element) {
