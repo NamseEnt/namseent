@@ -12,19 +12,22 @@ import {
   Translate,
   Rect,
   WhSize,
+  Convert,
 } from "namui";
 import { CameraAngleEditorState, ImageSource } from "../type";
 import { Croper } from "./Croper";
+import { getDestRect, getSourceRect } from "./getRect";
 import { Resizer } from "./Resizer";
 
 export const WysiwygEditor: Render<CameraAngleEditorState> = (
   state: CameraAngleEditorState,
 ) => {
   const containerSize: WhSize = state.layout.sub.wysiwygEditor;
-  const imageSource = getImageSource(state, containerSize);
+  const imageSource = getImageSource(state);
   if (!imageSource) {
     return;
   }
+  keepWidthHeightRatio(state, imageSource);
 
   engine.mouseEvent.onMouseUp(() => {
     state.wysiwygEditor.dragging = undefined;
@@ -60,7 +63,6 @@ export const WysiwygEditor: Render<CameraAngleEditorState> = (
 
 function getImageSource(
   state: CameraAngleEditorState,
-  containerSize: WhSize,
 ): ImageSource | undefined {
   if (state.wysiwygEditor.resizer.source) {
     return state.wysiwygEditor.resizer.source;
@@ -73,39 +75,42 @@ function getImageSource(
       widthHeightRatio,
     };
 
-    const containerWhRatio = containerSize.width / containerSize.height;
-    if (widthHeightRatio > 1) {
-      state.cameraAngle.source01Rect.width = 1;
-      state.cameraAngle.source01Rect.height =
-        containerWhRatio / widthHeightRatio;
-    } else {
-      state.cameraAngle.source01Rect.height = 1;
-      state.cameraAngle.source01Rect.width =
-        (1 / containerWhRatio) * widthHeightRatio;
-    }
-
     return state.wysiwygEditor.resizer.source;
   }
 
   return;
 }
 
+function keepWidthHeightRatio(
+  state: CameraAngleEditorState,
+  imageSource: ImageSource,
+) {
+  const { widthHeightRatio } = imageSource;
+  const screenWhRatio = 16 / 9;
+
+  if (widthHeightRatio > 1) {
+    state.cameraAngle.source01Rect.height =
+      (state.cameraAngle.source01Rect.width * screenWhRatio) / widthHeightRatio;
+  } else {
+    state.cameraAngle.source01Rect.width =
+      (state.cameraAngle.source01Rect.height / screenWhRatio) *
+      widthHeightRatio;
+  }
+}
+
 const SourceImage: RenderExact<
   CameraAngleEditorState,
   {
     paint?: Paint;
-    containerSize: WhSize;
   }
 > = (state, props) => {
+  const sourceRect = getSourceRect(state);
   return Image({
     position: {
-      x: props.containerSize.width * state.cameraAngle.source01Rect.x,
-      y: props.containerSize.height * state.cameraAngle.source01Rect.y,
+      ...sourceRect,
     },
     size: {
-      width: props.containerSize.width * state.cameraAngle.source01Rect.width,
-      height:
-        props.containerSize.height * state.cameraAngle.source01Rect.height,
+      ...sourceRect,
     },
     style: {
       fit: ImageFit.fill,
@@ -115,12 +120,7 @@ const SourceImage: RenderExact<
   });
 };
 
-const OuterImage: Render<
-  CameraAngleEditorState,
-  {
-    containerSize: WhSize;
-  }
-> = (state, props) => {
+const OuterImage: Render<CameraAngleEditorState, {}> = (state, props) => {
   const outsideImagePaint = new CanvasKit.Paint();
   outsideImagePaint.setStyle(CanvasKit.PaintStyle.Fill);
   outsideImagePaint.setColorFilter(
@@ -129,22 +129,15 @@ const OuterImage: Render<
       CanvasKit.BlendMode.Multiply,
     ),
   );
+  const destRect = getDestRect(state);
   return Clip(
     {
-      path: new CanvasKit.Path().addRect(
-        CanvasKit.XYWHRect(
-          props.containerSize.width * state.cameraAngle.dest01Rect.x,
-          props.containerSize.height * state.cameraAngle.dest01Rect.y,
-          props.containerSize.width * state.cameraAngle.dest01Rect.width,
-          props.containerSize.height * state.cameraAngle.dest01Rect.height,
-        ),
-      ),
+      path: new CanvasKit.Path().addRect(Convert.xywhToCanvasKit(destRect)),
       clipOp: CanvasKit.ClipOp.Difference,
     },
     [
       SourceImage(state, {
         paint: outsideImagePaint,
-        containerSize: props.containerSize,
       }),
     ],
   );
@@ -168,21 +161,15 @@ const InnerImage: Render<
     dragging.lastMousePosition = mouseVector;
   });
 
+  const destRect = getDestRect(state);
   return Clip(
     {
-      path: new CanvasKit.Path().addRect(
-        CanvasKit.XYWHRect(
-          props.containerSize.width * state.cameraAngle.dest01Rect.x,
-          props.containerSize.height * state.cameraAngle.dest01Rect.y,
-          props.containerSize.width * state.cameraAngle.dest01Rect.width,
-          props.containerSize.height * state.cameraAngle.dest01Rect.height,
-        ),
-      ),
+      path: new CanvasKit.Path().addRect(Convert.xywhToCanvasKit(destRect)),
       clipOp: CanvasKit.ClipOp.Intersect,
     },
     [
       {
-        ...SourceImage(state, { containerSize: props.containerSize }),
+        ...SourceImage(state, {}),
         onMouseDown(event) {
           state.wysiwygEditor.dragging = {
             targetId: "move",
