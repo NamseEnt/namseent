@@ -43,6 +43,32 @@ export const DefaultTrackBody: Render<
         }
       },
     }),
+    Rect({
+      x: 0,
+      y: props.height / 3,
+      width: props.width,
+      height: props.height / 3,
+      style: {
+        stroke: {
+          color: ColorUtil.Color01(0.25, 0.25, 0.25),
+          width: 1,
+          borderPosition: BorderPosition.inside,
+        },
+      },
+    }),
+    Rect({
+      x: 0,
+      y: 0,
+      width: props.width,
+      height: props.height,
+      style: {
+        stroke: {
+          color: ColorUtil.Black,
+          width: 1,
+          borderPosition: BorderPosition.inside,
+        },
+      },
+    }),
     clips.map((clip) => {
       return ClipComponent(
         { timelineState: state, clip },

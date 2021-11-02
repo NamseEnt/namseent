@@ -10,9 +10,11 @@ import {
   Render,
   BorderPosition,
 } from "namui";
+import { isSubtitleClip } from "../../clipTypeGuard";
 import { Clip } from "../../type";
 import { TimelineState } from "../type";
 import { SashComponent } from "./Sash";
+import { SubtitleClipComponent } from "./SubtitleClipComponent";
 
 export const ClipComponent: Render<
   {
@@ -50,6 +52,17 @@ export const ClipComponent: Render<
     width: width - 2,
     height: height - 2,
   };
+
+  // TODO: If possible, it should be integrated with ClipComponent.
+  if (isSubtitleClip(clip)) {
+    return SubtitleClipComponent(
+      {
+        clip,
+        timelineState,
+      },
+      props,
+    );
+  }
 
   return [
     Rect({

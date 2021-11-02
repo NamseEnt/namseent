@@ -1,5 +1,5 @@
-import { Language, Selection, XywhRect } from "namui";
-import { FontWeight } from "namui/lib/font/FontStorage";
+import { Selection, XywhRect } from "namui";
+import { Subtitle } from "../type";
 
 export type SubtitleEditorState = {
   layout: {
@@ -14,39 +14,6 @@ export type SubtitleEditorState = {
   colorInput: ColorInputState;
 };
 
-export type Subtitle = {
-  // TODO
-  // id: string;
-  // startMs: number;
-  // endMs: number;
-  text: string;
-  fontType: SubtitleFontType;
-  style: SubtitleStyle;
-};
-
-export type SubtitleFontType = {
-  serif: boolean;
-  size: SubtitleFontSize;
-  language: Language;
-  fontWeight: FontWeight;
-};
-
-export type SubtitleStyle = {
-  color: Float32Array;
-  background: {
-    color: Float32Array;
-  };
-  border: {
-    color: Float32Array;
-    width: number;
-  };
-  dropShadow: {
-    x: number;
-    y: number;
-    color: Float32Array;
-  };
-};
-
 export type TextInputState = {
   targetId?: string;
   selection?: Selection;
@@ -59,9 +26,3 @@ export type ColorInputState = {
   lightness: number;
   alpha: number;
 };
-
-export enum SubtitleFontSize {
-  small = 24,
-  regular = 48,
-  large = 64,
-}

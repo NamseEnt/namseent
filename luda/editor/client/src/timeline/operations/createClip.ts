@@ -1,4 +1,5 @@
-import { CameraClip, Clip } from "../../type";
+import { ColorUtil, Language } from "namui";
+import { BaseClip, CameraClip, Clip, SubtitleClip } from "../../type";
 import { TrackType } from "../type";
 
 export function createClip({
@@ -36,6 +37,40 @@ export function createClip({
         },
       };
       return cameraClip;
+
+    case TrackType.subtitle:
+      const subtitleClip: SubtitleClip = {
+        id,
+        type: trackType,
+        startMs,
+        endMs,
+        subtitle: {
+          text: "Input text here",
+          fontType: {
+            fontWeight: 400,
+            language: Language.ko,
+            serif: false,
+            size: 24,
+          },
+          style: {
+            background: {
+              color: ColorUtil.Black,
+            },
+            border: {
+              color: ColorUtil.Transparent,
+              width: 0,
+            },
+            color: ColorUtil.White,
+            dropShadow: {
+              color: ColorUtil.Transparent,
+              x: 0,
+              y: 0,
+            },
+          },
+        },
+      };
+      return subtitleClip;
+
     default:
       throw new Error(`Unknown track type ${trackType}. please implement.`);
   }

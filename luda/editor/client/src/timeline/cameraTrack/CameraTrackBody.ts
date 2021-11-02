@@ -1,10 +1,10 @@
 import {
+  BorderPosition,
   ColorUtil,
+  Mathu,
   MouseButton,
   Rect,
   Render,
-  BorderPosition,
-  Mathu,
 } from "namui";
 import { Clip } from "../../type";
 import { ClipComponent } from "../clip/ClipComponent";
@@ -110,6 +110,8 @@ function pushClipsForward(state: TimelineState, clips: Clip[]) {
     const { clipId } = state.actionState;
     const draggingClip = clips.find((clip) => clip.id === clipId);
     if (!draggingClip) {
+      // TODO: It may be a clip of another track.
+      return;
       throw new Error("clip not found");
     }
 
@@ -169,6 +171,8 @@ const DraggingFakeClip: Render<
   const { clipId } = state.timelineState.actionState;
   const clip = props.clips.find((clip) => clip.id === clipId);
   if (!clip) {
+    // TODO: It may be a clip of another track.
+    return;
     throw new Error("clip not found");
   }
   return ClipComponent(
@@ -178,6 +182,7 @@ const DraggingFakeClip: Render<
         startMs: clip.startMs,
         endMs: clip.endMs,
         id: "fake-camera-track-drag-preview",
+        type: "camera",
       },
     },
     {

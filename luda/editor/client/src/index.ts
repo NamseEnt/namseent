@@ -5,6 +5,9 @@ import { render } from "./render";
 import { createClip } from "./timeline/operations/createClip";
 import { TrackType } from "./timeline/type";
 
+const margin = 8;
+const subtitleEditorHeight = 650;
+
 startEngine(
   {
     imageEditorState: {
@@ -25,6 +28,42 @@ startEngine(
       tracks: [
         {
           id: "track1",
+          type: TrackType.subtitle,
+          clips: [
+            {
+              id: "2-1",
+              type: "subtitle",
+              startMs: 2500,
+              endMs: 3500,
+              subtitle: {
+                text: "subtitle 1-1",
+                fontType: {
+                  fontWeight: 400,
+                  language: Language.ko,
+                  serif: false,
+                  size: 24,
+                },
+                style: {
+                  background: {
+                    color: ColorUtil.Black,
+                  },
+                  border: {
+                    color: ColorUtil.Transparent,
+                    width: 0,
+                  },
+                  color: ColorUtil.White,
+                  dropShadow: {
+                    color: ColorUtil.Transparent,
+                    x: 0,
+                    y: 0,
+                  },
+                },
+              },
+            },
+          ],
+        },
+        {
+          id: "track2",
           type: TrackType.camera,
           clips: [
             createClip({
@@ -114,10 +153,10 @@ startEngine(
     subtitleEditorState: {
       layout: {
         rect: {
-          x: 100,
-          y: 100,
+          x: margin,
+          y: margin,
           width: 400,
-          height: 800,
+          height: subtitleEditorHeight,
         },
         videoSize: {
           width: 1280,

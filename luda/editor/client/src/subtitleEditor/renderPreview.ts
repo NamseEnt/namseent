@@ -9,7 +9,7 @@ import {
   Translate,
   XywhRect,
 } from "namui";
-import { Subtitle } from "./type";
+import { Subtitle } from "../type";
 
 export function renderPreview(props: {
   layout: {
