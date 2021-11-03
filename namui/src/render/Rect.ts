@@ -6,7 +6,7 @@ export function Rect({
   y,
   width,
   height,
-  style: { stroke, fill },
+  style: { stroke, fill, round },
   onClick,
   onClickOut,
   onMouseMoveIn,
@@ -26,6 +26,9 @@ export function Rect({
     fill?: {
       color: Color;
     };
+    round?: {
+      radius: number;
+    };
   };
   onClick?: MouseEventCallback;
   onClickOut?: MouseEventCallback;
@@ -34,9 +37,13 @@ export function Rect({
   onMouseDown?: MouseEventCallback;
   onMouseUp?: MouseEventCallback;
 }): RenderingTree {
-  const borderRectPath = new CanvasKit.Path().addRect(
-    CanvasKit.XYWHRect(x, y, width, height),
-  );
+  const xywhRect = CanvasKit.XYWHRect(x, y, width, height);
+  const rectPath = new CanvasKit.Path();
+  if (round) {
+    rectPath.addRRect(CanvasKit.RRectXY(xywhRect, round.radius, round.radius));
+  } else {
+    rectPath.addRect(CanvasKit.XYWHRect(x, y, width, height));
+  }
 
   const drawCommands: DrawCommand[] = [];
 
@@ -49,7 +56,7 @@ export function Rect({
 
     drawCommands.push({
       type: "path",
-      path: borderRectPath,
+      path: rectPath,
       paint: strokePaint,
     });
   }
@@ -62,7 +69,7 @@ export function Rect({
 
     drawCommands.push({
       type: "path",
-      path: borderRectPath,
+      path: rectPath,
       paint: fillPaint,
     });
   }
