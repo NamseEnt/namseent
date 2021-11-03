@@ -5,29 +5,39 @@ import {
   engine,
   Key,
   Rect,
+  Render,
   RenderingTree,
   Translate,
 } from "namui";
-import { Track, TimelineState } from "./type";
-import { renderTrackBody } from "./renderTrackBody";
+import { Track, TimelineState, TrackType } from "./type";
+import { DefaultTrackBody } from "./DefaultTrackBody";
+import { CameraTrackBody } from "./cameraTrack/CameraTrackBody";
 
-export function renderTimelineBody(
-  props: {
-    width: number;
-    height: number;
+export const TimelineBody: Render<
+  {
+    timelineState: TimelineState;
     tracks: Track[];
   },
-  state: TimelineState,
-): RenderingTree {
-  const trackBodyHeight = props.height / props.tracks.length;
-  const trackBodies = props.tracks.map((track, index) => {
+  {
+    width: number;
+    height: number;
+  }
+> = (state, props) => {
+  const trackBodyHeight = props.height / state.tracks.length;
+  const trackBodies = state.tracks.map((track, index) => {
     const x = 0;
     const y = trackBodyHeight * index;
     const width = props.width;
     const height = trackBodyHeight;
     return Translate(
       { x, y },
-      renderTrackBody({ width, height, track }, state),
+      TrackBody(
+        {
+          timelineState: state.timelineState,
+          track,
+        },
+        { width, height },
+      ),
     );
   });
 
@@ -56,10 +66,42 @@ export function renderTimelineBody(
       },
       trackBodies,
     ),
-    setWheelZoomHandler(state),
-    setWheelMoveHandler(state),
+    setWheelZoomHandler(state.timelineState),
+    setWheelMoveHandler(state.timelineState),
   ];
-}
+};
+
+const TrackBody: Render<
+  {
+    timelineState: TimelineState;
+    track: Track;
+  },
+  {
+    width: number;
+    height: number;
+  }
+> = (state, props) => {
+  const { timelineState, track } = state;
+  switch (track.type) {
+    case TrackType.camera:
+      return CameraTrackBody(
+        {
+          timelineState,
+          track,
+        },
+        {
+          width: props.width,
+          height: props.height,
+        },
+      );
+    default:
+      return DefaultTrackBody(timelineState, {
+        width: props.width,
+        height: props.height,
+        track,
+      });
+  }
+};
 
 function setWheelMoveHandler(state: TimelineState): RenderingTree {
   engine.wheel.onWheel(({ deltaY }) => {

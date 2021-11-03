@@ -4,19 +4,20 @@ import {
   engine,
   MouseButton,
   Rect,
+  Render,
   RenderingTree,
 } from "namui";
 import { Track, TimelineState } from "./type";
 import { renderClip } from "./renderClip";
 
-export function renderTrackBody(
-  props: {
+export const DefaultTrackBody: Render<
+  TimelineState,
+  {
     width: number;
     height: number;
     track: Track;
-  },
-  state: TimelineState,
-): RenderingTree {
+  }
+> = (state, props) => {
   const { clips } = props.track;
 
   return [
@@ -55,4 +56,4 @@ export function renderTrackBody(
       );
     }),
   ];
-}
+};

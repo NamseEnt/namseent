@@ -1,5 +1,6 @@
 import { ColorUtil, FontWeight, Language, startEngine } from "namui";
 import { render } from "./render";
+import { TrackType } from "./timeline/type";
 
 startEngine(
   {
@@ -19,6 +20,7 @@ startEngine(
       tracks: [
         {
           id: "track1",
+          type: TrackType.camera,
           clips: [
             {
               id: "1-1",
@@ -34,16 +36,6 @@ startEngine(
               id: "1-3",
               startMs: 3000,
               endMs: 4000,
-            },
-          ],
-        },
-        {
-          id: "track2",
-          clips: [
-            {
-              id: "2-1",
-              startMs: 2500,
-              endMs: 3500,
             },
           ],
         },

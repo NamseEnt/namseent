@@ -1,7 +1,7 @@
 import { RenderingTree, Translate, engine, AfterDraw } from "namui";
 import { Vector } from "namui/lib/type";
 import { renderContextMenu } from "./contextMenu/renderContextMenu";
-import { renderTimelineBody } from "./renderTimelineBody";
+import { TimelineBody } from "./renderTimelineBody";
 import { renderTimelineHeader } from "./renderTimelineHeader";
 import { Clip, TimelineState } from "./type";
 
@@ -36,13 +36,15 @@ export function renderTimeline(state: TimelineState): RenderingTree {
           x: headerWidth,
           y: 0,
         },
-        renderTimelineBody(
+        TimelineBody(
+          {
+            timelineState: state,
+            tracks,
+          },
           {
             width: bodyWidth,
             height,
-            tracks,
           },
-          state,
         ),
       ),
     ]),

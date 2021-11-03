@@ -34,8 +34,13 @@ export type DragClip = {
   mouseAnchorMs: number;
 };
 
+export enum TrackType {
+  camera = "camera",
+}
+
 export type Track = {
   id: string;
+  type: TrackType;
   clips: Clip[];
 };
 
