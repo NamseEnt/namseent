@@ -1,4 +1,4 @@
-import { RenderingTree, Translate, engine, AfterDraw } from "namui";
+import { RenderingTree, Translate, engine, AfterDraw, Cursor } from "namui";
 import { Vector } from "namui/lib/type";
 import { renderContextMenu } from "./contextMenu/renderContextMenu";
 import { TimelineBody } from "./renderTimelineBody";
@@ -101,6 +101,8 @@ function handleActionState(
     case "dragClip":
       {
         registerDraggingActionResetCallback(state);
+
+        engine.mousePointer.setCursor(Cursor.grab);
 
         const clip = getClip(state, actionState.clipId);
         if (!clip) {

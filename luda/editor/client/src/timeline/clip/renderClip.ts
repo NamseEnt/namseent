@@ -32,6 +32,8 @@ export function renderClip(
 
   if (clipState.mouseIn) {
     engine.mousePointer.setCursor(Cursor.leftRightResize);
+  } else if (timelineState.clipIdMouseIn === clipState.id) {
+    engine.mousePointer.setCursor(Cursor.grab);
   }
 
   const shouldHighlight =
