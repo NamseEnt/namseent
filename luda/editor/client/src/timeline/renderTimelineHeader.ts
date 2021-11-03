@@ -7,7 +7,7 @@ export function renderTimelineHeader(props: {
   height: number;
   tracks: Track[];
 }): RenderingTree {
-  const trackHeaderHeight = props.height / props.tracks.length;
+  const trackHeaderHeight = 80;
   const trackHeaders = props.tracks.map((track, index) => {
     const x = 0;
     const y = trackHeaderHeight * index;

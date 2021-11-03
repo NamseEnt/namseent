@@ -1,67 +1,85 @@
-import { ColorUtil, Rect, Render, RenderingTree } from "namui";
-import { TimelineState, Clip } from "../type";
+import {
+  Clip,
+  ColorUtil,
+  Rect,
+  Render,
+  Translate,
+  MouseEvent,
+  Mathu,
+} from "namui";
+import { TimelineState, Clip as TimelineClip } from "../type";
 
 export const Sash: Render<
   {
     timelineState: TimelineState;
-    clip: Clip;
+    clip: TimelineClip;
   },
   {
     clipX: number;
     clipWidth: number;
-    sashWidth: number;
-    maxRight: number;
     height: number;
-    side: "left" | "right";
   }
-> = (state, { clipX, clipWidth, sashWidth, maxRight, height, side }) => {
-  const leftSashLeft = clipX - sashWidth / 2;
-  const leftSashRight = leftSashLeft + leftSashLeft;
+> = (state, { clipX, clipWidth, height }) => {
+  const sashWidth = 10;
+  const clippingWidth = clipWidth - 2 * sashWidth;
 
-  const rightSashLeft = clipX + clipWidth - sashWidth / 2;
-  const rightSashRight = rightSashLeft + sashWidth;
-
-  const left = side === "left" ? leftSashLeft : rightSashLeft;
-  const right = side === "left" ? leftSashRight : rightSashRight;
-  const isVisible = right > 0 && left < maxRight;
-
-  if (!isVisible) {
-    return;
+  function getSashSideOfMouseEvent(
+    mouseEvent: MouseEvent,
+  ): "left" | "right" | undefined {
+    const translatedX = mouseEvent.translated.x;
+    if (Mathu.in(mouseEvent.translated.x, 0, sashWidth)) {
+      return "left";
+    } else if (translatedX < clippingWidth) {
+      return undefined;
+    } else {
+      return "right";
+    }
   }
 
-  const shouldHighlight =
-    (state.clip.mouseIn === side && !state.timelineState.actionState) ||
-    (state.timelineState.actionState?.type === "resizeClip" &&
-      state.timelineState.actionState.side === side &&
-      state.timelineState.actionState.clipId === state.clip.id);
-
-  return [
-    Rect({
-      x: left,
-      y: 0,
-      width: sashWidth,
-      height,
-      style: {
-        fill: {
-          color: shouldHighlight ? ColorUtil.Blue : ColorUtil.Transparent,
+  return Translate(
+    {
+      x: clipX,
+      y: 1,
+    },
+    Clip(
+      {
+        path: new CanvasKit.Path().addRect(
+          CanvasKit.XYWHRect(sashWidth, 0, clipWidth - 2 * sashWidth, height),
+        ),
+        clipOp: CanvasKit.ClipOp.Difference,
+      },
+      Rect({
+        x: 0,
+        y: 0,
+        width: clipWidth,
+        height: height - 1,
+        style: {
+          fill: {
+            color: ColorUtil.Red,
+          },
+          round: {
+            radius: 5,
+          },
         },
-      },
-      onMouseMoveIn: () => {
-        // TODO : what if mouse is on two contiguous clips's sashes?
-        state.clip.mouseIn = side;
-      },
-      onMouseMoveOut: () => {
-        if (state.clip.mouseIn === side) {
+        onMouseMoveIn: (mouseEvent) => {
+          const side = getSashSideOfMouseEvent(mouseEvent);
+          state.clip.mouseIn = side;
+        },
+        onMouseMoveOut: () => {
           state.clip.mouseIn = undefined;
-        }
-      },
-      onMouseDown: () => {
-        state.timelineState.actionState = {
-          type: "resizeClip",
-          clipId: state.clip.id,
-          side,
-        };
-      },
-    }),
-  ];
+        },
+        onMouseDown: (mouseEvent) => {
+          const side = getSashSideOfMouseEvent(mouseEvent);
+          if (!side) {
+            return;
+          }
+          state.timelineState.actionState = {
+            type: "resizeClip",
+            clipId: state.clip.id,
+            side,
+          };
+        },
+      }),
+    ),
+  );
 };

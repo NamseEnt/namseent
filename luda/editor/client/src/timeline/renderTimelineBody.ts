@@ -23,7 +23,7 @@ export const TimelineBody: Render<
     height: number;
   }
 > = (state, props) => {
-  const trackBodyHeight = props.height / state.tracks.length;
+  const trackBodyHeight = 80;
   const trackBodies = state.tracks.map((track, index) => {
     const x = 0;
     const y = trackBodyHeight * index;

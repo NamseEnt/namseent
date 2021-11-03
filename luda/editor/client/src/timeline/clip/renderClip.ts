@@ -30,8 +30,6 @@ export function renderClip(
     return;
   }
 
-  const sashWidth = 4;
-
   if (clipState.mouseIn) {
     engine.mousePointer.setCursor(Cursor.leftRightResize);
   }
@@ -43,17 +41,25 @@ export function renderClip(
 
   return [
     Rect({
-      x,
+      x: x + 1,
       y: 1,
-      width,
-      height: height - 3,
+      width: width - 2,
+      height: height - 2,
       style: {
         fill: {
           color: ColorUtil.Color01(0.4, 0.4, 0.8),
         },
-        stroke: {
-          color: ColorUtil.Red,
-          width: shouldHighlight ? 3 : 1,
+        stroke: shouldHighlight
+          ? {
+              color: ColorUtil.Red,
+              width: 3,
+            }
+          : {
+              color: ColorUtil.Black,
+              width: 1,
+            },
+        round: {
+          radius: 5,
         },
       },
       onMouseMoveIn: () => {
@@ -91,7 +97,7 @@ export function renderClip(
         };
       });
     }),
-    (["left", "right"] as const).map((side) =>
+    shouldHighlight &&
       Sash(
         {
           clip: clipState,
@@ -100,12 +106,8 @@ export function renderClip(
         {
           clipX: x,
           clipWidth: width,
-          sashWidth,
-          maxRight: props.maxRight,
           height,
-          side,
         },
       ),
-    ),
   ];
 }
