@@ -4,7 +4,11 @@ import { Vector } from "../../type";
 export function visitRenderingTreeWithVector(
   renderingTree: RenderingTree,
   vector: Vector,
-  callback: (node: RenderingTree, localVector: Vector) => void,
+  callback: (
+    node: RenderingTree,
+    localVector: Vector,
+    isClipped?: boolean,
+  ) => void,
 ): void {
   if (!(renderingTree instanceof Array)) {
     renderingTree = [renderingTree];
@@ -37,13 +41,12 @@ export function visitRenderingTreeWithVector(
               ? !isPathContainsVector
               : isPathContainsVector;
 
-          if (isVectorFilteredByClip) {
-            return;
-          }
           return visitRenderingTreeWithVector(
             element.renderingTree,
             vector,
-            callback,
+            (node: RenderingTree, localVector: Vector) => {
+              callback(node, localVector, isVectorFilteredByClip);
+            },
           );
       }
     }

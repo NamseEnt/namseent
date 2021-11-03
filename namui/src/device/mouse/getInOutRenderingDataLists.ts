@@ -16,22 +16,27 @@ export function getInOutRenderingDataLists(
   const vectorInRenderingDataList: RenderingDataWithVector[] = [];
   const vectorOutRenderingDataList: RenderingDataWithVector[] = [];
 
-  visitRenderingTreeWithVector(renderingTree, vector, (node, localVector) => {
-    if (!node || node instanceof Array || "type" in node) {
-      return;
-    }
+  visitRenderingTreeWithVector(
+    renderingTree,
+    vector,
+    (node, localVector, isClipped) => {
+      if (!node || node instanceof Array || "type" in node) {
+        return;
+      }
 
-    const renderingData: RenderingData = node;
+      const renderingData: RenderingData = node;
 
-    const listToPush = isVectorInRenderingData(renderingData, localVector)
-      ? vectorInRenderingDataList
-      : vectorOutRenderingDataList;
+      const listToPush =
+        !isClipped && isVectorInRenderingData(renderingData, localVector)
+          ? vectorInRenderingDataList
+          : vectorOutRenderingDataList;
 
-    listToPush.push({
-      renderingData,
-      translated: localVector,
-    });
-  });
+      listToPush.push({
+        renderingData,
+        translated: localVector,
+      });
+    },
+  );
 
   return {
     in: vectorInRenderingDataList,
