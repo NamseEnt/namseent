@@ -13,7 +13,15 @@ export const CameraTrackBody: Render<
   }
 > = (state, props) => {
   const { clips } = state.track;
-  pushClipsForward(clips);
+
+  // this should be called before pushClipsForward.
+  const draggingFakeClip = DraggingFakeClip(state, {
+    clips,
+    width: props.width,
+    height: props.height,
+  });
+
+  pushClipsForward(state.timelineState, clips);
 
   return [
     Rect({
@@ -46,18 +54,54 @@ export const CameraTrackBody: Render<
       },
     }),
     clips.map((clip) => {
+      if (
+        state.timelineState.actionState?.type === "dragClip" &&
+        clip.id === state.timelineState.actionState.clipId
+      ) {
+        return;
+      }
       return renderClip(
         { height: props.height, maxRight: props.width },
         { timelineState: state.timelineState, clipState: clip },
       );
     }),
+    draggingFakeClip,
   ];
 };
 
-function pushClipsForward(clips: Clip[]) {
-  clips.sort((a, b) => {
-    return a.startMs - b.startMs;
-  });
+function pushClipsForward(state: TimelineState, clips: Clip[]) {
+  clips.sort((a, b) => a.startMs - b.startMs);
+
+  if (state.actionState?.type === "dragClip") {
+    const { clipId } = state.actionState;
+    const draggingClip = clips.find((clip) => clip.id === clipId);
+    if (!draggingClip) {
+      throw new Error("clip not found");
+    }
+
+    const draggingClipIndex = clips.indexOf(draggingClip);
+    let changingClipIndex = draggingClipIndex;
+    for (let index = 0; index < clips.length; index++) {
+      if (index === draggingClipIndex) {
+        continue;
+      }
+      const clip = clips[index]!;
+      const clipCenterMs = (clip.startMs + clip.endMs) / 2;
+      if (index < draggingClipIndex) {
+        if (draggingClip.startMs < clipCenterMs) {
+          changingClipIndex = index;
+          break;
+        }
+      } else {
+        if (clipCenterMs < draggingClip.endMs) {
+          changingClipIndex = index;
+        }
+      }
+    }
+    const temp = clips[draggingClipIndex]!;
+    clips[draggingClipIndex] = clips[changingClipIndex]!;
+    clips[changingClipIndex] = temp;
+  }
 
   const firstClip = clips[0];
   if (firstClip) {
@@ -78,3 +122,30 @@ function pushClipsForward(clips: Clip[]) {
     nextClip.endMs = nextClip.startMs + nextClipDurationMs;
   }
 }
+
+const DraggingFakeClip: Render<
+  {
+    timelineState: TimelineState;
+  },
+  { clips: Clip[]; width: number; height: number }
+> = (state, props) => {
+  if (state.timelineState.actionState?.type !== "dragClip") {
+    return;
+  }
+  const { clipId } = state.timelineState.actionState;
+  const clip = props.clips.find((clip) => clip.id === clipId);
+  if (!clip) {
+    throw new Error("clip not found");
+  }
+  return renderClip(
+    { height: props.height, maxRight: props.width },
+    {
+      timelineState: state.timelineState,
+      clipState: {
+        startMs: clip.startMs,
+        endMs: clip.endMs,
+        id: "camera-track-drag-preview",
+      },
+    },
+  );
+};
