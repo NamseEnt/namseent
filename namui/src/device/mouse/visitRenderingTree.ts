@@ -27,6 +27,19 @@ export function visitRenderingTreeWithVector(
             callback,
           );
         case "clip":
+          const isPathContainsVector = element.path.contains(
+            vector.x,
+            vector.y,
+          );
+
+          const isVectorFilteredByClip =
+            element.clipOp === CanvasKit.ClipOp.Intersect
+              ? !isPathContainsVector
+              : isPathContainsVector;
+
+          if (isVectorFilteredByClip) {
+            return;
+          }
           return visitRenderingTreeWithVector(
             element.renderingTree,
             vector,
