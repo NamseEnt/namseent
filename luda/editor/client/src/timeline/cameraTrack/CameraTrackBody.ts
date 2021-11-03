@@ -1,5 +1,5 @@
 import { ColorUtil, MouseButton, Rect, Render } from "namui";
-import { renderClip } from "../renderClip";
+import { renderClip } from "../clip/renderClip";
 import { Clip, TimelineState, Track } from "../type";
 
 export const CameraTrackBody: Render<

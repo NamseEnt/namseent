@@ -8,7 +8,7 @@ import {
   RenderingTree,
 } from "namui";
 import { Track, TimelineState } from "./type";
-import { renderClip } from "./renderClip";
+import { renderClip } from "./clip/renderClip";
 
 export const DefaultTrackBody: Render<
   TimelineState,
