@@ -61,7 +61,9 @@ function pushClipsForward(clips: Clip[]) {
 
   const firstClip = clips[0];
   if (firstClip) {
+    const duration = firstClip.endMs - firstClip.startMs;
     firstClip.startMs = 0;
+    firstClip.endMs = duration;
   }
   for (let index = 0; index < clips.length; index++) {
     const clip = clips[index]!;
