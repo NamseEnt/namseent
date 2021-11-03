@@ -28,6 +28,7 @@ export {
   RenderExact,
   WhSize,
   LtrbRect,
+  MouseEvent,
 } from "./type";
 export { Selection } from "./textInput/ITextInputManager";
 export { Code } from "./device/keyboard/Code";
