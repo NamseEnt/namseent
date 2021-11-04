@@ -1,5 +1,5 @@
 {
-  "extends": "typescript/tsconfig.json",
+  "extends": "common-tsconfig/tsconfig.json",
   "compilerOptions": {
     "lib": ["DOM", "ESNext"],
     "outDir": "lib",

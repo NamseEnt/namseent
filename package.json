@@ -10,5 +10,10 @@
   },
   "dependencies": {
     "pnpm": "^6.16.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "typescript": "=4.4.3"
+    }
   }
 }
