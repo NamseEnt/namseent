@@ -9,6 +9,7 @@ export function Rect({
   style: { stroke, fill, round },
   onClick,
   onClickOut,
+  onMouseIn,
   onMouseMoveIn,
   onMouseMoveOut,
   onMouseDown,
@@ -32,6 +33,7 @@ export function Rect({
   };
   onClick?: MouseEventCallback;
   onClickOut?: MouseEventCallback;
+  onMouseIn?: () => void;
   onMouseMoveIn?: MouseEventCallback;
   onMouseMoveOut?: MouseEventCallback;
   onMouseDown?: MouseEventCallback;
@@ -82,6 +84,7 @@ export function Rect({
     ],
     onClick,
     onClickOut,
+    onMouseIn,
     onMouseMoveIn,
     onMouseMoveOut,
     onMouseDown,
