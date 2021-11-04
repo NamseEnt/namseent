@@ -27,6 +27,12 @@ export type ResizeClip = {
   type: "resizeClip";
   clipId: string;
   side: "left" | "right";
+  /**
+   * The delta ms from side to mouse anchor.
+   * For left side, value starts from left to right.
+   * For right side, value starts from right to left.
+   */
+  sashMouseAnchorMs: number;
 };
 export type DragClip = {
   type: "dragClip";
@@ -48,5 +54,4 @@ export type Clip = {
   id: string;
   startMs: number;
   endMs: number;
-  mouseIn?: "left" | "right";
 };

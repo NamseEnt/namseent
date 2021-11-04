@@ -6,6 +6,11 @@ import {
   Translate,
   MouseEvent,
   Mathu,
+  engine,
+  Cursor,
+  AfterDraw,
+  XywhRect,
+  Vector,
 } from "namui";
 import { TimelineState, Clip as TimelineClip } from "../type";
 
@@ -15,71 +20,105 @@ export const Sash: Render<
     clip: TimelineClip;
   },
   {
-    clipX: number;
-    clipWidth: number;
-    height: number;
+    clipRect: XywhRect;
   }
-> = (state, { clipX, clipWidth, height }) => {
+> = (state, { clipRect }) => {
   const sashWidth = 10;
-  const clippingWidth = clipWidth - 2 * sashWidth;
+  const clippingWidth = clipRect.width - 2 * sashWidth;
 
   function getSashSideOfMouseEvent(
-    mouseEvent: MouseEvent,
+    clippedLocalVector: Vector,
   ): "left" | "right" | undefined {
-    const translatedX = mouseEvent.translated.x;
-    if (Mathu.in(mouseEvent.translated.x, 0, sashWidth)) {
+    if (Mathu.in(clippedLocalVector.x, 0, sashWidth)) {
       return "left";
-    } else if (translatedX < clippingWidth) {
+    } else if (clippedLocalVector.x < clippingWidth) {
       return undefined;
     } else {
       return "right";
     }
   }
 
+  const sashRect: XywhRect = {
+    x: 0,
+    y: 0,
+    width: clipRect.width,
+    height: clipRect.height,
+  };
+
   return Translate(
     {
-      x: clipX,
+      x: clipRect.x,
       y: 1,
     },
     Clip(
       {
         path: new CanvasKit.Path().addRect(
-          CanvasKit.XYWHRect(sashWidth, 0, clipWidth - 2 * sashWidth, height),
+          CanvasKit.XYWHRect(
+            sashWidth,
+            0,
+            clipRect.width - 2 * sashWidth,
+            clipRect.height,
+          ),
         ),
         clipOp: CanvasKit.ClipOp.Difference,
       },
-      Rect({
-        x: 0,
-        y: 0,
-        width: clipWidth,
-        height: height - 1,
-        style: {
-          fill: {
-            color: ColorUtil.Red,
+      [
+        Rect({
+          ...sashRect,
+          style: {
+            fill: {
+              color: ColorUtil.Red,
+            },
+            round: {
+              radius: 5,
+            },
           },
-          round: {
-            radius: 5,
+          onMouseIn: () => {
+            engine.mousePointer.setCursor(Cursor.leftRightResize);
           },
-        },
-        onMouseMoveIn: (mouseEvent) => {
-          const side = getSashSideOfMouseEvent(mouseEvent);
-          state.clip.mouseIn = side;
-        },
-        onMouseMoveOut: () => {
-          state.clip.mouseIn = undefined;
-        },
-        onMouseDown: (mouseEvent) => {
-          const side = getSashSideOfMouseEvent(mouseEvent);
-          if (!side) {
-            return;
-          }
-          state.timelineState.actionState = {
-            type: "resizeClip",
-            clipId: state.clip.id,
-            side,
-          };
-        },
-      }),
+        }),
+        AfterDraw(({ translated }) => {
+          engine.mouseEvent.onMouseDown((mouseEvent) => {
+            const globalSashRect = Mathu.translate(sashRect, translated);
+            const isMouseInSashRect = Mathu.contains(
+              globalSashRect,
+              Vector.from(mouseEvent),
+            );
+
+            if (!isMouseInSashRect) {
+              return;
+            }
+
+            const side = getSashSideOfMouseEvent(
+              Vector.from(mouseEvent).sub(translated),
+            );
+            if (!side) {
+              return;
+            }
+
+            const { startMs, endMs } = state.clip;
+            const { layout } = state.timelineState;
+
+            const mouseXMs =
+              (mouseEvent.x - layout.x - layout.headerWidth) *
+                layout.msPerPixel +
+              layout.startMs;
+
+            const durationMs = endMs - startMs;
+            const sashMouseAnchorMs =
+              side === "left"
+                ? mouseXMs - startMs
+                : mouseXMs - (startMs + durationMs);
+
+            state.timelineState.actionState = {
+              type: "resizeClip",
+              clipId: state.clip.id,
+              side,
+              sashMouseAnchorMs,
+            };
+          });
+        }),
+      ],
     ),
   );
 };

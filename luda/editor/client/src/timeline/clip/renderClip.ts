@@ -5,6 +5,9 @@ import {
   engine,
   Cursor,
   AfterDraw,
+  XywhRect,
+  Mathu,
+  Vector,
 } from "namui";
 import { TimelineState, Clip } from "../type";
 import { Sash } from "./Sash";
@@ -30,23 +33,20 @@ export function renderClip(
     return;
   }
 
-  if (clipState.mouseIn) {
-    engine.mousePointer.setCursor(Cursor.leftRightResize);
-  } else if (timelineState.clipIdMouseIn === clipState.id) {
-    engine.mousePointer.setCursor(Cursor.grab);
-  }
-
   const shouldHighlight =
-    clipState.mouseIn ||
     timelineState.clipIdMouseIn === clipState.id ||
     timelineState.actionState?.clipId === clipState.id;
 
+  const clipRect: XywhRect = {
+    x: x + 1,
+    y: 1,
+    width: width - 2,
+    height: height - 2,
+  };
+
   return [
     Rect({
-      x: x + 1,
-      y: 1,
-      width: width - 2,
-      height: height - 2,
+      ...clipRect,
       style: {
         fill: {
           color: ColorUtil.Color01(0.4, 0.4, 0.8),
@@ -64,31 +64,39 @@ export function renderClip(
           radius: 5,
         },
       },
-      onMouseMoveIn: () => {
-        timelineState.clipIdMouseIn = clipState.id;
-      },
-      onMouseMoveOut: () => {
-        if (timelineState.clipIdMouseIn === clipState.id) {
-          timelineState.clipIdMouseIn = undefined;
-        }
+      onMouseIn() {
+        engine.mousePointer.setCursor(Cursor.grab);
       },
     }),
     AfterDraw(({ translated }) => {
+      const { mousePosition } = engine.mousePosition;
+      {
+        const isMouseInClipRect = Mathu.contains(
+          Mathu.translate(clipRect, translated),
+          mousePosition,
+        );
+
+        if (isMouseInClipRect) {
+          timelineState.clipIdMouseIn = clipState.id;
+        } else if (timelineState.clipIdMouseIn === clipState.id) {
+          timelineState.clipIdMouseIn = undefined;
+        }
+      }
+
       engine.mouseEvent.onMouseDown((mouseEvent) => {
-        if (timelineState.actionState?.type) {
+        if (timelineState.actionState) {
           return;
         }
 
-        const isMouseInRect =
-          translated.x + x <= mouseEvent.x &&
-          mouseEvent.x <= translated.x + x + width &&
-          translated.y <= mouseEvent.y &&
-          mouseEvent.y <= translated.y + height;
+        const isMouseInRect = Mathu.contains(
+          Mathu.translate(clipRect, translated),
+          Vector.from(mouseEvent),
+        );
 
         if (!isMouseInRect) {
           return;
         }
-        const globalX = translated.x + x;
+        const globalX = translated.x + clipRect.x;
         const mouseAnchorMs =
           (mouseEvent.x - globalX) * timelineState.layout.msPerPixel;
 
@@ -106,9 +114,7 @@ export function renderClip(
           timelineState,
         },
         {
-          clipX: x,
-          clipWidth: width,
-          height,
+          clipRect,
         },
       ),
   ];

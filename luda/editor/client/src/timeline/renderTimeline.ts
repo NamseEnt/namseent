@@ -92,10 +92,14 @@ function handleActionState(
 
         const oppositeSideMs =
           clip[`${actionState.side === "left" ? "end" : "start"}Ms`];
+        const availableBorderMs =
+          oppositeSideMs + (actionState.side === "left" ? -1 : 1) * 200;
+
+        const nextMs = mousePositionMs - actionState.sashMouseAnchorMs;
 
         clip[`${actionState.side === "left" ? "start" : "end"}Ms`] = (
           actionState.side === "left" ? Math.min : Math.max
-        )(mousePositionMs, oppositeSideMs);
+        )(nextMs, availableBorderMs);
       }
       break;
     case "dragClip":
