@@ -1,14 +1,7 @@
-import {
-  AfterDraw,
-  ColorUtil,
-  engine,
-  MouseButton,
-  Rect,
-  Render,
-  RenderingTree,
-} from "namui";
+import { ColorUtil, MouseButton, Rect, Render } from "namui";
 import { Track, TimelineState } from "./type";
-import { renderClip } from "./clip/renderClip";
+import { ClipComponent } from "./clip/ClipComponent";
+import { Sash } from "./clip/Sash";
 
 export const DefaultTrackBody: Render<
   TimelineState,
@@ -50,9 +43,9 @@ export const DefaultTrackBody: Render<
       },
     }),
     clips.map((clip) => {
-      return renderClip(
-        { height: props.height, maxRight: props.width },
-        { timelineState: state, clipState: clip },
+      return ClipComponent(
+        { timelineState: state, clip },
+        { height: props.height, maxRight: props.width, sashComponent: Sash },
       );
     }),
   ];

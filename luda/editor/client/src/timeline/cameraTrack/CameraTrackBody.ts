@@ -1,6 +1,7 @@
 import { ColorUtil, MouseButton, Rect, Render } from "namui";
-import { renderClip } from "../clip/renderClip";
+import { ClipComponent } from "../clip/ClipComponent";
 import { Clip, TimelineState, Track } from "../type";
+import { CameraTrackSash } from "./CameraTrackSash";
 
 export const CameraTrackBody: Render<
   {
@@ -60,9 +61,13 @@ export const CameraTrackBody: Render<
       ) {
         return;
       }
-      return renderClip(
-        { height: props.height, maxRight: props.width },
-        { timelineState: state.timelineState, clipState: clip },
+      return ClipComponent(
+        { timelineState: state.timelineState, clip },
+        {
+          height: props.height,
+          maxRight: props.width,
+          sashComponent: CameraTrackSash,
+        },
       );
     }),
     draggingFakeClip,
@@ -137,15 +142,19 @@ const DraggingFakeClip: Render<
   if (!clip) {
     throw new Error("clip not found");
   }
-  return renderClip(
-    { height: props.height, maxRight: props.width },
+  return ClipComponent(
     {
       timelineState: state.timelineState,
-      clipState: {
+      clip: {
         startMs: clip.startMs,
         endMs: clip.endMs,
         id: "camera-track-drag-preview",
       },
+    },
+    {
+      height: props.height,
+      maxRight: props.width,
+      sashComponent: CameraTrackSash,
     },
   );
 };

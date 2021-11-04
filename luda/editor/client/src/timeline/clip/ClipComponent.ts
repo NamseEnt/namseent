@@ -1,27 +1,31 @@
 import {
   ColorUtil,
   Rect,
-  RenderingTree,
   engine,
   Cursor,
   AfterDraw,
   XywhRect,
   Mathu,
   Vector,
+  Render,
 } from "namui";
-import { TimelineState, Clip } from "../type";
-import { Sash } from "./Sash";
+import { Clip, TimelineState } from "../type";
+import { SashComponent } from "./Sash";
 
-export function renderClip(
-  props: { height: number; maxRight: number },
-  states: {
+export const ClipComponent: Render<
+  {
     timelineState: TimelineState;
-    clipState: Clip;
+    clip: Clip;
   },
-): RenderingTree {
+  {
+    height: number;
+    maxRight: number;
+    sashComponent: SashComponent;
+  }
+> = (state, props) => {
   const { height } = props;
-  const { clipState, timelineState } = states;
-  const { startMs: clipStartMs, endMs: clipEndMs } = clipState;
+  const { clip, timelineState } = state;
+  const { startMs: clipStartMs, endMs: clipEndMs } = clip;
   const x =
     (clipStartMs - timelineState.layout.startMs) /
     timelineState.layout.msPerPixel;
@@ -34,8 +38,8 @@ export function renderClip(
   }
 
   const shouldHighlight =
-    timelineState.clipIdMouseIn === clipState.id ||
-    timelineState.actionState?.clipId === clipState.id;
+    timelineState.clipIdMouseIn === clip.id ||
+    timelineState.actionState?.clipId === clip.id;
 
   const clipRect: XywhRect = {
     x: x + 1,
@@ -77,8 +81,8 @@ export function renderClip(
         );
 
         if (isMouseInClipRect) {
-          timelineState.clipIdMouseIn = clipState.id;
-        } else if (timelineState.clipIdMouseIn === clipState.id) {
+          timelineState.clipIdMouseIn = clip.id;
+        } else if (timelineState.clipIdMouseIn === clip.id) {
           timelineState.clipIdMouseIn = undefined;
         }
       }
@@ -102,15 +106,15 @@ export function renderClip(
 
         timelineState.actionState = {
           type: "dragClip",
-          clipId: clipState.id,
+          clipId: clip.id,
           mouseAnchorMs,
         };
       });
     }),
     shouldHighlight &&
-      Sash(
+      props.sashComponent(
         {
-          clip: clipState,
+          clip: clip,
           timelineState,
         },
         {
@@ -118,4 +122,4 @@ export function renderClip(
         },
       ),
   ];
-}
+};

@@ -2,7 +2,6 @@ import {
   Clip,
   ColorUtil,
   Rect,
-  Render,
   Translate,
   Mathu,
   engine,
@@ -11,28 +10,16 @@ import {
   XywhRect,
   Vector,
 } from "namui";
-import { TimelineState, Clip as TimelineClip } from "../type";
+import { SashComponent } from "../clip/Sash";
 
-export type SashComponent = Render<
-  {
-    timelineState: TimelineState;
-    clip: TimelineClip;
-  },
-  {
-    clipRect: XywhRect;
-  }
->;
-
-export const Sash: SashComponent = (state, { clipRect }) => {
+export const CameraTrackSash: SashComponent = (state, { clipRect }) => {
   const sashWidth = 10;
   const clippingWidth = clipRect.width - 2 * sashWidth;
 
   function getSashSideOfMouseEvent(
     clippedLocalVector: Vector,
-  ): "left" | "right" | undefined {
-    if (Mathu.in(clippedLocalVector.x, 0, sashWidth)) {
-      return "left";
-    } else if (clippedLocalVector.x < clippingWidth) {
+  ): "right" | undefined {
+    if (clippedLocalVector.x < clippingWidth) {
       return undefined;
     } else {
       return "right";
@@ -54,12 +41,7 @@ export const Sash: SashComponent = (state, { clipRect }) => {
     Clip(
       {
         path: new CanvasKit.Path().addRect(
-          CanvasKit.XYWHRect(
-            sashWidth,
-            0,
-            clipRect.width - 2 * sashWidth,
-            clipRect.height,
-          ),
+          CanvasKit.XYWHRect(0, 0, clipRect.width - sashWidth, clipRect.height),
         ),
         clipOp: CanvasKit.ClipOp.Difference,
       },
@@ -106,10 +88,7 @@ export const Sash: SashComponent = (state, { clipRect }) => {
               layout.startMs;
 
             const durationMs = endMs - startMs;
-            const sashMouseAnchorMs =
-              side === "left"
-                ? mouseXMs - startMs
-                : mouseXMs - (startMs + durationMs);
+            const sashMouseAnchorMs = mouseXMs - (startMs + durationMs);
 
             state.timelineState.actionState = {
               type: "resizeClip",
