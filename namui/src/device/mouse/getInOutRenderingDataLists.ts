@@ -36,6 +36,7 @@ export function getInOutRenderingDataLists(
         translated: localVector,
       });
     },
+    false,
   );
 
   return {

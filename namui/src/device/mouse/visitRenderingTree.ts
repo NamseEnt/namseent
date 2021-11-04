@@ -7,20 +7,21 @@ export function visitRenderingTreeWithVector(
   callback: (
     node: RenderingTree,
     localVector: Vector,
-    isClipped?: boolean,
+    isClipped: boolean,
   ) => void,
+  isClipped: boolean,
 ): void {
   if (!(renderingTree instanceof Array)) {
     renderingTree = [renderingTree];
   }
 
   renderingTree.forEach((element) => {
-    callback(element, vector);
+    callback(element, vector, isClipped);
     if (!element) {
       return;
     }
     if (element instanceof Array) {
-      return visitRenderingTreeWithVector(element, vector, callback);
+      return visitRenderingTreeWithVector(element, vector, callback, isClipped);
     }
     if ("type" in element) {
       switch (element.type) {
@@ -29,6 +30,7 @@ export function visitRenderingTreeWithVector(
             element.renderingTree,
             vector.translate(-element.x, -element.y),
             callback,
+            isClipped,
           );
         case "clip":
           const isPathContainsVector = element.path.contains(
@@ -44,9 +46,8 @@ export function visitRenderingTreeWithVector(
           return visitRenderingTreeWithVector(
             element.renderingTree,
             vector,
-            (node: RenderingTree, localVector: Vector) => {
-              callback(node, localVector, isVectorFilteredByClip);
-            },
+            callback,
+            isClipped || isVectorFilteredByClip,
           );
       }
     }
