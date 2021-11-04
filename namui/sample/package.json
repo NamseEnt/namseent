@@ -6,6 +6,6 @@
   },
   "dependencies": {
     "namui": "workspace:^1.0.0",
-    "typescript": "workspace:^4.4.3"
+    "typescript": "*"
   }
 }

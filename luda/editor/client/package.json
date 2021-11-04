@@ -5,8 +5,10 @@
     "watch": "namui src/index.ts --watch"
   },
   "dependencies": {
+    "common-tsconfig": "workspace:^4.4.3",
     "luda-editor-common": "workspace:^1.0.0",
     "namui": "workspace:^1.0.0",
-    "typescript": "workspace:^4.4.3"
+    "nanoid": "^3.1.28",
+    "typescript": "*"
   }
 }
