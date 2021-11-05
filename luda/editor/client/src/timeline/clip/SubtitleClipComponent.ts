@@ -170,6 +170,10 @@ export const SubtitleClipComponent: Render<
           mouse.y - translated.y - tailPosition.y,
         );
 
+        if (mouseInHead) {
+          engine.mousePointer.setCursor(Cursor.grab);
+        }
+
         if (mouseInTail) {
           engine.mousePointer.setCursor(Cursor.leftRightResize);
         }
