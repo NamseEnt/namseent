@@ -32,7 +32,13 @@ const ClipEditor: Render<State> = (state) => {
 
   if (isSubtitleClip(selectedClip)) {
     state.subtitleEditorState.subtitle = selectedClip.subtitle;
-    return renderSubtitleEditor(state.subtitleEditorState);
+    return renderSubtitleEditor(
+      {},
+      {
+        subtitleEditor: state.subtitleEditorState,
+        timeline: state.timelineState,
+      },
+    );
   }
 
   return;

@@ -2,6 +2,7 @@ import { ColorUtil, MouseButton, Rect, Render, BorderPosition } from "namui";
 import { Track, TimelineState } from "./type";
 import { ClipComponent } from "./clip/ClipComponent";
 import { Sash } from "./clip/Sash";
+import { Clip } from "../type";
 
 export const DefaultTrackBody: Render<
   TimelineState,
@@ -12,6 +13,7 @@ export const DefaultTrackBody: Render<
   }
 > = (state, props) => {
   const { clips } = props.track;
+  let selectedClip: Clip | undefined = undefined;
 
   return [
     Rect({
@@ -75,5 +77,11 @@ export const DefaultTrackBody: Render<
         { height: props.height, maxRight: props.width, sashComponent: Sash },
       );
     }),
+    selectedClip
+      ? ClipComponent(
+          { timelineState: state, clip: selectedClip },
+          { height: props.height, maxRight: props.width, sashComponent: Sash },
+        )
+      : undefined,
   ];
 };

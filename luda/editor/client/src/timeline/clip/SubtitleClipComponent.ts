@@ -193,6 +193,10 @@ export const SubtitleClipComponent: Render<
             return;
           }
 
+          if (mouseIn) {
+            timelineState.selectedClip = clip;
+          }
+
           if (mouseInHead) {
             const mouseAnchorMs =
               (mouseEvent.x - (translated.x + headPosition.x)) *
