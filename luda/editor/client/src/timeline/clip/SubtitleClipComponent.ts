@@ -203,8 +203,7 @@ export const SubtitleClipComponent: Render<
 
           if (mouseInHead) {
             const mouseAnchorMs =
-              (mouseEvent.x - (translated.x + headPosition.x)) *
-              timelineState.layout.msPerPixel;
+              (mouseEvent.x - translated.x) * timelineState.layout.msPerPixel;
 
             timelineState.actionState = {
               type: "dragClip",
@@ -218,7 +217,13 @@ export const SubtitleClipComponent: Render<
               type: "resizeClip",
               clipId: clip.id,
               side: "right",
-              sashMouseAnchorMs: 0,
+              sashMouseAnchorMs:
+                (mouseEvent.x -
+                  translated.x -
+                  tailPosition.x -
+                  componentWidth -
+                  borderWidth) *
+                timelineState.layout.msPerPixel,
             };
           }
         });
