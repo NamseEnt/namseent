@@ -27,7 +27,8 @@ export const SubtitleClipComponent: Render<
 
   const mouseInHead = timelineState.clipIdMouseIn === clip.id;
   const borderWidth = mouseInHead ? 3 : 1;
-  const componentWidth = clamp(width, 24, 48);
+  const componentWidth =
+    200 / timelineState.layout.msPerPixel - 2 * borderWidth;
   const componentHeight = height / 3;
   const headPosition = {
     x: borderWidth,
@@ -218,11 +219,7 @@ export const SubtitleClipComponent: Render<
               clipId: clip.id,
               side: "right",
               sashMouseAnchorMs:
-                (mouseEvent.x -
-                  translated.x -
-                  tailPosition.x -
-                  componentWidth -
-                  borderWidth) *
+                (mouseEvent.x - translated.x - width) *
                 timelineState.layout.msPerPixel,
             };
           }
