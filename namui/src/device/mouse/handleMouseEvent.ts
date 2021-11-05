@@ -34,13 +34,15 @@ export function handleMouseEvent(
 
   const mouseVector = new Vector(event.x, event.y);
 
-  const { in: inRenderingDataList, out: outRenderingDataList } =
-    getInOutRenderingDataLists(renderingTree, mouseVector);
+  const { inners, outers } = getInOutRenderingDataLists(
+    renderingTree,
+    mouseVector,
+  );
 
   (
     [
-      [inRenderingDataList, inHandlerName],
-      [outRenderingDataList, outHandlerName],
+      [inners, inHandlerName],
+      [outers, outHandlerName],
     ] as const
   ).forEach(([renderingDataList, handlerName]) => {
     if (!handlerName) {

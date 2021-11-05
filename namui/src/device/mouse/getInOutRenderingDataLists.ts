@@ -10,8 +10,8 @@ export function getInOutRenderingDataLists(
   renderingTree: RenderingTree,
   vector: Vector,
 ): {
-  in: RenderingDataWithVector[];
-  out: RenderingDataWithVector[];
+  inners: RenderingDataWithVector[];
+  outers: RenderingDataWithVector[];
 } {
   const vectorInRenderingDataList: RenderingDataWithVector[] = [];
   const vectorOutRenderingDataList: RenderingDataWithVector[] = [];
@@ -40,8 +40,8 @@ export function getInOutRenderingDataLists(
   );
 
   return {
-    in: vectorInRenderingDataList,
-    out: vectorOutRenderingDataList,
+    inners: vectorInRenderingDataList,
+    outers: vectorOutRenderingDataList,
   };
 }
 

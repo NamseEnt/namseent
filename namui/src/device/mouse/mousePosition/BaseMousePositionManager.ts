@@ -9,12 +9,12 @@ export abstract class BaseMousePositionManager
 {
   public mousePosition: Vector = new Vector(0, 0);
   afterRender(renderingTree: RenderingTree) {
-    const { in: inRenderingDataAndVectorList } = getInOutRenderingDataLists(
+    const { inners } = getInOutRenderingDataLists(
       renderingTree,
       this.mousePosition,
     );
 
-    inRenderingDataAndVectorList.forEach((renderingDataAndVector) => {
+    inners.forEach((renderingDataAndVector) => {
       renderingDataAndVector.renderingData.onMouseIn?.();
     });
   }
