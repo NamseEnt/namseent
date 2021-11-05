@@ -1,11 +1,20 @@
-import { RenderingTree, Translate, engine, AfterDraw, Cursor } from "namui";
+import {
+  Translate,
+  engine,
+  AfterDraw,
+  Cursor,
+  Render,
+  Rect,
+  ColorUtil,
+} from "namui";
 import { Vector } from "namui/lib/type";
+import { Clip } from "../type";
 import { renderContextMenu } from "./contextMenu/renderContextMenu";
 import { TimelineBody } from "./renderTimelineBody";
 import { renderTimelineHeader } from "./renderTimelineHeader";
-import { Clip, TimelineState } from "./type";
+import { TimelineState } from "./type";
 
-export function renderTimeline(state: TimelineState): RenderingTree {
+export const Timeline: Render<TimelineState> = (state) => {
   /*
      HEADER         BODY
     ┌──────────────┬────────────────┐
@@ -25,6 +34,15 @@ export function renderTimeline(state: TimelineState): RenderingTree {
   const bodyWidth = width - headerWidth;
 
   return [
+    Rect({
+      ...layout,
+      id: state.timelineBorderId,
+      style: {
+        fill: {
+          color: ColorUtil.Transparent,
+        },
+      },
+    }),
     Translate({ x, y }, [
       renderTimelineHeader({
         width: headerWidth,
@@ -53,7 +71,7 @@ export function renderTimeline(state: TimelineState): RenderingTree {
     }),
     renderContextMenu(state),
   ];
-}
+};
 
 function getMousePositionMs(
   state: TimelineState,

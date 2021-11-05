@@ -1,3 +1,5 @@
+import { Clip } from "../type";
+
 export type TimelineState = {
   layout: {
     x: number;
@@ -12,6 +14,8 @@ export type TimelineState = {
   actionState?: ResizeClip | DragClip;
   clipIdMouseIn?: string;
   contextMenu?: ContextMenu;
+  selectedClip?: Clip;
+  readonly timelineBorderId: string;
 };
 
 export type ContextMenu = {
@@ -48,10 +52,4 @@ export type Track = {
   id: string;
   type: TrackType;
   clips: Clip[];
-};
-
-export type Clip = {
-  id: string;
-  startMs: number;
-  endMs: number;
 };

@@ -11,7 +11,8 @@ import {
   XywhRect,
   Vector,
 } from "namui";
-import { TimelineState, Clip as TimelineClip } from "../type";
+import { TimelineState } from "../type";
+import { Clip as TimelineClip } from "../../type";
 
 export type SashComponent = Render<
   {

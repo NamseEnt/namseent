@@ -1,4 +1,5 @@
 import { ColorUtil, FontWeight, Language, startEngine } from "namui";
+import { nanoid } from "nanoid";
 import { render } from "./render";
 import { TrackType } from "./timeline/type";
 
@@ -9,14 +10,15 @@ startEngine(
     },
     timelineState: {
       layout: {
-        x: 100,
-        y: 100,
-        width: 1000,
-        height: 600,
+        x: 0,
+        y: window.innerHeight - 200,
+        width: window.innerWidth,
+        height: 200,
         headerWidth: 200,
         msPerPixel: 100,
         startMs: 0,
       },
+      timelineBorderId: nanoid(),
       tracks: [
         {
           id: "track1",
@@ -26,16 +28,64 @@ startEngine(
               id: "1-1",
               startMs: 0,
               endMs: 1000,
+              type: "camera",
+              cameraAngle: {
+                imageSourceUrl: "resources/images/피디-기본-미소.png",
+                source01Rect: {
+                  x: 0.25,
+                  y: 0.25,
+                  width: 0,
+                  height: 0.5,
+                },
+                dest01Rect: {
+                  x: 0,
+                  y: 0,
+                  width: 1,
+                  height: 1,
+                },
+              },
             },
             {
               id: "1-2",
               startMs: 1000,
               endMs: 2000,
+              type: "camera",
+              cameraAngle: {
+                imageSourceUrl: "resources/images/피디-기본-미소.png",
+                source01Rect: {
+                  x: 0.25,
+                  y: 0.25,
+                  width: 0,
+                  height: 0.5,
+                },
+                dest01Rect: {
+                  x: 0,
+                  y: 0,
+                  width: 1,
+                  height: 1,
+                },
+              },
             },
             {
               id: "1-3",
               startMs: 3000,
               endMs: 4000,
+              type: "camera",
+              cameraAngle: {
+                imageSourceUrl: "resources/images/피디-기본-미소.png",
+                source01Rect: {
+                  x: 0.25,
+                  y: 0.25,
+                  width: 0,
+                  height: 0.5,
+                },
+                dest01Rect: {
+                  x: 0,
+                  y: 0,
+                  width: 1,
+                  height: 1,
+                },
+              },
             },
           ],
         },
@@ -44,10 +94,10 @@ startEngine(
     cameraAngleEditorState: {
       layout: {
         rect: {
-          x: 100,
-          y: 100,
+          x: 0,
+          y: 0,
           width: 800,
-          height: 800,
+          height: window.innerHeight - 200,
         },
         sub: {
           wysiwygEditor: {

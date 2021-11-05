@@ -1,8 +1,10 @@
-import { RenderingTree } from "namui";
+import { Render, RenderingTree } from "namui";
+import { renderCameraAngleEditor } from "./cameraAngleEditor/renderCameraAngleEditor";
 import { CameraAngleEditorState } from "./cameraAngleEditor/type";
+import { isCameraClip } from "./clipTypeGuard";
 import { ImageEditorState } from "./imageEditor/type";
 import { SubtitleEditorState } from "./subtitleEditor/type";
-import { renderTimeline } from "./timeline/renderTimeline";
+import { Timeline } from "./timeline/Timeline";
 import { TimelineState } from "./timeline/type";
 
 type State = {
@@ -13,5 +15,19 @@ type State = {
 };
 
 export function render(state: State): RenderingTree {
-  return renderTimeline(state.timelineState);
+  return [ClipEditor(state), Timeline(state.timelineState)];
 }
+
+const ClipEditor: Render<State> = (state) => {
+  const { selectedClip } = state.timelineState;
+  if (!selectedClip) {
+    return;
+  }
+
+  if (isCameraClip(selectedClip)) {
+    state.cameraAngleEditorState.cameraAngle = selectedClip.cameraAngle;
+    return renderCameraAngleEditor(state.cameraAngleEditorState);
+  }
+
+  return;
+};

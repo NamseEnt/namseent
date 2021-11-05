@@ -1,4 +1,5 @@
 import { Selection, Vector, XywhRect } from "namui";
+import { CameraAngle } from "../type";
 
 export type CameraAngleEditorState = {
   layout: {
@@ -38,11 +39,6 @@ export type CameraAngleEditorState = {
       source?: ImageSource;
     };
   };
-};
-export type CameraAngle = {
-  imageSourceUrl: string;
-  source01Rect: XywhRect;
-  dest01Rect: XywhRect;
 };
 export type TextInputState = {
   targetId?: string;

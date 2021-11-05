@@ -9,7 +9,8 @@ import {
   Vector,
   Render,
 } from "namui";
-import { Clip, TimelineState } from "../type";
+import { Clip } from "../../type";
+import { TimelineState } from "../type";
 import { SashComponent } from "./Sash";
 
 export const ClipComponent: Render<
@@ -38,6 +39,7 @@ export const ClipComponent: Render<
   }
 
   const shouldHighlight =
+    state.timelineState.selectedClip?.id === clip.id ||
     timelineState.clipIdMouseIn === clip.id ||
     timelineState.actionState?.clipId === clip.id;
 
@@ -70,6 +72,20 @@ export const ClipComponent: Render<
       },
       onMouseIn() {
         engine.mousePointer.setCursor(Cursor.grab);
+      },
+      onMouseDown() {
+        state.timelineState.selectedClip = state.clip;
+      },
+      onClickOut(mouseEvent) {
+        if (
+          state.timelineState.selectedClip?.id === state.clip.id &&
+          !engine.render.isGlobalVectorOutOfRenderingData(
+            Vector.from(mouseEvent),
+            state.timelineState.timelineBorderId,
+          )
+        ) {
+          state.timelineState.selectedClip = undefined;
+        }
       },
     }),
     AfterDraw(({ translated }) => {
