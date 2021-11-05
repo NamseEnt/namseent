@@ -1,5 +1,5 @@
 import { MouseEventCallback } from "../../../type";
-import { IManagerInternal } from "../../IManager";
+import { IManagerInternal } from "../../../managers/IManager";
 import { toNamuiMouseEvent } from "../webMouse";
 import { IMouseEventManager } from "./IMouseEventManager";
 

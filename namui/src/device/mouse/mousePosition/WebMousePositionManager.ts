@@ -1,5 +1,5 @@
 import { Vector } from "../../../type";
-import { IManagerInternal } from "../../IManager";
+import { IManagerInternal } from "../../../managers/IManager";
 import { BaseMousePositionManager } from "./BaseMousePositionManager";
 import { IMousePositionManager } from "./IMousePositionManager";
 

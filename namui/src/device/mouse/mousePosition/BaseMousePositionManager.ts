@@ -1,6 +1,6 @@
 import { RenderingTree } from "../../..";
 import { Vector } from "../../../type";
-import { IManagerInternal } from "../../IManager";
+import { IManagerInternal } from "../../../managers/IManager";
 import { getInOutRenderingDataLists } from "../getInOutRenderingDataLists";
 import { IMousePositionManager } from "./IMousePositionManager";
 

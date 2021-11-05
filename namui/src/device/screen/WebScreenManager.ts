@@ -1,4 +1,4 @@
-import { IManagerInternal } from "../IManager";
+import { IManagerInternal } from "../../managers/IManager";
 import { IScreenManager, VisibilityChangeCallback } from "./IScreenManager";
 
 export class WebScreenManager implements IScreenManager, IManagerInternal {

@@ -1,4 +1,4 @@
-import { IManagerInternal } from "../device/IManager";
+import { IManagerInternal } from "../managers/IManager";
 import {
   ITextInputManager,
   OnTextInputChange,

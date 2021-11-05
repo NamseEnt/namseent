@@ -1,4 +1,4 @@
-import { IManagerInternal } from "../IManager";
+import { IManagerInternal } from "../../managers/IManager";
 import { Code } from "./Code";
 import { IKeyboardManager } from "./IKeyboardManager";
 import { Key } from "./Key";

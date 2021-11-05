@@ -1,5 +1,5 @@
 import { Cursor } from "../../../type";
-import { IManagerInternal } from "../../IManager";
+import { IManagerInternal } from "../../../managers/IManager";
 import { IMousePointerManager } from "./IMousePointerManager";
 
 export class WebMousePointerManager

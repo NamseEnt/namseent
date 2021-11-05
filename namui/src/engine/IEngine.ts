@@ -1,4 +1,4 @@
-import { IManagerInternal } from "../device/IManager";
+import { IManagerInternal } from "../managers/IManager";
 import { IKeyboardManager } from "../device/keyboard/IKeyboardManager";
 import { IMouseButtonManager } from "../device/mouse/mouseButton/IMouseButtonManager";
 import { IMouseEventManager } from "../device/mouse/mouseEvent/IMouseEventManager";

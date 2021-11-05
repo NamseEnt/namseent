@@ -1,5 +1,5 @@
 import { WheelEventCallback } from "../../type";
-import { IManagerInternal } from "../IManager";
+import { IManagerInternal } from "../../managers/IManager";
 import { IWheelManager } from "./IWheelManager";
 
 export class WebWheelManager implements IWheelManager, IManagerInternal {

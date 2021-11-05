@@ -1,5 +1,5 @@
 import { RenderingTree } from "..";
-import { IManagerInternal } from "../device/IManager";
+import { IManagerInternal } from "../managers/IManager";
 import { WebKeyboardManager } from "../device/keyboard/WebKeyboardManager";
 import { MouseButtonManager } from "../device/mouse/mouseButton/MouseButtonManager";
 import { WebMouseEventManager } from "../device/mouse/mouseEvent/WebMouseEventManager";

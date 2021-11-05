@@ -1,4 +1,4 @@
-import { IManagerInternal } from "../../IManager";
+import { IManagerInternal } from "../../../managers/IManager";
 import { IMouseButtonManager } from "./IMouseButtonManager";
 
 export class MouseButtonManager
