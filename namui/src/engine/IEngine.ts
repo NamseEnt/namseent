@@ -9,6 +9,7 @@ import { IWheelManager } from "../device/wheel/IWheelManager";
 import { IImageLoader } from "../image/ImageLoader";
 import { ITextInputManager } from "../textInput/ITextInputManager";
 import { EngineContext } from "../type";
+import { IRenderManager } from "../managers/render/IRenderManager";
 
 export interface IEngine {
   mousePointer: IMousePointerManager;
@@ -19,6 +20,7 @@ export interface IEngine {
   keyboard: IKeyboardManager;
   textInput: ITextInputManager;
   imageLoader: IImageLoader;
+  render: IRenderManager;
 }
 
 export interface IEngineInternal extends IManagerInternal {
@@ -31,4 +33,5 @@ export interface IEngineInternal extends IManagerInternal {
   wheel: IWheelManager & IManagerInternal;
   keyboard: IKeyboardManager & IManagerInternal;
   textInput: ITextInputManager & IManagerInternal;
+  render: IRenderManager & IManagerInternal;
 }

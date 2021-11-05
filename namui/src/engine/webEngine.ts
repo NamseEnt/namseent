@@ -10,6 +10,7 @@ import { WebWheelManager } from "../device/wheel/WebWheelManager";
 import { IImageLoader, ImageLoader } from "../image/ImageLoader";
 import { WebTextInputManager } from "../textInput/WebTextInputManager";
 import { EngineContext } from "../type";
+import { RenderManager } from "../managers/render/RenderManager";
 
 const managerMap = {
   mousePointer: new WebMousePointerManager(),
@@ -20,6 +21,7 @@ const managerMap = {
   keyboard: new WebKeyboardManager(),
   mouseButton: new MouseButtonManager(),
   textInput: new WebTextInputManager(),
+  render: new RenderManager(),
 } as const;
 
 const managers = Object.values(managerMap) as IManagerInternal[];

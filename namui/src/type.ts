@@ -147,6 +147,7 @@ export type WheelEventCallback = (event: WheelEvent) => void;
 
 export type RenderingData = {
   drawCalls: DrawCall[];
+  id?: string;
   onClick?: MouseEventCallback;
   onClickOut?: MouseEventCallback;
   onMouseMoveIn?: MouseEventCallback;

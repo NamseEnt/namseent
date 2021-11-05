@@ -6,6 +6,7 @@ export function Rect({
   y,
   width,
   height,
+  id,
   style: { stroke, fill, round },
   onClick,
   onClickOut,
@@ -19,6 +20,7 @@ export function Rect({
   y: number;
   width: number;
   height: number;
+  id?: string;
   style: {
     stroke?: {
       color: Color;
@@ -82,6 +84,7 @@ export function Rect({
         commands: drawCommands,
       },
     ],
+    id,
     onClick,
     onClickOut,
     onMouseIn,
