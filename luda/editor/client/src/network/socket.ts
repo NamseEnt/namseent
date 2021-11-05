@@ -1,10 +1,23 @@
-import { Socket } from "luda-editor-common";
+import { ISocketInternal, Socket } from "luda-editor-common";
 
 const webSocket = new WebSocket(`ws://${window.location.hostname}:8001`);
+
+const queued: Parameters<ISocketInternal["send"]>[0][] = [];
+
+webSocket.onopen = () => {
+  queued.forEach((data) => {
+    webSocket.send(data);
+  });
+};
+
 export const socket = new Socket({
-  send: webSocket.send.bind(webSocket),
+  send(data) {
+    if (webSocket.readyState === WebSocket.OPEN) {
+      return webSocket.send(data);
+    }
+    queued.push(data);
+  },
   setOnMessage: (callback: (data: string) => void) => {
-    console.log("hi");
     webSocket.addEventListener("message", (event) => {
       console.log("message", event);
       callback(event.data);

@@ -1,21 +1,8 @@
-import {
-  Clip,
-  ColorUtil,
-  FontWeight,
-  Language,
-  Mathu,
-  Rect,
-  RenderingTree,
-  Text,
-  TextAlign,
-  TextBaseline,
-  Translate,
-  XywhRect,
-} from "namui";
-import { renderPropertyTextEditor } from "./propertyTextEditor/renderPropertyTextEditor";
+import { Clip, ColorUtil, Mathu, Rect, RenderingTree, Translate } from "namui";
 import { WysiwygEditor } from "./wysiwygEditor/WysiwygEditor";
 import { CameraAngleEditorState } from "./type";
 import { Preview } from "./preview/Preview";
+import { ImageBrowser } from "./imageBrowser/ImageBrowser";
 
 export function renderCameraAngleEditor(
   state: CameraAngleEditorState,
@@ -54,7 +41,7 @@ export function renderCameraAngleEditor(
             },
           },
         }),
-        renderPropertyTextEditor(state),
+        ImageBrowser(state.imageBrowser, {}),
         WysiwygEditor(state),
         Preview(state),
       ],

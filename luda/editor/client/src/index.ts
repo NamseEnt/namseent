@@ -1,5 +1,6 @@
 import { ColorUtil, FontWeight, Language, startEngine } from "namui";
 import { nanoid } from "nanoid";
+import { getDefaultSyncBrowserItemsState } from "./cameraAngleEditor/imageBrowser/SyncBrowserItems";
 import { render } from "./render";
 import { TrackType } from "./timeline/type";
 
@@ -129,10 +130,22 @@ startEngine(
           height: 1,
         },
       },
-      propertyTextEditor: {
-        textInput: {
-          targetId: undefined,
+      imageBrowser: {
+        key: "",
+        layout: {
+          x: 0,
+          y: 0,
+          width: 200,
+          height: window.innerHeight - 200,
+          currentDirectoryLabel: {
+            x: 20,
+            y: 20,
+            width: 160,
+            height: 40,
+          },
         },
+        syncBrowserItems: getDefaultSyncBrowserItemsState(),
+        imageFileKeyObjects: [],
       },
       wysiwygEditor: {
         resizer: {},
