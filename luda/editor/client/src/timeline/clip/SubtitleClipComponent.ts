@@ -185,7 +185,9 @@ export const SubtitleClipComponent: Render<
         }
 
         engine.mouseEvent.onMouseDown((mouseEvent) => {
-          timelineState.selectedClip = clip;
+          if (mouseIn) {
+            timelineState.selectedClip = clip;
+          }
 
           if (timelineState.actionState?.type) {
             return;
