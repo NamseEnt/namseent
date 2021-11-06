@@ -46,19 +46,27 @@ export const SyncBrowserItems: Render<
     const path = directoryPath;
     const dirents = await fileSystem.list(path);
     const files = dirents.filter((dirent) => dirent.type === "file");
-    const imageFileKeyObjects = files.map((dirent) => {
+    const imageFilenameObjects = files.map((dirent) => {
       const splitted = dirent.name.split("-");
-      if (splitted.length !== 3) {
+      const [character, pose, emotionAndExtension] = splitted;
+      if (!character || !pose || !emotionAndExtension) {
         throw new Error(`${dirent.name} is invalid`);
       }
-      const [character, pose, emotion] = splitted;
+      const extensionDotIndex = emotionAndExtension.lastIndexOf(".");
+      if (extensionDotIndex === -1) {
+        throw new Error(`${dirent.name} is invalid`);
+      }
+
+      const emotion = emotionAndExtension.substring(0, extensionDotIndex);
+      const extension = emotionAndExtension.substring(extensionDotIndex + 1);
       return {
-        character: character!,
-        pose: pose!,
-        emotion: emotion!,
+        character,
+        pose,
+        emotion,
+        extension,
       };
     });
 
-    state.imageBrowser.imageFileKeyObjects = imageFileKeyObjects;
+    state.imageBrowser.imageFilenameObjects = imageFilenameObjects;
   });
 };

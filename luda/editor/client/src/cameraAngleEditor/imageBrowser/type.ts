@@ -1,5 +1,5 @@
 import { XywhRect } from "namui";
-import { ImageFileKeyObject } from "./ImageFileKeyObject";
+import { ImageFilenameObject } from "./ImageFilenameObject";
 import { SyncBrowserItemsState } from "./SyncBrowserItems";
 
 export type ImageBrowserState = {
@@ -13,5 +13,5 @@ export type ImageBrowserState = {
    */
   key: string;
   syncBrowserItems: SyncBrowserItemsState;
-  imageFileKeyObjects: ImageFileKeyObject[];
+  imageFilenameObjects: ImageFilenameObject[];
 };

@@ -145,7 +145,7 @@ startEngine(
           },
         },
         syncBrowserItems: getDefaultSyncBrowserItemsState(),
-        imageFileKeyObjects: [],
+        imageFilenameObjects: [],
       },
       wysiwygEditor: {
         resizer: {},

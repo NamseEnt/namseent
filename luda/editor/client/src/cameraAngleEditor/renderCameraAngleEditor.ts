@@ -41,7 +41,11 @@ export function renderCameraAngleEditor(
             },
           },
         }),
-        ImageBrowser(state.imageBrowser, {}),
+        ImageBrowser(state.imageBrowser, {
+          chooseImage: (url) => {
+            state.cameraAngle.imageSourceUrl = url;
+          },
+        }),
         WysiwygEditor(state),
         Preview(state),
       ],

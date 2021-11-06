@@ -2,11 +2,16 @@ import { Render, Translate, WhSize, XywhRect } from "namui";
 import { BackButton } from "./BackButton";
 import { BrowserItem } from "./BrowserItem";
 import { CurrentDirectoryLabel } from "./CurrentDirectoryLabel";
-import { convertImageFileKeyObjectToUrl } from "./ImageFileKeyObject";
+import { convertImageFilenameObjectToUrl } from "./ImageFilenameObject";
 import { SyncBrowserItems } from "./SyncBrowserItems";
 import { ImageBrowserState } from "./type";
 
-export const ImageBrowser: Render<ImageBrowserState, {}> = (state, props) => {
+export const ImageBrowser: Render<
+  ImageBrowserState,
+  {
+    chooseImage: (url: string) => void;
+  }
+> = (state, props) => {
   const isRoot = state.key === "";
   const itemMargin = 10;
 
@@ -24,13 +29,15 @@ export const ImageBrowser: Render<ImageBrowserState, {}> = (state, props) => {
 
   const browserItems = [
     ...(isRoot ? [] : [BackButton(state, { itemSize, thumbnailRect })]),
-    ...getBrowserItemProps({ state }).map((props) => {
-      return BrowserItem(state, {
-        itemSize,
-        thumbnailRect,
-        ...props,
-      });
-    }),
+    ...getBrowserItemProps({ state, chooseImage: props.chooseImage }).map(
+      (props) => {
+        return BrowserItem(state, {
+          itemSize,
+          thumbnailRect,
+          ...props,
+        });
+      },
+    ),
   ].map((browserItem, index) => {
     return Translate(
       {
@@ -66,7 +73,13 @@ export const ImageBrowser: Render<ImageBrowserState, {}> = (state, props) => {
   ]);
 };
 
-function getBrowserItemProps({ state }: { state: ImageBrowserState }): {
+function getBrowserItemProps({
+  state,
+  chooseImage,
+}: {
+  state: ImageBrowserState;
+  chooseImage: (url: string) => void;
+}): {
   name: string;
   thumbnailUrl: string;
   onSelect: () => void;
@@ -74,17 +87,19 @@ function getBrowserItemProps({ state }: { state: ImageBrowserState }): {
   const [character, pose] = state.key.split("-");
   if (!character) {
     const characters = new Set<string>();
-    state.imageFileKeyObjects.forEach((keyObject) => {
-      characters.add(keyObject.character);
+    state.imageFilenameObjects.forEach((filenameObject) => {
+      characters.add(filenameObject.character);
     });
     return Array.from(characters).map((character) => {
-      const keyObject = state.imageFileKeyObjects.find((keyObject) => {
-        return keyObject.character === character;
-      })!;
+      const filenameObject = state.imageFilenameObjects.find(
+        (filenameObject) => {
+          return filenameObject.character === character;
+        },
+      )!;
       const key = `${character}`;
       return {
-        name: key,
-        thumbnailUrl: convertImageFileKeyObjectToUrl(keyObject),
+        name: character,
+        thumbnailUrl: convertImageFilenameObjectToUrl(filenameObject),
         onSelect() {
           state.key = key;
         },
@@ -94,20 +109,25 @@ function getBrowserItemProps({ state }: { state: ImageBrowserState }): {
 
   if (!pose) {
     const poses = new Set<string>();
-    state.imageFileKeyObjects
-      .filter((keyObject) => keyObject.character === character)
-      .forEach((keyObject) => {
-        poses.add(keyObject.pose);
+    state.imageFilenameObjects
+      .filter((filenameObject) => filenameObject.character === character)
+      .forEach((filenameObject) => {
+        poses.add(filenameObject.pose);
       });
 
     return Array.from(poses).map((pose) => {
-      const keyObject = state.imageFileKeyObjects.find((keyObject) => {
-        return keyObject.character === character && keyObject.pose === pose;
-      })!;
+      const filenameObject = state.imageFilenameObjects.find(
+        (filenameObject) => {
+          return (
+            filenameObject.character === character &&
+            filenameObject.pose === pose
+          );
+        },
+      )!;
       const key = `${character}-${pose}`;
       return {
-        name: key,
-        thumbnailUrl: convertImageFileKeyObjectToUrl(keyObject),
+        name: pose,
+        thumbnailUrl: convertImageFilenameObjectToUrl(filenameObject),
         onSelect() {
           state.key = key;
         },
@@ -116,29 +136,30 @@ function getBrowserItemProps({ state }: { state: ImageBrowserState }): {
   }
 
   const emotions = new Set<string>();
-  state.imageFileKeyObjects
+  state.imageFilenameObjects
     .filter(
-      (keyObject) =>
-        keyObject.character === character && keyObject.pose === pose,
+      (filenameObject) =>
+        filenameObject.character === character && filenameObject.pose === pose,
     )
-    .forEach((keyObject) => {
-      emotions.add(keyObject.emotion);
+    .forEach((filenameObject) => {
+      emotions.add(filenameObject.emotion);
     });
 
   return Array.from(emotions).map((emotion) => {
-    const keyObject = state.imageFileKeyObjects.find((keyObject) => {
+    const filenameObject = state.imageFilenameObjects.find((filenameObject) => {
       return (
-        keyObject.character === character &&
-        keyObject.pose === pose &&
-        keyObject.emotion === emotion
+        filenameObject.character === character &&
+        filenameObject.pose === pose &&
+        filenameObject.emotion === emotion
       );
     })!;
     const key = `${character}-${pose}-${emotion}`;
+    const imageUrl = convertImageFilenameObjectToUrl(filenameObject);
     return {
-      name: key,
-      thumbnailUrl: convertImageFileKeyObjectToUrl(keyObject),
+      name: emotion,
+      thumbnailUrl: imageUrl,
       onSelect() {
-        state.key = key;
+        chooseImage(imageUrl);
       },
     };
   });
