@@ -14,6 +14,7 @@ import {
   WhSize,
   XywhRect,
   LtrbRect,
+  BorderPosition,
 } from "namui";
 import { CameraAngleEditorState, ImageSource } from "../type";
 import { getSourceRect } from "./getRect";
@@ -39,6 +40,7 @@ export const Resizer: Render<
         stroke: {
           color: ColorUtil.Grayscale01(0.2),
           width: 1,
+          borderPosition: BorderPosition.inside,
         },
       },
     }),

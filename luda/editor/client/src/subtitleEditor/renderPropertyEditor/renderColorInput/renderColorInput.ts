@@ -8,6 +8,7 @@ import {
   TextAlign,
   TextBaseline,
   Translate,
+  BorderPosition,
 } from "namui";
 import { renderAlphaSlider } from "./renderAlphaSlider";
 import { renderRows } from "../renderRows";
@@ -141,6 +142,7 @@ export function renderColorInput(
               ? ColorUtil.Blue
               : ColorUtil.Black,
           width: 1,
+          borderPosition: BorderPosition.inside,
         },
       },
       onClick() {

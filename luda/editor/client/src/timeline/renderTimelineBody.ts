@@ -8,6 +8,7 @@ import {
   Render,
   RenderingTree,
   Translate,
+  BorderPosition,
 } from "namui";
 import { Track, TimelineState, TrackType } from "./type";
 import { DefaultTrackBody } from "./DefaultTrackBody";
@@ -54,6 +55,7 @@ export const TimelineBody: Render<
         stroke: {
           color: ColorUtil.Black,
           width: 1,
+          borderPosition: BorderPosition.inside,
         },
       },
     }),

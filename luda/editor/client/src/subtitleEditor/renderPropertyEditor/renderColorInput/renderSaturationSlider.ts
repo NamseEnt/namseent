@@ -1,4 +1,10 @@
-import { ColorUtil, RenderingTree, Translate, XywhRect } from "namui";
+import {
+  ColorUtil,
+  RenderingTree,
+  Translate,
+  XywhRect,
+  BorderPosition,
+} from "namui";
 import { renderSlider } from "./renderSlider";
 
 export function renderSaturationSlider(props: {
@@ -67,6 +73,7 @@ export function renderSaturationSlider(props: {
           stroke: {
             color: ColorUtil.ColorHSL01(props.hue, props.saturation, 0.8),
             width: 4,
+            borderPosition: BorderPosition.inside,
           },
         },
       },

@@ -1,5 +1,10 @@
-import { Color } from "canvaskit-wasm";
-import { MouseEventCallback, DrawCommand, RenderingTree } from "../type";
+import { Color, InputRect } from "canvaskit-wasm";
+import {
+  MouseEventCallback,
+  DrawCommand,
+  RenderingTree,
+  BorderPosition,
+} from "../type";
 
 export function Rect({
   x,
@@ -25,6 +30,7 @@ export function Rect({
     stroke?: {
       color: Color;
       width: number;
+      borderPosition: BorderPosition;
     };
     fill?: {
       color: Color;
@@ -41,13 +47,36 @@ export function Rect({
   onMouseDown?: MouseEventCallback;
   onMouseUp?: MouseEventCallback;
 }): RenderingTree {
-  const xywhRect = CanvasKit.XYWHRect(x, y, width, height);
-  const rectPath = new CanvasKit.Path();
-  if (round) {
-    rectPath.addRRect(CanvasKit.RRectXY(xywhRect, round.radius, round.radius));
-  } else {
-    rectPath.addRect(CanvasKit.XYWHRect(x, y, width, height));
+  function getRectPath(rect: InputRect) {
+    const rectPath = new CanvasKit.Path();
+    if (round) {
+      rectPath.addRRect(CanvasKit.RRectXY(rect, round.radius, round.radius));
+    } else {
+      rectPath.addRect(rect);
+    }
+    return rectPath;
   }
+
+  let rect: InputRect;
+  if (!stroke || stroke.borderPosition === BorderPosition.outside) {
+    rect = CanvasKit.XYWHRect(x, y, width, height);
+  } else if (stroke.borderPosition === BorderPosition.inside) {
+    rect = CanvasKit.XYWHRect(
+      x + stroke.width,
+      y + stroke.width,
+      width - 2 * stroke.width,
+      height - 2 * stroke.width,
+    );
+  } else {
+    rect = CanvasKit.XYWHRect(
+      x + stroke.width / 2,
+      y + stroke.width / 2,
+      width - stroke.width,
+      height - stroke.width,
+    );
+  }
+
+  const rectPath = getRectPath(rect);
 
   const drawCommands: DrawCommand[] = [];
 

@@ -1,4 +1,10 @@
-import { ColorUtil, Rect, RenderingTree, Translate } from "namui";
+import {
+  ColorUtil,
+  Rect,
+  RenderingTree,
+  Translate,
+  BorderPosition,
+} from "namui";
 import { Track } from "./type";
 import { renderTrackHeader } from "./renderTrackHeader";
 
@@ -28,6 +34,7 @@ export function renderTimelineHeader(props: {
         stroke: {
           color: ColorUtil.Black,
           width: 1,
+          borderPosition: BorderPosition.inside,
         },
       },
     }),

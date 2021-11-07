@@ -10,6 +10,7 @@ import {
   Language,
   PathDrawCommand,
   Text,
+  BorderPosition,
 } from "namui";
 import { ImageBrowserState } from "./type";
 
@@ -49,6 +50,7 @@ export const BackButton: Render<
         stroke: {
           color: ColorUtil.Black,
           width: 1,
+          borderPosition: BorderPosition.inside,
         },
         round: {
           radius: 5,

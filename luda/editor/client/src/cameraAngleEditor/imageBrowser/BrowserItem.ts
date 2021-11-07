@@ -11,6 +11,7 @@ import {
   Text,
   Image,
   ImageFit,
+  BorderPosition,
 } from "namui";
 import { ImageBrowserState } from "./type";
 
@@ -35,6 +36,7 @@ export const BrowserItem: Render<
         stroke: {
           color: ColorUtil.Black,
           width: 1,
+          borderPosition: BorderPosition.inside,
         },
         round: {
           radius: 5,

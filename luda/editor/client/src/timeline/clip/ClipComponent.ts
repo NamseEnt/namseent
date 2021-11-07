@@ -8,6 +8,7 @@ import {
   Mathu,
   Vector,
   Render,
+  BorderPosition,
 } from "namui";
 import { Clip } from "../../type";
 import { TimelineState } from "../type";
@@ -61,10 +62,12 @@ export const ClipComponent: Render<
           ? {
               color: ColorUtil.Red,
               width: 3,
+              borderPosition: BorderPosition.inside,
             }
           : {
               color: ColorUtil.Black,
               width: 1,
+              borderPosition: BorderPosition.inside,
             },
         round: {
           radius: 5,

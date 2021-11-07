@@ -1,4 +1,12 @@
-import { Clip, ColorUtil, Mathu, Rect, RenderingTree, Translate } from "namui";
+import {
+  Clip,
+  ColorUtil,
+  Mathu,
+  Rect,
+  RenderingTree,
+  Translate,
+  BorderPosition,
+} from "namui";
 import { WysiwygEditor } from "./wysiwygEditor/WysiwygEditor";
 import { CameraAngleEditorState } from "./type";
 import { Preview } from "./preview/Preview";
@@ -35,6 +43,7 @@ export function renderCameraAngleEditor(
             stroke: {
               color: ColorUtil.Black,
               width: 1,
+              borderPosition: BorderPosition.inside,
             },
             fill: {
               color: ColorUtil.White,

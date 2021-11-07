@@ -1,4 +1,11 @@
-import { ColorUtil, RenderingTree, Translate, XywhRect, Rect } from "namui";
+import {
+  ColorUtil,
+  RenderingTree,
+  Translate,
+  XywhRect,
+  Rect,
+  BorderPosition,
+} from "namui";
 import { renderSlider } from "./renderSlider";
 
 export function renderHueSlider(props: {
@@ -71,6 +78,7 @@ export function renderHueSlider(props: {
           stroke: {
             color: ColorUtil.ColorHSL01(props.hue, 1, 0.8),
             width: 4,
+            borderPosition: BorderPosition.inside,
           },
         },
       },

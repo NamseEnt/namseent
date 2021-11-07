@@ -13,6 +13,7 @@ import {
   Rect,
   WhSize,
   Convert,
+  BorderPosition,
 } from "namui";
 import { CameraAngleEditorState, ImageSource } from "../type";
 import { Croper } from "./Croper";
@@ -49,6 +50,7 @@ export const WysiwygEditor: Render<CameraAngleEditorState> = (
             stroke: {
               color: ColorUtil.Black,
               width: 2,
+              borderPosition: BorderPosition.inside,
             },
           },
         }),

@@ -1,4 +1,4 @@
-import { ColorUtil, MouseButton, Rect, Render } from "namui";
+import { ColorUtil, MouseButton, Rect, Render, BorderPosition } from "namui";
 import { Track, TimelineState } from "./type";
 import { ClipComponent } from "./clip/ClipComponent";
 import { Sash } from "./clip/Sash";
@@ -26,6 +26,7 @@ export const DefaultTrackBody: Render<
         stroke: {
           color: ColorUtil.Black,
           width: 1,
+          borderPosition: BorderPosition.inside,
         },
       },
       onMouseUp(event) {

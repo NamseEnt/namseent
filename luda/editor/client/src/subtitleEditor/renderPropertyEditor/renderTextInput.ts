@@ -7,6 +7,7 @@ import {
   TextAlign,
   TextBaseline,
   TextInput,
+  BorderPosition,
 } from "namui";
 import { TextInputState } from "../type";
 
@@ -61,6 +62,7 @@ export function renderTextInput(
         stroke: {
           color: ColorUtil.Black,
           width: 1,
+          borderPosition: BorderPosition.inside,
         },
       },
       focus: state.targetId === props.textInputId,

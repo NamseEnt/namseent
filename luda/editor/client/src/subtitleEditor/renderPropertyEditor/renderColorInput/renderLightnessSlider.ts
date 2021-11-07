@@ -1,4 +1,10 @@
-import { ColorUtil, RenderingTree, Translate, XywhRect } from "namui";
+import {
+  ColorUtil,
+  RenderingTree,
+  Translate,
+  XywhRect,
+  BorderPosition,
+} from "namui";
 import { renderSlider } from "./renderSlider";
 
 export function renderLightnessSlider(props: {
@@ -63,6 +69,7 @@ export function renderLightnessSlider(props: {
           stroke: {
             color: ColorUtil.ColorHSL01(0, 0, 1 - props.lightness),
             width: 4,
+            borderPosition: BorderPosition.inside,
           },
         },
       },

@@ -1,4 +1,4 @@
-import { ColorUtil, MouseButton, Rect, Render } from "namui";
+import { ColorUtil, MouseButton, Rect, Render, BorderPosition } from "namui";
 import { Clip } from "../../type";
 import { ClipComponent } from "../clip/ClipComponent";
 import { TimelineState, Track } from "../type";
@@ -38,6 +38,7 @@ export const CameraTrackBody: Render<
         stroke: {
           color: ColorUtil.Black,
           width: 1,
+          borderPosition: BorderPosition.inside,
         },
       },
       onMouseUp(event) {

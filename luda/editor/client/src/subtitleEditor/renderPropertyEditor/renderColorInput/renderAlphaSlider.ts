@@ -1,4 +1,10 @@
-import { ColorUtil, RenderingTree, Translate, XywhRect } from "namui";
+import {
+  ColorUtil,
+  RenderingTree,
+  Translate,
+  XywhRect,
+  BorderPosition,
+} from "namui";
 import { renderSlider } from "./renderSlider";
 
 export function renderAlphaSlider(props: {
@@ -116,6 +122,7 @@ export function renderAlphaSlider(props: {
               props.lightness,
             ),
             width: 4,
+            borderPosition: BorderPosition.inside,
           },
         },
       },

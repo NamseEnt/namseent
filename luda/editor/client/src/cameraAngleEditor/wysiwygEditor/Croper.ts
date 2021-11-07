@@ -9,6 +9,7 @@ import {
   Translate,
   Vector,
   XywhRect,
+  BorderPosition,
 } from "namui";
 import { CameraAngleEditorState } from "../type";
 import { getDestRect } from "./getRect";
@@ -28,6 +29,7 @@ export const Croper: Render<CameraAngleEditorState> = (
           stroke: {
             color: ColorUtil.Grayscale01(0.5),
             width: 1,
+            borderPosition: BorderPosition.inside,
           },
         },
       }),

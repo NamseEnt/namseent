@@ -1,4 +1,4 @@
-import { ColorUtil, Rect, RenderingTree } from "namui";
+import { ColorUtil, Rect, RenderingTree, BorderPosition } from "namui";
 import { Track } from "./type";
 
 export function renderTrackHeader(props: {
@@ -19,6 +19,7 @@ export function renderTrackHeader(props: {
         stroke: {
           color: ColorUtil.Black,
           width: 1,
+          borderPosition: BorderPosition.inside,
         },
       },
     }),

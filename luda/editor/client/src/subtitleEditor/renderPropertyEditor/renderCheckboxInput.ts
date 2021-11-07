@@ -7,6 +7,7 @@ import {
   Text,
   TextAlign,
   TextBaseline,
+  BorderPosition,
 } from "namui";
 
 export function renderCheckboxInput(props: {
@@ -43,6 +44,7 @@ export function renderCheckboxInput(props: {
         stroke: {
           width: strokeWidth,
           color: ColorUtil.Black,
+          borderPosition: BorderPosition.inside,
         },
       },
       onClick: () => {

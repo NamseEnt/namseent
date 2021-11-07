@@ -281,3 +281,9 @@ export type WhSize = {
   width: number;
   height: number;
 };
+
+export enum BorderPosition {
+  inside = "inside",
+  outside = "outside",
+  middle = "middle",
+}

@@ -1,4 +1,10 @@
-import { Rect, RenderingTree, Translate, XywhRect } from "namui";
+import {
+  Rect,
+  RenderingTree,
+  Translate,
+  XywhRect,
+  BorderPosition,
+} from "namui";
 
 export function renderSlider(props: {
   layout: XywhRect;
@@ -10,6 +16,7 @@ export function renderSlider(props: {
       stroke: {
         width: number;
         color: Float32Array;
+        borderPosition: BorderPosition;
       };
       fill: {
         color: Float32Array;

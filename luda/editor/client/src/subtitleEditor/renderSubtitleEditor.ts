@@ -1,4 +1,11 @@
-import { Clip, ColorUtil, Rect, RenderingTree, Translate } from "namui";
+import {
+  Clip,
+  ColorUtil,
+  Rect,
+  RenderingTree,
+  Translate,
+  BorderPosition,
+} from "namui";
 import { renderPreview } from "./renderPreview";
 import { renderPropertyEditor } from "./renderPropertyEditor/renderPropertyEditor";
 import { SubtitleEditorState } from "./type";
@@ -33,6 +40,7 @@ export function renderSubtitleEditor(
               stroke: {
                 color: ColorUtil.Black,
                 width: 1,
+                borderPosition: BorderPosition.inside,
               },
               fill: {
                 color: ColorUtil.White,

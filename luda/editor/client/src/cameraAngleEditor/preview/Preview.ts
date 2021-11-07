@@ -7,6 +7,7 @@ import {
   Rect,
   Render,
   Translate,
+  BorderPosition,
 } from "namui";
 import { CameraAngleEditorState } from "../type";
 import { getDestRect, getSourceRect } from "../wysiwygEditor/getRect";
@@ -31,6 +32,7 @@ export const Preview: Render<CameraAngleEditorState> = (
             stroke: {
               color: ColorUtil.Black,
               width: 1,
+              borderPosition: BorderPosition.inside,
             },
           },
         }),
