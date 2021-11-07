@@ -6,7 +6,9 @@ import { IRenderManager } from "./IRenderManager";
 export class RenderManager implements IRenderManager, IManagerInternal {
   private lastRenderingTree?: RenderingTree;
 
-  resetBeforeRender?: () => void;
+  resetBeforeRender() {
+    this.lastRenderingTree = undefined;
+  }
   destroy?: () => void;
   afterRender(renderingTree: RenderingTree): void {
     this.lastRenderingTree = renderingTree;
@@ -18,6 +20,7 @@ export class RenderManager implements IRenderManager, IManagerInternal {
   ): boolean {
     const { lastRenderingTree } = this;
     if (!lastRenderingTree) {
+      console.warn("this function should be called after render");
       return false;
     }
 

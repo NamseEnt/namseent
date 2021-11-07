@@ -1,10 +1,12 @@
 import { Color, InputRect } from "canvaskit-wasm";
+import { AfterDraw } from "..";
 import {
   MouseEventCallback,
   DrawCommand,
   RenderingTree,
   BorderPosition,
 } from "../type";
+import { nanoid } from "nanoid";
 
 export function Rect({
   x,
@@ -20,6 +22,7 @@ export function Rect({
   onMouseMoveOut,
   onMouseDown,
   onMouseUp,
+  onAfterDraw,
 }: {
   x: number;
   y: number;
@@ -46,7 +49,9 @@ export function Rect({
   onMouseMoveOut?: MouseEventCallback;
   onMouseDown?: MouseEventCallback;
   onMouseUp?: MouseEventCallback;
+  onAfterDraw?: (id: string) => void;
 }): RenderingTree {
+  const renderingTree = [];
   function getRectPath(rect: InputRect) {
     const rectPath = new CanvasKit.Path();
     if (round) {
@@ -107,7 +112,18 @@ export function Rect({
     });
   }
 
-  return {
+  if (onAfterDraw) {
+    if (!id) {
+      id = nanoid();
+    }
+    renderingTree.push(
+      AfterDraw((param) => {
+        onAfterDraw(id!);
+      }),
+    );
+  }
+
+  renderingTree.push({
     drawCalls: [
       {
         commands: drawCommands,
@@ -121,5 +137,7 @@ export function Rect({
     onMouseMoveOut,
     onMouseDown,
     onMouseUp,
-  };
+  });
+
+  return renderingTree;
 }

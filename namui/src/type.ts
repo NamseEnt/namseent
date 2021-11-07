@@ -14,7 +14,6 @@ import { BuildErrorNotifier } from "./build/BuildErrorNotifier";
 import { BuildServerConnection } from "./build/BuildServerConnection";
 import { FontStorage } from "./font/FontStorage";
 import { TypefaceStorage } from "./font/TypefaceStorage";
-import { IImageLoader } from "./image/ImageLoader";
 import { DeepReadonly } from "./types/DeepReadonly";
 import { SpecialRenderingCommand } from "./types/SpecialRenderingCommand";
 

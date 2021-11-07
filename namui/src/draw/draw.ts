@@ -1,6 +1,4 @@
-import { Canvas } from "canvaskit-wasm";
 import {
-  DrawCall,
   DrawCommand,
   EngineContext,
   RenderingData,
