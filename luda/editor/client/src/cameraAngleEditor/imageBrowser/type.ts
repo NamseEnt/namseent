@@ -1,5 +1,6 @@
 import { XywhRect } from "namui";
 import { ImageFilenameObject } from "./ImageFilenameObject";
+import { ScrollState } from "./Scroll";
 import { SyncBrowserItemsState } from "./SyncBrowserItems";
 
 export type ImageBrowserState = {
@@ -11,7 +12,9 @@ export type ImageBrowserState = {
    *  alphanumeric
    *  key + "-" + alphanumeric
    */
-  key: string;
+  directoryKey: string;
+  selectedKey?: string;
   syncBrowserItems: SyncBrowserItemsState;
   imageFilenameObjects: ImageFilenameObject[];
+  scrollState: ScrollState;
 };

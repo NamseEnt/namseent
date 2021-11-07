@@ -23,6 +23,7 @@ export const BrowserItem: Render<
     thumbnailUrl: string;
     name: string;
     onSelect: () => void;
+    isSelected: boolean;
   }
 > = (state, props) => {
   const { itemSize, thumbnailRect } = props;
@@ -34,8 +35,8 @@ export const BrowserItem: Render<
       ...itemSize,
       style: {
         stroke: {
-          color: ColorUtil.Black,
-          width: 1,
+          color: props.isSelected ? ColorUtil.Red : ColorUtil.Black,
+          width: props.isSelected ? 3 : 1,
           borderPosition: BorderPosition.inside,
         },
         round: {

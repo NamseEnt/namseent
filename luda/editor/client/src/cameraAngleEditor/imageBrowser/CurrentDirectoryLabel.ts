@@ -16,7 +16,7 @@ export const CurrentDirectoryLabel: Render<ImageBrowserState, {}> = (
   return [
     Text({
       ...state.layout.currentDirectoryLabel,
-      text: state.key,
+      text: state.directoryKey,
       align: TextAlign.left,
       baseline: TextBaseline.top,
       fontType: {

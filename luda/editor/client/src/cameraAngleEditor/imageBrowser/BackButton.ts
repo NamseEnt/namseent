@@ -41,6 +41,8 @@ export const BackButton: Render<
   arrowPaint.setStyle(CanvasKit.PaintStyle.Stroke);
   arrowPaint.setStrokeWidth(2);
 
+  const isSelected = state.selectedKey === "back";
+
   return [
     Rect({
       x: 0,
@@ -48,8 +50,8 @@ export const BackButton: Render<
       ...itemSize,
       style: {
         stroke: {
-          color: ColorUtil.Black,
-          width: 1,
+          color: isSelected ? ColorUtil.Red : ColorUtil.Black,
+          width: isSelected ? 3 : 1,
           borderPosition: BorderPosition.inside,
         },
         round: {
@@ -60,9 +62,10 @@ export const BackButton: Render<
         },
       },
       onClick: () => {
-        const chunks = state.key.split("-");
+        const chunks = state.directoryKey.split("-");
         chunks.pop();
-        state.key = chunks.join("-");
+        state.directoryKey = chunks.join("-");
+        state.selectedKey = "back";
       },
     }),
     Text({

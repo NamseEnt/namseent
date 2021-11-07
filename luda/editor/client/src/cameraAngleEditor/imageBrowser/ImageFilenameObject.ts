@@ -11,3 +11,10 @@ export function convertImageFilenameObjectToUrl(
   const imageFilename = `${filenameObject.character}-${filenameObject.pose}-${filenameObject.emotion}.${filenameObject.extension}`;
   return `resources/images/${imageFilename}`;
 }
+
+export function convertImageFilenameObjectToKey(
+  filenameObject: ImageFilenameObject,
+): string {
+  const imageFilename = `${filenameObject.character}-${filenameObject.pose}-${filenameObject.emotion}`;
+  return imageFilename;
+}

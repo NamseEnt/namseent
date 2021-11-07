@@ -3,6 +3,7 @@ import { BackButton } from "./BackButton";
 import { BrowserItem } from "./BrowserItem";
 import { CurrentDirectoryLabel } from "./CurrentDirectoryLabel";
 import { convertImageFilenameObjectToUrl } from "./ImageFilenameObject";
+import { Scroll } from "./Scroll";
 import { SyncBrowserItems } from "./SyncBrowserItems";
 import { ImageBrowserState } from "./type";
 
@@ -12,7 +13,7 @@ export const ImageBrowser: Render<
     chooseImage: (url: string) => void;
   }
 > = (state, props) => {
-  const isRoot = state.key === "";
+  const isRoot = state.directoryKey === "";
   const itemMargin = 10;
 
   const itemWidth = state.layout.width / 2 - itemMargin;
@@ -27,6 +28,9 @@ export const ImageBrowser: Render<
     height: itemSize.height - 20,
   };
 
+  function getBrowserItemY(index: number): number {
+    return itemMargin + Math.floor(index / 2) * (itemSize.height + itemMargin);
+  }
   const browserItems = [
     ...(isRoot ? [] : [BackButton(state, { itemSize, thumbnailRect })]),
     ...getBrowserItemProps({ state, chooseImage: props.chooseImage }).map(
@@ -42,11 +46,16 @@ export const ImageBrowser: Render<
     return Translate(
       {
         x: (index % 2) * (itemSize.width + itemMargin),
-        y: Math.floor(index / 2) * (itemSize.height + itemMargin),
+        y: getBrowserItemY(index),
       },
       [browserItem],
     );
   });
+
+  const browserItemScrollHeight =
+    getBrowserItemY(browserItems.length - 1) + itemSize.height + itemMargin;
+
+  const scrollBarWidth = 10;
 
   return Translate(state.layout, [
     CurrentDirectoryLabel(state, {}),
@@ -58,9 +67,20 @@ export const ImageBrowser: Render<
           state.layout.currentDirectoryLabel.height,
       },
       [
-        // Scroll({},
-        [browserItems],
-        // ),
+        Scroll(state.scrollState, {
+          layout: {
+            x: 0,
+            y: 0,
+            innerWidth: state.layout.width - scrollBarWidth,
+            innerHeight: browserItemScrollHeight,
+            scrollBarWidth,
+            height:
+              state.layout.height -
+              (state.layout.currentDirectoryLabel.y +
+                state.layout.currentDirectoryLabel.height),
+          },
+          innerRenderingTree: [browserItems],
+        }),
       ],
     ),
     SyncBrowserItems(
@@ -83,8 +103,9 @@ function getBrowserItemProps({
   name: string;
   thumbnailUrl: string;
   onSelect: () => void;
+  isSelected: boolean;
 }[] {
-  const [character, pose] = state.key.split("-");
+  const [character, pose] = state.directoryKey.split("-");
   if (!character) {
     const characters = new Set<string>();
     state.imageFilenameObjects.forEach((filenameObject) => {
@@ -101,8 +122,10 @@ function getBrowserItemProps({
         name: character,
         thumbnailUrl: convertImageFilenameObjectToUrl(filenameObject),
         onSelect() {
-          state.key = key;
+          state.directoryKey = key;
+          state.selectedKey = "back";
         },
+        isSelected: state.selectedKey === key,
       };
     });
   }
@@ -125,12 +148,15 @@ function getBrowserItemProps({
         },
       )!;
       const key = `${character}-${pose}`;
+      const imageUrl = convertImageFilenameObjectToUrl(filenameObject);
       return {
         name: pose,
-        thumbnailUrl: convertImageFilenameObjectToUrl(filenameObject),
+        thumbnailUrl: imageUrl,
         onSelect() {
-          state.key = key;
+          state.directoryKey = key;
+          state.selectedKey = "back";
         },
+        isSelected: state.selectedKey === key,
       };
     });
   }
@@ -160,7 +186,9 @@ function getBrowserItemProps({
       thumbnailUrl: imageUrl,
       onSelect() {
         chooseImage(imageUrl);
+        state.selectedKey = key;
       },
+      isSelected: state.selectedKey === key,
     };
   });
 }

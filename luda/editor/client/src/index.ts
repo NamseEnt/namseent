@@ -131,7 +131,7 @@ startEngine(
         },
       },
       imageBrowser: {
-        key: "",
+        directoryKey: "",
         layout: {
           x: 0,
           y: 0,
@@ -146,6 +146,9 @@ startEngine(
         },
         syncBrowserItems: getDefaultSyncBrowserItemsState(),
         imageFilenameObjects: [],
+        scrollState: {
+          scrollY: 0,
+        },
       },
       wysiwygEditor: {
         resizer: {},
