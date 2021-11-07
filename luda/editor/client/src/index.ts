@@ -18,6 +18,7 @@ startEngine(
         headerWidth: 200,
         msPerPixel: 100,
         startMs: 0,
+        timeRulerHeight: 20,
       },
       timelineBorderId: nanoid(),
       tracks: [

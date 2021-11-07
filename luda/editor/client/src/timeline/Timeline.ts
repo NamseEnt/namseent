@@ -12,17 +12,20 @@ import { Clip } from "../type";
 import { renderContextMenu } from "./contextMenu/renderContextMenu";
 import { TimelineBody } from "./renderTimelineBody";
 import { renderTimelineHeader } from "./renderTimelineHeader";
+import { TimeRuler } from "./timeRuler/TimeRuler";
 import { TimelineState } from "./type";
 
 export const Timeline: Render<TimelineState> = (state) => {
   /*
      HEADER         BODY
     ┌──────────────┬────────────────┐
-    │ TRACK HEADER │ TRACK BODY     │
+    │  00:00:TIME  │   TIME RULER   │
     ├──────────────┼────────────────│
-    │ TRACK HEADER │ TRACK BODY     │
+    │ TRACK HEADER │   TRACK BODY   │
     ├──────────────┼────────────────│
-    │ TRACK HEADER │ TRACK BODY     │
+    │ TRACK HEADER │   TRACK BODY   │
+    ├──────────────┼────────────────│
+    │ TRACK HEADER │   TRACK BODY   │
     ├──────────────┼────────────────│
     │              │                │
     │              │                │
@@ -44,26 +47,53 @@ export const Timeline: Render<TimelineState> = (state) => {
       },
     }),
     Translate({ x, y }, [
-      renderTimelineHeader({
-        width: headerWidth,
-        height,
-        tracks,
-      }),
       Translate(
         {
           x: headerWidth,
           y: 0,
         },
-        TimelineBody(
+        TimeRuler(
+          {},
           {
-            timelineState: state,
-            tracks,
-          },
-          {
-            width: bodyWidth,
-            height,
+            layout: {
+              x: 0,
+              y: 0,
+              width: bodyWidth,
+              height: state.layout.timeRulerHeight,
+            },
+            msPerPixel: state.layout.msPerPixel,
+            startMs: state.layout.startMs,
           },
         ),
+      ),
+      Translate(
+        {
+          x: 0,
+          y: state.layout.timeRulerHeight,
+        },
+        [
+          renderTimelineHeader({
+            width: headerWidth,
+            height,
+            tracks,
+          }),
+          Translate(
+            {
+              x: headerWidth,
+              y: 0,
+            },
+            TimelineBody(
+              {
+                timelineState: state,
+                tracks,
+              },
+              {
+                width: bodyWidth,
+                height,
+              },
+            ),
+          ),
+        ],
       ),
     ]),
     AfterDraw(({ translated }) => {

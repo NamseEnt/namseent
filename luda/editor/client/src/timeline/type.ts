@@ -9,6 +9,7 @@ export type TimelineState = {
     headerWidth: number;
     startMs: number;
     msPerPixel: number;
+    timeRulerHeight: number;
   };
   tracks: Track[];
   actionState?: ResizeClip | DragClip;
