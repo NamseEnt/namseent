@@ -1,6 +1,13 @@
-import { ColorUtil, engine, Cursor, AfterDraw, Translate, Render } from "namui";
+import {
+  ColorUtil,
+  engine,
+  Cursor,
+  AfterDraw,
+  Translate,
+  Render,
+  Clip,
+} from "namui";
 import { SubtitleClip } from "../../type";
-import { clamp } from "../../util/clamp";
 import { brighterColor01 } from "../../util/color/brighterColor";
 import { TimelineState } from "../type";
 
@@ -25,18 +32,21 @@ export const SubtitleClipComponent: Render<
     return;
   }
 
-  const mouseInHead = timelineState.clipIdMouseIn === clip.id;
-  const borderWidth = mouseInHead ? 3 : 1;
-  const componentWidth =
-    200 / timelineState.layout.msPerPixel - 2 * borderWidth;
+  const shouldHighlight =
+    timelineState.selectedClip?.id === clip.id ||
+    timelineState.clipIdMouseIn === clip.id ||
+    timelineState.actionState?.clipId === clip.id;
+
+  const borderWidth = (shouldHighlight ? 3 : 1) * 2;
+  const componentWidth = 200 / timelineState.layout.msPerPixel;
   const componentHeight = height / 3;
   const headPosition = {
-    x: borderWidth,
-    y: borderWidth,
+    x: 0,
+    y: 0,
   };
   const tailPosition = {
-    x: width - componentWidth - borderWidth,
-    y: height - componentHeight - borderWidth,
+    x: width - componentWidth,
+    y: height - componentHeight,
   };
   const color =
     timelineState.selectedClip?.id === clip.id
@@ -72,7 +82,7 @@ export const SubtitleClipComponent: Render<
   const borderPaint = new CanvasKit.Paint();
   borderPaint.setAntiAlias(true);
   borderPaint.setStyle(CanvasKit.PaintStyle.Stroke);
-  borderPaint.setStrokeWidth(mouseInHead ? borderWidth + 2 : borderWidth);
+  borderPaint.setStrokeWidth(borderWidth);
   borderPaint.setColor(brighterColor);
 
   const strokeFillPaint = new CanvasKit.Paint();
@@ -109,43 +119,61 @@ export const SubtitleClipComponent: Render<
         ],
       },
 
-      Translate(headPosition, {
-        drawCalls: [
+      Translate(
+        headPosition,
+        Clip(
           {
-            commands: [
+            path: headPath,
+            clipOp: CanvasKit.ClipOp.Intersect,
+          },
+          {
+            drawCalls: [
               {
-                type: "path",
-                path: headPath,
-                paint: borderPaint,
-              },
-              {
-                type: "path",
-                path: headPath,
-                paint: fillPaint,
+                commands: [
+                  {
+                    type: "path",
+                    path: headPath,
+                    paint: fillPaint,
+                  },
+                  {
+                    type: "path",
+                    path: headPath,
+                    paint: borderPaint,
+                  },
+                ],
               },
             ],
           },
-        ],
-      }),
+        ),
+      ),
 
-      Translate(tailPosition, {
-        drawCalls: [
+      Translate(
+        tailPosition,
+        Clip(
           {
-            commands: [
+            path: tailPath,
+            clipOp: CanvasKit.ClipOp.Intersect,
+          },
+          {
+            drawCalls: [
               {
-                type: "path",
-                path: tailPath,
-                paint: borderPaint,
-              },
-              {
-                type: "path",
-                path: tailPath,
-                paint: fillPaint,
+                commands: [
+                  {
+                    type: "path",
+                    path: tailPath,
+                    paint: fillPaint,
+                  },
+                  {
+                    type: "path",
+                    path: tailPath,
+                    paint: borderPaint,
+                  },
+                ],
               },
             ],
           },
-        ],
-      }),
+        ),
+      ),
 
       {
         drawCalls: [
