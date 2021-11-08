@@ -14,12 +14,14 @@ export type TimelineState = {
   tracks: Track[];
   actionState?: ResizeClip | DragClip;
   clipIdMouseIn?: string;
-  contextMenu?: ContextMenu;
+  contextMenu?: ContextMenuState;
   selectedClip?: Clip;
   readonly timelineBorderId: string;
 };
 
-export type ContextMenu = {
+export type ContextMenuState = TrackBodyContextMenuState;
+
+export type TrackBodyContextMenuState = {
   type: "trackBody";
   x: number;
   y: number;

@@ -2,6 +2,7 @@ import { ColorUtil, FontWeight, Language, startEngine } from "namui";
 import { nanoid } from "nanoid";
 import { getDefaultSyncBrowserItemsState } from "./cameraAngleEditor/imageBrowser/SyncBrowserItems";
 import { render } from "./render";
+import { createClip } from "./timeline/operations/createClip";
 import { TrackType } from "./timeline/type";
 
 startEngine(
@@ -26,69 +27,24 @@ startEngine(
           id: "track1",
           type: TrackType.camera,
           clips: [
-            {
-              id: "1-1",
+            createClip({
+              trackType: TrackType.camera,
+              id: nanoid(),
               startMs: 0,
               endMs: 1000,
-              type: "camera",
-              cameraAngle: {
-                imageSourceUrl: "resources/images/피디-기본-미소.png",
-                source01Rect: {
-                  x: 0.25,
-                  y: 0.25,
-                  width: 0,
-                  height: 0.5,
-                },
-                dest01Rect: {
-                  x: 0,
-                  y: 0,
-                  width: 1,
-                  height: 1,
-                },
-              },
-            },
-            {
-              id: "1-2",
+            }),
+            createClip({
+              trackType: TrackType.camera,
+              id: nanoid(),
               startMs: 1000,
-              endMs: 2000,
-              type: "camera",
-              cameraAngle: {
-                imageSourceUrl: "resources/images/피디-기본-미소.png",
-                source01Rect: {
-                  x: 0.25,
-                  y: 0.25,
-                  width: 0,
-                  height: 0.5,
-                },
-                dest01Rect: {
-                  x: 0,
-                  y: 0,
-                  width: 1,
-                  height: 1,
-                },
-              },
-            },
-            {
-              id: "1-3",
+              endMs: 3000,
+            }),
+            createClip({
+              trackType: TrackType.camera,
+              id: nanoid(),
               startMs: 3000,
-              endMs: 4000,
-              type: "camera",
-              cameraAngle: {
-                imageSourceUrl: "resources/images/피디-기본-미소.png",
-                source01Rect: {
-                  x: 0.25,
-                  y: 0.25,
-                  width: 0,
-                  height: 0.5,
-                },
-                dest01Rect: {
-                  x: 0,
-                  y: 0,
-                  width: 1,
-                  height: 1,
-                },
-              },
-            },
+              endMs: 7000,
+            }),
           ],
         },
       ],

@@ -1,28 +1,17 @@
-import {
-  ColorUtil,
-  FontWeight,
-  Language,
-  Rect,
-  RenderingTree,
-  Text,
-  TextAlign,
-  TextBaseline,
-  Translate,
-} from "namui";
-import { ContextMenu, TimelineState } from "../type";
+import { ColorUtil, Rect, Render, RenderingTree, Translate } from "namui";
+import { TimelineState } from "../type";
 import { nanoid } from "nanoid";
+import { ContextMenuItem } from "./type";
+import { renderContextMenuItem } from "./renderContextMenuItem";
+import { closeContextMenu } from "./closeContextMenu";
+import { createClip } from "../operations/createClip";
 
-type ContextMenuItem = {
-  id: string;
-  label: string;
-  onClick: () => void;
-};
-
-export function renderContextMenu(state: TimelineState): RenderingTree {
+export const renderContextMenu: Render<TimelineState> = (state) => {
   const { contextMenu } = state;
   if (!contextMenu) {
     return;
   }
+
   const contextMenuItems: ContextMenuItem[] = [
     {
       id: "0",
@@ -34,11 +23,13 @@ export function renderContextMenu(state: TimelineState): RenderingTree {
         if (!track) {
           throw new Error("track not found");
         }
-        track.clips.push({
+        const newClip = createClip({
+          trackType: track.type,
           id: nanoid(),
           startMs: contextMenu.clickMs,
           endMs: contextMenu.clickMs + 3000,
         });
+        track.clips.push(newClip);
       },
     },
   ];
@@ -49,13 +40,17 @@ export function renderContextMenu(state: TimelineState): RenderingTree {
   const renderingContextMenuItems: RenderingTree[] = contextMenuItems.map(
     (contextMenuItem, index) =>
       Translate({ x: 0, y: menuItemHeight * index }, [
-        renderContextMenuItem({
-          contextMenuItem,
-          state,
-          contextMenu,
-          menuItemHeight,
-          menuItemWidth: menuWidth,
-        }),
+        renderContextMenuItem(
+          {
+            timeline: state,
+            contextMenu,
+          },
+          {
+            contextMenuItem,
+            menuItemHeight,
+            menuItemWidth: menuWidth,
+          },
+        ),
       ]),
   );
 
@@ -78,66 +73,4 @@ export function renderContextMenu(state: TimelineState): RenderingTree {
       renderingContextMenuItems,
     ]),
   ];
-}
-function renderContextMenuItem({
-  contextMenuItem,
-  state,
-  contextMenu,
-  menuItemHeight,
-  menuItemWidth,
-}: {
-  contextMenuItem: ContextMenuItem;
-  state: TimelineState;
-  contextMenu: ContextMenu;
-  menuItemHeight: number;
-  menuItemWidth: number;
-}): RenderingTree {
-  const isMouseInItem = contextMenu.mouseInItemId === contextMenuItem.id;
-  return [
-    Rect({
-      x: 0,
-      y: 0,
-      width: menuItemWidth,
-      height: menuItemHeight,
-      style: {
-        fill: {
-          color: isMouseInItem
-            ? ColorUtil.Color0255(41, 42, 128)
-            : ColorUtil.Transparent,
-        },
-      },
-      onMouseMoveIn() {
-        contextMenu.mouseInItemId = contextMenuItem.id;
-      },
-      onMouseMoveOut() {
-        if (contextMenu.mouseInItemId === contextMenuItem.id) {
-          contextMenu.mouseInItemId = undefined;
-        }
-      },
-      onClick() {
-        contextMenuItem.onClick();
-        closeContextMenu(state);
-      },
-    }),
-    Text({
-      x: 5,
-      y: 0,
-      text: contextMenuItem.label,
-      align: TextAlign.left,
-      baseline: TextBaseline.top,
-      style: {
-        color: ColorUtil.White,
-      },
-      fontType: {
-        language: Language.ko,
-        serif: false,
-        size: 12,
-        fontWeight: FontWeight.regular,
-      },
-    }),
-  ];
-}
-
-function closeContextMenu(state: TimelineState): void {
-  state.contextMenu = undefined;
-}
+};
