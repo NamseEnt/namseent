@@ -38,7 +38,10 @@ export const SubtitleClipComponent: Render<
     x: width - componentWidth - borderWidth,
     y: height - componentHeight - borderWidth,
   };
-  const color = ColorUtil.Color0255(34, 167, 240);
+  const color =
+    timelineState.selectedClip?.id === clip.id
+      ? ColorUtil.Green
+      : ColorUtil.Color0255(34, 167, 240);
   const brighterColor = brighterColor01(color, 0.2);
 
   const strokePath = new CanvasKit.Path()
