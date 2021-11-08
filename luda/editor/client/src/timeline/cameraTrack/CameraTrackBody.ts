@@ -109,34 +109,9 @@ function pushClipsForward(state: TimelineState, clips: Clip[]) {
   if (state.actionState?.type === "dragClip") {
     const { clipId } = state.actionState;
     const draggingClip = clips.find((clip) => clip.id === clipId);
-    if (!draggingClip) {
-      // TODO: It may be a clip of another track.
-      return;
-      throw new Error("clip not found");
+    if (draggingClip) {
+      changeOrderByDragging(clips, draggingClip);
     }
-
-    const draggingClipIndex = clips.indexOf(draggingClip);
-    let changingClipIndex = draggingClipIndex;
-    for (let index = 0; index < clips.length; index++) {
-      if (index === draggingClipIndex) {
-        continue;
-      }
-      const clip = clips[index]!;
-      const clipCenterMs = (clip.startMs + clip.endMs) / 2;
-      if (index < draggingClipIndex) {
-        if (draggingClip.startMs < clipCenterMs) {
-          changingClipIndex = index;
-          break;
-        }
-      } else {
-        if (clipCenterMs < draggingClip.endMs) {
-          changingClipIndex = index;
-        }
-      }
-    }
-    const temp = clips[draggingClipIndex]!;
-    clips[draggingClipIndex] = clips[changingClipIndex]!;
-    clips[changingClipIndex] = temp;
   }
 
   const firstClip = clips[0];
@@ -157,6 +132,33 @@ function pushClipsForward(state: TimelineState, clips: Clip[]) {
     nextClip.startMs = clip.endMs;
     nextClip.endMs = nextClip.startMs + nextClipDurationMs;
   }
+}
+
+function changeOrderByDragging(clips: Clip[], draggingClip: Clip) {
+  const draggingClipIndex = clips.indexOf(draggingClip);
+  let changingClipIndex = draggingClipIndex;
+
+  for (let index = 0; index < clips.length; index++) {
+    if (index === draggingClipIndex) {
+      continue;
+    }
+    const clip = clips[index]!;
+    const clipCenterMs = (clip.startMs + clip.endMs) / 2;
+    if (index < draggingClipIndex) {
+      if (draggingClip.startMs < clipCenterMs) {
+        changingClipIndex = index;
+        break;
+      }
+    } else {
+      if (clipCenterMs < draggingClip.endMs) {
+        changingClipIndex = index;
+      }
+    }
+  }
+
+  const temp = clips[draggingClipIndex]!;
+  clips[draggingClipIndex] = clips[changingClipIndex]!;
+  clips[changingClipIndex] = temp;
 }
 
 const DraggingFakeClip: Render<
