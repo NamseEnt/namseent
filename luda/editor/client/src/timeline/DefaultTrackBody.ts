@@ -3,16 +3,16 @@ import { Track, TimelineState } from "./type";
 import { ClipComponent } from "./clip/ClipComponent";
 import { Sash } from "./clip/Sash";
 import { Clip } from "../type";
+import { isSubtitleClip } from "../clipTypeGuard";
 
 export const DefaultTrackBody: Render<
-  TimelineState,
+  { timelineState: TimelineState; track: Track },
   {
     width: number;
     height: number;
-    track: Track;
   }
 > = (state, props) => {
-  const { clips } = props.track;
+  const { clips } = state.track;
   let selectedClip: Clip | undefined = undefined;
 
   return [
@@ -34,13 +34,14 @@ export const DefaultTrackBody: Render<
       onMouseUp(event) {
         if (event.button === MouseButton.right) {
           const clickMs =
-            state.layout.startMs + event.translated.x * state.layout.msPerPixel;
-          state.contextMenu = {
+            state.timelineState.layout.startMs +
+            event.translated.x * state.timelineState.layout.msPerPixel;
+          state.timelineState.contextMenu = {
             type: "trackBody",
             clickMs,
             x: event.x,
             y: event.y,
-            trackId: props.track.id,
+            trackId: state.track.id,
           };
         }
       },
@@ -71,17 +72,113 @@ export const DefaultTrackBody: Render<
         },
       },
     }),
-    clips.map((clip) => {
-      return ClipComponent(
-        { timelineState: state, clip },
-        { height: props.height, maxRight: props.width, sashComponent: Sash },
-      );
-    }),
-    selectedClip
-      ? ClipComponent(
-          { timelineState: state, clip: selectedClip },
-          { height: props.height, maxRight: props.width, sashComponent: Sash },
-        )
-      : undefined,
+    state.timelineState.actionState?.type === "dragClip"
+      ? renderClipWithPlacementConstraint({
+          clips,
+          selectedClipId: state.timelineState.selectedClip?.id,
+          noEmit:
+            state.timelineState.actionState.terminatePhase !== "terminated",
+          clipComponentState: { timelineState: state.timelineState },
+          clipComponentProps: {
+            height: props.height,
+            maxRight: props.width,
+            sashComponent: Sash,
+          },
+        })
+      : [
+          clips.map((clip) => {
+            return ClipComponent(
+              { timelineState: state.timelineState, clip },
+              {
+                height: props.height,
+                maxRight: props.width,
+                sashComponent: Sash,
+              },
+            );
+          }),
+          selectedClip
+            ? ClipComponent(
+                { timelineState: state.timelineState, clip: selectedClip },
+                {
+                  height: props.height,
+                  maxRight: props.width,
+                  sashComponent: Sash,
+                },
+              )
+            : undefined,
+        ],
   ];
 };
+
+function renderClipWithPlacementConstraint(props: {
+  clips: Clip[];
+  selectedClipId?: string;
+  noEmit?: boolean;
+  clipComponentState: Omit<Parameters<typeof ClipComponent>[0], "clip">;
+  clipComponentProps: Parameters<typeof ClipComponent>[1];
+}) {
+  const {
+    clips,
+    selectedClipId,
+    noEmit,
+    clipComponentState,
+    clipComponentProps,
+  } = props;
+  if (!noEmit) {
+    console.log(123);
+  }
+  const sortedClips = clips.sort((a, b) => a.startMs - b.startMs);
+  const selectedClipIndex = selectedClipId
+    ? sortedClips.findIndex((clip) => clip.id === selectedClipId)
+    : -1;
+
+  let previousClipOffset = 0;
+  let conflictResolved = false;
+  return sortedClips.map((clip, index, clips) => {
+    if (index < selectedClipIndex || conflictResolved) {
+      return ClipComponent({ ...clipComponentState, clip }, clipComponentProps);
+    }
+    const clipOffset = calculateClipOffset(
+      clips[index - 1],
+      clip,
+      noEmit ? previousClipOffset : 0,
+    );
+    previousClipOffset = clipOffset;
+
+    if (!noEmit) {
+      clip.startMs += clipOffset;
+      clip.endMs += clipOffset;
+    }
+
+    return ClipComponent(
+      {
+        ...clipComponentState,
+        clip: noEmit
+          ? {
+              ...clip,
+              startMs: clip.startMs + clipOffset,
+              endMs: clip.endMs + clipOffset,
+            }
+          : clip,
+      },
+      clipComponentProps,
+    );
+  });
+}
+
+function calculateClipOffset(
+  previousClip: Clip | undefined,
+  currentClip: Clip,
+  previousClipOffset: number,
+) {
+  if (isSubtitleClip(currentClip)) {
+    if (!previousClip) {
+      return 0;
+    }
+    const clipOffset =
+      previousClip.startMs + previousClipOffset + 200 - currentClip.startMs;
+    return Math.max(clipOffset, 0);
+  }
+
+  return 0;
+}

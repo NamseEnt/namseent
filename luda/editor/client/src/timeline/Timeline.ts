@@ -122,6 +122,11 @@ function handleActionState(
   if (!actionState) {
     return;
   }
+  if (actionState.terminatePhase === "terminating") {
+    actionState.terminatePhase = "terminated";
+  } else if (actionState.terminatePhase === "terminated") {
+    return (state.actionState = undefined);
+  }
 
   switch (actionState.type) {
     case "resizeClip":
@@ -190,7 +195,13 @@ function registerDraggingActionResetCallback(state: TimelineState): void {
 
   actionResetEventRegisters.forEach((eventRegister) => {
     eventRegister(() => {
-      state.actionState = undefined;
+      if (!state.actionState) {
+        return;
+      }
+      if (state.actionState.terminatePhase) {
+        return;
+      }
+      state.actionState.terminatePhase = "terminating";
     });
   });
 }

@@ -97,11 +97,16 @@ const TrackBody: Render<
         },
       );
     default:
-      return DefaultTrackBody(timelineState, {
-        width: props.width,
-        height: props.height,
-        track,
-      });
+      return DefaultTrackBody(
+        {
+          timelineState: timelineState,
+          track: track,
+        },
+        {
+          width: props.width,
+          height: props.height,
+        },
+      );
   }
 };
 
