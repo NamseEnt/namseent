@@ -5,6 +5,7 @@ import { ContextMenuItem } from "./type";
 import { renderContextMenuItem } from "./renderContextMenuItem";
 import { closeContextMenu } from "./closeContextMenu";
 import { createClip } from "../operations/createClip";
+import { getContextMenuItems } from "./getContextMenuItems";
 
 export const renderContextMenu: Render<TimelineState> = (state) => {
   const { contextMenu } = state;
@@ -12,27 +13,11 @@ export const renderContextMenu: Render<TimelineState> = (state) => {
     return;
   }
 
-  const contextMenuItems: ContextMenuItem[] = [
-    {
-      id: "0",
-      label: "클립 추가하기",
-      onClick: () => {
-        const track = state.tracks.find(
-          (track) => track.id === contextMenu.trackId,
-        );
-        if (!track) {
-          throw new Error("track not found");
-        }
-        const newClip = createClip({
-          trackType: track.type,
-          id: nanoid(),
-          startMs: contextMenu.clickMs,
-          endMs: contextMenu.clickMs + 3000,
-        });
-        track.clips.push(newClip);
-      },
-    },
-  ];
+  const contextMenuItems = getContextMenuItems({
+    timeline: state,
+    contextMenu,
+  });
+
   const menuItemHeight = 24;
   const menuHeight = contextMenuItems.length * menuItemHeight;
   const menuWidth = 100;

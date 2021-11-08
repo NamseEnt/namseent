@@ -1,6 +1,11 @@
 import { XywhRect } from "namui";
 
 export type BaseClip = {
+  /**
+   * Special Ids
+   * - Start with 'fake'
+   *   - it's not a real clip.
+   */
   id: string;
   startMs: number;
   endMs: number;

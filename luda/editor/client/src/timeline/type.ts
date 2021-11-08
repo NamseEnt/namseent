@@ -19,7 +19,7 @@ export type TimelineState = {
   readonly timelineBorderId: string;
 };
 
-export type ContextMenuState = TrackBodyContextMenuState;
+export type ContextMenuState = TrackBodyContextMenuState | ClipContextMenuState;
 
 export type TrackBodyContextMenuState = {
   type: "trackBody";
@@ -27,6 +27,15 @@ export type TrackBodyContextMenuState = {
   y: number;
   trackId: string;
   clickMs: number;
+  mouseInItemId?: string;
+};
+
+export type ClipContextMenuState = {
+  type: "clip";
+  x: number;
+  y: number;
+  trackId: string;
+  clipId: string;
   mouseInItemId?: string;
 };
 

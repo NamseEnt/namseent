@@ -1,4 +1,11 @@
-import { ColorUtil, MouseButton, Rect, Render, BorderPosition } from "namui";
+import {
+  ColorUtil,
+  MouseButton,
+  Rect,
+  Render,
+  BorderPosition,
+  Mathu,
+} from "namui";
 import { Clip } from "../../type";
 import { ClipComponent } from "../clip/ClipComponent";
 import { TimelineState, Track } from "../type";
@@ -46,13 +53,33 @@ export const CameraTrackBody: Render<
           const clickMs =
             state.timelineState.layout.startMs +
             event.translated.x * state.timelineState.layout.msPerPixel;
-          state.timelineState.contextMenu = {
-            type: "trackBody",
-            clickMs,
-            x: event.x,
-            y: event.y,
-            trackId: state.track.id,
-          };
+
+          const clipUnderMouse = clips.find((clip) => {
+            const clipStartMs = clip.startMs;
+            const clipEndMs = clip.endMs;
+            return (
+              Mathu.in(clickMs, clipStartMs, clipEndMs) &&
+              !clip.id.startsWith("fake")
+            );
+          });
+
+          if (clipUnderMouse) {
+            state.timelineState.contextMenu = {
+              type: "clip",
+              x: event.x,
+              y: event.y,
+              clipId: clipUnderMouse.id,
+              trackId: state.track.id,
+            };
+          } else {
+            state.timelineState.contextMenu = {
+              type: "trackBody",
+              clickMs,
+              x: event.x,
+              y: event.y,
+              trackId: state.track.id,
+            };
+          }
         }
       },
     }),
@@ -150,7 +177,7 @@ const DraggingFakeClip: Render<
       clip: {
         startMs: clip.startMs,
         endMs: clip.endMs,
-        id: "camera-track-drag-preview",
+        id: "fake-camera-track-drag-preview",
       },
     },
     {
