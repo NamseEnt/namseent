@@ -223,14 +223,12 @@ export const SubtitleClipComponent: Render<
         engine.mouseEvent.onMouseDown((mouseEvent) => {
           if (mouseIn) {
             timelineState.selectedClip = clip;
+          } else if (timelineState.selectedClip?.id === clip.id) {
+            timelineState.selectedClip = undefined;
           }
 
           if (timelineState.actionState?.type) {
             return;
-          }
-
-          if (mouseIn) {
-            timelineState.selectedClip = clip;
           }
 
           if (mouseInHead) {
