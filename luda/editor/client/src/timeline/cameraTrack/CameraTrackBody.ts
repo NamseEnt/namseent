@@ -171,18 +171,16 @@ const DraggingFakeClip: Render<
     return;
   }
   const { clipId } = state.timelineState.actionState;
-  const clip = props.clips.find((clip) => clip.id === clipId);
-  if (!clip) {
-    // TODO: It may be a clip of another track.
+  const draggingClip = props.clips.find((clip) => clip.id === clipId);
+  if (!draggingClip) {
     return;
-    throw new Error("clip not found");
   }
   return ClipComponent(
     {
       timelineState: state.timelineState,
       clip: {
-        startMs: clip.startMs,
-        endMs: clip.endMs,
+        startMs: draggingClip.startMs,
+        endMs: draggingClip.endMs,
         id: "fake-camera-track-drag-preview",
         type: "camera",
       },
