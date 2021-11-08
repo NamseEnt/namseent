@@ -9,6 +9,7 @@ import {
   AfterDraw,
   XywhRect,
   Vector,
+  Convert,
 } from "namui";
 import { SashComponent } from "../clip/Sash";
 
@@ -33,6 +34,13 @@ export const CameraTrackSash: SashComponent = (state, { clipRect }) => {
     height: clipRect.height,
   };
 
+  const clippedRect: XywhRect = {
+    x: 0,
+    y: 0,
+    width: clipRect.width - sashWidth,
+    height: clipRect.height,
+  };
+
   return Translate(
     {
       x: clipRect.x,
@@ -41,7 +49,7 @@ export const CameraTrackSash: SashComponent = (state, { clipRect }) => {
     Clip(
       {
         path: new CanvasKit.Path().addRect(
-          CanvasKit.XYWHRect(0, 0, clipRect.width - sashWidth, clipRect.height),
+          Convert.xywhToCanvasKit(clippedRect),
         ),
         clipOp: CanvasKit.ClipOp.Difference,
       },
@@ -63,10 +71,10 @@ export const CameraTrackSash: SashComponent = (state, { clipRect }) => {
         AfterDraw(({ translated }) => {
           engine.mouseEvent.onMouseDown((mouseEvent) => {
             const globalSashRect = Mathu.translate(sashRect, translated);
-            const isMouseInSashRect = Mathu.contains(
-              globalSashRect,
-              Vector.from(mouseEvent),
-            );
+            const globalClippedRect = Mathu.translate(clippedRect, translated);
+            const isMouseInSashRect =
+              Mathu.contains(globalSashRect, Vector.from(mouseEvent)) &&
+              !Mathu.contains(globalClippedRect, Vector.from(mouseEvent));
 
             if (!isMouseInSashRect) {
               return;
