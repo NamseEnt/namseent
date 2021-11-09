@@ -49,12 +49,15 @@ export type ResizeClip = {
    * For right side, value starts from right to left.
    */
   sashMouseAnchorMs: number;
+  terminatePhase?: ActionStateTerminatePhase;
 };
 export type DragClip = {
   type: "dragClip";
   clipId: string;
   mouseAnchorMs: number;
+  terminatePhase?: ActionStateTerminatePhase;
 };
+export type ActionStateTerminatePhase = "terminating" | "terminated";
 
 export enum TrackType {
   camera = "camera",
