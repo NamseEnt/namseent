@@ -5,8 +5,9 @@ import {
   BorderPosition,
   MouseButton,
   Mathu,
+  Clip,
 } from "namui";
-import { Clip } from "../type";
+import { Clip as TimelineClip } from "../type";
 import { renderClip } from "./clip/renderClip";
 import { TimelineState, Track } from "./type";
 
@@ -59,32 +60,32 @@ export const renderSubtitleTrackBody: Render<
         }
       },
     }),
-    Rect({
-      x: 0,
-      y: props.height / 3,
-      width: props.width,
-      height: props.height / 3,
-      style: {
-        stroke: {
-          color: ColorUtil.Color01(0.25, 0.25, 0.25),
-          width: 1,
-          borderPosition: BorderPosition.inside,
-        },
+    Clip(
+      {
+        path: new CanvasKit.Path().addRect(
+          CanvasKit.XYWHRect(
+            0,
+            props.height / 3,
+            props.width,
+            props.height / 3,
+          ),
+        ),
+        clipOp: CanvasKit.ClipOp.Intersect,
       },
-    }),
-    Rect({
-      x: 0,
-      y: 0,
-      width: props.width,
-      height: props.height,
-      style: {
-        stroke: {
-          color: ColorUtil.Black,
-          width: 1,
-          borderPosition: BorderPosition.inside,
+      Rect({
+        x: 0,
+        y: props.height / 3,
+        width: props.width,
+        height: props.height / 3,
+        style: {
+          stroke: {
+            color: ColorUtil.Color01(0.25, 0.25, 0.25),
+            width: 1,
+            borderPosition: BorderPosition.outside,
+          },
         },
-      },
-    }),
+      }),
+    ),
     clips.map((clip) => {
       if (
         state.timelineState.actionState?.type === "dragClip" &&
@@ -104,7 +105,10 @@ export const renderSubtitleTrackBody: Render<
   ];
 };
 
-function constrainDraggingClipPlacement(state: TimelineState, clips: Clip[]) {
+function constrainDraggingClipPlacement(
+  state: TimelineState,
+  clips: TimelineClip[],
+) {
   if (state.actionState?.type !== "dragClip") {
     return;
   }
@@ -150,7 +154,7 @@ const DraggingFakeClip: Render<
   {
     timelineState: TimelineState;
   },
-  { clips: Clip[]; width: number; height: number }
+  { clips: TimelineClip[]; width: number; height: number }
 > = (state, props) => {
   if (state.timelineState.actionState?.type !== "dragClip") {
     return;
