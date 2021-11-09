@@ -19,7 +19,6 @@ export const renderClip: Render<
   const { clip } = state;
 
   if (isCameraClip(clip)) {
-    console.log("camera");
     return ClipComponent(state, {
       ...props,
       sashComponent: CameraTrackSash,
