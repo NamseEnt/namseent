@@ -4,6 +4,7 @@ import { getDefaultSyncBrowserItemsState } from "./cameraAngleEditor/imageBrowse
 import { render } from "./render";
 import { createClip } from "./timeline/operations/createClip";
 import { TrackType } from "./timeline/type";
+import { SubtitleFontSize } from "./type";
 
 const margin = 8;
 const subtitleEditorHeight = 650;
@@ -38,10 +39,10 @@ startEngine(
               subtitle: {
                 text: "subtitle 1-1",
                 fontType: {
-                  fontWeight: 400,
+                  fontWeight: FontWeight.regular,
                   language: Language.ko,
                   serif: false,
-                  size: 24,
+                  size: SubtitleFontSize.regular,
                 },
                 style: {
                   background: {

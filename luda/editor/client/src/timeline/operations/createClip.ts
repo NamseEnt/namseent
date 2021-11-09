@@ -1,5 +1,11 @@
-import { ColorUtil, Language } from "namui";
-import { BaseClip, CameraClip, Clip, SubtitleClip } from "../../type";
+import { ColorUtil, FontWeight, Language } from "namui";
+import {
+  BaseClip,
+  CameraClip,
+  Clip,
+  SubtitleClip,
+  SubtitleFontSize,
+} from "../../type";
 import { TrackType } from "../type";
 
 export function createClip({
@@ -47,10 +53,10 @@ export function createClip({
         subtitle: {
           text: "Input text here",
           fontType: {
-            fontWeight: 400,
+            fontWeight: FontWeight.regular,
             language: Language.ko,
             serif: false,
-            size: 24,
+            size: SubtitleFontSize.regular,
           },
           style: {
             background: {
