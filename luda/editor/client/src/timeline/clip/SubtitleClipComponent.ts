@@ -88,14 +88,14 @@ export const SubtitleClipComponent: Render<
   const strokeFillPaint = new CanvasKit.Paint();
   strokeFillPaint.setAntiAlias(true);
   strokeFillPaint.setStyle(CanvasKit.PaintStyle.Stroke);
-  strokeFillPaint.setStrokeWidth(borderWidth);
+  strokeFillPaint.setStrokeWidth(borderWidth / 2);
   strokeFillPaint.setStrokeCap(CanvasKit.StrokeCap.Round);
   strokeFillPaint.setColor(color);
 
   const strokeBorderPaint = new CanvasKit.Paint();
   strokeBorderPaint.setAntiAlias(true);
   strokeBorderPaint.setStyle(CanvasKit.PaintStyle.Stroke);
-  strokeBorderPaint.setStrokeWidth(borderWidth + borderWidth);
+  strokeBorderPaint.setStrokeWidth(borderWidth);
   strokeBorderPaint.setStrokeCap(CanvasKit.StrokeCap.Round);
   strokeBorderPaint.setColor(brighterColor);
 
