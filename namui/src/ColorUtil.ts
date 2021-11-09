@@ -1,5 +1,5 @@
 import * as CanvasKit from "canvaskit-wasm";
-import { Mathu } from ".";
+import { Convert, Mathu } from ".";
 
 export namespace ColorUtil {
   export function Color01(
@@ -63,6 +63,17 @@ export namespace ColorUtil {
       baseG + lightnessFactor,
       baseB + lightnessFactor,
       a,
+    );
+  }
+
+  export function brighterColor01(color: CanvasKit.Color, amount: number) {
+    const { hue, saturation, lightness, alpha } = Convert.ColorToHsl(color);
+
+    return ColorUtil.ColorHSL01(
+      hue,
+      Mathu.clamp(saturation - amount, 0, 1),
+      Mathu.clamp(lightness + amount, 0, 1),
+      alpha,
     );
   }
 

@@ -8,7 +8,6 @@ import {
   Clip,
 } from "namui";
 import { SubtitleClip } from "../../type";
-import { brighterColor01 } from "../../util/color/brighterColor";
 import { TimelineState } from "../type";
 
 export const SubtitleClipComponent: Render<
@@ -52,7 +51,7 @@ export const SubtitleClipComponent: Render<
     timelineState.selectedClip?.id === clip.id
       ? ColorUtil.Green
       : ColorUtil.Color0255(34, 167, 240);
-  const brighterColor = brighterColor01(color, 0.2);
+  const brighterColor = ColorUtil.brighterColor01(color, 0.2);
 
   const strokePath = new CanvasKit.Path()
     .moveTo(

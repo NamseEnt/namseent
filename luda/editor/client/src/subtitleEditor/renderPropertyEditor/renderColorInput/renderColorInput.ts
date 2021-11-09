@@ -9,6 +9,7 @@ import {
   TextBaseline,
   Translate,
   BorderPosition,
+  Convert,
 } from "namui";
 import { renderAlphaSlider } from "./renderAlphaSlider";
 import { renderRows } from "../renderRows";
@@ -16,7 +17,6 @@ import { ColorInputState, SubtitleEditorState } from "../../type";
 import { renderHueSlider } from "./renderHueSlider";
 import { renderSaturationSlider } from "./renderSaturationSlider";
 import { renderLightnessSlider } from "./renderLightnessSlider";
-import { convertColorToHsl } from "../../../util/color/convertColorToHsl";
 
 export function renderColorInput(
   props: {
@@ -105,7 +105,7 @@ export function renderColorInput(
       },
       onClick() {
         if (state.targetId !== props.colorInputId) {
-          const { hue, saturation, lightness, alpha } = convertColorToHsl(
+          const { hue, saturation, lightness, alpha } = Convert.ColorToHsl(
             props.value,
           );
           state.targetId = props.colorInputId;
