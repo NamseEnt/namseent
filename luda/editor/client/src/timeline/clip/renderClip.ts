@@ -4,6 +4,7 @@ import { Clip } from "../../type";
 import { CameraTrackSash } from "../cameraTrack/CameraTrackSash";
 import { TimelineState } from "../type";
 import { ClipComponent } from "./ClipComponent";
+import { Sash } from "./Sash";
 import { SubtitleClipComponent } from "./SubtitleClipComponent";
 
 export const renderClip: Render<
@@ -35,7 +36,8 @@ export const renderClip: Render<
     );
   }
 
-  throw new Error(
-    "No rendering implementation for this clip type. Please implement it.",
-  );
+  return ClipComponent(state, {
+    ...props,
+    sashComponent: Sash,
+  });
 };
