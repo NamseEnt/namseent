@@ -6,9 +6,6 @@ import { createClip } from "./timeline/operations/createClip";
 import { TrackType } from "./timeline/type";
 import { SubtitleFontSize } from "./type";
 
-const margin = 8;
-const subtitleEditorHeight = 650;
-
 startEngine(
   {
     imageEditorState: {
@@ -154,10 +151,10 @@ startEngine(
     subtitleEditorState: {
       layout: {
         rect: {
-          x: margin,
-          y: margin,
-          width: 400,
-          height: subtitleEditorHeight,
+          x: 0,
+          y: 0,
+          width: 800,
+          height: window.innerHeight - 200,
         },
         videoSize: {
           width: 1280,
