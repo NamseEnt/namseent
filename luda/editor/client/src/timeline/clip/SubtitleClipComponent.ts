@@ -6,6 +6,7 @@ import {
   Translate,
   Render,
   Clip,
+  Vector,
 } from "namui";
 import { SubtitleClip } from "../../type";
 import { TimelineState } from "../type";
@@ -230,7 +231,13 @@ export const SubtitleClipComponent: Render<
 
           if (mouseIn) {
             timelineState.selectedClip = clip;
-          } else if (timelineState.selectedClip?.id === clip.id) {
+          } else if (
+            timelineState.selectedClip?.id === clip.id &&
+            !engine.render.isGlobalVectorOutOfRenderingData(
+              Vector.from(mouseEvent),
+              timelineState.timelineBorderId,
+            )
+          ) {
             timelineState.selectedClip = undefined;
           }
 
