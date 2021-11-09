@@ -13,15 +13,15 @@ import { renderPropertyEditor } from "./renderPropertyEditor/renderPropertyEdito
 import { SubtitleEditorState } from "./type";
 
 export const renderSubtitleEditor: Render<
-  {},
   {
     subtitleEditor: SubtitleEditorState;
     timeline: TimelineState;
-  }
+  },
+  {}
 > = (state, props) => {
   if (
-    !props.timeline.selectedClip ||
-    !isSubtitleClip(props.timeline.selectedClip)
+    !state.timeline.selectedClip ||
+    !isSubtitleClip(state.timeline.selectedClip)
   ) {
     return;
   }
@@ -30,15 +30,15 @@ export const renderSubtitleEditor: Render<
   const margin = 8;
   return [
     Translate(
-      props.subtitleEditor.layout.rect,
+      state.subtitleEditor.layout.rect,
       Clip(
         {
           path: new CanvasKit.Path().addRect(
             CanvasKit.XYWHRect(
               -borderWidth,
               -borderWidth,
-              props.subtitleEditor.layout.rect.width + 2 * borderWidth,
-              props.subtitleEditor.layout.rect.height + 2 * borderWidth,
+              state.subtitleEditor.layout.rect.width + 2 * borderWidth,
+              state.subtitleEditor.layout.rect.height + 2 * borderWidth,
             ),
           ),
           clipOp: CanvasKit.ClipOp.Intersect,
@@ -47,8 +47,8 @@ export const renderSubtitleEditor: Render<
           Rect({
             x: 0,
             y: 0,
-            width: props.subtitleEditor.layout.rect.width,
-            height: props.subtitleEditor.layout.rect.height,
+            width: state.subtitleEditor.layout.rect.width,
+            height: state.subtitleEditor.layout.rect.height,
             style: {
               stroke: {
                 color: ColorUtil.Black,
@@ -65,22 +65,22 @@ export const renderSubtitleEditor: Render<
               rect: {
                 x: margin,
                 y: margin,
-                width: props.subtitleEditor.layout.rect.width - 2 * margin,
+                width: state.subtitleEditor.layout.rect.width - 2 * margin,
                 height: 160,
               },
             },
-            subtitle: props.subtitleEditor.subtitle,
-            videoSize: props.subtitleEditor.layout.videoSize,
+            subtitle: state.subtitleEditor.subtitle,
+            videoSize: state.subtitleEditor.layout.videoSize,
           }),
           renderPropertyEditor(
             {
               layout: {
                 x: margin,
                 y: 2 * margin + 160,
-                width: props.subtitleEditor.layout.rect.width - 2 * margin,
+                width: state.subtitleEditor.layout.rect.width - 2 * margin,
               },
             },
-            props.subtitleEditor,
+            state.subtitleEditor,
           ),
         ],
       ),
