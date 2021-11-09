@@ -1,5 +1,4 @@
-import { FontWeight, Language, XywhRect } from "namui";
-import { Color } from "../../../../namui/node_modules/canvaskit-wasm/types";
+import { Color, FontWeight, Language, XywhRect } from "namui";
 
 export type BaseClip = {
   /**
