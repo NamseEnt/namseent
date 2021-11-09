@@ -13,6 +13,7 @@ import {
 import { Track, TimelineState, TrackType } from "./type";
 import { DefaultTrackBody } from "./DefaultTrackBody";
 import { CameraTrackBody } from "./cameraTrack/CameraTrackBody";
+import { renderSubtitleTrackBody } from "./renderSubtitleTrackBody";
 
 export const TimelineBody: Render<
   {
@@ -87,6 +88,17 @@ const TrackBody: Render<
   switch (track.type) {
     case TrackType.camera:
       return CameraTrackBody(
+        {
+          timelineState,
+          track,
+        },
+        {
+          width: props.width,
+          height: props.height,
+        },
+      );
+    case TrackType.subtitle:
+      return renderSubtitleTrackBody(
         {
           timelineState,
           track,
