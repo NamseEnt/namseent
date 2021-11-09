@@ -99,8 +99,8 @@ const TrackBody: Render<
     default:
       return DefaultTrackBody(
         {
-          timelineState: timelineState,
-          track: track,
+          timelineState,
+          track,
         },
         {
           width: props.width,
