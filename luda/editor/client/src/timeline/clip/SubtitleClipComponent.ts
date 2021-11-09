@@ -196,11 +196,11 @@ export const SubtitleClipComponent: Render<
           mouse.x - translated.x - headPosition.x,
           mouse.y - translated.y - headPosition.y,
         );
-
         const mouseInTail = tailPath.contains(
           mouse.x - translated.x - tailPosition.x,
           mouse.y - translated.y - tailPosition.y,
         );
+        const mouseIn = mouseInHead || mouseInTail;
 
         if (mouseInHead) {
           engine.mousePointer.setCursor(Cursor.grab);
@@ -209,8 +209,6 @@ export const SubtitleClipComponent: Render<
         if (mouseInTail) {
           engine.mousePointer.setCursor(Cursor.leftRightResize);
         }
-
-        const mouseIn = mouseInHead || mouseInTail;
 
         if (mouseIn) {
           timelineState.clipIdMouseIn = clip.id;
@@ -221,6 +219,16 @@ export const SubtitleClipComponent: Render<
         }
 
         engine.mouseEvent.onMouseDown((mouseEvent) => {
+          const mouseInHead = headPath.contains(
+            mouseEvent.x - translated.x - headPosition.x,
+            mouseEvent.y - translated.y - headPosition.y,
+          );
+          const mouseInTail = tailPath.contains(
+            mouseEvent.x - translated.x - tailPosition.x,
+            mouseEvent.y - translated.y - tailPosition.y,
+          );
+          const mouseIn = mouseInHead || mouseInTail;
+
           if (mouseIn) {
             timelineState.selectedClip = clip;
           } else if (timelineState.selectedClip?.id === clip.id) {
