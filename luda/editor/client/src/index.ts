@@ -28,36 +28,12 @@ startEngine(
           id: "track1",
           type: TrackType.subtitle,
           clips: [
-            {
-              id: "2-1",
-              type: "subtitle",
+            createClip({
+              id: "subtitle 1-1",
+              trackType: TrackType.subtitle,
               startMs: 2500,
               endMs: 3500,
-              subtitle: {
-                text: "subtitle 1-1",
-                fontType: {
-                  fontWeight: FontWeight.regular,
-                  language: Language.ko,
-                  serif: false,
-                  size: SubtitleFontSize.regular,
-                },
-                style: {
-                  background: {
-                    color: ColorUtil.Black,
-                  },
-                  border: {
-                    color: ColorUtil.Transparent,
-                    width: 0,
-                  },
-                  color: ColorUtil.White,
-                  dropShadow: {
-                    color: ColorUtil.Transparent,
-                    x: 0,
-                    y: 0,
-                  },
-                },
-              },
-            },
+            }),
           ],
         },
         {
