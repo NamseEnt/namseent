@@ -4,7 +4,6 @@ import { getDefaultSyncBrowserItemsState } from "./cameraAngleEditor/imageBrowse
 import { render } from "./render";
 import { createClip } from "./timeline/operations/createClip";
 import { TrackType } from "./timeline/type";
-import { SubtitleFontSize } from "./type";
 
 startEngine(
   {
