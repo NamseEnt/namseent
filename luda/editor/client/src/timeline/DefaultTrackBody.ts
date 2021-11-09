@@ -4,6 +4,7 @@ import { ClipComponent } from "./clip/ClipComponent";
 import { Sash } from "./clip/Sash";
 import { Clip } from "../type";
 import { isSubtitleClip } from "../clipTypeGuard";
+import { renderClip } from "./clip/renderClip";
 
 export const DefaultTrackBody: Render<
   { timelineState: TimelineState; track: Track },
@@ -87,22 +88,20 @@ export const DefaultTrackBody: Render<
         })
       : [
           clips.map((clip) => {
-            return ClipComponent(
+            return renderClip(
               { timelineState: state.timelineState, clip },
               {
                 height: props.height,
                 maxRight: props.width,
-                sashComponent: Sash,
               },
             );
           }),
           selectedClip
-            ? ClipComponent(
+            ? renderClip(
                 { timelineState: state.timelineState, clip: selectedClip },
                 {
                   height: props.height,
                   maxRight: props.width,
-                  sashComponent: Sash,
                 },
               )
             : undefined,
@@ -136,7 +135,7 @@ function renderClipWithPlacementConstraint(props: {
   let conflictResolved = false;
   return sortedClips.map((clip, index, clips) => {
     if (index < selectedClipIndex || conflictResolved) {
-      return ClipComponent({ ...clipComponentState, clip }, clipComponentProps);
+      return renderClip({ ...clipComponentState, clip }, clipComponentProps);
     }
     const clipOffset = calculateClipOffset(
       clips[index - 1],
@@ -150,7 +149,7 @@ function renderClipWithPlacementConstraint(props: {
       clip.endMs += clipOffset;
     }
 
-    return ClipComponent(
+    return renderClip(
       {
         ...clipComponentState,
         clip: noEmit
