@@ -19,7 +19,6 @@ export const DefaultTrackBody: Render<
   }
 > = (state, props) => {
   const { clips } = state.track;
-  let selectedClip: Clip | undefined = undefined;
 
   // this should be called before constrainDraggingClipPlacement.
   const draggingFakeClip = DraggingFakeClip(state, {
