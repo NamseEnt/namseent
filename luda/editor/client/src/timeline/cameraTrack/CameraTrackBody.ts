@@ -6,8 +6,8 @@ import {
   Rect,
   Render,
 } from "namui";
-import { Clip } from "../../type";
 import { ClipComponent } from "../clip/ClipComponent";
+import { refreshCameraClipPositions } from "../refreshClipPositions/refreshCameraClipPositions";
 import { TimelineState, Track } from "../type";
 import { CameraTrackSash } from "./CameraTrackSash";
 
@@ -23,14 +23,16 @@ export const CameraTrackBody: Render<
 > = (state, props) => {
   const { clips } = state.track;
 
-  // this should be called before pushClipsForward.
-  const draggingFakeClip = DraggingFakeClip(state, {
-    clips,
-    width: props.width,
-    height: props.height,
-  });
+  refreshCameraClipPositions(state.timelineState, state.track);
 
-  pushClipsForward(state.timelineState, clips);
+  const draggingClip =
+    state.timelineState.actionState?.type === "dragClip" &&
+    clips.find((clip) => clip.id === state.timelineState.actionState?.clipId);
+
+  const draggingClipLastClips = [
+    ...clips.filter((clip) => clip !== draggingClip),
+    ...(draggingClip ? [draggingClip] : []),
+  ];
 
   return [
     Rect({
@@ -83,13 +85,7 @@ export const CameraTrackBody: Render<
         }
       },
     }),
-    clips.map((clip) => {
-      if (
-        state.timelineState.actionState?.type === "dragClip" &&
-        clip.id === state.timelineState.actionState.clipId
-      ) {
-        return;
-      }
+    draggingClipLastClips.map((clip) => {
       return ClipComponent(
         { timelineState: state.timelineState, clip },
         {
@@ -99,96 +95,5 @@ export const CameraTrackBody: Render<
         },
       );
     }),
-    draggingFakeClip,
   ];
-};
-
-function pushClipsForward(state: TimelineState, clips: Clip[]) {
-  clips.sort((a, b) => a.startMs - b.startMs);
-
-  if (state.actionState?.type === "dragClip") {
-    const { clipId } = state.actionState;
-    const draggingClip = clips.find((clip) => clip.id === clipId);
-    if (draggingClip) {
-      changeOrderByDragging(clips, draggingClip);
-    }
-  }
-
-  const firstClip = clips[0];
-  if (firstClip) {
-    const duration = firstClip.endMs - firstClip.startMs;
-    firstClip.startMs = 0;
-    firstClip.endMs = duration;
-  }
-  for (let index = 0; index < clips.length; index++) {
-    const clip = clips[index]!;
-    const nextClip = clips[index + 1];
-    if (!nextClip) {
-      continue;
-    }
-
-    const nextClipDurationMs = nextClip.endMs - nextClip.startMs;
-
-    nextClip.startMs = clip.endMs;
-    nextClip.endMs = nextClip.startMs + nextClipDurationMs;
-  }
-}
-
-function changeOrderByDragging(clips: Clip[], draggingClip: Clip) {
-  const draggingClipIndex = clips.indexOf(draggingClip);
-  let changingClipIndex = draggingClipIndex;
-
-  for (let index = 0; index < clips.length; index++) {
-    if (index === draggingClipIndex) {
-      continue;
-    }
-    const clip = clips[index]!;
-    const clipCenterMs = (clip.startMs + clip.endMs) / 2;
-    if (index < draggingClipIndex) {
-      if (draggingClip.startMs < clipCenterMs) {
-        changingClipIndex = index;
-        break;
-      }
-    } else {
-      if (clipCenterMs < draggingClip.endMs) {
-        changingClipIndex = index;
-      }
-    }
-  }
-
-  const temp = clips[draggingClipIndex]!;
-  clips[draggingClipIndex] = clips[changingClipIndex]!;
-  clips[changingClipIndex] = temp;
-}
-
-const DraggingFakeClip: Render<
-  {
-    timelineState: TimelineState;
-  },
-  { clips: Clip[]; width: number; height: number }
-> = (state, props) => {
-  if (state.timelineState.actionState?.type !== "dragClip") {
-    return;
-  }
-  const { clipId } = state.timelineState.actionState;
-  const draggingClip = props.clips.find((clip) => clip.id === clipId);
-  if (!draggingClip) {
-    return;
-  }
-  return ClipComponent(
-    {
-      timelineState: state.timelineState,
-      clip: {
-        startMs: draggingClip.startMs,
-        endMs: draggingClip.endMs,
-        id: "fake-camera-track-drag-preview",
-        type: "camera",
-      },
-    },
-    {
-      height: props.height,
-      maxRight: props.width,
-      sashComponent: CameraTrackSash,
-    },
-  );
 };

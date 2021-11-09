@@ -4,11 +4,10 @@ import {
   ColorUtil,
   BorderPosition,
   MouseButton,
-  Mathu,
   Clip,
 } from "namui";
-import { Clip as TimelineClip } from "../type";
 import { renderClip } from "./clip/renderClip";
+import { refreshSubtitleClipPositions } from "./refreshClipPositions/refreshSubtitleClipPositions";
 import { TimelineState, Track } from "./type";
 
 export const renderSubtitleTrackBody: Render<
@@ -23,14 +22,17 @@ export const renderSubtitleTrackBody: Render<
     (clip) => clip === state.timelineState.selectedClip,
   );
 
-  // this should be called before constrainDraggingClipPlacement.
-  const draggingFakeClip = DraggingFakeClip(state, {
-    clips,
-    width: props.width,
-    height: props.height,
-  });
+  refreshSubtitleClipPositions(state.timelineState, state.track);
 
-  constrainDraggingClipPlacement(state.timelineState, clips);
+  const draggingClip =
+    state.timelineState.actionState?.type === "dragClip" &&
+    clips.find((clip) => clip.id === state.timelineState.actionState?.clipId);
+
+  const draggingOrSelectedClipLastClips = [
+    ...clips.filter((clip) => clip !== draggingClip),
+    ...(draggingClip ? [draggingClip] : []),
+    ...(selectedSubtitleClip ? [selectedSubtitleClip] : []),
+  ];
 
   return [
     Rect({
@@ -89,13 +91,7 @@ export const renderSubtitleTrackBody: Render<
         },
       }),
     ),
-    clips.map((clip) => {
-      if (
-        state.timelineState.actionState?.type === "dragClip" &&
-        clip.id === state.timelineState.actionState.clipId
-      ) {
-        return;
-      }
+    draggingOrSelectedClipLastClips.map((clip) => {
       return renderClip(
         { timelineState: state.timelineState, clip },
         {
@@ -104,91 +100,5 @@ export const renderSubtitleTrackBody: Render<
         },
       );
     }),
-    !state.timelineState.actionState && selectedSubtitleClip
-      ? renderClip(
-          { timelineState: state.timelineState, clip: selectedSubtitleClip },
-          {
-            height: props.height,
-            maxRight: props.width,
-          },
-        )
-      : undefined,
-    draggingFakeClip,
   ];
-};
-
-function constrainDraggingClipPlacement(
-  state: TimelineState,
-  clips: TimelineClip[],
-) {
-  if (state.actionState?.type !== "dragClip") {
-    return;
-  }
-  const draggingClipIndex = clips.findIndex(
-    (clip) => clip.id === state.actionState?.clipId,
-  );
-  if (draggingClipIndex < 0) {
-    return;
-  }
-  const draggingClip = clips[draggingClipIndex]!;
-
-  clips.sort((a, b) => a.startMs - b.startMs);
-
-  let previousClipIndex = draggingClipIndex - 1;
-  let nextClipIndex = draggingClipIndex + 1;
-  while (true) {
-    const previousClip = clips[previousClipIndex];
-    const nextClip = clips[nextClipIndex];
-
-    const previousAvailablePoint = previousClip
-      ? previousClip.startMs + 200
-      : 0;
-    const nextAvailablePoint = nextClip ? nextClip.startMs - 200 : Infinity;
-    const availableSpace = nextAvailablePoint - previousAvailablePoint;
-    if (availableSpace < 0) {
-      [previousClipIndex, nextClipIndex] = [nextClipIndex, nextClipIndex + 1];
-      continue;
-    }
-
-    const newStartMs = Mathu.clamp(
-      draggingClip.startMs,
-      previousAvailablePoint,
-      nextAvailablePoint,
-    );
-    const offset = newStartMs - draggingClip.startMs;
-    draggingClip.startMs += offset;
-    draggingClip.endMs += offset;
-    break;
-  }
-}
-
-const DraggingFakeClip: Render<
-  {
-    timelineState: TimelineState;
-  },
-  { clips: TimelineClip[]; width: number; height: number }
-> = (state, props) => {
-  if (state.timelineState.actionState?.type !== "dragClip") {
-    return;
-  }
-  const { clipId } = state.timelineState.actionState;
-  const draggingClip = props.clips.find((clip) => clip.id === clipId);
-  if (!draggingClip) {
-    return;
-  }
-  return renderClip(
-    {
-      timelineState: state.timelineState,
-      clip: {
-        ...draggingClip,
-        startMs: draggingClip.startMs,
-        endMs: draggingClip.endMs,
-        id: `fake-${draggingClip.id}-drag-preview`,
-      },
-    },
-    {
-      height: props.height,
-      maxRight: props.width,
-    },
-  );
 };
