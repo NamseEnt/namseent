@@ -1,4 +1,5 @@
 import { FontWeight, Language, XywhRect } from "namui";
+import { Color } from "../../../../namui/node_modules/canvaskit-wasm/types";
 
 export type BaseClip = {
   /**
@@ -41,18 +42,18 @@ export type SubtitleFontType = {
   fontWeight: FontWeight;
 };
 export type SubtitleStyle = {
-  color: Float32Array;
+  color: Color;
   background: {
-    color: Float32Array;
+    color: Color;
   };
   border: {
-    color: Float32Array;
+    color: Color;
     width: number;
   };
   dropShadow: {
     x: number;
     y: number;
-    color: Float32Array;
+    color: Color;
   };
 };
 export enum SubtitleFontSize {
