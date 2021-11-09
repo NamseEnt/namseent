@@ -19,6 +19,9 @@ export const renderSubtitleTrackBody: Render<
   }
 > = (state, props) => {
   const { clips } = state.track;
+  const selectedSubtitleClip = clips.find(
+    (clip) => clip === state.timelineState.selectedClip,
+  );
 
   // this should be called before constrainDraggingClipPlacement.
   const draggingFakeClip = DraggingFakeClip(state, {
@@ -101,6 +104,15 @@ export const renderSubtitleTrackBody: Render<
         },
       );
     }),
+    !state.timelineState.actionState && selectedSubtitleClip
+      ? renderClip(
+          { timelineState: state.timelineState, clip: selectedSubtitleClip },
+          {
+            height: props.height,
+            maxRight: props.width,
+          },
+        )
+      : undefined,
     draggingFakeClip,
   ];
 };
