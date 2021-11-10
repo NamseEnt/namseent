@@ -51,7 +51,7 @@ export const SubtitleClipComponent: Render<
   const color =
     timelineState.selectedClip?.id === clip.id
       ? ColorUtil.Green
-      : ColorUtil.Color0255(34, 167, 240);
+      : ColorUtil.getRandomColorFromString(clip.id);
   const brighterColor = ColorUtil.brighterColor01(color, 0.2);
 
   const strokePath = new CanvasKit.Path()

@@ -66,6 +66,27 @@ export namespace ColorUtil {
     );
   }
 
+  export function getRandomColorFromString(
+    seed: string,
+    withAlpha: boolean = false,
+  ) {
+    const hash = seed.split("").reduce((hash, character) => {
+      hash ^= character.charCodeAt(0);
+      for (let i = 0; i < 8; i++) {
+        hash = (hash >>> 1) ^ (0xedb88320 & -(hash & 1));
+      }
+      return hash;
+    }, 0xffffffff);
+
+    const [r, g, b, a] = [
+      (hash >>> 24) & 0xff,
+      (hash >>> 16) & 0xff,
+      (hash >>> 8) & 0xff,
+      withAlpha ? (hash & 0xff) / 255 : 1,
+    ];
+    return Color0255(r, g, b, a);
+  }
+
   export function brighterColor01(color: CanvasKit.Color, amount: number) {
     const { hue, saturation, lightness, alpha } = Convert.ColorToHsl(color);
 
