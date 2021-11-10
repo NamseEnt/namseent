@@ -58,6 +58,7 @@ export type DragClip = {
 
 export enum TrackType {
   camera = "camera",
+  subtitle = "subtitle",
 }
 
 export type Track = {

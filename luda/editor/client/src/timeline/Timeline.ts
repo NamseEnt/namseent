@@ -10,6 +10,7 @@ import {
 import { Vector } from "namui/lib/type";
 import { Clip } from "../type";
 import { renderContextMenu } from "./contextMenu/renderContextMenu";
+import { refreshClipPositions } from "./refreshClipPositions/refreshClipPositions";
 import { TimelineBody } from "./renderTimelineBody";
 import { renderTimelineHeader } from "./renderTimelineHeader";
 import { TimeRuler } from "./timeRuler/TimeRuler";
@@ -169,6 +170,14 @@ function handleActionState(
         const durationMs = clip.endMs - clip.startMs;
         clip.startMs = mousePositionMs - actionState.mouseAnchorMs;
         clip.endMs = clip.startMs + durationMs;
+
+        const track = state.tracks.find((track) =>
+          track.clips.find((clip) => clip.id === actionState.clipId),
+        );
+        if (!track) {
+          throw new Error("track not found");
+        }
+        refreshClipPositions(state, track);
       }
       break;
     default:

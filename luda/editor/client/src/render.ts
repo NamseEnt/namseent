@@ -1,8 +1,9 @@
 import { Render, RenderingTree } from "namui";
 import { renderCameraAngleEditor } from "./cameraAngleEditor/renderCameraAngleEditor";
 import { CameraAngleEditorState } from "./cameraAngleEditor/type";
-import { isCameraClip } from "./clipTypeGuard";
+import { isCameraClip, isSubtitleClip } from "./clipTypeGuard";
 import { ImageEditorState } from "./imageEditor/type";
+import { renderSubtitleEditor } from "./subtitleEditor/renderSubtitleEditor";
 import { SubtitleEditorState } from "./subtitleEditor/type";
 import { Timeline } from "./timeline/Timeline";
 import { TimelineState } from "./timeline/type";
@@ -27,6 +28,17 @@ const ClipEditor: Render<State> = (state) => {
   if (isCameraClip(selectedClip)) {
     state.cameraAngleEditorState.cameraAngle = selectedClip.cameraAngle;
     return renderCameraAngleEditor(state.cameraAngleEditorState);
+  }
+
+  if (isSubtitleClip(selectedClip)) {
+    state.subtitleEditorState.subtitle = selectedClip.subtitle;
+    return renderSubtitleEditor(
+      {
+        subtitleEditor: state.subtitleEditorState,
+        timeline: state.timelineState,
+      },
+      {},
+    );
   }
 
   return;

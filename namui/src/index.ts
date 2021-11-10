@@ -1,4 +1,4 @@
-export { Paint } from "canvaskit-wasm";
+export { Paint, Color } from "canvaskit-wasm";
 export { FontWeight } from "./font/FontStorage";
 export { Clip } from "./render/Clip";
 export { engine } from "./engine/engine";

@@ -1,10 +1,7 @@
 import { ColorUtil, Rect, Render, RenderingTree, Translate } from "namui";
 import { TimelineState } from "../type";
-import { nanoid } from "nanoid";
-import { ContextMenuItem } from "./type";
 import { renderContextMenuItem } from "./renderContextMenuItem";
 import { closeContextMenu } from "./closeContextMenu";
-import { createClip } from "../operations/createClip";
 import { getContextMenuItems } from "./getContextMenuItems";
 
 export const renderContextMenu: Render<TimelineState> = (state) => {

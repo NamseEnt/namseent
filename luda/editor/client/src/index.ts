@@ -25,6 +25,18 @@ startEngine(
       tracks: [
         {
           id: "track1",
+          type: TrackType.subtitle,
+          clips: [
+            createClip({
+              id: "subtitle 1-1",
+              trackType: TrackType.subtitle,
+              startMs: 2500,
+              endMs: 3500,
+            }),
+          ],
+        },
+        {
+          id: "track2",
           type: TrackType.camera,
           clips: [
             createClip({
@@ -114,10 +126,10 @@ startEngine(
     subtitleEditorState: {
       layout: {
         rect: {
-          x: 100,
-          y: 100,
-          width: 400,
-          height: 800,
+          x: 0,
+          y: 0,
+          width: 800,
+          height: window.innerHeight - 200,
         },
         videoSize: {
           width: 1280,

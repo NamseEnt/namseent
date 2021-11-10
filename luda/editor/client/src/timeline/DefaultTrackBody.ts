@@ -4,14 +4,16 @@ import { ClipComponent } from "./clip/ClipComponent";
 import { Sash } from "./clip/Sash";
 
 export const DefaultTrackBody: Render<
-  TimelineState,
+  {
+    timelineState: TimelineState;
+    track: Track;
+  },
   {
     width: number;
     height: number;
-    track: Track;
   }
 > = (state, props) => {
-  const { clips } = props.track;
+  const { clips } = state.track;
 
   return [
     Rect({
@@ -32,20 +34,21 @@ export const DefaultTrackBody: Render<
       onMouseUp(event) {
         if (event.button === MouseButton.right) {
           const clickMs =
-            state.layout.startMs + event.translated.x * state.layout.msPerPixel;
-          state.contextMenu = {
+            state.timelineState.layout.startMs +
+            event.translated.x * state.timelineState.layout.msPerPixel;
+          state.timelineState.contextMenu = {
             type: "trackBody",
             clickMs,
             x: event.x,
             y: event.y,
-            trackId: props.track.id,
+            trackId: state.track.id,
           };
         }
       },
     }),
     clips.map((clip) => {
       return ClipComponent(
-        { timelineState: state, clip },
+        { timelineState: state.timelineState, clip },
         { height: props.height, maxRight: props.width, sashComponent: Sash },
       );
     }),

@@ -8,10 +8,10 @@ import {
   TextBaseline,
   Translate,
 } from "namui";
-import { SubtitleEditorState, SubtitleFontSize } from "../type";
+import { SubtitleFontSize } from "../../type";
+import { SubtitleEditorState } from "../type";
 import { renderCheckboxInput } from "./renderCheckboxInput";
 import { renderColorInput } from "./renderColorInput/renderColorInput";
-import { renderNumberInput } from "./renderNumberInput";
 import { renderRows } from "./renderRows";
 import { renderTextInput } from "./renderTextInput";
 
