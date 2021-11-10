@@ -7,44 +7,54 @@ import { WebMousePointerManager } from "../device/mouse/mousePointer/WebMousePoi
 import { WebMousePositionManager } from "../device/mouse/mousePosition/WebMousePositionManager";
 import { WebScreenManager } from "../device/screen/WebScreenManager";
 import { WebWheelManager } from "../device/wheel/WebWheelManager";
-import { IImageLoader, ImageLoader } from "../image/ImageLoader";
+import { ImageLoadManager } from "../image/ImageLoadManager";
 import { WebTextInputManager } from "../textInput/WebTextInputManager";
 import { EngineContext } from "../type";
 import { RenderManager } from "../managers/render/RenderManager";
-
-const managerMap = {
-  mousePointer: new WebMousePointerManager(),
-  mousePosition: new WebMousePositionManager(),
-  mouseEvent: new WebMouseEventManager(),
-  screen: new WebScreenManager(),
-  wheel: new WebWheelManager(),
-  keyboard: new WebKeyboardManager(),
-  mouseButton: new MouseButtonManager(),
-  textInput: new WebTextInputManager(),
-  render: new RenderManager(),
-} as const;
-
-const managers = Object.values(managerMap) as IManagerInternal[];
+import { IEngineInternal } from "./IEngine";
 
 export const webEngine = {
   resetBeforeRender() {
-    managers.forEach((manager) => manager.resetBeforeRender?.());
+    this.managers.forEach((manager: IManagerInternal) =>
+      manager.resetBeforeRender?.(),
+    );
   },
   destroy() {
-    managers.forEach((manager) => manager.destroy?.());
+    this.managers.forEach((manager: IManagerInternal) => manager.destroy?.());
   },
   afterRender(renderingTree: RenderingTree) {
-    managers.forEach((manager) => manager.afterRender?.(renderingTree));
+    this.managers.forEach((manager: IManagerInternal) =>
+      manager.afterRender?.(renderingTree),
+    );
   },
-  get imageLoader(): IImageLoader {
-    if (!this._imageLoader) {
-      throw new Error("engine is not initialized");
-    }
-    return this._imageLoader;
-  },
-  _imageLoader: undefined as IImageLoader | undefined,
   init(engineContext: EngineContext) {
-    this._imageLoader = new ImageLoader(engineContext.canvasKit);
+    const mousePointerManager = new WebMousePointerManager();
+    const mousePositionManager = new WebMousePositionManager();
+    const mouseButtonManager = new MouseButtonManager();
+    const mouseEventManager = new WebMouseEventManager(mouseButtonManager);
+    const screenManager = new WebScreenManager();
+    const wheelManager = new WebWheelManager();
+    const keyboardManager = new WebKeyboardManager();
+    const textInputManager = new WebTextInputManager();
+    const renderManager = new RenderManager();
+    const imageLoadManager = new ImageLoadManager(engineContext.canvasKit);
+
+    const managerMap = {
+      mousePointer: mousePointerManager,
+      mousePosition: mousePositionManager,
+      mouseEvent: mouseEventManager,
+      screen: screenManager,
+      wheel: wheelManager,
+      keyboard: keyboardManager,
+      mouseButton: mouseButtonManager,
+      textInput: textInputManager,
+      render: renderManager,
+      imageLoadManager: imageLoadManager,
+    } as const;
+
+    this.managers = Object.values(managerMap);
+    Object.entries(managerMap).forEach(([key, manager]) => {
+      this[key] = manager;
+    });
   },
-  ...managerMap,
-};
+} as any as IEngineInternal;

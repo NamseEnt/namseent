@@ -70,7 +70,7 @@ function getImageSource(
     return state.wysiwygEditor.resizer.source;
   }
 
-  const image = engine.imageLoader.tryLoad(state.cameraAngle.imageSourceUrl);
+  const image = engine.imageLoad.tryLoad(state.cameraAngle.imageSourceUrl);
   if (image) {
     const widthHeightRatio = image.width() / image.height();
     state.wysiwygEditor.resizer.source = {

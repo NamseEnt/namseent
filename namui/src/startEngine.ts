@@ -8,7 +8,6 @@ import { getGcCanvasKitPackage } from "./getGcCanvasKitPackage";
 import { getSavedState } from "./build/hotReload/getSavedState";
 import { setHotReload } from "./build/hotReload/hotReload";
 import { isHotReloaded } from "./build/hotReload/isHotReloaded";
-import { ImageLoader } from "./image/ImageLoader";
 import { EngineContext, Render } from "./type";
 import { BuildErrorNotifier } from "./build/BuildErrorNotifier";
 import { webEngine } from "./engine/webEngine";

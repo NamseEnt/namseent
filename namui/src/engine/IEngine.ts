@@ -6,7 +6,7 @@ import { IMousePointerManager } from "../device/mouse/mousePointer/IMousePointer
 import { IMousePositionManager } from "../device/mouse/mousePosition/IMousePositionManager";
 import { IScreenManager } from "../device/screen/IScreenManager";
 import { IWheelManager } from "../device/wheel/IWheelManager";
-import { IImageLoader } from "../image/ImageLoader";
+import { IImageLoadManager } from "../image/ImageLoadManager";
 import { ITextInputManager } from "../textInput/ITextInputManager";
 import { EngineContext } from "../type";
 import { IRenderManager } from "../managers/render/IRenderManager";
@@ -19,7 +19,7 @@ export interface IEngine {
   wheel: IWheelManager;
   keyboard: IKeyboardManager;
   textInput: ITextInputManager;
-  imageLoader: IImageLoader;
+  imageLoad: IImageLoadManager;
   render: IRenderManager;
 }
 
@@ -33,5 +33,6 @@ export interface IEngineInternal extends IManagerInternal {
   wheel: IWheelManager & IManagerInternal;
   keyboard: IKeyboardManager & IManagerInternal;
   textInput: ITextInputManager & IManagerInternal;
+  imageLoad: IImageLoadManager & IManagerInternal;
   render: IRenderManager & IManagerInternal;
 }

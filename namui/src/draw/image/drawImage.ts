@@ -9,8 +9,7 @@ export function drawImage(
 ): void {
   const { canvas } = engineContext;
   const { x, y, url, size, fit } = command;
-  const { imageLoader } = engine;
-  const image = imageLoader.tryLoad(url);
+  const image = engine.imageLoad.tryLoad(url);
   if (!image) {
     return;
   }

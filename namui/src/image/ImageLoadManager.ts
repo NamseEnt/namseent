@@ -1,12 +1,18 @@
 import { CanvasKit, Image } from "canvaskit-wasm";
+import { RenderingTree } from "..";
+import { IManagerInternal } from "../managers/IManager";
 
-export interface IImageLoader {
+export interface IImageLoadManager {
   tryLoad(url: string): Image | undefined;
 }
 
-export class ImageLoader implements IImageLoader {
+export class ImageLoadManager implements IImageLoadManager, IManagerInternal {
   private readonly loadedMap: Map<string, Image> = new Map();
   private readonly loadingMap: Map<string, Promise<void>> = new Map();
+
+  resetBeforeRender?: () => void;
+  destroy?: () => void;
+  afterRender?: (renderingTree: RenderingTree) => void;
 
   // non-gc canvasKit
   constructor(private readonly canvasKit: CanvasKit) {}
