@@ -27,6 +27,7 @@ export function createClip({
         startMs,
         endMs,
         cameraAngle: {
+          // TODO: it should be empty.
           imageSourceUrl: "resources/images/피디-기본-미소.png",
           source01Rect: {
             x: 0.25,

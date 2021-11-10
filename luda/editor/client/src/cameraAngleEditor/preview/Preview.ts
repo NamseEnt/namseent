@@ -1,23 +1,10 @@
-import {
-  Clip,
-  ColorUtil,
-  Convert,
-  Image,
-  ImageFit,
-  Rect,
-  Render,
-  Translate,
-  BorderPosition,
-} from "namui";
+import { ColorUtil, Rect, Render, Translate, BorderPosition } from "namui";
+import { CameraClip } from "../../livePlayer/playerScreen/camera/CameraClip";
 import { CameraAngleEditorState } from "../type";
-import { getDestRect, getSourceRect } from "../wysiwygEditor/getRect";
 
 export const Preview: Render<CameraAngleEditorState> = (
   state: CameraAngleEditorState,
 ) => {
-  const sourceRect = getSourceRect(state);
-  const destRect = getDestRect(state);
-
   return [
     Translate(
       {
@@ -36,38 +23,12 @@ export const Preview: Render<CameraAngleEditorState> = (
             },
           },
         }),
-        Clip(
+        CameraClip(
+          {},
           {
-            path: new CanvasKit.Path().addRect(
-              CanvasKit.XYWHRect(
-                0,
-                0,
-                state.layout.sub.preview.width,
-                state.layout.sub.preview.height,
-              ),
-            ),
-            clipOp: CanvasKit.ClipOp.Intersect,
+            cameraAngle: state.cameraAngle,
+            whSize: state.layout.sub.preview,
           },
-          [
-            Clip(
-              {
-                path: new CanvasKit.Path().addRect(
-                  Convert.xywhToCanvasKit(destRect),
-                ),
-                clipOp: CanvasKit.ClipOp.Intersect,
-              },
-              [
-                Image({
-                  position: sourceRect,
-                  size: sourceRect,
-                  url: state.cameraAngle.imageSourceUrl,
-                  style: {
-                    fit: ImageFit.fill,
-                  },
-                }),
-              ],
-            ),
-          ],
         ),
       ],
     ),
