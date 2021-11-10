@@ -49,7 +49,7 @@ export const webEngine = {
       mouseButton: mouseButtonManager,
       textInput: textInputManager,
       render: renderManager,
-      imageLoadManager: imageLoadManager,
+      imageLoad: imageLoadManager,
     } as const;
 
     this.managers = Object.values(managerMap);
