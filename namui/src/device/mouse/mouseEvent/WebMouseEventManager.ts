@@ -2,6 +2,7 @@ import { MouseEventCallback } from "../../../type";
 import { IManagerInternal } from "../../../managers/IManager";
 import { toNamuiMouseEvent } from "../webMouse";
 import { IMouseEventManager } from "./IMouseEventManager";
+import { IMouseButtonManagerInternal } from "../mouseButton/IMouseButtonManager";
 
 const eventNames = ["mousedown", "mouseup", "mouseout", "mousemove"] as const;
 
@@ -21,10 +22,13 @@ export class WebMouseEventManager
     eventListener: (event: MouseEvent) => void;
   }[];
 
-  constructor() {
+  constructor(
+    private readonly mouseButtonManager: IMouseButtonManagerInternal,
+  ) {
     this.eventNameEventListenerTuples = eventNames.map((eventName) => {
       const callbacks = this.eventNameCallbacksMap[eventName];
       const eventListener = (event: MouseEvent) => {
+        this.handleEventForManagerFirst(eventName, event);
         const namuiEventExceptTranslated = toNamuiMouseEvent(event);
         const namuiEvent = {
           ...namuiEventExceptTranslated,
@@ -38,6 +42,32 @@ export class WebMouseEventManager
       window.addEventListener(eventName, eventListener);
       return { eventName, eventListener };
     });
+  }
+  handleEventForManagerFirst(
+    eventName: typeof eventNames[number],
+    event: MouseEvent,
+  ) {
+    switch (eventName) {
+      case "mousedown":
+        switch (event.button) {
+          case 0:
+            this.mouseButtonManager.isLeftMouseButtonDown = true;
+            break;
+          case 2:
+            this.mouseButtonManager.isRightMouseButtonDown = true;
+            break;
+        }
+        break;
+      case "mouseup":
+        switch (event.button) {
+          case 0:
+            this.mouseButtonManager.isLeftMouseButtonDown = false;
+            break;
+          case 2:
+            this.mouseButtonManager.isRightMouseButtonDown = false;
+            break;
+        }
+    }
   }
   destroy(): void {
     this.eventNameEventListenerTuples.forEach((tuple) => {

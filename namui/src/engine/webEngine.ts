@@ -36,7 +36,7 @@ export const webEngine = {
     const wheelManager = new WebWheelManager();
     const keyboardManager = new WebKeyboardManager();
     const textInputManager = new WebTextInputManager();
-    const renderManager = new RenderManager();
+    const renderManager = new RenderManager(engineContext, mouseEventManager);
     const imageLoadManager = new ImageLoadManager(engineContext.canvasKit);
 
     const managerMap = {

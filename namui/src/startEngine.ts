@@ -85,7 +85,7 @@ export async function startEngine<TState>(
     engineInternal.init(engineContext);
 
     // TODO : Move this into webEngine
-    canvasElement.onclick = (event) => {
+    document.onclick = (event) => {
       handleMouseEvent(
         engineContext,
         toNamuiMouseEvent(event),
@@ -93,22 +93,8 @@ export async function startEngine<TState>(
         "onClickOut",
       );
     };
-    canvasElement.onmousemove = (event) => {
-      handleMouseEvent(
-        engineContext,
-        toNamuiMouseEvent(event),
-        "onMouseMoveIn",
-        "onMouseMoveOut",
-      );
-    };
-    canvasElement.onmousedown = (event) => {
-      handleMouseEvent(engineContext, toNamuiMouseEvent(event), "onMouseDown");
-    };
-    canvasElement.onmouseup = (event) => {
-      handleMouseEvent(engineContext, toNamuiMouseEvent(event), "onMouseUp");
-    };
-    canvasElement.onwheel = (event) => {};
-    canvasElement.oncontextmenu = (event) => {
+
+    document.oncontextmenu = (event) => {
       event.preventDefault();
     };
 
