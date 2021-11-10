@@ -4,6 +4,6 @@
     "**/node_modules": true,
     "**/lib": true
   },
-  "cSpell.words": ["dirents", "Ltrb", "Mathu", "namui"],
+  "cSpell.words": ["dirents", "Ltrb", "Mathu", "namui", "Playhead"],
   "editor.formatOnSave": true
 }

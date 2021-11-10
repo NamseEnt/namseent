@@ -169,6 +169,19 @@ startEngine(
         alpha: 1,
       },
     },
+    livePlayer: {
+      layout: {
+        x: 800,
+        y: 0,
+        width: window.innerWidth - 800,
+        height: window.innerHeight - 200,
+      },
+      state: {
+        isPlaying: false,
+        anchorMs: 0,
+        playStartTimeMs: 0,
+      },
+    },
   },
   render,
   {
