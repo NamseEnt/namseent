@@ -55,13 +55,30 @@ export const renderSubtitleTrackBody: Render<
           const clickMs =
             state.timelineState.layout.startMs +
             event.translated.x * state.timelineState.layout.msPerPixel;
-          state.timelineState.contextMenu = {
-            type: "trackBody",
-            clickMs,
-            x: event.x,
-            y: event.y,
-            trackId: state.track.id,
-          };
+
+          const clipUnderMouse = state.timelineState.clipIdMouseIn
+            ? clips.find(
+                (clip) => clip.id === state.timelineState.clipIdMouseIn,
+              )
+            : undefined;
+
+          if (clipUnderMouse) {
+            state.timelineState.contextMenu = {
+              type: "clip",
+              x: event.x,
+              y: event.y,
+              clipId: clipUnderMouse.id,
+              trackId: state.track.id,
+            };
+          } else {
+            state.timelineState.contextMenu = {
+              type: "trackBody",
+              clickMs,
+              x: event.x,
+              y: event.y,
+              trackId: state.track.id,
+            };
+          }
         }
       },
     }),
