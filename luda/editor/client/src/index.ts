@@ -24,7 +24,31 @@ startEngine(
       timelineBorderId: nanoid(),
       tracks: [
         {
-          id: "track1",
+          id: "camera",
+          type: TrackType.camera,
+          clips: [
+            createClip({
+              trackType: TrackType.camera,
+              id: nanoid(),
+              startMs: 0,
+              endMs: 1000,
+            }),
+            createClip({
+              trackType: TrackType.camera,
+              id: nanoid(),
+              startMs: 1000,
+              endMs: 3000,
+            }),
+            createClip({
+              trackType: TrackType.camera,
+              id: nanoid(),
+              startMs: 3000,
+              endMs: 7000,
+            }),
+          ],
+        },
+        {
+          id: "subtitle",
           type: TrackType.subtitle,
           clips: [
             // NOTE : Test Case 1
@@ -93,30 +117,6 @@ startEngine(
             //   endMs: 4000,
             //   text: "피디 - 아.. 아냐",
             // }),
-          ],
-        },
-        {
-          id: "track2",
-          type: TrackType.camera,
-          clips: [
-            createClip({
-              trackType: TrackType.camera,
-              id: nanoid(),
-              startMs: 0,
-              endMs: 1000,
-            }),
-            createClip({
-              trackType: TrackType.camera,
-              id: nanoid(),
-              startMs: 1000,
-              endMs: 3000,
-            }),
-            createClip({
-              trackType: TrackType.camera,
-              id: nanoid(),
-              startMs: 3000,
-              endMs: 7000,
-            }),
           ],
         },
       ],
