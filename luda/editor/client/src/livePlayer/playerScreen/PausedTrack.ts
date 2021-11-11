@@ -2,7 +2,7 @@ import { Render, WhSize } from "namui";
 import { Track, TrackType } from "../../timeline/type";
 import { LivePlayerState } from "../type";
 import { CameraTrack } from "./camera/CameraTrack";
-import { SubtitleTrack } from "./subtitle/PausedSubtitleTrack";
+import { SubtitleTrack } from "./subtitle/SubtitleTrack";
 
 export const PausedTrack: Render<
   {},

@@ -1,6 +1,7 @@
 import { ColorUtil, FontWeight, Language } from "namui";
 import {
   BaseClip,
+  CameraAngle,
   CameraClip,
   Clip,
   SubtitleClip,
@@ -8,24 +9,48 @@ import {
 } from "../../type";
 import { TrackType } from "../type";
 
-export function createClip({
-  trackType,
-  id,
-  startMs,
-  endMs,
-}: {
-  trackType: TrackType;
+type BaseArgs = {
   id: string;
   startMs: number;
   endMs: number;
-}): Clip {
+};
+type ArgsOfTrackType = {
+  [TrackType.camera]: BaseArgs;
+  [TrackType.subtitle]: BaseArgs & {
+    text?: string;
+  };
+};
+
+export function createClip(
+  args: {
+    trackType: TrackType.camera;
+  } & ArgsOfTrackType[TrackType.camera],
+): Clip;
+export function createClip(
+  args: {
+    trackType: TrackType.subtitle;
+  } & ArgsOfTrackType[TrackType.subtitle],
+): Clip;
+export function createClip(
+  args: {
+    trackType: TrackType;
+  } & BaseArgs,
+): Clip;
+export function createClip(
+  args: {
+    trackType: TrackType;
+  } & BaseArgs,
+): Clip {
+  const trackType = args.trackType;
   switch (trackType) {
     case TrackType.camera:
+      const cameraArgs = args as ArgsOfTrackType[typeof trackType];
+
       const cameraClip: CameraClip = {
-        id,
         type: trackType,
-        startMs,
-        endMs,
+        id: cameraArgs.id,
+        startMs: cameraArgs.startMs,
+        endMs: cameraArgs.endMs,
         cameraAngle: {
           // TODO: it should be empty.
           imageSourceUrl: "resources/images/피디-기본-미소.png",
@@ -46,13 +71,15 @@ export function createClip({
       return cameraClip;
 
     case TrackType.subtitle:
+      const subtitleArgs = args as ArgsOfTrackType[typeof trackType];
+
       const subtitleClip: SubtitleClip = {
-        id,
         type: trackType,
-        startMs,
-        endMs,
+        id: subtitleArgs.id,
+        startMs: subtitleArgs.startMs,
+        endMs: subtitleArgs.endMs,
         subtitle: {
-          text: "Input text here",
+          text: subtitleArgs.text ?? "Input text here",
           fontType: {
             fontWeight: FontWeight.regular,
             language: Language.ko,

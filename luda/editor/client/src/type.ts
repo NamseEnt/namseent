@@ -34,6 +34,7 @@ export type Subtitle = {
   fontType: SubtitleFontType;
   style: SubtitleStyle;
 };
+
 export type SubtitleFontType = {
   serif: boolean;
   size: SubtitleFontSize;

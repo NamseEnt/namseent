@@ -1,5 +1,5 @@
 import { ColorUtil, Rect, Render, Translate, BorderPosition } from "namui";
-import { CameraClip } from "../../livePlayer/playerScreen/camera/CameraClip";
+import { CameraAngle } from "../../livePlayer/playerScreen/camera/CameraAngle";
 import { CameraAngleEditorState } from "../type";
 
 export const Preview: Render<CameraAngleEditorState> = (
@@ -23,7 +23,7 @@ export const Preview: Render<CameraAngleEditorState> = (
             },
           },
         }),
-        CameraClip(
+        CameraAngle(
           {},
           {
             cameraAngle: state.cameraAngle,

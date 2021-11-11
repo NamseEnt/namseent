@@ -27,12 +27,72 @@ startEngine(
           id: "track1",
           type: TrackType.subtitle,
           clips: [
+            // NOTE : Test Case 1
             createClip({
               id: "subtitle 1-1",
               trackType: TrackType.subtitle,
+              startMs: 1000,
+              endMs: 2000,
+              text: "아니 그게 아니고요",
+            }),
+            createClip({
+              id: "subtitle 1-2",
+              trackType: TrackType.subtitle,
+              startMs: 1500,
+              endMs: 5000,
+              text: "아니긴 뭐가 아니야, 내가 그렇게 하지 말라고 했는데",
+            }),
+            createClip({
+              id: "subtitle 1-3",
+              trackType: TrackType.subtitle,
               startMs: 2500,
               endMs: 3500,
+              text: "쟤 또 거짓말한다",
             }),
+            createClip({
+              id: "subtitle 1-4",
+              trackType: TrackType.subtitle,
+              startMs: 3750,
+              endMs: 4750,
+              text: "왜 저러는지 몰라",
+            }),
+
+            // NOTE : Test Case 2
+            // createClip({
+            //   id: "subtitle 1-1",
+            //   trackType: TrackType.subtitle,
+            //   startMs: 500,
+            //   endMs: 1500,
+            //   text: "하연 - 아뇨",
+            // }),
+            // createClip({
+            //   id: "subtitle 1-2",
+            //   trackType: TrackType.subtitle,
+            //   startMs: 1000,
+            //   endMs: 1750,
+            //   text: "피디 - 아니라고?",
+            // }),
+            // createClip({
+            //   id: "subtitle 1-3",
+            //   trackType: TrackType.subtitle,
+            //   startMs: 1400,
+            //   endMs: 2400,
+            //   text: "하연 - 네.",
+            // }),
+            // createClip({
+            //   id: "subtitle 1-3",
+            //   trackType: TrackType.subtitle,
+            //   startMs: 2400,
+            //   endMs: 3400,
+            //   text: "하연 - 왜요?",
+            // }),
+            // createClip({
+            //   id: "subtitle 1-5",
+            //   trackType: TrackType.subtitle,
+            //   startMs: 3000,
+            //   endMs: 4000,
+            //   text: "피디 - 아.. 아냐",
+            // }),
           ],
         },
         {

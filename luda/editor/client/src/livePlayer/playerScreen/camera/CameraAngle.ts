@@ -1,9 +1,9 @@
 import { Clip, Convert, Image, ImageFit, Render, WhSize } from "namui";
-import { CameraAngle } from "../../../type";
+import { CameraAngle as CameraAngleType } from "../../../type";
 
-export const CameraClip: Render<
+export const CameraAngle: Render<
   {},
-  { cameraAngle: CameraAngle; whSize: WhSize }
+  { cameraAngle: CameraAngleType; whSize: WhSize }
 > = (state, props) => {
   const {
     cameraAngle,
@@ -17,7 +17,6 @@ export const CameraClip: Render<
     width: source01Rect.width * width,
     height: source01Rect.height * height,
   };
-  console.log(sourceRect);
   const destRect = {
     x: dest01Rect.x * width,
     y: dest01Rect.y * height,

@@ -3,13 +3,10 @@ import {
   ColorUtil,
   Rect,
   RenderingTree,
-  Text,
-  TextAlign,
-  TextBaseline,
   Translate,
   XywhRect,
 } from "namui";
-import { Subtitle } from "../type";
+import { Subtitle } from "../livePlayer/playerScreen/subtitle/Subtitle";
 
 export function renderPreview(props: {
   layout: {
@@ -69,29 +66,19 @@ export function renderPreview(props: {
             },
           },
         }),
-        Text({
-          x: previewX + previewWidth / 2,
-          y: previewY + previewHeight - 48 * reductionRatio,
-          align: TextAlign.center,
-          baseline: TextBaseline.bottom,
-          fontType: {
-            ...props.subtitle.fontType,
-            size: props.subtitle.fontType.size * reductionRatio,
-          },
-          style: {
-            ...props.subtitle.style,
-            border: {
-              ...props.subtitle.style.border,
-              width: props.subtitle.style.border.width * reductionRatio,
+        Translate({ x: previewX, y: previewY }, [
+          Subtitle(
+            {},
+            {
+              whSize: {
+                width: previewWidth,
+                height: previewHeight,
+              },
+              lineIndex: 0,
+              subtitle: props.subtitle,
             },
-            dropShadow: {
-              ...props.subtitle.style.dropShadow,
-              x: props.subtitle.style.dropShadow.x * reductionRatio,
-              y: props.subtitle.style.dropShadow.y * reductionRatio,
-            },
-          },
-          text: props.subtitle.text,
-        }),
+          ),
+        ]),
       ],
     ),
   );
