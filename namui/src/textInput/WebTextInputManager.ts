@@ -64,6 +64,7 @@ export class WebTextInputManager
       this.inputElement.style.opacity = "0";
       this.inputElement.style.pointerEvents = "none";
       this.inputElement.style.zIndex = "0";
+      this.inputElement.style.top = "0px";
       // hide native blue text cursor on iOS
       this.inputElement.style.transform = "scale(0)";
     }
