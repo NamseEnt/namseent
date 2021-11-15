@@ -10,6 +10,7 @@ import { renderRows } from "../common/renderRows";
 import { TimelineState } from "../timeline/type";
 import { renderSequenceAddButton } from "./renderSequenceAddButton";
 import { renderSequenceName } from "./renderSequenceName";
+import { renderSequenceAddDialog } from "./sequenceAddDialog/renderSequenceAddDialog";
 import { SequenceListViewState } from "./type";
 
 export const renderSequenceListView: Render<
@@ -54,27 +55,26 @@ export const renderSequenceListView: Render<
           x: margin,
           y: margin,
         },
-        renderRows(
-          [
-            {
-              height: 36,
-              renderingData: renderSequenceAddButton(
-                {},
+        sequenceListView.addingSequence
+          ? renderSequenceAddDialog(state, { width })
+          : renderRows(
+              [
                 {
-                  width,
+                  height: 36,
+                  renderingData: renderSequenceAddButton(sequenceListView, {
+                    width,
+                  }),
                 },
-              ),
-            },
-            {
-              height: 24,
-              renderingData: renderSequenceName(
-                {},
-                { sequenceName: sequenceListView.editingFileName },
-              ),
-            },
-          ],
-          4,
-        ),
+                {
+                  height: 24,
+                  renderingData: renderSequenceName(
+                    {},
+                    { sequenceName: sequenceListView.editingFileName },
+                  ),
+                },
+              ],
+              4,
+            ),
       ),
     ],
   );

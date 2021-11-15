@@ -9,14 +9,19 @@ import {
   TextAlign,
   TextBaseline,
 } from "namui";
-import { SequenceListViewState } from "./type";
+import { TimelineState, TrackType } from "../../../timeline/type";
+import { SequenceListViewState } from "../../type";
 
-export const renderSequenceAddButton: Render<
-  SequenceListViewState,
+export const renderOkButton: Render<
+  {
+    timeline: TimelineState;
+    sequenceListView: SequenceListViewState;
+  },
   {
     width: number;
   }
 > = (state, props) => {
+  const { sequenceListView, timeline } = state;
   const { width } = props;
   const height = 36;
 
@@ -40,7 +45,20 @@ export const renderSequenceAddButton: Render<
         },
       },
       onClick: () => {
-        state.addingSequence = true;
+        sequenceListView.editingFileName = sequenceListView.newTitle;
+        timeline.tracks = [
+          {
+            id: "camera",
+            type: TrackType.camera,
+            clips: [],
+          },
+          {
+            id: "subtitle",
+            type: TrackType.subtitle,
+            clips: [],
+          },
+        ];
+        sequenceListView.addingSequence = false;
       },
     }),
     Text({
@@ -57,7 +75,7 @@ export const renderSequenceAddButton: Render<
       style: {
         color: ColorUtil.White,
       },
-      text: "Add Sequence",
+      text: "Ok",
     }),
   ];
 };

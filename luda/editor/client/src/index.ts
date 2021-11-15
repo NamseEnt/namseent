@@ -115,7 +115,12 @@ fetch("/resources/sequence/sequence1.json")
               height: window.innerHeight - 200,
             },
           },
+          addingSequence: false,
           editingFileName: "sequence1",
+          newTitle: "newSequence",
+          textInput: {
+            focus: false,
+          },
         },
       },
       render,
