@@ -106,6 +106,16 @@ fetch("/resources/sequence/sequence1.json")
             playStartTimeMs: 0,
           },
         },
+        sequenceListViewState: {
+          layout: {
+            rect: {
+              x: 0,
+              y: 0,
+              width: 800,
+              height: window.innerHeight - 200,
+            },
+          },
+        },
       },
       render,
       {
