@@ -32,7 +32,13 @@ type State = {
 };
 
 export function render(state: State): RenderingTree {
-  saver.autoSave("/sequence/sequence1.json", state.timelineState.tracks);
+  const { editingFileName: selectedFileName } = state.sequenceListViewState;
+  if (selectedFileName) {
+    saver.autoSave(
+      `/sequence/${selectedFileName}.json`,
+      state.timelineState.tracks,
+    );
+  }
 
   return [
     ClipEditor(state),
