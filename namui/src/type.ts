@@ -25,6 +25,7 @@ declare global {
   var fontStorage: FontStorage;
   var buildServerConnection: BuildServerConnection;
   var buildErrorNotifier: BuildErrorNotifier;
+  function dumpState(): void;
   interface Array<T> {
     remove(o: T): void;
   }

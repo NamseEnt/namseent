@@ -32,6 +32,10 @@ export async function startEngine<TState>(
     };
   },
 ): Promise<void> {
+  globalThis.dumpState = () => {
+    console.log(state);
+  };
+
   const currentScript = document.currentScript as HTMLScriptElement;
   async function start(canvasKit: CanvasKitType) {
     if (options?.hotReload) {
