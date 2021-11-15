@@ -3,12 +3,15 @@ import { Socket, ToClientSocket } from "luda-editor-common";
 import { toServerRpcHandler } from "./rpcHandlers/toServerRpcHandler";
 
 export function onWebSocketConnected(webSocket: WebSocket) {
+  webSocket.binaryType = "arraybuffer";
   const socket: ToClientSocket<{}> = new Socket({
     send: webSocket.send.bind(webSocket),
-    setOnMessage: (callback: (data: string) => void) => {
+    setOnMessage: (callback: (data: ArrayBuffer) => void) => {
       webSocket.on("message", (data) => {
-        const stringData = typeof data !== "string" ? data.toString() : data;
-        callback(stringData);
+        if (!(data instanceof ArrayBuffer)) {
+          throw new Error("Expected ArrayBuffer");
+        }
+        callback(data);
       });
     },
     onError: (callback: (error: Error) => void): void => {

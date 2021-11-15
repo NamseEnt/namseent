@@ -1,6 +1,7 @@
 import { ISocketInternal, Socket } from "luda-editor-common";
 
 const webSocket = new WebSocket(`ws://${window.location.hostname}:8001`);
+webSocket.binaryType = "arraybuffer";
 
 const queued: Parameters<ISocketInternal["send"]>[0][] = [];
 
@@ -17,9 +18,8 @@ export const socket = new Socket({
     }
     queued.push(data);
   },
-  setOnMessage: (callback: (data: string) => void) => {
+  setOnMessage: (callback: (data: ArrayBuffer) => void) => {
     webSocket.addEventListener("message", (event) => {
-      console.log("message", event);
       callback(event.data);
     });
   },

@@ -1,10 +1,12 @@
 import { nanoid } from "nanoid";
 import { ToServerRpcs } from "./ToServerRpcs";
 import { ToClientRpcs } from "./ToClientRpcs";
+import { packetize } from "./packet/packetize";
+import { unpacketize } from "./packet/unpacketize";
 
 export interface ISocketInternal {
-  send(data: string): void;
-  setOnMessage(callback: (data: string) => void): void;
+  send(data: ArrayBuffer): void;
+  setOnMessage(callback: (data: ArrayBuffer) => void): void;
   onError(callback: (error: Error) => void): void;
   onClose(callback: () => void): void;
 }
@@ -43,7 +45,8 @@ export class Socket<
     input: TSendRpcs[TType]["input"],
   ): Promise<TSendRpcs[TType]["output"]> {
     const packetId = nanoid();
-    const message = JSON.stringify(["RpcRequest", packetId, type, input]);
+    const message = packetize(["RpcRequest", packetId, type, input]);
+
     return new Promise((resolve) => {
       this.rpcCallbacks.set(packetId, resolve);
       const id = setTimeout(() => {
@@ -59,8 +62,8 @@ export class Socket<
     });
   }
 
-  private async onMessage(data: string): Promise<void> {
-    const packet = JSON.parse(data) as
+  private async onMessage(data: ArrayBuffer): Promise<void> {
+    const packet = unpacketize(data) as
       | [type: "RpcRequest", packetId: string, rpcType: string, input: any]
       | [type: "RpcResponse", packetId: string, output: any];
 
@@ -85,11 +88,7 @@ export class Socket<
           throw new Error(`no handler for rpc type ${rpcType}`);
         }
         const output = await func(context, input);
-        const responseMessage = JSON.stringify([
-          "RpcResponse",
-          packetId,
-          output,
-        ]);
+        const responseMessage = packetize(["RpcResponse", packetId, output]);
         this.socketInternal.send(responseMessage);
         return;
       }
