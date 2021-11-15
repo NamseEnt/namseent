@@ -25,6 +25,11 @@ export function renderPropertyEditor(
   },
   state: SubtitleEditorState,
 ): RenderingTree {
+  const { subtitle } = state;
+  if (!subtitle) {
+    return;
+  }
+
   return Translate(
     {
       x: props.layout.x,
@@ -56,8 +61,8 @@ export function renderPropertyEditor(
           {
             width: props.layout.width,
             label: "text",
-            onChange: (value) => (state.subtitle.text = value),
-            value: state.subtitle.text,
+            onChange: (value) => (subtitle.text = value),
+            value: subtitle.text,
             textInputId: "subtitleEditorState.subtitle.text",
           },
           state.textInput,
@@ -67,8 +72,8 @@ export function renderPropertyEditor(
         height: 20,
         renderingData: renderCheckboxInput({
           label: "serif",
-          onChange: (value) => (state.subtitle.fontType.serif = value),
-          value: state.subtitle.fontType.serif,
+          onChange: (value) => (subtitle.fontType.serif = value),
+          value: subtitle.fontType.serif,
         }),
       },
       {
@@ -76,12 +81,12 @@ export function renderPropertyEditor(
         renderingData: renderCheckboxInput({
           label: "small",
           onChange: () => {
-            state.subtitle.fontType.size = SubtitleFontSize.small;
-            state.subtitle.style.border.width = SubtitleFontSize.small / 24;
-            state.subtitle.style.dropShadow.x = SubtitleFontSize.small / 24;
-            state.subtitle.style.dropShadow.y = SubtitleFontSize.small / 24;
+            subtitle.fontType.size = SubtitleFontSize.small;
+            subtitle.style.border.width = SubtitleFontSize.small / 24;
+            subtitle.style.dropShadow.x = SubtitleFontSize.small / 24;
+            subtitle.style.dropShadow.y = SubtitleFontSize.small / 24;
           },
-          value: state.subtitle.fontType.size === SubtitleFontSize.small,
+          value: subtitle.fontType.size === SubtitleFontSize.small,
         }),
       },
       {
@@ -89,12 +94,12 @@ export function renderPropertyEditor(
         renderingData: renderCheckboxInput({
           label: "regular",
           onChange: () => {
-            state.subtitle.fontType.size = SubtitleFontSize.regular;
-            state.subtitle.style.border.width = SubtitleFontSize.regular / 24;
-            state.subtitle.style.dropShadow.x = SubtitleFontSize.regular / 24;
-            state.subtitle.style.dropShadow.y = SubtitleFontSize.regular / 24;
+            subtitle.fontType.size = SubtitleFontSize.regular;
+            subtitle.style.border.width = SubtitleFontSize.regular / 24;
+            subtitle.style.dropShadow.x = SubtitleFontSize.regular / 24;
+            subtitle.style.dropShadow.y = SubtitleFontSize.regular / 24;
           },
-          value: state.subtitle.fontType.size === SubtitleFontSize.regular,
+          value: subtitle.fontType.size === SubtitleFontSize.regular,
         }),
       },
       {
@@ -102,12 +107,12 @@ export function renderPropertyEditor(
         renderingData: renderCheckboxInput({
           label: "large",
           onChange: () => {
-            state.subtitle.fontType.size = SubtitleFontSize.large;
-            state.subtitle.style.border.width = SubtitleFontSize.large / 24;
-            state.subtitle.style.dropShadow.x = SubtitleFontSize.large / 24;
-            state.subtitle.style.dropShadow.y = SubtitleFontSize.large / 24;
+            subtitle.fontType.size = SubtitleFontSize.large;
+            subtitle.style.border.width = SubtitleFontSize.large / 24;
+            subtitle.style.dropShadow.x = SubtitleFontSize.large / 24;
+            subtitle.style.dropShadow.y = SubtitleFontSize.large / 24;
           },
-          value: state.subtitle.fontType.size === SubtitleFontSize.large,
+          value: subtitle.fontType.size === SubtitleFontSize.large,
         }),
       },
       {
@@ -121,8 +126,8 @@ export function renderPropertyEditor(
             width: props.layout.width,
             label: "color",
             colorInputId: "subtitleEditorState.subtitle.style.color",
-            value: state.subtitle.style.color,
-            onChange: (color) => (state.subtitle.style.color = color),
+            value: subtitle.style.color,
+            onChange: (color) => (subtitle.style.color = color),
           },
           state.colorInput,
         ),
@@ -161,9 +166,8 @@ export function renderPropertyEditor(
             width: props.layout.width,
             label: "color",
             colorInputId: "subtitleEditorState.subtitle.style.background.color",
-            value: state.subtitle.style.background.color,
-            onChange: (color) =>
-              (state.subtitle.style.background.color = color),
+            value: subtitle.style.background.color,
+            onChange: (color) => (subtitle.style.background.color = color),
           },
           state.colorInput,
         ),
@@ -202,8 +206,8 @@ export function renderPropertyEditor(
             width: props.layout.width,
             label: "color",
             colorInputId: "subtitleEditorState.subtitle.style.border.color",
-            value: state.subtitle.style.border.color,
-            onChange: (color) => (state.subtitle.style.border.color = color),
+            value: subtitle.style.border.color,
+            onChange: (color) => (subtitle.style.border.color = color),
           },
           state.colorInput,
         ),
@@ -242,9 +246,8 @@ export function renderPropertyEditor(
             width: props.layout.width,
             label: "color",
             colorInputId: "subtitleEditorState.subtitle.style.dropShadow.color",
-            value: state.subtitle.style.dropShadow.color,
-            onChange: (color) =>
-              (state.subtitle.style.dropShadow.color = color),
+            value: subtitle.style.dropShadow.color,
+            onChange: (color) => (subtitle.style.dropShadow.color = color),
           },
           state.colorInput,
         ),

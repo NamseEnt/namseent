@@ -118,7 +118,7 @@ startEngine(
         },
       ],
     },
-    cameraAngleEditorState: {
+    cameraAngleEditorWithoutCameraAngleState: {
       layout: {
         rect: {
           x: 0,
@@ -139,21 +139,6 @@ startEngine(
             width: 400,
             height: (400 / 16) * 9,
           },
-        },
-      },
-      cameraAngle: {
-        imageSourceUrl: "resources/images/피디-기본-미소.png",
-        source01Rect: {
-          x: 0.25,
-          y: 0.25,
-          width: 0,
-          height: 0.5,
-        },
-        dest01Rect: {
-          x: 0,
-          y: 0,
-          width: 1,
-          height: 1,
         },
       },
       imageBrowser: {
@@ -180,7 +165,7 @@ startEngine(
         resizer: {},
       },
     },
-    subtitleEditorState: {
+    subtitleEditorWithoutSubtitleState: {
       layout: {
         rect: {
           x: 0,
@@ -194,30 +179,6 @@ startEngine(
         },
       },
       textInput: {},
-      subtitle: {
-        text: "[여기에 텍스트 입력]",
-        fontType: {
-          serif: false,
-          size: 24,
-          language: Language.ko,
-          fontWeight: FontWeight.regular,
-        },
-        style: {
-          color: ColorUtil.White,
-          background: {
-            color: ColorUtil.Black,
-          },
-          border: {
-            color: ColorUtil.Transparent,
-            width: 1,
-          },
-          dropShadow: {
-            x: 1,
-            y: 1,
-            color: ColorUtil.Transparent,
-          },
-        },
-      },
       colorInput: {
         targetId: undefined,
         hue: 0,

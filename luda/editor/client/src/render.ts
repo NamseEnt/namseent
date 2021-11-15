@@ -1,20 +1,26 @@
 import { Render, RenderingTree } from "namui";
 import { renderCameraAngleEditor } from "./cameraAngleEditor/renderCameraAngleEditor";
-import { CameraAngleEditorState } from "./cameraAngleEditor/type";
+import {
+  CameraAngleEditorState,
+  CameraAngleEditorWithoutCameraAngleState,
+} from "./cameraAngleEditor/type";
 import { isCameraClip, isSubtitleClip } from "./clipTypeGuard";
 import { renderSubtitleEditor } from "./subtitleEditor/renderSubtitleEditor";
 import { LivePlayerProps, LivePlayer } from "./livePlayer/LivePlayer";
 import { changeLivePlayerPlaybackTime } from "./livePlayer/operations/changeLivePlayerPlaybackTime";
 import { getPlaybackTimeMs } from "./livePlayer/operations/getPlaybackTimeMs";
 import { LivePlayerState } from "./livePlayer/type";
-import { SubtitleEditorState } from "./subtitleEditor/type";
+import {
+  SubtitleEditorState,
+  SubtitleEditorWithoutSubtitleState,
+} from "./subtitleEditor/type";
 import { Timeline } from "./timeline/Timeline";
 import { TimelineState } from "./timeline/type";
 
 type State = {
   timelineState: TimelineState;
-  cameraAngleEditorState: CameraAngleEditorState;
-  subtitleEditorState: SubtitleEditorState;
+  cameraAngleEditorWithoutCameraAngleState: CameraAngleEditorWithoutCameraAngleState;
+  subtitleEditorWithoutSubtitleState: SubtitleEditorWithoutSubtitleState;
   livePlayer: {
     state: LivePlayerState;
     layout: LivePlayerProps["layout"];
@@ -44,15 +50,25 @@ const ClipEditor: Render<State> = (state) => {
   }
 
   if (isCameraClip(selectedClip)) {
-    state.cameraAngleEditorState.cameraAngle = selectedClip.cameraAngle;
-    return renderCameraAngleEditor(state.cameraAngleEditorState);
+    const cameraAngleEditorState: CameraAngleEditorState = Object.assign(
+      state.cameraAngleEditorWithoutCameraAngleState,
+      {
+        cameraAngle: selectedClip.cameraAngle,
+      },
+    );
+    return renderCameraAngleEditor(cameraAngleEditorState);
   }
 
   if (isSubtitleClip(selectedClip)) {
-    state.subtitleEditorState.subtitle = selectedClip.subtitle;
+    const subtitleEditorState: SubtitleEditorState = Object.assign(
+      state.subtitleEditorWithoutSubtitleState,
+      {
+        subtitle: selectedClip.subtitle,
+      },
+    );
     return renderSubtitleEditor(
       {
-        subtitleEditor: state.subtitleEditorState,
+        subtitleEditor: subtitleEditorState,
         timeline: state.timelineState,
       },
       {},

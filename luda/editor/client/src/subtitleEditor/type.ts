@@ -1,7 +1,11 @@
 import { Selection, XywhRect } from "namui";
 import { Subtitle } from "../type";
 
-export type SubtitleEditorState = {
+export type SubtitleEditorState = SubtitleEditorWithoutSubtitleState & {
+  subtitle: Subtitle;
+};
+
+export type SubtitleEditorWithoutSubtitleState = {
   layout: {
     rect: XywhRect;
     videoSize: {
@@ -9,7 +13,6 @@ export type SubtitleEditorState = {
       height: number;
     };
   };
-  subtitle: Subtitle;
   textInput: TextInputState;
   colorInput: ColorInputState;
 };

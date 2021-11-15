@@ -2,7 +2,12 @@ import { Selection, Vector, XywhRect } from "namui";
 import { CameraAngle } from "../type";
 import { ImageBrowserState } from "./imageBrowser/type";
 
-export type CameraAngleEditorState = {
+export type CameraAngleEditorState =
+  CameraAngleEditorWithoutCameraAngleState & {
+    cameraAngle: CameraAngle;
+  };
+
+export type CameraAngleEditorWithoutCameraAngleState = {
   layout: {
     rect: XywhRect;
     sub: {
@@ -10,7 +15,6 @@ export type CameraAngleEditorState = {
       preview: XywhRect;
     };
   };
-  cameraAngle: CameraAngle;
   imageBrowser: ImageBrowserState;
   wysiwygEditor: {
     dragging?: {
