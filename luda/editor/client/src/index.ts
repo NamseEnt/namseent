@@ -7,9 +7,6 @@ import { TrackType } from "./timeline/type";
 
 startEngine(
   {
-    imageEditorState: {
-      imageUrls: [],
-    },
     timelineState: {
       layout: {
         x: 0,

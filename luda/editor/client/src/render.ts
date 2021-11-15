@@ -2,7 +2,6 @@ import { Render, RenderingTree } from "namui";
 import { renderCameraAngleEditor } from "./cameraAngleEditor/renderCameraAngleEditor";
 import { CameraAngleEditorState } from "./cameraAngleEditor/type";
 import { isCameraClip, isSubtitleClip } from "./clipTypeGuard";
-import { ImageEditorState } from "./imageEditor/type";
 import { renderSubtitleEditor } from "./subtitleEditor/renderSubtitleEditor";
 import { LivePlayerProps, LivePlayer } from "./livePlayer/LivePlayer";
 import { changeLivePlayerPlaybackTime } from "./livePlayer/operations/changeLivePlayerPlaybackTime";
@@ -13,7 +12,6 @@ import { Timeline } from "./timeline/Timeline";
 import { TimelineState } from "./timeline/type";
 
 type State = {
-  imageEditorState: ImageEditorState;
   timelineState: TimelineState;
   cameraAngleEditorState: CameraAngleEditorState;
   subtitleEditorState: SubtitleEditorState;
