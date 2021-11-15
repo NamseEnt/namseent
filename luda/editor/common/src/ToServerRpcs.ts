@@ -9,4 +9,11 @@ export type ToServerRpcs = {
       entries: Dirent[];
     };
   };
+  WriteFile: {
+    input: {
+      destPath: string;
+      data: string | ArrayBuffer;
+    };
+    output: void;
+  };
 };

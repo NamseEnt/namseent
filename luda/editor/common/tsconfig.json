@@ -4,7 +4,8 @@
     "outDir": "lib",
     "noEmit": false,
     "declaration": true,
-    "sourceMap": true
+    "inlineSourceMap": true, // TODO : turn off for production build
+    "inlineSources": true // TODO : turn off for production build
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "**/*.spec.ts"]

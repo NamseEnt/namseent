@@ -16,6 +16,7 @@ import {
 } from "./subtitleEditor/type";
 import { Timeline } from "./timeline/Timeline";
 import { TimelineState } from "./timeline/type";
+import { saver } from "./saver/saver";
 
 type State = {
   timelineState: TimelineState;
@@ -28,6 +29,8 @@ type State = {
 };
 
 export function render(state: State): RenderingTree {
+  saver.autoSave("/sequence/sequence1.json", state.timelineState.tracks);
+
   return [
     ClipEditor(state),
     Timeline(state.timelineState, {

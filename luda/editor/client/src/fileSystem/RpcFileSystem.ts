@@ -12,7 +12,11 @@ export class RpcFileSystem implements IFileSystem {
   read(path: string): Promise<ArrayBuffer> {
     throw new Error("Method not implemented.");
   }
-  write(path: string, content: string | ArrayBuffer): Promise<void> {
-    throw new Error("Method not implemented.");
+  async write(path: string, content: string | ArrayBuffer): Promise<void> {
+    await this.socket.send("WriteFile", {
+      data: content,
+      destPath: path,
+    });
+    return;
   }
 }

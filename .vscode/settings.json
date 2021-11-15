@@ -4,6 +4,15 @@
     "**/node_modules": true,
     "**/lib": true
   },
-  "cSpell.words": ["dirents", "Ltrb", "Mathu", "namui", "Playhead"],
+  "cSpell.words": [
+    "dirents",
+    "Ltrb",
+    "Mathu",
+    "namui",
+    "packetize",
+    "Playhead",
+    "Rpcs",
+    "unpacketize"
+  ],
   "editor.formatOnSave": true
 }
