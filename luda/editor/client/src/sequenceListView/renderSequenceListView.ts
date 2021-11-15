@@ -2,16 +2,14 @@ import {
   BorderPosition,
   Clip,
   ColorUtil,
-  FontWeight,
-  Language,
   Rect,
   Render,
-  Text,
-  TextAlign,
-  TextBaseline,
   Translate,
 } from "namui";
+import { renderRows } from "../common/renderRows";
 import { TimelineState } from "../timeline/type";
+import { renderSequenceAddButton } from "./renderSequenceAddButton";
+import { renderSequenceName } from "./renderSequenceName";
 import { SequenceListViewState } from "./type";
 
 export const renderSequenceListView: Render<
@@ -56,44 +54,27 @@ export const renderSequenceListView: Render<
           x: margin,
           y: margin,
         },
-        [
-          Text({
-            x: 0,
-            y: 0,
-            align: TextAlign.left,
-            baseline: TextBaseline.top,
-            fontType: {
-              language: Language.ko,
-              serif: false,
-              fontWeight: FontWeight.regular,
-              size: 20,
+        renderRows(
+          [
+            {
+              height: 36,
+              renderingData: renderSequenceAddButton(
+                {},
+                {
+                  width,
+                },
+              ),
             },
-            style: {
-              color: ColorUtil.Black,
+            {
+              height: 24,
+              renderingData: renderSequenceName(
+                {},
+                { sequenceName: sequenceListView.editingFileName },
+              ),
             },
-            text: "SequenceName: ",
-          }),
-          Text({
-            x: 160,
-            y: 0,
-            align: TextAlign.left,
-            baseline: TextBaseline.top,
-            fontType: {
-              language: Language.ko,
-              serif: false,
-              fontWeight: FontWeight.regular,
-              size: 20,
-            },
-            style: {
-              color: sequenceListView.editingFileName
-                ? ColorUtil.Black
-                : ColorUtil.Red,
-            },
-            text:
-              sequenceListView.editingFileName ||
-              "No name has been specified. Changes will not be saved.",
-          }),
-        ],
+          ],
+          4,
+        ),
       ),
     ],
   );

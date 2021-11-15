@@ -12,7 +12,7 @@ import { SubtitleFontSize } from "../../type";
 import { SubtitleEditorState } from "../type";
 import { renderCheckboxInput } from "./renderCheckboxInput";
 import { renderColorInput } from "./renderColorInput/renderColorInput";
-import { renderRows } from "./renderRows";
+import { renderRows } from "../../common/renderRows";
 import { renderTextInput } from "./renderTextInput";
 
 export function renderPropertyEditor(

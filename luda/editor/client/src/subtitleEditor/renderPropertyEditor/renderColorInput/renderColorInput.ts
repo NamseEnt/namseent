@@ -12,7 +12,7 @@ import {
   Convert,
 } from "namui";
 import { renderAlphaSlider } from "./renderAlphaSlider";
-import { renderRows } from "../renderRows";
+import { renderRows } from "../../../common/renderRows";
 import { ColorInputState, SubtitleEditorState } from "../../type";
 import { renderHueSlider } from "./renderHueSlider";
 import { renderSaturationSlider } from "./renderSaturationSlider";
