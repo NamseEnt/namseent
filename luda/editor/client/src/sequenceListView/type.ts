@@ -6,6 +6,7 @@ export type SequenceListViewState = {
     rect: XywhRect;
   };
   addingSequence: boolean;
+  renamingSequence: boolean;
   editingSequenceTitle?: string;
   newTitle: string;
   textInput: {

@@ -9,9 +9,9 @@ import {
   TextAlign,
   TextBaseline,
 } from "namui";
-import { SequenceListViewState } from "../../type";
+import { SequenceListViewState } from "./type";
 
-export const renderCancelButton: Render<
+export const renderSequenceRenameButton: Render<
   SequenceListViewState,
   {
     width: number;
@@ -28,11 +28,11 @@ export const renderCancelButton: Render<
       height,
       style: {
         fill: {
-          color: ColorUtil.Color0255(242, 38, 19),
+          color: ColorUtil.Color0255(107, 185, 240),
         },
         stroke: {
           borderPosition: BorderPosition.inside,
-          color: ColorUtil.Color0255(255, 148, 120),
+          color: ColorUtil.Color0255(228, 241, 254),
           width: 1,
         },
         round: {
@@ -40,7 +40,8 @@ export const renderCancelButton: Render<
         },
       },
       onClick: () => {
-        state.addingSequence = false;
+        state.renamingSequence = true;
+        state.newTitle = state.editingSequenceTitle || state.newTitle;
       },
     }),
     Text({
@@ -57,7 +58,7 @@ export const renderCancelButton: Render<
       style: {
         color: ColorUtil.White,
       },
-      text: "Cancel",
+      text: "Rename Sequence",
     }),
   ];
 };

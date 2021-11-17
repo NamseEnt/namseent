@@ -116,6 +116,7 @@ fetch("/resources/sequence/sequence1.json")
             },
           },
           addingSequence: false,
+          renamingSequence: false,
           editingSequenceTitle: "sequence1",
           newTitle: "newSequence",
           textInput: {

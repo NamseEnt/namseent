@@ -21,4 +21,10 @@ export class RpcFileSystem implements IFileSystem {
     });
     return;
   }
+  async rename(oldPath: string, newPath: string): Promise<void> {
+    await this.socket.send("RenameFile", {
+      oldPath,
+      newPath,
+    });
+  }
 }

@@ -9,19 +9,14 @@ import {
   TextAlign,
   TextBaseline,
 } from "namui";
-import { TimelineState, TrackType } from "../../../timeline/type";
 import { SequenceListViewState } from "../../type";
 
-export const renderOkButton: Render<
-  {
-    timeline: TimelineState;
-    sequenceListView: SequenceListViewState;
-  },
+export const renderCancelButton: Render<
+  SequenceListViewState,
   {
     width: number;
   }
 > = (state, props) => {
-  const { sequenceListView, timeline } = state;
   const { width } = props;
   const height = 36;
 
@@ -33,11 +28,11 @@ export const renderOkButton: Render<
       height,
       style: {
         fill: {
-          color: ColorUtil.Color0255(107, 185, 240),
+          color: ColorUtil.Color0255(242, 38, 19),
         },
         stroke: {
           borderPosition: BorderPosition.inside,
-          color: ColorUtil.Color0255(228, 241, 254),
+          color: ColorUtil.Color0255(255, 148, 120),
           width: 1,
         },
         round: {
@@ -45,20 +40,8 @@ export const renderOkButton: Render<
         },
       },
       onClick: () => {
-        sequenceListView.editingSequenceTitle = sequenceListView.newTitle;
-        timeline.tracks = [
-          {
-            id: "camera",
-            type: TrackType.camera,
-            clips: [],
-          },
-          {
-            id: "subtitle",
-            type: TrackType.subtitle,
-            clips: [],
-          },
-        ];
-        sequenceListView.addingSequence = false;
+        state.addingSequence = false;
+        state.renamingSequence = false;
       },
     }),
     Text({
@@ -75,7 +58,7 @@ export const renderOkButton: Render<
       style: {
         color: ColorUtil.White,
       },
-      text: "Ok",
+      text: "Cancel",
     }),
   ];
 };

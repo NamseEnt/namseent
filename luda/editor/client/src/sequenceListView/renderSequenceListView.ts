@@ -14,7 +14,8 @@ import { renderSelectedSequenceTitle } from "./renderSelectedSequenceTitle";
 import { renderSequenceAddButton } from "./renderSequenceAddButton";
 import { renderSequenceIndexFetchButton } from "./renderSequenceIndexFetchButton";
 import { renderSequencePreview } from "./renderSequencePreview";
-import { renderSequenceAddDialog } from "./sequenceAddDialog/renderSequenceAddDialog";
+import { renderSequenceRenameButton } from "./renderSequenceRenameButton";
+import { renderSequenceAddDialog as renderSequenceTitleInputDialog } from "./sequenceTitleInputDialog/renderSequenceTitleInputDialog";
 import { renderSequenceList } from "./sequenceList/renderSequenceList";
 import { SequenceListViewState } from "./type";
 
@@ -61,8 +62,8 @@ export const renderSequenceListView: Render<
           x: margin,
           y: margin,
         },
-        sequenceListView.addingSequence
-          ? renderSequenceAddDialog(state, { width })
+        sequenceListView.addingSequence || sequenceListView.renamingSequence
+          ? renderSequenceTitleInputDialog(state, { width })
           : renderRows(
               [
                 {
@@ -71,6 +72,12 @@ export const renderSequenceListView: Render<
                     {},
                     { title: sequenceListView.editingSequenceTitle },
                   ),
+                },
+                {
+                  height: 36,
+                  renderingData: renderSequenceRenameButton(sequenceListView, {
+                    width,
+                  }),
                 },
                 {
                   height: 24,
@@ -105,7 +112,8 @@ export const renderSequenceListView: Render<
                   height: 0,
                   renderingData: renderSequenceList(state, {
                     width: width,
-                    height: height - (24 + 24 + 128 + 36 + 36 + 5 * spacing),
+                    height:
+                      height - (24 + 36 + 24 + 128 + 36 + 36 + 6 * spacing),
                   }),
                 },
               ],

@@ -22,4 +22,11 @@ export type ToServerRpcs = {
     };
     output: ArrayBuffer;
   };
+  RenameFile: {
+    input: {
+      oldPath: string;
+      newPath: string;
+    };
+    output: void;
+  };
 };
