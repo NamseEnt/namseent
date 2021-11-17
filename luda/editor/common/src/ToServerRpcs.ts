@@ -16,4 +16,10 @@ export type ToServerRpcs = {
     };
     output: void;
   };
+  ReadFile: {
+    input: {
+      destPath: string;
+    };
+    output: ArrayBuffer;
+  };
 };

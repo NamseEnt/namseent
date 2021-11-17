@@ -1,4 +1,5 @@
 import { Selection, XywhRect } from "namui";
+import { Track } from "../timeline/type";
 
 export type SequenceListViewState = {
   layout: {
@@ -14,6 +15,14 @@ export type SequenceListViewState = {
   sequenceTitles: string[];
   loadingSequenceTitles?: LoadState;
   sequenceListScrollY: number;
+  preloadedSequence?: {
+    title: string;
+    isLoading: boolean;
+    isSequence: boolean;
+    tracks: Track[];
+    lengthMs: number;
+    seekerMs: number;
+  };
 };
 
 type LoadState = {

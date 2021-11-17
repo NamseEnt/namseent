@@ -7,6 +7,7 @@ import {
   Translate,
 } from "namui";
 import { renderRows } from "../common/renderRows";
+import { PlayerScreen } from "../livePlayer/playerScreen/PlayerScreen";
 import { TimelineState } from "../timeline/type";
 import { renderSequenceAddButton } from "./renderSequenceAddButton";
 import { renderSequenceName } from "./renderSequenceName";
@@ -75,10 +76,31 @@ export const renderSequenceListView: Render<
                   ),
                 },
                 {
+                  height: 128,
+                  renderingData: PlayerScreen(
+                    {},
+                    {
+                      layout: {
+                        x: (width - 128 * (16 / 9)) / 2,
+                        y: 0,
+                        width: 128 * (16 / 9),
+                        height: 128,
+                      },
+                      livePlayerState: {
+                        anchorMs:
+                          sequenceListView.preloadedSequence?.seekerMs || 0,
+                        isPlaying: false,
+                        playStartTimeMs: 0,
+                      },
+                      tracks: sequenceListView.preloadedSequence?.tracks || [],
+                    },
+                  ),
+                },
+                {
                   height: 0,
                   renderingData: renderSequenceList(state, {
                     width: width,
-                    height: height - (36 + 24 + 2 * spacing),
+                    height: height - (36 + 24 + +128 + 3 * spacing),
                   }),
                 },
               ],

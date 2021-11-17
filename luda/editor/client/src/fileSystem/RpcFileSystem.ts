@@ -9,8 +9,10 @@ export class RpcFileSystem implements IFileSystem {
     });
     return result.entries;
   }
-  read(path: string): Promise<ArrayBuffer> {
-    throw new Error("Method not implemented.");
+  async read(path: string): Promise<ArrayBuffer> {
+    return await this.socket.send("ReadFile", {
+      destPath: path,
+    });
   }
   async write(path: string, content: string | ArrayBuffer): Promise<void> {
     await this.socket.send("WriteFile", {

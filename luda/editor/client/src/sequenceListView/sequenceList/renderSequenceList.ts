@@ -1,4 +1,4 @@
-import { Clip, ColorUtil, engine, Mathu, Rect, Render, Translate } from "namui";
+import { Clip, engine, Mathu, Rect, Render, Translate } from "namui";
 import { renderRows } from "../../common/renderRows";
 import { TimelineState } from "../../timeline/type";
 import { loadSequenceTitles } from "../operations/loadSequenceTitles";
@@ -30,7 +30,7 @@ export const renderSequenceList: Render<
     done = true;
   }
 
-  const rows = generateSequenceListRows({
+  const rows = generateSequenceListRows(sequenceListView, {
     sequenceTitles,
     width: innerWidth,
   });
