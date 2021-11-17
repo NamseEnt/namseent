@@ -40,4 +40,8 @@ export async function loadSequence(
   } catch {}
 
   loadingSequence.isLoading = false;
+
+  if (loadingSequence.shouldReload) {
+    loadSequence(state, title);
+  }
 }
