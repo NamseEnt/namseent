@@ -32,10 +32,10 @@ type State = {
 };
 
 export function render(state: State): RenderingTree {
-  const { editingFileName: selectedFileName } = state.sequenceListViewState;
-  if (selectedFileName) {
+  const { editingSequenceTitle } = state.sequenceListViewState;
+  if (editingSequenceTitle) {
     saver.autoSave(
-      `/sequence/${selectedFileName}.json`,
+      `/sequence/${editingSequenceTitle}.json`,
       state.timelineState.tracks,
     );
   }

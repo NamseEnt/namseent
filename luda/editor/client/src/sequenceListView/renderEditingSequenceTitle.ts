@@ -2,17 +2,16 @@ import {
   ColorUtil,
   FontWeight,
   Language,
-  Rect,
   Render,
   Text,
   TextAlign,
   TextBaseline,
 } from "namui";
 
-export const renderSequenceName: Render<
+export const renderEditingSequenceTitle: Render<
   {},
   {
-    sequenceName?: string;
+    title?: string;
   }
 > = (state, props) => [
   Text({
@@ -29,7 +28,7 @@ export const renderSequenceName: Render<
     style: {
       color: ColorUtil.Black,
     },
-    text: "SequenceName: ",
+    text: "Now Editing: ",
   }),
   Text({
     x: 160,
@@ -43,10 +42,9 @@ export const renderSequenceName: Render<
       size: 20,
     },
     style: {
-      color: props.sequenceName ? ColorUtil.Black : ColorUtil.Red,
+      color: props.title ? ColorUtil.Black : ColorUtil.Red,
     },
     text:
-      props.sequenceName ||
-      "No name has been specified. Changes will not be saved.",
+      props.title || "No name has been specified. Changes will not be saved.",
   }),
 ];

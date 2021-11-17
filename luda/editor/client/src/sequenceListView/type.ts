@@ -6,7 +6,7 @@ export type SequenceListViewState = {
     rect: XywhRect;
   };
   addingSequence: boolean;
-  editingFileName?: string;
+  editingSequenceTitle?: string;
   newTitle: string;
   textInput: {
     focus: boolean;

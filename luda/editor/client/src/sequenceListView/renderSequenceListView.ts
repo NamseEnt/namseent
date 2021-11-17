@@ -9,8 +9,8 @@ import {
 import { renderRows } from "../common/renderRows";
 import { PlayerScreen } from "../livePlayer/playerScreen/PlayerScreen";
 import { TimelineState } from "../timeline/type";
+import { renderEditingSequenceTitle } from "./renderEditingSequenceTitle";
 import { renderSequenceAddButton } from "./renderSequenceAddButton";
-import { renderSequenceName } from "./renderSequenceName";
 import { renderSequenceAddDialog } from "./sequenceAddDialog/renderSequenceAddDialog";
 import { renderSequenceList } from "./sequenceList/renderSequenceList";
 import { SequenceListViewState } from "./type";
@@ -70,9 +70,9 @@ export const renderSequenceListView: Render<
                 },
                 {
                   height: 24,
-                  renderingData: renderSequenceName(
+                  renderingData: renderEditingSequenceTitle(
                     {},
-                    { sequenceName: sequenceListView.editingFileName },
+                    { title: sequenceListView.editingSequenceTitle },
                   ),
                 },
                 {

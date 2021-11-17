@@ -35,7 +35,7 @@ export async function loadSequence(
 
   try {
     const tracks = JSON.parse(dataString) as Track[];
-    sequenceListView.editingFileName = title;
+    sequenceListView.editingSequenceTitle = title;
     timeline.tracks = tracks;
   } catch {}
 

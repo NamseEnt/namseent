@@ -45,7 +45,7 @@ export const renderOkButton: Render<
         },
       },
       onClick: () => {
-        sequenceListView.editingFileName = sequenceListView.newTitle;
+        sequenceListView.editingSequenceTitle = sequenceListView.newTitle;
         timeline.tracks = [
           {
             id: "camera",
