@@ -1,4 +1,4 @@
-import { BorderPosition, ColorUtil, Mathu, Rect, Render } from "namui";
+import { Mathu, Render } from "namui";
 import { SequenceListViewState } from "../../type";
 import { renderThumb } from "./renderThumb";
 
@@ -9,7 +9,6 @@ export const renderScrollbar: Render<
   const { width, height, contentHeight } = props;
   const { sequenceListScrollY } = state;
 
-  const borderWidth = 1;
   const thumbHeight = Mathu.clamp(
     (height / contentHeight) * height,
     width * 2,
@@ -20,17 +19,6 @@ export const renderScrollbar: Render<
     Mathu.clamp(sequenceListScrollY / (contentHeight - height), 0, 1);
 
   return [
-    Rect({
-      x: 0,
-      y: 0,
-      width,
-      height,
-      style: {
-        fill: {
-          color: ColorUtil.Grayscale01(0.5),
-        },
-      },
-    }),
     renderThumb(
       {},
       {
@@ -39,18 +27,5 @@ export const renderScrollbar: Render<
         height: thumbHeight,
       },
     ),
-    Rect({
-      x: 0,
-      y: 0,
-      width,
-      height,
-      style: {
-        stroke: {
-          borderPosition: BorderPosition.inside,
-          color: ColorUtil.Grayscale01(0.5),
-          width: borderWidth,
-        },
-      },
-    }),
   ];
 };

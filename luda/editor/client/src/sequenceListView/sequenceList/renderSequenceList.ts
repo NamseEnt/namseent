@@ -20,7 +20,7 @@ export const renderSequenceList: Render<
   const { width, height } = props;
   const spacing = 4;
   const margin = 4;
-  const scrollbarWidth = 16;
+  const scrollbarWidth = 8;
   const innerWidth = width - scrollbarWidth - 2 * margin;
 
   const rows = generateSequenceListRows(state, {
@@ -81,7 +81,7 @@ export const renderSequenceList: Render<
         y: 0,
       },
       renderScrollbar(sequenceListView, {
-        width: 16,
+        width: scrollbarWidth,
         height,
         contentHeight,
       }),
