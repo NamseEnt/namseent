@@ -1,12 +1,9 @@
 import { Clip, ColorUtil, engine, Mathu, Rect, Render, Translate } from "namui";
 import { renderRows } from "../../common/renderRows";
 import { TimelineState } from "../../timeline/type";
-import { loadSequenceTitles } from "../operations/loadSequenceTitles";
 import { SequenceListViewState } from "../type";
 import { generateSequenceListRows } from "./generateSequenceListRows/generateSequenceListRows";
 import { renderScrollbar } from "./scrollbar/renderScrollbar";
-
-let done = false;
 
 export const renderSequenceList: Render<
   {
@@ -25,10 +22,6 @@ export const renderSequenceList: Render<
   const margin = 4;
   const scrollbarWidth = 16;
   const innerWidth = width - scrollbarWidth - 2 * margin;
-  if (!done) {
-    loadSequenceTitles(sequenceListView);
-    done = true;
-  }
 
   const rows = generateSequenceListRows(state, {
     sequenceTitles,

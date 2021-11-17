@@ -21,7 +21,6 @@ export async function loadSequenceTitles(state: SequenceListViewState) {
   const titles = dirents
     .filter((dirent) => dirent.type === "file" && dirent.name.endsWith(extname))
     .map((dirent) => dirent.name.slice(0, -extname.length));
-  console.log(titles);
   state.sequenceTitles = titles;
 
   loadingState.isLoading = false;

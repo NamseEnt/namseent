@@ -12,6 +12,7 @@ import { TimelineState } from "../timeline/type";
 import { renderEditingSequenceTitle } from "./renderEditingSequenceTitle";
 import { renderSelectedSequenceTitle } from "./renderSelectedSequenceTitle";
 import { renderSequenceAddButton } from "./renderSequenceAddButton";
+import { renderSequenceIndexFetchButton } from "./renderSequenceIndexFetchButton";
 import { renderSequencePreview } from "./renderSequencePreview";
 import { renderSequenceAddDialog } from "./sequenceAddDialog/renderSequenceAddDialog";
 import { renderSequenceList } from "./sequenceList/renderSequenceList";
@@ -92,10 +93,19 @@ export const renderSequenceListView: Render<
                   }),
                 },
                 {
+                  height: 36,
+                  renderingData: renderSequenceIndexFetchButton(
+                    sequenceListView,
+                    {
+                      width,
+                    },
+                  ),
+                },
+                {
                   height: 0,
                   renderingData: renderSequenceList(state, {
                     width: width,
-                    height: height - (24 + 24 + 128 + 36 + 4 * spacing),
+                    height: height - (24 + 24 + 128 + 36 + 36 + 5 * spacing),
                   }),
                 },
               ],
