@@ -9,7 +9,6 @@ import {
   TextAlign,
   TextBaseline,
 } from "namui";
-import fileSystem from "../../../fileSystem/fileSystem";
 import { TimelineState, TrackType } from "../../../timeline/type";
 import { renameSequence } from "../../operations/renameSequence";
 import { SequenceListViewState } from "../../type";

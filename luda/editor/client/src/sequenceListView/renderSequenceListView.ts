@@ -7,7 +7,6 @@ import {
   Translate,
 } from "namui";
 import { renderRows } from "../common/renderRows";
-import { PlayerScreen } from "../livePlayer/playerScreen/PlayerScreen";
 import { TimelineState } from "../timeline/type";
 import { renderEditingSequenceTitle } from "./renderEditingSequenceTitle";
 import { renderSelectedSequenceTitle } from "./renderSelectedSequenceTitle";
