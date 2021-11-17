@@ -3,7 +3,7 @@ import { renderRows } from "../../common/renderRows";
 import { TimelineState } from "../../timeline/type";
 import { loadSequenceTitles } from "../operations/loadSequenceTitles";
 import { SequenceListViewState } from "../type";
-import { generateSequenceListRows } from "./generateSequenceListRows";
+import { generateSequenceListRows } from "./generateSequenceListRows/generateSequenceListRows";
 import { renderScrollbar } from "./scrollbar/renderScrollbar";
 
 let done = false;
@@ -30,7 +30,7 @@ export const renderSequenceList: Render<
     done = true;
   }
 
-  const rows = generateSequenceListRows(sequenceListView, {
+  const rows = generateSequenceListRows(state, {
     sequenceTitles,
     width: innerWidth,
   });

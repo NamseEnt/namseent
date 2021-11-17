@@ -14,6 +14,7 @@ export type SequenceListViewState = {
   };
   sequenceTitles: string[];
   loadingSequenceTitles?: LoadState;
+  loadingSequence?: LoadState & { title: string };
   sequenceListScrollY: number;
   preloadedSequence?: {
     title: string;
