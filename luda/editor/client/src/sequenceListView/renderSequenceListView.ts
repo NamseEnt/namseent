@@ -11,6 +11,7 @@ import { TimelineState } from "../timeline/type";
 import { renderSequenceAddButton } from "./renderSequenceAddButton";
 import { renderSequenceName } from "./renderSequenceName";
 import { renderSequenceAddDialog } from "./sequenceAddDialog/renderSequenceAddDialog";
+import { renderSequenceList } from "./sequenceList/renderSequenceList";
 import { SequenceListViewState } from "./type";
 
 export const renderSequenceListView: Render<
@@ -26,6 +27,7 @@ export const renderSequenceListView: Render<
   const margin = 8;
   const width = sequenceListView.layout.rect.width - 2 * margin;
   const height = sequenceListView.layout.rect.height - 2 * margin;
+  const spacing = 4;
 
   return Clip(
     {
@@ -72,8 +74,15 @@ export const renderSequenceListView: Render<
                     { sequenceName: sequenceListView.editingFileName },
                   ),
                 },
+                {
+                  height: 0,
+                  renderingData: renderSequenceList(state, {
+                    width: width,
+                    height: height - (36 + 24 + 2 * spacing),
+                  }),
+                },
               ],
-              4,
+              spacing,
             ),
       ),
     ],

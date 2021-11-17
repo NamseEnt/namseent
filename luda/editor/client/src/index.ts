@@ -121,6 +121,8 @@ fetch("/resources/sequence/sequence1.json")
           textInput: {
             focus: false,
           },
+          sequenceTitles: [],
+          sequenceListScrollY: 0,
         },
       },
       render,

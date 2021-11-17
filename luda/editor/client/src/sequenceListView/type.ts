@@ -11,4 +11,12 @@ export type SequenceListViewState = {
     focus: boolean;
     selection?: Selection;
   };
+  sequenceTitles: string[];
+  loadingSequenceTitles?: LoadState;
+  sequenceListScrollY: number;
+};
+
+type LoadState = {
+  isLoading: boolean;
+  shouldReload: boolean;
 };
