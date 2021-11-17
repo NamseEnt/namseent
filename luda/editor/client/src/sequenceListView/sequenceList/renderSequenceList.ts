@@ -1,4 +1,4 @@
-import { Clip, engine, Mathu, Rect, Render, Translate } from "namui";
+import { Clip, ColorUtil, engine, Mathu, Rect, Render, Translate } from "namui";
 import { renderRows } from "../../common/renderRows";
 import { TimelineState } from "../../timeline/type";
 import { loadSequenceTitles } from "../operations/loadSequenceTitles";
@@ -45,7 +45,14 @@ export const renderSequenceList: Render<
       y: 0,
       width,
       height,
-      style: {},
+      style: {
+        fill: {
+          color: ColorUtil.Grayscale01(0.5),
+        },
+        round: {
+          radius: margin,
+        },
+      },
       onAfterDraw: () => {
         engine.wheel.onWheel(({ deltaY }) => {
           sequenceListView.sequenceListScrollY = Mathu.clamp(

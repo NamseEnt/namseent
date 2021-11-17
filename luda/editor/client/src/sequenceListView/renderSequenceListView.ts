@@ -10,7 +10,9 @@ import { renderRows } from "../common/renderRows";
 import { PlayerScreen } from "../livePlayer/playerScreen/PlayerScreen";
 import { TimelineState } from "../timeline/type";
 import { renderEditingSequenceTitle } from "./renderEditingSequenceTitle";
+import { renderSelectedSequenceTitle } from "./renderSelectedSequenceTitle";
 import { renderSequenceAddButton } from "./renderSequenceAddButton";
+import { renderSequencePreview } from "./renderSequencePreview";
 import { renderSequenceAddDialog } from "./sequenceAddDialog/renderSequenceAddDialog";
 import { renderSequenceList } from "./sequenceList/renderSequenceList";
 import { SequenceListViewState } from "./type";
@@ -63,12 +65,6 @@ export const renderSequenceListView: Render<
           : renderRows(
               [
                 {
-                  height: 36,
-                  renderingData: renderSequenceAddButton(sequenceListView, {
-                    width,
-                  }),
-                },
-                {
                   height: 24,
                   renderingData: renderEditingSequenceTitle(
                     {},
@@ -76,31 +72,30 @@ export const renderSequenceListView: Render<
                   ),
                 },
                 {
-                  height: 128,
-                  renderingData: PlayerScreen(
+                  height: 24,
+                  renderingData: renderSelectedSequenceTitle(
                     {},
-                    {
-                      layout: {
-                        x: (width - 128 * (16 / 9)) / 2,
-                        y: 0,
-                        width: 128 * (16 / 9),
-                        height: 128,
-                      },
-                      livePlayerState: {
-                        anchorMs:
-                          sequenceListView.preloadedSequence?.seekerMs || 0,
-                        isPlaying: false,
-                        playStartTimeMs: 0,
-                      },
-                      tracks: sequenceListView.preloadedSequence?.tracks || [],
-                    },
+                    { title: sequenceListView.preloadedSequence?.title },
                   ),
+                },
+                {
+                  height: 128,
+                  renderingData: renderSequencePreview(sequenceListView, {
+                    width,
+                    height: 128,
+                  }),
+                },
+                {
+                  height: 36,
+                  renderingData: renderSequenceAddButton(sequenceListView, {
+                    width,
+                  }),
                 },
                 {
                   height: 0,
                   renderingData: renderSequenceList(state, {
                     width: width,
-                    height: height - (36 + 24 + +128 + 3 * spacing),
+                    height: height - (24 + 24 + 128 + 36 + 4 * spacing),
                   }),
                 },
               ],
