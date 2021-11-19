@@ -116,7 +116,6 @@ startEngine(
       textInput: {
         focus: false,
       },
-      sequenceTitles: [],
       sequenceListScrollY: 0,
     },
     topBarState: {

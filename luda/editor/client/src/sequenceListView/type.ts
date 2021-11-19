@@ -13,7 +13,7 @@ export type SequenceListViewState = {
     focus: boolean;
     selection?: Selection;
   };
-  sequenceTitles: string[];
+  sequenceTitles?: string[];
   loadingSequenceTitles?: LoadState;
   loadingSequence?: LoadState & { title: string };
   sequenceListScrollY: number;
