@@ -32,6 +32,8 @@ export class WebMousePointerManager
         return "grab";
       case Cursor.move:
         return "move";
+      case Cursor.pointer:
+        return "pointer";
       default:
         throw new Error(`Unknown cursor ${cursor}`);
     }

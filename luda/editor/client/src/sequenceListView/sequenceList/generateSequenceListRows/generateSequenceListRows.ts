@@ -1,5 +1,7 @@
 import {
   ColorUtil,
+  Cursor,
+  engine,
   FontWeight,
   Language,
   Rect,
@@ -51,22 +53,38 @@ export function generateSequenceListRows(
     const rows: Parameters<typeof renderRows>[0] = [
       {
         height: titleHeight,
-        renderingData: Text({
-          x: 0,
-          y: titleHeight / 2,
-          align: TextAlign.left,
-          baseline: TextBaseline.middle,
-          fontType: {
-            language: Language.ko,
-            serif: false,
-            fontWeight: FontWeight.regular,
-            size: 20,
-          },
-          style: {
-            color: ColorUtil.White,
-          },
-          text: title,
-        }),
+        renderingData: [
+          Rect({
+            x: 0,
+            y: 0,
+            width: previewSliderWidth,
+            height: titleHeight,
+            style: {
+              fill: {
+                color: ColorUtil.Transparent,
+              },
+            },
+            onMouseIn: () => {
+              engine.mousePointer.setCursor(Cursor.pointer);
+            },
+          }),
+          Text({
+            x: 0,
+            y: titleHeight / 2,
+            align: TextAlign.left,
+            baseline: TextBaseline.middle,
+            fontType: {
+              language: Language.ko,
+              serif: false,
+              fontWeight: FontWeight.regular,
+              size: 20,
+            },
+            style: {
+              color: ColorUtil.White,
+            },
+            text: title,
+          }),
+        ],
       },
       {
         height: selected ? previewSliderHeight : 0,

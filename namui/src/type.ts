@@ -253,6 +253,7 @@ export enum Cursor {
   text = "text",
   grab = "grab",
   move = "move",
+  pointer = "pointer",
 }
 
 // this is static class

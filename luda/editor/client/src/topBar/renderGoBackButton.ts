@@ -1,6 +1,8 @@
 import {
   BorderPosition,
   ColorUtil,
+  Cursor,
+  engine,
   FontWeight,
   Language,
   Rect,
@@ -41,6 +43,9 @@ export const renderGoBackButton: Render<
       },
       onClick: () => {
         state.editingSequenceTitle = undefined;
+      },
+      onMouseIn: () => {
+        engine.mousePointer.setCursor(Cursor.pointer);
       },
     }),
     Text({

@@ -1,6 +1,8 @@
 import {
   BorderPosition,
   ColorUtil,
+  Cursor,
+  engine,
   FontWeight,
   Language,
   Rect,
@@ -42,6 +44,9 @@ export const renderLoadButton: Render<
       },
       onClick: () => {
         loadSequence(state, title);
+      },
+      onMouseIn: () => {
+        engine.mousePointer.setCursor(Cursor.pointer);
       },
     }),
     Text({

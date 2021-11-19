@@ -1,6 +1,8 @@
 import {
   BorderPosition,
   ColorUtil,
+  Cursor,
+  engine,
   FontWeight,
   Language,
   Rect,
@@ -42,6 +44,9 @@ export const renderRenameButton: Render<
       onClick: () => {
         state.renamingSequence = true;
         state.newTitle = state.preloadedSequence?.title || state.newTitle;
+      },
+      onMouseIn: () => {
+        engine.mousePointer.setCursor(Cursor.pointer);
       },
     }),
     Text({

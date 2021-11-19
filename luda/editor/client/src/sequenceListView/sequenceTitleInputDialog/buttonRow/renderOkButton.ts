@@ -1,6 +1,8 @@
 import {
   BorderPosition,
   ColorUtil,
+  Cursor,
+  engine,
   FontWeight,
   Language,
   Rect,
@@ -74,6 +76,9 @@ export const renderOkButton: Render<
 
         sequenceListView.addingSequence = false;
         sequenceListView.renamingSequence = false;
+      },
+      onMouseIn: () => {
+        engine.mousePointer.setCursor(Cursor.pointer);
       },
     }),
     Text({

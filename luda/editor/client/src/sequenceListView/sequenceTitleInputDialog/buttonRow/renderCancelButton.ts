@@ -1,6 +1,8 @@
 import {
   BorderPosition,
   ColorUtil,
+  Cursor,
+  engine,
   FontWeight,
   Language,
   Rect,
@@ -42,6 +44,9 @@ export const renderCancelButton: Render<
       onClick: () => {
         state.addingSequence = false;
         state.renamingSequence = false;
+      },
+      onMouseIn: () => {
+        engine.mousePointer.setCursor(Cursor.pointer);
       },
     }),
     Text({
