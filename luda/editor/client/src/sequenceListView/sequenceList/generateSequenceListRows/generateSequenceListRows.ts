@@ -14,6 +14,7 @@ import { preloadSequence } from "../../operations/preloadSequence";
 import { SequenceListViewState } from "../../type";
 import { renderLoadButton } from "./renderLoadButton";
 import { renderPreviewSlider } from "./renderPreviewSlider";
+import { renderRemoveButton } from "./renderRemoveButton";
 import { renderRenameButton } from "./renderRenameButton";
 
 export function generateSequenceListRows(
@@ -34,6 +35,7 @@ export function generateSequenceListRows(
   const titleHeight = 32;
   const previewSliderWidth = width - 2 * margin;
   const previewSliderHeight = 32;
+  const removeButtonHeight = 36;
   const renameButtonHeight = 36;
   const loadButtonHeight = 36;
 
@@ -92,6 +94,15 @@ export function generateSequenceListRows(
                 title,
               })
             : undefined,
+      },
+      {
+        height: selected ? removeButtonHeight : 0,
+        renderingData: selected
+          ? renderRemoveButton(sequenceListView, {
+              width: previewSliderWidth,
+              height: removeButtonHeight,
+            })
+          : undefined,
       },
     ];
 

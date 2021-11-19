@@ -1,4 +1,5 @@
 import { ToServerRpcHandler } from "luda-editor-common";
+import { onRemoveFile } from "./onDeleteFile";
 import { onListFiles } from "./onListFiles";
 import { onReadFile } from "./onReadFile";
 import { onRenameFile } from "./onRenameFile";
@@ -12,4 +13,5 @@ export const toServerRpcHandler: ToServerRpcHandler<ToServerRpcHandlerContext> =
     onWriteFile,
     onReadFile,
     onRenameFile,
+    onRemoveFile,
   };

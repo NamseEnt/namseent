@@ -29,4 +29,10 @@ export type ToServerRpcs = {
     };
     output: void;
   };
+  RemoveFile: {
+    input: {
+      destPath: string;
+    };
+    output: void;
+  };
 };

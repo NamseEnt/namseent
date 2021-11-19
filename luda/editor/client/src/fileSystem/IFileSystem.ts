@@ -5,4 +5,5 @@ export interface IFileSystem {
   read(path: string): Promise<ArrayBuffer>;
   write(path: string, content: string | ArrayBuffer): Promise<void>;
   rename(oldPath: string, newPath: string): Promise<void>;
+  remove(destPath: string): Promise<void>;
 }

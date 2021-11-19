@@ -27,4 +27,9 @@ export class RpcFileSystem implements IFileSystem {
       newPath,
     });
   }
+  async remove(destPath: string): Promise<void> {
+    await this.socket.send("RemoveFile", {
+      destPath,
+    });
+  }
 }
