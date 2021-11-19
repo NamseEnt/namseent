@@ -10,6 +10,7 @@ import {
   TextBaseline,
 } from "namui";
 import { TimelineState, TrackType } from "../../../timeline/type";
+import { loadSequenceTitles } from "../../operations/loadSequenceTitles";
 import { renameSequence } from "../../operations/renameSequence";
 import { SequenceListViewState } from "../../type";
 
@@ -45,7 +46,7 @@ export const renderOkButton: Render<
           radius: 4,
         },
       },
-      onClick: () => {
+      onClick: async () => {
         if (sequenceListView.addingSequence) {
           sequenceListView.editingSequenceTitle = sequenceListView.newTitle;
           timeline.tracks = [
@@ -61,7 +62,14 @@ export const renderOkButton: Render<
             },
           ];
         } else {
-          renameSequence(sequenceListView, sequenceListView.newTitle);
+          if (!sequenceListView.preloadedSequence) {
+            return;
+          }
+          const oldTitle = sequenceListView.preloadedSequence.title;
+          const newTitle = sequenceListView.newTitle;
+          await renameSequence(oldTitle, newTitle);
+          await loadSequenceTitles(sequenceListView);
+          sequenceListView.preloadedSequence.title = newTitle;
         }
 
         sequenceListView.addingSequence = false;

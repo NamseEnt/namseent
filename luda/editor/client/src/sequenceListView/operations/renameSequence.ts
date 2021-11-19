@@ -1,20 +1,9 @@
 import fileSystem from "../../fileSystem/fileSystem";
-import { SequenceListViewState } from "../type";
-import { loadSequenceTitles } from "./loadSequenceTitles";
 
-export async function renameSequence(
-  state: SequenceListViewState,
-  title: string,
-) {
-  if (!state.preloadedSequence?.title) {
-    return;
-  }
+export async function renameSequence(oldTitle: string, newTItle: string) {
   await fileSystem.rename(
-    `/sequence/${state.preloadedSequence.title}.json`,
-    `/sequence/${title}.json`,
+    `/sequence/${oldTitle}.json`,
+    `/sequence/${newTItle}.json`,
   );
-  await loadSequenceTitles(state);
-  state.preloadedSequence.title = title;
-
   return;
 }
