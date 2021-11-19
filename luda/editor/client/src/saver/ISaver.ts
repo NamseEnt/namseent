@@ -8,4 +8,6 @@ export interface ISaver {
    * 4. If autoSave was called and saving is not done, saver will not save it.
    */
   autoSave(key: string, value: any): Promise<void>;
+  get isSaving(): boolean;
+  get isUpToDate(): boolean;
 }

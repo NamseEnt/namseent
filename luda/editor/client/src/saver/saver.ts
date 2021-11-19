@@ -3,10 +3,11 @@ import { ISaver } from "./ISaver";
 
 class Saver implements ISaver {
   private lastValueString?: string;
-  private isSaving: boolean = false;
+  private isSaving_: boolean = false;
+  private isUpToDate_: boolean = false;
 
   async autoSave(key: string, value: Object): Promise<void> {
-    if (this.isSaving) {
+    if (this.isSaving_) {
       return;
     }
 
@@ -15,6 +16,7 @@ class Saver implements ISaver {
     const isFirstTime = this.lastValueString === undefined;
     if (isFirstTime) {
       this.lastValueString = stringifiedValue;
+      this.isUpToDate_ = true;
       return;
     }
 
@@ -22,12 +24,21 @@ class Saver implements ISaver {
     if (!isValueChanged) {
       return;
     }
+    this.isSaving_ = true;
+    this.isUpToDate_ = false;
+    try {
+      await fileSystem.write(key, stringifiedValue);
+      this.lastValueString = stringifiedValue;
+      this.isUpToDate_ = true;
+    } catch {}
+    this.isSaving_ = false;
+  }
 
-    this.lastValueString = stringifiedValue;
-
-    this.isSaving = true;
-    await fileSystem.write(key, stringifiedValue);
-    this.isSaving = false;
+  get isSaving() {
+    return this.isSaving_;
+  }
+  get isUpToDate() {
+    return this.isUpToDate_;
   }
 
   stringify(value: any): string {
