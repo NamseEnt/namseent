@@ -14,6 +14,7 @@ import { preloadSequence } from "../../operations/preloadSequence";
 import { SequenceListViewState } from "../../type";
 import { renderLoadButton } from "./renderLoadButton";
 import { renderPreviewSlider } from "./renderPreviewSlider";
+import { renderRenameButton } from "./renderRenameButton";
 
 export function generateSequenceListRows(
   state: {
@@ -33,6 +34,7 @@ export function generateSequenceListRows(
   const titleHeight = 32;
   const previewSliderWidth = width - 2 * margin;
   const previewSliderHeight = 32;
+  const renameButtonHeight = 36;
   const loadButtonHeight = 36;
 
   return sequenceTitles.map((title) => {
@@ -41,20 +43,72 @@ export function generateSequenceListRows(
       preloadedSequence &&
       !preloadedSequence.isLoading &&
       preloadedSequence.isSequence;
-    const height =
-      2 * margin +
-      titleHeight +
-      (selected ? previewSliderHeight + spacing : 0) +
-      (selected && loadable ? loadButtonHeight + spacing : 0);
+
+    const rows: Parameters<typeof renderRows>[0] = [
+      {
+        height: titleHeight,
+        renderingData: Text({
+          x: 0,
+          y: titleHeight / 2,
+          align: TextAlign.left,
+          baseline: TextBaseline.middle,
+          fontType: {
+            language: Language.ko,
+            serif: false,
+            fontWeight: FontWeight.regular,
+            size: 20,
+          },
+          style: {
+            color: ColorUtil.White,
+          },
+          text: title,
+        }),
+      },
+      {
+        height: selected ? previewSliderHeight : 0,
+        renderingData: selected
+          ? renderPreviewSlider(sequenceListView, {
+              width: previewSliderWidth,
+              height: previewSliderHeight,
+            })
+          : undefined,
+      },
+      {
+        height: selected ? renameButtonHeight : 0,
+        renderingData: selected
+          ? renderRenameButton(sequenceListView, {
+              width: previewSliderWidth,
+              height: renameButtonHeight,
+            })
+          : undefined,
+      },
+      {
+        height: selected && loadable ? loadButtonHeight : 0,
+        renderingData:
+          selected && loadable
+            ? renderLoadButton(state, {
+                width: previewSliderWidth,
+                height: loadButtonHeight,
+                title,
+              })
+            : undefined,
+      },
+    ];
+
+    const contentHeight = rows.reduce(
+      (contentHeight, row) =>
+        contentHeight + (row.height ? row.height + spacing : 0),
+      -spacing,
+    );
 
     return {
-      height,
+      height: contentHeight + 2 * margin,
       renderingData: [
         Rect({
           x: 0,
           y: 0,
           width,
-          height,
+          height: contentHeight + 2 * margin,
           style: {
             fill: {
               color: ColorUtil.Grayscale01(0.3),
@@ -69,48 +123,13 @@ export function generateSequenceListRows(
             }
           },
         }),
-        Text({
-          x: margin,
-          y: titleHeight / 2 + margin,
-          align: TextAlign.left,
-          baseline: TextBaseline.middle,
-          fontType: {
-            language: Language.ko,
-            serif: false,
-            fontWeight: FontWeight.regular,
-            size: 20,
+        Translate(
+          {
+            x: margin,
+            y: margin,
           },
-          style: {
-            color: ColorUtil.White,
-          },
-          text: title,
-        }),
-        selected
-          ? Translate(
-              {
-                x: margin,
-                y: margin + titleHeight + spacing,
-              },
-              renderPreviewSlider(sequenceListView, {
-                width: previewSliderWidth,
-                height: previewSliderHeight,
-              }),
-            )
-          : undefined,
-
-        selected && loadable
-          ? Translate(
-              {
-                x: margin,
-                y: margin + titleHeight + previewSliderHeight + 2 * spacing,
-              },
-              renderLoadButton(state, {
-                width: previewSliderWidth,
-                height: loadButtonHeight,
-                title,
-              }),
-            )
-          : undefined,
+          renderRows(rows, spacing),
+        ),
       ],
     };
   });

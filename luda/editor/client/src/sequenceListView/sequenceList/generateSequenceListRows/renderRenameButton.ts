@@ -9,16 +9,16 @@ import {
   TextAlign,
   TextBaseline,
 } from "namui";
-import { SequenceListViewState } from "./type";
+import { SequenceListViewState } from "../../type";
 
-export const renderSequenceRenameButton: Render<
+export const renderRenameButton: Render<
   SequenceListViewState,
   {
     width: number;
+    height: number;
   }
 > = (state, props) => {
-  const { width } = props;
-  const height = 36;
+  const { width, height } = props;
 
   return [
     Rect({
@@ -41,7 +41,7 @@ export const renderSequenceRenameButton: Render<
       },
       onClick: () => {
         state.renamingSequence = true;
-        state.newTitle = state.editingSequenceTitle || state.newTitle;
+        state.newTitle = state.preloadedSequence?.title || state.newTitle;
       },
     }),
     Text({

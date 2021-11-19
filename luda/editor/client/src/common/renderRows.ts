@@ -17,7 +17,7 @@ export function renderRows(rows: Row[], spacing: number = 4): RenderingTree {
           row.renderingData,
         )
       : undefined;
-    y += row.height + spacing;
+    y += row.height ? row.height + spacing : 0;
     return translated;
   });
 }
