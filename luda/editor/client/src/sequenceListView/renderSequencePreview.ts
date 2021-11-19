@@ -13,9 +13,9 @@ export const renderSequencePreview: Render<
       {},
       {
         layout: {
-          x: (width - height * (16 / 9)) / 2,
+          x: 0,
           y: 0,
-          width: height * (16 / 9),
+          width,
           height,
         },
         livePlayerState: {

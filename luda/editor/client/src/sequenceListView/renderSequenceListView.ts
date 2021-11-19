@@ -1,14 +1,6 @@
-import {
-  BorderPosition,
-  Clip,
-  ColorUtil,
-  Rect,
-  Render,
-  Translate,
-} from "namui";
+import { Clip, Render, Translate } from "namui";
 import { renderRows } from "../common/renderRows";
 import { TimelineState } from "../timeline/type";
-import { renderSelectedSequenceTitle } from "./renderSelectedSequenceTitle";
 import { renderSequenceAddButton } from "./renderSequenceAddButton";
 import { renderSequenceIndexReloadButton } from "./renderSequenceIndexReloadButton";
 import { renderSequencePreview } from "./renderSequencePreview";
@@ -25,11 +17,15 @@ export const renderSequenceListView: Render<
 > = (state, props) => {
   const { sequenceListView } = state;
 
-  const borderWidth = 1;
   const margin = 8;
-  const width = sequenceListView.layout.rect.width - 2 * margin;
-  const height = sequenceListView.layout.rect.height - 2 * margin;
   const spacing = 4;
+  const listWidth = sequenceListView.layout.listWidth - margin;
+  const previewWidth =
+    sequenceListView.layout.rect.width -
+    sequenceListView.layout.listWidth -
+    margin -
+    spacing;
+  const height = sequenceListView.layout.rect.height - 2 * margin;
 
   return Clip(
     {
@@ -44,64 +40,52 @@ export const renderSequenceListView: Render<
       clipOp: CanvasKit.ClipOp.Intersect,
     },
     [
-      Rect({
-        ...sequenceListView.layout.rect,
-        style: {
-          stroke: {
-            color: ColorUtil.Black,
-            width: borderWidth,
-            borderPosition: BorderPosition.inside,
-          },
-        },
-      }),
       Translate(
         {
           x: margin,
           y: margin,
         },
-        sequenceListView.addingSequence || sequenceListView.renamingSequence
-          ? renderSequenceTitleInputDialog(state, { width })
-          : renderRows(
-              [
-                {
-                  height: 24,
-                  renderingData: renderSelectedSequenceTitle(
-                    {},
-                    { title: sequenceListView.preloadedSequence?.title },
-                  ),
-                },
-                {
-                  height: 128,
-                  renderingData: renderSequencePreview(sequenceListView, {
-                    width,
-                    height: 128,
-                  }),
-                },
-                {
-                  height: 36,
-                  renderingData: renderSequenceAddButton(sequenceListView, {
-                    width,
-                  }),
-                },
-                {
-                  height: 36,
-                  renderingData: renderSequenceIndexReloadButton(
-                    sequenceListView,
-                    {
-                      width,
-                    },
-                  ),
-                },
-                {
-                  height: 0,
-                  renderingData: renderSequenceList(state, {
-                    width: width,
-                    height: height - (24 + 128 + 36 + 36 + 4 * spacing),
-                  }),
-                },
-              ],
-              spacing,
-            ),
+        [
+          sequenceListView.addingSequence || sequenceListView.renamingSequence
+            ? renderSequenceTitleInputDialog(state, { width: listWidth })
+            : renderRows(
+                [
+                  {
+                    height: 36,
+                    renderingData: renderSequenceAddButton(sequenceListView, {
+                      width: listWidth,
+                    }),
+                  },
+                  {
+                    height: 36,
+                    renderingData: renderSequenceIndexReloadButton(
+                      sequenceListView,
+                      {
+                        width: listWidth,
+                      },
+                    ),
+                  },
+                  {
+                    height: 0,
+                    renderingData: renderSequenceList(state, {
+                      width: listWidth,
+                      height: height - (36 + 36 + 2 * spacing),
+                    }),
+                  },
+                ],
+                spacing,
+              ),
+        ],
+      ),
+      Translate(
+        {
+          x: state.sequenceListView.layout.listWidth + spacing,
+          y: 0,
+        },
+        renderSequencePreview(sequenceListView, {
+          width: previewWidth,
+          height,
+        }),
       ),
     ],
   );

@@ -109,6 +109,7 @@ startEngine(
           width: window.innerWidth,
           height: window.innerHeight,
         },
+        listWidth: 800,
       },
       addingSequence: false,
       renamingSequence: false,

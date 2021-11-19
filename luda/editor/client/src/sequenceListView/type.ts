@@ -4,6 +4,7 @@ import { Track } from "../timeline/type";
 export type SequenceListViewState = {
   layout: {
     rect: XywhRect;
+    listWidth: number;
   };
   addingSequence: boolean;
   renamingSequence: boolean;
