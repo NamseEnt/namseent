@@ -8,7 +8,6 @@ import {
 } from "namui";
 import { renderRows } from "../common/renderRows";
 import { TimelineState } from "../timeline/type";
-import { renderEditingSequenceTitle } from "./renderEditingSequenceTitle";
 import { renderSelectedSequenceTitle } from "./renderSelectedSequenceTitle";
 import { renderSequenceAddButton } from "./renderSequenceAddButton";
 import { renderSequenceIndexFetchButton } from "./renderSequenceIndexFetchButton";
@@ -66,13 +65,6 @@ export const renderSequenceListView: Render<
           : renderRows(
               [
                 {
-                  height: 24,
-                  renderingData: renderEditingSequenceTitle(
-                    {},
-                    { title: sequenceListView.editingSequenceTitle },
-                  ),
-                },
-                {
                   height: 36,
                   renderingData: renderSequenceRenameButton(sequenceListView, {
                     width,
@@ -111,8 +103,7 @@ export const renderSequenceListView: Render<
                   height: 0,
                   renderingData: renderSequenceList(state, {
                     width: width,
-                    height:
-                      height - (24 + 36 + 24 + 128 + 36 + 36 + 6 * spacing),
+                    height: height - (36 + 24 + 128 + 36 + 36 + 5 * spacing),
                   }),
                 },
               ],

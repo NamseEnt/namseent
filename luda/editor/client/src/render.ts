@@ -19,6 +19,8 @@ import { TimelineState } from "./timeline/type";
 import { saver } from "./saver/saver";
 import { renderSequenceListView } from "./sequenceListView/renderSequenceListView";
 import { SequenceListViewState } from "./sequenceListView/type";
+import { renderTopBar } from "./topBar/renderTopBar";
+import { TopBarState } from "./topBar/type";
 
 type State = {
   timelineState: TimelineState;
@@ -29,6 +31,7 @@ type State = {
     layout: LivePlayerProps["layout"];
   };
   sequenceListViewState: SequenceListViewState;
+  topBarState: TopBarState;
 };
 
 export function render(state: State): RenderingTree {
@@ -37,6 +40,16 @@ export function render(state: State): RenderingTree {
     saver.autoSave(
       `/sequence/${editingSequenceTitle}.json`,
       state.timelineState.tracks,
+    );
+  }
+
+  if (!editingSequenceTitle) {
+    return renderSequenceListView(
+      {
+        sequenceListView: state.sequenceListViewState,
+        timeline: state.timelineState,
+      },
+      {},
     );
   }
 
@@ -52,7 +65,13 @@ export function render(state: State): RenderingTree {
       layout: state.livePlayer.layout,
       tracks: state.timelineState.tracks,
     }),
-    SequenceListView(state),
+    renderTopBar(
+      {
+        sequenceListView: state.sequenceListViewState,
+        topBar: state.topBarState,
+      },
+      {},
+    ),
   ];
 }
 
@@ -89,19 +108,4 @@ const ClipEditor: Render<State> = (state) => {
   }
 
   return;
-};
-
-const SequenceListView: Render<State> = (state) => {
-  const { selectedClip } = state.timelineState;
-  if (selectedClip) {
-    return;
-  }
-
-  return renderSequenceListView(
-    {
-      sequenceListView: state.sequenceListViewState,
-      timeline: state.timelineState,
-    },
-    {},
-  );
 };
