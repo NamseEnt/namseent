@@ -12,7 +12,7 @@ import {
 import { loadSequenceTitles } from "./operations/loadSequenceTitles";
 import { SequenceListViewState } from "./type";
 
-export const renderSequenceIndexFetchButton: Render<
+export const renderSequenceIndexReloadButton: Render<
   SequenceListViewState,
   {
     width: number;
@@ -58,7 +58,7 @@ export const renderSequenceIndexFetchButton: Render<
       style: {
         color: ColorUtil.White,
       },
-      text: "Fetch Sequence index",
+      text: "Reload Sequence Titles",
     }),
   ];
 };

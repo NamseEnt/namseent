@@ -10,7 +10,7 @@ import { renderRows } from "../common/renderRows";
 import { TimelineState } from "../timeline/type";
 import { renderSelectedSequenceTitle } from "./renderSelectedSequenceTitle";
 import { renderSequenceAddButton } from "./renderSequenceAddButton";
-import { renderSequenceIndexFetchButton } from "./renderSequenceIndexFetchButton";
+import { renderSequenceIndexReloadButton } from "./renderSequenceIndexReloadButton";
 import { renderSequencePreview } from "./renderSequencePreview";
 import { renderSequenceRenameButton } from "./renderSequenceRenameButton";
 import { renderSequenceAddDialog as renderSequenceTitleInputDialog } from "./sequenceTitleInputDialog/renderSequenceTitleInputDialog";
@@ -92,7 +92,7 @@ export const renderSequenceListView: Render<
                 },
                 {
                   height: 36,
-                  renderingData: renderSequenceIndexFetchButton(
+                  renderingData: renderSequenceIndexReloadButton(
                     sequenceListView,
                     {
                       width,
