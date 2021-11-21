@@ -31,6 +31,8 @@ class Saver implements ISaver {
       await fileSystem.write(key, stringifiedValue);
       this.lastValueString = stringifiedValue;
       this.isUpToDate = true;
+    } catch (error) {
+      console.error(error);
     } finally {
       this.isSaving = false;
     }
