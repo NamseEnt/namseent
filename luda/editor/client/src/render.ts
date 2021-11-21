@@ -36,14 +36,10 @@ type State = {
 
 export function render(state: State): RenderingTree {
   const { editingSequenceTitle } = state.sequenceListViewState;
-  if (editingSequenceTitle) {
-    saver.autoSave(
-      `/sequence/${editingSequenceTitle}.json`,
-      state.timelineState.tracks,
-    );
-  }
 
-  if (!editingSequenceTitle) {
+  const isEditingSequence = editingSequenceTitle !== undefined;
+
+  if (!isEditingSequence) {
     return renderSequenceListView(
       {
         sequenceListView: state.sequenceListViewState,
@@ -52,6 +48,11 @@ export function render(state: State): RenderingTree {
       {},
     );
   }
+
+  saver.autoSave(
+    `/sequence/${editingSequenceTitle}.json`,
+    state.timelineState.tracks,
+  );
 
   return [
     ClipEditor(state),
