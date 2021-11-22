@@ -16,7 +16,10 @@ export async function loadSequence(
     shouldReload: false,
     title,
   });
-  if (loadingSequence.isLoading && loadingSequence.title === title) {
+
+  const isLoadingSameSequence =
+    loadingSequence.isLoading && loadingSequence.title === title;
+  if (isLoadingSameSequence) {
     loadingSequence.shouldReload = true;
     return;
   }
@@ -29,7 +32,8 @@ export async function loadSequence(
   const dataBlob = new Blob([new Uint8Array(Object.values(dataBuffer))]);
   const dataString = await dataBlob.text();
 
-  if (loadingSequence.title !== title) {
+  const targetSequenceChanged = loadingSequence.title !== title;
+  if (targetSequenceChanged) {
     return;
   }
 

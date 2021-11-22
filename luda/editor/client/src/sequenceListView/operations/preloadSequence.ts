@@ -19,7 +19,8 @@ export async function preloadSequence(
   const dataBlob = new Blob([new Uint8Array(Object.values(dataBuffer))]);
   const dataString = await dataBlob.text();
 
-  if (preloadedSequence.title !== title) {
+  const targetSequenceChanged = preloadedSequence.title !== title;
+  if (targetSequenceChanged) {
     return;
   }
 

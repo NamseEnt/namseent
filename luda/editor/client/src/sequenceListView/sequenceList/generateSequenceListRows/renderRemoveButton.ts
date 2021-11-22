@@ -44,11 +44,11 @@ export const renderRemoveButton: Render<
         },
       },
       onClick: async () => {
-        const title = state.preloadedSequence?.title;
-        if (!title) {
+        const selectedTitle = state.preloadedSequence?.title;
+        if (!selectedTitle) {
           return;
         }
-        await removeSequence(title);
+        await removeSequence(selectedTitle);
         await loadSequenceTitles(state);
       },
       onMouseIn: () => {

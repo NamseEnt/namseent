@@ -162,7 +162,8 @@ export function generateSequenceListRows(
             },
           },
           onClick: () => {
-            if (preloadedSequence?.title !== title) {
+            const shouldPreloadSequence = preloadedSequence?.title !== title;
+            if (shouldPreloadSequence) {
               preloadSequence(sequenceListView, title);
             }
           },
