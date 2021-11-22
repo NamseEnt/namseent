@@ -11,7 +11,7 @@ import {
   TextAlign,
   TextBaseline,
 } from "namui";
-import { SequenceListViewState } from "../../type";
+import { SequenceListViewActionState, SequenceListViewState } from "../../type";
 
 export const renderCancelButton: Render<
   SequenceListViewState,
@@ -42,8 +42,7 @@ export const renderCancelButton: Render<
         },
       },
       onClick: () => {
-        state.addingSequence = false;
-        state.renamingSequence = false;
+        state.actionState = SequenceListViewActionState.none;
       },
       onMouseIn: () => {
         engine.mousePointer.setCursor(Cursor.pointer);

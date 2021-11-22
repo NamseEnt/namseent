@@ -6,8 +6,7 @@ export type SequenceListViewState = {
     rect: XywhRect;
     listWidth: number;
   };
-  addingSequence: boolean;
-  renamingSequence: boolean;
+  actionState: SequenceListViewActionState;
   editingSequenceTitle?: string;
   newTitle: string;
   textInput: {
@@ -32,3 +31,9 @@ type LoadState = {
   isLoading: boolean;
   shouldReload: boolean;
 };
+
+export enum SequenceListViewActionState {
+  none = "none",
+  addSequence = "addSequence",
+  renameSequence = "renameSequence",
+}

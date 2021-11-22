@@ -11,7 +11,7 @@ import {
   TextAlign,
   TextBaseline,
 } from "namui";
-import { SequenceListViewState } from "./type";
+import { SequenceListViewActionState, SequenceListViewState } from "./type";
 
 export const renderSequenceAddButton: Render<
   SequenceListViewState,
@@ -42,7 +42,7 @@ export const renderSequenceAddButton: Render<
         },
       },
       onClick: () => {
-        state.addingSequence = true;
+        state.actionState = SequenceListViewActionState.addSequence;
       },
       onMouseIn: () => {
         engine.mousePointer.setCursor(Cursor.pointer);

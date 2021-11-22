@@ -14,7 +14,7 @@ import {
 import { TimelineState, TrackType } from "../../../timeline/type";
 import { loadSequenceTitles } from "../../operations/loadSequenceTitles";
 import { renameSequence } from "../../operations/renameSequence";
-import { SequenceListViewState } from "../../type";
+import { SequenceListViewActionState, SequenceListViewState } from "../../type";
 
 export const renderOkButton: Render<
   {
@@ -49,33 +49,41 @@ export const renderOkButton: Render<
         },
       },
       onClick: async () => {
-        if (sequenceListView.addingSequence) {
-          sequenceListView.editingSequenceTitle = sequenceListView.newTitle;
-          timeline.tracks = [
-            {
-              id: "camera",
-              type: TrackType.camera,
-              clips: [],
-            },
-            {
-              id: "subtitle",
-              type: TrackType.subtitle,
-              clips: [],
-            },
-          ];
-        } else {
-          if (!sequenceListView.preloadedSequence) {
-            return;
+        switch (sequenceListView.actionState) {
+          case SequenceListViewActionState.addSequence: {
+            sequenceListView.editingSequenceTitle = sequenceListView.newTitle;
+            timeline.tracks = [
+              {
+                id: "camera",
+                type: TrackType.camera,
+                clips: [],
+              },
+              {
+                id: "subtitle",
+                type: TrackType.subtitle,
+                clips: [],
+              },
+            ];
+            break;
           }
-          const oldTitle = sequenceListView.preloadedSequence.title;
-          const newTitle = sequenceListView.newTitle;
-          await renameSequence(oldTitle, newTitle);
-          await loadSequenceTitles(sequenceListView);
-          sequenceListView.preloadedSequence.title = newTitle;
+
+          case SequenceListViewActionState.renameSequence: {
+            if (!sequenceListView.preloadedSequence) {
+              return;
+            }
+            const oldTitle = sequenceListView.preloadedSequence.title;
+            const newTitle = sequenceListView.newTitle;
+            await renameSequence(oldTitle, newTitle);
+            await loadSequenceTitles(sequenceListView);
+            sequenceListView.preloadedSequence.title = newTitle;
+            break;
+          }
+
+          default:
+            break;
         }
 
-        sequenceListView.addingSequence = false;
-        sequenceListView.renamingSequence = false;
+        sequenceListView.actionState = SequenceListViewActionState.none;
       },
       onMouseIn: () => {
         engine.mousePointer.setCursor(Cursor.pointer);

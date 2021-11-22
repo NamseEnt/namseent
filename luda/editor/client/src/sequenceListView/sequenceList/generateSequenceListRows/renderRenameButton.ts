@@ -11,7 +11,7 @@ import {
   TextAlign,
   TextBaseline,
 } from "namui";
-import { SequenceListViewState } from "../../type";
+import { SequenceListViewActionState, SequenceListViewState } from "../../type";
 
 export const renderRenameButton: Render<
   SequenceListViewState,
@@ -42,7 +42,7 @@ export const renderRenameButton: Render<
         },
       },
       onClick: () => {
-        state.renamingSequence = true;
+        state.actionState = SequenceListViewActionState.renameSequence;
         state.newTitle = state.preloadedSequence?.title || state.newTitle;
       },
       onMouseIn: () => {

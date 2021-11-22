@@ -6,7 +6,7 @@ import { renderSequenceIndexReloadButton } from "./renderSequenceIndexReloadButt
 import { renderSequencePreview } from "./renderSequencePreview";
 import { renderSequenceAddDialog as renderSequenceTitleInputDialog } from "./sequenceTitleInputDialog/renderSequenceTitleInputDialog";
 import { renderSequenceList } from "./sequenceList/renderSequenceList";
-import { SequenceListViewState } from "./type";
+import { SequenceListViewActionState, SequenceListViewState } from "./type";
 
 export const renderSequenceListView: Render<
   {
@@ -46,7 +46,7 @@ export const renderSequenceListView: Render<
           y: margin,
         },
         [
-          sequenceListView.addingSequence || sequenceListView.renamingSequence
+          sequenceListView.actionState !== SequenceListViewActionState.none
             ? renderSequenceTitleInputDialog(state, { width: listWidth })
             : renderRows(
                 [

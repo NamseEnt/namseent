@@ -2,6 +2,7 @@ import { startEngine } from "namui";
 import { nanoid } from "nanoid";
 import { getDefaultSyncBrowserItemsState } from "./cameraAngleEditor/imageBrowser/SyncBrowserItems";
 import { render } from "./render";
+import { SequenceListViewActionState } from "./sequenceListView/type";
 
 startEngine(
   {
@@ -111,8 +112,7 @@ startEngine(
         },
         listWidth: 800,
       },
-      addingSequence: false,
-      renamingSequence: false,
+      actionState: SequenceListViewActionState.none,
       newTitle: "newSequence",
       textInput: {
         focus: false,
