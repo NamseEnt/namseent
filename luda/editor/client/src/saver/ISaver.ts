@@ -1,3 +1,10 @@
+export enum AutoSaveState {
+  saved = "saved",
+  saving = "saving",
+  retryingOnError = "retryingOnError",
+  failToRecoverError = "failToRecoverError",
+}
+
 export interface ISaver {
   /**
    * @param value
@@ -7,7 +14,5 @@ export interface ISaver {
    * 3. If autoSave is called first time, saver will not save it.
    * 4. If autoSave was called and saving is not done, saver will not save it.
    */
-  autoSave(key: string, value: any): Promise<void>;
-  get isSaving(): boolean;
-  get isUpToDate(): boolean;
+  autoSave(key: string, value: any): AutoSaveState;
 }

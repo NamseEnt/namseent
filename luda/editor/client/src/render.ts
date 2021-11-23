@@ -49,7 +49,7 @@ export function render(state: State): RenderingTree {
     );
   }
 
-  saver.autoSave(
+  const autoSaveState = saver.autoSave(
     `/sequence/${editingSequenceTitle}.json`,
     state.timelineState.tracks,
   );
@@ -71,7 +71,9 @@ export function render(state: State): RenderingTree {
         sequenceListView: state.sequenceListViewState,
         topBar: state.topBarState,
       },
-      {},
+      {
+        autoSave: autoSaveState,
+      },
     ),
   ];
 }
