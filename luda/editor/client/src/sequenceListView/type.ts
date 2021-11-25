@@ -14,12 +14,16 @@ export type SequenceListViewState = {
     selection?: Selection;
   };
   sequenceTitles?: string[];
-  loadingSequenceTitles?: LoadState;
-  loadingSequence?: LoadState & { title: string };
-  sequenceListScrollY: number;
-  preloadedSequence?: {
-    title: string;
+  loadingSequenceTitles?: {
     isLoading: boolean;
+    shouldReload: boolean;
+  };
+  loadingSequence?: LoadingStateWithTimeout & {
+    title: string;
+  };
+  sequenceListScrollY: number;
+  preloadedSequence?: LoadingStateWithTimeout & {
+    title: string;
     isSequence: boolean;
     tracks: Track[];
     lengthMs: number;
@@ -27,13 +31,14 @@ export type SequenceListViewState = {
   };
 };
 
-type LoadState = {
-  isLoading: boolean;
-  shouldReload: boolean;
-};
-
 export enum SequenceListViewActionState {
   none = "none",
   addSequence = "addSequence",
   renameSequence = "renameSequence",
 }
+
+export type LoadingStateWithTimeout = {
+  isLoading: boolean;
+  startedAt: number;
+  errorCode?: string;
+};

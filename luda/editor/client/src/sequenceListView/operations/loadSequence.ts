@@ -3,6 +3,28 @@ import { sequenceJsonReviver } from "../../sequenceJson/sequenceJsonReviver";
 import { TimelineState, Track } from "../../timeline/type";
 import { SequenceListViewState } from "../type";
 
+namespace LoadSequence {
+  type LoadingState = {
+    type: "loading";
+  };
+
+  type LoadedState = {
+    type: "loaded";
+    tracks: Track[];
+  };
+
+  type LoadFailedState = {
+    type: "failed";
+    errorCode: string;
+  };
+
+  type LoadSequenceState = LoadingState | LoadedState | LoadFailedState;
+}
+
+export enum LoadSequenceState {
+  "loading" = "loading",
+}
+
 export async function loadSequence(
   state: {
     timeline: TimelineState;
@@ -10,43 +32,63 @@ export async function loadSequence(
   },
   title: string,
 ) {
-  const { timeline, sequenceListView } = state;
+LoadSequence.  const { timeline, sequenceListView } = state;
 
   const loadingSequence = (sequenceListView.loadingSequence ??= {
     isLoading: false,
-    shouldReload: false,
     title,
+    startedAt: 0,
   });
 
   const isLoadingSameSequence =
     loadingSequence.isLoading && loadingSequence.title === title;
   if (isLoadingSameSequence) {
-    loadingSequence.shouldReload = true;
     return;
   }
 
   loadingSequence.isLoading = true;
   loadingSequence.title = title;
-  loadingSequence.shouldReload = false;
+  loadingSequence.startedAt = Date.now();
 
-  const dataBuffer = await fileSystem.read(`/sequence/${title}.json`);
-  const dataBlob = new Blob([new Uint8Array(Object.values(dataBuffer))]);
-  const dataString = await dataBlob.text();
+  const fileReadResult = await fileSystem.read(`/sequence/${title}.json`);
 
   const targetSequenceChanged = loadingSequence.title !== title;
   if (targetSequenceChanged) {
     return;
   }
 
+  const loadingCanceled = !loadingSequence.isLoading;
+  if (loadingCanceled) {
+    return;
+  }
+
+  if (!fileReadResult.isSuccessful) {
+    loadingSequence.isLoading = false;
+    loadingSequence.errorCode = fileReadResult.errorCode;
+    return;
+  }
+
+  const dataBlob = new Blob([
+    new Uint8Array(Object.values(fileReadResult.file)),
+  ]);
+  const dataString = await dataBlob.text();
+
   try {
     const tracks = JSON.parse(dataString, sequenceJsonReviver) as Track[];
     sequenceListView.editingSequenceTitle = title;
     timeline.tracks = tracks;
-  } catch {}
+  } catch (error: any) {
+    switch (error.name) {
+      case "SyntaxError": {
+        loadingSequence.errorCode = "SyntaxError";
+        break;
+      }
+
+      default: {
+        throw error;
+      }
+    }
+  }
 
   loadingSequence.isLoading = false;
-
-  if (loadingSequence.shouldReload) {
-    loadSequence(state, title);
-  }
 }

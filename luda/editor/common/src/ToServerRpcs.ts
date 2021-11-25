@@ -20,7 +20,9 @@ export type ToServerRpcs = {
     input: {
       destPath: string;
     };
-    output: ArrayBuffer;
+    output:
+      | { isSuccessful: true; file: ArrayBuffer }
+      | { isSuccessful: false; errorCode: string };
   };
   RenameFile: {
     input: {
