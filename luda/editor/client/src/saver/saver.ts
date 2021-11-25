@@ -1,5 +1,6 @@
 import { wait } from "utils";
 import fileSystem from "../fileSystem/fileSystem";
+import { sequenceJsonReplacer } from "../sequenceJson/sequenceJsonReplacer";
 import { AutoSaveState, ISaver } from "./ISaver";
 
 class Saver implements ISaver {
@@ -70,7 +71,7 @@ class Saver implements ISaver {
   }
 
   stringify(value: any): string {
-    return JSON.stringify(value, null, 2);
+    return JSON.stringify(value, sequenceJsonReplacer, 2);
   }
 }
 
