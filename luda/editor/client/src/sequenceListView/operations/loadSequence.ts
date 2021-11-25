@@ -1,4 +1,5 @@
 import fileSystem from "../../fileSystem/fileSystem";
+import { sequenceJsonReviver } from "../../sequenceJson/sequenceJsonReviver";
 import { TimelineState, Track } from "../../timeline/type";
 import { SequenceListViewState } from "../type";
 
@@ -38,7 +39,7 @@ export async function loadSequence(
   }
 
   try {
-    const tracks = JSON.parse(dataString) as Track[];
+    const tracks = JSON.parse(dataString, sequenceJsonReviver) as Track[];
     sequenceListView.editingSequenceTitle = title;
     timeline.tracks = tracks;
   } catch {}
