@@ -49,6 +49,7 @@ class Saver implements ISaver {
       try {
         await fileSystem.write(key, stringifiedValue);
         this.saveStates.set(key, AutoSaveState.saved);
+        this.lastValueStrings.set(key, stringifiedValue);
         return;
       } catch (error) {
         this.saveStates.set(key, AutoSaveState.retryingOnError);
