@@ -10,14 +10,19 @@ import {
   TextBaseline,
   Translate,
 } from "namui";
-import { saver } from "../saver/saver";
+import { AutoSaveState } from "../saver/ISaver";
 import { SequenceListViewState } from "../sequenceListView/type";
 import { renderGoBackButton } from "./renderGoBackButton";
 import { TopBarState } from "./type";
 
 export const renderTopBar: Render<
-  { topBar: TopBarState; sequenceListView: SequenceListViewState },
-  {}
+  {
+    topBar: TopBarState;
+    sequenceListView: SequenceListViewState;
+  },
+  {
+    autoSave: AutoSaveState;
+  }
 > = (state, props) => {
   const { rect } = state.topBar.layout;
   const margin = 4;
@@ -71,13 +76,25 @@ export const renderTopBar: Render<
         size: 14,
       },
       style: {
-        color: saver.isUpToDate ? ColorUtil.Grayscale01(0.4) : ColorUtil.Red,
+        color:
+          props.autoSave === AutoSaveState.saved
+            ? ColorUtil.Grayscale01(0.4)
+            : ColorUtil.Red,
       },
-      text: saver.isSaving
-        ? "Saving..."
-        : saver.isUpToDate
-        ? "Up to date"
-        : "Not up to date",
+      text: savingText(props.autoSave),
     }),
   ];
 };
+
+function savingText(autoSaveState: AutoSaveState): string {
+  switch (autoSaveState) {
+    case AutoSaveState.saving:
+      return "Saving...";
+    case AutoSaveState.saved:
+      return "Up to date";
+    case AutoSaveState.retryingOnError:
+      return "Retrying on error...";
+    case AutoSaveState.failToRecoverError:
+      return "Fail to recover error. Please check the error!";
+  }
+}
