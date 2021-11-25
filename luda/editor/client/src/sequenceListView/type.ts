@@ -1,5 +1,6 @@
 import { Selection, XywhRect } from "namui";
 import { Track } from "../timeline/type";
+import { LoadSequence } from "./operations/loadSequence";
 
 export type SequenceListViewState = {
   layout: {
@@ -18,8 +19,10 @@ export type SequenceListViewState = {
     isLoading: boolean;
     shouldReload: boolean;
   };
-  loadingSequence?: LoadingStateWithTimeout & {
+  loadingSequence?: {
+    loadStartAtMs: number;
     title: string;
+    state?: LoadSequence.LoadSequenceState;
   };
   sequenceListScrollY: number;
   preloadedSequence?: LoadingStateWithTimeout & {

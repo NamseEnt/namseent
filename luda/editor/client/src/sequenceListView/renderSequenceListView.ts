@@ -9,6 +9,7 @@ import { renderSequenceList } from "./sequenceList/renderSequenceList";
 import { SequenceListViewActionState, SequenceListViewState } from "./type";
 import { checkLoadingTimeout } from "./checkLoadingTimeout";
 import { renderLoadingPage } from "./renderLoadingPage/renderLoadingPage";
+import { loadSequence } from "./operations/loadSequence";
 
 export const renderSequenceListView: Render<
   {
@@ -21,11 +22,18 @@ export const renderSequenceListView: Render<
 
   const now = Date.now();
   const loadingTimeoutMs = 5000;
-  checkLoadingTimeout({
-    state: sequenceListView.loadingSequence,
-    now,
-    timeoutMs: loadingTimeoutMs,
-  });
+
+  if (sequenceListView.loadingSequence) {
+    sequenceListView.loadingSequence.state = loadSequence(
+      sequenceListView.loadingSequence,
+    );
+  }
+
+  // checkLoadingTimeout({
+  //   state: sequenceListView.loadingSequence,
+  //   now,
+  //   timeoutMs: loadingTimeoutMs,
+  // });
   checkLoadingTimeout({
     state: sequenceListView.preloadedSequence,
     now,

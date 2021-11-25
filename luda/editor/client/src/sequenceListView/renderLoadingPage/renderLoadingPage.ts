@@ -9,13 +9,29 @@ export const renderLoadingPage: Render<
   }
 > = (state, props) => {
   const { loadingSequence } = state;
-  const loadedSuccessfully =
-    !loadingSequence?.isLoading && !loadingSequence?.errorCode;
-  if (loadedSuccessfully) {
+  const loadingSequenceState = loadingSequence?.state;
+
+  const isLoadingOrFailed =
+    loadingSequenceState &&
+    (loadingSequenceState.type === "loading" ||
+      loadingSequenceState.type === "failed");
+
+  if (!isLoadingOrFailed) {
     return undefined;
   }
 
-  const { isLoading, errorCode } = loadingSequence;
+  switch (loadingSequenceState.type) {
+    case "loading":
+      {
+      }
+      break;
+    case "failed":
+      {
+        loadingSequenceState.errorCode;
+      }
+      break;
+  }
+  // const { isLoading, errorCode } = loadingSequence;
 
   const { width, height } = props;
   const margin = 16;
