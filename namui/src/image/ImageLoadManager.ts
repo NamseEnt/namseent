@@ -28,10 +28,11 @@ export class ImageLoadManager implements IImageLoadManager, IManagerInternal {
   }
   private async startLoad(url: string): Promise<void> {
     try {
-      const response = await fetch(url);
+      const encodedUrl = encodeURI(url);
+      const response = await fetch(encodedUrl);
       if (!response.ok) {
         console.error(
-          `Failed to load image: ${url}, status: ${
+          `Failed to load image: ${encodedUrl}, status: ${
             response.status
           }, ${await response.text()}`,
         );

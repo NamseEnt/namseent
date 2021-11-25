@@ -48,7 +48,8 @@ export const SyncBrowserItems: Render<
     const files = dirents.filter((dirent) => dirent.type === "file");
     const imageFilenameObjects = files.map((dirent) => {
       const splitted = dirent.name.split("-");
-      const [character, pose, emotionAndExtension] = splitted;
+      const [character, pose, ...rest] = splitted;
+      const emotionAndExtension = rest.join("-");
       if (!character || !pose || !emotionAndExtension) {
         throw new Error(`${dirent.name} is invalid`);
       }
