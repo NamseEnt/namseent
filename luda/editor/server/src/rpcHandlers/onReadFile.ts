@@ -8,6 +8,21 @@ export const onReadFile: typeof toServerRpcHandler["onReadFile"] = async (
   { destPath },
 ) => {
   const destPathAbsolute = path.join(resourcesRoot, destPath);
-  const data = await fs.readFile(destPathAbsolute);
-  return data;
+  try {
+    const file = await fs.readFile(destPathAbsolute);
+    return {
+      isSuccessful: true,
+      file,
+    };
+  } catch (error: any) {
+    const errorCode = (error.code || error.toString()) as string;
+    return {
+      isSuccessful: false,
+      errorCode,
+    };
+  }
+  return {
+    isSuccessful: false,
+    errorCode: "Uncaught Error",
+  };
 };

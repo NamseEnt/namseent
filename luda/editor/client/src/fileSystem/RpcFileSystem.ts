@@ -9,7 +9,12 @@ export class RpcFileSystem implements IFileSystem {
     });
     return result.entries;
   }
-  async read(path: string): Promise<ArrayBuffer> {
+  async read(
+    path: string,
+  ): Promise<
+    | { isSuccessful: true; file: ArrayBuffer }
+    | { isSuccessful: false; errorCode: string }
+  > {
     return await this.socket.send("ReadFile", {
       destPath: path,
     });

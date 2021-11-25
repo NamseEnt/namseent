@@ -1,4 +1,4 @@
-import { Clip, Render, Translate } from "namui";
+import { Clip, engine, Render, Translate } from "namui";
 import { renderRows } from "../common/renderRows";
 import { TimelineState } from "../timeline/type";
 import { renderSequenceAddButton } from "./renderSequenceAddButton";
@@ -7,6 +7,8 @@ import { renderSequencePreview } from "./renderSequencePreview";
 import { renderSequenceAddDialog as renderSequenceTitleInputDialog } from "./sequenceTitleInputDialog/renderSequenceTitleInputDialog";
 import { renderSequenceList } from "./sequenceList/renderSequenceList";
 import { SequenceListViewActionState, SequenceListViewState } from "./type";
+import { checkLoadingTimeout } from "./checkLoadingTimeout";
+import { renderLoadingPage } from "./renderLoadingPage/renderLoadingPage";
 
 export const renderSequenceListView: Render<
   {
@@ -16,6 +18,19 @@ export const renderSequenceListView: Render<
   {}
 > = (state, props) => {
   const { sequenceListView } = state;
+
+  const now = Date.now();
+  const loadingTimeoutMs = 5000;
+  checkLoadingTimeout({
+    state: sequenceListView.loadingSequence,
+    now,
+    timeoutMs: loadingTimeoutMs,
+  });
+  checkLoadingTimeout({
+    state: sequenceListView.preloadedSequence,
+    now,
+    timeoutMs: loadingTimeoutMs,
+  });
 
   const margin = 8;
   const spacing = 4;
@@ -87,6 +102,7 @@ export const renderSequenceListView: Render<
           height,
         }),
       ),
+      renderLoadingPage(sequenceListView, sequenceListView.layout.rect),
     ],
   );
 };

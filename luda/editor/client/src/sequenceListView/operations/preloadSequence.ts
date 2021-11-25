@@ -13,16 +13,31 @@ export async function preloadSequence(
     tracks: [],
     lengthMs: 0,
     seekerMs: 0,
+    startedAt: Date.now(),
   } as typeof state.preloadedSequence)!;
 
-  const dataBuffer = await fileSystem.read(`/sequence/${title}.json`);
-  const dataBlob = new Blob([new Uint8Array(Object.values(dataBuffer))]);
-  const dataString = await dataBlob.text();
+  const fileReadResult = await fileSystem.read(`/sequence/${title}.json`);
 
   const targetSequenceChanged = preloadedSequence.title !== title;
   if (targetSequenceChanged) {
     return;
   }
+
+  const loadingCanceled = !preloadedSequence.isLoading;
+  if (loadingCanceled) {
+    return;
+  }
+
+  if (!fileReadResult.isSuccessful) {
+    preloadedSequence.isLoading = false;
+    preloadedSequence.errorCode = fileReadResult.errorCode;
+    return;
+  }
+
+  const dataBlob = new Blob([
+    new Uint8Array(Object.values(fileReadResult.file)),
+  ]);
+  const dataString = await dataBlob.text();
 
   try {
     const tracks = JSON.parse(dataString) as Track[];
@@ -39,8 +54,18 @@ export async function preloadSequence(
         ),
       0,
     );
-  } catch {
-    preloadedSequence.isSequence = false;
+  } catch (error: any) {
+    switch (error.name) {
+      case "SyntaxError": {
+        preloadedSequence.isSequence = false;
+        preloadedSequence.errorCode = "SyntaxError";
+        break;
+      }
+
+      default: {
+        throw error;
+      }
+    }
   }
 
   preloadedSequence.isLoading = false;
