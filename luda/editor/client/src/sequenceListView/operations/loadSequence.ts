@@ -1,9 +1,8 @@
 import fileSystem from "../../fileSystem/fileSystem";
 import { sequenceJsonReviver } from "../../sequenceJson/sequenceJsonReviver";
-import { TimelineState, Track } from "../../timeline/type";
-import { SequenceListViewState } from "../type";
+import { Track } from "../../timeline/type";
 
-namespace LoadSequence {
+export namespace LoadSequence {
   type LoadingState = {
     type: "loading";
   };
@@ -18,77 +17,108 @@ namespace LoadSequence {
     errorCode: string;
   };
 
-  type LoadSequenceState = LoadingState | LoadedState | LoadFailedState;
-}
+  export type LoadSequenceState = {
+    startAtMs: number;
+  } & (LoadingState | LoadedState | LoadFailedState);
 
-export enum LoadSequenceState {
-  "loading" = "loading",
-}
+  const loadingSequenceStates = new Map<string, LoadSequenceState>();
 
-export async function loadSequence(
-  state: {
-    timeline: TimelineState;
-    sequenceListView: SequenceListViewState;
-  },
-  title: string,
-) {
-LoadSequence.  const { timeline, sequenceListView } = state;
+  export function getLoadingSequenceState(
+    title: string,
+  ): LoadSequenceState | undefined {
+    return loadingSequenceStates.get(title);
+  }
 
-  const loadingSequence = (sequenceListView.loadingSequence ??= {
-    isLoading: false,
+  export function trySaveLoadingSequenceState({
     title,
-    startedAt: 0,
-  });
-
-  const isLoadingSameSequence =
-    loadingSequence.isLoading && loadingSequence.title === title;
-  if (isLoadingSameSequence) {
-    return;
-  }
-
-  loadingSequence.isLoading = true;
-  loadingSequence.title = title;
-  loadingSequence.startedAt = Date.now();
-
-  const fileReadResult = await fileSystem.read(`/sequence/${title}.json`);
-
-  const targetSequenceChanged = loadingSequence.title !== title;
-  if (targetSequenceChanged) {
-    return;
-  }
-
-  const loadingCanceled = !loadingSequence.isLoading;
-  if (loadingCanceled) {
-    return;
-  }
-
-  if (!fileReadResult.isSuccessful) {
-    loadingSequence.isLoading = false;
-    loadingSequence.errorCode = fileReadResult.errorCode;
-    return;
-  }
-
-  const dataBlob = new Blob([
-    new Uint8Array(Object.values(fileReadResult.file)),
-  ]);
-  const dataString = await dataBlob.text();
-
-  try {
-    const tracks = JSON.parse(dataString, sequenceJsonReviver) as Track[];
-    sequenceListView.editingSequenceTitle = title;
-    timeline.tracks = tracks;
-  } catch (error: any) {
-    switch (error.name) {
-      case "SyntaxError": {
-        loadingSequence.errorCode = "SyntaxError";
-        break;
-      }
-
-      default: {
-        throw error;
-      }
+    state,
+  }: {
+    title: string;
+    state: LoadSequenceState;
+  }): boolean {
+    const loadingSequenceState = loadingSequenceStates.get(title);
+    if (
+      loadingSequenceState &&
+      loadingSequenceState.startAtMs > state.startAtMs
+    ) {
+      return false;
     }
+
+    loadingSequenceStates.set(title, state);
+    return true;
+  }
+}
+
+export function loadSequence({
+  loadStartAtMs,
+  title,
+}: {
+  loadStartAtMs: number;
+  title: string;
+}): LoadSequence.LoadSequenceState {
+  const loadingSequenceState = LoadSequence.getLoadingSequenceState(title);
+  if (!loadingSequenceState || loadingSequenceState.startAtMs < loadStartAtMs) {
+    startLoad(loadStartAtMs, title);
+    return {
+      type: "loading",
+      startAtMs: loadStartAtMs,
+    };
   }
 
-  loadingSequence.isLoading = false;
+  return loadingSequenceState;
+}
+
+async function startLoad(
+  loadSequenceStartAtMs: number,
+  title: string,
+): Promise<void> {
+  try {
+    LoadSequence.trySaveLoadingSequenceState({
+      title,
+      state: {
+        type: "loading",
+        startAtMs: loadSequenceStartAtMs,
+      },
+    });
+
+    const fileReadResult = await fileSystem.read(`/sequence/${title}.json`);
+
+    if (!fileReadResult.isSuccessful) {
+      LoadSequence.trySaveLoadingSequenceState({
+        title,
+        state: {
+          type: "failed",
+          startAtMs: loadSequenceStartAtMs,
+          errorCode: fileReadResult.errorCode,
+        },
+      });
+      return;
+    }
+
+    const textDecoder = new TextDecoder();
+
+    const dataString = textDecoder.decode(fileReadResult.file);
+    const tracks = JSON.parse(dataString, sequenceJsonReviver) as Track[];
+    LoadSequence.trySaveLoadingSequenceState({
+      title,
+      state: {
+        type: "loaded",
+        startAtMs: loadSequenceStartAtMs,
+        tracks,
+      },
+    });
+  } catch (error) {
+    const errorCode =
+      error instanceof SyntaxError ? "SyntaxError" : "UnknownError";
+
+    LoadSequence.trySaveLoadingSequenceState({
+      title,
+      state: {
+        type: "failed",
+        startAtMs: loadSequenceStartAtMs,
+        errorCode,
+      },
+    });
+    console.error(error);
+  }
 }

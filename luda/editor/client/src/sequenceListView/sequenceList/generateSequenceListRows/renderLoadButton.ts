@@ -43,7 +43,12 @@ export const renderLoadButton: Render<
         },
       },
       onClick: () => {
-        loadSequence(state, title);
+        const nowMs = Date.now();
+        state.sequenceListView.loadingSequence = {
+          loadStartAtMs: nowMs,
+          title,
+        };
+        loadSequence(state.sequenceListView.loadingSequence);
       },
       onMouseIn: () => {
         engine.mousePointer.setCursor(Cursor.pointer);
