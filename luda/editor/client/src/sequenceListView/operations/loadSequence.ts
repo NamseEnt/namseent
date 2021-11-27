@@ -97,7 +97,9 @@ async function startLoad(
 
     const textDecoder = new TextDecoder();
 
-    const dataString = textDecoder.decode(fileReadResult.file);
+    const dataString = textDecoder.decode(
+      new Uint8Array(Object.values(fileReadResult.file)),
+    );
     const tracks = JSON.parse(dataString, sequenceJsonReviver) as Track[];
     LoadSequence.trySaveLoadingSequenceState({
       title,
