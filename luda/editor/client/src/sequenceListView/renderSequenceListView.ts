@@ -7,7 +7,6 @@ import { renderSequencePreview } from "./renderSequencePreview";
 import { renderSequenceAddDialog as renderSequenceTitleInputDialog } from "./sequenceTitleInputDialog/renderSequenceTitleInputDialog";
 import { renderSequenceList } from "./sequenceList/renderSequenceList";
 import { SequenceListViewActionState, SequenceListViewState } from "./type";
-import { checkLoadingTimeout } from "./checkLoadingTimeout";
 import { renderLoadingPage } from "./renderLoadingPage/renderLoadingPage";
 import { loadSequence } from "./operations/loadSequence";
 
@@ -20,25 +19,36 @@ export const renderSequenceListView: Render<
 > = (state, props) => {
   const { sequenceListView } = state;
 
-  const now = Date.now();
-  const loadingTimeoutMs = 5000;
-
   if (sequenceListView.loadingSequence) {
     sequenceListView.loadingSequence.state = loadSequence(
       sequenceListView.loadingSequence,
     );
   }
 
-  // checkLoadingTimeout({
-  //   state: sequenceListView.loadingSequence,
-  //   now,
-  //   timeoutMs: loadingTimeoutMs,
-  // });
-  checkLoadingTimeout({
-    state: sequenceListView.preloadedSequence,
-    now,
-    timeoutMs: loadingTimeoutMs,
-  });
+  if (sequenceListView.preloadedSequence) {
+    sequenceListView.preloadedSequence.state = loadSequence(
+      sequenceListView.preloadedSequence,
+    );
+
+    // shouldCalcSequenceLength
+    if (
+      sequenceListView.preloadedSequence.state.type === "loaded" &&
+      typeof sequenceListView.preloadedSequence.lengthMs === "undefined"
+    ) {
+      sequenceListView.preloadedSequence.lengthMs =
+        sequenceListView.preloadedSequence.state.tracks.reduce(
+          (trackLength, track) =>
+            Math.max(
+              trackLength,
+              track.clips.reduce(
+                (clipLength, clip) => Math.max(clipLength, clip.endMs),
+                0,
+              ),
+            ),
+          0,
+        );
+    }
+  }
 
   const margin = 8;
   const spacing = 4;

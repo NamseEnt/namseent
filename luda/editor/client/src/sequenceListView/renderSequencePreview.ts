@@ -23,7 +23,10 @@ export const renderSequencePreview: Render<
           isPlaying: false,
           playStartTimeMs: 0,
         },
-        tracks: state.preloadedSequence?.tracks || [],
+        tracks:
+          state.preloadedSequence?.state?.type === "loaded"
+            ? state.preloadedSequence?.state.tracks
+            : [],
       },
     ),
   ];

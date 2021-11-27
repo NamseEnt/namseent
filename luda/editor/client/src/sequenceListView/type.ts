@@ -1,5 +1,4 @@
 import { Selection, XywhRect } from "namui";
-import { Track } from "../timeline/type";
 import { LoadSequence } from "./operations/loadSequence";
 
 export type SequenceListViewState = {
@@ -25,11 +24,11 @@ export type SequenceListViewState = {
     state?: LoadSequence.LoadSequenceState;
   };
   sequenceListScrollY: number;
-  preloadedSequence?: LoadingStateWithTimeout & {
+  preloadedSequence?: {
+    loadStartAtMs: number;
     title: string;
-    isSequence: boolean;
-    tracks: Track[];
-    lengthMs: number;
+    state?: LoadSequence.LoadSequenceState;
+    lengthMs?: number;
     seekerMs: number;
   };
 };
@@ -39,9 +38,3 @@ export enum SequenceListViewActionState {
   addSequence = "addSequence",
   renameSequence = "renameSequence",
 }
-
-export type LoadingStateWithTimeout = {
-  isLoading: boolean;
-  startedAt: number;
-  errorCode?: string;
-};

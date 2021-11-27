@@ -12,7 +12,7 @@ import {
 } from "namui";
 import { renderRows } from "../../../common/renderRows";
 import { TimelineState } from "../../../timeline/type";
-import { preloadSequence } from "../../operations/preloadSequence";
+import { loadSequence } from "../../operations/loadSequence";
 import { SequenceListViewState } from "../../type";
 import { renderLoadButton } from "./renderLoadButton";
 import { renderPreviewSlider } from "./renderPreviewSlider";
@@ -45,10 +45,7 @@ export function generateSequenceListRows(
 
   return sequenceTitles.map((title) => {
     const selected = preloadedSequence?.title === title;
-    const loadable =
-      preloadedSequence &&
-      !preloadedSequence.isLoading &&
-      preloadedSequence.isSequence;
+    const loaded = preloadedSequence?.state?.type === "loaded";
 
     const rows: Parameters<typeof renderRows>[0] = [
       {
@@ -118,9 +115,9 @@ export function generateSequenceListRows(
           : undefined,
       },
       {
-        height: selected && loadable ? loadButtonHeight : 0,
+        height: selected && loaded ? loadButtonHeight : 0,
         renderingData:
-          selected && loadable
+          selected && loaded
             ? renderLoadButton(state, {
                 width: previewSliderWidth,
                 height: loadButtonHeight,
@@ -164,7 +161,14 @@ export function generateSequenceListRows(
           onClick: () => {
             const shouldPreloadSequence = preloadedSequence?.title !== title;
             if (shouldPreloadSequence) {
-              preloadSequence(sequenceListView, title);
+              const nowMs = Date.now();
+              sequenceListView.preloadedSequence = {
+                loadStartAtMs: nowMs,
+                title,
+                lengthMs: undefined,
+                seekerMs: 0,
+              };
+              loadSequence(sequenceListView.preloadedSequence);
             }
           },
         }),

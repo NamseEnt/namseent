@@ -8,6 +8,7 @@ import {
   TextAlign,
   TextBaseline,
 } from "namui";
+import { LoadSequence } from "../../operations/loadSequence";
 import { SequenceListViewState } from "../../type";
 
 export const renderPreviewSlider: Render<
@@ -24,7 +25,12 @@ export const renderPreviewSlider: Render<
     return;
   }
 
-  const loadable = !preloadedSequence.isLoading && preloadedSequence.isSequence;
+  const loadSequenceState = preloadedSequence.state;
+  if (!loadSequenceState) {
+    return;
+  }
+
+  const loaded = loadSequenceState.type === "loaded";
 
   return [
     Rect({
@@ -41,18 +47,18 @@ export const renderPreviewSlider: Render<
         },
       },
       onMouseMoveIn: (event) => {
-        if (preloadedSequence.isLoading || !preloadedSequence.isSequence) {
+        if (!loaded || !preloadedSequence.lengthMs) {
           return;
         }
         preloadedSequence.seekerMs =
           (preloadedSequence.lengthMs * event.translated.x) / width;
       },
     }),
-    !loadable
+    !loaded
       ? Text({
           x: width / 2,
           y: height / 2,
-          align: TextAlign.left,
+          align: TextAlign.center,
           baseline: TextBaseline.middle,
           fontType: {
             language: Language.ko,
@@ -63,11 +69,10 @@ export const renderPreviewSlider: Render<
           style: {
             color: ColorUtil.White,
           },
-          text: preloadedSequence.isLoading
-            ? "Loading..."
-            : "It's not sequence file",
+          text: infoText(loadSequenceState),
         })
-      : Rect({
+      : preloadedSequence.lengthMs
+      ? Rect({
           x:
             ((width - height) * preloadedSequence.seekerMs) /
             preloadedSequence.lengthMs,
@@ -82,6 +87,23 @@ export const renderPreviewSlider: Render<
               radius: height / 2,
             },
           },
-        }),
+        })
+      : undefined,
   ];
 };
+
+function infoText(loadSequenceState: LoadSequence.LoadSequenceState) {
+  switch (loadSequenceState.type) {
+    case "loading": {
+      return "Loading...";
+    }
+
+    case "failed": {
+      return `Error: ${loadSequenceState.errorCode}`;
+    }
+
+    default: {
+      throw new Error("Impossible state");
+    }
+  }
+}
