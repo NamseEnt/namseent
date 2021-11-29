@@ -7,15 +7,29 @@ importers:
 
   .:
     specifiers:
+      cli: workspace:^1.0.0
       pnpm: ^6.16.0
     dependencies:
+      cli: link:common/cli
       pnpm: 6.16.0
+
+  common/cli:
+    specifiers:
+      commander: ^8.2.0
+      common-tsconfig: workspace:^4.4.3
+      ts-node: ^10.2.1
+      typescript: '=4.4.3'
+    dependencies:
+      commander: 8.2.0
+      common-tsconfig: link:../tsconfig
+      ts-node: 10.3.0_typescript@4.4.3
+      typescript: 4.4.3
 
   common/tsconfig:
     specifiers:
-      namseent: workspace:^1.0.0
+      typescript: '=4.4.3'
     dependencies:
-      namseent: link:../..
+      typescript: 4.4.3
 
   luda/communication:
     specifiers:
@@ -537,7 +551,6 @@ packages:
     engines: {node: '>=12'}
     dependencies:
       '@cspotcode/source-map-consumer': 0.8.0
-    dev: true
 
   /@emotion/hash/0.8.0:
     resolution: {integrity: sha512-kBJtf7PH6aWwZ6fka3zQ0p6SBYzx4fl1LoZXE2RrnYST9Xljm7WfKJrU4g/Xr3Beg72MLrp1AWNUmuYJTL7Cow==}
@@ -4184,7 +4197,6 @@ packages:
       make-error: 1.3.6
       typescript: 4.4.3
       yn: 3.1.1
-    dev: true
 
   /ts-node/9.1.1_typescript@4.4.3:
     resolution: {integrity: sha512-hPlt7ZACERQGf03M253ytLY3dHbGNGrAq9qIHWUY9XHYl1z7wYngSr3OQ5xmui8o2AaxsONxIzjafLUiWBo1Fg==}
