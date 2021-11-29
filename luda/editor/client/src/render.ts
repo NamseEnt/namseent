@@ -17,6 +17,7 @@ import {
 import { Timeline } from "./timeline/Timeline";
 import { TimelineState } from "./timeline/type";
 import { saver } from "./saver/saver";
+import { getCurrentState } from "history";
 
 type State = {
   timelineState: TimelineState;
@@ -29,7 +30,8 @@ type State = {
 };
 
 export function render(state: State): RenderingTree {
-  saver.autoSave("/sequence/sequence1.json", state.timelineState.tracks);
+  const sequence = getCurrentState(state.timelineState.history);
+  saver.autoSave("/sequence/sequence1.json", sequence);
 
   return [
     ClipEditor(state),
@@ -41,7 +43,7 @@ export function render(state: State): RenderingTree {
     }),
     LivePlayer(state.livePlayer.state, {
       layout: state.livePlayer.layout,
-      tracks: state.timelineState.tracks,
+      tracks: sequence.tracks,
     }),
   ];
 }

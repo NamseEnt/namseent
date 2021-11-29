@@ -6,14 +6,14 @@ import { Sash } from "./clip/Sash";
 export const DefaultTrackBody: Render<
   {
     timelineState: TimelineState;
-    track: Track;
   },
   {
     width: number;
     height: number;
+    track: Track;
   }
 > = (state, props) => {
-  const { clips } = state.track;
+  const { clips } = props.track;
 
   return [
     Rect({
@@ -41,7 +41,7 @@ export const DefaultTrackBody: Render<
             clickMs,
             x: event.x,
             y: event.y,
-            trackId: state.track.id,
+            trackId: props.track.id,
           };
         }
       },

@@ -1,11 +1,14 @@
-import { ColorUtil, Rect, RenderingTree, BorderPosition } from "namui";
+import { ColorUtil, Rect, BorderPosition, Render } from "namui";
 import { Track } from "./type";
 
-export function renderTrackHeader(props: {
-  width: number;
-  height: number;
-  track: Track;
-}): RenderingTree {
+export const renderTrackHeader: Render<
+  {},
+  {
+    width: number;
+    height: number;
+    track: Track;
+  }
+> = (state, props) => {
   return [
     Rect({
       x: 0,
@@ -24,4 +27,4 @@ export function renderTrackHeader(props: {
       },
     }),
   ];
-}
+};

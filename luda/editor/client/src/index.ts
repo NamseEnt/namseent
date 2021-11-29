@@ -1,3 +1,4 @@
+import { createHistory } from "history";
 import { startEngine } from "namui";
 import { nanoid } from "nanoid";
 import { getDefaultSyncBrowserItemsState } from "./cameraAngleEditor/imageBrowser/SyncBrowserItems";
@@ -22,7 +23,7 @@ fetch("/resources/sequence/sequence1.json")
             timeRulerHeight: 20,
           },
           timelineBorderId: nanoid(),
-          tracks: sequence,
+          history: createHistory(sequence),
         },
         cameraAngleEditorWithoutCameraAngleState: {
           layout: {

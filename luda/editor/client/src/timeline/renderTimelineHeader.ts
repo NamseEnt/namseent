@@ -1,25 +1,22 @@
-import {
-  ColorUtil,
-  Rect,
-  RenderingTree,
-  Translate,
-  BorderPosition,
-} from "namui";
+import { ColorUtil, Rect, Translate, BorderPosition, Render } from "namui";
 import { Track } from "./type";
 import { renderTrackHeader } from "./renderTrackHeader";
 
-export function renderTimelineHeader(props: {
-  width: number;
-  height: number;
-  tracks: Track[];
-}): RenderingTree {
+export const renderTimelineHeader: Render<
+  {},
+  {
+    width: number;
+    height: number;
+    tracks: Track[];
+  }
+> = (state, props) => {
   const trackHeaderHeight = 80;
   const trackHeaders = props.tracks.map((track, index) => {
     const x = 0;
     const y = trackHeaderHeight * index;
     const width = props.width;
     const height = trackHeaderHeight;
-    return Translate({ x, y }, renderTrackHeader({ width, height, track }));
+    return Translate({ x, y }, renderTrackHeader({}, { width, height, track }));
   });
   return [
     Rect({
@@ -40,4 +37,4 @@ export function renderTimelineHeader(props: {
     }),
     trackHeaders,
   ];
-}
+};

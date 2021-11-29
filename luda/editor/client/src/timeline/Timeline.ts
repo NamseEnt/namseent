@@ -17,6 +17,7 @@ import { TimelineBody } from "./renderTimelineBody";
 import { renderTimelineHeader } from "./renderTimelineHeader";
 import { TimeRuler } from "./timeRuler/TimeRuler";
 import { TimelineState } from "./type";
+import { getCurrentState } from "history";
 
 export const Timeline: Render<
   TimelineState,
@@ -41,7 +42,8 @@ export const Timeline: Render<
     └──────────────┴────────────────┘
   */
 
-  const { layout, tracks } = state;
+  const sequence = getCurrentState(state.history);
+  const { layout } = state;
   const { x, y, width, height, headerWidth } = layout;
   const bodyWidth = width - headerWidth;
 
@@ -95,11 +97,14 @@ export const Timeline: Render<
           y: state.layout.timeRulerHeight,
         },
         [
-          renderTimelineHeader({
-            width: headerWidth,
-            height,
-            tracks,
-          }),
+          renderTimelineHeader(
+            {},
+            {
+              width: headerWidth,
+              height,
+              tracks: sequence.tracks,
+            },
+          ),
           Translate(
             {
               x: headerWidth,
@@ -108,11 +113,11 @@ export const Timeline: Render<
             TimelineBody(
               {
                 timelineState: state,
-                tracks,
               },
               {
                 width: bodyWidth,
                 height,
+                tracks: sequence.tracks,
               },
             ),
           ),
@@ -244,7 +249,8 @@ function registerDraggingActionResetCallback(state: TimelineState): void {
 }
 
 function getClip(state: TimelineState, clipId: string): Clip | undefined {
-  return state.tracks
+  const sequence = getCurrentState(state.history);
+  return sequence.tracks
     .map((track) => track.clips)
     .flat()
     .find((clip) => clip.id === clipId);

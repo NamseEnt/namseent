@@ -18,15 +18,15 @@ import { renderSubtitleTrackBody } from "./renderSubtitleTrackBody";
 export const TimelineBody: Render<
   {
     timelineState: TimelineState;
-    tracks: Track[];
   },
   {
     width: number;
     height: number;
+    tracks: Track[];
   }
 > = (state, props) => {
   const trackBodyHeight = 80;
-  const trackBodies = state.tracks.map((track, index) => {
+  const trackBodies = props.tracks.map((track, index) => {
     const x = 0;
     const y = trackBodyHeight * index;
     const width = props.width;
@@ -36,9 +36,8 @@ export const TimelineBody: Render<
       TrackBody(
         {
           timelineState: state.timelineState,
-          track,
         },
-        { width, height },
+        { width, height, track },
       ),
     );
   });
@@ -77,46 +76,47 @@ export const TimelineBody: Render<
 const TrackBody: Render<
   {
     timelineState: TimelineState;
-    track: Track;
   },
   {
     width: number;
     height: number;
+    track: Track;
   }
 > = (state, props) => {
-  const { timelineState, track } = state;
+  const { timelineState } = state;
+  const { track } = props;
   switch (track.type) {
     case TrackType.camera:
       return CameraTrackBody(
         {
           timelineState,
-          track,
         },
         {
           width: props.width,
           height: props.height,
+          track,
         },
       );
     case TrackType.subtitle:
       return renderSubtitleTrackBody(
         {
           timelineState,
-          track,
         },
         {
           width: props.width,
           height: props.height,
+          track,
         },
       );
     default:
       return DefaultTrackBody(
         {
           timelineState,
-          track,
         },
         {
           width: props.width,
           height: props.height,
+          track,
         },
       );
   }

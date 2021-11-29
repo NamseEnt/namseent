@@ -9,4 +9,4 @@ export { getUndoableCount } from "./getUndoableCount";
 export { History } from "./History";
 export { redo } from "./redo";
 export { undo } from "./undo";
-export { Immutable } from "immer";
+export { Immutable, Draft } from "immer";

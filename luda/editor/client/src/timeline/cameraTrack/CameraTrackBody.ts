@@ -14,14 +14,14 @@ import { CameraTrackSash } from "./CameraTrackSash";
 export const CameraTrackBody: Render<
   {
     timelineState: TimelineState;
-    track: Track;
   },
   {
     width: number;
     height: number;
+    track: Track;
   }
 > = (state, props) => {
-  const { clips } = state.track;
+  const { clips } = props.track;
 
   refreshCameraClipPositions(state.timelineState, state.track);
 
@@ -71,7 +71,7 @@ export const CameraTrackBody: Render<
               x: event.x,
               y: event.y,
               clipId: clipUnderMouse.id,
-              trackId: state.track.id,
+              trackId: props.track.id,
             };
           } else {
             state.timelineState.contextMenu = {
@@ -79,7 +79,7 @@ export const CameraTrackBody: Render<
               clickMs,
               x: event.x,
               y: event.y,
-              trackId: state.track.id,
+              trackId: props.track.id,
             };
           }
         }

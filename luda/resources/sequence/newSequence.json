@@ -1,0 +1,1033 @@
+{
+  "tracks": [
+    {
+      "id": "camera",
+      "type": "camera",
+      "clips": [
+        {
+          "type": "camera",
+          "id": "cygovxqAPmX589kbMODks",
+          "startMs": 0,
+          "endMs": 1969.5029169845584,
+          "cameraAngle": {
+            "imageSourceUrl": "resources/images/오하연-기본-의심.png",
+            "source01Rect": {
+              "x": 0.1751870041078669,
+              "y": -0.008888895956117526,
+              "width": 0.673267787264914,
+              "height": 1.7706736912777554
+            },
+            "dest01Rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            }
+          }
+        },
+        {
+          "type": "camera",
+          "id": "1Iy6UZtAs2bgxnbb8RsUC",
+          "startMs": 1969.5029169845584,
+          "endMs": 3510.635938692096,
+          "cameraAngle": {
+            "imageSourceUrl": "resources/images/피디-기본-무표정.png",
+            "source01Rect": {
+              "x": 0.20048450109200872,
+              "y": -0.05333332026770351,
+              "width": 0.5709273904930166,
+              "height": 1.7511110980454812
+            },
+            "dest01Rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            }
+          }
+        },
+        {
+          "type": "camera",
+          "id": "-7TQyAL4e1ucU6WxIlab_",
+          "startMs": 3510.635938692096,
+          "endMs": 4897.286107862583,
+          "cameraAngle": {
+            "imageSourceUrl": "resources/images/오하연-기본-궁금+입모음.png",
+            "source01Rect": {
+              "x": 0.17749999999999994,
+              "y": -0.00333333333333338,
+              "width": 0.6675,
+              "height": 1.7555045871559631
+            },
+            "dest01Rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            }
+          }
+        },
+        {
+          "type": "camera",
+          "id": "JugMq9WybWqwGxJPyq1Lh",
+          "startMs": 4897.286107862583,
+          "endMs": 6019.452698208554,
+          "cameraAngle": {
+            "imageSourceUrl": "resources/images/오하연-기본-근심.png",
+            "source01Rect": {
+              "x": 0.15185658914728628,
+              "y": 0.04555555555555559,
+              "width": 0.7431434108527132,
+              "height": 1.9544444444444444
+            },
+            "dest01Rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            }
+          }
+        },
+        {
+          "type": "camera",
+          "id": "faInaQr4i6dNY-uA6SrCF",
+          "startMs": 6019.452698208554,
+          "endMs": 7296.714111238152,
+          "cameraAngle": {
+            "imageSourceUrl": "resources/images/오하연-기본-놀람대.png",
+            "source01Rect": {
+              "x": 0.1349999999999999,
+              "y": -0.0877777777777776,
+              "width": 0.8075,
+              "height": 2.1237003058103974
+            },
+            "dest01Rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            }
+          }
+        },
+        {
+          "type": "camera",
+          "id": "Tdcxm48SusPdELmLd9gxA",
+          "startMs": 7296.714111238152,
+          "endMs": 9106.538006527857,
+          "cameraAngle": {
+            "imageSourceUrl": "resources/images/피디-기본-의심.png",
+            "source01Rect": {
+              "x": 0.08999999999999996,
+              "y": -0.058886549707602404,
+              "width": 0.8255838688280502,
+              "height": 2.532176769139975
+            },
+            "dest01Rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            }
+          }
+        },
+        {
+          "type": "camera",
+          "id": "mABwJmguo30EFkK2zOVyD",
+          "startMs": 9106.538006527857,
+          "endMs": 10625.429965110601,
+          "cameraAngle": {
+            "imageSourceUrl": "resources/images/피디-기본-당황웃음.png",
+            "source01Rect": {
+              "x": 0.18250001259737247,
+              "y": 0.005443458207156842,
+              "width": 0.5836431690655954,
+              "height": 1.7901121012369792
+            },
+            "dest01Rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            }
+          }
+        },
+        {
+          "type": "camera",
+          "id": "RLW5p2OzQnsMuSWjBtE45",
+          "startMs": 10625.429965110601,
+          "endMs": 12403.833245076985,
+          "cameraAngle": {
+            "imageSourceUrl": "resources/images/오하연-기본-당황.png",
+            "source01Rect": {
+              "x": 0.07749999515030737,
+              "y": -0.08433232671988496,
+              "width": 0.6516756175051485,
+              "height": 1.9987767711643287
+            },
+            "dest01Rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            }
+          }
+        },
+        {
+          "type": "camera",
+          "id": "E9ENHarutDnkkW4vVxZbb",
+          "startMs": 12403.833245076985,
+          "endMs": 13235.067898716,
+          "cameraAngle": {
+            "imageSourceUrl": "resources/images/오하연-기본-감은눈.png",
+            "source01Rect": {
+              "x": -0.0925000000000003,
+              "y": 0.20555555555555574,
+              "width": 0.520911756721205,
+              "height": 1.5977064220183483
+            },
+            "dest01Rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            }
+          }
+        },
+        {
+          "type": "camera",
+          "id": "wo4UQ-jNvejacuK5EgTwG",
+          "startMs": 13235.067898716,
+          "endMs": 14251.441057532176,
+          "cameraAngle": {
+            "imageSourceUrl": "resources/images/피디-기본-당황.png",
+            "source01Rect": {
+              "x": 0.20249997687524604,
+              "y": -0.15053011490785848,
+              "width": 0.783616019800927,
+              "height": 2.4034557313753813
+            },
+            "dest01Rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            }
+          }
+        },
+        {
+          "type": "camera",
+          "id": "aeMwy4d3RGT2d8mDANw_c",
+          "startMs": 14251.441057532176,
+          "endMs": 16352.196889528796,
+          "cameraAngle": {
+            "imageSourceUrl": "resources/images/오하연-기본-감은눈.png",
+            "source01Rect": {
+              "x": -0.01250000000000009,
+              "y": -0.17677879714576966,
+              "width": 0.7450000000000001,
+              "height": 1.9593272171253822
+            },
+            "dest01Rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            }
+          }
+        },
+        {
+          "type": "camera",
+          "id": "AUOCRweAjcDJOKlPwA5Z5",
+          "startMs": 16352.196889528796,
+          "endMs": 18029.77899540624,
+          "cameraAngle": {
+            "imageSourceUrl": "resources/images/피디-기본-당황.png",
+            "source01Rect": {
+              "x": 0.2659031007751937,
+              "y": -0.186172273190622,
+              "width": 0.7640968992248063,
+              "height": 2.009551478083588
+            },
+            "dest01Rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            }
+          }
+        },
+        {
+          "type": "camera",
+          "id": "6ze6Wk2duNdzd_MCdSoGF",
+          "startMs": 18029.77899540624,
+          "endMs": 21029.77899540624,
+          "cameraAngle": {
+            "imageSourceUrl": "resources/images/오하연-두손모으고-걱정.png",
+            "source01Rect": {
+              "x": 0.20499999999999996,
+              "y": 0.005555555555555481,
+              "width": 0.6025000000000001,
+              "height": 1.5845565749235475
+            },
+            "dest01Rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "subtitle",
+      "type": "subtitle",
+      "clips": [
+        {
+          "type": "subtitle",
+          "id": "WEniL3qfusSjSXo4BHRJt",
+          "startMs": 679.7134399414062,
+          "endMs": 1934.8909830223122,
+          "subtitle": {
+            "text": "여기 뭐하는 곳이에요?",
+            "fontType": {
+              "fontWeight": 400,
+              "language": "ko",
+              "serif": false,
+              "size": 48
+            },
+            "style": {
+              "background": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                }
+              },
+              "border": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "width": 0
+              },
+              "color": {
+                "type": "F32",
+                "data": [
+                  1,
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "dropShadow": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "x": 0,
+                "y": 0
+              }
+            }
+          }
+        },
+        {
+          "type": "subtitle",
+          "id": "1ggGFmstRYGHh6ShzEzkD",
+          "startMs": 2140.751766026859,
+          "endMs": 3233.104162684259,
+          "subtitle": {
+            "text": "아이돌 소속사요",
+            "fontType": {
+              "fontWeight": 400,
+              "language": "ko",
+              "serif": false,
+              "size": 48
+            },
+            "style": {
+              "background": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                }
+              },
+              "border": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "width": 0
+              },
+              "color": {
+                "type": "F32",
+                "data": [
+                  1,
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "dropShadow": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "x": 0,
+                "y": 0
+              }
+            }
+          }
+        },
+        {
+          "type": "subtitle",
+          "id": "TRGcj40Vzg73_vyAWNrt0",
+          "startMs": 5330.788270320439,
+          "endMs": 6056.229492429647,
+          "subtitle": {
+            "text": "버츄얼...",
+            "fontType": {
+              "fontWeight": 400,
+              "language": "ko",
+              "serif": false,
+              "size": 48
+            },
+            "style": {
+              "background": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                }
+              },
+              "border": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "width": 0
+              },
+              "color": {
+                "type": "F32",
+                "data": [
+                  1,
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "dropShadow": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "x": 0,
+                "y": 0
+              }
+            }
+          }
+        },
+        {
+          "type": "subtitle",
+          "id": "Z9EttfBbXokvkC1valqbJ",
+          "startMs": 6121.460786414608,
+          "endMs": 7662.594617596453,
+          "subtitle": {
+            "text": "유튜버 소속사 아니고요?",
+            "fontType": {
+              "fontWeight": 400,
+              "language": "ko",
+              "serif": false,
+              "size": 48
+            },
+            "style": {
+              "background": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                }
+              },
+              "border": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "width": 0
+              },
+              "color": {
+                "type": "F32",
+                "data": [
+                  1,
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "dropShadow": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "x": 0,
+                "y": 0
+              }
+            }
+          }
+        },
+        {
+          "type": "subtitle",
+          "id": "DoJ8oN40nDwzHtSzVAVNE",
+          "startMs": 8069.564592559803,
+          "endMs": 8926.633881164918,
+          "subtitle": {
+            "text": "그게 뭐에요?",
+            "fontType": {
+              "fontWeight": 400,
+              "language": "ko",
+              "serif": false,
+              "size": 48
+            },
+            "style": {
+              "background": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                }
+              },
+              "border": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "width": 0
+              },
+              "color": {
+                "type": "F32",
+                "data": [
+                  0.9987244606018066,
+                  0.9987244606018066,
+                  0.9987244606018066,
+                  0.9936224222183228
+                ]
+              },
+              "dropShadow": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "x": 0,
+                "y": 0
+              }
+            }
+          }
+        },
+        {
+          "type": "subtitle",
+          "id": "-FaOp1M_7zz0J939icmiW",
+          "startMs": 9548.531599311687,
+          "endMs": 11252.560448791926,
+          "subtitle": {
+            "text": "저희는 아이돌 소속사인데...",
+            "fontType": {
+              "fontWeight": 400,
+              "language": "ko",
+              "serif": false,
+              "size": 48
+            },
+            "style": {
+              "background": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                }
+              },
+              "border": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "width": 0
+              },
+              "color": {
+                "type": "F32",
+                "data": [
+                  1,
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "dropShadow": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "x": 0,
+                "y": 0
+              }
+            }
+          }
+        },
+        {
+          "type": "subtitle",
+          "id": "HPX5HGP1M_G-uT2GqGlH-",
+          "startMs": 12551.189909961671,
+          "endMs": 13382.424563600687,
+          "subtitle": {
+            "text": "안녕히계세요",
+            "fontType": {
+              "fontWeight": 400,
+              "language": "ko",
+              "serif": false,
+              "size": 48
+            },
+            "style": {
+              "background": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                }
+              },
+              "border": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "width": 0
+              },
+              "color": {
+                "type": "F32",
+                "data": [
+                  1,
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "dropShadow": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "x": 0,
+                "y": 0
+              }
+            }
+          }
+        },
+        {
+          "type": "subtitle",
+          "id": "dwYrs0qWqpX6MZU8c_LT-",
+          "startMs": 13445.665513037815,
+          "endMs": 14620.728819148686,
+          "subtitle": {
+            "text": "아니 하연씨, 가지 마시고",
+            "fontType": {
+              "fontWeight": 400,
+              "language": "ko",
+              "serif": false,
+              "size": 48
+            },
+            "style": {
+              "background": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                }
+              },
+              "border": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "width": 0
+              },
+              "color": {
+                "type": "F32",
+                "data": [
+                  1,
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "dropShadow": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "x": 0,
+                "y": 0
+              }
+            }
+          }
+        },
+        {
+          "type": "subtitle",
+          "id": "MNg9WOm_NXuY4afNiw9Cw",
+          "startMs": 14465.21675303872,
+          "endMs": 15613.829875036201,
+          "subtitle": {
+            "text": "아 안해요",
+            "fontType": {
+              "fontWeight": 400,
+              "language": "ko",
+              "serif": false,
+              "size": 48
+            },
+            "style": {
+              "background": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                }
+              },
+              "border": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "width": 0
+              },
+              "color": {
+                "type": "F32",
+                "data": [
+                  1,
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "dropShadow": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "x": 0,
+                "y": 0
+              }
+            }
+          }
+        },
+        {
+          "type": "subtitle",
+          "id": "k8d8wuO7rXXzl4ToEZfR3",
+          "startMs": 15242.149212036687,
+          "endMs": 16787.48952850188,
+          "subtitle": {
+            "text": "이러지 마세요",
+            "fontType": {
+              "fontWeight": 400,
+              "language": "ko",
+              "serif": false,
+              "size": 48
+            },
+            "style": {
+              "background": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                }
+              },
+              "border": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "width": 0
+              },
+              "color": {
+                "type": "F32",
+                "data": [
+                  1,
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "dropShadow": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "x": 0,
+                "y": 0
+              }
+            }
+          }
+        },
+        {
+          "type": "subtitle",
+          "id": "243BDvxijSZG8ABBK5_LY",
+          "startMs": 16781.358108504664,
+          "endMs": 18485.388572264557,
+          "subtitle": {
+            "text": "아니, 저희가 조건이 더 좋잖아요",
+            "fontType": {
+              "fontWeight": 400,
+              "language": "ko",
+              "serif": false,
+              "size": 48
+            },
+            "style": {
+              "background": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                }
+              },
+              "border": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "width": 0
+              },
+              "color": {
+                "type": "F32",
+                "data": [
+                  1,
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "dropShadow": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "x": 0,
+                "y": 0
+              }
+            }
+          }
+        },
+        {
+          "type": "subtitle",
+          "id": "3aPwmBDeXZbygLHtpwXlg",
+          "startMs": 18439.37445446312,
+          "endMs": 21439.37445446312,
+          "subtitle": {
+            "text": "Input text here",
+            "fontType": {
+              "fontWeight": 400,
+              "language": "ko",
+              "serif": false,
+              "size": 48
+            },
+            "style": {
+              "background": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                }
+              },
+              "border": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "width": 0
+              },
+              "color": {
+                "type": "F32",
+                "data": [
+                  1,
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "dropShadow": {
+                "color": {
+                  "type": "F32",
+                  "data": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "x": 0,
+                "y": 0
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

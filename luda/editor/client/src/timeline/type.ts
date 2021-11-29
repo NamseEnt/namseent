@@ -1,4 +1,12 @@
+import { History, Immutable } from "history";
 import { Clip } from "../type";
+
+export type Sequence = {
+  tracks: Track[];
+};
+export type TimelineHistoryState = Immutable<Sequence>;
+
+export type TimelineHistory = History<TimelineHistoryState>;
 
 export type TimelineState = {
   layout: {
@@ -11,12 +19,12 @@ export type TimelineState = {
     msPerPixel: number;
     timeRulerHeight: number;
   };
-  tracks: Track[];
   actionState?: ResizeClip | DragClip;
   clipIdMouseIn?: string;
   contextMenu?: ContextMenuState;
   selectedClip?: Clip;
   readonly timelineBorderId: string;
+  history: TimelineHistory;
 };
 
 export type ContextMenuState = TrackBodyContextMenuState | ClipContextMenuState;
