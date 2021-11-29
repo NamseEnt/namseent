@@ -1,5 +1,5 @@
-import fs from "fs/promises";
-import path from "path";
+import * as fs from "fs/promises";
+import * as path from "path";
 
 export async function createProject(projectName: string): Promise<void> {
   const destination = path.resolve(process.cwd(), projectName);
@@ -11,12 +11,21 @@ export async function createProject(projectName: string): Promise<void> {
   "name": "${projectName}",
   "version": "1.0.0",
   "scripts": {
+    "test": "jest",
     "build": "tsc",
-    "watch": "tsc --watch"
+    "watch": "tsc --watch",
+    "postinstall": "npm run build"
   },
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "dependencies": {
     "common-tsconfig": "workspace:^4.4.3",
-    "typescript": "*"
+    "typescript": "*",
+    "jest": "^27.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.0.2",
+    "ts-jest": "^27.0.5"
   }
 }
 `,
@@ -203,6 +212,16 @@ dist
 .pnp.\*
 
 # End of https://www.toptal.com/developers/gitignore/api/node
+`,
+  );
+
+  await fs.writeFile(
+    `${destination}/jest.config.js`,
+    `/** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+};
 `,
   );
 
