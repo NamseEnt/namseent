@@ -11,7 +11,9 @@
     "namui",
     "packetize",
     "Playhead",
+    "Redoable",
     "Rpcs",
+    "Undoable",
     "unpacketize"
   ],
   "editor.formatOnSave": true
