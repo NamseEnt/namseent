@@ -15,7 +15,7 @@ import {
   SubtitleEditorWithoutSubtitleState,
 } from "./subtitleEditor/type";
 import { Timeline } from "./timeline/Timeline";
-import { TimelineState } from "./timeline/type";
+import { TimelineSequenceNullableState, TimelineState } from "./timeline/type";
 import { saver } from "./saver/saver";
 import { renderSequenceListView } from "./sequenceListView/renderSequenceListView";
 import { SequenceListViewState } from "./sequenceListView/type";
@@ -23,7 +23,7 @@ import { renderTopBar } from "./topBar/renderTopBar";
 import { TopBarState } from "./topBar/type";
 
 type State = {
-  timelineState: TimelineState;
+  timelineState: TimelineSequenceNullableState;
   cameraAngleEditorWithoutCameraAngleState: CameraAngleEditorWithoutCameraAngleState;
   subtitleEditorWithoutSubtitleState: SubtitleEditorWithoutSubtitleState;
   livePlayer: {
@@ -35,11 +35,10 @@ type State = {
 };
 
 export function render(state: State): RenderingTree {
-  const { editingSequenceTitle } = state.sequenceListViewState;
+  const { title, tracks } = state.timelineState;
+  const doesTimelineHasSequence = title && tracks;
 
-  const isEditingSequence = editingSequenceTitle !== undefined;
-
-  if (!isEditingSequence) {
+  if (!doesTimelineHasSequence) {
     return renderSequenceListView(
       {
         sequenceListView: state.sequenceListViewState,
@@ -49,14 +48,22 @@ export function render(state: State): RenderingTree {
     );
   }
 
+  const timelineState: TimelineState = state.timelineState as TimelineState;
+
   const autoSaveState = saver.autoSave(
-    `/sequence/${editingSequenceTitle}.json`,
+    `/sequence/${title}.json`,
     state.timelineState.tracks,
   );
 
   return [
-    ClipEditor(state),
-    Timeline(state.timelineState, {
+    ClipEditor({
+      cameraAngleEditorWithoutCameraAngleState:
+        state.cameraAngleEditorWithoutCameraAngleState,
+      subtitleEditorWithoutSubtitleState:
+        state.subtitleEditorWithoutSubtitleState,
+      timelineState,
+    }),
+    Timeline(timelineState, {
       changePlaybackTimeMs(playbackTimeMs) {
         changeLivePlayerPlaybackTime(state.livePlayer.state, playbackTimeMs);
       },
@@ -64,11 +71,11 @@ export function render(state: State): RenderingTree {
     }),
     LivePlayer(state.livePlayer.state, {
       layout: state.livePlayer.layout,
-      tracks: state.timelineState.tracks,
+      tracks,
     }),
     renderTopBar(
       {
-        sequenceListView: state.sequenceListViewState,
+        timeline: timelineState,
         topBar: state.topBarState,
       },
       {
@@ -78,15 +85,23 @@ export function render(state: State): RenderingTree {
   ];
 }
 
-const ClipEditor: Render<State> = (state) => {
-  const { selectedClip } = state.timelineState;
+const ClipEditor: Render<{
+  timelineState: TimelineState;
+  subtitleEditorWithoutSubtitleState: SubtitleEditorWithoutSubtitleState;
+  cameraAngleEditorWithoutCameraAngleState: CameraAngleEditorWithoutCameraAngleState;
+}> = ({
+  timelineState,
+  subtitleEditorWithoutSubtitleState,
+  cameraAngleEditorWithoutCameraAngleState,
+}) => {
+  const { selectedClip } = timelineState;
   if (!selectedClip) {
     return;
   }
 
   if (isCameraClip(selectedClip)) {
     const cameraAngleEditorState: CameraAngleEditorState = Object.assign(
-      state.cameraAngleEditorWithoutCameraAngleState,
+      cameraAngleEditorWithoutCameraAngleState,
       {
         cameraAngle: selectedClip.cameraAngle,
       },
@@ -96,7 +111,7 @@ const ClipEditor: Render<State> = (state) => {
 
   if (isSubtitleClip(selectedClip)) {
     const subtitleEditorState: SubtitleEditorState = Object.assign(
-      state.subtitleEditorWithoutSubtitleState,
+      subtitleEditorWithoutSubtitleState,
       {
         subtitle: selectedClip.subtitle,
       },
@@ -104,7 +119,7 @@ const ClipEditor: Render<State> = (state) => {
     return renderSubtitleEditor(
       {
         subtitleEditor: subtitleEditorState,
-        timeline: state.timelineState,
+        timeline: timelineState,
       },
       {},
     );

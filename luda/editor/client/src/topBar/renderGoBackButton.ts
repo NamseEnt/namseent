@@ -11,10 +11,11 @@ import {
   TextAlign,
   TextBaseline,
 } from "namui";
-import { SequenceListViewState } from "../sequenceListView/type";
+import { initTimeline } from "../timeline/operations/initTimeline";
+import { TimelineState } from "../timeline/type";
 
 export const renderGoBackButton: Render<
-  SequenceListViewState,
+  TimelineState,
   {
     width: number;
     height: number;
@@ -42,7 +43,7 @@ export const renderGoBackButton: Render<
         },
       },
       onClick: () => {
-        state.editingSequenceTitle = undefined;
+        initTimeline(state);
       },
       onMouseIn: () => {
         engine.mousePointer.setCursor(Cursor.pointer);

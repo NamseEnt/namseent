@@ -1,6 +1,6 @@
 import { Clip, engine, Render, Translate } from "namui";
 import { renderRows } from "../common/renderRows";
-import { TimelineState } from "../timeline/type";
+import { TimelineSequenceNullableState } from "../timeline/type";
 import { renderSequenceAddButton } from "./renderSequenceAddButton";
 import { renderSequenceIndexReloadButton } from "./renderSequenceIndexReloadButton";
 import { renderSequencePreview } from "./renderSequencePreview";
@@ -12,12 +12,12 @@ import { loadSequence } from "./operations/loadSequence";
 
 export const renderSequenceListView: Render<
   {
-    timeline: TimelineState;
+    timeline: TimelineSequenceNullableState;
     sequenceListView: SequenceListViewState;
   },
   {}
 > = (state, props) => {
-  const { sequenceListView } = state;
+  const { sequenceListView, timeline } = state;
 
   if (sequenceListView.loadingSequence) {
     sequenceListView.loadingSequence.state = loadSequence(
@@ -120,7 +120,13 @@ export const renderSequenceListView: Render<
           height,
         }),
       ),
-      renderLoadingPage(sequenceListView, sequenceListView.layout.rect),
+      renderLoadingPage(
+        {
+          sequenceListViewState: sequenceListView,
+          timelineState: timeline,
+        },
+        sequenceListView.layout.rect,
+      ),
     ],
   );
 };

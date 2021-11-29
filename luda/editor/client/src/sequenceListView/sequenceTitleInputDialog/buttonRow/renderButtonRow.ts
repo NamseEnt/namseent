@@ -1,12 +1,12 @@
 import { Render, Translate } from "namui";
-import { TimelineState } from "../../../timeline/type";
+import { TimelineSequenceNullableState } from "../../../timeline/type";
 import { SequenceListViewState } from "../../type";
 import { renderCancelButton } from "./renderCancelButton";
 import { renderOkButton } from "./renderOkButton";
 
 export const renderButtonRow: Render<
   {
-    timeline: TimelineState;
+    timeline: TimelineSequenceNullableState;
     sequenceListView: SequenceListViewState;
   },
   { width: number }

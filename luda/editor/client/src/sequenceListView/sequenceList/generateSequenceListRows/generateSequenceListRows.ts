@@ -11,7 +11,7 @@ import {
   Translate,
 } from "namui";
 import { renderRows } from "../../../common/renderRows";
-import { TimelineState } from "../../../timeline/type";
+import { TimelineSequenceNullableState } from "../../../timeline/type";
 import { loadSequence } from "../../operations/loadSequence";
 import { SequenceListViewState } from "../../type";
 import { renderLoadButton } from "./renderLoadButton";
@@ -22,7 +22,7 @@ import { renderTimeText } from "./renderTimeText";
 
 export function generateSequenceListRows(
   state: {
-    timeline: TimelineState;
+    timeline: TimelineSequenceNullableState;
     sequenceListView: SequenceListViewState;
   },
   props: {

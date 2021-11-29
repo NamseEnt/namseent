@@ -1,13 +1,13 @@
 import { Render } from "namui";
 import { renderRows } from "../../common/renderRows";
-import { TimelineState } from "../../timeline/type";
+import { TimelineSequenceNullableState } from "../../timeline/type";
 import { SequenceListViewState } from "../type";
 import { renderButtonRow } from "./buttonRow/renderButtonRow";
 import { renderSequenceTitleInput } from "./renderSequenceTitleInput";
 
 export const renderSequenceAddDialog: Render<
   {
-    timeline: TimelineState;
+    timeline: TimelineSequenceNullableState;
     sequenceListView: SequenceListViewState;
   },
   { width: number }

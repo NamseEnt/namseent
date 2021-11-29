@@ -11,18 +11,12 @@ import {
   TextAlign,
   TextBaseline,
 } from "namui";
-import { TimelineSequenceNullableState } from "../../../timeline/type";
-import { loadSequence } from "../../operations/loadSequence";
-import { SequenceListViewState } from "../../type";
+import { SequenceListViewState } from "../type";
 
-export const renderLoadButton: Render<
-  {
-    timeline: TimelineSequenceNullableState;
-    sequenceListView: SequenceListViewState;
-  },
-  { width: number; height: number; title: string }
-> = (state, props) => {
-  const { width, height, title } = props;
+export const renderCloseButton: Render<
+  SequenceListViewState,
+  { width: number; height: number }
+> = (state, { width, height }) => {
   return [
     Rect({
       x: 0,
@@ -43,12 +37,7 @@ export const renderLoadButton: Render<
         },
       },
       onClick: () => {
-        const nowMs = Date.now();
-        state.sequenceListView.loadingSequence = {
-          loadStartAtMs: nowMs,
-          title,
-        };
-        loadSequence(state.sequenceListView.loadingSequence);
+        state.loadingSequence = undefined;
       },
       onMouseIn: () => {
         engine.mousePointer.setCursor(Cursor.pointer);
@@ -68,7 +57,7 @@ export const renderLoadButton: Render<
       style: {
         color: ColorUtil.White,
       },
-      text: "Load Sequence",
+      text: "Close",
     }),
   ];
 };

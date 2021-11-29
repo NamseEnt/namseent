@@ -11,14 +11,14 @@ import {
   Translate,
 } from "namui";
 import { AutoSaveState } from "../saver/ISaver";
-import { SequenceListViewState } from "../sequenceListView/type";
+import { TimelineState } from "../timeline/type";
 import { renderGoBackButton } from "./renderGoBackButton";
 import { TopBarState } from "./type";
 
 export const renderTopBar: Render<
   {
     topBar: TopBarState;
-    sequenceListView: SequenceListViewState;
+    timeline: TimelineState;
   },
   {
     autoSave: AutoSaveState;
@@ -43,7 +43,7 @@ export const renderTopBar: Render<
     }),
     Translate(
       { x: margin, y: margin },
-      renderGoBackButton(state.sequenceListView, {
+      renderGoBackButton(state.timeline, {
         width: 64,
         height,
       }),
@@ -62,7 +62,7 @@ export const renderTopBar: Render<
       style: {
         color: ColorUtil.Black,
       },
-      text: state.sequenceListView.editingSequenceTitle!,
+      text: state.timeline.title!,
     }),
     Text({
       x: margin + width,

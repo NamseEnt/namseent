@@ -7,7 +7,6 @@ export type SequenceListViewState = {
     listWidth: number;
   };
   actionState: SequenceListViewActionState;
-  editingSequenceTitle?: string;
   newTitle: string;
   textInput: {
     focus: boolean;

@@ -11,14 +11,18 @@ import {
   TextAlign,
   TextBaseline,
 } from "namui";
-import { TimelineState, TrackType } from "../../../timeline/type";
+import { initTimeline } from "../../../timeline/operations/initTimeline";
+import {
+  TimelineSequenceNullableState,
+  TrackType,
+} from "../../../timeline/type";
 import { loadSequenceTitles } from "../../operations/loadSequenceTitles";
 import { renameSequence } from "../../operations/renameSequence";
 import { SequenceListViewActionState, SequenceListViewState } from "../../type";
 
 export const renderOkButton: Render<
   {
-    timeline: TimelineState;
+    timeline: TimelineSequenceNullableState;
     sequenceListView: SequenceListViewState;
   },
   {
@@ -51,19 +55,22 @@ export const renderOkButton: Render<
       onClick: async () => {
         switch (sequenceListView.actionState) {
           case SequenceListViewActionState.addSequence: {
-            sequenceListView.editingSequenceTitle = sequenceListView.newTitle;
-            timeline.tracks = [
-              {
-                id: "camera",
-                type: TrackType.camera,
-                clips: [],
-              },
-              {
-                id: "subtitle",
-                type: TrackType.subtitle,
-                clips: [],
-              },
-            ];
+            initTimeline(
+              timeline,
+              [
+                {
+                  id: "camera",
+                  type: TrackType.camera,
+                  clips: [],
+                },
+                {
+                  id: "subtitle",
+                  type: TrackType.subtitle,
+                  clips: [],
+                },
+              ],
+              sequenceListView.newTitle,
+            );
             break;
           }
 

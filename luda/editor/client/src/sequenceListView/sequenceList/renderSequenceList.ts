@@ -1,6 +1,6 @@
 import { Clip, ColorUtil, engine, Mathu, Rect, Render, Translate } from "namui";
 import { renderRows } from "../../common/renderRows";
-import { TimelineState } from "../../timeline/type";
+import { TimelineSequenceNullableState } from "../../timeline/type";
 import { loadSequenceTitles } from "../operations/loadSequenceTitles";
 import { SequenceListViewState } from "../type";
 import { generateSequenceListRows } from "./generateSequenceListRows/generateSequenceListRows";
@@ -8,7 +8,7 @@ import { renderScrollbar } from "./scrollbar/renderScrollbar";
 
 export const renderSequenceList: Render<
   {
-    timeline: TimelineState;
+    timeline: TimelineSequenceNullableState;
     sequenceListView: SequenceListViewState;
   },
   {

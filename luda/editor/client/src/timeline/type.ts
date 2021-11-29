@@ -1,6 +1,6 @@
 import { Clip } from "../type";
 
-export type TimelineState = {
+export type TimelineSequenceNullableState = {
   layout: {
     x: number;
     y: number;
@@ -11,12 +11,18 @@ export type TimelineState = {
     msPerPixel: number;
     timeRulerHeight: number;
   };
-  tracks: Track[];
+  title?: string;
+  tracks?: Track[];
   actionState?: ResizeClip | DragClip;
   clipIdMouseIn?: string;
   contextMenu?: ContextMenuState;
   selectedClip?: Clip;
   readonly timelineBorderId: string;
+};
+
+export type TimelineState = TimelineSequenceNullableState & {
+  title: string;
+  tracks: Track[];
 };
 
 export type ContextMenuState = TrackBodyContextMenuState | ClipContextMenuState;
