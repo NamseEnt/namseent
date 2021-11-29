@@ -9,6 +9,7 @@
     "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
+    "cli": "workspace:^1.0.0",
     "pnpm": "^6.16.0"
   },
   "pnpm": {
