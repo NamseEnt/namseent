@@ -1,5 +1,5 @@
 import { IFileSystem } from "./IFileSystem";
-import { Dirent, ToServerSocket } from "luda-editor-common";
+import { Dirent, RpcResult, ToServerSocket } from "luda-editor-common";
 
 export class RpcFileSystem implements IFileSystem {
   constructor(private readonly socket: ToServerSocket) {}
@@ -9,12 +9,7 @@ export class RpcFileSystem implements IFileSystem {
     });
     return result.entries;
   }
-  async read(
-    path: string,
-  ): Promise<
-    | { isSuccessful: true; file: ArrayBuffer }
-    | { isSuccessful: false; errorCode: string }
-  > {
+  async read(path: string): Promise<RpcResult<ArrayBuffer>> {
     return await this.socket.send("ReadFile", {
       destPath: path,
     });

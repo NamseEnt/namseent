@@ -12,17 +12,17 @@ export const onReadFile: typeof toServerRpcHandler["onReadFile"] = async (
     const file = await fs.readFile(destPathAbsolute);
     return {
       isSuccessful: true,
-      file,
+      result: file,
     };
   } catch (error: any) {
     const errorCode = (error.code || error.toString()) as string;
     return {
       isSuccessful: false,
-      errorCode,
+      error: errorCode,
     };
   }
   return {
     isSuccessful: false,
-    errorCode: "Uncaught Error",
+    error: "Uncaught Error",
   };
 };

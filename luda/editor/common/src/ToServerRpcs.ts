@@ -1,3 +1,4 @@
+import { RpcResult } from ".";
 import { Dirent } from "./type";
 
 export type ToServerRpcs = {
@@ -20,9 +21,7 @@ export type ToServerRpcs = {
     input: {
       destPath: string;
     };
-    output:
-      | { isSuccessful: true; file: ArrayBuffer }
-      | { isSuccessful: false; errorCode: string };
+    output: RpcResult<ArrayBuffer>;
   };
   RenameFile: {
     input: {

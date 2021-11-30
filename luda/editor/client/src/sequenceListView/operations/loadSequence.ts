@@ -89,16 +89,15 @@ async function startLoad(
         state: {
           type: "failed",
           startAtMs: loadSequenceStartAtMs,
-          errorCode: fileReadResult.errorCode,
+          errorCode: fileReadResult.error,
         },
       });
       return;
     }
 
     const textDecoder = new TextDecoder();
-
     const dataString = textDecoder.decode(
-      new Uint8Array(Object.values(fileReadResult.file)),
+      new Uint8Array(Object.values(fileReadResult.result)),
     );
     const tracks = JSON.parse(dataString, sequenceJsonReviver) as Track[];
     LoadSequence.trySaveLoadingSequenceState({
