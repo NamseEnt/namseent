@@ -21,9 +21,10 @@ import { renderSequenceListView } from "./sequenceListView/renderSequenceListVie
 import { SequenceListViewState } from "./sequenceListView/type";
 import { renderTopBar } from "./topBar/renderTopBar";
 import { TopBarState } from "./topBar/type";
+import { doesTimelineHasSequence } from "./timelineTypeGuard";
 
 type State = {
-  timelineState: TimelineSequenceNullableState;
+  timelineState: TimelineSequenceNullableState | TimelineState;
   cameraAngleEditorWithoutCameraAngleState: CameraAngleEditorWithoutCameraAngleState;
   subtitleEditorWithoutSubtitleState: SubtitleEditorWithoutSubtitleState;
   livePlayer: {
@@ -35,10 +36,7 @@ type State = {
 };
 
 export function render(state: State): RenderingTree {
-  const { title, tracks } = state.timelineState;
-  const doesTimelineHasSequence = title && tracks;
-
-  if (!doesTimelineHasSequence) {
+  if (!doesTimelineHasSequence(state.timelineState)) {
     return renderSequenceListView(
       {
         sequenceListView: state.sequenceListViewState,
@@ -47,6 +45,7 @@ export function render(state: State): RenderingTree {
       {},
     );
   }
+  const { title, tracks } = state.timelineState;
 
   const timelineState: TimelineState = state.timelineState as TimelineState;
 
