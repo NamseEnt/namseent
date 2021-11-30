@@ -11,16 +11,21 @@ import {
   TextAlign,
   TextBaseline,
 } from "namui";
+import { loadSequenceTitles } from "../sequenceListView/operations/loadSequenceTitles";
+import { SequenceListViewState } from "../sequenceListView/type";
 import { initTimeline } from "../timeline/operations/initTimeline";
 import { TimelineState } from "../timeline/type";
 
 export const renderGoBackButton: Render<
-  TimelineState,
+  {
+    timelineState: TimelineState;
+    sequenceListViewState: SequenceListViewState;
+  },
   {
     width: number;
     height: number;
   }
-> = (state, props) => {
+> = ({ timelineState, sequenceListViewState }, props) => {
   const { width, height } = props;
 
   return [
@@ -43,7 +48,8 @@ export const renderGoBackButton: Render<
         },
       },
       onClick: () => {
-        initTimeline(state);
+        initTimeline(timelineState);
+        loadSequenceTitles(sequenceListViewState);
       },
       onMouseIn: () => {
         engine.mousePointer.setCursor(Cursor.pointer);

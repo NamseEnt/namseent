@@ -75,8 +75,9 @@ export function render(state: State): RenderingTree {
     }),
     renderTopBar(
       {
-        timeline: timelineState,
-        topBar: state.topBarState,
+        timelineState,
+        topBarState: state.topBarState,
+        sequenceListViewState: state.sequenceListViewState,
       },
       {
         autoSave: autoSaveState,
