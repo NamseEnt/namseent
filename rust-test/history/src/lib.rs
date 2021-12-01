@@ -1,15 +1,7 @@
-mod History;
-mod commit;
-mod create_history;
-mod get_current_state;
-mod redo;
-mod undo;
+mod history;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-}
+pub use self::history::commit::*;
+pub use self::history::history::History;
+pub use self::history::new::*;
+pub use self::history::redo::*;
+pub use self::history::undo::*;

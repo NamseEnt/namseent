@@ -1,8 +1,7 @@
+use crate::History;
 use std::fmt;
 
-use crate::History::History;
-
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct RedoError;
 
 impl fmt::Display for RedoError {
@@ -31,7 +30,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{redo::RedoError, History::History};
+    use crate as history;
 
     #[test]
     fn should_throw_error_if_redo_more_than_redoables() {
@@ -40,7 +39,7 @@ mod tests {
             value: i32,
         }
         let state = State { value: 1 };
-        let mut history = History::create_history(state);
+        let mut history = history::new(state);
 
         let result = history.commit::<()>(|state| {
             state.value += 1;
@@ -48,8 +47,8 @@ mod tests {
         });
         assert_eq!(result, Result::Ok(()));
 
-        assert!(matches!(history.undo(1), Ok(_)));
-        assert!(matches!(history.redo(2), Err(RedoError)));
+        assert_eq!(history.undo(1), Result::Ok(()));
+        assert_eq!(history.redo(2), Err(history::RedoError));
     }
 
     #[test]
@@ -59,7 +58,7 @@ mod tests {
             value: i32,
         }
         let state = State { value: 1 };
-        let mut history = History::create_history(state);
+        let mut history = history::new(state);
 
         let result = history.commit::<()>(|state| {
             state.value += 1;
@@ -67,7 +66,7 @@ mod tests {
         });
         assert_eq!(result, Result::Ok(()));
 
-        assert!(matches!(history.undo(1), Ok(_)));
-        assert!(matches!(history.redo(1), Ok(_)));
+        assert_eq!(history.undo(1), Result::Ok(()));
+        assert_eq!(history.redo(1), Result::Ok(()));
     }
 }

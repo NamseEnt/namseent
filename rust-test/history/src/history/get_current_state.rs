@@ -1,4 +1,4 @@
-use crate::History::History;
+use crate::History;
 
 impl<TState> History<TState>
 where
@@ -11,12 +11,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::History::History;
+    use crate as history;
 
     #[test]
     fn current_state_of_just_created_history_should_be_what_you_pass_on_creating() {
         let state = 1;
-        let history = History::create_history(state);
+        let history = history::new(state);
         let next_state = history.get_current_state();
         assert_eq!(&state, next_state);
     }
@@ -28,7 +28,7 @@ mod tests {
             value: i32,
         }
         let state = State { value: 1 };
-        let mut history = History::create_history(state);
+        let mut history = history::new(state);
 
         let result = history.commit::<()>(|state| {
             state.value += 1;
@@ -47,7 +47,7 @@ mod tests {
             value: i32,
         }
         let state = State { value: 1 };
-        let mut history = History::create_history(state);
+        let mut history = history::new(state);
 
         let commit_result = history.commit::<()>(|state| {
             state.value += 1;
@@ -55,8 +55,7 @@ mod tests {
         });
         assert_eq!(commit_result, Result::Ok(()));
 
-        let undo_result = history.undo(1);
-        assert_eq!(undo_result.is_ok(), true);
+        assert_eq!(history.undo(1).is_ok(), true);
 
         let next_state = history.get_current_state();
         assert_eq!(state.value, next_state.value);
@@ -69,7 +68,7 @@ mod tests {
             value: i32,
         }
         let state = State { value: 1 };
-        let mut history = History::create_history(state);
+        let mut history = history::new(state);
 
         let commit_result = history.commit::<()>(|state| {
             state.value += 1;
@@ -77,8 +76,8 @@ mod tests {
         });
         assert_eq!(commit_result, Result::Ok(()));
 
-        assert!(matches!(history.undo(1), Ok(_)));
-        assert!(matches!(history.redo(1), Ok(_)));
+        assert_eq!(history.undo(1), Ok(()));
+        assert_eq!(history.redo(1), Ok(()));
 
         assert_eq!(history.get_current_state().value, 2);
     }

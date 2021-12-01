@@ -1,8 +1,7 @@
+use crate::History;
 use std::fmt;
 
-use crate::History::History;
-
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct UndoError;
 
 impl fmt::Display for UndoError {
@@ -31,7 +30,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{undo::UndoError, History::History};
+    use crate as history;
 
     #[test]
     fn should_throw_error_if_undo_more_than_undoables() {
@@ -40,7 +39,7 @@ mod tests {
             value: i32,
         }
         let state = State { value: 1 };
-        let mut history = History::create_history(state);
+        let mut history = history::new(state);
 
         let result = history.commit::<()>(|state| {
             state.value += 1;
@@ -49,7 +48,7 @@ mod tests {
         assert_eq!(result, Result::Ok(()));
 
         let undo_result = history.undo(2);
-        assert!(matches!(undo_result, Err(UndoError)));
+        assert_eq!(undo_result, Err(history::UndoError));
     }
 
     #[test]
@@ -59,7 +58,7 @@ mod tests {
             value: i32,
         }
         let state = State { value: 1 };
-        let mut history = History::create_history(state);
+        let mut history = history::new(state);
 
         let result = history.commit::<()>(|state| {
             state.value += 1;
@@ -67,7 +66,6 @@ mod tests {
         });
         assert_eq!(result, Result::Ok(()));
 
-        let undo_result = history.undo(1);
-        assert!(matches!(undo_result, Ok(_)));
+        assert_eq!(history.undo(1), Ok(()));
     }
 }

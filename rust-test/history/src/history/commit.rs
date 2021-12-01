@@ -1,4 +1,4 @@
-use crate::History::History;
+use crate::History;
 
 impl<TState> History<TState>
 where
@@ -24,7 +24,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::History::History;
+    use crate as history;
 
     #[test]
     fn should_be_failed_if_update_state_is_failed() {
@@ -34,7 +34,7 @@ mod tests {
         }
 
         let state = State { value: 1 };
-        let mut history = History::create_history(state);
+        let mut history = history::new(state);
 
         let result = history.commit::<String>(|state| {
             state.value = 2;
@@ -51,7 +51,7 @@ mod tests {
         }
 
         let state = State { value: 1 };
-        let mut history = History::create_history(state);
+        let mut history = history::new(state);
 
         let result = history.commit::<String>(|state| {
             state.value = 2;
