@@ -1,16 +1,11 @@
 mod canvas_kit;
-use std::{
-    cell::RefCell,
-    marker::PhantomData,
-    rc::Rc,
-    time::{Duration, Instant},
-};
+use std::time::Duration;
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::HtmlCanvasElement;
 
 use crate::engine::engine_common::{EngineContext, EngineImpl, Surface};
 
-use super::engine_common::FpsInfo;
+use super::engine_common::{FpsInfo, Render};
 
 impl Surface for canvas_kit::Surface {}
 pub struct Engine;
@@ -31,11 +26,12 @@ fn window() -> web_sys::Window {
 }
 
 impl EngineImpl for Engine {
-    fn init<TState>(state: TState) -> EngineContext<TState> {
+    fn init<TState>(state: TState, render: Render<TState>) -> EngineContext<TState> {
         let surface = make_surface().unwrap();
 
         EngineContext {
             state,
+            render,
             surface: Box::new(surface),
             fps_info: FpsInfo {
                 fps: 0,

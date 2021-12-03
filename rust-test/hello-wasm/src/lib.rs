@@ -1,9 +1,9 @@
 mod engine;
+use engine::*;
 mod utils;
 
 use engine::start_engine;
 use wasm_bindgen::prelude::*;
-use web_sys::HtmlCanvasElement;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -26,6 +26,7 @@ pub fn greet() {
     alert("Hello, hello-wasm!");
     start_engine(State { value: 0 }, |state| {
         state.value += 1;
+        engine::Engine::log(state.value.to_string());
         None
     });
 }

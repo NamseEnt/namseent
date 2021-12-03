@@ -1,26 +1,18 @@
 pub(crate) mod draw;
 mod engine_common;
-use std::{
-    borrow::BorrowMut,
-    cell::RefCell,
-    ops::Deref,
-    rc::Rc,
-    time::{Duration, Instant},
-};
+use std::time::Duration;
 
-use engine_common::*;
+pub use engine_common::*;
 
 #[cfg(target_family = "wasm")]
 mod engine_web;
 
 #[cfg(target_family = "wasm")]
-use self::engine_web::*;
+pub use self::engine_web::*;
 
 pub fn start_engine<TState: 'static>(state: TState, render: Render<TState>) {
-    // let engine_context = Rc::new(RefCell::new(Engine::init()));
-    let engine_context = Engine::init(state);
+    let engine_context = Engine::init(state, render);
     let boxed_engine_context = Box::new(engine_context);
-    // Engine::request_animation_frame(engine_context, on_frame);
 
     Engine::request_animation_frame(Box::new(move || {
         on_frame(boxed_engine_context);
@@ -29,7 +21,10 @@ pub fn start_engine<TState: 'static>(state: TState, render: Render<TState>) {
 
 fn on_frame<TState: 'static>(mut boxed_engine_context: Box<EngineContext<TState>>) {
     let engine_context = &mut *boxed_engine_context;
+
     update_fps_info(&mut engine_context.fps_info);
+
+    (engine_context.render)(&mut engine_context.state);
 
     Engine::request_animation_frame(Box::new(move || {
         on_frame(boxed_engine_context);

@@ -1,4 +1,4 @@
-use std::{cell::RefCell, marker::PhantomData, rc::Rc, time::Duration};
+use std::time::Duration;
 
 use super::draw::RenderingTree;
 
@@ -14,10 +14,11 @@ pub struct EngineContext<TState> {
     pub state: TState,
     pub surface: Box<dyn Surface>,
     pub fps_info: FpsInfo,
+    pub render: Render<TState>,
 }
 
 pub trait EngineImpl {
-    fn init<TState>(state: TState) -> EngineContext<TState>;
+    fn init<TState>(state: TState, render: Render<TState>) -> EngineContext<TState>;
     fn request_animation_frame(callback: Box<dyn FnOnce()>);
     fn log(format: String);
     fn now() -> Duration;
