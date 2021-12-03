@@ -41,5 +41,6 @@ features = [
     "Document",
     "HtmlCanvasElement",
     "console",
-    "Performance"
+    "Performance",
+    "MouseEvent"
 ]

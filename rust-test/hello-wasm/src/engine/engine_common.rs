@@ -1,6 +1,6 @@
+use super::device::*;
+use super::draw::{RenderingData, RenderingTree};
 use std::time::Duration;
-
-use super::draw::RenderingTree;
 
 pub trait Surface {}
 
@@ -15,6 +15,7 @@ pub struct EngineContext<TState> {
     pub surface: Box<dyn Surface>,
     pub fps_info: FpsInfo,
     pub render: Render<TState>,
+    pub mouse_manager: Box<dyn MouseManager>,
 }
 
 pub trait EngineImpl {
@@ -24,4 +25,56 @@ pub trait EngineImpl {
     fn now() -> Duration;
 }
 
-pub type Render<TState> = fn(&mut TState) -> Option<RenderingTree>;
+pub type Render<TState> = fn(&EngineState, &mut TState) -> Option<RenderingTree>;
+
+#[macro_export]
+macro_rules! render_func(
+    ($_func_name:ident, $_state_type:ty, $_state_identity:ident, $body:expr) => (
+        paste::item! {
+            fn [<render_ $ _func_name>] ($_state_identity: &mut $_state_type) -> Option<RenderingTree> { $body }
+        }
+    )
+);
+
+pub trait ToTree {
+    fn process(self) -> Option<RenderingTree>;
+}
+
+impl ToTree for Option<RenderingTree> {
+    fn process(self) -> Option<RenderingTree> {
+        self
+    }
+}
+
+impl ToTree for RenderingData {
+    fn process(self) -> Option<RenderingTree> {
+        Some(RenderingTree::Node(self))
+    }
+}
+
+#[macro_export]
+macro_rules! render {
+    ( $( $x:expr ),* ) => {
+        {
+
+            let mut temp_vec: Vec<Option<RenderingTree>> = Vec::new();
+            $(
+                let option_rendering_tree = ToTree::process($x);
+                temp_vec.push(option_rendering_tree);
+            )*
+            Some(RenderingTree::Children(temp_vec))
+        }
+    };
+}
+
+pub type Rendering = Option<RenderingTree>;
+
+#[derive(Debug, Clone, Copy)]
+pub struct Xy<T> {
+    pub x: T,
+    pub y: T,
+}
+
+pub struct EngineState {
+    pub mouse_position: Xy<i16>,
+}

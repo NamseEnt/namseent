@@ -22,15 +22,24 @@ struct State {
     value: i32,
 }
 
+static STATE: State = State { value: 0 };
+
 #[wasm_bindgen]
 pub fn greet() {
     alert("Hello, hello-wasm!");
     start_engine(State { value: 0 }, render_start);
 }
 
-render_func!(start, State, state, {
-    return render![render_text(state), render_text(state)];
-});
+fn render_start(engine_state: &EngineState, state: &mut State) -> Rendering {
+    return render![
+        render_text2(engine_state, state, 0),
+        render_text2(engine_state, state, 1)
+    ];
+}
+
+// render_func!(start, State, state, {
+//     return render![render_text2(state, 0), render_text2(state, 1)];
+// });
 
 render_func!(text, State, state, {
     state.value += 1;
@@ -43,3 +52,20 @@ render_func!(text, State, state, {
         }],
     }]
 });
+
+fn render_text2(engine_state: &EngineState, state: &mut State, index: i32) -> Rendering {
+    let mouse_x = engine_state.mouse_position.x;
+
+    render![RenderingData {
+        draw_calls: vec![DrawCall {
+            commands: vec![DrawCommand::Text(TextDrawCommand {
+                text: format!(
+                    "{}, {}, mouseX: {}",
+                    index,
+                    state.value,
+                    mouse_x.to_string()
+                ),
+            })],
+        }],
+    }]
+}

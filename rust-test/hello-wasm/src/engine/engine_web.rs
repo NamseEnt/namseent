@@ -1,11 +1,15 @@
 mod canvas_kit;
 use std::time::Duration;
 use wasm_bindgen::{prelude::*, JsCast};
-use web_sys::HtmlCanvasElement;
+use web_sys::{Element, HtmlCanvasElement};
 
 use crate::engine::engine_common::{EngineContext, EngineImpl, Surface};
 
-use super::engine_common::{FpsInfo, Render};
+use super::{
+    device::WebMouseManager,
+    engine_common::{FpsInfo, Render},
+    Xy,
+};
 
 impl Surface for canvas_kit::Surface {}
 pub struct Engine;
@@ -27,7 +31,8 @@ fn window() -> web_sys::Window {
 
 impl EngineImpl for Engine {
     fn init<TState>(state: TState, render: Render<TState>) -> EngineContext<TState> {
-        let surface = make_surface().unwrap();
+        let canvas = make_canvas().unwrap();
+        let surface = make_surface(&canvas).unwrap();
 
         EngineContext {
             state,
@@ -38,6 +43,7 @@ impl EngineImpl for Engine {
                 frame_count: 0,
                 last_60_frame_time: Engine::now(),
             },
+            mouse_manager: Box::new(WebMouseManager::new(&canvas)),
         }
     }
 
@@ -57,12 +63,24 @@ impl EngineImpl for Engine {
     }
 }
 
-fn make_surface() -> Result<canvas_kit::Surface, String> {
+fn make_canvas() -> Result<HtmlCanvasElement, Element> {
     let document = web_sys::window().unwrap().document().unwrap();
     let element = document.create_element("canvas").unwrap();
-    let canvas = match wasm_bindgen::JsCast::dyn_into::<HtmlCanvasElement>(element) {
-        Ok(canvas) => canvas,
-        Err(_) => panic!("Canvas element not found"),
-    };
+    let canvas = wasm_bindgen::JsCast::dyn_into::<HtmlCanvasElement>(element);
+
+    match canvas {
+        Ok(canvas) => {
+            canvas.set_width(1920);
+            canvas.set_height(1080);
+
+            document.body().unwrap().append_child(&canvas).unwrap();
+
+            Result::Ok(canvas)
+        }
+        Err(e) => Result::Err(e),
+    }
+}
+
+fn make_surface(canvas: &HtmlCanvasElement) -> Result<canvas_kit::Surface, String> {
     return Ok(canvas_kit::MakeCanvasSurface(&canvas).unwrap());
 }
