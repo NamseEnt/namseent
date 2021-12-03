@@ -1,3 +1,5 @@
+use super::{Engine, EngineImpl};
+
 pub struct PathDrawCommand {
     pub path: String,
     pub stroke: String,
@@ -34,14 +36,14 @@ pub struct RenderingData {
 }
 
 pub enum RenderingTree {
-    RenderingData(RenderingData),
-    RenderingTree(Vec<Option<RenderingTree>>),
+    Node(RenderingData),
+    Children(Vec<Option<RenderingTree>>),
 }
 
 impl RenderingTree {
     pub fn draw(&self) {
         match self {
-            &RenderingTree::RenderingTree(ref children) => {
+            &RenderingTree::Children(ref children) => {
                 for child in children {
                     match child {
                         &Some(ref child) => child.draw(),
@@ -49,7 +51,7 @@ impl RenderingTree {
                     }
                 }
             }
-            &RenderingTree::RenderingData(ref data) => {
+            &RenderingTree::Node(ref data) => {
                 data.draw_calls.iter().for_each(|draw_call| {
                     draw_call.draw();
                 });
@@ -70,13 +72,13 @@ impl DrawCommand {
     pub fn draw(&self) {
         match self {
             &DrawCommand::Image(ref image) => {
-                println!("Drawing image: {}", image.x);
+                Engine::log(format!("Drawing image: {}", image.x));
             }
             &DrawCommand::Path(ref path) => {
-                println!("Drawing path: {}", path.path);
+                Engine::log(format!("Drawing path: {}", path.path));
             }
             &DrawCommand::Text(ref text) => {
-                println!("Drawing text: {}", text.text);
+                Engine::log(format!("Drawing text: {}", text.text));
             }
         }
     }

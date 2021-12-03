@@ -7,6 +7,7 @@ pub use engine_common::*;
 #[cfg(target_family = "wasm")]
 mod engine_web;
 
+use self::draw::{RenderingData, RenderingTree};
 #[cfg(target_family = "wasm")]
 pub use self::engine_web::*;
 
@@ -25,6 +26,10 @@ fn on_frame<TState: 'static>(mut boxed_engine_context: Box<EngineContext<TState>
     update_fps_info(&mut engine_context.fps_info);
 
     let rendering_tree = (engine_context.render)(&mut engine_context.state);
+    match rendering_tree {
+        Some(rendering_tree) => rendering_tree.draw(),
+        None => (),
+    }
 
     Engine::request_animation_frame(Box::new(move || {
         on_frame(boxed_engine_context);
@@ -55,15 +60,33 @@ macro_rules! render_func(
     )
 );
 
+pub trait ToTree {
+    fn process(self) -> Option<RenderingTree>;
+}
+
+impl ToTree for Option<RenderingTree> {
+    fn process(self) -> Option<RenderingTree> {
+        self
+    }
+}
+
+impl ToTree for RenderingData {
+    fn process(self) -> Option<RenderingTree> {
+        Some(RenderingTree::Node(self))
+    }
+}
+
 #[macro_export]
 macro_rules! render {
     ( $( $x:expr ),* ) => {
         {
-            let mut temp_vec = Vec::new();
+
+            let mut temp_vec: Vec<Option<RenderingTree>> = Vec::new();
             $(
-                temp_vec.push($x);
+                let option_rendering_tree = ToTree::process($x);
+                temp_vec.push(option_rendering_tree);
             )*
-            Some(RenderingTree::RenderingTree(temp_vec))
+            Some(RenderingTree::Children(temp_vec))
         }
     };
 }

@@ -2,7 +2,7 @@ mod engine;
 use engine::*;
 mod utils;
 
-use engine::draw::RenderingTree;
+use engine::draw::*;
 use engine::start_engine;
 use wasm_bindgen::prelude::*;
 
@@ -34,6 +34,12 @@ render_func!(start, State, state, {
 
 render_func!(text, State, state, {
     state.value += 1;
-    engine::Engine::log(state.value.to_string());
-    None
+
+    render![RenderingData {
+        draw_calls: vec![DrawCall {
+            commands: vec![DrawCommand::Text(TextDrawCommand {
+                text: format!("{}", state.value),
+            })],
+        }],
+    }]
 });
