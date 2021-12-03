@@ -35,8 +35,7 @@ pub struct RenderingData {
 
 pub enum RenderingTree {
     RenderingData(RenderingData),
-    None(Option<()>),
-    RenderingTree(Vec<RenderingTree>),
+    RenderingTree(Vec<Option<RenderingTree>>),
 }
 
 impl RenderingTree {
@@ -44,7 +43,10 @@ impl RenderingTree {
         match self {
             &RenderingTree::RenderingTree(ref children) => {
                 for child in children {
-                    child.draw();
+                    match child {
+                        &Some(ref child) => child.draw(),
+                        &None => {}
+                    }
                 }
             }
             &RenderingTree::RenderingData(ref data) => {
@@ -52,7 +54,6 @@ impl RenderingTree {
                     draw_call.draw();
                 });
             }
-            &RenderingTree::None(_) => {}
         }
     }
 }

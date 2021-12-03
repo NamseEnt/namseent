@@ -2,6 +2,7 @@ mod engine;
 use engine::*;
 mod utils;
 
+use engine::draw::RenderingTree;
 use engine::start_engine;
 use wasm_bindgen::prelude::*;
 
@@ -24,9 +25,15 @@ struct State {
 #[wasm_bindgen]
 pub fn greet() {
     alert("Hello, hello-wasm!");
-    start_engine(State { value: 0 }, |state| {
-        state.value += 1;
-        engine::Engine::log(state.value.to_string());
-        None
-    });
+    start_engine(State { value: 0 }, render_start);
 }
+
+render_func!(start, State, state, {
+    return render![render_text(state), render_text(state)];
+});
+
+render_func!(text, State, state, {
+    state.value += 1;
+    engine::Engine::log(state.value.to_string());
+    None
+});

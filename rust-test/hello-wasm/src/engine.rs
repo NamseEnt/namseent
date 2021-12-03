@@ -24,7 +24,7 @@ fn on_frame<TState: 'static>(mut boxed_engine_context: Box<EngineContext<TState>
 
     update_fps_info(&mut engine_context.fps_info);
 
-    (engine_context.render)(&mut engine_context.state);
+    let rendering_tree = (engine_context.render)(&mut engine_context.state);
 
     Engine::request_animation_frame(Box::new(move || {
         on_frame(boxed_engine_context);
@@ -44,4 +44,26 @@ fn update_fps_info(fps_info: &mut FpsInfo) {
     } else {
         fps_info.frame_count += 1;
     }
+}
+
+#[macro_export]
+macro_rules! render_func(
+    ($_func_name:ident, $_state_type:ty, $_state_identity:ident, $body:expr) => (
+        paste::item! {
+            fn [<render_ $ _func_name>] ($_state_identity: &mut $_state_type) -> Option<RenderingTree> { $body }
+        }
+    )
+);
+
+#[macro_export]
+macro_rules! render {
+    ( $( $x:expr ),* ) => {
+        {
+            let mut temp_vec = Vec::new();
+            $(
+                temp_vec.push($x);
+            )*
+            Some(RenderingTree::RenderingTree(temp_vec))
+        }
+    };
 }
