@@ -9,7 +9,7 @@ use crate::engine::engine_common::{EngineContext, EngineImpl, Surface};
 use super::{
     engine_common::{FpsInfo, Render},
     manager::{WebMouseManager, WebTypefaceManager},
-    Canvas, Xy,
+    Canvas, Engine,
 };
 
 impl Surface for canvas_kit::CanvasKitSurface {
@@ -18,8 +18,6 @@ impl Surface for canvas_kit::CanvasKitSurface {
     }
 }
 impl Canvas for canvas_kit::Canvas {}
-
-pub struct Engine;
 
 #[wasm_bindgen]
 extern "C" {

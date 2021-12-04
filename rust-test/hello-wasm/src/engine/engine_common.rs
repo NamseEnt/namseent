@@ -1,7 +1,9 @@
 use super::draw::{RenderingData, RenderingTree};
+use super::engine_state::{get_engine_state, update_engine_state, EngineState};
 use super::manager::*;
 use async_trait::*;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use std::time::Duration;
 use strum_macros::EnumIter;
 
@@ -38,7 +40,22 @@ pub trait EngineImpl {
     fn now() -> Duration;
 }
 
-pub type Render<TState> = fn(&EngineState, &mut TState) -> Option<RenderingTree>;
+pub struct EngineInternal {}
+impl EngineInternal {
+    pub fn update_state(engine_state: EngineState) {
+        update_engine_state(engine_state);
+    }
+}
+
+pub struct Engine;
+
+impl Engine {
+    pub fn state() -> Arc<EngineState> {
+        get_engine_state()
+    }
+}
+
+pub type Render<TState> = fn(&mut TState) -> Option<RenderingTree>;
 
 #[macro_export]
 macro_rules! render_func(
@@ -88,9 +105,6 @@ pub struct Xy<T> {
     pub y: T,
 }
 
-pub struct EngineState {
-    pub mouse_position: Xy<i16>,
-}
 #[derive(Debug, Hash, Eq, PartialEq, EnumIter, Clone, Copy, Serialize, Deserialize)]
 pub enum Language {
     Ko,

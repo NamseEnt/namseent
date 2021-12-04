@@ -29,11 +29,8 @@ pub async fn greet() {
     start_engine(State { value: 0 }, render_start).await;
 }
 
-fn render_start(engine_state: &EngineState, state: &mut State) -> Rendering {
-    return render![
-        render_text2(engine_state, state, 0),
-        render_text2(engine_state, state, 1)
-    ];
+fn render_start(state: &mut State) -> Rendering {
+    return render![render_text2(state, 0), render_text2(state, 1)];
 }
 
 // render_func!(start, State, state, {
@@ -52,7 +49,8 @@ render_func!(text, State, state, {
     }]
 });
 
-fn render_text2(engine_state: &EngineState, state: &mut State, index: i32) -> Rendering {
+fn render_text2(state: &mut State, index: i32) -> Rendering {
+    let engine_state = Engine::state();
     let mouse_x = engine_state.mouse_position.x;
 
     render![RenderingData {

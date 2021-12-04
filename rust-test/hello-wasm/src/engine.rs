@@ -3,6 +3,7 @@ mod engine_common;
 mod font;
 mod manager;
 use std::{borrow::Borrow, time::Duration};
+mod engine_state;
 
 pub use engine_common::*;
 
@@ -42,9 +43,7 @@ fn on_frame<TState: 'static + std::marker::Send>(
 
     update_fps_info(&mut engine_context.fps_info);
 
-    let engine_state = get_engine_state(engine_context);
-
-    let rendering_tree = (engine_context.render)(&engine_state, &mut engine_context.state);
+    let rendering_tree = (engine_context.render)(&mut engine_context.state);
     match rendering_tree {
         Some(rendering_tree) => rendering_tree.draw(),
         None => (),
@@ -55,12 +54,6 @@ fn on_frame<TState: 'static + std::marker::Send>(
     Engine::request_animation_frame(Box::new(move || {
         on_frame(boxed_engine_context);
     }));
-}
-
-fn get_engine_state<TState>(engine_context: &EngineContext<TState>) -> EngineState {
-    EngineState {
-        mouse_position: engine_context.mouse_manager.mouse_position(),
-    }
 }
 
 fn update_fps_info(fps_info: &mut FpsInfo) {

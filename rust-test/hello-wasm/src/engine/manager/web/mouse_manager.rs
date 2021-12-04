@@ -1,12 +1,11 @@
-use std::{
-    rc::Rc,
-    sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::HtmlElement;
 
-use crate::engine::{manager::MouseManager, Engine, EngineImpl, Xy};
+use crate::engine::{
+    engine_state::EngineState, manager::MouseManager, Engine, EngineImpl, EngineInternal, Xy,
+};
 
 pub struct WebMouseManager {
     pub mouse_position: Arc<RwLock<Xy<i16>>>,
@@ -20,7 +19,7 @@ impl MouseManager for WebMouseManager {
 
 impl WebMouseManager {
     pub fn new(element: &HtmlElement) -> Self {
-        let mut mouse_position = Arc::new(RwLock::new(Xy::<i16> { x: 0, y: 0 }));
+        let mouse_position = Arc::new(RwLock::new(Xy::<i16> { x: 0, y: 0 }));
         let mouse_manager = Self {
             mouse_position: mouse_position.clone(),
         };
@@ -32,6 +31,11 @@ impl WebMouseManager {
             mouse_position.y = event.client_y() as i16;
 
             Engine::log(format!("Click x: {}", mouse_position.x));
+
+            EngineInternal::update_state(EngineState {
+                mouse_position: mouse_position.clone(),
+                ..*Engine::state()
+            });
         }) as Box<dyn FnMut(_)>);
 
         element
