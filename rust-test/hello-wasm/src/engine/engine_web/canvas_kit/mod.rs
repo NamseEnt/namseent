@@ -1,0 +1,35 @@
+use wasm_bindgen::prelude::*;
+
+mod surface;
+pub use surface::*;
+mod canvas_kit;
+pub use canvas_kit::*;
+mod font_mgr_factory;
+pub use font_mgr_factory::*;
+mod font_mgr;
+pub use font_mgr::*;
+
+#[wasm_bindgen]
+pub struct Color {
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
+}
+
+#[wasm_bindgen]
+pub struct Rect {
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+}
+
+#[wasm_bindgen]
+pub struct RRect {
+    rect: Rect,
+    rx: f32,
+    ry: f32,
+}
+// struct AnimatedImage;
+struct Image;

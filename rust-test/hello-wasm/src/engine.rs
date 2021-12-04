@@ -1,6 +1,6 @@
-mod device;
 pub(crate) mod draw;
 mod engine_common;
+mod manager;
 use std::time::Duration;
 
 pub use engine_common::*;
@@ -11,8 +11,8 @@ mod engine_web;
 #[cfg(target_family = "wasm")]
 pub use self::engine_web::*;
 use self::{
-    device::MouseManager,
     draw::{RenderingData, RenderingTree},
+    manager::MouseManager,
 };
 
 pub fn start_engine<TState: 'static>(state: TState, render: Render<TState>) {
@@ -36,6 +36,8 @@ fn on_frame<TState: 'static>(mut boxed_engine_context: Box<EngineContext<TState>
         Some(rendering_tree) => rendering_tree.draw(),
         None => (),
     }
+
+    engine_context.surface.flush();
 
     Engine::request_animation_frame(Box::new(move || {
         on_frame(boxed_engine_context);

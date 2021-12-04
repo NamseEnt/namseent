@@ -1,4 +1,4 @@
-mod canvas_kit;
+pub mod canvas_kit;
 use std::time::Duration;
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::{Element, HtmlCanvasElement};
@@ -6,18 +6,27 @@ use web_sys::{Element, HtmlCanvasElement};
 use crate::engine::engine_common::{EngineContext, EngineImpl, Surface};
 
 use super::{
-    device::WebMouseManager,
     engine_common::{FpsInfo, Render},
-    Xy,
+    manager::WebMouseManager,
+    Canvas, Xy,
 };
 
-impl Surface for canvas_kit::Surface {}
+impl Surface for canvas_kit::CanvasKitSurface {
+    fn flush(&self) {
+        self.flush();
+    }
+}
+impl Canvas for canvas_kit::Canvas {}
+
 pub struct Engine;
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn log(a: &str);
+
+    #[wasm_bindgen(js_namespace = globalThis, js_name = getCanvasKit)]
+    fn get_canvas_kit() -> canvas_kit::CanvasKit;
 }
 
 #[wasm_bindgen]
@@ -31,19 +40,22 @@ fn window() -> web_sys::Window {
 
 impl EngineImpl for Engine {
     fn init<TState>(state: TState, render: Render<TState>) -> EngineContext<TState> {
-        let canvas = make_canvas().unwrap();
-        let surface = make_surface(&canvas).unwrap();
+        let canvas_kit = get_canvas_kit();
+        let canvas_element = make_canvas_element().unwrap();
+        let surface = make_surface(&canvas_kit, &canvas_element).unwrap();
+        let canvas = surface.getCanvas();
 
         EngineContext {
             state,
             render,
             surface: Box::new(surface),
+            canvas: Box::new(canvas),
             fps_info: FpsInfo {
                 fps: 0,
                 frame_count: 0,
                 last_60_frame_time: Engine::now(),
             },
-            mouse_manager: Box::new(WebMouseManager::new(&canvas)),
+            mouse_manager: Box::new(WebMouseManager::new(&canvas_element)),
         }
     }
 
@@ -63,24 +75,31 @@ impl EngineImpl for Engine {
     }
 }
 
-fn make_canvas() -> Result<HtmlCanvasElement, Element> {
+fn make_canvas_element() -> Result<HtmlCanvasElement, Element> {
     let document = web_sys::window().unwrap().document().unwrap();
     let element = document.create_element("canvas").unwrap();
-    let canvas = wasm_bindgen::JsCast::dyn_into::<HtmlCanvasElement>(element);
+    let canvas_element = wasm_bindgen::JsCast::dyn_into::<HtmlCanvasElement>(element);
 
-    match canvas {
-        Ok(canvas) => {
-            canvas.set_width(1920);
-            canvas.set_height(1080);
+    match canvas_element {
+        Ok(canvas_element) => {
+            canvas_element.set_width(1920);
+            canvas_element.set_height(1080);
 
-            document.body().unwrap().append_child(&canvas).unwrap();
+            document
+                .body()
+                .unwrap()
+                .append_child(&canvas_element)
+                .unwrap();
 
-            Result::Ok(canvas)
+            Result::Ok(canvas_element)
         }
         Err(e) => Result::Err(e),
     }
 }
 
-fn make_surface(canvas: &HtmlCanvasElement) -> Result<canvas_kit::Surface, String> {
-    return Ok(canvas_kit::MakeCanvasSurface(&canvas).unwrap());
+fn make_surface(
+    canvas_kit: &canvas_kit::CanvasKit,
+    canvas: &HtmlCanvasElement,
+) -> Option<canvas_kit::CanvasKitSurface> {
+    return canvas_kit.MakeCanvasSurface(&canvas);
 }

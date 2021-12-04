@@ -1,36 +1,11 @@
+use super::font_mgr_factory::*;
+use super::surface::*;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
 
 #[wasm_bindgen]
-pub struct Color {
-    r: f32,
-    g: f32,
-    b: f32,
-    a: f32,
-}
-
-#[wasm_bindgen]
-pub struct Rect {
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-}
-
-#[wasm_bindgen]
-pub struct RRect {
-    rect: Rect,
-    rx: f32,
-    ry: f32,
-}
-// struct AnimatedImage;
-struct Image;
-
-#[wasm_bindgen]
 extern "C" {
-    pub type Surface;
-
+    pub type CanvasKit;
     /// Surface related functions
     ///
     /// Creates a Surface on a given canvas. If both GPU and CPU modes have been compiled in, this
@@ -38,8 +13,11 @@ extern "C" {
     /// the CPU mode has been compiled in, a CPU surface will be created.
     /// @param canvas - either the canvas element itself or a string with the DOM id of it.
     ///
-    #[wasm_bindgen(js_namespace = CanvasKit)]
-    pub fn MakeCanvasSurface(canvas: &HtmlCanvasElement) -> Option<Surface>;
+    #[wasm_bindgen(structural, method)]
+    pub fn MakeCanvasSurface(
+        this: &CanvasKit,
+        canvas: &HtmlCanvasElement,
+    ) -> Option<CanvasKitSurface>;
 
     // ///
     // /// Decodes the given bytes into an animated image. Returns null if the bytes were invalid.
@@ -87,4 +65,8 @@ extern "C" {
     // ///
     // // #[wasm_bindgen(js_namespace = CanvasKit)]
     // // fn MakeAnimation(json: String) -> SkottieAnimation;
+
+    #[wasm_bindgen(method, getter)]
+    fn FontMgr(this: &CanvasKit) -> FontMgrFactory;
+
 }

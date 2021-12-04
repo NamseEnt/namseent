@@ -1,8 +1,12 @@
-use super::device::*;
 use super::draw::{RenderingData, RenderingTree};
+use super::manager::*;
 use std::time::Duration;
 
-pub trait Surface {}
+pub trait Surface {
+    fn flush(&self);
+}
+
+pub trait Canvas {}
 
 pub struct FpsInfo {
     pub fps: u16,
@@ -13,6 +17,7 @@ pub struct FpsInfo {
 pub struct EngineContext<TState> {
     pub state: TState,
     pub surface: Box<dyn Surface>,
+    pub canvas: Box<dyn Canvas>,
     pub fps_info: FpsInfo,
     pub render: Render<TState>,
     pub mouse_manager: Box<dyn MouseManager>,
@@ -77,4 +82,35 @@ pub struct Xy<T> {
 
 pub struct EngineState {
     pub mouse_position: Xy<i16>,
+}
+
+#[derive(Hash, Eq, PartialEq)]
+pub enum Language {
+    Ko,
+}
+#[derive(Hash, Eq, PartialEq)]
+pub enum FontWeight {
+    Thin = 100,
+    Light = 300,
+    Regular = 400,
+    Medium = 500,
+    Bold = 700,
+    Black = 900,
+}
+#[derive(Hash, Eq, PartialEq)]
+pub struct FontType {
+    serif: bool,
+    size: i16,
+    language: Language,
+    font_weight: FontWeight,
+}
+pub trait Font {}
+
+pub trait Typeface {}
+
+#[derive(Hash, Eq, PartialEq)]
+pub struct TypefaceType {
+    serif: bool,
+    language: Language,
+    font_weight: FontWeight,
 }

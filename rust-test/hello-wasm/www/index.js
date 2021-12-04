@@ -8,9 +8,6 @@ window.test = (canvas) => {
   const CanvasKit = await CanvasKitInit({
     locateFile: (file) => "./canvaskit-wasm/" + file,
   });
-  globalThis.CanvasKit = CanvasKit;
-  window.CanvasKit = CanvasKit;
-  console.log(CanvasKit);
-
+  globalThis.getCanvasKit = () => CanvasKit;
   wasm.greet();
 })();

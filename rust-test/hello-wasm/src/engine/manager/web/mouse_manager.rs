@@ -6,7 +6,7 @@ use std::{
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::HtmlElement;
 
-use crate::engine::{device::MouseManager, Engine, EngineImpl, Xy};
+use crate::engine::{manager::MouseManager, Engine, EngineImpl, Xy};
 
 pub struct WebMouseManager {
     pub mouse_position: Arc<RwLock<Xy<i16>>>,
