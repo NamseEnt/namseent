@@ -20,6 +20,6 @@ pub trait FontManager {
 }
 
 pub trait TypefaceManager {
-    fn get_typeface(&self, option: TypefaceType) -> Option<Rc<dyn Typeface>>;
-    fn load_typeface(&mut self, option: TypefaceType, bytes: &Vec<u8>);
+    fn get_typeface(&self, typeface_type: &TypefaceType) -> Option<Rc<dyn Typeface>>;
+    fn load_typeface(&mut self, typeface_type: &TypefaceType, bytes: &Vec<u8>);
 }

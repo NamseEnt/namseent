@@ -1,4 +1,5 @@
 pub mod canvas_kit;
+use async_trait::*;
 use std::time::Duration;
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::{Element, HtmlCanvasElement};
@@ -7,7 +8,7 @@ use crate::engine::engine_common::{EngineContext, EngineImpl, Surface};
 
 use super::{
     engine_common::{FpsInfo, Render},
-    manager::WebMouseManager,
+    manager::{WebMouseManager, WebTypefaceManager},
     Canvas, Xy,
 };
 
@@ -38,8 +39,12 @@ fn window() -> web_sys::Window {
     web_sys::window().expect("no global `window` exists")
 }
 
+#[async_trait]
 impl EngineImpl for Engine {
-    fn init<TState>(state: TState, render: Render<TState>) -> EngineContext<TState> {
+    async fn init<TState: std::marker::Send>(
+        state: TState,
+        render: Render<TState>,
+    ) -> EngineContext<TState> {
         let canvas_kit = get_canvas_kit();
         let canvas_element = make_canvas_element().unwrap();
         let surface = make_surface(&canvas_kit, &canvas_element).unwrap();
@@ -56,6 +61,7 @@ impl EngineImpl for Engine {
                 last_60_frame_time: Engine::now(),
             },
             mouse_manager: Box::new(WebMouseManager::new(&canvas_element)),
+            typeface_manager: Box::new(WebTypefaceManager::new(&canvas_kit)),
         }
     }
 

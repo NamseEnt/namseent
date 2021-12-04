@@ -1,7 +1,8 @@
 pub(crate) mod draw;
 mod engine_common;
+mod font;
 mod manager;
-use std::time::Duration;
+use std::{borrow::Borrow, time::Duration};
 
 pub use engine_common::*;
 
@@ -10,13 +11,16 @@ mod engine_web;
 
 #[cfg(target_family = "wasm")]
 pub use self::engine_web::*;
-use self::{
-    draw::{RenderingData, RenderingTree},
-    manager::MouseManager,
-};
+use self::font::*;
 
-pub fn start_engine<TState: 'static>(state: TState, render: Render<TState>) {
-    let engine_context = Engine::init(state, render);
+pub async fn start_engine<TState: 'static + std::marker::Send>(
+    state: TState,
+    render: Render<TState>,
+) {
+    let mut engine_context = Engine::init(state, render).await;
+
+    init_font(&mut engine_context).await;
+
     let boxed_engine_context = Box::new(engine_context);
 
     Engine::request_animation_frame(Box::new(move || {
@@ -24,7 +28,16 @@ pub fn start_engine<TState: 'static>(state: TState, render: Render<TState>) {
     }));
 }
 
-fn on_frame<TState: 'static>(mut boxed_engine_context: Box<EngineContext<TState>>) {
+async fn init_font<TState: 'static + std::marker::Send>(
+    engine_context: &mut EngineContext<TState>,
+) {
+    let typeface_manager = &mut *engine_context.typeface_manager;
+    load_sans_typeface_of_all_languages(typeface_manager).await;
+}
+
+fn on_frame<TState: 'static + std::marker::Send>(
+    mut boxed_engine_context: Box<EngineContext<TState>>,
+) {
     let engine_context = &mut *boxed_engine_context;
 
     update_fps_info(&mut engine_context.fps_info);

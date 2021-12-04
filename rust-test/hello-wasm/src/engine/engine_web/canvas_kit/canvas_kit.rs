@@ -67,6 +67,6 @@ extern "C" {
     // // fn MakeAnimation(json: String) -> SkottieAnimation;
 
     #[wasm_bindgen(method, getter)]
-    fn FontMgr(this: &CanvasKit) -> FontMgrFactory;
+    pub fn FontMgr(this: &CanvasKit) -> FontMgrFactory;
 
 }

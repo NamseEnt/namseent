@@ -1,6 +1,9 @@
 use super::draw::{RenderingData, RenderingTree};
 use super::manager::*;
+use async_trait::*;
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
+use strum_macros::EnumIter;
 
 pub trait Surface {
     fn flush(&self);
@@ -21,10 +24,15 @@ pub struct EngineContext<TState> {
     pub fps_info: FpsInfo,
     pub render: Render<TState>,
     pub mouse_manager: Box<dyn MouseManager>,
+    pub typeface_manager: Box<dyn TypefaceManager>,
 }
 
+#[async_trait]
 pub trait EngineImpl {
-    fn init<TState>(state: TState, render: Render<TState>) -> EngineContext<TState>;
+    async fn init<TState: std::marker::Send>(
+        state: TState,
+        render: Render<TState>,
+    ) -> EngineContext<TState>;
     fn request_animation_frame(callback: Box<dyn FnOnce()>);
     fn log(format: String);
     fn now() -> Duration;
@@ -83,20 +91,26 @@ pub struct Xy<T> {
 pub struct EngineState {
     pub mouse_position: Xy<i16>,
 }
-
-#[derive(Hash, Eq, PartialEq)]
+#[derive(Debug, Hash, Eq, PartialEq, EnumIter, Clone, Copy, Serialize, Deserialize)]
 pub enum Language {
     Ko,
 }
-#[derive(Hash, Eq, PartialEq)]
-pub enum FontWeight {
-    Thin = 100,
-    Light = 300,
-    Regular = 400,
-    Medium = 500,
-    Bold = 700,
-    Black = 900,
+
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy, Serialize, Deserialize)]
+pub struct FontWeight(pub u16);
+impl FontWeight {
+    pub const THIN: FontWeight = FontWeight(100);
+    pub const LIGHT: FontWeight = FontWeight(300);
+    pub const REGULAR: FontWeight = FontWeight(400);
+    pub const MEDIUM: FontWeight = FontWeight(500);
+    pub const BOLD: FontWeight = FontWeight(700);
+    pub const BLACK: FontWeight = FontWeight(900);
+
+    pub fn iter() -> impl Iterator<Item = FontWeight> {
+        (1..=9).map(|x| FontWeight(x * 100))
+    }
 }
+
 #[derive(Hash, Eq, PartialEq)]
 pub struct FontType {
     serif: bool,
@@ -108,9 +122,9 @@ pub trait Font {}
 
 pub trait Typeface {}
 
-#[derive(Hash, Eq, PartialEq)]
+#[derive(Hash, Eq, PartialEq, Clone, Copy)]
 pub struct TypefaceType {
-    serif: bool,
-    language: Language,
-    font_weight: FontWeight,
+    pub serif: bool,
+    pub language: Language,
+    pub font_weight: FontWeight,
 }

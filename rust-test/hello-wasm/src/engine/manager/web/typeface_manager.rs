@@ -11,11 +11,21 @@ pub struct WebTypefaceManager {
     canvas_kit_font_mgr: FontMgr,
 }
 
-impl TypefaceManager for WebTypefaceManager {
-    fn get_typeface(&self, option: TypefaceType) -> Option<Rc<dyn Typeface>> {
-        self.typefaces.get(&option).cloned()
+impl WebTypefaceManager {
+    pub fn new(canvas_kit: &CanvasKit) -> Self {
+        let font_mgr = canvas_kit.FontMgr().RefDefault();
+        WebTypefaceManager {
+            typefaces: HashMap::new(),
+            canvas_kit_font_mgr: font_mgr,
+        }
     }
-    fn load_typeface(&mut self, option: TypefaceType, bytes: &Vec<u8>) {
+}
+
+impl TypefaceManager for WebTypefaceManager {
+    fn get_typeface(&self, option: &TypefaceType) -> Option<Rc<dyn Typeface>> {
+        self.typefaces.get(option).cloned()
+    }
+    fn load_typeface(&mut self, option: &TypefaceType, bytes: &Vec<u8>) {
         let array_buffer = js_sys::ArrayBuffer::new(bytes.len() as u32);
 
         let array_buffer_view = js_sys::Uint8Array::new(&array_buffer);
@@ -23,6 +33,6 @@ impl TypefaceManager for WebTypefaceManager {
 
         let typeface = self.canvas_kit_font_mgr.MakeTypefaceFromData(array_buffer);
 
-        self.typefaces.insert(option, Rc::new(typeface));
+        self.typefaces.insert(*option, Rc::new(typeface));
     }
 }

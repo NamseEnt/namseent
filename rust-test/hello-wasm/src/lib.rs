@@ -25,9 +25,8 @@ struct State {
 static STATE: State = State { value: 0 };
 
 #[wasm_bindgen]
-pub fn greet() {
-    alert("Hello, hello-wasm!");
-    start_engine(State { value: 0 }, render_start);
+pub async fn greet() {
+    start_engine(State { value: 0 }, render_start).await;
 }
 
 fn render_start(engine_state: &EngineState, state: &mut State) -> Rendering {
