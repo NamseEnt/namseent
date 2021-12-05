@@ -2,7 +2,6 @@
   "Ko": {
     "100": "engine/resources/font/Ko/NotoSansKR-Thin.otf",
     "300": "engine/resources/font/Ko/NotoSansKR-Light.otf",
-    "350": "engine/resources/font/Ko/NotoSansKR-DemiLight.otf",
     "400": "engine/resources/font/Ko/NotoSansKR-Regular.otf",
     "500": "engine/resources/font/Ko/NotoSansKR-Medium.otf",
     "700": "engine/resources/font/Ko/NotoSansKR-Bold.otf",

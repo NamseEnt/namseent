@@ -2,22 +2,33 @@ pub(crate) mod draw;
 mod engine_common;
 mod font;
 mod manager;
-use std::{borrow::Borrow, time::Duration};
+use std::borrow::{Borrow, BorrowMut};
+use std::{sync::Arc, time::Duration};
 mod engine_state;
-
+mod skia;
+pub use draw::{
+    DrawCall, DrawCommand, RenderingData, RenderingTree, TextAlign, TextBaseline, TextDrawCommand,
+};
 pub use engine_common::*;
+pub use render::types::*;
+pub use skia::types::*;
+pub use skia::Paint;
+use skia::*;
+mod render;
+pub use render::text::*;
 
 #[cfg(target_family = "wasm")]
 mod engine_web;
 
 #[cfg(target_family = "wasm")]
 pub use self::engine_web::*;
-use self::font::*;
+use self::manager::Managers;
+use self::{
+    engine_state::{get_engine_state, EngineState},
+    font::*,
+};
 
-pub async fn start_engine<TState: 'static + std::marker::Send>(
-    state: TState,
-    render: Render<TState>,
-) {
+pub async fn start<TState: 'static + std::marker::Send>(state: TState, render: Render<TState>) {
     let mut engine_context = Engine::init(state, render).await;
 
     init_font(&mut engine_context).await;
@@ -32,8 +43,17 @@ pub async fn start_engine<TState: 'static + std::marker::Send>(
 async fn init_font<TState: 'static + std::marker::Send>(
     engine_context: &mut EngineContext<TState>,
 ) {
-    let typeface_manager = &mut *engine_context.typeface_manager;
-    load_sans_typeface_of_all_languages(typeface_manager).await;
+    let font_manager = &mut *managers().font_manager;
+    let typeface_manager = &mut font_manager.typeface_manager;
+
+    match load_sans_typeface_of_all_languages(typeface_manager).await {
+        Ok(()) => {
+            log("Font loaded".to_string());
+        }
+        Err(e) => {
+            log(format!("Font loading failed: {}", e));
+        }
+    };
 }
 
 fn on_frame<TState: 'static + std::marker::Send>(
@@ -44,10 +64,15 @@ fn on_frame<TState: 'static + std::marker::Send>(
     update_fps_info(&mut engine_context.fps_info);
 
     let rendering_tree = (engine_context.render)(&mut engine_context.state);
-    match rendering_tree {
-        Some(rendering_tree) => rendering_tree.draw(),
-        None => (),
-    }
+    match serde_json::to_string(&rendering_tree) {
+        Ok(s) => {
+            log(s);
+        }
+        Err(e) => {
+            log(format!("Failed to serialize rendering tree: {}", e));
+        }
+    };
+    rendering_tree.draw(&engine_context);
 
     engine_context.surface.flush();
 
@@ -69,4 +94,16 @@ fn update_fps_info(fps_info: &mut FpsInfo) {
     } else {
         fps_info.frame_count += 1;
     }
+}
+
+pub fn state() -> Arc<EngineState> {
+    get_engine_state()
+}
+
+pub fn managers() -> std::sync::MutexGuard<'static, Managers> {
+    get_managers()
+}
+
+pub fn log(format: String) {
+    Engine::log(format);
 }

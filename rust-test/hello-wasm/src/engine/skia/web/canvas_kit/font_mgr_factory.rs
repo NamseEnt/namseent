@@ -1,6 +1,4 @@
-use wasm_bindgen::prelude::*;
-
-use super::font_mgr::*;
+use super::*;
 
 #[wasm_bindgen]
 extern "C" {

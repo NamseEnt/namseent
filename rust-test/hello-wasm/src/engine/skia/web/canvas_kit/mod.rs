@@ -8,6 +8,22 @@ mod font_mgr_factory;
 pub use font_mgr_factory::*;
 mod font_mgr;
 pub use font_mgr::*;
+mod font;
+pub use font::*;
+mod paint;
+pub use paint::*;
+mod text_blob;
+pub use text_blob::*;
+mod text_blob_factory;
+pub use text_blob_factory::*;
+mod canvas;
+pub use canvas::*;
+mod embind_object;
+pub use embind_object::*;
+mod typeface;
+pub use typeface::*;
+mod paint_style;
+pub use paint_style::*;
 
 #[wasm_bindgen]
 pub struct Color {

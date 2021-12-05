@@ -1,31 +1,17 @@
-pub mod canvas_kit;
+use super::engine_common::{EngineContext, EngineImpl, FpsInfo, Render};
+use super::manager::{FontManager, Managers, MouseManager, TypefaceManager};
+use super::skia::{canvas_kit, Surface};
+use super::Engine;
 use async_trait::*;
+use std::sync::Mutex;
 use std::time::Duration;
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::{Element, HtmlCanvasElement};
-
-use crate::engine::engine_common::{EngineContext, EngineImpl, Surface};
-
-use super::{
-    engine_common::{FpsInfo, Render},
-    manager::{WebMouseManager, WebTypefaceManager},
-    Canvas, Engine,
-};
-
-impl Surface for canvas_kit::CanvasKitSurface {
-    fn flush(&self) {
-        self.flush();
-    }
-}
-impl Canvas for canvas_kit::Canvas {}
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn log(a: &str);
-
-    #[wasm_bindgen(js_namespace = globalThis, js_name = getCanvasKit)]
-    fn get_canvas_kit() -> canvas_kit::CanvasKit;
 }
 
 #[wasm_bindgen]
@@ -37,29 +23,47 @@ fn window() -> web_sys::Window {
     web_sys::window().expect("no global `window` exists")
 }
 
+use once_cell::sync::OnceCell;
+static MANAGERS: OnceCell<Mutex<Managers>> = OnceCell::new();
+
+pub fn get_managers() -> std::sync::MutexGuard<'static, Managers> {
+    MANAGERS
+        .get()
+        .expect("managers not initialized")
+        .lock()
+        .unwrap()
+}
+
 #[async_trait]
 impl EngineImpl for Engine {
     async fn init<TState: std::marker::Send>(
         state: TState,
         render: Render<TState>,
     ) -> EngineContext<TState> {
-        let canvas_kit = get_canvas_kit();
+        let canvas_kit = canvas_kit();
         let canvas_element = make_canvas_element().unwrap();
-        let surface = make_surface(&canvas_kit, &canvas_element).unwrap();
-        let canvas = surface.getCanvas();
+        let canvas_kit_surface = canvas_kit.MakeCanvasSurface(&canvas_element).unwrap();
+        let surface = Surface::new(canvas_kit_surface);
+
+        if MANAGERS
+            .set(Mutex::new(Managers {
+                mouse_manager: Box::new(MouseManager::new(&canvas_element)),
+                font_manager: Box::new(FontManager::new()),
+            }))
+            .is_err()
+        {
+            panic!("fail to initialize managers");
+        }
 
         EngineContext {
             state,
             render,
-            surface: Box::new(surface),
-            canvas: Box::new(canvas),
+            surface,
             fps_info: FpsInfo {
                 fps: 0,
                 frame_count: 0,
                 last_60_frame_time: Engine::now(),
             },
-            mouse_manager: Box::new(WebMouseManager::new(&canvas_element)),
-            typeface_manager: Box::new(WebTypefaceManager::new(&canvas_kit)),
         }
     }
 
@@ -99,11 +103,4 @@ fn make_canvas_element() -> Result<HtmlCanvasElement, Element> {
         }
         Err(e) => Result::Err(e),
     }
-}
-
-fn make_surface(
-    canvas_kit: &canvas_kit::CanvasKit,
-    canvas: &HtmlCanvasElement,
-) -> Option<canvas_kit::CanvasKitSurface> {
-    return canvas_kit.MakeCanvasSurface(&canvas);
 }

@@ -1,25 +1,12 @@
-use std::rc::Rc;
-
-use super::{Font, FontType, Typeface, TypefaceType, Xy};
-
-#[cfg(target_family = "wasm")]
-pub mod web;
-
-#[cfg(target_family = "wasm")]
-pub use web::*;
-
 pub mod common;
 pub use common::*;
 
-pub trait MouseManager {
-    fn mouse_position(&self) -> Xy<i16>;
-}
+#[cfg(target_family = "wasm")]
+pub mod web;
+#[cfg(target_family = "wasm")]
+pub use web::*;
 
-pub trait FontManager {
-    fn get_font(&self, font_type: &FontType) -> Option<Rc<dyn Font>>;
-}
-
-pub trait TypefaceManager {
-    fn get_typeface(&self, typeface_type: &TypefaceType) -> Option<Rc<dyn Typeface>>;
-    fn load_typeface(&mut self, typeface_type: &TypefaceType, bytes: &Vec<u8>);
+pub struct Managers {
+    pub mouse_manager: Box<MouseManager>,
+    pub font_manager: Box<FontManager>,
 }

@@ -1,9 +1,8 @@
 mod engine;
-use engine::*;
 mod utils;
 
-use engine::draw::*;
-use engine::start_engine;
+use std::collections::HashSet;
+
 use wasm_bindgen::prelude::*;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
@@ -26,43 +25,61 @@ static STATE: State = State { value: 0 };
 
 #[wasm_bindgen]
 pub async fn greet() {
-    start_engine(State { value: 0 }, render_start).await;
+    engine::start(State { value: 0 }, render_start).await;
 }
 
-fn render_start(state: &mut State) -> Rendering {
-    return render![render_text2(state, 0), render_text2(state, 1)];
+fn render_start(state: &mut State) -> engine::Rendering {
+    return render![render_text(state, 0), render_text(state, 1)];
 }
 
-// render_func!(start, State, state, {
-//     return render![render_text2(state, 0), render_text2(state, 1)];
-// });
-
-render_func!(text, State, state, {
-    state.value += 1;
-
-    render![RenderingData {
-        draw_calls: vec![DrawCall {
-            commands: vec![DrawCommand::Text(TextDrawCommand {
-                text: format!("{}", state.value),
-            })],
-        }],
-    }]
-});
-
-fn render_text2(state: &mut State, index: i32) -> Rendering {
-    let engine_state = Engine::state();
+fn render_text(state: &mut State, index: i32) -> engine::Rendering {
+    let engine_state = engine::state();
     let mouse_x = engine_state.mouse_position.x;
+    let color = engine::Color {
+        r: 255,
+        g: 0,
+        b: 0,
+        a: 255,
+    };
+    let a = engine::text(engine::TextParam {
+        x: 100.0 + 100.0 * index as f32,
+        y: 100.0,
+        align: engine::TextAlign::Left,
+        baseline: engine::TextBaseline::Top,
+        font_type: engine::FontType {
+            font_weight: engine::FontWeight::_400,
+            language: engine::Language::Ko,
+            serif: false,
+            size: 16,
+        },
+        style: engine::TextStyle {
+            color,
+            background: None,
+            border: None,
+            drop_shadow: None,
+        },
+        text: format!("Hello, {}!", index),
+    });
+    render![a]
 
-    render![RenderingData {
-        draw_calls: vec![DrawCall {
-            commands: vec![DrawCommand::Text(TextDrawCommand {
-                text: format!(
-                    "{}, {}, mouseX: {}",
-                    index,
-                    state.value,
-                    mouse_x.to_string()
-                ),
-            })],
-        }],
-    }]
+    // let font = engine::
+
+    // render![engine::RenderingData {
+    //     draw_calls: vec![engine::DrawCall {
+    //         commands: vec![engine::DrawCommand::Text(engine::TextDrawCommand {
+    //             text: format!(
+    //                 "{}, {}, mouseX: {}",
+    //                 index,
+    //                 state.value,
+    //                 mouse_x.to_string()
+    //             ),
+    //             x: 100,
+    //             y: 100,
+    //             align: engine::TextAlign::Left,
+    //             baseline: engine::TextBaseline::Top,
+    //             font,
+    //             paint,
+    //         })],
+    //     }],
+    // }]
 }

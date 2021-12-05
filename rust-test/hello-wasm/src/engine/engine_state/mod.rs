@@ -1,8 +1,6 @@
-use std::sync::{Arc, RwLock};
-
-use lazy_static::lazy_static;
-
 use super::Xy;
+use lazy_static::lazy_static;
+use std::sync::{Arc, RwLock};
 
 pub struct EngineState {
     pub mouse_position: Xy<i16>,

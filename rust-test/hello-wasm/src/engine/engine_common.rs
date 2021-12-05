@@ -1,17 +1,11 @@
 use super::draw::{RenderingData, RenderingTree};
-use super::engine_state::{get_engine_state, update_engine_state, EngineState};
-use super::manager::*;
+use super::engine_state::{update_engine_state, EngineState};
+use super::skia::*;
 use async_trait::*;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use serde_repr::*;
 use std::time::Duration;
 use strum_macros::EnumIter;
-
-pub trait Surface {
-    fn flush(&self);
-}
-
-pub trait Canvas {}
 
 pub struct FpsInfo {
     pub fps: u16,
@@ -21,12 +15,9 @@ pub struct FpsInfo {
 
 pub struct EngineContext<TState> {
     pub state: TState,
-    pub surface: Box<dyn Surface>,
-    pub canvas: Box<dyn Canvas>,
+    pub surface: Surface,
     pub fps_info: FpsInfo,
     pub render: Render<TState>,
-    pub mouse_manager: Box<dyn MouseManager>,
-    pub typeface_manager: Box<dyn TypefaceManager>,
 }
 
 #[async_trait]
@@ -49,55 +40,52 @@ impl EngineInternal {
 
 pub struct Engine;
 
-impl Engine {
-    pub fn state() -> Arc<EngineState> {
-        get_engine_state()
-    }
-}
-
-pub type Render<TState> = fn(&mut TState) -> Option<RenderingTree>;
+pub type Render<TState> = fn(&mut TState) -> RenderingTree;
 
 #[macro_export]
 macro_rules! render_func(
     ($_func_name:ident, $_state_type:ty, $_state_identity:ident, $body:expr) => (
         paste::item! {
-            fn [<render_ $ _func_name>] ($_state_identity: &mut $_state_type) -> Option<RenderingTree> { $body }
+            fn [<render_ $ _func_name>] ($_state_identity: &mut $_state_type) -> RenderingTree { $body }
         }
     )
 );
 
-pub trait ToTree {
-    fn process(self) -> Option<RenderingTree>;
-}
-
-impl ToTree for Option<RenderingTree> {
-    fn process(self) -> Option<RenderingTree> {
+impl RenderingTree {
+    pub fn into_rendering_tree(self) -> RenderingTree {
         self
     }
 }
 
-impl ToTree for RenderingData {
-    fn process(self) -> Option<RenderingTree> {
-        Some(RenderingTree::Node(self))
+impl RenderingData {
+    pub fn into_rendering_tree(self) -> RenderingTree {
+        RenderingTree::Node(self)
     }
 }
 
+/// $x type
+/// - engine::RenderingTree
+/// - engine::RenderingData
 #[macro_export]
 macro_rules! render {
     ( $( $x:expr ),* ) => {
         {
-
-            let mut temp_vec: Vec<Option<RenderingTree>> = Vec::new();
+            let mut temp_vec: Vec<engine::RenderingTree> = Vec::new();
             $(
-                let option_rendering_tree = ToTree::process($x);
-                temp_vec.push(option_rendering_tree);
+                let rendering_tree = $x.into_rendering_tree();
+                temp_vec.push(rendering_tree);
             )*
-            Some(RenderingTree::Children(temp_vec))
+            if temp_vec.len() == 1 {
+                temp_vec.swap_remove(0)
+            } else {
+                engine::RenderingTree::Children(temp_vec)
+            }
         }
     };
 }
+pub use render;
 
-pub type Rendering = Option<RenderingTree>;
+pub type Rendering = RenderingTree;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Xy<T> {
@@ -110,33 +98,52 @@ pub enum Language {
     Ko,
 }
 
-#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy, Serialize, Deserialize)]
-pub struct FontWeight(pub u16);
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy, Serialize_repr, Deserialize_repr)]
+#[repr(u16)]
+pub enum FontWeight {
+    _100 = 100,
+    _200 = 200,
+    _300 = 300,
+    _400 = 400,
+    _500 = 500,
+    _600 = 600,
+    _700 = 700,
+    _800 = 800,
+    _900 = 900,
+}
 impl FontWeight {
-    pub const THIN: FontWeight = FontWeight(100);
-    pub const LIGHT: FontWeight = FontWeight(300);
-    pub const REGULAR: FontWeight = FontWeight(400);
-    pub const MEDIUM: FontWeight = FontWeight(500);
-    pub const BOLD: FontWeight = FontWeight(700);
-    pub const BLACK: FontWeight = FontWeight(900);
+    pub const THIN: FontWeight = FontWeight::_100;
+    pub const LIGHT: FontWeight = FontWeight::_300;
+    pub const REGULAR: FontWeight = FontWeight::_400;
+    pub const MEDIUM: FontWeight = FontWeight::_500;
+    pub const BOLD: FontWeight = FontWeight::_700;
+    pub const BLACK: FontWeight = FontWeight::_900;
 
     pub fn iter() -> impl Iterator<Item = FontWeight> {
-        (1..=9).map(|x| FontWeight(x * 100))
+        vec![
+            FontWeight::_100,
+            FontWeight::_200,
+            FontWeight::_300,
+            FontWeight::_400,
+            FontWeight::_500,
+            FontWeight::_600,
+            FontWeight::_700,
+            FontWeight::_800,
+            FontWeight::_900,
+        ]
+        .into_iter()
     }
 }
 
-#[derive(Hash, Eq, PartialEq)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy, Serialize)]
 pub struct FontType {
-    serif: bool,
-    size: i16,
-    language: Language,
-    font_weight: FontWeight,
+    pub serif: bool,
+    pub size: i16,
+    pub language: Language,
+    pub font_weight: FontWeight,
 }
-pub trait Font {}
 
-pub trait Typeface {}
-
-#[derive(Hash, Eq, PartialEq, Clone, Copy)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
 pub struct TypefaceType {
     pub serif: bool,
     pub language: Language,

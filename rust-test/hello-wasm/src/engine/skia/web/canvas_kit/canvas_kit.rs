@@ -1,11 +1,13 @@
-use super::font_mgr_factory::*;
-use super::surface::*;
-use wasm_bindgen::prelude::*;
+use super::*;
 use web_sys::HtmlCanvasElement;
 
 #[wasm_bindgen]
 extern "C" {
     pub type CanvasKit;
+
+    #[wasm_bindgen(js_namespace = globalThis, js_name = getCanvasKit)]
+    pub fn canvas_kit() -> CanvasKit;
+
     /// Surface related functions
     ///
     /// Creates a Surface on a given canvas. If both GPU and CPU modes have been compiled in, this
@@ -69,4 +71,9 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn FontMgr(this: &CanvasKit) -> FontMgrFactory;
 
+    #[wasm_bindgen(method, getter)]
+    pub fn TextBlob(this: &CanvasKit) -> TextBlobFactory;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn PaintStyle(this: &CanvasKit) -> CanvasKitPaintStyleEnumValues;
 }

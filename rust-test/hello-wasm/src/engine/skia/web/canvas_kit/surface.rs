@@ -1,9 +1,8 @@
-use wasm_bindgen::prelude::*;
+use super::*;
 
 #[wasm_bindgen]
 extern "C" {
     pub type CanvasKitSurface;
-    pub type Canvas;
 
     ///
     /// Make sure any queued draws are sent to the screen or the GPU.
@@ -17,7 +16,7 @@ extern "C" {
     /// be cleaned up by the client.
     ///
     #[wasm_bindgen(structural, method)]
-    pub fn getCanvas(this: &CanvasKitSurface) -> Canvas;
+    pub fn getCanvas(this: &CanvasKitSurface) -> CanvasKitCanvas;
 
     // ///
     // /// Returns the height of this surface in pixels.

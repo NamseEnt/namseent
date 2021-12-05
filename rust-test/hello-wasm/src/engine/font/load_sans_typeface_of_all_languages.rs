@@ -1,27 +1,28 @@
 use crate::engine::{
-    manager::TypefaceManager, Engine, EngineImpl, FontWeight, Language, TypefaceType,
+    self, manager::TypefaceManager, Engine, EngineImpl, FontWeight, Language, TypefaceType,
 };
-use futures::{future::join_all, stream, StreamExt};
+use futures::future::join_all;
 use js_sys::{ArrayBuffer, Uint8Array};
-use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, iter::FromIterator};
-use strum::IntoEnumIterator;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, RequestInit, RequestMode, Response};
+use web_sys::{Request, RequestInit, Response};
 
 type TypefaceFileUrls = HashMap<TypefaceType, String>;
 type TypefaceFileUrlsFile = HashMap<Language, HashMap<FontWeight, String>>;
 
-pub async fn load_sans_typeface_of_all_languages(typeface_manager: &mut dyn TypefaceManager) {
-    let typeface_file_urls: TypefaceFileUrls = get_typeface_file_urls().await;
+pub async fn load_sans_typeface_of_all_languages(
+    typeface_manager: &mut TypefaceManager,
+) -> Result<(), String> {
+    let typeface_file_urls: TypefaceFileUrls = get_typeface_file_urls().await?;
 
     let typeface_files: HashMap<TypefaceType, Vec<u8>> =
         get_typeface_files(&typeface_file_urls).await;
-
     typeface_files
         .iter()
         .for_each(|(typeface_type, bytes)| typeface_manager.load_typeface(&typeface_type, bytes));
+
+    Ok(())
 }
 
 async fn fetch_get(url: &str) -> Result<Response, String> {
@@ -38,7 +39,6 @@ async fn fetch_get(url: &str) -> Result<Response, String> {
     let response: Response = response_value.dyn_into().unwrap();
 
     if !response.ok() {
-        Engine::log(format!("Failed to fetch {}", url));
         return Err(response.status_text());
     }
     Result::Ok(response)
@@ -64,15 +64,15 @@ async fn fetch_get_json<T: for<'a> serde::Deserialize<'a>>(url: &str) -> Result<
     json.into_serde().map_err(|e| e.to_string())
 }
 
-async fn load_typeface_file_urls_file() -> TypefaceFileUrlsFile {
+async fn load_typeface_file_urls_file() -> Result<TypefaceFileUrlsFile, String> {
     let url = "engine/resources/font/map.json";
-    fetch_get_json(url).await.unwrap()
+    fetch_get_json(url).await
 }
 
-async fn get_typeface_file_urls() -> TypefaceFileUrls {
-    let typeface_file_map_file: TypefaceFileUrlsFile = load_typeface_file_urls_file().await;
+async fn get_typeface_file_urls() -> Result<TypefaceFileUrls, String> {
+    let typeface_file_map_file: TypefaceFileUrlsFile = load_typeface_file_urls_file().await?;
 
-    typeface_file_map_file
+    Ok(typeface_file_map_file
         .iter()
         .flat_map(|(language, font_file_map)| {
             font_file_map
@@ -88,7 +88,7 @@ async fn get_typeface_file_urls() -> TypefaceFileUrls {
                     )
                 })
         })
-        .collect()
+        .collect())
 }
 
 async fn get_typeface_files(
@@ -126,7 +126,6 @@ mod tests {
             "Ko": {
                 "100": "ko/NotoSansKR-Thin.otf",
                 "300": "ko/NotoSansKR-Light.otf",
-                "350": "ko/NotoSansKR-DemiLight.otf",
                 "400": "ko/NotoSansKR-Regular.otf",
                 "500": "ko/NotoSansKR-Medium.otf",
                 "700": "ko/NotoSansKR-Bold.otf",
@@ -141,18 +140,17 @@ mod tests {
             HashMap::from([(
                 Language::Ko,
                 HashMap::from([
-                    (FontWeight(100), "ko/NotoSansKR-Thin.otf".to_string()),
-                    (FontWeight(300), "ko/NotoSansKR-Light.otf".to_string()),
-                    (FontWeight(350), "ko/NotoSansKR-DemiLight.otf".to_string()),
-                    (FontWeight(400), "ko/NotoSansKR-Regular.otf".to_string()),
-                    (FontWeight(500), "ko/NotoSansKR-Medium.otf".to_string()),
-                    (FontWeight(700), "ko/NotoSansKR-Bold.otf".to_string()),
-                    (FontWeight(900), "ko/NotoSansKR-Black.otf".to_string()),
+                    (FontWeight::_100, "ko/NotoSansKR-Thin.otf".to_string()),
+                    (FontWeight::_300, "ko/NotoSansKR-Light.otf".to_string()),
+                    (FontWeight::_400, "ko/NotoSansKR-Regular.otf".to_string()),
+                    (FontWeight::_500, "ko/NotoSansKR-Medium.otf".to_string()),
+                    (FontWeight::_700, "ko/NotoSansKR-Bold.otf".to_string()),
+                    (FontWeight::_900, "ko/NotoSansKR-Black.otf".to_string()),
                 ])
             )])
         );
 
         let serialized_font_file_url_map = serde_json::to_string(&font_file_url_map).unwrap();
-        assert_eq!(serialized_font_file_url_map, "{\"Ko\":{\"100\":\"ko/NotoSansKR-Thin.otf\",\"300\":\"ko/NotoSansKR-Light.otf\",\"400\":\"ko/NotoSansKR-Regular.otf\",\"500\":\"ko/NotoSansKR-Medium.otf\",\"700\":\"ko/NotoSansKR-Bold.otf\",\"900\":\"ko/NotoSansKR-Black.otf\",\"350\":\"ko/NotoSansKR-DemiLight.otf\"}}");
+        assert_eq!(serialized_font_file_url_map, "{\"Ko\":{\"100\":\"ko/NotoSansKR-Thin.otf\",\"300\":\"ko/NotoSansKR-Light.otf\",\"400\":\"ko/NotoSansKR-Regular.otf\",\"500\":\"ko/NotoSansKR-Medium.otf\",\"700\":\"ko/NotoSansKR-Bold.otf\",\"900\":\"ko/NotoSansKR-Black.otf\"}}");
     }
 }
