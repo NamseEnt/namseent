@@ -16,7 +16,9 @@
     "Rpcs",
     "skia",
     "Undoable",
-    "unpacketize"
+    "unpacketize",
+    "Namui",
+    "webbrowser"
   ],
   "editor.formatOnSave": true
 }
