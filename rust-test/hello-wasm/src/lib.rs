@@ -78,6 +78,9 @@ fn render_text(state: &mut State, index: i32) -> engine::Rendering {
             }),
             ..Default::default()
         },
+        on_click: Some(|| {
+            engine::log(format!("click"));
+        }),
     });
     render![a, b]
 

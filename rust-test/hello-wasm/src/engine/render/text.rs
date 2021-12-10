@@ -1,11 +1,4 @@
-use std::rc::Rc;
-
-// use super::{rect, RectFill, RectParam, RectStyle};
-use crate::engine::{
-    self,
-    draw::text::{get_bottom_of_baseline, get_left_in_align},
-    *,
-};
+use crate::engine::{self, *};
 
 pub struct TextStyleBorder {
     pub width: f32,
@@ -38,10 +31,7 @@ pub struct TextParam {
     pub style: TextStyle,
 }
 
-// export function Text(param: TextParam): RenderingTree {
 pub fn text(param: TextParam) -> RenderingTree {
-    //   const { fontType } = param;
-    //   const font = fontStorage.getFont(fontType);
     let font = engine::managers().font_manager.get_font(&param.font_type);
     match font {
         None => {
@@ -52,28 +42,27 @@ pub fn text(param: TextParam) -> RenderingTree {
             RenderingTree::Empty
         }
         Some(font) => {
-            render![
-                // draw_background(param, font),
-                engine::RenderingData {
-                    draw_calls: vec![engine::DrawCall {
-                        commands: vec![
-                            // draw_shadow(),
-                            draw_text(param, font),
-                            // draw_border(),
+            render![engine::RenderingData {
+                draw_calls: vec![engine::DrawCall {
+                    commands: vec![
+                        // draw_shadow(),
+                        draw_text(param, font),
+                        // draw_border(),
 
-                            // commands: vec![engine::DrawCommand::Text(engine::TextDrawCommand {
-                            //     text: param.text,
-                            //     x: 100,
-                            //     y: 100,
-                            //     align: engine::TextAlign::Left,
-                            //     baseline: engine::TextBaseline::Top,
-                            //     font,
-                            //     paint: param.paint,
-                            // })],
-                        ]
-                    }],
-                }
-            ]
+                        // commands: vec![engine::DrawCommand::Text(engine::TextDrawCommand {
+                        //     text: param.text,
+                        //     x: 100,
+                        //     y: 100,
+                        //     align: engine::TextAlign::Left,
+                        //     baseline: engine::TextBaseline::Top,
+                        //     font,
+                        //     paint: param.paint,
+                        // })],
+                    ]
+                }],
+                on_click: None,
+                id: None,
+            }]
         }
     }
 

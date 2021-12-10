@@ -8,6 +8,8 @@ use super::{
 };
 use serde::Serialize;
 use std::sync::Arc;
+pub mod rendering_tree;
+pub use rendering_tree::*;
 
 #[derive(Debug, Serialize)]
 pub struct PathDrawCommand {
@@ -64,43 +66,6 @@ pub enum DrawCommand {
 #[derive(Serialize)]
 pub struct DrawCall {
     pub commands: Vec<DrawCommand>,
-}
-
-#[derive(Serialize)]
-pub struct RenderingData {
-    pub draw_calls: Vec<DrawCall>,
-    // id?: string;
-    // onClick?: MouseEventCallback;
-    // onClickOut?: MouseEventCallback;
-    // onMouseMoveIn?: MouseEventCallback;
-    // onMouseMoveOut?: MouseEventCallback;
-    // onMouseIn?: () => void;
-    // onMouseDown?: MouseEventCallback;
-    // onMouseUp?: MouseEventCallback;
-}
-#[derive(Serialize)]
-pub enum RenderingTree {
-    Node(RenderingData),
-    Children(Vec<RenderingTree>),
-    Empty,
-}
-
-impl RenderingTree {
-    pub fn draw<TState>(&self, engine_context: &EngineContext<TState>) {
-        match self {
-            &RenderingTree::Children(ref children) => {
-                for child in children {
-                    child.draw(engine_context);
-                }
-            }
-            &RenderingTree::Node(ref data) => {
-                data.draw_calls.iter().for_each(|draw_call| {
-                    draw_call.draw(engine_context);
-                });
-            }
-            &RenderingTree::Empty => {}
-        }
-    }
 }
 
 impl DrawCall {

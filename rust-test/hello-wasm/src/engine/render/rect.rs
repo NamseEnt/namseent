@@ -23,14 +23,14 @@ pub struct RectStyle {
     pub round: Option<RectRound>,
 }
 #[derive(Default)]
-pub struct RectParam<'a> {
+pub struct RectParam {
     pub x: f32,
     pub y: f32,
     pub width: f32,
     pub height: f32,
-    pub id: Option<&'a str>,
+    pub id: Option<String>,
     pub style: RectStyle,
-    //   pub onClick?: MouseEventCallback,
+    pub on_click: Option<fn() -> ()>,
     //   pub onClickOut?: MouseEventCallback,
     //   pub onMouseIn?: () => void,
     //   pub onMouseMoveIn?: MouseEventCallback,
@@ -38,23 +38,6 @@ pub struct RectParam<'a> {
     //   pub onMouseDown?: MouseEventCallback,
     //   pub onMouseUp?: MouseEventCallback,
     //   pub onAfterDraw?: (id: string) => void,
-}
-
-struct Rect<'a> {
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-    id: Option<&'a str>,
-    style: RectStyle,
-    //   onClick?: MouseEventCallback,
-    //   onClickOut?: MouseEventCallback,
-    //   onMouseIn?: () => void,
-    //   onMouseMoveIn?: MouseEventCallback,
-    //   onMouseMoveOut?: MouseEventCallback,
-    //   onMouseDown?: MouseEventCallback,
-    //   onMouseUp?: MouseEventCallback,
-    //   onAfterDraw?: (id: string) => void,
 }
 
 pub fn rect(
@@ -68,6 +51,8 @@ pub fn rect(
             fill,
             round,
         },
+        id,
+        on_click,
         ..
     }: RectParam,
 ) -> RenderingTree {
@@ -155,6 +140,8 @@ pub fn rect(
         draw_calls: vec![DrawCall {
             commands: draw_commands,
         }],
+        id,
+        on_click,
     }));
 
     RenderingTree::Children(rendering_tree)
