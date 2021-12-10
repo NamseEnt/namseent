@@ -22,11 +22,20 @@ impl Paint {
     pub fn set_anti_alias(&self, value: bool) {
         self.0.setAntiAlias(value);
     }
+    pub fn set_stroke_width(&self, width: f32) {
+        self.0.setStrokeWidth(width);
+    }
 }
 
 impl Drop for Paint {
     fn drop(&mut self) {
         engine::log("Dropping paint".to_string());
         self.0.delete();
+    }
+}
+
+impl std::fmt::Debug for Paint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Paint")
     }
 }

@@ -156,12 +156,12 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn setStrokeMiter(this: &CanvasKitPaint, limit: number);
 
-    // ///
-    // /// Sets the thickness of the pen used to outline the shape.
-    // /// @param width
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn setStrokeWidth(this: &CanvasKitPaint, width: number);
+    ///
+    /// Sets the thickness of the pen used to outline the shape.
+    /// @param width
+    ///
+    #[wasm_bindgen(method)]
+    pub fn setStrokeWidth(this: &CanvasKitPaint, width: f32);
 
     // ///
     // /// Sets whether the geometry is filled or stroked.

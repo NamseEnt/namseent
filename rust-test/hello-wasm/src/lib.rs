@@ -1,9 +1,8 @@
 mod engine;
 mod utils;
-
-use std::collections::HashSet;
-
 use wasm_bindgen::prelude::*;
+
+use crate::engine::{RectParam, RectStroke, RectStyle};
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -29,7 +28,7 @@ pub async fn greet() {
 }
 
 fn render_start(state: &mut State) -> engine::Rendering {
-    return render![render_text(state, 0), render_text(state, 1)];
+    return render![render_text(state, 0)];
 }
 
 fn render_text(state: &mut State, index: i32) -> engine::Rendering {
@@ -58,9 +57,29 @@ fn render_text(state: &mut State, index: i32) -> engine::Rendering {
             border: None,
             drop_shadow: None,
         },
-        text: format!("Hello, {}!", index),
+        text: format!("mouse: {}", mouse_x),
     });
-    render![a]
+    let b = engine::rect(RectParam {
+        x: 200.0,
+        y: 200.0,
+        width: 100.0,
+        height: 100.0,
+        id: None,
+        style: RectStyle {
+            stroke: Some(RectStroke {
+                color: engine::Color {
+                    r: 0,
+                    g: 0,
+                    b: 0,
+                    a: 255,
+                },
+                width: 1.0,
+                border_position: engine::BorderPosition::Inside,
+            }),
+            ..Default::default()
+        },
+    });
+    render![a, b]
 
     // let font = engine::
 

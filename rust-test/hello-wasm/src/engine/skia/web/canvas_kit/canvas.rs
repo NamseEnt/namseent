@@ -274,13 +274,13 @@ extern "C" {
     // #[wasm_bindgen(structural, method)]
     // pub fn drawParagraph(this: &CanvasKitCanvas, p: Paragraph, x: number, y: number);
 
-    //     ///
-    //     /// Draws the given path using the current clip, current matrix, and the provided paint.
-    //     /// @param path
-    //     /// @param paint
-    //     ///
-    // #[wasm_bindgen(structural, method)]
-    // pub fn drawPath(this: &CanvasKitCanvas, path: Path, paint: Paint);
+    ///
+    /// Draws the given path using the current clip, current matrix, and the provided paint.
+    /// @param path
+    /// @param paint
+    ///
+    #[wasm_bindgen(structural, method)]
+    pub fn drawPath(this: &CanvasKitCanvas, path: &CanvasKitPath, paint: &CanvasKitPaint);
 
     //     ///
     //     /// Draws a cubic patch defined by 12 control points [top, right, bottom, left] with optional

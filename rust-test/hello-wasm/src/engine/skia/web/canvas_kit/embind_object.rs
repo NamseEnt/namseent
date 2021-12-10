@@ -47,8 +47,8 @@ extern "C" {
     #[wasm_bindgen(structural, method)]
     pub fn delete(this: &CanvasKitPaint);
 
-    // #[wasm_bindgen(structural, method)]
-    // pub fn delete(this: &CanvasKitPath);
+    #[wasm_bindgen(structural, method)]
+    pub fn delete(this: &CanvasKitPath);
 
     // #[wasm_bindgen(structural, method)]
     // pub fn delete(this: &CanvasKitPathEffect);

@@ -7,14 +7,15 @@ use std::{sync::Arc, time::Duration};
 mod engine_state;
 mod skia;
 pub use draw::{
-    DrawCall, DrawCommand, RenderingData, RenderingTree, TextAlign, TextBaseline, TextDrawCommand,
+    DrawCall, DrawCommand, PathDrawCommand, RenderingData, RenderingTree, TextAlign, TextBaseline,
+    TextDrawCommand,
 };
 pub use engine_common::*;
 pub use render::types::*;
-pub use skia::types::*;
-pub use skia::Paint;
 use skia::*;
+pub use skia::{types::*, Paint, Path};
 mod render;
+pub use render::rect::*;
 pub use render::text::*;
 
 #[cfg(target_family = "wasm")]

@@ -1,4 +1,5 @@
 use super::*;
+use js_sys::Float32Array;
 use web_sys::HtmlCanvasElement;
 
 #[wasm_bindgen]
@@ -67,6 +68,16 @@ extern "C" {
     // ///
     // // #[wasm_bindgen(js_namespace = CanvasKit)]
     // // fn MakeAnimation(json: String) -> SkottieAnimation;
+
+    ///
+    /// Returns a rectangle with rounded corners consisting of the given rectangle and
+    /// the same radiusX and radiusY for all four corners.
+    /// @param rect - The base rectangle.
+    /// @param rx - The radius of the corners in the x direction.
+    /// @param ry - The radius of the corners in the y direction.
+    ///
+    #[wasm_bindgen(method)]
+    pub fn RRectXY(this: &CanvasKit, rect: Float32Array, rx: f32, ry: f32) -> Float32Array;
 
     #[wasm_bindgen(method, getter)]
     pub fn FontMgr(this: &CanvasKit) -> FontMgrFactory;

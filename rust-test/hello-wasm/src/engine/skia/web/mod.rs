@@ -12,6 +12,8 @@ mod surface;
 pub use surface::*;
 mod typeface;
 pub use typeface::*;
+mod path;
+pub use path::*;
 
 use super::base;
 use super::types::*;

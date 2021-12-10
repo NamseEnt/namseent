@@ -1,17 +1,20 @@
+pub mod path;
 pub mod text;
+use self::path::draw_path;
 use self::text::draw_text;
+use super::{
+    skia::{Font, Paint},
+    Engine, EngineContext, EngineImpl, Path,
+};
 use serde::Serialize;
 use std::sync::Arc;
 
-use super::{
-    skia::{Font, Paint},
-    Engine, EngineContext, EngineImpl,
-};
-
 #[derive(Debug, Serialize)]
 pub struct PathDrawCommand {
-    pub path: String,
-    pub stroke: String,
+    #[serde(skip_serializing)]
+    pub path: Path,
+    #[serde(skip_serializing)]
+    pub paint: Paint,
 }
 
 #[derive(Debug, Serialize)]
@@ -111,14 +114,14 @@ impl DrawCall {
 impl DrawCommand {
     pub fn draw<TState>(&self, engine_context: &EngineContext<TState>) {
         match self {
-            &DrawCommand::Image(ref image) => {
-                Engine::log(format!("Drawing image: {}", image.x));
+            &DrawCommand::Image(ref image_command) => {
+                Engine::log(format!("Drawing image: {}", image_command.x));
             }
-            &DrawCommand::Path(ref path) => {
-                Engine::log(format!("Drawing path: {}", path.path));
+            &DrawCommand::Path(ref path_command) => {
+                draw_path(engine_context, &path_command);
             }
-            &DrawCommand::Text(ref text) => {
-                draw_text(engine_context, &text);
+            &DrawCommand::Text(ref text_command) => {
+                draw_text(engine_context, &text_command);
             }
         }
     }

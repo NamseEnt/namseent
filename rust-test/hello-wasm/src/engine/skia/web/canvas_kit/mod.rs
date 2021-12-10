@@ -24,6 +24,8 @@ mod typeface;
 pub use typeface::*;
 mod paint_style;
 pub use paint_style::*;
+mod path;
+pub use path::*;
 
 #[wasm_bindgen]
 pub struct Color {
