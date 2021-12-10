@@ -2,7 +2,7 @@ pub(crate) mod draw;
 mod engine_common;
 mod font;
 mod manager;
-use std::borrow::{Borrow, BorrowMut};
+use std::any::Any;
 use std::{sync::Arc, time::Duration};
 mod engine_state;
 mod skia;
@@ -17,6 +17,7 @@ pub use skia::{types::*, Paint, Path};
 mod render;
 pub use render::rect::*;
 pub use render::text::*;
+pub mod event;
 
 #[cfg(target_family = "wasm")]
 mod engine_web;
@@ -29,21 +30,48 @@ use self::{
     font::*,
 };
 
-pub async fn start<TState: 'static + std::marker::Send>(state: TState, render: Render<TState>) {
-    let mut engine_context = Engine::init(state, render).await;
+pub trait Update {
+    fn update(&self, event: &dyn Any) -> Self;
+}
+
+pub async fn start<TState>(mut state: TState, render: Render<TState>)
+where
+    TState: Update + 'static + std::marker::Send,
+{
+    let mut event_receiver = event::init();
+    let mut engine_context = Engine::init();
 
     init_font(&mut engine_context).await;
 
-    let boxed_engine_context = Box::new(engine_context);
+    let mut rendering_tree = render(&state);
 
     Engine::request_animation_frame(Box::new(move || {
-        on_frame(boxed_engine_context);
+        on_frame();
     }));
+
+    loop {
+        let event = event_receiver.recv().await.unwrap();
+
+        match event.downcast_ref::<EngineEvent>() {
+            Some(EngineEvent::AnimationFrame) => {
+                update_fps_info(&mut engine_context.fps_info);
+
+                rendering_tree.draw(&engine_context);
+
+                engine_context.surface.flush();
+            }
+            Some(EngineEvent::MoveClick(xy)) => {
+                rendering_tree.call_on_click(xy);
+            }
+            None => {
+                state = state.update(&event);
+                rendering_tree = render(&state);
+            }
+        }
+    }
 }
 
-async fn init_font<TState: 'static + std::marker::Send>(
-    engine_context: &mut EngineContext<TState>,
-) {
+async fn init_font(engine_context: &mut EngineContext) {
     let font_manager = &mut *managers().font_manager;
     let typeface_manager = &mut font_manager.typeface_manager;
 
@@ -57,28 +85,16 @@ async fn init_font<TState: 'static + std::marker::Send>(
     };
 }
 
-fn on_frame<TState: 'static + std::marker::Send>(
-    mut boxed_engine_context: Box<EngineContext<TState>>,
-) {
-    let engine_context = &mut *boxed_engine_context;
+enum EngineEvent {
+    AnimationFrame,
+    MoveClick(Xy<f32>),
+}
 
-    update_fps_info(&mut engine_context.fps_info);
-
-    let rendering_tree = (engine_context.render)(&mut engine_context.state);
-    match serde_json::to_string(&rendering_tree) {
-        Ok(s) => {
-            log(s);
-        }
-        Err(e) => {
-            log(format!("Failed to serialize rendering tree: {}", e));
-        }
-    };
-    rendering_tree.draw(&engine_context);
-
-    engine_context.surface.flush();
+fn on_frame() {
+    event::send(Box::new(EngineEvent::AnimationFrame));
 
     Engine::request_animation_frame(Box::new(move || {
-        on_frame(boxed_engine_context);
+        on_frame();
     }));
 }
 

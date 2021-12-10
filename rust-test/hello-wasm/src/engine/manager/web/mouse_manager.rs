@@ -25,12 +25,15 @@ impl MouseManager {
             mouse_position.x = event.client_x() as i16;
             mouse_position.y = event.client_y() as i16;
 
-            Engine::log(format!("Click x: {}", mouse_position.x));
-
             EngineInternal::update_state(EngineState {
                 mouse_position: mouse_position.clone(),
                 ..*engine::state()
             });
+
+            engine::event::send(Box::new(engine::EngineEvent::MoveClick(Xy {
+                x: mouse_position.x as f32,
+                y: mouse_position.y as f32,
+            })));
         }) as Box<dyn FnMut(_)>);
 
         element

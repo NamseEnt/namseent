@@ -1,8 +1,7 @@
 use super::engine_common::{EngineContext, EngineImpl, FpsInfo, Render};
-use super::manager::{FontManager, Managers, MouseManager, TypefaceManager};
+use super::manager::{FontManager, Managers, MouseManager};
 use super::skia::{canvas_kit, Surface};
-use super::Engine;
-use async_trait::*;
+use super::{Engine, RenderingTree};
 use std::sync::Mutex;
 use std::time::Duration;
 use wasm_bindgen::{prelude::*, JsCast};
@@ -34,12 +33,8 @@ pub fn get_managers() -> std::sync::MutexGuard<'static, Managers> {
         .unwrap()
 }
 
-#[async_trait]
 impl EngineImpl for Engine {
-    async fn init<TState: std::marker::Send>(
-        state: TState,
-        render: Render<TState>,
-    ) -> EngineContext<TState> {
+    fn init() -> EngineContext {
         let canvas_kit = canvas_kit();
         let canvas_element = make_canvas_element().unwrap();
         let canvas_kit_surface = canvas_kit.MakeCanvasSurface(&canvas_element).unwrap();
@@ -56,8 +51,6 @@ impl EngineImpl for Engine {
         }
 
         EngineContext {
-            state,
-            render,
             surface,
             fps_info: FpsInfo {
                 fps: 0,

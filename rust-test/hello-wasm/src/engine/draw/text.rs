@@ -4,7 +4,7 @@ use crate::engine::{self, skia::*, EngineContext};
 
 use super::{TextAlign, TextBaseline, TextDrawCommand};
 
-pub fn draw_text<TState>(engine_context: &EngineContext<TState>, command: &TextDrawCommand) {
+pub fn draw_text(engine_context: &EngineContext, command: &TextDrawCommand) {
     engine::log(format!("draw_text"));
     if command.text.len() == 0 {
         return;

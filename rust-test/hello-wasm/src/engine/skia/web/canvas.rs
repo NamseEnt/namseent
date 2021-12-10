@@ -8,7 +8,7 @@ impl Canvas {
         self.0.drawTextBlob(&text_blob.0, x, y, &paint.0);
     }
     pub fn draw_path(&self, path: &Path, paint: &Paint) {
-        self.0.drawPath(&path.0, &paint.0);
+        self.0.drawPath(&path.canvas_kit_path, &paint.0);
     }
 }
 

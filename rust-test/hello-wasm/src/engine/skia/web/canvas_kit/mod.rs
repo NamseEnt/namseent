@@ -22,8 +22,8 @@ mod embind_object;
 pub use embind_object::*;
 mod typeface;
 pub use typeface::*;
-mod paint_style;
-pub use paint_style::*;
+mod enums;
+pub use enums::*;
 mod path;
 pub use path::*;
 

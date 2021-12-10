@@ -1,7 +1,6 @@
 use super::draw::{RenderingData, RenderingTree};
 use super::engine_state::{update_engine_state, EngineState};
 use super::skia::*;
-use async_trait::*;
 use serde::{Deserialize, Serialize};
 use serde_repr::*;
 use std::time::Duration;
@@ -13,19 +12,13 @@ pub struct FpsInfo {
     pub last_60_frame_time: Duration,
 }
 
-pub struct EngineContext<TState> {
-    pub state: TState,
+pub struct EngineContext {
     pub surface: Surface,
     pub fps_info: FpsInfo,
-    pub render: Render<TState>,
 }
 
-#[async_trait]
 pub trait EngineImpl {
-    async fn init<TState: std::marker::Send>(
-        state: TState,
-        render: Render<TState>,
-    ) -> EngineContext<TState>;
+    fn init() -> EngineContext;
     fn request_animation_frame(callback: Box<dyn FnOnce()>);
     fn log(format: String);
     fn now() -> Duration;
@@ -40,13 +33,13 @@ impl EngineInternal {
 
 pub struct Engine;
 
-pub type Render<TState> = fn(&mut TState) -> RenderingTree;
+pub type Render<TState> = fn(&TState) -> RenderingTree;
 
 #[macro_export]
 macro_rules! render_func(
     ($_func_name:ident, $_state_type:ty, $_state_identity:ident, $body:expr) => (
         paste::item! {
-            fn [<render_ $ _func_name>] ($_state_identity: &mut $_state_type) -> RenderingTree { $body }
+            fn [<render_ $ _func_name>] ($_state_identity: &$_state_type) -> RenderingTree { $body }
         }
     )
 );

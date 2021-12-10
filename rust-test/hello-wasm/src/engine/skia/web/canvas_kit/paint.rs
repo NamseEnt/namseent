@@ -12,45 +12,45 @@ extern "C" {
     // /// Returns a copy of this paint.
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn copythis: &CanvasKitPaint, () -> Paint;
+    // pub fn copy(this: &CanvasKitPaint) -> Paint;
 
     // ///
     // /// Retrieves the alpha and RGB unpremultiplied. RGB are extended sRGB values
     // /// (sRGB gamut, and encoded with the sRGB transfer function).
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn getColorthis: &CanvasKitPaint, () -> Color;
+    // pub fn getColor(this: &CanvasKitPaint) -> Color;
 
-    // ///
-    // /// Returns the geometry drawn at the beginning and end of strokes.
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn getStrokeCapthis: &CanvasKitPaint, () -> StrokeCap;
+    ///
+    /// Returns the geometry drawn at the beginning and end of strokes.
+    ///
+    #[wasm_bindgen(method)]
+    pub fn getStrokeCap(this: &CanvasKitPaint) -> CanvasKitStrokeCap;
 
-    // ///
-    // /// Returns the geometry drawn at the corners of strokes.
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn getStrokeJointhis: &CanvasKitPaint, () -> StrokeJoin;
+    ///
+    /// Returns the geometry drawn at the corners of strokes.
+    ///
+    #[wasm_bindgen(method)]
+    pub fn getStrokeJoin(this: &CanvasKitPaint) -> CanvasKitStrokeJoin;
 
-    // ///
-    // ///  Returns the limit at which a sharp corner is drawn beveled.
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn getStrokeMiterthis: &CanvasKitPaint, () -> number;
+    ///
+    ///  Returns the limit at which a sharp corner is drawn beveled.
+    ///
+    #[wasm_bindgen(method)]
+    pub fn getStrokeMiter(this: &CanvasKitPaint) -> f32;
 
-    // ///
-    // /// Returns the thickness of the pen used to outline the shape.
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn getStrokeWidththis: &CanvasKitPaint, () -> number;
+    ///
+    /// Returns the thickness of the pen used to outline the shape.
+    ///
+    #[wasm_bindgen(method)]
+    pub fn getStrokeWidth(this: &CanvasKitPaint) -> f32;
 
     // ///
     // /// Replaces alpha, leaving RGBA unchanged. 0 means fully transparent, 1.0 means opaque.
     // /// @param alpha
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn setAlphaf(this: &CanvasKitPaint, alpha: number);
+    // pub fn setAlphaf(this: &CanvasKitPaint, alpha: f32);
 
     // ///
     // /// Requests, but does not require, that edge pixels draw opaque or with

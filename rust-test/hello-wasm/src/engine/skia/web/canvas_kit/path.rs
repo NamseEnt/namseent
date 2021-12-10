@@ -201,14 +201,14 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn conicTo(this: &CanvasKitPath, x1: number, y1: number, x2: number, y2: number, w: number) -> CanvasKitPath;
 
-    // ///
-    // /// Returns true if the point (x, y) is contained by Path, taking into
-    // /// account FillType.
-    // /// @param x
-    // /// @param y
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn contains(this: &CanvasKitPath, x: number, y: number) -> bool;
+    ///
+    /// Returns true if the point (x, y) is contained by Path, taking into
+    /// account FillType.
+    /// @param x
+    /// @param y
+    ///
+    #[wasm_bindgen(method)]
+    pub fn contains(this: &CanvasKitPath, x: f32, y: f32) -> bool;
 
     ///
     /// Returns a copy of this Path.
@@ -462,13 +462,13 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn simplify(this: &CanvasKitPath) -> bool;
 
-    // ///
-    // /// Turns this path into the filled equivalent of the stroked path. Returns null if the operation
-    // /// fails (e.g. the path is a hairline).
-    // /// @param opts - describe how stroked path should look.
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn stroke(this: &CanvasKitPath, opts: Option<StrokeOpts) -> CanvasKitPath | null;
+    ///
+    /// Turns this path into the filled equivalent of the stroked path. Returns null if the operation
+    /// fails (e.g. the path is a hairline).
+    /// @param opts - describe how stroked path should look.
+    ///
+    #[wasm_bindgen(method)]
+    pub fn stroke(this: &CanvasKitPath, opts: JsValue) -> JsValue;
 
     // ///
     // /// Serializes the contents of this path as a series of commands.

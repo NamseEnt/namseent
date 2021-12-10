@@ -1,4 +1,4 @@
-use crate::engine::EngineContext;
+use crate::engine::{EngineContext, Xy};
 
 use super::DrawCall;
 use serde::Serialize;
@@ -24,7 +24,7 @@ pub enum RenderingTree {
 }
 
 impl RenderingTree {
-    pub fn draw<TState>(&self, engine_context: &EngineContext<TState>) {
+    pub fn draw(&self, engine_context: &EngineContext) {
         self.visit(&mut |rendering_data: &RenderingData| {
             rendering_data.draw_calls.iter().for_each(|draw_call| {
                 draw_call.draw(engine_context);
@@ -42,10 +42,33 @@ impl RenderingTree {
             RenderingTree::Empty => {}
         }
     }
+    pub fn call_on_click(&self, local_xy: &Xy<f32>) {
+        self.visit(&mut |rendering_data: &RenderingData| {
+            if let Some(on_click) = rendering_data.on_click {
+                if rendering_data.is_inside(local_xy) {
+                    on_click();
+                }
+            }
+        });
+    }
+}
+
+impl RenderingData {
+    fn is_inside(&self, local_xy: &Xy<f32>) -> bool {
+        self.draw_calls.iter().any(|draw_call| {
+            // TODO : Handle drawCall.clip
+            draw_call
+                .commands
+                .iter()
+                .any(|draw_command| draw_command.is_inside(local_xy))
+        })
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::engine;
+
     use super::{RenderingData, RenderingTree};
     use wasm_bindgen_test::*;
 
@@ -112,5 +135,87 @@ mod tests {
             visited_rendering_data_id_list,
             vec!["0", "1", "3", "4", "2", "5"]
         );
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn call_on_click_should_run_in_dfs_pre_order() {
+        /*
+            tree:
+                 0
+               /   \
+              1     2
+
+            screen:
+
+                ┌─────── 0 ────────┐       ┌─────── 2 ────────┐
+                │                  │       │                  │
+                │                  │       │                  │
+                │       ┌───────1────────┐ │                  │
+                │       │                │ │                  │
+                │       │  ●             │ │                  │
+                └───────│                │ └──────────────────┘
+                        │                │
+                        │                │
+                        └────────────────┘
+            click on: ●
+            call order: 0, 1
+        */
+
+        static mut ON_CLICK_CALLED_ID_LIST: Vec<String> = vec![];
+
+        let rendering_tree = RenderingTree::Children(vec![
+            engine::rect(engine::RectParam {
+                x: 0.0,
+                y: 0.0,
+                width: 100.0,
+                height: 100.0,
+                id: Some("0".to_string()),
+                style: engine::RectStyle {
+                    fill: None,
+                    stroke: None,
+                    round: None,
+                },
+                on_click: Some(|| unsafe {
+                    ON_CLICK_CALLED_ID_LIST.push("0".to_string());
+                }),
+            }),
+            RenderingTree::Children(vec![engine::rect(engine::RectParam {
+                x: 50.0,
+                y: 50.0,
+                width: 100.0,
+                height: 100.0,
+                id: Some("1".to_string()),
+                style: engine::RectStyle {
+                    fill: None,
+                    stroke: None,
+                    round: None,
+                },
+                on_click: Some(|| unsafe {
+                    ON_CLICK_CALLED_ID_LIST.push("1".to_string());
+                }),
+            })]),
+            RenderingTree::Children(vec![engine::rect(engine::RectParam {
+                x: 210.0,
+                y: 0.0,
+                width: 100.0,
+                height: 100.0,
+                id: Some("2".to_string()),
+                style: engine::RectStyle {
+                    fill: None,
+                    stroke: None,
+                    round: None,
+                },
+                on_click: Some(|| unsafe {
+                    ON_CLICK_CALLED_ID_LIST.push("2".to_string());
+                }),
+            })]),
+        ]);
+
+        rendering_tree.call_on_click(&engine::Xy { x: 75.0, y: 75.0 });
+
+        unsafe {
+            assert_eq!(ON_CLICK_CALLED_ID_LIST, vec!["0", "1", "3", "5"]);
+        };
     }
 }

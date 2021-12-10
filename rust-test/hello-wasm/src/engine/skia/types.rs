@@ -36,3 +36,22 @@ pub enum PaintStyle {
     Fill,
     Stroke,
 }
+
+pub enum StrokeCap {
+    Butt,
+    Round,
+    Square,
+}
+
+pub enum StrokeJoin {
+    Bevel,
+    Miter,
+    Round,
+}
+pub struct StrokeOptions {
+    pub width: Option<f32>,
+    pub miter_limit: Option<f32>,
+    pub precision: Option<f32>,
+    pub join: Option<StrokeJoin>,
+    pub cap: Option<StrokeCap>,
+}

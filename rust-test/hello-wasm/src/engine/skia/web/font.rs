@@ -41,21 +41,6 @@ impl Font {
             leading: canvas_kit_font_metrics.leading(),
             bounds,
         }
-
-        // let stringified: String = js_sys::JSON::stringify(&js_value)
-        //     .unwrap()
-        //     .as_string()
-        //     .unwrap();
-        // engine::log(stringified);
-        // let a = js_value.into_serde();
-
-        // match js_value.into_serde::<CanvasKitFontMetrics>() {
-        //     Ok(metrics) => metrics.into_font_metrics(),
-        //     Err(err) => {
-        //         engine::log(format!("{}", err));
-        //         panic!("{}", err)
-        //     }
-        // }
     }
     pub fn get_glyph_bounds(&self, glyph_ids: &GlyphIds, paint: Option<&Paint>) -> Vec<LtrbRect> {
         let canvas_kit_font = &self.0;

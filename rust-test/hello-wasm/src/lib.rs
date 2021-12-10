@@ -1,5 +1,7 @@
 mod engine;
 mod utils;
+use std::any::Any;
+
 use wasm_bindgen::prelude::*;
 
 use crate::engine::{RectParam, RectStroke, RectStyle};
@@ -20,18 +22,22 @@ struct State {
     value: i32,
 }
 
-static STATE: State = State { value: 0 };
+impl engine::Update for State {
+    fn update(&self, event: &dyn Any) -> Self {
+        State { value: self.value }
+    }
+}
 
 #[wasm_bindgen]
 pub async fn greet() {
     engine::start(State { value: 0 }, render_start).await;
 }
 
-fn render_start(state: &mut State) -> engine::Rendering {
+fn render_start(state: &State) -> engine::Rendering {
     return render![render_text(state, 0)];
 }
 
-fn render_text(state: &mut State, index: i32) -> engine::Rendering {
+fn render_text(state: &State, index: i32) -> engine::Rendering {
     let engine_state = engine::state();
     let mouse_x = engine_state.mouse_position.x;
     let color = engine::Color {
