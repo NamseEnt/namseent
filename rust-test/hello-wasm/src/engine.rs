@@ -31,19 +31,23 @@ use self::{
 };
 
 pub trait Update {
-    fn update(&self, event: &dyn Any) -> Self;
+    fn update(&mut self, event: &dyn Any);
 }
 
-pub async fn start<TState>(mut state: TState, render: Render<TState>)
+pub trait Render {
+    fn render(&self) -> RenderingTree;
+}
+
+pub async fn start<TState>(mut state: TState)
 where
-    TState: Update + 'static + std::marker::Send,
+    TState: Update + Render,
 {
     let mut event_receiver = event::init();
     let mut engine_context = Engine::init();
 
-    init_font(&mut engine_context).await;
+    init_font().await;
 
-    let mut rendering_tree = render(&state);
+    let mut rendering_tree = state.render();
 
     Engine::request_animation_frame(Box::new(move || {
         on_frame();
@@ -64,14 +68,14 @@ where
                 rendering_tree.call_on_click(xy);
             }
             None => {
-                state = state.update(&event);
-                rendering_tree = render(&state);
+                state.update(event.as_ref());
+                rendering_tree = state.render();
             }
         }
     }
 }
 
-async fn init_font(engine_context: &mut EngineContext) {
+async fn init_font() {
     let font_manager = &mut *managers().font_manager;
     let typeface_manager = &mut font_manager.typeface_manager;
 

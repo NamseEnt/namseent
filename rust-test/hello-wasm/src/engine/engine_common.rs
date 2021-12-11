@@ -33,8 +33,6 @@ impl EngineInternal {
 
 pub struct Engine;
 
-pub type Render<TState> = fn(&TState) -> RenderingTree;
-
 #[macro_export]
 macro_rules! render_func(
     ($_func_name:ident, $_state_type:ty, $_state_identity:ident, $body:expr) => (
