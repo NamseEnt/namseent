@@ -8,16 +8,21 @@ mod engine_state;
 mod skia;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
 pub use engine_common::*;
-pub use render::{rect::*, text::*, translate, types::*, RenderingData, RenderingTree};
+pub use render::{
+    rect::*, text::*, text_input_event, translate, types::*, RenderingData, RenderingTree,
+    TextInput,
+};
 use skia::*;
 pub use skia::{types::*, Paint, Path};
 pub mod event;
 mod render;
-use self::manager::Managers;
+use self::manager::{Code, Managers};
 use self::{
     engine_state::{get_engine_state, EngineState},
     font::*,
 };
+mod random;
+pub use self::random::*;
 
 #[cfg(target_family = "wasm")]
 mod engine_web;

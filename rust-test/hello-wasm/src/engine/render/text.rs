@@ -1,19 +1,22 @@
 use crate::engine::{self, *};
 
+#[derive(Clone, Copy, Debug)]
 pub struct TextStyleBorder {
     pub width: f32,
     pub color: Color,
 }
+#[derive(Clone, Copy, Debug)]
 pub struct TextStyleDropShadow {
     pub x: f32,
     pub y: f32,
     pub color: Option<Color>,
 }
+#[derive(Clone, Copy, Debug)]
 pub struct TextStyleBackground {
     pub color: Color,
     pub margin: Option<LtrbRect>,
 }
-
+#[derive(Clone, Copy, Debug)]
 pub struct TextStyle {
     pub border: Option<TextStyleBorder>,
     pub drop_shadow: Option<TextStyleDropShadow>,
@@ -237,16 +240,11 @@ fn draw_text(param: TextParam, font: Arc<Font>) -> DrawCommand {
 //     RenderingTree::Empty
 // }
 
-// // export function getTextWidth(
-// //   font: Font,
-// //   text: str,
-// //   dropShadowX: Option< number,
-// // ): number {
-// fn get_text_width(font: &Font, text: &str, dropShadowX: Option<f32>) -> f32 {
-//     let glyph_ids = font.get_glyph_ids(text);
-//     let glyph_widths = font.get_glyph_widths(&glyph_ids, Option::None);
-//     glyph_widths.iter().fold(0.0, |acc, cur| acc + cur) + dropShadowX.unwrap_or(0.0)
-// }
+pub(crate) fn get_text_width(font: &Font, text: &str, drop_shadow_x: Option<f32>) -> f32 {
+    let glyph_ids = font.get_glyph_ids(text);
+    let glyph_widths = font.get_glyph_widths(&glyph_ids, Option::None);
+    glyph_widths.iter().fold(0.0, |acc, cur| acc + cur) + drop_shadow_x.unwrap_or(0.0)
+}
 
 // // export function getGlyphsTopBottom(
 // //   font: Font,

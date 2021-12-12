@@ -1,5 +1,5 @@
 use super::engine_common::{EngineContext, EngineImpl, FpsInfo};
-use super::manager::{FontManager, Managers, MouseManager};
+use super::manager::*;
 use super::skia::{canvas_kit, Surface};
 use super::{Engine, RenderingTree};
 use std::sync::Mutex;
@@ -44,6 +44,7 @@ impl EngineImpl for Engine {
             .set(Mutex::new(Managers {
                 mouse_manager: Box::new(MouseManager::new(&canvas_element)),
                 font_manager: Box::new(FontManager::new()),
+                keyboard_manager: Box::new(KeyboardManager::new()),
             }))
             .is_err()
         {

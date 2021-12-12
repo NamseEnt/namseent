@@ -9,7 +9,7 @@ pub struct RenderingData {
     pub draw_calls: Vec<DrawCall>,
     pub id: Option<String>,
     #[serde(skip_serializing)]
-    pub on_click: Option<Box<dyn Fn()>>,
+    pub on_click: Option<Box<dyn Fn(&engine::Xy<f32>)>>,
     // onClickOut?: MouseEventCallback;
     // onMouseMoveIn?: MouseEventCallback;
     // onMouseMoveOut?: MouseEventCallback;
@@ -66,7 +66,7 @@ impl RenderingTree {
             RenderingTree::Node(rendering_data) => {
                 if let Some(on_click) = &rendering_data.on_click {
                     if rendering_data.is_inside(local_xy) {
-                        on_click();
+                        on_click(local_xy);
                     }
                 }
             }
@@ -142,7 +142,7 @@ mod tests {
                     stroke: None,
                     round: None,
                 },
-                on_click: Some(Box::new(move || unsafe {
+                on_click: Some(Box::new(move |xy| unsafe {
                     ON_CLICK_CALLED_ID_LIST.push("0".to_string());
                 })),
             }),
@@ -157,7 +157,7 @@ mod tests {
                     stroke: None,
                     round: None,
                 },
-                on_click: Some(Box::new(move || unsafe {
+                on_click: Some(Box::new(move |xy| unsafe {
                     ON_CLICK_CALLED_ID_LIST.push("1".to_string());
                 })),
             })]),
@@ -172,7 +172,7 @@ mod tests {
                     stroke: None,
                     round: None,
                 },
-                on_click: Some(Box::new(move || unsafe {
+                on_click: Some(Box::new(move |xy| unsafe {
                     ON_CLICK_CALLED_ID_LIST.push("2".to_string());
                 })),
             })]),

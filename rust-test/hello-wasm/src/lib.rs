@@ -23,6 +23,7 @@ enum StateActions {
 struct State {
     next_todo_id: usize,
     todo_list: Vec<Todo>,
+    text_input: engine::TextInput,
 }
 
 impl engine::Update for State {
@@ -48,6 +49,8 @@ impl engine::Update for State {
             }
             None => {}
         }
+
+        self.text_input.update(event);
     }
 }
 
@@ -73,7 +76,7 @@ impl engine::Render for State {
                     }),
                     ..Default::default()
                 },
-                on_click: Some(Box::new(|| {
+                on_click: Some(Box::new(|xy| {
                     engine::log("clicked".to_string());
                     engine::event::send(Box::new(StateActions::AddTodo("hi".to_string())));
                 })),
@@ -132,7 +135,7 @@ impl engine::Render for State {
                                     }),
                                     ..Default::default()
                                 },
-                                on_click: Some(Box::new(move || {
+                                on_click: Some(Box::new(move |xy| {
                                     engine::log(format!("clicked {}", index));
                                 })),
                             }),
@@ -166,7 +169,7 @@ impl engine::Render for State {
                 .collect::<Vec<_>>(),
         );
 
-        render![add_button, todo_list]
+        render![add_button, todo_list, self.text_input.render()]
     }
 }
 
@@ -186,6 +189,45 @@ pub async fn greet() {
     engine::start(State {
         next_todo_id: 0,
         todo_list: vec![],
+        text_input: engine::TextInput::new(
+            "abcdefghijklmnop".to_string(),
+            300.0,
+            300.0,
+            100.0,
+            50.0,
+            engine::Color {
+                r: 200,
+                g: 200,
+                b: 200,
+                a: 255,
+            },
+            engine::Color {
+                r: 0,
+                g: 0,
+                b: 0,
+                a: 255,
+            },
+            1.0,
+            engine::TextAlign::Left,
+            engine::TextBaseline::Top,
+            engine::FontType {
+                font_weight: engine::FontWeight::_400,
+                language: engine::Language::Ko,
+                serif: false,
+                size: 16,
+            },
+            engine::TextStyle {
+                background: None,
+                border: None,
+                color: engine::Color {
+                    r: 0,
+                    g: 0,
+                    b: 0,
+                    a: 255,
+                },
+                drop_shadow: None,
+            },
+        ),
     })
     .await;
 }

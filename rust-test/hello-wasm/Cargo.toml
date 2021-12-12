@@ -55,10 +55,12 @@ features = [
     "console",
     "Performance",
     "MouseEvent",
+    "KeyboardEvent",
     "BinaryType",
     'Headers',
     'Request',
     'RequestInit',
     'RequestMode',
-    'Response'
+    'Response',
+    "Crypto"
 ]

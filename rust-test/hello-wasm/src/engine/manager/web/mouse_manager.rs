@@ -1,9 +1,7 @@
+use crate::engine::{self, engine_state::EngineState, Engine, EngineImpl, EngineInternal, Xy};
 use std::sync::{Arc, RwLock};
-
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::HtmlElement;
-
-use crate::engine::{self, engine_state::EngineState, Engine, EngineImpl, EngineInternal, Xy};
 
 pub struct MouseManager {
     pub mouse_position: Arc<RwLock<Xy<i16>>>,
