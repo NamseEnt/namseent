@@ -73,10 +73,10 @@ impl engine::Render for State {
                     }),
                     ..Default::default()
                 },
-                on_click: Some(|| {
+                on_click: Some(Box::new(|| {
                     engine::log("clicked".to_string());
                     engine::event::send(Box::new(StateActions::AddTodo("hi".to_string())));
-                }),
+                })),
             }),
             engine::text(engine::TextParam {
                 x: 100.0,
@@ -103,35 +103,65 @@ impl engine::Render for State {
                 text: format!("Add Todo - {}", self.next_todo_id),
             })
         ];
+
         let todo_list = engine::RenderingTree::Children(
             self.todo_list
                 .iter()
                 .enumerate()
                 .map(|(index, todo)| {
-                    engine::text(engine::TextParam {
-                        x: 100.0,
-                        y: 200.0 + 100.0 * index as f32,
-                        align: engine::TextAlign::Left,
-                        baseline: engine::TextBaseline::Top,
-                        font_type: engine::FontType {
-                            font_weight: engine::FontWeight::_400,
-                            language: engine::Language::Ko,
-                            serif: false,
-                            size: 16,
-                        },
-                        style: engine::TextStyle {
-                            color: engine::Color {
-                                r: 0,
-                                g: 0,
-                                b: 0,
-                                a: 255,
-                            },
-                            background: None,
-                            border: None,
-                            drop_shadow: None,
-                        },
-                        text: format!("{}: {}", todo.id, todo.text),
-                    })
+                    engine::translate(
+                        100.0,
+                        200.0 + 100.0 * index as f32,
+                        render![
+                            engine::rect(engine::RectParam {
+                                x: 0.0,
+                                y: 0.0,
+                                width: 100.0,
+                                height: 100.0,
+                                id: None,
+                                style: RectStyle {
+                                    stroke: Some(RectStroke {
+                                        color: engine::Color {
+                                            r: 0,
+                                            g: 128,
+                                            b: 0,
+                                            a: 255,
+                                        },
+                                        width: 1.0,
+                                        border_position: engine::BorderPosition::Inside,
+                                    }),
+                                    ..Default::default()
+                                },
+                                on_click: Some(Box::new(move || {
+                                    engine::log(format!("clicked {}", index));
+                                })),
+                            }),
+                            engine::text(engine::TextParam {
+                                x: 0.0,
+                                y: 0.0,
+                                align: engine::TextAlign::Left,
+                                baseline: engine::TextBaseline::Top,
+                                font_type: engine::FontType {
+                                    font_weight: engine::FontWeight::_400,
+                                    language: engine::Language::Ko,
+                                    serif: false,
+                                    size: 16,
+                                },
+                                style: engine::TextStyle {
+                                    color: engine::Color {
+                                        r: 0,
+                                        g: 0,
+                                        b: 0,
+                                        a: 255,
+                                    },
+                                    background: None,
+                                    border: None,
+                                    drop_shadow: None,
+                                },
+                                text: format!("{}: {}", todo.id, todo.text),
+                            })
+                        ],
+                    )
                 })
                 .collect::<Vec<_>>(),
         );

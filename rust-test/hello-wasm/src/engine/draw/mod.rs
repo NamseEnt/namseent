@@ -8,9 +8,6 @@ use super::{
 };
 use serde::Serialize;
 use std::sync::Arc;
-pub mod rendering_tree;
-use crate::engine;
-pub use rendering_tree::*;
 
 #[derive(Debug, Serialize)]
 pub struct PathDrawCommand {
@@ -92,7 +89,7 @@ impl DrawCommand {
         }
     }
 
-    fn is_inside(&self, local_xy: &Xy<f32>) -> bool {
+    pub(crate) fn is_inside(&self, local_xy: &Xy<f32>) -> bool {
         match self {
             DrawCommand::Path(path_draw_command) => {
                 let path = &path_draw_command.path;

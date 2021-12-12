@@ -10,6 +10,9 @@ impl Canvas {
     pub fn draw_path(&self, path: &Path, paint: &Paint) {
         self.0.drawPath(&path.canvas_kit_path, &paint.0);
     }
+    pub fn translate(&self, dx: f32, dy: f32) {
+        self.0.translate(dx, dy);
+    }
 }
 
 impl Drop for Canvas {

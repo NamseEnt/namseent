@@ -30,7 +30,7 @@ pub struct RectParam {
     pub height: f32,
     pub id: Option<String>,
     pub style: RectStyle,
-    pub on_click: Option<fn() -> ()>,
+    pub on_click: Option<Box<dyn Fn()>>,
     //   pub onClickOut?: MouseEventCallback,
     //   pub onMouseIn?: () => void,
     //   pub onMouseMoveIn?: MouseEventCallback,

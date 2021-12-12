@@ -539,13 +539,13 @@ extern "C" {
     // #[wasm_bindgen(structural, method)]
     // pub fn skew(this: &CanvasKitCanvas, sx: number, sy: number);
 
-    //     ///
-    //     /// Translates Matrix by dx along the x-axis and dy along the y-axis.
-    //     /// @param dx
-    //     /// @param dy
-    //     ///
-    // #[wasm_bindgen(structural, method)]
-    // pub fn translate(this: &CanvasKitCanvas, dx: number, dy: number);
+    ///
+    /// Translates Matrix by dx along the x-axis and dy along the y-axis.
+    /// @param dx
+    /// @param dy
+    ///
+    #[wasm_bindgen(structural, method)]
+    pub fn translate(this: &CanvasKitCanvas, dx: f32, dy: f32);
 
     //     ///
     //     /// Writes the given rectangle of pixels to the provided coordinates. The source pixels

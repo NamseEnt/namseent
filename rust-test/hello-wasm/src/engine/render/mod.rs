@@ -1,8 +1,12 @@
 pub mod text;
 pub use text::*;
-
 pub mod rect;
 pub use rect::*;
-
 pub mod types;
 pub use types::*;
+pub mod text_input;
+pub use text_input::*;
+pub mod rendering_tree;
+pub use rendering_tree::*;
+pub mod translate;
+pub use translate::*;

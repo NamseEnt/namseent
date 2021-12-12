@@ -6,29 +6,23 @@ use std::any::Any;
 use std::{sync::Arc, time::Duration};
 mod engine_state;
 mod skia;
-pub use draw::{
-    DrawCall, DrawCommand, PathDrawCommand, RenderingData, RenderingTree, TextAlign, TextBaseline,
-    TextDrawCommand,
-};
+pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
 pub use engine_common::*;
-pub use render::types::*;
+pub use render::{rect::*, text::*, translate, types::*, RenderingData, RenderingTree};
 use skia::*;
 pub use skia::{types::*, Paint, Path};
-mod render;
-pub use render::rect::*;
-pub use render::text::*;
 pub mod event;
-
-#[cfg(target_family = "wasm")]
-mod engine_web;
-
-#[cfg(target_family = "wasm")]
-pub use self::engine_web::*;
+mod render;
 use self::manager::Managers;
 use self::{
     engine_state::{get_engine_state, EngineState},
     font::*,
 };
+
+#[cfg(target_family = "wasm")]
+mod engine_web;
+#[cfg(target_family = "wasm")]
+pub use self::engine_web::*;
 
 pub trait Update {
     fn update(&mut self, event: &dyn Any);
