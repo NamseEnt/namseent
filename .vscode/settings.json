@@ -13,6 +13,7 @@
     "Playhead",
     "Redoable",
     "Rpcs",
+    "skia",
     "Undoable",
     "unpacketize"
   ],

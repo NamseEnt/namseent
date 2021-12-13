@@ -2,4 +2,5 @@
 
 members = [
     "namui",
+    "luda-editor-client"
 ]
