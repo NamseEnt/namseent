@@ -59,7 +59,7 @@ impl RenderingData {
 /// - engine::RenderingData
 #[macro_export]
 macro_rules! render {
-    ( $( $x:expr ),* ) => {
+    ( $( $x:expr ),+ $(,)? ) => {
         {
             let mut temp_vec: Vec<engine::RenderingTree> = Vec::new();
             $(
@@ -73,7 +73,11 @@ macro_rules! render {
             }
         }
     };
+    () => (
+        engine::RenderingTree::Empty
+    );
 }
+
 pub use render;
 
 pub type Rendering = RenderingTree;

@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
 
 pub type GlyphIds = [u16];
 
@@ -24,7 +23,7 @@ pub struct FontMetrics {
     pub bounds: Option<LtrbRect>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, Default)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -74,4 +73,10 @@ pub struct StrokeOptions {
     pub precision: Option<f32>,
     pub join: Option<StrokeJoin>,
     pub cap: Option<StrokeCap>,
+}
+
+#[derive(Serialize)]
+pub enum ClipOp {
+    Intersect,
+    Difference,
 }

@@ -11,12 +11,12 @@ pub struct TextStyleDropShadow {
     pub y: f32,
     pub color: Option<Color>,
 }
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct TextStyleBackground {
     pub color: Color,
     pub margin: Option<LtrbRect>,
 }
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct TextStyle {
     pub border: Option<TextStyleBorder>,
     pub drop_shadow: Option<TextStyleDropShadow>,

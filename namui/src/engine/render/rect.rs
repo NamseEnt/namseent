@@ -149,13 +149,8 @@ pub fn rect(
 
 //   function getRectPath(rect: InputRect) {
 fn get_rect_path(rect: XywhRect<f32>, round: Option<RectRound>) -> engine::Path {
-    let rect_path = engine::Path::new();
-
-    if let Some(round) = round {
-        rect_path.add_rrect(rect.into_ltrb(), round.radius, round.radius);
-    } else {
-        rect_path.add_rect(rect.into_ltrb());
+    match round {
+        Some(round) => engine::Path::new().add_rrect(rect.into_ltrb(), round.radius, round.radius),
+        None => engine::Path::new().add_rect(rect.into_ltrb()),
     }
-
-    rect_path
 }

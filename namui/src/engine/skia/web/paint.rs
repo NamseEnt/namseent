@@ -1,16 +1,6 @@
-use crate::engine;
-
 use super::*;
+use crate::engine;
 pub use base::*;
-use once_cell::sync::OnceCell;
-
-static STROKE_CAP_BUTT_VALUE: OnceCell<f32> = OnceCell::new();
-static STROKE_CAP_ROUND_VALUE: OnceCell<f32> = OnceCell::new();
-static STROKE_CAP_SQUARE_VALUE: OnceCell<f32> = OnceCell::new();
-
-static STROKE_JOIN_BEVEL_VALUE: OnceCell<f32> = OnceCell::new();
-static STROKE_JOIN_MITER_VALUE: OnceCell<f32> = OnceCell::new();
-static STROKE_JOIN_ROUND_VALUE: OnceCell<f32> = OnceCell::new();
 
 pub struct Paint(pub(crate) CanvasKitPaint);
 impl Paint {
@@ -37,12 +27,9 @@ impl Paint {
     pub fn get_stroke_cap(&self) -> StrokeCap {
         let stroke_cap = self.0.getStrokeCap();
 
-        let butt_value =
-            STROKE_CAP_BUTT_VALUE.get_or_init(|| canvas_kit().StrokeCap().Butt().value());
-        let round_value =
-            STROKE_CAP_ROUND_VALUE.get_or_init(|| canvas_kit().StrokeCap().Round().value());
-        let square_value =
-            STROKE_CAP_SQUARE_VALUE.get_or_init(|| canvas_kit().StrokeCap().Square().value());
+        let butt_value = &STROKE_CAP_BUTT_VALUE;
+        let round_value = &STROKE_CAP_ROUND_VALUE;
+        let square_value = &STROKE_CAP_SQUARE_VALUE;
 
         match stroke_cap.value() {
             butt_value => StrokeCap::Butt,
@@ -53,12 +40,9 @@ impl Paint {
     pub fn get_stroke_join(&self) -> StrokeJoin {
         let stroke_join = self.0.getStrokeJoin();
 
-        let bevel_value =
-            STROKE_JOIN_BEVEL_VALUE.get_or_init(|| canvas_kit().StrokeJoin().Bevel().value());
-        let miter_value =
-            STROKE_JOIN_MITER_VALUE.get_or_init(|| canvas_kit().StrokeJoin().Miter().value());
-        let round_value =
-            STROKE_JOIN_ROUND_VALUE.get_or_init(|| canvas_kit().StrokeJoin().Round().value());
+        let bevel_value = &STROKE_JOIN_BEVEL_VALUE;
+        let miter_value = &STROKE_JOIN_MITER_VALUE;
+        let round_value = &STROKE_JOIN_ROUND_VALUE;
 
         match stroke_join.value() {
             bevel_value => StrokeJoin::Bevel,

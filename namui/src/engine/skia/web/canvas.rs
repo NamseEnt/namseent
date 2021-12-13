@@ -13,6 +13,25 @@ impl Canvas {
     pub fn translate(&self, dx: f32, dy: f32) {
         self.0.translate(dx, dy);
     }
+
+    pub(crate) fn save(&self) {
+        self.0.save();
+    }
+
+    pub(crate) fn clip_path(&self, path: &Path, clip_op: &ClipOp, do_anti_alias: bool) {
+        self.0.clipPath(
+            &path.canvas_kit_path,
+            match clip_op {
+                ClipOp::Intersect => canvas_kit().ClipOp().Intersect(),
+                ClipOp::Difference => canvas_kit().ClipOp().Difference(),
+            },
+            do_anti_alias,
+        );
+    }
+
+    pub(crate) fn restore(&self) {
+        self.0.restore();
+    }
 }
 
 impl Drop for Canvas {

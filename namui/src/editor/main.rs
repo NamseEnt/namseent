@@ -6,8 +6,8 @@ struct Main {
 }
 
 impl engine::Entity for Main {
-    type RenderingContext = ();
-    fn render(&self, context: &Self::RenderingContext) -> engine::RenderingTree {
+    type Props = ();
+    fn render(&self, props: &Self::Props) -> engine::RenderingTree {
         self.editor.render(&())
     }
     fn update(&mut self, event: &dyn std::any::Any) {

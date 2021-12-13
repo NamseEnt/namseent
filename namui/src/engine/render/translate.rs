@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use super::RenderingTree;
+use super::{RenderingTree, SpecialRenderingNode};
 
 #[derive(Serialize)]
 pub struct Translate {
@@ -10,9 +10,9 @@ pub struct Translate {
 }
 
 pub fn translate(x: f32, y: f32, rendering_tree: RenderingTree) -> RenderingTree {
-    RenderingTree::Special(Translate {
+    RenderingTree::Special(SpecialRenderingNode::Translate(Translate {
         x,
         y,
         rendering_tree: vec![rendering_tree],
-    })
+    }))
 }

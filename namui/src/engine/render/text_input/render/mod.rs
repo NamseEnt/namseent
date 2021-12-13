@@ -9,8 +9,8 @@ mod get_selection_on_click;
 use get_selection_on_click::get_selection_on_click;
 
 impl engine::Entity for TextInput {
-    type RenderingContext = ();
-    fn render(&self, context: &Self::RenderingContext) -> engine::RenderingTree {
+    type Props = ();
+    fn render(&self, props: &Self::Props) -> engine::RenderingTree {
         let text_input = self.clone();
         translate(
             self.x,

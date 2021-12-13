@@ -8,18 +8,23 @@ extern "C" {
     //     /// This has the effect of replacing all pixels contained by clip with color.
     //     /// @param color
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn clear(this: &CanvasKitCanvas, color: InputColor);
 
-    //     ///
-    //     /// Replaces clip with the intersection or difference of the current clip and path,
-    //     /// with an aliased or anti-aliased clip edge.
-    //     /// @param path
-    //     /// @param op
-    //     /// @param doAntiAlias
-    //     ///
-    // #[wasm_bindgen(structural, method)]
-    // pub fn clipPath(this: &CanvasKitCanvas, path: Path, op: ClipOp, doAntiAlias: boolean);
+    ///
+    /// Replaces clip with the intersection or difference of the current clip and path,
+    /// with an aliased or anti-aliased clip edge.
+    /// @param path
+    /// @param op
+    /// @param doAntiAlias
+    ///
+    #[wasm_bindgen(method)]
+    pub fn clipPath(
+        this: &CanvasKitCanvas,
+        path: &CanvasKitPath,
+        op: CanvasKitClipOp,
+        doAntiAlias: bool,
+    );
 
     //     ///
     //     /// Replaces clip with the intersection or difference of the current clip and rect,
@@ -28,7 +33,7 @@ extern "C" {
     //     /// @param op
     //     /// @param doAntiAlias
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn clipRect(this: &CanvasKitCanvas, rect: InputRect, op: ClipOp, doAntiAlias: boolean);
 
     //     ///
@@ -38,14 +43,14 @@ extern "C" {
     //     /// @param op
     //     /// @param doAntiAlias
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn clipRRect(this: &CanvasKitCanvas, rrect: InputRRect, op: ClipOp, doAntiAlias: boolean);
 
     //     ///
     //     /// Replaces current matrix with m premultiplied with the existing matrix.
     //     /// @param m
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn concat(this: &CanvasKitCanvas, m: InputMatrix);
 
     //     ///
@@ -59,7 +64,7 @@ extern "C" {
     //     /// @param useCenter - if true, include the center of the oval
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawArc(this: &CanvasKitCanvas, oval: InputRect, startAngle: AngleInDegrees, sweepAngle: AngleInDegrees,
     //             useCenter: boolean, paint: Paint);
 
@@ -73,7 +78,7 @@ extern "C" {
     //     /// @param colors - If provided, will be blended with sprite using blendMode.
     //     /// @param sampling - Specifies sampling options. If null, bilinear is used.
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawAtlas(this: &CanvasKitCanvas, atlas: Image, srcRects: InputFlattenedRectangleArray,
     //               dstXforms: InputFlattenedRSXFormArray, paint: Paint,
     //               blendMode?: BlendMode | null, colors?: ColorIntArray | null,
@@ -86,7 +91,7 @@ extern "C" {
     //     /// @param radius
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawCircle(this: &CanvasKitCanvas, cx: number, cy: number, radius: number, paint: Paint);
 
     //     ///
@@ -94,7 +99,7 @@ extern "C" {
     //     /// @param color
     //     /// @param blendMode - defaults to SrcOver.
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawColor(this: &CanvasKitCanvas, color: InputColor, blendMode?: BlendMode);
 
     //     ///
@@ -105,7 +110,7 @@ extern "C" {
     //     /// @param a - alpha value, range 0 to 1.0 (1.0 is opaque).
     //     /// @param blendMode - defaults to SrcOver.
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawColorComponents(this: &CanvasKitCanvas, r: number, g: number, b: number, a: number, blendMode?: BlendMode);
 
     //     ///
@@ -113,7 +118,7 @@ extern "C" {
     //     /// @param color
     //     /// @param blendMode - defaults to SrcOver.
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawColorInt(this: &CanvasKitCanvas, color: ColorInt, blendMode?: BlendMode);
 
     //     ///
@@ -123,7 +128,7 @@ extern "C" {
     //     /// @param inner
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawDRRect(this: &CanvasKitCanvas, outer: InputRRect, inner: InputRRect, paint: Paint);
 
     //     ///
@@ -135,7 +140,7 @@ extern "C" {
     //     /// @param font the font that contains the glyphs
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawGlyphs(this: &CanvasKitCanvas, glyphs: InputGlyphIDArray,
     //                positions: InputFlattenedPointArray,
     //                x: number, y: number,
@@ -149,7 +154,7 @@ extern "C" {
     //     /// @param top
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawImage(this: &CanvasKitCanvas, img: Image, left: number, top: number, paint?: Paint | null);
 
     //     ///
@@ -162,7 +167,7 @@ extern "C" {
     //     /// @param C - See CubicResampler in SkSamplingOptions.h for more information
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawImageCubic(this: &CanvasKitCanvas, img: Image, left: number, top: number, B: number, C: number,
     //                    paint?: Paint | null);
 
@@ -177,7 +182,7 @@ extern "C" {
     //     ///             calculated with makeCopyWithDefaultMipmaps;
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawImageOptions(this: &CanvasKitCanvas, img: Image, left: number, top: number, fm: FilterMode,
     //                      mm: MipmapMode, paint?: Paint | null);
 
@@ -191,7 +196,7 @@ extern "C" {
     //     /// @param filter - what technique to use when sampling the image
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawImageNine(this: &CanvasKitCanvas, img: Image, center: InputIRect, dest: InputRect, filter: FilterMode,
     //                   paint?: Paint | null);
 
@@ -203,7 +208,7 @@ extern "C" {
     //     /// @param paint
     //     /// @param fastSample - if false, will filter strictly within src.
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawImageRect(this: &CanvasKitCanvas, img: Image, src: InputRect, dest: InputRect, paint: Paint,
     //                   fastSample?: boolean);
 
@@ -217,7 +222,7 @@ extern "C" {
     //     /// @param C - See CubicResampler in SkSamplingOptions.h for more information
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawImageRectCubic(this: &CanvasKitCanvas, img: Image, src: InputRect, dest: InputRect,
     //                        B: number, C: number, paint?: Paint | null);
 
@@ -232,7 +237,7 @@ extern "C" {
     //     ///             calculated with makeCopyWithDefaultMipmaps;
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawImageRectOptions(this: &CanvasKitCanvas, img: Image, src: InputRect, dest: InputRect, fm: FilterMode,
     //                          mm: MipmapMode, paint?: Paint | null);
 
@@ -245,7 +250,7 @@ extern "C" {
     //     /// @param y1
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawLine(this: &CanvasKitCanvas, x0: number, y0: number, x1: number, y1: number, paint: Paint);
 
     //     ///
@@ -254,14 +259,14 @@ extern "C" {
     //     /// @param oval
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawOval(this: &CanvasKitCanvas, oval: InputRect, paint: Paint);
 
     //     ///
     //     /// Fills clip with the given paint.
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawPaint(this: &CanvasKitCanvas, paint: Paint);
 
     //     ///
@@ -271,7 +276,7 @@ extern "C" {
     //     /// @param x
     //     /// @param y
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawParagraph(this: &CanvasKitCanvas, p: Paragraph, x: number, y: number);
 
     ///
@@ -279,7 +284,7 @@ extern "C" {
     /// @param path
     /// @param paint
     ///
-    #[wasm_bindgen(structural, method)]
+    #[wasm_bindgen(method)]
     pub fn drawPath(this: &CanvasKitCanvas, path: &CanvasKitPath, paint: &CanvasKitPaint);
 
     //     ///
@@ -291,7 +296,7 @@ extern "C" {
     //     /// @param mode Specifies how shader and colors blend (if both are specified)
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawPatch(this: &CanvasKitCanvas, cubics: InputFlattenedPointArray,
     //               colors?: ColorIntArray | Color[] | null,
     //               texs?: InputFlattenedPointArray | null,
@@ -302,7 +307,7 @@ extern "C" {
     //     /// Draws the given picture using the current clip, current matrix, and the provided paint.
     //     /// @param skp
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawPicture(this: &CanvasKitCanvas, skp: SkPicture);
 
     //     ///
@@ -313,7 +318,7 @@ extern "C" {
     //     /// @param points
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawPoints(this: &CanvasKitCanvas, mode: PointMode, points: InputFlattenedPointArray, paint: Paint);
 
     //     ///
@@ -321,7 +326,7 @@ extern "C" {
     //     /// @param rect
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawRect(this: &CanvasKitCanvas, rect: InputRect, paint: Paint);
 
     //     ///
@@ -332,7 +337,7 @@ extern "C" {
     //     /// @param bottom
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawRect4f(this: &CanvasKitCanvas, left: number, top: number, right: number, bottom: number, paint: Paint);
 
     //     ///
@@ -341,7 +346,7 @@ extern "C" {
     //     /// @param rrect
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawRRect(this: &CanvasKitCanvas, rrect: InputRRect, paint: Paint);
 
     //     ///
@@ -358,7 +363,7 @@ extern "C" {
     //     /// @param spotColor -  The color of the spot shadow.
     //     /// @param flags - See SkShadowFlags.h; 0 means use default options.
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawShadow(this: &CanvasKitCanvas, path: Path, zPlaneParams: InputVector3, lightPos: InputVector3, lightRadius: number,
     //                ambientColor: InputColor, spotColor: InputColor, flags: number);
 
@@ -371,7 +376,7 @@ extern "C" {
     //     /// @param paint
     //     /// @param font
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawText(this: &CanvasKitCanvas, str: string, x: number, y: number, paint: Paint, font: Font);
 
     ///
@@ -382,7 +387,7 @@ extern "C" {
     /// @param y
     /// @param paint
     ///
-    #[wasm_bindgen(structural, method)]
+    #[wasm_bindgen(method)]
     pub fn drawTextBlob(
         this: &CanvasKitCanvas,
         blob: &CanvasKitTextBlob,
@@ -402,7 +407,7 @@ extern "C" {
     //     /// @param mode
     //     /// @param paint
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn drawVertices(this: &CanvasKitCanvas, verts: Vertices, mode: BlendMode, paint: Paint);
 
     //     ///
@@ -410,38 +415,38 @@ extern "C" {
     //     /// See also markCTM.
     //     /// @param marker
     //     ///
-    // #[wasm_bindgen(structural, method)]
-    // pub fn findMarkedCTM(this: &CanvasKitCanvas, marker: string): Matrix4x4 | null;
+    // #[wasm_bindgen(method)]
+    // pub fn findMarkedCTM(this: &CanvasKitCanvas, marker: string) -> Matrix4x4 | null;
 
     //     ///
     //     /// Returns the current transform from local coordinates to the 'device', which for most
     //     /// purposes means pixels.
     //     ///
-    // #[wasm_bindgen(structural, method)]
-    // pub fn getLocalToDevicethis: &CanvasKitCanvas, (): Matrix4x4;
+    // #[wasm_bindgen(method)]
+    // pub fn getLocalToDevice(this: &CanvasKitCanvas) -> Matrix4x4;
 
     //     ///
     //     /// Returns the number of saved states, each containing: Matrix and clip.
     //     /// Equals the number of save() calls less the number of restore() calls plus one.
     //     /// The save count of a new canvas is one.
     //     ///
-    // #[wasm_bindgen(structural, method)]
-    // pub fn getSaveCountthis: &CanvasKitCanvas, (): number;
+    // #[wasm_bindgen(method)]
+    // pub fn getSaveCount(this: &CanvasKitCanvas) -> number;
 
     //     ///
     //     /// Legacy version of getLocalToDevice(), which strips away any Z information, and
     //     /// just returns a 3x3 version.
     //     ///
-    // #[wasm_bindgen(structural, method)]
-    // pub fn getTotalMatrixthis: &CanvasKitCanvas, (): number[];
+    // #[wasm_bindgen(method)]
+    // pub fn getTotalMatrix(this: &CanvasKitCanvas) -> number[];
 
     //     ///
     //     /// Creates Surface matching info and props, and associates it with Canvas.
     //     /// Returns null if no match found.
     //     /// @param info
     //     ///
-    // #[wasm_bindgen(structural, method)]
-    // pub fn makeSurface(this: &CanvasKitCanvas, info: ImageInfo): Surface | null;
+    // #[wasm_bindgen(method)]
+    // pub fn makeSurface(this: &CanvasKitCanvas, info: ImageInfo) -> Surface | null;
 
     //     ///
     //     /// Record a marker (provided by caller) for the current CTM. This does not change anything
@@ -450,7 +455,7 @@ extern "C" {
     //     /// See also findMarkedCTM.
     //     /// @param marker
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn markCTM(this: &CanvasKitCanvas, marker: string);
 
     //     ///
@@ -473,23 +478,23 @@ extern "C" {
     //     /// @returns a TypedArray appropriate for the specified ColorType. Note that 16 bit floats are
     //     ///          not supported in JS, so that colorType corresponds to raw bytes Uint8Array.
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn readPixels(this: &CanvasKitCanvas, srcX: number, srcY: number, imageInfo: ImageInfo, dest?: MallocObj,
-    //                bytesPerRow?: number): Uint8Array | Float32Array | null;
+    //                bytesPerRow?: number) -> Uint8Array | Float32Array | null;
 
-    //     ///
-    //     /// Removes changes to the current matrix and clip since Canvas state was
-    //     /// last saved. The state is removed from the stack.
-    //     /// Does nothing if the stack is empty.
-    //     ///
-    // #[wasm_bindgen(structural, method)]
-    // pub fn restorethis: &CanvasKitCanvas, ();
+    ///
+    /// Removes changes to the current matrix and clip since Canvas state was
+    /// last saved. The state is removed from the stack.
+    /// Does nothing if the stack is empty.
+    ///
+    #[wasm_bindgen(method)]
+    pub fn restore(this: &CanvasKitCanvas);
 
     //     ///
     //     /// Restores state to a previous stack value.
     //     /// @param saveCount
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn restoreToCount(this: &CanvasKitCanvas, saveCount: number);
 
     //     ///
@@ -498,14 +503,14 @@ extern "C" {
     //     /// @param rx
     //     /// @param ry
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn rotate(this: &CanvasKitCanvas, rot: AngleInDegrees, rx: number, ry: number);
 
-    //     ///
-    //     /// Saves the current matrix and clip and returns current height of the stack.
-    //     ///
-    // #[wasm_bindgen(structural, method)]
-    // pub fn savethis: &CanvasKitCanvas, (): number;
+    ///
+    /// Saves the current matrix and clip and returns current height of the stack.
+    ///
+    #[wasm_bindgen(method)]
+    pub fn save(this: &CanvasKitCanvas) -> usize;
 
     //     ///
     //     /// Saves Matrix and clip, and allocates a SkBitmap for subsequent drawing.
@@ -517,16 +522,16 @@ extern "C" {
     //     /// @param backdrop
     //     /// @param flags
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn saveLayer(this: &CanvasKitCanvas, paint?: Paint, bounds?: InputRect | null, backdrop?: ImageFilter | null,
-    //               flags?: SaveLayerFlag): number;
+    //               flags?: SaveLayerFlag) -> number;
 
     //     ///
     //     /// Scales the current matrix by sx on the x-axis and sy on the y-axis.
     //     /// @param sx
     //     /// @param sy
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn scale(this: &CanvasKitCanvas, sx: number, sy: number);
 
     //     ///
@@ -536,7 +541,7 @@ extern "C" {
     //     /// @param sx
     //     /// @param sy
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn skew(this: &CanvasKitCanvas, sx: number, sy: number);
 
     ///
@@ -544,7 +549,7 @@ extern "C" {
     /// @param dx
     /// @param dy
     ///
-    #[wasm_bindgen(structural, method)]
+    #[wasm_bindgen(method)]
     pub fn translate(this: &CanvasKitCanvas, dx: f32, dy: f32);
 
     //     ///
@@ -559,9 +564,9 @@ extern "C" {
     //     /// @param colorType - defaults to RGBA_8888
     //     /// @param colorSpace - defaults to SRGB
     //     ///
-    // #[wasm_bindgen(structural, method)]
+    // #[wasm_bindgen(method)]
     // pub fn writePixels(this: &CanvasKitCanvas, pixels: Uint8Array | number[], srcWidth: number, srcHeight: number,
     //                 destX: number, destY: number, alphaType?: AlphaType, colorType?: ColorType,
-    //                 colorSpace?: ColorSpace): boolean;
+    //                 colorSpace?: ColorSpace) -> boolean;
 
 }

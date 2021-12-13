@@ -1,13 +1,14 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
-
-use crate::engine::{self, Xy};
-
 use super::*;
+use crate::engine::{self, Xy};
 pub use base::*;
+use serde::Serialize;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use wasm_bindgen::JsValue;
 
+#[derive(Serialize)]
 pub struct Path {
     id: String,
+    #[serde(skip)]
     pub canvas_kit_path: CanvasKitPath,
 }
 
@@ -27,24 +28,26 @@ impl Path {
         }
     }
     pub fn add_rect(
-        &self,
+        self,
         LtrbRect {
             left,
             top,
             right,
             bottom,
         }: LtrbRect,
-    ) {
-        let mut array = js_sys::Float32Array::new_with_length(4);
+    ) -> Self {
+        let array = js_sys::Float32Array::new_with_length(4);
         array.set_index(0, left as f32);
         array.set_index(1, top as f32);
         array.set_index(2, right as f32);
         array.set_index(3, bottom as f32);
 
         self.canvas_kit_path.addRect(array, None);
+
+        self
     }
     pub fn add_rrect(
-        &self,
+        self,
         LtrbRect {
             left,
             top,
@@ -53,14 +56,16 @@ impl Path {
         }: LtrbRect,
         rx: f32,
         ry: f32,
-    ) {
-        let mut rect = js_sys::Float32Array::new_with_length(4);
+    ) -> Self {
+        let rect = js_sys::Float32Array::new_with_length(4);
         rect.set_index(0, left as f32);
         rect.set_index(1, top as f32);
         rect.set_index(2, right as f32);
         rect.set_index(3, bottom as f32);
         let rrect = canvas_kit().RRectXY(rect, rx, ry);
         self.canvas_kit_path.addRRect(rrect, None);
+
+        self
     }
     pub fn contains(&self, xy: &Xy<f32>) -> bool {
         self.canvas_kit_path.contains(xy.x, xy.y)

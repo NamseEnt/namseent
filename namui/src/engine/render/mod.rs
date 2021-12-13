@@ -10,3 +10,5 @@ pub mod rendering_tree;
 pub use rendering_tree::*;
 pub mod translate;
 pub use translate::*;
+pub mod clip;
+pub use clip::*;

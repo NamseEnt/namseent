@@ -9,11 +9,13 @@ mod skia;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
 pub use engine_common::*;
 pub use render::{
-    rect::*, text::*, text_input_event, translate, types::*, RenderingData, RenderingTree,
+    clip, rect::*, text::*, text_input_event, translate, types::*, RenderingData, RenderingTree,
     TextInput,
 };
-use skia::*;
-pub use skia::{types::*, Paint, Path};
+pub use skia::{
+    types::{ClipOp, Color, PaintStyle},
+    Font, LtrbRect, Paint, Path, Typeface,
+};
 pub mod event;
 pub use event::EngineEvent;
 mod render;
@@ -32,25 +34,25 @@ mod engine_web;
 pub use self::engine_web::*;
 
 pub trait Entity {
-    type RenderingContext;
+    type Props;
     fn update(&mut self, event: &dyn Any);
-    fn render(&self, context: &Self::RenderingContext) -> RenderingTree;
+    fn render(&self, props: &Self::Props) -> RenderingTree;
 }
 
 pub fn init() -> EngineContext {
     Engine::init()
 }
 
-pub async fn start<TRenderingContext>(
+pub async fn start<TProps>(
     mut engine_context: EngineContext,
-    state: &mut dyn Entity<RenderingContext = TRenderingContext>,
-    context: &TRenderingContext,
+    state: &mut dyn Entity<Props = TProps>,
+    props: &TProps,
 ) {
     let mut event_receiver = event::init();
 
     init_font().await;
 
-    let mut rendering_tree = state.render(context);
+    let mut rendering_tree = state.render(props);
 
     Engine::request_animation_frame(Box::new(move || {
         on_frame();
@@ -72,7 +74,7 @@ pub async fn start<TRenderingContext>(
             }
             _ => {
                 state.update(event.as_ref());
-                rendering_tree = state.render(context);
+                rendering_tree = state.render(props);
             }
         }
     }

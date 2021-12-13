@@ -1,8 +1,6 @@
-use crate::engine::{self, DrawCall, EngineContext, Xy};
-
+use super::{Clip, Translate};
+use crate::engine::{self, ClipOp, DrawCall, EngineContext, Xy};
 use serde::Serialize;
-
-use super::Translate;
 
 #[derive(Serialize)]
 pub struct RenderingData {
@@ -18,10 +16,15 @@ pub struct RenderingData {
     // onMouseUp?: MouseEventCallback;
 }
 #[derive(Serialize)]
+pub enum SpecialRenderingNode {
+    Translate(Translate),
+    Clip(Clip),
+}
+#[derive(Serialize)]
 pub enum RenderingTree {
     Node(RenderingData),
     Children(Vec<RenderingTree>),
-    Special(Translate),
+    Special(SpecialRenderingNode),
     Empty,
 }
 
@@ -38,21 +41,36 @@ impl RenderingTree {
                     draw_call.draw(engine_context);
                 });
             }
-            RenderingTree::Special(special) => {
-                engine_context
-                    .surface
-                    .canvas()
-                    .translate(special.x, special.y);
+            RenderingTree::Special(special) => match special {
+                SpecialRenderingNode::Translate(translate) => {
+                    engine_context
+                        .surface
+                        .canvas()
+                        .translate(translate.x, translate.y);
 
-                for child in &special.rendering_tree {
-                    child.draw(engine_context);
+                    for child in &translate.rendering_tree {
+                        child.draw(engine_context);
+                    }
+
+                    engine_context
+                        .surface
+                        .canvas()
+                        .translate(-translate.x, -translate.y);
                 }
+                SpecialRenderingNode::Clip(clip) => {
+                    let canvas = engine_context.surface.canvas();
 
-                engine_context
-                    .surface
-                    .canvas()
-                    .translate(-special.x, -special.y);
-            }
+                    canvas.save();
+
+                    canvas.clip_path(&clip.path, &clip.clip_op, true);
+
+                    for child in &clip.rendering_tree {
+                        child.draw(engine_context);
+                    }
+
+                    canvas.restore();
+                }
+            },
             RenderingTree::Empty => {}
         }
     }
@@ -70,15 +88,29 @@ impl RenderingTree {
                     }
                 }
             }
-            RenderingTree::Special(special) => {
-                let xy = Xy {
-                    x: local_xy.x - special.x,
-                    y: local_xy.y - special.y,
-                };
-                for child in &special.rendering_tree {
-                    child.call_on_click(&xy);
+            RenderingTree::Special(special) => match special {
+                SpecialRenderingNode::Translate(translate) => {
+                    let xy = Xy {
+                        x: local_xy.x - translate.x,
+                        y: local_xy.y - translate.y,
+                    };
+                    for child in &translate.rendering_tree {
+                        child.call_on_click(&xy);
+                    }
                 }
-            }
+                SpecialRenderingNode::Clip(clip) => {
+                    let is_path_contains = clip.path.contains(local_xy);
+                    let is_xy_filtered = match clip.clip_op {
+                        ClipOp::Intersect => !is_path_contains,
+                        ClipOp::Difference => is_path_contains,
+                    };
+                    if !is_xy_filtered {
+                        for child in &clip.rendering_tree {
+                            child.call_on_click(local_xy);
+                        }
+                    }
+                }
+            },
             RenderingTree::Empty => {}
         }
     }
@@ -100,7 +132,7 @@ impl RenderingData {
 mod tests {
     use crate::engine;
 
-    use super::{RenderingData, RenderingTree};
+    use super::RenderingTree;
     use wasm_bindgen_test::*;
 
     #[test]
