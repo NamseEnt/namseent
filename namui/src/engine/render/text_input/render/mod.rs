@@ -1,4 +1,4 @@
-use super::TextInput;
+use super::{text_input_event, TextInput};
 use crate::{
     engine::{self, translate},
     render,
@@ -8,8 +8,9 @@ use draw_texts_divided_by_selection::draw_texts_divided_by_selection;
 mod get_selection_on_click;
 use get_selection_on_click::get_selection_on_click;
 
-impl engine::Render for TextInput {
-    fn render(&self) -> engine::RenderingTree {
+impl engine::Entity for TextInput {
+    type RenderingContext = ();
+    fn render(&self, context: &Self::RenderingContext) -> engine::RenderingTree {
         let text_input = self.clone();
         translate(
             self.x,
@@ -48,5 +49,15 @@ impl engine::Render for TextInput {
                 draw_texts_divided_by_selection(&self)
             ],
         )
+    }
+    fn update(&mut self, event: &dyn std::any::Any) {
+        if let Some(event) = event.downcast_ref::<text_input_event::SelectionChanged>() {
+            if event.id != self.id {
+                return;
+            }
+
+            self.selection = event.selection;
+            engine::log(format!("selection changed: {:?}", self.selection));
+        }
     }
 }

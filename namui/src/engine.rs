@@ -15,6 +15,7 @@ pub use render::{
 use skia::*;
 pub use skia::{types::*, Paint, Path};
 pub mod event;
+pub use event::EngineEvent;
 mod render;
 use self::manager::{Code, Managers};
 use self::{
@@ -23,30 +24,33 @@ use self::{
 };
 mod random;
 pub use self::random::*;
+pub mod screen;
 
 #[cfg(target_family = "wasm")]
 mod engine_web;
 #[cfg(target_family = "wasm")]
 pub use self::engine_web::*;
 
-pub trait Update {
+pub trait Entity {
+    type RenderingContext;
     fn update(&mut self, event: &dyn Any);
+    fn render(&self, context: &Self::RenderingContext) -> RenderingTree;
 }
 
-pub trait Render {
-    fn render(&self) -> RenderingTree;
+pub fn init() -> EngineContext {
+    Engine::init()
 }
 
-pub async fn start<TState>(mut state: TState)
-where
-    TState: Update + Render,
-{
+pub async fn start<TRenderingContext>(
+    mut engine_context: EngineContext,
+    state: &mut dyn Entity<RenderingContext = TRenderingContext>,
+    context: &TRenderingContext,
+) {
     let mut event_receiver = event::init();
-    let mut engine_context = Engine::init();
 
     init_font().await;
 
-    let mut rendering_tree = state.render();
+    let mut rendering_tree = state.render(context);
 
     Engine::request_animation_frame(Box::new(move || {
         on_frame();
@@ -66,9 +70,9 @@ where
             Some(EngineEvent::MoveClick(xy)) => {
                 rendering_tree.call_on_click(xy);
             }
-            None => {
+            _ => {
                 state.update(event.as_ref());
-                rendering_tree = state.render();
+                rendering_tree = state.render(context);
             }
         }
     }
@@ -86,11 +90,6 @@ async fn init_font() {
             log(format!("Font loading failed: {}", e));
         }
     };
-}
-
-enum EngineEvent {
-    AnimationFrame,
-    MoveClick(Xy<f32>),
 }
 
 fn on_frame() {

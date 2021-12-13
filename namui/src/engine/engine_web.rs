@@ -1,7 +1,7 @@
 use super::engine_common::{EngineContext, EngineImpl, FpsInfo};
 use super::manager::*;
 use super::skia::{canvas_kit, Surface};
-use super::{Engine, RenderingTree};
+use super::Engine;
 use std::sync::Mutex;
 use std::time::Duration;
 use wasm_bindgen::{prelude::*, JsCast};
@@ -18,7 +18,7 @@ pub fn init_panic_hook() {
     console_error_panic_hook::set_once();
 }
 
-fn window() -> web_sys::Window {
+pub(crate) fn window() -> web_sys::Window {
     web_sys::window().expect("no global `window` exists")
 }
 
@@ -45,6 +45,7 @@ impl EngineImpl for Engine {
                 mouse_manager: Box::new(MouseManager::new(&canvas_element)),
                 font_manager: Box::new(FontManager::new()),
                 keyboard_manager: Box::new(KeyboardManager::new()),
+                screen_manager: Box::new(ScreenManager::new()),
             }))
             .is_err()
         {

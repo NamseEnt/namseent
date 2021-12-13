@@ -84,6 +84,17 @@ pub struct Xy<T> {
     pub y: T,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct Wh<T> {
+    pub width: T,
+    pub height: T,
+}
+impl<T> Wh<T> {
+    pub fn new(width: T, height: T) -> Self {
+        Self { width, height }
+    }
+}
+
 #[derive(Debug, Hash, Eq, PartialEq, EnumIter, Clone, Copy, Serialize, Deserialize)]
 pub enum Language {
     Ko,

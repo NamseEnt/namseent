@@ -10,4 +10,5 @@ pub struct Managers {
     pub mouse_manager: Box<MouseManager>,
     pub font_manager: Box<FontManager>,
     pub keyboard_manager: Box<KeyboardManager>,
+    pub screen_manager: Box<ScreenManager>,
 }

@@ -68,16 +68,3 @@ pub mod text_input_event {
         pub(crate) id: String,
     }
 }
-
-impl engine::Update for TextInput {
-    fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<text_input_event::SelectionChanged>() {
-            if event.id != self.id {
-                return;
-            }
-
-            self.selection = event.selection;
-            engine::log(format!("selection changed: {:?}", self.selection));
-        }
-    }
-}

@@ -44,6 +44,12 @@ impl Color {
         b: 0,
         a: 255,
     };
+    pub const TRANSPARENT: Color = Color {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 0,
+    };
 }
 
 pub enum PaintStyle {

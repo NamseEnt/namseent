@@ -1,3 +1,4 @@
+use crate::engine;
 use once_cell::sync::OnceCell;
 use std::any::Any;
 use tokio::sync::mpsc::{self, unbounded_channel};
@@ -13,4 +14,10 @@ pub fn init() -> mpsc::UnboundedReceiver<Event> {
 
 pub fn send(event: Event) {
     EVENT_SENDER.get().unwrap().send(event).unwrap();
+}
+
+pub enum EngineEvent {
+    AnimationFrame,
+    MoveClick(engine::Xy<f32>),
+    ScreenResize(engine::Wh<i16>),
 }
