@@ -3,6 +3,8 @@ pub use main::main;
 mod timeline;
 use ::namui::*;
 pub use timeline::*;
+mod types;
+use types::*;
 
 struct Editor {
     timeline: Timeline,
@@ -26,8 +28,6 @@ impl namui::Entity for Editor {
     }
 }
 
-pub struct Clip {}
-
 struct ClipEditor {}
 
 struct ClipEditorProps {
@@ -44,7 +44,10 @@ impl namui::Entity for ClipEditor {
 impl Editor {
     fn new(screen_wh: namui::Wh<f32>) -> Self {
         Self {
-            timeline: Timeline::new(Editor::calculate_timeline_xywh(screen_wh)),
+            timeline: Timeline::new(
+                Editor::calculate_timeline_xywh(screen_wh),
+                get_sample_sequence(),
+            ),
             playback_time: chrono::Duration::zero(),
         }
     }

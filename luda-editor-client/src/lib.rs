@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate namui;
 use wasm_bindgen::prelude::*;
 mod editor;
 
