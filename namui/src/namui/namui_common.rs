@@ -33,16 +33,23 @@ impl NamuiInternal {
 
 pub struct Namui;
 
-impl RenderingTree {
-    pub fn into_rendering_tree(self) -> RenderingTree {
-        self
+impl std::convert::From<RenderingData> for RenderingTree {
+    fn from(data: RenderingData) -> Self {
+        RenderingTree::Node(data)
     }
 }
 
-impl RenderingData {
-    pub fn into_rendering_tree(self) -> RenderingTree {
-        RenderingTree::Node(self)
+impl std::convert::From<Vec<RenderingTree>> for RenderingTree {
+    fn from(vector: Vec<RenderingTree>) -> Self {
+        RenderingTree::Children(vector)
     }
+}
+
+#[macro_export]
+macro_rules! __rust_force_expr {
+    ($e:expr) => {
+        $e
+    };
 }
 
 /// $x type
@@ -50,20 +57,22 @@ impl RenderingData {
 /// - namui::RenderingData
 #[macro_export]
 macro_rules! render {
-    ( $( $x:expr ),+ $(,)? ) => {
-        {
-            let mut temp_vec = Vec::new();
-            $(
-                let rendering_tree = $x.into_rendering_tree();
-                temp_vec.push(rendering_tree);
-            )*
-            if temp_vec.len() == 1 {
-                temp_vec.swap_remove(0)
-            } else {
-                $crate::RenderingTree::Children(temp_vec)
+    ( $( $x:expr ),+ $(,)? ) => (
+        $crate::__rust_force_expr!(
+            {
+                let mut temp_vec = Vec::new();
+                $(
+                    let rendering_tree = $crate::RenderingTree::from($x);
+                    temp_vec.push(rendering_tree);
+                )*
+                if temp_vec.len() == 1 {
+                    temp_vec.swap_remove(0)
+                } else {
+                    $crate::RenderingTree::Children(temp_vec)
+                }
             }
-        }
-    };
+        )
+    );
     () => (
         $crate::RenderingTree::Empty
     );
