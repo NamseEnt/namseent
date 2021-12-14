@@ -1,11 +1,18 @@
 use ::namui::*;
 use chrono::Duration;
 mod playback_time_view;
-use super::{types::Sequence, Clip};
-use crate::editor::timeline::timeline_header::{TimelineHeader, TimelineHeaderProps};
+use super::{
+    types::{PixelSize, Sequence, Time, TimePerPixel},
+    Clip,
+};
+use crate::editor::timeline::{
+    timeline_body::{TimelineBody, TimelineBodyProps},
+    timeline_header::{TimelineHeader, TimelineHeaderProps},
+};
 use playback_time_view::*;
 mod time_ruler;
 use time_ruler::*;
+mod timeline_body;
 mod timeline_header;
 mod track_header;
 
@@ -15,6 +22,8 @@ pub struct Timeline {
     time_ruler_height: f32,
     selected_clip: Option<Clip>,
     sequence: Sequence,
+    start_at: Time,
+    time_per_pixel: TimePerPixel,
 }
 
 impl Timeline {
@@ -25,6 +34,8 @@ impl Timeline {
             time_ruler_height: 20.0,
             selected_clip: None,
             sequence,
+            time_per_pixel: TimePerPixel::new(Time::ms(50), PixelSize(1.0)),
+            start_at: Time::sec(0),
         }
     }
 
@@ -43,6 +54,7 @@ impl namui::Entity for Timeline {
     fn update(&mut self, event: &dyn std::any::Any) {}
 
     fn render(&self, props: &Self::Props) -> namui::RenderingTree {
+        let body_width = self.xywh.width - self.header_width;
         render![
             namui::rect(namui::RectParam {
                 x: self.xywh.x,
@@ -78,17 +90,29 @@ impl namui::Entity for Timeline {
                             width: self.xywh.width - self.header_width,
                             height: self.time_ruler_height,
                         },
-                        duration_per_pixel: DurationPerPixel::new(Duration::zero(), 1), // TODO
-                        start_time: Duration::zero(),                                   // TODO
+                        start_at: self.start_at,
+                        time_per_pixel: self.time_per_pixel,
                     }),
                     namui::translate(
                         0.0,
                         self.time_ruler_height,
-                        render![TimelineHeader::render(&TimelineHeaderProps {
-                            width: self.header_width,
-                            height: self.xywh.height,
-                            tracks: &self.sequence.tracks,
-                        }),]
+                        render![
+                            TimelineHeader::render(&TimelineHeaderProps {
+                                width: self.header_width,
+                                height: self.xywh.height,
+                                tracks: &self.sequence.tracks,
+                            }),
+                            namui::translate(
+                                self.header_width,
+                                0.0,
+                                TimelineBody::render(&TimelineBodyProps {
+                                    width: body_width,
+                                    height: self.xywh.height,
+                                    tracks: &self.sequence.tracks,
+                                    timeline: self,
+                                })
+                            ),
+                        ]
                     )
                 ]
             )

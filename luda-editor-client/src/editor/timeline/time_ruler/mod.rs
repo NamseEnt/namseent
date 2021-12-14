@@ -1,27 +1,12 @@
 use ::namui::*;
-use chrono::Duration;
 
-pub struct DurationPerPixel {
-    duration: Duration,
-    pixels: i32,
-}
-impl DurationPerPixel {
-    pub fn new(duration: Duration, pixels: i32) -> Self {
-        DurationPerPixel { duration, pixels }
-    }
-}
-impl std::ops::Mul<i32> for DurationPerPixel {
-    type Output = Duration;
-    fn mul(self, pixels: i32) -> Self::Output {
-        self.duration * pixels / self.pixels
-    }
-}
+use crate::editor::types::{Time, TimePerPixel};
 
 pub struct TimeRuler {}
 pub struct TimeRulerProps {
     pub xywh: XywhRect<f32>,
-    pub start_time: Duration,
-    pub duration_per_pixel: DurationPerPixel,
+    pub start_at: Time,
+    pub time_per_pixel: TimePerPixel,
 }
 
 impl TimeRuler {
@@ -48,24 +33,28 @@ impl Entity for TimeRuler {
                     .into_ltrb(),
                 ),
                 ClipOp::Intersect,
-                render![rect(RectParam {
-                    x: 0.0,
-                    y: 0.0,
-                    width: props.xywh.width,
-                    height: props.xywh.height,
-                    style: RectStyle {
-                        stroke: Some(RectStroke {
-                            border_position: BorderPosition::Inside,
-                            color: Color::BLACK,
-                            width: 1.0,
-                        }),
-                        fill: Some(RectFill {
-                            color: Color::WHITE,
-                        }),
+                render![
+                    rect(RectParam {
+                        x: 0.0,
+                        y: 0.0,
+                        width: props.xywh.width,
+                        height: props.xywh.height,
+                        style: RectStyle {
+                            stroke: Some(RectStroke {
+                                border_position: BorderPosition::Inside,
+                                color: Color::BLACK,
+                                width: 1.0,
+                            }),
+                            fill: Some(RectFill {
+                                color: Color::WHITE,
+                            }),
+                            ..Default::default()
+                        },
                         ..Default::default()
-                    },
-                    ..Default::default()
-                })],
+                    }),
+                    // TODO : TimeTexts
+                    // TODO : Gradations
+                ],
             )],
         )
     }
