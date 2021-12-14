@@ -49,6 +49,32 @@ impl Color {
         b: 0,
         a: 0,
     };
+    pub const RED: Color = Color {
+        r: 255,
+        g: 0,
+        b: 0,
+        a: 255,
+    };
+    pub const GREEN: Color = Color {
+        r: 0,
+        g: 255,
+        b: 0,
+        a: 255,
+    };
+    pub const BLUE: Color = Color {
+        r: 0,
+        g: 0,
+        b: 255,
+        a: 255,
+    };
+    pub fn from_f01(r: f32, g: f32, b: f32, a: f32) -> Color {
+        Color {
+            r: (r * 255.0) as u8,
+            g: (g * 255.0) as u8,
+            b: (b * 255.0) as u8,
+            a: (a * 255.0) as u8,
+        }
+    }
 }
 
 pub enum PaintStyle {
