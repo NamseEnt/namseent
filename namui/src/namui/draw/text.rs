@@ -5,7 +5,6 @@ use crate::namui::{self, skia::*, NamuiContext};
 use super::{TextAlign, TextBaseline, TextDrawCommand};
 
 pub fn draw_text(namui_context: &NamuiContext, command: &TextDrawCommand) {
-    namui::log(format!("draw_text"));
     if command.text.len() == 0 {
         return;
     }

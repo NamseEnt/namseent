@@ -24,7 +24,6 @@ impl Typeface {
 }
 impl Drop for Typeface {
     fn drop(&mut self) {
-        namui::log("Dropping typeface".to_string());
         self.0.delete();
     }
 }

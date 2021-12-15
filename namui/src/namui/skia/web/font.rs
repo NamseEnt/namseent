@@ -66,7 +66,6 @@ impl Font {
 
 impl Drop for Font {
     fn drop(&mut self) {
-        namui::log("Dropping font".to_string());
         self.0.delete();
     }
 }

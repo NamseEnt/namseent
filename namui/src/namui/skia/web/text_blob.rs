@@ -10,7 +10,6 @@ impl TextBlob {
 }
 impl Drop for TextBlob {
     fn drop(&mut self) {
-        namui::log("Dropping textBlob".to_string());
         self.0.delete();
     }
 }

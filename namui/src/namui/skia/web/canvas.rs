@@ -36,7 +36,6 @@ impl Canvas {
 
 impl Drop for Canvas {
     fn drop(&mut self) {
-        namui::log("Dropping canvas".to_string());
         self.0.delete();
     }
 }

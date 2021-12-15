@@ -60,7 +60,6 @@ impl Paint {
 
 impl Drop for Paint {
     fn drop(&mut self) {
-        namui::log("Dropping paint".to_string());
         self.0.delete();
     }
 }

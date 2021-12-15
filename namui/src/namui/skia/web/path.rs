@@ -21,7 +21,6 @@ impl Path {
     }
     fn from_canvas_kit_path(canvas_kit_path: CanvasKitPath) -> Self {
         let id = format!("path-{}", PATH_ID.fetch_add(1, Ordering::Relaxed));
-        namui::log(format!("Path::from_canvas_kit_path: id={}", id));
         Path {
             id,
             canvas_kit_path,
@@ -114,7 +113,6 @@ impl Path {
 
 impl Drop for Path {
     fn drop(&mut self) {
-        namui::log(format!("Dropping Path {}", self.id));
         self.canvas_kit_path.delete();
     }
 }
@@ -127,7 +125,6 @@ impl std::fmt::Debug for Path {
 
 impl Clone for Path {
     fn clone(&self) -> Self {
-        namui::log(format!("Cloning Path {}", self.id));
         let canvas_kit_path = self.canvas_kit_path.copy();
         Path::from_canvas_kit_path(canvas_kit_path)
     }

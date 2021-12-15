@@ -24,7 +24,6 @@ impl Surface {
 
 impl Drop for Surface {
     fn drop(&mut self) {
-        namui::log("Dropping surface".to_string());
         self.canvas_kit_surface.delete();
     }
 }
