@@ -2,18 +2,32 @@ use super::{Clip, Translate};
 use crate::namui::{self, ClipOp, DrawCall, NamuiContext, Xy};
 use serde::Serialize;
 
-#[derive(Serialize)]
+pub struct MouseEvent {
+    pub local_xy: Xy<f32>,
+    pub global_xy: Xy<f32>,
+}
+pub enum MouseEventType {
+    Click,
+    Move,
+}
+pub type MouseEventCallback = Box<dyn Fn(&MouseEvent)>;
+#[derive(Serialize, Default)]
 pub struct RenderingData {
     pub draw_calls: Vec<DrawCall>,
     pub id: Option<String>,
     #[serde(skip_serializing)]
-    pub on_click: Option<Box<dyn Fn(&namui::Xy<f32>)>>,
-    // onClickOut?: MouseEventCallback;
-    // onMouseMoveIn?: MouseEventCallback;
-    // onMouseMoveOut?: MouseEventCallback;
+    pub on_click: Option<MouseEventCallback>,
+    #[serde(skip_serializing)]
+    pub on_mouse_move_in: Option<MouseEventCallback>,
+    #[serde(skip_serializing)]
+    pub on_mouse_move_out: Option<MouseEventCallback>,
+    // #[serde(skip_serializing)]
+    // onClickOut: Option<MouseEventCallback>,
     // onMouseIn?: () => void;
-    // onMouseDown?: MouseEventCallback;
-    // onMouseUp?: MouseEventCallback;
+    // #[serde(skip_serializing)]
+    // onMouseDown: Option<MouseEventCallback>,
+    // #[serde(skip_serializing)]
+    // onMouseUp: Option<MouseEventCallback>,
 }
 #[derive(Serialize)]
 pub enum SpecialRenderingNode {
@@ -74,28 +88,43 @@ impl RenderingTree {
             RenderingTree::Empty => {}
         }
     }
-    pub fn call_on_click(&self, local_xy: &Xy<f32>) {
+    pub fn call_mouse_event(&self, mouse_event_type: MouseEventType, xy: &Xy<f32>) {
+        self.call_mouse_event_impl(&mouse_event_type, xy, xy);
+    }
+    fn call_mouse_event_impl(
+        &self,
+        mouse_event_type: &MouseEventType,
+        global_xy: &Xy<f32>,
+        local_xy: &Xy<f32>,
+    ) {
         match self {
             RenderingTree::Children(ref children) => {
                 for child in children {
-                    child.call_on_click(local_xy);
+                    child.call_mouse_event_impl(mouse_event_type, global_xy, local_xy);
                 }
             }
             RenderingTree::Node(rendering_data) => {
-                if let Some(on_click) = &rendering_data.on_click {
+                let func = match mouse_event_type {
+                    MouseEventType::Click => &rendering_data.on_click,
+                    MouseEventType::Move => &rendering_data.on_mouse_move_in,
+                };
+                if let Some(func) = func {
                     if rendering_data.is_inside(local_xy) {
-                        on_click(local_xy);
+                        func(&MouseEvent {
+                            global_xy: *global_xy,
+                            local_xy: *local_xy,
+                        });
                     }
                 }
             }
             RenderingTree::Special(special) => match special {
                 SpecialRenderingNode::Translate(translate) => {
-                    let xy = Xy {
+                    let next_local_xy = Xy {
                         x: local_xy.x - translate.x,
                         y: local_xy.y - translate.y,
                     };
                     for child in &translate.rendering_tree {
-                        child.call_on_click(&xy);
+                        child.call_mouse_event_impl(mouse_event_type, global_xy, &next_local_xy);
                     }
                 }
                 SpecialRenderingNode::Clip(clip) => {
@@ -106,7 +135,7 @@ impl RenderingTree {
                     };
                     if !is_xy_filtered {
                         for child in &clip.rendering_tree {
-                            child.call_on_click(local_xy);
+                            child.call_mouse_event_impl(mouse_event_type, global_xy, local_xy);
                         }
                     }
                 }
@@ -130,7 +159,7 @@ impl RenderingData {
 
 #[cfg(test)]
 mod tests {
-    use crate::namui;
+    use crate::*;
 
     use super::RenderingTree;
     use wasm_bindgen_test::*;
@@ -177,6 +206,7 @@ mod tests {
                 on_click: Some(Box::new(move |xy| unsafe {
                     ON_CLICK_CALLED_ID_LIST.push("0".to_string());
                 })),
+                ..Default::default()
             }),
             RenderingTree::Children(vec![namui::rect(namui::RectParam {
                 x: 50.0,
@@ -192,6 +222,7 @@ mod tests {
                 on_click: Some(Box::new(move |xy| unsafe {
                     ON_CLICK_CALLED_ID_LIST.push("1".to_string());
                 })),
+                ..Default::default()
             })]),
             RenderingTree::Children(vec![namui::rect(namui::RectParam {
                 x: 210.0,
@@ -207,10 +238,11 @@ mod tests {
                 on_click: Some(Box::new(move |xy| unsafe {
                     ON_CLICK_CALLED_ID_LIST.push("2".to_string());
                 })),
+                ..Default::default()
             })]),
         ]);
 
-        rendering_tree.call_on_click(&namui::Xy { x: 75.0, y: 75.0 });
+        rendering_tree.call_mouse_event(MouseEventType::Click, &namui::Xy { x: 75.0, y: 75.0 });
 
         unsafe {
             assert_eq!(ON_CLICK_CALLED_ID_LIST, vec!["0", "1", "3", "5"]);

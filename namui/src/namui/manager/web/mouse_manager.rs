@@ -1,4 +1,4 @@
-use crate::namui::{self, namui_state::NamuiState, Namui, NamuiImpl, NamuiInternal, Xy};
+use crate::namui::{self, namui_state::NamuiState, NamuiInternal, Xy};
 use std::sync::{Arc, RwLock};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::HtmlElement;
@@ -17,8 +17,9 @@ impl MouseManager {
             mouse_position: mouse_position.clone(),
         };
 
-        let closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
-            let mut mouse_position = (*mouse_position).write().unwrap();
+        let mouse_down_mouse_position = mouse_position.clone();
+        let mouse_down_closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
+            let mut mouse_position = mouse_down_mouse_position.write().unwrap();
 
             mouse_position.x = event.client_x() as i16;
             mouse_position.y = event.client_y() as i16;
@@ -28,16 +29,45 @@ impl MouseManager {
                 ..*namui::state()
             });
 
-            namui::event::send(Box::new(namui::NamuiEvent::MoveClick(Xy {
+            namui::event::send(Box::new(namui::NamuiEvent::MouseClick(Xy {
                 x: mouse_position.x as f32,
                 y: mouse_position.y as f32,
             })));
         }) as Box<dyn FnMut(_)>);
 
         element
-            .add_event_listener_with_callback("mousedown", closure.as_ref().unchecked_ref())
+            .add_event_listener_with_callback(
+                "mousedown",
+                mouse_down_closure.as_ref().unchecked_ref(),
+            )
             .unwrap();
-        closure.forget();
+        mouse_down_closure.forget();
+
+        let mouse_move_mouse_position = mouse_position.clone();
+        let mouse_move_closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
+            let mut mouse_position = (*mouse_move_mouse_position).write().unwrap();
+
+            mouse_position.x = event.client_x() as i16;
+            mouse_position.y = event.client_y() as i16;
+
+            NamuiInternal::update_state(NamuiState {
+                mouse_position: mouse_position.clone(),
+                ..*namui::state()
+            });
+
+            namui::event::send(Box::new(namui::NamuiEvent::MouseMove(Xy {
+                x: mouse_position.x as f32,
+                y: mouse_position.y as f32,
+            })));
+        }) as Box<dyn FnMut(_)>);
+
+        element
+            .add_event_listener_with_callback(
+                "mousemove",
+                mouse_move_closure.as_ref().unchecked_ref(),
+            )
+            .unwrap();
+        mouse_move_closure.forget();
 
         mouse_manager
     }

@@ -63,8 +63,7 @@ pub fn text(param: TextParam) -> RenderingTree {
                         // })],
                     ]
                 }],
-                on_click: None,
-                id: None,
+                ..Default::default()
             }]
         }
     }

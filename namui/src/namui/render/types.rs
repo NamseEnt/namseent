@@ -1,5 +1,6 @@
 use crate::namui::skia::LtrbRect;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct XywhRect<T> {
     pub x: T,
     pub y: T,

@@ -1,4 +1,5 @@
 use crate::namui::{self, *};
+
 pub enum BorderPosition {
     Inside,
     Outside,
@@ -30,11 +31,11 @@ pub struct RectParam {
     pub height: f32,
     pub id: Option<String>,
     pub style: RectStyle,
-    pub on_click: Option<Box<dyn Fn(&namui::Xy<f32>)>>,
+    pub on_click: Option<MouseEventCallback>,
     //   pub onClickOut?: MouseEventCallback,
     //   pub onMouseIn?: () => void,
-    //   pub onMouseMoveIn?: MouseEventCallback,
-    //   pub onMouseMoveOut?: MouseEventCallback,
+    pub on_mouse_move_in: Option<MouseEventCallback>,
+    pub on_mouse_move_out: Option<MouseEventCallback>,
     //   pub onMouseDown?: MouseEventCallback,
     //   pub onMouseUp?: MouseEventCallback,
     //   pub onAfterDraw?: (id: string) => void,
@@ -53,6 +54,8 @@ pub fn rect(
         },
         id,
         on_click,
+        on_mouse_move_in,
+        on_mouse_move_out,
         ..
     }: RectParam,
 ) -> RenderingTree {
@@ -142,6 +145,8 @@ pub fn rect(
         }],
         id,
         on_click,
+        on_mouse_move_in,
+        on_mouse_move_out,
     }));
 
     RenderingTree::Children(rendering_tree)

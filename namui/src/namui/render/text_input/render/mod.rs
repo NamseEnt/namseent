@@ -22,13 +22,13 @@ impl namui::Entity for TextInput {
                     width: self.width,
                     height: self.height,
                     id: None,
-                    on_click: Some(Box::new(move |xy| {
+                    on_click: Some(Box::new(move |event| {
                         namui::log(format!(
                             "text_input click {} {:?}",
                             text_input.id.clone(),
-                            xy
+                            event.global_xy
                         ));
-                        let selection = get_selection_on_click(xy.x, &text_input);
+                        let selection = get_selection_on_click(event.local_xy.x, &text_input);
                         namui::event::send(Box::new(namui::text_input_event::SelectionChanged {
                             id: text_input.id.clone(),
                             selection: selection.ok(),
@@ -44,7 +44,8 @@ impl namui::Entity for TextInput {
                             color: self.background_fill_color
                         }),
                         round: None,
-                    }
+                    },
+                    ..Default::default()
                 }),
                 draw_texts_divided_by_selection(&self)
             ],

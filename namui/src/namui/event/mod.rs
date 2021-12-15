@@ -18,6 +18,7 @@ pub fn send(event: Event) {
 
 pub enum NamuiEvent {
     AnimationFrame,
-    MoveClick(namui::Xy<f32>),
+    MouseClick(namui::Xy<f32>),
+    MouseMove(namui::Xy<f32>),
     ScreenResize(namui::Wh<i16>),
 }

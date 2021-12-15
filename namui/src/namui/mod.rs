@@ -9,8 +9,8 @@ mod skia;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
 pub use namui_common::*;
 pub use render::{
-    clip, rect::*, text::*, text_input_event, translate, types::*, RenderingData, RenderingTree,
-    TextInput,
+    clip, rect::*, text::*, text_input_event, translate, types::*, MouseEvent, MouseEventCallback,
+    MouseEventType, RenderingData, RenderingTree, TextInput,
 };
 pub use skia::{
     types::{ClipOp, Color, PaintStyle},
@@ -68,9 +68,17 @@ pub async fn start<TProps>(
                 rendering_tree.draw(&namui_context);
 
                 namui_context.surface.flush();
+                }
             }
-            Some(NamuiEvent::MoveClick(xy)) => {
-                rendering_tree.call_on_click(xy);
+            Some(NamuiEvent::MouseClick(xy)) => {
+                rendering_tree.call_mouse_event(MouseEventType::Click, xy);
+                state.update(event.as_ref());
+                rendering_tree = state.render(props);
+            }
+            Some(NamuiEvent::MouseMove(xy)) => {
+                rendering_tree.call_mouse_event(MouseEventType::Move, xy);
+                state.update(event.as_ref());
+                rendering_tree = state.render(props);
             }
             _ => {
                 state.update(event.as_ref());
