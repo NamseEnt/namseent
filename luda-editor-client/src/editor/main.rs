@@ -22,6 +22,8 @@ impl namui::Entity for Main {
                 _ => {}
             }
         }
+
+        self.editor.update(event);
     }
 }
 

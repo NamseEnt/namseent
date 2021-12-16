@@ -1,7 +1,7 @@
 use ::namui::*;
-use chrono::Duration;
 mod playback_time_view;
 use super::{
+    job::Job,
     types::{PixelSize, Sequence, Time, TimePerPixel},
     Clip,
 };
@@ -20,10 +20,11 @@ pub struct Timeline {
     xywh: namui::XywhRect<f32>,
     header_width: f32,
     time_ruler_height: f32,
-    selected_clip: Option<Clip>,
-    sequence: Sequence,
+    pub selected_clip_id: Option<String>,
+    pub sequence: Sequence,
     start_at: Time,
-    time_per_pixel: TimePerPixel,
+    pub time_per_pixel: TimePerPixel,
+    pub job: Option<Job>,
 }
 
 impl Timeline {
@@ -32,10 +33,11 @@ impl Timeline {
             xywh,
             header_width: 200.0,
             time_ruler_height: 20.0,
-            selected_clip: None,
+            selected_clip_id: None,
             sequence,
             time_per_pixel: TimePerPixel::new(Time::ms(50), PixelSize(1.0)),
             start_at: Time::sec(0),
+            job: None,
         }
     }
 

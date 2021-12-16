@@ -1,7 +1,4 @@
-use crate::editor::{
-    types::{CameraClip, Track},
-    Timeline,
-};
+use crate::editor::{events::*, types::CameraClip, Timeline};
 use ::namui::*;
 
 pub struct CameraClipBody {}
@@ -23,7 +20,13 @@ impl CameraClipBody {
             width: width - 2.0,
             height: props.height - 2.0,
         };
-        let is_highlight = false; // TODO
+        let is_highlight = props
+            .timeline
+            .selected_clip_id
+            .as_ref()
+            .map_or(false, |id| id.eq(&props.clip.id));
+
+        let clip_id = props.clip.id.clone();
 
         render![namui::rect(namui::RectParam {
             x: clip_rect.x,
@@ -50,6 +53,14 @@ impl CameraClipBody {
                 round: Some(namui::RectRound { radius: 5.0 }),
                 ..Default::default()
             },
+            on_mouse_down: Some(Box::new(move |event| {
+                let event = EditorEvent::CameraClipBodyMouseDownEvent {
+                    clip_id: clip_id.clone(),
+                    local_mouse_xy: event.local_xy,
+                    global_mouse_xy: event.global_xy,
+                };
+                namui::event::send(Box::new(event));
+            })),
             ..Default::default()
         })]
     }

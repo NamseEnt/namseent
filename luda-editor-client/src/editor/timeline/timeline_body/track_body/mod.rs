@@ -14,10 +14,10 @@ pub struct TrackBodyProps<'a> {
 impl TrackBody {
     pub fn render(props: &TrackBodyProps) -> RenderingTree {
         match props.track {
-            Track::Camera(clips) => CameraTrackBody::render(&CameraTrackBodyProps {
+            Track::Camera(camera_track) => CameraTrackBody::render(&CameraTrackBodyProps {
                 width: props.width,
                 height: props.height,
-                clips: &clips,
+                clips: &camera_track.0,
                 timeline: props.timeline,
             }),
             Track::Subtitle(_) => todo!(),

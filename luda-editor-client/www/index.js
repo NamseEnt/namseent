@@ -6,5 +6,6 @@ import * as wasm from "luda-editor-client";
   });
   globalThis.CanvasKit = CanvasKit;
   globalThis.getCanvasKit = () => CanvasKit;
+
   wasm.start();
 })();
