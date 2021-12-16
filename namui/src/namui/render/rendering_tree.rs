@@ -7,7 +7,8 @@ pub struct MouseEvent {
     pub global_xy: Xy<f32>,
 }
 pub enum MouseEventType {
-    Click,
+    Down,
+    Up,
     Move,
 }
 pub type MouseEventCallback = Box<dyn Fn(&MouseEvent)>;
@@ -15,8 +16,8 @@ pub type MouseEventCallback = Box<dyn Fn(&MouseEvent)>;
 pub struct RenderingData {
     pub draw_calls: Vec<DrawCall>,
     pub id: Option<String>,
-    #[serde(skip_serializing)]
-    pub on_click: Option<MouseEventCallback>,
+    // #[serde(skip_serializing)]
+    // pub on_click: Option<MouseEventCallback>,
     #[serde(skip_serializing)]
     pub on_mouse_move_in: Option<MouseEventCallback>,
     #[serde(skip_serializing)]
@@ -24,10 +25,10 @@ pub struct RenderingData {
     // #[serde(skip_serializing)]
     // onClickOut: Option<MouseEventCallback>,
     // onMouseIn?: () => void;
-    // #[serde(skip_serializing)]
-    // onMouseDown: Option<MouseEventCallback>,
-    // #[serde(skip_serializing)]
-    // onMouseUp: Option<MouseEventCallback>,
+    #[serde(skip_serializing)]
+    pub on_mouse_down: Option<MouseEventCallback>,
+    #[serde(skip_serializing)]
+    pub on_mouse_up: Option<MouseEventCallback>,
 }
 #[derive(Serialize)]
 pub enum SpecialRenderingNode {
@@ -105,8 +106,9 @@ impl RenderingTree {
             }
             RenderingTree::Node(rendering_data) => {
                 let func = match mouse_event_type {
-                    MouseEventType::Click => &rendering_data.on_click,
                     MouseEventType::Move => &rendering_data.on_mouse_move_in,
+                    MouseEventType::Down => &rendering_data.on_mouse_down,
+                    MouseEventType::Up => &rendering_data.on_mouse_up,
                 };
                 if let Some(func) = func {
                     if rendering_data.is_inside(local_xy) {
@@ -189,7 +191,7 @@ mod tests {
             call order: 0, 1
         */
 
-        static mut ON_CLICK_CALLED_ID_LIST: Vec<String> = vec![];
+        static mut ON_MOUSE_DOWN_CALLED_ID_LIST: Vec<String> = vec![];
 
         let rendering_tree = RenderingTree::Children(vec![
             namui::rect(namui::RectParam {
@@ -203,8 +205,8 @@ mod tests {
                     stroke: None,
                     round: None,
                 },
-                on_click: Some(Box::new(move |xy| unsafe {
-                    ON_CLICK_CALLED_ID_LIST.push("0".to_string());
+                on_mouse_down: Some(Box::new(move |xy| unsafe {
+                    ON_MOUSE_DOWN_CALLED_ID_LIST.push("0".to_string());
                 })),
                 ..Default::default()
             }),
@@ -219,8 +221,8 @@ mod tests {
                     stroke: None,
                     round: None,
                 },
-                on_click: Some(Box::new(move |xy| unsafe {
-                    ON_CLICK_CALLED_ID_LIST.push("1".to_string());
+                on_mouse_down: Some(Box::new(move |xy| unsafe {
+                    ON_MOUSE_DOWN_CALLED_ID_LIST.push("1".to_string());
                 })),
                 ..Default::default()
             })]),
@@ -235,17 +237,17 @@ mod tests {
                     stroke: None,
                     round: None,
                 },
-                on_click: Some(Box::new(move |xy| unsafe {
-                    ON_CLICK_CALLED_ID_LIST.push("2".to_string());
+                on_mouse_down: Some(Box::new(move |xy| unsafe {
+                    ON_MOUSE_DOWN_CALLED_ID_LIST.push("2".to_string());
                 })),
                 ..Default::default()
             })]),
         ]);
 
-        rendering_tree.call_mouse_event(MouseEventType::Click, &namui::Xy { x: 75.0, y: 75.0 });
+        rendering_tree.call_mouse_event(MouseEventType::Down, &namui::Xy { x: 75.0, y: 75.0 });
 
         unsafe {
-            assert_eq!(ON_CLICK_CALLED_ID_LIST, vec!["0", "1", "3", "5"]);
+            assert_eq!(ON_MOUSE_DOWN_CALLED_ID_LIST, vec!["0", "1", "3", "5"]);
         };
     }
 }

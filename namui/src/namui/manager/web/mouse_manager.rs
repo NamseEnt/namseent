@@ -29,7 +29,7 @@ impl MouseManager {
                 ..*namui::state()
             });
 
-            namui::event::send(Box::new(namui::NamuiEvent::MouseClick(Xy {
+            namui::event::send(Box::new(namui::NamuiEvent::MouseDown(Xy {
                 x: mouse_position.x as f32,
                 y: mouse_position.y as f32,
             })));
@@ -42,6 +42,29 @@ impl MouseManager {
             )
             .unwrap();
         mouse_down_closure.forget();
+
+        let mouse_up_mouse_position = mouse_position.clone();
+        let mouse_up_closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
+            let mut mouse_position = mouse_up_mouse_position.write().unwrap();
+
+            mouse_position.x = event.client_x() as i16;
+            mouse_position.y = event.client_y() as i16;
+
+            NamuiInternal::update_state(NamuiState {
+                mouse_position: mouse_position.clone(),
+                ..*namui::state()
+            });
+
+            namui::event::send(Box::new(namui::NamuiEvent::MouseUp(Xy {
+                x: mouse_position.x as f32,
+                y: mouse_position.y as f32,
+            })));
+        }) as Box<dyn FnMut(_)>);
+
+        element
+            .add_event_listener_with_callback("mouseup", mouse_up_closure.as_ref().unchecked_ref())
+            .unwrap();
+        mouse_up_closure.forget();
 
         let mouse_move_mouse_position = mouse_position.clone();
         let mouse_move_closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {

@@ -5,8 +5,8 @@ use crate::{
 };
 mod draw_texts_divided_by_selection;
 use draw_texts_divided_by_selection::draw_texts_divided_by_selection;
-mod get_selection_on_click;
-use get_selection_on_click::get_selection_on_click;
+mod get_selection_on_mouse_down;
+use get_selection_on_mouse_down::get_selection_on_mouse_down;
 
 impl namui::Entity for TextInput {
     type Props = ();
@@ -22,13 +22,13 @@ impl namui::Entity for TextInput {
                     width: self.width,
                     height: self.height,
                     id: None,
-                    on_click: Some(Box::new(move |event| {
+                    on_mouse_down: Some(Box::new(move |event| {
                         namui::log(format!(
                             "text_input click {} {:?}",
                             text_input.id.clone(),
                             event.global_xy
                         ));
-                        let selection = get_selection_on_click(event.local_xy.x, &text_input);
+                        let selection = get_selection_on_mouse_down(event.local_xy.x, &text_input);
                         namui::event::send(Box::new(namui::text_input_event::SelectionChanged {
                             id: text_input.id.clone(),
                             selection: selection.ok(),

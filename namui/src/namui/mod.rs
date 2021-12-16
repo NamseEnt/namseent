@@ -77,8 +77,13 @@ pub async fn start<TProps>(
                     event_count = 0;
                 }
             }
-            Some(NamuiEvent::MouseClick(xy)) => {
-                rendering_tree.call_mouse_event(MouseEventType::Click, xy);
+            Some(NamuiEvent::MouseDown(xy)) => {
+                rendering_tree.call_mouse_event(MouseEventType::Down, xy);
+                state.update(event.as_ref());
+                rendering_tree = state.render(props);
+            }
+            Some(NamuiEvent::MouseUp(xy)) => {
+                rendering_tree.call_mouse_event(MouseEventType::Up, xy);
                 state.update(event.as_ref());
                 rendering_tree = state.render(props);
             }

@@ -1,6 +1,6 @@
 use crate::namui::{self, get_text_width, managers, render::Selection, TextInput};
 
-pub(crate) fn get_selection_on_click(
+pub(crate) fn get_selection_on_mouse_down(
     click_x: f32,
     text_input: &TextInput,
 ) -> Result<Selection, ()> {
