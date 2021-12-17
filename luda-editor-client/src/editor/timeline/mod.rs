@@ -1,4 +1,4 @@
-use ::namui::*;
+use namui::prelude::*;
 mod playback_time_view;
 use super::{
     job::Job,

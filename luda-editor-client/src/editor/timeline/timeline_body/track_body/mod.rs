@@ -1,5 +1,5 @@
 use crate::editor::{types::Track, Timeline};
-use ::namui::*;
+use namui::prelude::*;
 
 use self::camera_track_body::{CameraTrackBody, CameraTrackBodyProps};
 mod camera_track_body;

@@ -1,6 +1,5 @@
-use ::namui::*;
-
 use crate::editor::types::{Time, TimePerPixel};
+use namui::prelude::*;
 
 pub struct TimeRuler {}
 pub struct TimeRulerProps {

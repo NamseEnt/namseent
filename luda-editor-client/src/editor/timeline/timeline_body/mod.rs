@@ -1,5 +1,5 @@
 use crate::editor::types::Track;
-use ::namui::*;
+use namui::prelude::*;
 mod track_body;
 use super::Timeline;
 use track_body::*;

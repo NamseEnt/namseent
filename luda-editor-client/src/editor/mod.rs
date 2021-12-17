@@ -1,7 +1,7 @@
 mod main;
 pub use main::main;
 mod timeline;
-use ::namui::*;
+use namui::prelude::*;
 pub use timeline::*;
 mod types;
 use self::{

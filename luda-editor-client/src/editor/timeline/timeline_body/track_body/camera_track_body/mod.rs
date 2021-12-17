@@ -6,7 +6,7 @@ use crate::editor::{
     types::{CameraClip, Track},
     Timeline,
 };
-use ::namui::*;
+use namui::prelude::*;
 mod camera_clip_body;
 
 pub struct CameraTrackBody {}

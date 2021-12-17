@@ -1,5 +1,5 @@
 use super::*;
-use ::namui::*;
+use namui::prelude::*;
 
 struct Main {
     editor: Editor,

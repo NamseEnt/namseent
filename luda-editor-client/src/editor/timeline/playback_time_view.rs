@@ -1,5 +1,5 @@
-use ::namui::*;
 use chrono::Duration;
+use namui::prelude::*;
 
 pub struct PlaybackTimeView {}
 pub struct PlaybackTimeViewProps {

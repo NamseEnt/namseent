@@ -1,4 +1,4 @@
-use ::namui::*;
+use namui::prelude::*;
 
 pub struct TrackHeader {}
 pub struct TrackHeaderProps {

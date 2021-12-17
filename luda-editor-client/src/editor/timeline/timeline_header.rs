@@ -2,7 +2,7 @@ use crate::editor::{
     timeline::track_header::{TrackHeader, TrackHeaderProps},
     types::Track,
 };
-use ::namui::*;
+use namui::prelude::*;
 
 pub struct TimelineHeader {}
 pub struct TimelineHeaderProps<'a> {

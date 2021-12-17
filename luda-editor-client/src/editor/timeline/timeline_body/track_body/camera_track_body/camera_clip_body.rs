@@ -1,5 +1,5 @@
 use crate::editor::{events::*, types::CameraClip, Timeline};
-use ::namui::*;
+use namui::prelude::*;
 
 pub struct CameraClipBody {}
 pub struct CameraClipBodyProps<'a> {
