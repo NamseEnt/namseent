@@ -2,5 +2,7 @@
 
 members = [
     "namui",
-    "luda-editor-client"
+    "luda-editor-client",
+    "luda-editor-server",
+    "nrpc",
 ]
