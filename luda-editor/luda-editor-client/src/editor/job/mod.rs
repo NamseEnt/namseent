@@ -16,27 +16,6 @@ pub struct MoveCameraClipJob {
     pub last_global_mouse_xy: namui::Xy<f32>,
 }
 
-fn find_camera_clip_in_sequence<'a>(
-    clip_id: &String,
-    sequence: &Sequence,
-) -> Option<&'a CameraClip> {
-    for track in sequence.tracks {
-        if let Track::Camera(camera_track) = track {
-            let clip = camera_track
-                .clips
-                .iter()
-                .find(|clip| {
-                    clip.id
-                        .eq(clip_id)
-                });
-            if clip.is_some() {
-                return clip;
-            }
-        }
-    }
-    None
-}
-
 fn find_camera_track_of_clip<'a>(
     clip_id: &'a String,
     sequence: &'a mut Sequence,
@@ -75,7 +54,7 @@ impl MoveCameraClipJob {
         time_per_pixel: &TimePerPixel,
         is_preview: bool,
     ) {
-        let mut clips = camera_track.clips;
+        let clips = &mut camera_track.clips;
 
         let moving_clip_id = &self.clip_id;
         let moving_clip = clips
@@ -135,7 +114,7 @@ impl MoveCameraClipJob {
             clips.insert(next_moving_clip_index, moving_clip);
         }
 
-        push_front_camera_clips(camera_track);
+        push_front_camera_clips(clips);
 
         if is_preview {
             clips
@@ -151,17 +130,14 @@ impl MoveCameraClipJob {
         }
     }
     pub fn execute(&self, timeline: &mut Timeline) {
-        let track = find_camera_track_of_clip(&self.clip_id, &mut timeline.sequence).unwrap();
+        let mut track = find_camera_track_of_clip(&self.clip_id, &mut timeline.sequence).unwrap();
         self.order_clips_by_moving_clip(&mut track, &timeline.time_per_pixel, false);
     }
 }
 
-fn push_front_camera_clips(track: &mut CameraTrack) {
+fn push_front_camera_clips(clips: &mut Vec<CameraClip>) {
     let mut next_start_at = Time::zero();
-    for clip in track
-        .clips
-        .iter_mut()
-    {
+    for clip in clips.iter_mut() {
         let duration = clip.end_at - clip.start_at;
         clip.start_at = next_start_at;
         clip.end_at = clip.start_at + duration;

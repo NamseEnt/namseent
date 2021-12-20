@@ -18,8 +18,8 @@ impl ClipEditor {
     }
 }
 
-pub struct ClipEditorProps {
-    pub selected_clip: Option<Clip>,
+pub struct ClipEditorProps<'a> {
+    pub selected_clip: Option<Clip<'a>>,
 }
 
 impl ClipEditor {

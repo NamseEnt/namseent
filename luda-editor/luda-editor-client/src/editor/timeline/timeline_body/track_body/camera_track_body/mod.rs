@@ -19,9 +19,8 @@ pub struct CameraTrackBodyProps<'a> {
     pub timeline: &'a Timeline,
 }
 
-fn move_clip_at_last(track: &CameraTrack, clip_id: &String) -> CameraTrack {
-    let mut new_track = track.clone();
-    let clips = new_track.clips;
+fn move_clip_at_last(track: &mut CameraTrack, clip_id: &String) {
+    let clips = &mut track.clips;
     let moving_clip_index = clips
         .iter()
         .position(|clip| {
@@ -31,7 +30,6 @@ fn move_clip_at_last(track: &CameraTrack, clip_id: &String) -> CameraTrack {
         .unwrap();
     let moving_clip = clips.remove(moving_clip_index);
     clips.push(moving_clip);
-    new_track
 }
 
 impl CameraTrackBody {
@@ -41,7 +39,7 @@ impl CameraTrackBody {
             .job
         {
             Some(Job::MoveCameraClip(job)) => {
-                let track = props
+                let mut track = props
                     .track
                     .clone();
 
@@ -50,15 +48,14 @@ impl CameraTrackBody {
                     .time_per_pixel;
                 job.order_clips_by_moving_clip(&mut track, time_per_pixel, true);
 
-                let track = move_clip_at_last(&mut track, &job.clip_id);
+                move_clip_at_last(&mut track, &job.clip_id);
 
                 track.clips
             }
-            None => {
-                props
-                    .track
-                    .clips
-            }
+            None => props
+                .track
+                .clips
+                .to_vec(),
         };
 
         render![

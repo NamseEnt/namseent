@@ -21,7 +21,7 @@ use warp::{
 };
 #[tokio::main]
 async fn main() {
-    let routes = warp::path("")
+    let routes = warp::path::end()
         // The `ws()` filter will prepare the Websocket handshake.
         .and(warp::ws())
         .map(|ws: warp::ws::Ws| {
@@ -62,6 +62,7 @@ async fn on_connected(web_socket: WebSocket) {
             .recv()
             .await
         {
+            println!("sending: {:?}", data);
             sink.send(data)
                 .await
                 .unwrap();
@@ -249,6 +250,7 @@ pub async fn loop_receiving<'a, TRpcHandle, TStream>(
                     return;
                 }
                 let packet_buffer = packet_result.unwrap();
+                println!("receiving: {:?}", packet_buffer);
                 let deserialize_result = bincode::deserialize::<RpcPacket>(&packet_buffer);
                 match deserialize_result {
                     Ok(packet) => match packet {

@@ -1,10 +1,7 @@
 use crate::editor::types::*;
 use async_trait::async_trait;
 use dashmap::DashMap;
-use futures::{
-    channel::mpsc::{unbounded, UnboundedSender},
-    SinkExt, Stream, StreamExt,
-};
+use futures::{stream, SinkExt, Stream, StreamExt};
 use namui::prelude::*;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -12,8 +9,12 @@ use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
 };
+use tokio::sync::mpsc::{self, unbounded_channel, UnboundedSender};
 use tokio::sync::Notify;
+use tokio_stream::wrappers::UnboundedReceiverStream;
+use wasm_bindgen::{prelude::Closure, JsCast};
 use wasm_bindgen_futures::spawn_local;
+use web_sys::{ErrorEvent, MessageEvent};
 
 struct ImageFilenameObject {
     character: String,
@@ -29,13 +30,103 @@ pub struct ImageBrowser {
     scroll_y: f32,
 }
 
+// struct WasmBindgenSocket {
+//     url: String,
+// }
+// impl WasmBindgenSocket {
+//     pub fn new(url: String) -> Self {
+//         Self { url }
+//     }
+// }
+
 impl ImageBrowser {
     pub fn new() -> Self {
         let response_waiter = ResponseWaiter::new();
-        let (sender, receiver) = unbounded();
-        let socket = Socket::new(sender, response_waiter);
+        let (sending_sender, mut sending_receiver) = unbounded_channel();
+        let mut socket = Socket::new(sending_sender.clone(), response_waiter.clone());
+        let web_socket = web_sys::WebSocket::new("ws://localhost:3030").unwrap();
+        web_socket.set_binary_type(web_sys::BinaryType::Arraybuffer);
 
-        spawn_local(async {});
+        let (receiving_sender, receiving_receiver) = unbounded_channel();
+        let receiving_stream = UnboundedReceiverStream::new(receiving_receiver);
+        let handler = RpcHandler {};
+        spawn_local(loop_receiving(
+            sending_sender.clone(),
+            receiving_stream,
+            handler,
+            response_waiter.clone(),
+        ));
+
+        let onmessage_callback = Closure::wrap(Box::new(move |e: MessageEvent| {
+            // Handle difference Text/Binary,...
+            if let Ok(array_buffer) = e
+                .data()
+                .dyn_into::<js_sys::ArrayBuffer>()
+            {
+                namui::log(format!("message event, received arraybuffer: {:?}", array_buffer));
+                let u8_array = js_sys::Uint8Array::new(&array_buffer);
+                let len = u8_array.byte_length() as usize;
+                let packet = u8_array.to_vec();
+                namui::log(format!("Arraybuffer received {}bytes: {:?}", len, packet));
+                receiving_sender
+                    .send(Ok(packet))
+                    .unwrap();
+            } else {
+                namui::log(format!("message event, received Unknown: {:?}", e.data()));
+            }
+        }) as Box<dyn FnMut(MessageEvent)>);
+
+        web_socket.set_onmessage(Some(
+            onmessage_callback
+                .as_ref()
+                .unchecked_ref(),
+        ));
+        onmessage_callback.forget();
+
+        let onerror_callback = Closure::wrap(Box::new(move |e: ErrorEvent| {
+            namui::log(format!("error event: {:?}", e));
+        }) as Box<dyn FnMut(ErrorEvent)>);
+        web_socket.set_onerror(Some(
+            onerror_callback
+                .as_ref()
+                .unchecked_ref(),
+        ));
+        onerror_callback.forget();
+
+        namui::log(format!("socket created"));
+
+        let cloned_web_socket = web_socket.clone();
+        let onopen_callback = Closure::once(move || {
+            namui::log(format!("socket opened"));
+            spawn_local(async move {
+                while let Some(packet) = sending_receiver
+                    .recv()
+                    .await
+                {
+                    namui::log(format!("sending packet: {:?}", packet));
+                    cloned_web_socket
+                        .send_with_u8_array(&packet)
+                        .unwrap();
+                }
+            });
+        });
+
+        spawn_local(async move {
+            let result = socket
+                .ls(luda_editor_rpc2::ls::Request {
+                    path: "/".to_string(),
+                })
+                .await;
+            namui::log(format!("ls result: {:?}", result));
+        });
+
+        web_socket.set_onopen(Some(
+            onopen_callback
+                .as_ref()
+                .unchecked_ref(),
+        ));
+        onopen_callback.forget();
+
         Self {
             directory_key: "".to_string(),
             selected_key: None,
@@ -56,7 +147,7 @@ impl Entity for ImageBrowser {
     fn update(&mut self, event: &dyn std::any::Any) {}
 
     fn render(&self, props: &Self::Props) -> RenderingTree {
-        todo!()
+        RenderingTree::Empty
     }
 }
 
@@ -126,18 +217,18 @@ impl Clone for Socket {
 pub mod luda_editor_rpc2 {
     use serde::{Deserialize, Serialize};
 
-    #[derive(Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize)]
     pub struct DirectoryEntry {}
 
     pub mod ls {
         use super::DirectoryEntry;
         use serde::{Deserialize, Serialize};
 
-        #[derive(Serialize, Deserialize)]
+        #[derive(Debug, Serialize, Deserialize)]
         pub struct Request {
             pub path: String,
         }
-        #[derive(Serialize, Deserialize)]
+        #[derive(Debug, Serialize, Deserialize)]
         pub struct Response {
             pub entries: Vec<DirectoryEntry>,
         }
@@ -163,11 +254,11 @@ impl Socket {
         static mut ID_COUNTER: AtomicU64 = AtomicU64::new(0);
         let id = unsafe { ID_COUNTER.fetch_add(1, Ordering::SeqCst) };
 
-        let request_packet = RpcRequestPacket {
+        let request_packet = RpcPacket::Request(RpcRequestPacket {
             id,
             api,
             data: bincode::serialize(&request).unwrap(),
-        };
+        });
 
         let notify = self
             .response_waiter
@@ -175,7 +266,8 @@ impl Socket {
 
         let data = bincode::serialize(&request_packet).unwrap();
         self.sender
-            .send(data);
+            .send(data)
+            .unwrap();
 
         let response_data = self
             .response_waiter
@@ -258,7 +350,9 @@ pub async fn loop_receiving<'a, TRpcHandle, TStream>(
                                 });
                                 let response_packet_buffer =
                                     bincode::serialize(&response_packet).unwrap();
-                                sender.send(response_packet_buffer);
+                                sender
+                                    .send(response_packet_buffer)
+                                    .unwrap();
                             }
                         },
                         RpcPacket::Response(response) => {
@@ -273,25 +367,25 @@ pub async fn loop_receiving<'a, TRpcHandle, TStream>(
         })
         .await;
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 enum RpcPacket {
     Request(RpcRequestPacket),
     Response(RpcResponsePacket),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 enum RpcApi {
     ls,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct RpcRequestPacket {
     id: u64,
     api: RpcApi,
     data: Vec<u8>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct RpcResponsePacket {
     id: u64,
     data: Vec<u8>,

@@ -92,8 +92,8 @@ pub struct CameraClip {
     pub camera_angle: CameraAngle,
 }
 
-pub enum Clip {
-    Camera(CameraClip),
+pub enum Clip<'a> {
+    Camera(&'a CameraClip),
     Subtitle(SubtitleClip),
 }
 
@@ -124,7 +124,7 @@ impl Sequence {
         for track in &self.tracks {
             match track {
                 Track::Camera(track) => {
-                    for clip in track.clips {
+                    for clip in &track.clips {
                         if clip.id == id {
                             return Some(Clip::Camera(clip));
                         }

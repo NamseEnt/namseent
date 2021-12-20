@@ -82,11 +82,7 @@ impl namui::Entity for Editor {
         let selected_clip = self
             .timeline
             .selected_clip_id
-            // .map(|id| {
-            //     self.timeline
-            //         .sequence
-            //         .get_clip(&id)
-            // });
+            .as_ref()
             .and_then(|id| {
                 self.timeline
                     .sequence

@@ -2,7 +2,7 @@ use crate::editor::types::*;
 use namui::prelude::*;
 use std::rc::Rc;
 
-use self::image_browser::ImageBrowser;
+use self::image_browser::{ImageBrowser, ImageBrowserProps};
 mod image_browser;
 
 pub struct CameraClipEditor {
@@ -26,6 +26,7 @@ impl CameraClipEditor {
     pub fn update(&mut self, event: &dyn std::any::Any) {}
 
     pub fn render(&self, props: &CameraClipEditorProps) -> RenderingTree {
-        todo!()
+        self.image_browser
+            .render(&ImageBrowserProps {})
     }
 }
