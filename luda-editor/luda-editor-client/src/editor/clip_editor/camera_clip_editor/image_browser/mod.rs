@@ -1,7 +1,10 @@
 use crate::editor::types::*;
 use async_trait::async_trait;
 use dashmap::DashMap;
-use futures::{channel::mpsc::{unbounded, UnboundedSender}, SinkExt, Stream, StreamExt};
+use futures::{
+    channel::mpsc::{unbounded, UnboundedSender},
+    SinkExt, Stream, StreamExt,
+};
 use namui::prelude::*;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -172,8 +175,7 @@ impl Socket {
 
         let data = bincode::serialize(&request_packet).unwrap();
         self.sender
-            .send(data)
-            .unwrap();
+            .send(data);
 
         let response_data = self
             .response_waiter
@@ -256,9 +258,7 @@ pub async fn loop_receiving<'a, TRpcHandle, TStream>(
                                 });
                                 let response_packet_buffer =
                                     bincode::serialize(&response_packet).unwrap();
-                                sender
-                                    .send(response_packet_buffer)
-                                    .unwrap();
+                                sender.send(response_packet_buffer);
                             }
                         },
                         RpcPacket::Response(response) => {

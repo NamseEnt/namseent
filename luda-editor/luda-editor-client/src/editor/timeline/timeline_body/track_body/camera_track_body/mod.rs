@@ -15,13 +15,13 @@ pub struct CameraTrackBody {}
 pub struct CameraTrackBodyProps<'a> {
     pub width: f32,
     pub height: f32,
-    pub track: CameraTrack,
+    pub track: &'a CameraTrack,
     pub timeline: &'a Timeline,
 }
 
 fn move_clip_at_last(track: &CameraTrack, clip_id: &String) -> CameraTrack {
     let mut new_track = track.clone();
-    let clips = new_track.0;
+    let clips = new_track.clips;
     let moving_clip_index = clips
         .iter()
         .position(|clip| {
@@ -52,12 +52,12 @@ impl CameraTrackBody {
 
                 let track = move_clip_at_last(&mut track, &job.clip_id);
 
-                track.0
+                track.clips
             }
             None => {
                 props
                     .track
-                    .0
+                    .clips
             }
         };
 

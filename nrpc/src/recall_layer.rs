@@ -6,20 +6,20 @@ use std::{
 };
 use tokio::sync::Notify;
 
-pub(crate) struct RecallLayer {
+pub struct RecallLayer {
     transport_layer: Box<dyn TransportLayer>,
     id: AtomicU64,
     notification_map: Arc<DashMap<u64, Arc<Notify>>>,
     response_data_map: Arc<DashMap<u64, Vec<u8>>>,
 }
 
-struct RecallLayerReceiver {
+pub struct RecallLayerReceiver {
     notification_map: Arc<DashMap<u64, Arc<Notify>>>,
     response_data_map: Arc<DashMap<u64, Vec<u8>>>,
 }
 
 impl RecallLayerReceiver {
-    fn on_received(&self, packet: Vec<u8>) {
+    pub fn on_received(&self, packet: Vec<u8>) {
         let (id, data) = self.decode_packet(packet);
 
         self.response_data_map
@@ -45,7 +45,7 @@ impl RecallLayerReceiver {
 }
 
 impl RecallLayer {
-    pub fn new(mut transport_layer: impl TransportLayer + 'static) -> Rc<Self> {
+    pub fn new(mut transport_layer: impl TransportLayer + 'static) -> Self {
         let notification_map = Arc::new(DashMap::new());
         let response_data_map = Arc::new(DashMap::new());
 
@@ -54,16 +54,17 @@ impl RecallLayer {
             response_data_map: response_data_map.clone(),
         };
 
-        transport_layer.on_received(Box::new(move |packet| {
-            receiver.on_received(packet);
-        }));
+        // transport_layer.on_received(Box::new(move |packet| {
+        //     receiver.on_received(packet);
+        // }));
+        transport_layer.set_recall_layer_receiver(receiver);
 
-        let recall_layer = Rc::new(Self {
+        let recall_layer = Self {
             transport_layer: Box::new(transport_layer),
             id: AtomicU64::new(0),
             notification_map: notification_map.clone(),
             response_data_map: response_data_map.clone(),
-        });
+        };
 
         recall_layer
     }
@@ -74,7 +75,7 @@ impl RecallLayer {
         packet.extend_from_slice(&data);
         packet
     }
-    pub async fn send(&self, data: Vec<u8>) -> Result<Vec<u8>, String> {
+    pub async fn send(&mut self, data: Vec<u8>) -> Result<Vec<u8>, String> {
         let id = self
             .id
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -88,7 +89,8 @@ impl RecallLayer {
         let packet = self.encode_packet(id, data);
         let sent = self
             .transport_layer
-            .send(packet);
+            .send(packet)
+            .await;
 
         match sent {
             Ok(_) => {
@@ -119,30 +121,43 @@ impl RecallLayer {
 
 #[cfg(test)]
 mod tests {
+    use std::{sync::Arc, thread};
+
+    use async_trait::async_trait;
+    use tokio::runtime::Runtime;
+
     use super::RecallLayer;
-    use crate::transport_layer::{self, TransportLayer};
+    use crate::{recall_layer::RecallLayerReceiver, transport_layer::TransportLayer};
 
     #[tokio::test]
     async fn test() {
         struct TestTransportLayer {
-            pub callback: Box<dyn Fn(Vec<u8>)>,
+            recall_layer_receiver: Option<RecallLayerReceiver>,
         }
+        #[async_trait]
         impl TransportLayer for TestTransportLayer {
-            fn send(&self, packet: Vec<u8>) -> Result<(), String> {
+            async fn send(&mut self, packet: Vec<u8>) -> Result<(), String> {
                 assert_eq!(packet, vec![0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3]);
-                (self.callback)(vec![0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 1]);
+                self.recall_layer_receiver
+                    .as_ref()
+                    .unwrap()
+                    .on_received(vec![0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 1]);
                 Ok(())
             }
 
-            fn on_received(&mut self, callback: Box<dyn Fn(Vec<u8>)>) {
-                self.callback = callback;
+            fn set_recall_layer_receiver(
+                &mut self,
+                recall_layer_receiver: super::RecallLayerReceiver,
+            ) {
+                self.recall_layer_receiver = Some(recall_layer_receiver);
             }
         }
 
         let transport_layer = TestTransportLayer {
-            callback: Box::new(|_| panic!()),
+            recall_layer_receiver: None,
         };
-        let recall_layer = RecallLayer::new(transport_layer);
+
+        let mut recall_layer = RecallLayer::new(transport_layer);
         let result = recall_layer
             .send(vec![1, 2, 3])
             .await;

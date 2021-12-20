@@ -5,6 +5,7 @@
     "**/lib": true
   },
   "cSpell.words": [
+    "bincode",
     "dirents",
     "Ltrb",
     "Mathu",

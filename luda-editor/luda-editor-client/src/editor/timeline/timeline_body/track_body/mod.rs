@@ -8,7 +8,7 @@ pub struct TrackBody {}
 pub struct TrackBodyProps<'a> {
     pub width: f32,
     pub height: f32,
-    pub track: Track,
+    pub track: &'a Track,
     pub timeline: &'a Timeline,
 }
 impl TrackBody {

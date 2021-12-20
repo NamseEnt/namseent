@@ -5,7 +5,9 @@ pub enum Track {
     Subtitle(Vec<SubtitleClip>),
 }
 #[derive(Debug, Clone)]
-pub struct CameraTrack(pub Vec<Rc<CameraClip>>);
+pub struct CameraTrack {
+    pub clips: Vec<CameraClip>,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Time {
@@ -91,7 +93,7 @@ pub struct CameraClip {
 }
 
 pub enum Clip {
-    Camera(Rc<CameraClip>),
+    Camera(CameraClip),
     Subtitle(SubtitleClip),
 }
 
@@ -122,9 +124,9 @@ impl Sequence {
         for track in &self.tracks {
             match track {
                 Track::Camera(track) => {
-                    for clip in track.0 {
+                    for clip in track.clips {
                         if clip.id == id {
-                            return Some(Clip::Camera(clip.clone()));
+                            return Some(Clip::Camera(clip));
                         }
                     }
                 }
@@ -146,116 +148,118 @@ pub struct PointSize {
 
 pub fn get_sample_sequence() -> Sequence {
     Sequence {
-        tracks: vec![Track::Camera(CameraTrack(vec![
-            Rc::new(CameraClip {
-                id: "1".to_string(),
-                start_at: Time::sec(0),
-                end_at: Time::sec(1),
-                camera_angle: CameraAngle {
-                    image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                    source_point_size: PointSize {
-                        x: 0.25,
-                        y: 0.25,
-                        size: 0.5259040471894634,
-                    },
-                    dest_point_size: PointSize {
-                        x: 0.0,
-                        y: 0.0,
-                        size: 1.0,
-                    },
-                },
-            }),
-            Rc::new(CameraClip {
-                id: "2".to_string(),
-                start_at: Time::sec(1),
-                end_at: Time::sec(3),
-                camera_angle: CameraAngle {
-                    image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                    source_point_size: PointSize {
-                        x: 0.25,
-                        y: 0.25,
-                        size: 0.5259040471894634,
-                    },
-                    dest_point_size: PointSize {
-                        x: 0.0,
-                        y: 0.0,
-                        size: 1.0,
+        tracks: vec![Track::Camera(CameraTrack {
+            clips: vec![
+                CameraClip {
+                    id: "1".to_string(),
+                    start_at: Time::sec(0),
+                    end_at: Time::sec(1),
+                    camera_angle: CameraAngle {
+                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
+                        source_point_size: PointSize {
+                            x: 0.25,
+                            y: 0.25,
+                            size: 0.5259040471894634,
+                        },
+                        dest_point_size: PointSize {
+                            x: 0.0,
+                            y: 0.0,
+                            size: 1.0,
+                        },
                     },
                 },
-            }),
-            Rc::new(CameraClip {
-                id: "3".to_string(),
-                start_at: Time::sec(3),
-                end_at: Time::sec(6),
-                camera_angle: CameraAngle {
-                    image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                    source_point_size: PointSize {
-                        x: 0.25,
-                        y: 0.25,
-                        size: 0.5259040471894634,
-                    },
-                    dest_point_size: PointSize {
-                        x: 0.0,
-                        y: 0.0,
-                        size: 1.0,
-                    },
-                },
-            }),
-            Rc::new(CameraClip {
-                id: "4".to_string(),
-                start_at: Time::sec(6),
-                end_at: Time::sec(10),
-                camera_angle: CameraAngle {
-                    image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                    source_point_size: PointSize {
-                        x: 0.25,
-                        y: 0.25,
-                        size: 0.5259040471894634,
-                    },
-                    dest_point_size: PointSize {
-                        x: 0.0,
-                        y: 0.0,
-                        size: 1.0,
+                CameraClip {
+                    id: "2".to_string(),
+                    start_at: Time::sec(1),
+                    end_at: Time::sec(3),
+                    camera_angle: CameraAngle {
+                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
+                        source_point_size: PointSize {
+                            x: 0.25,
+                            y: 0.25,
+                            size: 0.5259040471894634,
+                        },
+                        dest_point_size: PointSize {
+                            x: 0.0,
+                            y: 0.0,
+                            size: 1.0,
+                        },
                     },
                 },
-            }),
-            Rc::new(CameraClip {
-                id: "5".to_string(),
-                start_at: Time::sec(10),
-                end_at: Time::sec(15),
-                camera_angle: CameraAngle {
-                    image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                    source_point_size: PointSize {
-                        x: 0.25,
-                        y: 0.25,
-                        size: 0.5259040471894634,
-                    },
-                    dest_point_size: PointSize {
-                        x: 0.0,
-                        y: 0.0,
-                        size: 1.0,
-                    },
-                },
-            }),
-            Rc::new(CameraClip {
-                id: "6".to_string(),
-                start_at: Time::sec(15),
-                end_at: Time::sec(21),
-                camera_angle: CameraAngle {
-                    image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                    source_point_size: PointSize {
-                        x: 0.25,
-                        y: 0.25,
-                        size: 0.5259040471894634,
-                    },
-                    dest_point_size: PointSize {
-                        x: 0.0,
-                        y: 0.0,
-                        size: 1.0,
+                CameraClip {
+                    id: "3".to_string(),
+                    start_at: Time::sec(3),
+                    end_at: Time::sec(6),
+                    camera_angle: CameraAngle {
+                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
+                        source_point_size: PointSize {
+                            x: 0.25,
+                            y: 0.25,
+                            size: 0.5259040471894634,
+                        },
+                        dest_point_size: PointSize {
+                            x: 0.0,
+                            y: 0.0,
+                            size: 1.0,
+                        },
                     },
                 },
-            }),
-        ]))],
+                CameraClip {
+                    id: "4".to_string(),
+                    start_at: Time::sec(6),
+                    end_at: Time::sec(10),
+                    camera_angle: CameraAngle {
+                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
+                        source_point_size: PointSize {
+                            x: 0.25,
+                            y: 0.25,
+                            size: 0.5259040471894634,
+                        },
+                        dest_point_size: PointSize {
+                            x: 0.0,
+                            y: 0.0,
+                            size: 1.0,
+                        },
+                    },
+                },
+                CameraClip {
+                    id: "5".to_string(),
+                    start_at: Time::sec(10),
+                    end_at: Time::sec(15),
+                    camera_angle: CameraAngle {
+                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
+                        source_point_size: PointSize {
+                            x: 0.25,
+                            y: 0.25,
+                            size: 0.5259040471894634,
+                        },
+                        dest_point_size: PointSize {
+                            x: 0.0,
+                            y: 0.0,
+                            size: 1.0,
+                        },
+                    },
+                },
+                CameraClip {
+                    id: "6".to_string(),
+                    start_at: Time::sec(15),
+                    end_at: Time::sec(21),
+                    camera_angle: CameraAngle {
+                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
+                        source_point_size: PointSize {
+                            x: 0.25,
+                            y: 0.25,
+                            size: 0.5259040471894634,
+                        },
+                        dest_point_size: PointSize {
+                            x: 0.0,
+                            y: 0.0,
+                            size: 1.0,
+                        },
+                    },
+                },
+            ],
+        })],
     }
 }
 impl Time {

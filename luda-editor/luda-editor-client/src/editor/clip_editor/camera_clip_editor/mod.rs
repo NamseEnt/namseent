@@ -1,6 +1,6 @@
-use std::rc::Rc;
 use crate::editor::types::*;
 use namui::prelude::*;
+use std::rc::Rc;
 
 use self::image_browser::ImageBrowser;
 mod image_browser;
@@ -17,17 +17,15 @@ impl CameraClipEditor {
     }
 }
 
-pub struct CameraClipEditorProps {
-    pub camera_clip: Rc<CameraClip>,
+pub struct CameraClipEditorProps<'a> {
+    pub camera_clip: &'a CameraClip,
     pub xywh: XywhRect<f32>,
 }
 
-impl Entity for CameraClipEditor {
-    type Props = CameraClipEditorProps;
+impl CameraClipEditor {
+    pub fn update(&mut self, event: &dyn std::any::Any) {}
 
-    fn update(&mut self, event: &dyn std::any::Any) {}
-
-    fn render(&self, props: &Self::Props) -> RenderingTree {
+    pub fn render(&self, props: &CameraClipEditorProps) -> RenderingTree {
         todo!()
     }
 }

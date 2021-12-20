@@ -27,7 +27,7 @@ impl ClipEditor {
 
     pub fn render(&self, props: &ClipEditorProps) -> RenderingTree {
         match &props.selected_clip {
-            Some(clip) => match *clip {
+            Some(clip) => match clip {
                 Clip::Camera(camera_clip) => self
                     .camera_clip_editor
                     .render(&CameraClipEditorProps {

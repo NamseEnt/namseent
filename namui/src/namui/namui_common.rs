@@ -95,7 +95,10 @@ pub struct Wh<T> {
 }
 impl<T> Wh<T> {
     pub fn new(width: T, height: T) -> Self {
-        Self { width, height }
+        Self {
+            width,
+            height,
+        }
     }
 }
 

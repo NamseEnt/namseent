@@ -1,8 +1,5 @@
-use std::sync::Arc;
-
-use crate::namui;
-
 use super::*;
+use std::sync::Arc;
 
 unsafe impl Sync for CanvasKitTypeface {}
 unsafe impl Send for CanvasKitTypeface {}
@@ -24,6 +21,7 @@ impl Typeface {
 }
 impl Drop for Typeface {
     fn drop(&mut self) {
-        self.0.delete();
+        self.0
+            .delete();
     }
 }

@@ -16,18 +16,21 @@ pub struct MoveCameraClipJob {
     pub last_global_mouse_xy: namui::Xy<f32>,
 }
 
-fn find_camera_clip_in_sequence(clip_id: &String, sequence: &Sequence) -> Option<Rc<CameraClip>> {
+fn find_camera_clip_in_sequence<'a>(
+    clip_id: &String,
+    sequence: &Sequence,
+) -> Option<&'a CameraClip> {
     for track in sequence.tracks {
         if let Track::Camera(camera_track) = track {
             let clip = camera_track
-                .0
+                .clips
                 .iter()
                 .find(|clip| {
                     clip.id
                         .eq(clip_id)
                 });
             if clip.is_some() {
-                return clip.map(|clip| clip.clone());
+                return clip;
             }
         }
     }
@@ -40,7 +43,7 @@ fn find_camera_track_of_clip<'a>(
 ) -> Option<&'a mut CameraTrack> {
     for track in &mut sequence.tracks {
         if let Track::Camera(camera_track) = track {
-            for clip in &mut camera_track.0 {
+            for clip in &mut camera_track.clips {
                 if clip.id == *clip_id {
                     return Some(camera_track);
                 }
@@ -72,7 +75,7 @@ impl MoveCameraClipJob {
         time_per_pixel: &TimePerPixel,
         is_preview: bool,
     ) {
-        let mut clips = camera_track.0;
+        let mut clips = camera_track.clips;
 
         let moving_clip_id = &self.clip_id;
         let moving_clip = clips
@@ -156,7 +159,7 @@ impl MoveCameraClipJob {
 fn push_front_camera_clips(track: &mut CameraTrack) {
     let mut next_start_at = Time::zero();
     for clip in track
-        .0
+        .clips
         .iter_mut()
     {
         let duration = clip.end_at - clip.start_at;

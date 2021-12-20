@@ -15,7 +15,8 @@ impl Surface {
         }
     }
     pub fn flush(&self) {
-        self.canvas_kit_surface.flush();
+        self.canvas_kit_surface
+            .flush();
     }
     pub fn canvas(&self) -> &Canvas {
         &self.canvas
@@ -24,6 +25,7 @@ impl Surface {
 
 impl Drop for Surface {
     fn drop(&mut self) {
-        self.canvas_kit_surface.delete();
+        self.canvas_kit_surface
+            .delete();
     }
 }
