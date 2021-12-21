@@ -1,6 +1,6 @@
 pub use nrpc::*;
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct DirectoryEntry {}
 
 def_rpc! {

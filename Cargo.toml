@@ -1,9 +1,0 @@
-[workspace]
-
-members = [
-    "namui",
-    "luda-editor/luda-editor-client",
-    # "luda-editor/luda-editor-server",
-    # "luda-editor/luda-editor-rpc",
-    # "nrpc",
-]

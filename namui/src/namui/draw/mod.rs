@@ -68,9 +68,11 @@ pub struct DrawCall {
 
 impl DrawCall {
     pub fn draw(&self, namui_context: &NamuiContext) {
-        self.commands.iter().for_each(|command| {
-            command.draw(namui_context);
-        });
+        self.commands
+            .iter()
+            .for_each(|command| {
+                command.draw(namui_context);
+            });
     }
 }
 

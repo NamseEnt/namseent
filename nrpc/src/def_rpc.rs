@@ -1,6 +1,3 @@
-#[derive(crate::serde::Serialize)]
-struct Test {}
-
 #[macro_export]
 macro_rules! def_rpc {
     {
@@ -14,10 +11,10 @@ macro_rules! def_rpc {
     } => {
         use $crate::tokio::sync::mpsc::UnboundedSender;
         use $crate::futures::{stream::{TryStreamExt}, Stream};
-        use $crate::ResponseWaiter;
+        use $crate::response_waiter::ResponseWaiter;
         use $crate::serde::{Serialize, Deserialize};
         use $crate::bincode;
-        use $crate::async_trait;
+        pub use $crate::async_trait;
 
         pub struct Socket {
             pub sender: UnboundedSender<Vec<u8>>,
@@ -130,7 +127,7 @@ macro_rules! def_rpc {
             )*
         }
 
-        #[async_trait]
+        #[async_trait::async_trait]
         pub trait RpcHandle {
             $(
                 async fn $request_name(&mut self,
@@ -205,6 +202,7 @@ macro_rules! def_rpc {
 
 #[cfg(test)]
 mod tests {
+    use async_trait::async_trait;
     use futures::{future::join, join, StreamExt};
     use tokio;
     use tokio_stream::wrappers::UnboundedReceiverStream;
