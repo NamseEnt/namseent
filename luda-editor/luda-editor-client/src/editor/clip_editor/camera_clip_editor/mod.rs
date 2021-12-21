@@ -23,7 +23,10 @@ pub struct CameraClipEditorProps<'a> {
 }
 
 impl CameraClipEditor {
-    pub fn update(&mut self, event: &dyn std::any::Any) {}
+    pub fn update(&mut self, event: &dyn std::any::Any) {
+        self.image_browser
+            .update(event);
+    }
 
     pub fn render(&self, props: &CameraClipEditorProps) -> RenderingTree {
         self.image_browser

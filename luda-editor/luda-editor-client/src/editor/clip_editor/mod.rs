@@ -23,7 +23,10 @@ pub struct ClipEditorProps<'a> {
 }
 
 impl ClipEditor {
-    pub fn update(&mut self, event: &dyn std::any::Any) {}
+    pub fn update(&mut self, event: &dyn std::any::Any) {
+        self.camera_clip_editor
+            .update(event);
+    }
 
     pub fn render(&self, props: &ClipEditorProps) -> RenderingTree {
         match &props.selected_clip {

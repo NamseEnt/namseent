@@ -1,4 +1,4 @@
-use crate::editor::types::*;
+use crate::editor::{events::EditorEvent, types::*};
 use async_trait::async_trait;
 use luda_editor_rpc::{loop_receiving, response_waiter::ResponseWaiter, RpcHandle, Socket};
 use namui::prelude::*;
@@ -7,13 +7,6 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{ErrorEvent, MessageEvent};
-
-struct ImageFilenameObject {
-    character: String,
-    pose: String,
-    emotion: String,
-    extension: String,
-}
 
 pub struct ImageBrowser {
     directory_key: String,
@@ -99,11 +92,22 @@ impl ImageBrowser {
 
         spawn_local(async move {
             let result = socket
-                .ls(luda_editor_rpc::ls::Request {
-                    path: "/".to_string(),
-                })
+                .get_camera_shot_urls(luda_editor_rpc::get_camera_shot_urls::Request {})
                 .await;
-            namui::log(format!("ls result: {:?}", result.is_ok()));
+            match result {
+                Ok(response) => {
+                    let image_filename_objects = response
+                        .camera_shot_urls
+                        .iter()
+                        .map(|url| ImageFilenameObject::new(url))
+                        .collect();
+
+                    namui::event::send(Box::new(EditorEvent::ImageFilenameObjectsUpdatedEvent {
+                        image_filename_objects,
+                    }))
+                }
+                Err(error) => namui::log(format!("error on get_camera_shot_urls: {:?}", error)),
+            }
         });
 
         web_socket.set_onopen(Some(
@@ -127,12 +131,22 @@ impl ImageBrowser {
 
 pub struct ImageBrowserProps {}
 
-impl Entity for ImageBrowser {
-    type Props = ImageBrowserProps;
+impl ImageBrowser {
+    pub fn update(&mut self, event: &dyn std::any::Any) {
+        if let Some(event) = event.downcast_ref::<EditorEvent>() {
+            match event {
+                EditorEvent::ImageFilenameObjectsUpdatedEvent {
+                    image_filename_objects,
+                } => {
+                    self.image_filename_objects = image_filename_objects.to_vec();
+                }
+                _ => {}
+            }
+        };
+    }
 
-    fn update(&mut self, event: &dyn std::any::Any) {}
-
-    fn render(&self, props: &Self::Props) -> RenderingTree {
+    pub fn render(&self, props: &ImageBrowserProps) -> RenderingTree {
+        // namui::log(format!("rendering image browser {:?}", self.image_filename_objects));
         RenderingTree::Empty
     }
 }
@@ -142,13 +156,44 @@ pub struct RpcHandler {}
 
 #[async_trait]
 impl RpcHandle for RpcHandler {
-    async fn ls(
+    async fn get_camera_shot_urls(
         &mut self,
-        request: luda_editor_rpc::ls::Request,
-    ) -> Result<luda_editor_rpc::ls::Response, String> {
-        println!("ls: {}", request.path);
-        Ok(luda_editor_rpc::ls::Response {
-            directory_entries: vec![],
-        })
+        request: luda_editor_rpc::get_camera_shot_urls::Request,
+    ) -> Result<luda_editor_rpc::get_camera_shot_urls::Response, String> {
+        todo!()
+    }
+}
+impl ImageFilenameObject {
+    fn new(camera_shot_url: &String) -> Self {
+        let file_name_with_extension = camera_shot_url
+            .split("/")
+            .last()
+            .unwrap();
+        // remove only extension but keep dot in middle of name.
+        let last_dot_index = file_name_with_extension
+            .rfind('.')
+            .unwrap();
+        let file_name = file_name_with_extension
+            .split_at(last_dot_index)
+            .0;
+
+        let mut splits = file_name.split("-");
+
+        let character = splits
+            .next()
+            .unwrap();
+        let emotion = splits
+            .next()
+            .unwrap();
+        let pose = splits
+            .collect::<Vec<&str>>()
+            .join("-");
+
+        Self {
+            character: character.to_string(),
+            emotion: emotion.to_string(),
+            pose,
+            url: camera_shot_url.to_string(),
+        }
     }
 }

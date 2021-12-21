@@ -47,6 +47,7 @@ impl namui::Entity for Editor {
                     self.timeline
                         .selected_clip_id = Some(clip_id.clone());
                 }
+                _ => {}
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
@@ -77,6 +78,8 @@ impl namui::Entity for Editor {
                 _ => {}
             }
         };
+        self.clip_editor
+            .update(event);
     }
     fn render(&self, props: &Self::Props) -> namui::RenderingTree {
         let selected_clip = self

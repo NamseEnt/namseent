@@ -282,3 +282,11 @@ impl TimePerPixel {
         }
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct ImageFilenameObject {
+    pub character: String,
+    pub pose: String,
+    pub emotion: String,
+    pub url: String,
+}

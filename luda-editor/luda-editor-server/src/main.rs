@@ -4,20 +4,29 @@ use futures::{
     SinkExt,
 };
 use luda_editor_rpc::{self, async_trait::async_trait, response_waiter::ResponseWaiter};
+use path_clean::PathClean;
 use tokio::sync::mpsc::unbounded_channel;
 use warp::{
     ws::{Message, WebSocket},
     Filter,
 };
+
+const RESOURCE_ROOT: &str = "../resources";
+fn resource_path() -> std::path::PathBuf {
+    std::env::current_dir()
+        .unwrap()
+        .join(RESOURCE_ROOT)
+        .clean()
+}
 #[tokio::main]
 async fn main() {
-    let routes = warp::path::end()
-        // The `ws()` filter will prepare the Websocket handshake.
+    let resource_images_route = warp::path("resources").and(warp::fs::dir(resource_path()));
+
+    let web_socket_route = warp::path::end()
         .and(warp::ws())
-        .map(|ws: warp::ws::Ws| {
-            // And then our closure will be called when it completes...
-            ws.on_upgrade(move |web_socket| on_connected(web_socket))
-        });
+        .map(|ws: warp::ws::Ws| ws.on_upgrade(move |web_socket| on_connected(web_socket)));
+
+    let routes = resource_images_route.or(web_socket_route);
 
     warp::serve(routes)
         .run(([127, 0, 0, 1], 3030))
@@ -52,7 +61,6 @@ async fn on_connected(web_socket: WebSocket) {
             .recv()
             .await
         {
-            println!("sending: {:?}", data);
             sink.send(data)
                 .await
                 .unwrap();
@@ -68,13 +76,42 @@ pub struct RpcHandler {}
 
 #[async_trait]
 impl luda_editor_rpc::RpcHandle for RpcHandler {
-    async fn ls(
+    async fn get_camera_shot_urls(
         &mut self,
-        request: luda_editor_rpc::ls::Request,
-    ) -> Result<luda_editor_rpc::ls::Response, String> {
-        println!("ls: {}", request.path);
-        Ok(luda_editor_rpc::ls::Response {
-            directory_entries: vec![],
-        })
+        _: luda_editor_rpc::get_camera_shot_urls::Request,
+    ) -> Result<luda_editor_rpc::get_camera_shot_urls::Response, String> {
+        let resource_image_path = resource_path().join("images");
+        println!("{:?}", resource_image_path);
+
+        match std::fs::read_dir(resource_image_path) {
+            Ok(entries) => {
+                let mut camera_shot_urls = Vec::new();
+
+                for entry in entries {
+                    match entry {
+                        Ok(entry) => {
+                            let name = entry
+                                .file_name()
+                                .into_string()
+                                .unwrap();
+                            camera_shot_urls
+                                .push(format!("http://localhost:3030/resources/images/{}", name));
+                        }
+                        Err(e) => {
+                            println!("{}", e);
+                        }
+                    }
+                }
+                println!("{:?}", camera_shot_urls);
+                Ok(luda_editor_rpc::get_camera_shot_urls::Response {
+                    camera_shot_urls,
+                })
+            }
+            Err(error) => {
+                let error_message = format!("get_camera_shot_urls error: {}", error);
+                println!("{}", error_message);
+                Err(error_message)
+            }
+        }
     }
 }
