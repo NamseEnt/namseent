@@ -42,6 +42,7 @@ macro_rules! def_rpc {
         #[derive(Serialize, Deserialize)]
         enum RpcApi {
             $(
+                #[allow(non_camel_case_types)]
                 $request_name,
             )*
         }
@@ -60,6 +61,7 @@ macro_rules! def_rpc {
         }
 
         $(
+            #[allow(non_camel_case_types)]
             pub mod $request_name {
                 use $crate::serde::{Serialize, Deserialize};
                 #[derive(Serialize, Deserialize)]
@@ -73,6 +75,7 @@ macro_rules! def_rpc {
             }
         )*
 
+        #[allow(dead_code)]
         impl Socket {
             pub fn new(sender: $crate::tokio::sync::mpsc::UnboundedSender<Vec<u8>>,
                 response_waiter: ResponseWaiter) -> Self {
@@ -135,6 +138,7 @@ macro_rules! def_rpc {
                 ) -> Result<$request_name::Response, String>;
             )*
         }
+        #[allow(dead_code)]
         pub async fn loop_receiving<'a, TRpcHandle, TStream>(
             sender: UnboundedSender<Vec<u8>>,
             stream: TStream,
@@ -202,6 +206,7 @@ macro_rules! def_rpc {
 
 #[cfg(test)]
 mod tests {
+    use crate::prelude::*;
     use async_trait::async_trait;
     use futures::{future::join, join, StreamExt};
     use tokio;
@@ -214,6 +219,14 @@ mod tests {
         ls({ path: String, }) -> {
             directory_entries: Vec<super::DirectoryEntry>,
         },
+    }
+
+    mod test_zero_request_param {
+        def_rpc! {
+            zero_request_param({ }) -> {
+                directory_entries: Vec<String>,
+            },
+        }
     }
 
     #[tokio::test]
