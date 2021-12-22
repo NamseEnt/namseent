@@ -85,7 +85,7 @@ macro_rules! def_rpc {
                 }
             }
             async fn send<'de, TRequest, TResponse>(
-                &mut self,
+                &self,
                 request: TRequest,
                 api: RpcApi,
             ) -> Result<TResponse, String>
@@ -122,7 +122,7 @@ macro_rules! def_rpc {
             }
 
             $(
-                pub async fn $request_name(&mut self,
+                pub async fn $request_name(&self,
                     request: $request_name::Request
                 ) -> Result<$request_name::Response, String> {
                     self.send(request, RpcApi::$request_name).await
