@@ -10,9 +10,9 @@ pub struct CameraClipEditor {
 }
 
 impl CameraClipEditor {
-    pub fn new() -> Self {
+    pub fn new(socket: &luda_editor_rpc::Socket) -> Self {
         Self {
-            image_browser: ImageBrowser::new(),
+            image_browser: ImageBrowser::new(socket),
         }
     }
 }

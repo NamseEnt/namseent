@@ -11,9 +11,9 @@ pub struct ClipEditor {
 }
 
 impl ClipEditor {
-    pub fn new() -> Self {
+    pub fn new(socket: &luda_editor_rpc::Socket) -> Self {
         Self {
-            camera_clip_editor: CameraClipEditor::new(),
+            camera_clip_editor: CameraClipEditor::new(socket),
         }
     }
 }
