@@ -1,0 +1,22 @@
+{
+    "folders": [
+        {
+            "path": "luda-editor/luda-editor-client"
+        },
+        {
+            "path": "luda-editor/luda-editor-server"
+        },
+        {
+            "path": "luda-editor/luda-editor-rpc"
+        },
+        {
+            "path": "namui"
+        },
+        {
+            "path": "nrpc"
+        },
+        {
+            "path": "./"
+        }
+    ]
+}
