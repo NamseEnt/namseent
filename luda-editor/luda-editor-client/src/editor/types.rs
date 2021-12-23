@@ -15,9 +15,7 @@ pub struct Time {
 }
 impl Time {
     pub fn zero() -> Self {
-        Self {
-            milliseconds: 0,
-        }
+        Self { milliseconds: 0 }
     }
 }
 impl std::ops::Sub for Time {
@@ -39,38 +37,22 @@ impl std::ops::Add for Time {
 impl std::ops::Div<TimePerPixel> for Time {
     type Output = PixelSize;
     fn div(self, rhs: TimePerPixel) -> Self::Output {
-        let milliseconds = self.milliseconds as f64
-            / rhs
-                .time
-                .milliseconds as f64;
-        PixelSize(
-            milliseconds as f32
-                * rhs
-                    .pixel_size
-                    .0,
-        )
+        let milliseconds = self.milliseconds as f64 / rhs.time.milliseconds as f64;
+        PixelSize(milliseconds as f32 * rhs.pixel_size.0)
     }
 }
 impl std::ops::Div<i64> for Time {
     type Output = Time;
     fn div(self, rhs: i64) -> Self::Output {
         let milliseconds = self.milliseconds / rhs;
-        Time {
-            milliseconds,
-        }
+        Time { milliseconds }
     }
 }
 impl std::ops::Mul<TimePerPixel> for PixelSize {
     type Output = Time;
     fn mul(self, rhs: TimePerPixel) -> Self::Output {
         Time {
-            milliseconds: ((self.0
-                / rhs
-                    .pixel_size
-                    .0)
-                * (rhs
-                    .time
-                    .milliseconds as f32)) as i64,
+            milliseconds: ((self.0 / rhs.pixel_size.0) * (rhs.time.milliseconds as f32)) as i64,
         }
     }
 }
@@ -269,17 +251,12 @@ impl Time {
         }
     }
     pub fn ms(milliseconds: i64) -> Time {
-        Time {
-            milliseconds,
-        }
+        Time { milliseconds }
     }
 }
 impl TimePerPixel {
     pub(crate) fn new(time: Time, pixel_size: PixelSize) -> TimePerPixel {
-        TimePerPixel {
-            time,
-            pixel_size,
-        }
+        TimePerPixel { time, pixel_size }
     }
 }
 

@@ -22,19 +22,18 @@ pub struct ClipEditorProps<'a> {
 
 impl ClipEditor {
     pub fn update(&mut self, event: &dyn std::any::Any) {
-        self.camera_clip_editor
-            .update(event);
+        self.camera_clip_editor.update(event);
     }
 
     pub fn render(&self, props: &ClipEditorProps) -> RenderingTree {
         match &props.selected_clip {
             Some(clip) => match clip {
-                Clip::Camera(camera_clip) => self
-                    .camera_clip_editor
-                    .render(&CameraClipEditorProps {
+                Clip::Camera(camera_clip) => {
+                    self.camera_clip_editor.render(&CameraClipEditorProps {
                         camera_clip: &camera_clip,
                         xywh: props.xywh,
-                    }),
+                    })
+                }
                 Clip::Subtitle(_) => todo!(),
             },
             None => RenderingTree::Empty,

@@ -27,11 +27,7 @@ impl BrowserItem {
                 height: props.item_size.height,
                 style: RectStyle {
                     stroke: Some(RectStroke {
-                        width: if props.is_selected {
-                            3.0
-                        } else {
-                            1.0
-                        },
+                        width: if props.is_selected { 3.0 } else { 1.0 },
                         border_position: BorderPosition::Inside,
                         color: if props.is_selected {
                             namui::Color::RED
@@ -39,9 +35,7 @@ impl BrowserItem {
                             namui::Color::BLACK
                         },
                     }),
-                    round: Some(RectRound {
-                        radius: 5.0,
-                    }),
+                    round: Some(RectRound { radius: 5.0 }),
                     fill: Some(RectFill {
                         color: namui::Color::WHITE,
                     }),

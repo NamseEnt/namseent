@@ -21,7 +21,6 @@ impl Typeface {
 }
 impl Drop for Typeface {
     fn drop(&mut self) {
-        self.0
-            .delete();
+        self.0.delete();
     }
 }

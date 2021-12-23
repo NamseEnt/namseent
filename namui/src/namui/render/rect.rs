@@ -98,10 +98,7 @@ pub fn rect(
 
     let mut draw_commands: Vec<DrawCommand> = vec![];
 
-    if let Some(RectFill {
-        color,
-    }) = fill
-    {
+    if let Some(RectFill { color }) = fill {
         let fill_paint = namui::Paint::new()
             .set_color(color)
             .set_style(namui::PaintStyle::Fill)

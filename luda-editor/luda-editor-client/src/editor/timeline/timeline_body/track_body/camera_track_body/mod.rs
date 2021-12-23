@@ -21,41 +21,25 @@ pub struct CameraTrackBodyProps<'a> {
 
 fn move_clip_at_last(track: &mut CameraTrack, clip_id: &String) {
     let clips = &mut track.clips;
-    let moving_clip_index = clips
-        .iter()
-        .position(|clip| {
-            clip.id
-                .eq(clip_id)
-        })
-        .unwrap();
+    let moving_clip_index = clips.iter().position(|clip| clip.id.eq(clip_id)).unwrap();
     let moving_clip = clips.remove(moving_clip_index);
     clips.push(moving_clip);
 }
 
 impl CameraTrackBody {
     pub fn render(props: &CameraTrackBodyProps) -> RenderingTree {
-        let clips = match &props
-            .timeline
-            .job
-        {
+        let clips = match &props.timeline.job {
             Some(Job::MoveCameraClip(job)) => {
-                let mut track = props
-                    .track
-                    .clone();
+                let mut track = props.track.clone();
 
-                let time_per_pixel = &props
-                    .timeline
-                    .time_per_pixel;
+                let time_per_pixel = &props.timeline.time_per_pixel;
                 job.order_clips_by_moving_clip(&mut track, time_per_pixel, true);
 
                 move_clip_at_last(&mut track, &job.clip_id);
 
                 track.clips
             }
-            None => props
-                .track
-                .clips
-                .to_vec(),
+            None => props.track.clips.to_vec(),
         };
 
         render![

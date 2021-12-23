@@ -19,14 +19,11 @@ impl ResponseWaiter {
 impl ResponseWaiter {
     pub fn ready_to_wait(&self, id: u64) -> Arc<Notify> {
         let notify = Arc::new(Notify::new());
-        self.notification_map
-            .insert(id, notify.clone());
+        self.notification_map.insert(id, notify.clone());
         notify
     }
     pub async fn wait(&self, id: u64, notify: Arc<Notify>) -> Result<Vec<u8>, String> {
-        notify
-            .notified()
-            .await;
+        notify.notified().await;
 
         let (_, data) = self
             .response_data_map
@@ -36,13 +33,9 @@ impl ResponseWaiter {
         Ok(data)
     }
     pub fn on_response(&self, id: u64, response: Vec<u8>) {
-        self.response_data_map
-            .insert(id, response);
+        self.response_data_map.insert(id, response);
 
-        let (_, notify) = self
-            .notification_map
-            .remove(&id)
-            .unwrap();
+        let (_, notify) = self.notification_map.remove(&id).unwrap();
 
         notify.notify_waiters();
     }

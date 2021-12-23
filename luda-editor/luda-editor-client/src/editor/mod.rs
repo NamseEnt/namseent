@@ -161,7 +161,10 @@ impl Editor {
         let onmessage_callback = Closure::wrap(Box::new(move |e: MessageEvent| {
             // Handle difference Text/Binary,...
             if let Ok(array_buffer) = e.data().dyn_into::<js_sys::ArrayBuffer>() {
-                namui::log(format!("message event, received arraybuffer: {:?}", array_buffer));
+                namui::log(format!(
+                    "message event, received arraybuffer: {:?}",
+                    array_buffer
+                ));
                 let u8_array = js_sys::Uint8Array::new(&array_buffer);
                 let len = u8_array.byte_length() as usize;
                 let packet = u8_array.to_vec();

@@ -77,9 +77,7 @@ impl ImageBrowser {
                 } => {
                     self.image_filename_objects = image_filename_objects.to_vec();
                 }
-                EditorEvent::ImageBrowserSelectEvent {
-                    selected_key,
-                } => {
+                EditorEvent::ImageBrowserSelectEvent { selected_key } => {
                     namui::log(format!("selected_key: {}", selected_key));
                     if selected_key == "back" {
                         let directory_splitted = self.directory_key.split("-").collect::<Vec<_>>();
@@ -273,9 +271,13 @@ impl ImageBrowser {
         let pose = pose.unwrap();
 
         let mut emotions = BTreeSet::new();
-        for filename_object in self.image_filename_objects.iter().filter(|filename_object| {
-            filename_object.character == character && filename_object.pose == pose
-        }) {
+        for filename_object in self
+            .image_filename_objects
+            .iter()
+            .filter(|filename_object| {
+                filename_object.character == character && filename_object.pose == pose
+            })
+        {
             emotions.insert(&filename_object.emotion);
         }
 

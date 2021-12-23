@@ -21,13 +21,7 @@ pub struct ImageParam {
     pub style: ImageStyle,
 }
 
-pub fn image(
-    ImageParam {
-        url,
-        xywh,
-        style,
-    }: ImageParam,
-) -> RenderingTree {
+pub fn image(ImageParam { url, xywh, style }: ImageParam) -> RenderingTree {
     let image_draw_command = ImageDrawCommand {
         url,
         xywh,

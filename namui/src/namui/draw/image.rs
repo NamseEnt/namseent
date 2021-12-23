@@ -10,7 +10,10 @@ use crate::{
 };
 
 pub fn draw_image(namui_context: &NamuiContext, command: &ImageDrawCommand) {
-    let image = namui::managers().image_manager.clone().try_load(command.url.clone());
+    let image = namui::managers()
+        .image_manager
+        .clone()
+        .try_load(command.url.clone());
     if image.is_none() {
         return;
     }
@@ -39,8 +42,9 @@ pub fn draw_image(namui_context: &NamuiContext, command: &ImageDrawCommand) {
         let mut default_paint = default_paint.borrow_mut();
 
         if default_paint.is_none() {
-            let paint =
-                Paint::new().set_style(PaintStyle::Fill).set_color(Color::gary_scale_f01(0.5));
+            let paint = Paint::new()
+                .set_style(PaintStyle::Fill)
+                .set_color(Color::gary_scale_f01(0.5));
             *default_paint = Some(paint);
         }
         let default_paint_reference = default_paint.as_ref().unwrap();
