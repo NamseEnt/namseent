@@ -12,3 +12,7 @@ pub mod translate;
 pub use translate::*;
 pub mod clip;
 pub use clip::*;
+pub mod image;
+pub use image::*;
+pub mod path;
+pub use path::*;

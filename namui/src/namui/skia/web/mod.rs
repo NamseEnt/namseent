@@ -1,3 +1,5 @@
+use super::base;
+use super::types::*;
 mod font;
 pub use font::*;
 mod text_blob;
@@ -14,7 +16,7 @@ mod typeface;
 pub use typeface::*;
 mod path;
 pub use path::*;
-
-use super::base;
-use super::types::*;
 mod color;
+pub use color::*;
+mod image;
+pub use image::*;

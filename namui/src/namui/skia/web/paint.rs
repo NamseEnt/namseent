@@ -7,22 +7,26 @@ impl Paint {
     pub fn new() -> Self {
         Paint(CanvasKitPaint::new())
     }
-    pub fn set_color(&self, color: &Color) {
+    pub fn set_color(self, color: Color) -> Self {
         self.0.setColor(&color.into_float32_array());
+        self
     }
 
-    pub fn set_style(&self, style: &PaintStyle) {
+    pub fn set_style(self, style: PaintStyle) -> Self {
         let canvas_kit_paint_style = match style {
             PaintStyle::Fill => canvas_kit().PaintStyle().Fill(),
             PaintStyle::Stroke => canvas_kit().PaintStyle().Stroke(),
         };
         self.0.setStyle(canvas_kit_paint_style);
+        self
     }
-    pub fn set_anti_alias(&self, value: bool) {
+    pub fn set_anti_alias(self, value: bool) -> Self {
         self.0.setAntiAlias(value);
+        self
     }
-    pub fn set_stroke_width(&self, width: f32) {
+    pub fn set_stroke_width(self, width: f32) -> Self {
         self.0.setStrokeWidth(width);
+        self
     }
     pub fn get_stroke_cap(&self) -> StrokeCap {
         let stroke_cap = self.0.getStrokeCap();

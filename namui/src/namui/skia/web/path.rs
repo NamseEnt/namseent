@@ -109,6 +109,25 @@ impl Path {
             Ok(())
         }
     }
+    pub fn move_to(self, x: f32, y: f32) -> Self {
+        self.canvas_kit_path.moveTo(x, y);
+        self
+    }
+    pub fn line_to(self, x: f32, y: f32) -> Self {
+        self.canvas_kit_path.lineTo(x, y);
+        self
+    }
+    pub fn scale(self, x: f32, y: f32) -> Self {
+        self.transform(&[x, 0.0, 0.0, y, 0.0, 0.0, 0.0, 0.0, 1.0])
+    }
+    pub fn translate(self, x: f32, y: f32) -> Self {
+        self.canvas_kit_path.offset(x, y);
+        self
+    }
+    pub fn transform(self, matrix_3x3: &[f32; 9]) -> Self {
+        self.canvas_kit_path.transform(matrix_3x3);
+        self
+    }
 }
 
 impl Drop for Path {

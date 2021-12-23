@@ -9,4 +9,7 @@ pub enum EditorEvent {
     ImageFilenameObjectsUpdatedEvent {
         image_filename_objects: Vec<ImageFilenameObject>,
     },
+    ImageBrowserSelectEvent {
+        selected_key: String,
+    },
 }

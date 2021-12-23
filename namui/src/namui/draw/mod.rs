@@ -1,11 +1,15 @@
+pub mod image;
 pub mod path;
 pub mod text;
+use self::image::draw_image;
 use self::path::draw_path;
 use self::text::draw_text;
 use super::{
+    render::ImageFit,
     skia::{Font, Paint, StrokeOptions},
     Namui, NamuiContext, NamuiImpl, Path, Xy,
 };
+use crate::XywhRect;
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -25,10 +29,11 @@ pub struct Size {
 
 #[derive(Debug, Serialize)]
 pub struct ImageDrawCommand {
-    pub x: f32,
-    pub y: f32,
+    pub xywh: XywhRect<f32>,
     pub url: String,
-    pub size: Size,
+    pub fit: ImageFit,
+    #[serde(skip_serializing)]
+    pub paint: Option<Paint>,
 }
 #[derive(Debug, Serialize, Copy, Clone)]
 pub enum TextAlign {
@@ -68,11 +73,9 @@ pub struct DrawCall {
 
 impl DrawCall {
     pub fn draw(&self, namui_context: &NamuiContext) {
-        self.commands
-            .iter()
-            .for_each(|command| {
-                command.draw(namui_context);
-            });
+        self.commands.iter().for_each(|command| {
+            command.draw(namui_context);
+        });
     }
 }
 
@@ -80,7 +83,7 @@ impl DrawCommand {
     pub fn draw(&self, namui_context: &NamuiContext) {
         match self {
             &DrawCommand::Image(ref image_command) => {
-                Namui::log(format!("Drawing image: {}", image_command.x));
+                draw_image(namui_context, &image_command);
             }
             &DrawCommand::Path(ref path_command) => {
                 draw_path(namui_context, &path_command);
@@ -116,15 +119,17 @@ impl DrawCommand {
                 }
             }
             DrawCommand::Image(image_draw_command) => {
-                //     case "image": {
-                //       return (
-                //         drawCommand.x <= vector.x &&
-                //         vector.x <= drawCommand.x + drawCommand.size.width &&
-                //         drawCommand.y <= vector.y &&
-                //         vector.y <= drawCommand.y + drawCommand.size.height
-                //       );
-                //     }
-                todo!()
+                let XywhRect {
+                    x,
+                    y,
+                    width,
+                    height,
+                } = &image_draw_command.xywh;
+                let x_max = x + width;
+                let y_max = y + height;
+                let local_x = local_xy.x;
+                let local_y = local_xy.y;
+                local_x >= *x && local_x <= x_max && local_y >= *y && local_y <= y_max
             }
             DrawCommand::Text(text_draw_command) => todo!(),
         }

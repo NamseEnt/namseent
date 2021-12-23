@@ -2,6 +2,8 @@ use super::*;
 use js_sys::Float32Array;
 use web_sys::HtmlCanvasElement;
 
+unsafe impl Sync for CanvasKit {}
+unsafe impl Send for CanvasKit {}
 #[wasm_bindgen]
 extern "C" {
     pub type CanvasKit;
@@ -43,16 +45,16 @@ extern "C" {
     // #[wasm_bindgen(js_namespace = CanvasKit)]
     // fn MakeImage(info: ImageInfo, bytes: &[u8], bytesPerRow: u32) -> Option<Image>;
 
-    // ///
-    // /// Return an Image backed by the encoded data, but attempt to defer decoding until the image
-    // /// is actually used/drawn. This deferral allows the system to cache the result, either on the
-    // /// CPU or on the GPU, depending on where the image is drawn.
-    // /// This decoding uses the codecs that have been compiled into CanvasKit. If the bytes are
-    // /// invalid (or an unrecognized codec), null will be returned. See Image.h for more details.
-    // /// @param bytes
-    // ///
-    // #[wasm_bindgen(js_namespace = CanvasKit)]
-    // fn MakeImageFromEncoded(bytes: &[u8]) -> Option<Image>;
+    ///
+    /// Return an Image backed by the encoded data, but attempt to defer decoding until the image
+    /// is actually used/drawn. This deferral allows the system to cache the result, either on the
+    /// CPU or on the GPU, depending on where the image is drawn.
+    /// This decoding uses the codecs that have been compiled into CanvasKit. If the bytes are
+    /// invalid (or an unrecognized codec), null will be returned. See Image.h for more details.
+    /// @param bytes
+    ///
+    #[wasm_bindgen(method)]
+    pub fn MakeImageFromEncoded(this: &CanvasKit, bytes: &[u8]) -> Option<CanvasKitImage>;
 
     // ///
     // /// Returns an SkPicture which has been serialized previously to the given bytes.

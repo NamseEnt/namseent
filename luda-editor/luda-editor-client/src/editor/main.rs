@@ -11,18 +11,6 @@ impl namui::Entity for Main {
         self.editor.render(&())
     }
     fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<namui::NamuiEvent>() {
-            match event {
-                &namui::NamuiEvent::ScreenResize(wh) => {
-                    self.editor.resize(namui::Wh {
-                        width: wh.width as f32,
-                        height: wh.height as f32,
-                    });
-                }
-                _ => {}
-            }
-        }
-
         self.editor.update(event);
     }
 }

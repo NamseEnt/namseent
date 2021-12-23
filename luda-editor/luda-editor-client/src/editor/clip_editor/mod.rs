@@ -1,7 +1,4 @@
-use std::rc::Rc;
-
 use self::camera_clip_editor::{CameraClipEditor, CameraClipEditorProps};
-
 use super::types::*;
 mod camera_clip_editor;
 use namui::prelude::*;
@@ -20,6 +17,7 @@ impl ClipEditor {
 
 pub struct ClipEditorProps<'a> {
     pub selected_clip: Option<Clip<'a>>,
+    pub xywh: XywhRect<f32>,
 }
 
 impl ClipEditor {
@@ -35,12 +33,7 @@ impl ClipEditor {
                     .camera_clip_editor
                     .render(&CameraClipEditorProps {
                         camera_clip: &camera_clip,
-                        xywh: XywhRect {
-                            x: 0.0,
-                            y: 0.0,
-                            width: 0.0,
-                            height: 0.0,
-                        },
+                        xywh: props.xywh,
                     }),
                 Clip::Subtitle(_) => todo!(),
             },

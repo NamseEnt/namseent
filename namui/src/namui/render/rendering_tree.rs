@@ -1,5 +1,5 @@
 use super::{Clip, Translate};
-use crate::namui::{self, ClipOp, DrawCall, NamuiContext, Xy};
+use crate::namui::{ClipOp, DrawCall, NamuiContext, Xy, *};
 use serde::Serialize;
 
 pub struct MouseEvent {
@@ -58,19 +58,13 @@ impl RenderingTree {
             }
             RenderingTree::Special(special) => match special {
                 SpecialRenderingNode::Translate(translate) => {
-                    namui_context
-                        .surface
-                        .canvas()
-                        .translate(translate.x, translate.y);
+                    namui_context.surface.canvas().translate(translate.x, translate.y);
 
                     for child in &translate.rendering_tree {
                         child.draw(namui_context);
                     }
 
-                    namui_context
-                        .surface
-                        .canvas()
-                        .translate(-translate.x, -translate.y);
+                    namui_context.surface.canvas().translate(-translate.x, -translate.y);
                 }
                 SpecialRenderingNode::Clip(clip) => {
                     let canvas = namui_context.surface.canvas();
@@ -151,10 +145,7 @@ impl RenderingData {
     fn is_inside(&self, local_xy: &Xy<f32>) -> bool {
         self.draw_calls.iter().any(|draw_call| {
             // TODO : Handle drawCall.clip
-            draw_call
-                .commands
-                .iter()
-                .any(|draw_command| draw_command.is_inside(local_xy))
+            draw_call.commands.iter().any(|draw_command| draw_command.is_inside(local_xy))
         })
     }
 }
@@ -244,7 +235,13 @@ mod tests {
             })]),
         ]);
 
-        rendering_tree.call_mouse_event(MouseEventType::Down, &namui::Xy { x: 75.0, y: 75.0 });
+        rendering_tree.call_mouse_event(
+            MouseEventType::Down,
+            &namui::Xy {
+                x: 75.0,
+                y: 75.0,
+            },
+        );
 
         unsafe {
             assert_eq!(ON_MOUSE_DOWN_CALLED_ID_LIST, vec!["0", "1", "3", "5"]);

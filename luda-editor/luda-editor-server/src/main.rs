@@ -13,10 +13,7 @@ use warp::{
 
 const RESOURCE_ROOT: &str = "../resources";
 fn resource_path() -> std::path::PathBuf {
-    std::env::current_dir()
-        .unwrap()
-        .join(RESOURCE_ROOT)
-        .clean()
+    std::env::current_dir().unwrap().join(RESOURCE_ROOT).clean()
 }
 #[tokio::main]
 async fn main() {
@@ -26,11 +23,12 @@ async fn main() {
         .and(warp::ws())
         .map(|ws: warp::ws::Ws| ws.on_upgrade(move |web_socket| on_connected(web_socket)));
 
-    let routes = resource_images_route.or(web_socket_route);
+    let cors = warp::cors().allow_any_origin().allow_methods(vec!["GET", "OPTIONS"]);
+    let log = warp::log("luda_editor_rpc");
 
-    warp::serve(routes)
-        .run(([127, 0, 0, 1], 3030))
-        .await;
+    let routes = resource_images_route.or(web_socket_route).with(cors).with(log);
+
+    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }
 
 async fn on_connected(web_socket: WebSocket) {
@@ -48,22 +46,13 @@ async fn on_connected(web_socket: WebSocket) {
     let handler = RpcHandler {};
     let stream = stream.map(|message| {
         message
-            .map(|message| {
-                message
-                    .as_bytes()
-                    .to_vec()
-            })
+            .map(|message| message.as_bytes().to_vec())
             .map_err(|e| format!("websocket error: {}", e))
     });
 
     let loop_sending = async {
-        while let Some(data) = rx
-            .recv()
-            .await
-        {
-            sink.send(data)
-                .await
-                .unwrap();
+        while let Some(data) = rx.recv().await {
+            sink.send(data).await.unwrap();
         }
     };
 
@@ -90,10 +79,7 @@ impl luda_editor_rpc::RpcHandle for RpcHandler {
                 for entry in entries {
                     match entry {
                         Ok(entry) => {
-                            let name = entry
-                                .file_name()
-                                .into_string()
-                                .unwrap();
+                            let name = entry.file_name().into_string().unwrap();
                             camera_shot_urls
                                 .push(format!("http://localhost:3030/resources/images/{}", name));
                         }
@@ -102,7 +88,6 @@ impl luda_editor_rpc::RpcHandle for RpcHandler {
                         }
                     }
                 }
-                println!("{:?}", camera_shot_urls);
                 Ok(luda_editor_rpc::get_camera_shot_urls::Response {
                     camera_shot_urls,
                 })

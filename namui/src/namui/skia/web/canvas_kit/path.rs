@@ -294,15 +294,15 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn isVolatile(this: &CanvasKitPath) -> bool;
 
-    // ///
-    // /// Adds line from last point to (x, y). If Path is empty, or last path is closed,
-    // /// last point is set to (0, 0) before adding line.
-    // /// Returns the modified path for easier chaining.
-    // /// @param x
-    // /// @param y
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn lineTo(this: &CanvasKitPath, x: number, y: number) -> CanvasKitPath;
+    ///
+    /// Adds line from last point to (x, y). If Path is empty, or last path is closed,
+    /// last point is set to (0, 0) before adding line.
+    /// Returns the modified path for easier chaining.
+    /// @param x
+    /// @param y
+    ///
+    #[wasm_bindgen(method)]
+    pub fn lineTo(this: &CanvasKitPath, x: f32, y: f32) -> CanvasKitPath;
 
     // ///
     // /// Returns a new path that covers the same area as the original path, but with the
@@ -313,23 +313,23 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn makeAsWinding(this: &CanvasKitPath) -> CanvasKitPath | null;
 
-    // ///
-    // /// Adds beginning of contour at the given point.
-    // /// Returns the modified path for easier chaining.
-    // /// @param x
-    // /// @param y
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn moveTo(this: &CanvasKitPath, x: number, y: number) -> CanvasKitPath;
+    ///
+    /// Adds beginning of contour at the given point.
+    /// Returns the modified path for easier chaining.
+    /// @param x
+    /// @param y
+    ///
+    #[wasm_bindgen(method)]
+    pub fn moveTo(this: &CanvasKitPath, x: f32, y: f32) -> CanvasKitPath;
 
-    // ///
-    // /// Translates all the points in the path by dx, dy.
-    // /// Returns the modified path for easier chaining.
-    // /// @param dx
-    // /// @param dy
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn offset(this: &CanvasKitPath, dx: number, dy: number) -> CanvasKitPath;
+    ///
+    /// Translates all the points in the path by dx, dy.
+    /// Returns the modified path for easier chaining.
+    /// @param dx
+    /// @param dy
+    ///
+    #[wasm_bindgen(method)]
+    pub fn offset(this: &CanvasKitPath, dx: f32, dy: f32) -> CanvasKitPath;
 
     // ///
     // /// Combines this path with the other path using the given PathOp. Returns false if the operation
@@ -484,12 +484,12 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn toSVGString(this: &CanvasKitPath) -> string;
 
-    // ///
-    // /// Takes a 3x3 matrix as either an array or as 9 individual params.
-    // /// @param args
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn transform(this: &CanvasKitPath, (...args: any[]) -> CanvasKitPath;
+    ///
+    /// Takes a 3x3 matrix as either an array or as 9 individual params.
+    /// @param args
+    ///
+    #[wasm_bindgen(method)]
+    pub fn transform(this: &CanvasKitPath, matrix_3x3: &[f32]) -> CanvasKitPath;
 
     // ///
     // /// Take start and stop "t" values (values between 0...1), and modify this path such that

@@ -226,20 +226,27 @@ extern "C" {
     // pub fn drawImageRectCubic(this: &CanvasKitCanvas, img: Image, src: InputRect, dest: InputRect,
     //                        B: number, C: number, paint?: Paint | null);
 
-    //     ///
-    //     /// Draws sub-rectangle src from provided image, scaled and translated to fill dst rectangle.
-    //     /// It will use the provided sampling options if necessary.
-    //     /// @param img
-    //     /// @param src
-    //     /// @param dest
-    //     /// @param fm - The filter mode.
-    //     /// @param mm - The mipmap mode. Note: for settings other than None, the image must have mipmaps
-    //     ///             calculated with makeCopyWithDefaultMipmaps;
-    //     /// @param paint
-    //     ///
-    // #[wasm_bindgen(method)]
-    // pub fn drawImageRectOptions(this: &CanvasKitCanvas, img: Image, src: InputRect, dest: InputRect, fm: FilterMode,
-    //                          mm: MipmapMode, paint?: Paint | null);
+    ///
+    /// Draws sub-rectangle src from provided image, scaled and translated to fill dst rectangle.
+    /// It will use the provided sampling options if necessary.
+    /// @param img
+    /// @param src
+    /// @param dest
+    /// @param fm - The filter mode.
+    /// @param mm - The mipmap mode. Note: for settings other than None, the image must have mipmaps
+    ///             calculated with makeCopyWithDefaultMipmaps;
+    /// @param paint
+    ///
+    #[wasm_bindgen(method)]
+    pub fn drawImageRectOptions(
+        this: &CanvasKitCanvas,
+        img: &CanvasKitImage,
+        src_rect_lrtb: js_sys::Float32Array,
+        dest_rect_lrtb: js_sys::Float32Array,
+        filter_mode: CanvasKitFilterMode,
+        mipmap_mode: CanvasKitMipmapMode,
+        paint: Option<&CanvasKitPaint>,
+    );
 
     //     ///
     //     /// Draws line segment from (x0, y0) to (x1, y1) using the current clip, current matrix,

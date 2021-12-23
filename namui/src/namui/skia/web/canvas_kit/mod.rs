@@ -1,5 +1,4 @@
 use wasm_bindgen::prelude::*;
-
 mod surface;
 pub use surface::*;
 mod canvas_kit;
@@ -26,6 +25,8 @@ mod enums;
 pub use enums::*;
 mod path;
 pub use path::*;
+mod image;
+pub use image::*;
 
 #[wasm_bindgen]
 pub struct Color {

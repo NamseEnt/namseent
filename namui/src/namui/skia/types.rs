@@ -75,6 +75,9 @@ impl Color {
             a: (a * 255.0) as u8,
         }
     }
+    pub fn gary_scale_f01(value: f32) -> Color {
+        Color::from_f01(value, value, value, 1.0)
+    }
 }
 
 pub enum PaintStyle {
@@ -105,4 +108,36 @@ pub struct StrokeOptions {
 pub enum ClipOp {
     Intersect,
     Difference,
+}
+
+pub enum AlphaType {
+    Opaque,
+    Premul,
+    Unpremul,
+}
+pub enum ColorType {
+    Alpha8,
+    Rgb565,
+    Rgba8888,
+    Bgra8888,
+    Rgba1010102,
+    Rgb101010x,
+    Gray8,
+    RgbaF16,
+    RgbaF32,
+}
+pub struct PartialImageInfo {
+    pub alphaType: AlphaType,
+    pub colorType: ColorType,
+    pub height: f32,
+    pub width: f32,
+}
+pub enum FilterMode {
+    Linear,
+    Nearest,
+}
+pub enum MipmapMode {
+    None,
+    Nearest,
+    Linear,
 }

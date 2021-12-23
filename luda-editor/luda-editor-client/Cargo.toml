@@ -24,6 +24,7 @@ async-trait = "0.1"
 js-sys = "0.3.55"
 tokio-stream = { version = "0.1.8", default-features = false }
 luda-editor-rpc = { path = "../luda-editor-rpc" }
+num = "0.4.0"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires

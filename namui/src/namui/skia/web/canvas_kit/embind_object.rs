@@ -35,8 +35,8 @@ extern "C" {
     // #[wasm_bindgen(structural, method)]
     // pub fn delete(this: &CanvasKitFontMgr);
 
-    // #[wasm_bindgen(structural, method)]
-    // pub fn delete(this: &CanvasKitImage);
+    #[wasm_bindgen(structural, method)]
+    pub fn delete(this: &CanvasKitImage);
 
     // #[wasm_bindgen(structural, method)]
     // pub fn delete(this: &CanvasKitImageFilter);

@@ -17,7 +17,6 @@ mod timeline_header;
 mod track_header;
 
 pub struct Timeline {
-    xywh: namui::XywhRect<f32>,
     header_width: f32,
     time_ruler_height: f32,
     pub selected_clip_id: Option<String>,
@@ -28,9 +27,8 @@ pub struct Timeline {
 }
 
 impl Timeline {
-    pub fn new(xywh: namui::XywhRect<f32>, sequence: Sequence) -> Self {
+    pub fn new(sequence: Sequence) -> Self {
         Self {
-            xywh,
             header_width: 200.0,
             time_ruler_height: 20.0,
             selected_clip_id: None,
@@ -40,13 +38,10 @@ impl Timeline {
             job: None,
         }
     }
-
-    pub(crate) fn resize(&mut self, xywh: namui::XywhRect<f32>) {
-        self.xywh = xywh;
-    }
 }
 
 pub struct TimelineProps {
+    pub xywh: namui::XywhRect<f32>,
     pub playback_time: chrono::Duration,
 }
 
@@ -56,13 +51,14 @@ impl namui::Entity for Timeline {
     fn update(&mut self, event: &dyn std::any::Any) {}
 
     fn render(&self, props: &Self::Props) -> namui::RenderingTree {
-        let body_width = self.xywh.width - self.header_width;
+        let xywh = props.xywh;
+        let body_width = xywh.width - self.header_width;
         render![
             namui::rect(namui::RectParam {
-                x: self.xywh.x,
-                y: self.xywh.y,
-                width: self.xywh.width,
-                height: self.xywh.height,
+                x: xywh.x,
+                y: xywh.y,
+                width: xywh.width,
+                height: xywh.height,
                 style: namui::RectStyle {
                     fill: Some(namui::RectFill {
                         color: namui::Color::TRANSPARENT,
@@ -73,8 +69,8 @@ impl namui::Entity for Timeline {
                 ..Default::default()
             }),
             namui::translate(
-                self.xywh.x,
-                self.xywh.y,
+                xywh.x,
+                xywh.y,
                 render![
                     PlaybackTimeView::new().render(&PlaybackTimeViewProps {
                         xywh: namui::XywhRect {
@@ -89,7 +85,7 @@ impl namui::Entity for Timeline {
                         xywh: namui::XywhRect {
                             x: self.header_width,
                             y: 0.0,
-                            width: self.xywh.width - self.header_width,
+                            width: xywh.width - self.header_width,
                             height: self.time_ruler_height,
                         },
                         start_at: self.start_at,
@@ -101,7 +97,7 @@ impl namui::Entity for Timeline {
                         render![
                             TimelineHeader::render(&TimelineHeaderProps {
                                 width: self.header_width,
-                                height: self.xywh.height,
+                                height: xywh.height,
                                 tracks: &self.sequence.tracks,
                             }),
                             namui::translate(
@@ -109,7 +105,7 @@ impl namui::Entity for Timeline {
                                 0.0,
                                 TimelineBody::render(&TimelineBodyProps {
                                     width: body_width,
-                                    height: self.xywh.height,
+                                    height: xywh.height,
                                     tracks: &self.sequence.tracks,
                                     timeline: self,
                                 })

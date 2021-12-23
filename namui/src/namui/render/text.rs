@@ -125,10 +125,10 @@ pub fn text(param: TextParam) -> RenderingTree {
 //   style,
 // }: TextHandleParam): TextDrawCommand | undefined {
 fn draw_text(param: TextParam, font: Arc<Font>) -> DrawCommand {
-    let text_paint = namui::Paint::new();
-    text_paint.set_color(&param.style.color);
-    text_paint.set_style(&namui::PaintStyle::Fill);
-    text_paint.set_anti_alias(true);
+    let text_paint = namui::Paint::new()
+        .set_color(param.style.color)
+        .set_style(namui::PaintStyle::Fill)
+        .set_anti_alias(true);
 
     DrawCommand::Text(TextDrawCommand {
         text: param.text,

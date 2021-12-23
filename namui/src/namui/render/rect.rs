@@ -98,11 +98,14 @@ pub fn rect(
 
     let mut draw_commands: Vec<DrawCommand> = vec![];
 
-    if let Some(RectFill { color }) = fill {
-        let fill_paint = namui::Paint::new();
-        fill_paint.set_color(&color);
-        fill_paint.set_style(&namui::PaintStyle::Fill);
-        fill_paint.set_anti_alias(true);
+    if let Some(RectFill {
+        color,
+    }) = fill
+    {
+        let fill_paint = namui::Paint::new()
+            .set_color(color)
+            .set_style(namui::PaintStyle::Fill)
+            .set_anti_alias(true);
 
         draw_commands.push(DrawCommand::Path(PathDrawCommand {
             path: rect_path.clone(),
@@ -116,11 +119,11 @@ pub fn rect(
         ..
     }) = stroke
     {
-        let stroke_paint = namui::Paint::new();
-        stroke_paint.set_color(&color);
-        stroke_paint.set_stroke_width(stroke_width);
-        stroke_paint.set_style(&namui::PaintStyle::Stroke);
-        stroke_paint.set_anti_alias(true);
+        let stroke_paint = namui::Paint::new()
+            .set_color(color)
+            .set_stroke_width(stroke_width)
+            .set_style(namui::PaintStyle::Stroke)
+            .set_anti_alias(true);
 
         draw_commands.push(DrawCommand::Path(PathDrawCommand {
             path: rect_path.clone(),
