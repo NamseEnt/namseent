@@ -106,6 +106,14 @@ async fn rebuild(
     web_server: Arc<WebServer>,
     manifest_path: String,
 ) {
+    let mut js_bundle = bundle
+        .js
+        .write()
+        .await;
+    let mut wasm_bundle = bundle
+        .wasm
+        .write()
+        .await;
     let build_result = run_cargo_build(manifest_path);
 
     if build_result.is_successful {
@@ -119,10 +127,6 @@ async fn rebuild(
                     let is_js_successful = match File::open(result.result_js_path) {
                         Ok(mut js_file) => match js_file.read_to_end(&mut buffer) {
                             Ok(_) => {
-                                let mut js_bundle = bundle
-                                    .js
-                                    .write()
-                                    .await;
                                 *js_bundle = buffer.clone();
                                 true
                             }
@@ -141,10 +145,6 @@ async fn rebuild(
                     let is_wasm_successful = match File::open(result.result_wasm_path) {
                         Ok(mut wasm_file) => match wasm_file.read_to_end(&mut buffer) {
                             Ok(_) => {
-                                let mut wasm_bundle = bundle
-                                    .wasm
-                                    .write()
-                                    .await;
                                 *wasm_bundle = buffer.clone();
                                 true
                             }
