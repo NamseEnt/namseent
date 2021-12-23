@@ -1,7 +1,0 @@
-{
-  "name": "common-tsconfig",
-  "version": "4.4.3",
-  "dependencies": {
-    "typescript": "*"
-  }
-}

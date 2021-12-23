@@ -1,8 +1,0 @@
-{
-  "extends": "common-tsconfig/tsconfig.json",
-  "compilerOptions": {
-    "lib": ["DOM", "ESNext"]
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "**/*.spec.ts"]
-}
