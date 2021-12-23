@@ -179,6 +179,26 @@ impl WebServer {
             }
         }
     }
+
+    pub async fn request_reload(&self) {
+        let mut sockets = self
+            .sockets
+            .lock()
+            .await;
+        for (id, socket) in sockets.iter_mut() {
+            if let Err(error) = socket
+                .send(Message::text(
+                    json!({
+                        "type": "reload",
+                    })
+                    .to_string(),
+                ))
+                .await
+            {
+                eprintln!("channel send error while(channel -> websocket:{}).\n  {:?}", id, error);
+            }
+        }
+    }
 }
 
 fn get_cli_root_path() -> PathBuf {

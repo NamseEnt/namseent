@@ -116,7 +116,7 @@ async fn rebuild(
                 Ok(result) => {
                     let mut buffer: Vec<u8> = Vec::new();
 
-                    match File::open(result.result_js_path) {
+                    let is_js_successful = match File::open(result.result_js_path) {
                         Ok(mut js_file) => match js_file.read_to_end(&mut buffer) {
                             Ok(_) => {
                                 let mut js_bundle = bundle
@@ -124,18 +124,21 @@ async fn rebuild(
                                     .write()
                                     .await;
                                 *js_bundle = buffer.clone();
+                                true
                             }
                             Err(error) => {
                                 eprintln!("failed to read js. try changing the source file to rebuild.\n  {:?}", error);
+                                false
                             }
                         },
                         Err(error) => {
                             eprintln!("failed to open js. try changing the source file to rebuild.\n  {:?}", error);
+                            false
                         }
-                    }
+                    };
 
                     buffer.clear();
-                    match File::open(result.result_wasm_path) {
+                    let is_wasm_successful = match File::open(result.result_wasm_path) {
                         Ok(mut wasm_file) => match wasm_file.read_to_end(&mut buffer) {
                             Ok(_) => {
                                 let mut wasm_bundle = bundle
@@ -143,14 +146,24 @@ async fn rebuild(
                                     .write()
                                     .await;
                                 *wasm_bundle = buffer.clone();
+                                true
                             }
                             Err(error) => {
                                 eprintln!("failed to read wasm. try changing the source file to rebuild.\n  {:?}", error);
+                                false
                             }
                         },
                         Err(error) => {
                             eprintln!("failed to open wasm. try changing the source file to rebuild.\n  {:?}", error);
+                            false
                         }
+                    };
+
+                    let should_reload = is_js_successful && is_wasm_successful;
+                    if should_reload {
+                        web_server
+                            .request_reload()
+                            .await;
                     }
                 }
                 Err(error) => {
