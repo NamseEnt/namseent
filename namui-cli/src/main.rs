@@ -8,6 +8,12 @@ use futures::{self, executor::block_on};
 async fn main() {
     let matches = App::new("Namui")
         .arg(
+            Arg::with_name("manifest_path")
+                .help("Target Cargo.toml file")
+                .index(1)
+                .required(true),
+        )
+        .arg(
             Arg::with_name("watch")
                 .help("Build in watch mode")
                 .required(false)
@@ -17,6 +23,10 @@ async fn main() {
         )
         .get_matches();
 
+    let manifest_path = matches
+        .value_of("manifest_path")
+        .unwrap()
+        .to_string();
     let watch = matches.occurrences_of("watch") != 0;
-    block_on(build::build(watch));
+    block_on(build::build(manifest_path, watch));
 }

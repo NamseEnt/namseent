@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<head>
+  <title>CanvasKit (Skia via Web Assembly)</title>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <noscript
+    >This page contains webAssembly and javascript content, please enable
+    javascript in your browser.</noscript
+  >
+  <script type="text/javascript" src="./canvaskit-wasm/canvaskit.js"></script>
+  <script src="bundle.js"></script>
+  <script>
+    const websocket = new WebSocket(`ws://${location.host}/hotReload`);
+    websocket.onopen = () => console.log("connected");
+    websocket.onmessage = (message) => console.log(JSON.parse(message.data));
+
+    async function run() {
+      await bundle("/bundle_bg.wasm");
+      const CanvasKit = await CanvasKitInit({
+        locateFile: (file) => "./canvaskit-wasm/" + file,
+      });
+      globalThis.CanvasKit = CanvasKit;
+      globalThis.getCanvasKit = () => CanvasKit;
+      bundle.start();
+    }
+
+    run();
+  </script>
+</body>

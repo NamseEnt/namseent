@@ -1,17 +1,14 @@
 use futures::executor::block_on;
 use namui::build::types::ErrorMessage;
 use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
-use std::{
-    fs::File,
-    io::Read,
-    sync::{Arc, RwLock},
-    thread,
-    time::Duration,
+use std::{fs::File, io::Read, sync::Arc, thread, time::Duration};
+
+use crate::build::{bundle::Bundle, web_server::WebServer};
+
+use super::{
+    run_cargo_build::run_cargo_build,
+    run_wasm_bindgen::{run_wasm_bindgen, RunWasmBindgenOption},
 };
-
-use crate::build::web_server::WebServer;
-
-use super::run_cargo_build::run_cargo_build;
 
 pub struct RebuildCallbackOption {
     pub error_messages: Vec<ErrorMessage>,
@@ -22,9 +19,10 @@ pub type RebuildCallback = fn(option: RebuildCallbackOption) -> ();
 
 pub struct StartBuildOption {
     pub callback: RebuildCallback,
-    pub root_dir: String,
-    pub bundle: Arc<RwLock<Vec<u8>>>,
+    pub watch_dir: String,
+    pub bundle: Arc<Bundle>,
     pub web_server: Arc<WebServer>,
+    pub manifest_path: String,
 }
 
 pub async fn start_build<'a>(option: StartBuildOption) {
@@ -35,7 +33,7 @@ pub async fn start_build<'a>(option: StartBuildOption) {
 
         let mut watcher = watcher(watcher_sender, Duration::from_secs(1)).unwrap();
         watcher
-            .watch(option.root_dir, RecursiveMode::Recursive)
+            .watch(option.watch_dir, RecursiveMode::Recursive)
             .unwrap();
 
         loop {
@@ -54,14 +52,24 @@ pub async fn start_build<'a>(option: StartBuildOption) {
             true => {
                 rebuild(
                     option.callback,
-                    option.bundle.clone(),
-                    option.web_server.clone(),
+                    option
+                        .bundle
+                        .clone(),
+                    option
+                        .web_server
+                        .clone(),
+                    option
+                        .manifest_path
+                        .clone(),
                 )
                 .await;
                 should_rebuild = false;
             }
             false => 'await_file_change_event: loop {
-                match thread_receiver.recv().await {
+                match thread_receiver
+                    .recv()
+                    .await
+                {
                     Some(event) => match event {
                         DebouncedEvent::Create(_)
                         | DebouncedEvent::Remove(_)
@@ -94,24 +102,61 @@ pub async fn start_build<'a>(option: StartBuildOption) {
 
 async fn rebuild(
     callback: RebuildCallback,
-    bundle: Arc<RwLock<Vec<u8>>>,
+    bundle: Arc<Bundle>,
     web_server: Arc<WebServer>,
+    manifest_path: String,
 ) {
-    let build_result = run_cargo_build();
+    let build_result = run_cargo_build(manifest_path);
 
-    if let Some(result_path) = &build_result.result_path {
-        if let Ok(mut file) = File::open(result_path) {
-            let mut buffer: Vec<u8> = Vec::new();
-            if let Ok(_) = file.read_to_end(&mut buffer) {
-                match bundle.write() {
-                    Ok(mut bundle) => *bundle = buffer,
-                    Err(error) => eprintln!(
-                        "failed to update bundle.wasm. try changing the source file to rebuild.\n  {:?}", error
-                    ),
+    if build_result.is_successful {
+        if let Some(result_path) = &build_result.result_path {
+            match run_wasm_bindgen(RunWasmBindgenOption {
+                wasm_path: result_path.clone(),
+            }) {
+                Ok(result) => {
+                    let mut buffer: Vec<u8> = Vec::new();
+
+                    match File::open(result.result_js_path) {
+                        Ok(mut js_file) => match js_file.read_to_end(&mut buffer) {
+                            Ok(_) => {
+                                let mut js_bundle = bundle
+                                    .js
+                                    .write()
+                                    .await;
+                                *js_bundle = buffer.clone();
+                            }
+                            Err(error) => {
+                                eprintln!("failed to read js. try changing the source file to rebuild.\n  {:?}", error);
+                            }
+                        },
+                        Err(error) => {
+                            eprintln!("failed to open js. try changing the source file to rebuild.\n  {:?}", error);
+                        }
+                    }
+
+                    buffer.clear();
+                    match File::open(result.result_wasm_path) {
+                        Ok(mut wasm_file) => match wasm_file.read_to_end(&mut buffer) {
+                            Ok(_) => {
+                                let mut wasm_bundle = bundle
+                                    .wasm
+                                    .write()
+                                    .await;
+                                *wasm_bundle = buffer.clone();
+                            }
+                            Err(error) => {
+                                eprintln!("failed to read wasm. try changing the source file to rebuild.\n  {:?}", error);
+                            }
+                        },
+                        Err(error) => {
+                            eprintln!("failed to open wasm. try changing the source file to rebuild.\n  {:?}", error);
+                        }
+                    }
+                }
+                Err(error) => {
+                    eprintln!("{:?}", error);
                 }
             }
-        } else {
-            eprintln!("failed to open bundle file");
         }
     }
 
