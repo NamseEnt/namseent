@@ -317,13 +317,13 @@ impl ImageFilenameObject {
         let mut splits = file_name.split("-");
 
         let character = splits.next().unwrap();
-        let emotion = splits.next().unwrap();
-        let pose = splits.collect::<Vec<&str>>().join("-");
+        let pose = splits.next().unwrap();
+        let emotion = splits.collect::<Vec<&str>>().join("-");
 
         Self {
             character: character.to_string(),
-            emotion: emotion.to_string(),
-            pose,
+            pose: pose.to_string(),
+            emotion,
             url: camera_shot_url.to_string(),
         }
     }
