@@ -12,4 +12,7 @@ pub enum EditorEvent {
     ImageBrowserSelectEvent {
         selected_key: String,
     },
+    ScrolledEvent {
+        scroll_y: f32,
+    },
 }

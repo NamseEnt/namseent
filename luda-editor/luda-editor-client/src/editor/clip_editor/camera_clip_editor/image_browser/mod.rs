@@ -14,8 +14,8 @@ pub struct ImageBrowser {
     directory_key: String,
     selected_key: Option<String>,
     image_filename_objects: Vec<ImageFilenameObject>,
-    scroll_y: f32,
     current_directory_label_layout: XywhRect<f32>,
+    scroll: Scroll,
 }
 
 impl ImageBrowser {
@@ -49,7 +49,7 @@ impl ImageBrowser {
             directory_key: "".to_string(),
             selected_key: None,
             image_filename_objects: vec![],
-            scroll_y: 0.0,
+            scroll: Scroll::new(),
             current_directory_label_layout: XywhRect {
                 x: 20.0,
                 y: 20.0,
@@ -107,6 +107,7 @@ impl ImageBrowser {
                 _ => {}
             }
         };
+        self.scroll.update(event);
     }
 
     pub fn render(&self, props: &ImageBrowserProps) -> RenderingTree {
@@ -138,7 +139,6 @@ impl ImageBrowser {
                 .iter()
                 .map(|props| BrowserItem::new().render(props)),
         );
-        namui::log(format!("browser_items: {:?}", browser_items.len()));
         let browser_items = browser_items
             .into_iter()
             .enumerate()
@@ -151,9 +151,8 @@ impl ImageBrowser {
             })
             .collect::<Vec<_>>();
 
-        let browser_item_scroll_height = get_browser_item_y(self.image_filename_objects.len() - 1)
-            + item_size.height
-            + item_margin;
+        let browser_item_scroll_height =
+            get_browser_item_y(browser_items.len() - 1) + item_size.height + item_margin;
 
         let scroll_bar_width = 10.0;
 
@@ -162,7 +161,7 @@ impl ImageBrowser {
             namui::translate(
                 0.0,
                 self.current_directory_label_layout.y,
-                render_scroll(ScrollProps {
+                self.scroll.render(ScrollProps {
                     x: 0.0,
                     y: 0.0,
                     inner_width: props.width - scroll_bar_width,
@@ -171,7 +170,6 @@ impl ImageBrowser {
                     height: props.height
                         - (self.current_directory_label_layout.y
                             + self.current_directory_label_layout.height),
-                    scroll_y: self.scroll_y,
                     inner_rendering_tree: RenderingTree::Children(browser_items),
                 }),
             )
