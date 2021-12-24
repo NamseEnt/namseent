@@ -60,7 +60,7 @@ impl CameraClipEditor {
                     ..Default::default()
                 }),
                 self.image_browser.render(&ImageBrowserProps {
-                    width: props.xywh.width,
+                    width: props.xywh.width / 2.0,
                     height: props.xywh.height,
                 }),
                 // WysiwygEditor(state),
