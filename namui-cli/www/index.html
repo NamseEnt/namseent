@@ -21,7 +21,21 @@
   <script>
     const websocket = new WebSocket(`ws://${location.host}/hotReload`);
     websocket.onopen = () => console.log("connected");
-    websocket.onmessage = (message) => console.log(JSON.parse(message.data));
+    websocket.onclose = () => console.log("connected");
+    websocket.onmessage = (message) => {
+      const namuiMessage = JSON.parse(message.data);
+      switch (namuiMessage.type) {
+        case "error": {
+          console.log(namuiMessage.errorMessages);
+          break;
+        }
+
+        case "reload": {
+          location.reload();
+          break;
+        }
+      }
+    };
 
     async function run() {
       await bundle("/bundle_bg.wasm");
