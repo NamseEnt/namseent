@@ -27,6 +27,8 @@ mod path;
 pub use path::*;
 mod image;
 pub use image::*;
+mod color_filter_factory;
+pub use color_filter_factory::*;
 
 #[wasm_bindgen]
 pub struct Color {

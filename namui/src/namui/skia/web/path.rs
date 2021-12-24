@@ -83,20 +83,10 @@ impl Path {
                     js_sys::Reflect::set(&js_options, &"precision".into(), &precision.into());
                 }
                 if let Some(join) = options.join {
-                    let canvas_kit_stroke_join = match join {
-                        StrokeJoin::Bevel => canvas_kit().StrokeJoin().Bevel(),
-                        StrokeJoin::Miter => canvas_kit().StrokeJoin().Miter(),
-                        StrokeJoin::Round => canvas_kit().StrokeJoin().Round(),
-                    };
-                    js_sys::Reflect::set(&js_options, &"join".into(), &canvas_kit_stroke_join);
+                    js_sys::Reflect::set(&js_options, &"join".into(), &join.into_canvas_kit());
                 }
                 if let Some(cap) = options.cap {
-                    let canvas_kit_stroke_cap = match cap {
-                        StrokeCap::Butt => canvas_kit().StrokeCap().Butt(),
-                        StrokeCap::Round => canvas_kit().StrokeCap().Round(),
-                        StrokeCap::Square => canvas_kit().StrokeCap().Square(),
-                    };
-                    js_sys::Reflect::set(&js_options, &"cap".into(), &canvas_kit_stroke_cap);
+                    js_sys::Reflect::set(&js_options, &"cap".into(), &cap.into_canvas_kit());
                 }
                 js_options.into()
             }

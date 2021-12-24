@@ -20,8 +20,8 @@ extern "C" {
     #[wasm_bindgen(structural, method)]
     pub fn delete(this: &CanvasKitCanvas);
 
-    // #[wasm_bindgen(structural, method)]
-    // pub fn delete(this: &CanvasKitColorFilter);
+    #[wasm_bindgen(structural, method)]
+    pub fn delete(this: &CanvasKitColorFilter);
 
     // #[wasm_bindgen(structural, method)]
     // pub fn delete(this: &CanvasKitContourMeasureIter);

@@ -91,12 +91,12 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn setColorComponents(this: &CanvasKitPaint, r: number, g: number, b: number, a: number, colorSpace:Option<ColorSpace);
 
-    // ///
-    // /// Sets the current color filter, replacing the existing one if there was one.
-    // /// @param filter
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn setColorFilter(this: &CanvasKitPaint, filter: ColorFilter);
+    ///
+    /// Sets the current color filter, replacing the existing one if there was one.
+    /// @param filter
+    ///
+    #[wasm_bindgen(method)]
+    pub fn setColorFilter(this: &CanvasKitPaint, filter: &CanvasKitColorFilter);
 
     // ///
     // /// Sets the color used when stroking and filling. The color values are interpreted as being in

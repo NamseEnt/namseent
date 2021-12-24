@@ -1,7 +1,7 @@
+use super::super::*;
+use super::*;
 use lazy_static::lazy_static;
 use once_cell::sync::Lazy;
-
-use super::*;
 
 #[wasm_bindgen]
 extern "C" {
@@ -42,6 +42,17 @@ macro_rules! canvas_kit_enum {
                 pub static ref $static_enum_item: Lazy<f32> =
                     Lazy::new(|| canvas_kit().$enum_name().$enum_item().value());
             )*
+        }
+
+
+        impl $enum_name {
+            pub(crate) fn into_canvas_kit(&self) -> $canvas_enum_name {
+                match self {
+                    $(
+                        $enum_name::$enum_item => canvas_kit().$enum_name().$enum_item(),
+                    )*
+                }
+            }
         }
     };
 }
@@ -99,15 +110,15 @@ canvas_kit_enum!(
     CanvasKitColorTypeEnumValues,
     CanvasKitColorType,
     {
-        Alpha_8: COLOR_TYPE_ALPHA_8_VALUE,
-        Rgb_565: COLOR_TYPE_RGB_565_VALUE,
-        Rgba_8888: COLOR_TYPE_RGBA_8888_VALUE,
-        Bgra_8888: COLOR_TYPE_BGRA_8888_VALUE,
-        Rgba_1010102: COLOR_TYPE_RGBA_1010102_VALUE,
-        Rgb_101010x: COLOR_TYPE_RGB_101010X_VALUE,
-        Gray_8: COLOR_TYPE_GRAY_8_VALUE,
-        Rgba_F16: COLOR_TYPE_RGBA_F16_VALUE,
-        Rgba_F32: COLOR_TYPE_RGBA_F32_VALUE,
+        Alpha8: COLOR_TYPE_ALPHA_8_VALUE,
+        Rgb565: COLOR_TYPE_RGB_565_VALUE,
+        Rgba8888: COLOR_TYPE_RGBA_8888_VALUE,
+        Bgra8888: COLOR_TYPE_BGRA_8888_VALUE,
+        Rgba1010102: COLOR_TYPE_RGBA_1010102_VALUE,
+        Rgb101010x: COLOR_TYPE_RGB_101010X_VALUE,
+        Gray8: COLOR_TYPE_GRAY_8_VALUE,
+        RgbaF16: COLOR_TYPE_RGBA_F16_VALUE,
+        RgbaF32: COLOR_TYPE_RGBA_F32_VALUE,
     }
 );
 canvas_kit_enum!(
@@ -127,5 +138,41 @@ canvas_kit_enum!(
         None: MIPMAP_MODE_NONE_VALUE,
         Nearest: MIPMAP_MODE_NEAREST_VALUE,
         Linear: MIPMAP_MODE_LINEAR_VALUE,
+    }
+);
+canvas_kit_enum!(
+    BlendMode,
+    CanvasKitBlendModeEnumValues,
+    CanvasKitBlendMode,
+    {
+        Clear: BLEND_MODE_CLEAR_VALUE,
+        Src: BLEND_MODE_SRC_VALUE,
+        Dst: BLEND_MODE_DST_VALUE,
+        SrcOver: BLEND_MODE_SRC_OVER_VALUE,
+        DstOver: BLEND_MODE_DST_OVER_VALUE,
+        SrcIn: BLEND_MODE_SRC_IN_VALUE,
+        DstIn: BLEND_MODE_DST_IN_VALUE,
+        SrcOut: BLEND_MODE_SRC_OUT_VALUE,
+        DstOut: BLEND_MODE_DST_OUT_VALUE,
+        SrcATop: BLEND_MODE_SRC_ATOP_VALUE,
+        DstATop: BLEND_MODE_DST_ATOP_VALUE,
+        Xor: BLEND_MODE_XOR_VALUE,
+        Plus: BLEND_MODE_PLUS_VALUE,
+        Modulate: BLEND_MODE_MODULATE_VALUE,
+        Screen: BLEND_MODE_SCREEN_VALUE,
+        Overlay: BLEND_MODE_OVERLAY_VALUE,
+        Darken: BLEND_MODE_DARKEN_VALUE,
+        Lighten: BLEND_MODE_LIGHTEN_VALUE,
+        ColorDodge: BLEND_MODE_COLOR_DODGE_VALUE,
+        ColorBurn: BLEND_MODE_COLOR_BURN_VALUE,
+        HardLight: BLEND_MODE_HARD_LIGHT_VALUE,
+        SoftLight: BLEND_MODE_SOFT_LIGHT_VALUE,
+        Difference: BLEND_MODE_DIFFERENCE_VALUE,
+        Exclusion: BLEND_MODE_EXCLUSION_VALUE,
+        Multiply: BLEND_MODE_MULTIPLY_VALUE,
+        Hue: BLEND_MODE_HUE_VALUE,
+        Saturation: BLEND_MODE_SATURATION_VALUE,
+        Color: BLEND_MODE_COLOR_VALUE,
+        Luminosity: BLEND_MODE_LUMINOSITY_VALUE,
     }
 );
