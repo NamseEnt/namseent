@@ -9,7 +9,7 @@ use super::{
     skia::{Font, Paint, StrokeOptions},
     Namui, NamuiContext, NamuiImpl, Path, Xy,
 };
-use crate::XywhRect;
+use crate::{ImageSource, XywhRect};
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -30,7 +30,7 @@ pub struct Size {
 #[derive(Debug, Serialize)]
 pub struct ImageDrawCommand {
     pub xywh: XywhRect<f32>,
-    pub url: String,
+    pub source: ImageSource,
     pub fit: ImageFit,
     #[serde(skip_serializing)]
     pub paint: Option<Paint>,

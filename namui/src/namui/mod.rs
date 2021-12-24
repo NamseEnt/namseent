@@ -9,8 +9,8 @@ mod skia;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
 pub use namui_common::*;
 pub use render::{
-    clip, image::*, path::*, rect::*, text::*, text_input_event, translate, types::*, MouseEvent,
-    MouseEventCallback, MouseEventType, RenderingData, RenderingTree, TextInput,
+    clip, image::*, path::*, rect::*, text::*, text_input_event, translate, types::*, ImageSource,
+    MouseEvent, MouseEventCallback, MouseEventType, RenderingData, RenderingTree, TextInput,
     WheelEventCallback,
 };
 pub use skia::{

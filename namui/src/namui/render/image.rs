@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{draw::ImageDrawCommand, *};
 use serde::Serialize;
 
@@ -15,15 +17,28 @@ pub struct ImageStyle {
     pub paint: Option<Paint>,
 }
 
+#[derive(Debug, Serialize)]
+pub enum ImageSource {
+    Url(String),
+    #[serde(skip_serializing)]
+    Image(Arc<Image>),
+}
+
 pub struct ImageParam {
     pub xywh: XywhRect<f32>,
-    pub url: String,
+    pub source: ImageSource,
     pub style: ImageStyle,
 }
 
-pub fn image(ImageParam { url, xywh, style }: ImageParam) -> RenderingTree {
+pub fn image(
+    ImageParam {
+        source,
+        xywh,
+        style,
+    }: ImageParam,
+) -> RenderingTree {
     let image_draw_command = ImageDrawCommand {
-        url,
+        source,
         xywh,
         fit: style.fit,
         paint: style.paint,

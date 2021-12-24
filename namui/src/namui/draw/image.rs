@@ -10,10 +10,11 @@ use crate::{
 };
 
 pub fn draw_image(namui_context: &NamuiContext, command: &ImageDrawCommand) {
-    let image = namui::managers()
-        .image_manager
-        .clone()
-        .try_load(command.url.clone());
+    let image = match &command.source {
+        ImageSource::Url(url) => namui::managers().image_manager.clone().try_load(&url),
+        ImageSource::Image(image) => Some(image.clone()),
+    };
+
     if image.is_none() {
         return;
     }
