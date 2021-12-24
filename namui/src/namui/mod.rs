@@ -11,6 +11,7 @@ pub use namui_common::*;
 pub use render::{
     clip, image::*, path::*, rect::*, text::*, text_input_event, translate, types::*, MouseEvent,
     MouseEventCallback, MouseEventType, RenderingData, RenderingTree, TextInput,
+    WheelEventCallback,
 };
 pub use skia::{
     types::{ClipOp, Color, PaintStyle},
@@ -89,6 +90,11 @@ pub async fn start<TProps>(
             }
             Some(NamuiEvent::MouseMove(xy)) => {
                 rendering_tree.call_mouse_event(MouseEventType::Move, xy);
+                state.update(event.as_ref());
+                rendering_tree = state.render(props);
+            }
+            Some(NamuiEvent::Wheel(xy)) => {
+                rendering_tree.call_wheel_event(xy);
                 state.update(event.as_ref());
                 rendering_tree = state.render(props);
             }

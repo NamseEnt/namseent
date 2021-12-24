@@ -12,6 +12,7 @@ pub enum MouseEventType {
     Move,
 }
 pub type MouseEventCallback = Box<dyn Fn(&MouseEvent)>;
+pub type WheelEventCallback = Box<dyn Fn(&Xy<f32>)>;
 #[derive(Serialize, Default)]
 pub struct RenderingData {
     pub draw_calls: Vec<DrawCall>,
@@ -29,6 +30,8 @@ pub struct RenderingData {
     pub on_mouse_down: Option<MouseEventCallback>,
     #[serde(skip_serializing)]
     pub on_mouse_up: Option<MouseEventCallback>,
+    #[serde(skip_serializing)]
+    pub on_wheel: Option<WheelEventCallback>,
 }
 #[derive(Serialize)]
 pub enum SpecialRenderingNode {
@@ -84,6 +87,33 @@ impl RenderingTree {
                     }
 
                     canvas.restore();
+                }
+            },
+            RenderingTree::Empty => {}
+        }
+    }
+    pub fn call_wheel_event(&self, wheel_event: &Xy<f32>) {
+        match self {
+            RenderingTree::Children(ref children) => {
+                for child in children {
+                    child.call_wheel_event(wheel_event);
+                }
+            }
+            RenderingTree::Node(rendering_data) => {
+                if let Some(on_wheel) = &rendering_data.on_wheel {
+                    on_wheel(wheel_event);
+                }
+            }
+            RenderingTree::Special(special) => match special {
+                SpecialRenderingNode::Translate(translate) => {
+                    for child in &translate.rendering_tree {
+                        child.call_wheel_event(wheel_event);
+                    }
+                }
+                SpecialRenderingNode::Clip(clip) => {
+                    for child in &clip.rendering_tree {
+                        child.call_wheel_event(wheel_event);
+                    }
                 }
             },
             RenderingTree::Empty => {}

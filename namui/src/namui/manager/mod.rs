@@ -14,4 +14,5 @@ pub struct Managers {
     pub keyboard_manager: Box<KeyboardManager>,
     pub screen_manager: Box<ScreenManager>,
     pub image_manager: Arc<ImageManager>,
+    pub wheel_manager: Box<WheelManager>,
 }

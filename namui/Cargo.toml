@@ -39,6 +39,7 @@ features = [
     "Performance",
     "MouseEvent",
     "KeyboardEvent",
+    "WheelEvent",
     "BinaryType",
     'Headers',
     'Request',

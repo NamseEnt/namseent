@@ -39,6 +39,7 @@ pub struct RectParam {
     pub on_mouse_down: Option<MouseEventCallback>,
     pub on_mouse_up: Option<MouseEventCallback>,
     //   pub onAfterDraw?: (id: string) => void,
+    pub on_wheel: Option<WheelEventCallback>,
 }
 
 pub fn rect(
@@ -57,6 +58,7 @@ pub fn rect(
         on_mouse_move_out,
         on_mouse_down,
         on_mouse_up,
+        on_wheel,
         ..
     }: RectParam,
 ) -> RenderingTree {
@@ -149,6 +151,7 @@ pub fn rect(
         on_mouse_move_out,
         on_mouse_down,
         on_mouse_up,
+        on_wheel,
     }));
 
     RenderingTree::Children(rendering_tree)

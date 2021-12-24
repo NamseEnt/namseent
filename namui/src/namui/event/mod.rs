@@ -22,4 +22,5 @@ pub enum NamuiEvent {
     MouseUp(namui::Xy<f32>),
     MouseMove(namui::Xy<f32>),
     ScreenResize(namui::Wh<i16>),
+    Wheel(namui::Xy<f32>),
 }
