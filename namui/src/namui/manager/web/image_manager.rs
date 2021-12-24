@@ -48,7 +48,10 @@ impl ImageManager {
                         self.image_map.insert(url, Arc::new(image));
                     }
                     None => {
-                        namui::log(format!("failed to MakeImageFromEncoded: {}, {:?}", url, data));
+                        namui::log(format!(
+                            "failed to MakeImageFromEncoded: {}, {:?}",
+                            url, data
+                        ));
                     }
                 },
                 Err(error) => {

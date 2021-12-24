@@ -23,10 +23,15 @@ async fn main() {
         .and(warp::ws())
         .map(|ws: warp::ws::Ws| ws.on_upgrade(move |web_socket| on_connected(web_socket)));
 
-    let cors = warp::cors().allow_any_origin().allow_methods(vec!["GET", "OPTIONS"]);
+    let cors = warp::cors()
+        .allow_any_origin()
+        .allow_methods(vec!["GET", "OPTIONS"]);
     let log = warp::log("luda_editor_rpc");
 
-    let routes = resource_images_route.or(web_socket_route).with(cors).with(log);
+    let routes = resource_images_route
+        .or(web_socket_route)
+        .with(cors)
+        .with(log);
 
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }
@@ -56,8 +61,10 @@ async fn on_connected(web_socket: WebSocket) {
         }
     };
 
-    let _ =
-        join!(loop_sending, luda_editor_rpc::loop_receiving(tx2, stream, handler, response_waiter));
+    let _ = join!(
+        loop_sending,
+        luda_editor_rpc::loop_receiving(tx2, stream, handler, response_waiter)
+    );
 }
 
 #[derive(Clone)]
@@ -88,9 +95,7 @@ impl luda_editor_rpc::RpcHandle for RpcHandler {
                         }
                     }
                 }
-                Ok(luda_editor_rpc::get_camera_shot_urls::Response {
-                    camera_shot_urls,
-                })
+                Ok(luda_editor_rpc::get_camera_shot_urls::Response { camera_shot_urls })
             }
             Err(error) => {
                 let error_message = format!("get_camera_shot_urls error: {}", error);

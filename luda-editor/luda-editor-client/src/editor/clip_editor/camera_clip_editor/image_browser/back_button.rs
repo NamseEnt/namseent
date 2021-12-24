@@ -35,11 +35,7 @@ impl ImageBrowser {
                 height: item_size.height,
                 style: RectStyle {
                     stroke: Some(RectStroke {
-                        width: if is_selected {
-                            3.0
-                        } else {
-                            1.0
-                        },
+                        width: if is_selected { 3.0 } else { 1.0 },
                         border_position: BorderPosition::Inside,
                         color: if is_selected {
                             namui::Color::RED
@@ -47,9 +43,7 @@ impl ImageBrowser {
                             namui::Color::BLACK
                         },
                     }),
-                    round: Some(RectRound {
-                        radius: 5.0,
-                    }),
+                    round: Some(RectRound { radius: 5.0 }),
                     fill: Some(RectFill {
                         color: namui::Color::WHITE,
                     }),

@@ -29,7 +29,11 @@ static MANAGERS: OnceCell<Mutex<Managers>> = OnceCell::new();
 pub static CANVAS_KIT: OnceCell<Arc<CanvasKit>> = OnceCell::new();
 
 pub fn get_managers() -> std::sync::MutexGuard<'static, Managers> {
-    MANAGERS.get().expect("managers not initialized").lock().unwrap()
+    MANAGERS
+        .get()
+        .expect("managers not initialized")
+        .lock()
+        .unwrap()
 }
 
 impl NamuiImpl for Namui {
@@ -66,7 +70,9 @@ impl NamuiImpl for Namui {
     fn request_animation_frame(callback: Box<dyn FnOnce()>) {
         let closure = Closure::once(callback);
 
-        window().request_animation_frame(closure.as_ref().unchecked_ref()).unwrap();
+        window()
+            .request_animation_frame(closure.as_ref().unchecked_ref())
+            .unwrap();
         closure.forget();
     }
     fn log(format: String) {
@@ -87,7 +93,11 @@ fn make_canvas_element() -> Result<HtmlCanvasElement, Element> {
             canvas_element.set_width(1920);
             canvas_element.set_height(1080);
 
-            document.body().unwrap().append_child(&canvas_element).unwrap();
+            document
+                .body()
+                .unwrap()
+                .append_child(&canvas_element)
+                .unwrap();
 
             Result::Ok(canvas_element)
         }

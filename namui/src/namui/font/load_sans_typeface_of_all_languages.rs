@@ -33,16 +33,18 @@ async fn get_typeface_file_urls() -> Result<TypefaceFileUrls, String> {
     Ok(typeface_file_map_file
         .iter()
         .flat_map(|(language, font_file_map)| {
-            font_file_map.iter().map(move |(font_weight, font_file_url)| {
-                (
-                    TypefaceType {
-                        serif: false,
-                        font_weight: font_weight.clone(),
-                        language: *language,
-                    },
-                    font_file_url.clone(),
-                )
-            })
+            font_file_map
+                .iter()
+                .map(move |(font_weight, font_file_url)| {
+                    (
+                        TypefaceType {
+                            serif: false,
+                            font_weight: font_weight.clone(),
+                            language: *language,
+                        },
+                        font_file_url.clone(),
+                    )
+                })
         })
         .collect())
 }
@@ -50,12 +52,13 @@ async fn get_typeface_file_urls() -> Result<TypefaceFileUrls, String> {
 async fn get_typeface_files(
     typeface_file_urls: &TypefaceFileUrls,
 ) -> HashMap<TypefaceType, Vec<u8>> {
-    let iter =
-        join_all(typeface_file_urls.into_iter().map(|(typeface_type, font_file_url)| async move {
+    let iter = join_all(typeface_file_urls.into_iter().map(
+        |(typeface_type, font_file_url)| async move {
             let bytes = fetch_get_vec_u8(font_file_url).await.unwrap();
             (*typeface_type, bytes)
-        }))
-        .await;
+        },
+    ))
+    .await;
 
     return HashMap::from_iter(iter);
 }

@@ -34,12 +34,7 @@ fn find_camera_track_of_clip<'a>(
 
 impl MoveCameraClipJob {
     pub fn move_camera_clip_by_job(&self, clip: &mut CameraClip, time_per_pixel: &TimePerPixel) {
-        let delta_x = self
-            .last_global_mouse_xy
-            .x
-            - self
-                .click_anchor_in_global
-                .x;
+        let delta_x = self.last_global_mouse_xy.x - self.click_anchor_in_global.x;
         let delta_time = PixelSize(delta_x) * *time_per_pixel;
         let clip_duration = clip.end_at - clip.start_at;
         let moved_start_at = clip.start_at + delta_time;
@@ -59,18 +54,10 @@ impl MoveCameraClipJob {
         let moving_clip_id = &self.clip_id;
         let moving_clip = clips
             .iter()
-            .find(|clip| {
-                clip.id
-                    .eq(moving_clip_id)
-            })
+            .find(|clip| clip.id.eq(moving_clip_id))
             .unwrap();
 
-        let delta_x = self
-            .last_global_mouse_xy
-            .x
-            - self
-                .click_anchor_in_global
-                .x;
+        let delta_x = self.last_global_mouse_xy.x - self.click_anchor_in_global.x;
         let delta_time = PixelSize(delta_x) * *time_per_pixel;
         let clip_duration = moving_clip.end_at - moving_clip.start_at;
         let moved_start_at = moving_clip.start_at + delta_time;
@@ -78,18 +65,12 @@ impl MoveCameraClipJob {
 
         let moving_clip_index = clips
             .iter()
-            .position(|clip| {
-                clip.id
-                    .eq(moving_clip_id)
-            })
+            .position(|clip| clip.id.eq(moving_clip_id))
             .unwrap();
 
         let mut next_moving_clip_index = moving_clip_index;
 
-        for (index, clip) in clips
-            .iter()
-            .enumerate()
-        {
+        for (index, clip) in clips.iter().enumerate() {
             if index == moving_clip_index {
                 continue;
             }
@@ -119,10 +100,7 @@ impl MoveCameraClipJob {
         if is_preview {
             clips
                 .iter_mut()
-                .find(|clip| {
-                    clip.id
-                        .eq(moving_clip_id)
-                })
+                .find(|clip| clip.id.eq(moving_clip_id))
                 .map(|moving_clip| {
                     moving_clip.start_at = moved_start_at;
                     moving_clip.end_at = moved_end_at;

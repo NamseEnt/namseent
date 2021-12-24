@@ -10,7 +10,9 @@ pub async fn fetch_get(url: &str) -> Result<Response, String> {
     let request = Request::new_with_str_and_init(url, &options).unwrap();
 
     let window = web_sys::window().unwrap();
-    let response_value = JsFuture::from(window.fetch_with_request(&request)).await.unwrap();
+    let response_value = JsFuture::from(window.fetch_with_request(&request))
+        .await
+        .unwrap();
     assert!(response_value.is_instance_of::<Response>());
     let response: Response = response_value.dyn_into().unwrap();
 
@@ -23,8 +25,11 @@ pub async fn fetch_get(url: &str) -> Result<Response, String> {
 pub async fn fetch_get_array_buffer(url: &str) -> Result<ArrayBuffer, String> {
     let response: Response = fetch_get(&url).await.unwrap();
 
-    let array_buffer =
-        JsFuture::from(response.array_buffer().unwrap()).await.unwrap().dyn_into().unwrap();
+    let array_buffer = JsFuture::from(response.array_buffer().unwrap())
+        .await
+        .unwrap()
+        .dyn_into()
+        .unwrap();
 
     Result::Ok(array_buffer)
 }

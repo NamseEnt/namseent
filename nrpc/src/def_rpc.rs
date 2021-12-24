@@ -248,9 +248,7 @@ mod tests {
                 })
             }
         }
-        let rpc_handler = RpcHandler {
-            number: 0,
-        };
+        let rpc_handler = RpcHandler { number: 0 };
 
         let stream = UnboundedReceiverStream::new(receiver);
         let stream = stream.map(|item| Ok(item));
@@ -268,16 +266,8 @@ mod tests {
                     path: "abc".to_string(),
                 })
                 .await;
-            assert_eq!(
-                response
-                    .unwrap()
-                    .directory_entries
-                    .len(),
-                1
-            );
-            cloned_sender
-                .send(vec![])
-                .unwrap();
+            assert_eq!(response.unwrap().directory_entries.len(), 1);
+            cloned_sender.send(vec![]).unwrap();
         };
         join!(receiving, sending);
     }
