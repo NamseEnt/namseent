@@ -109,15 +109,17 @@ impl Scroll {
                 }),
                 ..Default::default()
             },
-            on_wheel: Some(Box::new(move |xy| {
+            ..Default::default()
+        })
+        .attach_event(|builder| {
+            builder.on_wheel(Box::new(move |xy| {
                 let next_scroll_y =
                     num::clamp(scroll_y + xy.y, 0.0, (0.0_f32).max(inner_height - height));
 
                 namui::event::send(Box::new(EditorEvent::ScrolledEvent {
                     scroll_y: next_scroll_y,
                 }));
-            })),
-            ..Default::default()
+            }))
         });
 
         namui::translate(x, y, render![whole_rect, inner, scroll_bar])

@@ -1,8 +1,7 @@
+use super::{RenderingTree, SpecialRenderingNode};
 use serde::Serialize;
 
-use super::{RenderingTree, SpecialRenderingNode};
-
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct Translate {
     pub(crate) x: f32,
     pub(crate) y: f32,

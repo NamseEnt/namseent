@@ -26,8 +26,6 @@ impl CameraClipBody {
             .as_ref()
             .map_or(false, |id| id.eq(&props.clip.id));
 
-        let clip_id = props.clip.id.clone();
-
         render![namui::rect(namui::RectParam {
             x: clip_rect.x,
             y: clip_rect.y,
@@ -53,15 +51,18 @@ impl CameraClipBody {
                 round: Some(namui::RectRound { radius: 5.0 }),
                 ..Default::default()
             },
-            on_mouse_down: Some(Box::new(move |event| {
+            ..Default::default()
+        })
+        .attach_event(move |builder| {
+            let clip_id = props.clip.id.clone();
+            builder.on_mouse_down(Box::new(move |event| {
                 let event = EditorEvent::CameraClipBodyMouseDownEvent {
                     clip_id: clip_id.clone(),
                     local_mouse_xy: event.local_xy,
                     global_mouse_xy: event.global_xy,
                 };
                 namui::event::send(Box::new(event));
-            })),
-            ..Default::default()
+            }))
         })]
     }
 }

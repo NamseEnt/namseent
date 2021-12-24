@@ -2,7 +2,7 @@ use super::{RenderingTree, SpecialRenderingNode};
 use crate::namui::{ClipOp, Path};
 use serde::Serialize;
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct Clip {
     pub(crate) path: Path,
     pub(crate) clip_op: ClipOp,

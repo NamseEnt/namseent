@@ -29,17 +29,7 @@ pub struct RectParam {
     pub y: f32,
     pub width: f32,
     pub height: f32,
-    pub id: Option<String>,
     pub style: RectStyle,
-    // pub on_click: Option<MouseEventCallback>,
-    //   pub onClickOut?: MouseEventCallback,
-    //   pub onMouseIn?: () => void,
-    pub on_mouse_move_in: Option<MouseEventCallback>,
-    pub on_mouse_move_out: Option<MouseEventCallback>,
-    pub on_mouse_down: Option<MouseEventCallback>,
-    pub on_mouse_up: Option<MouseEventCallback>,
-    //   pub onAfterDraw?: (id: string) => void,
-    pub on_wheel: Option<WheelEventCallback>,
 }
 
 pub fn rect(
@@ -53,12 +43,6 @@ pub fn rect(
             fill,
             round,
         },
-        id,
-        on_mouse_move_in,
-        on_mouse_move_out,
-        on_mouse_down,
-        on_mouse_up,
-        on_wheel,
         ..
     }: RectParam,
 ) -> RenderingTree {
@@ -146,12 +130,6 @@ pub fn rect(
         draw_calls: vec![DrawCall {
             commands: draw_commands,
         }],
-        id,
-        on_mouse_move_in,
-        on_mouse_move_out,
-        on_mouse_down,
-        on_mouse_up,
-        on_wheel,
     }));
 
     RenderingTree::Children(rendering_tree)

@@ -8,11 +8,11 @@ extern "C" {
     #[wasm_bindgen(constructor, js_class="Paint", js_namespace = ["globalThis", "CanvasKit"])]
     pub fn new() -> CanvasKitPaint;
 
-    // ///
-    // /// Returns a copy of this paint.
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn copy(this: &CanvasKitPaint) -> Paint;
+    ///
+    /// Returns a copy of this paint.
+    ///
+    #[wasm_bindgen(method)]
+    pub fn copy(this: &CanvasKitPaint) -> CanvasKitPaint;
 
     // ///
     // /// Retrieves the alpha and RGB unpremultiplied. RGB are extended sRGB values

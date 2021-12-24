@@ -18,7 +18,6 @@ impl BrowserItem {
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {}
     pub fn render(&self, props: &BrowserItemProps) -> RenderingTree {
-        let key = props.key.clone();
         render![
             rect(RectParam {
                 x: 0.0,
@@ -41,13 +40,16 @@ impl BrowserItem {
                     }),
                     ..Default::default()
                 },
-                on_mouse_down: Some(Box::new(move |_| {
+                ..Default::default()
+            })
+            .attach_event(move |builder| {
+                let key = props.key.clone();
+                builder.on_mouse_down(Box::new(move |_| {
                     namui::log(format!("select browser item {}", key));
                     namui::event::send(Box::new(EditorEvent::ImageBrowserSelectEvent {
                         selected_key: key.clone(),
                     }));
-                })),
-                ..Default::default()
+                }))
             }),
             text(TextParam {
                 x: props.item_size.width / 2.0,

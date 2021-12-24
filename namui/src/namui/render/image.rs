@@ -17,7 +17,7 @@ pub struct ImageStyle {
     pub paint: Option<Paint>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub enum ImageSource {
     Url(String),
     #[serde(skip_serializing)]

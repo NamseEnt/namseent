@@ -73,3 +73,9 @@ impl std::fmt::Debug for Paint {
         write!(f, "Paint")
     }
 }
+
+impl Clone for Paint {
+    fn clone(&self) -> Self {
+        Paint(self.0.copy())
+    }
+}
