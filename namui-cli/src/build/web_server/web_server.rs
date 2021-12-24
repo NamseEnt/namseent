@@ -19,7 +19,6 @@ pub struct StartServerOption {
     pub port: u16,
     pub on_connected: OnConnectedCallback,
     pub bundle: Arc<RwLock<Bundle>>,
-    pub resource_path: Option<String>,
 }
 
 pub struct WebServer {
@@ -66,13 +65,6 @@ impl WebServer {
         );
 
         let serve_engine = warp::path("engine").and(warp::fs::dir(get_engine_dir()));
-
-        let serve_resources = match option.resource_path {
-            Some(resource_path) => {
-                Some(warp::path("resources").and(warp::fs::dir(PathBuf::from(resource_path))))
-            }
-            None => None,
-        };
 
         let sockets = web_server
             .sockets
@@ -137,19 +129,10 @@ impl WebServer {
             .or(serve_engine)
             .or(serve_wasm_bundle)
             .or(serve_js_bundle)
-            .or(handle_websocket);
+            .or(handle_websocket)
+            .or(serve_static);
 
-        let _ = match serve_resources {
-            Some(serve_resources) => spawn(
-                warp::serve(
-                    routes
-                        .or(serve_resources)
-                        .or(serve_static),
-                )
-                .run(([0, 0, 0, 0], option.port)),
-            ),
-            None => spawn(warp::serve(routes.or(serve_static)).run(([0, 0, 0, 0], option.port))),
-        };
+        let _ = spawn(warp::serve(routes).run(([0, 0, 0, 0], option.port)));
 
         web_server
     }
