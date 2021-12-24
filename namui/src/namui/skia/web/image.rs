@@ -62,6 +62,13 @@ impl Image {
             },
         }
     }
+    pub fn size(&self) -> Wh<f32> {
+        let canvas_kit_image_info = self.canvas_kit_image.getImageInfo();
+        Wh {
+            width: canvas_kit_image_info.width(),
+            height: canvas_kit_image_info.height(),
+        }
+    }
 }
 
 impl Drop for Image {
