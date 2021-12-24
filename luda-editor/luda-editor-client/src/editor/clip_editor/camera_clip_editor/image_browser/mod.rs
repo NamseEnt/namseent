@@ -182,7 +182,7 @@ impl ImageBrowser {
             x: self.current_directory_label_layout.x,
             y: self.current_directory_label_layout.y,
             align: namui::TextAlign::Left,
-            baseline: namui::TextBaseline::Top,
+            baseline: namui::TextBaseline::Bottom,
             font_type: namui::FontType {
                 size: 16,
                 serif: false,
