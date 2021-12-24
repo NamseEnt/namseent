@@ -1,16 +1,22 @@
-use self::image_browser::{ImageBrowser, ImageBrowserProps};
+use self::{
+    image_browser::{ImageBrowser, ImageBrowserProps},
+    wysiwyg_editor::{WysiwygEditor, WysiwygEditorProps},
+};
 use crate::editor::types::*;
 use namui::prelude::*;
 mod image_browser;
+mod wysiwyg_editor;
 
 pub struct CameraClipEditor {
     image_browser: ImageBrowser,
+    wysiwyg_editor: WysiwygEditor,
 }
 
 impl CameraClipEditor {
-    pub fn new(socket: &luda_editor_rpc::Socket) -> Self {
+    pub fn new() -> Self {
         Self {
-            image_browser: ImageBrowser::new(socket),
+            image_browser: ImageBrowser::new(),
+            wysiwyg_editor: WysiwygEditor::new(),
         }
     }
 }
@@ -18,6 +24,7 @@ impl CameraClipEditor {
 pub struct CameraClipEditorProps<'a> {
     pub camera_clip: &'a CameraClip,
     pub xywh: XywhRect<f32>,
+    pub image_filename_objects: &'a Vec<ImageFilenameObject>,
 }
 
 impl CameraClipEditor {
@@ -62,6 +69,17 @@ impl CameraClipEditor {
                 self.image_browser.render(&ImageBrowserProps {
                     width: props.xywh.width / 2.0,
                     height: props.xywh.height,
+                    image_filename_objects: props.image_filename_objects,
+                }),
+                self.wysiwyg_editor.render(&WysiwygEditorProps {
+                    xywh: XywhRect {
+                        x: props.xywh.width / 2.0,
+                        y: 0.0,
+                        width: props.xywh.width / 2.0,
+                        height: props.xywh.width / 2.0 / (1920.0 / 1080.0),
+                    },
+                    camera_angle: &props.camera_clip.camera_angle,
+                    image_filename_objects: props.image_filename_objects,
                 }),
                 // WysiwygEditor(state),
                 // Preview(state),

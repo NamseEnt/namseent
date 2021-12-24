@@ -68,7 +68,7 @@ impl BrowserItem {
             }),
             image(ImageParam {
                 xywh: props.thumbnail_rect,
-                url: props.thumbnail_url.clone(),
+                source: namui::ImageSource::Url(props.thumbnail_url.clone()),
                 style: ImageStyle {
                     fit: ImageFit::Contain,
                     paint: None,

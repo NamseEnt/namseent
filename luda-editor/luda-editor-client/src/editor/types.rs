@@ -81,9 +81,9 @@ pub enum Clip<'a> {
 
 #[derive(Debug, Clone)]
 pub struct CameraAngle {
-    pub image_source_url: String,
-    pub source_point_size: PointSize,
-    pub dest_point_size: PointSize,
+    pub character_pose_emotion: CharacterPoseEmotion,
+    pub source_point_rect_length_ratio: PointRectLengthRatio,
+    pub dest_point_rect_length_ratio: PointRectLengthRatio,
 }
 
 pub struct SubtitleClip {
@@ -122,10 +122,10 @@ impl Sequence {
 }
 
 #[derive(Debug, Clone)]
-pub struct PointSize {
+pub struct PointRectLengthRatio {
     pub x: f32,
     pub y: f32,
-    pub size: f32,
+    pub rect_length: f32,
 }
 
 pub fn get_sample_sequence() -> Sequence {
@@ -137,16 +137,20 @@ pub fn get_sample_sequence() -> Sequence {
                     start_at: Time::sec(0),
                     end_at: Time::sec(1),
                     camera_angle: CameraAngle {
-                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                        source_point_size: PointSize {
+                        character_pose_emotion: CharacterPoseEmotion(
+                            "피디".to_string(),
+                            "기본".to_string(),
+                            "미소".to_string(),
+                        ),
+                        source_point_rect_length_ratio: PointRectLengthRatio {
                             x: 0.25,
                             y: 0.25,
-                            size: 0.5259040471894634,
+                            rect_length: 0.5259040471894634,
                         },
-                        dest_point_size: PointSize {
+                        dest_point_rect_length_ratio: PointRectLengthRatio {
                             x: 0.0,
                             y: 0.0,
-                            size: 1.0,
+                            rect_length: 1.0,
                         },
                     },
                 },
@@ -155,16 +159,20 @@ pub fn get_sample_sequence() -> Sequence {
                     start_at: Time::sec(1),
                     end_at: Time::sec(3),
                     camera_angle: CameraAngle {
-                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                        source_point_size: PointSize {
+                        character_pose_emotion: CharacterPoseEmotion(
+                            "피디".to_string(),
+                            "기본".to_string(),
+                            "미소".to_string(),
+                        ),
+                        source_point_rect_length_ratio: PointRectLengthRatio {
                             x: 0.25,
                             y: 0.25,
-                            size: 0.5259040471894634,
+                            rect_length: 0.5259040471894634,
                         },
-                        dest_point_size: PointSize {
+                        dest_point_rect_length_ratio: PointRectLengthRatio {
                             x: 0.0,
                             y: 0.0,
-                            size: 1.0,
+                            rect_length: 1.0,
                         },
                     },
                 },
@@ -173,16 +181,20 @@ pub fn get_sample_sequence() -> Sequence {
                     start_at: Time::sec(3),
                     end_at: Time::sec(6),
                     camera_angle: CameraAngle {
-                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                        source_point_size: PointSize {
+                        character_pose_emotion: CharacterPoseEmotion(
+                            "피디".to_string(),
+                            "기본".to_string(),
+                            "미소".to_string(),
+                        ),
+                        source_point_rect_length_ratio: PointRectLengthRatio {
                             x: 0.25,
                             y: 0.25,
-                            size: 0.5259040471894634,
+                            rect_length: 0.5259040471894634,
                         },
-                        dest_point_size: PointSize {
+                        dest_point_rect_length_ratio: PointRectLengthRatio {
                             x: 0.0,
                             y: 0.0,
-                            size: 1.0,
+                            rect_length: 1.0,
                         },
                     },
                 },
@@ -191,16 +203,20 @@ pub fn get_sample_sequence() -> Sequence {
                     start_at: Time::sec(6),
                     end_at: Time::sec(10),
                     camera_angle: CameraAngle {
-                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                        source_point_size: PointSize {
+                        character_pose_emotion: CharacterPoseEmotion(
+                            "피디".to_string(),
+                            "기본".to_string(),
+                            "미소".to_string(),
+                        ),
+                        source_point_rect_length_ratio: PointRectLengthRatio {
                             x: 0.25,
                             y: 0.25,
-                            size: 0.5259040471894634,
+                            rect_length: 0.5259040471894634,
                         },
-                        dest_point_size: PointSize {
+                        dest_point_rect_length_ratio: PointRectLengthRatio {
                             x: 0.0,
                             y: 0.0,
-                            size: 1.0,
+                            rect_length: 1.0,
                         },
                     },
                 },
@@ -209,16 +225,20 @@ pub fn get_sample_sequence() -> Sequence {
                     start_at: Time::sec(10),
                     end_at: Time::sec(15),
                     camera_angle: CameraAngle {
-                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                        source_point_size: PointSize {
+                        character_pose_emotion: CharacterPoseEmotion(
+                            "피디".to_string(),
+                            "기본".to_string(),
+                            "미소".to_string(),
+                        ),
+                        source_point_rect_length_ratio: PointRectLengthRatio {
                             x: 0.25,
                             y: 0.25,
-                            size: 0.5259040471894634,
+                            rect_length: 0.5259040471894634,
                         },
-                        dest_point_size: PointSize {
+                        dest_point_rect_length_ratio: PointRectLengthRatio {
                             x: 0.0,
                             y: 0.0,
-                            size: 1.0,
+                            rect_length: 1.0,
                         },
                     },
                 },
@@ -227,16 +247,20 @@ pub fn get_sample_sequence() -> Sequence {
                     start_at: Time::sec(15),
                     end_at: Time::sec(21),
                     camera_angle: CameraAngle {
-                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                        source_point_size: PointSize {
+                        character_pose_emotion: CharacterPoseEmotion(
+                            "피디".to_string(),
+                            "기본".to_string(),
+                            "미소".to_string(),
+                        ),
+                        source_point_rect_length_ratio: PointRectLengthRatio {
                             x: 0.25,
                             y: 0.25,
-                            size: 0.5259040471894634,
+                            rect_length: 0.5,
                         },
-                        dest_point_size: PointSize {
-                            x: 0.0,
-                            y: 0.0,
-                            size: 1.0,
+                        dest_point_rect_length_ratio: PointRectLengthRatio {
+                            x: 0.2,
+                            y: 0.4,
+                            rect_length: 0.4,
                         },
                     },
                 },
@@ -266,4 +290,21 @@ pub struct ImageFilenameObject {
     pub pose: String,
     pub emotion: String,
     pub url: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct CharacterPoseEmotion(pub String, pub String, pub String);
+
+impl CharacterPoseEmotion {
+    pub fn get_url(&self, image_filename_objects: &Vec<ImageFilenameObject>) -> Option<String> {
+        for image_filename_object in image_filename_objects {
+            if image_filename_object.character == self.0
+                && image_filename_object.pose == self.1
+                && image_filename_object.emotion == self.2
+            {
+                return Some(image_filename_object.url.clone());
+            }
+        }
+        None
+    }
 }

@@ -13,42 +13,15 @@ use scroll::*;
 pub struct ImageBrowser {
     directory_key: String,
     selected_key: Option<String>,
-    image_filename_objects: Vec<ImageFilenameObject>,
     current_directory_label_layout: XywhRect<f32>,
     scroll: Scroll,
 }
 
 impl ImageBrowser {
-    pub fn new(socket: &luda_editor_rpc::Socket) -> Self {
-        spawn_local({
-            let socket = socket.clone();
-            async move {
-                let result = socket
-                    .get_camera_shot_urls(luda_editor_rpc::get_camera_shot_urls::Request {})
-                    .await;
-                match result {
-                    Ok(response) => {
-                        let image_filename_objects = response
-                            .camera_shot_urls
-                            .iter()
-                            .map(|url| ImageFilenameObject::new(url))
-                            .collect();
-
-                        namui::event::send(Box::new(
-                            EditorEvent::ImageFilenameObjectsUpdatedEvent {
-                                image_filename_objects,
-                            },
-                        ))
-                    }
-                    Err(error) => namui::log(format!("error on get_camera_shot_urls: {:?}", error)),
-                }
-            }
-        });
-
+    pub fn new() -> Self {
         Self {
             directory_key: "".to_string(),
             selected_key: None,
-            image_filename_objects: vec![],
             scroll: Scroll::new(),
             current_directory_label_layout: XywhRect {
                 x: 20.0,
@@ -63,20 +36,16 @@ impl ImageBrowser {
     // 어떻게 할 것인가?
 }
 
-pub struct ImageBrowserProps {
+pub struct ImageBrowserProps<'a> {
     pub width: f32,
     pub height: f32,
+    pub image_filename_objects: &'a Vec<ImageFilenameObject>,
 }
 
 impl ImageBrowser {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<EditorEvent>() {
             match event {
-                EditorEvent::ImageFilenameObjectsUpdatedEvent {
-                    image_filename_objects,
-                } => {
-                    self.image_filename_objects = image_filename_objects.to_vec();
-                }
                 EditorEvent::ImageBrowserSelectEvent { selected_key } => {
                     namui::log(format!("selected_key: {}", selected_key));
                     if selected_key == "back" {
@@ -135,7 +104,7 @@ impl ImageBrowser {
             browser_items.push(self.render_back_button(item_size, thumbnail_rect));
         }
         browser_items.extend(
-            self.get_browser_item_props(item_size, thumbnail_rect)
+            self.get_browser_item_props(item_size, thumbnail_rect, props.image_filename_objects)
                 .iter()
                 .map(|props| BrowserItem::new().render(props)),
         );
@@ -200,6 +169,7 @@ impl ImageBrowser {
         &self,
         item_size: Wh<f32>,
         thumbnail_rect: XywhRect<f32>,
+        image_filename_objects: &Vec<ImageFilenameObject>,
     ) -> Vec<BrowserItemProps> {
         let mut iter = self.directory_key.split("-").filter(|s| !s.is_empty());
         let character = iter.next();
@@ -210,14 +180,13 @@ impl ImageBrowser {
 
         if character.is_none() {
             let mut characters = BTreeSet::new();
-            for filename_object in &self.image_filename_objects {
+            for filename_object in image_filename_objects {
                 characters.insert(&filename_object.character);
             }
             return characters
                 .into_iter()
                 .map(|character| {
-                    let filename_object = self
-                        .image_filename_objects
+                    let filename_object = image_filename_objects
                         .iter()
                         .find(|filename_object| filename_object.character == *character)
                         .unwrap();
@@ -237,8 +206,7 @@ impl ImageBrowser {
 
         if pose.is_none() {
             let mut poses = BTreeSet::new();
-            for filename_object in self
-                .image_filename_objects
+            for filename_object in image_filename_objects
                 .iter()
                 .filter(|filename_object| filename_object.character == character)
             {
@@ -247,8 +215,7 @@ impl ImageBrowser {
             return poses
                 .into_iter()
                 .map(|pose| {
-                    let filename_object = self
-                        .image_filename_objects
+                    let filename_object = image_filename_objects
                         .iter()
                         .find(|filename_object| {
                             filename_object.character == character && filename_object.pose == *pose
@@ -269,21 +236,16 @@ impl ImageBrowser {
         let pose = pose.unwrap();
 
         let mut emotions = BTreeSet::new();
-        for filename_object in self
-            .image_filename_objects
-            .iter()
-            .filter(|filename_object| {
-                filename_object.character == character && filename_object.pose == pose
-            })
-        {
+        for filename_object in image_filename_objects.iter().filter(|filename_object| {
+            filename_object.character == character && filename_object.pose == pose
+        }) {
             emotions.insert(&filename_object.emotion);
         }
 
         emotions
             .into_iter()
             .map(|emotion| {
-                let filename_object = self
-                    .image_filename_objects
+                let filename_object = image_filename_objects
                     .iter()
                     .find(|filename_object| {
                         filename_object.character == character

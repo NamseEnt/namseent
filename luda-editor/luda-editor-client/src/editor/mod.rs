@@ -3,6 +3,7 @@ pub use main::main;
 mod timeline;
 use namui::prelude::*;
 pub use timeline::*;
+use wasm_bindgen_futures::spawn_local;
 mod types;
 use crate::editor::clip_editor::ClipEditorProps;
 
@@ -22,6 +23,7 @@ struct Editor {
     playback_time: chrono::Duration,
     socket: luda_editor_rpc::Socket,
     screen_wh: namui::Wh<f32>,
+    image_filename_objects: Vec<ImageFilenameObject>,
 }
 
 impl namui::Entity for Editor {
@@ -42,6 +44,11 @@ impl namui::Entity for Editor {
                         }));
                     }
                     self.timeline.selected_clip_id = Some(clip_id.clone());
+                }
+                EditorEvent::ImageFilenameObjectsUpdatedEvent {
+                    image_filename_objects,
+                } => {
+                    self.image_filename_objects = image_filename_objects.to_vec();
                 }
                 _ => {}
             }
@@ -94,6 +101,7 @@ impl namui::Entity for Editor {
                     width: 800.0,
                     height: self.screen_wh.height - 200.0,
                 },
+                image_filename_objects: &self.image_filename_objects,
             }),
         ]
     }
@@ -102,12 +110,37 @@ impl namui::Entity for Editor {
 impl Editor {
     fn new(screen_wh: namui::Wh<f32>) -> Self {
         let socket = Editor::create_socket();
+        spawn_local({
+            let socket = socket.clone();
+            async move {
+                let result = socket
+                    .get_camera_shot_urls(luda_editor_rpc::get_camera_shot_urls::Request {})
+                    .await;
+                match result {
+                    Ok(response) => {
+                        let image_filename_objects = response
+                            .camera_shot_urls
+                            .iter()
+                            .map(|url| ImageFilenameObject::new(url))
+                            .collect();
+
+                        namui::event::send(Box::new(
+                            EditorEvent::ImageFilenameObjectsUpdatedEvent {
+                                image_filename_objects,
+                            },
+                        ))
+                    }
+                    Err(error) => namui::log(format!("error on get_camera_shot_urls: {:?}", error)),
+                }
+            }
+        });
         Self {
             timeline: Timeline::new(get_sample_sequence()),
-            clip_editor: ClipEditor::new(&socket),
+            clip_editor: ClipEditor::new(),
             playback_time: chrono::Duration::zero(),
             socket,
             screen_wh,
+            image_filename_objects: vec![],
         }
     }
     fn calculate_timeline_xywh(&self) -> XywhRect<f32> {
