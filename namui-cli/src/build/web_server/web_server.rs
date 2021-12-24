@@ -7,7 +7,7 @@ use futures::{
 use namui::build::types::{ErrorMessage, WebsocketMessage};
 use nanoid::nanoid;
 use std::{collections::HashMap, env, path::PathBuf, sync::Arc};
-use tokio::spawn;
+use tokio::{spawn, sync::RwLock};
 use warp::ws;
 use warp::{http::response, hyper::Uri, ws::Message, Filter};
 
@@ -18,7 +18,7 @@ type OnConnectedCallback = fn() -> ();
 pub struct StartServerOption {
     pub port: u16,
     pub on_connected: OnConnectedCallback,
-    pub bundle: Arc<Bundle>,
+    pub bundle: Arc<RwLock<Bundle>>,
     pub resource_path: Option<String>,
 }
 
@@ -40,11 +40,9 @@ impl WebServer {
             .clone();
         let serve_wasm_bundle = warp::path("bundle_bg.wasm").map(
             move || -> Result<warp::hyper::Response<Vec<u8>>, warp::http::Error> {
-                let bundle = block_on(
-                    bundle
-                        .wasm
-                        .read(),
-                );
+                let bundle = block_on(bundle.read())
+                    .wasm
+                    .clone();
 
                 response::Builder::new()
                     .header("Content-Type", "application/wasm")
@@ -57,11 +55,9 @@ impl WebServer {
             .clone();
         let serve_js_bundle = warp::path("bundle.js").map(
             move || -> Result<warp::hyper::Response<Vec<u8>>, warp::http::Error> {
-                let bundle = block_on(
-                    bundle
-                        .js
-                        .read(),
-                );
+                let bundle = block_on(bundle.read())
+                    .js
+                    .clone();
 
                 response::Builder::new()
                     .header("Content-Type", "text/javascript")

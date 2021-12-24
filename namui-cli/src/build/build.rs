@@ -8,11 +8,12 @@ use crate::build::{
 };
 use namui::build::types::ErrorMessage;
 use std::{path::PathBuf, sync::Arc};
+use tokio::sync::RwLock;
 
 pub async fn build(manifest_path: String, watch: bool) {
     assert!(watch, "for now, only watch mode is supported. please use --watch option.");
 
-    let bundle = Arc::new(Bundle::new());
+    let bundle = Arc::new(RwLock::new(Bundle::new()));
 
     let namui_config = get_namui_config(manifest_path.as_str());
 

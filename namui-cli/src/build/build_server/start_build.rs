@@ -2,6 +2,7 @@ use futures::executor::block_on;
 use namui::build::types::ErrorMessage;
 use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
 use std::{fs::File, io::Read, sync::Arc, thread, time::Duration};
+use tokio::sync::RwLock;
 
 use crate::build::{bundle::Bundle, web_server::WebServer};
 
@@ -20,7 +21,7 @@ pub type RebuildCallback = fn(option: RebuildCallbackOption) -> ();
 pub struct StartBuildOption {
     pub callback: RebuildCallback,
     pub watch_dir: String,
-    pub bundle: Arc<Bundle>,
+    pub bundle: Arc<RwLock<Bundle>>,
     pub web_server: Arc<WebServer>,
     pub manifest_path: String,
 }
@@ -102,16 +103,11 @@ pub async fn start_build<'a>(option: StartBuildOption) {
 
 async fn rebuild(
     callback: RebuildCallback,
-    bundle: Arc<Bundle>,
+    bundle: Arc<RwLock<Bundle>>,
     web_server: Arc<WebServer>,
     manifest_path: String,
 ) {
-    let mut js_bundle = bundle
-        .js
-        .write()
-        .await;
-    let mut wasm_bundle = bundle
-        .wasm
+    let mut bundle = bundle
         .write()
         .await;
     let build_result = run_cargo_build(manifest_path);
@@ -122,14 +118,10 @@ async fn rebuild(
                 wasm_path: result_path.clone(),
             }) {
                 Ok(result) => {
-                    let mut buffer: Vec<u8> = Vec::new();
-
+                    let mut js_buffer: Vec<u8> = Vec::new();
                     let is_js_successful = match File::open(result.result_js_path) {
-                        Ok(mut js_file) => match js_file.read_to_end(&mut buffer) {
-                            Ok(_) => {
-                                *js_bundle = buffer.clone();
-                                true
-                            }
+                        Ok(mut js_file) => match js_file.read_to_end(&mut js_buffer) {
+                            Ok(_) => true,
                             Err(error) => {
                                 eprintln!("failed to read js. try changing the source file to rebuild.\n  {:?}", error);
                                 false
@@ -141,13 +133,10 @@ async fn rebuild(
                         }
                     };
 
-                    buffer.clear();
+                    let mut wasm_buffer: Vec<u8> = Vec::new();
                     let is_wasm_successful = match File::open(result.result_wasm_path) {
-                        Ok(mut wasm_file) => match wasm_file.read_to_end(&mut buffer) {
-                            Ok(_) => {
-                                *wasm_bundle = buffer.clone();
-                                true
-                            }
+                        Ok(mut wasm_file) => match wasm_file.read_to_end(&mut wasm_buffer) {
+                            Ok(_) => true,
                             Err(error) => {
                                 eprintln!("failed to read wasm. try changing the source file to rebuild.\n  {:?}", error);
                                 false
@@ -161,6 +150,10 @@ async fn rebuild(
 
                     let should_reload = is_js_successful && is_wasm_successful;
                     if should_reload {
+                        *bundle = Bundle {
+                            js: js_buffer,
+                            wasm: wasm_buffer,
+                        };
                         web_server
                             .request_reload()
                             .await;
