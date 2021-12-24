@@ -48,7 +48,7 @@ impl CameraClipEditor {
                     height: props.xywh.height,
                     style: namui::RectStyle {
                         stroke: Some(namui::RectStroke {
-                            color: namui::Color::RED,
+                            color: namui::Color::BLACK,
                             width: 1.0,
                             border_position: namui::BorderPosition::Inside,
                         }),
