@@ -4,9 +4,8 @@ use futures::{
     lock::Mutex,
     SinkExt, StreamExt,
 };
-use namui::build::types::ErrorMessage;
+use namui::build::types::{ErrorMessage, WebsocketMessage};
 use nanoid::nanoid;
-use serde_json::json;
 use std::{collections::HashMap, env, path::PathBuf, sync::Arc};
 use tokio::spawn;
 use warp::ws;
@@ -167,11 +166,10 @@ impl WebServer {
         for (id, socket) in sockets.iter_mut() {
             if let Err(error) = socket
                 .send(Message::text(
-                    json!({
-                        "type": "error",
-                        "errorMessages": error_messages,
+                    serde_json::to_string(&WebsocketMessage::Error {
+                        error_messages: error_messages.clone(),
                     })
-                    .to_string(),
+                    .unwrap(),
                 ))
                 .await
             {
@@ -187,12 +185,7 @@ impl WebServer {
             .await;
         for (id, socket) in sockets.iter_mut() {
             if let Err(error) = socket
-                .send(Message::text(
-                    json!({
-                        "type": "reload",
-                    })
-                    .to_string(),
-                ))
+                .send(Message::text(serde_json::to_string(&WebsocketMessage::Reload {}).unwrap()))
                 .await
             {
                 eprintln!("channel send error while(channel -> websocket:{}).\n  {:?}", id, error);
