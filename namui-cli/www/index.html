@@ -18,35 +18,6 @@
   >
   <script type="text/javascript" src="./canvaskit-wasm/canvaskit.js"></script>
   <script src="bundle.js"></script>
-  <script>
-    const websocket = new WebSocket(`ws://${location.host}/hotReload`);
-    websocket.onopen = () => console.log("connected");
-    websocket.onclose = () => console.log("connected");
-    websocket.onmessage = (message) => {
-      const namuiMessage = JSON.parse(message.data);
-      switch (namuiMessage.type) {
-        case "error": {
-          console.log(namuiMessage.errorMessages);
-          break;
-        }
-
-        case "reload": {
-          location.reload();
-          break;
-        }
-      }
-    };
-
-    async function run() {
-      await bundle("/bundle_bg.wasm");
-      const CanvasKit = await CanvasKitInit({
-        locateFile: (file) => "./canvaskit-wasm/" + file,
-      });
-      globalThis.CanvasKit = CanvasKit;
-      globalThis.getCanvasKit = () => CanvasKit;
-      bundle.start();
-    }
-
-    run();
-  </script>
+  <script src="runWasm.js"></script>
+  <script src="hotReload.js"></script>
 </body>
