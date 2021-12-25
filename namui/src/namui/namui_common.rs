@@ -88,6 +88,19 @@ pub struct Xy<T> {
     pub y: T,
 }
 
+impl<T> std::ops::Sub for Xy<T>
+where
+    T: std::ops::Sub<Output = T>,
+{
+    type Output = Xy<T>;
+    fn sub(self, other: Xy<T>) -> Xy<T> {
+        Xy {
+            x: self.x - other.x,
+            y: self.y - other.y,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct Wh<T> {
     pub width: T,
