@@ -84,25 +84,30 @@ fn convert_compiler_message_to_namui_error_message(message: &CompilerMessage) ->
         .spans
         .get(0);
     match first_span {
-        Some(span) => ErrorMessage {
-            relative_file: span
+        Some(span) => {
+            let relative_file = span
                 .file_name
-                .clone(),
-            absolute_file: String::from_str(
-                message
-                    .target
-                    .src_path
-                    .to_str()
-                    .unwrap(),
-            )
-            .unwrap(),
-            line: span.line_start,
-            column: span.column_start,
-            text: message
-                .message
-                .message
-                .clone(),
-        },
+                .clone();
+            let mut absolute_file = message
+                .target
+                .src_path
+                .clone();
+            absolute_file.pop();
+            absolute_file.pop();
+            absolute_file.push(&relative_file);
+            let absolute_file = String::from(absolute_file.to_string_lossy());
+
+            ErrorMessage {
+                relative_file,
+                absolute_file,
+                line: span.line_start,
+                column: span.column_start,
+                text: message
+                    .message
+                    .message
+                    .clone(),
+            }
+        }
         None => ErrorMessage {
             relative_file: String::new(),
             absolute_file: String::from_str(
