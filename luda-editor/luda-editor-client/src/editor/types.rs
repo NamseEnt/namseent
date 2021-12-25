@@ -119,6 +119,22 @@ impl Sequence {
         }
         None
     }
+
+    pub(crate) fn update_camera_clip(&mut self, id: &str, selected_camera_clip: CameraClip) {
+        for track in &mut self.tracks {
+            match track {
+                Track::Camera(track) => {
+                    for clip in &mut track.clips {
+                        if clip.id == id {
+                            *clip = selected_camera_clip;
+                            return;
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

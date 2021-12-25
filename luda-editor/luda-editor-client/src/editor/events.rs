@@ -15,4 +15,8 @@ pub enum EditorEvent {
     ScrolledEvent {
         scroll_y: f32,
     },
+    WysiwygEditorInnerImageMouseDownEvent {
+        mouse_xy: namui::Xy<f32>,
+        container_size: namui::Wh<f32>,
+    },
 }

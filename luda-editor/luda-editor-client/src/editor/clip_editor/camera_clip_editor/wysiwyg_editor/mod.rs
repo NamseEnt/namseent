@@ -1,4 +1,4 @@
-use crate::editor::{events::EditorEvent, types::*};
+use crate::editor::{events::EditorEvent, job::Job, types::*};
 use namui::prelude::*;
 use std::sync::Arc;
 
@@ -8,26 +8,30 @@ pub struct WysiwygEditorProps<'a> {
     pub xywh: XywhRect<f32>,
     pub camera_angle: &'a CameraAngle,
     pub image_filename_objects: &'a Vec<ImageFilenameObject>,
+    pub job: &'a Option<Job>,
 }
 
 impl WysiwygEditor {
     pub fn new() -> Self {
         Self {}
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-
-        //     engine.mouseEvent.onMouseUp(() => {
-        //         state.wysiwygEditor.dragging = undefined;
-        //     });
-    }
+    pub fn update(&mut self, event: &dyn std::any::Any) {}
     pub fn render(&self, props: &WysiwygEditorProps) -> RenderingTree {
         let container_size = Wh {
             width: props.xywh.width,
             height: props.xywh.height,
         };
 
-        let image_url = props
-            .camera_angle
+        let camera_angle = &match &props.job {
+            Some(Job::WysiwygMoveImage(job)) => {
+                let mut camera_angle = props.camera_angle.clone();
+                job.move_camera_angle(&mut camera_angle);
+                camera_angle
+            }
+            _ => props.camera_angle.clone(),
+        };
+
+        let image_url = camera_angle
             .character_pose_emotion
             .get_url(props.image_filename_objects);
         if image_url.is_none() {
@@ -60,8 +64,8 @@ impl WysiwygEditor {
                     },
                     ..Default::default()
                 }),
-                render_outer_image(image.clone(), props.camera_angle, &container_size),
-                render_inner_image(image.clone(), props.camera_angle, &container_size),
+                render_outer_image(image.clone(), camera_angle, &container_size),
+                render_inner_image(image.clone(), camera_angle, &container_size),
                 // Resizer(state, { containerSize, imageSource }),
                 // Croper(state),
             ],
@@ -153,7 +157,6 @@ pub fn render_source_image(
     })
 }
 
-// const OuterImage: Render<CameraAngleEditorState, {}> = (state, props) => {
 fn render_outer_image(
     image: Arc<Image>,
     camera_angle: &CameraAngle,
@@ -191,23 +194,8 @@ fn render_inner_image(
     camera_angle: &CameraAngle,
     container_size: &Wh<f32>,
 ) -> RenderingTree {
-    // TODO
-    //     engine.mouseEvent.onMouseMove((event) => {
-    //         const { dragging } = state.wysiwygEditor;
-    //         if (!dragging || dragging.targetId !== "move") {
-    //             return;
-    //         }
-    //         const mouseVector = Vector.from(event);
-    //         const diff = mouseVector.sub(dragging.lastMousePosition);
-    //         state.cameraAngle.source01Rect.x += diff.x / props.containerSize.width;
-    //         state.cameraAngle.source01Rect.y += diff.y / props.containerSize.height;
-    //         dragging.lastMousePosition = mouseVector;
-    //     });
-
-    //     const destRect = getDestRect(state);
-    //     return Clip(
-
     let image_size = image.size();
+    let container_size = container_size.clone();
 
     namui::clip(
         namui::Path::new().add_rect(
@@ -219,20 +207,17 @@ fn render_inner_image(
             .into_ltrb(),
         ),
         namui::ClipOp::Intersect,
-        namui::render![render_source_image(
-            image,
-            None,
-            container_size,
-            camera_angle
-        )],
+        render_source_image(image, None, &container_size, camera_angle).attach_event(|builder| {
+            builder.on_mouse_down(Box::new(move |event| {
+                namui::event::send(Box::new(
+                    EditorEvent::WysiwygEditorInnerImageMouseDownEvent {
+                        mouse_xy: event.global_xy,
+                        container_size: container_size.clone(),
+                    },
+                ))
+            }))
+        }),
     )
-    // TODO
-    //                 onMouseDown(event) {
-    //                     state.wysiwygEditor.dragging = {
-    //                         targetId: "move",
-    //                         lastMousePosition: Vector.from(event),
-    //                     };
-    //                 },
     //                 onMouseIn() {
     //                     engine.mousePointer.setCursor(Cursor.move);
     //                 },

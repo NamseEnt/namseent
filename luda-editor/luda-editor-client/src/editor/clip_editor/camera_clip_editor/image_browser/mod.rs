@@ -81,7 +81,6 @@ impl ImageBrowser {
 
     pub fn render(&self, props: &ImageBrowserProps) -> RenderingTree {
         let is_root = self.directory_key == "";
-        namui::log(format!("is_root: {}", is_root));
         let item_margin = 10.0;
         let item_width = props.width / 2.0 - item_margin;
         let item_size = namui::Wh {
@@ -174,9 +173,6 @@ impl ImageBrowser {
         let mut iter = self.directory_key.split("-").filter(|s| !s.is_empty());
         let character = iter.next();
         let pose = iter.next();
-
-        namui::log(format!("self.directory_key: {:?}", self.directory_key));
-        namui::log(format!("character: {:?}, pose: {:?}", character, pose));
 
         if character.is_none() {
             let mut characters = BTreeSet::new();

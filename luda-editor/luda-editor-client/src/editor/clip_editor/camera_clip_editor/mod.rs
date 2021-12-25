@@ -2,7 +2,7 @@ use self::{
     image_browser::{ImageBrowser, ImageBrowserProps},
     wysiwyg_editor::{WysiwygEditor, WysiwygEditorProps},
 };
-use crate::editor::types::*;
+use crate::editor::{job::Job, types::*};
 use namui::prelude::*;
 mod image_browser;
 mod wysiwyg_editor;
@@ -25,6 +25,7 @@ pub struct CameraClipEditorProps<'a> {
     pub camera_clip: &'a CameraClip,
     pub xywh: XywhRect<f32>,
     pub image_filename_objects: &'a Vec<ImageFilenameObject>,
+    pub job: &'a Option<Job>,
 }
 
 impl CameraClipEditor {
@@ -80,6 +81,7 @@ impl CameraClipEditor {
                     },
                     camera_angle: &props.camera_clip.camera_angle,
                     image_filename_objects: props.image_filename_objects,
+                    job: &props.job,
                 }),
                 // WysiwygEditor(state),
                 // Preview(state),

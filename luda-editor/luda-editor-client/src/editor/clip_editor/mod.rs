@@ -1,5 +1,5 @@
 use self::camera_clip_editor::{CameraClipEditor, CameraClipEditorProps};
-use super::types::*;
+use super::{job::Job, types::*};
 mod camera_clip_editor;
 use namui::prelude::*;
 
@@ -19,6 +19,7 @@ pub struct ClipEditorProps<'a> {
     pub selected_clip: Option<Clip<'a>>,
     pub xywh: XywhRect<f32>,
     pub image_filename_objects: &'a Vec<ImageFilenameObject>,
+    pub job: &'a Option<Job>,
 }
 
 impl ClipEditor {
@@ -34,6 +35,7 @@ impl ClipEditor {
                         camera_clip: &camera_clip,
                         xywh: props.xywh,
                         image_filename_objects: &props.image_filename_objects,
+                        job: &props.job,
                     })
                 }
                 Clip::Subtitle(_) => todo!(),

@@ -6,7 +6,7 @@ use crate::editor::{
         CameraClipBody, CameraClipBodyProps,
     },
     types::{CameraClip, CameraTrack, Track},
-    Timeline,
+    Timeline, TimelineRenderContext,
 };
 use namui::prelude::*;
 mod camera_clip_body;
@@ -16,7 +16,7 @@ pub struct CameraTrackBodyProps<'a> {
     pub width: f32,
     pub height: f32,
     pub track: &'a CameraTrack,
-    pub timeline: &'a Timeline,
+    pub context: &'a TimelineRenderContext<'a>,
 }
 
 fn move_clip_at_last(track: &mut CameraTrack, clip_id: &String) {
@@ -28,18 +28,18 @@ fn move_clip_at_last(track: &mut CameraTrack, clip_id: &String) {
 
 impl CameraTrackBody {
     pub fn render(props: &CameraTrackBodyProps) -> RenderingTree {
-        let clips = match &props.timeline.job {
+        let clips = match &props.context.job {
             Some(Job::MoveCameraClip(job)) => {
                 let mut track = props.track.clone();
 
-                let time_per_pixel = &props.timeline.time_per_pixel;
+                let time_per_pixel = &props.context.time_per_pixel;
                 job.order_clips_by_moving_clip(&mut track, time_per_pixel, true);
 
                 move_clip_at_last(&mut track, &job.clip_id);
 
                 track.clips
             }
-            None => props.track.clips.to_vec(),
+            _ => props.track.clips.clone(),
         };
 
         render![
@@ -51,7 +51,7 @@ impl CameraTrackBody {
                         width: props.width,
                         height: props.height,
                         clip: clip,
-                        timeline: props.timeline,
+                        context: props.context,
                     })
                 })
                 .collect::<Vec<_>>()]

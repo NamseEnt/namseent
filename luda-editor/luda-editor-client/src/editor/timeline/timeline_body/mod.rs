@@ -1,7 +1,7 @@
-use crate::editor::types::Track;
+use crate::editor::{job::Job, types::Track};
 use namui::prelude::*;
 mod track_body;
-use super::Timeline;
+use super::TimelineRenderContext;
 use track_body::*;
 
 pub struct TimelineBody {}
@@ -9,7 +9,7 @@ pub struct TimelineBodyProps<'a> {
     pub width: f32,
     pub height: f32,
     pub tracks: &'a Vec<Track>,
-    pub timeline: &'a Timeline,
+    pub context: &'a TimelineRenderContext<'a>,
 }
 impl TimelineBody {
     pub fn render(props: &TimelineBodyProps) -> RenderingTree {
@@ -26,7 +26,7 @@ impl TimelineBody {
                         width: props.width,
                         height: track_body_height,
                         track,
-                        timeline: props.timeline,
+                        context: props.context,
                     }),
                 )
             })

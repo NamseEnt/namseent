@@ -10,7 +10,7 @@ use crate::editor::clip_editor::ClipEditorProps;
 use self::{
     clip_editor::ClipEditor,
     events::*,
-    job::{Job, MoveCameraClipJob},
+    job::{Job, MoveCameraClipJob, WysiwygMoveImageJob},
 };
 use types::*;
 mod clip_editor;
@@ -18,6 +18,7 @@ mod events;
 mod job;
 
 struct Editor {
+    job: Option<Job>,
     timeline: Timeline,
     clip_editor: ClipEditor,
     playback_time: chrono::Duration,
@@ -36,8 +37,8 @@ impl namui::Entity for Editor {
                     global_mouse_xy,
                     ..
                 } => {
-                    if self.timeline.job.is_none() {
-                        self.timeline.job = Some(Job::MoveCameraClip(MoveCameraClipJob {
+                    if self.job.is_none() {
+                        self.job = Some(Job::MoveCameraClip(MoveCameraClipJob {
                             clip_id: clip_id.clone(),
                             click_anchor_in_global: *global_mouse_xy,
                             last_global_mouse_xy: *global_mouse_xy,
@@ -50,23 +51,43 @@ impl namui::Entity for Editor {
                 } => {
                     self.image_filename_objects = image_filename_objects.to_vec();
                 }
+                EditorEvent::WysiwygEditorInnerImageMouseDownEvent {
+                    mouse_xy,
+                    container_size,
+                } => {
+                    if self.job.is_none() {
+                        self.job = Some(Job::WysiwygMoveImage(WysiwygMoveImageJob {
+                            start_global_mouse_xy: *mouse_xy,
+                            last_global_mouse_xy: *mouse_xy,
+                            container_size: *container_size,
+                        }));
+                    };
+                }
                 _ => {}
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
-                NamuiEvent::MouseMove(global_xy) => match self.timeline.job {
+                NamuiEvent::MouseMove(global_xy) => match self.job {
                     Some(Job::MoveCameraClip(ref mut job)) => {
+                        job.last_global_mouse_xy = *global_xy;
+                    }
+                    Some(Job::WysiwygMoveImage(ref mut job)) => {
                         job.last_global_mouse_xy = *global_xy;
                     }
                     _ => {}
                 },
                 NamuiEvent::MouseUp(global_xy) => {
-                    let job = self.timeline.job.clone();
+                    let job = self.job.clone();
                     match job {
                         Some(Job::MoveCameraClip(mut job)) => {
                             job.last_global_mouse_xy = *global_xy;
                             job.execute(&mut self.timeline);
-                            self.timeline.job = None;
+                            self.job = None;
+                        }
+                        Some(Job::WysiwygMoveImage(mut job)) => {
+                            job.last_global_mouse_xy = *global_xy;
+                            job.execute(&mut self.timeline);
+                            self.job = None;
                         }
                         _ => {}
                     }
@@ -92,6 +113,7 @@ impl namui::Entity for Editor {
             self.timeline.render(&TimelineProps {
                 playback_time: self.playback_time,
                 xywh: self.calculate_timeline_xywh(),
+                job: &self.job,
             }),
             self.clip_editor.render(&ClipEditorProps {
                 selected_clip,
@@ -102,6 +124,7 @@ impl namui::Entity for Editor {
                     height: self.screen_wh.height - 200.0,
                 },
                 image_filename_objects: &self.image_filename_objects,
+                job: &self.job,
             }),
         ]
     }
@@ -141,6 +164,7 @@ impl Editor {
             socket,
             screen_wh,
             image_filename_objects: vec![],
+            job: None,
         }
     }
     fn calculate_timeline_xywh(&self) -> XywhRect<f32> {
@@ -156,7 +180,6 @@ impl Editor {
         use tokio::sync::mpsc::unbounded_channel;
         use tokio_stream::wrappers::UnboundedReceiverStream;
         use wasm_bindgen::{closure::Closure, JsCast};
-        use wasm_bindgen_futures::spawn_local;
         use web_sys::{ErrorEvent, MessageEvent};
 
         #[derive(Clone)]
@@ -166,7 +189,7 @@ impl Editor {
         impl RpcHandle for RpcHandler {
             async fn get_camera_shot_urls(
                 &mut self,
-                request: luda_editor_rpc::get_camera_shot_urls::Request,
+                _: luda_editor_rpc::get_camera_shot_urls::Request,
             ) -> Result<luda_editor_rpc::get_camera_shot_urls::Response, String> {
                 todo!()
             }
@@ -174,7 +197,7 @@ impl Editor {
 
         let response_waiter = ResponseWaiter::new();
         let (sending_sender, mut sending_receiver) = unbounded_channel();
-        let mut socket = Socket::new(sending_sender.clone(), response_waiter.clone());
+        let socket = Socket::new(sending_sender.clone(), response_waiter.clone());
         let web_socket = web_sys::WebSocket::new("ws://localhost:3030").unwrap();
         web_socket.set_binary_type(web_sys::BinaryType::Arraybuffer);
 
@@ -182,7 +205,7 @@ impl Editor {
         let receiving_stream = UnboundedReceiverStream::new(receiving_receiver);
         let handler = RpcHandler {};
         spawn_local(async move {
-            loop_receiving(
+            let _ = loop_receiving(
                 sending_sender.clone(),
                 receiving_stream,
                 handler,
