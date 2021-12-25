@@ -11,7 +11,7 @@ async fn main() {
             Arg::with_name("target_dir")
                 .help("Target directory to run 'cargo build'. Mostly, root dir of crate")
                 .index(1)
-                .required(true),
+                .required(false),
         )
         .arg(
             Arg::with_name("watch")
@@ -23,10 +23,7 @@ async fn main() {
         )
         .get_matches();
 
-    let target_dir = matches
-        .value_of("target_dir")
-        .unwrap()
-        .to_string();
+    let target_dir = matches.value_of("target_dir");
     let watch = matches.occurrences_of("watch") != 0;
     block_on(build::build(target_dir, watch));
 }

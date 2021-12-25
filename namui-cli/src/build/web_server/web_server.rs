@@ -6,7 +6,7 @@ use futures::{
 };
 use namui::build::types::{ErrorMessage, WebsocketMessage};
 use nanoid::nanoid;
-use std::{collections::HashMap, env, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, env::current_exe, path::PathBuf, sync::Arc};
 use tokio::{spawn, sync::RwLock};
 use warp::ws;
 use warp::{http::response, hyper::Uri, ws::Message, Filter};
@@ -174,7 +174,11 @@ impl WebServer {
 }
 
 fn get_cli_root_path() -> PathBuf {
-    PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
+    let mut exe_path = current_exe().expect("Current exe path not found.");
+    exe_path.pop();
+    exe_path.pop();
+    exe_path.pop();
+    exe_path
 }
 
 fn get_static_dir() -> PathBuf {

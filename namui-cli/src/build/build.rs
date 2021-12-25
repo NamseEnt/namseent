@@ -7,12 +7,12 @@ use crate::build::{
 };
 use cargo_metadata::MetadataCommand;
 use namui::build::types::ErrorMessage;
-use std::{path::PathBuf, sync::Arc};
+use std::{env::current_dir, path::PathBuf, sync::Arc};
 use tokio::sync::RwLock;
 
-pub async fn build(target_dir: String, watch: bool) {
+pub async fn build(target_dir: Option<&str>, watch: bool) {
     assert!(watch, "for now, only watch mode is supported. please use --watch option.");
-    let root_dir = get_root_dir(&target_dir);
+    let root_dir = get_root_dir(target_dir);
     let bundle = Arc::new(RwLock::new(Bundle::new()));
 
     let web_server = Arc::new(
@@ -74,14 +74,21 @@ fn print_server_address(port: u16) {
     println!("server is running on http://localhost:{}", port);
 }
 
-fn get_root_dir(crate_root: &str) -> PathBuf {
+fn get_root_dir(target_dir: Option<&str>) -> PathBuf {
     let mut manifest_path = PathBuf::from(
         &(MetadataCommand::new()
-            .current_dir(crate_root)
+            .current_dir(
+                target_dir.unwrap_or(
+                    current_dir()
+                        .expect("No current dir found")
+                        .to_str()
+                        .unwrap(),
+                ),
+            )
             .exec()
             .unwrap()
             .root_package()
-            .expect(format!("Could not found root crate from {}", crate_root).as_str())
+            .expect(format!("Could not found root crate").as_str())
             .manifest_path),
     );
     manifest_path.pop();
