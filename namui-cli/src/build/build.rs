@@ -64,7 +64,7 @@ fn print_build_result(error_messages: &Vec<ErrorMessage>) {
 }
 
 fn clear_console() {
-    // print!("{}[2J", 27 as char);
+    print!("{}[2J", 27 as char);
 }
 
 fn print_server_address(port: u16) {
