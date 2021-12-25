@@ -13,23 +13,22 @@ use warp::{http::response, hyper::Uri, ws::Message, Filter};
 
 use crate::build::bundle::Bundle;
 
-type OnConnectedCallback = fn() -> ();
-
 pub struct StartServerOption {
     pub port: u16,
-    pub on_connected: OnConnectedCallback,
     pub bundle: Arc<RwLock<Bundle>>,
 }
 
 pub struct WebServer {
     sockets: Arc<Mutex<HashMap<String, UnboundedSender<Message>>>>,
+    cached_error_messages: RwLock<Vec<ErrorMessage>>,
 }
 
 impl WebServer {
-    pub async fn start(option: StartServerOption) -> Self {
-        let web_server = WebServer {
+    pub async fn start(option: StartServerOption) -> Arc<Self> {
+        let web_server = Arc::new(WebServer {
             sockets: Arc::new(Mutex::new(HashMap::new())),
-        };
+            cached_error_messages: RwLock::new(Vec::new()),
+        });
 
         let redirect_to_index_html =
             warp::path::end().map(|| warp::redirect(Uri::from_static("index.html")));
@@ -66,22 +65,24 @@ impl WebServer {
 
         let serve_engine = warp::path("engine").and(warp::fs::dir(get_engine_dir()));
 
-        let sockets = web_server
-            .sockets
-            .clone();
+        let web_server_clone = web_server.clone();
         let handle_websocket = warp::path("hotReload")
             .and(warp::ws())
             .map(move |ws: ws::Ws| {
-                let sockets = sockets.clone();
+                let web_server = web_server_clone.clone();
                 ws.on_upgrade(|websocket| async move {
                     let id = nanoid!();
                     let (sender, mut receiver) = unbounded::<Message>();
                     {
-                        let mut sockets = sockets
+                        let mut sockets = web_server
+                            .sockets
                             .lock()
                             .await;
                         (*sockets).insert(id.clone(), sender);
                     }
+                    web_server
+                        .send_cached_error_messages(&id)
+                        .await;
 
                     let (mut tx, mut rx) = websocket.split();
                     spawn(async move {
@@ -116,7 +117,8 @@ impl WebServer {
                         }
                     }
 
-                    let mut sockets = sockets
+                    let mut sockets = web_server
+                        .sockets
                         .lock()
                         .await;
                     (*sockets).remove(&id);
@@ -142,6 +144,11 @@ impl WebServer {
             .sockets
             .lock()
             .await;
+        let mut cached_error_messages = self
+            .cached_error_messages
+            .write()
+            .await;
+        *cached_error_messages = error_messages.clone();
         for (id, socket) in sockets.iter_mut() {
             if let Err(error) = socket
                 .send(Message::text(
@@ -154,6 +161,30 @@ impl WebServer {
             {
                 eprintln!("channel send error while(channel -> websocket:{}).\n  {:?}", id, error);
             }
+        }
+    }
+
+    pub async fn send_cached_error_messages(&self, id: &String) {
+        let mut sockets = self
+            .sockets
+            .lock()
+            .await;
+        let error_messages = self
+            .cached_error_messages
+            .read()
+            .await;
+        match sockets.get_mut(id) {
+            Some(socket) => {
+                let _ = socket
+                    .send(Message::text(
+                        serde_json::to_string(&WebsocketMessage::Error {
+                            error_messages: error_messages.clone(),
+                        })
+                        .unwrap(),
+                    ))
+                    .await;
+            }
+            None => eprintln!("socket id {} not found", id),
         }
     }
 

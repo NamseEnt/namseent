@@ -15,14 +15,11 @@ pub async fn build(target_dir: Option<&str>, watch: bool) {
     let root_dir = get_root_dir(target_dir);
     let bundle = Arc::new(RwLock::new(Bundle::new()));
 
-    let web_server = Arc::new(
-        WebServer::start(StartServerOption {
-            port: PORT,
-            bundle: bundle.clone(),
-            on_connected: || {},
-        })
-        .await,
-    );
+    let web_server = WebServer::start(StartServerOption {
+        port: PORT,
+        bundle: bundle.clone(),
+    })
+    .await;
 
     let _ = webbrowser::open(format!("http://localhost:{}", PORT).as_str());
     print_server_address(PORT);
