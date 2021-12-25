@@ -154,3 +154,10 @@ pub fn managers() -> std::sync::MutexGuard<'static, Managers> {
 pub fn log(format: String) {
     Namui::log(format);
 }
+
+#[macro_export]
+macro_rules! log {
+    ($($arg:tt)*) => {{
+        $crate::log(format!($($arg)*));
+    }}
+}
