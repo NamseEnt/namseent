@@ -61,10 +61,7 @@ pub async fn start<TProps>(
     let mut event_count = 0;
 
     loop {
-        let event = event_receiver
-            .recv()
-            .await
-            .unwrap();
+        let event = event_receiver.recv().await.unwrap();
         event_count += 1;
 
         match event.downcast_ref::<NamuiEvent>() {
@@ -73,15 +70,9 @@ pub async fn start<TProps>(
 
                 rendering_tree.draw(&namui_context);
 
-                namui_context
-                    .surface
-                    .flush();
+                namui_context.surface.flush();
 
-                if namui_context
-                    .fps_info
-                    .frame_count
-                    == 0
-                {
+                if namui_context.fps_info.frame_count == 0 {
                     log(format!("event_count: {}", event_count));
                     event_count = 0;
                 }
