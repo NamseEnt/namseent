@@ -41,10 +41,11 @@ features = [
     "KeyboardEvent",
     "WheelEvent",
     "BinaryType",
-    'Headers',
-    'Request',
-    'RequestInit',
-    'RequestMode',
-    'Response',
-    "Crypto"
+    "Headers",
+    "Request",
+    "RequestInit",
+    "RequestMode",
+    "Response",
+    "Crypto",
+    "CssStyleDeclaration",
 ]

@@ -1,4 +1,4 @@
-use crate::namui::{self, namui_state::NamuiState, NamuiInternal, Xy};
+use crate::namui::{self, namui_state::NamuiState, render::MouseCursor, NamuiInternal, Xy};
 use std::sync::{Arc, RwLock};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::HtmlElement;
@@ -93,5 +93,26 @@ impl MouseManager {
         mouse_move_closure.forget();
 
         mouse_manager
+    }
+    pub fn set_mouse_cursor(&self, cursor: MouseCursor) {
+        let element = namui::window().document().unwrap().body().unwrap();
+        element
+            .style()
+            .set_property("cursor", &cursor.to_css_cursor_value())
+            .unwrap();
+    }
+}
+impl MouseCursor {
+    pub fn to_css_cursor_value(&self) -> &str {
+        match self {
+            Self::Default => "default",
+            Self::TopBottomResize => "ns-resize",
+            Self::LeftRightResize => "ew-resize",
+            Self::LeftTopRightBottomResize => "nwse-resize",
+            Self::RightTopLeftBottomResize => "nesw-resize",
+            Self::Text => "text",
+            Self::Grab => "grab",
+            Self::Move => "move",
+        }
     }
 }

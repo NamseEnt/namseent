@@ -10,8 +10,8 @@ pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, 
 pub use namui_common::*;
 pub use render::{
     clip, image::*, path::*, rect::*, text::*, text_input_event, translate, types::*, ImageSource,
-    MouseEvent, MouseEventCallback, MouseEventType, RenderingData, RenderingTree, TextInput,
-    WheelEventCallback,
+    MouseCursor, MouseEvent, MouseEventCallback, MouseEventType, RenderingData, RenderingTree,
+    TextInput, WheelEventCallback,
 };
 pub use skia::{
     types::{ClipOp, Color, PaintStyle},
@@ -71,6 +71,8 @@ pub async fn start<TProps>(
 
                 rendering_tree.draw(&namui_context);
 
+                set_mouse_cursor(&rendering_tree);
+
                 namui_context.surface.flush();
 
                 if namui_context.fps_info.frame_count == 0 {
@@ -104,6 +106,20 @@ pub async fn start<TProps>(
             }
         }
     }
+}
+
+fn set_mouse_cursor(rendering_tree: &RenderingTree) {
+    let mouse_manager = &managers().mouse_manager;
+    let mouse_xy = mouse_manager.mouse_position();
+
+    let cursor = rendering_tree
+        .get_mouse_cursor(&Xy {
+            x: mouse_xy.x as f32,
+            y: mouse_xy.y as f32,
+        })
+        .unwrap_or(MouseCursor::Default);
+
+    mouse_manager.set_mouse_cursor(cursor);
 }
 
 async fn init_font() {

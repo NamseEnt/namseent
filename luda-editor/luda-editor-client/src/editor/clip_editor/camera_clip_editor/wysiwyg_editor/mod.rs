@@ -207,22 +207,17 @@ fn render_inner_image(
             .into_ltrb(),
         ),
         namui::ClipOp::Intersect,
-        render_source_image(image, None, &container_size, camera_angle).attach_event(|builder| {
-            builder.on_mouse_down(Box::new(move |event| {
-                namui::event::send(Box::new(
-                    EditorEvent::WysiwygEditorInnerImageMouseDownEvent {
-                        mouse_xy: event.global_xy,
-                        container_size: container_size.clone(),
-                    },
-                ))
-            }))
-        }),
+        render_source_image(image, None, &container_size, camera_angle)
+            .attach_event(|builder| {
+                builder.on_mouse_down(Box::new(move |event| {
+                    namui::event::send(Box::new(
+                        EditorEvent::WysiwygEditorInnerImageMouseDownEvent {
+                            mouse_xy: event.global_xy,
+                            container_size: container_size.clone(),
+                        },
+                    ))
+                }))
+            })
+            .with_mouse_cursor(MouseCursor::Move),
     )
-    //                 onMouseIn() {
-    //                     engine.mousePointer.setCursor(Cursor.move);
-    //                 },
-    //             },
-    //         ],
-    //     );
-    // };
 }

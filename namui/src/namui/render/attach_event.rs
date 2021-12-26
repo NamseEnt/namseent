@@ -7,7 +7,7 @@ use crate::{MouseEventCallback, WheelEventCallback};
 use serde::Serialize;
 
 #[derive(Serialize, Clone)]
-pub struct AttachEvent {
+pub struct AttachEventNode {
     pub(crate) rendering_tree: Vec<RenderingTree>,
     #[serde(skip_serializing)]
     pub on_mouse_move_in: Option<MouseEventCallback>,
@@ -44,7 +44,7 @@ impl RenderingTree {
             ..Default::default()
         };
         let builder = attach_event_build(builder);
-        RenderingTree::Special(SpecialRenderingNode::AttachEvent(AttachEvent {
+        RenderingTree::Special(SpecialRenderingNode::AttachEvent(AttachEventNode {
             rendering_tree: vec![self.clone()],
             on_mouse_move_in: builder.on_mouse_move_in,
             on_mouse_move_out: builder.on_mouse_move_out,

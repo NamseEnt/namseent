@@ -1,4 +1,4 @@
-use super::{AttachEvent, Clip, Translate};
+use super::{AttachEventNode, ClipNode, MouseCursor, MouseCursorNode, TranslateNode};
 use crate::namui::{ClipOp, DrawCall, NamuiContext, Xy, *};
 use serde::Serialize;
 
@@ -22,9 +22,10 @@ pub struct RenderingData {
 }
 #[derive(Serialize, Clone)]
 pub enum SpecialRenderingNode {
-    Translate(Translate),
-    Clip(Clip),
-    AttachEvent(AttachEvent),
+    Translate(TranslateNode),
+    Clip(ClipNode),
+    AttachEvent(AttachEventNode),
+    MouseCursor(MouseCursorNode),
 }
 #[derive(Serialize, Clone)]
 pub enum RenderingTree {
@@ -32,6 +33,17 @@ pub enum RenderingTree {
     Children(Vec<RenderingTree>),
     Special(SpecialRenderingNode),
     Empty,
+}
+
+impl SpecialRenderingNode {
+    fn get_children(&self) -> &Vec<RenderingTree> {
+        match self {
+            SpecialRenderingNode::Translate(node) => &node.rendering_tree,
+            SpecialRenderingNode::Clip(node) => &node.rendering_tree,
+            SpecialRenderingNode::AttachEvent(node) => &node.rendering_tree,
+            SpecialRenderingNode::MouseCursor(node) => &node.rendering_tree,
+        }
+    }
 }
 
 impl RenderingTree {
@@ -81,40 +93,89 @@ impl RenderingTree {
                         child.draw(namui_context);
                     }
                 }
+                SpecialRenderingNode::MouseCursor(mouse_cursor) => {
+                    for child in &mouse_cursor.rendering_tree {
+                        child.draw(namui_context);
+                    }
+                }
             },
             RenderingTree::Empty => {}
         }
     }
-    pub fn call_wheel_event(&self, wheel_event: &Xy<f32>) {
+    pub fn visit(&self, callback: &dyn Fn(&Self)) {
+        callback(self);
         match self {
             RenderingTree::Children(ref children) => {
                 for child in children {
-                    child.call_wheel_event(wheel_event);
+                    child.visit(callback);
                 }
             }
-            RenderingTree::Node(rendering_data) => {}
-            RenderingTree::Special(special) => match special {
-                SpecialRenderingNode::Translate(translate) => {
-                    for child in &translate.rendering_tree {
-                        child.call_wheel_event(wheel_event);
-                    }
+            RenderingTree::Special(special) => {
+                for child in special.get_children() {
+                    child.visit(callback);
                 }
-                SpecialRenderingNode::Clip(clip) => {
-                    for child in &clip.rendering_tree {
-                        child.call_wheel_event(wheel_event);
-                    }
-                }
-                SpecialRenderingNode::AttachEvent(attach_event) => {
+            }
+            _ => {}
+        }
+    }
+    pub fn call_wheel_event(&self, wheel_event: &Xy<f32>) {
+        self.visit(&|node| {
+            if let RenderingTree::Special(special) = node {
+                if let SpecialRenderingNode::AttachEvent(attach_event) = special {
                     // NOTE : Should i check if the mouse is in the attach_event?
                     if let Some(on_wheel) = &attach_event.on_wheel {
                         on_wheel(wheel_event);
                     }
-                    for child in &attach_event.rendering_tree {
-                        child.call_wheel_event(wheel_event);
+                }
+            }
+        });
+    }
+    pub fn get_mouse_cursor(&self, xy: &Xy<f32>) -> Option<MouseCursor> {
+        match self {
+            RenderingTree::Children(ref children) => children
+                .iter()
+                .rev()
+                .find_map(|child| child.get_mouse_cursor(xy)),
+            RenderingTree::Special(special) => match special {
+                SpecialRenderingNode::Translate(translate) => {
+                    let next_xy = Xy {
+                        x: xy.x - translate.x,
+                        y: xy.y - translate.y,
+                    };
+                    translate
+                        .rendering_tree
+                        .iter()
+                        .rev()
+                        .find_map(|child| child.get_mouse_cursor(&next_xy))
+                }
+                SpecialRenderingNode::Clip(clip) => {
+                    let is_path_contains = clip.path.contains(xy);
+                    let is_xy_filtered = match clip.clip_op {
+                        ClipOp::Intersect => !is_path_contains,
+                        ClipOp::Difference => is_path_contains,
+                    };
+                    if is_xy_filtered {
+                        None
+                    } else {
+                        clip.rendering_tree
+                            .iter()
+                            .rev()
+                            .find_map(|child| child.get_mouse_cursor(&xy))
                     }
                 }
+                SpecialRenderingNode::AttachEvent(attach_event) => attach_event
+                    .rendering_tree
+                    .iter()
+                    .rev()
+                    .find_map(|child| child.get_mouse_cursor(&xy)),
+                SpecialRenderingNode::MouseCursor(mouse_cursor) => mouse_cursor
+                    .rendering_tree
+                    .iter()
+                    .rev()
+                    .find_map(|child| child.get_mouse_cursor(&xy))
+                    .or(Some(mouse_cursor.cursor.clone())),
             },
-            RenderingTree::Empty => {}
+            _ => None,
         }
     }
     pub fn call_mouse_event(&self, mouse_event_type: MouseEventType, xy: &Xy<f32>) {
@@ -132,7 +193,6 @@ impl RenderingTree {
                     child.call_mouse_event_impl(mouse_event_type, global_xy, local_xy);
                 }
             }
-            RenderingTree::Node(rendering_data) => {}
             RenderingTree::Special(special) => match special {
                 SpecialRenderingNode::Translate(translate) => {
                     let next_local_xy = Xy {
@@ -174,8 +234,13 @@ impl RenderingTree {
                         }
                     }
                 }
+                SpecialRenderingNode::MouseCursor(mouse_cursor) => {
+                    for child in &mouse_cursor.rendering_tree {
+                        child.call_mouse_event_impl(mouse_event_type, global_xy, local_xy);
+                    }
+                }
             },
-            RenderingTree::Empty => {}
+            _ => {}
         }
     }
 
@@ -209,6 +274,10 @@ impl RenderingTree {
                             .any(|child| child.is_point_in(global_xy, local_xy))
                 }
                 SpecialRenderingNode::AttachEvent(attach_event) => attach_event
+                    .rendering_tree
+                    .iter()
+                    .any(|child| child.is_point_in(global_xy, local_xy)),
+                SpecialRenderingNode::MouseCursor(mouse_cursor) => mouse_cursor
                     .rendering_tree
                     .iter()
                     .any(|child| child.is_point_in(global_xy, local_xy)),
