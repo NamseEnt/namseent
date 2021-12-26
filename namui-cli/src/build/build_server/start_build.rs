@@ -1,10 +1,9 @@
 use futures::executor::block_on;
-use namui::build::types::ErrorMessage;
 use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
 use std::{fs::File, io::Read, sync::Arc, thread, time::Duration};
 use tokio::sync::RwLock;
 
-use crate::build::{bundle::Bundle, web_server::WebServer};
+use crate::build::{bundle::Bundle, types::ErrorMessage, web_server::WebServer};
 
 use super::{
     run_cargo_build::run_cargo_build,
@@ -53,24 +52,15 @@ pub async fn start_build<'a>(option: StartBuildOption) {
             true => {
                 rebuild(
                     option.callback,
-                    option
-                        .bundle
-                        .clone(),
-                    option
-                        .web_server
-                        .clone(),
-                    option
-                        .manifest_path
-                        .clone(),
+                    option.bundle.clone(),
+                    option.web_server.clone(),
+                    option.manifest_path.clone(),
                 )
                 .await;
                 should_rebuild = false;
             }
             false => 'await_file_change_event: loop {
-                match thread_receiver
-                    .recv()
-                    .await
-                {
+                match thread_receiver.recv().await {
                     Some(event) => match event {
                         DebouncedEvent::Create(_)
                         | DebouncedEvent::Remove(_)
@@ -107,9 +97,7 @@ async fn rebuild(
     web_server: Arc<WebServer>,
     manifest_path: String,
 ) {
-    let mut bundle = bundle
-        .write()
-        .await;
+    let mut bundle = bundle.write().await;
     let build_result = run_cargo_build(manifest_path);
 
     if build_result.is_successful {
@@ -154,9 +142,7 @@ async fn rebuild(
                             js: js_buffer,
                             wasm: wasm_buffer,
                         };
-                        web_server
-                            .request_reload()
-                            .await;
+                        web_server.request_reload().await;
                     }
                 }
                 Err(error) => {

@@ -1,17 +1,18 @@
+use crate::build::{
+    bundle::Bundle,
+    types::{ErrorMessage, WebsocketMessage},
+};
 use futures::{
     channel::mpsc::{unbounded, UnboundedSender},
     executor::block_on,
     lock::Mutex,
     SinkExt, StreamExt,
 };
-use namui::build::types::{ErrorMessage, WebsocketMessage};
 use nanoid::nanoid;
 use std::{collections::HashMap, env::current_exe, path::PathBuf, sync::Arc};
 use tokio::{spawn, sync::RwLock};
 use warp::ws;
 use warp::{http::response, hyper::Uri, ws::Message, Filter};
-
-use crate::build::bundle::Bundle;
 
 pub struct StartServerOption {
     pub port: u16,
@@ -33,14 +34,10 @@ impl WebServer {
         let redirect_to_index_html =
             warp::path::end().map(|| warp::redirect(Uri::from_static("index.html")));
 
-        let bundle = option
-            .bundle
-            .clone();
+        let bundle = option.bundle.clone();
         let serve_wasm_bundle = warp::path("bundle_bg.wasm").map(
             move || -> Result<warp::hyper::Response<Vec<u8>>, warp::http::Error> {
-                let bundle = block_on(bundle.read())
-                    .wasm
-                    .clone();
+                let bundle = block_on(bundle.read()).wasm.clone();
 
                 response::Builder::new()
                     .header("Content-Type", "application/wasm")
@@ -48,14 +45,10 @@ impl WebServer {
             },
         );
 
-        let bundle = option
-            .bundle
-            .clone();
+        let bundle = option.bundle.clone();
         let serve_js_bundle = warp::path("bundle.js").map(
             move || -> Result<warp::hyper::Response<Vec<u8>>, warp::http::Error> {
-                let bundle = block_on(bundle.read())
-                    .js
-                    .clone();
+                let bundle = block_on(bundle.read()).js.clone();
 
                 response::Builder::new()
                     .header("Content-Type", "text/javascript")
@@ -74,28 +67,17 @@ impl WebServer {
                     let id = nanoid!();
                     let (sender, mut receiver) = unbounded::<Message>();
                     {
-                        let mut sockets = web_server
-                            .sockets
-                            .lock()
-                            .await;
+                        let mut sockets = web_server.sockets.lock().await;
                         (*sockets).insert(id.clone(), sender);
                     }
-                    web_server
-                        .send_cached_error_messages(&id)
-                        .await;
+                    web_server.send_cached_error_messages(&id).await;
 
                     let (mut tx, mut rx) = websocket.split();
                     spawn(async move {
                         loop {
-                            match receiver
-                                .next()
-                                .await
-                            {
+                            match receiver.next().await {
                                 Some(message) => {
-                                    if let Err(error) = tx
-                                        .send(message)
-                                        .await
-                                    {
+                                    if let Err(error) = tx.send(message).await {
                                         eprintln!("websocket send fail.\n  {:?}", error);
                                     }
                                 }
@@ -108,19 +90,13 @@ impl WebServer {
                     });
 
                     loop {
-                        match rx
-                            .next()
-                            .await
-                        {
+                        match rx.next().await {
                             Some(_) => (),
                             None => break,
                         }
                     }
 
-                    let mut sockets = web_server
-                        .sockets
-                        .lock()
-                        .await;
+                    let mut sockets = web_server.sockets.lock().await;
                     (*sockets).remove(&id);
                 })
             });
@@ -140,14 +116,8 @@ impl WebServer {
     }
 
     pub async fn send_error_messages(&self, error_messages: &Vec<ErrorMessage>) {
-        let mut sockets = self
-            .sockets
-            .lock()
-            .await;
-        let mut cached_error_messages = self
-            .cached_error_messages
-            .write()
-            .await;
+        let mut sockets = self.sockets.lock().await;
+        let mut cached_error_messages = self.cached_error_messages.write().await;
         *cached_error_messages = error_messages.clone();
         for (id, socket) in sockets.iter_mut() {
             if let Err(error) = socket
@@ -159,20 +129,17 @@ impl WebServer {
                 ))
                 .await
             {
-                eprintln!("channel send error while(channel -> websocket:{}).\n  {:?}", id, error);
+                eprintln!(
+                    "channel send error while(channel -> websocket:{}).\n  {:?}",
+                    id, error
+                );
             }
         }
     }
 
     pub async fn send_cached_error_messages(&self, id: &String) {
-        let mut sockets = self
-            .sockets
-            .lock()
-            .await;
-        let error_messages = self
-            .cached_error_messages
-            .read()
-            .await;
+        let mut sockets = self.sockets.lock().await;
+        let error_messages = self.cached_error_messages.read().await;
         match sockets.get_mut(id) {
             Some(socket) => {
                 let _ = socket
@@ -189,16 +156,18 @@ impl WebServer {
     }
 
     pub async fn request_reload(&self) {
-        let mut sockets = self
-            .sockets
-            .lock()
-            .await;
+        let mut sockets = self.sockets.lock().await;
         for (id, socket) in sockets.iter_mut() {
             if let Err(error) = socket
-                .send(Message::text(serde_json::to_string(&WebsocketMessage::Reload {}).unwrap()))
+                .send(Message::text(
+                    serde_json::to_string(&WebsocketMessage::Reload {}).unwrap(),
+                ))
                 .await
             {
-                eprintln!("channel send error while(channel -> websocket:{}).\n  {:?}", id, error);
+                eprintln!(
+                    "channel send error while(channel -> websocket:{}).\n  {:?}",
+                    id, error
+                );
             }
         }
     }

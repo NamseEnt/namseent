@@ -6,12 +6,16 @@ use crate::build::{
     web_server::{StartServerOption, WebServer},
 };
 use cargo_metadata::MetadataCommand;
-use namui::build::types::ErrorMessage;
 use std::{env::current_dir, path::PathBuf, sync::Arc};
 use tokio::sync::RwLock;
 
+use super::types::ErrorMessage;
+
 pub async fn build(target_dir: Option<&str>, watch: bool) {
-    assert!(watch, "for now, only watch mode is supported. please use --watch option.");
+    assert!(
+        watch,
+        "for now, only watch mode is supported. please use --watch option."
+    );
     let root_dir = get_root_dir(target_dir);
     let bundle = Arc::new(RwLock::new(Bundle::new()));
 
