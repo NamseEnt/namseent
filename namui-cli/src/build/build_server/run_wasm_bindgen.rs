@@ -21,11 +21,7 @@ pub fn run_wasm_bindgen(
     option: RunWasmBindgenOption,
 ) -> Result<RunWasmBindgenResult, RunWasmBindgenError> {
     let mut out_dir = PathBuf::from(&option.wasm_path);
-    let file_name = out_dir
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .to_string();
+    let file_name = out_dir.file_name().unwrap().to_string_lossy().to_string();
     let file_name = String::from(&file_name[..file_name.len() - 5]);
     out_dir.pop();
 
@@ -38,9 +34,7 @@ pub fn run_wasm_bindgen(
         .to_string_lossy()
         .to_string();
 
-    let out_dir = out_dir
-        .to_str()
-        .unwrap();
+    let out_dir = out_dir.to_str().unwrap();
 
     let command = Command::new("wasm-bindgen")
         .args([
@@ -51,9 +45,7 @@ pub fn run_wasm_bindgen(
             "bundle",
             "--out-dir",
             out_dir,
-            option
-                .wasm_path
-                .as_str(),
+            option.wasm_path.as_str(),
         ])
         .stdout(Stdio::piped())
         .spawn();
