@@ -38,7 +38,7 @@ pub async fn build(target_dir: Option<&str>, watch: bool) {
         .to_string();
     start_build(StartBuildOption {
         callback: |option| {
-            print_build_result(&option.error_messages);
+            print_build_result(&option.error_messages, &option.cli_error_messages);
             print_server_address(PORT);
         },
         watch_dir,
@@ -49,13 +49,13 @@ pub async fn build(target_dir: Option<&str>, watch: bool) {
     .await;
 }
 
-fn print_build_result(error_messages: &Vec<ErrorMessage>) {
+fn print_build_result(error_messages: &Vec<ErrorMessage>, cli_error_messages: &Vec<String>) {
     clear_console();
-    if error_messages.is_empty() {
+    if error_messages.is_empty() && cli_error_messages.is_empty() {
         println!("No errors");
         return;
     }
-    println!("Errors {}", error_messages.len());
+    println!("Errors {}", error_messages.len() + cli_error_messages.len());
     for error_message in error_messages {
         println!(
             "{}\n\t--> {}:{}:{}\n",
@@ -64,6 +64,9 @@ fn print_build_result(error_messages: &Vec<ErrorMessage>) {
             error_message.line,
             error_message.column
         );
+    }
+    for error_message in cli_error_messages {
+        println!("{}\n", error_message);
     }
 }
 

@@ -11,6 +11,7 @@ use super::{
 };
 
 pub struct RebuildCallbackOption {
+    pub cli_error_messages: Vec<String>,
     pub error_messages: Vec<ErrorMessage>,
     pub result_path: Option<String>,
 }
@@ -99,6 +100,7 @@ async fn rebuild(
 ) {
     let mut bundle = bundle.write().await;
     let build_result = run_cargo_build(manifest_path);
+    let mut cli_error_messages: Vec<String> = Vec::new();
 
     if build_result.is_successful {
         if let Some(result_path) = &build_result.result_path {
@@ -111,12 +113,16 @@ async fn rebuild(
                         Ok(mut js_file) => match js_file.read_to_end(&mut js_buffer) {
                             Ok(_) => true,
                             Err(error) => {
-                                eprintln!("failed to read js. try changing the source file to rebuild.\n  {:?}", error);
+                                let cli_error_message = format!("failed to read js. try changing the source file to rebuild.\n  {:?}", error);
+                                eprintln!("{}", cli_error_message);
+                                cli_error_messages.push(cli_error_message);
                                 false
                             }
                         },
                         Err(error) => {
-                            eprintln!("failed to open js. try changing the source file to rebuild.\n  {:?}", error);
+                            let cli_error_message = format!("failed to open js. try changing the source file to rebuild.\n  {:?}", error);
+                            eprintln!("{}", cli_error_message);
+                            cli_error_messages.push(cli_error_message);
                             false
                         }
                     };
@@ -126,12 +132,16 @@ async fn rebuild(
                         Ok(mut wasm_file) => match wasm_file.read_to_end(&mut wasm_buffer) {
                             Ok(_) => true,
                             Err(error) => {
-                                eprintln!("failed to read wasm. try changing the source file to rebuild.\n  {:?}", error);
+                                let cli_error_message = format!("failed to read wasm. try changing the source file to rebuild.\n  {:?}", error);
+                                eprintln!("{}", cli_error_message);
+                                cli_error_messages.push(cli_error_message);
                                 false
                             }
                         },
                         Err(error) => {
-                            eprintln!("failed to open wasm. try changing the source file to rebuild.\n  {:?}", error);
+                            let cli_error_message = format!("failed to open wasm. try changing the source file to rebuild.\n  {:?}", error);
+                            eprintln!("{}", cli_error_message);
+                            cli_error_messages.push(cli_error_message);
                             false
                         }
                     };
@@ -146,7 +156,9 @@ async fn rebuild(
                     }
                 }
                 Err(error) => {
-                    eprintln!("{:?}", error);
+                    let cli_error_message = format!("{:?}", error);
+                    eprintln!("{}", cli_error_message);
+                    cli_error_messages.push(cli_error_message);
                 }
             }
         }
@@ -157,6 +169,7 @@ async fn rebuild(
         .await;
 
     callback(RebuildCallbackOption {
+        cli_error_messages,
         error_messages: build_result.error_messages,
         result_path: build_result.result_path,
     })
