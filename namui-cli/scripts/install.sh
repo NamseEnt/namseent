@@ -1,5 +1,17 @@
 #!/bin/sh
 
+cargo --version
+if [ $? -ne 0 ]; then
+    echo "Cargo command execution failed. Is there a cargo installed?"
+    exit 4
+fi
+
+wasm-pack --version
+if [ $? -ne 0 ]; then
+    echo "Wasm-pack command execution failed. Is there a wasm-pack installed?\nIf not, install it with \"cargo install wasm-pack\"."
+    exit 5
+fi
+
 BIN_DIR="$HOME/.cargo/bin"
 if [ ! -d $BIN_DIR ]; then
     echo "Could not find dir \"$BIN_DIR\". Is there a cargo installed?"
