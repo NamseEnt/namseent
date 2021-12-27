@@ -10,21 +10,18 @@ pub struct CargoBuildResult {
     pub warning_messages: Vec<ErrorMessage>,
     pub error_messages: Vec<ErrorMessage>,
     pub other_messages: Vec<ErrorMessage>,
-    pub result_path: Option<String>,
     pub is_successful: bool,
 }
 
-pub fn run_cargo_build(manifest_path: String) -> CargoBuildResult {
+pub fn run_cargo_check(manifest_path: String) -> CargoBuildResult {
     let mut warning_messages: Vec<ErrorMessage> = Vec::new();
     let mut error_messages: Vec<ErrorMessage> = Vec::new();
     let mut other_messages: Vec<ErrorMessage> = Vec::new();
-    let mut result_path: Option<String> = None;
     let mut is_successful: bool = false;
 
     let mut command = Command::new("cargo")
         .args([
-            "build",
-            "--frozen",
+            "check",
             "--target",
             "wasm32-unknown-unknown",
             "--message-format",
@@ -48,14 +45,6 @@ pub fn run_cargo_build(manifest_path: String) -> CargoBuildResult {
                 }
                 _ => other_messages.push(convert_compiler_message_to_namui_error_message(&message)),
             },
-            Message::CompilerArtifact(artifact) => {
-                for file in artifact.filenames {
-                    let file = String::from(file.to_string_lossy());
-                    if file.ends_with(".wasm") {
-                        result_path = Some(file);
-                    }
-                }
-            }
             Message::BuildFinished(finished) => {
                 is_successful = finished.success;
             }
@@ -66,7 +55,6 @@ pub fn run_cargo_build(manifest_path: String) -> CargoBuildResult {
         warning_messages,
         error_messages,
         other_messages,
-        result_path,
         is_successful,
     }
 }

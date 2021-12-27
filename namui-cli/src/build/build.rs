@@ -45,6 +45,7 @@ pub async fn build(target_dir: Option<&str>, watch: bool) {
         bundle: bundle.clone(),
         web_server: web_server.clone(),
         manifest_path,
+        root_dir: String::from(root_dir.to_string_lossy()),
     })
     .await;
 }
