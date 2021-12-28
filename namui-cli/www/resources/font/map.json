@@ -1,0 +1,10 @@
+{
+  "Ko": {
+    "100": "resources/font/Ko/NotoSansKR-Thin.otf",
+    "300": "resources/font/Ko/NotoSansKR-Light.otf",
+    "400": "resources/font/Ko/NotoSansKR-Regular.otf",
+    "500": "resources/font/Ko/NotoSansKR-Medium.otf",
+    "700": "resources/font/Ko/NotoSansKR-Bold.otf",
+    "900": "resources/font/Ko/NotoSansKR-Black.otf"
+  }
+}
