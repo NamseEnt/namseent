@@ -1,6 +1,8 @@
+use self::resizer::{Resizer, ResizerProps};
 use crate::editor::{events::EditorEvent, job::Job, types::*};
 use namui::prelude::*;
 use std::sync::Arc;
+pub mod resizer;
 
 pub struct WysiwygEditor {}
 
@@ -28,6 +30,11 @@ impl WysiwygEditor {
                 job.move_camera_angle(&mut camera_angle);
                 camera_angle
             }
+            Some(Job::WysiwygResizeImage(job)) => {
+                let mut camera_angle = props.camera_angle.clone();
+                job.resize_camera_angle(&mut camera_angle);
+                camera_angle
+            }
             _ => props.camera_angle.clone(),
         };
 
@@ -44,6 +51,18 @@ impl WysiwygEditor {
             return RenderingTree::Empty;
         }
         let image = image.unwrap();
+
+        let image_size = image.size();
+        let source_rect = get_rect_in_container(
+            &camera_angle.source_01_circumscribed,
+            &image_size,
+            &container_size,
+        );
+        let dest_rect = get_rect_in_container(
+            &camera_angle.dest_01_circumscribed,
+            &image_size,
+            &container_size,
+        );
 
         translate(
             props.xywh.x,
@@ -64,62 +83,27 @@ impl WysiwygEditor {
                     },
                     ..Default::default()
                 }),
-                render_outer_image(image.clone(), camera_angle, &container_size),
-                render_inner_image(image.clone(), camera_angle, &container_size),
-                // Resizer(state, { containerSize, imageSource }),
+                render_outer_image(image.clone(), &source_rect, &dest_rect),
+                render_inner_image(image.clone(), &source_rect, &dest_rect, &container_size),
+                Resizer::new().render(&ResizerProps {
+                    camera_angle: &camera_angle,
+                    source_rect: &source_rect,
+                    container_size: &container_size,
+                }),
                 // Croper(state),
             ],
         )
     }
 }
 
-// function getImageSource(
-//     state: CameraAngleEditorState,
-// ): ImageSource | undefined {
-//     if (state.wysiwygEditor.resizer.source) {
-//         return state.wysiwygEditor.resizer.source;
-//     }
-
-//     const image = engine.imageLoad.tryLoad(state.cameraAngle.imageSourceUrl);
-//     if (image) {
-//         const widthHeightRatio = image.width() / image.height();
-//         state.wysiwygEditor.resizer.source = {
-//             widthHeightRatio,
-//         };
-
-//         return state.wysiwygEditor.resizer.source;
-//     }
-
-//     return;
-// }
-
-// function keepWidthHeightRatio(
-//     state: CameraAngleEditorState,
-//     imageSource: ImageSource,
-// ) {
-//     const { widthHeightRatio } = imageSource;
-//     const screenWhRatio = 16 / 9;
-
-//     if (widthHeightRatio > 1) {
-//         state.cameraAngle.source01Rect.height =
-//             (state.cameraAngle.source01Rect.width * screenWhRatio) / widthHeightRatio;
-//     } else {
-//         state.cameraAngle.source01Rect.width =
-//             (state.cameraAngle.source01Rect.height / screenWhRatio) *
-//             widthHeightRatio;
-//     }
-// }
-
-fn get_rect_in_container(
-    point_rect_length_ratio: &PointRectLengthRatio,
+pub fn get_rect_in_container(
+    circumscribed_01: &Circumscribed,
     image_size: &Wh<f32>,
     container_size: &Wh<f32>,
 ) -> XywhRect<f32> {
-    let length_of_container_rect =
-        (container_size.width.powf(2.0) + container_size.height.powf(2.0)).sqrt();
-    let length_of_result_rect = point_rect_length_ratio.rect_length * length_of_container_rect;
+    let length_of_result_rect = circumscribed_01.radius * 2.0 * container_size.length();
 
-    let image_size_length = (image_size.width.powf(2.0) + image_size.height.powf(2.0)).sqrt();
+    let image_size_length = image_size.length();
     let image_width_length_ratio = image_size.width / image_size_length;
     let image_height_length_ratio = image_size.height / image_size_length;
 
@@ -127,8 +111,8 @@ fn get_rect_in_container(
     let image_height_length = image_height_length_ratio * length_of_result_rect;
 
     XywhRect {
-        x: container_size.width * point_rect_length_ratio.x,
-        y: container_size.height * point_rect_length_ratio.y,
+        x: container_size.width * circumscribed_01.center.x - image_width_length / 2.0,
+        y: container_size.height * circumscribed_01.center.y - image_height_length / 2.0,
         width: image_width_length,
         height: image_height_length,
     }
@@ -136,19 +120,10 @@ fn get_rect_in_container(
 pub fn render_source_image(
     image: Arc<Image>,
     paint: Option<Paint>,
-    container_size: &Wh<f32>,
-    camera_angle: &CameraAngle,
+    source_rect: &XywhRect<f32>,
 ) -> RenderingTree {
-    let image_info = image.get_image_info();
     namui::image(ImageParam {
-        xywh: get_rect_in_container(
-            &camera_angle.source_point_rect_length_ratio,
-            &Wh {
-                width: image_info.width,
-                height: image_info.height,
-            },
-            &container_size,
-        ),
+        xywh: *source_rect,
         style: ImageStyle {
             fit: ImageFit::Fill,
             paint,
@@ -159,8 +134,8 @@ pub fn render_source_image(
 
 fn render_outer_image(
     image: Arc<Image>,
-    camera_angle: &CameraAngle,
-    container_size: &Wh<f32>,
+    source_rect: &XywhRect<f32>,
+    dest_rect: &XywhRect<f32>,
 ) -> RenderingTree {
     let outside_image_paint = namui::Paint::new()
         .set_style(namui::PaintStyle::Fill)
@@ -168,46 +143,30 @@ fn render_outer_image(
             &Color::gary_scale_f01(0.5),
             &namui::BlendMode::Multiply,
         ));
-    let image_size = image.size();
 
     namui::clip(
-        namui::Path::new().add_rect(
-            get_rect_in_container(
-                &camera_angle.dest_point_rect_length_ratio,
-                &image_size,
-                &container_size,
-            )
-            .into_ltrb(),
-        ),
+        namui::Path::new().add_rect(dest_rect.into_ltrb()),
         namui::ClipOp::Difference,
         namui::render![render_source_image(
             image,
             Some(outside_image_paint),
-            container_size,
-            camera_angle
+            source_rect
         )],
     )
 }
 
 fn render_inner_image(
     image: Arc<Image>,
-    camera_angle: &CameraAngle,
+    source_rect: &XywhRect<f32>,
+    dest_rect: &XywhRect<f32>,
     container_size: &Wh<f32>,
 ) -> RenderingTree {
-    let image_size = image.size();
     let container_size = container_size.clone();
 
     namui::clip(
-        namui::Path::new().add_rect(
-            get_rect_in_container(
-                &camera_angle.dest_point_rect_length_ratio,
-                &image_size,
-                &container_size,
-            )
-            .into_ltrb(),
-        ),
+        namui::Path::new().add_rect(dest_rect.into_ltrb()),
         namui::ClipOp::Intersect,
-        render_source_image(image, None, &container_size, camera_angle)
+        render_source_image(image, None, &source_rect)
             .attach_event(|builder| {
                 builder.on_mouse_down(Box::new(move |event| {
                     namui::event::send(Box::new(

@@ -1,6 +1,6 @@
 use self::camera_clip_editor::{CameraClipEditor, CameraClipEditorProps};
 use super::{job::Job, types::*};
-mod camera_clip_editor;
+pub mod camera_clip_editor;
 use namui::prelude::*;
 
 pub struct ClipEditor {

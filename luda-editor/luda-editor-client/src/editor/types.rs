@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use namui::Xy;
+
 pub enum Track {
     Camera(CameraTrack),
     Subtitle(Vec<SubtitleClip>),
@@ -82,8 +84,8 @@ pub enum Clip<'a> {
 #[derive(Debug, Clone)]
 pub struct CameraAngle {
     pub character_pose_emotion: CharacterPoseEmotion,
-    pub source_point_rect_length_ratio: PointRectLengthRatio,
-    pub dest_point_rect_length_ratio: PointRectLengthRatio,
+    pub source_01_circumscribed: Circumscribed,
+    pub dest_01_circumscribed: Circumscribed,
 }
 
 pub struct SubtitleClip {
@@ -137,11 +139,10 @@ impl Sequence {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct PointRectLengthRatio {
-    pub x: f32,
-    pub y: f32,
-    pub rect_length: f32,
+#[derive(Debug, Clone, Copy)]
+pub struct Circumscribed {
+    pub center: Xy<f32>,
+    pub radius: f32,
 }
 
 pub fn get_sample_sequence() -> Sequence {
@@ -158,15 +159,13 @@ pub fn get_sample_sequence() -> Sequence {
                             "기본".to_string(),
                             "미소".to_string(),
                         ),
-                        source_point_rect_length_ratio: PointRectLengthRatio {
-                            x: 0.25,
-                            y: 0.25,
-                            rect_length: 0.5259040471894634,
+                        source_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.25, y: 0.25 },
+                            radius: 0.5259040471894634,
                         },
-                        dest_point_rect_length_ratio: PointRectLengthRatio {
-                            x: 0.0,
-                            y: 0.0,
-                            rect_length: 1.0,
+                        dest_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.0, y: 0.0 },
+                            radius: 1.0,
                         },
                     },
                 },
@@ -180,15 +179,13 @@ pub fn get_sample_sequence() -> Sequence {
                             "기본".to_string(),
                             "미소".to_string(),
                         ),
-                        source_point_rect_length_ratio: PointRectLengthRatio {
-                            x: 0.25,
-                            y: 0.25,
-                            rect_length: 0.5259040471894634,
+                        source_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.25, y: 0.25 },
+                            radius: 0.5259040471894634,
                         },
-                        dest_point_rect_length_ratio: PointRectLengthRatio {
-                            x: 0.0,
-                            y: 0.0,
-                            rect_length: 1.0,
+                        dest_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.0, y: 0.0 },
+                            radius: 1.0,
                         },
                     },
                 },
@@ -202,15 +199,13 @@ pub fn get_sample_sequence() -> Sequence {
                             "기본".to_string(),
                             "미소".to_string(),
                         ),
-                        source_point_rect_length_ratio: PointRectLengthRatio {
-                            x: 0.25,
-                            y: 0.25,
-                            rect_length: 0.5259040471894634,
+                        source_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.25, y: 0.25 },
+                            radius: 0.5259040471894634,
                         },
-                        dest_point_rect_length_ratio: PointRectLengthRatio {
-                            x: 0.0,
-                            y: 0.0,
-                            rect_length: 1.0,
+                        dest_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.0, y: 0.0 },
+                            radius: 1.0,
                         },
                     },
                 },
@@ -224,15 +219,13 @@ pub fn get_sample_sequence() -> Sequence {
                             "기본".to_string(),
                             "미소".to_string(),
                         ),
-                        source_point_rect_length_ratio: PointRectLengthRatio {
-                            x: 0.25,
-                            y: 0.25,
-                            rect_length: 0.5259040471894634,
+                        source_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.25, y: 0.25 },
+                            radius: 0.5259040471894634,
                         },
-                        dest_point_rect_length_ratio: PointRectLengthRatio {
-                            x: 0.0,
-                            y: 0.0,
-                            rect_length: 1.0,
+                        dest_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.0, y: 0.0 },
+                            radius: 1.0,
                         },
                     },
                 },
@@ -246,15 +239,13 @@ pub fn get_sample_sequence() -> Sequence {
                             "기본".to_string(),
                             "미소".to_string(),
                         ),
-                        source_point_rect_length_ratio: PointRectLengthRatio {
-                            x: 0.25,
-                            y: 0.25,
-                            rect_length: 0.5259040471894634,
+                        source_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.5, y: 0.5 },
+                            radius: 0.5259040471894634,
                         },
-                        dest_point_rect_length_ratio: PointRectLengthRatio {
-                            x: 0.0,
-                            y: 0.0,
-                            rect_length: 1.0,
+                        dest_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.0, y: 0.0 },
+                            radius: 1.0,
                         },
                     },
                 },
@@ -268,15 +259,13 @@ pub fn get_sample_sequence() -> Sequence {
                             "기본".to_string(),
                             "미소".to_string(),
                         ),
-                        source_point_rect_length_ratio: PointRectLengthRatio {
-                            x: 0.25,
-                            y: 0.25,
-                            rect_length: 0.5,
+                        source_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.25, y: 0.25 },
+                            radius: 0.25,
                         },
-                        dest_point_rect_length_ratio: PointRectLengthRatio {
-                            x: 0.2,
-                            y: 0.4,
-                            rect_length: 0.4,
+                        dest_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.2, y: 0.4 },
+                            radius: 0.4,
                         },
                     },
                 },

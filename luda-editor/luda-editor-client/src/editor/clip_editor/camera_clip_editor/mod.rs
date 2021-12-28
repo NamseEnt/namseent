@@ -1,11 +1,11 @@
-use self::{
+pub use self::{
     image_browser::{ImageBrowser, ImageBrowserProps},
     wysiwyg_editor::{WysiwygEditor, WysiwygEditorProps},
 };
 use crate::editor::{job::Job, types::*};
 use namui::prelude::*;
 mod image_browser;
-mod wysiwyg_editor;
+pub mod wysiwyg_editor;
 
 pub struct CameraClipEditor {
     image_browser: ImageBrowser,

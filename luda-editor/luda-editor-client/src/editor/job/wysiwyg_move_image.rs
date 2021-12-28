@@ -39,9 +39,9 @@ impl WysiwygMoveImageJob {
     pub fn move_camera_angle(&self, camera_angle: &mut CameraAngle) {
         let mouse_diff_xy = self.last_global_mouse_xy - self.start_global_mouse_xy;
 
-        camera_angle.source_point_rect_length_ratio.x +=
+        camera_angle.source_01_circumscribed.center.x +=
             mouse_diff_xy.x / self.container_size.width;
-        camera_angle.source_point_rect_length_ratio.y +=
+        camera_angle.source_01_circumscribed.center.y +=
             mouse_diff_xy.y / self.container_size.height;
     }
 }
