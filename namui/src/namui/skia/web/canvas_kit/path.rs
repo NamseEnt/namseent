@@ -21,17 +21,22 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn addArc(this: &CanvasKitPath, oval: js_sys::Float32Array, startAngle: AngleInDegrees, sweepAngle: AngleInDegrees) -> CanvasKitPath;
 
-    // ///
-    // /// Adds oval to Path, appending kMove_Verb, four kConic_Verb, and kClose_Verb.
-    // /// Oval is upright ellipse bounded by Rect oval with radii equal to half oval width
-    // /// and half oval height. Oval begins at start and continues clockwise by default.
-    // /// Returns the modified path for easier chaining.
-    // /// @param oval
-    // /// @param isCCW - if the path should be drawn counter-clockwise or not
-    // /// @param startIndex - index of initial point of ellipse
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn addOval(this: &CanvasKitPath, oval: js_sys::Float32Array, isCCW: Option<bool, startIndex: Option<number) -> CanvasKitPath;
+    ///
+    /// Adds oval to Path, appending kMove_Verb, four kConic_Verb, and kClose_Verb.
+    /// Oval is upright ellipse bounded by Rect oval with radii equal to half oval width
+    /// and half oval height. Oval begins at start and continues clockwise by default.
+    /// Returns the modified path for easier chaining.
+    /// @param oval
+    /// @param isCCW - if the path should be drawn counter-clockwise or not
+    /// @param startIndex - index of initial point of ellipse
+    ///
+    #[wasm_bindgen(method)]
+    pub fn addOval(
+        this: &CanvasKitPath,
+        oval: &[f32],
+        isCCW: Option<bool>,
+        startIndex: Option<i32>,
+    ) -> CanvasKitPath;
 
     // ///
     // /// Takes 1, 2, 7, or 10 required args, where the first arg is always the path.

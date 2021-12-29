@@ -118,6 +118,19 @@ impl Path {
         self.canvas_kit_path.transform(matrix_3x3);
         self
     }
+    pub fn add_oval(self, ltrb_rect: &LtrbRect) -> Self {
+        self.canvas_kit_path.addOval(
+            &[
+                ltrb_rect.left,
+                ltrb_rect.top,
+                ltrb_rect.right,
+                ltrb_rect.bottom,
+            ],
+            None,
+            None,
+        );
+        self
+    }
 }
 
 impl Drop for Path {
