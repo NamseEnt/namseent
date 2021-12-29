@@ -45,7 +45,11 @@ impl SpecialRenderingNode {
         }
     }
 }
-
+/// NOTE
+/// Order of tree traversal is important.
+/// - draw = pre-order dfs (NLR)
+/// - events = Reverse post-order (RLN)
+/// reference: https://en.wikipedia.org/wiki/Tree_traversal
 impl RenderingTree {
     pub fn draw(&self, namui_context: &NamuiContext) {
         match self {
@@ -102,24 +106,24 @@ impl RenderingTree {
             RenderingTree::Empty => {}
         }
     }
-    pub fn visit(&self, callback: &dyn Fn(&Self)) {
-        callback(self);
+    pub fn visit_rln(&self, callback: &dyn Fn(&Self)) {
         match self {
             RenderingTree::Children(ref children) => {
-                for child in children {
-                    child.visit(callback);
-                }
+                children.iter().rev().for_each(|child| {
+                    child.visit_rln(callback);
+                });
             }
             RenderingTree::Special(special) => {
-                for child in special.get_children() {
-                    child.visit(callback);
-                }
+                special.get_children().iter().rev().for_each(|child| {
+                    child.visit_rln(callback);
+                });
             }
             _ => {}
         }
+        callback(self);
     }
     pub fn call_wheel_event(&self, wheel_event: &Xy<f32>) {
-        self.visit(&|node| {
+        self.visit_rln(&|node| {
             if let RenderingTree::Special(special) = node {
                 if let SpecialRenderingNode::AttachEvent(attach_event) = special {
                     // NOTE : Should i check if the mouse is in the attach_event?
@@ -173,7 +177,11 @@ impl RenderingTree {
                     .iter()
                     .rev()
                     .find_map(|child| child.get_mouse_cursor(&xy))
-                    .or(Some(mouse_cursor.cursor.clone())),
+                    .or(mouse_cursor
+                        .rendering_tree
+                        .iter()
+                        .any(|child| child.is_point_in(&xy))
+                        .then(|| mouse_cursor.cursor)),
             },
             _ => None,
         }
@@ -189,9 +197,9 @@ impl RenderingTree {
     ) {
         match self {
             RenderingTree::Children(ref children) => {
-                for child in children {
+                children.iter().rev().for_each(|child| {
                     child.call_mouse_event_impl(mouse_event_type, global_xy, local_xy);
-                }
+                });
             }
             RenderingTree::Special(special) => match special {
                 SpecialRenderingNode::Translate(translate) => {
@@ -199,9 +207,9 @@ impl RenderingTree {
                         x: local_xy.x - translate.x,
                         y: local_xy.y - translate.y,
                     };
-                    for child in &translate.rendering_tree {
+                    translate.rendering_tree.iter().rev().for_each(|child| {
                         child.call_mouse_event_impl(mouse_event_type, global_xy, &next_local_xy);
-                    }
+                    });
                 }
                 SpecialRenderingNode::Clip(clip) => {
                     let is_path_contains = clip.path.contains(local_xy);
@@ -210,9 +218,9 @@ impl RenderingTree {
                         ClipOp::Difference => is_path_contains,
                     };
                     if !is_xy_filtered {
-                        for child in &clip.rendering_tree {
+                        clip.rendering_tree.iter().rev().for_each(|child| {
                             child.call_mouse_event_impl(mouse_event_type, global_xy, local_xy);
-                        }
+                        });
                     }
                 }
                 SpecialRenderingNode::AttachEvent(attach_event) => {
@@ -225,7 +233,7 @@ impl RenderingTree {
                         if attach_event
                             .rendering_tree
                             .iter()
-                            .any(|child| child.is_point_in(global_xy, local_xy))
+                            .any(|child| child.is_point_in(local_xy))
                         {
                             func(&MouseEvent {
                                 global_xy: *global_xy,
@@ -235,20 +243,20 @@ impl RenderingTree {
                     }
                 }
                 SpecialRenderingNode::MouseCursor(mouse_cursor) => {
-                    for child in &mouse_cursor.rendering_tree {
+                    mouse_cursor.rendering_tree.iter().rev().for_each(|child| {
                         child.call_mouse_event_impl(mouse_event_type, global_xy, local_xy);
-                    }
+                    });
                 }
             },
             _ => {}
         }
     }
 
-    fn is_point_in(&self, global_xy: &Xy<f32>, local_xy: &Xy<f32>) -> bool {
+    fn is_point_in(&self, local_xy: &Xy<f32>) -> bool {
         match self {
-            RenderingTree::Children(ref children) => children
-                .iter()
-                .any(|child| child.is_point_in(global_xy, local_xy)),
+            RenderingTree::Children(ref children) => {
+                children.iter().any(|child| child.is_point_in(local_xy))
+            }
             RenderingTree::Node(rendering_data) => rendering_data.is_inside(local_xy),
             RenderingTree::Special(special) => match special {
                 SpecialRenderingNode::Translate(translate) => {
@@ -259,7 +267,7 @@ impl RenderingTree {
                     translate
                         .rendering_tree
                         .iter()
-                        .any(|child| child.is_point_in(global_xy, &next_local_xy))
+                        .any(|child| child.is_point_in(&next_local_xy))
                 }
                 SpecialRenderingNode::Clip(clip) => {
                     let is_path_contains = clip.path.contains(local_xy);
@@ -271,16 +279,16 @@ impl RenderingTree {
                         && clip
                             .rendering_tree
                             .iter()
-                            .any(|child| child.is_point_in(global_xy, local_xy))
+                            .any(|child| child.is_point_in(local_xy))
                 }
                 SpecialRenderingNode::AttachEvent(attach_event) => attach_event
                     .rendering_tree
                     .iter()
-                    .any(|child| child.is_point_in(global_xy, local_xy)),
+                    .any(|child| child.is_point_in(local_xy)),
                 SpecialRenderingNode::MouseCursor(mouse_cursor) => mouse_cursor
                     .rendering_tree
                     .iter()
-                    .any(|child| child.is_point_in(global_xy, local_xy)),
+                    .any(|child| child.is_point_in(local_xy)),
             },
             RenderingTree::Empty => false,
         }

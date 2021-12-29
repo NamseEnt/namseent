@@ -1,7 +1,7 @@
 use super::{RenderingTree, SpecialRenderingNode};
 use serde::Serialize;
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Debug, Clone, Copy)]
 pub enum MouseCursor {
     TopBottomResize,
     LeftRightResize,
