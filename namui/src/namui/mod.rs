@@ -1,13 +1,13 @@
+mod common;
 pub(crate) mod draw;
 mod font;
 mod manager;
-mod namui_common;
 use std::any::Any;
 use std::{sync::Arc, time::Duration};
 mod namui_state;
 mod skia;
+pub use common::*;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
-pub use namui_common::*;
 pub use render::{
     clip, image::*, path::*, rect::*, text::*, text_input_event, translate, types::*, ImageSource,
     MouseCursor, MouseEvent, MouseEventCallback, MouseEventType, RenderingData, RenderingTree,
@@ -172,6 +172,7 @@ pub fn log(format: String) {
 }
 
 #[macro_export]
+#[macro_use]
 macro_rules! log {
     ($($arg:tt)*) => {{
         $crate::log(format!($($arg)*));

@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_repr::*;
 use std::time::Duration;
 use strum_macros::EnumIter;
+mod xy;
+pub use xy::*;
 
 pub struct FpsInfo {
     pub fps: u16,
@@ -83,25 +85,6 @@ pub use render;
 pub type Rendering = RenderingTree;
 
 #[derive(Debug, Clone, Copy)]
-pub struct Xy<T> {
-    pub x: T,
-    pub y: T,
-}
-
-impl<T> std::ops::Sub for Xy<T>
-where
-    T: std::ops::Sub<Output = T>,
-{
-    type Output = Xy<T>;
-    fn sub(self, other: Xy<T>) -> Xy<T> {
-        Xy {
-            x: self.x - other.x,
-            y: self.y - other.y,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
 pub struct Wh<T> {
     pub width: T,
     pub height: T,
@@ -109,6 +92,16 @@ pub struct Wh<T> {
 impl<T> Wh<T> {
     pub fn new(width: T, height: T) -> Self {
         Self { width, height }
+    }
+}
+impl Wh<f32> {
+    pub fn length(&self) -> f32 {
+        (self.width * self.width + self.height * self.height).sqrt()
+    }
+}
+impl Wh<f64> {
+    pub fn length(&self) -> f64 {
+        (self.width * self.width + self.height * self.height).sqrt()
     }
 }
 

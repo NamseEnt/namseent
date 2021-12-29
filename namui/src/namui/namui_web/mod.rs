@@ -1,5 +1,5 @@
+use super::common::{FpsInfo, NamuiContext, NamuiImpl};
 use super::manager::*;
-use super::namui_common::{FpsInfo, NamuiContext, NamuiImpl};
 use super::skia::{canvas_kit, CanvasKit, Surface};
 use super::Namui;
 use std::sync::{Arc, Mutex};
