@@ -145,7 +145,7 @@ fn render_outer_image(
         ));
 
     namui::clip(
-        namui::Path::new().add_rect(dest_rect.into_ltrb()),
+        namui::Path::new().add_rect(&dest_rect.into_ltrb()),
         namui::ClipOp::Difference,
         namui::render![render_source_image(
             image,
@@ -164,7 +164,7 @@ fn render_inner_image(
     let container_size = container_size.clone();
 
     namui::clip(
-        namui::Path::new().add_rect(dest_rect.into_ltrb()),
+        namui::Path::new().add_rect(&dest_rect.into_ltrb()),
         namui::ClipOp::Intersect,
         render_source_image(image, None, &source_rect)
             .attach_event(|builder| {

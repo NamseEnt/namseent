@@ -26,22 +26,16 @@ impl Path {
             canvas_kit_path,
         }
     }
-    pub fn add_rect(
-        self,
-        LtrbRect {
-            left,
-            top,
-            right,
-            bottom,
-        }: LtrbRect,
-    ) -> Self {
-        let array = js_sys::Float32Array::new_with_length(4);
-        array.set_index(0, left as f32);
-        array.set_index(1, top as f32);
-        array.set_index(2, right as f32);
-        array.set_index(3, bottom as f32);
-
-        self.canvas_kit_path.addRect(array, None);
+    pub fn add_rect(self, ltrb_rect: &LtrbRect) -> Self {
+        self.canvas_kit_path.addRect(
+            &[
+                ltrb_rect.left,
+                ltrb_rect.top,
+                ltrb_rect.right,
+                ltrb_rect.bottom,
+            ],
+            None,
+        );
 
         self
     }

@@ -53,7 +53,7 @@ impl TimelineBody {
             }),
             namui::clip(
                 namui::Path::new().add_rect(
-                    namui::XywhRect {
+                    &namui::XywhRect {
                         x: 0.0,
                         y: 0.0,
                         width: props.width,

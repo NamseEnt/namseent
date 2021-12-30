@@ -45,7 +45,7 @@ impl Scroll {
         let scroll_y = num::clamp(self.scroll_y, 0.0, (0.0_f32).max(inner_height - height));
 
         let inner = namui::clip(
-            namui::Path::new().add_rect(namui::LtrbRect {
+            namui::Path::new().add_rect(&namui::LtrbRect {
                 left: 0.0,
                 top: 0.0,
                 right: inner_width,

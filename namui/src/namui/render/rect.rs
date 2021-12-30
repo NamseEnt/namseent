@@ -139,6 +139,6 @@ pub fn rect(
 fn get_rect_path(rect: XywhRect<f32>, round: Option<RectRound>) -> namui::Path {
     match round {
         Some(round) => namui::Path::new().add_rrect(rect.into_ltrb(), round.radius, round.radius),
-        None => namui::Path::new().add_rect(rect.into_ltrb()),
+        None => namui::Path::new().add_rect(&rect.into_ltrb()),
     }
 }
