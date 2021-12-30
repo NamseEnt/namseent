@@ -1,5 +1,7 @@
 use super::{
-    clip_editor::camera_clip_editor::wysiwyg_editor::resizer::ResizerHandle,
+    clip_editor::camera_clip_editor::wysiwyg_editor::{
+        cropper::CropperHandle, resizer::ResizerHandle,
+    },
     types::ImageFilenameObject,
 };
 
@@ -28,5 +30,10 @@ pub enum EditorEvent {
         center_xy: namui::Xy<f32>,
         container_size: namui::Wh<f32>,
         image_size_ratio: namui::Wh<f32>,
+    },
+    WysiwygEditorCropperHandleMouseDownEvent {
+        mouse_xy: namui::Xy<f32>,
+        handle: CropperHandle,
+        container_size: namui::Wh<f32>,
     },
 }

@@ -4,10 +4,13 @@ mod wysiwyg_move_image;
 pub use self::wysiwyg_move_image::*;
 mod wysiwyg_resize_image;
 pub use self::wysiwyg_resize_image::*;
+mod wysiwyg_crop_image;
+pub use self::wysiwyg_crop_image::*;
 
 #[derive(Debug, Clone)]
 pub enum Job {
     MoveCameraClip(MoveCameraClipJob),
     WysiwygMoveImage(WysiwygMoveImageJob),
     WysiwygResizeImage(WysiwygResizeImageJob),
+    WysiwygCropImage(WysiwygCropImageJob),
 }

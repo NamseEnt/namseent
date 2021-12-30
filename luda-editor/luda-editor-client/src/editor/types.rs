@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use namui::Xy;
+use namui::{LtrbRect, Xy, XywhRect};
 
 pub enum Track {
     Camera(CameraTrack),
@@ -85,7 +85,7 @@ pub enum Clip<'a> {
 pub struct CameraAngle {
     pub character_pose_emotion: CharacterPoseEmotion,
     pub source_01_circumscribed: Circumscribed,
-    pub dest_01_circumscribed: Circumscribed,
+    pub crop_screen_01_rect: LtrbRect,
 }
 
 pub struct SubtitleClip {
@@ -163,9 +163,11 @@ pub fn get_sample_sequence() -> Sequence {
                             center: Xy { x: 0.25, y: 0.25 },
                             radius: 0.5259040471894634,
                         },
-                        dest_01_circumscribed: Circumscribed {
-                            center: Xy { x: 0.0, y: 0.0 },
-                            radius: 1.0,
+                        crop_screen_01_rect: LtrbRect {
+                            left: 0.0,
+                            top: 0.0,
+                            right: 1.0,
+                            bottom: 1.0,
                         },
                     },
                 },
@@ -183,9 +185,11 @@ pub fn get_sample_sequence() -> Sequence {
                             center: Xy { x: 0.25, y: 0.25 },
                             radius: 0.5259040471894634,
                         },
-                        dest_01_circumscribed: Circumscribed {
-                            center: Xy { x: 0.0, y: 0.0 },
-                            radius: 1.0,
+                        crop_screen_01_rect: LtrbRect {
+                            left: 0.0,
+                            top: 0.0,
+                            right: 1.0,
+                            bottom: 1.0,
                         },
                     },
                 },
@@ -203,9 +207,11 @@ pub fn get_sample_sequence() -> Sequence {
                             center: Xy { x: 0.25, y: 0.25 },
                             radius: 0.5259040471894634,
                         },
-                        dest_01_circumscribed: Circumscribed {
-                            center: Xy { x: 0.0, y: 0.0 },
-                            radius: 1.0,
+                        crop_screen_01_rect: LtrbRect {
+                            left: 0.0,
+                            top: 0.0,
+                            right: 1.0,
+                            bottom: 1.0,
                         },
                     },
                 },
@@ -223,9 +229,11 @@ pub fn get_sample_sequence() -> Sequence {
                             center: Xy { x: 0.25, y: 0.25 },
                             radius: 0.5259040471894634,
                         },
-                        dest_01_circumscribed: Circumscribed {
-                            center: Xy { x: 0.0, y: 0.0 },
-                            radius: 1.0,
+                        crop_screen_01_rect: LtrbRect {
+                            left: 0.0,
+                            top: 0.0,
+                            right: 1.0,
+                            bottom: 1.0,
                         },
                     },
                 },
@@ -243,9 +251,11 @@ pub fn get_sample_sequence() -> Sequence {
                             center: Xy { x: 0.5, y: 0.5 },
                             radius: 0.5259040471894634,
                         },
-                        dest_01_circumscribed: Circumscribed {
-                            center: Xy { x: 0.0, y: 0.0 },
-                            radius: 1.0,
+                        crop_screen_01_rect: LtrbRect {
+                            left: 0.5,
+                            top: 0.5,
+                            right: 1.0,
+                            bottom: 1.0,
                         },
                     },
                 },
@@ -263,9 +273,11 @@ pub fn get_sample_sequence() -> Sequence {
                             center: Xy { x: 0.25, y: 0.25 },
                             radius: 0.25,
                         },
-                        dest_01_circumscribed: Circumscribed {
-                            center: Xy { x: 0.2, y: 0.4 },
-                            radius: 0.4,
+                        crop_screen_01_rect: LtrbRect {
+                            left: 0.2,
+                            top: 0.4,
+                            right: 1.0,
+                            bottom: 1.0,
                         },
                     },
                 },

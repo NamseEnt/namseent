@@ -1,7 +1,11 @@
-use self::resizer::{Resizer, ResizerProps};
+use self::{
+    cropper::{Cropper, CropperProps},
+    resizer::{Resizer, ResizerProps},
+};
 use crate::editor::{events::EditorEvent, job::Job, types::*};
 use namui::prelude::*;
 use std::sync::Arc;
+pub mod cropper;
 pub mod resizer;
 
 pub struct WysiwygEditor {}
@@ -35,6 +39,11 @@ impl WysiwygEditor {
                 job.resize_camera_angle(&mut camera_angle);
                 camera_angle
             }
+            Some(Job::WysiwygCropImage(job)) => {
+                let mut camera_angle = props.camera_angle.clone();
+                job.crop_camera_angle(&mut camera_angle);
+                camera_angle
+            }
             _ => props.camera_angle.clone(),
         };
 
@@ -58,11 +67,12 @@ impl WysiwygEditor {
             &image_size,
             &container_size,
         );
-        let dest_rect = get_rect_in_container(
-            &camera_angle.dest_01_circumscribed,
-            &image_size,
-            &container_size,
-        );
+        let dest_rect = LtrbRect {
+            left: camera_angle.crop_screen_01_rect.left * container_size.width,
+            top: camera_angle.crop_screen_01_rect.top * container_size.height,
+            right: camera_angle.crop_screen_01_rect.right * container_size.width,
+            bottom: camera_angle.crop_screen_01_rect.bottom * container_size.height,
+        };
 
         translate(
             props.xywh.x,
@@ -90,7 +100,10 @@ impl WysiwygEditor {
                     source_rect: &source_rect,
                     container_size: &container_size,
                 }),
-                // Croper(state),
+                Cropper::new().render(&CropperProps {
+                    dest_rect: &dest_rect,
+                    container_size: &container_size,
+                }),
             ],
         )
     }
@@ -135,7 +148,7 @@ pub fn render_source_image(
 fn render_outer_image(
     image: Arc<Image>,
     source_rect: &XywhRect<f32>,
-    dest_rect: &XywhRect<f32>,
+    dest_rect: &LtrbRect,
 ) -> RenderingTree {
     let outside_image_paint = namui::Paint::new()
         .set_style(namui::PaintStyle::Fill)
@@ -145,7 +158,7 @@ fn render_outer_image(
         ));
 
     namui::clip(
-        namui::Path::new().add_rect(&dest_rect.into_ltrb()),
+        namui::Path::new().add_rect(dest_rect),
         namui::ClipOp::Difference,
         namui::render![render_source_image(
             image,
@@ -158,13 +171,13 @@ fn render_outer_image(
 fn render_inner_image(
     image: Arc<Image>,
     source_rect: &XywhRect<f32>,
-    dest_rect: &XywhRect<f32>,
+    dest_rect: &LtrbRect,
     container_size: &Wh<f32>,
 ) -> RenderingTree {
     let container_size = container_size.clone();
 
     namui::clip(
-        namui::Path::new().add_rect(&dest_rect.into_ltrb()),
+        namui::Path::new().add_rect(dest_rect),
         namui::ClipOp::Intersect,
         render_source_image(image, None, &source_rect)
             .attach_event(|builder| {

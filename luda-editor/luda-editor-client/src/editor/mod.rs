@@ -10,7 +10,9 @@ use crate::editor::clip_editor::ClipEditorProps;
 use self::{
     clip_editor::ClipEditor,
     events::*,
-    job::{Job, MoveCameraClipJob, WysiwygMoveImageJob, WysiwygResizeImageJob},
+    job::{
+        Job, MoveCameraClipJob, WysiwygCropImageJob, WysiwygMoveImageJob, WysiwygResizeImageJob,
+    },
 };
 use types::*;
 mod clip_editor;
@@ -81,6 +83,20 @@ impl namui::Entity for Editor {
                         }));
                     };
                 }
+                EditorEvent::WysiwygEditorCropperHandleMouseDownEvent {
+                    mouse_xy,
+                    handle,
+                    container_size,
+                } => {
+                    if self.job.is_none() {
+                        self.job = Some(Job::WysiwygCropImage(WysiwygCropImageJob {
+                            start_global_mouse_xy: *mouse_xy,
+                            last_global_mouse_xy: *mouse_xy,
+                            handle: handle.clone(),
+                            container_size: *container_size,
+                        }));
+                    };
+                }
                 _ => {}
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
@@ -93,6 +109,9 @@ impl namui::Entity for Editor {
                         job.last_global_mouse_xy = *global_xy;
                     }
                     Some(Job::WysiwygResizeImage(ref mut job)) => {
+                        job.last_global_mouse_xy = *global_xy;
+                    }
+                    Some(Job::WysiwygCropImage(ref mut job)) => {
                         job.last_global_mouse_xy = *global_xy;
                     }
                     _ => {}
@@ -111,6 +130,11 @@ impl namui::Entity for Editor {
                             self.job = None;
                         }
                         Some(Job::WysiwygResizeImage(mut job)) => {
+                            job.last_global_mouse_xy = *global_xy;
+                            job.execute(&mut self.timeline);
+                            self.job = None;
+                        }
+                        Some(Job::WysiwygCropImage(mut job)) => {
                             job.last_global_mouse_xy = *global_xy;
                             job.execute(&mut self.timeline);
                             self.job = None;
