@@ -51,17 +51,17 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn addPath(this: &CanvasKitPath, (...args: any[]) -> CanvasKitPath | null;
 
-    // ///
-    // /// Adds contour created from array of n points, adding (count - 1) line segments.
-    // /// Contour added starts at pts[0], then adds a line for every additional point
-    // /// in pts array. If close is true, appends kClose_Verb to Path, connecting
-    // /// pts[count - 1] and pts[0].
-    // /// Returns the modified path for easier chaining.
-    // /// @param points
-    // /// @param close - if true, will add a line connecting last point to the first point.
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn addPoly(this: &CanvasKitPath, points: InputFlattenedPointArray, close: bool) -> CanvasKitPath;
+    ///
+    /// Adds contour created from array of n points, adding (count - 1) line segments.
+    /// Contour added starts at pts[0], then adds a line for every additional point
+    /// in pts array. If close is true, appends kClose_Verb to Path, connecting
+    /// pts[count - 1] and pts[0].
+    /// Returns the modified path for easier chaining.
+    /// @param points
+    /// @param close - if true, will add a line connecting last point to the first point.
+    ///
+    #[wasm_bindgen(method)]
+    pub fn addPoly(this: &CanvasKitPath, points: &[f32], close: bool) -> CanvasKitPath;
 
     ///
     /// Adds Rect to Path, appending kMove_Verb, three kLine_Verb, and kClose_Verb,
@@ -73,11 +73,7 @@ extern "C" {
     /// @param isCCW
     ///
     #[wasm_bindgen(method)]
-    pub fn addRect(
-        this: &CanvasKitPath,
-        rect: js_sys::Float32Array,
-        isCCW: Option<bool>,
-    ) -> CanvasKitPath;
+    pub fn addRect(this: &CanvasKitPath, rect: &[f32], isCCW: Option<bool>) -> CanvasKitPath;
 
     ///
     /// Adds rrect to Path, creating a new closed contour.

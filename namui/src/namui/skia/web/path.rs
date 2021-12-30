@@ -125,6 +125,14 @@ impl Path {
         );
         self
     }
+    pub fn add_poly(self, xy_array: &[Xy<f32>], close: bool) -> Self {
+        let array = &xy_array
+            .iter()
+            .flat_map(|xy| vec![xy.x, xy.y])
+            .collect::<Vec<f32>>();
+        self.canvas_kit_path.addPoly(array, close);
+        self
+    }
 }
 
 impl Drop for Path {
