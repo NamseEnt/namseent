@@ -1,3 +1,4 @@
+use crate::Xy;
 use serde::{Deserialize, Serialize};
 
 pub type GlyphIds = [u16];
@@ -9,6 +10,14 @@ pub struct LtrbRect {
     pub top: f32,
     pub right: f32,
     pub bottom: f32,
+}
+impl LtrbRect {
+    pub fn center(&self) -> Xy<f32> {
+        Xy {
+            x: (self.left + self.right) / 2.0,
+            y: (self.top + self.bottom) / 2.0,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
