@@ -1,5 +1,7 @@
 use crate::editor::{
-    clip_editor::camera_clip_editor::wysiwyg_editor::resizer::{ResizerHandle, ResizerHandleType},
+    clip_editor::camera_clip_editor::wysiwyg_editor::resizer::{
+        ResizerHandle, ResizerHandleDirection,
+    },
     types::{CameraAngle, Circumscribed, Clip},
     Timeline,
 };
@@ -109,15 +111,15 @@ fn resize_by_center(
         .max_by(|a, b| a.partial_cmp(&b).unwrap())
         .unwrap();
 
-    let radius = match handle.handle_type {
-        ResizerHandleType::TopLeft
-        | ResizerHandleType::TopRight
-        | ResizerHandleType::BottomRight
-        | ResizerHandleType::BottomLeft => projected_length,
-        ResizerHandleType::Top | ResizerHandleType::Bottom => {
+    let radius = match handle.handle_direction {
+        ResizerHandleDirection::TopLeft
+        | ResizerHandleDirection::TopRight
+        | ResizerHandleDirection::BottomRight
+        | ResizerHandleDirection::BottomLeft => projected_length,
+        ResizerHandleDirection::Top | ResizerHandleDirection::Bottom => {
             projected_length / image_size_ratio.height * image_size_ratio.length()
         }
-        ResizerHandleType::Right | ResizerHandleType::Left => {
+        ResizerHandleDirection::Right | ResizerHandleDirection::Left => {
             projected_length / image_size_ratio.width * image_size_ratio.length()
         }
     };

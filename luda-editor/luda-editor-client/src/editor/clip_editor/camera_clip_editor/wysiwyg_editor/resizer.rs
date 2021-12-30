@@ -35,12 +35,12 @@ impl Resizer {
                     ..Default::default()
                 },
             }),
-            image_size_handles(props.source_rect, props.container_size),
+            render_resize_handles(props.source_rect, props.container_size),
         ]
     }
 }
 
-fn image_size_handles(source_rect: &XywhRect<f32>, container_size: &Wh<f32>) -> RenderingTree {
+fn render_resize_handles(source_rect: &XywhRect<f32>, container_size: &Wh<f32>) -> RenderingTree {
     const HANDLE_RADIUS: f32 = 5.0;
 
     RenderingTree::Children(
@@ -64,32 +64,28 @@ fn image_size_handles(source_rect: &XywhRect<f32>, container_size: &Wh<f32>) -> 
                     .set_stroke_width(2.0)
                     .set_anti_alias(true);
 
-                clip(
-                    path.clone(),
-                    ClipOp::Intersect,
-                    render![
-                        namui::path(path.clone(), fill_paint),
-                        namui::path(path, stroke_paint),
-                    ]
-                    .with_mouse_cursor(handle.cursor())
-                    .attach_event(move |builder| {
-                        let handle = handle.clone();
-                        let container_size = container_size.clone();
-                        let source_rect = source_rect.clone();
-                        builder.on_mouse_down(Box::new(move |mouse_event| {
-                            namui::event::send(Box::new(WysiwygEditorResizerHandleMouseDownEvent {
-                                handle,
-                                center_xy: source_rect.center(),
-                                mouse_xy: mouse_event.global_xy,
-                                container_size,
-                                image_size_ratio: Wh {
-                                    width: source_rect.width,
-                                    height: source_rect.height,
-                                },
-                            }))
+                render![
+                    namui::path(path.clone(), fill_paint),
+                    namui::path(path, stroke_paint),
+                ]
+                .with_mouse_cursor(handle.cursor())
+                .attach_event(move |builder| {
+                    let handle = handle.clone();
+                    let container_size = container_size.clone();
+                    let source_rect = source_rect.clone();
+                    builder.on_mouse_down(Box::new(move |mouse_event| {
+                        namui::event::send(Box::new(WysiwygEditorResizerHandleMouseDownEvent {
+                            handle,
+                            center_xy: source_rect.center(),
+                            mouse_xy: mouse_event.global_xy,
+                            container_size,
+                            image_size_ratio: Wh {
+                                width: source_rect.width,
+                                height: source_rect.height,
+                            },
                         }))
-                    }),
-                )
+                    }))
+                })
             })
             .collect::<Vec<RenderingTree>>(),
     )
@@ -98,13 +94,13 @@ fn image_size_handles(source_rect: &XywhRect<f32>, container_size: &Wh<f32>) -> 
 fn get_opposite_handle(handle: &ResizerHandle, source_rect: &XywhRect<f32>) -> ResizerHandle {
     let center_xy = source_rect.center();
     ResizerHandle {
-        handle_type: handle.handle_type.opposite(),
+        handle_direction: handle.handle_direction.opposite(),
         xy: 2.0 * center_xy - handle.xy,
     }
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum ResizerHandleType {
+pub enum ResizerHandleDirection {
     TopLeft,
     TopRight,
     BottomRight,
@@ -116,17 +112,17 @@ pub enum ResizerHandleType {
 }
 #[derive(Debug, Clone, Copy)]
 pub struct ResizerHandle {
-    pub handle_type: ResizerHandleType,
+    pub handle_direction: ResizerHandleDirection,
     pub xy: Xy<f32>,
 }
 impl ResizerHandle {
     pub fn cursor(&self) -> namui::MouseCursor {
-        self.handle_type.cursor()
+        self.handle_direction.cursor()
     }
 }
 fn get_handles(source_rect: &XywhRect<f32>) -> Vec<ResizerHandle> {
     let top_left = ResizerHandle {
-        handle_type: ResizerHandleType::TopLeft,
+        handle_direction: ResizerHandleDirection::TopLeft,
         xy: Xy {
             x: source_rect.x,
             y: source_rect.y,
@@ -134,21 +130,21 @@ fn get_handles(source_rect: &XywhRect<f32>) -> Vec<ResizerHandle> {
     };
 
     let top = ResizerHandle {
-        handle_type: ResizerHandleType::Top,
+        handle_direction: ResizerHandleDirection::Top,
         xy: Xy {
             x: source_rect.x + source_rect.width / 2.0,
             y: source_rect.y,
         },
     };
     let top_right = ResizerHandle {
-        handle_type: ResizerHandleType::TopRight,
+        handle_direction: ResizerHandleDirection::TopRight,
         xy: Xy {
             x: source_rect.x + source_rect.width,
             y: source_rect.y,
         },
     };
     let left = ResizerHandle {
-        handle_type: ResizerHandleType::Left,
+        handle_direction: ResizerHandleDirection::Left,
         xy: Xy {
             x: source_rect.x,
             y: source_rect.y + source_rect.height / 2.0,
@@ -165,29 +161,29 @@ fn get_handles(source_rect: &XywhRect<f32>) -> Vec<ResizerHandle> {
         get_opposite_handle(&top_left, &source_rect),
     ]
 }
-impl ResizerHandleType {
+impl ResizerHandleDirection {
     pub(crate) fn opposite(&self) -> Self {
         match self {
-            ResizerHandleType::TopLeft => ResizerHandleType::BottomRight,
-            ResizerHandleType::TopRight => ResizerHandleType::BottomLeft,
-            ResizerHandleType::BottomLeft => ResizerHandleType::TopRight,
-            ResizerHandleType::BottomRight => ResizerHandleType::TopLeft,
-            ResizerHandleType::Top => ResizerHandleType::Bottom,
-            ResizerHandleType::Bottom => ResizerHandleType::Top,
-            ResizerHandleType::Left => ResizerHandleType::Right,
-            ResizerHandleType::Right => ResizerHandleType::Left,
+            ResizerHandleDirection::TopLeft => ResizerHandleDirection::BottomRight,
+            ResizerHandleDirection::TopRight => ResizerHandleDirection::BottomLeft,
+            ResizerHandleDirection::BottomLeft => ResizerHandleDirection::TopRight,
+            ResizerHandleDirection::BottomRight => ResizerHandleDirection::TopLeft,
+            ResizerHandleDirection::Top => ResizerHandleDirection::Bottom,
+            ResizerHandleDirection::Bottom => ResizerHandleDirection::Top,
+            ResizerHandleDirection::Left => ResizerHandleDirection::Right,
+            ResizerHandleDirection::Right => ResizerHandleDirection::Left,
         }
     }
     pub(crate) fn cursor(&self) -> MouseCursor {
         match self {
-            ResizerHandleType::TopLeft => MouseCursor::LeftTopRightBottomResize,
-            ResizerHandleType::Top => MouseCursor::TopBottomResize,
-            ResizerHandleType::TopRight => MouseCursor::RightTopLeftBottomResize,
-            ResizerHandleType::Left => MouseCursor::LeftRightResize,
-            ResizerHandleType::Right => MouseCursor::LeftRightResize,
-            ResizerHandleType::BottomLeft => MouseCursor::RightTopLeftBottomResize,
-            ResizerHandleType::Bottom => MouseCursor::TopBottomResize,
-            ResizerHandleType::BottomRight => MouseCursor::LeftTopRightBottomResize,
+            ResizerHandleDirection::TopLeft => MouseCursor::LeftTopRightBottomResize,
+            ResizerHandleDirection::Top => MouseCursor::TopBottomResize,
+            ResizerHandleDirection::TopRight => MouseCursor::RightTopLeftBottomResize,
+            ResizerHandleDirection::Left => MouseCursor::LeftRightResize,
+            ResizerHandleDirection::Right => MouseCursor::LeftRightResize,
+            ResizerHandleDirection::BottomLeft => MouseCursor::RightTopLeftBottomResize,
+            ResizerHandleDirection::Bottom => MouseCursor::TopBottomResize,
+            ResizerHandleDirection::BottomRight => MouseCursor::LeftTopRightBottomResize,
         }
     }
 }
