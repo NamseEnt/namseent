@@ -1,4 +1,4 @@
-use crate::{namui::skia::LtrbRect, Xy};
+use crate::{namui::skia::LtrbRect, Wh, Xy};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -22,6 +22,23 @@ impl XywhRect<f32> {
         Xy {
             x: self.x + self.width / 2.0,
             y: self.y + self.height / 2.0,
+        }
+    }
+}
+impl<T> XywhRect<T>
+where
+    T: Clone,
+{
+    pub fn wh(&self) -> Wh<T> {
+        Wh {
+            width: self.width.clone(),
+            height: self.height.clone(),
+        }
+    }
+    pub fn xy(&self) -> Xy<T> {
+        Xy {
+            x: self.x.clone(),
+            y: self.y.clone(),
         }
     }
 }
