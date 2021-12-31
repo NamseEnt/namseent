@@ -1,6 +1,6 @@
-use std::rc::Rc;
-
-use namui::{LtrbRect, Xy, XywhRect};
+mod camera_angle;
+pub use camera_angle::*;
+use namui::prelude::*;
 
 pub enum Track {
     Camera(CameraTrack),
@@ -79,13 +79,6 @@ pub struct CameraClip {
 pub enum Clip<'a> {
     Camera(&'a CameraClip),
     Subtitle(SubtitleClip),
-}
-
-#[derive(Debug, Clone)]
-pub struct CameraAngle {
-    pub character_pose_emotion: CharacterPoseEmotion,
-    pub source_01_circumscribed: Circumscribed,
-    pub crop_screen_01_rect: LtrbRect,
 }
 
 pub struct SubtitleClip {
@@ -309,7 +302,17 @@ pub struct ImageFilenameObject {
     pub url: String,
 }
 
-#[derive(Debug, Clone)]
+impl ImageFilenameObject {
+    pub fn into_character_pose_emotion(&self) -> CharacterPoseEmotion {
+        CharacterPoseEmotion(
+            self.character.clone(),
+            self.pose.clone(),
+            self.emotion.clone(),
+        )
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CharacterPoseEmotion(pub String, pub String, pub String);
 
 impl CharacterPoseEmotion {
