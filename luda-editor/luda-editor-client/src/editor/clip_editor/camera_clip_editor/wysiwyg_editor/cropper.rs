@@ -41,40 +41,6 @@ impl Cropper {
 }
 
 fn render_handles(dest_rect: &LtrbRect, container_size: &Wh<f32>) -> RenderingTree {
-    //     const handles = getHandles(state);
-    //     engine.mouseEvent.onMouseMove((event) => {
-    //       const { dragging } = state.wysiwygEditor;
-    //       if (!dragging || !dragging.targetId.startsWith("crop-")) {
-    //         return;
-    //       }
-    //       const mouseVector = Vector.from(event);
-    //       const diff = mouseVector.sub(dragging.lastMousePosition);
-    //       const nextRect = getDestRect(state);
-    //       if (
-    //         dragging.targetId.includes("top") &&
-    //         Mathu.in(nextRect.y + diff.y, 0, state.layout.sub.wysiwygEditor.height)
-    //       ) {
-    //         nextRect.y += diff.y;
-    //         nextRect.height -= diff.y;
-    //       }
-    //       if (dragging.targetId.includes("bottom")) {
-    //         nextRect.height += diff.y;
-    //       }
-    //       if (
-    //         dragging.targetId.includes("left") &&
-    //         Mathu.in(nextRect.x + diff.x, 0, state.layout.sub.wysiwygEditor.width)
-    //       ) {
-    //         nextRect.x += diff.x;
-    //         nextRect.width -= diff.x;
-    //       }
-    //       if (dragging.targetId.includes("right")) {
-    //         nextRect.width += diff.x;
-    //       }
-    //       update01Rect(state, state.cameraAngle.dest01Rect, nextRect);
-
-    //       dragging.lastMousePosition = mouseVector;
-    //     });
-
     RenderingTree::Children(
         get_handles(&dest_rect)
             .iter()
