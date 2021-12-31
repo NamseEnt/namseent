@@ -28,26 +28,8 @@ impl WysiwygEditor {
             height: props.xywh.height,
         };
 
-        let camera_angle = &match &props.job {
-            Some(Job::WysiwygMoveImage(job)) => {
-                let mut camera_angle = props.camera_angle.clone();
-                job.move_camera_angle(&mut camera_angle);
-                camera_angle
-            }
-            Some(Job::WysiwygResizeImage(job)) => {
-                let mut camera_angle = props.camera_angle.clone();
-                job.resize_camera_angle(&mut camera_angle);
-                camera_angle
-            }
-            Some(Job::WysiwygCropImage(job)) => {
-                let mut camera_angle = props.camera_angle.clone();
-                job.crop_camera_angle(&mut camera_angle);
-                camera_angle
-            }
-            _ => props.camera_angle.clone(),
-        };
-
-        let image_url = camera_angle
+        let image_url = props
+            .camera_angle
             .character_pose_emotion
             .get_url(props.image_filename_objects);
         if image_url.is_none() {
@@ -63,15 +45,15 @@ impl WysiwygEditor {
 
         let image_size = image.size();
         let source_rect = get_rect_in_container(
-            &camera_angle.source_01_circumscribed,
+            &props.camera_angle.source_01_circumscribed,
             &image_size,
             &container_size,
         );
         let dest_rect = LtrbRect {
-            left: camera_angle.crop_screen_01_rect.left * container_size.width,
-            top: camera_angle.crop_screen_01_rect.top * container_size.height,
-            right: camera_angle.crop_screen_01_rect.right * container_size.width,
-            bottom: camera_angle.crop_screen_01_rect.bottom * container_size.height,
+            left: props.camera_angle.crop_screen_01_rect.left * container_size.width,
+            top: props.camera_angle.crop_screen_01_rect.top * container_size.height,
+            right: props.camera_angle.crop_screen_01_rect.right * container_size.width,
+            bottom: props.camera_angle.crop_screen_01_rect.bottom * container_size.height,
         };
 
         translate(
@@ -96,7 +78,7 @@ impl WysiwygEditor {
                 render_outer_image(image.clone(), &source_rect, &dest_rect),
                 render_inner_image(image.clone(), &source_rect, &dest_rect, &container_size),
                 Resizer::new().render(&ResizerProps {
-                    camera_angle: &camera_angle,
+                    camera_angle: &props.camera_angle,
                     source_rect: &source_rect,
                     container_size: &container_size,
                 }),
