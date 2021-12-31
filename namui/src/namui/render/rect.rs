@@ -29,16 +29,7 @@ pub struct RectParam {
     pub y: f32,
     pub width: f32,
     pub height: f32,
-    pub id: Option<String>,
     pub style: RectStyle,
-    // pub on_click: Option<MouseEventCallback>,
-    //   pub onClickOut?: MouseEventCallback,
-    //   pub onMouseIn?: () => void,
-    pub on_mouse_move_in: Option<MouseEventCallback>,
-    pub on_mouse_move_out: Option<MouseEventCallback>,
-    pub on_mouse_down: Option<MouseEventCallback>,
-    pub on_mouse_up: Option<MouseEventCallback>,
-    //   pub onAfterDraw?: (id: string) => void,
 }
 
 pub fn rect(
@@ -52,11 +43,6 @@ pub fn rect(
             fill,
             round,
         },
-        id,
-        on_mouse_move_in,
-        on_mouse_move_out,
-        on_mouse_down,
-        on_mouse_up,
         ..
     }: RectParam,
 ) -> RenderingTree {
@@ -144,11 +130,6 @@ pub fn rect(
         draw_calls: vec![DrawCall {
             commands: draw_commands,
         }],
-        id,
-        on_mouse_move_in,
-        on_mouse_move_out,
-        on_mouse_down,
-        on_mouse_up,
     }));
 
     RenderingTree::Children(rendering_tree)
@@ -158,6 +139,6 @@ pub fn rect(
 fn get_rect_path(rect: XywhRect<f32>, round: Option<RectRound>) -> namui::Path {
     match round {
         Some(round) => namui::Path::new().add_rrect(rect.into_ltrb(), round.radius, round.radius),
-        None => namui::Path::new().add_rect(rect.into_ltrb()),
+        None => namui::Path::new().add_rect(&rect.into_ltrb()),
     }
 }

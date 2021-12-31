@@ -1,20 +1,21 @@
+mod common;
 pub(crate) mod draw;
 mod font;
 mod manager;
-mod namui_common;
 use std::any::Any;
 use std::{sync::Arc, time::Duration};
 mod namui_state;
 mod skia;
+pub use common::*;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
-pub use namui_common::*;
 pub use render::{
-    clip, image::*, path::*, rect::*, text::*, text_input_event, translate, types::*, MouseEvent,
-    MouseEventCallback, MouseEventType, RenderingData, RenderingTree, TextInput,
+    clip, image::*, path::*, rect::*, text::*, text_input_event, translate, types::*, ImageSource,
+    MouseCursor, MouseEvent, MouseEventCallback, MouseEventType, RenderingData, RenderingTree,
+    TextInput, WheelEventCallback,
 };
 pub use skia::{
     types::{ClipOp, Color, PaintStyle},
-    Font, LtrbRect, Paint, Path, Typeface,
+    BlendMode, ColorFilter, Font, Image, LtrbRect, Paint, Path, Typeface,
 };
 pub mod event;
 pub use event::NamuiEvent;
@@ -70,6 +71,8 @@ pub async fn start<TProps>(
 
                 rendering_tree.draw(&namui_context);
 
+                set_mouse_cursor(&rendering_tree);
+
                 namui_context.surface.flush();
 
                 if namui_context.fps_info.frame_count == 0 {
@@ -92,12 +95,31 @@ pub async fn start<TProps>(
                 state.update(event.as_ref());
                 rendering_tree = state.render(props);
             }
+            Some(NamuiEvent::Wheel(xy)) => {
+                rendering_tree.call_wheel_event(xy);
+                state.update(event.as_ref());
+                rendering_tree = state.render(props);
+            }
             _ => {
                 state.update(event.as_ref());
                 rendering_tree = state.render(props);
             }
         }
     }
+}
+
+fn set_mouse_cursor(rendering_tree: &RenderingTree) {
+    let mouse_manager = &managers().mouse_manager;
+    let mouse_xy = mouse_manager.mouse_position();
+
+    let cursor = rendering_tree
+        .get_mouse_cursor(&Xy {
+            x: mouse_xy.x as f32,
+            y: mouse_xy.y as f32,
+        })
+        .unwrap_or(MouseCursor::Default);
+
+    mouse_manager.set_mouse_cursor(cursor);
 }
 
 async fn init_font() {
@@ -147,4 +169,12 @@ pub fn managers() -> std::sync::MutexGuard<'static, Managers> {
 
 pub fn log(format: String) {
     Namui::log(format);
+}
+
+#[macro_export]
+#[macro_use]
+macro_rules! log {
+    ($($arg:tt)*) => {{
+        $crate::log(format!($($arg)*));
+    }}
 }

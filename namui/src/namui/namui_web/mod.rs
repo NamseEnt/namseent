@@ -1,5 +1,5 @@
+use super::common::{FpsInfo, NamuiContext, NamuiImpl};
 use super::manager::*;
-use super::namui_common::{FpsInfo, NamuiContext, NamuiImpl};
 use super::skia::{canvas_kit, CanvasKit, Surface};
 use super::Namui;
 use std::sync::{Arc, Mutex};
@@ -51,6 +51,7 @@ impl NamuiImpl for Namui {
                 keyboard_manager: Box::new(KeyboardManager::new()),
                 screen_manager: Box::new(ScreenManager::new()),
                 image_manager: ImageManager::new(),
+                wheel_manager: Box::new(WheelManager::new()),
             }))
             .is_err()
         {

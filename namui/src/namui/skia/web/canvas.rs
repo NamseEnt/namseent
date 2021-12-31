@@ -19,10 +19,7 @@ impl Canvas {
     pub(crate) fn clip_path(&self, path: &Path, clip_op: &ClipOp, do_anti_alias: bool) {
         self.0.clipPath(
             &path.canvas_kit_path,
-            match clip_op {
-                ClipOp::Intersect => canvas_kit().ClipOp().Intersect(),
-                ClipOp::Difference => canvas_kit().ClipOp().Difference(),
-            },
+            clip_op.into_canvas_kit(),
             do_anti_alias,
         );
     }
@@ -56,15 +53,8 @@ impl Canvas {
             &image.canvas_kit_image,
             src_rect_lrtb_array,
             dest_rect_lrtb_array,
-            match filter_mode {
-                FilterMode::Linear => canvas_kit().FilterMode().Linear(),
-                FilterMode::Nearest => canvas_kit().FilterMode().Nearest(),
-            },
-            match mipmap_mode {
-                MipmapMode::None => canvas_kit().MipmapMode().None(),
-                MipmapMode::Linear => canvas_kit().MipmapMode().Linear(),
-                MipmapMode::Nearest => canvas_kit().MipmapMode().Nearest(),
-            },
+            filter_mode.into_canvas_kit(),
+            mipmap_mode.into_canvas_kit(),
             paint.map(|p| &p.0),
         );
     }

@@ -1,4 +1,4 @@
-use crate::editor::{events::*, types::CameraClip, Timeline};
+use crate::editor::{events::*, types::CameraClip, Timeline, TimelineRenderContext};
 use namui::prelude::*;
 
 pub struct CameraClipBody {}
@@ -6,13 +6,13 @@ pub struct CameraClipBodyProps<'a> {
     pub width: f32,
     pub height: f32,
     pub clip: &'a CameraClip,
-    pub timeline: &'a Timeline,
+    pub context: &'a TimelineRenderContext<'a>,
 }
 impl CameraClipBody {
     pub fn render(props: &CameraClipBodyProps) -> RenderingTree {
-        let x = ((props.clip.start_at - props.timeline.start_at) / props.timeline.time_per_pixel).0;
+        let x = ((props.clip.start_at - props.context.start_at) / props.context.time_per_pixel).0;
         let duration = props.clip.end_at - props.clip.start_at;
-        let width = (duration / props.timeline.time_per_pixel).0;
+        let width = (duration / props.context.time_per_pixel).0;
 
         let clip_rect = namui::XywhRect {
             x: x + 1.0,
@@ -21,12 +21,10 @@ impl CameraClipBody {
             height: props.height - 2.0,
         };
         let is_highlight = props
-            .timeline
+            .context
             .selected_clip_id
             .as_ref()
             .map_or(false, |id| id.eq(&props.clip.id));
-
-        let clip_id = props.clip.id.clone();
 
         render![namui::rect(namui::RectParam {
             x: clip_rect.x,
@@ -53,15 +51,18 @@ impl CameraClipBody {
                 round: Some(namui::RectRound { radius: 5.0 }),
                 ..Default::default()
             },
-            on_mouse_down: Some(Box::new(move |event| {
+            ..Default::default()
+        })
+        .attach_event(move |builder| {
+            let clip_id = props.clip.id.clone();
+            builder.on_mouse_down(Box::new(move |event| {
                 let event = EditorEvent::CameraClipBodyMouseDownEvent {
                     clip_id: clip_id.clone(),
                     local_mouse_xy: event.local_xy,
                     global_mouse_xy: event.global_xy,
                 };
                 namui::event::send(Box::new(event));
-            })),
-            ..Default::default()
+            }))
         })]
     }
 }

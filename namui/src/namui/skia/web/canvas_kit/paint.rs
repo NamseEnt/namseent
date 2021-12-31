@@ -8,11 +8,11 @@ extern "C" {
     #[wasm_bindgen(constructor, js_class="Paint", js_namespace = ["globalThis", "CanvasKit"])]
     pub fn new() -> CanvasKitPaint;
 
-    // ///
-    // /// Returns a copy of this paint.
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn copy(this: &CanvasKitPaint) -> Paint;
+    ///
+    /// Returns a copy of this paint.
+    ///
+    #[wasm_bindgen(method)]
+    pub fn copy(this: &CanvasKitPaint) -> CanvasKitPaint;
 
     // ///
     // /// Retrieves the alpha and RGB unpremultiplied. RGB are extended sRGB values
@@ -91,12 +91,12 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn setColorComponents(this: &CanvasKitPaint, r: number, g: number, b: number, a: number, colorSpace:Option<ColorSpace);
 
-    // ///
-    // /// Sets the current color filter, replacing the existing one if there was one.
-    // /// @param filter
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn setColorFilter(this: &CanvasKitPaint, filter: ColorFilter);
+    ///
+    /// Sets the current color filter, replacing the existing one if there was one.
+    /// @param filter
+    ///
+    #[wasm_bindgen(method)]
+    pub fn setColorFilter(this: &CanvasKitPaint, filter: &CanvasKitColorFilter);
 
     // ///
     // /// Sets the color used when stroking and filling. The color values are interpreted as being in

@@ -13,11 +13,7 @@ impl Paint {
     }
 
     pub fn set_style(self, style: PaintStyle) -> Self {
-        let canvas_kit_paint_style = match style {
-            PaintStyle::Fill => canvas_kit().PaintStyle().Fill(),
-            PaintStyle::Stroke => canvas_kit().PaintStyle().Stroke(),
-        };
-        self.0.setStyle(canvas_kit_paint_style);
+        self.0.setStyle(style.into_canvas_kit());
         self
     }
     pub fn set_anti_alias(self, value: bool) -> Self {
@@ -60,6 +56,10 @@ impl Paint {
     pub fn get_stroke_miter(&self) -> f32 {
         self.0.getStrokeMiter()
     }
+    pub fn set_color_filter(self, color_filter: &ColorFilter) -> Self {
+        self.0.setColorFilter(&color_filter.0);
+        self
+    }
 }
 
 impl Drop for Paint {
@@ -71,5 +71,11 @@ impl Drop for Paint {
 impl std::fmt::Debug for Paint {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Paint")
+    }
+}
+
+impl Clone for Paint {
+    fn clone(&self) -> Self {
+        Paint(self.0.copy())
     }
 }

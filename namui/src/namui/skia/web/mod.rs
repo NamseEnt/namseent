@@ -20,3 +20,5 @@ mod color;
 pub use color::*;
 mod image;
 pub use image::*;
+mod color_filter;
+pub use color_filter::*;

@@ -23,9 +23,7 @@ pub struct Timeline {
     pub sequence: Sequence,
     start_at: Time,
     pub time_per_pixel: TimePerPixel,
-    pub job: Option<Job>,
 }
-
 impl Timeline {
     pub fn new(sequence: Sequence) -> Self {
         Self {
@@ -35,22 +33,30 @@ impl Timeline {
             sequence,
             time_per_pixel: TimePerPixel::new(Time::ms(50), PixelSize(1.0)),
             start_at: Time::sec(0),
-            job: None,
         }
     }
 }
-
-pub struct TimelineProps {
+pub struct TimelineProps<'a> {
     pub xywh: namui::XywhRect<f32>,
     pub playback_time: chrono::Duration,
+    pub job: &'a Option<Job>,
 }
+pub struct TimelineRenderContext<'a> {
+    pub time_per_pixel: TimePerPixel,
+    pub job: &'a Option<Job>,
+    pub selected_clip_id: &'a Option<String>,
+    start_at: Time,
+}
+impl Timeline {
+    pub fn update(&mut self, event: &dyn std::any::Any) {}
 
-impl namui::Entity for Timeline {
-    type Props = TimelineProps;
-
-    fn update(&mut self, event: &dyn std::any::Any) {}
-
-    fn render(&self, props: &Self::Props) -> namui::RenderingTree {
+    pub fn render(&self, props: &TimelineProps) -> namui::RenderingTree {
+        let context = TimelineRenderContext {
+            time_per_pixel: self.time_per_pixel,
+            job: props.job,
+            selected_clip_id: &self.selected_clip_id,
+            start_at: self.start_at,
+        };
         let xywh = props.xywh;
         let body_width = xywh.width - self.header_width;
         render![
@@ -107,7 +113,7 @@ impl namui::Entity for Timeline {
                                     width: body_width,
                                     height: xywh.height,
                                     tracks: &self.sequence.tracks,
-                                    timeline: self,
+                                    context: &context,
                                 })
                             ),
                         ]

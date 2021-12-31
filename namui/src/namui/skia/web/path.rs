@@ -26,22 +26,16 @@ impl Path {
             canvas_kit_path,
         }
     }
-    pub fn add_rect(
-        self,
-        LtrbRect {
-            left,
-            top,
-            right,
-            bottom,
-        }: LtrbRect,
-    ) -> Self {
-        let array = js_sys::Float32Array::new_with_length(4);
-        array.set_index(0, left as f32);
-        array.set_index(1, top as f32);
-        array.set_index(2, right as f32);
-        array.set_index(3, bottom as f32);
-
-        self.canvas_kit_path.addRect(array, None);
+    pub fn add_rect(self, ltrb_rect: &LtrbRect) -> Self {
+        self.canvas_kit_path.addRect(
+            &[
+                ltrb_rect.left,
+                ltrb_rect.top,
+                ltrb_rect.right,
+                ltrb_rect.bottom,
+            ],
+            None,
+        );
 
         self
     }
@@ -83,20 +77,10 @@ impl Path {
                     js_sys::Reflect::set(&js_options, &"precision".into(), &precision.into());
                 }
                 if let Some(join) = options.join {
-                    let canvas_kit_stroke_join = match join {
-                        StrokeJoin::Bevel => canvas_kit().StrokeJoin().Bevel(),
-                        StrokeJoin::Miter => canvas_kit().StrokeJoin().Miter(),
-                        StrokeJoin::Round => canvas_kit().StrokeJoin().Round(),
-                    };
-                    js_sys::Reflect::set(&js_options, &"join".into(), &canvas_kit_stroke_join);
+                    js_sys::Reflect::set(&js_options, &"join".into(), &join.into_canvas_kit());
                 }
                 if let Some(cap) = options.cap {
-                    let canvas_kit_stroke_cap = match cap {
-                        StrokeCap::Butt => canvas_kit().StrokeCap().Butt(),
-                        StrokeCap::Round => canvas_kit().StrokeCap().Round(),
-                        StrokeCap::Square => canvas_kit().StrokeCap().Square(),
-                    };
-                    js_sys::Reflect::set(&js_options, &"cap".into(), &canvas_kit_stroke_cap);
+                    js_sys::Reflect::set(&js_options, &"cap".into(), &cap.into_canvas_kit());
                 }
                 js_options.into()
             }
@@ -126,6 +110,27 @@ impl Path {
     }
     pub fn transform(self, matrix_3x3: &[f32; 9]) -> Self {
         self.canvas_kit_path.transform(matrix_3x3);
+        self
+    }
+    pub fn add_oval(self, ltrb_rect: &LtrbRect) -> Self {
+        self.canvas_kit_path.addOval(
+            &[
+                ltrb_rect.left,
+                ltrb_rect.top,
+                ltrb_rect.right,
+                ltrb_rect.bottom,
+            ],
+            None,
+            None,
+        );
+        self
+    }
+    pub fn add_poly(self, xy_array: &[Xy<f32>], close: bool) -> Self {
+        let array = &xy_array
+            .iter()
+            .flat_map(|xy| vec![xy.x, xy.y])
+            .collect::<Vec<f32>>();
+        self.canvas_kit_path.addPoly(array, close);
         self
     }
 }

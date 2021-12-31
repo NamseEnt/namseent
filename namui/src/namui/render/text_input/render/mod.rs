@@ -11,7 +11,6 @@ use get_selection_on_mouse_down::get_selection_on_mouse_down;
 impl namui::Entity for TextInput {
     type Props = ();
     fn render(&self, props: &Self::Props) -> namui::RenderingTree {
-        let text_input = self.clone();
         translate(
             self.x,
             self.y,
@@ -21,19 +20,6 @@ impl namui::Entity for TextInput {
                     y: 0.0,
                     width: self.width,
                     height: self.height,
-                    id: None,
-                    on_mouse_down: Some(Box::new(move |event| {
-                        namui::log(format!(
-                            "text_input click {} {:?}",
-                            text_input.id.clone(),
-                            event.global_xy
-                        ));
-                        let selection = get_selection_on_mouse_down(event.local_xy.x, &text_input);
-                        namui::event::send(Box::new(namui::text_input_event::SelectionChanged {
-                            id: text_input.id.clone(),
-                            selection: selection.ok(),
-                        }));
-                    })),
                     style: namui::RectStyle {
                         stroke: Some(namui::RectStroke {
                             color: self.border_color,
@@ -46,6 +32,22 @@ impl namui::Entity for TextInput {
                         round: None,
                     },
                     ..Default::default()
+                })
+                .attach_event(|builder| {
+                    let text_input = self.clone();
+
+                    builder.on_mouse_down(Box::new(move |event| {
+                        namui::log(format!(
+                            "text_input click {} {:?}",
+                            text_input.id.clone(),
+                            event.global_xy
+                        ));
+                        let selection = get_selection_on_mouse_down(event.local_xy.x, &text_input);
+                        namui::event::send(Box::new(namui::text_input_event::SelectionChanged {
+                            id: text_input.id.clone(),
+                            selection: selection.ok(),
+                        }));
+                    }))
                 }),
                 draw_texts_divided_by_selection(&self)
             ],

@@ -23,7 +23,7 @@ impl Entity for TimeRuler {
             props.xywh.y,
             render![clip(
                 Path::new().add_rect(
-                    XywhRect {
+                    &XywhRect {
                         x: 0.0,
                         y: 0.0,
                         width: props.xywh.width,

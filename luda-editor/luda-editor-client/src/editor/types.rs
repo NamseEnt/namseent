@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use namui::{LtrbRect, Xy, XywhRect};
+
 pub enum Track {
     Camera(CameraTrack),
     Subtitle(Vec<SubtitleClip>),
@@ -81,9 +83,9 @@ pub enum Clip<'a> {
 
 #[derive(Debug, Clone)]
 pub struct CameraAngle {
-    pub image_source_url: String,
-    pub source_point_size: PointSize,
-    pub dest_point_size: PointSize,
+    pub character_pose_emotion: CharacterPoseEmotion,
+    pub source_01_circumscribed: Circumscribed,
+    pub crop_screen_01_rect: LtrbRect,
 }
 
 pub struct SubtitleClip {
@@ -119,13 +121,28 @@ impl Sequence {
         }
         None
     }
+
+    pub(crate) fn update_camera_clip(&mut self, id: &str, selected_camera_clip: CameraClip) {
+        for track in &mut self.tracks {
+            match track {
+                Track::Camera(track) => {
+                    for clip in &mut track.clips {
+                        if clip.id == id {
+                            *clip = selected_camera_clip;
+                            return;
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
 }
 
-#[derive(Debug, Clone)]
-pub struct PointSize {
-    pub x: f32,
-    pub y: f32,
-    pub size: f32,
+#[derive(Debug, Clone, Copy)]
+pub struct Circumscribed {
+    pub center: Xy<f32>,
+    pub radius: f32,
 }
 
 pub fn get_sample_sequence() -> Sequence {
@@ -137,16 +154,20 @@ pub fn get_sample_sequence() -> Sequence {
                     start_at: Time::sec(0),
                     end_at: Time::sec(1),
                     camera_angle: CameraAngle {
-                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                        source_point_size: PointSize {
-                            x: 0.25,
-                            y: 0.25,
-                            size: 0.5259040471894634,
+                        character_pose_emotion: CharacterPoseEmotion(
+                            "피디".to_string(),
+                            "기본".to_string(),
+                            "미소".to_string(),
+                        ),
+                        source_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.25, y: 0.25 },
+                            radius: 0.5259040471894634,
                         },
-                        dest_point_size: PointSize {
-                            x: 0.0,
-                            y: 0.0,
-                            size: 1.0,
+                        crop_screen_01_rect: LtrbRect {
+                            left: 0.0,
+                            top: 0.0,
+                            right: 1.0,
+                            bottom: 1.0,
                         },
                     },
                 },
@@ -155,16 +176,20 @@ pub fn get_sample_sequence() -> Sequence {
                     start_at: Time::sec(1),
                     end_at: Time::sec(3),
                     camera_angle: CameraAngle {
-                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                        source_point_size: PointSize {
-                            x: 0.25,
-                            y: 0.25,
-                            size: 0.5259040471894634,
+                        character_pose_emotion: CharacterPoseEmotion(
+                            "피디".to_string(),
+                            "기본".to_string(),
+                            "미소".to_string(),
+                        ),
+                        source_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.25, y: 0.25 },
+                            radius: 0.5259040471894634,
                         },
-                        dest_point_size: PointSize {
-                            x: 0.0,
-                            y: 0.0,
-                            size: 1.0,
+                        crop_screen_01_rect: LtrbRect {
+                            left: 0.0,
+                            top: 0.0,
+                            right: 1.0,
+                            bottom: 1.0,
                         },
                     },
                 },
@@ -173,16 +198,20 @@ pub fn get_sample_sequence() -> Sequence {
                     start_at: Time::sec(3),
                     end_at: Time::sec(6),
                     camera_angle: CameraAngle {
-                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                        source_point_size: PointSize {
-                            x: 0.25,
-                            y: 0.25,
-                            size: 0.5259040471894634,
+                        character_pose_emotion: CharacterPoseEmotion(
+                            "피디".to_string(),
+                            "기본".to_string(),
+                            "미소".to_string(),
+                        ),
+                        source_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.25, y: 0.25 },
+                            radius: 0.5259040471894634,
                         },
-                        dest_point_size: PointSize {
-                            x: 0.0,
-                            y: 0.0,
-                            size: 1.0,
+                        crop_screen_01_rect: LtrbRect {
+                            left: 0.0,
+                            top: 0.0,
+                            right: 1.0,
+                            bottom: 1.0,
                         },
                     },
                 },
@@ -191,16 +220,20 @@ pub fn get_sample_sequence() -> Sequence {
                     start_at: Time::sec(6),
                     end_at: Time::sec(10),
                     camera_angle: CameraAngle {
-                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                        source_point_size: PointSize {
-                            x: 0.25,
-                            y: 0.25,
-                            size: 0.5259040471894634,
+                        character_pose_emotion: CharacterPoseEmotion(
+                            "피디".to_string(),
+                            "기본".to_string(),
+                            "미소".to_string(),
+                        ),
+                        source_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.25, y: 0.25 },
+                            radius: 0.5259040471894634,
                         },
-                        dest_point_size: PointSize {
-                            x: 0.0,
-                            y: 0.0,
-                            size: 1.0,
+                        crop_screen_01_rect: LtrbRect {
+                            left: 0.0,
+                            top: 0.0,
+                            right: 1.0,
+                            bottom: 1.0,
                         },
                     },
                 },
@@ -209,16 +242,20 @@ pub fn get_sample_sequence() -> Sequence {
                     start_at: Time::sec(10),
                     end_at: Time::sec(15),
                     camera_angle: CameraAngle {
-                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                        source_point_size: PointSize {
-                            x: 0.25,
-                            y: 0.25,
-                            size: 0.5259040471894634,
+                        character_pose_emotion: CharacterPoseEmotion(
+                            "피디".to_string(),
+                            "기본".to_string(),
+                            "미소".to_string(),
+                        ),
+                        source_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.5, y: 0.5 },
+                            radius: 0.5259040471894634,
                         },
-                        dest_point_size: PointSize {
-                            x: 0.0,
-                            y: 0.0,
-                            size: 1.0,
+                        crop_screen_01_rect: LtrbRect {
+                            left: 0.5,
+                            top: 0.5,
+                            right: 1.0,
+                            bottom: 1.0,
                         },
                     },
                 },
@@ -227,16 +264,20 @@ pub fn get_sample_sequence() -> Sequence {
                     start_at: Time::sec(15),
                     end_at: Time::sec(21),
                     camera_angle: CameraAngle {
-                        image_source_url: "resources/images/피디-기본-미소.png".to_string(),
-                        source_point_size: PointSize {
-                            x: 0.25,
-                            y: 0.25,
-                            size: 0.5259040471894634,
+                        character_pose_emotion: CharacterPoseEmotion(
+                            "피디".to_string(),
+                            "기본".to_string(),
+                            "미소".to_string(),
+                        ),
+                        source_01_circumscribed: Circumscribed {
+                            center: Xy { x: 0.25, y: 0.25 },
+                            radius: 0.25,
                         },
-                        dest_point_size: PointSize {
-                            x: 0.0,
-                            y: 0.0,
-                            size: 1.0,
+                        crop_screen_01_rect: LtrbRect {
+                            left: 0.2,
+                            top: 0.4,
+                            right: 1.0,
+                            bottom: 1.0,
                         },
                     },
                 },
@@ -266,4 +307,21 @@ pub struct ImageFilenameObject {
     pub pose: String,
     pub emotion: String,
     pub url: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct CharacterPoseEmotion(pub String, pub String, pub String);
+
+impl CharacterPoseEmotion {
+    pub fn get_url(&self, image_filename_objects: &Vec<ImageFilenameObject>) -> Option<String> {
+        for image_filename_object in image_filename_objects {
+            if image_filename_object.character == self.0
+                && image_filename_object.pose == self.1
+                && image_filename_object.emotion == self.2
+            {
+                return Some(image_filename_object.url.clone());
+            }
+        }
+        None
+    }
 }

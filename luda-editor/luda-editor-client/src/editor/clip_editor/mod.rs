@@ -1,6 +1,6 @@
 use self::camera_clip_editor::{CameraClipEditor, CameraClipEditorProps};
-use super::types::*;
-mod camera_clip_editor;
+use super::{job::Job, types::*};
+pub mod camera_clip_editor;
 use namui::prelude::*;
 
 pub struct ClipEditor {
@@ -8,9 +8,9 @@ pub struct ClipEditor {
 }
 
 impl ClipEditor {
-    pub fn new(socket: &luda_editor_rpc::Socket) -> Self {
+    pub fn new() -> Self {
         Self {
-            camera_clip_editor: CameraClipEditor::new(socket),
+            camera_clip_editor: CameraClipEditor::new(),
         }
     }
 }
@@ -18,6 +18,8 @@ impl ClipEditor {
 pub struct ClipEditorProps<'a> {
     pub selected_clip: Option<Clip<'a>>,
     pub xywh: XywhRect<f32>,
+    pub image_filename_objects: &'a Vec<ImageFilenameObject>,
+    pub job: &'a Option<Job>,
 }
 
 impl ClipEditor {
@@ -32,6 +34,8 @@ impl ClipEditor {
                     self.camera_clip_editor.render(&CameraClipEditorProps {
                         camera_clip: &camera_clip,
                         xywh: props.xywh,
+                        image_filename_objects: &props.image_filename_objects,
+                        job: &props.job,
                     })
                 }
                 Clip::Subtitle(_) => todo!(),

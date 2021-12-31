@@ -21,5 +21,8 @@
         {
             "path": "./"
         }
-    ]
+    ],
+    "settings": {
+        "cSpell.words": ["resizer", "Resizer"]
+    }
 }

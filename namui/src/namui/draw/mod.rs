@@ -9,11 +9,11 @@ use super::{
     skia::{Font, Paint, StrokeOptions},
     Namui, NamuiContext, NamuiImpl, Path, Xy,
 };
-use crate::XywhRect;
+use crate::{ImageSource, XywhRect};
 use serde::Serialize;
 use std::sync::Arc;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct PathDrawCommand {
     #[serde(skip_serializing)]
     pub path: Path,
@@ -21,16 +21,16 @@ pub struct PathDrawCommand {
     pub paint: Paint,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct Size {
     pub width: f32,
     pub height: f32,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct ImageDrawCommand {
     pub xywh: XywhRect<f32>,
-    pub url: String,
+    pub source: ImageSource,
     pub fit: ImageFit,
     #[serde(skip_serializing)]
     pub paint: Option<Paint>,
@@ -47,7 +47,7 @@ pub enum TextBaseline {
     Bottom,
     Middle,
 }
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct TextDrawCommand {
     pub text: String,
     #[serde(skip_serializing)]
@@ -59,14 +59,14 @@ pub struct TextDrawCommand {
     pub align: TextAlign,
     pub baseline: TextBaseline,
 }
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub enum DrawCommand {
     Path(PathDrawCommand),
     Image(ImageDrawCommand),
     Text(TextDrawCommand),
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct DrawCall {
     pub commands: Vec<DrawCommand>,
 }

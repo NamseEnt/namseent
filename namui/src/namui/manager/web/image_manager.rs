@@ -22,15 +22,15 @@ impl ImageManager {
             image_requested_set: Mutex::new(HashSet::new()),
         })
     }
-    pub fn try_load(self: Arc<Self>, url: String) -> Option<Arc<Image>> {
-        if let Some(image) = self.image_map.get(&url) {
+    pub fn try_load(self: Arc<Self>, url: &String) -> Option<Arc<Image>> {
+        if let Some(image) = self.image_map.get(url) {
             return Some(image.clone());
         };
 
         {
             let mut image_requested_set = self.image_requested_set.lock().unwrap();
 
-            if image_requested_set.contains(&url) {
+            if image_requested_set.contains(url) {
                 return None;
             }
             image_requested_set.insert(url.clone());
@@ -39,7 +39,8 @@ impl ImageManager {
         self.start_load(url);
         None
     }
-    pub fn start_load(self: Arc<Self>, url: String) {
+    pub fn start_load(self: Arc<Self>, url: &String) {
+        let url = url.clone();
         spawn_local(async move {
             match fetch_get_vec_u8(&url).await {
                 Ok(data) => match CANVAS_KIT.get().unwrap().MakeImageFromEncoded(&data) {

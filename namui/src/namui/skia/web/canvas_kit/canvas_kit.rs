@@ -86,4 +86,7 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     pub fn TextBlob(this: &CanvasKit) -> TextBlobFactory;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn ColorFilter(this: &CanvasKit) -> ColorFilterFactory;
 }
