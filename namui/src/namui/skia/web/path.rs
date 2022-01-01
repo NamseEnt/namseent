@@ -133,6 +133,10 @@ impl Path {
         self.canvas_kit_path.addPoly(array, close);
         self
     }
+    pub fn close(self) -> Self {
+        self.canvas_kit_path.close();
+        self
+    }
 }
 
 impl Drop for Path {
