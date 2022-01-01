@@ -24,6 +24,10 @@ impl Paint {
         self.0.setStrokeWidth(width);
         self
     }
+    pub fn set_stroke_cap(self, cap: StrokeCap) -> Self {
+        self.0.setStrokeCap(cap.into_canvas_kit());
+        self
+    }
     pub fn get_stroke_cap(&self) -> StrokeCap {
         let stroke_cap = self.0.getStrokeCap();
 

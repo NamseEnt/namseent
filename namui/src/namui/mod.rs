@@ -15,7 +15,7 @@ pub use render::{
 };
 pub use skia::{
     types::{ClipOp, Color, PaintStyle},
-    BlendMode, ColorFilter, Font, Image, LtrbRect, Paint, Path, Typeface,
+    BlendMode, ColorFilter, Font, Image, LtrbRect, Paint, Path, StrokeCap, Typeface,
 };
 pub mod event;
 pub use event::NamuiEvent;

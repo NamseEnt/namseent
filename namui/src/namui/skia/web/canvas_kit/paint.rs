@@ -135,12 +135,12 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn setShader(this: &CanvasKitPaint, shader: Shader);
 
-    // ///
-    // /// Sets the geometry drawn at the beginning and end of strokes.
-    // /// @param cap
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn setStrokeCap(this: &CanvasKitPaint, cap: StrokeCap);
+    ///
+    /// Sets the geometry drawn at the beginning and end of strokes.
+    /// @param cap
+    ///
+    #[wasm_bindgen(method)]
+    pub fn setStrokeCap(this: &CanvasKitPaint, cap: CanvasKitStrokeCap);
 
     // ///
     // /// Sets the geometry drawn at the corners of strokes.
