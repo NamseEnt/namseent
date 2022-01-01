@@ -164,13 +164,13 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn arcToTangent(this: &CanvasKitPath, x1: number, y1: number, x2: number, y2: number, radius: number) -> CanvasKitPath;
 
-    // ///
-    // /// Appends CLOSE_VERB to Path. A closed contour connects the first and last point
-    // /// with a line, forming a continuous loop.
-    // /// Returns the modified path for easier chaining.
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn close(this: &CanvasKitPath) -> CanvasKitPath;
+    ///
+    /// Appends CLOSE_VERB to Path. A closed contour connects the first and last point
+    /// with a line, forming a continuous loop.
+    /// Returns the modified path for easier chaining.
+    ///
+    #[wasm_bindgen(method)]
+    pub fn close(this: &CanvasKitPath) -> CanvasKitPath;
 
     // ///
     // /// Returns minimum and maximum axes values of the lines and curves in Path.
