@@ -1,10 +1,9 @@
-use crate::editor::{events::*, types::CameraClip, Timeline, TimelineRenderContext};
+use crate::editor::{events::*, types::CameraClip, TimelineRenderContext};
 use namui::prelude::*;
 
 pub struct CameraClipBody {}
 pub struct CameraClipBodyProps<'a> {
-    pub width: f32,
-    pub height: f32,
+    pub track_body_wh: &'a Wh<f32>,
     pub clip: &'a CameraClip,
     pub context: &'a TimelineRenderContext<'a>,
 }
@@ -18,7 +17,7 @@ impl CameraClipBody {
             x: x + 1.0,
             y: 1.0,
             width: width - 2.0,
-            height: props.height - 2.0,
+            height: props.track_body_wh.height - 2.0,
         };
         let is_highlight = props
             .context

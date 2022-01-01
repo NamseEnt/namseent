@@ -1,8 +1,9 @@
-use crate::editor::{types::Track, Timeline, TimelineRenderContext};
-use namui::prelude::*;
-
 use self::camera_track_body::{CameraTrackBody, CameraTrackBodyProps};
+use crate::editor::{types::Track, TimelineRenderContext};
+use namui::prelude::*;
 mod camera_track_body;
+use self::subtitle_track_body::{SubtitleTrackBody, SubtitleTrackBodyProps};
+mod subtitle_track_body;
 
 pub struct TrackBody {}
 pub struct TrackBodyProps<'a> {
@@ -20,7 +21,12 @@ impl TrackBody {
                 track: camera_track,
                 context: props.context,
             }),
-            Track::Subtitle(_) => todo!(),
+            Track::Subtitle(subtitle_track) => SubtitleTrackBody::render(&SubtitleTrackBodyProps {
+                width: props.width,
+                height: props.height,
+                track: subtitle_track,
+                context: props.context,
+            }),
         }
     }
 }
