@@ -1,12 +1,10 @@
-use std::rc::Rc;
-
 use crate::editor::{
     job::Job,
     timeline::timeline_body::track_body::camera_track_body::camera_clip_body::{
         CameraClipBody, CameraClipBodyProps,
     },
-    types::{CameraClip, CameraTrack, Track},
-    Timeline, TimelineRenderContext,
+    types::CameraTrack,
+    TimelineRenderContext,
 };
 use namui::prelude::*;
 mod camera_clip_body;
@@ -42,19 +40,20 @@ impl CameraTrackBody {
             _ => props.track.clips.clone(),
         };
 
-        render![
-            // TODO : rect
-            render![clips
+        RenderingTree::Children(
+            clips
                 .iter()
                 .map(|clip| {
                     CameraClipBody::render(&CameraClipBodyProps {
-                        width: props.width,
-                        height: props.height,
+                        track_body_wh: &Wh {
+                            width: props.width,
+                            height: props.height,
+                        },
                         clip: clip,
                         context: props.context,
                     })
                 })
-                .collect::<Vec<_>>()]
-        ]
+                .collect::<Vec<_>>(),
+        )
     }
 }

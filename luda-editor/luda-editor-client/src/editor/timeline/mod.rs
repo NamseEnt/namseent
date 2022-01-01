@@ -2,7 +2,7 @@ use namui::prelude::*;
 mod playback_time_view;
 use super::{
     job::Job,
-    types::{PixelSize, Sequence, Time, TimePerPixel},
+    types::{PixelSize, Sequence, SubtitlePlayDurationMeasurer, Time, TimePerPixel},
     Clip,
 };
 use crate::editor::timeline::{
@@ -23,6 +23,7 @@ pub struct Timeline {
     pub sequence: Sequence,
     start_at: Time,
     pub time_per_pixel: TimePerPixel,
+    subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
 }
 impl Timeline {
     pub fn new(sequence: Sequence) -> Self {
@@ -33,6 +34,7 @@ impl Timeline {
             sequence,
             time_per_pixel: TimePerPixel::new(Time::ms(50), PixelSize(1.0)),
             start_at: Time::sec(0),
+            subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
         }
     }
 }
@@ -46,6 +48,8 @@ pub struct TimelineRenderContext<'a> {
     pub job: &'a Option<Job>,
     pub selected_clip_id: &'a Option<String>,
     start_at: Time,
+    pub subtitle_play_duration_measurer: &'a SubtitlePlayDurationMeasurer,
+    pub language: Language, // TODO : Set this from setting page
 }
 impl Timeline {
     pub fn update(&mut self, event: &dyn std::any::Any) {}
@@ -56,6 +60,8 @@ impl Timeline {
             job: props.job,
             selected_clip_id: &self.selected_clip_id,
             start_at: self.start_at,
+            subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
+            language: Language::Ko,
         };
         let xywh = props.xywh;
         let body_width = xywh.width - self.header_width;

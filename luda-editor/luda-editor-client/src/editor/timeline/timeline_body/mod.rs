@@ -1,4 +1,4 @@
-use crate::editor::{job::Job, types::Track};
+use crate::editor::types::Track;
 use namui::prelude::*;
 mod track_body;
 use super::TimelineRenderContext;
@@ -64,8 +64,8 @@ impl TimelineBody {
                 namui::ClipOp::Intersect,
                 render![track_bodies],
             ),
-            // setWheelZoomHandler(state.timelineState),
-            // setWheelMoveHandler(state.timelineState),
+            // TODO : setWheelZoomHandler(state.timelineState),
+            // TODO : setWheelMoveHandler(state.timelineState),
         ]
     }
 }

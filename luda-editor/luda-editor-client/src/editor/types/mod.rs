@@ -1,14 +1,21 @@
 mod camera_angle;
 pub use camera_angle::*;
 use namui::prelude::*;
+use std::{array::IntoIter, collections::HashMap};
+mod pixel_size;
+pub use pixel_size::*;
 
 pub enum Track {
     Camera(CameraTrack),
-    Subtitle(Vec<SubtitleClip>),
+    Subtitle(SubtitleTrack),
 }
 #[derive(Debug, Clone)]
 pub struct CameraTrack {
     pub clips: Vec<CameraClip>,
+}
+#[derive(Debug, Clone)]
+pub struct SubtitleTrack {
+    pub clips: Vec<SubtitleClip>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -18,6 +25,9 @@ pub struct Time {
 impl Time {
     pub fn zero() -> Self {
         Self { milliseconds: 0 }
+    }
+    pub fn from_ms(milliseconds: i64) -> Self {
+        Self { milliseconds }
     }
 }
 impl std::ops::Sub for Time {
@@ -60,9 +70,6 @@ impl std::ops::Mul<TimePerPixel> for PixelSize {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct PixelSize(pub f32);
-
-#[derive(Debug, Clone, Copy)]
 pub struct TimePerPixel {
     time: Time,
     pixel_size: PixelSize,
@@ -78,18 +85,55 @@ pub struct CameraClip {
 
 pub enum Clip<'a> {
     Camera(&'a CameraClip),
-    Subtitle(SubtitleClip),
+    Subtitle(&'a SubtitleClip),
 }
 
+pub struct SubtitlePlayDurationMeasurer {
+    minimum_play_durations: HashMap<Language, Time>,
+    play_duration_per_character: HashMap<Language, Time>,
+}
+impl SubtitlePlayDurationMeasurer {
+    pub fn get_play_duration(&self, subtitle: &Subtitle, language: &Language) -> Time {
+        let minimum_play_duration = self.minimum_play_durations.get(language).unwrap();
+        let play_duration_per_character = self.play_duration_per_character.get(language).unwrap();
+        let play_duration = Time::from_ms(
+            (subtitle.language_text_map.get(language).unwrap().len() as f64
+                * play_duration_per_character.milliseconds as f64)
+                .ceil() as i64,
+        );
+        if play_duration < *minimum_play_duration {
+            *minimum_play_duration
+        } else {
+            play_duration
+        }
+    }
+
+    pub(crate) fn new() -> SubtitlePlayDurationMeasurer {
+        SubtitlePlayDurationMeasurer {
+            // TODO: Check minimum play duration
+            minimum_play_durations: HashMap::<_, _>::from_iter(IntoIter::new([(
+                Language::Ko,
+                Time::from_ms(1000),
+            )])),
+            play_duration_per_character: HashMap::<_, _>::from_iter(IntoIter::new([(
+                Language::Ko,
+                Time::from_ms(100),
+            )])),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct SubtitleClip {
     pub id: String,
-    pub start_ms: u64,
-    pub end_ms: u64,
+    pub start_at: Time,
     pub subtitle: Subtitle,
 }
 
+#[derive(Debug, Clone)]
 pub struct Subtitle {
-    pub text: String,
+    pub id: String,
+    pub language_text_map: HashMap<Language, String>,
 }
 
 pub struct Sequence {
@@ -108,7 +152,11 @@ impl Sequence {
                     }
                 }
                 Track::Subtitle(track) => {
-                    todo!()
+                    for clip in &track.clips {
+                        if clip.id == id {
+                            return Some(Clip::Subtitle(clip));
+                        }
+                    }
                 }
             }
         }
@@ -140,142 +188,170 @@ pub struct Circumscribed {
 
 pub fn get_sample_sequence() -> Sequence {
     Sequence {
-        tracks: vec![Track::Camera(CameraTrack {
-            clips: vec![
-                CameraClip {
-                    id: "1".to_string(),
-                    start_at: Time::sec(0),
-                    end_at: Time::sec(1),
-                    camera_angle: CameraAngle {
-                        character_pose_emotion: CharacterPoseEmotion(
-                            "피디".to_string(),
-                            "기본".to_string(),
-                            "미소".to_string(),
-                        ),
-                        source_01_circumscribed: Circumscribed {
-                            center: Xy { x: 0.25, y: 0.25 },
-                            radius: 0.5259040471894634,
-                        },
-                        crop_screen_01_rect: LtrbRect {
-                            left: 0.0,
-                            top: 0.0,
-                            right: 1.0,
-                            bottom: 1.0,
-                        },
-                    },
-                },
-                CameraClip {
-                    id: "2".to_string(),
-                    start_at: Time::sec(1),
-                    end_at: Time::sec(3),
-                    camera_angle: CameraAngle {
-                        character_pose_emotion: CharacterPoseEmotion(
-                            "피디".to_string(),
-                            "기본".to_string(),
-                            "미소".to_string(),
-                        ),
-                        source_01_circumscribed: Circumscribed {
-                            center: Xy { x: 0.25, y: 0.25 },
-                            radius: 0.5259040471894634,
-                        },
-                        crop_screen_01_rect: LtrbRect {
-                            left: 0.0,
-                            top: 0.0,
-                            right: 1.0,
-                            bottom: 1.0,
+        tracks: vec![
+            Track::Camera(CameraTrack {
+                clips: vec![
+                    CameraClip {
+                        id: "1".to_string(),
+                        start_at: Time::sec(0),
+                        end_at: Time::sec(1),
+                        camera_angle: CameraAngle {
+                            character_pose_emotion: CharacterPoseEmotion(
+                                "피디".to_string(),
+                                "기본".to_string(),
+                                "미소".to_string(),
+                            ),
+                            source_01_circumscribed: Circumscribed {
+                                center: Xy { x: 0.25, y: 0.25 },
+                                radius: 0.5259040471894634,
+                            },
+                            crop_screen_01_rect: LtrbRect {
+                                left: 0.0,
+                                top: 0.0,
+                                right: 1.0,
+                                bottom: 1.0,
+                            },
                         },
                     },
-                },
-                CameraClip {
-                    id: "3".to_string(),
-                    start_at: Time::sec(3),
-                    end_at: Time::sec(6),
-                    camera_angle: CameraAngle {
-                        character_pose_emotion: CharacterPoseEmotion(
-                            "피디".to_string(),
-                            "기본".to_string(),
-                            "미소".to_string(),
-                        ),
-                        source_01_circumscribed: Circumscribed {
-                            center: Xy { x: 0.25, y: 0.25 },
-                            radius: 0.5259040471894634,
-                        },
-                        crop_screen_01_rect: LtrbRect {
-                            left: 0.0,
-                            top: 0.0,
-                            right: 1.0,
-                            bottom: 1.0,
-                        },
-                    },
-                },
-                CameraClip {
-                    id: "4".to_string(),
-                    start_at: Time::sec(6),
-                    end_at: Time::sec(10),
-                    camera_angle: CameraAngle {
-                        character_pose_emotion: CharacterPoseEmotion(
-                            "피디".to_string(),
-                            "기본".to_string(),
-                            "미소".to_string(),
-                        ),
-                        source_01_circumscribed: Circumscribed {
-                            center: Xy { x: 0.25, y: 0.25 },
-                            radius: 0.5259040471894634,
-                        },
-                        crop_screen_01_rect: LtrbRect {
-                            left: 0.0,
-                            top: 0.0,
-                            right: 1.0,
-                            bottom: 1.0,
+                    CameraClip {
+                        id: "2".to_string(),
+                        start_at: Time::sec(1),
+                        end_at: Time::sec(3),
+                        camera_angle: CameraAngle {
+                            character_pose_emotion: CharacterPoseEmotion(
+                                "피디".to_string(),
+                                "기본".to_string(),
+                                "미소".to_string(),
+                            ),
+                            source_01_circumscribed: Circumscribed {
+                                center: Xy { x: 0.25, y: 0.25 },
+                                radius: 0.5259040471894634,
+                            },
+                            crop_screen_01_rect: LtrbRect {
+                                left: 0.0,
+                                top: 0.0,
+                                right: 1.0,
+                                bottom: 1.0,
+                            },
                         },
                     },
-                },
-                CameraClip {
-                    id: "5".to_string(),
-                    start_at: Time::sec(10),
-                    end_at: Time::sec(15),
-                    camera_angle: CameraAngle {
-                        character_pose_emotion: CharacterPoseEmotion(
-                            "피디".to_string(),
-                            "기본".to_string(),
-                            "미소".to_string(),
-                        ),
-                        source_01_circumscribed: Circumscribed {
-                            center: Xy { x: 0.5, y: 0.5 },
-                            radius: 0.5259040471894634,
-                        },
-                        crop_screen_01_rect: LtrbRect {
-                            left: 0.5,
-                            top: 0.5,
-                            right: 1.0,
-                            bottom: 1.0,
-                        },
-                    },
-                },
-                CameraClip {
-                    id: "6".to_string(),
-                    start_at: Time::sec(15),
-                    end_at: Time::sec(21),
-                    camera_angle: CameraAngle {
-                        character_pose_emotion: CharacterPoseEmotion(
-                            "피디".to_string(),
-                            "기본".to_string(),
-                            "미소".to_string(),
-                        ),
-                        source_01_circumscribed: Circumscribed {
-                            center: Xy { x: 0.25, y: 0.25 },
-                            radius: 0.25,
-                        },
-                        crop_screen_01_rect: LtrbRect {
-                            left: 0.2,
-                            top: 0.4,
-                            right: 1.0,
-                            bottom: 1.0,
+                    CameraClip {
+                        id: "3".to_string(),
+                        start_at: Time::sec(3),
+                        end_at: Time::sec(6),
+                        camera_angle: CameraAngle {
+                            character_pose_emotion: CharacterPoseEmotion(
+                                "피디".to_string(),
+                                "기본".to_string(),
+                                "미소".to_string(),
+                            ),
+                            source_01_circumscribed: Circumscribed {
+                                center: Xy { x: 0.25, y: 0.25 },
+                                radius: 0.5259040471894634,
+                            },
+                            crop_screen_01_rect: LtrbRect {
+                                left: 0.0,
+                                top: 0.0,
+                                right: 1.0,
+                                bottom: 1.0,
+                            },
                         },
                     },
-                },
-            ],
-        })],
+                    CameraClip {
+                        id: "4".to_string(),
+                        start_at: Time::sec(6),
+                        end_at: Time::sec(10),
+                        camera_angle: CameraAngle {
+                            character_pose_emotion: CharacterPoseEmotion(
+                                "피디".to_string(),
+                                "기본".to_string(),
+                                "미소".to_string(),
+                            ),
+                            source_01_circumscribed: Circumscribed {
+                                center: Xy { x: 0.25, y: 0.25 },
+                                radius: 0.5259040471894634,
+                            },
+                            crop_screen_01_rect: LtrbRect {
+                                left: 0.0,
+                                top: 0.0,
+                                right: 1.0,
+                                bottom: 1.0,
+                            },
+                        },
+                    },
+                    CameraClip {
+                        id: "5".to_string(),
+                        start_at: Time::sec(10),
+                        end_at: Time::sec(15),
+                        camera_angle: CameraAngle {
+                            character_pose_emotion: CharacterPoseEmotion(
+                                "피디".to_string(),
+                                "기본".to_string(),
+                                "미소".to_string(),
+                            ),
+                            source_01_circumscribed: Circumscribed {
+                                center: Xy { x: 0.5, y: 0.5 },
+                                radius: 0.5259040471894634,
+                            },
+                            crop_screen_01_rect: LtrbRect {
+                                left: 0.5,
+                                top: 0.5,
+                                right: 1.0,
+                                bottom: 1.0,
+                            },
+                        },
+                    },
+                    CameraClip {
+                        id: "6".to_string(),
+                        start_at: Time::sec(15),
+                        end_at: Time::sec(21),
+                        camera_angle: CameraAngle {
+                            character_pose_emotion: CharacterPoseEmotion(
+                                "피디".to_string(),
+                                "기본".to_string(),
+                                "미소".to_string(),
+                            ),
+                            source_01_circumscribed: Circumscribed {
+                                center: Xy { x: 0.25, y: 0.25 },
+                                radius: 0.25,
+                            },
+                            crop_screen_01_rect: LtrbRect {
+                                left: 0.2,
+                                top: 0.4,
+                                right: 1.0,
+                                bottom: 1.0,
+                            },
+                        },
+                    },
+                ],
+            }),
+            Track::Subtitle(SubtitleTrack {
+                clips: vec![
+                    SubtitleClip {
+                        id: "s-1-clip".to_string(),
+                        start_at: Time::sec(0),
+                        subtitle: Subtitle {
+                            id: "s-1".to_string(),
+                            language_text_map: HashMap::<_, _>::from_iter(IntoIter::new([(
+                                Language::Ko,
+                                "안녕하세요".to_string(),
+                            )])),
+                        },
+                    },
+                    SubtitleClip {
+                        id: "s-2-clip".to_string(),
+                        start_at: Time::sec(0),
+                        subtitle: Subtitle {
+                            id: "s-2".to_string(),
+                            language_text_map: HashMap::<_, _>::from_iter(IntoIter::new([(
+                                Language::Ko,
+                                "세상!".to_string(),
+                            )])),
+                        },
+                    },
+                ],
+            }),
+        ],
     }
 }
 impl Time {
