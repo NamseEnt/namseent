@@ -23,6 +23,6 @@
         }
     ],
     "settings": {
-        "cSpell.words": ["resizer", "Resizer"]
+        "cSpell.words": ["hasher", "resizer", "Resizer"]
     }
 }
