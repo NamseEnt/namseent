@@ -87,6 +87,10 @@ pub enum Clip<'a> {
     Camera(&'a CameraClip),
     Subtitle(&'a SubtitleClip),
 }
+pub enum MutableClip<'a> {
+    Camera(&'a mut CameraClip),
+    Subtitle(&'a mut SubtitleClip),
+}
 
 pub struct SubtitlePlayDurationMeasurer {
     minimum_play_durations: HashMap<Language, Time>,
@@ -162,21 +166,26 @@ impl Sequence {
         }
         None
     }
-
-    pub(crate) fn update_camera_clip(&mut self, id: &str, selected_camera_clip: CameraClip) {
+    pub fn get_mut_clip<'a>(&'a mut self, id: &str) -> Option<MutableClip<'a>> {
         for track in &mut self.tracks {
             match track {
                 Track::Camera(track) => {
                     for clip in &mut track.clips {
                         if clip.id == id {
-                            *clip = selected_camera_clip;
-                            return;
+                            return Some(MutableClip::Camera(clip));
                         }
                     }
                 }
-                _ => {}
+                Track::Subtitle(track) => {
+                    for clip in &mut track.clips {
+                        if clip.id == id {
+                            return Some(MutableClip::Subtitle(clip));
+                        }
+                    }
+                }
             }
         }
+        None
     }
 }
 

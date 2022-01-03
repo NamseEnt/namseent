@@ -1,5 +1,5 @@
 use crate::editor::{
-    types::{CameraAngle, CameraClip, Clip},
+    types::{CameraAngle, MutableClip},
     Timeline,
 };
 
@@ -15,25 +15,21 @@ impl WysiwygMoveImageJob {
         let selected_clip = timeline
             .selected_clip_id
             .as_ref()
-            .and_then(|id| timeline.sequence.get_clip(&id));
+            .and_then(|id| timeline.sequence.get_mut_clip(&id));
 
         let selected_camera_clip = match selected_clip {
             Some(clip) => match clip {
-                Clip::Camera(camera_clip) => Ok(camera_clip),
-                Clip::Subtitle(_) => Err("Camera clip expected, but Subtitle clip selected"),
+                MutableClip::Camera(camera_clip) => Ok(camera_clip),
+                MutableClip::Subtitle(_) => Err("Camera clip expected, but Subtitle clip selected"),
             },
             None => Err("No clip selected"),
         };
         if selected_camera_clip.is_err() {
             return;
         }
-        let mut selected_camera_clip = selected_camera_clip.unwrap().clone();
+        let selected_camera_clip = selected_camera_clip.unwrap();
         let camera_angle = &mut selected_camera_clip.camera_angle;
         self.move_camera_angle(camera_angle);
-
-        timeline
-            .sequence
-            .update_camera_clip(&selected_camera_clip.id.clone(), selected_camera_clip);
     }
 
     pub fn move_camera_angle(&self, camera_angle: &mut CameraAngle) {
