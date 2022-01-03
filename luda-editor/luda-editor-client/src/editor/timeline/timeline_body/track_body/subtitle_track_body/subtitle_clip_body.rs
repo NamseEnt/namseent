@@ -1,8 +1,4 @@
-use crate::editor::{
-    events::*,
-    types::{SubtitleClip, Time},
-    TimelineRenderContext,
-};
+use crate::editor::{events::*, types::*, TimelineRenderContext};
 use namui::prelude::*;
 
 pub struct SubtitleClipBody {}
@@ -99,7 +95,19 @@ impl SubtitleClipBody {
                     namui::path(head_path, border_paint.clone()),
                 ],
             ),
-        );
+        )
+        .with_mouse_cursor(MouseCursor::Grab)
+        .attach_event(|builder| {
+            let clip_id = props.clip.id.clone();
+            builder.on_mouse_down(Box::new(move |event| {
+                namui::event::send(Box::new(EditorEvent::SubtitleClipHeadMouseDownEvent {
+                    clip_id: clip_id.clone(),
+                    local_mouse_xy: event.local_xy,
+                    global_mouse_xy: event.global_xy,
+                }));
+            }))
+        });
+
         let tail_rendering_tree = translate(
             tail_position.x,
             tail_position.y,
@@ -120,88 +128,6 @@ impl SubtitleClipBody {
                 head_rendering_tree,
                 tail_rendering_tree,
                 path(stroke_path, stroke_fill_paint),
-                // TODO
-                //       AfterDraw(({ translated }) => {
-                //         const mouse = engine.mousePosition.mousePosition;
-
-                //         const mouseInHead = headPath.contains(
-                //           mouse.x - translated.x - headPosition.x,
-                //           mouse.y - translated.y - headPosition.y,
-                //         );
-                //         const mouseInTail = tailPath.contains(
-                //           mouse.x - translated.x - tailPosition.x,
-                //           mouse.y - translated.y - tailPosition.y,
-                //         );
-                //         const mouseIn = mouseInHead || mouseInTail;
-
-                //         if (mouseInHead) {
-                //           engine.mousePointer.setCursor(Cursor.grab);
-                //         }
-
-                //         if (mouseInTail) {
-                //           engine.mousePointer.setCursor(Cursor.leftRightResize);
-                //         }
-
-                //         if (mouseIn) {
-                //           timelineState.clipIdMouseIn = clip.id;
-                //         }
-
-                //         if (timelineState.clipIdMouseIn === clip.id && !mouseIn) {
-                //           timelineState.clipIdMouseIn = undefined;
-                //         }
-
-                //         engine.mouseEvent.onMouseDown((mouseEvent) => {
-                //           const mouseInHead = headPath.contains(
-                //             mouseEvent.x - translated.x - headPosition.x,
-                //             mouseEvent.y - translated.y - headPosition.y,
-                //           );
-                //           const mouseInTail = tailPath.contains(
-                //             mouseEvent.x - translated.x - tailPosition.x,
-                //             mouseEvent.y - translated.y - tailPosition.y,
-                //           );
-                //           const mouseIn = mouseInHead || mouseInTail;
-
-                //           if (mouseIn) {
-                //             timelineState.selectedClip = clip;
-                //           } else if (
-                //             timelineState.selectedClip?.id === clip.id &&
-                //             !engine.render.isGlobalVectorOutOfRenderingData(
-                //               Vector.from(mouseEvent),
-                //               timelineState.timelineBorderId,
-                //             )
-                //           ) {
-                //             timelineState.selectedClip = undefined;
-                //           }
-
-                //           if (timelineState.actionState) {
-                //             return;
-                //           }
-
-                //           if (mouseInHead) {
-                //             const mouseAnchorMs =
-                //               (mouseEvent.x - translated.x) * timelineState.layout.msPerPixel;
-
-                //             timelineState.actionState = {
-                //               type: "moveClipTime",
-                //               clipId: clip.id,
-                //               anchorMs: mouseAnchorMs,
-                //             };
-                //           }
-
-                //           if (mouseInTail) {
-                //             timelineState.actionState = {
-                //               type: "resizeClip",
-                //               clipId: clip.id,
-                //               side: "right",
-                //               sashMouseAnchorMs:
-                //                 (mouseEvent.x - translated.x - width) *
-                //                 timelineState.layout.msPerPixel,
-                //             };
-                //           }
-                //         });
-                //       }),
-                //     ],
-                //   );
             ],
         )
     }

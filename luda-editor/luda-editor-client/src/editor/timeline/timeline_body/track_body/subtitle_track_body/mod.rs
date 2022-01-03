@@ -17,30 +17,24 @@ pub struct SubtitleTrackBodyProps<'a> {
     pub context: &'a TimelineRenderContext<'a>,
 }
 
-// fn move_clip_at_last(track: &mut SubtitleTrack, clip_id: &String) {
-//     let clips = &mut track.clips;
-//     let moving_clip_index = clips.iter().position(|clip| clip.id.eq(clip_id)).unwrap();
-//     let moving_clip = clips.remove(moving_clip_index);
-//     clips.push(moving_clip);
-// }
-
 impl SubtitleTrackBody {
     pub fn render(props: &SubtitleTrackBodyProps) -> RenderingTree {
-        // TODO
-        // let clips = match &props.context.job {
-        //     Some(Job::MoveSubtitleClip(job)) => {
-        //         let mut track = props.track.clone();
+        let clips = match &props.context.job {
+            Some(Job::MoveSubtitleClip(job)) => {
+                let mut track = props.track.clone();
 
-        //         let time_per_pixel = &props.context.time_per_pixel;
-        //         job.order_clips_by_moving_clip(&mut track, time_per_pixel, true);
+                let time_per_pixel = &props.context.time_per_pixel;
+                let moving_clip = track
+                    .clips
+                    .iter_mut()
+                    .find(|clip| clip.id.eq(&job.clip_id))
+                    .unwrap();
+                job.move_subtitle_clip_by_job(moving_clip, time_per_pixel);
 
-        //         move_clip_at_last(&mut track, &job.clip_id);
-
-        //         track.clips
-        //     }
-        //     _ => props.track.clips.clone(),
-        // };
-        let clips = &props.track.clips;
+                track.clips
+            }
+            _ => props.track.clips.clone(),
+        };
 
         RenderingTree::Children(
             clips
