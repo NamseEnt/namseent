@@ -38,7 +38,7 @@ impl ClipEditor {
                         job: &props.job,
                     })
                 }
-                Clip::Subtitle(_) => todo!(),
+                Clip::Subtitle(_) => RenderingTree::Empty,
             },
             None => RenderingTree::Empty,
         }

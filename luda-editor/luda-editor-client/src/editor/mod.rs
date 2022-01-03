@@ -11,7 +11,8 @@ use self::{
     clip_editor::ClipEditor,
     events::*,
     job::{
-        Job, MoveCameraClipJob, WysiwygCropImageJob, WysiwygMoveImageJob, WysiwygResizeImageJob,
+        Job, MoveCameraClipJob, MoveSubtitleClipJob, WysiwygCropImageJob, WysiwygMoveImageJob,
+        WysiwygResizeImageJob,
     },
 };
 use types::*;
@@ -41,6 +42,20 @@ impl namui::Entity for Editor {
                 } => {
                     if self.job.is_none() {
                         self.job = Some(Job::MoveCameraClip(MoveCameraClipJob {
+                            clip_id: clip_id.clone(),
+                            click_anchor_in_global: *global_mouse_xy,
+                            last_global_mouse_xy: *global_mouse_xy,
+                        }));
+                    }
+                    self.timeline.selected_clip_id = Some(clip_id.clone());
+                }
+                EditorEvent::SubtitleClipHeadMouseDownEvent {
+                    clip_id,
+                    global_mouse_xy,
+                    ..
+                } => {
+                    if self.job.is_none() {
+                        self.job = Some(Job::MoveSubtitleClip(MoveSubtitleClipJob {
                             clip_id: clip_id.clone(),
                             click_anchor_in_global: *global_mouse_xy,
                             last_global_mouse_xy: *global_mouse_xy,
@@ -105,6 +120,9 @@ impl namui::Entity for Editor {
                     Some(Job::MoveCameraClip(ref mut job)) => {
                         job.last_global_mouse_xy = *global_xy;
                     }
+                    Some(Job::MoveSubtitleClip(ref mut job)) => {
+                        job.last_global_mouse_xy = *global_xy;
+                    }
                     Some(Job::WysiwygMoveImage(ref mut job)) => {
                         job.last_global_mouse_xy = *global_xy;
                     }
@@ -120,6 +138,11 @@ impl namui::Entity for Editor {
                     let job = self.job.clone();
                     match job {
                         Some(Job::MoveCameraClip(mut job)) => {
+                            job.last_global_mouse_xy = *global_xy;
+                            job.execute(&mut self.timeline);
+                            self.job = None;
+                        }
+                        Some(Job::MoveSubtitleClip(mut job)) => {
                             job.last_global_mouse_xy = *global_xy;
                             job.execute(&mut self.timeline);
                             self.job = None;
