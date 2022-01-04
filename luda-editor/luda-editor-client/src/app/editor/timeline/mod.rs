@@ -31,8 +31,8 @@ impl Timeline {
             time_ruler_height: 20.0,
             selected_clip_id: None,
             sequence,
-            time_per_pixel: TimePerPixel::new(Time::ms(50), PixelSize(1.0)),
-            start_at: Time::sec(0),
+            time_per_pixel: TimePerPixel::new(Time::from_ms(50.0), PixelSize(1.0)),
+            start_at: Time::from_sec(0.0),
             subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
         }
     }

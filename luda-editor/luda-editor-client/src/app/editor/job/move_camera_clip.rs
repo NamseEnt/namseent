@@ -67,7 +67,7 @@ impl MoveCameraClipJob {
                 continue;
             }
 
-            let clip_center_at = (clip.start_at + clip.end_at) / 2;
+            let clip_center_at = (clip.start_at + clip.end_at) / 2.0;
 
             if index < moving_clip_index {
                 if moved_start_at < clip_center_at {
