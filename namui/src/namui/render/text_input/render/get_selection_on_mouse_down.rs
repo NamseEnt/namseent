@@ -19,7 +19,7 @@ pub(crate) fn get_selection_on_mouse_down(
     //     ]);
     let is_shift_key_pressed = managers
         .keyboard_manager
-        .any_code_press([namui::Code::ShiftLeft, namui::Code::ShiftRight].to_vec());
+        .any_code_press(&[namui::Code::ShiftLeft, namui::Code::ShiftRight]);
 
     // const continouslyFastClickCount: number;
 
