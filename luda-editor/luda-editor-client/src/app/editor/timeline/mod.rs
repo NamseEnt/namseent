@@ -20,7 +20,7 @@ pub struct Timeline {
     time_ruler_height: f32,
     pub selected_clip_id: Option<String>,
     pub sequence: Sequence,
-    start_at: Time,
+    pub start_at: Time,
     pub time_per_pixel: TimePerPixel,
     subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
 }

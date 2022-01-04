@@ -1,7 +1,7 @@
 use super::clip_editor::camera_clip_editor::wysiwyg_editor::{
     cropper::CropperHandle, resizer::ResizerHandle,
 };
-use crate::app::types::ImageFilenameObject;
+use crate::app::types::{ImageFilenameObject, PixelSize};
 
 pub enum EditorEvent {
     CameraClipBodyMouseDownEvent {
@@ -38,5 +38,12 @@ pub enum EditorEvent {
         mouse_xy: namui::Xy<f32>,
         handle: CropperHandle,
         container_size: namui::Wh<f32>,
+    },
+    TimelineMoveEvent {
+        pixel: PixelSize,
+    },
+    TimelineZoomEvent {
+        delta: f32,
+        anchor_x_in_timeline: PixelSize,
     },
 }
