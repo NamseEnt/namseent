@@ -10,11 +10,8 @@ impl SubtitlePlayDurationMeasurer {
     pub fn get_play_duration(&self, subtitle: &Subtitle, language: &Language) -> Time {
         let minimum_play_duration = self.minimum_play_durations.get(language).unwrap();
         let play_duration_per_character = self.play_duration_per_character.get(language).unwrap();
-        let play_duration = Time::from_ms(
-            (subtitle.language_text_map.get(language).unwrap().len() as f64
-                * play_duration_per_character.milliseconds as f64)
-                .ceil() as i64,
-        );
+        let play_duration =
+            subtitle.language_text_map.get(language).unwrap().len() * play_duration_per_character;
         if play_duration < *minimum_play_duration {
             *minimum_play_duration
         } else {
@@ -27,11 +24,11 @@ impl SubtitlePlayDurationMeasurer {
             // TODO: Check minimum play duration
             minimum_play_durations: HashMap::<_, _>::from_iter(IntoIter::new([(
                 Language::Ko,
-                Time::from_ms(1000),
+                Time::from_ms(1000.0),
             )])),
             play_duration_per_character: HashMap::<_, _>::from_iter(IntoIter::new([(
                 Language::Ko,
-                Time::from_ms(100),
+                Time::from_ms(100.0),
             )])),
         }
     }

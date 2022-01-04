@@ -31,7 +31,7 @@ impl SubtitleClipBody {
             .map_or(false, |id| id.eq(&props.clip.id));
 
         let border_width = if is_highlight { 3 } else { 1 } * 2;
-        let component_width = (Time::from_ms(200) / context.time_per_pixel).into_f32();
+        let component_width = (Time::from_ms(200.0) / context.time_per_pixel).into_f32();
         let component_height = props.track_body_wh.height / 3.0;
 
         let head_position = namui::Xy { x: 0.0, y: 0.0 };
