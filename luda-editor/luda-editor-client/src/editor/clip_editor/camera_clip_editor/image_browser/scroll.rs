@@ -95,7 +95,7 @@ impl Scroll {
             ],
             false => RenderingTree::Empty,
         };
-
+        let whole_rect_id = namui::nanoid();
         let whole_rect = rect(RectParam {
             x: 0.0,
             y: 0.0,
@@ -111,10 +111,34 @@ impl Scroll {
             },
             ..Default::default()
         })
-        .attach_event(|builder| {
-            builder.on_wheel(Box::new(move |xy| {
-                let next_scroll_y =
-                    num::clamp(scroll_y + xy.y, 0.0, (0.0_f32).max(inner_height - height));
+        .with_id(&whole_rect_id)
+        .attach_event(move |builder| {
+            let width = inner_width + scroll_bar_width;
+            let height = height;
+            let whole_rect_id = whole_rect_id.clone();
+            builder.on_wheel(Box::new(move |event| {
+                let managers = namui::managers();
+
+                let mouse_manager = &managers.mouse_manager;
+                let mouse_position = mouse_manager.mouse_position();
+                let whole_rect_xy = event
+                    .namui_context
+                    .get_rendering_tree_xy(&whole_rect_id)
+                    .unwrap();
+
+                let is_mouse_in_timeline = mouse_position.x as f32 >= whole_rect_xy.x
+                    && mouse_position.x as f32 <= whole_rect_xy.x + width
+                    && mouse_position.y as f32 >= whole_rect_xy.y
+                    && mouse_position.y as f32 <= whole_rect_xy.y + height;
+                if !is_mouse_in_timeline {
+                    return;
+                }
+
+                let next_scroll_y = num::clamp(
+                    scroll_y + event.delta_xy.y,
+                    0.0,
+                    (0.0_f32).max(inner_height - height),
+                );
 
                 namui::event::send(Box::new(EditorEvent::ScrolledEvent {
                     scroll_y: next_scroll_y,

@@ -114,18 +114,6 @@ pub fn rect(
         }));
     };
 
-    // TODO
-    //   if (onAfterDraw) {
-    //     if (!id) {
-    //       id = nanoid();
-    //     }
-    //     renderingTree.push(
-    //       AfterDraw((param) => {
-    //         onAfterDraw(id!);
-    //       }),
-    //     );
-    //   }
-
     rendering_tree.push(RenderingTree::Node(RenderingData {
         draw_calls: vec![DrawCall {
             commands: draw_commands,
@@ -135,7 +123,6 @@ pub fn rect(
     RenderingTree::Children(rendering_tree)
 }
 
-//   function getRectPath(rect: InputRect) {
 fn get_rect_path(rect: XywhRect<f32>, round: Option<RectRound>) -> namui::Path {
     match round {
         Some(round) => namui::Path::new().add_rrect(rect.into_ltrb(), round.radius, round.radius),
