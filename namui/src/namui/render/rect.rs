@@ -126,18 +126,6 @@ pub fn rect(
         }));
     };
 
-    // TODO
-    //   if (onAfterDraw) {
-    //     if (!id) {
-    //       id = nanoid();
-    //     }
-    //     renderingTree.push(
-    //       AfterDraw((param) => {
-    //         onAfterDraw(id!);
-    //       }),
-    //     );
-    //   }
-
     rendering_tree.push(RenderingTree::Node(RenderingData {
         draw_calls: vec![DrawCall {
             commands: draw_commands,

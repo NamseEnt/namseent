@@ -1,4 +1,4 @@
-use super::{AttachEventNode, ClipNode, MouseCursor, MouseCursorNode, TranslateNode};
+use super::{AttachEventNode, ClipNode, MouseCursor, MouseCursorNode, TranslateNode, WithIdNode};
 use crate::namui::{ClipOp, DrawCall, NamuiContext, Xy, *};
 use serde::Serialize;
 
@@ -12,10 +12,14 @@ pub enum MouseEventType {
     Up,
     Move,
 }
+pub struct WheelEvent<'a> {
+    pub delta_xy: &'a Xy<f32>,
+    pub namui_context: &'a NamuiContext,
+}
 pub type BoxedMouseEventCallback = Box<dyn Fn(&MouseEvent)>;
 pub type MouseEventCallback = Arc<dyn Fn(&MouseEvent)>;
-pub type BoxedWheelEventCallback = Box<dyn Fn(&Xy<f32>)>;
-pub type WheelEventCallback = Arc<dyn Fn(&Xy<f32>)>;
+pub type BoxedWheelEventCallback = Box<dyn Fn(&WheelEvent)>;
+pub type WheelEventCallback = Arc<dyn Fn(&WheelEvent)>;
 #[derive(Serialize, Default, Clone, Debug)]
 pub struct RenderingData {
     pub draw_calls: Vec<DrawCall>,
@@ -26,6 +30,7 @@ pub enum SpecialRenderingNode {
     Clip(ClipNode),
     AttachEvent(AttachEventNode),
     MouseCursor(MouseCursorNode),
+    WithId(WithIdNode),
 }
 #[derive(Serialize, Clone, Debug)]
 pub enum RenderingTree {
@@ -42,6 +47,7 @@ impl SpecialRenderingNode {
             SpecialRenderingNode::Clip(node) => &node.rendering_tree,
             SpecialRenderingNode::AttachEvent(node) => &node.rendering_tree,
             SpecialRenderingNode::MouseCursor(node) => &node.rendering_tree,
+            SpecialRenderingNode::WithId(node) => &node.rendering_tree,
         }
     }
 }
@@ -93,13 +99,8 @@ impl RenderingTree {
 
                     canvas.restore();
                 }
-                SpecialRenderingNode::AttachEvent(attach_event) => {
-                    for child in &attach_event.rendering_tree {
-                        child.draw(namui_context);
-                    }
-                }
-                SpecialRenderingNode::MouseCursor(mouse_cursor) => {
-                    for child in &mouse_cursor.rendering_tree {
+                _ => {
+                    for child in special.get_children() {
                         child.draw(namui_context);
                     }
                 }
@@ -123,7 +124,7 @@ impl RenderingTree {
         }
         callback(self);
     }
-    pub fn call_wheel_event(&self, wheel_event: &Xy<f32>) {
+    pub fn call_wheel_event(&self, wheel_event: &WheelEvent) {
         self.visit_rln(&|node| {
             if let RenderingTree::Special(special) = node {
                 if let SpecialRenderingNode::AttachEvent(attach_event) = special {
@@ -168,11 +169,6 @@ impl RenderingTree {
                             .find_map(|child| child.get_mouse_cursor(&xy))
                     }
                 }
-                SpecialRenderingNode::AttachEvent(attach_event) => attach_event
-                    .rendering_tree
-                    .iter()
-                    .rev()
-                    .find_map(|child| child.get_mouse_cursor(&xy)),
                 SpecialRenderingNode::MouseCursor(mouse_cursor) => mouse_cursor
                     .rendering_tree
                     .iter()
@@ -183,6 +179,11 @@ impl RenderingTree {
                         .iter()
                         .any(|child| child.is_point_in(&xy))
                         .then(|| mouse_cursor.cursor)),
+                _ => special
+                    .get_children()
+                    .iter()
+                    .rev()
+                    .find_map(|child| child.get_mouse_cursor(&xy)),
             },
             _ => None,
         }
@@ -243,8 +244,8 @@ impl RenderingTree {
                         }
                     }
                 }
-                SpecialRenderingNode::MouseCursor(mouse_cursor) => {
-                    mouse_cursor.rendering_tree.iter().rev().for_each(|child| {
+                _ => {
+                    special.get_children().iter().rev().for_each(|child| {
                         child.call_mouse_event_impl(mouse_event_type, global_xy, local_xy);
                     });
                 }
@@ -282,16 +283,50 @@ impl RenderingTree {
                             .iter()
                             .any(|child| child.is_point_in(local_xy))
                 }
-                SpecialRenderingNode::AttachEvent(attach_event) => attach_event
-                    .rendering_tree
-                    .iter()
-                    .any(|child| child.is_point_in(local_xy)),
-                SpecialRenderingNode::MouseCursor(mouse_cursor) => mouse_cursor
-                    .rendering_tree
+                _ => special
+                    .get_children()
                     .iter()
                     .any(|child| child.is_point_in(local_xy)),
             },
             RenderingTree::Empty => false,
+        }
+    }
+
+    pub(crate) fn get_xy(&self, id: &str) -> Option<Xy<f32>> {
+        match self {
+            RenderingTree::Children(ref children) => {
+                children.iter().rev().find_map(|child| child.get_xy(id))
+            }
+            RenderingTree::Special(special) => match special {
+                SpecialRenderingNode::Translate(translate) => {
+                    let next_xy = Xy {
+                        x: translate.x,
+                        y: translate.y,
+                    };
+                    translate
+                        .rendering_tree
+                        .iter()
+                        .rev()
+                        .find_map(|child| child.get_xy(id).map(|xy| xy + next_xy))
+                }
+                SpecialRenderingNode::WithId(with_id) => {
+                    if with_id.id == id {
+                        Some(Xy { x: 0.0, y: 0.0 })
+                    } else {
+                        special
+                            .get_children()
+                            .iter()
+                            .rev()
+                            .find_map(|child| child.get_xy(id))
+                    }
+                }
+                _ => special
+                    .get_children()
+                    .iter()
+                    .rev()
+                    .find_map(|child| child.get_xy(id)),
+            },
+            _ => None,
         }
     }
 }

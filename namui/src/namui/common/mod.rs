@@ -17,6 +17,12 @@ pub struct FpsInfo {
 pub struct NamuiContext {
     pub(crate) surface: Surface,
     pub(crate) fps_info: FpsInfo,
+    pub(crate) rendering_tree: RenderingTree,
+}
+impl NamuiContext {
+    pub fn get_rendering_tree_xy(&self, id: &str) -> Option<Xy<f32>> {
+        self.rendering_tree.get_xy(id)
+    }
 }
 
 pub trait NamuiImpl {
