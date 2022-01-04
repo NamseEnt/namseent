@@ -4,6 +4,10 @@ use namui::prelude::*;
 use std::{array::IntoIter, collections::HashMap};
 mod pixel_size;
 pub use pixel_size::*;
+mod time;
+pub use time::*;
+mod time_per_pixel;
+pub use time_per_pixel::*;
 
 pub enum Track {
     Camera(CameraTrack),
@@ -16,63 +20,6 @@ pub struct CameraTrack {
 #[derive(Debug, Clone)]
 pub struct SubtitleTrack {
     pub clips: Vec<SubtitleClip>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Time {
-    milliseconds: i64,
-}
-impl Time {
-    pub fn zero() -> Self {
-        Self { milliseconds: 0 }
-    }
-    pub fn from_ms(milliseconds: i64) -> Self {
-        Self { milliseconds }
-    }
-}
-impl std::ops::Sub for Time {
-    type Output = Time;
-    fn sub(self, rhs: Time) -> Self::Output {
-        Time {
-            milliseconds: self.milliseconds - rhs.milliseconds,
-        }
-    }
-}
-impl std::ops::Add for Time {
-    type Output = Time;
-    fn add(self, rhs: Time) -> Self::Output {
-        Time {
-            milliseconds: self.milliseconds + rhs.milliseconds,
-        }
-    }
-}
-impl std::ops::Div<TimePerPixel> for Time {
-    type Output = PixelSize;
-    fn div(self, rhs: TimePerPixel) -> Self::Output {
-        let milliseconds = self.milliseconds as f64 / rhs.time.milliseconds as f64;
-        PixelSize(milliseconds as f32 * rhs.pixel_size.0)
-    }
-}
-impl std::ops::Div<i64> for Time {
-    type Output = Time;
-    fn div(self, rhs: i64) -> Self::Output {
-        let milliseconds = self.milliseconds / rhs;
-        Time { milliseconds }
-    }
-}
-impl std::ops::Mul<TimePerPixel> for PixelSize {
-    type Output = Time;
-    fn mul(self, rhs: TimePerPixel) -> Self::Output {
-        Time {
-            milliseconds: ((self.0 / rhs.pixel_size.0) * (rhs.time.milliseconds as f32)) as i64,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct TimePerPixel {
-    time: Time,
-    pixel_size: PixelSize,
 }
 
 #[derive(Debug, Clone)]
@@ -101,9 +48,8 @@ impl SubtitlePlayDurationMeasurer {
         let minimum_play_duration = self.minimum_play_durations.get(language).unwrap();
         let play_duration_per_character = self.play_duration_per_character.get(language).unwrap();
         let play_duration = Time::from_ms(
-            (subtitle.language_text_map.get(language).unwrap().len() as f64
-                * play_duration_per_character.milliseconds as f64)
-                .ceil() as i64,
+            subtitle.language_text_map.get(language).unwrap().len() as f32
+                * play_duration_per_character.milliseconds,
         );
         if play_duration < *minimum_play_duration {
             *minimum_play_duration
@@ -117,11 +63,11 @@ impl SubtitlePlayDurationMeasurer {
             // TODO: Check minimum play duration
             minimum_play_durations: HashMap::<_, _>::from_iter(IntoIter::new([(
                 Language::Ko,
-                Time::from_ms(1000),
+                Time::from_ms(1000.0),
             )])),
             play_duration_per_character: HashMap::<_, _>::from_iter(IntoIter::new([(
                 Language::Ko,
-                Time::from_ms(100),
+                Time::from_ms(100.0),
             )])),
         }
     }
@@ -202,8 +148,8 @@ pub fn get_sample_sequence() -> Sequence {
                 clips: vec![
                     CameraClip {
                         id: "1".to_string(),
-                        start_at: Time::sec(0),
-                        end_at: Time::sec(1),
+                        start_at: Time::from_sec(0.0),
+                        end_at: Time::from_sec(1.0),
                         camera_angle: CameraAngle {
                             character_pose_emotion: CharacterPoseEmotion(
                                 "피디".to_string(),
@@ -224,8 +170,8 @@ pub fn get_sample_sequence() -> Sequence {
                     },
                     CameraClip {
                         id: "2".to_string(),
-                        start_at: Time::sec(1),
-                        end_at: Time::sec(3),
+                        start_at: Time::from_sec(1.0),
+                        end_at: Time::from_sec(3.0),
                         camera_angle: CameraAngle {
                             character_pose_emotion: CharacterPoseEmotion(
                                 "피디".to_string(),
@@ -246,8 +192,8 @@ pub fn get_sample_sequence() -> Sequence {
                     },
                     CameraClip {
                         id: "3".to_string(),
-                        start_at: Time::sec(3),
-                        end_at: Time::sec(6),
+                        start_at: Time::from_sec(3.0),
+                        end_at: Time::from_sec(6.0),
                         camera_angle: CameraAngle {
                             character_pose_emotion: CharacterPoseEmotion(
                                 "피디".to_string(),
@@ -268,8 +214,8 @@ pub fn get_sample_sequence() -> Sequence {
                     },
                     CameraClip {
                         id: "4".to_string(),
-                        start_at: Time::sec(6),
-                        end_at: Time::sec(10),
+                        start_at: Time::from_sec(6.0),
+                        end_at: Time::from_sec(10.0),
                         camera_angle: CameraAngle {
                             character_pose_emotion: CharacterPoseEmotion(
                                 "피디".to_string(),
@@ -290,8 +236,8 @@ pub fn get_sample_sequence() -> Sequence {
                     },
                     CameraClip {
                         id: "5".to_string(),
-                        start_at: Time::sec(10),
-                        end_at: Time::sec(15),
+                        start_at: Time::from_sec(10.0),
+                        end_at: Time::from_sec(15.0),
                         camera_angle: CameraAngle {
                             character_pose_emotion: CharacterPoseEmotion(
                                 "피디".to_string(),
@@ -312,8 +258,8 @@ pub fn get_sample_sequence() -> Sequence {
                     },
                     CameraClip {
                         id: "6".to_string(),
-                        start_at: Time::sec(15),
-                        end_at: Time::sec(21),
+                        start_at: Time::from_sec(15.0),
+                        end_at: Time::from_sec(21.0),
                         camera_angle: CameraAngle {
                             character_pose_emotion: CharacterPoseEmotion(
                                 "피디".to_string(),
@@ -338,7 +284,7 @@ pub fn get_sample_sequence() -> Sequence {
                 clips: vec![
                     SubtitleClip {
                         id: "s-1-clip".to_string(),
-                        start_at: Time::sec(0),
+                        start_at: Time::from_sec(0.0),
                         subtitle: Subtitle {
                             id: "s-1".to_string(),
                             language_text_map: HashMap::<_, _>::from_iter(IntoIter::new([(
@@ -349,7 +295,7 @@ pub fn get_sample_sequence() -> Sequence {
                     },
                     SubtitleClip {
                         id: "s-2-clip".to_string(),
-                        start_at: Time::sec(0),
+                        start_at: Time::from_sec(0.0),
                         subtitle: Subtitle {
                             id: "s-2".to_string(),
                             language_text_map: HashMap::<_, _>::from_iter(IntoIter::new([(
@@ -361,21 +307,6 @@ pub fn get_sample_sequence() -> Sequence {
                 ],
             }),
         ],
-    }
-}
-impl Time {
-    pub fn sec(seconds: i64) -> Time {
-        Time {
-            milliseconds: seconds * 1000,
-        }
-    }
-    pub fn ms(milliseconds: i64) -> Time {
-        Time { milliseconds }
-    }
-}
-impl TimePerPixel {
-    pub(crate) fn new(time: Time, pixel_size: PixelSize) -> TimePerPixel {
-        TimePerPixel { time, pixel_size }
     }
 }
 
