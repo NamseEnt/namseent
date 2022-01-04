@@ -2,6 +2,7 @@ use super::common::{FpsInfo, NamuiContext, NamuiImpl};
 use super::manager::*;
 use super::skia::{canvas_kit, CanvasKit, Surface};
 use super::Namui;
+use crate::RenderingTree;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use wasm_bindgen::{prelude::*, JsCast};
@@ -65,6 +66,7 @@ impl NamuiImpl for Namui {
                 frame_count: 0,
                 last_60_frame_time: Namui::now(),
             },
+            rendering_tree: RenderingTree::Empty,
         }
     }
 

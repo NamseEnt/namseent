@@ -23,6 +23,7 @@ pub use event::NamuiEvent;
 mod render;
 pub use self::manager::Code;
 use self::manager::Managers;
+use self::render::WheelEvent;
 use self::{
     font::*,
     namui_state::{get_namui_state, NamuiState},
@@ -55,7 +56,7 @@ pub async fn start<TProps>(
 
     init_font().await;
 
-    let mut rendering_tree = state.render(props);
+    namui_context.rendering_tree = state.render(props);
 
     Namui::request_animation_frame(Box::new(move || {
         on_frame();
@@ -71,9 +72,9 @@ pub async fn start<TProps>(
             Some(NamuiEvent::AnimationFrame) => {
                 update_fps_info(&mut namui_context.fps_info);
 
-                rendering_tree.draw(&namui_context);
+                namui_context.rendering_tree.draw(&namui_context);
 
-                set_mouse_cursor(&rendering_tree);
+                set_mouse_cursor(&namui_context.rendering_tree);
 
                 namui_context.surface.flush();
 
@@ -83,28 +84,37 @@ pub async fn start<TProps>(
                 }
             }
             Some(NamuiEvent::MouseDown(xy)) => {
-                rendering_tree.call_mouse_event(MouseEventType::Down, xy);
+                namui_context
+                    .rendering_tree
+                    .call_mouse_event(MouseEventType::Down, xy);
                 state.update(event.as_ref());
-                rendering_tree = state.render(props);
+                namui_context.rendering_tree = state.render(props);
             }
             Some(NamuiEvent::MouseUp(xy)) => {
-                rendering_tree.call_mouse_event(MouseEventType::Up, xy);
+                namui_context
+                    .rendering_tree
+                    .call_mouse_event(MouseEventType::Up, xy);
                 state.update(event.as_ref());
-                rendering_tree = state.render(props);
+                namui_context.rendering_tree = state.render(props);
             }
             Some(NamuiEvent::MouseMove(xy)) => {
-                rendering_tree.call_mouse_event(MouseEventType::Move, xy);
+                namui_context
+                    .rendering_tree
+                    .call_mouse_event(MouseEventType::Move, xy);
                 state.update(event.as_ref());
-                rendering_tree = state.render(props);
+                namui_context.rendering_tree = state.render(props);
             }
             Some(NamuiEvent::Wheel(xy)) => {
-                rendering_tree.call_wheel_event(xy);
+                namui_context.rendering_tree.call_wheel_event(&WheelEvent {
+                    delta_xy: xy,
+                    namui_context: &namui_context,
+                });
                 state.update(event.as_ref());
-                rendering_tree = state.render(props);
+                namui_context.rendering_tree = state.render(props);
             }
             _ => {
                 state.update(event.as_ref());
-                rendering_tree = state.render(props);
+                namui_context.rendering_tree = state.render(props);
             }
         }
     }
