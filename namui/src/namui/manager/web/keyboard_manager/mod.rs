@@ -32,6 +32,7 @@ impl KeyboardManager {
             let code_string = event.code();
             let code = Code::from_str(&code_string).unwrap();
             pressing_code_set_key_down.write().unwrap().insert(code);
+            event.prevent_default();
             namui::log(format!("key down: {}", code_string));
         }) as Box<dyn FnMut(_)>);
 
