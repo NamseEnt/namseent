@@ -4,18 +4,18 @@ use std::{
     sync::{Arc, RwLock},
 };
 use wasm_bindgen::{prelude::Closure, JsCast};
-use web_sys::{window, HtmlElement};
+use web_sys::window;
 mod codes;
 pub use codes::*;
 
 use crate::namui;
 
 pub struct KeyboardManager {
-    pub pressing_code_set: Arc<RwLock<HashSet<Code>>>,
+    pressing_code_set: Arc<RwLock<HashSet<Code>>>,
 }
 
 impl KeyboardManager {
-    pub fn any_code_press(&self, codes: Vec<Code>) -> bool {
+    pub fn any_code_press(&self, codes: &[Code]) -> bool {
         let pressing_code_set = self.pressing_code_set.read().unwrap();
         for code in codes {
             if pressing_code_set.contains(&code) {
