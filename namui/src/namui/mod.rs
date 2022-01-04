@@ -21,7 +21,8 @@ pub(crate) use skia::{ColorFilter, Paint, Path};
 pub mod event;
 pub use event::NamuiEvent;
 mod render;
-use self::manager::{Code, Managers};
+pub use self::manager::Code;
+use self::manager::Managers;
 use self::{
     font::*,
     namui_state::{get_namui_state, NamuiState},
