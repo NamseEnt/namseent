@@ -183,6 +183,10 @@ pub fn log(format: String) {
     Namui::log(format);
 }
 
+pub fn now() -> Duration {
+    Namui::now()
+}
+
 #[macro_export]
 #[macro_use]
 macro_rules! log {
