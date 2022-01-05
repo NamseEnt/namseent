@@ -4,21 +4,27 @@ use namui::prelude::*;
 use std::{array::IntoIter, collections::HashMap};
 mod pixel_size;
 pub use pixel_size::*;
+use serde::{Deserialize, Serialize};
+mod sequence_load_state_map;
+pub use sequence_load_state_map::*;
+mod editor_page;
+pub use editor_page::*;
 
+#[derive(Serialize, Deserialize, Clone)]
 pub enum Track {
     Camera(CameraTrack),
     Subtitle(SubtitleTrack),
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CameraTrack {
     pub clips: Vec<CameraClip>,
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtitleTrack {
     pub clips: Vec<SubtitleClip>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Time {
     milliseconds: i64,
 }
@@ -75,7 +81,7 @@ pub struct TimePerPixel {
     pixel_size: PixelSize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CameraClip {
     pub id: String,
     pub start_at: Time,
@@ -127,19 +133,20 @@ impl SubtitlePlayDurationMeasurer {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtitleClip {
     pub id: String,
     pub start_at: Time,
     pub subtitle: Subtitle,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Subtitle {
     pub id: String,
     pub language_text_map: HashMap<Language, String>,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Sequence {
     pub tracks: Vec<Track>,
 }
@@ -189,180 +196,32 @@ impl Sequence {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+impl Default for Sequence {
+    fn default() -> Self {
+        Sequence { tracks: Vec::new() }
+    }
+}
+
+impl TryFrom<Vec<u8>> for Sequence {
+    fn try_from(value: Vec<u8>) -> Result<Sequence, String> {
+        match String::from_utf8(value) {
+            Ok(string) => match serde_json::from_str::<Sequence>(&string) {
+                Ok(sequence) => Ok(sequence),
+                Err(error) => Err(error.to_string()),
+            },
+            Err(error) => Err(error.to_string()),
+        }
+    }
+
+    type Error = String;
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Circumscribed {
     pub center: Xy<f32>,
     pub radius: f32,
 }
 
-pub fn get_sample_sequence() -> Sequence {
-    Sequence {
-        tracks: vec![
-            Track::Camera(CameraTrack {
-                clips: vec![
-                    CameraClip {
-                        id: "1".to_string(),
-                        start_at: Time::sec(0),
-                        end_at: Time::sec(1),
-                        camera_angle: CameraAngle {
-                            character_pose_emotion: CharacterPoseEmotion(
-                                "피디".to_string(),
-                                "기본".to_string(),
-                                "미소".to_string(),
-                            ),
-                            source_01_circumscribed: Circumscribed {
-                                center: Xy { x: 0.25, y: 0.25 },
-                                radius: 0.5259040471894634,
-                            },
-                            crop_screen_01_rect: LtrbRect {
-                                left: 0.0,
-                                top: 0.0,
-                                right: 1.0,
-                                bottom: 1.0,
-                            },
-                        },
-                    },
-                    CameraClip {
-                        id: "2".to_string(),
-                        start_at: Time::sec(1),
-                        end_at: Time::sec(3),
-                        camera_angle: CameraAngle {
-                            character_pose_emotion: CharacterPoseEmotion(
-                                "피디".to_string(),
-                                "기본".to_string(),
-                                "미소".to_string(),
-                            ),
-                            source_01_circumscribed: Circumscribed {
-                                center: Xy { x: 0.25, y: 0.25 },
-                                radius: 0.5259040471894634,
-                            },
-                            crop_screen_01_rect: LtrbRect {
-                                left: 0.0,
-                                top: 0.0,
-                                right: 1.0,
-                                bottom: 1.0,
-                            },
-                        },
-                    },
-                    CameraClip {
-                        id: "3".to_string(),
-                        start_at: Time::sec(3),
-                        end_at: Time::sec(6),
-                        camera_angle: CameraAngle {
-                            character_pose_emotion: CharacterPoseEmotion(
-                                "피디".to_string(),
-                                "기본".to_string(),
-                                "미소".to_string(),
-                            ),
-                            source_01_circumscribed: Circumscribed {
-                                center: Xy { x: 0.25, y: 0.25 },
-                                radius: 0.5259040471894634,
-                            },
-                            crop_screen_01_rect: LtrbRect {
-                                left: 0.0,
-                                top: 0.0,
-                                right: 1.0,
-                                bottom: 1.0,
-                            },
-                        },
-                    },
-                    CameraClip {
-                        id: "4".to_string(),
-                        start_at: Time::sec(6),
-                        end_at: Time::sec(10),
-                        camera_angle: CameraAngle {
-                            character_pose_emotion: CharacterPoseEmotion(
-                                "피디".to_string(),
-                                "기본".to_string(),
-                                "미소".to_string(),
-                            ),
-                            source_01_circumscribed: Circumscribed {
-                                center: Xy { x: 0.25, y: 0.25 },
-                                radius: 0.5259040471894634,
-                            },
-                            crop_screen_01_rect: LtrbRect {
-                                left: 0.0,
-                                top: 0.0,
-                                right: 1.0,
-                                bottom: 1.0,
-                            },
-                        },
-                    },
-                    CameraClip {
-                        id: "5".to_string(),
-                        start_at: Time::sec(10),
-                        end_at: Time::sec(15),
-                        camera_angle: CameraAngle {
-                            character_pose_emotion: CharacterPoseEmotion(
-                                "피디".to_string(),
-                                "기본".to_string(),
-                                "미소".to_string(),
-                            ),
-                            source_01_circumscribed: Circumscribed {
-                                center: Xy { x: 0.5, y: 0.5 },
-                                radius: 0.5259040471894634,
-                            },
-                            crop_screen_01_rect: LtrbRect {
-                                left: 0.5,
-                                top: 0.5,
-                                right: 1.0,
-                                bottom: 1.0,
-                            },
-                        },
-                    },
-                    CameraClip {
-                        id: "6".to_string(),
-                        start_at: Time::sec(15),
-                        end_at: Time::sec(21),
-                        camera_angle: CameraAngle {
-                            character_pose_emotion: CharacterPoseEmotion(
-                                "피디".to_string(),
-                                "기본".to_string(),
-                                "미소".to_string(),
-                            ),
-                            source_01_circumscribed: Circumscribed {
-                                center: Xy { x: 0.25, y: 0.25 },
-                                radius: 0.25,
-                            },
-                            crop_screen_01_rect: LtrbRect {
-                                left: 0.2,
-                                top: 0.4,
-                                right: 1.0,
-                                bottom: 1.0,
-                            },
-                        },
-                    },
-                ],
-            }),
-            Track::Subtitle(SubtitleTrack {
-                clips: vec![
-                    SubtitleClip {
-                        id: "s-1-clip".to_string(),
-                        start_at: Time::sec(0),
-                        subtitle: Subtitle {
-                            id: "s-1".to_string(),
-                            language_text_map: HashMap::<_, _>::from_iter(IntoIter::new([(
-                                Language::Ko,
-                                "안녕하세요".to_string(),
-                            )])),
-                        },
-                    },
-                    SubtitleClip {
-                        id: "s-2-clip".to_string(),
-                        start_at: Time::sec(0),
-                        subtitle: Subtitle {
-                            id: "s-2".to_string(),
-                            language_text_map: HashMap::<_, _>::from_iter(IntoIter::new([(
-                                Language::Ko,
-                                "세상!".to_string(),
-                            )])),
-                        },
-                    },
-                ],
-            }),
-        ],
-    }
-}
 impl Time {
     pub fn sec(seconds: i64) -> Time {
         Time {
@@ -397,7 +256,7 @@ impl ImageFilenameObject {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CharacterPoseEmotion(pub String, pub String, pub String);
 
 impl CharacterPoseEmotion {

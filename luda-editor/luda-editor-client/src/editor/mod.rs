@@ -1,11 +1,14 @@
 mod main;
+use std::time::Duration;
+
 pub use main::main;
 mod timeline;
 use namui::prelude::*;
 pub use timeline::*;
 use wasm_bindgen_futures::spawn_local;
 mod types;
-use crate::editor::clip_editor::ClipEditorProps;
+use crate::editor::{clip_editor::ClipEditorProps, sequence_list_view::SequenceListViewProps};
+mod sequence_list_view;
 
 use self::{
     clip_editor::ClipEditor,
@@ -14,6 +17,7 @@ use self::{
         Job, MoveCameraClipJob, MoveSubtitleClipJob, WysiwygCropImageJob, WysiwygMoveImageJob,
         WysiwygResizeImageJob,
     },
+    sequence_list_view::SequenceListView,
 };
 use types::*;
 mod clip_editor;
@@ -24,10 +28,13 @@ struct Editor {
     job: Option<Job>,
     timeline: Timeline,
     clip_editor: ClipEditor,
+    sequence_list_view: SequenceListView,
     playback_time: chrono::Duration,
     socket: luda_editor_rpc::Socket,
     screen_wh: namui::Wh<f32>,
     image_filename_objects: Vec<ImageFilenameObject>,
+    sequence_load_state_map: SequenceLoadStateMap,
+    page: EditorPage,
 }
 
 impl namui::Entity for Editor {
@@ -112,6 +119,84 @@ impl namui::Entity for Editor {
                         }));
                     };
                 }
+                EditorEvent::SequenceLoadEvent { path } => {
+                    let started_at = Namui::now();
+                    namui::event::send(Box::new(EditorEvent::SequenceLoadStateUpdateEvent {
+                        path: path.clone(),
+                        state: Some(SequenceLoadState {
+                            started_at,
+                            detail: SequenceLoadStateDetail::Loading,
+                        }),
+                    }));
+                    spawn_local({
+                        let path = path.clone();
+                        let socket = self.socket.clone();
+                        async move {
+                            fn handle_error(path: String, started_at: Duration, error: String) {
+                                namui::log(format!("error on read_file: {:?}", error));
+                                namui::event::send(Box::new(
+                                    EditorEvent::SequenceLoadStateUpdateEvent {
+                                        path,
+                                        state: Some(SequenceLoadState {
+                                            started_at,
+                                            detail: SequenceLoadStateDetail::Failed { error },
+                                        }),
+                                    },
+                                ));
+                            }
+                            let result = socket
+                                .read_file(luda_editor_rpc::read_file::Request {
+                                    dest_path: path.clone(),
+                                })
+                                .await;
+                            match result {
+                                Ok(response) => {
+                                    let file = response.file;
+                                    match Sequence::try_from(file) {
+                                        Ok(sequence) => namui::event::send(Box::new(
+                                            EditorEvent::SequenceLoadStateUpdateEvent {
+                                                path: path.clone(),
+                                                state: Some(SequenceLoadState {
+                                                    started_at,
+                                                    detail: SequenceLoadStateDetail::Loaded {
+                                                        sequence,
+                                                    },
+                                                }),
+                                            },
+                                        )),
+                                        Err(error) => handle_error(path.clone(), started_at, error),
+                                    }
+                                }
+                                Err(error) => handle_error(path.clone(), started_at, error),
+                            }
+                        }
+                    });
+                }
+                EditorEvent::SequenceLoadStateUpdateEvent { path, state } => match state {
+                    Some(state) => {
+                        if let Some(old_state) = self.sequence_load_state_map.get(path) {
+                            if old_state.started_at > state.started_at {
+                                return;
+                            }
+                        }
+
+                        self.sequence_load_state_map
+                            .insert(path.clone(), (*state).clone());
+                    }
+                    None => {
+                        self.sequence_load_state_map.remove(path);
+                    }
+                },
+                EditorEvent::PageChangeEvent { detail } => match detail {
+                    EditorPageChangeEventDetail::Editor { path: _, sequence } => {
+                        self.page = EditorPage::Editor;
+                        self.timeline.sequence = sequence.clone();
+                    }
+                    EditorPageChangeEventDetail::SequenceListView => {
+                        self.page = EditorPage::SequenceListView;
+                        self.sequence_load_state_map.clear();
+                    }
+                },
                 _ => {}
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
@@ -175,31 +260,47 @@ impl namui::Entity for Editor {
             }
         };
         self.clip_editor.update(event);
+        self.sequence_list_view.update(event);
     }
-    fn render(&self, props: &Self::Props) -> namui::RenderingTree {
-        let selected_clip = self
-            .timeline
-            .selected_clip_id
-            .as_ref()
-            .and_then(|id| self.timeline.sequence.get_clip(&id));
-        render![
-            self.timeline.render(&TimelineProps {
-                playback_time: self.playback_time,
-                xywh: self.calculate_timeline_xywh(),
-                job: &self.job,
-            }),
-            self.clip_editor.render(&ClipEditorProps {
-                selected_clip,
-                xywh: XywhRect {
-                    x: 0.0,
-                    y: 0.0,
-                    width: 800.0,
-                    height: self.screen_wh.height - 200.0,
-                },
-                image_filename_objects: &self.image_filename_objects,
-                job: &self.job,
-            }),
-        ]
+    fn render(&self, _: &Self::Props) -> namui::RenderingTree {
+        match self.page {
+            EditorPage::Editor => {
+                let selected_clip = self
+                    .timeline
+                    .selected_clip_id
+                    .as_ref()
+                    .and_then(|id| self.timeline.sequence.get_clip(&id));
+                render![
+                    self.timeline.render(&TimelineProps {
+                        playback_time: self.playback_time,
+                        xywh: self.calculate_timeline_xywh(),
+                        job: &self.job,
+                    }),
+                    self.clip_editor.render(&ClipEditorProps {
+                        selected_clip,
+                        xywh: XywhRect {
+                            x: 0.0,
+                            y: 0.0,
+                            width: 800.0,
+                            height: self.screen_wh.height - 200.0,
+                        },
+                        image_filename_objects: &self.image_filename_objects,
+                        job: &self.job,
+                    }),
+                ]
+            }
+            EditorPage::SequenceListView => {
+                render![self.sequence_list_view.render(&SequenceListViewProps {
+                    xywh: XywhRect {
+                        x: 0.0,
+                        y: 0.0,
+                        width: self.screen_wh.width,
+                        height: self.screen_wh.height
+                    },
+                    sequence_load_state_map: &self.sequence_load_state_map,
+                })]
+            }
+        }
     }
 }
 
@@ -231,13 +332,16 @@ impl Editor {
             }
         });
         Self {
-            timeline: Timeline::new(get_sample_sequence()),
+            timeline: Timeline::new(Default::default()),
             clip_editor: ClipEditor::new(),
             playback_time: chrono::Duration::zero(),
             socket,
             screen_wh,
             image_filename_objects: vec![],
             job: None,
+            sequence_list_view: SequenceListView::new(),
+            sequence_load_state_map: SequenceLoadStateMap::new(),
+            page: EditorPage::SequenceListView,
         }
     }
     fn calculate_timeline_xywh(&self) -> XywhRect<f32> {
@@ -264,6 +368,12 @@ impl Editor {
                 &mut self,
                 _: luda_editor_rpc::get_camera_shot_urls::Request,
             ) -> Result<luda_editor_rpc::get_camera_shot_urls::Response, String> {
+                todo!()
+            }
+            async fn read_file(
+                &mut self,
+                _: luda_editor_rpc::read_file::Request,
+            ) -> Result<luda_editor_rpc::read_file::Response, String> {
                 todo!()
             }
         }

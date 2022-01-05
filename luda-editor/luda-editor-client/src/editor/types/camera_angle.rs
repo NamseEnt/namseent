@@ -1,7 +1,7 @@
 use super::*;
 use namui::prelude::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CameraAngle {
     pub character_pose_emotion: CharacterPoseEmotion,
     pub source_01_circumscribed: Circumscribed,

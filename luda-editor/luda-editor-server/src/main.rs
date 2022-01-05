@@ -104,4 +104,19 @@ impl luda_editor_rpc::RpcHandle for RpcHandler {
             }
         }
     }
+    async fn read_file(
+        &mut self,
+        request: luda_editor_rpc::read_file::Request,
+    ) -> Result<luda_editor_rpc::read_file::Response, String> {
+        let dest_path = resource_path().join(request.dest_path);
+        println!("dest_path::{:?}", &dest_path);
+        match std::fs::read(dest_path) {
+            Ok(file) => Ok(luda_editor_rpc::read_file::Response { file }),
+            Err(error) => {
+                let error_message = format!("read_file error: {}", error);
+                println!("{}", error_message);
+                Err(error_message)
+            }
+        }
+    }
 }
