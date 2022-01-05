@@ -1,8 +1,5 @@
 use cargo_metadata::{diagnostic::DiagnosticLevel, CompilerMessage, Message};
-use std::{
-    process::{Command, Stdio},
-    str::FromStr,
-};
+use std::process::{Command, Stdio};
 
 use crate::build::types::ErrorMessage;
 
@@ -37,13 +34,20 @@ pub fn run_cargo_check(manifest_path: String) -> CargoBuildResult {
         match message.unwrap() {
             Message::CompilerMessage(message) => match message.message.level {
                 DiagnosticLevel::Warning => {
-                    warning_messages
-                        .push(convert_compiler_message_to_namui_error_message(&message));
+                    if let Ok(message) = convert_compiler_message_to_namui_error_message(&message) {
+                        warning_messages.push(message);
+                    }
                 }
                 DiagnosticLevel::Error => {
-                    error_messages.push(convert_compiler_message_to_namui_error_message(&message));
+                    if let Ok(message) = convert_compiler_message_to_namui_error_message(&message) {
+                        error_messages.push(message);
+                    }
                 }
-                _ => other_messages.push(convert_compiler_message_to_namui_error_message(&message)),
+                _ => {
+                    if let Ok(message) = convert_compiler_message_to_namui_error_message(&message) {
+                        other_messages.push(message);
+                    }
+                }
             },
             Message::BuildFinished(finished) => {
                 is_successful = finished.success;
@@ -59,7 +63,9 @@ pub fn run_cargo_check(manifest_path: String) -> CargoBuildResult {
     }
 }
 
-fn convert_compiler_message_to_namui_error_message(message: &CompilerMessage) -> ErrorMessage {
+fn convert_compiler_message_to_namui_error_message(
+    message: &CompilerMessage,
+) -> Result<ErrorMessage, ()> {
     let first_span = message.message.spans.get(0);
     match first_span {
         Some(span) => {
@@ -70,20 +76,14 @@ fn convert_compiler_message_to_namui_error_message(message: &CompilerMessage) ->
             absolute_file.push(&relative_file);
             let absolute_file = String::from(absolute_file.to_string_lossy());
 
-            ErrorMessage {
+            Ok(ErrorMessage {
                 relative_file,
                 absolute_file,
                 line: span.line_start,
                 column: span.column_start,
                 text: message.message.message.clone(),
-            }
+            })
         }
-        None => ErrorMessage {
-            relative_file: String::new(),
-            absolute_file: String::from_str(message.target.src_path.to_str().unwrap()).unwrap(),
-            line: 0,
-            column: 0,
-            text: String::new(),
-        },
+        None => Err(()),
     }
 }
