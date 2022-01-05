@@ -2,7 +2,7 @@ use super::super::types::{Color, FontMetrics, GlyphIds};
 use super::super::{Canvas, Font, Paint, Surface, TextBlob};
 use std::rc::Rc;
 
-pub struct Skia {
+pub(crate) struct Skia {
     pub surface: Surface,
 }
 

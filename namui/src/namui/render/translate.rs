@@ -1,7 +1,7 @@
 use super::{RenderingTree, SpecialRenderingNode};
 use serde::Serialize;
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub struct TranslateNode {
     pub(crate) x: f32,
     pub(crate) y: f32,

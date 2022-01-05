@@ -13,9 +13,10 @@ pub use render::{
     MouseCursor, MouseEvent, MouseEventCallback, MouseEventType, RenderingData, RenderingTree,
     TextInput, WheelEventCallback,
 };
+pub(crate) use skia::Path;
 pub use skia::{
     types::{ClipOp, Color, PaintStyle},
-    BlendMode, ColorFilter, Font, Image, LtrbRect, Paint, Path, StrokeCap, Typeface,
+    BlendMode, ColorFilter, Font, Image, LtrbRect, Paint, PathBuilder, StrokeCap, Typeface,
 };
 pub mod event;
 pub use event::NamuiEvent;

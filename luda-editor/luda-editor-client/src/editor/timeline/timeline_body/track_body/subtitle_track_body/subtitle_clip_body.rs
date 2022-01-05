@@ -41,21 +41,21 @@ impl SubtitleClipBody {
         let color = Color::from_string_for_random_color(clip.id.as_str(), false);
         let brighter_color = color.brighter(0.2);
 
-        let stroke_path = namui::Path::new()
+        let stroke_path = namui::PathBuilder::new()
             .move_to(
                 head_position.x + component_width / 2.0,
                 head_position.y + component_height,
             )
             .line_to(tail_position.x + component_width / 2.0, tail_position.y);
 
-        let head_path = namui::Path::new()
+        let head_path = namui::PathBuilder::new()
             .move_to(0.0, 0.0)
             .line_to(0.0, component_height)
             .line_to(component_width, component_height)
             .line_to(component_width, component_height / 3.0)
             .close();
 
-        let tail_path = namui::Path::new()
+        let tail_path = namui::PathBuilder::new()
             .move_to(0.0, 0.0)
             .line_to(0.0, (component_height * 2.0) / 3.0)
             .line_to(component_width, component_height)

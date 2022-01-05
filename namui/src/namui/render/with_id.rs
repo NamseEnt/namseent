@@ -1,7 +1,7 @@
 use super::{RenderingTree, SpecialRenderingNode};
 use serde::Serialize;
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub struct WithIdNode {
     pub(crate) rendering_tree: Vec<RenderingTree>,
     pub(crate) id: String,

@@ -8,7 +8,7 @@ impl ImageBrowser {
         item_size: Wh<f32>,
         thumbnail_rect: XywhRect<f32>,
     ) -> RenderingTree {
-        let arrow_path = namui::Path::new()
+        let arrow_path = namui::PathBuilder::new()
             .move_to(0.0, 0.5)
             .line_to(0.5, 0.0)
             .line_to(0.5, 0.25)

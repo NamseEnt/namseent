@@ -205,17 +205,20 @@ pub enum PaintStyle {
     Stroke,
 }
 
+#[derive(Debug, Serialize, Clone)]
 pub enum StrokeCap {
     Butt,
     Round,
     Square,
 }
 
+#[derive(Debug, Serialize, Clone)]
 pub enum StrokeJoin {
     Bevel,
     Miter,
     Round,
 }
+#[derive(Debug, Serialize, Clone)]
 pub struct StrokeOptions {
     pub width: Option<f32>,
     pub miter_limit: Option<f32>,
@@ -224,7 +227,7 @@ pub struct StrokeOptions {
     pub cap: Option<StrokeCap>,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub enum ClipOp {
     Intersect,
     Difference,

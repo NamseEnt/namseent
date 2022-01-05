@@ -45,7 +45,7 @@ fn render_handles(dest_rect: &LtrbRect, container_size: &Wh<f32>) -> RenderingTr
         get_handles(&dest_rect)
             .iter()
             .map(|handle| {
-                let path = Path::new().add_poly(&handle.polygon_xy, true);
+                let path = PathBuilder::new().add_poly(&handle.polygon_xy, true);
 
                 let stroke_paint = Paint::new()
                     .set_style(PaintStyle::Stroke)

@@ -2,7 +2,7 @@ use crate::{namui, XywhRect};
 
 use super::*;
 
-pub struct Canvas(pub CanvasKitCanvas);
+pub(crate) struct Canvas(pub CanvasKitCanvas);
 impl Canvas {
     pub fn draw_text_blob(&self, text_blob: &TextBlob, x: f32, y: f32, paint: &Paint) {
         self.0.drawTextBlob(&text_blob.0, x, y, &paint.0);

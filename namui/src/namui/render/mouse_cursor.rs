@@ -13,7 +13,7 @@ pub enum MouseCursor {
     Move,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub struct MouseCursorNode {
     pub(crate) rendering_tree: Vec<RenderingTree>,
     pub cursor: MouseCursor,

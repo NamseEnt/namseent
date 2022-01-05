@@ -90,7 +90,7 @@ pub use render;
 
 pub type Rendering = RenderingTree;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize)]
 pub struct Wh<T> {
     pub width: T,
     pub height: T,
