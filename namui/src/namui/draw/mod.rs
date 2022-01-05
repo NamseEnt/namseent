@@ -9,14 +9,14 @@ use super::{
     skia::{Font, Paint, StrokeOptions},
     Namui, NamuiContext, NamuiImpl, Path, Xy,
 };
-use crate::{ImageSource, XywhRect};
+use crate::{ImageSource, PathBuilder, XywhRect};
 use serde::Serialize;
 use std::sync::Arc;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct PathDrawCommand {
     #[serde(skip_serializing)]
-    pub path: Path,
+    pub path_builder: PathBuilder,
     #[serde(skip_serializing)]
     pub paint: Paint,
 }
@@ -47,7 +47,7 @@ pub enum TextBaseline {
     Bottom,
     Middle,
 }
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub struct TextDrawCommand {
     pub text: String,
     #[serde(skip_serializing)]
@@ -59,14 +59,14 @@ pub struct TextDrawCommand {
     pub align: TextAlign,
     pub baseline: TextBaseline,
 }
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub enum DrawCommand {
     Path(PathDrawCommand),
     Image(ImageDrawCommand),
     Text(TextDrawCommand),
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub struct DrawCall {
     pub commands: Vec<DrawCommand>,
 }
@@ -97,24 +97,24 @@ impl DrawCommand {
     pub(crate) fn is_inside(&self, local_xy: &Xy<f32>) -> bool {
         match self {
             DrawCommand::Path(path_draw_command) => {
-                let path = &path_draw_command.path;
+                let path = path_draw_command.path_builder.build();
                 let paint = &path_draw_command.paint;
 
                 if path.contains(local_xy) {
                     return true;
                 }
 
-                let stroked_path = path.clone();
-                let stroke_result = stroked_path.stroke(Some(StrokeOptions {
+                let mut stroke_path_builder = path_draw_command.path_builder.clone();
+                let stroke_result = stroke_path_builder.stroke(StrokeOptions {
                     cap: Some(paint.get_stroke_cap()),
                     join: Some(paint.get_stroke_join()),
                     width: Some(paint.get_stroke_width()),
                     miter_limit: Some(paint.get_stroke_miter()),
                     precision: None,
-                }));
+                });
 
                 match stroke_result {
-                    Ok(()) => stroked_path.contains(local_xy),
+                    Ok(()) => stroke_path_builder.build().contains(local_xy),
                     Err(()) => false,
                 }
             }

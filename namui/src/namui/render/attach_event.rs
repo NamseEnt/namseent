@@ -24,6 +24,12 @@ pub struct AttachEventNode {
     pub on_wheel: Option<WheelEventCallback>,
 }
 
+impl std::fmt::Debug for AttachEventNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "rendering_tree: {:?}, on_mouse_move_in: {:?}, on_mouse_move_out: {:?}, on_mouse_down: {:?}, on_mouse_up: {:?}, on_wheel: {:?}", self.rendering_tree, self.on_mouse_move_in.is_some(), self.on_mouse_move_out.is_some(), self.on_mouse_down.is_some(), self.on_mouse_up.is_some(), self.on_wheel.is_some())
+    }
+}
+
 #[derive(Default)]
 pub struct AttachEventBuilder {
     pub(crate) on_mouse_move_in: Option<MouseEventCallback>,

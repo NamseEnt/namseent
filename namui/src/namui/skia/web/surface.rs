@@ -2,7 +2,7 @@ use crate::namui;
 
 use super::*;
 
-pub struct Surface {
+pub(crate) struct Surface {
     canvas_kit_surface: CanvasKitSurface,
     canvas: Canvas,
 }

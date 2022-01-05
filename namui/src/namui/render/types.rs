@@ -1,7 +1,8 @@
 use crate::{namui::skia::LtrbRect, Wh, Xy};
 use serde::{Deserialize, Serialize};
+use std::hash::Hash;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct XywhRect<T> {
     pub x: T,
     pub y: T,

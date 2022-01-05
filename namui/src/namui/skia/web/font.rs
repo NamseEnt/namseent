@@ -69,3 +69,9 @@ impl Drop for Font {
         self.0.delete();
     }
 }
+
+impl std::fmt::Debug for Font {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "")
+    }
+}

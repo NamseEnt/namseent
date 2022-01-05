@@ -16,18 +16,18 @@ pub type BoxedMouseEventCallback = Box<dyn Fn(&MouseEvent)>;
 pub type MouseEventCallback = Arc<dyn Fn(&MouseEvent)>;
 pub type BoxedWheelEventCallback = Box<dyn Fn(&Xy<f32>)>;
 pub type WheelEventCallback = Arc<dyn Fn(&Xy<f32>)>;
-#[derive(Serialize, Default, Clone)]
+#[derive(Serialize, Default, Clone, Debug)]
 pub struct RenderingData {
     pub draw_calls: Vec<DrawCall>,
 }
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub enum SpecialRenderingNode {
     Translate(TranslateNode),
     Clip(ClipNode),
     AttachEvent(AttachEventNode),
     MouseCursor(MouseCursorNode),
 }
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub enum RenderingTree {
     Node(RenderingData),
     Children(Vec<RenderingTree>),
@@ -84,7 +84,8 @@ impl RenderingTree {
 
                     canvas.save();
 
-                    canvas.clip_path(&clip.path, &clip.clip_op, true);
+                    let path = clip.path_builder.build();
+                    canvas.clip_path(path.as_ref(), &clip.clip_op, true);
 
                     for child in &clip.rendering_tree {
                         child.draw(namui_context);
@@ -153,7 +154,7 @@ impl RenderingTree {
                         .find_map(|child| child.get_mouse_cursor(&next_xy))
                 }
                 SpecialRenderingNode::Clip(clip) => {
-                    let is_path_contains = clip.path.contains(xy);
+                    let is_path_contains = clip.path_builder.build().contains(xy);
                     let is_xy_filtered = match clip.clip_op {
                         ClipOp::Intersect => !is_path_contains,
                         ClipOp::Difference => is_path_contains,
@@ -212,7 +213,7 @@ impl RenderingTree {
                     });
                 }
                 SpecialRenderingNode::Clip(clip) => {
-                    let is_path_contains = clip.path.contains(local_xy);
+                    let is_path_contains = clip.path_builder.build().contains(local_xy);
                     let is_xy_filtered = match clip.clip_op {
                         ClipOp::Intersect => !is_path_contains,
                         ClipOp::Difference => is_path_contains,
@@ -270,7 +271,7 @@ impl RenderingTree {
                         .any(|child| child.is_point_in(&next_local_xy))
                 }
                 SpecialRenderingNode::Clip(clip) => {
-                    let is_path_contains = clip.path.contains(local_xy);
+                    let is_path_contains = clip.path_builder.build().contains(local_xy);
                     let is_xy_filtered = match clip.clip_op {
                         ClipOp::Intersect => !is_path_contains,
                         ClipOp::Difference => is_path_contains,

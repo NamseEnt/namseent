@@ -2,6 +2,8 @@ use super::*;
 use crate::namui;
 pub use base::*;
 
+unsafe impl Sync for CanvasKitColorFilter {}
+unsafe impl Send for CanvasKitColorFilter {}
 pub struct ColorFilter(pub(crate) CanvasKitColorFilter);
 impl ColorFilter {
     pub fn from(canvas_kit_color_filter: CanvasKitColorFilter) -> Self {

@@ -2,6 +2,8 @@ use crate::namui;
 
 use super::*;
 
+unsafe impl Sync for CanvasKitTextBlob {}
+unsafe impl Send for CanvasKitTextBlob {}
 pub struct TextBlob(pub CanvasKitTextBlob);
 impl TextBlob {
     pub fn from_text(string: &str, font: &Font) -> Self {

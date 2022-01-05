@@ -52,7 +52,7 @@ impl TimelineBody {
                 ..Default::default()
             }),
             namui::clip(
-                namui::Path::new().add_rect(
+                namui::PathBuilder::new().add_rect(
                     &namui::XywhRect {
                         x: 0.0,
                         y: 0.0,

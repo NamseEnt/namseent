@@ -47,37 +47,49 @@ pub fn rect(
     }: RectParam,
 ) -> RenderingTree {
     let mut rendering_tree: Vec<RenderingTree> = vec![];
-    let rect: namui::XywhRect<f32> = match stroke {
+    let (x, y, rect) = match stroke {
         None
         | Some(RectStroke {
             border_position: BorderPosition::Outside,
             ..
-        }) => XywhRect {
+        }) => (
             x,
             y,
-            width,
-            height,
-        },
+            XywhRect {
+                x: 0.0,
+                y: 0.0,
+                width,
+                height,
+            },
+        ),
         Some(RectStroke {
             border_position: BorderPosition::Middle,
             width: stroke_width,
             ..
-        }) => XywhRect {
-            x: x + stroke_width,
-            y: y + stroke_width,
-            width: width - 2.0 * stroke_width,
-            height: height - 2.0 * stroke_width,
-        },
+        }) => (
+            x + stroke_width,
+            y + stroke_width,
+            XywhRect {
+                x: 0.0,
+                y: 0.0,
+                width: width - 2.0 * stroke_width,
+                height: height - 2.0 * stroke_width,
+            },
+        ),
         Some(RectStroke {
             border_position: BorderPosition::Inside,
             width: stroke_width,
             ..
-        }) => XywhRect {
-            x: x + stroke_width / 2.0,
-            y: y + stroke_width / 2.0,
-            width: width - stroke_width,
-            height: height - stroke_width,
-        },
+        }) => (
+            x + stroke_width / 2.0,
+            y + stroke_width / 2.0,
+            XywhRect {
+                x: 0.0,
+                y: 0.0,
+                width: width - stroke_width,
+                height: height - stroke_width,
+            },
+        ),
     };
 
     let rect_path = get_rect_path(rect, round);
@@ -91,7 +103,7 @@ pub fn rect(
             .set_anti_alias(true);
 
         draw_commands.push(DrawCommand::Path(PathDrawCommand {
-            path: rect_path.clone(),
+            path_builder: rect_path.clone(),
             paint: fill_paint,
         }));
     };
@@ -109,7 +121,7 @@ pub fn rect(
             .set_anti_alias(true);
 
         draw_commands.push(DrawCommand::Path(PathDrawCommand {
-            path: rect_path.clone(),
+            path_builder: rect_path.clone(),
             paint: stroke_paint,
         }));
     };
@@ -132,13 +144,15 @@ pub fn rect(
         }],
     }));
 
-    RenderingTree::Children(rendering_tree)
+    translate(x, y, RenderingTree::Children(rendering_tree))
 }
 
 //   function getRectPath(rect: InputRect) {
-fn get_rect_path(rect: XywhRect<f32>, round: Option<RectRound>) -> namui::Path {
+fn get_rect_path(rect: XywhRect<f32>, round: Option<RectRound>) -> namui::PathBuilder {
     match round {
-        Some(round) => namui::Path::new().add_rrect(rect.into_ltrb(), round.radius, round.radius),
-        None => namui::Path::new().add_rect(&rect.into_ltrb()),
+        Some(round) => {
+            namui::PathBuilder::new().add_rrect(&rect.into_ltrb(), round.radius, round.radius)
+        }
+        None => namui::PathBuilder::new().add_rect(&rect.into_ltrb()),
     }
 }

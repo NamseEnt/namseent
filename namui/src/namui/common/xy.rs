@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, Copy)]
+use serde::Serialize;
+
+#[derive(Debug, Serialize, Clone, Copy)]
 pub struct Xy<T> {
     pub x: T,
     pub y: T,

@@ -60,7 +60,7 @@ impl CameraAngle {
         };
 
         clip(
-            Path::new().add_rect(&clip_rect),
+            PathBuilder::new().add_rect(&clip_rect),
             ClipOp::Intersect,
             namui::image(ImageParam {
                 source: ImageSource::Image(image),
