@@ -2,6 +2,8 @@ use super::*;
 use crate::namui;
 pub use base::*;
 
+unsafe impl Sync for CanvasKitPaint {}
+unsafe impl Send for CanvasKitPaint {}
 pub struct Paint(pub(crate) CanvasKitPaint);
 impl Paint {
     pub fn new() -> Self {

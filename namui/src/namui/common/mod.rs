@@ -15,8 +15,8 @@ pub struct FpsInfo {
 }
 
 pub struct NamuiContext {
-    pub surface: Surface,
-    pub fps_info: FpsInfo,
+    pub(crate) surface: Surface,
+    pub(crate) fps_info: FpsInfo,
 }
 
 pub trait NamuiImpl {
@@ -84,7 +84,7 @@ pub use render;
 
 pub type Rendering = RenderingTree;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize)]
 pub struct Wh<T> {
     pub width: T,
     pub height: T,

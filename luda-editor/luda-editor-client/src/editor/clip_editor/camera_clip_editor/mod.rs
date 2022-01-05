@@ -76,7 +76,7 @@ impl CameraClipEditor {
             props.xywh.x,
             props.xywh.y,
             namui::clip(
-                namui::Path::new().add_rect(&namui::LtrbRect {
+                namui::PathBuilder::new().add_rect(&namui::LtrbRect {
                     left: 0.0,
                     top: 0.0,
                     right: props.xywh.width,
@@ -108,7 +108,7 @@ impl CameraClipEditor {
                         image_filename_objects: props.image_filename_objects,
                     }),
                     clip(
-                        Path::new().add_rect(&preview_rect.into_ltrb()),
+                        PathBuilder::new().add_rect(&preview_rect.into_ltrb()),
                         ClipOp::Difference,
                         self.wysiwyg_editor.render(&WysiwygEditorProps {
                             xywh: XywhRect {

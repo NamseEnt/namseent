@@ -47,7 +47,7 @@ fn render_resize_handles(source_rect: &XywhRect<f32>, container_size: &Wh<f32>) 
         get_handles(&source_rect)
             .iter()
             .map(|handle| {
-                let path = namui::Path::new().add_oval(&LtrbRect {
+                let path = namui::PathBuilder::new().add_oval(&LtrbRect {
                     left: handle.xy.x - HANDLE_RADIUS,
                     top: handle.xy.y - HANDLE_RADIUS,
                     right: handle.xy.x + HANDLE_RADIUS,
