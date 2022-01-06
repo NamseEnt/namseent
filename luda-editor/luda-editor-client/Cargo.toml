@@ -40,6 +40,10 @@ wasm-bindgen-test = "0.3.13"
 lto = true
 opt-level = 3
 
+[profile.dev]
+lto = true
+opt-level = 2
+
 [dependencies.web-sys]
 version = "0.3"
 features = [
