@@ -14,7 +14,7 @@ pub enum ImageFit {
 
 pub struct ImageStyle {
     pub fit: ImageFit,
-    pub paint: Option<Paint>,
+    pub paint_builder: Option<PaintBuilder>,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -41,7 +41,7 @@ pub fn image(
         source,
         xywh,
         fit: style.fit,
-        paint: style.paint,
+        paint_builder: style.paint_builder,
     };
     RenderingTree::Node(RenderingData {
         draw_calls: vec![DrawCall {

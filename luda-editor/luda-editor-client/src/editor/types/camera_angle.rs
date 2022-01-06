@@ -67,7 +67,7 @@ impl CameraAngle {
                 xywh: image_xywh,
                 style: ImageStyle {
                     fit: ImageFit::Fill,
-                    paint: None,
+                    paint_builder: None,
                 },
             }),
         )

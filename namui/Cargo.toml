@@ -28,6 +28,7 @@ dashmap = "4"
 num = "0.4.0"
 bincode = "1.3"
 lru = "0.7"
+ordered-float = "2.10"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"

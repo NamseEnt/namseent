@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-
 use super::ImageDrawCommand;
 use crate::{
     namui::{
@@ -36,31 +34,20 @@ pub fn draw_image(namui_context: &NamuiContext, command: &ImageDrawCommand) {
     };
     let (src_rect, dest_rect) = get_src_dest_rects_in_fit(command.fit, &image_size, &command.xywh);
 
-    thread_local! {
-        static DEFAULT_PAINT: RefCell<Option<Paint>> = RefCell::new(None);
-    }
-    DEFAULT_PAINT.with(|default_paint| {
-        let mut default_paint = default_paint.borrow_mut();
+    let paint = command
+        .paint_builder
+        .as_ref()
+        .unwrap_or(&PaintBuilder::new())
+        .build();
 
-        if default_paint.is_none() {
-            let paint = Paint::new()
-                .set_style(PaintStyle::Fill)
-                .set_color(Color::gary_scale_f01(0.5));
-            *default_paint = Some(paint);
-        }
-        let default_paint_reference = default_paint.as_ref().unwrap();
-
-        let paint = command.paint.as_ref().unwrap_or(default_paint_reference);
-
-        namui_context.surface.canvas().draw_image_rect_options(
-            &image,
-            &src_rect,
-            &dest_rect,
-            FilterMode::Linear,
-            MipmapMode::Linear,
-            Some(paint),
-        );
-    });
+    namui_context.surface.canvas().draw_image_rect_options(
+        &image,
+        &src_rect,
+        &dest_rect,
+        FilterMode::Linear,
+        MipmapMode::Linear,
+        Some(&paint),
+    );
 }
 
 fn get_src_dest_rects_in_fit(

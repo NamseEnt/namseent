@@ -13,11 +13,11 @@ pub use render::{
     MouseCursor, MouseEvent, MouseEventCallback, MouseEventType, RenderingData, RenderingTree,
     TextInput, WheelEventCallback,
 };
-pub(crate) use skia::Path;
 pub use skia::{
     types::{ClipOp, Color, PaintStyle},
-    BlendMode, ColorFilter, Font, Image, LtrbRect, Paint, PathBuilder, StrokeCap, Typeface,
+    BlendMode, Font, Image, LtrbRect, PaintBuilder, PathBuilder, StrokeCap, Typeface,
 };
+pub(crate) use skia::{ColorFilter, Paint, Path};
 pub mod event;
 pub use event::NamuiEvent;
 mod render;
@@ -188,7 +188,6 @@ pub fn now() -> Duration {
 }
 
 #[macro_export]
-#[macro_use]
 macro_rules! log {
     ($($arg:tt)*) => {{
         $crate::log(format!($($arg)*));
