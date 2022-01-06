@@ -73,7 +73,7 @@ impl BrowserItem {
                 source: namui::ImageSource::Url(props.thumbnail_url.clone()),
                 style: ImageStyle {
                     fit: ImageFit::Contain,
-                    paint: None,
+                    paint_builder: None,
                 },
             }),
         ]

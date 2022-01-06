@@ -47,12 +47,12 @@ fn render_handles(dest_rect: &LtrbRect, container_size: &Wh<f32>) -> RenderingTr
             .map(|handle| {
                 let path = PathBuilder::new().add_poly(&handle.polygon_xy, true);
 
-                let stroke_paint = Paint::new()
+                let stroke_paint = PaintBuilder::new()
                     .set_style(PaintStyle::Stroke)
                     .set_stroke_width(1.0)
                     .set_color(Color::WHITE);
 
-                let fill_paint = Paint::new()
+                let fill_paint = PaintBuilder::new()
                     .set_style(PaintStyle::Fill)
                     .set_color(Color::BLACK);
 

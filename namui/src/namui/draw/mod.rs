@@ -9,7 +9,7 @@ use super::{
     skia::{Font, Paint, StrokeOptions},
     Namui, NamuiContext, NamuiImpl, Path, Xy,
 };
-use crate::{ImageSource, PathBuilder, XywhRect};
+use crate::{ImageSource, PaintBuilder, PathBuilder, XywhRect};
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -18,7 +18,7 @@ pub struct PathDrawCommand {
     #[serde(skip_serializing)]
     pub path_builder: PathBuilder,
     #[serde(skip_serializing)]
-    pub paint: Paint,
+    pub paint_builder: PaintBuilder,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -33,7 +33,7 @@ pub struct ImageDrawCommand {
     pub source: ImageSource,
     pub fit: ImageFit,
     #[serde(skip_serializing)]
-    pub paint: Option<Paint>,
+    pub paint_builder: Option<PaintBuilder>,
 }
 #[derive(Debug, Serialize, Copy, Clone)]
 pub enum TextAlign {
@@ -54,8 +54,7 @@ pub struct TextDrawCommand {
     pub font: Arc<Font>,
     pub x: f32,
     pub y: f32,
-    #[serde(skip_serializing)]
-    pub paint: Paint,
+    pub paint_builder: PaintBuilder,
     pub align: TextAlign,
     pub baseline: TextBaseline,
 }
@@ -98,7 +97,7 @@ impl DrawCommand {
         match self {
             DrawCommand::Path(path_draw_command) => {
                 let path = path_draw_command.path_builder.build();
-                let paint = &path_draw_command.paint;
+                let paint = path_draw_command.paint_builder.build();
 
                 if path.contains(local_xy) {
                     return true;

@@ -54,11 +54,11 @@ fn render_resize_handles(source_rect: &XywhRect<f32>, container_size: &Wh<f32>) 
                     bottom: handle.xy.y + HANDLE_RADIUS,
                 });
 
-                let fill_paint = namui::Paint::new()
+                let fill_paint = namui::PaintBuilder::new()
                     .set_style(namui::PaintStyle::Fill)
                     .set_color(Color::WHITE);
 
-                let stroke_paint = namui::Paint::new()
+                let stroke_paint = namui::PaintBuilder::new()
                     .set_style(namui::PaintStyle::Stroke)
                     .set_color(Color::gary_scale_f01(0.5))
                     .set_stroke_width(2.0)

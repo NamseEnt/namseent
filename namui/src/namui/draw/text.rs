@@ -13,7 +13,9 @@ pub fn draw_text(namui_context: &NamuiContext, command: &TextDrawCommand) {
 
     let glyph_ids = font.get_glyph_ids(&command.text);
 
-    let widths = font.get_glyph_widths(&glyph_ids, Option::Some(&command.paint));
+    let paint = command.paint_builder.build();
+
+    let widths = font.get_glyph_widths(&glyph_ids, Option::Some(&paint));
 
     let width = widths.iter().fold(0.0, |prev, curr| prev + curr);
 
@@ -28,7 +30,7 @@ pub fn draw_text(namui_context: &NamuiContext, command: &TextDrawCommand) {
     namui_context
         .surface
         .canvas()
-        .draw_text_blob(&text_blob, left, bottom, &command.paint);
+        .draw_text_blob(&text_blob, left, bottom, &paint);
 }
 pub fn get_left_in_align(x: f32, align: TextAlign, width: f32) -> f32 {
     match align {
