@@ -1,9 +1,9 @@
 use wasm_bindgen::prelude::*;
-mod editor;
+mod app;
 
 #[wasm_bindgen]
 pub async fn start() {
-    editor::main().await;
+    app::main().await;
 }
 
 pub fn set_panic_hook() {
