@@ -19,7 +19,7 @@ impl Font {
         let canvas_kit_font = &self.0;
         canvas_kit_font.getGlyphIDs(text)
     }
-    pub fn get_glyph_widths(&self, glyph_ids: &GlyphIds, paint: Option<&Paint>) -> Vec<f32> {
+    pub(crate) fn get_glyph_widths(&self, glyph_ids: &GlyphIds, paint: Option<&Paint>) -> Vec<f32> {
         let canvas_kit_font = &self.0;
         let widths = canvas_kit_font.getGlyphWidths(glyph_ids, paint.map(|p| &p.0));
         widths.to_vec()
@@ -42,7 +42,11 @@ impl Font {
             bounds,
         }
     }
-    pub fn get_glyph_bounds(&self, glyph_ids: &GlyphIds, paint: Option<&Paint>) -> Vec<LtrbRect> {
+    pub(crate) fn get_glyph_bounds(
+        &self,
+        glyph_ids: &GlyphIds,
+        paint: Option<&Paint>,
+    ) -> Vec<LtrbRect> {
         let canvas_kit_font = &self.0;
         let boundItems = canvas_kit_font
             .getGlyphBounds(glyph_ids, paint.map(|p| &p.0))

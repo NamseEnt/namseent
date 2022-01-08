@@ -4,7 +4,7 @@ pub use base::*;
 
 unsafe impl Sync for CanvasKitPaint {}
 unsafe impl Send for CanvasKitPaint {}
-pub struct Paint(pub(crate) CanvasKitPaint);
+pub(crate) struct Paint(pub(crate) CanvasKitPaint);
 impl Paint {
     pub fn new() -> Self {
         Paint(CanvasKitPaint::new())
@@ -14,7 +14,7 @@ impl Paint {
         self
     }
 
-    pub fn set_style(self, style: PaintStyle) -> Self {
+    pub fn set_style(self, style: &PaintStyle) -> Self {
         self.0.setStyle(style.into_canvas_kit());
         self
     }
@@ -26,8 +26,12 @@ impl Paint {
         self.0.setStrokeWidth(width);
         self
     }
-    pub fn set_stroke_cap(self, cap: StrokeCap) -> Self {
+    pub fn set_stroke_cap(self, cap: &StrokeCap) -> Self {
         self.0.setStrokeCap(cap.into_canvas_kit());
+        self
+    }
+    pub fn set_color_filter(self, color_filter: &ColorFilter) -> Self {
+        self.0.setColorFilter(&color_filter.0);
         self
     }
     pub fn get_stroke_cap(&self) -> StrokeCap {
@@ -61,10 +65,6 @@ impl Paint {
     }
     pub fn get_stroke_miter(&self) -> f32 {
         self.0.getStrokeMiter()
-    }
-    pub fn set_color_filter(self, color_filter: &ColorFilter) -> Self {
-        self.0.setColorFilter(&color_filter.0);
-        self
     }
 }
 

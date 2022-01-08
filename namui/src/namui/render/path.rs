@@ -1,11 +1,11 @@
 use crate::namui::{self, *};
 
-pub fn path(path_builder: PathBuilder, paint: Paint) -> RenderingTree {
+pub fn path(path_builder: PathBuilder, paint_builder: PaintBuilder) -> RenderingTree {
     RenderingTree::Node(RenderingData {
         draw_calls: vec![DrawCall {
             commands: vec![DrawCommand::Path(PathDrawCommand {
                 path_builder,
-                paint,
+                paint_builder,
             })],
         }],
         ..Default::default()

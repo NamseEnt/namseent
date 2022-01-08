@@ -20,7 +20,7 @@ impl ImageBrowser {
             .scale(thumbnail_rect.width, thumbnail_rect.height)
             .translate(thumbnail_rect.x, thumbnail_rect.y);
 
-        let arrow_paint = namui::Paint::new()
+        let arrow_paint = namui::PaintBuilder::new()
             .set_color(namui::Color::BLACK)
             .set_style(namui::PaintStyle::Stroke)
             .set_stroke_width(2.0);

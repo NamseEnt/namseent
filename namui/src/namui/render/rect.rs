@@ -97,14 +97,14 @@ pub fn rect(
     let mut draw_commands: Vec<DrawCommand> = vec![];
 
     if let Some(RectFill { color }) = fill {
-        let fill_paint = namui::Paint::new()
+        let fill_paint = namui::PaintBuilder::new()
             .set_color(color)
             .set_style(namui::PaintStyle::Fill)
             .set_anti_alias(true);
 
         draw_commands.push(DrawCommand::Path(PathDrawCommand {
             path_builder: rect_path.clone(),
-            paint: fill_paint,
+            paint_builder: fill_paint,
         }));
     };
 
@@ -114,7 +114,7 @@ pub fn rect(
         ..
     }) = stroke
     {
-        let stroke_paint = namui::Paint::new()
+        let stroke_paint = namui::PaintBuilder::new()
             .set_color(color)
             .set_stroke_width(stroke_width)
             .set_style(namui::PaintStyle::Stroke)
@@ -122,7 +122,7 @@ pub fn rect(
 
         draw_commands.push(DrawCommand::Path(PathDrawCommand {
             path_builder: rect_path.clone(),
-            paint: stroke_paint,
+            paint_builder: stroke_paint,
         }));
     };
 
@@ -147,7 +147,6 @@ pub fn rect(
     translate(x, y, RenderingTree::Children(rendering_tree))
 }
 
-//   function getRectPath(rect: InputRect) {
 fn get_rect_path(rect: XywhRect<f32>, round: Option<RectRound>) -> namui::PathBuilder {
     match round {
         Some(round) => {

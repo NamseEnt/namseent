@@ -114,14 +114,14 @@ pub fn get_rect_in_container(
 }
 pub fn render_source_image(
     image: Arc<Image>,
-    paint: Option<Paint>,
+    paint_builder: Option<PaintBuilder>,
     source_rect: &XywhRect<f32>,
 ) -> RenderingTree {
     namui::image(ImageParam {
         xywh: *source_rect,
         style: ImageStyle {
             fit: ImageFit::Fill,
-            paint,
+            paint_builder,
         },
         source: ImageSource::Image(image),
     })
@@ -132,12 +132,9 @@ fn render_outer_image(
     source_rect: &XywhRect<f32>,
     dest_rect: &LtrbRect,
 ) -> RenderingTree {
-    let outside_image_paint = namui::Paint::new()
+    let outside_image_paint = namui::PaintBuilder::new()
         .set_style(namui::PaintStyle::Fill)
-        .set_color_filter(&namui::ColorFilter::blend(
-            &Color::gary_scale_f01(0.5),
-            &namui::BlendMode::Multiply,
-        ));
+        .set_color_filter(&Color::gary_scale_f01(0.5), &namui::BlendMode::Multiply);
 
     namui::clip(
         namui::PathBuilder::new().add_rect(dest_rect),

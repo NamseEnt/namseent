@@ -62,22 +62,24 @@ impl SubtitleClipBody {
             .line_to(component_width, 0.0)
             .close();
 
-        let fill_paint = namui::Paint::new().set_anti_alias(true).set_color(color);
+        let fill_paint = namui::PaintBuilder::new()
+            .set_anti_alias(true)
+            .set_color(color);
 
-        let border_paint = namui::Paint::new()
+        let border_paint = namui::PaintBuilder::new()
             .set_anti_alias(true)
             .set_style(namui::PaintStyle::Stroke)
             .set_stroke_width(border_width as f32)
             .set_color(brighter_color);
 
-        let stroke_fill_paint = namui::Paint::new()
+        let stroke_fill_paint = namui::PaintBuilder::new()
             .set_anti_alias(true)
             .set_style(namui::PaintStyle::Stroke)
             .set_stroke_width(border_width as f32 / 2.0)
             .set_stroke_cap(namui::StrokeCap::Round)
             .set_color(color);
 
-        let stroke_border_paint = namui::Paint::new()
+        let stroke_border_paint = namui::PaintBuilder::new()
             .set_anti_alias(true)
             .set_style(namui::PaintStyle::Stroke)
             .set_stroke_width(border_width as f32)

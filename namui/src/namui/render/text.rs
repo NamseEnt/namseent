@@ -125,7 +125,7 @@ pub fn text(param: TextParam) -> RenderingTree {
 //   style,
 // }: TextHandleParam): TextDrawCommand | undefined {
 fn draw_text(param: TextParam, font: Arc<Font>) -> DrawCommand {
-    let text_paint = namui::Paint::new()
+    let text_paint = namui::PaintBuilder::new()
         .set_color(param.style.color)
         .set_style(namui::PaintStyle::Fill)
         .set_anti_alias(true);
@@ -135,7 +135,7 @@ fn draw_text(param: TextParam, font: Arc<Font>) -> DrawCommand {
         font,
         x: param.x,
         y: param.y,
-        paint: text_paint,
+        paint_builder: text_paint,
         align: param.align,
         baseline: param.baseline,
     })

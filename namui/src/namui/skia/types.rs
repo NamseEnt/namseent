@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 pub type GlyphIds = [u16];
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, Default, PartialEq)]
 #[repr(C)]
 pub struct LtrbRect {
     pub left: f32,
@@ -37,7 +37,7 @@ pub struct FontMetrics {
     pub bounds: Option<LtrbRect>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, Default, Hash, Eq, PartialEq)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -200,25 +200,26 @@ struct Hsl01 {
     alpha: f32,
 }
 
+#[derive(Debug, Serialize, Clone, PartialEq, Hash)]
 pub enum PaintStyle {
     Fill,
     Stroke,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, PartialEq, Hash)]
 pub enum StrokeCap {
     Butt,
     Round,
     Square,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, PartialEq)]
 pub enum StrokeJoin {
     Bevel,
     Miter,
     Round,
 }
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, PartialEq)]
 pub struct StrokeOptions {
     pub width: Option<f32>,
     pub miter_limit: Option<f32>,
@@ -264,6 +265,7 @@ pub enum MipmapMode {
     Nearest,
     Linear,
 }
+#[derive(Debug, Serialize, Clone, Hash, PartialEq, Eq)]
 pub enum BlendMode {
     Clear,
     Src,
