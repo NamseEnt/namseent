@@ -3,6 +3,7 @@ use super::render::{RenderingData, RenderingTree};
 use super::skia::*;
 use serde::{Deserialize, Serialize};
 use serde_repr::*;
+use std::sync::Arc;
 use std::time::Duration;
 use strum_macros::EnumIter;
 mod xy;
@@ -15,7 +16,7 @@ pub struct FpsInfo {
 }
 
 pub struct NamuiContext {
-    pub(crate) surface: Surface,
+    pub(crate) surface: Arc<Surface>,
     pub(crate) fps_info: FpsInfo,
     pub(crate) rendering_tree: RenderingTree,
 }
@@ -29,6 +30,7 @@ pub trait NamuiImpl {
     fn init() -> NamuiContext;
     fn request_animation_frame(callback: Box<dyn FnOnce()>);
     fn log(format: String);
+    fn log_error(format: String);
     fn now() -> Duration;
 }
 

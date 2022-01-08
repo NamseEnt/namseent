@@ -19,6 +19,6 @@ pub use path::*;
 mod color;
 pub use color::*;
 mod image;
-pub use image::*;
+pub use self::image::*;
 mod color_filter;
 pub use color_filter::*;

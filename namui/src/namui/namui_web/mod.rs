@@ -14,6 +14,8 @@ pub use fetch::*;
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn log(a: &str);
+    #[wasm_bindgen(js_namespace = console)]
+    fn error(a: &str);
 }
 
 #[wasm_bindgen]
@@ -42,7 +44,7 @@ impl NamuiImpl for Namui {
         let canvas_kit = canvas_kit();
         let canvas_element = make_canvas_element().unwrap();
         let canvas_kit_surface = canvas_kit.MakeCanvasSurface(&canvas_element).unwrap();
-        let surface = Surface::new(canvas_kit_surface);
+        let surface = Arc::new(Surface::new(canvas_kit_surface));
         CANVAS_KIT.set(Arc::new(canvas_kit));
 
         if MANAGERS
@@ -51,7 +53,7 @@ impl NamuiImpl for Namui {
                 font_manager: Box::new(FontManager::new()),
                 keyboard_manager: Box::new(KeyboardManager::new()),
                 screen_manager: Box::new(ScreenManager::new()),
-                image_manager: ImageManager::new(),
+                image_manager: ImageManager::new(surface.clone()),
                 wheel_manager: Box::new(WheelManager::new()),
             }))
             .is_err()
@@ -80,6 +82,9 @@ impl NamuiImpl for Namui {
     }
     fn log(format: String) {
         log(&format);
+    }
+    fn log_error(format: String) {
+        error(&format);
     }
     fn now() -> Duration {
         Duration::from_millis(window().performance().unwrap().now() as u64)

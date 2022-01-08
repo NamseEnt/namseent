@@ -13,7 +13,7 @@ pub use translate::*;
 pub mod clip;
 pub use clip::*;
 pub mod image;
-pub use image::*;
+pub use self::image::*;
 pub mod path;
 pub use path::*;
 pub mod attach_event;

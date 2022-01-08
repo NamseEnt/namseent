@@ -12,9 +12,9 @@ impl Typeface {
         array_buffer_view.copy_from(bytes);
 
         let typeface = canvas_kit()
-            .FontMgr()
-            .RefDefault()
-            .MakeTypefaceFromData(array_buffer);
+            .Typeface()
+            .MakeFreeTypeFaceFromData(array_buffer)
+            .unwrap();
 
         Typeface(Arc::new(typeface))
     }

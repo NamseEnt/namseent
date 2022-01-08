@@ -146,16 +146,22 @@ extern "C" {
     //                x: number, y: number,
     //                font: Font, paint: Paint);
 
-    //     ///
-    //     /// Draws the given image with its top-left corner at (left, top) using the current clip,
-    //     /// the current matrix, and optionally-provided paint.
-    //     /// @param img
-    //     /// @param left
-    //     /// @param top
-    //     /// @param paint
-    //     ///
-    // #[wasm_bindgen(method)]
-    // pub fn drawImage(this: &CanvasKitCanvas, img: Image, left: number, top: number, paint?: Paint | null);
+    ///
+    /// Draws the given image with its top-left corner at (left, top) using the current clip,
+    /// the current matrix, and optionally-provided paint.
+    /// @param img
+    /// @param left
+    /// @param top
+    /// @param paint
+    ///
+    #[wasm_bindgen(method)]
+    pub fn drawImage(
+        this: &CanvasKitCanvas,
+        img: &CanvasKitImage,
+        left: f32,
+        top: f32,
+        paint: Option<&CanvasKitPaint>,
+    );
 
     //     ///
     //     /// Draws the given image with its top-left corner at (left, top) using the current clip,

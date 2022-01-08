@@ -1,12 +1,10 @@
 use crate::{namui::skia::StrokeOptions, LtrbRect, Path, Xy};
 use once_cell::sync::OnceCell;
 use serde::Serialize;
-use std::{
-    hash::Hash,
-    sync::{Arc, Mutex},
-};
+use std::hash::{Hash, Hasher};
+use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, PartialEq)]
 enum PathCommand {
     AddRect(LtrbRect),
     AddRrect(LtrbRect, Xy<f32>),
@@ -21,21 +19,21 @@ enum PathCommand {
     Close,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize)]
 pub struct PathBuilder {
     commands: Vec<PathCommand>,
 }
 
 static PATH_CACHE: OnceCell<Mutex<lru::LruCache<PathBuilder, Arc<Path>>>> = OnceCell::new();
+static COMMANDS_POOL: OnceCell<Mutex<Vec<Vec<PathCommand>>>> = OnceCell::new();
 
 impl PathBuilder {
     pub(crate) fn build(&self) -> Arc<Path> {
         self.get_or_create_path()
     }
     pub fn new() -> Self {
-        Self {
-            commands: Vec::new(),
-        }
+        let commands = PathCommandsPool::pull_commands();
+        Self { commands }
     }
     pub fn add_rect(mut self, ltrb_rect: &LtrbRect) -> Self {
         self.commands.push(PathCommand::AddRect(*ltrb_rect));
@@ -101,7 +99,6 @@ impl PathBuilder {
 
     fn create_path(&self) -> Arc<Path> {
         let mut path = Path::new();
-        crate::log!("{:?}", self);
         for command in &self.commands {
             path = match command {
                 PathCommand::AddRect(ltrb_rect) => path.add_rect(&ltrb_rect),
@@ -109,7 +106,7 @@ impl PathBuilder {
                     path.add_rrect(&ltrb_rect, rx_ry.x, rx_ry.y)
                 }
                 PathCommand::Stroke(options) => {
-                    path.stroke(options).unwrap();
+                    path.stroke(&options).unwrap();
                     path
                 }
                 PathCommand::MoveTo(xy) => path.move_to(xy.x, xy.y),
@@ -128,13 +125,73 @@ impl PathBuilder {
 
 impl Hash for PathBuilder {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        bincode::serialize(self).unwrap().hash(state);
+        for command in &self.commands {
+            command.hash(state);
+        }
+    }
+}
+
+impl Hash for PathCommand {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
     }
 }
 
 impl PartialEq for PathBuilder {
     fn eq(&self, other: &Self) -> bool {
-        bincode::serialize(self).unwrap() == bincode::serialize(other).unwrap()
+        let self_commands = &self.commands;
+        let other_commands = &other.commands;
+        if self_commands.len() != other_commands.len() {
+            return false;
+        }
+        for (command, other_command) in self_commands.iter().zip(other_commands.iter()) {
+            if command != other_command {
+                return false;
+            }
+        }
+        true
     }
 }
 impl std::cmp::Eq for PathBuilder {}
+
+impl Drop for PathBuilder {
+    fn drop(&mut self) {
+        let commands = std::mem::take(&mut self.commands);
+        PathCommandsPool::return_commands(commands);
+    }
+}
+
+impl Clone for PathBuilder {
+    fn clone(&self) -> Self {
+        let mut commands = PathCommandsPool::pull_commands();
+        commands.extend_from_slice(&self.commands);
+        Self { commands }
+    }
+}
+
+struct PathCommandsPool {}
+impl PathCommandsPool {
+    fn pull_commands() -> Vec<PathCommand> {
+        const INIT_COMMANDS_POOL_SIZE: usize = 8096;
+        const INIT_COMMANDS_CAPACITY: usize = 16;
+        let mut commands_pool = COMMANDS_POOL
+            .get_or_init(|| {
+                let mut pool: Vec<Vec<PathCommand>> = Vec::with_capacity(INIT_COMMANDS_POOL_SIZE);
+                for _ in 0..INIT_COMMANDS_POOL_SIZE {
+                    pool.push(Vec::with_capacity(INIT_COMMANDS_CAPACITY));
+                }
+                Mutex::new(pool)
+            })
+            .lock()
+            .unwrap();
+        let commands = commands_pool
+            .pop()
+            .unwrap_or_else(|| Vec::with_capacity(INIT_COMMANDS_CAPACITY));
+        commands
+    }
+    fn return_commands(mut commands: Vec<PathCommand>) {
+        let mut commands_pool = COMMANDS_POOL.get().unwrap().lock().unwrap();
+        commands.clear();
+        commands_pool.push(commands);
+    }
+}

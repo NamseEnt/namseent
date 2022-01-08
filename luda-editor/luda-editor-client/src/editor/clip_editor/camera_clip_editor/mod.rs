@@ -107,26 +107,26 @@ impl CameraClipEditor {
                         height: props.xywh.height,
                         image_filename_objects: props.image_filename_objects,
                     }),
-                    clip(
-                        PathBuilder::new().add_rect(&preview_rect.into_ltrb()),
-                        ClipOp::Difference,
-                        self.wysiwyg_editor.render(&WysiwygEditorProps {
-                            xywh: XywhRect {
-                                x: props.xywh.width / 2.0,
-                                y: 0.0,
-                                width: props.xywh.width / 2.0,
-                                height: props.xywh.width / 2.0 / (1920.0 / 1080.0),
-                            },
-                            camera_angle: &camera_angle,
-                            image_filename_objects: props.image_filename_objects,
-                            job: &props.job,
-                        }),
-                    ),
-                    Preview::new().render(&PreviewProps {
-                        camera_angle: &camera_angle,
-                        xywh: &preview_rect,
-                        camera_angle_image_loader: props,
-                    }),
+                    // clip(
+                    //     PathBuilder::new().add_rect(&preview_rect.into_ltrb()),
+                    //     ClipOp::Difference,
+                    //     self.wysiwyg_editor.render(&WysiwygEditorProps {
+                    //         xywh: XywhRect {
+                    //             x: props.xywh.width / 2.0,
+                    //             y: 0.0,
+                    //             width: props.xywh.width / 2.0,
+                    //             height: props.xywh.width / 2.0 / (1920.0 / 1080.0),
+                    //         },
+                    //         camera_angle: &camera_angle,
+                    //         image_filename_objects: props.image_filename_objects,
+                    //         job: &props.job,
+                    //     }),
+                    // ),
+                    // Preview::new().render(&PreviewProps {
+                    //     camera_angle: &camera_angle,
+                    //     xywh: &preview_rect,
+                    //     camera_angle_image_loader: props,
+                    // }),
                 ],
             ),
         )

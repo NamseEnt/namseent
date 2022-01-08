@@ -37,9 +37,9 @@ impl Paint {
     pub fn get_stroke_cap(&self) -> StrokeCap {
         let stroke_cap = self.0.getStrokeCap();
 
-        let butt_value = &STROKE_CAP_BUTT_VALUE;
-        let round_value = &STROKE_CAP_ROUND_VALUE;
-        let square_value = &STROKE_CAP_SQUARE_VALUE;
+        let butt_value = &stroke_cap::Butt;
+        let round_value = &stroke_cap::Round;
+        let square_value = &stroke_cap::Square;
 
         match stroke_cap.value() {
             butt_value => StrokeCap::Butt,
@@ -50,9 +50,9 @@ impl Paint {
     pub fn get_stroke_join(&self) -> StrokeJoin {
         let stroke_join = self.0.getStrokeJoin();
 
-        let bevel_value = &STROKE_JOIN_BEVEL_VALUE;
-        let miter_value = &STROKE_JOIN_MITER_VALUE;
-        let round_value = &STROKE_JOIN_ROUND_VALUE;
+        let bevel_value = &stroke_join::Bevel;
+        let miter_value = &stroke_join::Miter;
+        let round_value = &stroke_join::Round;
 
         match stroke_join.value() {
             bevel_value => StrokeJoin::Bevel,

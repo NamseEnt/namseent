@@ -70,6 +70,26 @@ pub async fn start<TProps>(
 
         match event.downcast_ref::<NamuiEvent>() {
             Some(NamuiEvent::AnimationFrame) => {
+                // update_fps_info(&mut namui_context.fps_info);
+
+                // namui_context.rendering_tree.draw(&namui_context);
+
+                // set_mouse_cursor(&namui_context.rendering_tree);
+
+                // namui_context.surface.flush();
+
+                // if namui_context.fps_info.frame_count == 0 {
+                //     log(format!("event_count: {}", event_count));
+                //     event_count = 0;
+                // }
+            }
+            Some(NamuiEvent::MouseDown(xy)) => {
+                // namui_context
+                //     .rendering_tree
+                //     .call_mouse_event(MouseEventType::Down, xy);
+                // state.update(event.as_ref());
+                // namui_context.rendering_tree = state.render(props);
+
                 update_fps_info(&mut namui_context.fps_info);
 
                 namui_context.rendering_tree.draw(&namui_context);
@@ -82,13 +102,6 @@ pub async fn start<TProps>(
                     log(format!("event_count: {}", event_count));
                     event_count = 0;
                 }
-            }
-            Some(NamuiEvent::MouseDown(xy)) => {
-                namui_context
-                    .rendering_tree
-                    .call_mouse_event(MouseEventType::Down, xy);
-                state.update(event.as_ref());
-                namui_context.rendering_tree = state.render(props);
             }
             Some(NamuiEvent::MouseUp(xy)) => {
                 namui_context
@@ -183,6 +196,10 @@ pub fn log(format: String) {
     Namui::log(format);
 }
 
+pub fn log_error(format: String) {
+    Namui::log_error(format);
+}
+
 pub fn now() -> Duration {
     Namui::now()
 }
@@ -191,5 +208,12 @@ pub fn now() -> Duration {
 macro_rules! log {
     ($($arg:tt)*) => {{
         $crate::log(format!($($arg)*));
+    }}
+}
+
+#[macro_export]
+macro_rules! log_error {
+    ($($arg:tt)*) => {{
+        $crate::log_error(format!($($arg)*));
     }}
 }

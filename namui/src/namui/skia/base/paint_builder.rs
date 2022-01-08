@@ -77,7 +77,6 @@ impl PaintBuilder {
 
     fn create_paint(&self) -> Arc<Paint> {
         let mut paint = Paint::new();
-        crate::log!("{:?}", self);
 
         if let Some(color) = self.color {
             paint = paint.set_color(color);

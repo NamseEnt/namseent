@@ -2,6 +2,7 @@ use super::ImageBrowser;
 use crate::editor::{events::EditorEvent, types::*};
 use namui::prelude::*;
 
+// 어떻게 해싱할건지, 얼마나 저장할건지를 지정하게 만드는 trait을 만들고 그걸로 캐싱해서 최적화해보자
 impl ImageBrowser {
     pub fn render_back_button(
         &self,

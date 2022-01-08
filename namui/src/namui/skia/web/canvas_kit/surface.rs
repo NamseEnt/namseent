@@ -39,19 +39,23 @@ extern "C" {
     // #[wasm_bindgen(structural, method)]
     // fn makeImageFromTexture(this: &CanvasKitSurface, tex: WebGLTexture, info: ImageInfo) -> Image | null;
 
-    // ///
-    // /// Returns a texture-backed image based on the content in src. It uses RGBA_8888, unpremul
-    // /// and SRGB - for more control, use makeImageFromTexture.
-    //  *
-    // /// Not available for software-backed surfaces.
-    // /// @param src
-    // /// @param width - If provided, will be used as the width of src. Otherwise, the natural
-    // ///                width of src (if available) will be used.
-    // /// @param height - If provided, will be used as the height of src. Otherwise, the natural
-    // ///                height of src (if available) will be used.
-    // ///
-    // #[wasm_bindgen(structural, method)]
-    // fn makeImageFromTextureSource(this: &CanvasKitSurface, src: TextureSource, width?: number, height?: number) -> Image | null;
+    ///
+    /// Returns a texture-backed image based on the content in src. It uses RGBA_8888, unpremul
+    /// and SRGB - for more control, use makeImageFromTexture.
+    ///
+    /// Not available for software-backed surfaces.
+    /// @param src
+    /// @param width - If provided, will be used as the width of src. Otherwise, the natural
+    ///                width of src (if available) will be used.
+    /// @param height - If provided, will be used as the height of src. Otherwise, the natural
+    ///                height of src (if available) will be used.
+    ///
+    #[wasm_bindgen(method)]
+    pub fn makeImageFromTextureSource(
+        this: &CanvasKitSurface,
+        src: &JsValue,
+        image_info: JsValue,
+    ) -> Option<CanvasKitImage>;
 
     // ///
     // /// Returns current contents of the surface as an Image. This image will be optimized to be

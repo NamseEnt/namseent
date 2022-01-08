@@ -209,29 +209,61 @@ impl namui::Entity for Editor {
         self.clip_editor.update(event);
     }
     fn render(&self, props: &Self::Props) -> namui::RenderingTree {
-        let selected_clip = self
-            .timeline
-            .selected_clip_id
-            .as_ref()
-            .and_then(|id| self.timeline.sequence.get_clip(&id));
-        render![
-            self.timeline.render(&TimelineProps {
-                playback_time: self.playback_time,
-                xywh: self.calculate_timeline_xywh(),
-                job: &self.job,
-            }),
-            self.clip_editor.render(&ClipEditorProps {
-                selected_clip,
-                xywh: XywhRect {
-                    x: 0.0,
-                    y: 0.0,
-                    width: 800.0,
-                    height: self.screen_wh.height - 200.0,
-                },
-                image_filename_objects: &self.image_filename_objects,
-                job: &self.job,
-            }),
-        ]
+        let image_urls = [
+            "http://localhost:3030/resources/images/오하연-어깨축-눈감은(.png",
+            "http://localhost:3030/resources/images/오하연-고개갸웃-호기심.png",
+            "http://localhost:3030/resources/images/오하연-두손모으고-걱정.png",
+            "http://localhost:3030/resources/images/오하연-탁자폰-무표정.png",
+            "http://localhost:3030/resources/images/피디-기본-눈치.png",
+            "http://localhost:3030/resources/images/피디-양팔왓-ㅜㅅㅜ.png",
+            // "http://localhost:3030/resources/images/피디-머리긁-미소.png",
+            // "http://localhost:3030/resources/images/피디-손뻗어잡으려-당황.png",
+        ];
+        let images = image_urls
+            .iter()
+            .enumerate()
+            .map(|(index, url)| {
+                let y = index as f32 * self.screen_wh.height / image_urls.len() as f32;
+                let height = self.screen_wh.height / image_urls.len() as f32;
+                image(ImageParam {
+                    source: ImageSource::Url(url.to_string()),
+                    style: ImageStyle {
+                        fit: ImageFit::Contain,
+                        paint_builder: None,
+                    },
+                    xywh: XywhRect {
+                        x: 0.0,
+                        y,
+                        width: self.screen_wh.width,
+                        height,
+                    },
+                })
+            })
+            .collect::<Vec<_>>();
+        RenderingTree::Children(images)
+        // let selected_clip = self
+        //     .timeline
+        //     .selected_clip_id
+        //     .as_ref()
+        //     .and_then(|id| self.timeline.sequence.get_clip(&id));
+        // render![
+        //     self.timeline.render(&TimelineProps {
+        //         playback_time: self.playback_time,
+        //         xywh: self.calculate_timeline_xywh(),
+        //         job: &self.job,
+        //     }),
+        //     self.clip_editor.render(&ClipEditorProps {
+        //         selected_clip,
+        //         xywh: XywhRect {
+        //             x: 0.0,
+        //             y: 0.0,
+        //             width: 800.0,
+        //             height: self.screen_wh.height - 200.0,
+        //         },
+        //         image_filename_objects: &self.image_filename_objects,
+        //         job: &self.job,
+        //     }),
+        // ]
     }
 }
 

@@ -27,19 +27,19 @@ impl Image {
     pub fn get_image_info(&self) -> PartialImageInfo {
         let canvas_kit_image_info = self.canvas_kit_image.getImageInfo();
 
-        let opaque = &ALPHA_TYPE_OPAQUE_VALUE;
-        let premul = &ALPHA_TYPE_PREMUL_VALUE;
-        let unpremul = &ALPHA_TYPE_UNPREMUL_VALUE;
+        let opaque = &alpha_type::Opaque;
+        let premul = &alpha_type::Premul;
+        let unpremul = &alpha_type::Unpremul;
 
-        let alpha8 = &COLOR_TYPE_ALPHA_8_VALUE;
-        let rgb565 = &COLOR_TYPE_RGB_565_VALUE;
-        let rgba8888 = &COLOR_TYPE_RGBA_8888_VALUE;
-        let bgra8888 = &COLOR_TYPE_BGRA_8888_VALUE;
-        let rgba1010102 = &COLOR_TYPE_RGBA_1010102_VALUE;
-        let rgb101010x = &COLOR_TYPE_RGB_101010X_VALUE;
-        let gray8 = &COLOR_TYPE_GRAY_8_VALUE;
-        let rgbaf16 = &COLOR_TYPE_RGBA_F16_VALUE;
-        let rgbaf32 = &COLOR_TYPE_RGBA_F32_VALUE;
+        let alpha8 = &color_type::Alpha8;
+        let rgb565 = &color_type::Rgb565;
+        let rgba8888 = &color_type::Rgba8888;
+        let bgra8888 = &color_type::Bgra8888;
+        let rgba1010102 = &color_type::Rgba1010102;
+        let rgb101010x = &color_type::Rgb101010x;
+        let gray8 = &color_type::Gray8;
+        let rgbaf16 = &color_type::RgbaF16;
+        let rgbaf32 = &color_type::RgbaF32;
 
         PartialImageInfo {
             width: canvas_kit_image_info.width(),

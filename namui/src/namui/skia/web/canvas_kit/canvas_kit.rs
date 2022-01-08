@@ -32,18 +32,23 @@ extern "C" {
     // // #[wasm_bindgen(js_namespace = CanvasKit)]
     // // fn MakeAnimatedImageFromEncoded(bytes: &[u8]) -> Option<AnimatedImage>;
 
-    // ///
-    // /// Returns an image with the given pixel data and format.
-    // /// Note that we will always make a copy of the pixel data, because of inconsistencies in
-    // /// behavior between GPU and CPU (i.e. the pixel data will be turned into a GPU texture and
-    // /// not modifiable after creation).
-    // ///
-    // /// @param info
-    // /// @param bytes - bytes representing the pixel data.
-    // /// @param bytesPerRow
-    // ///
-    // #[wasm_bindgen(js_namespace = CanvasKit)]
-    // fn MakeImage(info: ImageInfo, bytes: &[u8], bytesPerRow: u32) -> Option<Image>;
+    ///
+    /// Returns an image with the given pixel data and format.
+    /// Note that we will always make a copy of the pixel data, because of inconsistencies in
+    /// behavior between GPU and CPU (i.e. the pixel data will be turned into a GPU texture and
+    /// not modifiable after creation).
+    ///
+    /// @param info
+    /// @param bytes - bytes representing the pixel data.
+    /// @param bytesPerRow
+    ///
+    #[wasm_bindgen(method)]
+    pub fn MakeImage(
+        this: &CanvasKit,
+        info: JsValue, // ImageInfo
+        bytes: &[u8],
+        bytesPerRow: u32,
+    ) -> Option<CanvasKitImage>;
 
     ///
     /// Return an Image backed by the encoded data, but attempt to defer decoding until the image
@@ -55,6 +60,35 @@ extern "C" {
     ///
     #[wasm_bindgen(method)]
     pub fn MakeImageFromEncoded(this: &CanvasKit, bytes: &[u8]) -> Option<CanvasKitImage>;
+
+    ///
+    /// Returns an Image with the data from the provided CanvasImageSource (e.g. <img>). This will
+    /// use the browser's built in codecs, in that src will be drawn to a canvas and then readback
+    /// and placed into an Image.
+    /// @param src
+    ///
+    #[wasm_bindgen(method)]
+    pub fn MakeImageFromCanvasImageSource(
+        this: &CanvasKit,
+        src: JsValue, // CanvasImageSource
+    ) -> CanvasKitImage;
+
+    ///
+    /// Returns a texture-backed image based on the content in src. It assumes the image is
+    /// RGBA_8888, unpremul and SRGB. This image can be re-used across multiple surfaces.
+    ///
+    /// Not available for software-backed surfaces.
+    /// @param src - CanvasKit will take ownership of the TextureSource and clean it up when
+    ///              the image is destroyed.
+    /// @param info - If provided, will be used to determine the width/height/format of the
+    ///               source image. If not, sensible defaults will be used.
+    ///
+    #[wasm_bindgen(method)]
+    pub fn MakeLazyImageFromTextureSource(
+        this: &CanvasKit,
+        src: JsValue,
+        info: JsValue,
+    ) -> CanvasKitImage;
 
     // ///
     // /// Returns an SkPicture which has been serialized previously to the given bytes.
@@ -82,7 +116,7 @@ extern "C" {
     pub fn RRectXY(this: &CanvasKit, rect: Float32Array, rx: f32, ry: f32) -> Float32Array;
 
     #[wasm_bindgen(method, getter)]
-    pub fn FontMgr(this: &CanvasKit) -> FontMgrFactory;
+    pub fn Typeface(this: &CanvasKit) -> TypefaceFactory;
 
     #[wasm_bindgen(method, getter)]
     pub fn TextBlob(this: &CanvasKit) -> TextBlobFactory;

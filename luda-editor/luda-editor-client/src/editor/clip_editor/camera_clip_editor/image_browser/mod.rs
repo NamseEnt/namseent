@@ -1,6 +1,6 @@
 use crate::editor::{events::EditorEvent, types::*};
 use namui::prelude::*;
-use std::{collections::BTreeSet, sync::Arc};
+use std::{collections::BTreeSet, sync::Arc, time::Duration};
 use wasm_bindgen_futures::spawn_local;
 mod browser_item;
 use browser_item::*;
@@ -99,6 +99,22 @@ impl ImageBrowser {
             |index: usize| item_margin + (index / 2) as f32 * (item_size.height + item_margin);
 
         let mut browser_items = vec![];
+        let mut sum_elapsed = Duration::ZERO;
+
+        // for _ in 0..100 {
+        //     let mut browser_items = vec![];
+        //     let p1 = namui::now();
+        //     for _ in 0..10000 {
+        //         browser_items.push(self.render_back_button(item_size, thumbnail_rect));
+        //         // browser_items.push(RenderingTree::Empty);
+        //     }
+        //     let p2 = namui::now();
+        //     let elapsed = p2 - p1;
+        //     sum_elapsed += elapsed;
+        // }
+        // browser_items.push(self.render_back_button(item_size, thumbnail_rect));
+        // namui::log!("p1 ~ p2 : {:?}", sum_elapsed / 100);
+
         if !is_root {
             browser_items.push(self.render_back_button(item_size, thumbnail_rect));
         }
@@ -107,6 +123,9 @@ impl ImageBrowser {
                 .iter()
                 .map(|props| BrowserItem::new().render(props)),
         );
+        let two = &browser_items[0];
+        // get only 4 items
+        // let browser_items = browser_items.into_iter().take(2).collect::<Vec<_>>();
         let browser_items = browser_items
             .into_iter()
             .enumerate()
@@ -118,6 +137,10 @@ impl ImageBrowser {
                 )
             })
             .collect::<Vec<_>>();
+
+        // let p3 = namui::now();
+        // namui::log!("p1 ~ p2 : {:?}", p2 - p1);
+        // namui::log!("1");
 
         let browser_item_scroll_height =
             get_browser_item_y(browser_items.len() - 1) + item_size.height + item_margin;

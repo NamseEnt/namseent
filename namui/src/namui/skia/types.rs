@@ -297,3 +297,8 @@ pub enum BlendMode {
     Color,
     Luminosity,
 }
+pub enum ColorSpace {
+    Srgb,
+    DisplayP3,
+    AdobeRgb,
+}

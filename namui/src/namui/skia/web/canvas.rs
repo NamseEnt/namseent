@@ -1,7 +1,8 @@
+use super::*;
 use crate::{namui, XywhRect};
 
-use super::*;
-
+unsafe impl Sync for CanvasKitCanvas {}
+unsafe impl Send for CanvasKitCanvas {}
 pub(crate) struct Canvas(pub CanvasKitCanvas);
 impl Canvas {
     pub fn draw_text_blob(&self, text_blob: &TextBlob, x: f32, y: f32, paint: &Paint) {
@@ -53,10 +54,19 @@ impl Canvas {
             &image.canvas_kit_image,
             src_rect_lrtb_array,
             dest_rect_lrtb_array,
-            filter_mode.into_canvas_kit(),
-            mipmap_mode.into_canvas_kit(),
+            FilterMode::Linear.into_canvas_kit(),
+            MipmapMode::Linear.into_canvas_kit(),
+            // filter_mode.into_canvas_kit(),
+            // mipmap_mode.into_canvas_kit(),
             paint.map(|p| &p.0),
         );
+
+        // self.0.drawImage(
+        //     &image.canvas_kit_image,
+        //     dest_rect_lrtb.left,
+        //     dest_rect_lrtb.top,
+        //     paint.map(|p| &p.0),
+        // );
     }
 }
 
