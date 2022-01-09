@@ -1,5 +1,6 @@
 mod camera_angle;
 mod character_pose_emotion;
+mod circumscribed;
 mod clip;
 mod image_filename_object;
 mod page;
@@ -10,6 +11,7 @@ mod time;
 mod track;
 pub use camera_angle::*;
 pub use character_pose_emotion::*;
+pub use circumscribed::*;
 pub use clip::*;
 pub use image_filename_object::*;
 pub use page::*;

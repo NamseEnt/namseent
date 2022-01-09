@@ -1,4 +1,4 @@
-use super::CharacterPoseEmotion;
+use super::{CharacterPoseEmotion, Circumscribed};
 use namui::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -73,10 +73,4 @@ impl CameraAngle {
             }),
         )
     }
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct Circumscribed {
-    pub center: Xy<f32>,
-    pub radius: f32,
 }
