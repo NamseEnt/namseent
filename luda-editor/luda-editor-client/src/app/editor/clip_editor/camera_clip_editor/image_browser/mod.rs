@@ -4,9 +4,8 @@ mod browser_item;
 use browser_item::*;
 mod back_button;
 mod scroll;
-use scroll::*;
-
 use crate::app::{editor::events::EditorEvent, types::ImageFilenameObject};
+use scroll::*;
 
 #[derive(Debug)]
 pub struct ImageBrowser {

@@ -1,11 +1,10 @@
-use crate::app::{
-    editor::{events::EditorEvent, job::Job},
-    types::*,
-};
-
 use self::{
     cropper::{Cropper, CropperProps},
     resizer::{Resizer, ResizerProps},
+};
+use crate::app::{
+    editor::{events::EditorEvent, job::Job},
+    types::*,
 };
 use namui::prelude::*;
 use std::sync::Arc;

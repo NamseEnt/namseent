@@ -1,10 +1,9 @@
+use self::subtitle_clip_body::{SubtitleClipBody, SubtitleClipBodyProps};
 use crate::app::{
     editor::{job::Job, TimelineRenderContext},
     types::SubtitleTrack,
 };
 use namui::prelude::*;
-
-use self::subtitle_clip_body::{SubtitleClipBody, SubtitleClipBodyProps};
 mod subtitle_clip_body;
 
 pub struct SubtitleTrackBody {}
