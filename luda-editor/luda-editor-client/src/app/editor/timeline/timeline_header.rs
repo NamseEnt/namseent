@@ -1,9 +1,8 @@
-use namui::prelude::*;
-
 use crate::app::{
     editor::timeline::track_header::{TrackHeader, TrackHeaderProps},
     types::Track,
 };
+use namui::prelude::*;
 
 pub struct TimelineHeader {}
 pub struct TimelineHeaderProps<'a> {

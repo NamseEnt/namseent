@@ -4,8 +4,6 @@ use namui::prelude::*;
 pub use timeline::*;
 use wasm_bindgen_futures::spawn_local;
 mod types;
-use crate::app::editor::clip_editor::ClipEditorProps;
-
 use self::{
     clip_editor::ClipEditor,
     events::*,
@@ -14,8 +12,8 @@ use self::{
         WysiwygResizeImageJob,
     },
 };
-
 use super::types::{ImageFilenameObject, Sequence};
+use crate::app::editor::clip_editor::ClipEditorProps;
 mod clip_editor;
 mod events;
 mod job;

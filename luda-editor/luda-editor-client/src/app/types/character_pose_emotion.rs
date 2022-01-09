@@ -1,6 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use super::ImageFilenameObject;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CharacterPoseEmotion(pub String, pub String, pub String);

@@ -1,8 +1,7 @@
 use namui::prelude::*;
 mod track_body;
-use crate::app::types::Track;
-
 use super::TimelineRenderContext;
+use crate::app::types::Track;
 use track_body::*;
 
 pub struct TimelineBody {}

@@ -1,6 +1,5 @@
-use wasm_bindgen_futures::spawn_local;
-
 use super::{types::RouterContext, Router};
+use wasm_bindgen_futures::spawn_local;
 
 pub struct App {
     router: Router,

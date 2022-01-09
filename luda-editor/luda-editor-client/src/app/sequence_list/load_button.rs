@@ -1,8 +1,6 @@
-use namui::{render, RenderingTree, Wh};
-
-use crate::app::sequence_list::events::SequenceListEvent;
-
 use super::SequenceList;
+use crate::app::sequence_list::events::SequenceListEvent;
+use namui::{render, RenderingTree, Wh};
 
 impl SequenceList {
     pub fn render_load_button(&self, wh: Wh<f32>, path: &String) -> RenderingTree {

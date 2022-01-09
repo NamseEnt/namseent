@@ -1,14 +1,13 @@
-use crate::app::{editor::job::Job, types::*};
-
 pub use self::{
     image_browser::{ImageBrowser, ImageBrowserProps},
     wysiwyg_editor::{WysiwygEditor, WysiwygEditorProps},
 };
+use crate::app::{editor::job::Job, types::*};
 use namui::prelude::*;
+use preview::*;
 mod image_browser;
 pub mod preview;
 pub mod wysiwyg_editor;
-use preview::*;
 
 pub struct CameraClipEditor {
     image_browser: ImageBrowser,

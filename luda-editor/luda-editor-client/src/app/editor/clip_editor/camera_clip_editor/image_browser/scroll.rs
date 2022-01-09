@@ -1,6 +1,5 @@
-use namui::prelude::*;
-
 use crate::app::editor::events::EditorEvent;
+use namui::prelude::*;
 
 #[derive(Debug)]
 pub struct Scroll {

@@ -1,6 +1,5 @@
-use namui::prelude::*;
-
 use crate::app::types::*;
+use namui::prelude::*;
 
 pub struct Preview {}
 

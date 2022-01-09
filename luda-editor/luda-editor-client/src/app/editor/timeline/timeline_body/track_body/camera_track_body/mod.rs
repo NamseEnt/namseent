@@ -1,11 +1,9 @@
-use namui::prelude::*;
-
+use self::camera_clip_body::{CameraClipBody, CameraClipBodyProps};
 use crate::app::{
     editor::{job::Job, TimelineRenderContext},
     types::CameraTrack,
 };
-
-use self::camera_clip_body::{CameraClipBody, CameraClipBodyProps};
+use namui::prelude::*;
 mod camera_clip_body;
 
 pub struct CameraTrackBody {}

@@ -1,9 +1,8 @@
-use namui::prelude::*;
-
 use crate::app::{
     editor::{events::EditorEvent, TimelineRenderContext},
     types::{SubtitleClip, Time},
 };
+use namui::prelude::*;
 
 pub struct SubtitleClipBody {}
 pub struct SubtitleClipBodyProps<'a> {

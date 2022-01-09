@@ -1,10 +1,9 @@
-use namui::Entity;
-
 use super::{
     events::RouterEvent,
     sequence_list::SequenceList,
     types::{Page, RouterContext},
 };
+use namui::Entity;
 
 pub struct Router {
     page: Page,

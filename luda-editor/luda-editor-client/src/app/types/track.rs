@@ -1,6 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use super::{CameraClip, SubtitleClip};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum Track {

@@ -1,9 +1,7 @@
-use std::collections::HashMap;
-
+use super::{CameraAngle, Time};
 use namui::Language;
 use serde::{Deserialize, Serialize};
-
-use super::{CameraAngle, Time};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CameraClip {

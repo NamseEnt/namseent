@@ -1,8 +1,6 @@
-use namui::{render, RenderingTree, Wh};
-
-use crate::app::{editor::Editor, events::RouterEvent, types::Sequence};
-
 use super::SequenceList;
+use crate::app::{editor::Editor, events::RouterEvent, types::Sequence};
+use namui::{render, RenderingTree, Wh};
 
 impl SequenceList {
     pub fn render_open_button(

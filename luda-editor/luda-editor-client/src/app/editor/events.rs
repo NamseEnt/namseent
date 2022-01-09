@@ -1,8 +1,7 @@
-use crate::app::types::ImageFilenameObject;
-
 use super::clip_editor::camera_clip_editor::wysiwyg_editor::{
     cropper::CropperHandle, resizer::ResizerHandle,
 };
+use crate::app::types::ImageFilenameObject;
 
 pub enum EditorEvent {
     CameraClipBodyMouseDownEvent {

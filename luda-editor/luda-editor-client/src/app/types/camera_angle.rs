@@ -1,7 +1,6 @@
+use super::CharacterPoseEmotion;
 use namui::prelude::*;
 use serde::{Deserialize, Serialize};
-
-use super::CharacterPoseEmotion;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CameraAngle {

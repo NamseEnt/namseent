@@ -1,6 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use super::{Clip, MutableClip, Track};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Sequence {

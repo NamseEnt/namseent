@@ -1,8 +1,7 @@
+use super::SequenceList;
 use namui::{
     Color, FontType, FontWeight, Language, RenderingTree, TextAlign, TextBaseline, TextStyle, Wh,
 };
-
-use super::SequenceList;
 
 impl SequenceList {
     pub fn render_button_text(&self, wh: Wh<f32>, text: String) -> RenderingTree {

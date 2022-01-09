@@ -1,5 +1,3 @@
-use namui::prelude::*;
-
 use crate::app::{
     editor::{
         clip_editor::camera_clip_editor::wysiwyg_editor::resizer::{
@@ -9,6 +7,7 @@ use crate::app::{
     },
     types::{CameraAngle, Circumscribed, MutableClip},
 };
+use namui::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct WysiwygResizeImageJob {

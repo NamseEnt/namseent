@@ -1,9 +1,8 @@
-use namui::prelude::*;
-
 use crate::app::{
     editor::{events::EditorEvent, TimelineRenderContext},
     types::CameraClip,
 };
+use namui::prelude::*;
 
 pub struct CameraClipBody {}
 pub struct CameraClipBodyProps<'a> {

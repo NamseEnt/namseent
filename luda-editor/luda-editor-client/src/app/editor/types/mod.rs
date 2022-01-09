@@ -1,7 +1,6 @@
+use crate::app::types::{Subtitle, Time};
 use namui::prelude::*;
 use std::{array::IntoIter, collections::HashMap};
-
-use crate::app::types::{Subtitle, Time};
 
 pub struct SubtitlePlayDurationMeasurer {
     minimum_play_durations: HashMap<Language, Time>,
