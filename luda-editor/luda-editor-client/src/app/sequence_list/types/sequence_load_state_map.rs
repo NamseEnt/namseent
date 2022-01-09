@@ -1,6 +1,5 @@
-use std::{collections::HashMap, time::Duration};
-
 use crate::app::types::Sequence;
+use std::{collections::HashMap, time::Duration};
 
 #[derive(Clone)]
 pub enum SequenceLoadStateDetail {
