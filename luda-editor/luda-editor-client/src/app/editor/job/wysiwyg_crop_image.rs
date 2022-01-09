@@ -1,0 +1,94 @@
+use crate::app::{
+    editor::{
+        clip_editor::camera_clip_editor::wysiwyg_editor::cropper::{
+            CropperHandle, CropperHandleDirection,
+        },
+        Timeline,
+    },
+    types::{CameraAngle, MutableClip},
+};
+use namui::prelude::*;
+
+#[derive(Debug, Clone)]
+pub struct WysiwygCropImageJob {
+    pub start_global_mouse_xy: namui::Xy<f32>,
+    pub last_global_mouse_xy: namui::Xy<f32>,
+    pub handle: CropperHandle,
+    pub container_size: namui::Wh<f32>,
+}
+
+impl WysiwygCropImageJob {
+    pub fn execute(&self, timeline: &mut Timeline) {
+        let selected_clip = timeline
+            .selected_clip_id
+            .as_ref()
+            .and_then(|id| timeline.sequence.get_mut_clip(&id));
+
+        let selected_camera_clip = match selected_clip {
+            Some(clip) => match clip {
+                MutableClip::Camera(camera_clip) => Ok(camera_clip),
+                MutableClip::Subtitle(_) => Err("Camera clip expected, but Subtitle clip selected"),
+            },
+            None => Err("No clip selected"),
+        };
+        if selected_camera_clip.is_err() {
+            return;
+        }
+        let selected_camera_clip = selected_camera_clip.unwrap();
+        let camera_angle = &mut selected_camera_clip.camera_angle;
+        self.crop_camera_angle(camera_angle);
+    }
+
+    pub fn crop_camera_angle(&self, camera_angle: &mut CameraAngle) {
+        let mouse_diff_xy = self.last_global_mouse_xy - self.start_global_mouse_xy;
+
+        let next_ltrb_rect = LtrbRect {
+            left: match self.handle.handle_direction {
+                CropperHandleDirection::TopLeft
+                | CropperHandleDirection::BottomLeft
+                | CropperHandleDirection::Left => num::clamp(
+                    camera_angle.crop_screen_01_rect.left
+                        + mouse_diff_xy.x / self.container_size.width,
+                    0.0,
+                    camera_angle.crop_screen_01_rect.right,
+                ),
+                _ => camera_angle.crop_screen_01_rect.left,
+            },
+            top: match self.handle.handle_direction {
+                CropperHandleDirection::TopLeft
+                | CropperHandleDirection::TopRight
+                | CropperHandleDirection::Top => num::clamp(
+                    camera_angle.crop_screen_01_rect.top
+                        + mouse_diff_xy.y / self.container_size.height,
+                    0.0,
+                    camera_angle.crop_screen_01_rect.bottom,
+                ),
+                _ => camera_angle.crop_screen_01_rect.top,
+            },
+            right: match self.handle.handle_direction {
+                CropperHandleDirection::TopRight
+                | CropperHandleDirection::BottomRight
+                | CropperHandleDirection::Right => num::clamp(
+                    camera_angle.crop_screen_01_rect.right
+                        + mouse_diff_xy.x / self.container_size.width,
+                    camera_angle.crop_screen_01_rect.left,
+                    1.0,
+                ),
+                _ => camera_angle.crop_screen_01_rect.right,
+            },
+            bottom: match self.handle.handle_direction {
+                CropperHandleDirection::BottomLeft
+                | CropperHandleDirection::BottomRight
+                | CropperHandleDirection::Bottom => num::clamp(
+                    camera_angle.crop_screen_01_rect.bottom
+                        + mouse_diff_xy.y / self.container_size.height,
+                    camera_angle.crop_screen_01_rect.top,
+                    1.0,
+                ),
+                _ => camera_angle.crop_screen_01_rect.bottom,
+            },
+        };
+
+        camera_angle.crop_screen_01_rect = next_ltrb_rect;
+    }
+}

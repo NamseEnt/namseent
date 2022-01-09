@@ -1,0 +1,214 @@
+{
+    "tracks": [
+        {
+            "Camera": {
+                "clips": [
+                    {
+                        "id": "1",
+                        "start_at": {
+                            "milliseconds": 0
+                        },
+                        "end_at": {
+                            "milliseconds": 1000
+                        },
+                        "camera_angle": {
+                            "character_pose_emotion": [
+                                "피디",
+                                "기본",
+                                "미소"
+                            ],
+                            "source_01_circumscribed": {
+                                "center": {
+                                    "x": 0.25,
+                                    "y": 0.25
+                                },
+                                "radius": 0.52590406
+                            },
+                            "crop_screen_01_rect": {
+                                "left": 0.0,
+                                "top": 0.0,
+                                "right": 1.0,
+                                "bottom": 1.0
+                            }
+                        }
+                    },
+                    {
+                        "id": "2",
+                        "start_at": {
+                            "milliseconds": 1000
+                        },
+                        "end_at": {
+                            "milliseconds": 3000
+                        },
+                        "camera_angle": {
+                            "character_pose_emotion": [
+                                "피디",
+                                "기본",
+                                "미소"
+                            ],
+                            "source_01_circumscribed": {
+                                "center": {
+                                    "x": 0.25,
+                                    "y": 0.25
+                                },
+                                "radius": 0.52590406
+                            },
+                            "crop_screen_01_rect": {
+                                "left": 0.0,
+                                "top": 0.0,
+                                "right": 1.0,
+                                "bottom": 1.0
+                            }
+                        }
+                    },
+                    {
+                        "id": "3",
+                        "start_at": {
+                            "milliseconds": 3000
+                        },
+                        "end_at": {
+                            "milliseconds": 6000
+                        },
+                        "camera_angle": {
+                            "character_pose_emotion": [
+                                "피디",
+                                "기본",
+                                "미소"
+                            ],
+                            "source_01_circumscribed": {
+                                "center": {
+                                    "x": 0.25,
+                                    "y": 0.25
+                                },
+                                "radius": 0.52590406
+                            },
+                            "crop_screen_01_rect": {
+                                "left": 0.0,
+                                "top": 0.0,
+                                "right": 1.0,
+                                "bottom": 1.0
+                            }
+                        }
+                    },
+                    {
+                        "id": "4",
+                        "start_at": {
+                            "milliseconds": 6000
+                        },
+                        "end_at": {
+                            "milliseconds": 10000
+                        },
+                        "camera_angle": {
+                            "character_pose_emotion": [
+                                "피디",
+                                "기본",
+                                "미소"
+                            ],
+                            "source_01_circumscribed": {
+                                "center": {
+                                    "x": 0.25,
+                                    "y": 0.25
+                                },
+                                "radius": 0.52590406
+                            },
+                            "crop_screen_01_rect": {
+                                "left": 0.0,
+                                "top": 0.0,
+                                "right": 1.0,
+                                "bottom": 1.0
+                            }
+                        }
+                    },
+                    {
+                        "id": "5",
+                        "start_at": {
+                            "milliseconds": 10000
+                        },
+                        "end_at": {
+                            "milliseconds": 15000
+                        },
+                        "camera_angle": {
+                            "character_pose_emotion": [
+                                "피디",
+                                "기본",
+                                "미소"
+                            ],
+                            "source_01_circumscribed": {
+                                "center": {
+                                    "x": 0.5,
+                                    "y": 0.5
+                                },
+                                "radius": 0.52590406
+                            },
+                            "crop_screen_01_rect": {
+                                "left": 0.5,
+                                "top": 0.5,
+                                "right": 1.0,
+                                "bottom": 1.0
+                            }
+                        }
+                    },
+                    {
+                        "id": "6",
+                        "start_at": {
+                            "milliseconds": 15000
+                        },
+                        "end_at": {
+                            "milliseconds": 21000
+                        },
+                        "camera_angle": {
+                            "character_pose_emotion": [
+                                "피디",
+                                "기본",
+                                "미소"
+                            ],
+                            "source_01_circumscribed": {
+                                "center": {
+                                    "x": 0.25,
+                                    "y": 0.25
+                                },
+                                "radius": 0.25
+                            },
+                            "crop_screen_01_rect": {
+                                "left": 0.2,
+                                "top": 0.4,
+                                "right": 1.0,
+                                "bottom": 1.0
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "Subtitle": {
+                "clips": [
+                    {
+                        "id": "s-1-clip",
+                        "start_at": {
+                            "milliseconds": 0
+                        },
+                        "subtitle": {
+                            "id": "s-1",
+                            "language_text_map": {
+                                "Ko": "안녕하세요"
+                            }
+                        }
+                    },
+                    {
+                        "id": "s-2-clip",
+                        "start_at": {
+                            "milliseconds": 0
+                        },
+                        "subtitle": {
+                            "id": "s-2",
+                            "language_text_map": {
+                                "Ko": "세상!"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
