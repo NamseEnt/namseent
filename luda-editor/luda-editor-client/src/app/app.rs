@@ -1,4 +1,5 @@
-use super::{types::AppContext, Router};
+use super::{router::RouterProps, types::AppContext, Router};
+use namui::Wh;
 use wasm_bindgen_futures::spawn_local;
 
 pub struct App {
@@ -7,8 +8,14 @@ pub struct App {
 
 impl namui::Entity for App {
     type Props = ();
-    fn render(&self, props: &Self::Props) -> namui::RenderingTree {
-        self.router.render(props)
+    fn render(&self, _: &Self::Props) -> namui::RenderingTree {
+        let screen_size = namui::screen::size();
+        self.router.render(&RouterProps {
+            screen_wh: Wh {
+                width: screen_size.width as f32,
+                height: screen_size.height as f32,
+            },
+        })
     }
     fn update(&mut self, event: &dyn std::any::Any) {
         self.router.update(event);

@@ -18,17 +18,20 @@ mod clip_editor;
 mod events;
 mod job;
 
+pub struct EditorProps {
+    pub screen_wh: namui::Wh<f32>,
+}
+
 pub struct Editor {
     job: Option<Job>,
     timeline: Timeline,
     clip_editor: ClipEditor,
     playback_time: chrono::Duration,
-    screen_wh: namui::Wh<f32>,
     image_filename_objects: Vec<ImageFilenameObject>,
 }
 
 impl namui::Entity for Editor {
-    type Props = ();
+    type Props = EditorProps;
     fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<EditorEvent>() {
             match event {
@@ -162,18 +165,12 @@ impl namui::Entity for Editor {
                         _ => {}
                     }
                 }
-                &namui::NamuiEvent::ScreenResize(wh) => {
-                    self.screen_wh = namui::Wh {
-                        width: wh.width as f32,
-                        height: wh.height as f32,
-                    };
-                }
                 _ => {}
             }
         };
         self.clip_editor.update(event);
     }
-    fn render(&self, _: &Self::Props) -> namui::RenderingTree {
+    fn render(&self, props: &Self::Props) -> namui::RenderingTree {
         let selected_clip = self
             .timeline
             .selected_clip_id
@@ -182,7 +179,7 @@ impl namui::Entity for Editor {
         render![
             self.timeline.render(&TimelineProps {
                 playback_time: self.playback_time,
-                xywh: self.calculate_timeline_xywh(),
+                xywh: self.calculate_timeline_xywh(&props.screen_wh),
                 job: &self.job,
             }),
             self.clip_editor.render(&ClipEditorProps {
@@ -191,7 +188,7 @@ impl namui::Entity for Editor {
                     x: 0.0,
                     y: 0.0,
                     width: 800.0,
-                    height: self.screen_wh.height - 200.0,
+                    height: props.screen_wh.height - 200.0,
                 },
                 image_filename_objects: &self.image_filename_objects,
                 job: &self.job,
@@ -201,7 +198,7 @@ impl namui::Entity for Editor {
 }
 
 impl Editor {
-    pub fn new(screen_wh: namui::Wh<f32>, socket: Socket, sequence: Sequence) -> Self {
+    pub fn new(socket: Socket, sequence: Sequence) -> Self {
         spawn_local({
             let socket = socket.clone();
             async move {
@@ -230,16 +227,15 @@ impl Editor {
             timeline: Timeline::new(sequence),
             clip_editor: ClipEditor::new(),
             playback_time: chrono::Duration::zero(),
-            screen_wh,
             image_filename_objects: vec![],
             job: None,
         }
     }
-    fn calculate_timeline_xywh(&self) -> XywhRect<f32> {
+    fn calculate_timeline_xywh(&self, screen_wh: &namui::Wh<f32>) -> XywhRect<f32> {
         XywhRect {
             x: 0.0,
-            y: self.screen_wh.height - 200.0,
-            width: self.screen_wh.width,
+            y: screen_wh.height - 200.0,
+            width: screen_wh.width,
             height: 200.0,
         }
     }

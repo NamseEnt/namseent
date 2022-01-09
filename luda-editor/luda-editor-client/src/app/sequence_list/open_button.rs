@@ -19,14 +19,7 @@ impl SequenceList {
                         let sequence = sequence.clone();
                         namui::event::send(Box::new(RouterEvent::PageChangeToEditorEvent(
                             Box::new(move |context| -> Editor {
-                                Editor::new(
-                                    Wh {
-                                        width: context.screen_size.width,
-                                        height: context.screen_size.height,
-                                    },
-                                    context.socket.clone(),
-                                    sequence.clone(),
-                                )
+                                Editor::new(context.socket.clone(), sequence.clone())
                             }),
                         )));
                     }))
