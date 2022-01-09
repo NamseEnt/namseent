@@ -1,4 +1,4 @@
-use super::{types::RouterContext, Router};
+use super::{types::AppContext, Router};
 use wasm_bindgen_futures::spawn_local;
 
 pub struct App {
@@ -20,7 +20,7 @@ impl App {
         let socket = App::create_socket();
         let screen_size = namui::screen::size();
         Self {
-            router: Router::new(RouterContext {
+            router: Router::new(AppContext {
                 screen_size: namui::Wh {
                     width: screen_size.width as f32,
                     height: screen_size.height as f32,

@@ -1,13 +1,13 @@
 use super::{
     events::RouterEvent,
     sequence_list::SequenceList,
-    types::{Page, RouterContext},
+    types::{AppContext, Page},
 };
 use namui::Entity;
 
 pub struct Router {
     page: Page,
-    context: RouterContext,
+    context: AppContext,
 }
 
 impl Entity for Router {
@@ -39,7 +39,7 @@ impl Entity for Router {
 }
 
 impl Router {
-    pub fn new(context: RouterContext) -> Self {
+    pub fn new(context: AppContext) -> Self {
         Self {
             page: Page::SequenceList(SequenceList::new(
                 context.socket.clone(),
