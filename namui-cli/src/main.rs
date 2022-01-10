@@ -1,4 +1,5 @@
 mod build;
+mod util;
 
 use clap::{App, Arg};
 use futures::{self, executor::block_on};
