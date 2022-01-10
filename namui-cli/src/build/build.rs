@@ -72,6 +72,7 @@ fn print_build_result(error_messages: &Vec<ErrorMessage>, cli_error_messages: &V
 }
 
 fn clear_console() {
+    #[cfg(not(feature = "cli_debug"))]
     print!("{}[2J", 27 as char);
 }
 

@@ -1,6 +1,9 @@
-use crate::build::{
-    bundle::Bundle,
-    types::{ErrorMessage, WebsocketMessage},
+use crate::{
+    build::{
+        bundle::Bundle,
+        types::{ErrorMessage, WebsocketMessage},
+    },
+    debug_println,
 };
 use futures::{
     channel::mpsc::{unbounded, UnboundedSender},
@@ -37,7 +40,9 @@ impl WebServer {
         let bundle = option.bundle.clone();
         let serve_wasm_bundle = warp::path("bundle_bg.wasm").map(
             move || -> Result<warp::hyper::Response<Vec<u8>>, warp::http::Error> {
+                debug_println!("serve_wasm_bundle: locking web_server.bundle...");
                 let bundle = block_on(bundle.read()).wasm.clone();
+                debug_println!("serve_wasm_bundle: web_server.bundle locked");
 
                 response::Builder::new()
                     .header("Content-Type", "application/wasm")
@@ -48,7 +53,9 @@ impl WebServer {
         let bundle = option.bundle.clone();
         let serve_js_bundle = warp::path("bundle.js").map(
             move || -> Result<warp::hyper::Response<Vec<u8>>, warp::http::Error> {
+                debug_println!("serve_js_bundle: locking web_server.bundle...");
                 let bundle = block_on(bundle.read()).js.clone();
+                debug_println!("serve_js_bundle: web_server.bundle locked");
 
                 response::Builder::new()
                     .header("Content-Type", "text/javascript")
@@ -67,8 +74,14 @@ impl WebServer {
                     let id = nanoid!();
                     let (sender, mut receiver) = unbounded::<Message>();
                     {
+                        debug_println!("handle_websocket(open): locking web_server.sockets...");
                         let mut sockets = web_server.sockets.lock().await;
+                        debug_println!("handle_websocket(open): web_server.sockets locked");
                         (*sockets).insert(id.clone(), sender);
+                        debug_println!(
+                            "handle_websocket(open): {} added to web_server.sockets",
+                            id
+                        );
                     }
                     web_server.send_cached_error_messages(&id).await;
 
@@ -96,8 +109,14 @@ impl WebServer {
                         }
                     }
 
+                    debug_println!("handle_websocket(close): locking web_server.sockets...");
                     let mut sockets = web_server.sockets.lock().await;
+                    debug_println!("handle_websocket(close): web_server.sockets locked");
                     (*sockets).remove(&id);
+                    debug_println!(
+                        "handle_websocket(close): {} removed from web_server.sockets",
+                        id
+                    );
                 })
             });
 
@@ -116,10 +135,16 @@ impl WebServer {
     }
 
     pub async fn send_error_messages(&self, error_messages: &Vec<ErrorMessage>) {
+        debug_println!("send_error_messages: locking web_server.sockets...");
         let mut sockets = self.sockets.lock().await;
+        debug_println!("send_error_messages: web_server.sockets locked");
+
+        debug_println!("send_error_messages: locking web_server.cached_error_messages...");
         let mut cached_error_messages = self.cached_error_messages.write().await;
+        debug_println!("send_error_messages: web_server.cached_error_messages locked");
         *cached_error_messages = error_messages.clone();
         for (id, socket) in sockets.iter_mut() {
+            debug_println!("send_error_messages: sending to {}...", id);
             if let Err(error) = socket
                 .send(Message::text(
                     serde_json::to_string(&WebsocketMessage::Error {
@@ -134,14 +159,21 @@ impl WebServer {
                     id, error
                 );
             }
+            debug_println!("send_error_messages: sended to {}", id);
         }
     }
 
     pub async fn send_cached_error_messages(&self, id: &String) {
+        debug_println!("send_cached_error_messages: locking web_server.sockets...");
         let mut sockets = self.sockets.lock().await;
+        debug_println!("send_cached_error_messages: web_server.sockets locked");
+
+        debug_println!("send_cached_error_messages: locking web_server.cached_error_messages...");
         let error_messages = self.cached_error_messages.read().await;
+        debug_println!("send_cached_error_messages: web_server.cached_error_messages locked");
         match sockets.get_mut(id) {
             Some(socket) => {
+                debug_println!("send_cached_error_messages: sending to {}...", id);
                 let _ = socket
                     .send(Message::text(
                         serde_json::to_string(&WebsocketMessage::Error {
@@ -153,11 +185,16 @@ impl WebServer {
             }
             None => eprintln!("socket id {} not found", id),
         }
+        debug_println!("send_cached_error_messages: sended to {}", id);
     }
 
     pub async fn request_reload(&self) {
+        debug_println!("request_reload: locking web_server.sockets...");
         let mut sockets = self.sockets.lock().await;
+        debug_println!("request_reload: web_server.sockets locked");
+
         for (id, socket) in sockets.iter_mut() {
+            debug_println!("request_reload: sending to {}...", id);
             if let Err(error) = socket
                 .send(Message::text(
                     serde_json::to_string(&WebsocketMessage::Reload {}).unwrap(),
@@ -169,6 +206,7 @@ impl WebServer {
                     id, error
                 );
             }
+            debug_println!("request_reload: sended to {}", id);
         }
     }
 }

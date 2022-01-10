@@ -3,7 +3,10 @@ use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
 use std::{fs::File, io::Read, sync::Arc, thread, time::Duration};
 use tokio::sync::RwLock;
 
-use crate::build::{bundle::Bundle, types::ErrorMessage, web_server::WebServer};
+use crate::{
+    build::{bundle::Bundle, types::ErrorMessage, web_server::WebServer},
+    debug_println,
+};
 
 use super::{
     run_cargo_check::run_cargo_check,
@@ -40,7 +43,9 @@ pub async fn start_build<'a>(option: StartBuildOption) {
         loop {
             match watcher_receiver.recv() {
                 Ok(event) => {
+                    debug_println!("start_build: sending fs event: {:?}...", event);
                     let _ = block_on(thread_sender.send(event));
+                    debug_println!("start_build: fs event sended");
                 }
                 Err(error) => eprintln!("{:?}", error),
             }
@@ -100,7 +105,9 @@ async fn rebuild(
     manifest_path: String,
     root_dir: String,
 ) {
+    debug_println!("rebuild: locking web_server.bundle...");
     let mut bundle = bundle.write().await;
+    debug_println!("rebuild: web_server.bundle locked");
     let build_result = run_cargo_check(manifest_path);
     let mut cli_error_messages: Vec<String> = Vec::new();
 
