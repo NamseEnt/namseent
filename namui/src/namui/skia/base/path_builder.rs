@@ -101,7 +101,6 @@ impl PathBuilder {
 
     fn create_path(&self) -> Arc<Path> {
         let mut path = Path::new();
-        crate::log!("{:?}", self);
         for command in &self.commands {
             path = match command {
                 PathCommand::AddRect(ltrb_rect) => path.add_rect(&ltrb_rect),
