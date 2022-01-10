@@ -20,7 +20,7 @@ pub enum RunWasmPackError {
 pub fn run_wasm_pack(option: RunWasmPackOption) -> Result<RunWasmPackResult, RunWasmPackError> {
     let mut out_dir = PathBuf::from(&option.root_dir);
     out_dir.push("pkg");
-    let command = Command::new("wasm-pack")
+    let output = Command::new("wasm-pack")
         .args([
             "build",
             "--target",
@@ -30,20 +30,17 @@ pub fn run_wasm_pack(option: RunWasmPackOption) -> Result<RunWasmPackResult, Run
             "--dev",
             option.root_dir.as_str(),
         ])
-        .stdout(Stdio::piped())
-        .spawn();
+        .stdout(Stdio::null())
+        .output();
 
     let result_wasm_path = out_dir.join("bundle_bg.wasm").to_string_lossy().to_string();
     let result_js_path = out_dir.join("bundle.js").to_string_lossy().to_string();
 
-    match command {
-        Ok(mut child) => match child.wait() {
-            Ok(_) => Ok(RunWasmPackResult {
-                result_js_path,
-                result_wasm_path,
-            }),
-            Err(error) => Err(RunWasmPackError::IoError(error)),
-        },
+    match output {
+        Ok(_) => Ok(RunWasmPackResult {
+            result_js_path,
+            result_wasm_path,
+        }),
         Err(error) => Err(RunWasmPackError::IoError(error)),
     }
 }
