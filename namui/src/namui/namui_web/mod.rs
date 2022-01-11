@@ -16,11 +16,6 @@ extern "C" {
     fn log(a: &str);
 }
 
-#[wasm_bindgen]
-pub fn init_panic_hook() {
-    console_error_panic_hook::set_once();
-}
-
 pub(crate) fn window() -> web_sys::Window {
     web_sys::window().expect("no global `window` exists")
 }
@@ -39,6 +34,8 @@ pub fn get_managers() -> std::sync::MutexGuard<'static, Managers> {
 
 impl NamuiImpl for Namui {
     fn init() -> NamuiContext {
+        console_error_panic_hook::set_once();
+
         let canvas_kit = canvas_kit();
         let canvas_element = make_canvas_element().unwrap();
         let canvas_kit_surface = canvas_kit.MakeCanvasSurface(&canvas_element).unwrap();
