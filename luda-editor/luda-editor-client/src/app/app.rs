@@ -52,13 +52,13 @@ impl App {
                 &mut self,
                 _: luda_editor_rpc::get_camera_shot_urls::Request,
             ) -> Result<luda_editor_rpc::get_camera_shot_urls::Response, String> {
-                todo!()
+                unreachable!()
             }
             async fn read_file(
                 &mut self,
                 _: luda_editor_rpc::read_file::Request,
             ) -> Result<luda_editor_rpc::read_file::Response, String> {
-                todo!()
+                unreachable!()
             }
         }
 
