@@ -88,7 +88,6 @@ impl ImageBrowser {
                                 pose.clone(),
                                 emotion.clone(),
                             ));
-                            // TODO: select image, change image
                         }
                     }
                 }
