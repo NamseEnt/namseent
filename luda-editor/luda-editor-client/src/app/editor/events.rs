@@ -1,6 +1,7 @@
 use super::clip_editor::camera_clip_editor::wysiwyg_editor::{
     cropper::CropperHandle, resizer::ResizerHandle,
 };
+use crate::app::editor::clip_editor::camera_clip_editor::image_browser::ImageBrowserItem;
 use crate::app::types::{ImageFilenameObject, PixelSize};
 
 pub enum EditorEvent {
@@ -18,7 +19,7 @@ pub enum EditorEvent {
         image_filename_objects: Vec<ImageFilenameObject>,
     },
     ImageBrowserSelectEvent {
-        selected_key: String,
+        selected_item: ImageBrowserItem,
     },
     ScrolledEvent {
         scroll_y: f32,

@@ -1,5 +1,4 @@
-use super::super::Timeline;
-use crate::app::types::*;
+use crate::app::{editor::Editor, types::*};
 
 #[derive(Debug, Clone)]
 pub struct MoveCameraClipJob {
@@ -99,9 +98,9 @@ impl MoveCameraClipJob {
                 });
         }
     }
-    pub fn execute(&self, timeline: &mut Timeline) {
-        let mut track = find_camera_track_of_clip(&self.clip_id, &mut timeline.sequence).unwrap();
-        self.order_clips_by_moving_clip(&mut track, &timeline.time_per_pixel, false);
+    pub fn execute(&self, editor: &mut Editor) {
+        let mut track = find_camera_track_of_clip(&self.clip_id, &mut editor.sequence).unwrap();
+        self.order_clips_by_moving_clip(&mut track, &editor.timeline.time_per_pixel, false);
     }
 }
 

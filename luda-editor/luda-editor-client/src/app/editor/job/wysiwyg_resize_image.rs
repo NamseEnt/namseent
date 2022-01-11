@@ -3,7 +3,7 @@ use crate::app::{
         clip_editor::camera_clip_editor::wysiwyg_editor::resizer::{
             ResizerHandle, ResizerHandleDirection,
         },
-        Timeline,
+        Editor,
     },
     types::{CameraAngle, Circumscribed, MutableClip},
 };
@@ -20,11 +20,11 @@ pub struct WysiwygResizeImageJob {
 }
 
 impl WysiwygResizeImageJob {
-    pub fn execute(&self, timeline: &mut Timeline) {
-        let selected_clip = timeline
+    pub fn execute(&self, editor: &mut Editor) {
+        let selected_clip = editor
             .selected_clip_id
             .as_ref()
-            .and_then(|id| timeline.sequence.get_mut_clip(&id));
+            .and_then(|id| editor.sequence.get_mut_clip(&id));
 
         let selected_camera_clip = match selected_clip {
             Some(clip) => match clip {

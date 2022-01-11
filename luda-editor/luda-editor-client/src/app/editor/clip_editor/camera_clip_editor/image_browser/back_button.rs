@@ -1,5 +1,7 @@
 use super::ImageBrowser;
-use crate::app::editor::events::EditorEvent;
+use crate::app::editor::{
+    clip_editor::camera_clip_editor::image_browser::ImageBrowserItem, events::EditorEvent,
+};
 use namui::prelude::*;
 
 impl ImageBrowser {
@@ -25,7 +27,7 @@ impl ImageBrowser {
             .set_style(namui::PaintStyle::Stroke)
             .set_stroke_width(2.0);
 
-        let is_selected = self.selected_key == Some("back".to_string());
+        let is_selected = self.selected_item == Some(ImageBrowserItem::Back);
 
         render![
             rect(RectParam {
@@ -55,7 +57,7 @@ impl ImageBrowser {
                 builder.on_mouse_down(Box::new(move |_| {
                     namui::log(format!("select browser item {}", "back"));
                     namui::event::send(Box::new(EditorEvent::ImageBrowserSelectEvent {
-                        selected_key: "back".to_string(),
+                        selected_item: ImageBrowserItem::Back,
                     }));
                 }))
             }),

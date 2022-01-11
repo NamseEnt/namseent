@@ -5,7 +5,7 @@ pub use self::{
 use crate::app::{editor::job::Job, types::*};
 use namui::prelude::*;
 use preview::*;
-mod image_browser;
+pub mod image_browser;
 pub mod preview;
 pub mod wysiwyg_editor;
 
@@ -15,9 +15,9 @@ pub struct CameraClipEditor {
 }
 
 impl CameraClipEditor {
-    pub fn new() -> Self {
+    pub fn new(character_pose_emotion: &CharacterPoseEmotion) -> Self {
         Self {
-            image_browser: ImageBrowser::new(),
+            image_browser: ImageBrowser::new(character_pose_emotion),
             wysiwyg_editor: WysiwygEditor::new(),
         }
     }
@@ -30,7 +30,7 @@ pub struct CameraClipEditorProps<'a> {
     pub job: &'a Option<Job>,
 }
 
-impl<'a> CameraAngleImageLoader for CameraClipEditorProps<'a> {
+impl CameraAngleImageLoader for CameraClipEditorProps<'_> {
     fn get_image_source(
         &self,
         character_pose_emotion: &CharacterPoseEmotion,

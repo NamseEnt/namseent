@@ -4,22 +4,34 @@ mod browser_item;
 use browser_item::*;
 mod back_button;
 mod scroll;
-use crate::app::{editor::events::EditorEvent, types::ImageFilenameObject};
+use crate::app::{
+    editor::events::EditorEvent,
+    types::{CharacterPoseEmotion, ImageFilenameObject},
+};
 use scroll::*;
+mod types;
+pub use types::*;
 
 #[derive(Debug)]
 pub struct ImageBrowser {
-    directory_key: String,
-    selected_key: Option<String>,
+    directory: ImageBrowserDirectory,
+    selected_item: Option<ImageBrowserItem>,
     current_directory_label_layout: XywhRect<f32>,
     scroll: Scroll,
 }
 
 impl ImageBrowser {
-    pub fn new() -> Self {
+    pub fn new(character_pose_emotion: &CharacterPoseEmotion) -> Self {
         Self {
-            directory_key: "".to_string(),
-            selected_key: None,
+            directory: ImageBrowserDirectory::CharacterPose(
+                character_pose_emotion.0.clone(),
+                character_pose_emotion.1.clone(),
+            ),
+            selected_item: Some(ImageBrowserItem::CharacterPoseEmotion(
+                character_pose_emotion.0.clone(),
+                character_pose_emotion.1.clone(),
+                character_pose_emotion.2.clone(),
+            )),
             scroll: Scroll::new(),
             current_directory_label_layout: XywhRect {
                 x: 20.0,
@@ -29,9 +41,6 @@ impl ImageBrowser {
             },
         }
     }
-    // 처음 만들어지면 로딩을 시작하고
-    // 그 로딩 결과를 가지고 이미지 브라우저의 image_filename_objects를 채워야 한다.
-    // 어떻게 할 것인가?
 }
 
 pub struct ImageBrowserProps<'a> {
@@ -44,30 +53,41 @@ impl ImageBrowser {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<EditorEvent>() {
             match event {
-                EditorEvent::ImageBrowserSelectEvent { selected_key } => {
-                    namui::log(format!("selected_key: {}", selected_key));
-                    if selected_key == "back" {
-                        let directory_splitted = self.directory_key.split("-").collect::<Vec<_>>();
-                        let length = directory_splitted.len();
-                        let back_key = directory_splitted
-                            .into_iter()
-                            .take(length - 1)
-                            .collect::<Vec<_>>()
-                            .join("-");
-                        self.directory_key = back_key;
-                        self.selected_key = if self.directory_key == "" {
-                            None
-                        } else {
-                            Some(self.directory_key.clone())
-                        };
-                    } else {
-                        let element_count = selected_key.matches("-").count();
-                        if element_count <= 2 {
-                            self.directory_key = selected_key.clone();
-                            self.selected_key = Some("back".to_string());
-                        } else {
-                            self.selected_key = Some(selected_key.clone());
-                            // TODO : send event to editor to change image
+                EditorEvent::ImageBrowserSelectEvent { selected_item } => {
+                    namui::log!("selected_item: {:?}", selected_item);
+                    match selected_item {
+                        ImageBrowserItem::Back => {
+                            self.directory = self.directory.parent();
+                            self.selected_item = match &self.directory {
+                                ImageBrowserDirectory::Root => None,
+                                ImageBrowserDirectory::Character(character) => {
+                                    Some(ImageBrowserItem::Character(character.clone()))
+                                }
+                                ImageBrowserDirectory::CharacterPose(character, pose) => {
+                                    Some(ImageBrowserItem::CharacterPose(
+                                        character.clone(),
+                                        pose.clone(),
+                                    ))
+                                }
+                            };
+                        }
+                        ImageBrowserItem::Character(character) => {
+                            self.directory = ImageBrowserDirectory::Character(character.clone());
+                            self.selected_item = None;
+                        }
+                        ImageBrowserItem::CharacterPose(character, pose) => {
+                            self.directory = ImageBrowserDirectory::CharacterPose(
+                                character.clone(),
+                                pose.clone(),
+                            );
+                            self.selected_item = None;
+                        }
+                        ImageBrowserItem::CharacterPoseEmotion(character, pose, emotion) => {
+                            self.selected_item = Some(ImageBrowserItem::CharacterPoseEmotion(
+                                character.clone(),
+                                pose.clone(),
+                                emotion.clone(),
+                            ));
                         }
                     }
                 }
@@ -78,7 +98,7 @@ impl ImageBrowser {
     }
 
     pub fn render(&self, props: &ImageBrowserProps) -> RenderingTree {
-        let is_root = self.directory_key == "";
+        let is_root = self.directory == ImageBrowserDirectory::Root;
         let item_margin = 10.0;
         let item_width = props.width / 2.0 - item_margin;
         let item_size = namui::Wh {
@@ -144,7 +164,7 @@ impl ImageBrowser {
 
     fn render_current_directory_label(&self) -> RenderingTree {
         namui::text(namui::TextParam {
-            text: self.directory_key.clone(),
+            text: self.directory.to_string(),
             x: self.current_directory_label_layout.x,
             y: self.current_directory_label_layout.y,
             align: namui::TextAlign::Left,
@@ -168,91 +188,25 @@ impl ImageBrowser {
         thumbnail_rect: XywhRect<f32>,
         image_filename_objects: &Vec<ImageFilenameObject>,
     ) -> Vec<BrowserItemProps> {
-        let mut iter = self.directory_key.split("-").filter(|s| !s.is_empty());
-        let character = iter.next();
-        let pose = iter.next();
+        let under_directory_items = image_filename_objects
+            .iter()
+            .filter(|filename_object| filename_object.is_just_under_directory(&self.directory))
+            .map(|filename_object| filename_object.extract_item_with_directory(&self.directory))
+            .collect::<BTreeSet<_>>();
 
-        if character.is_none() {
-            let mut characters = BTreeSet::new();
-            for filename_object in image_filename_objects {
-                characters.insert(&filename_object.character);
-            }
-            return characters
-                .into_iter()
-                .map(|character| {
-                    let filename_object = image_filename_objects
-                        .iter()
-                        .find(|filename_object| filename_object.character == *character)
-                        .unwrap();
-                    let key = format!("{}", character);
-                    BrowserItemProps {
-                        name: character.to_string(),
-                        thumbnail_url: filename_object.url.clone(),
-                        key: key.clone(),
-                        is_selected: self.selected_key == Some(key.clone()),
-                        item_size,
-                        thumbnail_rect,
-                    }
-                })
-                .collect();
-        };
-        let character = character.unwrap();
-
-        if pose.is_none() {
-            let mut poses = BTreeSet::new();
-            for filename_object in image_filename_objects
-                .iter()
-                .filter(|filename_object| filename_object.character == character)
-            {
-                poses.insert(&filename_object.pose);
-            }
-            return poses
-                .into_iter()
-                .map(|pose| {
-                    let filename_object = image_filename_objects
-                        .iter()
-                        .find(|filename_object| {
-                            filename_object.character == character && filename_object.pose == *pose
-                        })
-                        .unwrap();
-                    let key = format!("{}-{}", character, pose);
-                    BrowserItemProps {
-                        name: pose.to_string(),
-                        thumbnail_url: filename_object.url.clone(),
-                        key: key.clone(),
-                        is_selected: self.selected_key == Some(key),
-                        item_size,
-                        thumbnail_rect,
-                    }
-                })
-                .collect();
-        };
-        let pose = pose.unwrap();
-
-        let mut emotions = BTreeSet::new();
-        for filename_object in image_filename_objects.iter().filter(|filename_object| {
-            filename_object.character == character && filename_object.pose == pose
-        }) {
-            emotions.insert(&filename_object.emotion);
-        }
-
-        emotions
+        under_directory_items
             .into_iter()
-            .map(|emotion| {
+            .map(|item| {
                 let filename_object = image_filename_objects
                     .iter()
-                    .find(|filename_object| {
-                        filename_object.character == character
-                            && filename_object.pose == pose
-                            && filename_object.emotion == *emotion
-                    })
+                    .find(|filename_object| filename_object.contains(&item))
                     .unwrap();
-                let key = format!("{}-{}-{}", character, pose, emotion);
+
                 BrowserItemProps {
-                    name: emotion.to_string(),
+                    name: item.to_string(),
                     thumbnail_url: filename_object.url.clone(),
-                    key: key.clone(),
-                    is_selected: self.selected_key == Some(key),
+                    item: item.clone(),
+                    is_selected: self.selected_item == Some(item),
                     item_size,
                     thumbnail_rect,
                 }
@@ -279,6 +233,49 @@ impl ImageFilenameObject {
             pose: pose.to_string(),
             emotion,
             url: camera_shot_url.to_string(),
+        }
+    }
+}
+
+impl ImageFilenameObject {
+    fn is_just_under_directory(&self, directory: &ImageBrowserDirectory) -> bool {
+        match directory {
+            ImageBrowserDirectory::Root => true,
+            ImageBrowserDirectory::Character(character) => self.character == *character,
+            ImageBrowserDirectory::CharacterPose(character, pose) => {
+                self.character == *character && self.pose == *pose
+            }
+        }
+    }
+    fn extract_item_with_directory(&self, directory: &ImageBrowserDirectory) -> ImageBrowserItem {
+        match directory {
+            ImageBrowserDirectory::Root => ImageBrowserItem::Character(self.character.clone()),
+            ImageBrowserDirectory::Character(character) => {
+                assert_eq!(self.character, *character);
+                ImageBrowserItem::CharacterPose(self.character.clone(), self.pose.clone())
+            }
+            ImageBrowserDirectory::CharacterPose(character, pose) => {
+                assert_eq!(self.character, *character);
+                assert_eq!(self.pose, *pose);
+                ImageBrowserItem::CharacterPoseEmotion(
+                    self.character.clone(),
+                    self.pose.clone(),
+                    self.emotion.clone(),
+                )
+            }
+        }
+    }
+
+    fn contains(&self, item: &ImageBrowserItem) -> bool {
+        match item {
+            ImageBrowserItem::Character(character) => self.character == *character,
+            ImageBrowserItem::CharacterPose(character, pose) => {
+                self.character == *character && self.pose == *pose
+            }
+            ImageBrowserItem::CharacterPoseEmotion(character, pose, emotion) => {
+                self.character == *character && self.pose == *pose && self.emotion == *emotion
+            }
+            ImageBrowserItem::Back => false,
         }
     }
 }

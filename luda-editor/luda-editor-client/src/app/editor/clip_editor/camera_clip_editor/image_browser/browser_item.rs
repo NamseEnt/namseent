@@ -1,12 +1,14 @@
 use crate::app::editor::events::EditorEvent;
 use namui::prelude::*;
 
+use super::ImageBrowserItem;
+
 pub struct BrowserItem {}
 
 pub struct BrowserItemProps {
     pub name: String,
     pub thumbnail_url: String,
-    pub key: String,
+    pub item: ImageBrowserItem,
     pub is_selected: bool,
     pub item_size: Wh<f32>,
     pub thumbnail_rect: XywhRect<f32>,
@@ -43,11 +45,11 @@ impl BrowserItem {
                 ..Default::default()
             })
             .attach_event(move |builder| {
-                let key = props.key.clone();
+                let item = props.item.clone();
                 builder.on_mouse_down(Box::new(move |_| {
-                    namui::log(format!("select browser item {}", key));
+                    namui::log(format!("select browser item {:?}", item));
                     namui::event::send(Box::new(EditorEvent::ImageBrowserSelectEvent {
-                        selected_key: key.clone(),
+                        selected_item: item.clone(),
                     }));
                 }))
             }),
