@@ -12,7 +12,9 @@ use self::{
         WysiwygResizeImageJob,
     },
 };
-use super::types::{Clip, ImageFilenameObject, Sequence, TimePerPixel};
+use super::types::{
+    CharacterPoseEmotion, Clip, ImageFilenameObject, MutableClip, Sequence, TimePerPixel,
+};
 use crate::app::editor::clip_editor::ClipEditorProps;
 mod clip_editor;
 mod events;
@@ -149,6 +151,22 @@ impl namui::Entity for Editor {
 
                     self.timeline.time_per_pixel = next_time_per_pixel;
                     self.timeline.start_at = next_start_at;
+                }
+                EditorEvent::ImageBrowserSelectEvent { selected_item } => {
+                    match selected_item {
+                        clip_editor::camera_clip_editor::image_browser::ImageBrowserItem::CharacterPoseEmotion(character, pose, emotion) => {
+                            let selected_clip = self
+                                .selected_clip_id
+                                .as_ref()
+                                .and_then(|id| self.sequence.get_mut_clip(&id));
+                            if let Some(MutableClip::Camera(camera_clip)) = selected_clip {
+                                camera_clip.camera_angle.character_pose_emotion = CharacterPoseEmotion(character.clone(), pose.clone(), emotion.clone());
+                            } else {
+                                unreachable!();
+                            }
+                        },
+                        _ => {}
+                    }
                 }
                 _ => {}
             }
