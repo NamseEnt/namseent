@@ -18,19 +18,15 @@ mod track_header;
 pub struct Timeline {
     header_width: f32,
     time_ruler_height: f32,
-    pub selected_clip_id: Option<String>,
-    pub sequence: Sequence,
     pub start_at: Time,
     pub time_per_pixel: TimePerPixel,
     subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
 }
 impl Timeline {
-    pub fn new(sequence: Sequence) -> Self {
+    pub fn new() -> Self {
         Self {
             header_width: 200.0,
             time_ruler_height: 20.0,
-            selected_clip_id: None,
-            sequence,
             time_per_pixel: TimePerPixel::new(Time::from_ms(50.0), PixelSize(1.0)),
             start_at: Time::from_sec(0.0),
             subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
@@ -41,6 +37,8 @@ pub struct TimelineProps<'a> {
     pub xywh: namui::XywhRect<f32>,
     pub playback_time: chrono::Duration,
     pub job: &'a Option<Job>,
+    pub selected_clip_id: &'a Option<String>,
+    pub sequence: &'a Sequence,
 }
 pub struct TimelineRenderContext<'a> {
     pub time_per_pixel: TimePerPixel,
@@ -57,7 +55,7 @@ impl Timeline {
         let context = TimelineRenderContext {
             time_per_pixel: self.time_per_pixel,
             job: props.job,
-            selected_clip_id: &self.selected_clip_id,
+            selected_clip_id: &props.selected_clip_id,
             start_at: self.start_at,
             subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
             language: Language::Ko,
@@ -109,7 +107,7 @@ impl Timeline {
                             TimelineHeader::render(&TimelineHeaderProps {
                                 width: self.header_width,
                                 height: xywh.height,
-                                tracks: &self.sequence.tracks,
+                                tracks: &props.sequence.tracks,
                             }),
                             namui::translate(
                                 self.header_width,
@@ -117,7 +115,7 @@ impl Timeline {
                                 TimelineBody::render(&TimelineBodyProps {
                                     width: body_width,
                                     height: xywh.height,
-                                    tracks: &self.sequence.tracks,
+                                    tracks: &props.sequence.tracks,
                                     context: &context,
                                 })
                             ),

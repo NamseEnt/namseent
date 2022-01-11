@@ -1,5 +1,4 @@
-use super::super::Timeline;
-use crate::app::types::*;
+use crate::app::{editor::Editor, types::*};
 
 #[derive(Debug, Clone)]
 pub struct MoveSubtitleClipJob {
@@ -37,13 +36,16 @@ impl MoveSubtitleClipJob {
 
         clip.start_at = moved_start_at;
     }
-    pub fn execute(&self, timeline: &mut Timeline) {
-        let selected_subtitle_clip = find_subtitle_clip(&mut timeline.sequence, &self.clip_id);
+    pub fn execute(&self, editor: &mut Editor) {
+        let selected_subtitle_clip = find_subtitle_clip(&mut editor.sequence, &self.clip_id);
         if selected_subtitle_clip.is_none() {
             return;
         }
         let mut selected_subtitle_clip = selected_subtitle_clip.unwrap();
 
-        self.move_subtitle_clip_by_job(&mut selected_subtitle_clip, &timeline.time_per_pixel);
+        self.move_subtitle_clip_by_job(
+            &mut selected_subtitle_clip,
+            &editor.timeline.time_per_pixel,
+        );
     }
 }

@@ -37,6 +37,7 @@ pub struct CameraClip {
     pub camera_angle: CameraAngle,
 }
 
+#[derive(Debug)]
 pub enum Clip<'a> {
     Camera(&'a CameraClip),
     Subtitle(&'a SubtitleClip),
@@ -135,16 +136,6 @@ pub struct ImageFilenameObject {
     pub pose: String,
     pub emotion: String,
     pub url: String,
-}
-
-impl ImageFilenameObject {
-    pub fn into_character_pose_emotion(&self) -> CharacterPoseEmotion {
-        CharacterPoseEmotion(
-            self.character.clone(),
-            self.pose.clone(),
-            self.emotion.clone(),
-        )
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

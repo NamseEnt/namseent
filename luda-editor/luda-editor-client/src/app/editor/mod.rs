@@ -12,7 +12,7 @@ use self::{
         WysiwygResizeImageJob,
     },
 };
-use super::types::{ImageFilenameObject, Sequence, TimePerPixel};
+use super::types::{Clip, ImageFilenameObject, Sequence, TimePerPixel};
 use crate::app::editor::clip_editor::ClipEditorProps;
 mod clip_editor;
 mod events;
@@ -25,9 +25,11 @@ pub struct EditorProps {
 pub struct Editor {
     job: Option<Job>,
     timeline: Timeline,
-    clip_editor: ClipEditor,
+    clip_editor: Option<ClipEditor>,
     playback_time: chrono::Duration,
     image_filename_objects: Vec<ImageFilenameObject>,
+    pub selected_clip_id: Option<String>,
+    pub sequence: Sequence,
 }
 
 impl namui::Entity for Editor {
@@ -47,7 +49,9 @@ impl namui::Entity for Editor {
                             last_global_mouse_xy: *global_mouse_xy,
                         }));
                     }
-                    self.timeline.selected_clip_id = Some(clip_id.clone());
+                    self.selected_clip_id = Some(clip_id.clone());
+                    self.clip_editor =
+                        Some(ClipEditor::new(&self.sequence.get_clip(clip_id).unwrap()));
                 }
                 EditorEvent::SubtitleClipHeadMouseDownEvent {
                     clip_id,
@@ -61,7 +65,9 @@ impl namui::Entity for Editor {
                             last_global_mouse_xy: *global_mouse_xy,
                         }));
                     }
-                    self.timeline.selected_clip_id = Some(clip_id.clone());
+                    self.selected_clip_id = Some(clip_id.clone());
+                    self.clip_editor =
+                        Some(ClipEditor::new(&self.sequence.get_clip(clip_id).unwrap()));
                 }
                 EditorEvent::ImageFilenameObjectsUpdatedEvent {
                     image_filename_objects,
@@ -169,29 +175,30 @@ impl namui::Entity for Editor {
                 NamuiEvent::MouseUp(global_xy) => {
                     let job = self.job.clone();
                     match job {
+                        // TODO : Make these simple using trait
                         Some(Job::MoveCameraClip(mut job)) => {
                             job.last_global_mouse_xy = *global_xy;
-                            job.execute(&mut self.timeline);
+                            job.execute(self);
                             self.job = None;
                         }
                         Some(Job::MoveSubtitleClip(mut job)) => {
                             job.last_global_mouse_xy = *global_xy;
-                            job.execute(&mut self.timeline);
+                            job.execute(self);
                             self.job = None;
                         }
                         Some(Job::WysiwygMoveImage(mut job)) => {
                             job.last_global_mouse_xy = *global_xy;
-                            job.execute(&mut self.timeline);
+                            job.execute(self);
                             self.job = None;
                         }
                         Some(Job::WysiwygResizeImage(mut job)) => {
                             job.last_global_mouse_xy = *global_xy;
-                            job.execute(&mut self.timeline);
+                            job.execute(self);
                             self.job = None;
                         }
                         Some(Job::WysiwygCropImage(mut job)) => {
                             job.last_global_mouse_xy = *global_xy;
-                            job.execute(&mut self.timeline);
+                            job.execute(self);
                             self.job = None;
                         }
                         _ => {}
@@ -200,31 +207,42 @@ impl namui::Entity for Editor {
                 _ => {}
             }
         };
-        self.clip_editor.update(event);
+        self.clip_editor
+            .as_mut()
+            .map(|clip_editor| clip_editor.update(event));
     }
+
     fn render(&self, props: &Self::Props) -> namui::RenderingTree {
         let selected_clip = self
-            .timeline
             .selected_clip_id
             .as_ref()
-            .and_then(|id| self.timeline.sequence.get_clip(&id));
+            .and_then(|id| self.sequence.get_clip(&id));
         render![
             self.timeline.render(&TimelineProps {
                 playback_time: self.playback_time,
                 xywh: self.calculate_timeline_xywh(&props.screen_wh),
                 job: &self.job,
+                selected_clip_id: &self.selected_clip_id,
+                sequence: &self.sequence,
             }),
-            self.clip_editor.render(&ClipEditorProps {
-                selected_clip,
-                xywh: XywhRect {
-                    x: 0.0,
-                    y: 0.0,
-                    width: 800.0,
-                    height: props.screen_wh.height - 200.0,
-                },
-                image_filename_objects: &self.image_filename_objects,
-                job: &self.job,
-            }),
+            match (selected_clip, &self.clip_editor) {
+                (None, None) => RenderingTree::Empty,
+                (Some(clip), Some(clip_editor)) => {
+                    clip_editor.render(&ClipEditorProps {
+                        clip,
+                        xywh: XywhRect {
+                            x: 0.0,
+                            y: 0.0,
+                            width: 800.0,
+                            height: props.screen_wh.height - 200.0,
+                        },
+                        image_filename_objects: &self.image_filename_objects,
+                        job: &self.job,
+                    })
+                }
+                (None, Some(_)) => unreachable!("clip_editor is Some but selected_clip is None"),
+                (Some(_), None) => unreachable!("selected_clip is Some but clip_editor is None"),
+            },
         ]
     }
 }
@@ -256,11 +274,13 @@ impl Editor {
             }
         });
         Self {
-            timeline: Timeline::new(sequence),
-            clip_editor: ClipEditor::new(),
+            timeline: Timeline::new(),
             playback_time: chrono::Duration::zero(),
             image_filename_objects: vec![],
             job: None,
+            clip_editor: None,
+            selected_clip_id: None,
+            sequence,
         }
     }
     fn calculate_timeline_xywh(&self, screen_wh: &namui::Wh<f32>) -> XywhRect<f32> {
@@ -270,5 +290,10 @@ impl Editor {
             width: screen_wh.width,
             height: 200.0,
         }
+    }
+    fn get_selected_clip(&self) -> Option<Clip> {
+        self.selected_clip_id
+            .as_ref()
+            .and_then(|id| self.sequence.get_clip(&id))
     }
 }
