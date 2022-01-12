@@ -20,7 +20,6 @@ pub type RebuildCallback = fn(option: RebuildCallbackOption) -> ();
 
 pub struct StartBuildOption {
     pub callback: RebuildCallback,
-    pub watch_dir: String,
     pub bundle: Arc<RwLock<Bundle>>,
     pub web_server: Arc<WebServer>,
     pub manifest_path: String,
@@ -28,9 +27,10 @@ pub struct StartBuildOption {
 }
 
 pub async fn start_build<'a>(option: StartBuildOption) {
-    let watcher = CodeWatcher::new(option.watch_dir.clone());
+    let mut watcher = CodeWatcher::new(option.manifest_path.clone());
 
     loop {
+        watcher.update_watching_paths();
         watcher.wait_for_change().await;
         rebuild(
             option.callback,
