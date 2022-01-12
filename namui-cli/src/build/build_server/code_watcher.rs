@@ -4,11 +4,16 @@ use futures::{executor::block_on, lock::Mutex};
 use notify::{DebouncedEvent, INotifyWatcher, RecursiveMode, Watcher};
 use regex::Regex;
 use std::{collections::HashSet, path::PathBuf, sync::Arc, thread, time::Duration};
-use tokio::sync::oneshot::{self, Sender};
+use tokio::sync::oneshot::{self, Receiver, Sender};
 
 struct CodeWatcherContext {
     was_changed: bool,
     sender: Option<Sender<()>>,
+}
+
+enum CodeWatcherChangeState {
+    Changed,
+    NotChanged(Receiver<()>),
 }
 
 pub struct CodeWatcher {
@@ -76,41 +81,33 @@ impl CodeWatcher {
     }
 
     pub async fn wait_for_change(&self) {
-        match self.check_changed_from_last_check().await {
-            true => (),
-            false => {
-                let receiver = self.register_sender().await;
-                match receiver.await {
-                    Ok(_) => (),
-                    Err(error) => panic!("code_watcher oneshot receive error: {:?}", error),
-                }
-            }
+        match self.check_change_state().await {
+            CodeWatcherChangeState::Changed => (),
+            CodeWatcherChangeState::NotChanged(receiver) => match receiver.await {
+                Ok(_) => (),
+                Err(error) => panic!("code_watcher oneshot receive error: {:?}", error),
+            },
         }
     }
 
-    async fn check_changed_from_last_check(&self) -> bool {
+    async fn check_change_state(&self) -> CodeWatcherChangeState {
         debug_println!("check_changed: locking code_watcher.context...");
         let mut context = self.context.lock().await;
         debug_println!("check_changed: code_watcher.context locked");
         match context.was_changed {
             true => {
                 context.was_changed = false;
-                true
+                CodeWatcherChangeState::Changed
             }
-            false => false,
+            false => {
+                let (sender, receiver) = oneshot::channel::<()>();
+                match context.sender {
+                    Some(_) => unreachable!(),
+                    None => context.sender = Some(sender),
+                }
+                CodeWatcherChangeState::NotChanged(receiver)
+            }
         }
-    }
-
-    async fn register_sender(&self) -> oneshot::Receiver<()> {
-        let (sender, receiver) = oneshot::channel::<()>();
-        debug_println!("register_sender: locking code_watcher.context...");
-        let mut context = self.context.lock().await;
-        debug_println!("register_sender: code_watcher.context locked");
-        match context.sender {
-            Some(_) => unreachable!(),
-            None => context.sender = Some(sender),
-        }
-        receiver
     }
 
     pub fn update_watching_paths(&mut self) {
