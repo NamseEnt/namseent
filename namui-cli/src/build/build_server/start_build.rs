@@ -32,6 +32,7 @@ pub async fn start_build<'a>(option: StartBuildOption) {
     loop {
         watcher.update_watching_paths();
         watcher.wait_for_change().await;
+        println!("File changed. starting rebuild...");
         rebuild(
             option.callback,
             option.bundle.clone(),
