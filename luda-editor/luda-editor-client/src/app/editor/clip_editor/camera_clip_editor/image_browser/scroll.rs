@@ -86,7 +86,7 @@ impl Scroll {
                     height: scroll_bar_handle_height,
                     style: RectStyle {
                         fill: Some(RectFill {
-                            color: Color::garyscale_f01(0.5),
+                            color: Color::grayscale_f01(0.5),
                         }),
                         ..Default::default()
                     },
