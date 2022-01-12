@@ -8,8 +8,6 @@ use web_sys::window;
 mod codes;
 pub use codes::*;
 
-use crate::namui;
-
 pub struct KeyboardManager {
     pressing_code_set: Arc<RwLock<HashSet<Code>>>,
 }
@@ -30,20 +28,36 @@ impl KeyboardManager {
         let pressing_code_set_key_down = pressing_code_set.clone();
         let key_down_closure = Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
             let code_string = event.code();
-            let code = Code::from_str(&code_string).unwrap();
+            let code = Code::from_str(&code_string);
+            if code.is_err() {
+                crate::log!(
+                    "[DEBUG] Fail to get code from key_down callback {}",
+                    code_string
+                );
+                return;
+            }
+            let code = code.unwrap();
             pressing_code_set_key_down.write().unwrap().insert(code);
             if event.key() == "Alt" {
                 event.prevent_default();
             }
-            namui::log(format!("key down: {}", code_string));
+            crate::log!("key down: {}", code_string);
         }) as Box<dyn FnMut(_)>);
 
         let pressing_code_set_key_up = pressing_code_set.clone();
         let key_up_closure = Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
             let code_string = event.code();
-            let code = Code::from_str(&code_string).unwrap();
+            let code = Code::from_str(&code_string);
+            if code.is_err() {
+                crate::log!(
+                    "[DEBUG] Fail to get code from key_up callback {}",
+                    code_string
+                );
+                return;
+            }
+            let code = code.unwrap();
             pressing_code_set_key_up.write().unwrap().remove(&code);
-            namui::log(format!("key up: {}", code_string));
+            crate::log!("key up: {}", code_string);
         }) as Box<dyn FnMut(_)>);
 
         let pressing_code_set_clear = pressing_code_set.clone();
