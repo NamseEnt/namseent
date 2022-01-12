@@ -15,12 +15,12 @@ pub fn render_gradations(props: &GradationsProps) -> RenderingTree {
     let sub_gradation_height = gradation_height / 3.0;
 
     let gradation_paint = PaintBuilder::new()
-        .set_color(Color::gary_scale_f01(0.5))
+        .set_color(Color::grayscale_f01(0.5))
         .set_style(PaintStyle::Stroke)
         .set_stroke_width(2.0);
 
     let sub_gradation_paint = PaintBuilder::new()
-        .set_color(Color::gary_scale_f01(0.5))
+        .set_color(Color::grayscale_f01(0.5))
         .set_style(PaintStyle::Stroke)
         .set_stroke_width(1.0);
 

@@ -36,7 +36,7 @@ pub fn render_time_texts(props: &TimeTextsProps) -> RenderingTree {
                         size: TEXT_SIZE,
                     },
                     style: namui::TextStyle {
-                        color: namui::Color::gary_scale_f01(0.5),
+                        color: namui::Color::grayscale_f01(0.5),
                         ..Default::default()
                     },
                     text: text,
