@@ -1,30 +1,28 @@
-use crate::app::types::{PixelSize, Time, TimePerPixel};
+use crate::app::types::PixelSize;
 use namui::prelude::*;
 
-pub struct GradationsProps {
-    pub wh: Wh<f32>,
-    pub start_px: PixelSize,
-    pub gap_px: PixelSize,
-}
+use super::Gradation;
 
-pub const BIG_GRADATION_INTERVAL: i32 = 5;
+pub struct GradationsProps<'a> {
+    pub wh: Wh<f32>,
+    pub gap_px: PixelSize,
+    pub gradations: &'a Vec<Gradation>,
+}
+pub const SUB_GRADATION_FREQUENCY: i32 = 5;
 
 pub fn render_gradations(props: &GradationsProps) -> RenderingTree {
-    let big_gradation_height = props.wh.height * 2.0 / 3.0;
-    let small_gradation_height = big_gradation_height / 3.0;
+    let gradation_height = props.wh.height * 2.0 / 3.0;
+    let sub_gradation_height = gradation_height / 3.0;
 
-    let big_gradation_paint = PaintBuilder::new()
+    let gradation_paint = PaintBuilder::new()
         .set_color(Color::gary_scale_f01(0.5))
         .set_style(PaintStyle::Stroke)
         .set_stroke_width(2.0);
 
-    let small_gradation_paint = PaintBuilder::new()
+    let sub_gradation_paint = PaintBuilder::new()
         .set_color(Color::gary_scale_f01(0.5))
         .set_style(PaintStyle::Stroke)
         .set_stroke_width(1.0);
-
-    let big_gradation_xs =
-        get_big_gradation_xs(PixelSize(props.wh.width), props.start_px, props.gap_px);
 
     struct GradationProperty {
         x: PixelSize,
@@ -32,14 +30,12 @@ pub fn render_gradations(props: &GradationsProps) -> RenderingTree {
     }
     let mut gradation_properties = Vec::<GradationProperty>::new();
 
-    for big_gradation_x in big_gradation_xs {
-        gradation_properties.push(GradationProperty {
-            x: big_gradation_x,
-            is_big: true,
-        });
-        for i in 1..5 {
+    for &Gradation { x, .. } in props.gradations {
+        gradation_properties.push(GradationProperty { x, is_big: true });
+
+        for i in 1..SUB_GRADATION_FREQUENCY {
             gradation_properties.push(GradationProperty {
-                x: big_gradation_x + i * props.gap_px,
+                x: x + i * props.gap_px / SUB_GRADATION_FREQUENCY,
                 is_big: false,
             });
         }
@@ -50,9 +46,9 @@ pub fn render_gradations(props: &GradationsProps) -> RenderingTree {
             .iter()
             .map(move |GradationProperty { is_big, x }| {
                 let gradation_height = if *is_big {
-                    big_gradation_height
+                    gradation_height
                 } else {
-                    small_gradation_height
+                    sub_gradation_height
                 };
                 let path = PathBuilder::new()
                     .move_to(x.into(), (props.wh.height - gradation_height) / 2.0)
@@ -60,25 +56,12 @@ pub fn render_gradations(props: &GradationsProps) -> RenderingTree {
                 namui::path(
                     path,
                     if *is_big {
-                        big_gradation_paint.clone()
+                        gradation_paint.clone()
                     } else {
-                        small_gradation_paint.clone()
+                        sub_gradation_paint.clone()
                     },
                 )
             })
             .collect(),
     )
-}
-fn get_big_gradation_xs(
-    time_ruler_width: PixelSize,
-    gradation_start_px: PixelSize,
-    gradation_gap_px: PixelSize,
-) -> Vec<PixelSize> {
-    let mut big_gradation_xs = vec![];
-    let mut x = gradation_start_px;
-    while x < time_ruler_width {
-        big_gradation_xs.push(x);
-        x += gradation_gap_px * BIG_GRADATION_INTERVAL as f32;
-    }
-    return big_gradation_xs;
 }

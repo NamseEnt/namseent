@@ -17,6 +17,9 @@ impl Time {
             milliseconds: seconds * 1000.0,
         }
     }
+    pub fn get_total_milliseconds(&self) -> f32 {
+        self.milliseconds
+    }
 }
 
 macro_rules! overload_time_binary_operator_with_numeric {
