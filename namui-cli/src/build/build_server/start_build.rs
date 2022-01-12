@@ -1,14 +1,12 @@
-use futures::executor::block_on;
-use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
-use std::{fs::File, io::Read, sync::Arc, thread, time::Duration};
-use tokio::sync::RwLock;
-
 use crate::{
     build::{bundle::Bundle, types::ErrorMessage, web_server::WebServer},
     debug_println,
 };
+use std::{fs::File, io::Read, sync::Arc};
+use tokio::sync::RwLock;
 
 use super::{
+    code_watcher::CodeWatcher,
     run_cargo_check::run_cargo_check,
     run_wasm_pack::{run_wasm_pack, RunWasmPackOption},
 };
@@ -30,71 +28,18 @@ pub struct StartBuildOption {
 }
 
 pub async fn start_build<'a>(option: StartBuildOption) {
-    let (thread_sender, mut thread_receiver) = tokio::sync::mpsc::channel::<DebouncedEvent>(32);
+    let watcher = CodeWatcher::new(option.watch_dir.clone());
 
-    thread::spawn(move || {
-        let (watcher_sender, watcher_receiver) = std::sync::mpsc::channel::<DebouncedEvent>();
-
-        let mut watcher = watcher(watcher_sender, Duration::from_secs(1)).unwrap();
-        watcher
-            .watch(option.watch_dir, RecursiveMode::Recursive)
-            .unwrap();
-
-        loop {
-            match watcher_receiver.recv() {
-                Ok(event) => {
-                    debug_println!("start_build: sending fs event: {:?}...", event);
-                    let _ = block_on(thread_sender.send(event));
-                    debug_println!("start_build: fs event sended");
-                }
-                Err(error) => eprintln!("{:?}", error),
-            }
-        }
-    });
-
-    let mut should_rebuild = true;
     loop {
-        match should_rebuild {
-            true => {
-                rebuild(
-                    option.callback,
-                    option.bundle.clone(),
-                    option.web_server.clone(),
-                    option.manifest_path.clone(),
-                    option.root_dir.clone(),
-                )
-                .await;
-                should_rebuild = false;
-            }
-            false => 'await_file_change_event: loop {
-                match thread_receiver.recv().await {
-                    Some(event) => match event {
-                        DebouncedEvent::Create(_)
-                        | DebouncedEvent::Remove(_)
-                        | DebouncedEvent::Rename(_, _)
-                        | DebouncedEvent::Write(_) => {
-                            should_rebuild = true;
-                            break 'await_file_change_event;
-                        }
-                        _ => (),
-                    },
-                    _ => (),
-                };
-            },
-        }
-
-        'clear_file_change_events: loop {
-            match thread_receiver.try_recv() {
-                Ok(event) => match event {
-                    DebouncedEvent::Create(_)
-                    | DebouncedEvent::Remove(_)
-                    | DebouncedEvent::Rename(_, _)
-                    | DebouncedEvent::Write(_) => should_rebuild = true,
-                    _ => (),
-                },
-                Err(_) => break 'clear_file_change_events,
-            }
-        }
+        watcher.wait_for_change().await;
+        rebuild(
+            option.callback,
+            option.bundle.clone(),
+            option.web_server.clone(),
+            option.manifest_path.clone(),
+            option.root_dir.clone(),
+        )
+        .await;
     }
 }
 
