@@ -92,7 +92,7 @@ impl Color {
     pub fn from_u8(r: u8, g: u8, b: u8, a: u8) -> Color {
         Color { r, g, b, a }
     }
-    pub fn garyscale_f01(value: f32) -> Color {
+    pub fn grayscale_f01(value: f32) -> Color {
         Color::from_f01(value, value, value, 1.0)
     }
     pub fn from_string_for_random_color(value: &str, is_random_alpha: bool) -> Self {
