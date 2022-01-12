@@ -1,5 +1,9 @@
-use crate::app::types::{Time, TimePerPixel};
+use crate::app::types::{PixelSize, Time, TimePerPixel};
 use namui::prelude::*;
+mod gradations;
+use gradations::*;
+mod time_text;
+use time_text::*;
 
 pub struct TimeRuler {}
 pub struct TimeRulerProps {
@@ -14,10 +18,25 @@ impl TimeRuler {
     }
 }
 
+pub struct Gradation {
+    pub x: PixelSize,
+    pub at: Time,
+}
+
 impl Entity for TimeRuler {
     type Props = TimeRulerProps;
     fn update(&mut self, event: &dyn std::any::Any) {}
     fn render(&self, props: &Self::Props) -> RenderingTree {
+        let gradation_gap_time =
+            get_gradation_gap_time(PixelSize(100.0), PixelSize(500.0), props.time_per_pixel);
+
+        let gradations = get_gradations(
+            props.xywh.width.into(),
+            gradation_gap_time,
+            props.time_per_pixel,
+            props.start_at,
+        );
+
         translate(
             props.xywh.x,
             props.xywh.y,
@@ -51,10 +70,56 @@ impl Entity for TimeRuler {
                         },
                         ..Default::default()
                     }),
-                    // TODO : TimeTexts
-                    // TODO : Gradations
+                    render_time_texts(&TimeTextsProps {
+                        gradations: &gradations,
+                        height: props.xywh.height,
+                        time_per_pixel: props.time_per_pixel,
+                    }),
+                    render_gradations(&GradationsProps {
+                        wh: props.xywh.wh(),
+                        gap_px: gradation_gap_time / props.time_per_pixel,
+                        gradations: &gradations,
+                    }),
                 ],
             )],
         )
     }
+}
+
+fn get_gradation_gap_time(min: PixelSize, max: PixelSize, time_per_pixel: TimePerPixel) -> Time {
+    [
+        100, 250, 500, 1000, 5000, 10000, 30000, 60000, 300000, 600000, 1800000,
+    ]
+    .iter()
+    .map(|&ms| Time::from_ms(ms as f32))
+    .find(|&time| {
+        let px = time / time_per_pixel;
+        min <= px && px <= max
+    })
+    .unwrap_or(max * time_per_pixel)
+}
+
+/// NOTE: This code has been designed not to care about negative start_at.
+fn get_gradations(
+    time_ruler_width: PixelSize,
+    gradation_gap_time: Time,
+    time_per_pixel: TimePerPixel,
+    start_at: Time,
+) -> Vec<Gradation> {
+    let gradation_start_at = start_at - (start_at % gradation_gap_time);
+    let gradation_start_px = (gradation_start_at - start_at) / time_per_pixel;
+    let gap_px = gradation_gap_time / time_per_pixel;
+
+    let mut gradations = vec![];
+    let mut index = 0;
+    loop {
+        let x = gradation_start_px + index * gap_px;
+        if x >= time_ruler_width {
+            break;
+        }
+        let at = gradation_start_at + (index * gradation_gap_time);
+        gradations.push(Gradation { x, at });
+        index += 1;
+    }
+    return gradations;
 }
