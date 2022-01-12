@@ -137,7 +137,7 @@ fn render_outer_image(
 ) -> RenderingTree {
     let outside_image_paint = namui::PaintBuilder::new()
         .set_style(namui::PaintStyle::Fill)
-        .set_color_filter(&Color::garyscale_f01(0.5), &namui::BlendMode::Multiply);
+        .set_color_filter(&Color::grayscale_f01(0.5), &namui::BlendMode::Multiply);
 
     namui::clip(
         namui::PathBuilder::new().add_rect(dest_rect),
