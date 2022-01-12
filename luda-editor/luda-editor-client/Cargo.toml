@@ -24,6 +24,7 @@ tokio-stream = { version = "0.1.8", default-features = false }
 luda-editor-rpc = { path = "../luda-editor-rpc" }
 num = "0.4.0"
 once_cell = "1.8.0"
+auto_ops = "0.3"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"

@@ -1,4 +1,5 @@
 use super::{Deserialize, PixelSize, Serialize, TimePerPixel};
+use auto_ops::impl_op;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Time {
@@ -17,63 +18,94 @@ impl Time {
         }
     }
 }
-impl std::ops::Sub for Time {
-    type Output = Time;
-    fn sub(self, rhs: Time) -> Self::Output {
-        Time {
-            milliseconds: self.milliseconds - rhs.milliseconds,
-        }
-    }
-}
-impl std::ops::Add for Time {
-    type Output = Time;
-    fn add(self, rhs: Time) -> Self::Output {
-        Time {
-            milliseconds: self.milliseconds + rhs.milliseconds,
-        }
-    }
-}
-impl std::ops::Div<TimePerPixel> for Time {
-    type Output = PixelSize;
-    fn div(self, rhs: TimePerPixel) -> Self::Output {
-        let milliseconds = self.milliseconds / rhs.time.milliseconds;
-        PixelSize(milliseconds * rhs.pixel_size.0)
-    }
-}
-impl std::ops::Div<f32> for Time {
-    type Output = Time;
-    fn div(self, rhs: f32) -> Self::Output {
-        let milliseconds = self.milliseconds / rhs;
-        Time { milliseconds }
-    }
-}
-impl std::ops::Mul<&Time> for usize {
-    type Output = Time;
 
-    fn mul(self, rhs: &Time) -> Self::Output {
-        Time {
-            milliseconds: self as f32 * rhs.milliseconds,
-        }
-    }
+macro_rules! overload_time_binary_operator_with_numeric {
+    ($ops: tt, $numeric_type: tt) => {
+        impl_op!($ops|lhs: Time, rhs: $numeric_type| -> Time { Time { milliseconds: lhs.milliseconds $ops rhs as f32 } });
+        impl_op!($ops|lhs: Time, rhs: &$numeric_type| -> Time { Time { milliseconds: lhs.milliseconds $ops *rhs as f32 } });
+        impl_op!($ops|lhs: &Time, rhs: $numeric_type| -> Time { Time { milliseconds: lhs.milliseconds $ops rhs as f32 } });
+        impl_op!($ops|lhs: &Time, rhs: &$numeric_type| -> Time { Time { milliseconds: lhs.milliseconds $ops *rhs as f32 } });
+
+        impl_op!($ops|lhs: $numeric_type, rhs: Time| -> Time { rhs $ops lhs as f32 });
+        impl_op!($ops|lhs: $numeric_type, rhs: &Time| -> Time { rhs $ops lhs as f32 });
+        impl_op!($ops|lhs: &$numeric_type, rhs: Time| -> Time { rhs $ops *lhs as f32 });
+        impl_op!($ops|lhs: &$numeric_type, rhs: &Time| -> Time { rhs $ops *lhs as f32 });
+    };
 }
 
-impl std::ops::AddAssign for Time {
-    fn add_assign(&mut self, rhs: Time) {
-        self.milliseconds.add_assign(rhs.milliseconds);
-    }
+macro_rules! overload_time_arithmetic_operator_with_numeric {
+    ($numeric_type: tt) => {
+        overload_time_binary_operator_with_numeric!(+, $numeric_type);
+        overload_time_binary_operator_with_numeric!(-, $numeric_type);
+        overload_time_binary_operator_with_numeric!(*, $numeric_type);
+        overload_time_binary_operator_with_numeric!(/, $numeric_type);
+        overload_time_binary_operator_with_numeric!(%, $numeric_type);
+    };
 }
-impl std::ops::SubAssign for Time {
-    fn sub_assign(&mut self, rhs: Time) {
-        self.milliseconds.sub_assign(rhs.milliseconds);
-    }
+
+macro_rules! overload_time_binary_operator_with_self {
+    ($ops: tt) => {
+        impl_op!($ops|lhs: Time, rhs: Time| -> Time { Time { milliseconds: lhs.milliseconds $ops rhs.milliseconds } });
+        impl_op!($ops|lhs: Time, rhs: &Time| -> Time { Time { milliseconds: lhs.milliseconds $ops rhs.milliseconds } });
+        impl_op!($ops|lhs: &Time, rhs: Time| -> Time { Time { milliseconds: lhs.milliseconds $ops rhs.milliseconds } });
+        impl_op!($ops|lhs: &Time, rhs: &Time| -> Time { Time { milliseconds: lhs.milliseconds $ops rhs.milliseconds } });
+    };
 }
-impl std::ops::MulAssign for Time {
-    fn mul_assign(&mut self, rhs: Time) {
-        self.milliseconds.mul_assign(rhs.milliseconds);
-    }
+
+macro_rules! overload_time_assignment_operator_with_self {
+    ($ops: tt) => {
+        impl_op!($ops|lhs: &mut Time, rhs: Time| { lhs.milliseconds $ops rhs.milliseconds });
+        impl_op!($ops|lhs: &mut Time, rhs: &Time| { lhs.milliseconds $ops rhs.milliseconds });
+    };
 }
-impl std::ops::DivAssign for Time {
-    fn div_assign(&mut self, rhs: Time) {
-        self.milliseconds.div_assign(rhs.milliseconds);
+
+// Unary
+impl_op!(-|lhs: Time| -> Time {
+    Time {
+        milliseconds: -lhs.milliseconds,
     }
-}
+});
+impl_op!(-|lhs: &Time| -> Time {
+    Time {
+        milliseconds: -lhs.milliseconds,
+    }
+});
+// END: Unary
+
+// Time and Time
+overload_time_binary_operator_with_self!(+);
+overload_time_binary_operator_with_self!(-);
+overload_time_binary_operator_with_self!(*);
+overload_time_binary_operator_with_self!(/);
+overload_time_binary_operator_with_self!(%);
+
+overload_time_assignment_operator_with_self!(+=);
+overload_time_assignment_operator_with_self!(-=);
+overload_time_assignment_operator_with_self!(*=);
+overload_time_assignment_operator_with_self!(/=);
+overload_time_assignment_operator_with_self!(%=);
+// END: Time and Time
+
+// numerics arithmetic binary operators overloading
+overload_time_arithmetic_operator_with_numeric!(u8);
+overload_time_arithmetic_operator_with_numeric!(u16);
+overload_time_arithmetic_operator_with_numeric!(u32);
+overload_time_arithmetic_operator_with_numeric!(u64);
+overload_time_arithmetic_operator_with_numeric!(u128);
+overload_time_arithmetic_operator_with_numeric!(usize);
+overload_time_arithmetic_operator_with_numeric!(i8);
+overload_time_arithmetic_operator_with_numeric!(i16);
+overload_time_arithmetic_operator_with_numeric!(i32);
+overload_time_arithmetic_operator_with_numeric!(i64);
+overload_time_arithmetic_operator_with_numeric!(i128);
+overload_time_arithmetic_operator_with_numeric!(isize);
+overload_time_arithmetic_operator_with_numeric!(f32);
+overload_time_arithmetic_operator_with_numeric!(f64);
+// END: numerics arithmetic binary operators overloading
+
+// Time and PixelPerTime
+impl_op!(/|lhs: Time, rhs: TimePerPixel| -> PixelSize { PixelSize (lhs.milliseconds / rhs.time.milliseconds * rhs.pixel_size.0) });
+impl_op!(/|lhs: Time, rhs: &TimePerPixel| -> PixelSize { PixelSize (lhs.milliseconds / rhs.time.milliseconds * rhs.pixel_size.0) });
+impl_op!(/|lhs: &Time, rhs: TimePerPixel| -> PixelSize { PixelSize (lhs.milliseconds / rhs.time.milliseconds * rhs.pixel_size.0) });
+impl_op!(/|lhs: &Time, rhs: &TimePerPixel| -> PixelSize { PixelSize (lhs.milliseconds / rhs.time.milliseconds * rhs.pixel_size.0) });
+// END: Time and PixelPerTime
