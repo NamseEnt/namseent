@@ -59,7 +59,7 @@ fn print_build_result(error_messages: &Vec<ErrorMessage>, cli_error_messages: &V
     println!("Errors {}", error_messages.len() + cli_error_messages.len());
     for error_message in error_messages {
         println!(
-            "{}\n\t--> {}:{}:{}\n",
+            "{}\n\t\x1b[34m--> {}:{}:{}\x1b[0m\n",
             error_message.text,
             error_message.absolute_file,
             error_message.line,
