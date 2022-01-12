@@ -13,11 +13,11 @@ pub struct SubtitleClipBodyProps<'a> {
 impl SubtitleClipBody {
     pub fn render(props: &SubtitleClipBodyProps) -> RenderingTree {
         let SubtitleClipBodyProps { clip, context, .. } = props;
-        let x = ((clip.start_at - context.start_at) / context.time_per_pixel).into_f32();
+        let x = ((clip.start_at - context.start_at) / context.time_per_pixel).into();
         let duration = context
             .subtitle_play_duration_measurer
             .get_play_duration(&clip.subtitle, &context.language);
-        let width = (duration / context.time_per_pixel).into_f32();
+        let width: f32 = (duration / context.time_per_pixel).into();
 
         let is_out_of_bounds = x + width < 0.0 || x > props.track_body_wh.width;
         if is_out_of_bounds {
@@ -31,7 +31,7 @@ impl SubtitleClipBody {
             .map_or(false, |id| id.eq(&props.clip.id));
 
         let border_width = if is_highlight { 3 } else { 1 } * 2;
-        let component_width = (Time::from_ms(200.0) / context.time_per_pixel).into_f32();
+        let component_width = (Time::from_ms(200.0) / context.time_per_pixel).into();
         let component_height = props.track_body_wh.height / 3.0;
 
         let head_position = namui::Xy { x: 0.0, y: 0.0 };
