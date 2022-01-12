@@ -16,7 +16,7 @@ pub fn run_cargo_check(manifest_path: String) -> CargoBuildResult {
     let mut other_messages: Vec<ErrorMessage> = Vec::new();
     let mut is_successful: bool = false;
 
-    let mut command = Command::new("cargo")
+    let stdout = Command::new("cargo")
         .args([
             "check",
             "--target",
@@ -27,9 +27,11 @@ pub fn run_cargo_check(manifest_path: String) -> CargoBuildResult {
             manifest_path.as_str(),
         ])
         .stdout(Stdio::piped())
-        .spawn()
-        .unwrap();
-    let reader = std::io::BufReader::new(command.stdout.take().unwrap());
+        .output()
+        .unwrap()
+        .stdout;
+
+    let reader = std::io::BufReader::new(&*stdout);
     for message in cargo_metadata::Message::parse_stream(reader) {
         match message.unwrap() {
             Message::CompilerMessage(message) => match message.message.level {
