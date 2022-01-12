@@ -28,7 +28,7 @@ impl Resizer {
                 height: props.source_rect.height,
                 style: RectStyle {
                     stroke: Some(RectStroke {
-                        color: Color::gary_scale_f01(0.2),
+                        color: Color::grayscale_f01(0.2),
                         width: 1.0,
                         border_position: BorderPosition::Inside,
                     }),
@@ -60,7 +60,7 @@ fn render_resize_handles(source_rect: &XywhRect<f32>, container_size: &Wh<f32>) 
 
                 let stroke_paint = namui::PaintBuilder::new()
                     .set_style(namui::PaintStyle::Stroke)
-                    .set_color(Color::gary_scale_f01(0.5))
+                    .set_color(Color::grayscale_f01(0.5))
                     .set_stroke_width(2.0)
                     .set_anti_alias(true);
 

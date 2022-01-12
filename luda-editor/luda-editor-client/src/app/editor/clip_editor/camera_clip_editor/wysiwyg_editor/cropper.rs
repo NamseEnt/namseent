@@ -26,7 +26,7 @@ impl Cropper {
                 height: props.dest_rect.bottom - props.dest_rect.top,
                 style: RectStyle {
                     stroke: Some(RectStroke {
-                        color: Color::gary_scale_f01(0.5),
+                        color: Color::grayscale_f01(0.5),
                         width: 1.0,
                         border_position: BorderPosition::Inside,
                     }),
