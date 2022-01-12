@@ -28,10 +28,6 @@ pub async fn build(target_dir: Option<&str>, watch: bool) {
     let _ = webbrowser::open(format!("http://localhost:{}", PORT).as_str());
     print_server_address(PORT);
 
-    let watch_dir = PathBuf::from(&root_dir)
-        .join("./src")
-        .to_string_lossy()
-        .to_string();
     let manifest_path = PathBuf::from(&root_dir)
         .join("./Cargo.toml")
         .to_string_lossy()
@@ -41,7 +37,6 @@ pub async fn build(target_dir: Option<&str>, watch: bool) {
             print_build_result(&option.error_messages, &option.cli_error_messages);
             print_server_address(PORT);
         },
-        watch_dir,
         bundle: bundle.clone(),
         web_server: web_server.clone(),
         manifest_path,
