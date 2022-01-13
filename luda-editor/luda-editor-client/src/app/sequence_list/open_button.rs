@@ -23,7 +23,8 @@ impl SequenceList {
                             }),
                         )));
                     }))
-                }),
+                })
+                .with_mouse_cursor(namui::MouseCursor::Pointer),
             self.render_button_text(wh, "Open".to_string())
         ]
     }

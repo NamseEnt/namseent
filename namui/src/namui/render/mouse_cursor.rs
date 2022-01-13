@@ -11,6 +11,7 @@ pub enum MouseCursor {
     Text,
     Grab,
     Move,
+    Pointer,
 }
 
 #[derive(Serialize, Clone, Debug)]
