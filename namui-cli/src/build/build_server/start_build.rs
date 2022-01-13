@@ -31,7 +31,18 @@ pub async fn start_build<'a>(option: StartBuildOption) {
 
     loop {
         watcher.update_watching_paths();
-        watcher.wait_for_change().await;
+        if watcher.was_changed_while_flushing_events() {
+            println!("File changed while previous rebuild. starting rebuild...");
+            rebuild(
+                option.callback,
+                option.bundle.clone(),
+                option.web_server.clone(),
+                option.manifest_path.clone(),
+                option.root_dir.clone(),
+            )
+            .await;
+        }
+        watcher.wait_for_change();
         println!("File changed. starting rebuild...");
         rebuild(
             option.callback,
@@ -41,6 +52,7 @@ pub async fn start_build<'a>(option: StartBuildOption) {
             option.root_dir.clone(),
         )
         .await;
+        watcher.flush_events();
     }
 }
 

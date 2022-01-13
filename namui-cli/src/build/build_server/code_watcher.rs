@@ -1,34 +1,19 @@
 use crate::debug_println;
 use cargo_metadata::MetadataCommand;
-use futures::{executor::block_on, lock::Mutex};
 use notify::{DebouncedEvent, INotifyWatcher, RecursiveMode, Watcher};
 use regex::Regex;
-use std::{collections::HashSet, path::PathBuf, sync::Arc, thread, time::Duration};
-use tokio::sync::oneshot::{self, Receiver, Sender};
-
-struct CodeWatcherContext {
-    was_changed: bool,
-    sender: Option<Sender<()>>,
-}
-
-enum CodeWatcherChangeState {
-    Changed,
-    NotChanged(Receiver<()>),
-}
+use std::{collections::HashSet, path::PathBuf, sync::mpsc::Receiver, time::Duration};
 
 pub struct CodeWatcher {
     watcher: INotifyWatcher,
-    context: Arc<Mutex<CodeWatcherContext>>,
     watching_paths: HashSet<String>,
     manifest_path: String,
+    watcher_receiver: Receiver<DebouncedEvent>,
+    was_changed_while_flushing_events: bool,
 }
 
 impl CodeWatcher {
     pub fn new(manifest_path: String) -> Self {
-        let context = Arc::new(Mutex::new(CodeWatcherContext {
-            was_changed: true,
-            sender: None,
-        }));
         let mut root_watching_path = PathBuf::from(&manifest_path);
         root_watching_path.pop();
         let root_watching_path = root_watching_path.join("src").to_string_lossy().to_string();
@@ -39,74 +24,70 @@ impl CodeWatcher {
             panic!("watch failed {:?}", error);
         }
 
-        let context_clone = context.clone();
-        thread::spawn(move || -> ! {
-            loop {
-                match watcher_receiver.recv() {
-                    Ok(event) => {
-                        match event {
-                            DebouncedEvent::Create(_)
-                            | DebouncedEvent::Remove(_)
-                            | DebouncedEvent::Rename(_, _)
-                            | DebouncedEvent::Write(_) => {
-                                debug_println!("CodeWatcher: locking code_watcher.context...");
-                                let mut context = block_on(context_clone.lock());
-                                debug_println!("CodeWatcher: code_watcher.context locked");
-
-                                match context.sender.take() {
-                                    Some(sender) => {
-                                        if let Err(_) = sender.send(()) {
-                                            panic!("send failed in watcher")
-                                        }
-                                    }
-                                    None => {
-                                        context.was_changed = true;
-                                    }
-                                }
-                            }
-                            _ => (),
-                        };
-                    }
-                    Err(error) => eprintln!("{:?}", error),
-                }
-            }
-        });
-
         Self {
             watcher,
-            context,
             watching_paths: HashSet::new(),
             manifest_path,
+            watcher_receiver,
+            was_changed_while_flushing_events: true,
         }
     }
 
-    pub async fn wait_for_change(&self) {
-        match self.check_change_state().await {
-            CodeWatcherChangeState::Changed => (),
-            CodeWatcherChangeState::NotChanged(receiver) => match receiver.await {
-                Ok(_) => (),
-                Err(error) => panic!("code_watcher oneshot receive error: {:?}", error),
-            },
-        }
-    }
-
-    async fn check_change_state(&self) -> CodeWatcherChangeState {
-        debug_println!("check_changed: locking code_watcher.context...");
-        let mut context = self.context.lock().await;
-        debug_println!("check_changed: code_watcher.context locked");
-        match context.was_changed {
-            true => {
-                context.was_changed = false;
-                CodeWatcherChangeState::Changed
-            }
-            false => {
-                let (sender, receiver) = oneshot::channel::<()>();
-                match context.sender {
-                    Some(_) => unreachable!(),
-                    None => context.sender = Some(sender),
+    pub fn wait_for_change(&self) {
+        loop {
+            match self.watcher_receiver.recv() {
+                Ok(event) => {
+                    match event {
+                        DebouncedEvent::Create(_)
+                        | DebouncedEvent::Remove(_)
+                        | DebouncedEvent::Rename(_, _)
+                        | DebouncedEvent::Write(_) => {
+                            return;
+                        }
+                        _ => (),
+                    };
                 }
-                CodeWatcherChangeState::NotChanged(receiver)
+                Err(error) => eprintln!("{:?}", error),
             }
+        }
+    }
+
+    pub fn flush_events(&mut self) {
+        let mut was_changed = false;
+        'flush: loop {
+            match self.watcher_receiver.try_recv() {
+                Ok(event) => {
+                    match event {
+                        DebouncedEvent::Create(_)
+                        | DebouncedEvent::Remove(_)
+                        | DebouncedEvent::Rename(_, _)
+                        | DebouncedEvent::Write(_) => {
+                            was_changed = true;
+                        }
+                        _ => (),
+                    };
+                }
+                Err(error) => match error {
+                    std::sync::mpsc::TryRecvError::Empty => break 'flush,
+                    std::sync::mpsc::TryRecvError::Disconnected => {
+                        panic!("watcher closed {:?}", error)
+                    }
+                },
+            }
+        }
+
+        if was_changed {
+            self.was_changed_while_flushing_events = true;
+        }
+    }
+
+    pub fn was_changed_while_flushing_events(&mut self) -> bool {
+        match self.was_changed_while_flushing_events {
+            true => {
+                self.was_changed_while_flushing_events = false;
+                true
+            }
+            false => false,
         }
     }
 
