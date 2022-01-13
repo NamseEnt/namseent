@@ -9,7 +9,6 @@ pub struct CodeWatcher {
     watching_paths: HashSet<String>,
     manifest_path: String,
     watcher_receiver: Receiver<DebouncedEvent>,
-    was_changed_while_flushing_events: bool,
 }
 
 impl CodeWatcher {
@@ -29,30 +28,33 @@ impl CodeWatcher {
             watching_paths: HashSet::new(),
             manifest_path,
             watcher_receiver,
-            was_changed_while_flushing_events: true,
         }
     }
 
-    pub fn wait_for_change(&self) {
-        loop {
-            match self.watcher_receiver.recv() {
-                Ok(event) => {
-                    match event {
-                        DebouncedEvent::Create(_)
-                        | DebouncedEvent::Remove(_)
-                        | DebouncedEvent::Rename(_, _)
-                        | DebouncedEvent::Write(_) => {
-                            return;
-                        }
-                        _ => (),
-                    };
+    pub fn wait_for_change(&mut self) {
+        let was_changed_while_flushing_events = self.flush_events();
+        match was_changed_while_flushing_events {
+            true => (),
+            false => loop {
+                match self.watcher_receiver.recv() {
+                    Ok(event) => {
+                        match event {
+                            DebouncedEvent::Create(_)
+                            | DebouncedEvent::Remove(_)
+                            | DebouncedEvent::Rename(_, _)
+                            | DebouncedEvent::Write(_) => {
+                                return;
+                            }
+                            _ => (),
+                        };
+                    }
+                    Err(error) => eprintln!("{:?}", error),
                 }
-                Err(error) => eprintln!("{:?}", error),
-            }
+            },
         }
     }
 
-    pub fn flush_events(&mut self) {
+    fn flush_events(&mut self) -> bool {
         let mut was_changed = false;
         'flush: loop {
             match self.watcher_receiver.try_recv() {
@@ -76,19 +78,7 @@ impl CodeWatcher {
             }
         }
 
-        if was_changed {
-            self.was_changed_while_flushing_events = true;
-        }
-    }
-
-    pub fn was_changed_while_flushing_events(&mut self) -> bool {
-        match self.was_changed_while_flushing_events {
-            true => {
-                self.was_changed_while_flushing_events = false;
-                true
-            }
-            false => false,
-        }
+        was_changed
     }
 
     pub fn update_watching_paths(&mut self) {
