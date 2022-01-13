@@ -113,6 +113,7 @@ impl MouseCursor {
             Self::Text => "text",
             Self::Grab => "grab",
             Self::Move => "move",
+            Self::Pointer => "pointer",
         }
     }
 }

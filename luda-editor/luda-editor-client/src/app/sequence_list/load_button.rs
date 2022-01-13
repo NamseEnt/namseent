@@ -12,7 +12,8 @@ impl SequenceList {
                         let path = path.clone();
                         namui::event::send(Box::new(SequenceListEvent::SequenceLoadEvent { path }));
                     }))
-                }),
+                })
+                .with_mouse_cursor(namui::MouseCursor::Pointer),
             self.render_button_text(wh, "Load".to_string())
         ]
     }
