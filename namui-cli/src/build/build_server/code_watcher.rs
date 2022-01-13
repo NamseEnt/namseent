@@ -32,53 +32,33 @@ impl CodeWatcher {
     }
 
     pub fn wait_for_change(&mut self) {
-        let was_changed_while_flushing_events = self.flush_events();
-        match was_changed_while_flushing_events {
-            true => (),
-            false => loop {
-                match self.watcher_receiver.recv() {
-                    Ok(event) => {
-                        match event {
-                            DebouncedEvent::Create(_)
-                            | DebouncedEvent::Remove(_)
-                            | DebouncedEvent::Rename(_, _)
-                            | DebouncedEvent::Write(_) => {
-                                return;
-                            }
-                            _ => (),
-                        };
-                    }
-                    Err(error) => eprintln!("{:?}", error),
-                }
-            },
-        }
-    }
-
-    fn flush_events(&mut self) -> bool {
-        let mut was_changed = false;
-        'flush: loop {
-            match self.watcher_receiver.try_recv() {
+        loop {
+            match self.watcher_receiver.recv() {
                 Ok(event) => {
                     match event {
                         DebouncedEvent::Create(_)
                         | DebouncedEvent::Remove(_)
                         | DebouncedEvent::Rename(_, _)
                         | DebouncedEvent::Write(_) => {
-                            was_changed = true;
+                            'flush: loop {
+                                match self.watcher_receiver.try_recv() {
+                                    Ok(_) => (),
+                                    Err(error) => match error {
+                                        std::sync::mpsc::TryRecvError::Empty => break 'flush,
+                                        std::sync::mpsc::TryRecvError::Disconnected => {
+                                            panic!("watcher closed {:?}", error)
+                                        }
+                                    },
+                                }
+                            }
+                            return;
                         }
                         _ => (),
                     };
                 }
-                Err(error) => match error {
-                    std::sync::mpsc::TryRecvError::Empty => break 'flush,
-                    std::sync::mpsc::TryRecvError::Disconnected => {
-                        panic!("watcher closed {:?}", error)
-                    }
-                },
+                Err(error) => eprintln!("{:?}", error),
             }
         }
-
-        was_changed
     }
 
     pub fn update_watching_paths(&mut self) {
