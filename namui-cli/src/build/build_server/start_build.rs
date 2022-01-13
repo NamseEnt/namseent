@@ -29,19 +29,17 @@ pub struct StartBuildOption {
 pub async fn start_build<'a>(option: StartBuildOption) {
     let mut watcher = CodeWatcher::new(option.manifest_path.clone());
 
+    println!("starting first rebuild...");
+    rebuild(
+        option.callback,
+        option.bundle.clone(),
+        option.web_server.clone(),
+        option.manifest_path.clone(),
+        option.root_dir.clone(),
+    )
+    .await;
     loop {
         watcher.update_watching_paths();
-        if watcher.was_changed_while_flushing_events() {
-            println!("File changed while previous rebuild. starting rebuild...");
-            rebuild(
-                option.callback,
-                option.bundle.clone(),
-                option.web_server.clone(),
-                option.manifest_path.clone(),
-                option.root_dir.clone(),
-            )
-            .await;
-        }
         watcher.wait_for_change();
         println!("File changed. starting rebuild...");
         rebuild(
@@ -52,7 +50,6 @@ pub async fn start_build<'a>(option: StartBuildOption) {
             option.root_dir.clone(),
         )
         .await;
-        watcher.flush_events();
     }
 }
 
