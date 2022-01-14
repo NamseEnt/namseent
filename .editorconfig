@@ -1,4 +1,6 @@
-[*.{ts,tsx,js,jsx,json}]
+[*.{ts,tsx,js,jsx}]
 indent_size = 4
 [*.{rs}]
 indent_size = 4
+[.github/workflows/*.{yml, yaml}]
+indent_size = 2

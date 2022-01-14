@@ -1,0 +1,26 @@
+name: test-namui
+on:
+  push:
+    paths:
+      - "namui/**"
+  pull_request:
+    paths:
+      - "namui/**"
+jobs:
+  test-namui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: wasm-pack install
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - uses: actions/checkout@v2
+
+      - run: cd namui; wasm-pack test --node

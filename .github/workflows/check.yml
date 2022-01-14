@@ -1,0 +1,39 @@
+name: cargo check
+on:
+  push:
+    paths:
+      - "luda-editor/luda-editor-client/**"
+      - "luda-editor/luda-editor-server/**"
+      - "luda-editor/luda-editor-rpc/**"
+      - "namui-cli/**"
+      - "namui/**"
+      - "nrpc/**"
+  pull_request:
+    paths:
+      - "luda-editor/luda-editor-client/**"
+      - "luda-editor/luda-editor-server/**"
+      - "luda-editor/luda-editor-rpc/**"
+      - "namui-cli/**"
+      - "namui/**"
+      - "nrpc/**"
+jobs:
+  test-namui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: wasm-pack install
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - run: rustup target add wasm32-unknown-unknown
+
+      - uses: actions/checkout@v2
+
+      - run: pushd luda-editor/luda-editor-client; cargo check; popd;
+      - run: pushd luda-editor/luda-editor-server; cargo check; popd;
+      - run: pushd luda-editor/luda-editor-rpc; cargo check; popd;
+      - run: pushd namui-cli; cargo check; popd;
+      - run: pushd namui; cargo check; popd;
+      - run: pushd nrpc; cargo check; popd;
