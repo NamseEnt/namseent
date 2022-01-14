@@ -103,7 +103,7 @@ mod tests {
             ]),
         )]);
 
-        assert_eq!(font_file_url_map, answer,);
+        assert_eq!(font_file_url_map, answer);
 
         let serialized_font_file_url_map = serde_json::to_string(&font_file_url_map).unwrap();
         // NOTE: We don't test `serialized_font_file_url_map` because it's hashmap, order is random.
