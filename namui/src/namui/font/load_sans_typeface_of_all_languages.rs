@@ -91,22 +91,25 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(
-            font_file_url_map,
-            HashMap::from([(
-                Language::Ko,
-                HashMap::from([
-                    (FontWeight::_100, "ko/NotoSansKR-Thin.otf".to_string()),
-                    (FontWeight::_300, "ko/NotoSansKR-Light.otf".to_string()),
-                    (FontWeight::_400, "ko/NotoSansKR-Regular.otf".to_string()),
-                    (FontWeight::_500, "ko/NotoSansKR-Medium.otf".to_string()),
-                    (FontWeight::_700, "ko/NotoSansKR-Bold.otf".to_string()),
-                    (FontWeight::_900, "ko/NotoSansKR-Black.otf".to_string()),
-                ])
-            )])
-        );
+        let answer = HashMap::from([(
+            Language::Ko,
+            HashMap::from([
+                (FontWeight::_100, "ko/NotoSansKR-Thin.otf".to_string()),
+                (FontWeight::_300, "ko/NotoSansKR-Light.otf".to_string()),
+                (FontWeight::_400, "ko/NotoSansKR-Regular.otf".to_string()),
+                (FontWeight::_500, "ko/NotoSansKR-Medium.otf".to_string()),
+                (FontWeight::_700, "ko/NotoSansKR-Bold.otf".to_string()),
+                (FontWeight::_900, "ko/NotoSansKR-Black.otf".to_string()),
+            ]),
+        )]);
+
+        assert_eq!(font_file_url_map, answer,);
 
         let serialized_font_file_url_map = serde_json::to_string(&font_file_url_map).unwrap();
-        assert_eq!(serialized_font_file_url_map, "{\"Ko\":{\"100\":\"ko/NotoSansKR-Thin.otf\",\"300\":\"ko/NotoSansKR-Light.otf\",\"400\":\"ko/NotoSansKR-Regular.otf\",\"500\":\"ko/NotoSansKR-Medium.otf\",\"700\":\"ko/NotoSansKR-Bold.otf\",\"900\":\"ko/NotoSansKR-Black.otf\"}}");
+        // NOTE: We don't test `serialized_font_file_url_map` because it's hashmap, order is random.
+
+        let deserialized_font_file_url_map: TypefaceFileUrlsFile =
+            serde_json::from_str(&serialized_font_file_url_map).unwrap();
+        assert_eq!(deserialized_font_file_url_map, answer);
     }
 }
