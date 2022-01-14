@@ -7,7 +7,6 @@ use tokio::sync::RwLock;
 
 use super::{
     code_watcher::CodeWatcher,
-    run_cargo_check::run_cargo_check,
     run_wasm_pack::{run_wasm_pack, RunWasmPackOption},
 };
 
@@ -34,7 +33,6 @@ pub async fn start_build<'a>(option: StartBuildOption) {
             option.callback,
             option.bundle.clone(),
             option.web_server.clone(),
-            option.manifest_path.clone(),
             option.root_dir.clone(),
         )
         .await;
@@ -48,18 +46,19 @@ async fn rebuild(
     callback: RebuildCallback,
     bundle: Arc<RwLock<Bundle>>,
     web_server: Arc<WebServer>,
-    manifest_path: String,
     root_dir: String,
 ) {
     debug_println!("rebuild: locking web_server.bundle...");
     let mut bundle = bundle.write().await;
     debug_println!("rebuild: web_server.bundle locked");
-    let build_result = run_cargo_check(manifest_path);
     let mut cli_error_messages: Vec<String> = Vec::new();
+    let mut error_messages: Vec<ErrorMessage> = Vec::new();
 
-    if build_result.is_successful {
-        match run_wasm_pack(RunWasmPackOption { root_dir }) {
-            Ok(result) => {
+    match run_wasm_pack(RunWasmPackOption { root_dir }) {
+        Ok(mut result) => {
+            error_messages.append(&mut result.error_messages);
+
+            if result.is_successful {
                 let mut js_buffer: Vec<u8> = Vec::new();
                 let is_js_successful = match File::open(result.result_js_path) {
                     Ok(mut js_file) => match js_file.read_to_end(&mut js_buffer) {
@@ -113,20 +112,18 @@ async fn rebuild(
                     web_server.request_reload().await;
                 }
             }
-            Err(error) => {
-                let cli_error_message = format!("{:?}", error);
-                eprintln!("{}", cli_error_message);
-                cli_error_messages.push(cli_error_message);
-            }
+        }
+        Err(error) => {
+            let cli_error_message = format!("{:?}", error);
+            eprintln!("{}", cli_error_message);
+            cli_error_messages.push(cli_error_message);
         }
     }
 
-    web_server
-        .send_error_messages(&build_result.error_messages)
-        .await;
+    web_server.send_error_messages(&error_messages).await;
 
     callback(RebuildCallbackOption {
         cli_error_messages,
-        error_messages: build_result.error_messages,
-    })
+        error_messages,
+    });
 }
