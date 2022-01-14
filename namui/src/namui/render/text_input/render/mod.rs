@@ -43,10 +43,10 @@ impl namui::Entity for TextInput {
                             event.global_xy
                         ));
                         let selection = get_selection_on_mouse_down(event.local_xy.x, &text_input);
-                        namui::event::send(Box::new(namui::text_input_event::SelectionChanged {
+                        namui::event::send(namui::text_input_event::SelectionChanged {
                             id: text_input.id.clone(),
                             selection: selection.ok(),
-                        }));
+                        });
                     }))
                 }),
                 draw_texts_divided_by_selection(&self)

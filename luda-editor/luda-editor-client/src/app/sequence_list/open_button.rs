@@ -17,10 +17,10 @@ impl SequenceList {
                     let sequence = sequence.clone();
                     builder.on_mouse_down(Box::new(move |_| {
                         let sequence = sequence.clone();
-                        namui::event::send(Box::new(RouterEvent::PageChangeToEditorEvent(
-                            Box::new(move |context| -> Editor {
+                        namui::event::send(RouterEvent::PageChangeToEditorEvent(Box::new(
+                            move |context| -> Editor {
                                 Editor::new(context.socket.clone(), sequence.clone())
-                            }),
+                            },
                         )));
                     }))
                 }),

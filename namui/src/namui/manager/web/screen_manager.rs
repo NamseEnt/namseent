@@ -28,12 +28,10 @@ impl ScreenManager {
                 window.inner_width().unwrap().as_f64().unwrap() as i16,
                 window.inner_height().unwrap().as_f64().unwrap() as i16,
             );
-            namui::event::send(Box::new(namui::event::NamuiEvent::ScreenResize(
-                namui::Wh {
-                    width: screen_size.0,
-                    height: screen_size.1,
-                },
-            )));
+            namui::event::send(namui::event::NamuiEvent::ScreenResize(namui::Wh {
+                width: screen_size.0,
+                height: screen_size.1,
+            }));
         }) as Box<dyn FnMut()>);
 
         window

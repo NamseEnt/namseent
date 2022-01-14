@@ -12,8 +12,8 @@ pub fn init() -> mpsc::UnboundedReceiver<Event> {
     receiver
 }
 
-pub fn send(event: Event) {
-    EVENT_SENDER.get().unwrap().send(event).unwrap();
+pub fn send(event: impl Any + Send + Sync) {
+    EVENT_SENDER.get().unwrap().send(Box::new(event)).unwrap();
 }
 
 pub enum NamuiEvent {

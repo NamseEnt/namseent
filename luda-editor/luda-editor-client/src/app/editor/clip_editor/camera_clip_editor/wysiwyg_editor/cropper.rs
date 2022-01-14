@@ -64,11 +64,11 @@ fn render_handles(dest_rect: &LtrbRect, container_size: &Wh<f32>) -> RenderingTr
                     let handle = handle.clone();
                     let container_size = container_size.clone();
                     builder.on_mouse_down(Box::new(move |mouse_event| {
-                        namui::event::send(Box::new(WysiwygEditorCropperHandleMouseDownEvent {
+                        namui::event::send(WysiwygEditorCropperHandleMouseDownEvent {
                             handle: handle.clone(),
                             mouse_xy: mouse_event.global_xy,
                             container_size: container_size,
-                        }))
+                        })
                     }))
                 })
             })

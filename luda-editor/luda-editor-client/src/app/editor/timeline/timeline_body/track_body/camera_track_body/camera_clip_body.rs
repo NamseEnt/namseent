@@ -63,7 +63,7 @@ impl CameraClipBody {
                     local_mouse_xy: event.local_xy,
                     global_mouse_xy: event.global_xy,
                 };
-                namui::event::send(Box::new(event));
+                namui::event::send(event);
             }))
         })]
     }
