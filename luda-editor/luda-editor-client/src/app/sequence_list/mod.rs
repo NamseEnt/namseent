@@ -57,20 +57,20 @@ impl Entity for SequenceList {
                 },
                 SequenceListEvent::SequenceLoadEvent { path } => {
                     let started_at = Namui::now();
-                    namui::event::send(Box::new(SequenceListEvent::SequenceLoadStateUpdateEvent {
+                    namui::event::send(SequenceListEvent::SequenceLoadStateUpdateEvent {
                         path: path.clone(),
                         state: Some(SequenceLoadState {
                             started_at,
                             detail: SequenceLoadStateDetail::Loading,
                         }),
-                    }));
+                    });
                     spawn_local({
                         let path = path.clone();
                         let socket = self.socket.clone();
                         async move {
                             fn handle_error(path: String, started_at: Duration, error: String) {
                                 namui::log(format!("error on read_file: {:?}", error));
-                                namui::event::send(Box::new(
+                                namui::event::send(
                                     SequenceListEvent::SequenceLoadStateUpdateEvent {
                                         path,
                                         state: Some(SequenceLoadState {
@@ -78,7 +78,7 @@ impl Entity for SequenceList {
                                             detail: SequenceLoadStateDetail::Failed { error },
                                         }),
                                     },
-                                ));
+                                );
                             }
                             let result = socket
                                 .read_file(luda_editor_rpc::read_file::Request {
@@ -89,7 +89,7 @@ impl Entity for SequenceList {
                                 Ok(response) => {
                                     let file = response.file;
                                     match Sequence::try_from(file) {
-                                        Ok(sequence) => namui::event::send(Box::new(
+                                        Ok(sequence) => namui::event::send(
                                             SequenceListEvent::SequenceLoadStateUpdateEvent {
                                                 path: path.clone(),
                                                 state: Some(SequenceLoadState {
@@ -99,7 +99,7 @@ impl Entity for SequenceList {
                                                     },
                                                 }),
                                             },
-                                        )),
+                                        ),
                                         Err(error) => handle_error(path.clone(), started_at, error),
                                     }
                                 }

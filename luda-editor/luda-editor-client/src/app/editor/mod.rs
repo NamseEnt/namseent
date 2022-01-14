@@ -281,11 +281,9 @@ impl Editor {
                             .map(|url| ImageFilenameObject::new(url))
                             .collect();
 
-                        namui::event::send(Box::new(
-                            EditorEvent::ImageFilenameObjectsUpdatedEvent {
-                                image_filename_objects,
-                            },
-                        ))
+                        namui::event::send(EditorEvent::ImageFilenameObjectsUpdatedEvent {
+                            image_filename_objects,
+                        })
                     }
                     Err(error) => namui::log(format!("error on get_camera_shot_urls: {:?}", error)),
                 }

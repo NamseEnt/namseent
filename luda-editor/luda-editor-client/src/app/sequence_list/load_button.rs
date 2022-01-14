@@ -10,7 +10,7 @@ impl SequenceList {
                     let path = path.clone();
                     builder.on_mouse_down(Box::new(move |_| {
                         let path = path.clone();
-                        namui::event::send(Box::new(SequenceListEvent::SequenceLoadEvent { path }));
+                        namui::event::send(SequenceListEvent::SequenceLoadEvent { path });
                     }))
                 })
                 .with_mouse_cursor(namui::MouseCursor::Pointer),

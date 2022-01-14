@@ -105,11 +105,11 @@ impl SubtitleClipBody {
         .attach_event(|builder| {
             let clip_id = props.clip.id.clone();
             builder.on_mouse_down(Box::new(move |event| {
-                namui::event::send(Box::new(EditorEvent::SubtitleClipHeadMouseDownEvent {
+                namui::event::send(EditorEvent::SubtitleClipHeadMouseDownEvent {
                     clip_id: clip_id.clone(),
                     local_mouse_xy: event.local_xy,
                     global_mouse_xy: event.global_xy,
-                }));
+                });
             }))
         });
 

@@ -29,10 +29,10 @@ impl MouseManager {
                 ..*namui::state()
             });
 
-            namui::event::send(Box::new(namui::NamuiEvent::MouseDown(Xy {
+            namui::event::send(namui::NamuiEvent::MouseDown(Xy {
                 x: mouse_position.x as f32,
                 y: mouse_position.y as f32,
-            })));
+            }));
         }) as Box<dyn FnMut(_)>);
 
         element
@@ -55,10 +55,10 @@ impl MouseManager {
                 ..*namui::state()
             });
 
-            namui::event::send(Box::new(namui::NamuiEvent::MouseUp(Xy {
+            namui::event::send(namui::NamuiEvent::MouseUp(Xy {
                 x: mouse_position.x as f32,
                 y: mouse_position.y as f32,
-            })));
+            }));
         }) as Box<dyn FnMut(_)>);
 
         element
@@ -78,10 +78,10 @@ impl MouseManager {
                 ..*namui::state()
             });
 
-            namui::event::send(Box::new(namui::NamuiEvent::MouseMove(Xy {
+            namui::event::send(namui::NamuiEvent::MouseMove(Xy {
                 x: mouse_position.x as f32,
                 y: mouse_position.y as f32,
-            })));
+            }));
         }) as Box<dyn FnMut(_)>);
 
         element

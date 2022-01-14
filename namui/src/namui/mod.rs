@@ -149,7 +149,7 @@ async fn init_font() {
 }
 
 fn on_frame() {
-    event::send(Box::new(NamuiEvent::AnimationFrame));
+    event::send(NamuiEvent::AnimationFrame);
 
     Namui::request_animation_frame(Box::new(move || {
         on_frame();

@@ -140,9 +140,9 @@ impl Scroll {
                     (0.0_f32).max(inner_height - height),
                 );
 
-                namui::event::send(Box::new(EditorEvent::ScrolledEvent {
+                namui::event::send(EditorEvent::ScrolledEvent {
                     scroll_y: next_scroll_y,
-                }));
+                });
             }))
         });
 
