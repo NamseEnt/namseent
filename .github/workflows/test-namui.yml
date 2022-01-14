@@ -3,6 +3,9 @@ on:
   push:
     paths:
       - "namui/**"
+  pull_request:
+    paths:
+      - "namui/**"
 jobs:
   test-namui:
     runs-on: ubuntu-latest
