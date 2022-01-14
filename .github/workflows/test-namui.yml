@@ -1,4 +1,4 @@
-name: test=namui
+name: test-namui
 on:
   push:
     paths:
@@ -9,9 +9,6 @@ on:
 jobs:
   test-namui:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: namui
     steps:
       - uses: actions/setup-node@v2
         with:
@@ -26,4 +23,4 @@ jobs:
 
       - uses: actions/checkout@v2
 
-      - run: wasm-pack test --node
+      - run: cd namui; wasm-pack test --node
