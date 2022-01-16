@@ -1,4 +1,4 @@
-name: cargo check
+name: cargo-check
 on:
   push:
     paths:
@@ -6,7 +6,6 @@ on:
       - "luda-editor/luda-editor-server/**"
       - "luda-editor/luda-editor-rpc/**"
       - "namui-cli/**"
-      - "namui/**"
       - "nrpc/**"
   pull_request:
     paths:
@@ -14,10 +13,9 @@ on:
       - "luda-editor/luda-editor-server/**"
       - "luda-editor/luda-editor-rpc/**"
       - "namui-cli/**"
-      - "namui/**"
       - "nrpc/**"
 jobs:
-  test-namui:
+  cargo-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions-rs/toolchain@v1
