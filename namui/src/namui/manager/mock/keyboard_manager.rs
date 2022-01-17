@@ -1,3 +1,4 @@
+use crate::Code;
 use std::{
     collections::HashSet,
     str::FromStr,
@@ -5,8 +6,6 @@ use std::{
 };
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::window;
-mod codes;
-pub use codes::*;
 
 pub struct KeyboardManager {
     pressing_code_set: Arc<RwLock<HashSet<Code>>>,

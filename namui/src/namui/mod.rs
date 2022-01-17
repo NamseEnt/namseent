@@ -32,10 +32,17 @@ mod random;
 pub use self::random::*;
 pub mod screen;
 
+#[cfg(not(test))]
 #[cfg(target_family = "wasm")]
 mod namui_web;
+#[cfg(not(test))]
 #[cfg(target_family = "wasm")]
 pub use self::namui_web::*;
+
+#[cfg(test)]
+mod namui_mock;
+#[cfg(test)]
+pub use self::namui_mock::*;
 
 pub trait Entity {
     type Props;
