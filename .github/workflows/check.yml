@@ -7,13 +7,6 @@ on:
       - "luda-editor/luda-editor-rpc/**"
       - "namui-cli/**"
       - "nrpc/**"
-  pull_request:
-    paths:
-      - "luda-editor/luda-editor-client/**"
-      - "luda-editor/luda-editor-server/**"
-      - "luda-editor/luda-editor-rpc/**"
-      - "namui-cli/**"
-      - "nrpc/**"
 jobs:
   cargo-check:
     runs-on: ubuntu-latest
