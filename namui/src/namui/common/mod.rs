@@ -7,6 +7,8 @@ use std::time::Duration;
 use strum_macros::EnumIter;
 mod xy;
 pub use xy::*;
+mod set_timeout;
+pub use set_timeout::*;
 
 pub struct FpsInfo {
     pub fps: u16,

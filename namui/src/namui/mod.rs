@@ -117,6 +117,11 @@ pub async fn start<TProps>(
                 namui_context.rendering_tree = state.render(props);
             }
         }
+
+        let now = crate::now();
+        while let Some(timeout) = pull_timeout(now) {
+            timeout();
+        }
     }
 }
 
@@ -188,4 +193,9 @@ macro_rules! log {
     ($($arg:tt)*) => {{
         $crate::log(format!($($arg)*));
     }}
+}
+
+/// `now()` is not ISO 8601. It's time since the program started.
+pub fn now() -> Duration {
+    Namui::now()
 }
