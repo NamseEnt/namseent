@@ -1,4 +1,6 @@
 mod timeline;
+use std::rc::Rc;
+
 use luda_editor_rpc::Socket;
 use namui::prelude::*;
 pub use timeline::*;
@@ -13,12 +15,15 @@ use self::{
     },
 };
 use super::types::{
-    CharacterPoseEmotion, Clip, ImageFilenameObject, MutableClip, Sequence, TimePerPixel,
+    CharacterPoseEmotion, Clip, ImageFilenameObject, LudaEditorServerCameraAngleImageLoader,
+    MutableClip, Sequence, TimePerPixel,
 };
 use crate::app::editor::clip_editor::ClipEditorProps;
 mod clip_editor;
 mod events;
 mod job;
+mod sequence_player;
+use sequence_player::SequencePlayer;
 
 pub struct EditorProps {
     pub screen_wh: namui::Wh<f32>,
@@ -32,6 +37,7 @@ pub struct Editor {
     image_filename_objects: Vec<ImageFilenameObject>,
     pub selected_clip_id: Option<String>,
     pub sequence: Sequence,
+    sequence_player: SequencePlayer,
 }
 
 impl namui::Entity for Editor {
@@ -228,6 +234,8 @@ impl namui::Entity for Editor {
         self.clip_editor
             .as_mut()
             .map(|clip_editor| clip_editor.update(event));
+
+        self.sequence_player.update(event);
     }
 
     fn render(&self, props: &Self::Props) -> namui::RenderingTree {
@@ -289,6 +297,7 @@ impl Editor {
                 }
             }
         });
+        let sequence_rc = Rc::new(sequence.clone());
         Self {
             timeline: Timeline::new(),
             playback_time: chrono::Duration::zero(),
@@ -296,7 +305,11 @@ impl Editor {
             job: None,
             clip_editor: None,
             selected_clip_id: None,
-            sequence,
+            sequence, // NOTE : I think editor should not have mutable sequence, but just immutable to track changes
+            sequence_player: SequencePlayer::new(
+                sequence_rc,
+                &LudaEditorServerCameraAngleImageLoader {},
+            ),
         }
     }
     fn calculate_timeline_xywh(&self, screen_wh: &namui::Wh<f32>) -> XywhRect<f32> {
