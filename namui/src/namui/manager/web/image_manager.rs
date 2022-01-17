@@ -39,7 +39,7 @@ impl ImageManager {
         self.start_load(url);
         None
     }
-    pub fn start_load(self: Arc<Self>, url: &String) {
+    fn start_load(self: Arc<Self>, url: &String) {
         let url = url.clone();
         spawn_local(async move {
             match fetch_get_vec_u8(&url).await {

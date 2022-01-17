@@ -3,10 +3,17 @@ use std::sync::Arc;
 
 pub use common::*;
 
+#[cfg(not(test))]
 #[cfg(target_family = "wasm")]
 pub mod web;
+#[cfg(not(test))]
 #[cfg(target_family = "wasm")]
 pub use web::*;
+
+#[cfg(test)]
+pub mod mock;
+#[cfg(test)]
+pub use mock::*;
 
 pub struct Managers {
     pub mouse_manager: Box<MouseManager>,
