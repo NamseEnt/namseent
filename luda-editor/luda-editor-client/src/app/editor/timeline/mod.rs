@@ -1,12 +1,12 @@
 use namui::prelude::*;
 mod playback_time_view;
-use super::{job::Job, types::SubtitlePlayDurationMeasurer};
+use super::job::Job;
 use crate::app::{
     editor::timeline::{
         timeline_body::{TimelineBody, TimelineBodyProps},
         timeline_header::{TimelineHeader, TimelineHeaderProps},
     },
-    types::{PixelSize, Sequence, Time, TimePerPixel},
+    types::{PixelSize, Sequence, SubtitlePlayDurationMeasurer, Time, TimePerPixel},
 };
 use playback_time_view::*;
 mod time_ruler;
@@ -20,7 +20,6 @@ pub struct Timeline {
     time_ruler_height: f32,
     pub start_at: Time,
     pub time_per_pixel: TimePerPixel,
-    subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
 }
 impl Timeline {
     pub fn new() -> Self {
@@ -29,7 +28,6 @@ impl Timeline {
             time_ruler_height: 20.0,
             time_per_pixel: TimePerPixel::new(Time::from_ms(50.0), PixelSize(1.0)),
             start_at: Time::from_sec(0.0),
-            subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
         }
     }
 }
@@ -39,6 +37,7 @@ pub struct TimelineProps<'a> {
     pub job: &'a Option<Job>,
     pub selected_clip_id: &'a Option<String>,
     pub sequence: &'a Sequence,
+    pub subtitle_play_duration_measurer: &'a SubtitlePlayDurationMeasurer,
 }
 pub struct TimelineRenderContext<'a> {
     pub time_per_pixel: TimePerPixel,
@@ -57,7 +56,7 @@ impl Timeline {
             job: props.job,
             selected_clip_id: &props.selected_clip_id,
             start_at: self.start_at,
-            subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
+            subtitle_play_duration_measurer: props.subtitle_play_duration_measurer,
             language: Language::Ko,
         };
         let xywh = props.xywh;

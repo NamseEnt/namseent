@@ -1,5 +1,6 @@
 use super::{Deserialize, PixelSize, Serialize, TimePerPixel};
 use auto_ops::impl_op;
+use ordered_float::OrderedFloat;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Time {
@@ -19,6 +20,34 @@ impl Time {
     }
     pub fn get_total_milliseconds(&self) -> f32 {
         self.milliseconds
+    }
+}
+impl Eq for Time {}
+impl Ord for Time {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        OrderedFloat(self.milliseconds).cmp(&OrderedFloat(other.milliseconds))
+    }
+}
+impl<'a> PartialEq<&'a Time> for Time {
+    fn eq(&self, other: &&'a Time) -> bool {
+        self.milliseconds == other.milliseconds
+    }
+}
+
+impl<'a> PartialEq<Time> for &'a Time {
+    fn eq(&self, other: &Time) -> bool {
+        self.milliseconds == other.milliseconds
+    }
+}
+impl<'a> PartialOrd<&'a Time> for Time {
+    fn partial_cmp(&self, other: &&'a Time) -> Option<std::cmp::Ordering> {
+        self.milliseconds.partial_cmp(&other.milliseconds)
+    }
+}
+
+impl<'a> PartialOrd<Time> for &'a Time {
+    fn partial_cmp(&self, other: &Time) -> Option<std::cmp::Ordering> {
+        self.milliseconds.partial_cmp(&other.milliseconds)
     }
 }
 

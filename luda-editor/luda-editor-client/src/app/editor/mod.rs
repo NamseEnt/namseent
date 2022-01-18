@@ -1,11 +1,4 @@
 mod timeline;
-use std::rc::Rc;
-
-use luda_editor_rpc::Socket;
-use namui::prelude::*;
-pub use timeline::*;
-use wasm_bindgen_futures::spawn_local;
-mod types;
 use self::{
     clip_editor::ClipEditor,
     events::*,
@@ -16,9 +9,14 @@ use self::{
 };
 use super::types::{
     CharacterPoseEmotion, Clip, ImageFilenameObject, LudaEditorServerCameraAngleImageLoader,
-    MutableClip, Sequence, TimePerPixel,
+    MutableClip, Sequence, SubtitlePlayDurationMeasurer, TimePerPixel,
 };
-use crate::app::editor::clip_editor::ClipEditorProps;
+use crate::app::editor::{clip_editor::ClipEditorProps, sequence_player::SequencePlayerProps};
+use luda_editor_rpc::Socket;
+use namui::prelude::*;
+use std::rc::Rc;
+pub use timeline::*;
+use wasm_bindgen_futures::spawn_local;
 mod clip_editor;
 mod events;
 mod job;
@@ -38,6 +36,7 @@ pub struct Editor {
     pub selected_clip_id: Option<String>,
     pub sequence: Sequence,
     sequence_player: SequencePlayer,
+    subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
 }
 
 impl namui::Entity for Editor {
@@ -243,25 +242,35 @@ impl namui::Entity for Editor {
             .selected_clip_id
             .as_ref()
             .and_then(|id| self.sequence.get_clip(&id));
+
+        let timeline_xywh = self.calculate_timeline_xywh(&props.screen_wh);
+        let clip_editor_xywh = XywhRect {
+            x: 0.0,
+            y: 0.0,
+            width: props.screen_wh.width * 0.5,
+            height: props.screen_wh.height - timeline_xywh.height,
+        };
+        let sequence_player_xywh = XywhRect {
+            x: clip_editor_xywh.width,
+            y: 0.0,
+            width: props.screen_wh.width - clip_editor_xywh.width,
+            height: clip_editor_xywh.height,
+        };
         render![
             self.timeline.render(&TimelineProps {
                 playback_time: self.playback_time,
-                xywh: self.calculate_timeline_xywh(&props.screen_wh),
+                xywh: timeline_xywh,
                 job: &self.job,
                 selected_clip_id: &self.selected_clip_id,
                 sequence: &self.sequence,
+                subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
             }),
             match (selected_clip, &self.clip_editor) {
                 (None, None) => RenderingTree::Empty,
                 (Some(clip), Some(clip_editor)) => {
                     clip_editor.render(&ClipEditorProps {
                         clip,
-                        xywh: XywhRect {
-                            x: 0.0,
-                            y: 0.0,
-                            width: 800.0,
-                            height: props.screen_wh.height - 200.0,
-                        },
+                        xywh: clip_editor_xywh,
                         image_filename_objects: &self.image_filename_objects,
                         job: &self.job,
                     })
@@ -269,6 +278,11 @@ impl namui::Entity for Editor {
                 (None, Some(_)) => unreachable!("clip_editor is Some but selected_clip is None"),
                 (Some(_), None) => unreachable!("selected_clip is Some but clip_editor is None"),
             },
+            self.sequence_player.render(&SequencePlayerProps {
+                xywh: &sequence_player_xywh,
+                language: namui::Language::Ko, // TODO
+                subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
+            }),
         ]
     }
 }
@@ -308,8 +322,9 @@ impl Editor {
             sequence, // NOTE : I think editor should not have mutable sequence, but just immutable to track changes
             sequence_player: SequencePlayer::new(
                 sequence_rc,
-                &LudaEditorServerCameraAngleImageLoader {},
+                Box::new(LudaEditorServerCameraAngleImageLoader {}),
             ),
+            subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
         }
     }
     fn calculate_timeline_xywh(&self, screen_wh: &namui::Wh<f32>) -> XywhRect<f32> {

@@ -1,9 +1,9 @@
 use crate::app::types::*;
-use std::{collections::LinkedList, rc::Rc};
+use std::{collections::LinkedList, rc::Rc, sync::Mutex};
 
 pub(super) struct ContentLoader {
     sequence: Rc<Sequence>,
-    loading_contents: LinkedList<LoadingContent>,
+    loading_contents: Mutex<LinkedList<LoadingContent>>,
 }
 
 enum LoadingContent {
@@ -17,7 +17,7 @@ impl ContentLoader {
     ) -> Self {
         let mut loader = Self {
             sequence,
-            loading_contents: LinkedList::new(),
+            loading_contents: Mutex::new(LinkedList::new()),
         };
 
         loader.start_loading(camera_angle_image_loader);
@@ -26,6 +26,7 @@ impl ContentLoader {
     }
     fn start_loading(&mut self, camera_angle_image_loader: &dyn CameraAngleImageLoader) {
         let managers = namui::managers();
+        let mut loading_contents = self.loading_contents.lock().unwrap();
         for track in &self.sequence.tracks {
             match track {
                 Track::Camera(camera_track) => {
@@ -41,7 +42,7 @@ impl ContentLoader {
                                 if managers.image_manager.clone().try_load(&url).is_some() {
                                     continue;
                                 }
-                                self.loading_contents.push_back(LoadingContent::Image(url));
+                                loading_contents.push_back(LoadingContent::Image(url));
                             }
                             namui::ImageSource::Image(_) => {
                                 continue;
@@ -49,25 +50,26 @@ impl ContentLoader {
                         }
                     }
                 }
-                Track::Subtitle(subtitle_track) => {
+                Track::Subtitle(_) => {
                     // NOTE: namui starts engine after loading fonts.
                 }
             }
         }
     }
-    pub fn is_loaded(&mut self) -> bool {
-        if self.loading_contents.is_empty() {
+    pub fn is_loaded(&self) -> bool {
+        let mut loading_contents = self.loading_contents.lock().unwrap();
+        if loading_contents.is_empty() {
             return true;
         }
 
         let managers = namui::managers();
-        while let Some(loading_content) = self.loading_contents.front() {
+        while let Some(loading_content) = loading_contents.front() {
             match loading_content {
                 LoadingContent::Image(url) => {
                     if managers.image_manager.clone().try_load(&url).is_none() {
                         return false;
                     }
-                    self.loading_contents.pop_front();
+                    loading_contents.pop_front();
                 }
             }
         }

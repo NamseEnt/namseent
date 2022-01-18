@@ -198,7 +198,7 @@
                     {
                         "id": "s-2-clip",
                         "start_at": {
-                            "milliseconds": 0
+                            "milliseconds": 1000
                         },
                         "subtitle": {
                             "id": "s-2",
