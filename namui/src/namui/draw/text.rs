@@ -21,7 +21,7 @@ pub fn draw_text(namui_context: &NamuiContext, command: &TextDrawCommand) {
 
     let metrics = font.get_metrics();
 
-    let bottom = command.y as f32 + get_bottom_of_baseline(command.baseline, metrics);
+    let bottom = command.y as f32 + get_bottom_of_baseline(&command.baseline, &metrics);
 
     let left = get_left_in_align(command.x as f32, command.align, width);
 
@@ -39,7 +39,7 @@ pub fn get_left_in_align(x: f32, align: TextAlign, width: f32) -> f32 {
         TextAlign::Center => x - width / 2.0,
     }
 }
-pub fn get_bottom_of_baseline(baseline: TextBaseline, font_metrics: FontMetrics) -> f32 {
+pub fn get_bottom_of_baseline(baseline: &TextBaseline, font_metrics: &FontMetrics) -> f32 {
     match baseline {
         TextBaseline::Top => -font_metrics.ascent,
         TextBaseline::Bottom => -font_metrics.descent,
