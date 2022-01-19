@@ -102,7 +102,7 @@ impl Path {
         self
     }
     pub(crate) fn scale(self, x: f32, y: f32) -> Self {
-        self.transform(&[x, 0.0, 0.0, y, 0.0, 0.0, 0.0, 0.0, 1.0])
+        self.transform(&[x, 0.0, 0.0, 0.0, y, 0.0, 0.0, 0.0, 1.0])
     }
     pub(crate) fn translate(self, x: f32, y: f32) -> Self {
         self.canvas_kit_path.offset(x, y);
