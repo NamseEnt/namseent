@@ -9,6 +9,8 @@ mod xy;
 pub use xy::*;
 mod set_timeout;
 pub use set_timeout::*;
+mod request_animation_frame;
+pub use request_animation_frame::*;
 
 pub struct FpsInfo {
     pub fps: u16,
