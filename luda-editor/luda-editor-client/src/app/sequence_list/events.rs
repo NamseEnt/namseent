@@ -12,4 +12,7 @@ pub enum SequenceListEvent {
         state: SequenceTitlesLoadState,
     },
     SequenceTitlesLoadEvent,
+    ScrolledEvent {
+        scroll_y: f32,
+    },
 }

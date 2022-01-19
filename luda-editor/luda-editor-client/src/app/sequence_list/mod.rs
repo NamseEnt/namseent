@@ -33,6 +33,7 @@ pub struct SequenceList {
     sequence_load_state_map: SequenceLoadStateMap,
     sequence_titles_load_state: Option<SequenceTitlesLoadState>,
     socket: Socket,
+    scroll_y: f32,
 }
 
 impl SequenceList {
@@ -41,6 +42,7 @@ impl SequenceList {
             sequence_load_state_map: HashMap::new(),
             sequence_titles_load_state: None,
             socket,
+            scroll_y: 0.0,
         }
     }
 }
@@ -189,6 +191,9 @@ impl Entity for SequenceList {
                             }
                         }
                     });
+                }
+                SequenceListEvent::ScrolledEvent { scroll_y } => {
+                    self.scroll_y = *scroll_y;
                 }
             }
         }
