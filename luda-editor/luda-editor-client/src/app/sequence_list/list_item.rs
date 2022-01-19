@@ -1,9 +1,10 @@
 use super::{
+    rounded_rectangle::RoundedRectangleColor,
     types::{RenderingTreeRow, RenderingTreeRows, SequenceLoadStateDetail},
-    SequenceList, BUTTON_HEIGHT, MARGIN, RECT_RADIUS,
+    SequenceList, BUTTON_HEIGHT, MARGIN,
 };
 use crate::app::sequence_list::SPACING;
-use namui::{render, RectFill, RectParam, RectRound, RectStroke, RectStyle, Wh};
+use namui::{render, Wh};
 
 impl SequenceList {
     pub fn render_list_item(&self, width: f32, title: &String) -> RenderingTreeRow {
@@ -29,14 +30,14 @@ impl SequenceList {
             match self.sequence_load_state_map.get(&path) {
                 Some(load_state) => match &load_state.detail {
                     SequenceLoadStateDetail::Loading => render![
-                        self.render_rounded_rectangle(button_wh),
+                        self.render_rounded_rectangle(button_wh, RoundedRectangleColor::Blue),
                         self.render_button_text(button_wh, "Loading...".to_string())
                     ],
                     SequenceLoadStateDetail::Loaded { sequence } => {
                         self.render_open_button(button_wh, title, sequence)
                     }
                     SequenceLoadStateDetail::Failed { error } => render![
-                        self.render_rounded_rectangle(button_wh),
+                        self.render_rounded_rectangle(button_wh, RoundedRectangleColor::Blue),
                         self.render_button_text(button_wh, format!("Error: {}", error))
                     ],
                 },
@@ -49,25 +50,13 @@ impl SequenceList {
 
         RenderingTreeRow::new(
             render![
-                namui::rect(RectParam {
-                    x: 0.0,
-                    y: 0.0,
-                    width,
-                    height: total_height,
-                    style: RectStyle {
-                        stroke: Some(RectStroke {
-                            border_position: namui::BorderPosition::Inside,
-                            color: namui::Color::grayscale_f01(0.3),
-                            width: 1.0,
-                        }),
-                        fill: Some(RectFill {
-                            color: namui::Color::grayscale_f01(0.3),
-                        }),
-                        round: Some(RectRound {
-                            radius: RECT_RADIUS
-                        }),
+                self.render_rounded_rectangle(
+                    Wh {
+                        width,
+                        height: total_height
                     },
-                }),
+                    RoundedRectangleColor::DarkGray
+                ),
                 namui::translate(MARGIN, MARGIN, elements.render(SPACING)),
             ],
             total_height,

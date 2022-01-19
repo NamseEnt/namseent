@@ -1,5 +1,8 @@
 use super::SequenceList;
-use crate::app::{editor::Editor, events::RouterEvent, types::Sequence};
+use crate::app::{
+    editor::Editor, events::RouterEvent, sequence_list::rounded_rectangle::RoundedRectangleColor,
+    types::Sequence,
+};
 use namui::{render, RenderingTree, Wh};
 
 impl SequenceList {
@@ -12,7 +15,7 @@ impl SequenceList {
         let sequence = sequence.clone();
         let _path = path.clone();
         render![
-            self.render_rounded_rectangle(wh)
+            self.render_rounded_rectangle(wh, RoundedRectangleColor::Blue)
                 .attach_event(move |builder| {
                     let sequence = sequence.clone();
                     builder.on_mouse_down(move |_| {
