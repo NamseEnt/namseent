@@ -1,4 +1,4 @@
-use super::types::SequenceLoadState;
+use super::types::{SequenceLoadState, SequenceTitlesLoadState};
 
 pub enum SequenceListEvent {
     SequenceLoadStateUpdateEvent {
@@ -8,4 +8,8 @@ pub enum SequenceListEvent {
     SequenceLoadEvent {
         path: String,
     },
+    SequenceTitlesLoadStateUpdateEvent {
+        state: SequenceTitlesLoadState,
+    },
+    SequenceTitlesLoadEvent,
 }

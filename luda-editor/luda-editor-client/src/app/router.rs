@@ -4,7 +4,7 @@ use super::{
     sequence_list::{SequenceList, SequenceListProps},
     types::{AppContext, Page},
 };
-use namui::{Entity, Wh, XywhRect};
+use namui::{Entity, Wh};
 
 pub struct RouterProps {
     pub screen_wh: Wh<f32>,
@@ -41,12 +41,7 @@ impl Entity for Router {
                 screen_wh: props.screen_wh,
             }),
             Page::SequenceList(sequence_list) => sequence_list.render(&SequenceListProps {
-                xywh: XywhRect {
-                    x: 0.0,
-                    y: 0.0,
-                    width: props.screen_wh.width,
-                    height: props.screen_wh.height,
-                },
+                wh: props.screen_wh,
             }),
         }
     }
