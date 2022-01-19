@@ -5,7 +5,7 @@ use namui::{Color, RectFill, RectParam, RectRound, RectStyle, RenderingTree, Wh}
 
 pub enum RoundedRectangleColor {
     DarkGray,
-    // Gray,
+    Gray,
     // LightGray,
     Blue,
     // Red,
@@ -40,7 +40,7 @@ impl convert::Into<Color> for RoundedRectangleColor {
     fn into(self) -> Color {
         match self {
             RoundedRectangleColor::DarkGray => Color::grayscale_f01(0.3),
-            // RoundedRectangleColor::Gray => Color::grayscale_f01(0.5),
+            RoundedRectangleColor::Gray => Color::grayscale_f01(0.5),
             // RoundedRectangleColor::LightGray => Color::grayscale_f01(0.8),
             RoundedRectangleColor::Blue => Color::from_u8(107, 185, 240, 255),
             // RoundedRectangleColor::Red => Color::from_u8(242, 38, 19, 255),
