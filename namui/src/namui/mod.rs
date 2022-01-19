@@ -59,8 +59,6 @@ pub async fn start<TProps>(
     state: &mut dyn Entity<Props = TProps>,
     props: &TProps,
 ) {
-    let mut event_receiver = event::init();
-
     init_font().await;
 
     namui_context.rendering_tree = state.render(props);
@@ -72,7 +70,7 @@ pub async fn start<TProps>(
     let mut event_count = 0;
 
     loop {
-        let event = event_receiver.recv().await.unwrap();
+        let event = namui_context.event_receiver.recv().await.unwrap();
         event_count += 1;
 
         match event.downcast_ref::<NamuiEvent>() {
