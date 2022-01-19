@@ -1,84 +1,88 @@
 use crate::app::types::*;
 use namui::{Language, RenderingTree, Wh, Xy, XywhRect};
 mod subtitle_track;
+use super::PlaybackStatus;
 use subtitle_track::*;
 
 pub(super) struct PlayerScreenProps<'a> {
-    pub is_loading: bool,
+    pub playback_status: &'a PlaybackStatus,
     pub xywh: &'a XywhRect<f32>,
     pub sequence: &'a Sequence,
-    pub playback_time: &'a Time,
     pub camera_angle_image_loader: &'a dyn CameraAngleImageLoader,
     pub language: Language,
     pub subtitle_play_duration_measurer: &'a SubtitlePlayDurationMeasurer,
 }
 
 pub(super) fn render_player_screen(props: &PlayerScreenProps) -> RenderingTree {
-    if props.is_loading {
-        let center = props.xywh.center();
-        let font_size = (props.xywh.height * 0.2).floor() as i16;
-        return namui::text(namui::TextParam {
-            x: center.x,
-            y: center.y,
-            align: namui::TextAlign::Center,
-            baseline: namui::TextBaseline::Middle,
-            font_type: namui::FontType {
-                font_weight: namui::FontWeight::BOLD,
-                size: font_size,
-                language: namui::Language::Ko,
-                serif: false,
-            },
-            style: namui::TextStyle {
-                color: namui::Color::BLACK,
-                ..Default::default()
-            },
-            text: "Loading...".to_string(),
-        });
-    }
-
-    const SCREEN_WH_RATIO: f32 = 16.0 / 9.0;
-
-    let screen_height = props.xywh.width / SCREEN_WH_RATIO;
-    let screen_top_margin = props.xywh.height / 2.0 - screen_height / 2.0;
-
-    let screen_wh = Wh {
-        width: props.xywh.width,
-        height: screen_height,
-    };
-
-    let translated_xy = props.xywh.xy()
-        + Xy {
-            x: 0.0,
-            y: screen_top_margin,
-        };
-    namui::translate(
-        translated_xy.x,
-        translated_xy.y,
-        namui::render![
-            namui::rect(namui::RectParam {
-                x: 0.0,
-                y: 0.0,
-                width: screen_wh.width,
-                height: screen_wh.height,
-                style: namui::RectStyle {
-                    stroke: Some(namui::RectStroke {
-                        border_position: namui::BorderPosition::Outside,
-                        color: namui::Color::BLACK,
-                        width: 1.0,
-                    }),
+    match props.playback_status {
+        PlaybackStatus::Loading => {
+            let center = props.xywh.center();
+            let font_size = (props.xywh.height * 0.2).floor() as i16;
+            return namui::text(namui::TextParam {
+                x: center.x,
+                y: center.y,
+                align: namui::TextAlign::Center,
+                baseline: namui::TextBaseline::Middle,
+                font_type: namui::FontType {
+                    font_weight: namui::FontWeight::BOLD,
+                    size: font_size,
+                    language: namui::Language::Ko,
+                    serif: false,
+                },
+                style: namui::TextStyle {
+                    color: namui::Color::BLACK,
                     ..Default::default()
                 },
-            }),
-            render_sequence_in_player_screen(
-                props.sequence,
-                &screen_wh,
-                props.playback_time,
-                props.camera_angle_image_loader,
-                props.language,
-                props.subtitle_play_duration_measurer,
-            ),
-        ],
-    )
+                text: "Loading...".to_string(),
+            });
+        }
+        PlaybackStatus::Paused(playback_time) | PlaybackStatus::Playing(playback_time) => {
+            namui::log!("playback_time: {:?}", playback_time);
+            const SCREEN_WH_RATIO: f32 = 16.0 / 9.0;
+
+            let screen_height = props.xywh.width / SCREEN_WH_RATIO;
+            let screen_top_margin = props.xywh.height / 2.0 - screen_height / 2.0;
+
+            let screen_wh = Wh {
+                width: props.xywh.width,
+                height: screen_height,
+            };
+
+            let translated_xy = props.xywh.xy()
+                + Xy {
+                    x: 0.0,
+                    y: screen_top_margin,
+                };
+            namui::translate(
+                translated_xy.x,
+                translated_xy.y,
+                namui::render![
+                    namui::rect(namui::RectParam {
+                        x: 0.0,
+                        y: 0.0,
+                        width: screen_wh.width,
+                        height: screen_wh.height,
+                        style: namui::RectStyle {
+                            stroke: Some(namui::RectStroke {
+                                border_position: namui::BorderPosition::Outside,
+                                color: namui::Color::BLACK,
+                                width: 1.0,
+                            }),
+                            ..Default::default()
+                        },
+                    }),
+                    render_sequence_in_player_screen(
+                        props.sequence,
+                        &screen_wh,
+                        playback_time,
+                        props.camera_angle_image_loader,
+                        props.language,
+                        props.subtitle_play_duration_measurer,
+                    ),
+                ],
+            )
+        }
+    }
 }
 
 fn render_sequence_in_player_screen(

@@ -5,18 +5,28 @@ use std::{rc::Rc, time::Duration};
 mod content_loader;
 mod player_screen;
 use player_screen::*;
+mod buttons;
+use buttons::*;
 
 pub struct SequencePlayer {
     id: String,
-    is_playing: bool,
+    is_paused: bool,
     sequence: Rc<Sequence>,
     content_loader: ContentLoader,
-    playback_time: Time,
+    started_at: Option<Time>,
+    last_paused_playback_time: Time,
     camera_angle_image_loader: Box<dyn CameraAngleImageLoader>,
 }
 
 enum SequencePlayerEvent {
     CheckLoading(String),
+    AnimationFrame(String),
+}
+
+enum PlaybackStatus {
+    Loading,
+    Paused(Time),
+    Playing(Time),
 }
 
 pub struct SequencePlayerProps<'a> {
@@ -33,23 +43,27 @@ impl SequencePlayer {
         let id = namui::nanoid();
         let this = Self {
             id: id.clone(),
-            is_playing: false,
+            is_paused: true,
             sequence: sequence.clone(),
             content_loader: ContentLoader::new(
                 sequence.clone(),
                 camera_angle_image_loader.as_ref(),
             ),
-            playback_time: Time::zero(),
+            started_at: None,
             camera_angle_image_loader,
+            last_paused_playback_time: Time::zero(),
         };
         this.call_loading_timeout();
         this
     }
     pub fn play(&mut self) {
-        self.is_playing = true;
+        self.is_paused = false;
+        self.start_play();
     }
-    pub fn stop(&mut self) {
-        self.is_playing = false;
+    pub fn pause(&mut self) {
+        self.is_paused = true;
+        self.last_paused_playback_time = self.get_playback_time().unwrap();
+        self.started_at = None;
     }
     pub fn seek(&mut self, time: Time) {
         todo!()
@@ -76,15 +90,43 @@ impl SequencePlayer {
                         }
                         true => {
                             namui::log!("SequencePlayer::update: loaded");
+                            if !self.is_paused {
+                                self.start_play()
+                            }
                         }
                     }
                 }
+                SequencePlayerEvent::AnimationFrame(id) => {
+                    if id.ne(&self.id) || self.is_paused {
+                        return;
+                    }
+                    let id = id.clone();
+                    namui::request_animation_frame(move || {
+                        namui::event::send(SequencePlayerEvent::AnimationFrame(id))
+                    });
+                }
+            }
+        } else if let Some(event) = event.downcast_ref::<ButtonsEvent>() {
+            match event {
+                ButtonsEvent::PlayButtonClicked => self.play(),
+                ButtonsEvent::PauseButtonClicked => self.pause(),
             }
         }
     }
+    fn start_play(&mut self) {
+        if self.is_paused || self.started_at.is_some() || !self.content_loader.is_loaded() {
+            return;
+        }
+
+        self.started_at = Some(Time::now());
+        let id = self.id.clone();
+        namui::request_animation_frame(|| {
+            namui::event::send(SequencePlayerEvent::AnimationFrame(id))
+        });
+    }
     pub fn render(&self, props: &SequencePlayerProps) -> RenderingTree {
         let wh = props.xywh.wh();
-        // NOTE : will be translated by xy.
+        // NOTE : will be translated by props.xywh.xy.
 
         let title_header_center_y = wh.height * (0.5 / 6.0);
         let title_header_center_x = wh.width * 0.5;
@@ -136,6 +178,8 @@ impl SequencePlayer {
             text: "[Sequence Player]".to_string(),
         });
 
+        let playback_status = self.get_playback_status();
+
         namui::translate(
             props.xywh.x,
             props.xywh.y,
@@ -144,16 +188,34 @@ impl SequencePlayer {
                 title_header,
                 render_player_screen(&PlayerScreenProps {
                     xywh: &player_screen_xywh,
-                    is_loading: !self.content_loader.is_loaded(),
                     sequence: &self.sequence,
-                    playback_time: &self.playback_time,
+                    playback_status: &playback_status,
                     camera_angle_image_loader: self.camera_angle_image_loader.as_ref(),
                     language: props.language,
                     subtitle_play_duration_measurer: &props.subtitle_play_duration_measurer,
                 }),
-                // TODO : Buttons
+                render_buttons(&ButtonsProps {
+                    xywh: &buttons_xywh,
+                    playback_status: &playback_status,
+                }),
             ],
         )
+    }
+    fn get_playback_time(&self) -> Option<Time> {
+        self.started_at
+            .map(|start_at| Time::now() - start_at + self.last_paused_playback_time)
+    }
+    fn get_playback_status(&self) -> PlaybackStatus {
+        if !self.content_loader.is_loaded() {
+            return PlaybackStatus::Loading;
+        }
+        if self.is_paused {
+            return PlaybackStatus::Paused(self.last_paused_playback_time);
+        }
+        if let Some(time) = self.get_playback_time() {
+            return PlaybackStatus::Playing(time);
+        }
+        unreachable!()
     }
     fn call_loading_timeout(&self) {
         let id = self.id.clone();
