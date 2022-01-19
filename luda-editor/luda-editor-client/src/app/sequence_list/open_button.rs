@@ -12,7 +12,7 @@ impl SequenceList {
         let sequence = sequence.clone();
         let _path = path.clone();
         render![
-            self.render_button_background(wh)
+            self.render_rounded_rectangle(wh)
                 .attach_event(move |builder| {
                     let sequence = sequence.clone();
                     builder.on_mouse_down(move |_| {

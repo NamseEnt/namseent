@@ -9,7 +9,6 @@ use luda_editor_rpc::{DirentFileType, Socket};
 use namui::{render, Entity, Namui, NamuiImpl, Wh};
 use std::{collections::HashMap, time::Duration};
 use wasm_bindgen_futures::spawn_local;
-mod button_background;
 mod button_text;
 mod events;
 mod list;
@@ -17,6 +16,7 @@ mod list_item;
 mod load_button;
 mod open_button;
 mod reload_titles_button;
+mod rounded_rectangle;
 mod types;
 
 const LIST_WIDTH: f32 = 800.0;

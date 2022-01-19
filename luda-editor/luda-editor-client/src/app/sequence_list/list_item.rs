@@ -29,14 +29,14 @@ impl SequenceList {
             match self.sequence_load_state_map.get(&path) {
                 Some(load_state) => match &load_state.detail {
                     SequenceLoadStateDetail::Loading => render![
-                        self.render_button_background(button_wh),
+                        self.render_rounded_rectangle(button_wh),
                         self.render_button_text(button_wh, "Loading...".to_string())
                     ],
                     SequenceLoadStateDetail::Loaded { sequence } => {
                         self.render_open_button(button_wh, title, sequence)
                     }
                     SequenceLoadStateDetail::Failed { error } => render![
-                        self.render_button_background(button_wh),
+                        self.render_rounded_rectangle(button_wh),
                         self.render_button_text(button_wh, format!("Error: {}", error))
                     ],
                 },

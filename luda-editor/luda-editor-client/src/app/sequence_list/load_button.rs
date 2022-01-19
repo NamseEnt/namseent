@@ -5,7 +5,7 @@ use namui::{render, RenderingTree, Wh};
 impl SequenceList {
     pub fn render_load_button(&self, wh: Wh<f32>, path: &String) -> RenderingTree {
         render![
-            self.render_button_background(wh)
+            self.render_rounded_rectangle(wh)
                 .attach_event(move |builder| {
                     let path = path.clone();
                     builder.on_mouse_down(move |_| {

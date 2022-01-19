@@ -2,7 +2,7 @@ use super::SequenceList;
 use namui::{RectFill, RectParam, RectRound, RectStroke, RectStyle, RenderingTree, Wh};
 
 impl SequenceList {
-    pub fn render_button_background(&self, wh: Wh<f32>) -> RenderingTree {
+    pub fn render_rounded_rectangle(&self, wh: Wh<f32>) -> RenderingTree {
         namui::rect(RectParam {
             x: 0.0,
             y: 0.0,
