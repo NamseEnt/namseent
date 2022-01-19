@@ -21,6 +21,12 @@ impl Time {
     pub fn get_total_milliseconds(&self) -> f32 {
         self.milliseconds
     }
+    pub fn from_duration(duration: std::time::Duration) -> Time {
+        Self::from_ms(duration.as_millis() as f32)
+    }
+    pub fn now() -> Self {
+        Self::from_duration(namui::now())
+    }
 }
 impl Eq for Time {}
 impl Ord for Time {
