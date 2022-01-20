@@ -1,8 +1,6 @@
 use once_cell::sync::OnceCell;
 use std::{cmp::Reverse, collections::BinaryHeap, sync::Mutex, time::Duration};
 
-use crate::NamuiImpl;
-
 type Callback = Box<dyn FnOnce()>;
 unsafe impl Send for TimeoutCallback {}
 struct TimeoutCallback {
