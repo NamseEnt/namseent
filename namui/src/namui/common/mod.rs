@@ -4,6 +4,7 @@ use super::skia::*;
 use crate::event::EventReceiver;
 use serde::{Deserialize, Serialize};
 use serde_repr::*;
+use std::collections::HashSet;
 use std::time::Duration;
 use strum_macros::EnumIter;
 mod xy;
@@ -172,4 +173,16 @@ pub struct TypefaceType {
     pub serif: bool,
     pub language: Language,
     pub font_weight: FontWeight,
+}
+
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
+pub enum MouseButton {
+    Left,
+    Middle,
+    Right,
+}
+
+pub struct RawMouseEvent {
+    pub xy: Xy<f32>,
+    pub buttons: HashSet<MouseButton>,
 }

@@ -1,11 +1,13 @@
 use super::{AttachEventNode, ClipNode, MouseCursor, MouseCursorNode, TranslateNode, WithIdNode};
 use crate::namui::{ClipOp, DrawCall, NamuiContext, Xy, *};
 use serde::Serialize;
+use std::collections::HashSet;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MouseEvent {
     pub local_xy: Xy<f32>,
     pub global_xy: Xy<f32>,
+    pub buttons: HashSet<MouseButton>,
 }
 pub enum MouseEventType {
     Down,
@@ -186,19 +188,23 @@ impl RenderingTree {
             _ => None,
         }
     }
-    pub fn call_mouse_event(&self, mouse_event_type: MouseEventType, xy: &Xy<f32>) {
-        self.call_mouse_event_impl(&mouse_event_type, xy, xy);
+    pub fn call_mouse_event(
+        &self,
+        mouse_event_type: MouseEventType,
+        raw_mouse_event: &RawMouseEvent,
+    ) {
+        self.call_mouse_event_impl(&mouse_event_type, raw_mouse_event, &raw_mouse_event.xy);
     }
     fn call_mouse_event_impl(
         &self,
         mouse_event_type: &MouseEventType,
-        global_xy: &Xy<f32>,
+        raw_mouse_event: &RawMouseEvent,
         local_xy: &Xy<f32>,
     ) {
         match self {
             RenderingTree::Children(ref children) => {
                 children.iter().rev().for_each(|child| {
-                    child.call_mouse_event_impl(mouse_event_type, global_xy, local_xy);
+                    child.call_mouse_event_impl(mouse_event_type, raw_mouse_event, local_xy);
                 });
             }
             RenderingTree::Special(special) => match special {
@@ -208,7 +214,11 @@ impl RenderingTree {
                         y: local_xy.y - translate.y,
                     };
                     translate.rendering_tree.iter().rev().for_each(|child| {
-                        child.call_mouse_event_impl(mouse_event_type, global_xy, &next_local_xy);
+                        child.call_mouse_event_impl(
+                            mouse_event_type,
+                            raw_mouse_event,
+                            &next_local_xy,
+                        );
                     });
                 }
                 SpecialRenderingNode::Clip(clip) => {
@@ -219,7 +229,11 @@ impl RenderingTree {
                     };
                     if !is_xy_filtered {
                         clip.rendering_tree.iter().rev().for_each(|child| {
-                            child.call_mouse_event_impl(mouse_event_type, global_xy, local_xy);
+                            child.call_mouse_event_impl(
+                                mouse_event_type,
+                                raw_mouse_event,
+                                local_xy,
+                            );
                         });
                     }
                 }
@@ -236,15 +250,16 @@ impl RenderingTree {
                             .any(|child| child.is_point_in(local_xy))
                         {
                             func(&MouseEvent {
-                                global_xy: *global_xy,
+                                global_xy: raw_mouse_event.xy,
                                 local_xy: *local_xy,
+                                buttons: raw_mouse_event.buttons.clone(),
                             });
                         }
                     }
                 }
                 _ => {
                     special.get_children().iter().rev().for_each(|child| {
-                        child.call_mouse_event_impl(mouse_event_type, global_xy, local_xy);
+                        child.call_mouse_event_impl(mouse_event_type, raw_mouse_event, local_xy);
                     });
                 }
             },

@@ -1,4 +1,5 @@
 use crate::namui::{self, namui_state::NamuiState, render::MouseCursor, NamuiInternal, Xy};
+use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::HtmlElement;
@@ -28,10 +29,12 @@ impl MouseManager {
                 mouse_position: mouse_position.clone(),
                 ..*namui::state()
             });
-
-            namui::event::send(namui::NamuiEvent::MouseDown(Xy {
-                x: mouse_position.x as f32,
-                y: mouse_position.y as f32,
+            namui::event::send(namui::NamuiEvent::MouseDown(crate::RawMouseEvent {
+                xy: Xy {
+                    x: mouse_position.x as f32,
+                    y: mouse_position.y as f32,
+                },
+                buttons: extract_buttons(event),
             }));
         }) as Box<dyn FnMut(_)>);
 
@@ -54,10 +57,12 @@ impl MouseManager {
                 mouse_position: mouse_position.clone(),
                 ..*namui::state()
             });
-
-            namui::event::send(namui::NamuiEvent::MouseUp(Xy {
-                x: mouse_position.x as f32,
-                y: mouse_position.y as f32,
+            namui::event::send(namui::NamuiEvent::MouseUp(crate::RawMouseEvent {
+                xy: Xy {
+                    x: mouse_position.x as f32,
+                    y: mouse_position.y as f32,
+                },
+                buttons: extract_buttons(event),
             }));
         }) as Box<dyn FnMut(_)>);
 
@@ -77,10 +82,12 @@ impl MouseManager {
                 mouse_position: mouse_position.clone(),
                 ..*namui::state()
             });
-
-            namui::event::send(namui::NamuiEvent::MouseMove(Xy {
-                x: mouse_position.x as f32,
-                y: mouse_position.y as f32,
+            namui::event::send(namui::NamuiEvent::MouseMove(crate::RawMouseEvent {
+                xy: Xy {
+                    x: mouse_position.x as f32,
+                    y: mouse_position.y as f32,
+                },
+                buttons: extract_buttons(event),
             }));
         }) as Box<dyn FnMut(_)>);
 
@@ -116,4 +123,20 @@ impl MouseCursor {
             Self::Pointer => "pointer",
         }
     }
+}
+fn extract_buttons(mouse_event: web_sys::MouseEvent) -> HashSet<crate::MouseButton> {
+    let mouse_event_buttons = mouse_event.buttons();
+    let tuples = [
+        (1 << 0, crate::MouseButton::Left),
+        (1 << 1, crate::MouseButton::Middle),
+        (1 << 2, crate::MouseButton::Right),
+    ];
+
+    HashSet::from_iter(tuples.iter().filter_map(|(bit, button)| {
+        if mouse_event_buttons & bit != 0 {
+            Some(*button)
+        } else {
+            None
+        }
+    }))
 }

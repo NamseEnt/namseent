@@ -90,24 +90,24 @@ pub async fn start<TProps>(
                     event_count = 0;
                 }
             }
-            Some(NamuiEvent::MouseDown(xy)) => {
+            Some(NamuiEvent::MouseDown(raw_mouse_event)) => {
                 namui_context
                     .rendering_tree
-                    .call_mouse_event(MouseEventType::Down, xy);
+                    .call_mouse_event(MouseEventType::Down, raw_mouse_event);
                 state.update(event.as_ref());
                 namui_context.rendering_tree = state.render(props);
             }
-            Some(NamuiEvent::MouseUp(xy)) => {
+            Some(NamuiEvent::MouseUp(raw_mouse_event)) => {
                 namui_context
                     .rendering_tree
-                    .call_mouse_event(MouseEventType::Up, xy);
+                    .call_mouse_event(MouseEventType::Up, raw_mouse_event);
                 state.update(event.as_ref());
                 namui_context.rendering_tree = state.render(props);
             }
-            Some(NamuiEvent::MouseMove(xy)) => {
+            Some(NamuiEvent::MouseMove(raw_mouse_event)) => {
                 namui_context
                     .rendering_tree
-                    .call_mouse_event(MouseEventType::Move, xy);
+                    .call_mouse_event(MouseEventType::Move, raw_mouse_event);
                 state.update(event.as_ref());
                 namui_context.rendering_tree = state.render(props);
             }
