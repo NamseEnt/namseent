@@ -58,13 +58,13 @@ impl SequenceList {
             self.render_rounded_rectangle(wh, RoundedRectangleColor::Gray)
                 .attach_event(move |builder| {
                     let scroll_y = clamped_scroll_y;
-                    builder.on_wheel(Box::new(move |event| {
+                    builder.on_wheel(move |event| {
                         let delta_y = event.delta_xy.y;
                         let next_scroll_y = clamp(scroll_y + delta_y, 0.0, max_scroll_y);
                         namui::event::send(SequenceListEvent::ScrolledEvent {
                             scroll_y: next_scroll_y,
                         });
-                    }))
+                    })
                 }),
             namui::clip(
                 namui::PathBuilder::new().add_rect(&namui::LtrbRect {

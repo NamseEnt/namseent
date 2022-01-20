@@ -13,7 +13,6 @@ mod button_text;
 mod events;
 mod list;
 mod list_item;
-mod load_button;
 mod open_button;
 mod reload_titles_button;
 mod rounded_rectangle;
