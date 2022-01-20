@@ -37,6 +37,7 @@ pub struct SequenceList {
 
 impl SequenceList {
     pub fn new(socket: Socket) -> Self {
+        namui::event::send(SequenceListEvent::SequenceTitlesLoadEvent);
         Self {
             sequence_load_state_map: HashMap::new(),
             sequence_titles_load_state: None,
