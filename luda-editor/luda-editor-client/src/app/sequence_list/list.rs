@@ -82,10 +82,7 @@ impl SequenceList {
             ),
             namui::translate(
                 wh.width - MARGIN - SCROLL_BAR_WIDTH,
-                // 0.0,
-                // MARGIN,
                 MARGIN + scroll_bar_y,
-                // 0.0,
                 self.render_rounded_rectangle(
                     Wh {
                         width: SCROLL_BAR_WIDTH,
