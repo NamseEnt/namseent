@@ -57,14 +57,14 @@ impl CameraClipBody {
         })
         .attach_event(move |builder| {
             let clip_id = props.clip.id.clone();
-            builder.on_mouse_down(Box::new(move |event| {
+            builder.on_mouse_down(move |event| {
                 let event = EditorEvent::CameraClipBodyMouseDownEvent {
                     clip_id: clip_id.clone(),
                     local_mouse_xy: event.local_xy,
                     global_mouse_xy: event.global_xy,
                 };
                 namui::event::send(event);
-            }))
+            })
         })]
     }
 }

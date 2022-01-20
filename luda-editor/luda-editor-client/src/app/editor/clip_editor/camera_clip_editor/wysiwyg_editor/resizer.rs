@@ -73,7 +73,7 @@ fn render_resize_handles(source_rect: &XywhRect<f32>, container_size: &Wh<f32>) 
                     let handle = handle.clone();
                     let container_size = container_size.clone();
                     let source_rect = source_rect.clone();
-                    builder.on_mouse_down(Box::new(move |mouse_event| {
+                    builder.on_mouse_down(move |mouse_event| {
                         namui::event::send(WysiwygEditorResizerHandleMouseDownEvent {
                             handle,
                             center_xy: source_rect.center(),
@@ -84,7 +84,7 @@ fn render_resize_handles(source_rect: &XywhRect<f32>, container_size: &Wh<f32>) 
                                 height: source_rect.height,
                             },
                         })
-                    }))
+                    })
                 })
             })
             .collect::<Vec<RenderingTree>>(),

@@ -15,14 +15,14 @@ impl SequenceList {
             self.render_button_background(wh)
                 .attach_event(move |builder| {
                     let sequence = sequence.clone();
-                    builder.on_mouse_down(Box::new(move |_| {
+                    builder.on_mouse_down(move |_| {
                         let sequence = sequence.clone();
                         namui::event::send(RouterEvent::PageChangeToEditorEvent(Box::new(
                             move |context| -> Editor {
                                 Editor::new(context.socket.clone(), sequence.clone())
                             },
                         )));
-                    }))
+                    })
                 })
                 .with_mouse_cursor(namui::MouseCursor::Pointer),
             self.render_button_text(wh, "Open".to_string())

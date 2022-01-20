@@ -8,10 +8,10 @@ impl SequenceList {
             self.render_button_background(wh)
                 .attach_event(move |builder| {
                     let path = path.clone();
-                    builder.on_mouse_down(Box::new(move |_| {
+                    builder.on_mouse_down(move |_| {
                         let path = path.clone();
                         namui::event::send(SequenceListEvent::SequenceLoadEvent { path });
-                    }))
+                    })
                 })
                 .with_mouse_cursor(namui::MouseCursor::Pointer),
             self.render_button_text(wh, "Load".to_string())

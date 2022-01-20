@@ -46,12 +46,12 @@ impl BrowserItem {
             })
             .attach_event(move |builder| {
                 let item = props.item.clone();
-                builder.on_mouse_down(Box::new(move |_| {
+                builder.on_mouse_down(move |_| {
                     namui::log(format!("select browser item {:?}", item));
                     namui::event::send(EditorEvent::ImageBrowserSelectEvent {
                         selected_item: item.clone(),
                     });
-                }))
+                })
             }),
             text(TextParam {
                 x: props.item_size.width / 2.0,

@@ -163,12 +163,12 @@ fn render_inner_image(
         namui::ClipOp::Intersect,
         render_source_image(image, None, &source_rect)
             .attach_event(|builder| {
-                builder.on_mouse_down(Box::new(move |event| {
+                builder.on_mouse_down(move |event| {
                     namui::event::send(EditorEvent::WysiwygEditorInnerImageMouseDownEvent {
                         mouse_xy: event.global_xy,
                         container_size: container_size.clone(),
                     })
-                }))
+                })
             })
             .with_mouse_cursor(MouseCursor::Move),
     )

@@ -16,9 +16,7 @@ pub struct WheelEvent<'a> {
     pub delta_xy: &'a Xy<f32>,
     pub namui_context: &'a NamuiContext,
 }
-pub type BoxedMouseEventCallback = Box<dyn Fn(&MouseEvent)>;
 pub type MouseEventCallback = Arc<dyn Fn(&MouseEvent)>;
-pub type BoxedWheelEventCallback = Box<dyn Fn(&WheelEvent)>;
 pub type WheelEventCallback = Arc<dyn Fn(&WheelEvent)>;
 #[derive(Serialize, Default, Clone, Debug)]
 pub struct RenderingData {

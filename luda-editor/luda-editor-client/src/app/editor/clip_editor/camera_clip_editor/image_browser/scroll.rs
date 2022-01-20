@@ -116,7 +116,7 @@ impl Scroll {
             let width = inner_width + scroll_bar_width;
             let height = height;
             let whole_rect_id = whole_rect_id.clone();
-            builder.on_wheel(Box::new(move |event| {
+            builder.on_wheel(move |event| {
                 let managers = namui::managers();
 
                 let mouse_manager = &managers.mouse_manager;
@@ -143,7 +143,7 @@ impl Scroll {
                 namui::event::send(EditorEvent::ScrolledEvent {
                     scroll_y: next_scroll_y,
                 });
-            }))
+            })
         });
 
         namui::translate(x, y, render![whole_rect, inner, scroll_bar])

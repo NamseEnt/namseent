@@ -1,10 +1,7 @@
-use std::sync::Arc;
-
-use super::{
-    BoxedMouseEventCallback, BoxedWheelEventCallback, RenderingTree, SpecialRenderingNode,
-};
+use super::{MouseEvent, RenderingTree, SpecialRenderingNode, WheelEvent};
 use crate::{MouseEventCallback, WheelEventCallback};
 use serde::Serialize;
+use std::sync::Arc;
 
 #[derive(Serialize, Clone)]
 pub struct AttachEventNode {
@@ -62,27 +59,27 @@ impl RenderingTree {
 }
 
 impl AttachEventBuilder {
-    pub fn on_mouse_move_in(mut self, on_mouse_move_in: BoxedMouseEventCallback) -> Self {
+    pub fn on_mouse_move_in(mut self, on_mouse_move_in: impl Fn(&MouseEvent) + 'static) -> Self {
         self.on_mouse_move_in = Some(Arc::new(on_mouse_move_in));
         self
     }
 
-    pub fn on_mouse_move_out(mut self, on_mouse_move_out: BoxedMouseEventCallback) -> Self {
+    pub fn on_mouse_move_out(mut self, on_mouse_move_out: impl Fn(&MouseEvent) + 'static) -> Self {
         self.on_mouse_move_out = Some(Arc::new(on_mouse_move_out));
         self
     }
 
-    pub fn on_mouse_down(mut self, on_mouse_down: BoxedMouseEventCallback) -> Self {
+    pub fn on_mouse_down(mut self, on_mouse_down: impl Fn(&MouseEvent) + 'static) -> Self {
         self.on_mouse_down = Some(Arc::new(on_mouse_down));
         self
     }
 
-    pub fn on_mouse_up(mut self, on_mouse_up: BoxedMouseEventCallback) -> Self {
+    pub fn on_mouse_up(mut self, on_mouse_up: impl Fn(&MouseEvent) + 'static) -> Self {
         self.on_mouse_up = Some(Arc::new(on_mouse_up));
         self
     }
 
-    pub fn on_wheel(mut self, on_wheel: BoxedWheelEventCallback) -> Self {
+    pub fn on_wheel(mut self, on_wheel: impl Fn(&WheelEvent) + 'static) -> Self {
         self.on_wheel = Some(Arc::new(on_wheel));
         self
     }

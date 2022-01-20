@@ -57,7 +57,7 @@ impl TimelineBody {
         .attach_event(move |builder| {
             let width = props.width;
             let height = props.height;
-            builder.on_wheel(Box::new(move |event| {
+            builder.on_wheel(move |event| {
                 let managers = namui::managers();
 
                 let mouse_manager = &managers.mouse_manager;
@@ -92,7 +92,7 @@ impl TimelineBody {
                         anchor_x_in_timeline,
                     })
                 }
-            }))
+            })
         });
         render![
             border,

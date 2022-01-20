@@ -36,7 +36,7 @@ impl namui::Entity for TextInput {
                 .attach_event(|builder| {
                     let text_input = self.clone();
 
-                    builder.on_mouse_down(Box::new(move |event| {
+                    builder.on_mouse_down(move |event| {
                         namui::log(format!(
                             "text_input click {} {:?}",
                             text_input.id.clone(),
@@ -47,7 +47,7 @@ impl namui::Entity for TextInput {
                             id: text_input.id.clone(),
                             selection: selection.ok(),
                         });
-                    }))
+                    })
                 }),
                 draw_texts_divided_by_selection(&self)
             ],

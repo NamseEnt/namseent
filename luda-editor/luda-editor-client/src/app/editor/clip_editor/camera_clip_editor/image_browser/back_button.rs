@@ -54,12 +54,12 @@ impl ImageBrowser {
                 ..Default::default()
             })
             .attach_event(|builder| {
-                builder.on_mouse_down(Box::new(move |_| {
+                builder.on_mouse_down(move |_| {
                     namui::log(format!("select browser item {}", "back"));
                     namui::event::send(EditorEvent::ImageBrowserSelectEvent {
                         selected_item: ImageBrowserItem::Back,
                     });
-                }))
+                })
             }),
             text(TextParam {
                 x: item_size.width / 2.0,
