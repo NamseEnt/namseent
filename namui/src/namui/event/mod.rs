@@ -5,8 +5,9 @@ use tokio::sync::mpsc::{self, unbounded_channel};
 
 type Event = Box<dyn Any + Send + Sync>;
 static EVENT_SENDER: OnceCell<mpsc::UnboundedSender<Event>> = OnceCell::new();
+pub(crate) type EventReceiver = mpsc::UnboundedReceiver<Event>;
 
-pub fn init() -> mpsc::UnboundedReceiver<Event> {
+pub fn init() -> EventReceiver {
     let (sender, receiver) = unbounded_channel();
     EVENT_SENDER.set(sender).unwrap();
     receiver

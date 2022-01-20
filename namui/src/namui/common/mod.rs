@@ -1,6 +1,7 @@
 use super::namui_state::{update_namui_state, NamuiState};
 use super::render::{RenderingData, RenderingTree};
 use super::skia::*;
+use crate::event::EventReceiver;
 use serde::{Deserialize, Serialize};
 use serde_repr::*;
 use std::time::Duration;
@@ -22,6 +23,7 @@ pub struct NamuiContext {
     pub(crate) surface: Surface,
     pub(crate) fps_info: FpsInfo,
     pub(crate) rendering_tree: RenderingTree,
+    pub(crate) event_receiver: EventReceiver,
 }
 impl NamuiContext {
     pub fn get_rendering_tree_xy(&self, id: &str) -> Option<Xy<f32>> {

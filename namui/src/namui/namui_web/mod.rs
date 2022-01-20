@@ -64,6 +64,7 @@ impl NamuiImpl for Namui {
                 last_60_frame_time: Namui::now(),
             },
             rendering_tree: RenderingTree::Empty,
+            event_receiver: crate::event::init(),
         }
     }
 
