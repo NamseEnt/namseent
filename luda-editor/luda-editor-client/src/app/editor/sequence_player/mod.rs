@@ -61,8 +61,8 @@ impl SequencePlayer {
         self.start_play();
     }
     pub fn pause(&mut self) {
+        self.last_paused_playback_time = self.get_playback_time();
         self.is_paused = true;
-        self.last_paused_playback_time = self.get_playback_time().unwrap();
         self.started_at = None;
     }
     pub fn seek(&mut self, time: Time) {
@@ -201,9 +201,11 @@ impl SequencePlayer {
             ],
         )
     }
-    fn get_playback_time(&self) -> Option<Time> {
+    pub fn get_playback_time(&self) -> Time {
         self.started_at
-            .map(|start_at| Time::now() - start_at + self.last_paused_playback_time)
+            .map_or(self.last_paused_playback_time, |start_at| {
+                Time::now() - start_at + self.last_paused_playback_time
+            })
     }
     fn get_playback_status(&self) -> PlaybackStatus {
         if !self.content_loader.is_loaded() {
@@ -212,10 +214,7 @@ impl SequencePlayer {
         if self.is_paused {
             return PlaybackStatus::Paused(self.last_paused_playback_time);
         }
-        if let Some(time) = self.get_playback_time() {
-            return PlaybackStatus::Playing(time);
-        }
-        unreachable!()
+        PlaybackStatus::Playing(self.get_playback_time())
     }
     fn call_loading_timeout(&self) {
         let id = self.id.clone();

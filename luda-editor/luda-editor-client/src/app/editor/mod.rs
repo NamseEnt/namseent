@@ -31,7 +31,6 @@ pub struct Editor {
     job: Option<Job>,
     timeline: Timeline,
     clip_editor: Option<ClipEditor>,
-    playback_time: chrono::Duration,
     image_filename_objects: Vec<ImageFilenameObject>,
     pub selected_clip_id: Option<String>,
     pub sequence: Sequence,
@@ -256,9 +255,10 @@ impl namui::Entity for Editor {
             width: props.screen_wh.width - clip_editor_xywh.width,
             height: clip_editor_xywh.height,
         };
+        let playback_time = self.sequence_player.get_playback_time();
         render![
             self.timeline.render(&TimelineProps {
-                playback_time: self.playback_time,
+                playback_time: &playback_time,
                 xywh: timeline_xywh,
                 job: &self.job,
                 selected_clip_id: &self.selected_clip_id,
@@ -314,7 +314,6 @@ impl Editor {
         let sequence_rc = Rc::new(sequence.clone());
         Self {
             timeline: Timeline::new(),
-            playback_time: chrono::Duration::zero(),
             image_filename_objects: vec![],
             job: None,
             clip_editor: None,

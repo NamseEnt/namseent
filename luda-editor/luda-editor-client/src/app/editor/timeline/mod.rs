@@ -3,6 +3,7 @@ mod playback_time_view;
 use super::job::Job;
 use crate::app::{
     editor::timeline::{
+        play_head::{render_play_head, PlayHeadProps},
         timeline_body::{TimelineBody, TimelineBodyProps},
         timeline_header::{TimelineHeader, TimelineHeaderProps},
     },
@@ -11,6 +12,7 @@ use crate::app::{
 use playback_time_view::*;
 mod time_ruler;
 use time_ruler::*;
+mod play_head;
 mod timeline_body;
 mod timeline_header;
 mod track_header;
@@ -33,7 +35,7 @@ impl Timeline {
 }
 pub struct TimelineProps<'a> {
     pub xywh: namui::XywhRect<f32>,
-    pub playback_time: chrono::Duration,
+    pub playback_time: &'a Time,
     pub job: &'a Option<Job>,
     pub selected_clip_id: &'a Option<String>,
     pub sequence: &'a Sequence,
@@ -61,6 +63,7 @@ impl Timeline {
         };
         let xywh = props.xywh;
         let body_width = xywh.width - self.header_width;
+        let track_body_height = xywh.height - self.time_ruler_height;
         render![
             namui::rect(namui::RectParam {
                 x: xywh.x,
@@ -80,7 +83,7 @@ impl Timeline {
                 xywh.x,
                 xywh.y,
                 render![
-                    PlaybackTimeView::new().render(&PlaybackTimeViewProps {
+                    render_playback_time_view(&PlaybackTimeViewProps {
                         xywh: namui::XywhRect {
                             x: 0.0,
                             y: 0.0,
@@ -105,7 +108,7 @@ impl Timeline {
                         render![
                             TimelineHeader::render(&TimelineHeaderProps {
                                 width: self.header_width,
-                                height: xywh.height,
+                                height: track_body_height,
                                 tracks: &props.sequence.tracks,
                             }),
                             namui::translate(
@@ -113,13 +116,33 @@ impl Timeline {
                                 0.0,
                                 TimelineBody::render(&TimelineBodyProps {
                                     width: body_width,
-                                    height: xywh.height,
+                                    height: track_body_height,
                                     tracks: &props.sequence.tracks,
                                     context: &context,
                                 })
                             ),
                         ]
-                    )
+                    ),
+                    namui::translate(
+                        self.header_width,
+                        0.0,
+                        namui::clip(
+                            namui::PathBuilder::new().add_rect(&LtrbRect {
+                                left: 0.0,
+                                top: 0.0,
+                                right: body_width,
+                                bottom: xywh.height,
+                            }),
+                            namui::ClipOp::Intersect,
+                            render_play_head(&PlayHeadProps {
+                                start_at: &context.start_at,
+                                time_per_pixel: &context.time_per_pixel,
+                                time_ruler_height: self.time_ruler_height,
+                                track_body_height,
+                                playback_time: props.playback_time,
+                            })
+                        ),
+                    ),
                 ]
             )
         ]
