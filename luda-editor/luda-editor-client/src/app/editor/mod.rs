@@ -172,50 +172,50 @@ impl namui::Entity for Editor {
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
-                NamuiEvent::MouseMove(global_xy) => match self.job {
+                NamuiEvent::MouseMove(mouse_event) => match self.job {
                     Some(Job::MoveCameraClip(ref mut job)) => {
-                        job.last_global_mouse_xy = *global_xy;
+                        job.last_global_mouse_xy = mouse_event.xy;
                     }
                     Some(Job::MoveSubtitleClip(ref mut job)) => {
-                        job.last_global_mouse_xy = *global_xy;
+                        job.last_global_mouse_xy = mouse_event.xy;
                     }
                     Some(Job::WysiwygMoveImage(ref mut job)) => {
-                        job.last_global_mouse_xy = *global_xy;
+                        job.last_global_mouse_xy = mouse_event.xy;
                     }
                     Some(Job::WysiwygResizeImage(ref mut job)) => {
-                        job.last_global_mouse_xy = *global_xy;
+                        job.last_global_mouse_xy = mouse_event.xy;
                     }
                     Some(Job::WysiwygCropImage(ref mut job)) => {
-                        job.last_global_mouse_xy = *global_xy;
+                        job.last_global_mouse_xy = mouse_event.xy;
                     }
                     _ => {}
                 },
-                NamuiEvent::MouseUp(global_xy) => {
+                NamuiEvent::MouseUp(mouse_event) => {
                     let job = self.job.clone();
                     match job {
                         // TODO : Make these simple using trait
                         Some(Job::MoveCameraClip(mut job)) => {
-                            job.last_global_mouse_xy = *global_xy;
+                            job.last_global_mouse_xy = mouse_event.xy;
                             job.execute(self);
                             self.job = None;
                         }
                         Some(Job::MoveSubtitleClip(mut job)) => {
-                            job.last_global_mouse_xy = *global_xy;
+                            job.last_global_mouse_xy = mouse_event.xy;
                             job.execute(self);
                             self.job = None;
                         }
                         Some(Job::WysiwygMoveImage(mut job)) => {
-                            job.last_global_mouse_xy = *global_xy;
+                            job.last_global_mouse_xy = mouse_event.xy;
                             job.execute(self);
                             self.job = None;
                         }
                         Some(Job::WysiwygResizeImage(mut job)) => {
-                            job.last_global_mouse_xy = *global_xy;
+                            job.last_global_mouse_xy = mouse_event.xy;
                             job.execute(self);
                             self.job = None;
                         }
                         Some(Job::WysiwygCropImage(mut job)) => {
-                            job.last_global_mouse_xy = *global_xy;
+                            job.last_global_mouse_xy = mouse_event.xy;
                             job.execute(self);
                             self.job = None;
                         }

@@ -1,4 +1,4 @@
-use crate::namui;
+use crate::{namui, RawMouseEvent};
 use once_cell::sync::OnceCell;
 use std::any::Any;
 use tokio::sync::mpsc::{self, unbounded_channel};
@@ -19,9 +19,9 @@ pub fn send(event: impl Any + Send + Sync) {
 
 pub enum NamuiEvent {
     AnimationFrame,
-    MouseDown(namui::Xy<f32>),
-    MouseUp(namui::Xy<f32>),
-    MouseMove(namui::Xy<f32>),
+    MouseDown(RawMouseEvent),
+    MouseUp(RawMouseEvent),
+    MouseMove(RawMouseEvent),
     ScreenResize(namui::Wh<i16>),
     Wheel(namui::Xy<f32>),
 }
