@@ -124,38 +124,6 @@ impl namui::Entity for Editor {
                         }));
                     };
                 }
-                EditorEvent::TimelineMoveEvent { pixel } => {
-                    self.timeline.start_at += pixel * self.timeline.time_per_pixel;
-                }
-                EditorEvent::TimelineZoomEvent {
-                    delta,
-                    anchor_x_in_timeline,
-                } => {
-                    let zoom_by_wheel = |target: &f32, delta: &f32| -> f32 {
-                        const STEP: f32 = 400.0;
-                        const MIN: f32 = 10.0;
-                        const MAX: f32 = 1000.0;
-
-                        let wheel = STEP * (target / 10.0).log2();
-
-                        let next_wheel = wheel + delta;
-
-                        let zoomed = num::clamp(10.0 * 2.0f32.powf(next_wheel / STEP), MIN, MAX);
-                        zoomed
-                    };
-                    let time_of_mouse_position = self.timeline.start_at
-                        + anchor_x_in_timeline * self.timeline.time_per_pixel;
-
-                    let next_ms_per_pixel =
-                        zoom_by_wheel(&self.timeline.time_per_pixel.ms_per_pixel(), delta);
-                    let next_time_per_pixel = TimePerPixel::from_ms_per_pixel(&next_ms_per_pixel);
-
-                    let next_start_at =
-                        time_of_mouse_position - anchor_x_in_timeline * next_time_per_pixel;
-
-                    self.timeline.time_per_pixel = next_time_per_pixel;
-                    self.timeline.start_at = next_start_at;
-                }
                 EditorEvent::ImageBrowserSelectEvent { selected_item } => {
                     match selected_item {
                         clip_editor::camera_clip_editor::image_browser::ImageBrowserItem::CharacterPoseEmotion(character, pose, emotion) => {
