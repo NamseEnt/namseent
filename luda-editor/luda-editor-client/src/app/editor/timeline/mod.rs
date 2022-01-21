@@ -92,7 +92,7 @@ impl Timeline {
                         },
                         playback_time: props.playback_time,
                     }),
-                    TimeRuler::new().render(&TimeRulerProps {
+                    render_time_ruler(&TimeRulerProps {
                         xywh: namui::XywhRect {
                             x: self.header_width,
                             y: 0.0,

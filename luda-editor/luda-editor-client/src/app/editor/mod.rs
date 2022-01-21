@@ -172,6 +172,9 @@ impl namui::Entity for Editor {
                         _ => {}
                     }
                 }
+                EditorEvent::TimelineTimeRulerClickEvent{click_position_in_time} => {
+                    self.sequence_player.seek(*click_position_in_time);
+                }
                 _ => {}
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {

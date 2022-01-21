@@ -66,7 +66,15 @@ impl SequencePlayer {
         self.started_at = None;
     }
     pub fn seek(&mut self, time: Time) {
-        todo!()
+        match self.get_playback_status() {
+            PlaybackStatus::Loading | PlaybackStatus::Paused(_) => {
+                self.last_paused_playback_time = time;
+            }
+            PlaybackStatus::Playing(_) => {
+                self.last_paused_playback_time = time;
+                self.started_at = Some(Time::now());
+            }
+        }
     }
     pub fn update_sequence(
         &mut self,
@@ -84,12 +92,8 @@ impl SequencePlayer {
                         return;
                     }
                     match self.content_loader.is_loaded() {
-                        false => {
-                            namui::log!("SequencePlayer::update: loading not yet");
-                            self.call_loading_timeout()
-                        }
+                        false => self.call_loading_timeout(),
                         true => {
-                            namui::log!("SequencePlayer::update: loaded");
                             if !self.is_paused {
                                 self.start_play()
                             }
