@@ -53,44 +53,36 @@ impl ImageBrowser {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<EditorEvent>() {
             match event {
-                EditorEvent::ImageBrowserSelectEvent { selected_item } => {
-                    namui::log!("selected_item: {:?}", selected_item);
-                    match selected_item {
-                        ImageBrowserItem::Back => {
-                            self.directory = self.directory.parent();
-                            self.selected_item = match &self.directory {
-                                ImageBrowserDirectory::Root => None,
-                                ImageBrowserDirectory::Character(character) => {
-                                    Some(ImageBrowserItem::Character(character.clone()))
-                                }
-                                ImageBrowserDirectory::CharacterPose(character, pose) => {
-                                    Some(ImageBrowserItem::CharacterPose(
-                                        character.clone(),
-                                        pose.clone(),
-                                    ))
-                                }
-                            };
-                        }
-                        ImageBrowserItem::Character(character) => {
-                            self.directory = ImageBrowserDirectory::Character(character.clone());
-                            self.selected_item = None;
-                        }
-                        ImageBrowserItem::CharacterPose(character, pose) => {
-                            self.directory = ImageBrowserDirectory::CharacterPose(
-                                character.clone(),
-                                pose.clone(),
-                            );
-                            self.selected_item = None;
-                        }
-                        ImageBrowserItem::CharacterPoseEmotion(character, pose, emotion) => {
-                            self.selected_item = Some(ImageBrowserItem::CharacterPoseEmotion(
-                                character.clone(),
-                                pose.clone(),
-                                emotion.clone(),
-                            ));
-                        }
+                EditorEvent::ImageBrowserSelectEvent { selected_item } => match selected_item {
+                    ImageBrowserItem::Back => {
+                        self.directory = self.directory.parent();
+                        self.selected_item = match &self.directory {
+                            ImageBrowserDirectory::Root => None,
+                            ImageBrowserDirectory::Character(character) => {
+                                Some(ImageBrowserItem::Character(character.clone()))
+                            }
+                            ImageBrowserDirectory::CharacterPose(character, pose) => Some(
+                                ImageBrowserItem::CharacterPose(character.clone(), pose.clone()),
+                            ),
+                        };
                     }
-                }
+                    ImageBrowserItem::Character(character) => {
+                        self.directory = ImageBrowserDirectory::Character(character.clone());
+                        self.selected_item = None;
+                    }
+                    ImageBrowserItem::CharacterPose(character, pose) => {
+                        self.directory =
+                            ImageBrowserDirectory::CharacterPose(character.clone(), pose.clone());
+                        self.selected_item = None;
+                    }
+                    ImageBrowserItem::CharacterPoseEmotion(character, pose, emotion) => {
+                        self.selected_item = Some(ImageBrowserItem::CharacterPoseEmotion(
+                            character.clone(),
+                            pose.clone(),
+                            emotion.clone(),
+                        ));
+                    }
+                },
                 _ => {}
             }
         };

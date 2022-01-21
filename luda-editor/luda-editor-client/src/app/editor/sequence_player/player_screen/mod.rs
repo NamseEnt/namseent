@@ -37,7 +37,6 @@ pub(super) fn render_player_screen(props: &PlayerScreenProps) -> RenderingTree {
             });
         }
         PlaybackStatus::Paused(playback_time) | PlaybackStatus::Playing(playback_time) => {
-            namui::log!("playback_time: {:?}", playback_time);
             const SCREEN_WH_RATIO: f32 = 16.0 / 9.0;
 
             let screen_height = props.xywh.width / SCREEN_WH_RATIO;
