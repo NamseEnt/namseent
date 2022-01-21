@@ -59,13 +59,13 @@ fn get_line_index_pushing_up(
         let number_of_clips_at_start = clips_come_after_target
             .iter()
             .filter(|clip_a| {
-                clip_a.start_at < clip.start_at
-                    && clip.start_at < clip_a.end_at(language, subtitle_play_duration_measurer)
+                clip_a.id == clip.id
+                    || clip_a.start_at < clip.start_at
+                        && clip.start_at < clip_a.end_at(language, subtitle_play_duration_measurer)
             })
             .count();
         line_index = std::cmp::max(line_index, number_of_clips_at_start);
     }
-
     line_index
 }
 
