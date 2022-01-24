@@ -11,7 +11,7 @@ pub struct WysiwygMoveImageJob {
 }
 
 impl WysiwygMoveImageJob {
-    pub fn execute(&self, editor: &mut Editor) {
+    pub fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
         let selected_clip = editor
             .selected_clip_id
             .as_ref()

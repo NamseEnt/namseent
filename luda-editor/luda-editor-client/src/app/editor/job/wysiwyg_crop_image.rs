@@ -18,7 +18,7 @@ pub struct WysiwygCropImageJob {
 }
 
 impl WysiwygCropImageJob {
-    pub fn execute(&mut self, editor: &mut Editor) {
+    pub fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
         let selected_clip = editor
             .selected_clip_id
             .as_ref()

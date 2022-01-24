@@ -1,46 +1,27 @@
-use crate::app::{editor::Editor, types::*};
+use crate::app::types::*;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct MoveCameraClipJob {
     pub clip_id: String,
-    pub click_anchor_in_global: namui::Xy<f32>,
-    pub last_global_mouse_xy: namui::Xy<f32>,
-}
-
-fn find_camera_track_of_clip<'a>(
-    clip_id: &'a String,
-    sequence: &'a mut Sequence,
-) -> Option<&'a mut CameraTrack> {
-    for track in &mut sequence.tracks {
-        if let Track::Camera(camera_track) = track {
-            for clip in &mut camera_track.clips {
-                if clip.id == *clip_id {
-                    return Some(camera_track);
-                }
-            }
-        }
-    }
-    None
+    pub click_anchor_in_time: Time,
+    pub last_mouse_position_in_time: Time,
 }
 
 impl MoveCameraClipJob {
-    pub fn move_camera_clip_by_job(&self, clip: &mut CameraClip, time_per_pixel: &TimePerPixel) {
-        let delta_x = self.last_global_mouse_xy.x - self.click_anchor_in_global.x;
-        let delta_time = PixelSize(delta_x) * *time_per_pixel;
+    fn get_delta_time(&self) -> Time {
+        self.last_mouse_position_in_time - self.click_anchor_in_time
+    }
+    pub fn move_camera_clip_by_job(&self, clip: &mut CameraClip) {
         let clip_duration = clip.end_at - clip.start_at;
-        let moved_start_at = clip.start_at + delta_time;
+        let moved_start_at = clip.start_at + self.get_delta_time();
         let moved_end_at = moved_start_at + clip_duration;
 
         clip.start_at = moved_start_at;
         clip.end_at = moved_end_at;
     }
-    pub fn order_clips_by_moving_clip(
-        &self,
-        camera_track: &mut CameraTrack,
-        time_per_pixel: &TimePerPixel,
-        is_preview: bool,
-    ) {
-        let clips = &mut camera_track.clips;
+    pub fn order_clips_by_moving_clip(&self, camera_track: &mut CameraTrack, is_preview: bool) {
+        let mut clips = camera_track.clips.to_vec();
 
         let moving_clip_id = &self.clip_id;
         let moving_clip = clips
@@ -48,10 +29,8 @@ impl MoveCameraClipJob {
             .find(|clip| clip.id.eq(moving_clip_id))
             .unwrap();
 
-        let delta_x = self.last_global_mouse_xy.x - self.click_anchor_in_global.x;
-        let delta_time = PixelSize(delta_x) * *time_per_pixel;
         let clip_duration = moving_clip.end_at - moving_clip.start_at;
-        let moved_start_at = moving_clip.start_at + delta_time;
+        let moved_start_at = moving_clip.start_at + self.get_delta_time();
         let moved_end_at = moved_start_at + clip_duration;
 
         let moving_clip_index = clips
@@ -82,34 +61,98 @@ impl MoveCameraClipJob {
         }
 
         if moving_clip_index != next_moving_clip_index {
-            let moving_clip = clips.remove(moving_clip_index);
-            clips.insert(next_moving_clip_index, moving_clip);
+            namui::log!(
+                "moving clip index: {} -> {}",
+                moving_clip_index,
+                next_moving_clip_index
+            );
+            let min = moving_clip_index.min(next_moving_clip_index);
+            let max = moving_clip_index.max(next_moving_clip_index);
+
+            let slice_to_rotate = &mut clips[min..max + 1];
+            if moving_clip_index < next_moving_clip_index {
+                slice_to_rotate.rotate_left(1);
+            } else {
+                slice_to_rotate.rotate_right(1);
+            }
         }
 
-        push_front_camera_clips(clips);
+        push_front_camera_clips(&mut clips);
 
         if is_preview {
             clips
                 .iter_mut()
                 .find(|clip| clip.id.eq(moving_clip_id))
                 .map(|moving_clip| {
-                    moving_clip.start_at = moved_start_at;
-                    moving_clip.end_at = moved_end_at;
+                    let new_clip = Arc::new(CameraClip {
+                        id: moving_clip.id.clone(),
+                        start_at: moved_start_at,
+                        end_at: moved_end_at,
+                        camera_angle: moving_clip.camera_angle.clone(),
+                    });
+                    let _ = std::mem::replace(moving_clip, new_clip);
                 });
         }
+        camera_track.clips = clips.into();
     }
-    pub fn execute(&self, editor: &mut Editor) {
-        let mut track = find_camera_track_of_clip(&self.clip_id, &mut editor.sequence).unwrap();
-        self.order_clips_by_moving_clip(&mut track, &editor.timeline.time_per_pixel, false);
+    pub fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
+        let mut sequence = sequence.clone();
+        let track = find_camera_track_of_clip(&self.clip_id, &sequence);
+        if track.is_none() {
+            return Err(format!("camera track not found"));
+        }
+        let mut track = track.unwrap().clone();
+        self.order_clips_by_moving_clip(&mut track, false);
+        replace_track(&mut sequence, track);
+        Ok(sequence)
     }
 }
 
-fn push_front_camera_clips(clips: &mut Vec<CameraClip>) {
+fn replace_track(sequence: &mut Sequence, track: CameraTrack) {
+    let track_index = sequence
+        .tracks
+        .iter()
+        .position(|t| {
+            if let Track::Camera(t) = t.as_ref() {
+                t.id == track.id
+            } else {
+                false
+            }
+        })
+        .unwrap();
+
+    let mut next_tracks = sequence.tracks.to_vec();
+    next_tracks[track_index] = Arc::new(Track::Camera(track));
+    sequence.tracks = next_tracks.into();
+}
+
+fn push_front_camera_clips(clips: &mut [Arc<CameraClip>]) {
     let mut next_start_at = Time::zero();
-    for clip in clips.iter_mut() {
+    clips.iter_mut().for_each(|clip| {
         let duration = clip.end_at - clip.start_at;
-        clip.start_at = next_start_at;
-        clip.end_at = clip.start_at + duration;
+        let new_clip = Arc::new(CameraClip {
+            id: clip.id.clone(),
+            start_at: next_start_at,
+            end_at: next_start_at + duration,
+            camera_angle: clip.camera_angle.clone(),
+        });
+        let _ = std::mem::replace(clip, new_clip);
         next_start_at = clip.end_at;
+    });
+}
+
+fn find_camera_track_of_clip<'a>(
+    clip_id: &'a String,
+    sequence: &'a Sequence,
+) -> Option<&'a CameraTrack> {
+    for track in sequence.tracks.iter() {
+        if let Track::Camera(camera_track) = track.as_ref() {
+            for clip in camera_track.clips.iter() {
+                if clip.id == *clip_id {
+                    return Some(&camera_track);
+                }
+            }
+        }
     }
+    None
 }

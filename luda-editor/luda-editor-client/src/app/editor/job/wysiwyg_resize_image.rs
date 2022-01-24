@@ -20,7 +20,7 @@ pub struct WysiwygResizeImageJob {
 }
 
 impl WysiwygResizeImageJob {
-    pub fn execute(&self, editor: &mut Editor) {
+    pub fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
         let selected_clip = editor
             .selected_clip_id
             .as_ref()

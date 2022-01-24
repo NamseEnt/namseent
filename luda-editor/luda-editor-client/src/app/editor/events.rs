@@ -7,8 +7,7 @@ use crate::app::types::{ImageFilenameObject, PixelSize, Time};
 pub enum EditorEvent {
     CameraClipBodyMouseDownEvent {
         clip_id: String,
-        local_mouse_xy: namui::Xy<f32>,
-        global_mouse_xy: namui::Xy<f32>,
+        click_in_time: Time,
     },
     SubtitleClipHeadMouseDownEvent {
         clip_id: String,
@@ -49,5 +48,8 @@ pub enum EditorEvent {
     },
     TimelineTimeRulerClickEvent {
         click_position_in_time: Time,
+    },
+    TimelineBodyMouseMoveEvent {
+        mouse_position_in_time: Time,
     },
 }

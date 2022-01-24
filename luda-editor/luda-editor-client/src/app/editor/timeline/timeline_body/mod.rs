@@ -1,4 +1,5 @@
 use namui::prelude::*;
+use std::sync::Arc;
 mod track_body;
 use super::TimelineRenderContext;
 use crate::app::{
@@ -11,7 +12,7 @@ pub struct TimelineBody {}
 pub struct TimelineBodyProps<'a> {
     pub width: f32,
     pub height: f32,
-    pub tracks: &'a Vec<Track>,
+    pub tracks: &'a [Arc<Track>],
     pub context: &'a TimelineRenderContext<'a>,
 }
 impl TimelineBody {
@@ -57,42 +58,55 @@ impl TimelineBody {
         .attach_event(move |builder| {
             let width = props.width;
             let height = props.height;
-            builder.on_wheel(move |event| {
-                let managers = namui::managers();
+            let time_per_pixel = props.context.time_per_pixel;
+            let start_at = props.context.start_at;
+            builder
+                .on_wheel(move |event| {
+                    let managers = namui::managers();
 
-                let mouse_manager = &managers.mouse_manager;
-                let mouse_position = mouse_manager.mouse_position();
-                let timeline_xy = event
-                    .namui_context
-                    .get_rendering_tree_xy(border_id)
-                    .unwrap();
+                    let mouse_manager = &managers.mouse_manager;
+                    let mouse_position = mouse_manager.mouse_position();
+                    let timeline_xy = event
+                        .namui_context
+                        .get_rendering_tree_xy(border_id)
+                        .unwrap();
 
-                let is_mouse_in_timeline = mouse_position.x as f32 >= timeline_xy.x
-                    && mouse_position.x as f32 <= timeline_xy.x + width
-                    && mouse_position.y as f32 >= timeline_xy.y
-                    && mouse_position.y as f32 <= timeline_xy.y + height;
-                if !is_mouse_in_timeline {
-                    return;
-                }
+                    let is_mouse_in_timeline = mouse_position.x as f32 >= timeline_xy.x
+                        && mouse_position.x as f32 <= timeline_xy.x + width
+                        && mouse_position.y as f32 >= timeline_xy.y
+                        && mouse_position.y as f32 <= timeline_xy.y + height;
+                    if !is_mouse_in_timeline {
+                        return;
+                    }
 
-                let keyboard_manager = &managers.keyboard_manager;
-                if keyboard_manager
-                    .any_code_press(&[namui::Code::ShiftLeft, namui::Code::ShiftRight])
-                {
-                    namui::event::send(EditorEvent::TimelineMoveEvent {
-                        pixel: PixelSize(event.delta_xy.y),
+                    let keyboard_manager = &managers.keyboard_manager;
+                    if keyboard_manager
+                        .any_code_press(&[namui::Code::ShiftLeft, namui::Code::ShiftRight])
+                    {
+                        namui::event::send(EditorEvent::TimelineMoveEvent {
+                            pixel: PixelSize(event.delta_xy.y),
+                        })
+                    } else if keyboard_manager
+                        .any_code_press(&[namui::Code::AltLeft, namui::Code::AltRight])
+                    {
+                        let anchor_x_in_timeline =
+                            PixelSize(mouse_position.x as f32 - timeline_xy.x);
+
+                        namui::event::send(EditorEvent::TimelineZoomEvent {
+                            delta: event.delta_xy.y,
+                            anchor_x_in_timeline,
+                        })
+                    }
+                })
+                .on_mouse_move_in(move |event| {
+                    let mouse_position_in_time =
+                        PixelSize(event.local_xy.x) * time_per_pixel + start_at;
+                    namui::log!("mouse_position_in_time: {:?}", mouse_position_in_time);
+                    namui::event::send(EditorEvent::TimelineBodyMouseMoveEvent {
+                        mouse_position_in_time: PixelSize(event.local_xy.x) * time_per_pixel
+                            + start_at,
                     })
-                } else if keyboard_manager
-                    .any_code_press(&[namui::Code::AltLeft, namui::Code::AltRight])
-                {
-                    let anchor_x_in_timeline = PixelSize(mouse_position.x as f32 - timeline_xy.x);
-
-                    namui::event::send(EditorEvent::TimelineZoomEvent {
-                        delta: event.delta_xy.y,
-                        anchor_x_in_timeline,
-                    })
-                }
-            })
+                })
         });
         render![
             border,

@@ -1,20 +1,10 @@
 mod timeline;
-use self::{
-    clip_editor::ClipEditor,
-    events::*,
-    job::{
-        Job, MoveCameraClipJob, MoveSubtitleClipJob, WysiwygCropImageJob, WysiwygMoveImageJob,
-        WysiwygResizeImageJob,
-    },
-};
-use super::types::{
-    CharacterPoseEmotion, Clip, ImageFilenameObject, LudaEditorServerCameraAngleImageLoader,
-    MutableClip, Sequence, SubtitlePlayDurationMeasurer, TimePerPixel,
-};
+use self::{clip_editor::ClipEditor, events::*, job::*};
+use super::types::*;
 use crate::app::editor::{clip_editor::ClipEditorProps, sequence_player::SequencePlayerProps};
 use luda_editor_rpc::Socket;
 use namui::prelude::*;
-use std::rc::Rc;
+use std::sync::Arc;
 pub use timeline::*;
 use wasm_bindgen_futures::spawn_local;
 mod clip_editor;
@@ -33,7 +23,7 @@ pub struct Editor {
     clip_editor: Option<ClipEditor>,
     image_filename_objects: Vec<ImageFilenameObject>,
     pub selected_clip_id: Option<String>,
-    pub sequence: Sequence,
+    sequence: Arc<Sequence>,
     sequence_player: SequencePlayer,
     subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
 }
@@ -45,193 +35,168 @@ impl namui::Entity for Editor {
             match event {
                 EditorEvent::CameraClipBodyMouseDownEvent {
                     clip_id,
-                    global_mouse_xy,
+                    click_in_time,
                     ..
                 } => {
                     if self.job.is_none() {
                         self.job = Some(Job::MoveCameraClip(MoveCameraClipJob {
                             clip_id: clip_id.clone(),
-                            click_anchor_in_global: *global_mouse_xy,
-                            last_global_mouse_xy: *global_mouse_xy,
+                            click_anchor_in_time: *click_in_time,
+                            last_mouse_position_in_time: *click_in_time,
                         }));
                     }
                     self.selected_clip_id = Some(clip_id.clone());
                     self.clip_editor =
                         Some(ClipEditor::new(&self.sequence.get_clip(clip_id).unwrap()));
                 }
-                EditorEvent::SubtitleClipHeadMouseDownEvent {
-                    clip_id,
-                    global_mouse_xy,
-                    ..
-                } => {
-                    if self.job.is_none() {
-                        self.job = Some(Job::MoveSubtitleClip(MoveSubtitleClipJob {
-                            clip_id: clip_id.clone(),
-                            click_anchor_in_global: *global_mouse_xy,
-                            last_global_mouse_xy: *global_mouse_xy,
-                        }));
-                    }
-                    self.selected_clip_id = Some(clip_id.clone());
-                    self.clip_editor =
-                        Some(ClipEditor::new(&self.sequence.get_clip(clip_id).unwrap()));
-                }
+                // EditorEvent::SubtitleClipHeadMouseDownEvent {
+                //     clip_id,
+                //     global_mouse_xy,
+                //     ..
+                // } => {
+                //     if self.job.is_none() {
+                //         self.job = Some(Job::MoveSubtitleClip(MoveSubtitleClipJob {
+                //             clip_id: clip_id.clone(),
+                //             click_anchor_in_global: *global_mouse_xy,
+                //             last_global_mouse_xy: *global_mouse_xy,
+                //         }));
+                //     }
+                //     self.selected_clip_id = Some(clip_id.clone());
+                //     self.clip_editor =
+                //         Some(ClipEditor::new(&self.sequence.get_clip(clip_id).unwrap()));
+                // }
                 EditorEvent::ImageFilenameObjectsUpdatedEvent {
                     image_filename_objects,
                 } => {
                     self.image_filename_objects = image_filename_objects.to_vec();
                 }
-                EditorEvent::WysiwygEditorInnerImageMouseDownEvent {
-                    mouse_xy,
-                    container_size,
-                } => {
-                    if self.job.is_none() {
-                        self.job = Some(Job::WysiwygMoveImage(WysiwygMoveImageJob {
-                            start_global_mouse_xy: *mouse_xy,
-                            last_global_mouse_xy: *mouse_xy,
-                            container_size: *container_size,
-                        }));
-                    };
-                }
-                EditorEvent::WysiwygEditorResizerHandleMouseDownEvent {
-                    mouse_xy,
-                    handle,
-                    center_xy,
-                    container_size,
-                    image_size_ratio,
-                } => {
-                    if self.job.is_none() {
-                        self.job = Some(Job::WysiwygResizeImage(WysiwygResizeImageJob {
-                            start_global_mouse_xy: *mouse_xy,
-                            last_global_mouse_xy: *mouse_xy,
-                            handle: *handle,
-                            center_xy: *center_xy,
-                            container_size: *container_size,
-                            image_size_ratio: *image_size_ratio,
-                        }));
-                    };
-                }
-                EditorEvent::WysiwygEditorCropperHandleMouseDownEvent {
-                    mouse_xy,
-                    handle,
-                    container_size,
-                } => {
-                    if self.job.is_none() {
-                        self.job = Some(Job::WysiwygCropImage(WysiwygCropImageJob {
-                            start_global_mouse_xy: *mouse_xy,
-                            last_global_mouse_xy: *mouse_xy,
-                            handle: handle.clone(),
-                            container_size: *container_size,
-                        }));
-                    };
-                }
-                EditorEvent::TimelineMoveEvent { pixel } => {
-                    self.timeline.start_at += pixel * self.timeline.time_per_pixel;
-                }
-                EditorEvent::TimelineZoomEvent {
-                    delta,
-                    anchor_x_in_timeline,
-                } => {
-                    let zoom_by_wheel = |target: &f32, delta: &f32| -> f32 {
-                        const STEP: f32 = 400.0;
-                        const MIN: f32 = 10.0;
-                        const MAX: f32 = 1000.0;
-
-                        let wheel = STEP * (target / 10.0).log2();
-
-                        let next_wheel = wheel + delta;
-
-                        let zoomed = num::clamp(10.0 * 2.0f32.powf(next_wheel / STEP), MIN, MAX);
-                        zoomed
-                    };
-                    let time_of_mouse_position = self.timeline.start_at
-                        + anchor_x_in_timeline * self.timeline.time_per_pixel;
-
-                    let next_ms_per_pixel =
-                        zoom_by_wheel(&self.timeline.time_per_pixel.ms_per_pixel(), delta);
-                    let next_time_per_pixel = TimePerPixel::from_ms_per_pixel(&next_ms_per_pixel);
-
-                    let next_start_at =
-                        time_of_mouse_position - anchor_x_in_timeline * next_time_per_pixel;
-
-                    self.timeline.time_per_pixel = next_time_per_pixel;
-                    self.timeline.start_at = next_start_at;
-                }
+                // EditorEvent::WysiwygEditorInnerImageMouseDownEvent {
+                //     mouse_xy,
+                //     container_size,
+                // } => {
+                //     if self.job.is_none() {
+                //         self.job = Some(Job::WysiwygMoveImage(WysiwygMoveImageJob {
+                //             start_global_mouse_xy: *mouse_xy,
+                //             last_global_mouse_xy: *mouse_xy,
+                //             container_size: *container_size,
+                //         }));
+                //     };
+                // }
+                // EditorEvent::WysiwygEditorResizerHandleMouseDownEvent {
+                //     mouse_xy,
+                //     handle,
+                //     center_xy,
+                //     container_size,
+                //     image_size_ratio,
+                // } => {
+                //     if self.job.is_none() {
+                //         self.job = Some(Job::WysiwygResizeImage(WysiwygResizeImageJob {
+                //             start_global_mouse_xy: *mouse_xy,
+                //             last_global_mouse_xy: *mouse_xy,
+                //             handle: *handle,
+                //             center_xy: *center_xy,
+                //             container_size: *container_size,
+                //             image_size_ratio: *image_size_ratio,
+                //         }));
+                //     };
+                // }
+                // EditorEvent::WysiwygEditorCropperHandleMouseDownEvent {
+                //     mouse_xy,
+                //     handle,
+                //     container_size,
+                // } => {
+                //     if self.job.is_none() {
+                //         self.job = Some(Job::WysiwygCropImage(WysiwygCropImageJob {
+                //             start_global_mouse_xy: *mouse_xy,
+                //             last_global_mouse_xy: *mouse_xy,
+                //             handle: handle.clone(),
+                //             container_size: *container_size,
+                //         }));
+                //     };
+                // }
                 EditorEvent::ImageBrowserSelectEvent { selected_item } => {
                     match selected_item {
                         clip_editor::camera_clip_editor::image_browser::ImageBrowserItem::CharacterPoseEmotion(character, pose, emotion) => {
-                            let selected_clip = self
-                                .selected_clip_id
-                                .as_ref()
-                                .and_then(|id| self.sequence.get_mut_clip(&id));
-                            if let Some(MutableClip::Camera(camera_clip)) = selected_clip {
-                                camera_clip.camera_angle.character_pose_emotion = CharacterPoseEmotion(character.clone(), pose.clone(), emotion.clone());
-                            } else {
-                                unreachable!();
-                            }
+                            todo!("Make it as job.");
+                            // let selected_clip = self
+                            //     .selected_clip_id
+                            //     .as_ref()
+                            //     .and_then(|id| self.sequence.get_mut_clip(&id));
+                            // if let Some(MutableClip::Camera(camera_clip)) = selected_clip {
+                            //     camera_clip.camera_angle.character_pose_emotion = CharacterPoseEmotion(character.clone(), pose.clone(), emotion.clone());
+                            // } else {
+                            //     unreachable!();
+                            // }
                         },
                         _ => {}
                     }
                 }
-                EditorEvent::TimelineTimeRulerClickEvent{click_position_in_time} => {
+                EditorEvent::TimelineTimeRulerClickEvent {
+                    click_position_in_time,
+                } => {
                     self.sequence_player.seek(*click_position_in_time);
                 }
+                EditorEvent::TimelineBodyMouseMoveEvent {
+                    mouse_position_in_time,
+                } => match self.job {
+                    Some(Job::MoveCameraClip(ref mut job)) => {
+                        job.last_mouse_position_in_time = *mouse_position_in_time;
+                    }
+                    _ => {}
+                },
                 _ => {}
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
                 NamuiEvent::MouseMove(mouse_event) => match self.job {
-                    Some(Job::MoveCameraClip(ref mut job)) => {
-                        job.last_global_mouse_xy = mouse_event.xy;
-                    }
-                    Some(Job::MoveSubtitleClip(ref mut job)) => {
-                        job.last_global_mouse_xy = mouse_event.xy;
-                    }
-                    Some(Job::WysiwygMoveImage(ref mut job)) => {
-                        job.last_global_mouse_xy = mouse_event.xy;
-                    }
-                    Some(Job::WysiwygResizeImage(ref mut job)) => {
-                        job.last_global_mouse_xy = mouse_event.xy;
-                    }
-                    Some(Job::WysiwygCropImage(ref mut job)) => {
-                        job.last_global_mouse_xy = mouse_event.xy;
-                    }
+                    // Some(Job::MoveSubtitleClip(ref mut job)) => {
+                    //     job.last_global_mouse_xy = mouse_event.xy;
+                    // }
+                    // Some(Job::WysiwygMoveImage(ref mut job)) => {
+                    //     job.last_global_mouse_xy = mouse_event.xy;
+                    // }
+                    // Some(Job::WysiwygResizeImage(ref mut job)) => {
+                    //     job.last_global_mouse_xy = mouse_event.xy;
+                    // }
+                    // Some(Job::WysiwygCropImage(ref mut job)) => {
+                    //     job.last_global_mouse_xy = mouse_event.xy;
+                    // }
                     _ => {}
                 },
                 NamuiEvent::MouseUp(mouse_event) => {
                     let job = self.job.clone();
                     match job {
                         // TODO : Make these simple using trait
-                        Some(Job::MoveCameraClip(mut job)) => {
-                            job.last_global_mouse_xy = mouse_event.xy;
-                            job.execute(self);
-                            self.job = None;
+                        Some(Job::MoveCameraClip(_)) => {
+                            self.execute_job();
                         }
-                        Some(Job::MoveSubtitleClip(mut job)) => {
-                            job.last_global_mouse_xy = mouse_event.xy;
-                            job.execute(self);
-                            self.job = None;
-                        }
-                        Some(Job::WysiwygMoveImage(mut job)) => {
-                            job.last_global_mouse_xy = mouse_event.xy;
-                            job.execute(self);
-                            self.job = None;
-                        }
-                        Some(Job::WysiwygResizeImage(mut job)) => {
-                            job.last_global_mouse_xy = mouse_event.xy;
-                            job.execute(self);
-                            self.job = None;
-                        }
-                        Some(Job::WysiwygCropImage(mut job)) => {
-                            job.last_global_mouse_xy = mouse_event.xy;
-                            job.execute(self);
-                            self.job = None;
-                        }
+                        // Some(Job::MoveSubtitleClip(mut job)) => {
+                        //     job.last_global_mouse_xy = mouse_event.xy;
+                        //     job.execute(self);
+                        //     self.job = None;
+                        // }
+                        // Some(Job::WysiwygMoveImage(mut job)) => {
+                        //     job.last_global_mouse_xy = mouse_event.xy;
+                        //     job.execute(self);
+                        //     self.job = None;
+                        // }
+                        // Some(Job::WysiwygResizeImage(mut job)) => {
+                        //     job.last_global_mouse_xy = mouse_event.xy;
+                        //     job.execute(self);
+                        //     self.job = None;
+                        // }
+                        // Some(Job::WysiwygCropImage(mut job)) => {
+                        //     job.last_global_mouse_xy = mouse_event.xy;
+                        //     job.execute(self);
+                        //     self.job = None;
+                        // }
                         _ => {}
                     }
                 }
                 _ => {}
             }
         };
+        self.timeline.update(event);
         self.clip_editor
             .as_mut()
             .map(|clip_editor| clip_editor.update(event));
@@ -291,7 +256,7 @@ impl namui::Entity for Editor {
 }
 
 impl Editor {
-    pub fn new(socket: Socket, sequence: Sequence) -> Self {
+    pub fn new(socket: Socket, sequence: Arc<Sequence>) -> Self {
         spawn_local({
             let socket = socket.clone();
             async move {
@@ -314,16 +279,15 @@ impl Editor {
                 }
             }
         });
-        let sequence_rc = Rc::new(sequence.clone());
         Self {
             timeline: Timeline::new(),
             image_filename_objects: vec![],
             job: None,
             clip_editor: None,
             selected_clip_id: None,
-            sequence, // NOTE : I think editor should not have mutable sequence, but just immutable to track changes
+            sequence: sequence.clone(),
             sequence_player: SequencePlayer::new(
-                sequence_rc,
+                sequence.clone(),
                 Box::new(LudaEditorServerCameraAngleImageLoader {}),
             ),
             subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
@@ -341,5 +305,22 @@ impl Editor {
         self.selected_clip_id
             .as_ref()
             .and_then(|id| self.sequence.get_clip(&id))
+    }
+    fn execute_job(&mut self) {
+        let job = &self.job.take();
+        if job.is_none() {
+            panic!("job is None");
+        }
+        let job = job.as_ref().unwrap();
+        match job.execute(&self.sequence) {
+            Err(reason) => {
+                namui::log(format!("job execute failed: {:?}", reason));
+            }
+            Ok(next_sequence) => {
+                let next_sequence = Arc::new(next_sequence);
+                self.sequence = next_sequence.clone();
+                self.sequence_player.update_sequence(next_sequence.clone());
+            }
+        }
     }
 }

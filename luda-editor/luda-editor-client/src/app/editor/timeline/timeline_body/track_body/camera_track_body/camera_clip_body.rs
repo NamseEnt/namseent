@@ -1,6 +1,6 @@
 use crate::app::{
     editor::{events::EditorEvent, TimelineRenderContext},
-    types::CameraClip,
+    types::{CameraClip, PixelSize},
 };
 use namui::prelude::*;
 
@@ -12,9 +12,12 @@ pub struct CameraClipBodyProps<'a> {
 }
 impl CameraClipBody {
     pub fn render(props: &CameraClipBodyProps) -> RenderingTree {
-        let x = ((props.clip.start_at - props.context.start_at) / props.context.time_per_pixel).0;
+        let timeline_start_at = props.context.start_at;
+        let time_per_pixel = props.context.time_per_pixel;
+
+        let x = ((props.clip.start_at - timeline_start_at) / time_per_pixel).0;
         let duration = props.clip.end_at - props.clip.start_at;
-        let width = (duration / props.context.time_per_pixel).0;
+        let width = (duration / time_per_pixel).0;
 
         let clip_rect = namui::XywhRect {
             x: x + 1.0,
@@ -28,7 +31,7 @@ impl CameraClipBody {
             .as_ref()
             .map_or(false, |id| id.eq(&props.clip.id));
 
-        render![namui::rect(namui::RectParam {
+        namui::rect(namui::RectParam {
             x: clip_rect.x,
             y: clip_rect.y,
             width: clip_rect.width,
@@ -60,11 +63,10 @@ impl CameraClipBody {
             builder.on_mouse_down(move |event| {
                 let event = EditorEvent::CameraClipBodyMouseDownEvent {
                     clip_id: clip_id.clone(),
-                    local_mouse_xy: event.local_xy,
-                    global_mouse_xy: event.global_xy,
+                    click_in_time: timeline_start_at + PixelSize(event.local_xy.x) * time_per_pixel,
                 };
                 namui::event::send(event);
             })
-        })]
+        })
     }
 }

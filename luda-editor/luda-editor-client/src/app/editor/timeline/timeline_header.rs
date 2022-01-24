@@ -3,12 +3,13 @@ use crate::app::{
     types::Track,
 };
 use namui::prelude::*;
+use std::sync::Arc;
 
 pub struct TimelineHeader {}
 pub struct TimelineHeaderProps<'a> {
     pub width: f32,
     pub height: f32,
-    pub tracks: &'a Vec<Track>,
+    pub tracks: &'a [Arc<Track>],
 }
 impl TimelineHeader {
     pub fn render(props: &TimelineHeaderProps) -> RenderingTree {

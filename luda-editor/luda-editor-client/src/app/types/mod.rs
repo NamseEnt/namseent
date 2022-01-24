@@ -9,7 +9,7 @@ pub use page::*;
 pub use pixel_size::*;
 pub use router_context::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 mod time;
 pub use time::*;
 mod time_per_pixel;
@@ -25,17 +25,25 @@ pub enum Track {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CameraTrack {
-    pub clips: Vec<CameraClip>,
+    pub id: String,
+    pub clips: Arc<[Arc<CameraClip>]>,
 }
 impl CameraTrack {
     pub(crate) fn get_clip_at_time(&self, time: &Time) -> Option<&CameraClip> {
-        self.clips.iter().find(|clip| clip.is_at_time(time))
+        self.clips.iter().find_map(|clip| {
+            if clip.is_at_time(time) {
+                Some(clip.as_ref())
+            } else {
+                None
+            }
+        })
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtitleTrack {
-    pub clips: Vec<SubtitleClip>,
+    pub id: String,
+    pub clips: Arc<[Arc<SubtitleClip>]>,
 }
 impl SubtitleTrack {
     pub(crate) fn get_clip_at_time(
@@ -44,9 +52,13 @@ impl SubtitleTrack {
         language: Language,
         duration_measurer: &SubtitlePlayDurationMeasurer,
     ) -> Option<&SubtitleClip> {
-        self.clips
-            .iter()
-            .find(|clip| clip.is_at_time(&time, language, duration_measurer))
+        self.clips.iter().find_map(|clip| {
+            if clip.is_at_time(&time, language, duration_measurer) {
+                Some(clip.as_ref())
+            } else {
+                None
+            }
+        })
     }
 }
 
@@ -106,45 +118,24 @@ pub struct Subtitle {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Sequence {
-    pub tracks: Vec<Track>,
+    pub tracks: Arc<[Arc<Track>]>,
 }
 
 impl Sequence {
     pub fn get_clip(&self, id: &str) -> Option<Clip> {
-        for track in &self.tracks {
-            match track {
+        for track in self.tracks.iter() {
+            match track.as_ref() {
                 Track::Camera(track) => {
-                    for clip in &track.clips {
+                    for clip in track.clips.iter() {
                         if clip.id == id {
                             return Some(Clip::Camera(clip));
                         }
                     }
                 }
                 Track::Subtitle(track) => {
-                    for clip in &track.clips {
+                    for clip in track.clips.iter() {
                         if clip.id == id {
                             return Some(Clip::Subtitle(clip));
-                        }
-                    }
-                }
-            }
-        }
-        None
-    }
-    pub fn get_mut_clip<'a>(&'a mut self, id: &str) -> Option<MutableClip<'a>> {
-        for track in &mut self.tracks {
-            match track {
-                Track::Camera(track) => {
-                    for clip in &mut track.clips {
-                        if clip.id == id {
-                            return Some(MutableClip::Camera(clip));
-                        }
-                    }
-                }
-                Track::Subtitle(track) => {
-                    for clip in &mut track.clips {
-                        if clip.id == id {
-                            return Some(MutableClip::Subtitle(clip));
                         }
                     }
                 }
