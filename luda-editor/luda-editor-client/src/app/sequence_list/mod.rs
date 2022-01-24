@@ -1,20 +1,19 @@
+mod common;
+mod events;
+mod list;
+mod ops;
+mod reload_titles_button;
+mod types;
 use self::{
     events::SequenceListEvent,
     types::{SequenceLoadStateMap, SequenceTitlesLoadState},
 };
+use crate::app::sequence_list::{
+    list::render_list, reload_titles_button::render_reload_titles_button,
+};
 use luda_editor_rpc::Socket;
 use namui::{render, Entity, Wh};
 use std::collections::HashMap;
-mod button_text;
-mod events;
-mod list;
-mod list_item;
-mod open_button;
-mod ops;
-mod reload_titles_button;
-mod rounded_rectangle;
-mod title_button;
-mod types;
 
 const LIST_WIDTH: f32 = 800.0;
 const BUTTON_HEIGHT: f32 = 36.0;
@@ -102,7 +101,7 @@ impl Entity for SequenceList {
             namui::translate(
                 MARGIN,
                 MARGIN,
-                self.render_reload_titles_button(Wh {
+                render_reload_titles_button(Wh {
                     width: LIST_WIDTH,
                     height: BUTTON_HEIGHT
                 })
@@ -110,7 +109,12 @@ impl Entity for SequenceList {
             namui::translate(
                 MARGIN,
                 MARGIN + SPACING + BUTTON_HEIGHT,
-                self.render_list(list_wh)
+                render_list(
+                    list_wh,
+                    &self.sequence_titles_load_state,
+                    &self.sequence_load_state_map,
+                    self.scroll_y
+                )
             ),
         ]
     }

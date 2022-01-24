@@ -1,7 +1,6 @@
-use std::convert;
-
-use super::{SequenceList, RECT_RADIUS};
+use crate::app::sequence_list::RECT_RADIUS;
 use namui::{Color, RectFill, RectParam, RectRound, RectStyle, RenderingTree, Wh};
+use std::convert;
 
 pub enum RoundedRectangleColor {
     DarkGray,
@@ -12,28 +11,22 @@ pub enum RoundedRectangleColor {
     // White,
 }
 
-impl SequenceList {
-    pub fn render_rounded_rectangle(
-        &self,
-        wh: Wh<f32>,
-        color: RoundedRectangleColor,
-    ) -> RenderingTree {
-        namui::rect(RectParam {
-            x: 0.0,
-            y: 0.0,
-            width: wh.width,
-            height: wh.height,
-            style: RectStyle {
-                stroke: None,
-                fill: Some(RectFill {
-                    color: color.into(),
-                }),
-                round: Some(RectRound {
-                    radius: RECT_RADIUS,
-                }),
-            },
-        })
-    }
+pub fn render_rounded_rectangle(wh: Wh<f32>, color: RoundedRectangleColor) -> RenderingTree {
+    namui::rect(RectParam {
+        x: 0.0,
+        y: 0.0,
+        width: wh.width,
+        height: wh.height,
+        style: RectStyle {
+            stroke: None,
+            fill: Some(RectFill {
+                color: color.into(),
+            }),
+            round: Some(RectRound {
+                radius: RECT_RADIUS,
+            }),
+        },
+    })
 }
 
 impl convert::Into<Color> for RoundedRectangleColor {
