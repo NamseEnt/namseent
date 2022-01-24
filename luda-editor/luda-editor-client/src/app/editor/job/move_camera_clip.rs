@@ -12,14 +12,6 @@ impl MoveCameraClipJob {
     fn get_delta_time(&self) -> Time {
         self.last_mouse_position_in_time - self.click_anchor_in_time
     }
-    pub fn move_camera_clip_by_job(&self, clip: &mut CameraClip) {
-        let clip_duration = clip.end_at - clip.start_at;
-        let moved_start_at = clip.start_at + self.get_delta_time();
-        let moved_end_at = moved_start_at + clip_duration;
-
-        clip.start_at = moved_start_at;
-        clip.end_at = moved_end_at;
-    }
     pub fn order_clips_by_moving_clip(&self, camera_track: &mut CameraTrack, is_preview: bool) {
         let mut clips = camera_track.clips.to_vec();
 
@@ -61,11 +53,6 @@ impl MoveCameraClipJob {
         }
 
         if moving_clip_index != next_moving_clip_index {
-            namui::log!(
-                "moving clip index: {} -> {}",
-                moving_clip_index,
-                next_moving_clip_index
-            );
             let min = moving_clip_index.min(next_moving_clip_index);
             let max = moving_clip_index.max(next_moving_clip_index);
 

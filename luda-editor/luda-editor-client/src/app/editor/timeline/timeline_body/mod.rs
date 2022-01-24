@@ -99,8 +99,6 @@ impl TimelineBody {
                     }
                 })
                 .on_mouse_move_in(move |event| {
-                    let mouse_position_in_time =
-                        PixelSize(event.local_xy.x) * time_per_pixel + start_at;
                     namui::event::send(EditorEvent::TimelineBodyMouseMoveEvent {
                         mouse_position_in_time: PixelSize(event.local_xy.x) * time_per_pixel
                             + start_at,
