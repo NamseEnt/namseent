@@ -17,19 +17,13 @@ pub struct SubtitleTrackBodyProps<'a> {
 impl SubtitleTrackBody {
     pub fn render(props: &SubtitleTrackBodyProps) -> RenderingTree {
         let clips = match &props.context.job {
-            // Some(Job::MoveSubtitleClip(job)) => {
-            //     let mut track = props.track.clone();
+            Some(Job::MoveSubtitleClip(job)) => {
+                let track = props.track.clone();
 
-            //     let time_per_pixel = &props.context.time_per_pixel;
-            //     let moving_clip = track
-            //         .clips
-            //         .iter_mut()
-            //         .find(|clip| clip.id.eq(&job.clip_id))
-            //         .unwrap();
-            //     job.move_subtitle_clip_by_job(moving_clip, time_per_pixel);
+                let track = job.move_subtitle_clip_in(track).unwrap();
 
-            //     track.clips
-            // }
+                track.clips
+            }
             _ => props.track.clips.clone(),
         };
 

@@ -52,22 +52,23 @@ impl namui::Entity for Editor {
                         &self.get_sequence().get_clip(clip_id).unwrap(),
                     ));
                 }
-                // EditorEvent::SubtitleClipHeadMouseDownEvent {
-                //     clip_id,
-                //     global_mouse_xy,
-                //     ..
-                // } => {
-                //     if self.job.is_none() {
-                //         self.job = Some(Job::MoveSubtitleClip(MoveSubtitleClipJob {
-                //             clip_id: clip_id.clone(),
-                //             click_anchor_in_global: *global_mouse_xy,
-                //             last_global_mouse_xy: *global_mouse_xy,
-                //         }));
-                //     }
-                //     self.selected_clip_id = Some(clip_id.clone());
-                //     self.clip_editor =
-                //         Some(ClipEditor::new(&self.sequence.get_clip(clip_id).unwrap()));
-                // }
+                EditorEvent::SubtitleClipHeadMouseDownEvent {
+                    clip_id,
+                    click_in_time,
+                    ..
+                } => {
+                    if self.job.is_none() {
+                        self.job = Some(Job::MoveSubtitleClip(MoveSubtitleClipJob {
+                            clip_id: clip_id.clone(),
+                            click_anchor_in_time: *click_in_time,
+                            last_mouse_position_in_time: *click_in_time,
+                        }));
+                    }
+                    self.selected_clip_id = Some(clip_id.clone());
+                    self.clip_editor = Some(ClipEditor::new(
+                        &self.get_sequence().get_clip(clip_id).unwrap(),
+                    ));
+                }
                 EditorEvent::ImageFilenameObjectsUpdatedEvent {
                     image_filename_objects,
                 } => {
@@ -145,6 +146,9 @@ impl namui::Entity for Editor {
                     Some(Job::MoveCameraClip(ref mut job)) => {
                         job.last_mouse_position_in_time = *mouse_position_in_time;
                     }
+                    Some(Job::MoveSubtitleClip(ref mut job)) => {
+                        job.last_mouse_position_in_time = *mouse_position_in_time;
+                    }
                     _ => {}
                 },
                 _ => {}
@@ -152,9 +156,6 @@ impl namui::Entity for Editor {
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
                 NamuiEvent::MouseMove(mouse_event) => match self.job {
-                    // Some(Job::MoveSubtitleClip(ref mut job)) => {
-                    //     job.last_global_mouse_xy = mouse_event.xy;
-                    // }
                     // Some(Job::WysiwygMoveImage(ref mut job)) => {
                     //     job.last_global_mouse_xy = mouse_event.xy;
                     // }
@@ -166,18 +167,15 @@ impl namui::Entity for Editor {
                     // }
                     _ => {}
                 },
-                NamuiEvent::MouseUp(mouse_event) => {
-                    let job = self.job.clone();
-                    match job {
+                NamuiEvent::MouseUp(_) => {
+                    match self.job {
                         // TODO : Make these simple using trait
                         Some(Job::MoveCameraClip(_)) => {
                             self.execute_job();
                         }
-                        // Some(Job::MoveSubtitleClip(mut job)) => {
-                        //     job.last_global_mouse_xy = mouse_event.xy;
-                        //     job.execute(self);
-                        //     self.job = None;
-                        // }
+                        Some(Job::MoveSubtitleClip(_)) => {
+                            self.execute_job();
+                        }
                         // Some(Job::WysiwygMoveImage(mut job)) => {
                         //     job.last_global_mouse_xy = mouse_event.xy;
                         //     job.execute(self);

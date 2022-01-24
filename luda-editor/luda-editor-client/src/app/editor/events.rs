@@ -11,8 +11,7 @@ pub enum EditorEvent {
     },
     SubtitleClipHeadMouseDownEvent {
         clip_id: String,
-        local_mouse_xy: namui::Xy<f32>,
-        global_mouse_xy: namui::Xy<f32>,
+        click_in_time: Time,
     },
     ImageFilenameObjectsUpdatedEvent {
         image_filename_objects: Vec<ImageFilenameObject>,

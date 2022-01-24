@@ -1,6 +1,6 @@
 use crate::app::{
     editor::{events::EditorEvent, TimelineRenderContext},
-    types::{SubtitleClip, Time},
+    types::{PixelSize, SubtitleClip, Time},
 };
 use namui::prelude::*;
 
@@ -13,6 +13,8 @@ pub struct SubtitleClipBodyProps<'a> {
 impl SubtitleClipBody {
     pub fn render(props: &SubtitleClipBodyProps) -> RenderingTree {
         let SubtitleClipBodyProps { clip, context, .. } = props;
+        let timeline_start_at = context.start_at;
+        let time_per_pixel = context.time_per_pixel;
         let x = ((clip.start_at - context.start_at) / context.time_per_pixel).into();
         let duration = context
             .subtitle_play_duration_measurer
@@ -107,8 +109,8 @@ impl SubtitleClipBody {
             builder.on_mouse_down(move |event| {
                 namui::event::send(EditorEvent::SubtitleClipHeadMouseDownEvent {
                     clip_id: clip_id.clone(),
-                    local_mouse_xy: event.local_xy,
-                    global_mouse_xy: event.global_xy,
+                    click_in_time: timeline_start_at
+                        + PixelSize(event.local_xy.x + x) * time_per_pixel,
                 });
             })
         });
