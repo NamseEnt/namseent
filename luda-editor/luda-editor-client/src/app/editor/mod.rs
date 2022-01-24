@@ -12,6 +12,8 @@ mod events;
 mod job;
 mod sequence_player;
 use sequence_player::SequencePlayer;
+mod history;
+use history::History;
 
 pub struct EditorProps {
     pub screen_wh: namui::Wh<f32>,
@@ -23,9 +25,9 @@ pub struct Editor {
     clip_editor: Option<ClipEditor>,
     image_filename_objects: Vec<ImageFilenameObject>,
     pub selected_clip_id: Option<String>,
-    sequence: Arc<Sequence>,
     sequence_player: SequencePlayer,
     subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
+    history: History<Arc<Sequence>>,
 }
 
 impl namui::Entity for Editor {
@@ -46,8 +48,9 @@ impl namui::Entity for Editor {
                         }));
                     }
                     self.selected_clip_id = Some(clip_id.clone());
-                    self.clip_editor =
-                        Some(ClipEditor::new(&self.sequence.get_clip(clip_id).unwrap()));
+                    self.clip_editor = Some(ClipEditor::new(
+                        &self.get_sequence().get_clip(clip_id).unwrap(),
+                    ));
                 }
                 // EditorEvent::SubtitleClipHeadMouseDownEvent {
                 //     clip_id,
@@ -193,6 +196,21 @@ impl namui::Entity for Editor {
                         _ => {}
                     }
                 }
+                NamuiEvent::KeyDown(key_event) => {
+                    if key_event.code == namui::Code::KeyZ
+                        && namui::managers()
+                            .keyboard_manager
+                            .any_code_press(&[namui::Code::ControlLeft])
+                    {
+                        self.undo();
+                    } else if key_event.code == namui::Code::KeyY
+                        && namui::managers()
+                            .keyboard_manager
+                            .any_code_press(&[namui::Code::ControlLeft])
+                    {
+                        self.redo();
+                    }
+                }
                 _ => {}
             }
         };
@@ -208,7 +226,7 @@ impl namui::Entity for Editor {
         let selected_clip = self
             .selected_clip_id
             .as_ref()
-            .and_then(|id| self.sequence.get_clip(&id));
+            .and_then(|id| self.get_sequence().get_clip(&id));
 
         let timeline_xywh = self.calculate_timeline_xywh(&props.screen_wh);
         let clip_editor_xywh = XywhRect {
@@ -230,7 +248,7 @@ impl namui::Entity for Editor {
                 xywh: timeline_xywh,
                 job: &self.job,
                 selected_clip_id: &self.selected_clip_id,
-                sequence: &self.sequence,
+                sequence: self.get_sequence(),
                 subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
             }),
             match (selected_clip, &self.clip_editor) {
@@ -285,12 +303,12 @@ impl Editor {
             job: None,
             clip_editor: None,
             selected_clip_id: None,
-            sequence: sequence.clone(),
             sequence_player: SequencePlayer::new(
                 sequence.clone(),
                 Box::new(LudaEditorServerCameraAngleImageLoader {}),
             ),
             subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
+            history: History::new(sequence.clone()),
         }
     }
     fn calculate_timeline_xywh(&self, screen_wh: &namui::Wh<f32>) -> XywhRect<f32> {
@@ -304,7 +322,7 @@ impl Editor {
     fn get_selected_clip(&self) -> Option<Clip> {
         self.selected_clip_id
             .as_ref()
-            .and_then(|id| self.sequence.get_clip(&id))
+            .and_then(|id| self.get_sequence().get_clip(&id))
     }
     fn execute_job(&mut self) {
         let job = &self.job.take();
@@ -312,15 +330,28 @@ impl Editor {
             panic!("job is None");
         }
         let job = job.as_ref().unwrap();
-        match job.execute(&self.sequence) {
+        match job.execute(&self.get_sequence()) {
             Err(reason) => {
                 namui::log(format!("job execute failed: {:?}", reason));
             }
             Ok(next_sequence) => {
                 let next_sequence = Arc::new(next_sequence);
-                self.sequence = next_sequence.clone();
+                self.history.push(next_sequence.clone());
                 self.sequence_player.update_sequence(next_sequence.clone());
             }
         }
+    }
+    fn get_sequence(&self) -> &Arc<Sequence> {
+        self.history.get()
+    }
+    fn undo(&mut self) {
+        self.history.undo();
+        self.sequence_player
+            .update_sequence(self.get_sequence().clone());
+    }
+    fn redo(&mut self) {
+        self.history.redo();
+        self.sequence_player
+            .update_sequence(self.get_sequence().clone());
     }
 }
