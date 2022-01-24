@@ -16,6 +16,7 @@ mod list_item;
 mod open_button;
 mod reload_titles_button;
 mod rounded_rectangle;
+mod title_button;
 mod types;
 
 const LIST_WIDTH: f32 = 800.0;
@@ -37,7 +38,7 @@ pub struct SequenceList {
 
 impl SequenceList {
     pub fn new(socket: Socket) -> Self {
-        namui::event::send(SequenceListEvent::SequenceTitlesLoadEvent);
+        namui::event::send(SequenceListEvent::SequenceReloadTitlesButtonClickedEvent);
         Self {
             sequence_load_state_map: HashMap::new(),
             sequence_titles_load_state: None,
@@ -68,58 +69,75 @@ impl Entity for SequenceList {
                         self.sequence_load_state_map.remove(path);
                     }
                 },
-                SequenceListEvent::SequenceLoadEvent { path } => {
+                SequenceListEvent::SequenceTitleButtonClickedEvent { path } => {
                     let started_at = Namui::now();
-                    namui::event::send(SequenceListEvent::SequenceLoadStateUpdateEvent {
-                        path: path.clone(),
-                        state: Some(SequenceLoadState {
-                            started_at,
-                            detail: SequenceLoadStateDetail::Loading,
-                        }),
-                    });
-                    spawn_local({
-                        let path = path.clone();
-                        let socket = self.socket.clone();
-                        async move {
-                            fn handle_error(path: String, started_at: Duration, error: String) {
-                                namui::log(format!("error on read_file: {:?}", error));
-                                namui::event::send(
-                                    SequenceListEvent::SequenceLoadStateUpdateEvent {
-                                        path,
-                                        state: Some(SequenceLoadState {
-                                            started_at,
-                                            detail: SequenceLoadStateDetail::Failed { error },
-                                        }),
-                                    },
-                                );
-                            }
-                            let result = socket
-                                .read_file(luda_editor_rpc::read_file::Request {
-                                    dest_path: path.clone(),
-                                })
-                                .await;
-                            match result {
-                                Ok(response) => {
-                                    let file = response.file;
-                                    match Sequence::try_from(file) {
-                                        Ok(sequence) => namui::event::send(
+                    let should_clear_load_state = self.sequence_load_state_map.get(path).is_some();
+                    match should_clear_load_state {
+                        true => {
+                            namui::event::send(SequenceListEvent::SequenceLoadStateUpdateEvent {
+                                path: path.clone(),
+                                state: None,
+                            })
+                        }
+                        false => {
+                            namui::event::send(SequenceListEvent::SequenceLoadStateUpdateEvent {
+                                path: path.clone(),
+                                state: Some(SequenceLoadState {
+                                    started_at,
+                                    detail: SequenceLoadStateDetail::Loading,
+                                }),
+                            });
+                            spawn_local({
+                                let path = path.clone();
+                                let socket = self.socket.clone();
+                                async move {
+                                    fn handle_error(
+                                        path: String,
+                                        started_at: Duration,
+                                        error: String,
+                                    ) {
+                                        namui::log(format!("error on read_file: {:?}", error));
+                                        namui::event::send(
                                             SequenceListEvent::SequenceLoadStateUpdateEvent {
-                                                path: path.clone(),
+                                                path,
                                                 state: Some(SequenceLoadState {
                                                     started_at,
-                                                    detail: SequenceLoadStateDetail::Loaded {
-                                                        sequence,
+                                                    detail: SequenceLoadStateDetail::Failed {
+                                                        error,
                                                     },
                                                 }),
                                             },
-                                        ),
+                                        );
+                                    }
+                                    let result = socket
+                                        .read_file(luda_editor_rpc::read_file::Request {
+                                            dest_path: path.clone(),
+                                        })
+                                        .await;
+                                    match result {
+                                        Ok(response) => {
+                                            let file = response.file;
+                                            match Sequence::try_from(file) {
+                                                Ok(sequence) => namui::event::send(
+                                                    SequenceListEvent::SequenceLoadStateUpdateEvent {
+                                                        path: path.clone(),
+                                                        state: Some(SequenceLoadState {
+                                                            started_at,
+                                                            detail: SequenceLoadStateDetail::Loaded {
+                                                                sequence,
+                                                            },
+                                                        }),
+                                                    },
+                                                ),
+                                                Err(error) => handle_error(path.clone(), started_at, error),
+                                            }
+                                        }
                                         Err(error) => handle_error(path.clone(), started_at, error),
                                     }
                                 }
-                                Err(error) => handle_error(path.clone(), started_at, error),
-                            }
+                            })
                         }
-                    });
+                    }
                 }
                 SequenceListEvent::SequenceTitlesLoadStateUpdateEvent { state } => {
                     if let Some(old_state) = &self.sequence_titles_load_state {
@@ -130,7 +148,7 @@ impl Entity for SequenceList {
 
                     self.sequence_titles_load_state = Some(state.clone());
                 }
-                SequenceListEvent::SequenceTitlesLoadEvent => {
+                SequenceListEvent::SequenceReloadTitlesButtonClickedEvent => {
                     let started_at = Namui::now();
                     namui::event::send(SequenceListEvent::SequenceTitlesLoadStateUpdateEvent {
                         state: SequenceTitlesLoadState {

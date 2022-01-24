@@ -1,5 +1,4 @@
 use super::{
-    events::SequenceListEvent,
     rounded_rectangle::RoundedRectangleColor,
     types::{RenderingTreeRow, RenderingTreeRows, SequenceLoadStateDetail},
     SequenceList, BUTTON_HEIGHT, MARGIN,
@@ -16,35 +15,9 @@ impl SequenceList {
             height: BUTTON_HEIGHT,
         };
         let title_load_state = self.sequence_load_state_map.get(&path);
-        let is_open = title_load_state.is_some();
         let mut elements: Vec<RenderingTreeRow> = Vec::new();
 
-        elements.push(RenderingTreeRow::new(
-            render![
-                self.render_rounded_rectangle(button_wh, RoundedRectangleColor::DarkGray)
-                    .with_mouse_cursor(namui::MouseCursor::Pointer)
-                    .attach_event(move |builder| {
-                        let path = path.clone();
-                        builder.on_mouse_down(move |_| match is_open {
-                            true => {
-                                let path = path.clone();
-                                namui::event::send(
-                                    SequenceListEvent::SequenceLoadStateUpdateEvent {
-                                        path,
-                                        state: None,
-                                    },
-                                );
-                            }
-                            false => {
-                                let path = path.clone();
-                                namui::event::send(SequenceListEvent::SequenceLoadEvent { path });
-                            }
-                        })
-                    }),
-                self.render_button_text(button_wh, title.clone()),
-            ],
-            BUTTON_HEIGHT,
-        ));
+        elements.push(self.render_title_button(element_width, title));
 
         if let Some(load_state) = title_load_state {
             elements.push(RenderingTreeRow::new(

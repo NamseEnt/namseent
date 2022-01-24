@@ -5,13 +5,13 @@ pub enum SequenceListEvent {
         path: String,
         state: Option<SequenceLoadState>,
     },
-    SequenceLoadEvent {
+    SequenceTitleButtonClickedEvent {
         path: String,
     },
     SequenceTitlesLoadStateUpdateEvent {
         state: SequenceTitlesLoadState,
     },
-    SequenceTitlesLoadEvent,
+    SequenceReloadTitlesButtonClickedEvent,
     ScrolledEvent {
         scroll_y: f32,
     },
