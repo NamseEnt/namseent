@@ -10,8 +10,8 @@ impl SubtitlePlayDurationMeasurer {
     pub fn get_play_duration(&self, subtitle: &Subtitle, language: &Language) -> Time {
         let minimum_play_duration = self.minimum_play_durations.get(language).unwrap();
         let play_duration_per_character = self.play_duration_per_character.get(language).unwrap();
-        let play_duration =
-            subtitle.language_text_map.get(language).unwrap().len() * play_duration_per_character;
+        let text = subtitle.language_text_map.get(language).unwrap();
+        let play_duration = text.chars().count() * play_duration_per_character;
         if play_duration < *minimum_play_duration {
             *minimum_play_duration
         } else {

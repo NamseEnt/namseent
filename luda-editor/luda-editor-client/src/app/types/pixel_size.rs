@@ -3,6 +3,12 @@ use auto_ops::impl_op;
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct PixelSize(pub f32);
 
+impl PixelSize {
+    pub fn into_f32(self) -> f32 {
+        self.0
+    }
+}
+
 impl From<f32> for PixelSize {
     fn from(f: f32) -> Self {
         PixelSize(f)

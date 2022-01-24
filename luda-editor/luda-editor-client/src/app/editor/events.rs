@@ -2,7 +2,7 @@ use super::clip_editor::camera_clip_editor::wysiwyg_editor::{
     cropper::CropperHandle, resizer::ResizerHandle,
 };
 use crate::app::editor::clip_editor::camera_clip_editor::image_browser::ImageBrowserItem;
-use crate::app::types::{ImageFilenameObject, PixelSize};
+use crate::app::types::{ImageFilenameObject, PixelSize, Time};
 
 pub enum EditorEvent {
     CameraClipBodyMouseDownEvent {
@@ -46,5 +46,8 @@ pub enum EditorEvent {
     TimelineZoomEvent {
         delta: f32,
         anchor_x_in_timeline: PixelSize,
+    },
+    TimelineTimeRulerClickEvent {
+        click_position_in_time: Time,
     },
 }

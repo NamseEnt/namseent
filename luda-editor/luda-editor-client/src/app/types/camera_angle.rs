@@ -15,6 +15,20 @@ pub trait CameraAngleImageLoader {
     ) -> Option<ImageSource>;
 }
 
+pub struct LudaEditorServerCameraAngleImageLoader;
+impl CameraAngleImageLoader for LudaEditorServerCameraAngleImageLoader {
+    fn get_image_source(
+        &self,
+        character_pose_emotion: &CharacterPoseEmotion,
+    ) -> Option<ImageSource> {
+        let url = format!(
+            "http://localhost:3030/resources/images/{}-{}-{}.png",
+            character_pose_emotion.0, character_pose_emotion.1, character_pose_emotion.2
+        );
+        Some(ImageSource::Url(url))
+    }
+}
+
 impl CameraAngle {
     pub fn render(
         &self,
