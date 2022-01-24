@@ -41,6 +41,8 @@ impl KeyboardManager {
                 event.prevent_default();
             }
             crate::log!("key down: {}", code_string);
+
+            crate::event::send(crate::NamuiEvent::KeyDown(crate::KeyEvent { code }));
         }) as Box<dyn FnMut(_)>);
 
         let pressing_code_set_key_up = pressing_code_set.clone();
