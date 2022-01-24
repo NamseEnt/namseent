@@ -60,6 +60,12 @@ impl App {
             ) -> Result<luda_editor_rpc::read_file::Response, String> {
                 unreachable!()
             }
+            async fn read_dir(
+                &mut self,
+                _: luda_editor_rpc::read_dir::Request,
+            ) -> Result<luda_editor_rpc::read_dir::Response, String> {
+                unreachable!()
+            }
         }
 
         let response_waiter = ResponseWaiter::new();

@@ -1,11 +1,18 @@
-use super::types::SequenceLoadState;
+use super::types::{SequenceLoadState, SequenceTitlesLoadState};
 
 pub enum SequenceListEvent {
     SequenceLoadStateUpdateEvent {
         path: String,
         state: Option<SequenceLoadState>,
     },
-    SequenceLoadEvent {
+    SequenceTitleButtonClickedEvent {
         path: String,
+    },
+    SequenceTitlesLoadStateUpdateEvent {
+        state: SequenceTitlesLoadState,
+    },
+    SequenceReloadTitlesButtonClickedEvent,
+    ScrolledEvent {
+        scroll_y: f32,
     },
 }

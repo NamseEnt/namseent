@@ -3,7 +3,9 @@ use futures::{
     stream::{self, StreamExt},
     SinkExt,
 };
-use luda_editor_rpc::{self, async_trait::async_trait, response_waiter::ResponseWaiter};
+use luda_editor_rpc::{
+    self, async_trait::async_trait, response_waiter::ResponseWaiter, Dirent, DirentFileType,
+};
 use path_clean::PathClean;
 use tokio::sync::mpsc::unbounded_channel;
 use warp::{
@@ -114,6 +116,44 @@ impl luda_editor_rpc::RpcHandle for RpcHandler {
             Ok(file) => Ok(luda_editor_rpc::read_file::Response { file }),
             Err(error) => {
                 let error_message = format!("read_file error: {}", error);
+                println!("{}", error_message);
+                Err(error_message)
+            }
+        }
+    }
+    async fn read_dir(
+        &mut self,
+        request: luda_editor_rpc::read_dir::Request,
+    ) -> Result<luda_editor_rpc::read_dir::Response, String> {
+        let dest_path = resource_path().join(request.dest_path);
+        println!("dest_path::{:?}", &dest_path);
+        match std::fs::read_dir(dest_path) {
+            Ok(read_dir) => {
+                let directory_entries: Vec<Dirent> = read_dir
+                    .filter_map(|dirent| match dirent {
+                        Ok(dirent) => match dirent.file_type() {
+                            Ok(file_type) => Some(Dirent {
+                                name: dirent.file_name().to_string_lossy().to_string(),
+                                file_type: match file_type.is_dir() {
+                                    true => DirentFileType::Directory,
+                                    false => DirentFileType::File,
+                                },
+                            }),
+                            Err(error) => {
+                                println!("{}", format!("read_dir error: {}", error));
+                                None
+                            }
+                        },
+                        Err(error) => {
+                            println!("{}", format!("read_dir error: {}", error));
+                            None
+                        }
+                    })
+                    .collect();
+                Ok(luda_editor_rpc::read_dir::Response { directory_entries })
+            }
+            Err(error) => {
+                let error_message = format!("read_dir error: {}", error);
                 println!("{}", error_message);
                 Err(error_message)
             }

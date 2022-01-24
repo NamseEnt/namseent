@@ -1,4 +1,6 @@
+mod types;
 pub use nrpc::*;
+pub use types::*;
 
 def_rpc! {
     get_camera_shot_urls({}) -> {
@@ -8,5 +10,10 @@ def_rpc! {
         dest_path: String,
     }) -> {
         file: Vec<u8>,
+    },
+    read_dir({
+        dest_path: String,
+    }) -> {
+        directory_entries: Vec<crate::Dirent>
     },
 }
