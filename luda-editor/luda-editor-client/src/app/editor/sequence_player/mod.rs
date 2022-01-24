@@ -132,15 +132,11 @@ impl SequencePlayer {
         let wh = props.xywh.wh();
         // NOTE : will be translated by props.xywh.xy.
 
-        let title_header_center_y = wh.height * (0.5 / 6.0);
-        let title_header_center_x = wh.width * 0.5;
-        let title_font_size = title_header_center_y.floor() as i16;
-
         let player_screen_xywh = namui::XywhRect {
             x: 0.0,
-            y: wh.height * (1.0 / 6.0),
+            y: 0.0,
             width: wh.width,
-            height: wh.height * (4.0 / 6.0),
+            height: wh.height * (5.0 / 6.0),
         };
 
         let buttons_xywh = namui::XywhRect {
@@ -164,23 +160,6 @@ impl SequencePlayer {
                 ..Default::default()
             },
         });
-        let title_header = namui::text(namui::TextParam {
-            x: title_header_center_x,
-            y: title_header_center_y,
-            align: namui::TextAlign::Center,
-            baseline: namui::TextBaseline::Middle,
-            font_type: namui::FontType {
-                font_weight: namui::FontWeight::BOLD,
-                size: title_font_size,
-                language: namui::Language::Ko,
-                serif: false,
-            },
-            style: namui::TextStyle {
-                color: namui::Color::BLACK,
-                ..Default::default()
-            },
-            text: "[Sequence Player]".to_string(),
-        });
 
         let playback_status = self.get_playback_status();
 
@@ -189,7 +168,6 @@ impl SequencePlayer {
             props.xywh.y,
             namui::render![
                 border,
-                title_header,
                 render_player_screen(&PlayerScreenProps {
                     xywh: &player_screen_xywh,
                     sequence: &self.sequence,
