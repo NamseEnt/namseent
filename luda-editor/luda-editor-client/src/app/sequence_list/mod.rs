@@ -13,7 +13,7 @@ use crate::app::sequence_list::{
 };
 use luda_editor_rpc::Socket;
 use namui::{render, Entity, Wh};
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 const LIST_WIDTH: f32 = 800.0;
 const BUTTON_HEIGHT: f32 = 36.0;
@@ -27,7 +27,7 @@ pub struct SequenceListProps {
 
 pub struct SequenceList {
     sequence_load_state_map: SequenceLoadStateMap,
-    sequence_titles_load_state: Option<SequenceTitlesLoadState>,
+    sequence_titles_load_state: SequenceTitlesLoadState,
     socket: Socket,
     scroll_y: f32,
 }
@@ -36,7 +36,12 @@ impl SequenceList {
     pub fn new(socket: Socket) -> Self {
         let mut sequence_list = Self {
             sequence_load_state_map: HashMap::new(),
-            sequence_titles_load_state: None,
+            sequence_titles_load_state: SequenceTitlesLoadState {
+                started_at: Duration::from_millis(0),
+                detail: types::SequenceTitlesLoadStateDetail::Failed {
+                    error: "never loaded".to_string(),
+                },
+            },
             socket,
             scroll_y: 0.0,
         };
@@ -74,13 +79,13 @@ impl Entity for SequenceList {
                     }
                 }
                 SequenceListEvent::SequenceTitlesLoadStateUpdateEvent { state } => {
-                    if let Some(old_state) = &self.sequence_titles_load_state {
-                        if old_state.started_at > state.started_at {
-                            return;
-                        }
+                    let old_state = &self.sequence_titles_load_state;
+                    let is_old_state_newer = old_state.started_at > state.started_at;
+                    if is_old_state_newer {
+                        return;
                     }
 
-                    self.sequence_titles_load_state = Some(state.clone());
+                    self.sequence_titles_load_state = state.clone();
                 }
                 SequenceListEvent::SequenceReloadTitlesButtonClickedEvent => {
                     self.load_sequence_titles()

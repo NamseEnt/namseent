@@ -15,7 +15,7 @@ const SCROLL_BAR_WIDTH: f32 = MARGIN * 2.0;
 
 pub fn render_list(
     wh: Wh<f32>,
-    sequence_titles_load_state: &Option<SequenceTitlesLoadState>,
+    sequence_titles_load_state: &SequenceTitlesLoadState,
     sequence_load_state_map: &SequenceLoadStateMap,
     scroll_y: f32,
 ) -> RenderingTree {
@@ -27,30 +27,27 @@ pub fn render_list(
         width: inner_wh.width,
         height: BUTTON_HEIGHT,
     };
-    let list_items: Vec<RenderingTreeRow> = match sequence_titles_load_state {
-        Some(state) => match &state.detail {
-            SequenceTitlesLoadStateDetail::Loading => {
-                vec![RenderingTreeRow {
-                    rendering_tree: render_button_text(button_wh, "Loading...".to_string()),
-                    height: button_wh.height,
-                }]
-            }
-            SequenceTitlesLoadStateDetail::Loaded { titles } => titles
-                .iter()
-                .map(|title| {
-                    let path = format!("sequence/{}", title);
-                    let sequence_load_state = sequence_load_state_map.get(&path);
-                    render_list_item(inner_wh.width, title, sequence_load_state)
-                })
-                .collect(),
-            SequenceTitlesLoadStateDetail::Failed { error } => {
-                vec![RenderingTreeRow {
-                    rendering_tree: render_button_text(button_wh, format!("Error: {}", error)),
-                    height: button_wh.height,
-                }]
-            }
-        },
-        None => vec![],
+    let list_items: Vec<RenderingTreeRow> = match &sequence_titles_load_state.detail {
+        SequenceTitlesLoadStateDetail::Loading => {
+            vec![RenderingTreeRow {
+                rendering_tree: render_button_text(button_wh, "Loading...".to_string()),
+                height: button_wh.height,
+            }]
+        }
+        SequenceTitlesLoadStateDetail::Loaded { titles } => titles
+            .iter()
+            .map(|title| {
+                let path = format!("sequence/{}", title);
+                let sequence_load_state = sequence_load_state_map.get(&path);
+                render_list_item(inner_wh.width, title, sequence_load_state)
+            })
+            .collect(),
+        SequenceTitlesLoadStateDetail::Failed { error } => {
+            vec![RenderingTreeRow {
+                rendering_tree: render_button_text(button_wh, format!("Error: {}", error)),
+                height: button_wh.height,
+            }]
+        }
     };
     let list_items_height = list_items.height(SPACING);
     let max_scroll_y = match list_items_height > inner_wh.height {
