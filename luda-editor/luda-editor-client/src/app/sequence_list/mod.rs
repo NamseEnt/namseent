@@ -1,19 +1,16 @@
 use self::{
     events::SequenceListEvent,
-    types::{
-        SequenceLoadState, SequenceLoadStateDetail, SequenceLoadStateMap, SequenceTitlesLoadState,
-    },
+    types::{SequenceLoadStateMap, SequenceTitlesLoadState},
 };
-use crate::app::types::Sequence;
-use luda_editor_rpc::{DirentFileType, Socket};
-use namui::{render, Entity, Namui, NamuiImpl, Wh};
-use std::{collections::HashMap, time::Duration};
-use wasm_bindgen_futures::spawn_local;
+use luda_editor_rpc::Socket;
+use namui::{render, Entity, Wh};
+use std::collections::HashMap;
 mod button_text;
 mod events;
 mod list;
 mod list_item;
 mod open_button;
+mod ops;
 mod reload_titles_button;
 mod rounded_rectangle;
 mod title_button;
@@ -38,13 +35,14 @@ pub struct SequenceList {
 
 impl SequenceList {
     pub fn new(socket: Socket) -> Self {
-        namui::event::send(SequenceListEvent::SequenceReloadTitlesButtonClickedEvent);
-        Self {
+        let mut sequence_list = Self {
             sequence_load_state_map: HashMap::new(),
             sequence_titles_load_state: None,
             socket,
             scroll_y: 0.0,
-        }
+        };
+        sequence_list.load_sequence_titles();
+        sequence_list
     }
 }
 
@@ -70,73 +68,10 @@ impl Entity for SequenceList {
                     }
                 },
                 SequenceListEvent::SequenceTitleButtonClickedEvent { path } => {
-                    let started_at = Namui::now();
                     let should_clear_load_state = self.sequence_load_state_map.get(path).is_some();
                     match should_clear_load_state {
-                        true => {
-                            namui::event::send(SequenceListEvent::SequenceLoadStateUpdateEvent {
-                                path: path.clone(),
-                                state: None,
-                            })
-                        }
-                        false => {
-                            namui::event::send(SequenceListEvent::SequenceLoadStateUpdateEvent {
-                                path: path.clone(),
-                                state: Some(SequenceLoadState {
-                                    started_at,
-                                    detail: SequenceLoadStateDetail::Loading,
-                                }),
-                            });
-                            spawn_local({
-                                let path = path.clone();
-                                let socket = self.socket.clone();
-                                async move {
-                                    fn handle_error(
-                                        path: String,
-                                        started_at: Duration,
-                                        error: String,
-                                    ) {
-                                        namui::log(format!("error on read_file: {:?}", error));
-                                        namui::event::send(
-                                            SequenceListEvent::SequenceLoadStateUpdateEvent {
-                                                path,
-                                                state: Some(SequenceLoadState {
-                                                    started_at,
-                                                    detail: SequenceLoadStateDetail::Failed {
-                                                        error,
-                                                    },
-                                                }),
-                                            },
-                                        );
-                                    }
-                                    let result = socket
-                                        .read_file(luda_editor_rpc::read_file::Request {
-                                            dest_path: path.clone(),
-                                        })
-                                        .await;
-                                    match result {
-                                        Ok(response) => {
-                                            let file = response.file;
-                                            match Sequence::try_from(file) {
-                                                Ok(sequence) => namui::event::send(
-                                                    SequenceListEvent::SequenceLoadStateUpdateEvent {
-                                                        path: path.clone(),
-                                                        state: Some(SequenceLoadState {
-                                                            started_at,
-                                                            detail: SequenceLoadStateDetail::Loaded {
-                                                                sequence,
-                                                            },
-                                                        }),
-                                                    },
-                                                ),
-                                                Err(error) => handle_error(path.clone(), started_at, error),
-                                            }
-                                        }
-                                        Err(error) => handle_error(path.clone(), started_at, error),
-                                    }
-                                }
-                            })
-                        }
+                        true => clear_sequence(path),
+                        false => self.load_sequence(path),
                     }
                 }
                 SequenceListEvent::SequenceTitlesLoadStateUpdateEvent { state } => {
@@ -149,66 +84,7 @@ impl Entity for SequenceList {
                     self.sequence_titles_load_state = Some(state.clone());
                 }
                 SequenceListEvent::SequenceReloadTitlesButtonClickedEvent => {
-                    let started_at = Namui::now();
-                    namui::event::send(SequenceListEvent::SequenceTitlesLoadStateUpdateEvent {
-                        state: SequenceTitlesLoadState {
-                            started_at,
-                            detail: types::SequenceTitlesLoadStateDetail::Loading,
-                        },
-                    });
-                    spawn_local({
-                        let socket = self.socket.clone();
-                        async move {
-                            let result = socket
-                                .read_dir(luda_editor_rpc::read_dir::Request {
-                                    dest_path: "sequence".to_string(),
-                                })
-                                .await;
-                            match result {
-                                Ok(response) => {
-                                    let titles: Vec<String> = response
-                                        .directory_entries
-                                        .iter()
-                                        .filter_map(|dirent| match dirent.file_type {
-                                            DirentFileType::File => {
-                                                match dirent.name.ends_with(".json") {
-                                                    true => Some(dirent.name.clone()),
-                                                    false => None,
-                                                }
-                                            }
-                                            _ => None,
-                                        })
-                                        .collect();
-
-                                    namui::event::send(
-                                        SequenceListEvent::SequenceTitlesLoadStateUpdateEvent {
-                                            state: SequenceTitlesLoadState {
-                                                started_at,
-                                                detail:
-                                                    types::SequenceTitlesLoadStateDetail::Loaded {
-                                                        titles,
-                                                    },
-                                            },
-                                        },
-                                    )
-                                }
-                                Err(error) => {
-                                    namui::log(format!("error on read_dir: {:?}", error));
-                                    namui::event::send(
-                                        SequenceListEvent::SequenceTitlesLoadStateUpdateEvent {
-                                            state: SequenceTitlesLoadState {
-                                                started_at,
-                                                detail:
-                                                    types::SequenceTitlesLoadStateDetail::Failed {
-                                                        error,
-                                                    },
-                                            },
-                                        },
-                                    );
-                                }
-                            }
-                        }
-                    });
+                    self.load_sequence_titles()
                 }
                 SequenceListEvent::ScrolledEvent { scroll_y } => {
                     self.scroll_y = *scroll_y;
@@ -238,4 +114,11 @@ impl Entity for SequenceList {
             ),
         ]
     }
+}
+
+fn clear_sequence(path: &String) {
+    namui::event::send(SequenceListEvent::SequenceLoadStateUpdateEvent {
+        path: path.clone(),
+        state: None,
+    })
 }
