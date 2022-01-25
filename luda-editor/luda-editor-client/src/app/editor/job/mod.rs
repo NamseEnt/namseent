@@ -7,8 +7,8 @@ mod wysiwyg_move_image;
 pub use self::wysiwyg_move_image::*;
 mod wysiwyg_resize_image;
 pub use self::wysiwyg_resize_image::*;
-// mod wysiwyg_crop_image;
-// pub use self::wysiwyg_crop_image::*;
+mod wysiwyg_crop_image;
+pub use self::wysiwyg_crop_image::*;
 
 #[derive(Debug, Clone)]
 pub enum Job {
@@ -16,7 +16,7 @@ pub enum Job {
     MoveSubtitleClip(MoveSubtitleClipJob),
     WysiwygMoveImage(WysiwygMoveImageJob),
     WysiwygResizeImage(WysiwygResizeImageJob),
-    // WysiwygCropImage(WysiwygCropImageJob),
+    WysiwygCropImage(WysiwygCropImageJob),
 }
 
 impl Job {
@@ -26,7 +26,7 @@ impl Job {
             Job::MoveSubtitleClip(job) => job.execute(sequence),
             Job::WysiwygMoveImage(job) => job.execute(sequence),
             Job::WysiwygResizeImage(job) => job.execute(sequence),
-            // Job::WysiwygCropImage(job) => job.execute(sequence),
+            Job::WysiwygCropImage(job) => job.execute(sequence),
         }
     }
 }

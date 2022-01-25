@@ -106,20 +106,21 @@ impl namui::Entity for Editor {
                         }));
                     };
                 }
-                // EditorEvent::WysiwygEditorCropperHandleMouseDownEvent {
-                //     mouse_xy,
-                //     handle,
-                //     container_size,
-                // } => {
-                //     if self.job.is_none() {
-                //         self.job = Some(Job::WysiwygCropImage(WysiwygCropImageJob {
-                //             start_global_mouse_xy: *mouse_xy,
-                //             last_global_mouse_xy: *mouse_xy,
-                //             handle: handle.clone(),
-                //             container_size: *container_size,
-                //         }));
-                //     };
-                // }
+                EditorEvent::WysiwygEditorCropperHandleMouseDownEvent {
+                    mouse_xy,
+                    handle,
+                    container_size,
+                } => {
+                    if self.job.is_none() {
+                        self.job = Some(Job::WysiwygCropImage(WysiwygCropImageJob {
+                            clip_id: self.selected_clip_id.clone().unwrap(),
+                            start_global_mouse_xy: *mouse_xy,
+                            last_global_mouse_xy: *mouse_xy,
+                            handle: handle.clone(),
+                            container_size: *container_size,
+                        }));
+                    };
+                }
                 EditorEvent::ImageBrowserSelectEvent { selected_item } => {
                     match selected_item {
                         clip_editor::camera_clip_editor::image_browser::ImageBrowserItem::CharacterPoseEmotion(character, pose, emotion) => {
@@ -164,28 +165,21 @@ impl namui::Entity for Editor {
                     Some(Job::WysiwygResizeImage(ref mut job)) => {
                         job.last_global_mouse_xy = mouse_event.xy;
                     }
-                    // Some(Job::WysiwygCropImage(ref mut job)) => {
-                    //     job.last_global_mouse_xy = mouse_event.xy;
-                    // }
+                    Some(Job::WysiwygCropImage(ref mut job)) => {
+                        job.last_global_mouse_xy = mouse_event.xy;
+                    }
                     _ => {}
                 },
-                NamuiEvent::MouseUp(_) => {
-                    match self.job {
-                        // TODO : Make these simple using trait
-                        Some(Job::MoveCameraClip(_))
-                        | Some(Job::MoveSubtitleClip(_))
-                        | Some(Job::WysiwygMoveImage(_))
-                        | Some(Job::WysiwygResizeImage(_)) => {
-                            self.execute_job();
-                        }
-                        // Some(Job::WysiwygCropImage(mut job)) => {
-                        //     job.last_global_mouse_xy = mouse_event.xy;
-                        //     job.execute(self);
-                        //     self.job = None;
-                        // }
-                        _ => {}
+                NamuiEvent::MouseUp(_) => match self.job {
+                    Some(Job::MoveCameraClip(_))
+                    | Some(Job::MoveSubtitleClip(_))
+                    | Some(Job::WysiwygMoveImage(_))
+                    | Some(Job::WysiwygResizeImage(_))
+                    | Some(Job::WysiwygCropImage(_)) => {
+                        self.execute_job();
                     }
-                }
+                    _ => {}
+                },
                 NamuiEvent::KeyDown(key_event) => {
                     if key_event.code == namui::Code::KeyZ
                         && namui::managers()

@@ -58,11 +58,11 @@ impl CameraClipEditor {
                 job.resize_camera_angle(&mut camera_angle);
                 camera_angle
             }
-            // Some(Job::WysiwygCropImage(job)) => {
-            //     let mut camera_angle = props.camera_clip.camera_angle.clone();
-            //     job.crop_camera_angle(&mut camera_angle);
-            //     camera_angle
-            // }
+            Some(Job::WysiwygCropImage(job)) => {
+                let mut camera_angle = props.camera_clip.camera_angle.clone();
+                job.crop_camera_angle(&mut camera_angle);
+                camera_angle
+            }
             _ => props.camera_clip.camera_angle.clone(),
         };
 
