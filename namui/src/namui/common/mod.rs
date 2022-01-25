@@ -2,6 +2,7 @@ use super::namui_state::{update_namui_state, NamuiState};
 use super::render::{RenderingData, RenderingTree};
 use super::skia::*;
 use crate::event::EventReceiver;
+use crate::Code;
 use serde::{Deserialize, Serialize};
 use serde_repr::*;
 use std::collections::HashSet;
@@ -185,4 +186,8 @@ pub enum MouseButton {
 pub struct RawMouseEvent {
     pub xy: Xy<f32>,
     pub buttons: HashSet<MouseButton>,
+}
+
+pub struct KeyEvent {
+    pub code: Code,
 }
