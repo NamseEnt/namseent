@@ -87,24 +87,25 @@ impl namui::Entity for Editor {
                         }));
                     };
                 }
-                // EditorEvent::WysiwygEditorResizerHandleMouseDownEvent {
-                //     mouse_xy,
-                //     handle,
-                //     center_xy,
-                //     container_size,
-                //     image_size_ratio,
-                // } => {
-                //     if self.job.is_none() {
-                //         self.job = Some(Job::WysiwygResizeImage(WysiwygResizeImageJob {
-                //             start_global_mouse_xy: *mouse_xy,
-                //             last_global_mouse_xy: *mouse_xy,
-                //             handle: *handle,
-                //             center_xy: *center_xy,
-                //             container_size: *container_size,
-                //             image_size_ratio: *image_size_ratio,
-                //         }));
-                //     };
-                // }
+                EditorEvent::WysiwygEditorResizerHandleMouseDownEvent {
+                    mouse_xy,
+                    handle,
+                    center_xy,
+                    container_size,
+                    image_size_ratio,
+                } => {
+                    if self.job.is_none() {
+                        self.job = Some(Job::WysiwygResizeImage(WysiwygResizeImageJob {
+                            clip_id: self.selected_clip_id.clone().unwrap(),
+                            start_global_mouse_xy: *mouse_xy,
+                            last_global_mouse_xy: *mouse_xy,
+                            handle: *handle,
+                            center_xy: *center_xy,
+                            container_size: *container_size,
+                            image_size_ratio: *image_size_ratio,
+                        }));
+                    };
+                }
                 // EditorEvent::WysiwygEditorCropperHandleMouseDownEvent {
                 //     mouse_xy,
                 //     handle,
@@ -160,9 +161,9 @@ impl namui::Entity for Editor {
                     Some(Job::WysiwygMoveImage(ref mut job)) => {
                         job.last_global_mouse_xy = mouse_event.xy;
                     }
-                    // Some(Job::WysiwygResizeImage(ref mut job)) => {
-                    //     job.last_global_mouse_xy = mouse_event.xy;
-                    // }
+                    Some(Job::WysiwygResizeImage(ref mut job)) => {
+                        job.last_global_mouse_xy = mouse_event.xy;
+                    }
                     // Some(Job::WysiwygCropImage(ref mut job)) => {
                     //     job.last_global_mouse_xy = mouse_event.xy;
                     // }
@@ -171,20 +172,12 @@ impl namui::Entity for Editor {
                 NamuiEvent::MouseUp(_) => {
                     match self.job {
                         // TODO : Make these simple using trait
-                        Some(Job::MoveCameraClip(_)) => {
+                        Some(Job::MoveCameraClip(_))
+                        | Some(Job::MoveSubtitleClip(_))
+                        | Some(Job::WysiwygMoveImage(_))
+                        | Some(Job::WysiwygResizeImage(_)) => {
                             self.execute_job();
                         }
-                        Some(Job::MoveSubtitleClip(_)) => {
-                            self.execute_job();
-                        }
-                        Some(Job::WysiwygMoveImage(_)) => {
-                            self.execute_job();
-                        }
-                        // Some(Job::WysiwygResizeImage(mut job)) => {
-                        //     job.last_global_mouse_xy = mouse_event.xy;
-                        //     job.execute(self);
-                        //     self.job = None;
-                        // }
                         // Some(Job::WysiwygCropImage(mut job)) => {
                         //     job.last_global_mouse_xy = mouse_event.xy;
                         //     job.execute(self);
