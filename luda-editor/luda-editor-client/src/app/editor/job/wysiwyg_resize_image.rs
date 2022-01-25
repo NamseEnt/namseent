@@ -27,7 +27,7 @@ impl JobExecute for WysiwygResizeImageJob {
             Ok(clip)
         }) {
             UpdateResult::Updated(replacer) => Ok(replacer),
-            UpdateResult::NotUpdated => Err("Subtitle clip not found".to_string()),
+            UpdateResult::NotUpdated => Err("Clip not found".to_string()),
             UpdateResult::Err(error) => Err(error),
         }
     }
