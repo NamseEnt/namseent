@@ -2,9 +2,7 @@ mod timeline;
 use self::{
     clip_editor::{camera_clip_editor::image_browser::ImageBrowserItem, ClipEditor},
     events::*,
-    history::History,
     job::*,
-    top_bar::TopBar,
 };
 use super::types::*;
 use crate::app::editor::{
@@ -21,7 +19,9 @@ mod job;
 mod sequence_player;
 use sequence_player::SequencePlayer;
 mod history;
+use history::History;
 mod top_bar;
+use top_bar::TopBar;
 
 pub struct EditorProps {
     pub screen_wh: namui::Wh<f32>,
