@@ -18,7 +18,7 @@ impl JobExecute for ChangeImageJob {
             Ok(clip)
         }) {
             UpdateResult::Updated(replacer) => Ok(replacer),
-            UpdateResult::NotUpdated => Err("Subtitle clip not found".to_string()),
+            UpdateResult::NotUpdated => Err("Camera clip not found".to_string()),
             UpdateResult::Err(error) => Err(error),
         }
     }
