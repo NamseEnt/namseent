@@ -277,3 +277,25 @@ impl ClipReplacer<SubtitleClip> for SubtitleTrack {
         }
     }
 }
+
+pub trait ClipFind<ClipType> {
+    fn find_clip(&self, clip_id: &str) -> Option<&ClipType>
+    where
+        Self: Sized;
+}
+
+impl ClipFind<CameraClip> for Sequence {
+    fn find_clip(&self, clip_id: &str) -> Option<&CameraClip> {
+        self.tracks.iter().find_map(|track| {
+            if let Track::Camera(track) = track.as_ref() {
+                track
+                    .clips
+                    .iter()
+                    .find(|clip| clip.id == *clip_id)
+                    .map(|clip| clip.as_ref())
+            } else {
+                None
+            }
+        })
+    }
+}

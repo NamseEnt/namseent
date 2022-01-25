@@ -6,7 +6,7 @@ mod back_button;
 mod scroll;
 use crate::app::{
     editor::events::EditorEvent,
-    types::{CharacterPoseEmotion, ImageFilenameObject},
+    types::{CharacterPoseEmotion, ClipFind, ImageFilenameObject},
 };
 use scroll::*;
 mod types;
@@ -18,10 +18,11 @@ pub struct ImageBrowser {
     selected_item: Option<ImageBrowserItem>,
     current_directory_label_layout: XywhRect<f32>,
     scroll: Scroll,
+    clip_id: String,
 }
 
 impl ImageBrowser {
-    pub fn new(character_pose_emotion: &CharacterPoseEmotion) -> Self {
+    pub fn new(character_pose_emotion: &CharacterPoseEmotion, clip_id: &str) -> Self {
         Self {
             directory: ImageBrowserDirectory::CharacterPose(
                 character_pose_emotion.0.clone(),
@@ -39,6 +40,7 @@ impl ImageBrowser {
                 width: 160.0,
                 height: 40.0,
             },
+            clip_id: clip_id.to_string(),
         }
     }
 }
@@ -83,6 +85,25 @@ impl ImageBrowser {
                         ));
                     }
                 },
+                EditorEvent::SequenceUpdateEvent { sequence } => {
+                    sequence.find_clip(&self.clip_id).map(|clip| {
+                        let CharacterPoseEmotion(character, pose, emotion) =
+                            &clip.camera_angle.character_pose_emotion;
+                        let item = Some(ImageBrowserItem::CharacterPoseEmotion(
+                            character.clone(),
+                            pose.clone(),
+                            emotion.clone(),
+                        ));
+
+                        if self.selected_item != item {
+                            self.directory = ImageBrowserDirectory::CharacterPose(
+                                character.clone(),
+                                pose.clone(),
+                            );
+                            self.selected_item = item;
+                        }
+                    });
+                }
                 _ => {}
             }
         };

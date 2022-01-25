@@ -21,6 +21,7 @@ impl ClipEditor {
         match clip {
             Clip::Camera(clip) => ClipEditor::Camera(CameraClipEditor::new(
                 &clip.camera_angle.character_pose_emotion,
+                &clip.id,
             )),
             Clip::Subtitle(_) => ClipEditor::Subtitle,
         }

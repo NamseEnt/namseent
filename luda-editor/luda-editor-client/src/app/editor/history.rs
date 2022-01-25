@@ -19,8 +19,13 @@ impl<TState> History<TState> {
         self.undo_count = 0;
         self.states.push(state);
     }
-    pub fn undo(&mut self) {
-        self.undo_count = (self.undo_count + 1).min(self.states.len());
+    pub fn undo(&mut self) -> Option<()> {
+        if self.undo_count < self.states.len() {
+            self.undo_count += 1;
+            Some(())
+        } else {
+            None
+        }
     }
     pub fn get(&self) -> &TState {
         if self.states.len() <= self.undo_count {
@@ -29,9 +34,12 @@ impl<TState> History<TState> {
             &self.states[self.states.len() - self.undo_count - 1]
         }
     }
-    pub fn redo(&mut self) {
+    pub fn redo(&mut self) -> Option<()> {
         if self.undo_count > 0 {
             self.undo_count -= 1;
+            Some(())
+        } else {
+            None
         }
     }
 }

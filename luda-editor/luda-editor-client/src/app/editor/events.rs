@@ -2,7 +2,8 @@ use super::clip_editor::camera_clip_editor::wysiwyg_editor::{
     cropper::CropperHandle, resizer::ResizerHandle,
 };
 use crate::app::editor::clip_editor::camera_clip_editor::image_browser::ImageBrowserItem;
-use crate::app::types::{ImageFilenameObject, PixelSize, Time};
+use crate::app::types::*;
+use std::sync::Arc;
 
 pub enum EditorEvent {
     CameraClipBodyMouseDownEvent {
@@ -50,5 +51,8 @@ pub enum EditorEvent {
     },
     TimelineBodyMouseMoveEvent {
         mouse_position_in_time: Time,
+    },
+    SequenceUpdateEvent {
+        sequence: Arc<Sequence>,
     },
 }

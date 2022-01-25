@@ -15,9 +15,9 @@ pub struct CameraClipEditor {
 }
 
 impl CameraClipEditor {
-    pub fn new(character_pose_emotion: &CharacterPoseEmotion) -> Self {
+    pub fn new(character_pose_emotion: &CharacterPoseEmotion, clip_id: &str) -> Self {
         Self {
-            image_browser: ImageBrowser::new(character_pose_emotion),
+            image_browser: ImageBrowser::new(character_pose_emotion, clip_id),
             wysiwyg_editor: WysiwygEditor::new(),
         }
     }

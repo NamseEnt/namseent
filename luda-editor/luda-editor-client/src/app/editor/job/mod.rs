@@ -9,6 +9,8 @@ mod wysiwyg_resize_image;
 pub use self::wysiwyg_resize_image::*;
 mod wysiwyg_crop_image;
 pub use self::wysiwyg_crop_image::*;
+mod change_image;
+pub use self::change_image::*;
 
 #[derive(Debug, Clone)]
 pub enum Job {
@@ -17,6 +19,7 @@ pub enum Job {
     WysiwygMoveImage(WysiwygMoveImageJob),
     WysiwygResizeImage(WysiwygResizeImageJob),
     WysiwygCropImage(WysiwygCropImageJob),
+    ChangeImage(ChangeImageJob),
 }
 
 impl Job {
@@ -27,10 +30,11 @@ impl Job {
             Job::WysiwygMoveImage(job) => job,
             Job::WysiwygResizeImage(job) => job,
             Job::WysiwygCropImage(job) => job,
+            Job::ChangeImage(job) => job,
         };
         job_execute.execute(sequence)
-        }
     }
+}
 
 trait JobExecute {
     fn execute(&self, sequence: &Sequence) -> Result<Sequence, String>;

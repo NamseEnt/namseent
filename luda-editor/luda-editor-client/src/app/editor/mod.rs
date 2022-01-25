@@ -1,5 +1,9 @@
 mod timeline;
-use self::{clip_editor::ClipEditor, events::*, job::*};
+use self::{
+    clip_editor::{camera_clip_editor::image_browser::ImageBrowserItem, ClipEditor},
+    events::*,
+    job::*,
+};
 use super::types::*;
 use crate::app::editor::{clip_editor::ClipEditorProps, sequence_player::SequencePlayerProps};
 use luda_editor_rpc::Socket;
@@ -121,23 +125,29 @@ impl namui::Entity for Editor {
                         }));
                     };
                 }
-                EditorEvent::ImageBrowserSelectEvent { selected_item } => {
-                    match selected_item {
-                        clip_editor::camera_clip_editor::image_browser::ImageBrowserItem::CharacterPoseEmotion(character, pose, emotion) => {
-                            todo!("Make it as job.");
-                            // let selected_clip = self
-                            //     .selected_clip_id
-                            //     .as_ref()
-                            //     .and_then(|id| self.sequence.get_mut_clip(&id));
-                            // if let Some(MutableClip::Camera(camera_clip)) = selected_clip {
-                            //     camera_clip.camera_angle.character_pose_emotion = CharacterPoseEmotion(character.clone(), pose.clone(), emotion.clone());
-                            // } else {
-                            //     unreachable!();
-                            // }
-                        },
-                        _ => {}
+                EditorEvent::ImageBrowserSelectEvent { selected_item } => match selected_item {
+                    ImageBrowserItem::CharacterPoseEmotion(character, pose, emotion) => {
+                        let character_pose_emotion =
+                            CharacterPoseEmotion(character.clone(), pose.clone(), emotion.clone());
+                        if character_pose_emotion
+                            == self
+                                .get_sequence()
+                                .find_clip(self.selected_clip_id.as_ref().unwrap())
+                                .unwrap()
+                                .camera_angle
+                                .character_pose_emotion
+                        {
+                            return;
+                        }
+
+                        self.job = Some(Job::ChangeImage(ChangeImageJob {
+                            clip_id: self.selected_clip_id.clone().unwrap(),
+                            character_pose_emotion,
+                        }));
+                        self.execute_job();
                     }
-                }
+                    _ => {}
+                },
                 EditorEvent::TimelineTimeRulerClickEvent {
                     click_position_in_time,
                 } => {
@@ -321,21 +331,28 @@ impl Editor {
             Ok(next_sequence) => {
                 let next_sequence = Arc::new(next_sequence);
                 self.history.push(next_sequence.clone());
-                self.sequence_player.update_sequence(next_sequence.clone());
+                self.on_change_sequence();
             }
         }
     }
     fn get_sequence(&self) -> &Arc<Sequence> {
         self.history.get()
     }
+    fn on_change_sequence(&mut self) {
+        let sequence = self.get_sequence().clone();
+        self.sequence_player.update_sequence(sequence.clone());
+        namui::event::send(EditorEvent::SequenceUpdateEvent {
+            sequence: sequence.clone(),
+        });
+    }
     fn undo(&mut self) {
-        self.history.undo();
-        self.sequence_player
-            .update_sequence(self.get_sequence().clone());
+        if self.history.undo().is_some() {
+            self.on_change_sequence();
+        }
     }
     fn redo(&mut self) {
-        self.history.redo();
-        self.sequence_player
-            .update_sequence(self.get_sequence().clone());
+        if self.history.redo().is_some() {
+            self.on_change_sequence();
+        }
     }
 }
