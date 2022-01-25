@@ -2,10 +2,13 @@ use namui::prelude::*;
 mod playback_time_view;
 use super::job::Job;
 use crate::app::{
-    editor::timeline::{
-        play_head::{render_play_head, PlayHeadProps},
-        timeline_body::{TimelineBody, TimelineBodyProps},
-        timeline_header::{TimelineHeader, TimelineHeaderProps},
+    editor::{
+        events::EditorEvent,
+        timeline::{
+            play_head::{render_play_head, PlayHeadProps},
+            timeline_body::{TimelineBody, TimelineBodyProps},
+            timeline_header::{TimelineHeader, TimelineHeaderProps},
+        },
     },
     types::{PixelSize, Sequence, SubtitlePlayDurationMeasurer, Time, TimePerPixel},
 };
@@ -50,7 +53,45 @@ pub struct TimelineRenderContext<'a> {
     pub language: Language, // TODO : Set this from setting page
 }
 impl Timeline {
-    pub fn update(&mut self, event: &dyn std::any::Any) {}
+    pub fn update(&mut self, event: &dyn std::any::Any) {
+        if let Some(event) = event.downcast_ref::<EditorEvent>() {
+            match event {
+                EditorEvent::TimelineMoveEvent { pixel } => {
+                    self.start_at += pixel * self.time_per_pixel;
+                }
+                EditorEvent::TimelineZoomEvent {
+                    delta,
+                    anchor_x_in_timeline,
+                } => {
+                    let zoom_by_wheel = |target: &f32, delta: &f32| -> f32 {
+                        const STEP: f32 = 400.0;
+                        const MIN: f32 = 10.0;
+                        const MAX: f32 = 1000.0;
+
+                        let wheel = STEP * (target / 10.0).log2();
+
+                        let next_wheel = wheel + delta;
+
+                        let zoomed = num::clamp(10.0 * 2.0f32.powf(next_wheel / STEP), MIN, MAX);
+                        zoomed
+                    };
+                    let time_of_mouse_position =
+                        self.start_at + anchor_x_in_timeline * self.time_per_pixel;
+
+                    let next_ms_per_pixel =
+                        zoom_by_wheel(&self.time_per_pixel.ms_per_pixel(), delta);
+                    let next_time_per_pixel = TimePerPixel::from_ms_per_pixel(&next_ms_per_pixel);
+
+                    let next_start_at =
+                        time_of_mouse_position - anchor_x_in_timeline * next_time_per_pixel;
+
+                    self.time_per_pixel = next_time_per_pixel;
+                    self.start_at = next_start_at;
+                }
+                _ => {}
+            }
+        }
+    }
 
     pub fn render(&self, props: &TimelineProps) -> namui::RenderingTree {
         let context = TimelineRenderContext {
