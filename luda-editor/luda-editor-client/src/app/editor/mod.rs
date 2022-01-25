@@ -74,18 +74,19 @@ impl namui::Entity for Editor {
                 } => {
                     self.image_filename_objects = image_filename_objects.to_vec();
                 }
-                // EditorEvent::WysiwygEditorInnerImageMouseDownEvent {
-                //     mouse_xy,
-                //     container_size,
-                // } => {
-                //     if self.job.is_none() {
-                //         self.job = Some(Job::WysiwygMoveImage(WysiwygMoveImageJob {
-                //             start_global_mouse_xy: *mouse_xy,
-                //             last_global_mouse_xy: *mouse_xy,
-                //             container_size: *container_size,
-                //         }));
-                //     };
-                // }
+                EditorEvent::WysiwygEditorInnerImageMouseDownEvent {
+                    mouse_xy,
+                    container_size,
+                } => {
+                    if self.job.is_none() {
+                        self.job = Some(Job::WysiwygMoveImage(WysiwygMoveImageJob {
+                            clip_id: self.selected_clip_id.clone().unwrap(),
+                            start_global_mouse_xy: *mouse_xy,
+                            last_global_mouse_xy: *mouse_xy,
+                            container_size: *container_size,
+                        }));
+                    };
+                }
                 // EditorEvent::WysiwygEditorResizerHandleMouseDownEvent {
                 //     mouse_xy,
                 //     handle,
@@ -156,9 +157,9 @@ impl namui::Entity for Editor {
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
                 NamuiEvent::MouseMove(mouse_event) => match self.job {
-                    // Some(Job::WysiwygMoveImage(ref mut job)) => {
-                    //     job.last_global_mouse_xy = mouse_event.xy;
-                    // }
+                    Some(Job::WysiwygMoveImage(ref mut job)) => {
+                        job.last_global_mouse_xy = mouse_event.xy;
+                    }
                     // Some(Job::WysiwygResizeImage(ref mut job)) => {
                     //     job.last_global_mouse_xy = mouse_event.xy;
                     // }
@@ -176,11 +177,9 @@ impl namui::Entity for Editor {
                         Some(Job::MoveSubtitleClip(_)) => {
                             self.execute_job();
                         }
-                        // Some(Job::WysiwygMoveImage(mut job)) => {
-                        //     job.last_global_mouse_xy = mouse_event.xy;
-                        //     job.execute(self);
-                        //     self.job = None;
-                        // }
+                        Some(Job::WysiwygMoveImage(_)) => {
+                            self.execute_job();
+                        }
                         // Some(Job::WysiwygResizeImage(mut job)) => {
                         //     job.last_global_mouse_xy = mouse_event.xy;
                         //     job.execute(self);

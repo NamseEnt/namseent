@@ -48,11 +48,11 @@ impl CameraClipEditor {
     }
     pub fn render(&self, props: &CameraClipEditorProps) -> RenderingTree {
         let camera_angle = &match &props.job {
-            // Some(Job::WysiwygMoveImage(job)) => {
-            //     let mut camera_angle = props.camera_clip.camera_angle.clone();
-            //     job.move_camera_angle(&mut camera_angle);
-            //     camera_angle
-            // }
+            Some(Job::WysiwygMoveImage(job)) => {
+                let mut camera_angle = props.camera_clip.camera_angle.clone();
+                job.move_camera_angle(&mut camera_angle);
+                camera_angle
+            }
             // Some(Job::WysiwygResizeImage(job)) => {
             //     let mut camera_angle = props.camera_clip.camera_angle.clone();
             //     job.resize_camera_angle(&mut camera_angle);
