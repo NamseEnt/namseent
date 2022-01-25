@@ -1,3 +1,4 @@
+use super::JobExecute;
 use crate::app::types::*;
 use std::sync::Arc;
 
@@ -6,6 +7,20 @@ pub struct MoveCameraClipJob {
     pub clip_id: String,
     pub click_anchor_in_time: Time,
     pub last_mouse_position_in_time: Time,
+}
+
+impl JobExecute for MoveCameraClipJob {
+    fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
+        let mut sequence = sequence.clone();
+        let track = find_camera_track_of_clip(&self.clip_id, &sequence);
+        if track.is_none() {
+            return Err(format!("camera track not found"));
+        }
+        let mut track = track.unwrap().clone();
+        self.order_clips_by_moving_clip(&mut track, false);
+        replace_track(&mut sequence, track);
+        Ok(sequence)
+    }
 }
 
 impl MoveCameraClipJob {
@@ -81,17 +96,6 @@ impl MoveCameraClipJob {
                 });
         }
         camera_track.clips = clips.into();
-    }
-    pub fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
-        let mut sequence = sequence.clone();
-        let track = find_camera_track_of_clip(&self.clip_id, &sequence);
-        if track.is_none() {
-            return Err(format!("camera track not found"));
-        }
-        let mut track = track.unwrap().clone();
-        self.order_clips_by_moving_clip(&mut track, false);
-        replace_track(&mut sequence, track);
-        Ok(sequence)
     }
 }
 

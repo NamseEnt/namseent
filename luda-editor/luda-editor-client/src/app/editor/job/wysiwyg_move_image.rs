@@ -1,3 +1,4 @@
+use super::JobExecute;
 use crate::app::types::*;
 
 #[derive(Debug, Clone)]
@@ -8,8 +9,8 @@ pub struct WysiwygMoveImageJob {
     pub container_size: namui::Wh<f32>,
 }
 
-impl WysiwygMoveImageJob {
-    pub fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
+impl JobExecute for WysiwygMoveImageJob {
+    fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
         let sequence = sequence.clone();
         match sequence.replace_clip(&self.clip_id, |clip: &CameraClip| {
             let mut clip = clip.clone();
@@ -21,7 +22,9 @@ impl WysiwygMoveImageJob {
             UpdateResult::Err(error) => Err(error),
         }
     }
+}
 
+impl WysiwygMoveImageJob {
     pub fn move_camera_angle(&self, camera_angle: &mut CameraAngle) {
         let mouse_diff_xy = self.last_global_mouse_xy - self.start_global_mouse_xy;
 

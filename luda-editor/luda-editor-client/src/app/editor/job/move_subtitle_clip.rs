@@ -1,3 +1,4 @@
+use super::JobExecute;
 use crate::app::types::*;
 
 #[derive(Debug, Clone)]
@@ -7,11 +8,14 @@ pub struct MoveSubtitleClipJob {
     pub last_mouse_position_in_time: Time,
 }
 
-impl MoveSubtitleClipJob {
-    pub fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
+impl JobExecute for MoveSubtitleClipJob {
+    fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
         let sequence = sequence.clone();
         self.move_subtitle_clip_in(sequence)
     }
+}
+
+impl MoveSubtitleClipJob {
     pub fn move_subtitle_clip_in<T>(&self, subtitle_clip_replacer: T) -> Result<T, String>
     where
         T: ClipReplacer<SubtitleClip>,

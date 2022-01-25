@@ -21,12 +21,17 @@ pub enum Job {
 
 impl Job {
     pub fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
-        match self {
-            Job::MoveCameraClip(job) => job.execute(sequence),
-            Job::MoveSubtitleClip(job) => job.execute(sequence),
-            Job::WysiwygMoveImage(job) => job.execute(sequence),
-            Job::WysiwygResizeImage(job) => job.execute(sequence),
-            Job::WysiwygCropImage(job) => job.execute(sequence),
+        let job_execute: &dyn JobExecute = match self {
+            Job::MoveCameraClip(job) => job,
+            Job::MoveSubtitleClip(job) => job,
+            Job::WysiwygMoveImage(job) => job,
+            Job::WysiwygResizeImage(job) => job,
+            Job::WysiwygCropImage(job) => job,
+        };
+        job_execute.execute(sequence)
         }
     }
+
+trait JobExecute {
+    fn execute(&self, sequence: &Sequence) -> Result<Sequence, String>;
 }
