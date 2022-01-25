@@ -2,10 +2,14 @@ mod timeline;
 use self::{
     clip_editor::{camera_clip_editor::image_browser::ImageBrowserItem, ClipEditor},
     events::*,
+    history::History,
     job::*,
+    top_bar::TopBar,
 };
 use super::types::*;
-use crate::app::editor::{clip_editor::ClipEditorProps, sequence_player::SequencePlayerProps};
+use crate::app::editor::{
+    clip_editor::ClipEditorProps, sequence_player::SequencePlayerProps, top_bar::TopBarProps,
+};
 use luda_editor_rpc::Socket;
 use namui::prelude::*;
 use std::sync::Arc;
@@ -17,7 +21,7 @@ mod job;
 mod sequence_player;
 use sequence_player::SequencePlayer;
 mod history;
-use history::History;
+mod top_bar;
 
 pub struct EditorProps {
     pub screen_wh: namui::Wh<f32>,
@@ -32,6 +36,7 @@ pub struct Editor {
     sequence_player: SequencePlayer,
     subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
     history: History<Arc<Sequence>>,
+    top_bar: TopBar,
 }
 
 impl namui::Entity for Editor {
@@ -214,6 +219,7 @@ impl namui::Entity for Editor {
             .map(|clip_editor| clip_editor.update(event));
 
         self.sequence_player.update(event);
+        self.top_bar.update(event);
     }
 
     fn render(&self, props: &Self::Props) -> namui::RenderingTree {
@@ -223,17 +229,23 @@ impl namui::Entity for Editor {
             .and_then(|id| self.get_sequence().get_clip(&id));
 
         let timeline_xywh = self.calculate_timeline_xywh(&props.screen_wh);
-        let clip_editor_xywh = XywhRect {
+        let top_bar_xywh: XywhRect<f32> = XywhRect {
             x: 0.0,
             y: 0.0,
+            width: props.screen_wh.width,
+            height: 32.0,
+        };
+        let clip_editor_xywh = XywhRect {
+            x: 0.0,
+            y: top_bar_xywh.height,
             width: props.screen_wh.width * 0.5,
-            height: props.screen_wh.height - timeline_xywh.height,
+            height: props.screen_wh.height - timeline_xywh.height - top_bar_xywh.height,
         };
         let sequence_player_xywh = XywhRect {
             x: clip_editor_xywh.width,
-            y: 0.0,
+            y: top_bar_xywh.height,
             width: props.screen_wh.width - clip_editor_xywh.width,
-            height: clip_editor_xywh.height,
+            height: clip_editor_xywh.height - top_bar_xywh.height,
         };
         let playback_time = self.sequence_player.get_playback_time();
         render![
@@ -263,6 +275,7 @@ impl namui::Entity for Editor {
                 language: namui::Language::Ko, // TODO
                 subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
             }),
+            self.top_bar.render(&TopBarProps { xywh: top_bar_xywh })
         ]
     }
 }
@@ -303,6 +316,7 @@ impl Editor {
             ),
             subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
             history: History::new(sequence.clone()),
+            top_bar: TopBar::new(),
         }
     }
     fn calculate_timeline_xywh(&self, screen_wh: &namui::Wh<f32>) -> XywhRect<f32> {
