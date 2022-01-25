@@ -1,7 +1,7 @@
 use self::content_loader::ContentLoader;
 use crate::app::types::*;
 use namui::{Color, Language, RenderingTree};
-use std::{rc::Rc, time::Duration};
+use std::{sync::Arc, time::Duration};
 mod content_loader;
 mod player_screen;
 use player_screen::*;
@@ -11,7 +11,7 @@ use buttons::*;
 pub struct SequencePlayer {
     id: String,
     is_paused: bool,
-    sequence: Rc<Sequence>,
+    sequence: Arc<Sequence>,
     content_loader: ContentLoader,
     started_at: Option<Time>,
     last_paused_playback_time: Time,
@@ -37,7 +37,7 @@ pub struct SequencePlayerProps<'a> {
 
 impl SequencePlayer {
     pub fn new(
-        sequence: Rc<Sequence>,
+        sequence: Arc<Sequence>,
         camera_angle_image_loader: Box<dyn CameraAngleImageLoader>,
     ) -> Self {
         let id = namui::nanoid();
@@ -76,13 +76,9 @@ impl SequencePlayer {
             }
         }
     }
-    pub fn update_sequence(
-        &mut self,
-        sequence: Rc<Sequence>,
-        camera_angle_image_loader: &dyn CameraAngleImageLoader,
-    ) {
+    pub fn update_sequence(&mut self, sequence: Arc<Sequence>) {
         self.sequence = sequence.clone();
-        self.content_loader = ContentLoader::new(sequence, camera_angle_image_loader);
+        self.content_loader = ContentLoader::new(sequence, self.camera_angle_image_loader.as_ref());
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<SequencePlayerEvent>() {

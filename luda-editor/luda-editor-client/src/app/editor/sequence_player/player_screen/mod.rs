@@ -96,7 +96,7 @@ fn render_sequence_in_player_screen(
         sequence
             .tracks
             .iter()
-            .map(|track| match track {
+            .map(|track| match track.as_ref() {
                 Track::Camera(camera_track) => camera_track
                     .get_clip_at_time(playback_time)
                     .map(|clip| {
@@ -108,7 +108,7 @@ fn render_sequence_in_player_screen(
                     })
                     .unwrap_or_else(|| RenderingTree::Empty),
                 Track::Subtitle(subtitle_track) => render_subtitle_track_in_player_screen(
-                    subtitle_track,
+                    &subtitle_track,
                     screen_wh,
                     playback_time,
                     language,

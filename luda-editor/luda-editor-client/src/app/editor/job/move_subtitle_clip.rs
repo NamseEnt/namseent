@@ -1,51 +1,40 @@
-use crate::app::{editor::Editor, types::*};
+use super::JobExecute;
+use crate::app::types::*;
 
 #[derive(Debug, Clone)]
 pub struct MoveSubtitleClipJob {
     pub clip_id: String,
-    pub click_anchor_in_global: namui::Xy<f32>,
-    pub last_global_mouse_xy: namui::Xy<f32>,
+    pub click_anchor_in_time: Time,
+    pub last_mouse_position_in_time: Time,
 }
 
-fn find_subtitle_clip<'a>(
-    sequence: &'a mut Sequence,
-    clip_id: &'a String,
-) -> Option<&'a mut SubtitleClip> {
-    for track in &mut sequence.tracks {
-        if let Track::Subtitle(subtitle_track) = track {
-            for clip in &mut subtitle_track.clips {
-                if clip.id == *clip_id {
-                    return Some(clip);
-                }
-            }
-        }
+impl JobExecute for MoveSubtitleClipJob {
+    fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
+        let sequence = sequence.clone();
+        self.move_subtitle_clip_in(sequence)
     }
-    None
 }
 
 impl MoveSubtitleClipJob {
-    pub fn move_subtitle_clip_by_job(
-        &self,
-        clip: &mut SubtitleClip,
-        time_per_pixel: &TimePerPixel,
-    ) {
-        let delta_x = self.last_global_mouse_xy.x - self.click_anchor_in_global.x;
-        let delta_time = PixelSize(delta_x) * *time_per_pixel;
+    pub fn move_subtitle_clip_in<T>(&self, subtitle_clip_replacer: T) -> Result<T, String>
+    where
+        T: ClipReplacer<SubtitleClip>,
+    {
+        match subtitle_clip_replacer.replace_clip(&self.clip_id, |clip| {
+            let mut clip = clip.clone();
+            self.move_subtitle_clip(&mut clip);
+            Ok(clip)
+        }) {
+            UpdateResult::Updated(replacer) => Ok(replacer),
+            UpdateResult::NotUpdated => Err("Subtitle clip not found".to_string()),
+            UpdateResult::Err(error) => Err(error),
+        }
+    }
+    fn move_subtitle_clip(&self, clip: &mut SubtitleClip) {
+        let delta_time = self.last_mouse_position_in_time - self.click_anchor_in_time;
 
         let moved_start_at = clip.start_at + delta_time;
 
         clip.start_at = moved_start_at;
-    }
-    pub fn execute(&self, editor: &mut Editor) {
-        let selected_subtitle_clip = find_subtitle_clip(&mut editor.sequence, &self.clip_id);
-        if selected_subtitle_clip.is_none() {
-            return;
-        }
-        let mut selected_subtitle_clip = selected_subtitle_clip.unwrap();
-
-        self.move_subtitle_clip_by_job(
-            &mut selected_subtitle_clip,
-            &editor.timeline.time_per_pixel,
-        );
     }
 }

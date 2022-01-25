@@ -2,18 +2,17 @@ use super::clip_editor::camera_clip_editor::wysiwyg_editor::{
     cropper::CropperHandle, resizer::ResizerHandle,
 };
 use crate::app::editor::clip_editor::camera_clip_editor::image_browser::ImageBrowserItem;
-use crate::app::types::{ImageFilenameObject, PixelSize, Time};
+use crate::app::types::*;
+use std::sync::Arc;
 
 pub enum EditorEvent {
     CameraClipBodyMouseDownEvent {
         clip_id: String,
-        local_mouse_xy: namui::Xy<f32>,
-        global_mouse_xy: namui::Xy<f32>,
+        click_in_time: Time,
     },
     SubtitleClipHeadMouseDownEvent {
         clip_id: String,
-        local_mouse_xy: namui::Xy<f32>,
-        global_mouse_xy: namui::Xy<f32>,
+        click_in_time: Time,
     },
     ImageFilenameObjectsUpdatedEvent {
         image_filename_objects: Vec<ImageFilenameObject>,
@@ -49,5 +48,11 @@ pub enum EditorEvent {
     },
     TimelineTimeRulerClickEvent {
         click_position_in_time: Time,
+    },
+    TimelineBodyMouseMoveEvent {
+        mouse_position_in_time: Time,
+    },
+    SequenceUpdateEvent {
+        sequence: Arc<Sequence>,
     },
 }

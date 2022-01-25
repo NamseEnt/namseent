@@ -1,44 +1,37 @@
+use super::JobExecute;
 use crate::app::{
-    editor::{
-        clip_editor::camera_clip_editor::wysiwyg_editor::cropper::{
-            CropperHandle, CropperHandleDirection,
-        },
-        Editor,
+    editor::clip_editor::camera_clip_editor::wysiwyg_editor::cropper::{
+        CropperHandle, CropperHandleDirection,
     },
-    types::{CameraAngle, MutableClip},
+    types::*,
 };
 use namui::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct WysiwygCropImageJob {
+    pub clip_id: String,
     pub start_global_mouse_xy: namui::Xy<f32>,
     pub last_global_mouse_xy: namui::Xy<f32>,
     pub handle: CropperHandle,
     pub container_size: namui::Wh<f32>,
 }
 
-impl WysiwygCropImageJob {
-    pub fn execute(&mut self, editor: &mut Editor) {
-        let selected_clip = editor
-            .selected_clip_id
-            .as_ref()
-            .and_then(|id| editor.sequence.get_mut_clip(&id));
-
-        let selected_camera_clip = match selected_clip {
-            Some(clip) => match clip {
-                MutableClip::Camera(camera_clip) => Ok(camera_clip),
-                MutableClip::Subtitle(_) => Err("Camera clip expected, but Subtitle clip selected"),
-            },
-            None => Err("No clip selected"),
-        };
-        if selected_camera_clip.is_err() {
-            return;
+impl JobExecute for WysiwygCropImageJob {
+    fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
+        let sequence = sequence.clone();
+        match sequence.replace_clip(&self.clip_id, |clip: &CameraClip| {
+            let mut clip = clip.clone();
+            self.crop_camera_angle(&mut clip.camera_angle);
+            Ok(clip)
+        }) {
+            UpdateResult::Updated(replacer) => Ok(replacer),
+            UpdateResult::NotUpdated => Err("Clip not found".to_string()),
+            UpdateResult::Err(error) => Err(error),
         }
-        let selected_camera_clip = selected_camera_clip.unwrap();
-        let camera_angle = &mut selected_camera_clip.camera_angle;
-        self.crop_camera_angle(camera_angle);
     }
+}
 
+impl WysiwygCropImageJob {
     pub fn crop_camera_angle(&self, camera_angle: &mut CameraAngle) {
         let mouse_diff_xy = self.last_global_mouse_xy - self.start_global_mouse_xy;
 

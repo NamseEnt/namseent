@@ -1,8 +1,8 @@
 use crate::app::types::*;
-use std::{collections::LinkedList, rc::Rc, sync::Mutex};
+use std::{collections::LinkedList, sync::Arc, sync::Mutex};
 
 pub(super) struct ContentLoader {
-    sequence: Rc<Sequence>,
+    sequence: Arc<Sequence>,
     loading_contents: Mutex<LinkedList<LoadingContent>>,
 }
 
@@ -12,7 +12,7 @@ enum LoadingContent {
 
 impl ContentLoader {
     pub(super) fn new(
-        sequence: Rc<Sequence>,
+        sequence: Arc<Sequence>,
         camera_angle_image_loader: &dyn CameraAngleImageLoader,
     ) -> Self {
         let mut loader = Self {
@@ -27,10 +27,10 @@ impl ContentLoader {
     fn start_loading(&mut self, camera_angle_image_loader: &dyn CameraAngleImageLoader) {
         let managers = namui::managers();
         let mut loading_contents = self.loading_contents.lock().unwrap();
-        for track in &self.sequence.tracks {
-            match track {
+        for track in self.sequence.tracks.iter() {
+            match track.as_ref() {
                 Track::Camera(camera_track) => {
-                    for clip in &camera_track.clips {
+                    for clip in camera_track.clips.iter() {
                         let image_source = camera_angle_image_loader
                             .get_image_source(&clip.camera_angle.character_pose_emotion);
 

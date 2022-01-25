@@ -2,6 +2,7 @@
     "tracks": [
         {
             "Camera": {
+                "id": "camera_track_1",
                 "clips": [
                     {
                         "id": "1",
@@ -182,6 +183,7 @@
         },
         {
             "Subtitle": {
+                "id": "subtitle_track_1",
                 "clips": [
                     {
                         "id": "s-1-clip",

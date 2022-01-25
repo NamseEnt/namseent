@@ -1,5 +1,6 @@
 use crate::app::types::*;
 use namui::prelude::*;
+use std::sync::Arc;
 
 pub(super) fn render_subtitle_track_in_player_screen(
     track: &SubtitleTrack,
@@ -38,7 +39,7 @@ pub(super) fn render_subtitle_track_in_player_screen(
 /// NOTE : Below functions are in research.
 /// https://docs.google.com/document/d/1MBLlg_g72LxW5TTknX-AX3CVlLwKjYsH-Yj0UBO9VVk/edit#
 fn get_line_index_pushing_up(
-    clips: &[SubtitleClip],
+    clips: &[Arc<SubtitleClip>],
     playback_time: &Time,
     target_clip: &SubtitleClip,
     language: Language,

@@ -4,6 +4,7 @@ use crate::app::{
     types::CameraTrack,
 };
 use namui::prelude::*;
+use std::sync::Arc;
 mod camera_clip_body;
 
 pub struct CameraTrackBody {}
@@ -15,10 +16,10 @@ pub struct CameraTrackBodyProps<'a> {
 }
 
 fn move_clip_at_last(track: &mut CameraTrack, clip_id: &String) {
-    let clips = &mut track.clips;
+    let mut clips = track.clips.to_vec();
     let moving_clip_index = clips.iter().position(|clip| clip.id.eq(clip_id)).unwrap();
-    let moving_clip = clips.remove(moving_clip_index);
-    clips.push(moving_clip);
+    clips[moving_clip_index..].rotate_left(1);
+    track.clips = clips.into();
 }
 
 impl CameraTrackBody {
@@ -27,8 +28,7 @@ impl CameraTrackBody {
             Some(Job::MoveCameraClip(job)) => {
                 let mut track = props.track.clone();
 
-                let time_per_pixel = &props.context.time_per_pixel;
-                job.order_clips_by_moving_clip(&mut track, time_per_pixel, true);
+                job.order_clips_by_moving_clip(&mut track, true);
 
                 move_clip_at_last(&mut track, &job.clip_id);
 
