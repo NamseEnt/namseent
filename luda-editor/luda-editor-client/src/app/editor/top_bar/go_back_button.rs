@@ -1,9 +1,8 @@
+use crate::app::editor::top_bar::events::TopBarEvent;
 use namui::{
     render, Color, FontType, FontWeight, Language, RectFill, RectParam, RectRound, RectStyle,
     RenderingTree, TextAlign, TextBaseline, TextStyle, Wh,
 };
-
-use crate::app::editor::top_bar::events::TopBarEvent;
 
 pub fn render_go_back_button(wh: Wh<f32>) -> RenderingTree {
     render![

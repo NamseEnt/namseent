@@ -1,10 +1,8 @@
 mod events;
 mod go_back_button;
-use namui::{render, Color, RenderingTree, Wh, XywhRect};
-
-use crate::app::{events::RouterEvent, sequence_list::SequenceList};
-
 use self::{events::TopBarEvent, go_back_button::render_go_back_button};
+use crate::app::{events::RouterEvent, sequence_list::SequenceList};
+use namui::{render, Color, RenderingTree, Wh, XywhRect};
 
 const MARGIN: f32 = 4.0;
 
