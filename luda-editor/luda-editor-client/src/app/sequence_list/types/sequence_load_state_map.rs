@@ -1,10 +1,10 @@
 use crate::app::types::Sequence;
-use std::{collections::HashMap, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 #[derive(Clone)]
 pub enum SequenceLoadStateDetail {
     Loading,
-    Loaded { sequence: Sequence },
+    Loaded { sequence: Arc<Sequence> },
     Failed { error: String },
 }
 

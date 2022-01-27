@@ -5,9 +5,7 @@ use self::{
     job::*,
 };
 use super::types::*;
-use crate::app::editor::{
-    clip_editor::ClipEditorProps, sequence_player::SequencePlayerProps, top_bar::TopBarProps,
-};
+use crate::app::editor::{clip_editor::ClipEditorProps, top_bar::TopBarProps};
 use luda_editor_rpc::Socket;
 use namui::prelude::*;
 use std::sync::Arc;
@@ -17,7 +15,7 @@ mod clip_editor;
 mod events;
 mod job;
 mod sequence_player;
-use sequence_player::SequencePlayer;
+pub use sequence_player::{SequencePlayer, SequencePlayerProps};
 mod history;
 use history::History;
 mod top_bar;
@@ -274,6 +272,7 @@ impl namui::Entity for Editor {
                 xywh: &sequence_player_xywh,
                 language: namui::Language::Ko, // TODO
                 subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
+                with_buttons: true,
             }),
             self.top_bar.render(&TopBarProps { xywh: top_bar_xywh })
         ]

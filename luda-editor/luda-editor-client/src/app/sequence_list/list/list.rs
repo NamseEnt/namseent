@@ -3,8 +3,8 @@ use crate::app::sequence_list::{
     events::SequenceListEvent,
     list::list_item::render_list_item,
     types::{
-        RenderingTreeRow, RenderingTreeRows, SequenceLoadStateMap, SequenceTitlesLoadState,
-        SequenceTitlesLoadStateDetail,
+        RenderingTreeRow, RenderingTreeRows, SequenceLoadStateMap, SequencePreviewProgressMap,
+        SequenceTitlesLoadState, SequenceTitlesLoadStateDetail,
     },
     BUTTON_HEIGHT, MARGIN, SPACING,
 };
@@ -17,6 +17,7 @@ pub fn render_list(
     wh: Wh<f32>,
     sequence_titles_load_state: &SequenceTitlesLoadState,
     sequence_load_state_map: &SequenceLoadStateMap,
+    sequence_preview_progress_map: &SequencePreviewProgressMap,
     scroll_y: f32,
 ) -> RenderingTree {
     let inner_wh = Wh {
@@ -39,7 +40,13 @@ pub fn render_list(
             .map(|title| {
                 let path = format!("sequence/{}", title);
                 let sequence_load_state = sequence_load_state_map.get(&path);
-                render_list_item(inner_wh.width, title, sequence_load_state)
+                render_list_item(
+                    inner_wh.width,
+                    title,
+                    &path,
+                    sequence_load_state,
+                    sequence_preview_progress_map,
+                )
             })
             .collect(),
         SequenceTitlesLoadStateDetail::Failed { error } => {

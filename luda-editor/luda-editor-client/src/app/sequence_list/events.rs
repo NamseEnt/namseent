@@ -15,4 +15,8 @@ pub enum SequenceListEvent {
     ScrolledEvent {
         scroll_y: f32,
     },
+    PreviewSliderMovedEvent {
+        path: String,
+        progress: f32,
+    },
 }
