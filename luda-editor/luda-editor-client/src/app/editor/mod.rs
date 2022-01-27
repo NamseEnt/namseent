@@ -272,6 +272,7 @@ impl namui::Entity for Editor {
                 xywh: &sequence_player_xywh,
                 language: namui::Language::Ko, // TODO
                 subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
+                with_buttons: true,
             }),
             self.top_bar.render(&TopBarProps { xywh: top_bar_xywh })
         ]

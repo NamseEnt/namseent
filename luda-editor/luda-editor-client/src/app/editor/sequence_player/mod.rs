@@ -33,6 +33,7 @@ pub struct SequencePlayerProps<'a> {
     pub xywh: &'a namui::XywhRect<f32>,
     pub language: Language,
     pub subtitle_play_duration_measurer: &'a SubtitlePlayDurationMeasurer,
+    pub with_buttons: bool,
 }
 
 impl SequencePlayer {
@@ -172,10 +173,13 @@ impl SequencePlayer {
                     language: props.language,
                     subtitle_play_duration_measurer: &props.subtitle_play_duration_measurer,
                 }),
-                render_buttons(&ButtonsProps {
-                    xywh: &buttons_xywh,
-                    playback_status: &playback_status,
-                }),
+                match props.with_buttons {
+                    true => render_buttons(&ButtonsProps {
+                        xywh: &buttons_xywh,
+                        playback_status: &playback_status,
+                    }),
+                    false => RenderingTree::Empty,
+                },
             ],
         )
     }

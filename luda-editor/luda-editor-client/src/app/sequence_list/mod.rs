@@ -160,6 +160,7 @@ impl Entity for SequenceList {
                 xywh: &preview_xywh,
                 language: namui::Language::Ko,
                 subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
+                with_buttons: false,
             })
         ]
     }
