@@ -133,7 +133,10 @@ impl SequencePlayer {
             x: 0.0,
             y: 0.0,
             width: wh.width,
-            height: wh.height * (5.0 / 6.0),
+            height: match props.with_buttons {
+                true => wh.height * (5.0 / 6.0),
+                false => wh.height,
+            },
         };
 
         let buttons_xywh = namui::XywhRect {
