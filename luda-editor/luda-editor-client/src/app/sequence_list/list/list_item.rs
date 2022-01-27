@@ -4,7 +4,10 @@ use super::{
 };
 use crate::app::sequence_list::{
     common::{render_button_text, render_rounded_rectangle, RoundedRectangleColor},
-    types::{RenderingTreeRow, RenderingTreeRows, SequenceLoadState, SequenceLoadStateDetail},
+    types::{
+        RenderingTreeRow, RenderingTreeRows, SequenceLoadState, SequenceLoadStateDetail,
+        SequencePreviewProgressMap,
+    },
     BUTTON_HEIGHT, MARGIN, SPACING,
 };
 use namui::{render, Wh};
@@ -14,6 +17,7 @@ pub fn render_list_item(
     title: &String,
     path: &String,
     title_load_state: Option<&SequenceLoadState>,
+    sequence_preview_progress_map: &SequencePreviewProgressMap,
 ) -> RenderingTreeRow {
     let element_width = width - 2.0 * MARGIN;
     let button_wh = Wh {
@@ -35,7 +39,7 @@ pub fn render_list_item(
             )),
             SequenceLoadStateDetail::Loaded { sequence } => {
                 elements.push(RenderingTreeRow::new(
-                    render_preview_slider(button_wh, path),
+                    render_preview_slider(button_wh, path, sequence_preview_progress_map),
                     button_wh.height,
                 ));
                 elements.push(RenderingTreeRow::new(

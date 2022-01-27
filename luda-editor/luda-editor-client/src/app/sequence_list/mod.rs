@@ -6,7 +6,10 @@ mod reload_titles_button;
 mod types;
 use self::{
     events::SequenceListEvent,
-    types::{SequenceLoadStateDetail, SequenceLoadStateMap, SequenceTitlesLoadState},
+    types::{
+        SequenceLoadStateDetail, SequenceLoadStateMap, SequencePreviewProgressMap,
+        SequenceTitlesLoadState,
+    },
 };
 use super::{
     editor::SequencePlayer,
@@ -39,6 +42,7 @@ pub struct SequenceList {
     scroll_y: f32,
     sequence_player: SequencePlayer,
     subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
+    sequence_preview_progress_map: SequencePreviewProgressMap,
 }
 
 impl SequenceList {
@@ -58,6 +62,7 @@ impl SequenceList {
                 Box::new(LudaEditorServerCameraAngleImageLoader {}),
             ),
             subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
+            sequence_preview_progress_map: HashMap::new(),
         };
         sequence_list.load_sequence_titles();
         sequence_list
@@ -117,6 +122,8 @@ impl Entity for SequenceList {
                             let moved_time = duration * progress;
                             self.sequence_player.update_sequence(sequence.clone());
                             self.sequence_player.seek(moved_time);
+                            self.sequence_preview_progress_map
+                                .insert(path.clone(), *progress);
                         }
                     }
                 }
@@ -153,6 +160,7 @@ impl Entity for SequenceList {
                     list_wh,
                     &self.sequence_titles_load_state,
                     &self.sequence_load_state_map,
+                    &self.sequence_preview_progress_map,
                     self.scroll_y
                 )
             ),
