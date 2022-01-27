@@ -7,8 +7,7 @@ pub enum RoundedRectangleColor {
     Gray,
     LightGray,
     Blue,
-    // Red,
-    // White,
+    White,
 }
 
 pub fn render_rounded_rectangle(wh: Wh<f32>, color: RoundedRectangleColor) -> RenderingTree {
@@ -36,8 +35,7 @@ impl convert::Into<Color> for RoundedRectangleColor {
             RoundedRectangleColor::Gray => Color::grayscale_f01(0.5),
             RoundedRectangleColor::LightGray => Color::grayscale_f01(0.8),
             RoundedRectangleColor::Blue => Color::from_u8(107, 185, 240, 255),
-            // RoundedRectangleColor::Red => Color::from_u8(242, 38, 19, 255),
-            // RoundedRectangleColor::White => Color::WHITE,
+            RoundedRectangleColor::White => Color::WHITE,
         }
     }
 }

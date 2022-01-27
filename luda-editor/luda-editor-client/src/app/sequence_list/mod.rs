@@ -6,14 +6,21 @@ mod reload_titles_button;
 mod types;
 use self::{
     events::SequenceListEvent,
-    types::{SequenceLoadStateMap, SequenceTitlesLoadState},
+    types::{SequenceLoadStateDetail, SequenceLoadStateMap, SequenceTitlesLoadState},
 };
-use crate::app::sequence_list::{
-    list::render_list, reload_titles_button::render_reload_titles_button,
+use super::{
+    editor::SequencePlayer,
+    types::{
+        LudaEditorServerCameraAngleImageLoader, Sequence, SubtitlePlayDurationMeasurer, Time, Track,
+    },
+};
+use crate::app::{
+    editor::SequencePlayerProps,
+    sequence_list::{list::render_list, reload_titles_button::render_reload_titles_button},
 };
 use luda_editor_rpc::Socket;
-use namui::{render, Entity, Wh};
-use std::{collections::HashMap, time::Duration};
+use namui::{render, Entity, Wh, XywhRect};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 const LIST_WIDTH: f32 = 800.0;
 const BUTTON_HEIGHT: f32 = 36.0;
@@ -30,6 +37,8 @@ pub struct SequenceList {
     sequence_titles_load_state: SequenceTitlesLoadState,
     socket: Socket,
     scroll_y: f32,
+    sequence_player: SequencePlayer,
+    subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
 }
 
 impl SequenceList {
@@ -44,6 +53,11 @@ impl SequenceList {
             },
             socket,
             scroll_y: 0.0,
+            sequence_player: SequencePlayer::new(
+                Arc::new(Sequence::default()),
+                Box::new(LudaEditorServerCameraAngleImageLoader {}),
+            ),
+            subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
         };
         sequence_list.load_sequence_titles();
         sequence_list
@@ -93,8 +107,22 @@ impl Entity for SequenceList {
                 SequenceListEvent::ScrolledEvent { scroll_y } => {
                     self.scroll_y = *scroll_y;
                 }
+                SequenceListEvent::PreviewSliderMovedEvent { path, progress } => {
+                    if let Some(load_state) = self.sequence_load_state_map.get(path) {
+                        if let SequenceLoadStateDetail::Loaded { sequence } = &load_state.detail {
+                            let duration = calculate_sequence_duration(
+                                sequence,
+                                &self.subtitle_play_duration_measurer,
+                            );
+                            let moved_time = duration * progress;
+                            self.sequence_player.update_sequence(sequence.clone());
+                            self.sequence_player.seek(moved_time);
+                        }
+                    }
+                }
             }
         }
+        self.sequence_player.update(event);
     }
 
     fn render(&self, props: &Self::Props) -> namui::RenderingTree {
@@ -102,6 +130,13 @@ impl Entity for SequenceList {
             width: LIST_WIDTH,
             height: props.wh.height - 2.0 * MARGIN - SPACING - BUTTON_HEIGHT,
         };
+        let preview_xywh = XywhRect {
+            x: MARGIN + list_wh.width + SPACING,
+            y: MARGIN,
+            width: props.wh.width - list_wh.width - SPACING - 2.0 * MARGIN,
+            height: props.wh.height - 2.0 * MARGIN,
+        };
+
         render![
             namui::translate(
                 MARGIN,
@@ -121,6 +156,11 @@ impl Entity for SequenceList {
                     self.scroll_y
                 )
             ),
+            self.sequence_player.render(&SequencePlayerProps {
+                xywh: &preview_xywh,
+                language: namui::Language::Ko,
+                subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
+            })
         ]
     }
 }
@@ -130,4 +170,22 @@ fn clear_sequence(path: &String) {
         path: path.clone(),
         state: None,
     })
+}
+
+fn calculate_sequence_duration(
+    sequence: &Arc<Sequence>,
+    subtitle_play_duration_measurer: &SubtitlePlayDurationMeasurer,
+) -> Time {
+    sequence
+        .tracks
+        .iter()
+        .fold(Time::zero(), |duration, track| match track.as_ref() {
+            Track::Camera(track) => track
+                .clips
+                .iter()
+                .fold(duration, |duration, clip| duration.max(clip.end_at)),
+            Track::Subtitle(track) => track.clips.iter().fold(duration, |duration, clip| {
+                duration.max(clip.end_at(namui::Language::Ko, subtitle_play_duration_measurer))
+            }),
+        })
 }

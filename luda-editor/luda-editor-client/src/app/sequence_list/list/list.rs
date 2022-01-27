@@ -39,7 +39,7 @@ pub fn render_list(
             .map(|title| {
                 let path = format!("sequence/{}", title);
                 let sequence_load_state = sequence_load_state_map.get(&path);
-                render_list_item(inner_wh.width, title, sequence_load_state)
+                render_list_item(inner_wh.width, title, &path, sequence_load_state)
             })
             .collect(),
         SequenceTitlesLoadStateDetail::Failed { error } => {

@@ -45,6 +45,14 @@ impl TryFrom<Vec<u8>> for Sequence {
     type Error = String;
 }
 
+impl Default for Sequence {
+    fn default() -> Self {
+        Self {
+            tracks: Arc::new([]),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub enum Track {
     Camera(CameraTrack),

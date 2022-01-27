@@ -7,7 +7,7 @@ use crate::app::{
     types::Sequence,
 };
 use namui::{Namui, NamuiImpl};
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 use wasm_bindgen_futures::spawn_local;
 
 impl SequenceList {
@@ -48,7 +48,9 @@ impl SequenceList {
                                     path: path.clone(),
                                     state: Some(SequenceLoadState {
                                         started_at,
-                                        detail: SequenceLoadStateDetail::Loaded { sequence },
+                                        detail: SequenceLoadStateDetail::Loaded {
+                                            sequence: Arc::new(sequence),
+                                        },
                                     }),
                                 },
                             ),
