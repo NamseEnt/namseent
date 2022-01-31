@@ -1,10 +1,9 @@
 use self::camera_clip_body::{CameraClipBody, CameraClipBodyProps};
 use crate::app::{
     editor::{job::Job, TimelineRenderContext},
-    types::CameraTrack,
+    types::{CameraClip, CameraTrack, ClipReplacer},
 };
 use namui::prelude::*;
-use std::sync::Arc;
 mod camera_clip_body;
 
 pub struct CameraTrackBody {}
@@ -28,7 +27,18 @@ impl CameraTrackBody {
             Some(Job::MoveCameraClip(job)) => {
                 let mut track = props.track.clone();
 
-                job.order_clips_by_moving_clip(&mut track, true);
+                track.move_clip_delta(&job.clip_id, job.get_delta_time());
+
+                let mut track = track
+                    .replace_clip(&job.clip_id, |clip| {
+                        Ok(CameraClip {
+                            id: clip.id.clone(),
+                            start_at: clip.start_at + job.get_delta_time(),
+                            end_at: clip.end_at + job.get_delta_time(),
+                            camera_angle: clip.camera_angle.clone(),
+                        })
+                    })
+                    .unwrap();
 
                 move_clip_at_last(&mut track, &job.clip_id);
 
