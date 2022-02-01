@@ -29,6 +29,20 @@ impl Sequence {
         }
         None
     }
+    pub fn find_track(&self, callback: impl Fn(&Track) -> bool) -> Option<Arc<Track>> {
+        for track in self.tracks.iter() {
+            if callback(track.as_ref()) {
+                return Some(track.clone());
+            }
+        }
+        None
+    }
+    pub fn find_track_by_clip_id(&self, clip_id: &str) -> Option<Arc<Track>> {
+        self.find_track(|track| match track {
+            Track::Camera(track) => track.clips.iter().any(|clip| clip.id.eq(clip_id)),
+            Track::Subtitle(track) => track.clips.iter().any(|clip| clip.id.eq(clip_id)),
+        })
+    }
 }
 
 impl TryFrom<Vec<u8>> for Sequence {
@@ -57,6 +71,15 @@ impl Default for Sequence {
 pub enum Track {
     Camera(CameraTrack),
     Subtitle(SubtitleTrack),
+}
+
+impl Track {
+    pub fn get_id(&self) -> &str {
+        match self {
+            Track::Camera(track) => &track.id,
+            Track::Subtitle(track) => &track.id,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,6 +132,21 @@ impl CameraClip {
 pub enum Clip {
     Camera(Arc<CameraClip>),
     Subtitle(Arc<SubtitleClip>),
+}
+
+impl Clip {
+    pub fn get_id(&self) -> &str {
+        match self {
+            Clip::Camera(clip) => &clip.id,
+            Clip::Subtitle(clip) => &clip.id,
+        }
+    }
+    pub fn as_camera_clip(&self) -> Option<&CameraClip> {
+        match self {
+            Clip::Camera(clip) => Some(clip.as_ref()),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

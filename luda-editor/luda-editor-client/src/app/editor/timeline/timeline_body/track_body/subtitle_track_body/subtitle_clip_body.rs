@@ -26,11 +26,7 @@ impl SubtitleClipBody {
             return RenderingTree::Empty;
         }
 
-        let is_highlight = props
-            .context
-            .selected_clip_id
-            .as_ref()
-            .map_or(false, |id| id.eq(&props.clip.id));
+        let is_highlight = props.context.selected_clip_ids.contains(&&props.clip.id);
 
         let border_width = if is_highlight { 3 } else { 1 } * 2;
         let component_width = (Time::from_ms(200.0) / context.time_per_pixel).into();

@@ -25,11 +25,7 @@ impl CameraClipBody {
             width: width - 2.0,
             height: props.track_body_wh.height - 2.0,
         };
-        let is_highlight = props
-            .context
-            .selected_clip_id
-            .as_ref()
-            .map_or(false, |id| id.eq(&props.clip.id));
+        let is_highlight = props.context.selected_clip_ids.contains(&&props.clip.id);
 
         namui::rect(namui::RectParam {
             x: clip_rect.x,
