@@ -11,6 +11,8 @@ mod wysiwyg_crop_image;
 pub use self::wysiwyg_crop_image::*;
 mod change_image;
 pub use self::change_image::*;
+mod add_camera_clip;
+pub use self::add_camera_clip::*;
 
 #[derive(Debug, Clone)]
 pub enum Job {
@@ -20,6 +22,7 @@ pub enum Job {
     WysiwygResizeImage(WysiwygResizeImageJob),
     WysiwygCropImage(WysiwygCropImageJob),
     ChangeImage(ChangeImageJob),
+    AddCameraClip(AddCameraClipJob),
 }
 
 impl Job {
@@ -31,6 +34,7 @@ impl Job {
             Job::WysiwygResizeImage(job) => job,
             Job::WysiwygCropImage(job) => job,
             Job::ChangeImage(job) => job,
+            Job::AddCameraClip(job) => job,
         };
         job_execute.execute(sequence)
     }

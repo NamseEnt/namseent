@@ -20,6 +20,8 @@ mod history;
 use history::History;
 mod top_bar;
 use top_bar::TopBar;
+mod clipboard;
+use clipboard::Clipboard;
 
 pub struct EditorProps {
     pub screen_wh: namui::Wh<f32>,
@@ -35,6 +37,7 @@ pub struct Editor {
     subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
     history: History<Arc<Sequence>>,
     top_bar: TopBar,
+    clipboard: Option<Clipboard>,
 }
 
 impl namui::Entity for Editor {
@@ -54,10 +57,7 @@ impl namui::Entity for Editor {
                             last_mouse_position_in_time: *click_in_time,
                         }));
                     }
-                    self.selected_clip_id = Some(clip_id.clone());
-                    self.clip_editor = Some(ClipEditor::new(
-                        &self.get_sequence().get_clip(clip_id).unwrap(),
-                    ));
+                    self.select_clip(clip_id);
                 }
                 EditorEvent::SubtitleClipHeadMouseDownEvent {
                     clip_id,
@@ -71,10 +71,7 @@ impl namui::Entity for Editor {
                             last_mouse_position_in_time: *click_in_time,
                         }));
                     }
-                    self.selected_clip_id = Some(clip_id.clone());
-                    self.clip_editor = Some(ClipEditor::new(
-                        &self.get_sequence().get_clip(clip_id).unwrap(),
-                    ));
+                    self.select_clip(clip_id);
                 }
                 EditorEvent::ImageFilenameObjectsUpdatedEvent {
                     image_filename_objects,
@@ -206,6 +203,18 @@ impl namui::Entity for Editor {
                             .any_code_press(&[namui::Code::ControlLeft])
                     {
                         self.redo();
+                    } else if key_event.code == namui::Code::KeyC
+                        && namui::managers()
+                            .keyboard_manager
+                            .any_code_press(&[namui::Code::ControlLeft])
+                    {
+                        self.copy_to_clipboard();
+                    } else if key_event.code == namui::Code::KeyV
+                        && namui::managers()
+                            .keyboard_manager
+                            .any_code_press(&[namui::Code::ControlLeft])
+                    {
+                        self.paste_clipboard();
                     }
                 }
                 _ => {}
@@ -316,6 +325,7 @@ impl Editor {
             subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
             history: History::new(sequence.clone()),
             top_bar: TopBar::new(),
+            clipboard: None,
         }
     }
     fn calculate_timeline_xywh(&self, screen_wh: &namui::Wh<f32>) -> XywhRect<f32> {
@@ -353,6 +363,14 @@ impl Editor {
     }
     fn on_change_sequence(&mut self) {
         let sequence = self.get_sequence().clone();
+        match &self.selected_clip_id {
+            Some(selected_clip_id) => {
+                if sequence.get_clip(&selected_clip_id).is_none() {
+                    self.deselect_clip();
+                }
+            }
+            None => {}
+        }
         self.sequence_player.update_sequence(sequence.clone());
         namui::event::send(EditorEvent::SequenceUpdateEvent {
             sequence: sequence.clone(),
@@ -367,5 +385,48 @@ impl Editor {
         if self.history.redo().is_some() {
             self.on_change_sequence();
         }
+    }
+
+    fn copy_to_clipboard(&mut self) {
+        if self.selected_clip_id.is_none() {
+            return;
+        }
+
+        let selected_clip = self.get_selected_clip().unwrap();
+
+        match selected_clip {
+            Clip::Camera(camera_clip) => {
+                self.clipboard = Some(Clipboard::CameraClip(camera_clip.clone()));
+            }
+            Clip::Subtitle(_) => {
+                return;
+            }
+        }
+    }
+
+    fn paste_clipboard(&mut self) {
+        if self.clipboard.is_none() {
+            return;
+        }
+
+        match self.clipboard.as_ref().unwrap() {
+            Clipboard::CameraClip(camera_clip) => {
+                self.job = Some(Job::AddCameraClip(AddCameraClipJob {
+                    camera_clip: Arc::new(camera_clip.duplicate()),
+                    time_to_insert: self.sequence_player.get_playback_time(),
+                }));
+                self.execute_job();
+            }
+        }
+    }
+    fn select_clip(&mut self, clip_id: &str) {
+        self.selected_clip_id = Some(clip_id.to_string());
+        self.clip_editor = Some(ClipEditor::new(
+            &self.get_sequence().get_clip(clip_id).unwrap(),
+        ));
+    }
+    fn deselect_clip(&mut self) {
+        self.selected_clip_id = None;
+        self.clip_editor = None;
     }
 }

@@ -18,6 +18,8 @@ mod subtitle_play_duration_measurer;
 pub use subtitle_play_duration_measurer::*;
 mod sequence;
 pub use sequence::*;
+mod camera_track;
+pub use camera_track::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Subtitle {

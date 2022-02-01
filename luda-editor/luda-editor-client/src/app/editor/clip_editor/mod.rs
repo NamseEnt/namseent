@@ -10,7 +10,7 @@ pub enum ClipEditor {
 }
 
 pub struct ClipEditorProps<'a> {
-    pub clip: Clip<'a>,
+    pub clip: Clip,
     pub xywh: XywhRect<f32>,
     pub image_filename_objects: &'a Vec<ImageFilenameObject>,
     pub job: &'a Option<Job>,
@@ -37,9 +37,9 @@ impl ClipEditor {
 
     pub fn render(&self, props: &ClipEditorProps) -> RenderingTree {
         match &self {
-            ClipEditor::Camera(camera_clip_editor) => match props.clip {
+            ClipEditor::Camera(camera_clip_editor) => match &props.clip {
                 Clip::Camera(camera_clip) => camera_clip_editor.render(&CameraClipEditorProps {
-                    camera_clip,
+                    camera_clip: &camera_clip,
                     xywh: props.xywh,
                     image_filename_objects: &props.image_filename_objects,
                     job: &props.job,

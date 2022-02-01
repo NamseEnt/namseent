@@ -14,14 +14,14 @@ impl Sequence {
                 Track::Camera(track) => {
                     for clip in track.clips.iter() {
                         if clip.id == id {
-                            return Some(Clip::Camera(clip));
+                            return Some(Clip::Camera(clip.clone()));
                         }
                     }
                 }
                 Track::Subtitle(track) => {
                     for clip in track.clips.iter() {
                         if clip.id == id {
-                            return Some(Clip::Subtitle(clip));
+                            return Some(Clip::Subtitle(clip.clone()));
                         }
                     }
                 }
@@ -60,23 +60,6 @@ pub enum Track {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CameraTrack {
-    pub id: String,
-    pub clips: Arc<[Arc<CameraClip>]>,
-}
-impl CameraTrack {
-    pub(crate) fn get_clip_at_time(&self, time: &Time) -> Option<&CameraClip> {
-        self.clips.iter().find_map(|clip| {
-            if clip.is_at_time(time) {
-                Some(clip.as_ref())
-            } else {
-                None
-            }
-        })
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtitleTrack {
     pub id: String,
     pub clips: Arc<[Arc<SubtitleClip>]>,
@@ -106,19 +89,26 @@ pub struct CameraClip {
     pub camera_angle: CameraAngle,
 }
 impl CameraClip {
-    fn is_at_time(&self, time: &Time) -> bool {
+    pub fn is_at_time(&self, time: &Time) -> bool {
         self.start_at <= time && time < self.end_at
+    }
+    pub fn duplicate(&self) -> CameraClip {
+        CameraClip {
+            id: CameraClip::get_new_id(),
+            start_at: self.start_at,
+            end_at: self.end_at,
+            camera_angle: self.camera_angle.clone(),
+        }
+    }
+    fn get_new_id() -> String {
+        format!("CameraClip-{}", namui::nanoid())
     }
 }
 
 #[derive(Debug)]
-pub enum Clip<'a> {
-    Camera(&'a CameraClip),
-    Subtitle(&'a SubtitleClip),
-}
-pub enum MutableClip<'a> {
-    Camera(&'a mut CameraClip),
-    Subtitle(&'a mut SubtitleClip),
+pub enum Clip {
+    Camera(Arc<CameraClip>),
+    Subtitle(Arc<SubtitleClip>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -150,6 +140,19 @@ pub enum UpdateResult<T, Error> {
     Updated(T),
     NotUpdated,
     Err(Error),
+}
+
+impl<T, Error> UpdateResult<T, Error>
+where
+    Error: std::fmt::Display,
+{
+    pub fn unwrap(self) -> T {
+        match self {
+            UpdateResult::Updated(value) => value,
+            UpdateResult::NotUpdated => panic!("Not updated"),
+            UpdateResult::Err(error) => panic!("{}", error),
+        }
+    }
 }
 
 fn update_arcs<T, Error>(
@@ -305,5 +308,44 @@ impl ClipFind<CameraClip> for Sequence {
                 None
             }
         })
+    }
+}
+
+pub trait TrackReplacer<TrackType> {
+    fn replace_track(
+        self,
+        track_id: &str,
+        replace_callback: impl FnOnce(&TrackType) -> Result<TrackType, String> + Copy,
+    ) -> UpdateResult<Self, String>
+    where
+        Self: Sized;
+}
+
+impl TrackReplacer<CameraTrack> for Sequence {
+    fn replace_track(
+        mut self,
+        track_id: &str,
+        replace_callback: impl FnOnce(&CameraTrack) -> Result<CameraTrack, String> + Copy,
+    ) -> UpdateResult<Self, String> {
+        match update_arcs(&mut self.tracks, |track| {
+            if let Track::Camera(camera_track) = track {
+                if camera_track.id == *track_id {
+                    match replace_callback(camera_track) {
+                        Ok(track) => UpdateResult::Updated(Track::Camera(track)),
+                        Err(error) => {
+                            return UpdateResult::Err(error);
+                        }
+                    }
+                } else {
+                    return UpdateResult::NotUpdated;
+                }
+            } else {
+                return UpdateResult::NotUpdated;
+            }
+        }) {
+            UpdateResult::Updated(_) => UpdateResult::Updated(self),
+            UpdateResult::NotUpdated => UpdateResult::NotUpdated,
+            UpdateResult::Err(error) => UpdateResult::Err(error),
+        }
     }
 }
