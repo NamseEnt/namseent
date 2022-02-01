@@ -72,9 +72,10 @@ impl namui::Entity for Editor {
 
                     if self.job.is_none() {
                         self.job = Some(Job::MoveSubtitleClip(MoveSubtitleClipJob {
-                            clip_id: clip_id.clone(),
+                            clip_ids: self.selected_clip_ids.clone(),
                             click_anchor_in_time: *click_in_time,
                             last_mouse_position_in_time: *click_in_time,
+                            is_moved: false,
                         }));
                     }
                 }
@@ -177,6 +178,7 @@ impl namui::Entity for Editor {
                     }
                     Some(Job::MoveSubtitleClip(ref mut job)) => {
                         job.last_mouse_position_in_time = *mouse_position_in_time;
+                        job.is_moved = true;
                     }
                     _ => {}
                 },
@@ -197,8 +199,9 @@ impl namui::Entity for Editor {
                     _ => {}
                 },
                 NamuiEvent::MouseUp(_) => match self.job {
-                    Some(Job::MoveCameraClip(ref job)) => {
-                        if job.is_moved {
+                    Some(Job::MoveCameraClip(MoveCameraClipJob { is_moved, .. }))
+                    | Some(Job::MoveSubtitleClip(MoveSubtitleClipJob { is_moved, .. })) => {
+                        if is_moved {
                             self.execute_job();
                         } else {
                             self.job.take();
@@ -207,8 +210,7 @@ impl namui::Entity for Editor {
                             }
                         }
                     }
-                    Some(Job::MoveSubtitleClip(_))
-                    | Some(Job::WysiwygMoveImage(_))
+                    Some(Job::WysiwygMoveImage(_))
                     | Some(Job::WysiwygResizeImage(_))
                     | Some(Job::WysiwygCropImage(_)) => {
                         self.execute_job();

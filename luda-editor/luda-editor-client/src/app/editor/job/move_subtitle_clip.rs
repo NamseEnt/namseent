@@ -1,11 +1,13 @@
 use super::JobExecute;
 use crate::app::types::*;
+use std::collections::BTreeSet;
 
 #[derive(Debug, Clone)]
 pub struct MoveSubtitleClipJob {
-    pub clip_id: String,
+    pub clip_ids: BTreeSet<String>,
     pub click_anchor_in_time: Time,
     pub last_mouse_position_in_time: Time,
+    pub is_moved: bool,
 }
 
 impl JobExecute for MoveSubtitleClipJob {
@@ -20,15 +22,21 @@ impl MoveSubtitleClipJob {
     where
         T: ClipReplacer<SubtitleClip>,
     {
-        match subtitle_clip_replacer.replace_clip(&self.clip_id, |clip| {
-            let mut clip = clip.clone();
-            self.move_subtitle_clip(&mut clip);
-            Ok(clip)
-        }) {
-            UpdateResult::Updated(replacer) => Ok(replacer),
-            UpdateResult::NotUpdated => Err("Subtitle clip not found".to_string()),
-            UpdateResult::Err(error) => Err(error),
+        let mut replacer = subtitle_clip_replacer;
+        for clip_id in &self.clip_ids {
+            match replacer.replace_clip(&clip_id, |clip| {
+                let mut clip = clip.clone();
+                self.move_subtitle_clip(&mut clip);
+                Ok(clip)
+            }) {
+                UpdateResult::Updated(r) => {
+                    replacer = r;
+                }
+                UpdateResult::NotUpdated => return Err("Subtitle clip not found".to_string()),
+                UpdateResult::Err(error) => return Err(error),
+            }
         }
+        Ok(replacer)
     }
     fn move_subtitle_clip(&self, clip: &mut SubtitleClip) {
         let delta_time = self.last_mouse_position_in_time - self.click_anchor_in_time;
