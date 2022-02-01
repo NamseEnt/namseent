@@ -50,21 +50,21 @@ impl namui::Entity for Editor {
                     click_in_time,
                     ..
                 } => {
+                    if namui::managers()
+                        .keyboard_manager
+                        .any_code_press(&[namui::Code::ControlLeft])
+                    {
+                        self.multi_select_clip(clip_id);
+                    } else if !self.selected_clip_ids.contains(clip_id) {
+                        self.select_only_this_clip(clip_id);
+                    }
+
                     if self.job.is_none() {
                         self.job = Some(Job::MoveCameraClip(MoveCameraClipJob {
-                            clip_id: clip_id.clone(),
+                            clip_ids: self.selected_clip_ids.clone(),
                             click_anchor_in_time: *click_in_time,
                             last_mouse_position_in_time: *click_in_time,
                         }));
-                    }
-
-                    if namui::managers()
-                        .keyboard_manager
-                        .any_code_press(&[namui::Code::ShiftLeft])
-                    {
-                        self.multi_select_clip(clip_id);
-                    } else {
-                        self.select_only_this_clip(clip_id);
                     }
                 }
                 EditorEvent::SubtitleClipHeadMouseDownEvent {
@@ -72,20 +72,21 @@ impl namui::Entity for Editor {
                     click_in_time,
                     ..
                 } => {
+                    if namui::managers()
+                        .keyboard_manager
+                        .any_code_press(&[namui::Code::ControlLeft])
+                    {
+                        self.multi_select_clip(clip_id);
+                    } else if !self.selected_clip_ids.contains(clip_id) {
+                        self.select_only_this_clip(clip_id);
+                    }
+
                     if self.job.is_none() {
                         self.job = Some(Job::MoveSubtitleClip(MoveSubtitleClipJob {
                             clip_id: clip_id.clone(),
                             click_anchor_in_time: *click_in_time,
                             last_mouse_position_in_time: *click_in_time,
                         }));
-                    }
-                    if namui::managers()
-                        .keyboard_manager
-                        .any_code_press(&[namui::Code::ShiftLeft])
-                    {
-                        self.multi_select_clip(clip_id);
-                    } else {
-                        self.select_only_this_clip(clip_id);
                     }
                 }
                 EditorEvent::ImageFilenameObjectsUpdatedEvent {

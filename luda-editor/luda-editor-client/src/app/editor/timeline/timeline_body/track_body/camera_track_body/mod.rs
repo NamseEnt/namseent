@@ -4,6 +4,7 @@ use crate::app::{
     types::{CameraClip, CameraTrack, ClipReplacer},
 };
 use namui::prelude::*;
+use std::collections::LinkedList;
 mod camera_clip_body;
 
 pub struct CameraTrackBody {}
@@ -14,11 +15,16 @@ pub struct CameraTrackBodyProps<'a> {
     pub context: &'a TimelineRenderContext<'a>,
 }
 
-fn move_clip_at_last(track: &mut CameraTrack, clip_id: &String) {
-    let mut clips = track.clips.to_vec();
-    let moving_clip_index = clips.iter().position(|clip| clip.id.eq(clip_id)).unwrap();
-    clips[moving_clip_index..].rotate_left(1);
-    track.clips = clips.into();
+fn move_clip_at_last(track: &mut CameraTrack, clip_ids: Vec<&String>) {
+    let mut clips = LinkedList::new();
+    track.clips.iter().for_each(|clip| {
+        if clip_ids.contains(&&clip.id) {
+            clips.push_back(clip.clone());
+        } else {
+            clips.push_front(clip.clone());
+        }
+    });
+    track.clips = clips.into_iter().collect::<Vec<_>>().into();
 }
 
 impl CameraTrackBody {
@@ -27,29 +33,34 @@ impl CameraTrackBody {
             Some(Job::MoveCameraClip(job)) => {
                 let mut track = props.track.clone();
 
-                let moving_clip = track
+                let mut moving_clips = vec![];
+                track
                     .clips
                     .iter()
-                    .find(|clip| clip.id.eq(&job.clip_id))
-                    .unwrap()
-                    .clone();
-                let preview_start_at = moving_clip.start_at + job.get_delta_time();
-                let preview_end_at = moving_clip.end_at + job.get_delta_time();
+                    .filter(|clip| job.clip_ids.contains(&clip.id))
+                    .for_each(|clip| {
+                        moving_clips.push(clip.clone());
+                    });
 
-                track.move_clip_delta(&job.clip_id, job.get_delta_time());
+                let moving_clip_ids = job.clip_ids.iter().collect::<Vec<_>>();
+                track.move_clips_delta(&moving_clip_ids, job.get_delta_time());
 
-                let mut track = track
-                    .replace_clip(&job.clip_id, |clip| {
-                        Ok(CameraClip {
-                            id: clip.id.clone(),
-                            start_at: preview_start_at,
-                            end_at: preview_end_at,
-                            camera_angle: clip.camera_angle.clone(),
+                let delta_time = job.get_delta_time();
+
+                let mut track = moving_clips.iter().fold(track, |track, moving_clip| {
+                    track
+                        .replace_clip(&moving_clip.id, |clip| {
+                            Ok(CameraClip {
+                                id: clip.id.clone(),
+                                start_at: moving_clip.start_at + delta_time,
+                                end_at: moving_clip.end_at + delta_time,
+                                camera_angle: clip.camera_angle.clone(),
+                            })
                         })
-                    })
-                    .unwrap();
+                        .unwrap()
+                });
 
-                move_clip_at_last(&mut track, &job.clip_id);
+                move_clip_at_last(&mut track, moving_clip_ids);
 
                 track.clips
             }
