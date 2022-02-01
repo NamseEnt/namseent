@@ -565,7 +565,11 @@ impl Editor {
         let keyboard_manager = &namui::managers().keyboard_manager;
 
         if keyboard_manager.any_code_press(&[namui::Code::ControlLeft]) {
-            self.multi_select_clip(clip_id);
+            if self.selected_clip_ids.contains(clip_id) {
+                self.deselect_clips(&[clip_id]);
+            } else {
+                self.multi_select_clip(clip_id);
+            }
         } else if keyboard_manager.any_code_press(&[namui::Code::ShiftLeft])
             && self.is_clip_in_same_track_with_selected_clips(clip_id)
         {
