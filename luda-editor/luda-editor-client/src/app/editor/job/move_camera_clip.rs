@@ -7,6 +7,7 @@ pub struct MoveCameraClipJob {
     pub clip_ids: BTreeSet<String>,
     pub click_anchor_in_time: Time,
     pub last_mouse_position_in_time: Time,
+    pub is_moved: bool,
 }
 
 impl JobExecute for MoveCameraClipJob {
@@ -54,6 +55,7 @@ mod tests {
             clip_ids: vec!["1".to_string()].into_iter().collect(),
             click_anchor_in_time: Time::from_ms(1.0),
             last_mouse_position_in_time: Time::from_ms(3.5),
+            is_moved: true,
         };
 
         let result = job.execute(&sequence).unwrap();
@@ -74,6 +76,7 @@ mod tests {
             clip_ids: vec!["3".to_string()].into_iter().collect(),
             click_anchor_in_time: Time::from_ms(3.0),
             last_mouse_position_in_time: Time::from_ms(0.5),
+            is_moved: true,
         };
 
         let result = job.execute(&sequence).unwrap();
@@ -96,6 +99,7 @@ mod tests {
                 .collect(),
             click_anchor_in_time: Time::from_ms(0.0),
             last_mouse_position_in_time: Time::from_ms(2.25),
+            is_moved: true,
         };
 
         let result = job.execute(&sequence).unwrap();
@@ -118,6 +122,7 @@ mod tests {
                 .collect(),
             click_anchor_in_time: Time::from_ms(0.0),
             last_mouse_position_in_time: Time::from_ms(-1.75),
+            is_moved: true,
         };
 
         let result = job.execute(&sequence).unwrap();

@@ -38,6 +38,8 @@ pub struct Editor {
     history: History<Arc<Sequence>>,
     top_bar: TopBar,
     clipboard: Option<Clipboard>,
+    language: Language,
+    clip_id_to_check_as_click: Option<String>,
 }
 
 impl namui::Entity for Editor {
@@ -50,20 +52,14 @@ impl namui::Entity for Editor {
                     click_in_time,
                     ..
                 } => {
-                    if namui::managers()
-                        .keyboard_manager
-                        .any_code_press(&[namui::Code::ControlLeft])
-                    {
-                        self.multi_select_clip(clip_id);
-                    } else if !self.selected_clip_ids.contains(clip_id) {
-                        self.select_only_this_clip(clip_id);
-                    }
+                    self.on_clip_mouse_down(clip_id);
 
                     if self.job.is_none() {
                         self.job = Some(Job::MoveCameraClip(MoveCameraClipJob {
                             clip_ids: self.selected_clip_ids.clone(),
                             click_anchor_in_time: *click_in_time,
                             last_mouse_position_in_time: *click_in_time,
+                            is_moved: false,
                         }));
                     }
                 }
@@ -72,14 +68,7 @@ impl namui::Entity for Editor {
                     click_in_time,
                     ..
                 } => {
-                    if namui::managers()
-                        .keyboard_manager
-                        .any_code_press(&[namui::Code::ControlLeft])
-                    {
-                        self.multi_select_clip(clip_id);
-                    } else if !self.selected_clip_ids.contains(clip_id) {
-                        self.select_only_this_clip(clip_id);
-                    }
+                    self.on_clip_mouse_down(clip_id);
 
                     if self.job.is_none() {
                         self.job = Some(Job::MoveSubtitleClip(MoveSubtitleClipJob {
@@ -184,6 +173,7 @@ impl namui::Entity for Editor {
                 } => match self.job {
                     Some(Job::MoveCameraClip(ref mut job)) => {
                         job.last_mouse_position_in_time = *mouse_position_in_time;
+                        job.is_moved = true;
                     }
                     Some(Job::MoveSubtitleClip(ref mut job)) => {
                         job.last_mouse_position_in_time = *mouse_position_in_time;
@@ -207,8 +197,17 @@ impl namui::Entity for Editor {
                     _ => {}
                 },
                 NamuiEvent::MouseUp(_) => match self.job {
-                    Some(Job::MoveCameraClip(_))
-                    | Some(Job::MoveSubtitleClip(_))
+                    Some(Job::MoveCameraClip(ref job)) => {
+                        if job.is_moved {
+                            self.execute_job();
+                        } else {
+                            self.job.take();
+                            if let Some(clip_id) = &self.clip_id_to_check_as_click {
+                                self.select_only_this_clip(&clip_id.clone());
+                            }
+                        }
+                    }
+                    Some(Job::MoveSubtitleClip(_))
                     | Some(Job::WysiwygMoveImage(_))
                     | Some(Job::WysiwygResizeImage(_))
                     | Some(Job::WysiwygCropImage(_)) => {
@@ -303,7 +302,7 @@ impl namui::Entity for Editor {
             },
             self.sequence_player.render(&SequencePlayerProps {
                 xywh: &sequence_player_xywh,
-                language: namui::Language::Ko, // TODO
+                language: self.language,
                 subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
                 with_buttons: true,
             }),
@@ -350,6 +349,8 @@ impl Editor {
             history: History::new(sequence.clone()),
             top_bar: TopBar::new(),
             clipboard: None,
+            language: namui::Language::Ko,
+            clip_id_to_check_as_click: None,
         }
     }
     fn calculate_timeline_xywh(&self, screen_wh: &namui::Wh<f32>) -> XywhRect<f32> {
@@ -494,5 +495,87 @@ impl Editor {
             });
 
         self.deselect_clips(&clip_ids_to_remove);
+    }
+
+    fn is_clip_in_same_track_with_selected_clips(&self, clip_id: &str) -> bool {
+        if self.selected_clip_ids.len() == 0 {
+            return false;
+        }
+
+        let sequence = self.get_sequence().clone();
+        let selected_clip_track = sequence
+            .find_track_by_clip_id(self.selected_clip_ids.iter().next().unwrap())
+            .unwrap();
+        let clip_track = sequence.find_track_by_clip_id(clip_id).unwrap();
+
+        selected_clip_track.get_id() == clip_track.get_id()
+    }
+
+    fn select_all_between_clips<T: AsRef<str>>(&mut self, clip_ids: &[T]) {
+        let track = self
+            .get_sequence()
+            .find_track_by_clip_id(self.selected_clip_ids.iter().next().unwrap())
+            .unwrap();
+
+        let clips = clip_ids
+            .iter()
+            .map(|clip_id| track.find_clip(clip_id.as_ref()).unwrap())
+            .collect::<Vec<_>>();
+
+        let most_left_clip = clips
+            .iter()
+            .min_by(|a, b| a.get_start_time().partial_cmp(&b.get_start_time()).unwrap())
+            .unwrap();
+
+        let most_right_clip = clips
+            .iter()
+            .max_by(|a, b| {
+                self.get_clip_end_time(a)
+                    .partial_cmp(&self.get_clip_end_time(b))
+                    .unwrap()
+            })
+            .unwrap();
+
+        let mut selected_clip_ids = BTreeSet::new();
+        selected_clip_ids.insert(most_left_clip.get_id().to_string());
+        selected_clip_ids.insert(most_right_clip.get_id().to_string());
+
+        for clip in track.get_clips() {
+            if clip.get_start_time() >= most_left_clip.get_start_time()
+                && self.get_clip_end_time(&clip) <= self.get_clip_end_time(most_right_clip)
+            {
+                selected_clip_ids.insert(clip.get_id().to_string());
+            }
+        }
+
+        self.selected_clip_ids = selected_clip_ids;
+    }
+
+    pub(crate) fn get_clip_end_time(&self, clip: &Clip) -> Time {
+        match clip {
+            Clip::Camera(clip) => clip.end_at,
+            Clip::Subtitle(clip) => {
+                clip.end_at(self.language, &self.subtitle_play_duration_measurer)
+            }
+        }
+    }
+    fn on_clip_mouse_down(&mut self, clip_id: &str) {
+        self.clip_id_to_check_as_click = None;
+
+        let keyboard_manager = &namui::managers().keyboard_manager;
+
+        if keyboard_manager.any_code_press(&[namui::Code::ControlLeft]) {
+            self.multi_select_clip(clip_id);
+        } else if keyboard_manager.any_code_press(&[namui::Code::ShiftLeft])
+            && self.is_clip_in_same_track_with_selected_clips(clip_id)
+        {
+            let mut selected_clip_ids = self.selected_clip_ids.clone();
+            selected_clip_ids.insert(clip_id.to_string());
+            self.select_all_between_clips(&selected_clip_ids.into_iter().collect::<Vec<_>>());
+        } else if !self.selected_clip_ids.contains(clip_id) {
+            self.select_only_this_clip(clip_id);
+        } else {
+            self.clip_id_to_check_as_click = Some(clip_id.to_string());
+        }
     }
 }

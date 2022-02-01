@@ -80,6 +80,21 @@ impl Track {
             Track::Subtitle(track) => &track.id,
         }
     }
+
+    pub fn get_clips(&self) -> Vec<Clip> {
+        match self {
+            Track::Camera(track) => track
+                .clips
+                .iter()
+                .map(|clip| Clip::Camera(clip.clone()))
+                .collect::<Vec<_>>(),
+            Track::Subtitle(track) => track
+                .clips
+                .iter()
+                .map(|clip| Clip::Subtitle(clip.clone()))
+                .collect::<Vec<_>>(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -128,7 +143,7 @@ impl CameraClip {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Clip {
     Camera(Arc<CameraClip>),
     Subtitle(Arc<SubtitleClip>),
@@ -145,6 +160,13 @@ impl Clip {
         match self {
             Clip::Camera(clip) => Some(clip.as_ref()),
             _ => None,
+        }
+    }
+
+    pub(crate) fn get_start_time(&self) -> Time {
+        match self {
+            Clip::Camera(clip) => clip.start_at,
+            Clip::Subtitle(clip) => clip.start_at,
         }
     }
 }
@@ -346,6 +368,15 @@ impl ClipFind<CameraClip> for Sequence {
                 None
             }
         })
+    }
+}
+
+impl Track {
+    pub fn find_clip(&self, clip_id: &str) -> Option<Clip> {
+        self.get_clips()
+            .iter()
+            .find(|clip| clip.get_id().eq(clip_id))
+            .map(|clip| clip.clone())
     }
 }
 
