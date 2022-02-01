@@ -12,7 +12,7 @@ pub struct MoveCameraClipJob {
 impl JobExecute for MoveCameraClipJob {
     fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
         let sequence = sequence.clone();
-        let camera_track_id = get_camera_clip_id(&sequence);
+        let camera_track_id = get_camera_track_id(&sequence);
         match sequence.replace_track(&camera_track_id, |track: &CameraTrack| {
             let mut track = track.clone();
             track.move_clip_delta(&self.clip_id, self.get_delta_time());
@@ -140,7 +140,7 @@ mod tests {
     }
 }
 
-pub(crate) fn get_camera_clip_id(sequence: &Sequence) -> String {
+pub(crate) fn get_camera_track_id(sequence: &Sequence) -> String {
     sequence
         .tracks
         .iter()
