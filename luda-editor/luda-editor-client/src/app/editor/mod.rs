@@ -57,7 +57,15 @@ impl namui::Entity for Editor {
                             last_mouse_position_in_time: *click_in_time,
                         }));
                     }
-                    self.select_only_this_clip(clip_id);
+
+                    if namui::managers()
+                        .keyboard_manager
+                        .any_code_press(&[namui::Code::ShiftLeft])
+                    {
+                        self.multi_select_clip(clip_id);
+                    } else {
+                        self.select_only_this_clip(clip_id);
+                    }
                 }
                 EditorEvent::SubtitleClipHeadMouseDownEvent {
                     clip_id,
@@ -71,7 +79,14 @@ impl namui::Entity for Editor {
                             last_mouse_position_in_time: *click_in_time,
                         }));
                     }
-                    self.select_only_this_clip(clip_id);
+                    if namui::managers()
+                        .keyboard_manager
+                        .any_code_press(&[namui::Code::ShiftLeft])
+                    {
+                        self.multi_select_clip(clip_id);
+                    } else {
+                        self.select_only_this_clip(clip_id);
+                    }
                 }
                 EditorEvent::ImageFilenameObjectsUpdatedEvent {
                     image_filename_objects,
