@@ -67,7 +67,7 @@ pub(super) fn render_time_ruler(props: &TimeRulerProps) -> RenderingTree {
                     let time_per_pixel = props.time_per_pixel;
                     let start_at = props.start_at;
                     let time_ruler_dragging_closure = move |event: &MouseEvent| {
-                        if !event.buttons.contains(&MouseButton::Left) {
+                        if !event.pressing_buttons.contains(&MouseButton::Left) {
                             return;
                         }
                         let click_position_in_time =
