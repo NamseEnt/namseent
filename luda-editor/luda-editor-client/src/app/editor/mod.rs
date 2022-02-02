@@ -8,7 +8,7 @@ use super::types::*;
 use crate::app::editor::{clip_editor::ClipEditorProps, top_bar::TopBarProps};
 use luda_editor_rpc::Socket;
 use namui::prelude::*;
-use std::{collections::BTreeSet, sync::Arc};
+use std::{cmp::Ordering, collections::BTreeSet, sync::Arc};
 pub use timeline::*;
 use wasm_bindgen_futures::spawn_local;
 mod clip_editor;
@@ -242,6 +242,18 @@ impl namui::Entity for Editor {
                             .any_code_press(&[namui::Code::ControlLeft])
                     {
                         self.paste_clipboard();
+                    } else if key_event.code == namui::Code::Home
+                        && namui::managers()
+                            .keyboard_manager
+                            .any_code_press(&[namui::Code::ShiftLeft])
+                    {
+                        self.select_at_once(Direction::Forward);
+                    } else if key_event.code == namui::Code::End
+                        && namui::managers()
+                            .keyboard_manager
+                            .any_code_press(&[namui::Code::ShiftLeft])
+                    {
+                        self.select_at_once(Direction::Backward);
                     }
                 }
                 _ => {}
@@ -448,13 +460,10 @@ impl Editor {
             self.selected_clip_ids.insert(clip_id.to_string());
         } else if !self.selected_clip_ids.contains(clip_id) {
             let sequence = self.get_sequence().clone();
-            let first_selected_clip_id = self.selected_clip_ids.iter().next().unwrap();
-            let first_selected_clip_track = sequence
-                .find_track_by_clip_id(first_selected_clip_id)
-                .unwrap();
+            let selected_clip_track = self.get_selected_clip_track().unwrap();
             let selecting_clip_track = sequence.find_track_by_clip_id(clip_id).unwrap();
 
-            if first_selected_clip_track.get_id() != selecting_clip_track.get_id() {
+            if selected_clip_track.get_id() != selecting_clip_track.get_id() {
                 self.selected_clip_ids.clear();
             }
             self.selected_clip_ids.insert(clip_id.to_string());
@@ -505,19 +514,14 @@ impl Editor {
         }
 
         let sequence = self.get_sequence().clone();
-        let selected_clip_track = sequence
-            .find_track_by_clip_id(self.selected_clip_ids.iter().next().unwrap())
-            .unwrap();
+        let selected_clip_track = self.get_selected_clip_track().unwrap();
         let clip_track = sequence.find_track_by_clip_id(clip_id).unwrap();
 
         selected_clip_track.get_id() == clip_track.get_id()
     }
 
     fn select_all_between_clips<T: AsRef<str>>(&mut self, clip_ids: &[T]) {
-        let track = self
-            .get_sequence()
-            .find_track_by_clip_id(self.selected_clip_ids.iter().next().unwrap())
-            .unwrap();
+        let track = self.get_selected_clip_track().unwrap();
 
         let clips = clip_ids
             .iter()
@@ -584,4 +588,59 @@ impl Editor {
             self.clip_id_to_check_as_click = Some(clip_id.to_string());
         }
     }
+
+    fn select_at_once(&mut self, direction: Direction) {
+        if self.selected_clip_ids.is_empty() {
+            return;
+        }
+
+        let track = &*self.get_selected_clip_track().unwrap();
+
+        let start_point_to_select = match direction {
+            Direction::Forward => self
+                .selected_clip_ids
+                .iter()
+                .map(|clip_id| {
+                    let clip = track.find_clip(clip_id).unwrap();
+                    self.get_clip_end_time(&clip)
+                })
+                .max()
+                .unwrap(),
+            Direction::Backward => self
+                .selected_clip_ids
+                .iter()
+                .map(|clip_id| track.find_clip(clip_id).unwrap().get_start_time())
+                .min()
+                .unwrap(),
+        };
+
+        let ordering = match direction {
+            Direction::Forward => Ordering::Less,
+            Direction::Backward => Ordering::Greater,
+        };
+
+        track.get_clips().iter().for_each(|clip| {
+            let results = [
+                clip.get_start_time().partial_cmp(&start_point_to_select),
+                self.get_clip_end_time(&clip)
+                    .partial_cmp(&start_point_to_select),
+            ];
+
+            if results.contains(&Some(ordering)) {
+                self.selected_clip_ids.insert(clip.get_id().to_string());
+            }
+        });
+    }
+
+    fn get_selected_clip_track(&self) -> Option<Arc<Track>> {
+        self.selected_clip_ids
+            .iter()
+            .next()
+            .and_then(|clip_id| self.get_sequence().find_track_by_clip_id(clip_id))
+    }
+}
+
+enum Direction {
+    Forward,
+    Backward,
 }
