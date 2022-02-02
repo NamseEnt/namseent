@@ -1,0 +1,27 @@
+name: test-luda-editor-client
+on:
+  push:
+    paths: # Please add luda-editor-client's dependencies together.
+      - "luda-editor/luda-editor-client/**"
+      - "luda-editor/luda-editor-rpc/**"
+      - "namui/**"
+jobs:
+  test-luda-editor-client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: wasm-pack install
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - run: rustup target add wasm32-unknown-unknown
+
+      - uses: actions/checkout@v2
+
+      - name: run test
+        run: |
+          pushd luda-editor/luda-editor-client
+          CHROMEDRIVER=$CHROMEWEBDRIVER wasm-pack test --headless --chrome
+          popd
