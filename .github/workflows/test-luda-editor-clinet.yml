@@ -1,10 +1,10 @@
 name: test-luda-editor-client
 on:
-  push
-#     paths:
-#       - "luda-editor/luda-editor-client/**"
-#       - "luda-editor/luda-editor-rpc/**"
-#       - "namui/**"
+  push:
+    paths: # Please add luda-editor-client's dependencies together.
+      - "luda-editor/luda-editor-client/**"
+      - "luda-editor/luda-editor-rpc/**"
+      - "namui/**"
 jobs:
   test-luda-editor-client:
     runs-on: ubuntu-latest
