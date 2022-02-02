@@ -1,8 +1,7 @@
 name: cargo-check
 on:
   push:
-    paths:
-      - "luda-editor/luda-editor-client/**"
+    paths: # Please put packages which has no other test action only.
       - "luda-editor/luda-editor-server/**"
       - "luda-editor/luda-editor-rpc/**"
       - "namui-cli/**"
@@ -22,9 +21,7 @@ jobs:
 
       - uses: actions/checkout@v2
 
-      - run: pushd luda-editor/luda-editor-client; cargo check; popd;
       - run: pushd luda-editor/luda-editor-server; cargo check; popd;
       - run: pushd luda-editor/luda-editor-rpc; cargo check; popd;
       - run: pushd namui-cli; cargo check; popd;
-      - run: pushd namui; cargo check; popd;
       - run: pushd nrpc; cargo check; popd;
