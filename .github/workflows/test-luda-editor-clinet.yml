@@ -9,21 +9,19 @@ jobs:
   test-luda-editor-client:
     runs-on: ubuntu-latest
     steps:
-      # - uses: actions-rs/toolchain@v1
-      #   with:
-      #     toolchain: stable
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
 
-      # - name: wasm-pack install
-      #   run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: wasm-pack install
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
-      # - run: rustup target add wasm32-unknown-unknown
+      - run: rustup target add wasm32-unknown-unknown
 
-      # - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-      - run: echo "$CHROMEWEBDRIVER"
-
-      # - name: run test
-      #   run: |
-      #     pushd luda-editor/luda-editor-client
-      #     CHROMEDRIVER=$CHROMEWEBDRIVER wasm-pack test --headless --chrome
-      #     popd
+      - name: run test
+        run: |
+          pushd luda-editor/luda-editor-client
+          CHROMEDRIVER=$CHROMEWEBDRIVER wasm-pack test --headless --chrome
+          popd
