@@ -34,7 +34,8 @@ impl MouseManager {
                     x: mouse_position.x as f32,
                     y: mouse_position.y as f32,
                 },
-                buttons: extract_buttons(event),
+                pressing_buttons: get_pressing_buttons(&event),
+                button: Some(get_button(&event)),
             }));
         }) as Box<dyn FnMut(_)>);
 
@@ -62,7 +63,8 @@ impl MouseManager {
                     x: mouse_position.x as f32,
                     y: mouse_position.y as f32,
                 },
-                buttons: extract_buttons(event),
+                pressing_buttons: get_pressing_buttons(&event),
+                button: Some(get_button(&event)),
             }));
         }) as Box<dyn FnMut(_)>);
 
@@ -87,7 +89,8 @@ impl MouseManager {
                     x: mouse_position.x as f32,
                     y: mouse_position.y as f32,
                 },
-                buttons: extract_buttons(event),
+                pressing_buttons: get_pressing_buttons(&event),
+                button: None,
             }));
         }) as Box<dyn FnMut(_)>);
 
@@ -124,19 +127,39 @@ impl MouseCursor {
         }
     }
 }
-fn extract_buttons(mouse_event: web_sys::MouseEvent) -> HashSet<crate::MouseButton> {
+
+fn get_pressing_buttons(mouse_event: &web_sys::MouseEvent) -> HashSet<crate::MouseButton> {
     let mouse_event_buttons = mouse_event.buttons();
-    let tuples = [
+
+    const MOUSE_BUTTONS_CONVERTING_TUPLES: [(u16, crate::MouseButton); 3] = [
         (1 << 0, crate::MouseButton::Left),
         (1 << 1, crate::MouseButton::Middle),
         (1 << 2, crate::MouseButton::Right),
     ];
 
-    HashSet::from_iter(tuples.iter().filter_map(|(bit, button)| {
-        if mouse_event_buttons & bit != 0 {
-            Some(*button)
-        } else {
-            None
-        }
-    }))
+    HashSet::from_iter(
+        MOUSE_BUTTONS_CONVERTING_TUPLES
+            .iter()
+            .filter_map(|(bit, button)| {
+                if mouse_event_buttons & bit != 0 {
+                    Some(*button)
+                } else {
+                    None
+                }
+            }),
+    )
+}
+fn get_button(mouse_event: &web_sys::MouseEvent) -> crate::MouseButton {
+    let mouse_event_button = mouse_event.button() as u16;
+
+    const MOUSE_BUTTON_CONVERTING_TUPLES: [(u16, crate::MouseButton); 3] = [
+        (0, crate::MouseButton::Left),
+        (1, crate::MouseButton::Middle),
+        (2, crate::MouseButton::Right),
+    ];
+
+    MOUSE_BUTTON_CONVERTING_TUPLES
+        .iter()
+        .find_map(|(value, button)| (mouse_event_button == *value).then(|| *button))
+        .unwrap()
 }

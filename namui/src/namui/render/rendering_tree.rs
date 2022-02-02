@@ -7,7 +7,8 @@ use std::collections::HashSet;
 pub struct MouseEvent {
     pub local_xy: Xy<f32>,
     pub global_xy: Xy<f32>,
-    pub buttons: HashSet<MouseButton>,
+    pub pressing_buttons: HashSet<MouseButton>,
+    pub button: Option<MouseButton>,
 }
 pub enum MouseEventType {
     Down,
@@ -252,7 +253,8 @@ impl RenderingTree {
                             func(&MouseEvent {
                                 global_xy: raw_mouse_event.xy,
                                 local_xy: *local_xy,
-                                buttons: raw_mouse_event.buttons.clone(),
+                                pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
+                                button: raw_mouse_event.button,
                             });
                         }
                     }
