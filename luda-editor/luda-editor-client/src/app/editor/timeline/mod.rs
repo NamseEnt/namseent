@@ -40,14 +40,14 @@ pub struct TimelineProps<'a> {
     pub xywh: namui::XywhRect<f32>,
     pub playback_time: &'a Time,
     pub job: &'a Option<Job>,
-    pub selected_clip_id: &'a Option<String>,
+    pub selected_clip_ids: &'a [&'a String],
     pub sequence: &'a Sequence,
     pub subtitle_play_duration_measurer: &'a SubtitlePlayDurationMeasurer,
 }
 pub struct TimelineRenderContext<'a> {
     pub time_per_pixel: TimePerPixel,
     pub job: &'a Option<Job>,
-    pub selected_clip_id: &'a Option<String>,
+    pub selected_clip_ids: &'a [&'a String],
     start_at: Time,
     pub subtitle_play_duration_measurer: &'a SubtitlePlayDurationMeasurer,
     pub language: Language, // TODO : Set this from setting page
@@ -97,7 +97,7 @@ impl Timeline {
         let context = TimelineRenderContext {
             time_per_pixel: self.time_per_pixel,
             job: props.job,
-            selected_clip_id: &props.selected_clip_id,
+            selected_clip_ids: &props.selected_clip_ids,
             start_at: self.start_at,
             subtitle_play_duration_measurer: props.subtitle_play_duration_measurer,
             language: Language::Ko,

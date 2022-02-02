@@ -1,12 +1,13 @@
 use super::JobExecute;
 use crate::app::types::*;
-use std::sync::Arc;
+use std::collections::BTreeSet;
 
 #[derive(Debug, Clone)]
 pub struct MoveCameraClipJob {
-    pub clip_id: String,
+    pub clip_ids: BTreeSet<String>,
     pub click_anchor_in_time: Time,
     pub last_mouse_position_in_time: Time,
+    pub is_moved: bool,
 }
 
 impl JobExecute for MoveCameraClipJob {
@@ -15,7 +16,10 @@ impl JobExecute for MoveCameraClipJob {
         let camera_track_id = get_camera_track_id(&sequence);
         match sequence.replace_track(&camera_track_id, |track: &CameraTrack| {
             let mut track = track.clone();
-            track.move_clip_delta(&self.clip_id, self.get_delta_time());
+            track.move_clips_delta(
+                &self.clip_ids.iter().collect::<Vec<_>>(),
+                self.get_delta_time(),
+            );
             Ok(track)
         }) {
             UpdateResult::Updated(replacer) => Ok(replacer),
@@ -33,6 +37,8 @@ impl MoveCameraClipJob {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use super::*;
     use namui::prelude::*;
     use wasm_bindgen_test::wasm_bindgen_test;
@@ -46,9 +52,10 @@ mod tests {
 
         let sequence = mock_sequence(&["0", "1", "2", "3", "4"]);
         let job = MoveCameraClipJob {
-            clip_id: "1".to_string(),
+            clip_ids: vec!["1".to_string()].into_iter().collect(),
             click_anchor_in_time: Time::from_ms(1.0),
             last_mouse_position_in_time: Time::from_ms(3.5),
+            is_moved: true,
         };
 
         let result = job.execute(&sequence).unwrap();
@@ -66,13 +73,60 @@ mod tests {
 
         let sequence = mock_sequence(&["0", "1", "2", "3", "4"]);
         let job = MoveCameraClipJob {
-            clip_id: "3".to_string(),
+            clip_ids: vec!["3".to_string()].into_iter().collect(),
             click_anchor_in_time: Time::from_ms(3.0),
             last_mouse_position_in_time: Time::from_ms(0.5),
+            is_moved: true,
         };
 
         let result = job.execute(&sequence).unwrap();
         let expected_clip_ids = ["0", "3", "1", "2", "4"];
+        let result_clip_ids = extract_camera_clip_ids(&result);
+        assert_eq!(result_clip_ids, expected_clip_ids);
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn move_camera_multiple_clips_backward_should_works() {
+        // before : 0 1 2 3 4 5 6
+        // job : move 1, 3, 4 by + 2.25
+        // result : 0 2 1 5 3 4 6
+
+        let sequence = mock_sequence(&["0", "1", "2", "3", "4", "5", "6"]);
+        let job = MoveCameraClipJob {
+            clip_ids: vec!["1".to_string(), "3".to_string(), "4".to_string()]
+                .into_iter()
+                .collect(),
+            click_anchor_in_time: Time::from_ms(0.0),
+            last_mouse_position_in_time: Time::from_ms(2.25),
+            is_moved: true,
+        };
+
+        let result = job.execute(&sequence).unwrap();
+        let expected_clip_ids = ["0", "2", "1", "5", "3", "4", "6"];
+        let result_clip_ids = extract_camera_clip_ids(&result);
+        assert_eq!(result_clip_ids, expected_clip_ids);
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn move_camera_multiple_clips_forward_should_works() {
+        // before : 0 1 2 3 4 5 6
+        // job : move 1, 2, 5 by - 1.75
+        // result : 1 2 0 3 5 4 6
+
+        let sequence = mock_sequence(&["0", "1", "2", "3", "4", "5", "6"]);
+        let job = MoveCameraClipJob {
+            clip_ids: vec!["1".to_string(), "2".to_string(), "5".to_string()]
+                .into_iter()
+                .collect(),
+            click_anchor_in_time: Time::from_ms(0.0),
+            last_mouse_position_in_time: Time::from_ms(-1.75),
+            is_moved: true,
+        };
+
+        let result = job.execute(&sequence).unwrap();
+        let expected_clip_ids = ["1", "2", "0", "3", "5", "4", "6"];
         let result_clip_ids = extract_camera_clip_ids(&result);
         assert_eq!(result_clip_ids, expected_clip_ids);
     }

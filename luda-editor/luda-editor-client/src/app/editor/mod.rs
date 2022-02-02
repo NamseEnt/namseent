@@ -8,7 +8,7 @@ use super::types::*;
 use crate::app::editor::{clip_editor::ClipEditorProps, top_bar::TopBarProps};
 use luda_editor_rpc::Socket;
 use namui::prelude::*;
-use std::sync::Arc;
+use std::{collections::BTreeSet, sync::Arc};
 pub use timeline::*;
 use wasm_bindgen_futures::spawn_local;
 mod clip_editor;
@@ -32,12 +32,14 @@ pub struct Editor {
     timeline: Timeline,
     clip_editor: Option<ClipEditor>,
     image_filename_objects: Vec<ImageFilenameObject>,
-    pub selected_clip_id: Option<String>,
+    selected_clip_ids: BTreeSet<String>,
     sequence_player: SequencePlayer,
     subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
     history: History<Arc<Sequence>>,
     top_bar: TopBar,
     clipboard: Option<Clipboard>,
+    language: Language,
+    clip_id_to_check_as_click: Option<String>,
 }
 
 impl namui::Entity for Editor {
@@ -50,28 +52,32 @@ impl namui::Entity for Editor {
                     click_in_time,
                     ..
                 } => {
+                    self.on_clip_mouse_down(clip_id);
+
                     if self.job.is_none() {
                         self.job = Some(Job::MoveCameraClip(MoveCameraClipJob {
-                            clip_id: clip_id.clone(),
+                            clip_ids: self.selected_clip_ids.clone(),
                             click_anchor_in_time: *click_in_time,
                             last_mouse_position_in_time: *click_in_time,
+                            is_moved: false,
                         }));
                     }
-                    self.select_clip(clip_id);
                 }
                 EditorEvent::SubtitleClipHeadMouseDownEvent {
                     clip_id,
                     click_in_time,
                     ..
                 } => {
+                    self.on_clip_mouse_down(clip_id);
+
                     if self.job.is_none() {
                         self.job = Some(Job::MoveSubtitleClip(MoveSubtitleClipJob {
-                            clip_id: clip_id.clone(),
+                            clip_ids: self.selected_clip_ids.clone(),
                             click_anchor_in_time: *click_in_time,
                             last_mouse_position_in_time: *click_in_time,
+                            is_moved: false,
                         }));
                     }
-                    self.select_clip(clip_id);
                 }
                 EditorEvent::ImageFilenameObjectsUpdatedEvent {
                     image_filename_objects,
@@ -84,7 +90,11 @@ impl namui::Entity for Editor {
                 } => {
                     if self.job.is_none() {
                         self.job = Some(Job::WysiwygMoveImage(WysiwygMoveImageJob {
-                            clip_id: self.selected_clip_id.clone().unwrap(),
+                            clip_id: self
+                                .get_single_selected_clip()
+                                .unwrap()
+                                .get_id()
+                                .to_string(),
                             start_global_mouse_xy: *mouse_xy,
                             last_global_mouse_xy: *mouse_xy,
                             container_size: *container_size,
@@ -100,7 +110,11 @@ impl namui::Entity for Editor {
                 } => {
                     if self.job.is_none() {
                         self.job = Some(Job::WysiwygResizeImage(WysiwygResizeImageJob {
-                            clip_id: self.selected_clip_id.clone().unwrap(),
+                            clip_id: self
+                                .get_single_selected_clip()
+                                .unwrap()
+                                .get_id()
+                                .to_string(),
                             start_global_mouse_xy: *mouse_xy,
                             last_global_mouse_xy: *mouse_xy,
                             handle: *handle,
@@ -117,7 +131,11 @@ impl namui::Entity for Editor {
                 } => {
                     if self.job.is_none() {
                         self.job = Some(Job::WysiwygCropImage(WysiwygCropImageJob {
-                            clip_id: self.selected_clip_id.clone().unwrap(),
+                            clip_id: self
+                                .get_single_selected_clip()
+                                .unwrap()
+                                .get_id()
+                                .to_string(),
                             start_global_mouse_xy: *mouse_xy,
                             last_global_mouse_xy: *mouse_xy,
                             handle: handle.clone(),
@@ -129,19 +147,17 @@ impl namui::Entity for Editor {
                     ImageBrowserItem::CharacterPoseEmotion(character, pose, emotion) => {
                         let character_pose_emotion =
                             CharacterPoseEmotion(character.clone(), pose.clone(), emotion.clone());
-                        if character_pose_emotion
-                            == self
-                                .get_sequence()
-                                .find_clip(self.selected_clip_id.as_ref().unwrap())
-                                .unwrap()
-                                .camera_angle
-                                .character_pose_emotion
+                        let clip = self.get_single_selected_clip().unwrap();
+                        if Some(&character_pose_emotion)
+                            == clip
+                                .as_camera_clip()
+                                .map(|camera_clip| &camera_clip.camera_angle.character_pose_emotion)
                         {
                             return;
                         }
 
                         self.job = Some(Job::ChangeImage(ChangeImageJob {
-                            clip_id: self.selected_clip_id.clone().unwrap(),
+                            clip_id: clip.get_id().to_string(),
                             character_pose_emotion,
                         }));
                         self.execute_job();
@@ -158,9 +174,11 @@ impl namui::Entity for Editor {
                 } => match self.job {
                     Some(Job::MoveCameraClip(ref mut job)) => {
                         job.last_mouse_position_in_time = *mouse_position_in_time;
+                        job.is_moved = true;
                     }
                     Some(Job::MoveSubtitleClip(ref mut job)) => {
                         job.last_mouse_position_in_time = *mouse_position_in_time;
+                        job.is_moved = true;
                     }
                     _ => {}
                 },
@@ -181,9 +199,18 @@ impl namui::Entity for Editor {
                     _ => {}
                 },
                 NamuiEvent::MouseUp(_) => match self.job {
-                    Some(Job::MoveCameraClip(_))
-                    | Some(Job::MoveSubtitleClip(_))
-                    | Some(Job::WysiwygMoveImage(_))
+                    Some(Job::MoveCameraClip(MoveCameraClipJob { is_moved, .. }))
+                    | Some(Job::MoveSubtitleClip(MoveSubtitleClipJob { is_moved, .. })) => {
+                        if is_moved {
+                            self.execute_job();
+                        } else {
+                            self.job.take();
+                            if let Some(clip_id) = &self.clip_id_to_check_as_click {
+                                self.select_only_this_clip(&clip_id.clone());
+                            }
+                        }
+                    }
+                    Some(Job::WysiwygMoveImage(_))
                     | Some(Job::WysiwygResizeImage(_))
                     | Some(Job::WysiwygCropImage(_)) => {
                         self.execute_job();
@@ -230,11 +257,6 @@ impl namui::Entity for Editor {
     }
 
     fn render(&self, props: &Self::Props) -> namui::RenderingTree {
-        let selected_clip = self
-            .selected_clip_id
-            .as_ref()
-            .and_then(|id| self.get_sequence().get_clip(&id));
-
         let timeline_xywh = self.calculate_timeline_xywh(&props.screen_wh);
         let top_bar_xywh: XywhRect<f32> = XywhRect {
             x: 0.0,
@@ -260,26 +282,29 @@ impl namui::Entity for Editor {
                 playback_time: &playback_time,
                 xywh: timeline_xywh,
                 job: &self.job,
-                selected_clip_id: &self.selected_clip_id,
+                selected_clip_ids: self.selected_clip_ids.iter().collect::<Vec<_>>().as_slice(),
                 sequence: self.get_sequence(),
                 subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
             }),
-            match (selected_clip, &self.clip_editor) {
-                (None, None) => RenderingTree::Empty,
-                (Some(clip), Some(clip_editor)) => {
+            match &self.clip_editor {
+                None => RenderingTree::Empty,
+                Some(clip_editor) => {
                     clip_editor.render(&ClipEditorProps {
-                        clip,
+                        clip: self
+                            .selected_clip_ids
+                            .iter()
+                            .next()
+                            .and_then(|id| self.get_sequence().get_clip(&id))
+                            .unwrap(),
                         xywh: clip_editor_xywh,
                         image_filename_objects: &self.image_filename_objects,
                         job: &self.job,
                     })
                 }
-                (None, Some(_)) => unreachable!("clip_editor is Some but selected_clip is None"),
-                (Some(_), None) => unreachable!("selected_clip is Some but clip_editor is None"),
             },
             self.sequence_player.render(&SequencePlayerProps {
                 xywh: &sequence_player_xywh,
-                language: namui::Language::Ko, // TODO
+                language: self.language,
                 subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
                 with_buttons: true,
             }),
@@ -317,7 +342,7 @@ impl Editor {
             image_filename_objects: vec![],
             job: None,
             clip_editor: None,
-            selected_clip_id: None,
+            selected_clip_ids: BTreeSet::new(),
             sequence_player: SequencePlayer::new(
                 sequence.clone(),
                 Box::new(LudaEditorServerCameraAngleImageLoader {}),
@@ -326,6 +351,8 @@ impl Editor {
             history: History::new(sequence.clone()),
             top_bar: TopBar::new(),
             clipboard: None,
+            language: namui::Language::Ko,
+            clip_id_to_check_as_click: None,
         }
     }
     fn calculate_timeline_xywh(&self, screen_wh: &namui::Wh<f32>) -> XywhRect<f32> {
@@ -335,11 +362,6 @@ impl Editor {
             width: screen_wh.width,
             height: 200.0,
         }
-    }
-    fn get_selected_clip(&self) -> Option<Clip> {
-        self.selected_clip_id
-            .as_ref()
-            .and_then(|id| self.get_sequence().get_clip(&id))
     }
     fn execute_job(&mut self) {
         let job = &self.job.take();
@@ -363,14 +385,7 @@ impl Editor {
     }
     fn on_change_sequence(&mut self) {
         let sequence = self.get_sequence().clone();
-        match &self.selected_clip_id {
-            Some(selected_clip_id) => {
-                if sequence.get_clip(&selected_clip_id).is_none() {
-                    self.deselect_clip();
-                }
-            }
-            None => {}
-        }
+        self.remove_dangling_selected_clips();
         self.sequence_player.update_sequence(sequence.clone());
         namui::event::send(EditorEvent::SequenceUpdateEvent {
             sequence: sequence.clone(),
@@ -388,19 +403,15 @@ impl Editor {
     }
 
     fn copy_to_clipboard(&mut self) {
-        if self.selected_clip_id.is_none() {
-            return;
-        }
-
-        let selected_clip = self.get_selected_clip().unwrap();
+        // TODO : Support multiple clips
+        let selected_clip = self.get_single_selected_clip();
 
         match selected_clip {
-            Clip::Camera(camera_clip) => {
+            None => {}
+            Some(Clip::Camera(camera_clip)) => {
                 self.clipboard = Some(Clipboard::CameraClip(camera_clip.clone()));
             }
-            Clip::Subtitle(_) => {
-                return;
-            }
+            Some(Clip::Subtitle(_)) => {}
         }
     }
 
@@ -419,14 +430,158 @@ impl Editor {
             }
         }
     }
-    fn select_clip(&mut self, clip_id: &str) {
-        self.selected_clip_id = Some(clip_id.to_string());
+    fn get_single_selected_clip(&self) -> Option<Clip> {
+        self.selected_clip_ids
+            .iter()
+            .next()
+            .and_then(|id| self.get_sequence().get_clip(id))
+    }
+    fn select_only_this_clip(&mut self, clip_id: &str) {
+        self.selected_clip_ids.clear();
+        self.selected_clip_ids.insert(clip_id.to_string());
         self.clip_editor = Some(ClipEditor::new(
             &self.get_sequence().get_clip(clip_id).unwrap(),
         ));
     }
-    fn deselect_clip(&mut self) {
-        self.selected_clip_id = None;
+    fn multi_select_clip(&mut self, clip_id: &str) {
+        if self.selected_clip_ids.is_empty() {
+            self.selected_clip_ids.insert(clip_id.to_string());
+        } else if !self.selected_clip_ids.contains(clip_id) {
+            let sequence = self.get_sequence().clone();
+            let first_selected_clip_id = self.selected_clip_ids.iter().next().unwrap();
+            let first_selected_clip_track = sequence
+                .find_track_by_clip_id(first_selected_clip_id)
+                .unwrap();
+            let selecting_clip_track = sequence.find_track_by_clip_id(clip_id).unwrap();
+
+            if first_selected_clip_track.get_id() != selecting_clip_track.get_id() {
+                self.selected_clip_ids.clear();
+            }
+            self.selected_clip_ids.insert(clip_id.to_string());
+        }
+
+        if self.selected_clip_ids.len() == 1 {
+            self.clip_editor = Some(ClipEditor::new(
+                &self.get_sequence().get_clip(clip_id).unwrap(),
+            ));
+        } else {
+            self.clip_editor = None;
+        }
+    }
+    fn deselect_all_clips(&mut self) {
+        self.selected_clip_ids.clear();
         self.clip_editor = None;
+    }
+    fn deselect_clips<T: AsRef<str>>(&mut self, clip_ids: &[T]) {
+        for clip_id in clip_ids {
+            self.selected_clip_ids.remove(clip_id.as_ref());
+        }
+        if self.selected_clip_ids.len() == 1 {
+            let selected_clip_id = self.selected_clip_ids.iter().next().unwrap();
+            self.clip_editor = Some(ClipEditor::new(
+                &self.get_sequence().get_clip(selected_clip_id).unwrap(),
+            ));
+        } else {
+            self.clip_editor = None;
+        }
+    }
+    fn remove_dangling_selected_clips(&mut self) {
+        let sequence = self.get_sequence().clone();
+
+        let mut clip_ids_to_remove = vec![];
+        self.selected_clip_ids
+            .iter()
+            .filter(|clip_id| sequence.find_track_by_clip_id(clip_id).is_none())
+            .for_each(|clip_id| {
+                clip_ids_to_remove.push(clip_id.clone());
+            });
+
+        self.deselect_clips(&clip_ids_to_remove);
+    }
+
+    fn is_clip_in_same_track_with_selected_clips(&self, clip_id: &str) -> bool {
+        if self.selected_clip_ids.len() == 0 {
+            return false;
+        }
+
+        let sequence = self.get_sequence().clone();
+        let selected_clip_track = sequence
+            .find_track_by_clip_id(self.selected_clip_ids.iter().next().unwrap())
+            .unwrap();
+        let clip_track = sequence.find_track_by_clip_id(clip_id).unwrap();
+
+        selected_clip_track.get_id() == clip_track.get_id()
+    }
+
+    fn select_all_between_clips<T: AsRef<str>>(&mut self, clip_ids: &[T]) {
+        let track = self
+            .get_sequence()
+            .find_track_by_clip_id(self.selected_clip_ids.iter().next().unwrap())
+            .unwrap();
+
+        let clips = clip_ids
+            .iter()
+            .map(|clip_id| track.find_clip(clip_id.as_ref()).unwrap())
+            .collect::<Vec<_>>();
+
+        let most_left_clip = clips
+            .iter()
+            .min_by(|a, b| a.get_start_time().partial_cmp(&b.get_start_time()).unwrap())
+            .unwrap();
+
+        let most_right_clip = clips
+            .iter()
+            .max_by(|a, b| {
+                self.get_clip_end_time(a)
+                    .partial_cmp(&self.get_clip_end_time(b))
+                    .unwrap()
+            })
+            .unwrap();
+
+        let mut selected_clip_ids = BTreeSet::new();
+        selected_clip_ids.insert(most_left_clip.get_id().to_string());
+        selected_clip_ids.insert(most_right_clip.get_id().to_string());
+
+        for clip in track.get_clips() {
+            if clip.get_start_time() >= most_left_clip.get_start_time()
+                && self.get_clip_end_time(&clip) <= self.get_clip_end_time(most_right_clip)
+            {
+                selected_clip_ids.insert(clip.get_id().to_string());
+            }
+        }
+
+        self.selected_clip_ids = selected_clip_ids;
+    }
+
+    pub(crate) fn get_clip_end_time(&self, clip: &Clip) -> Time {
+        match clip {
+            Clip::Camera(clip) => clip.end_at,
+            Clip::Subtitle(clip) => {
+                clip.end_at(self.language, &self.subtitle_play_duration_measurer)
+            }
+        }
+    }
+    fn on_clip_mouse_down(&mut self, clip_id: &str) {
+        self.clip_id_to_check_as_click = None;
+
+        let keyboard_manager = &namui::managers().keyboard_manager;
+
+        if keyboard_manager.any_code_press(&[namui::Code::ControlLeft]) {
+            if self.selected_clip_ids.contains(clip_id) {
+                self.deselect_clips(&[clip_id]);
+            } else {
+                self.multi_select_clip(clip_id);
+            }
+        } else if keyboard_manager.any_code_press(&[namui::Code::ShiftLeft])
+            && self.is_clip_in_same_track_with_selected_clips(clip_id)
+        {
+            let mut selected_clip_ids = self.selected_clip_ids.clone();
+            selected_clip_ids.insert(clip_id.to_string());
+            self.select_all_between_clips(&selected_clip_ids.into_iter().collect::<Vec<_>>());
+        } else if !self.selected_clip_ids.contains(clip_id) {
+            self.select_only_this_clip(clip_id);
+        } else {
+            self.clip_id_to_check_as_click = Some(clip_id.to_string());
+        }
     }
 }
