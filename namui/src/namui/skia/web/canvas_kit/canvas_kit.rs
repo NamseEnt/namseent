@@ -89,4 +89,7 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     pub fn ColorFilter(this: &CanvasKit) -> ColorFilterFactory;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn Matrix(this: &CanvasKit) -> Matrix3x3Helpers;
 }

@@ -1,4 +1,4 @@
-use super::{AttachEventNode, ClipNode, MouseCursor, MouseCursorNode, TranslateNode, WithIdNode};
+use super::*;
 use crate::namui::{ClipOp, DrawCall, NamuiContext, Xy, *};
 use serde::Serialize;
 use std::collections::HashSet;
@@ -32,6 +32,7 @@ pub enum SpecialRenderingNode {
     AttachEvent(AttachEventNode),
     MouseCursor(MouseCursorNode),
     WithId(WithIdNode),
+    Absolute(AbsoluteNode),
 }
 #[derive(Serialize, Clone, Debug)]
 pub enum RenderingTree {
@@ -49,6 +50,7 @@ impl SpecialRenderingNode {
             SpecialRenderingNode::AttachEvent(node) => &node.rendering_tree,
             SpecialRenderingNode::MouseCursor(node) => &node.rendering_tree,
             SpecialRenderingNode::WithId(node) => &node.rendering_tree,
+            SpecialRenderingNode::Absolute(node) => &node.rendering_tree,
         }
     }
 }
@@ -99,6 +101,23 @@ impl RenderingTree {
                     }
 
                     canvas.restore();
+                }
+                SpecialRenderingNode::Absolute(absolute) => {
+                    let canvas = namui_context.surface.canvas();
+
+                    let back_up_matrix = canvas.get_matrix();
+
+                    canvas.set_matrix(&[
+                        [1.0, 0.0, absolute.x],
+                        [0.0, 1.0, absolute.y],
+                        [0.0, 0.0, 1.0],
+                    ]);
+
+                    for child in &absolute.rendering_tree {
+                        child.draw(namui_context);
+                    }
+
+                    canvas.set_matrix(&back_up_matrix);
                 }
                 _ => {
                     for child in special.get_children() {
@@ -180,6 +199,17 @@ impl RenderingTree {
                         .iter()
                         .any(|child| child.is_point_in(&xy))
                         .then(|| mouse_cursor.cursor)),
+                SpecialRenderingNode::Absolute(absolute) => {
+                    let next_xy = Xy {
+                        x: absolute.x,
+                        y: absolute.y,
+                    };
+                    absolute
+                        .rendering_tree
+                        .iter()
+                        .rev()
+                        .find_map(|child| child.get_mouse_cursor(&next_xy))
+                }
                 _ => special
                     .get_children()
                     .iter()
@@ -259,6 +289,19 @@ impl RenderingTree {
                         }
                     }
                 }
+                SpecialRenderingNode::Absolute(absolute) => {
+                    let next_local_xy = Xy {
+                        x: absolute.x,
+                        y: absolute.y,
+                    };
+                    absolute.rendering_tree.iter().rev().for_each(|child| {
+                        child.call_mouse_event_impl(
+                            mouse_event_type,
+                            raw_mouse_event,
+                            &next_local_xy,
+                        );
+                    });
+                }
                 _ => {
                     special.get_children().iter().rev().for_each(|child| {
                         child.call_mouse_event_impl(mouse_event_type, raw_mouse_event, local_xy);
@@ -298,6 +341,16 @@ impl RenderingTree {
                             .iter()
                             .any(|child| child.is_point_in(local_xy))
                 }
+                SpecialRenderingNode::Absolute(absolute) => {
+                    let next_local_xy = Xy {
+                        x: absolute.x,
+                        y: absolute.y,
+                    };
+                    absolute
+                        .rendering_tree
+                        .iter()
+                        .any(|child| child.is_point_in(&next_local_xy))
+                }
                 _ => special
                     .get_children()
                     .iter()
@@ -308,41 +361,73 @@ impl RenderingTree {
     }
 
     pub(crate) fn get_xy(&self, id: &str) -> Option<Xy<f32>> {
-        match self {
-            RenderingTree::Children(ref children) => {
-                children.iter().rev().find_map(|child| child.get_xy(id))
-            }
-            RenderingTree::Special(special) => match special {
-                SpecialRenderingNode::Translate(translate) => {
-                    let next_xy = Xy {
-                        x: translate.x,
-                        y: translate.y,
-                    };
-                    translate
-                        .rendering_tree
-                        .iter()
-                        .rev()
-                        .find_map(|child| child.get_xy(id).map(|xy| xy + next_xy))
-                }
-                SpecialRenderingNode::WithId(with_id) => {
-                    if with_id.id == id {
-                        Some(Xy { x: 0.0, y: 0.0 })
-                    } else {
-                        special
-                            .get_children()
-                            .iter()
-                            .rev()
-                            .find_map(|child| child.get_xy(id))
-                    }
-                }
-                _ => special
-                    .get_children()
+        struct XyWithExitButton {
+            xy: Xy<f32>,
+            is_exit: bool,
+        }
+        fn get_xy_with_exit_button(
+            rendering_tree: &RenderingTree,
+            id: &str,
+        ) -> Option<XyWithExitButton> {
+            match rendering_tree {
+                RenderingTree::Children(ref children) => children
                     .iter()
                     .rev()
-                    .find_map(|child| child.get_xy(id)),
-            },
-            _ => None,
+                    .find_map(|child| get_xy_with_exit_button(child, id)),
+                RenderingTree::Special(special) => match special {
+                    SpecialRenderingNode::Translate(translate) => {
+                        let next_xy = Xy {
+                            x: translate.x,
+                            y: translate.y,
+                        };
+                        translate.rendering_tree.iter().rev().find_map(|child| {
+                            get_xy_with_exit_button(child, id).map(|mut result| {
+                                if !result.is_exit {
+                                    result.xy = result.xy + next_xy;
+                                }
+                                result
+                            })
+                        })
+                    }
+                    SpecialRenderingNode::WithId(with_id) => {
+                        if with_id.id == id {
+                            Some(XyWithExitButton {
+                                xy: Xy { x: 0.0, y: 0.0 },
+                                is_exit: false,
+                            })
+                        } else {
+                            special
+                                .get_children()
+                                .iter()
+                                .rev()
+                                .find_map(|child| get_xy_with_exit_button(child, id))
+                        }
+                    }
+                    SpecialRenderingNode::Absolute(absolute) => {
+                        let next_xy = Xy {
+                            x: absolute.x,
+                            y: absolute.y,
+                        };
+                        absolute.rendering_tree.iter().rev().find_map(|child| {
+                            get_xy_with_exit_button(child, id).map(|mut result| {
+                                if !result.is_exit {
+                                    result.is_exit = true;
+                                    result.xy = result.xy + next_xy;
+                                }
+                                result
+                            })
+                        })
+                    }
+                    _ => special
+                        .get_children()
+                        .iter()
+                        .rev()
+                        .find_map(|child| get_xy_with_exit_button(child, id)),
+                },
+                _ => None,
+            }
         }
+        get_xy_with_exit_button(self, id).map(|result| result.xy)
     }
 }
 

@@ -58,6 +58,30 @@ impl Canvas {
             paint.map(|p| &p.0),
         );
     }
+    pub(crate) fn get_matrix(&self) -> [[f32; 3]; 3] {
+        let total_matrix = self.0.getTotalMatrix();
+        return [
+            [total_matrix[0], total_matrix[1], total_matrix[2]],
+            [total_matrix[3], total_matrix[4], total_matrix[5]],
+            [total_matrix[6], total_matrix[7], total_matrix[8]],
+        ];
+    }
+    pub(crate) fn set_matrix(&self, matrix: &[[f32; 3]; 3]) {
+        let current_matrix = self.0.getTotalMatrix();
+        let inverted = canvas_kit().Matrix().invert(&current_matrix);
+        self.0.concat(&inverted);
+        self.0.concat(&[
+            matrix[0][0],
+            matrix[0][1],
+            matrix[0][2],
+            matrix[1][0],
+            matrix[1][1],
+            matrix[1][2],
+            matrix[2][0],
+            matrix[2][1],
+            matrix[2][2],
+        ]);
+    }
 }
 
 impl Drop for Canvas {

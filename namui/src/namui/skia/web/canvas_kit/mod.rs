@@ -29,6 +29,8 @@ mod image;
 pub use image::*;
 mod color_filter_factory;
 pub use color_filter_factory::*;
+mod matrix_3x3_helpers;
+pub use matrix_3x3_helpers::*;
 
 #[wasm_bindgen]
 pub struct Color {
