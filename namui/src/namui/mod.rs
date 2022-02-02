@@ -9,9 +9,9 @@ mod skia;
 pub use common::*;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
 pub use render::{
-    clip, image::*, path::*, rect::*, text::*, text_input_event, translate, types::*, ImageSource,
-    MouseCursor, MouseEvent, MouseEventCallback, MouseEventType, RenderingData, RenderingTree,
-    TextInput, WheelEventCallback,
+    absolute, clip, image::*, path::*, rect::*, text::*, text_input_event, translate, types::*,
+    ImageSource, MouseCursor, MouseEvent, MouseEventCallback, MouseEventType, RenderingData,
+    RenderingTree, TextInput, WheelEventCallback,
 };
 pub use skia::{
     types::{ClipOp, Color, PaintStyle},

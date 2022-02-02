@@ -46,12 +46,12 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn clipRRect(this: &CanvasKitCanvas, rrect: InputRRect, op: ClipOp, doAntiAlias: boolean);
 
-    //     ///
-    //     /// Replaces current matrix with m premultiplied with the existing matrix.
-    //     /// @param m
-    //     ///
-    // #[wasm_bindgen(method)]
-    // pub fn concat(this: &CanvasKitCanvas, m: InputMatrix);
+    ///
+    /// Replaces current matrix with m premultiplied with the existing matrix.
+    /// @param m
+    ///
+    #[wasm_bindgen(method)]
+    pub fn concat(this: &CanvasKitCanvas, matrix: &[f32]);
 
     //     ///
     //     /// Draws arc using clip, Matrix, and Paint paint.
@@ -440,12 +440,12 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn getSaveCount(this: &CanvasKitCanvas) -> number;
 
-    //     ///
-    //     /// Legacy version of getLocalToDevice(), which strips away any Z information, and
-    //     /// just returns a 3x3 version.
-    //     ///
-    // #[wasm_bindgen(method)]
-    // pub fn getTotalMatrix(this: &CanvasKitCanvas) -> number[];
+    ///
+    /// Legacy version of getLocalToDevice(), which strips away any Z information, and
+    /// just returns a 3x3 version.
+    ///
+    #[wasm_bindgen(method)]
+    pub fn getTotalMatrix(this: &CanvasKitCanvas) -> Box<[f32]>;
 
     //     ///
     //     /// Creates Surface matching info and props, and associates it with Canvas.

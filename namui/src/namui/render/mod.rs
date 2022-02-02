@@ -22,3 +22,5 @@ pub mod mouse_cursor;
 pub use mouse_cursor::*;
 pub mod with_id;
 pub use with_id::*;
+pub mod absolute;
+pub use absolute::*;
