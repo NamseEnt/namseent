@@ -35,6 +35,7 @@ pub fn get_managers() -> std::sync::MutexGuard<'static, Managers> {
 impl NamuiImpl for Namui {
     fn init() -> NamuiContext {
         console_error_panic_hook::set_once();
+        prevent_context_menu_open();
 
         let canvas_kit = canvas_kit();
         let canvas_element = make_canvas_element().unwrap();
@@ -82,6 +83,17 @@ impl NamuiImpl for Namui {
     fn now() -> Duration {
         Duration::from_millis(window().performance().unwrap().now() as u64)
     }
+}
+
+fn prevent_context_menu_open() {
+    let document = web_sys::window().unwrap().document().unwrap();
+    let on_context_menu = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
+        event.prevent_default();
+    }) as Box<dyn FnMut(_)>);
+
+    document.set_oncontextmenu(Some(on_context_menu.as_ref().unchecked_ref()));
+
+    on_context_menu.forget();
 }
 
 fn make_canvas_element() -> Result<HtmlCanvasElement, Element> {
