@@ -1,7 +1,7 @@
 use self::camera_clip_body::{CameraClipBody, CameraClipBodyProps};
 use crate::app::{
-    editor::{job::Job, TimelineRenderContext},
-    types::{CameraClip, CameraTrack, ClipReplacer},
+    editor::{events::EditorEvent, job::Job, TimelineRenderContext},
+    types::{CameraClip, CameraTrack, ClipReplacer, PixelSize},
 };
 use namui::prelude::*;
 use std::collections::LinkedList;
@@ -67,20 +67,50 @@ impl CameraTrackBody {
             _ => props.track.clips.clone(),
         };
 
-        RenderingTree::Children(
-            clips
-                .iter()
-                .map(|clip| {
-                    CameraClipBody::render(&CameraClipBodyProps {
-                        track_body_wh: &Wh {
-                            width: props.width,
-                            height: props.height,
-                        },
-                        clip: clip,
-                        context: props.context,
+        let body_border = rect(RectParam {
+            x: 0.0,
+            y: 0.0,
+            width: props.width,
+            height: props.height,
+            style: RectStyle {
+                stroke: Some(RectStroke {
+                    border_position: BorderPosition::Middle,
+                    color: Color::BLACK,
+                    width: 1.0,
+                }),
+                ..Default::default()
+            },
+        })
+        .attach_event(move |builder| {
+            let timeline_start_at = props.context.start_at;
+            let time_per_pixel = props.context.time_per_pixel;
+            builder.on_mouse_up(move |event| {
+                if event.button == Some(MouseButton::Right) {
+                    namui::event::send(EditorEvent::CameraTrackBodyRightClickEvent {
+                        mouse_global_xy: event.global_xy,
+                        mouse_position_in_time: timeline_start_at
+                            + PixelSize(event.local_xy.x) * time_per_pixel,
                     })
-                })
-                .collect::<Vec<_>>(),
-        )
+                }
+            })
+        });
+        render![
+            body_border,
+            RenderingTree::Children(
+                clips
+                    .iter()
+                    .map(|clip| {
+                        CameraClipBody::render(&CameraClipBodyProps {
+                            track_body_wh: &Wh {
+                                width: props.width,
+                                height: props.height,
+                            },
+                            clip: clip,
+                            context: props.context,
+                        })
+                    })
+                    .collect::<Vec<_>>(),
+            ),
+        ]
     }
 }

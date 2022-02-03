@@ -55,4 +55,8 @@ pub enum EditorEvent {
     SequenceUpdateEvent {
         sequence: Arc<Sequence>,
     },
+    CameraTrackBodyRightClickEvent {
+        mouse_global_xy: namui::Xy<f32>,
+        mouse_position_in_time: Time,
+    },
 }

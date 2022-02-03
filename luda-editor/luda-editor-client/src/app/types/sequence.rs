@@ -138,7 +138,7 @@ impl CameraClip {
             camera_angle: self.camera_angle.clone(),
         }
     }
-    fn get_new_id() -> String {
+    pub fn get_new_id() -> String {
         format!("CameraClip-{}", namui::nanoid())
     }
 }
