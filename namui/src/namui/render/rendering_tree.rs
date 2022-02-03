@@ -291,8 +291,8 @@ impl RenderingTree {
                 }
                 SpecialRenderingNode::Absolute(absolute) => {
                     let next_local_xy = Xy {
-                        x: absolute.x,
-                        y: absolute.y,
+                        x: raw_mouse_event.xy.x - absolute.x,
+                        y: raw_mouse_event.xy.y - absolute.y,
                     };
                     absolute.rendering_tree.iter().rev().for_each(|child| {
                         child.call_mouse_event_impl(
