@@ -43,3 +43,15 @@ where
         }
     }
 }
+
+impl<T> XywhRect<T>
+where
+    T: Copy + std::cmp::PartialOrd + std::ops::Add<Output = T>,
+{
+    pub fn is_xy_in(&self, xy: &Xy<T>) -> bool {
+        self.x <= xy.x
+            && xy.x <= self.x + self.width
+            && self.y <= xy.y
+            && xy.y <= self.y + self.height
+    }
+}
