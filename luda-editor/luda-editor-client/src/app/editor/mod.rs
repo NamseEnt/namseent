@@ -22,6 +22,8 @@ mod top_bar;
 use top_bar::TopBar;
 mod clipboard;
 use clipboard::Clipboard;
+mod context_menu;
+use context_menu::*;
 
 pub struct EditorProps {
     pub screen_wh: namui::Wh<f32>,
@@ -40,6 +42,7 @@ pub struct Editor {
     clipboard: Option<Clipboard>,
     language: Language,
     clip_id_to_check_as_click: Option<String>,
+    context_menu: Option<ContextMenu>,
 }
 
 impl namui::Entity for Editor {
@@ -182,6 +185,12 @@ impl namui::Entity for Editor {
                     }
                     _ => {}
                 },
+                EditorEvent::CameraTrackBodyRightClickEvent {
+                    mouse_global_xy,
+                    mouse_position_in_time,
+                } => {
+                    self.open_context_menu(mouse_global_xy, mouse_position_in_time);
+                }
                 _ => {}
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
@@ -258,7 +267,35 @@ impl namui::Entity for Editor {
                 }
                 _ => {}
             }
-        };
+        } else if let Some(event) = event.downcast_ref::<ContextMenuEvent>() {
+            match event {
+                ContextMenuEvent::CloseContextMenu(id) => {
+                    if self
+                        .context_menu
+                        .as_ref()
+                        .map(|context_menu| context_menu.get_id().to_string())
+                        == Some(id.to_string())
+                    {
+                        self.context_menu = None;
+                    }
+                }
+                ContextMenuEvent::CreateCameraClip(time) => {
+                    let new_clip = self.create_default_camera_clip(time);
+                    let new_clip_id = new_clip.id.clone();
+
+                    self.job = Some(Job::AddCameraClip(AddCameraClipJob {
+                        camera_clip: Arc::new(new_clip),
+                        time_to_insert: *time,
+                    }));
+                    self.execute_job();
+
+                    if self.get_sequence().find_clip(&new_clip_id).is_some() {
+                        self.select_only_this_clip(&new_clip_id);
+                    }
+                }
+                _ => {}
+            }
+        }
         self.timeline.update(event);
         self.clip_editor
             .as_mut()
@@ -266,6 +303,9 @@ impl namui::Entity for Editor {
 
         self.sequence_player.update(event);
         self.top_bar.update(event);
+        self.context_menu
+            .as_mut()
+            .map(move |context_menu| context_menu.update(event));
     }
 
     fn render(&self, props: &Self::Props) -> namui::RenderingTree {
@@ -320,7 +360,11 @@ impl namui::Entity for Editor {
                 subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
                 with_buttons: true,
             }),
-            self.top_bar.render(&TopBarProps { xywh: top_bar_xywh })
+            self.top_bar.render(&TopBarProps { xywh: top_bar_xywh }),
+            match &self.context_menu {
+                Some(context_menu) => context_menu.render(&ContextMenuProps {}),
+                None => RenderingTree::Empty,
+            },
         ]
     }
 }
@@ -365,6 +409,7 @@ impl Editor {
             clipboard: None,
             language: namui::Language::Ko,
             clip_id_to_check_as_click: None,
+            context_menu: None,
         }
     }
     fn calculate_timeline_xywh(&self, screen_wh: &namui::Wh<f32>) -> XywhRect<f32> {
@@ -637,6 +682,39 @@ impl Editor {
             .iter()
             .next()
             .and_then(|clip_id| self.get_sequence().find_track_by_clip_id(clip_id))
+    }
+
+    fn open_context_menu(
+        &mut self,
+        context_menu_absolute_left_top: &Xy<f32>,
+        mouse_position_in_time: &Time,
+    ) {
+        self.context_menu = Some(ContextMenu::new(
+            context_menu_absolute_left_top,
+            mouse_position_in_time,
+        ));
+    }
+
+    fn create_default_camera_clip(&self, start_at: &Time) -> CameraClip {
+        CameraClip {
+            id: CameraClip::get_new_id(),
+            start_at: *start_at,
+            end_at: start_at + Time::from_sec(3.0),
+            camera_angle: CameraAngle {
+                source_01_circumscribed: Circumscribed {
+                    center: Xy { x: 0.5, y: 0.5 },
+                    radius: 0.5,
+                },
+                crop_screen_01_rect: LtrbRect {
+                    left: 0.0,
+                    top: 0.0,
+                    right: 1.0,
+                    bottom: 1.0,
+                },
+                character_pose_emotion: self.image_filename_objects[0]
+                    .into_character_pose_emotion(),
+            },
+        }
     }
 }
 
