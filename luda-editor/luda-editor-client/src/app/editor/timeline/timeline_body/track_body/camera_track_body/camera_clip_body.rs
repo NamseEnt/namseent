@@ -1,6 +1,6 @@
 use crate::app::{
     editor::{events::EditorEvent, TimelineRenderContext},
-    types::{CameraClip, PixelSize},
+    types::*,
 };
 use namui::prelude::*;
 
@@ -10,6 +10,8 @@ pub struct CameraClipBodyProps<'a> {
     pub clip: &'a CameraClip,
     pub context: &'a TimelineRenderContext<'a>,
 }
+const CAMERA_CLIP_ROUND_RADIUS: f32 = 5.0;
+
 impl CameraClipBody {
     pub fn render(props: &CameraClipBodyProps) -> RenderingTree {
         let timeline_start_at = props.context.start_at;
@@ -27,42 +29,109 @@ impl CameraClipBody {
         };
         let is_highlight = props.context.selected_clip_ids.contains(&&props.clip.id);
 
-        namui::rect(namui::RectParam {
-            x: clip_rect.x,
-            y: clip_rect.y,
-            width: clip_rect.width,
-            height: clip_rect.height,
-            style: namui::RectStyle {
-                fill: Some(namui::RectFill {
-                    color: namui::Color::from_f01(0.4, 0.4, 0.8, 1.0),
-                }),
-                stroke: Some(if is_highlight {
-                    namui::RectStroke {
-                        color: namui::Color::RED,
-                        width: 3.0,
-                        border_position: namui::BorderPosition::Inside,
-                    }
-                } else {
-                    namui::RectStroke {
-                        color: namui::Color::BLACK,
-                        width: 1.0,
-                        border_position: namui::BorderPosition::Inside,
-                    }
-                }),
-                round: Some(namui::RectRound { radius: 5.0 }),
+        namui::render![
+            render_camera_clip_preview(
+                &clip_rect,
+                props.track_body_wh.width,
+                &props.clip.camera_angle,
+                LudaEditorServerCameraAngleImageLoader {},
+            ),
+            namui::rect(namui::RectParam {
+                x: clip_rect.x,
+                y: clip_rect.y,
+                width: clip_rect.width,
+                height: clip_rect.height,
+                style: namui::RectStyle {
+                    fill: None,
+                    stroke: Some(if is_highlight {
+                        namui::RectStroke {
+                            color: namui::Color::RED,
+                            width: 3.0,
+                            border_position: namui::BorderPosition::Inside,
+                        }
+                    } else {
+                        namui::RectStroke {
+                            color: namui::Color::BLACK,
+                            width: 1.0,
+                            border_position: namui::BorderPosition::Inside,
+                        }
+                    }),
+                    round: Some(namui::RectRound {
+                        radius: CAMERA_CLIP_ROUND_RADIUS,
+                    }),
+                    ..Default::default()
+                },
                 ..Default::default()
-            },
-            ..Default::default()
-        })
-        .attach_event(move |builder| {
-            let clip_id = props.clip.id.clone();
-            builder.on_mouse_down(move |event| {
-                let event = EditorEvent::CameraClipBodyMouseDownEvent {
-                    clip_id: clip_id.clone(),
-                    click_in_time: timeline_start_at + PixelSize(event.local_xy.x) * time_per_pixel,
-                };
-                namui::event::send(event);
             })
-        })
+            .attach_event(move |builder| {
+                let clip_id = props.clip.id.clone();
+                builder.on_mouse_down(move |event| {
+                    let event = EditorEvent::CameraClipBodyMouseDownEvent {
+                        clip_id: clip_id.clone(),
+                        click_in_time: timeline_start_at
+                            + PixelSize(event.local_xy.x) * time_per_pixel,
+                    };
+                    namui::event::send(event);
+                })
+            }),
+        ]
+    }
+}
+
+fn render_camera_clip_preview(
+    camera_clip_rect: &XywhRect<f32>,
+    track_body_width: f32,
+    camera_angle: &CameraAngle,
+    camera_angle_image_loader: impl CameraAngleImageLoader,
+) -> RenderingTree {
+    let xywh: XywhRect<f32> = get_camera_clip_preview_xywh(camera_clip_rect, track_body_width);
+
+    if xywh.width <= 8.0 {
+        return RenderingTree::Empty;
+    }
+    let width_by_fixed_height = xywh.height * 16.0 / 9.0;
+
+    let letter_box_half_width = (width_by_fixed_height - xywh.width) / 2.0;
+
+    translate(
+        xywh.x - letter_box_half_width,
+        xywh.y,
+        clip(
+            PathBuilder::new().add_rrect(
+                &LtrbRect {
+                    left: letter_box_half_width,
+                    top: 0.0,
+                    right: xywh.width + letter_box_half_width,
+                    bottom: xywh.height,
+                },
+                CAMERA_CLIP_ROUND_RADIUS,
+                CAMERA_CLIP_ROUND_RADIUS,
+            ),
+            ClipOp::Intersect,
+            camera_angle.render(
+                &Wh {
+                    width: width_by_fixed_height,
+                    height: xywh.height,
+                },
+                &camera_angle_image_loader,
+            ),
+        ),
+    )
+}
+
+fn get_camera_clip_preview_xywh(
+    camera_clip_rect: &XywhRect<f32>,
+    track_body_width: f32,
+) -> XywhRect<f32> {
+    // NOTE : The coordinate is based on the timeline.start_at as a zero point.
+    let camera_clip_right = camera_clip_rect.x + camera_clip_rect.width;
+    let preview_right = camera_clip_right.min(track_body_width);
+    let preview_x = camera_clip_rect.x.max(0.0);
+    let preview_width = preview_right - preview_x;
+    XywhRect {
+        x: preview_x,
+        y: camera_clip_rect.y,
+        width: preview_width,
+        height: camera_clip_rect.height,
     }
 }

@@ -73,17 +73,35 @@ impl CameraAngle {
             height: image_size.height,
         };
 
-        clip(
-            PathBuilder::new().add_rect(&clip_rect),
-            ClipOp::Intersect,
-            namui::image(ImageParam {
-                source: ImageSource::Image(image),
-                xywh: image_xywh,
-                style: ImageStyle {
-                    fit: ImageFit::Fill,
-                    paint_builder: None,
-                },
-            }),
-        )
+        let background = rect(RectParam {
+            x: 0.0,
+            y: 0.0,
+            width: wh.width,
+            height: wh.height,
+            style: RectStyle {
+                fill: Some(RectFill {
+                    color: Color::WHITE,
+                }),
+
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+
+        render![
+            background,
+            clip(
+                PathBuilder::new().add_rect(&clip_rect),
+                ClipOp::Intersect,
+                namui::image(ImageParam {
+                    source: ImageSource::Image(image),
+                    xywh: image_xywh,
+                    style: ImageStyle {
+                        fit: ImageFit::Fill,
+                        paint_builder: None,
+                    },
+                })
+            ),
+        ]
     }
 }
