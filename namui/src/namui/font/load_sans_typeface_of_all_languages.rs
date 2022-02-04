@@ -24,7 +24,9 @@ pub async fn load_sans_typeface_of_all_languages(
 
 async fn load_typeface_file_urls_file() -> Result<TypefaceFileUrlsFile, String> {
     let url = "resources/font/map.json";
-    fetch_get_json(url).await
+    fetch_get_json(url)
+        .await
+        .map_err(|error| format!("{}", error))
 }
 
 async fn get_typeface_file_urls() -> Result<TypefaceFileUrls, String> {
