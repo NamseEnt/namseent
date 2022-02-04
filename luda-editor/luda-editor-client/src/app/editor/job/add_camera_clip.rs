@@ -26,6 +26,7 @@ impl JobExecute for AddCameraClipJob {
 
 #[cfg(test)]
 mod tests {
+    use super::super::*;
     use super::*;
     use namui::prelude::*;
     use wasm_bindgen_test::wasm_bindgen_test;
@@ -100,67 +101,5 @@ mod tests {
         let expected_clip_ids = ["0", "1", "2", "3", "4"];
         let result_clip_ids = extract_camera_clip_ids(&result);
         assert_eq!(result_clip_ids, expected_clip_ids);
-    }
-
-    fn extract_camera_clip_ids(sequence: &Sequence) -> Vec<String> {
-        sequence
-            .tracks
-            .iter()
-            .filter_map::<Vec<String>, _>(|track| {
-                if let Track::Camera(camera_track) = track.as_ref() {
-                    Some(
-                        camera_track
-                            .clips
-                            .iter()
-                            .map(|clip| clip.id.clone())
-                            .collect(),
-                    )
-                } else {
-                    None
-                }
-            })
-            .flatten()
-            .collect()
-    }
-
-    fn mock_sequence(camera_clip_ids: &[&str]) -> Sequence {
-        let mut clips = Vec::new();
-        camera_clip_ids.iter().enumerate().for_each(|(index, id)| {
-            let start_at = Time::from_ms(index as f32);
-            let end_at = Time::from_ms((index + 1) as f32);
-            clips.push(mock_camera_clip(id, start_at, end_at));
-        });
-        Sequence {
-            tracks: vec![Arc::new(Track::Camera(CameraTrack {
-                id: "track-1".to_string(),
-                clips: clips.into(),
-            }))]
-            .into(),
-        }
-    }
-
-    fn mock_camera_clip(clip_id: &str, start_at: Time, end_at: Time) -> Arc<CameraClip> {
-        Arc::new(CameraClip {
-            id: clip_id.to_string(),
-            start_at,
-            end_at,
-            camera_angle: CameraAngle {
-                character_pose_emotion: CharacterPoseEmotion(
-                    "c".to_string(),
-                    "p".to_string(),
-                    "e".to_string(),
-                ),
-                source_01_circumscribed: Circumscribed {
-                    center: Xy { x: 0.0, y: 0.0 },
-                    radius: 1.0,
-                },
-                crop_screen_01_rect: LtrbRect {
-                    left: 0.0,
-                    top: 0.0,
-                    right: 1.0,
-                    bottom: 1.0,
-                },
-            },
-        })
     }
 }

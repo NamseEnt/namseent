@@ -13,6 +13,10 @@ mod change_image;
 pub use self::change_image::*;
 mod add_camera_clip;
 pub use self::add_camera_clip::*;
+#[cfg(test)]
+pub mod test_utils;
+#[cfg(test)]
+pub use test_utils::*;
 
 #[derive(Debug, Clone)]
 pub enum Job {
