@@ -16,7 +16,7 @@ use playback_time_view::*;
 mod time_ruler;
 use time_ruler::*;
 mod play_head;
-mod timeline_body;
+pub mod timeline_body;
 mod timeline_header;
 mod track_header;
 

@@ -1,7 +1,7 @@
 use self::camera_track_body::{CameraTrackBody, CameraTrackBodyProps};
 use crate::app::{editor::TimelineRenderContext, types::Track};
 use namui::prelude::*;
-mod camera_track_body;
+pub mod camera_track_body;
 use self::subtitle_track_body::{SubtitleTrackBody, SubtitleTrackBodyProps};
 mod subtitle_track_body;
 

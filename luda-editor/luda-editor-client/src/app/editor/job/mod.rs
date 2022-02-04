@@ -13,6 +13,8 @@ mod change_image;
 pub use self::change_image::*;
 mod add_camera_clip;
 pub use self::add_camera_clip::*;
+mod resize_camera_clip;
+pub use self::resize_camera_clip::*;
 #[cfg(test)]
 pub mod test_utils;
 #[cfg(test)]
@@ -27,6 +29,7 @@ pub enum Job {
     WysiwygCropImage(WysiwygCropImageJob),
     ChangeImage(ChangeImageJob),
     AddCameraClip(AddCameraClipJob),
+    ResizeCameraClip(ResizeCameraClipJob),
 }
 
 impl Job {
@@ -39,6 +42,7 @@ impl Job {
             Job::WysiwygCropImage(job) => job,
             Job::ChangeImage(job) => job,
             Job::AddCameraClip(job) => job,
+            Job::ResizeCameraClip(job) => job,
         };
         job_execute.execute(sequence)
     }
