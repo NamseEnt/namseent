@@ -110,6 +110,20 @@ fn render_camera_clip_preview(
     let width_by_fixed_height = xywh.height * 16.0 / 9.0;
 
     let letter_box_half_width = (width_by_fixed_height - xywh.width) / 2.0;
+    let background = rect(RectParam {
+        x: 0.0,
+        y: 0.0,
+        width: width_by_fixed_height,
+        height: xywh.height,
+        style: RectStyle {
+            fill: Some(RectFill {
+                color: Color::WHITE,
+            }),
+
+            ..Default::default()
+        },
+        ..Default::default()
+    });
 
     translate(
         xywh.x - letter_box_half_width,
@@ -126,13 +140,16 @@ fn render_camera_clip_preview(
                 CAMERA_CLIP_ROUND_RADIUS,
             ),
             ClipOp::Intersect,
-            camera_angle.render(
-                &Wh {
-                    width: width_by_fixed_height,
-                    height: xywh.height,
-                },
-                &camera_angle_image_loader,
-            ),
+            render![
+                background,
+                camera_angle.render(
+                    &Wh {
+                        width: width_by_fixed_height,
+                        height: xywh.height,
+                    },
+                    &camera_angle_image_loader,
+                ),
+            ],
         ),
     )
 }
