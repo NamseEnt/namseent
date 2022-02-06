@@ -3,11 +3,15 @@ mod go_back_button;
 use self::{events::TopBarEvent, go_back_button::render_go_back_button};
 use crate::app::{events::RouterEvent, sequence_list::SequenceList};
 use namui::{render, Color, RenderingTree, Wh, XywhRect};
+mod saving_status_text;
+use super::sequence_saver::SequenceSaverStatus;
+use saving_status_text::*;
 
 const MARGIN: f32 = 4.0;
 
-pub struct TopBarProps {
+pub struct TopBarProps<'a> {
     pub xywh: XywhRect<f32>,
+    pub sequence_saver_status: &'a SequenceSaverStatus,
 }
 
 pub struct TopBar {}
@@ -52,6 +56,14 @@ impl TopBar {
             render![
                 border,
                 namui::translate(MARGIN, MARGIN, render_go_back_button(go_back_button_wh)),
+                namui::translate(
+                    go_back_button_wh.width + MARGIN * 2.0,
+                    MARGIN,
+                    render_saving_status_text(&SavingStatusTextProps {
+                        height: props.xywh.height - 2.0 * MARGIN,
+                        sequence_saver_status: props.sequence_saver_status,
+                    }),
+                )
             ],
         )
     }

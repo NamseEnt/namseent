@@ -43,7 +43,7 @@ pub fn render_list_item(
                     button_wh.height,
                 ));
                 elements.push(RenderingTreeRow::new(
-                    render_open_button(button_wh, title, &sequence),
+                    render_open_button(button_wh, path, &sequence),
                     button_wh.height,
                 ));
             }

@@ -16,4 +16,8 @@ def_rpc! {
     }) -> {
         directory_entries: Vec<crate::Dirent>
     },
+    write_file({
+        dest_path: String,
+        file: Vec<u8>,
+    }) -> {},
 }
