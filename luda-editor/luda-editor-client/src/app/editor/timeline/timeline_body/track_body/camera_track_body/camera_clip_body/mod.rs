@@ -21,7 +21,7 @@ pub enum CameraClipBodyPart {
 }
 
 /// NOTE : No left sash yet. it's intended to be added later if it's really needed.
-const AVAILABLE_SASH_DIRECTIONS: [sash::SashDirection; 1] = [SashDirection::Left];
+const AVAILABLE_SASH_DIRECTIONS: [sash::SashDirection; 1] = [SashDirection::Right];
 
 impl CameraClipBody {
     pub fn render(props: &CameraClipBodyProps) -> RenderingTree {
