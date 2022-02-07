@@ -6,6 +6,8 @@ use namui::{render, Color, RenderingTree, Wh, XywhRect};
 mod saving_status_text;
 use super::sequence_saver::SequenceSaverStatus;
 use saving_status_text::*;
+mod sheet_sequence_syncer_bar;
+use sheet_sequence_syncer_bar::*;
 
 const MARGIN: f32 = 4.0;
 
@@ -63,7 +65,16 @@ impl TopBar {
                         height: props.xywh.height - 2.0 * MARGIN,
                         sequence_saver_status: props.sequence_saver_status,
                     }),
-                )
+                ),
+                namui::translate(
+                    props.xywh.width - MARGIN,
+                    MARGIN,
+                    render_sheet_sequence_syncer_bar(&SheetSequenceSyncerBarProps {
+                        height: props.xywh.height - 2.0 * MARGIN,
+                        syncer_status:
+                            &super::sheet_sequence_syncer::SheetSequenceSyncerStatus::Syncing,
+                    }),
+                ),
             ],
         )
     }

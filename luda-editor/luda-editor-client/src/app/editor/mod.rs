@@ -27,6 +27,8 @@ mod context_menu;
 use context_menu::*;
 mod sequence_saver;
 use sequence_saver::SequenceSaver;
+mod sheet_sequence_syncer;
+use sheet_sequence_syncer::*;
 
 pub struct EditorProps {
     pub screen_wh: namui::Wh<f32>,
