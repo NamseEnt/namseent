@@ -7,18 +7,25 @@ use crate::app::{
 use namui::{render, RenderingTree, Wh};
 use std::sync::Arc;
 
-pub fn render_open_button(wh: Wh<f32>, path: &String, sequence: &Arc<Sequence>) -> RenderingTree {
+pub fn render_open_button(
+    wh: Wh<f32>,
+    path: &String,
+    sequence: &Arc<Sequence>,
+    title: &String,
+) -> RenderingTree {
     render![
         render_rounded_rectangle(wh, RoundedRectangleColor::Blue)
             .attach_event(move |builder| {
                 let sequence = sequence.clone();
                 let path = path.clone();
+                let title = title.clone();
                 builder.on_mouse_down(move |_| {
                     let sequence = sequence.clone();
                     let path = path.clone();
+                    let title = title.clone();
                     namui::event::send(RouterEvent::PageChangeToEditorEvent(Box::new(
                         move |context| -> Editor {
-                            Editor::new(context.socket.clone(), sequence.clone(), &path)
+                            Editor::new(context.socket.clone(), sequence.clone(), &path, &title)
                         },
                     )));
                 })

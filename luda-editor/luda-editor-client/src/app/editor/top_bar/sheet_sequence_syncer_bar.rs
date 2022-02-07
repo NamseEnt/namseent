@@ -1,4 +1,6 @@
-use crate::app::editor::sheet_sequence_syncer::SheetSequenceSyncerStatus;
+use crate::app::editor::sheet_sequence_syncer::{
+    SheetSequenceSyncerEvent, SheetSequenceSyncerStatus,
+};
 use namui::prelude::*;
 
 pub(super) struct SheetSequenceSyncerBarProps<'a> {
@@ -65,6 +67,11 @@ pub(super) fn render_sheet_sequence_syncer_bar(
         | SheetSequenceSyncerStatus::Failed(_)
         | SheetSequenceSyncerStatus::Successful => namui::MouseCursor::Pointer,
         SheetSequenceSyncerStatus::Syncing => namui::MouseCursor::Default,
+    })
+    .attach_event(|builder| {
+        builder.on_mouse_up(|_| {
+            namui::event::send(SheetSequenceSyncerEvent::RequestSyncStart);
+        })
     });
     let button_text = namui::text(TextParam {
         x: button_width / 2.0,
