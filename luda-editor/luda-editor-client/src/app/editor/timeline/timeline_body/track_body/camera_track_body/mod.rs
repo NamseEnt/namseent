@@ -5,7 +5,7 @@ use crate::app::{
 };
 use namui::prelude::*;
 use std::collections::LinkedList;
-mod camera_clip_body;
+pub mod camera_clip_body;
 
 pub struct CameraTrackBody {}
 pub struct CameraTrackBodyProps<'a> {
@@ -62,6 +62,11 @@ impl CameraTrackBody {
 
                 move_clip_at_last(&mut track, moving_clip_ids);
 
+                track.clips
+            }
+            Some(Job::ResizeCameraClip(job)) => {
+                let mut track = props.track.clone();
+                job.resize_clip_in_track(&mut track);
                 track.clips
             }
             _ => props.track.clips.clone(),

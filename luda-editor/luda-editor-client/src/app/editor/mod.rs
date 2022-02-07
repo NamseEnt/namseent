@@ -9,6 +9,7 @@ use crate::app::editor::{clip_editor::ClipEditorProps, top_bar::TopBarProps};
 use luda_editor_rpc::Socket;
 use namui::prelude::*;
 use std::{cmp::Ordering, collections::BTreeSet, sync::Arc};
+use timeline::timeline_body::track_body::camera_track_body::camera_clip_body::*;
 pub use timeline::*;
 use wasm_bindgen_futures::spawn_local;
 mod clip_editor;
@@ -56,17 +57,40 @@ impl namui::Entity for Editor {
                 EditorEvent::CameraClipBodyMouseDownEvent {
                     clip_id,
                     click_in_time,
+                    clicked_part,
                     ..
                 } => {
                     self.on_clip_mouse_down(clip_id);
 
                     if self.job.is_none() {
-                        self.job = Some(Job::MoveCameraClip(MoveCameraClipJob {
-                            clip_ids: self.selected_clip_ids.clone(),
-                            click_anchor_in_time: *click_in_time,
-                            last_mouse_position_in_time: *click_in_time,
-                            is_moved: false,
-                        }));
+                        match clicked_part {
+                            CameraClipBodyPart::Sash(sash_direction) => {
+                                if self.selected_clip_ids.len() != 1 {
+                                    namui::log!("selected_clip_ids.len() should be 1 to resize, but it's {}", self.selected_clip_ids.len());
+                                    return;
+                                }
+                                let clip_id = self.selected_clip_ids.iter().next().unwrap();
+
+                                self.job = Some(Job::ResizeCameraClip(ResizeCameraClipJob {
+                                    clip_id: clip_id.clone(),
+                                    click_anchor_in_time: *click_in_time,
+                                    last_mouse_position_in_time: *click_in_time,
+                                    is_moved: false,
+                                    resize_direction: match *sash_direction {
+                                        SashDirection::Left => ResizeDirection::Left,
+                                        SashDirection::Right => ResizeDirection::Right,
+                                    },
+                                }));
+                            }
+                            CameraClipBodyPart::Body => {
+                                self.job = Some(Job::MoveCameraClip(MoveCameraClipJob {
+                                    clip_ids: self.selected_clip_ids.clone(),
+                                    click_anchor_in_time: *click_in_time,
+                                    last_mouse_position_in_time: *click_in_time,
+                                    is_moved: false,
+                                }));
+                            }
+                        }
                     }
                 }
                 EditorEvent::SubtitleClipHeadMouseDownEvent {
@@ -186,6 +210,10 @@ impl namui::Entity for Editor {
                         job.last_mouse_position_in_time = *mouse_position_in_time;
                         job.is_moved = true;
                     }
+                    Some(Job::ResizeCameraClip(ref mut job)) => {
+                        job.last_mouse_position_in_time = *mouse_position_in_time;
+                        job.is_moved = true;
+                    }
                     _ => {}
                 },
                 EditorEvent::CameraTrackBodyRightClickEvent {
@@ -212,7 +240,8 @@ impl namui::Entity for Editor {
                 },
                 NamuiEvent::MouseUp(_) => match self.job {
                     Some(Job::MoveCameraClip(MoveCameraClipJob { is_moved, .. }))
-                    | Some(Job::MoveSubtitleClip(MoveSubtitleClipJob { is_moved, .. })) => {
+                    | Some(Job::MoveSubtitleClip(MoveSubtitleClipJob { is_moved, .. }))
+                    | Some(Job::ResizeCameraClip(ResizeCameraClipJob { is_moved, .. })) => {
                         if is_moved {
                             self.execute_job();
                         } else {

@@ -1,6 +1,6 @@
 use namui::prelude::*;
 use std::sync::Arc;
-mod track_body;
+pub mod track_body;
 use super::TimelineRenderContext;
 use crate::app::{
     editor::events::EditorEvent,

@@ -2,6 +2,7 @@ use super::clip_editor::camera_clip_editor::wysiwyg_editor::{
     cropper::CropperHandle, resizer::ResizerHandle,
 };
 use crate::app::editor::clip_editor::camera_clip_editor::image_browser::ImageBrowserItem;
+use crate::app::editor::timeline::timeline_body::track_body::camera_track_body::camera_clip_body::CameraClipBodyPart;
 use crate::app::types::*;
 use std::sync::Arc;
 
@@ -9,6 +10,7 @@ pub enum EditorEvent {
     CameraClipBodyMouseDownEvent {
         clip_id: String,
         click_in_time: Time,
+        clicked_part: CameraClipBodyPart,
     },
     SubtitleClipHeadMouseDownEvent {
         clip_id: String,

@@ -3,6 +3,8 @@ use crate::app::{
     types::*,
 };
 use namui::prelude::*;
+mod sash;
+pub use sash::*;
 
 pub struct CameraClipBody {}
 pub struct CameraClipBodyProps<'a> {
@@ -11,6 +13,15 @@ pub struct CameraClipBodyProps<'a> {
     pub context: &'a TimelineRenderContext<'a>,
 }
 const CAMERA_CLIP_ROUND_RADIUS: f32 = 5.0;
+
+#[derive(Debug, Clone, Copy)]
+pub enum CameraClipBodyPart {
+    Sash(SashDirection),
+    Body,
+}
+
+/// NOTE : No left sash yet. it's intended to be added later if it's really needed.
+const AVAILABLE_SASH_DIRECTIONS: [sash::SashDirection; 1] = [SashDirection::Right];
 
 impl CameraClipBody {
     pub fn render(props: &CameraClipBodyProps) -> RenderingTree {
@@ -27,7 +38,9 @@ impl CameraClipBody {
             width: width - 2.0,
             height: props.track_body_wh.height - 2.0,
         };
-        let is_highlight = props.context.selected_clip_ids.contains(&&props.clip.id);
+        let is_selected = props.context.selected_clip_ids.contains(&&props.clip.id);
+        let is_highlight = is_selected;
+        let is_sashes_showing = is_selected && props.context.selected_clip_ids.len() == 1;
 
         let background = namui::rect(namui::RectParam {
             x: clip_rect.x,
@@ -75,13 +88,47 @@ impl CameraClipBody {
         .attach_event(move |builder| {
             let clip_id = props.clip.id.clone();
             builder.on_mouse_down(move |event| {
+                let clicked_part = if is_sashes_showing {
+                    AVAILABLE_SASH_DIRECTIONS
+                        .iter()
+                        .find_map(|direction| {
+                            let sash_rect = get_sash_rect(&clip_rect, *direction);
+                            if sash_rect.is_xy_in(&event.local_xy) {
+                                Some(CameraClipBodyPart::Sash(*direction))
+                            } else {
+                                None
+                            }
+                        })
+                        .unwrap_or_else(|| CameraClipBodyPart::Body)
+                } else {
+                    CameraClipBodyPart::Body
+                };
+
                 let event = EditorEvent::CameraClipBodyMouseDownEvent {
                     clip_id: clip_id.clone(),
                     click_in_time: timeline_start_at + PixelSize(event.local_xy.x) * time_per_pixel,
+                    clicked_part,
                 };
                 namui::event::send(event);
             })
         });
+
+        let sashes = if is_sashes_showing {
+            RenderingTree::Children(
+                AVAILABLE_SASH_DIRECTIONS
+                    .iter()
+                    .map(|direction| {
+                        render_sash(&SashBodyProps {
+                            context: props.context,
+                            direction: *direction,
+                            clip_rect: &clip_rect,
+                        })
+                    })
+                    .collect::<Vec<_>>(),
+            )
+        } else {
+            RenderingTree::Empty
+        };
 
         namui::render![
             background,
@@ -92,6 +139,7 @@ impl CameraClipBody {
                 LudaEditorServerCameraAngleImageLoader {},
             ),
             border,
+            sashes,
         ]
     }
 }

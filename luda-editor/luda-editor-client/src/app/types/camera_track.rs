@@ -126,6 +126,25 @@ impl CameraTrack {
         }
         chunks
     }
+
+    pub(crate) fn resize_clip_delta(&mut self, clip_id: &str, delta_time: Time) {
+        let mut clips = self.clips.to_vec();
+
+        let clip_index = clips.iter().position(|c| c.id == clip_id).unwrap();
+
+        let clip = clips.remove(clip_index);
+        let new_clip = Arc::new(CameraClip {
+            id: clip.id.clone(),
+            start_at: clip.start_at,
+            end_at: clip.end_at + delta_time,
+            camera_angle: clip.camera_angle.clone(),
+        });
+        clips.insert(clip_index, new_clip);
+
+        push_front_camera_clips(&mut clips);
+
+        self.clips = clips.into();
+    }
 }
 
 fn push_front_camera_clips(clips: &mut [Arc<CameraClip>]) {
