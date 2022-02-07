@@ -79,7 +79,7 @@ impl luda_editor_rpc::RpcHandle for RpcHandler {
         _: luda_editor_rpc::get_camera_shot_urls::Request,
     ) -> Result<luda_editor_rpc::get_camera_shot_urls::Response, String> {
         let resource_image_path = resource_path().join("images");
-        println!("{:?}", resource_image_path);
+        println!("[get_camera_shot_urls] {:?}", resource_image_path);
 
         match std::fs::read_dir(resource_image_path) {
             Ok(entries) => {
@@ -111,7 +111,7 @@ impl luda_editor_rpc::RpcHandle for RpcHandler {
         request: luda_editor_rpc::read_file::Request,
     ) -> Result<luda_editor_rpc::read_file::Response, String> {
         let dest_path = resource_path().join(request.dest_path);
-        println!("dest_path::{:?}", &dest_path);
+        println!("[read_file] dest_path::{:?}", &dest_path);
         match std::fs::read(dest_path) {
             Ok(file) => Ok(luda_editor_rpc::read_file::Response { file }),
             Err(error) => {
@@ -126,7 +126,7 @@ impl luda_editor_rpc::RpcHandle for RpcHandler {
         request: luda_editor_rpc::read_dir::Request,
     ) -> Result<luda_editor_rpc::read_dir::Response, String> {
         let dest_path = resource_path().join(request.dest_path);
-        println!("dest_path::{:?}", &dest_path);
+        println!("[read_dir] dest_path::{:?}", &dest_path);
         match std::fs::read_dir(dest_path) {
             Ok(read_dir) => {
                 let directory_entries: Vec<Dirent> = read_dir
@@ -154,6 +154,21 @@ impl luda_editor_rpc::RpcHandle for RpcHandler {
             }
             Err(error) => {
                 let error_message = format!("read_dir error: {}", error);
+                println!("{}", error_message);
+                Err(error_message)
+            }
+        }
+    }
+    async fn write_file(
+        &mut self,
+        request: luda_editor_rpc::write_file::Request,
+    ) -> Result<luda_editor_rpc::write_file::Response, String> {
+        let dest_path = resource_path().join(request.dest_path);
+        println!("[write_file] dest_path::{:?}", &dest_path);
+        match std::fs::write(dest_path, request.file) {
+            Ok(_) => Ok(luda_editor_rpc::write_file::Response {}),
+            Err(error) => {
+                let error_message = format!("write_file error: {}", error);
                 println!("{}", error_message);
                 Err(error_message)
             }

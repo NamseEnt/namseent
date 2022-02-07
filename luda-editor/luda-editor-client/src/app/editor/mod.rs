@@ -24,6 +24,8 @@ mod clipboard;
 use clipboard::Clipboard;
 mod context_menu;
 use context_menu::*;
+mod sequence_saver;
+use sequence_saver::SequenceSaver;
 
 pub struct EditorProps {
     pub screen_wh: namui::Wh<f32>,
@@ -43,6 +45,7 @@ pub struct Editor {
     language: Language,
     clip_id_to_check_as_click: Option<String>,
     context_menu: Option<ContextMenu>,
+    sequence_saver: SequenceSaver,
 }
 
 impl namui::Entity for Editor {
@@ -306,6 +309,7 @@ impl namui::Entity for Editor {
         self.context_menu
             .as_mut()
             .map(move |context_menu| context_menu.update(event));
+        self.sequence_saver.update(event);
     }
 
     fn render(&self, props: &Self::Props) -> namui::RenderingTree {
@@ -360,7 +364,10 @@ impl namui::Entity for Editor {
                 subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
                 with_buttons: true,
             }),
-            self.top_bar.render(&TopBarProps { xywh: top_bar_xywh }),
+            self.top_bar.render(&TopBarProps {
+                xywh: top_bar_xywh,
+                sequence_saver_status: &self.sequence_saver.get_status(),
+            }),
             match &self.context_menu {
                 Some(context_menu) => context_menu.render(&ContextMenuProps {}),
                 None => RenderingTree::Empty,
@@ -370,7 +377,7 @@ impl namui::Entity for Editor {
 }
 
 impl Editor {
-    pub fn new(socket: Socket, sequence: Arc<Sequence>) -> Self {
+    pub fn new(socket: Socket, sequence: Arc<Sequence>, sequence_file_path: &str) -> Self {
         spawn_local({
             let socket = socket.clone();
             async move {
@@ -410,6 +417,11 @@ impl Editor {
             language: namui::Language::Ko,
             clip_id_to_check_as_click: None,
             context_menu: None,
+            sequence_saver: SequenceSaver::new(
+                sequence_file_path.clone(),
+                sequence.clone(),
+                socket.clone(),
+            ),
         }
     }
     fn calculate_timeline_xywh(&self, screen_wh: &namui::Wh<f32>) -> XywhRect<f32> {
@@ -444,6 +456,7 @@ impl Editor {
         let sequence = self.get_sequence().clone();
         self.remove_dangling_selected_clips();
         self.sequence_player.update_sequence(sequence.clone());
+        self.sequence_saver.on_change_sequence(sequence.clone());
         namui::event::send(EditorEvent::SequenceUpdateEvent {
             sequence: sequence.clone(),
         });

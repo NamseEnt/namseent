@@ -66,6 +66,12 @@ impl App {
             ) -> Result<luda_editor_rpc::read_dir::Response, String> {
                 unreachable!()
             }
+            async fn write_file(
+                &mut self,
+                _: luda_editor_rpc::write_file::Request,
+            ) -> Result<luda_editor_rpc::write_file::Response, String> {
+                unreachable!()
+            }
         }
 
         let response_waiter = ResponseWaiter::new();
