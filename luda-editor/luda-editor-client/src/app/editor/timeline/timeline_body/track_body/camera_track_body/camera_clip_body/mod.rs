@@ -20,6 +20,9 @@ pub enum CameraClipBodyPart {
     Body,
 }
 
+/// NOTE : No left sash yet. it's intended to be added later if it's really needed.
+const AVAILABLE_SASH_DIRECTIONS: [sash::SashDirection; 1] = [SashDirection::Left];
+
 impl CameraClipBody {
     pub fn render(props: &CameraClipBodyProps) -> RenderingTree {
         let timeline_start_at = props.context.start_at;
@@ -86,7 +89,7 @@ impl CameraClipBody {
             let clip_id = props.clip.id.clone();
             builder.on_mouse_down(move |event| {
                 let clicked_part = if is_sashes_showing {
-                    [SashDirection::Left, SashDirection::Right]
+                    AVAILABLE_SASH_DIRECTIONS
                         .iter()
                         .find_map(|direction| {
                             let sash_rect = get_sash_rect(&clip_rect, *direction);
@@ -112,7 +115,7 @@ impl CameraClipBody {
 
         let sashes = if is_sashes_showing {
             RenderingTree::Children(
-                [SashDirection::Right] // NOTE : No left sash yet. it's intended to be added later if it's really needed.
+                AVAILABLE_SASH_DIRECTIONS
                     .iter()
                     .map(|direction| {
                         render_sash(&SashBodyProps {
