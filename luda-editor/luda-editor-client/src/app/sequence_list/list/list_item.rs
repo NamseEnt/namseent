@@ -26,7 +26,7 @@ pub fn render_list_item(
     };
     let mut elements: Vec<RenderingTreeRow> = Vec::new();
 
-    elements.push(render_title_button(element_width, title));
+    elements.push(render_title_button(element_width, title, path));
 
     if let Some(load_state) = title_load_state {
         match &load_state.detail {

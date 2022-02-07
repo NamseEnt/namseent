@@ -6,8 +6,7 @@ use crate::app::sequence_list::{
 };
 use namui::{render, Wh};
 
-pub fn render_title_button(width: f32, title: &String) -> RenderingTreeRow {
-    let path = format!("sequence/{}", title);
+pub fn render_title_button(width: f32, title: &String, path: &String) -> RenderingTreeRow {
     let button_wh = Wh {
         width,
         height: BUTTON_HEIGHT,

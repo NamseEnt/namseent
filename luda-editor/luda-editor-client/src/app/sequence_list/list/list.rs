@@ -38,7 +38,7 @@ pub fn render_list(
         SequenceTitlesLoadStateDetail::Loaded { titles } => titles
             .iter()
             .map(|title| {
-                let path = format!("sequence/{}", title);
+                let path = format!("sequence/{}.json", title);
                 let sequence_load_state = sequence_load_state_map.get(&path);
                 render_list_item(
                     inner_wh.width,

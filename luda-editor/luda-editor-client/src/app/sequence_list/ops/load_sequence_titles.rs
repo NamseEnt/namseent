@@ -31,7 +31,14 @@ impl SequenceList {
                             .iter()
                             .filter_map(|dirent| match dirent.file_type {
                                 DirentFileType::File => match dirent.name.ends_with(".json") {
-                                    true => Some(dirent.name.clone()),
+                                    true => Some(
+                                        std::path::Path::new(&dirent.name)
+                                            .file_stem()
+                                            .unwrap()
+                                            .to_str()
+                                            .unwrap()
+                                            .to_string(),
+                                    ),
                                     false => None,
                                 },
                                 _ => None,
