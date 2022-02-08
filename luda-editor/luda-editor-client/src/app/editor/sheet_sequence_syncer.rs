@@ -1,4 +1,4 @@
-use crate::app::{editor::events::EditorEvent, types::Subtitle};
+use crate::app::{editor::events::EditorEvent, types::*};
 use namui::Language;
 use serde::Deserialize;
 use wasm_bindgen_futures::spawn_local;
@@ -57,54 +57,17 @@ impl SheetSequenceSyncer {
 
         self.status = SheetSequenceSyncerStatus::Syncing;
 
-        const SPREADSHEET_ID: &str = "1TSSmaIuBjTLVSYcCL0olqWeu9MTaYP4LEq9M1xzn1OU";
-        const API_KEY: &str = "AIzaSyBhMI9rz9l_f5NFsZlSh48K6Ee3Cbf4Oxw";
-
-        let range = format!("{}!A1:Z", self.sequence_title);
-
-        let url = format!(
-            "https://sheets.googleapis.com/v4/spreadsheets/{}/values/{}?key={}",
-            SPREADSHEET_ID, range, API_KEY
-        );
+        let sequence_title = self.sequence_title.clone();
 
         spawn_local(async move {
-            let result = namui::fetch_get_json::<SpreadsheetValuesGet>(&url).await;
+            let result = google_spreadsheet::get_subtitles_by_title(&sequence_title).await;
 
-            if result.is_err() {
-                let error = result.err().unwrap();
-                namui::event::send(SheetSequenceSyncerEvent::SyncDone(Err(error.to_string())));
-                return;
-            }
-
-            let spreadsheet_values_get = result.unwrap();
-
-            let subtitles = spreadsheet_values_get.into_subtitles();
-            namui::event::send(EditorEvent::SubtitleSyncRequestEvent { subtitles });
-        });
-    }
-}
-
-#[derive(Deserialize, Debug)]
-struct SpreadsheetValuesGet {
-    values: Box<[Box<[String]>]>,
-}
-impl SpreadsheetValuesGet {
-    pub(crate) fn into_subtitles(&self) -> Vec<Subtitle> {
-        self.values
-            .iter()
-            .skip(1)
-            .filter_map(|row| {
-                if row.len() < 7 {
-                    return None;
+            match result {
+                Ok(subtitles) => {
+                    namui::event::send(EditorEvent::SubtitleSyncRequestEvent { subtitles })
                 }
-
-                let id = row[0].clone();
-                let korean_text = row[6].clone();
-                Some(Subtitle {
-                    id,
-                    language_text_map: vec![(Language::Ko, korean_text)].into_iter().collect(),
-                })
-            })
-            .collect()
+                Err(error) => namui::event::send(SheetSequenceSyncerEvent::SyncDone(Err(error))),
+            }
+        });
     }
 }

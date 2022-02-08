@@ -20,4 +20,10 @@ def_rpc! {
         dest_path: String,
         file: Vec<u8>,
     }) -> {},
+    get_sequences({})-> {
+        title_sequence_json_tuples: Vec<(String, String)>,
+    },
+    put_sequences({
+        title_sequence_json_tuples: Vec<(String, String)>,
+    })-> {},
 }

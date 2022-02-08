@@ -2,22 +2,24 @@ use super::{
     open_button::render_open_button, preview_slider::render_preview_slider,
     title_button::render_title_button,
 };
-use crate::app::sequence_list::{
-    common::{render_button_text, render_rounded_rectangle, RoundedRectangleColor},
-    types::{
-        RenderingTreeRow, RenderingTreeRows, SequenceLoadState, SequenceLoadStateDetail,
-        SequencePreviewProgressMap,
+use crate::app::{
+    sequence_list::{
+        common::{render_rounded_rectangle, RoundedRectangleColor},
+        types::{RenderingTreeRow, RenderingTreeRows, SequencePreviewProgressMap},
+        BUTTON_HEIGHT, MARGIN, SPACING,
     },
-    BUTTON_HEIGHT, MARGIN, SPACING,
+    types::Sequence,
 };
 use namui::{render, Wh};
+use std::sync::Arc;
 
 pub fn render_list_item(
     width: f32,
     title: &String,
     path: &String,
-    title_load_state: Option<&SequenceLoadState>,
+    sequence: &Arc<Sequence>,
     sequence_preview_progress_map: &SequencePreviewProgressMap,
+    is_item_opened: bool,
 ) -> RenderingTreeRow {
     let element_width = width - 2.0 * MARGIN;
     let button_wh = Wh {
@@ -26,39 +28,18 @@ pub fn render_list_item(
     };
     let mut elements: Vec<RenderingTreeRow> = Vec::new();
 
-    elements.push(render_title_button(element_width, title, path));
+    elements.push(render_title_button(element_width, title));
 
-    if let Some(load_state) = title_load_state {
-        match &load_state.detail {
-            SequenceLoadStateDetail::Loading => elements.push(RenderingTreeRow::new(
-                render![
-                    render_rounded_rectangle(button_wh, RoundedRectangleColor::Blue),
-                    render_button_text(button_wh, "Loading...".to_string())
-                ],
-                button_wh.height,
-            )),
-            SequenceLoadStateDetail::Loaded { sequence } => {
-                elements.push(RenderingTreeRow::new(
-                    render_preview_slider(button_wh, path, sequence_preview_progress_map),
-                    button_wh.height,
-                ));
-                elements.push(RenderingTreeRow::new(
-                    render_open_button(button_wh, path, &sequence, title),
-                    button_wh.height,
-                ));
-            }
-            SequenceLoadStateDetail::Failed { error } => {
-                elements.push(RenderingTreeRow::new(
-                    render![
-                        render_rounded_rectangle(button_wh, RoundedRectangleColor::Blue),
-                        render_button_text(button_wh, format!("Error: {}", error))
-                    ],
-                    button_wh.height,
-                ));
-            }
-        };
-    };
-
+    if is_item_opened {
+        elements.push(RenderingTreeRow::new(
+            render_preview_slider(button_wh, title, sequence_preview_progress_map),
+            button_wh.height,
+        ));
+        elements.push(RenderingTreeRow::new(
+            render_open_button(button_wh, path, &sequence, title),
+            button_wh.height,
+        ));
+    }
     let total_height = elements.height(SPACING) + 2.0 * MARGIN;
 
     RenderingTreeRow::new(

@@ -2,10 +2,10 @@ mod timeline;
 use self::{
     clip_editor::{camera_clip_editor::image_browser::ImageBrowserItem, ClipEditor},
     events::*,
-    job::*,
 };
 use super::types::*;
 use crate::app::editor::{clip_editor::ClipEditorProps, top_bar::TopBarProps};
+pub use job::*;
 use luda_editor_rpc::Socket;
 use namui::prelude::*;
 use std::{cmp::Ordering, collections::BTreeSet, sync::Arc};

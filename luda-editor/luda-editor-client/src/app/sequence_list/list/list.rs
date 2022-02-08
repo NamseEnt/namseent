@@ -3,8 +3,8 @@ use crate::app::sequence_list::{
     events::SequenceListEvent,
     list::list_item::render_list_item,
     types::{
-        RenderingTreeRow, RenderingTreeRows, SequenceLoadStateMap, SequencePreviewProgressMap,
-        SequenceTitlesLoadState, SequenceTitlesLoadStateDetail,
+        RenderingTreeRow, RenderingTreeRows, SequencePreviewProgressMap, SequenceSyncState,
+        SequencesSyncStateDetail,
     },
     BUTTON_HEIGHT, MARGIN, SPACING,
 };
@@ -15,10 +15,10 @@ const SCROLL_BAR_WIDTH: f32 = MARGIN * 2.0;
 
 pub fn render_list(
     wh: Wh<f32>,
-    sequence_titles_load_state: &SequenceTitlesLoadState,
-    sequence_load_state_map: &SequenceLoadStateMap,
+    sequences_sync_state: &SequenceSyncState,
     sequence_preview_progress_map: &SequencePreviewProgressMap,
     scroll_y: f32,
+    opened_sequence_title: &Option<String>,
 ) -> RenderingTree {
     let inner_wh = Wh {
         width: wh.width - 2.0 * MARGIN - SPACING - SCROLL_BAR_WIDTH,
@@ -28,28 +28,33 @@ pub fn render_list(
         width: inner_wh.width,
         height: BUTTON_HEIGHT,
     };
-    let list_items: Vec<RenderingTreeRow> = match &sequence_titles_load_state.detail {
-        SequenceTitlesLoadStateDetail::Loading => {
+    let list_items: Vec<RenderingTreeRow> = match &sequences_sync_state.detail {
+        SequencesSyncStateDetail::Loading => {
             vec![RenderingTreeRow {
                 rendering_tree: render_button_text(button_wh, "Loading...".to_string()),
                 height: button_wh.height,
             }]
         }
-        SequenceTitlesLoadStateDetail::Loaded { titles } => titles
+        SequencesSyncStateDetail::Loaded { title_sequence_map } => title_sequence_map
             .iter()
-            .map(|title| {
+            .map(|(title, sequence)| {
                 let path = format!("sequence/{}.json", title);
-                let sequence_load_state = sequence_load_state_map.get(&path);
+                let is_item_opened = opened_sequence_title
+                    .as_ref()
+                    .map(|opened_title| title == opened_title)
+                    .unwrap_or(false);
+
                 render_list_item(
                     inner_wh.width,
                     title,
                     &path,
-                    sequence_load_state,
-                    sequence_preview_progress_map,
+                    sequence,
+                    &sequence_preview_progress_map,
+                    is_item_opened,
                 )
             })
             .collect(),
-        SequenceTitlesLoadStateDetail::Failed { error } => {
+        SequencesSyncStateDetail::Failed { error } => {
             vec![RenderingTreeRow {
                 rendering_tree: render_button_text(button_wh, format!("Error: {}", error)),
                 height: button_wh.height,

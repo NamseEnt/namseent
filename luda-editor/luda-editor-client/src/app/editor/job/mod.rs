@@ -52,6 +52,6 @@ impl Job {
     }
 }
 
-trait JobExecute {
+pub trait JobExecute {
     fn execute(&self, sequence: &Sequence) -> Result<Sequence, String>;
 }

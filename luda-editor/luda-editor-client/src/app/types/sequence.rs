@@ -43,15 +43,15 @@ impl Sequence {
             Track::Subtitle(track) => track.clips.iter().any(|clip| clip.id.eq(clip_id)),
         })
     }
+    pub fn into_json(&self) -> String {
+        serde_json::to_string_pretty(&self).unwrap()
+    }
 }
 
-impl TryFrom<Vec<u8>> for Sequence {
-    fn try_from(value: Vec<u8>) -> Result<Sequence, String> {
-        match String::from_utf8(value) {
-            Ok(string) => match serde_json::from_str::<Sequence>(&string) {
-                Ok(sequence) => Ok(sequence),
-                Err(error) => Err(error.to_string()),
-            },
+impl<'a> TryFrom<&'a str> for Sequence {
+    fn try_from(value: &str) -> Result<Sequence, String> {
+        match serde_json::from_str::<Sequence>(&value) {
+            Ok(sequence) => Ok(sequence),
             Err(error) => Err(error.to_string()),
         }
     }
@@ -62,7 +62,16 @@ impl TryFrom<Vec<u8>> for Sequence {
 impl Default for Sequence {
     fn default() -> Self {
         Self {
-            tracks: Arc::new([]),
+            tracks: Arc::new([
+                Arc::new(Track::Camera(CameraTrack {
+                    id: "camera-track".to_string(),
+                    clips: vec![].into(),
+                })),
+                Arc::new(Track::Subtitle(SubtitleTrack {
+                    id: "subtitle-track".to_string(),
+                    clips: vec![].into(),
+                })),
+            ]),
         }
     }
 }

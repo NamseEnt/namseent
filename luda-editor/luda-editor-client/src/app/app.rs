@@ -72,6 +72,18 @@ impl App {
             ) -> Result<luda_editor_rpc::write_file::Response, String> {
                 unreachable!()
             }
+            async fn get_sequences(
+                &mut self,
+                _: luda_editor_rpc::get_sequences::Request,
+            ) -> Result<luda_editor_rpc::get_sequences::Response, String> {
+                unreachable!()
+            }
+            async fn put_sequences(
+                &mut self,
+                _: luda_editor_rpc::put_sequences::Request,
+            ) -> Result<luda_editor_rpc::put_sequences::Response, String> {
+                unreachable!()
+            }
         }
 
         let response_waiter = ResponseWaiter::new();

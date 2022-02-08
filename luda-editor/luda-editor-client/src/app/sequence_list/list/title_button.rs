@@ -6,7 +6,7 @@ use crate::app::sequence_list::{
 };
 use namui::{render, Wh};
 
-pub fn render_title_button(width: f32, title: &String, path: &String) -> RenderingTreeRow {
+pub fn render_title_button(width: f32, title: &String) -> RenderingTreeRow {
     let button_wh = Wh {
         width,
         height: BUTTON_HEIGHT,
@@ -17,11 +17,11 @@ pub fn render_title_button(width: f32, title: &String, path: &String) -> Renderi
             render_rounded_rectangle(button_wh, RoundedRectangleColor::DarkGray)
                 .with_mouse_cursor(namui::MouseCursor::Pointer)
                 .attach_event(move |builder| {
-                    let path = path.clone();
+                    let title = title.clone();
                     builder.on_mouse_down(move |_| {
-                        let path = path.clone();
+                        let title = title.clone();
                         namui::event::send(SequenceListEvent::SequenceTitleButtonClickedEvent {
-                            path,
+                            title,
                         });
                     })
                 }),

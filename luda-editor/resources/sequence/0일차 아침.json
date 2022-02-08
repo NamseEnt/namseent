@@ -1,0 +1,468 @@
+{
+  "tracks": [
+    {
+      "Camera": {
+        "id": "camera_track_1",
+        "clips": [
+          {
+            "id": "1",
+            "start_at": {
+              "milliseconds": 0.0
+            },
+            "end_at": {
+              "milliseconds": 1000.0
+            },
+            "camera_angle": {
+              "character_pose_emotion": [
+                "피디",
+                "기본",
+                "미소"
+              ],
+              "source_01_circumscribed": {
+                "center": {
+                  "x": 0.25,
+                  "y": 0.25
+                },
+                "radius": 0.52590406
+              },
+              "crop_screen_01_rect": {
+                "left": 0.0,
+                "top": 0.0,
+                "right": 1.0,
+                "bottom": 1.0
+              }
+            }
+          },
+          {
+            "id": "2",
+            "start_at": {
+              "milliseconds": 1000.0
+            },
+            "end_at": {
+              "milliseconds": 3000.0
+            },
+            "camera_angle": {
+              "character_pose_emotion": [
+                "피디",
+                "기본",
+                "미소"
+              ],
+              "source_01_circumscribed": {
+                "center": {
+                  "x": 0.25,
+                  "y": 0.25
+                },
+                "radius": 0.52590406
+              },
+              "crop_screen_01_rect": {
+                "left": 0.0,
+                "top": 0.0,
+                "right": 1.0,
+                "bottom": 1.0
+              }
+            }
+          },
+          {
+            "id": "3",
+            "start_at": {
+              "milliseconds": 3000.0
+            },
+            "end_at": {
+              "milliseconds": 6000.0
+            },
+            "camera_angle": {
+              "character_pose_emotion": [
+                "피디",
+                "기본",
+                "미소"
+              ],
+              "source_01_circumscribed": {
+                "center": {
+                  "x": 0.25,
+                  "y": 0.25
+                },
+                "radius": 0.52590406
+              },
+              "crop_screen_01_rect": {
+                "left": 0.0,
+                "top": 0.0,
+                "right": 1.0,
+                "bottom": 1.0
+              }
+            }
+          },
+          {
+            "id": "4",
+            "start_at": {
+              "milliseconds": 6000.0
+            },
+            "end_at": {
+              "milliseconds": 10000.0
+            },
+            "camera_angle": {
+              "character_pose_emotion": [
+                "피디",
+                "기본",
+                "미소"
+              ],
+              "source_01_circumscribed": {
+                "center": {
+                  "x": 0.25,
+                  "y": 0.25
+                },
+                "radius": 0.52590406
+              },
+              "crop_screen_01_rect": {
+                "left": 0.0,
+                "top": 0.0,
+                "right": 1.0,
+                "bottom": 1.0
+              }
+            }
+          },
+          {
+            "id": "5",
+            "start_at": {
+              "milliseconds": 10000.0
+            },
+            "end_at": {
+              "milliseconds": 15000.0
+            },
+            "camera_angle": {
+              "character_pose_emotion": [
+                "피디",
+                "기본",
+                "미소"
+              ],
+              "source_01_circumscribed": {
+                "center": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "radius": 0.52590406
+              },
+              "crop_screen_01_rect": {
+                "left": 0.5,
+                "top": 0.5,
+                "right": 1.0,
+                "bottom": 1.0
+              }
+            }
+          },
+          {
+            "id": "6",
+            "start_at": {
+              "milliseconds": 15000.0
+            },
+            "end_at": {
+              "milliseconds": 21000.0
+            },
+            "camera_angle": {
+              "character_pose_emotion": [
+                "피디",
+                "기본",
+                "미소"
+              ],
+              "source_01_circumscribed": {
+                "center": {
+                  "x": 0.5250425,
+                  "y": 0.75103754
+                },
+                "radius": 0.25
+              },
+              "crop_screen_01_rect": {
+                "left": 0.2,
+                "top": 0.4,
+                "right": 1.0,
+                "bottom": 1.0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "Subtitle": {
+        "id": "subtitle_track_1",
+        "clips": [
+          {
+            "id": "2022-02-07-22-33-0001",
+            "start_at": {
+              "milliseconds": 0.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0001",
+              "language_text_map": {
+                "Ko": "아이돌 안할래요?"
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0002",
+            "start_at": {
+              "milliseconds": 1697.7559
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0002",
+              "language_text_map": {
+                "Ko": "..."
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0003",
+            "start_at": {
+              "milliseconds": 2000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0003",
+              "language_text_map": {
+                "Ko": "..."
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0004",
+            "start_at": {
+              "milliseconds": 3000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0004",
+              "language_text_map": {
+                "Ko": "이상한거 아니에요"
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0005",
+            "start_at": {
+              "milliseconds": 4790.79
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0005",
+              "language_text_map": {
+                "Ko": "그 말 하니까 더 이상한데요"
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0006",
+            "start_at": {
+              "milliseconds": 5000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0006",
+              "language_text_map": {
+                "Ko": "앗..."
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0008",
+            "start_at": {
+              "milliseconds": 6000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0008",
+              "language_text_map": {
+                "Ko": "저흰 돈 안뜯는데..."
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0009",
+            "start_at": {
+              "milliseconds": 7000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0009",
+              "language_text_map": {
+                "Ko": "들었어요?"
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0010",
+            "start_at": {
+              "milliseconds": 8000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0010",
+              "language_text_map": {
+                "Ko": "누가 엿들으래요!"
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0011",
+            "start_at": {
+              "milliseconds": 9000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0011",
+              "language_text_map": {
+                "Ko": "아 아니... 그게..."
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0012",
+            "start_at": {
+              "milliseconds": 10000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0012",
+              "language_text_map": {
+                "Ko": "들.. 들려서..."
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0013",
+            "start_at": {
+              "milliseconds": 11000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0013",
+              "language_text_map": {
+                "Ko": "뒤에 앉아 있다보니..."
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0014",
+            "start_at": {
+              "milliseconds": 12000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0014",
+              "language_text_map": {
+                "Ko": "들을려고 한건 아니에요"
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0016",
+            "start_at": {
+              "milliseconds": 13000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0016",
+              "language_text_map": {
+                "Ko": "돈 갚는거 도와드릴까요?"
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0017",
+            "start_at": {
+              "milliseconds": 14000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0017",
+              "language_text_map": {
+                "Ko": "네"
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0018",
+            "start_at": {
+              "milliseconds": 15850.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0018",
+              "language_text_map": {
+                "Ko": "네?"
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0019",
+            "start_at": {
+              "milliseconds": 16000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0019",
+              "language_text_map": {
+                "Ko": "저흰 개인방송이랑 다르긴 한데"
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0020",
+            "start_at": {
+              "milliseconds": 17000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0020",
+              "language_text_map": {
+                "Ko": "더 재미있을걸요?"
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0021",
+            "start_at": {
+              "milliseconds": 18000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0021",
+              "language_text_map": {
+                "Ko": "이상한거 따라가지 말랬는데"
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0022",
+            "start_at": {
+              "milliseconds": 19000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0022",
+              "language_text_map": {
+                "Ko": "엄마가..."
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0023",
+            "start_at": {
+              "milliseconds": 20000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0023",
+              "language_text_map": {
+                "Ko": "이거 명함 보시고 한번 오세요."
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0024",
+            "start_at": {
+              "milliseconds": 21000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0024",
+              "language_text_map": {
+                "Ko": "여기 근처에요!"
+              }
+            }
+          },
+          {
+            "id": "2022-02-07-22-33-0025",
+            "start_at": {
+              "milliseconds": 22000.0
+            },
+            "subtitle": {
+              "id": "2022-02-07-22-33-0025",
+              "language_text_map": {
+                "Ko": "안녕 나는 테스트야!"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

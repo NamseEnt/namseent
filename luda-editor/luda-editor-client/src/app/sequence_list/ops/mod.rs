@@ -1,4 +1,4 @@
-mod load_sequence;
-mod load_sequence_titles;
-pub use load_sequence::*;
-pub use load_sequence_titles::*;
+mod sync_sequences_from_google_spreadsheet;
+pub use sync_sequences_from_google_spreadsheet::*;
+mod load_local_sequences;
+pub use load_local_sequences::*;
