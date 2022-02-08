@@ -174,4 +174,68 @@ impl luda_editor_rpc::RpcHandle for RpcHandler {
             }
         }
     }
+    async fn get_sequences(
+        &mut self,
+        _: luda_editor_rpc::get_sequences::Request,
+    ) -> Result<luda_editor_rpc::get_sequences::Response, String> {
+        let dir_path = resource_path().join("sequence");
+
+        let read_dir = std::fs::read_dir(dir_path);
+
+        if read_dir.is_err() {
+            return Err(format!("get_sequences error: {}", read_dir.err().unwrap()));
+        };
+
+        let read_dir = read_dir.unwrap();
+
+        let mut title_sequence_json_tuples = Vec::new();
+
+        for dirent in read_dir {
+            if dirent.is_err() {
+                return Err(format!("get_sequences error: {}", dirent.err().unwrap()));
+            };
+
+            let dirent = dirent.unwrap();
+
+            let file_path = dirent.path();
+            let file_name_without_extension = file_path.file_stem().unwrap();
+
+            let file = std::fs::read(&file_path);
+            if file.is_err() {
+                return Err(format!("get_sequences error: {}", file.err().unwrap()));
+            };
+            let file = file.unwrap();
+
+            let json_string = std::str::from_utf8(&file);
+            if json_string.is_err() {
+                return Err(format!(
+                    "get_sequences error: {}",
+                    json_string.err().unwrap()
+                ));
+            }
+            let json_string = json_string.unwrap();
+            let title = file_name_without_extension.to_string_lossy().to_string();
+            title_sequence_json_tuples.push((title, json_string.to_string()));
+        }
+
+        Ok(luda_editor_rpc::get_sequences::Response {
+            title_sequence_json_tuples,
+        })
+    }
+    async fn put_sequences(
+        &mut self,
+        request: luda_editor_rpc::put_sequences::Request,
+    ) -> Result<luda_editor_rpc::put_sequences::Response, String> {
+        let dir_path = resource_path().join("sequence");
+
+        for (title, sequence_json) in request.title_sequence_json_tuples {
+            let path = dir_path.join(format!("{}.json", title));
+
+            let result = std::fs::write(path, sequence_json.as_bytes());
+            if result.is_err() {
+                return Err(format!("put_sequences error: {}", result.err().unwrap()));
+            };
+        }
+        Ok(luda_editor_rpc::put_sequences::Response {})
+    }
 }

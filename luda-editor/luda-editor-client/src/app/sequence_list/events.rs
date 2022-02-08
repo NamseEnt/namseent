@@ -1,22 +1,21 @@
-use super::types::{SequenceLoadState, SequenceTitlesLoadState};
+use super::types::SequenceSyncState;
+use crate::app::types::Sequence;
+use std::{collections::BTreeMap, sync::Arc};
 
 pub enum SequenceListEvent {
-    SequenceLoadStateUpdateEvent {
-        path: String,
-        state: Option<SequenceLoadState>,
-    },
     SequenceTitleButtonClickedEvent {
-        path: String,
+        title: String,
     },
-    SequenceTitlesLoadStateUpdateEvent {
-        state: SequenceTitlesLoadState,
+    /// NOTE: 'Loading local sequences' also use this event.
+    SequencesSyncStateUpdateEvent {
+        state: SequenceSyncState,
     },
-    SequenceReloadTitlesButtonClickedEvent,
+    SyncSequencesButtonClickedEvent,
     ScrolledEvent {
         scroll_y: f32,
     },
     PreviewSliderMovedEvent {
-        path: String,
+        title: String,
         progress: f32,
     },
 }

@@ -20,6 +20,8 @@ mod sequence;
 pub use sequence::*;
 mod camera_track;
 pub use camera_track::*;
+pub mod google_spreadsheet;
+pub use google_spreadsheet::Sheet;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Subtitle {
