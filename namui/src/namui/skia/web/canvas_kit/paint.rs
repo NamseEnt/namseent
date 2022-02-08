@@ -142,12 +142,12 @@ extern "C" {
     #[wasm_bindgen(method)]
     pub fn setStrokeCap(this: &CanvasKitPaint, cap: CanvasKitStrokeCap);
 
-    // ///
-    // /// Sets the geometry drawn at the corners of strokes.
-    // /// @param join
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn setStrokeJoin(this: &CanvasKitPaint, join: StrokeJoin);
+    ///
+    /// Sets the geometry drawn at the corners of strokes.
+    /// @param join
+    ///
+    #[wasm_bindgen(method)]
+    pub fn setStrokeJoin(this: &CanvasKitPaint, join: CanvasKitStrokeJoin);
 
     // ///
     // /// Sets the limit at which a sharp corner is drawn beveled.

@@ -54,9 +54,8 @@ pub fn text(param: TextParam) -> RenderingTree {
                     draw_calls: vec![namui::DrawCall {
                         commands: vec![
                             // draw_shadow(),
-                            draw_text(param, font),
-                            // draw_border(),
-
+                            draw_border(&param, font.clone()),
+                            Some(draw_text(&param, font.clone())),
                             // commands: vec![namui::DrawCommand::Text(namui::TextDrawCommand {
                             //     text: param.text,
                             //     x: 100,
@@ -67,6 +66,9 @@ pub fn text(param: TextParam) -> RenderingTree {
                             //     paint: param.paint,
                             // })],
                         ]
+                        .into_iter()
+                        .filter_map(|command| command)
+                        .collect(),
                     }],
                     ..Default::default()
                 }
@@ -121,23 +123,14 @@ pub fn text(param: TextParam) -> RenderingTree {
 //     baseline,
 //   });
 // }
-// function drawText({
-//   text,
-//   font,
-//   x,
-//   y,
-//   align,
-//   baseline,
-//   style,
-// }: TextHandleParam): TextDrawCommand | undefined {
-fn draw_text(param: TextParam, font: Arc<Font>) -> DrawCommand {
+fn draw_text(param: &TextParam, font: Arc<Font>) -> DrawCommand {
     let text_paint = namui::PaintBuilder::new()
         .set_color(param.style.color)
         .set_style(namui::PaintStyle::Fill)
         .set_anti_alias(true);
 
     DrawCommand::Text(TextDrawCommand {
-        text: param.text,
+        text: param.text.clone(),
         font,
         x: param.x,
         y: param.y,
@@ -146,45 +139,27 @@ fn draw_text(param: TextParam, font: Arc<Font>) -> DrawCommand {
         baseline: param.baseline,
     })
 }
-// function drawBorder({
-//   style: { border },
-//   text,
-//   font,
-//   x,
-//   y,
-//   align,
-//   baseline,
-// }: TextHandleParam): TextDrawCommand | undefined {
-//   if (!border) {
-//     return;
-//   }
-//   const borderPaint = new CanvasKit.Paint();
-//   borderPaint.setColor(border.color);
-//   borderPaint.setStyle(CanvasKit.PaintStyle.Stroke);
-//   borderPaint.setStrokeWidth(border.width);
-//   borderPaint.setStrokeJoin(CanvasKit.StrokeJoin.Miter);
-//   borderPaint.setAntiAlias(true);
+fn draw_border(param: &TextParam, font: Arc<Font>) -> Option<DrawCommand> {
+    let border = param.style.border?;
 
-//   return TextDrawCommand({
-//     text,
-//     font,
-//     x,
-//     y,
-//     paint: borderPaint,
-//     align,
-//     baseline,
-//   });
-// }
+    let border_paint = namui::PaintBuilder::new()
+        .set_color(border.color)
+        .set_style(namui::PaintStyle::Stroke)
+        .set_stroke_width(border.width)
+        .set_stroke_join(namui::StrokeJoin::Miter)
+        .set_anti_alias(true);
 
-// function drawBackground({
-//   x,
-//   y,
-//   align,
-//   baseline,
-//   text,
-//   font,
-//   style: { background, dropShadow },
-// }: TextHandleParam): RenderingTree {
+    Some(DrawCommand::Text(TextDrawCommand {
+        text: param.text.clone(),
+        font,
+        x: param.x,
+        y: param.y,
+        paint_builder: border_paint,
+        align: param.align,
+        baseline: param.baseline,
+    }))
+}
+
 fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
     let style = &param.style;
 
