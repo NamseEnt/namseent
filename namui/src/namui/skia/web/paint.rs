@@ -30,6 +30,10 @@ impl Paint {
         self.0.setStrokeCap(cap.into_canvas_kit());
         self
     }
+    pub fn set_stroke_join(self, join: &StrokeJoin) -> Self {
+        self.0.setStrokeJoin(join.into_canvas_kit());
+        self
+    }
     pub fn set_color_filter(self, color_filter: &ColorFilter) -> Self {
         self.0.setColorFilter(&color_filter.0);
         self

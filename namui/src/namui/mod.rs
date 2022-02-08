@@ -14,7 +14,7 @@ pub use render::{
     RenderingTree, TextInput, WheelEventCallback,
 };
 pub use skia::{
-    types::{ClipOp, Color, PaintStyle},
+    types::{ClipOp, Color, PaintStyle, StrokeJoin},
     BlendMode, Font, Image, LtrbRect, PaintBuilder, PathBuilder, StrokeCap, Typeface,
 };
 pub(crate) use skia::{ColorFilter, Paint, Path};
