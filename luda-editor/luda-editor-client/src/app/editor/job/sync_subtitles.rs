@@ -69,6 +69,7 @@ mod tests {
                 .unwrap(),
             changed_subtitle_text
         );
+        assert_eq!(clips[0].is_needed_to_update_position, false);
     }
 
     #[test]
@@ -87,6 +88,7 @@ mod tests {
         assert_eq!(clip_ids, expected_clip_ids);
 
         assert_eq!(clips[0].start_at, Time::from_ms(0.0));
+        assert_eq!(clips[0].is_needed_to_update_position, true);
     }
 
     #[test]
@@ -109,6 +111,8 @@ mod tests {
             clips[1].start_at,
             Time::from_ms(DEFAULT_SUBTITLE_INSERT_INTERVAL_MS)
         );
+        assert_eq!(clips[0].is_needed_to_update_position, true);
+        assert_eq!(clips[1].is_needed_to_update_position, true);
     }
     #[test]
     #[wasm_bindgen_test]
@@ -134,6 +138,11 @@ mod tests {
         assert_eq!(clips[1].start_at, Time::from_ms(0.0));
         assert_eq!(clips[2].start_at, Time::from_ms(0.0));
         assert_eq!(clips[3].start_at, Time::from_ms(1.0));
+
+        assert_eq!(clips[0].is_needed_to_update_position, true);
+        assert_eq!(clips[1].is_needed_to_update_position, true);
+        assert_eq!(clips[2].is_needed_to_update_position, false);
+        assert_eq!(clips[3].is_needed_to_update_position, false);
     }
 
     #[test]
@@ -166,6 +175,11 @@ mod tests {
             clips[3].start_at,
             Time::from_ms(1.0 + DEFAULT_SUBTITLE_INSERT_INTERVAL_MS * 2.0)
         );
+
+        assert_eq!(clips[0].is_needed_to_update_position, false);
+        assert_eq!(clips[1].is_needed_to_update_position, false);
+        assert_eq!(clips[2].is_needed_to_update_position, true);
+        assert_eq!(clips[3].is_needed_to_update_position, true);
     }
 
     #[test]
@@ -192,5 +206,10 @@ mod tests {
         assert_eq!(clips[1].start_at, Time::from_ms(1.0 / 3.0));
         assert_eq!(clips[2].start_at, Time::from_ms(2.0 / 3.0));
         assert_eq!(clips[3].start_at, Time::from_ms(1.0));
+
+        assert_eq!(clips[0].is_needed_to_update_position, false);
+        assert_eq!(clips[1].is_needed_to_update_position, true);
+        assert_eq!(clips[2].is_needed_to_update_position, true);
+        assert_eq!(clips[3].is_needed_to_update_position, false);
     }
 }

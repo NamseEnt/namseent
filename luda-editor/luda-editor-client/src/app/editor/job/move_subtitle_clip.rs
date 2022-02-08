@@ -44,5 +44,6 @@ impl MoveSubtitleClipJob {
         let moved_start_at = clip.start_at + delta_time;
 
         clip.start_at = moved_start_at;
+        clip.is_needed_to_update_position = false;
     }
 }
