@@ -737,7 +737,7 @@ impl Editor {
                     .partial_cmp(&start_point_to_select),
             ];
 
-            if results.contains(&Some(ordering)) {
+            if results.iter().all(|result| result == &Some(ordering)) {
                 self.selected_clip_ids.insert(clip.get_id().to_string());
             }
         });
