@@ -305,6 +305,13 @@ impl namui::Entity for Editor {
                             .any_code_press(&[namui::Code::ShiftLeft])
                     {
                         self.select_at_once(Direction::Backward);
+                    } else if key_event.code == namui::Code::Delete
+                        && !self.selected_clip_ids.is_empty()
+                    {
+                        self.job = Some(Job::DeleteCameraClip(DeleteCameraClipJob {
+                            clip_ids: self.selected_clip_ids.clone(),
+                        }));
+                        self.execute_job();
                     }
                 }
                 _ => {}

@@ -145,6 +145,18 @@ impl CameraTrack {
 
         self.clips = clips.into();
     }
+
+    pub fn delete_clips<T: AsRef<str>>(&mut self, clip_ids: &[T]) {
+        let mut clips = self.clips.to_vec();
+
+        clip_ids
+            .iter()
+            .for_each(|clip_id| clips.retain(|clip| clip.id != clip_id.as_ref()));
+
+        push_front_camera_clips(&mut clips);
+
+        self.clips = clips.into();
+    }
 }
 
 fn push_front_camera_clips(clips: &mut [Arc<CameraClip>]) {
