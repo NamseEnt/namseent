@@ -123,12 +123,39 @@ impl SubtitleClipBody {
                 ],
             ),
         );
+
+        let check_flag = match clip.is_needed_to_update_position {
+            true => text(TextParam {
+                x: head_position.x + component_width / 2.0,
+                y: head_position.y + component_height / 2.0,
+                text: "Check!".to_string(),
+                align: TextAlign::Center,
+                baseline: TextBaseline::Middle,
+                font_type: FontType {
+                    font_weight: FontWeight::BOLD,
+                    language: context.language.clone(),
+                    serif: false,
+                    size: 10,
+                },
+                style: TextStyle {
+                    color: Color::BLACK,
+                    border: Some(TextStyleBorder {
+                        color: Color::WHITE,
+                        width: 1.0,
+                    }),
+                    ..Default::default()
+                },
+            }),
+            false => RenderingTree::Empty,
+        };
+
         translate(
             x,
             0.0,
             render![
                 path(stroke_path.clone(), stroke_border_paint),
                 head_rendering_tree,
+                check_flag,
                 tail_rendering_tree,
                 path(stroke_path, stroke_fill_paint),
             ],

@@ -121,6 +121,7 @@ pub fn mock_subtitle_clip(clip_id: &str, start_at: Time) -> Arc<SubtitleClip> {
         id: clip_id.to_string(),
         start_at,
         subtitle: mock_subtitle(&clip_id),
+        is_needed_to_update_position: false,
     })
 }
 

@@ -159,6 +159,7 @@ impl SubtitleTrack {
                             id: front_clip.id.clone(),
                             start_at: front_clip.start_at,
                             subtitle: front_subtitle.clone(),
+                            is_needed_to_update_position: front_clip.is_needed_to_update_position,
                         }));
                         clip_queue.pop_front();
                         subtitle_queue.pop_front();
@@ -217,6 +218,7 @@ impl SubtitleTrack {
                                 id: subtitle.id.clone(),
                                 start_at,
                                 subtitle: subtitle.clone(),
+                                is_needed_to_update_position: true,
                             }));
                         });
                 }
@@ -237,6 +239,7 @@ impl SubtitleTrack {
                                 id: subtitle.id.clone(),
                                 start_at,
                                 subtitle: subtitle.clone(),
+                                is_needed_to_update_position: true,
                             }));
                         });
                     subtitle_queue.clear();
@@ -305,7 +308,15 @@ pub struct SubtitleClip {
     pub id: String,
     pub start_at: Time,
     pub subtitle: Subtitle,
+    #[serde(skip_serializing_if = "is_false")]
+    #[serde(default)]
+    pub is_needed_to_update_position: bool,
 }
+
+fn is_false(value: impl std::borrow::Borrow<bool>) -> bool {
+    !value.borrow()
+}
+
 impl SubtitleClip {
     fn is_at_time(
         &self,
