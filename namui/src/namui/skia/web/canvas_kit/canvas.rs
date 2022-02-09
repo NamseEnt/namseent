@@ -374,17 +374,24 @@ extern "C" {
     // pub fn drawShadow(this: &CanvasKitCanvas, path: Path, zPlaneParams: InputVector3, lightPos: InputVector3, lightRadius: number,
     //                ambientColor: InputColor, spotColor: InputColor, flags: number);
 
-    //     ///
-    //     /// Draw the given text at the location (x, y) using the provided paint and font. The text will
-    //     /// be drawn as is; no shaping, left-to-right, etc.
-    //     /// @param str
-    //     /// @param x
-    //     /// @param y
-    //     /// @param paint
-    //     /// @param font
-    //     ///
-    // #[wasm_bindgen(method)]
-    // pub fn drawText(this: &CanvasKitCanvas, str: string, x: number, y: number, paint: Paint, font: Font);
+    ///
+    /// Draw the given text at the location (x, y) using the provided paint and font. The text will
+    /// be drawn as is; no shaping, left-to-right, etc.
+    /// @param str
+    /// @param x
+    /// @param y
+    /// @param paint
+    /// @param font
+    ///
+    #[wasm_bindgen(method)]
+    pub fn drawText(
+        this: &CanvasKitCanvas,
+        str: &str,
+        x: f32,
+        y: f32,
+        paint: &CanvasKitPaint,
+        font: &CanvasKitFont,
+    );
 
     ///
     /// Draws the given TextBlob at (x, y) using the current clip, current matrix, and the
@@ -504,14 +511,14 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn restoreToCount(this: &CanvasKitCanvas, saveCount: number);
 
-    //     ///
-    //     /// Rotates the current matrix by the number of degrees.
-    //     /// @param rot - angle of rotation in degrees.
-    //     /// @param rx
-    //     /// @param ry
-    //     ///
-    // #[wasm_bindgen(method)]
-    // pub fn rotate(this: &CanvasKitCanvas, rot: AngleInDegrees, rx: number, ry: number);
+    ///
+    /// Rotates the current matrix by the number of degrees.
+    /// @param rot - angle of rotation in degrees.
+    /// @param rx
+    /// @param ry
+    ///
+    #[wasm_bindgen(method)]
+    pub fn rotate(this: &CanvasKitCanvas, angle_in_degrees: f32, rx: f32, ry: f32);
 
     ///
     /// Saves the current matrix and clip and returns current height of the stack.
