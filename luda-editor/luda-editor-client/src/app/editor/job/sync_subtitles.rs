@@ -212,4 +212,21 @@ mod tests {
         assert_eq!(clips[2].is_needed_to_update_position, true);
         assert_eq!(clips[3].is_needed_to_update_position, false);
     }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn sync_twice_should_keep_value_of_boolean_is_needed_to_update_position() {
+        let mut sequence = mock_sequence(&[], &["0"]);
+
+        for _ in 0..2 {
+            let job = SyncSubtitlesJob {
+                subtitles: vec![mock_subtitle("0"), mock_subtitle("1")],
+            };
+
+            sequence = job.execute(&sequence).unwrap();
+            let clips = extract_subtitle_clips(&sequence);
+            assert_eq!(clips[0].is_needed_to_update_position, false);
+            assert_eq!(clips[1].is_needed_to_update_position, true);
+        }
+    }
 }

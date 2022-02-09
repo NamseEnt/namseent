@@ -159,7 +159,7 @@ impl SubtitleTrack {
                             id: front_clip.id.clone(),
                             start_at: front_clip.start_at,
                             subtitle: front_subtitle.clone(),
-                            is_needed_to_update_position: false,
+                            is_needed_to_update_position: front_clip.is_needed_to_update_position,
                         }));
                         clip_queue.pop_front();
                         subtitle_queue.pop_front();
