@@ -66,6 +66,13 @@ impl SequencePlayer {
         self.is_paused = true;
         self.started_at = None;
     }
+    pub fn toggle_playback(&mut self) {
+        if self.is_paused {
+            self.play();
+        } else {
+            self.pause();
+        }
+    }
     pub fn seek(&mut self, time: Time) {
         match self.get_playback_status() {
             PlaybackStatus::Loading | PlaybackStatus::Paused(_) => {

@@ -312,6 +312,8 @@ impl namui::Entity for Editor {
                             clip_ids: self.selected_clip_ids.clone(),
                         }));
                         self.execute_job();
+                    } else if key_event.code == namui::Code::Space {
+                        self.sequence_player.toggle_playback();
                     }
                 }
                 _ => {}
