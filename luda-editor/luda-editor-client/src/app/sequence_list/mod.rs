@@ -2,14 +2,11 @@ mod common;
 mod events;
 mod list;
 mod ops;
-mod reload_titles_button;
+mod sync_sequences_button;
 mod types;
 use self::{
     events::SequenceListEvent,
-    types::{
-        SequenceLoadStateDetail, SequenceLoadStateMap, SequencePreviewProgressMap,
-        SequenceTitlesLoadState,
-    },
+    types::{SequencePreviewProgressMap, SequenceSyncState, SequencesSyncStateDetail},
 };
 use super::{
     editor::SequencePlayer,
@@ -19,11 +16,15 @@ use super::{
 };
 use crate::app::{
     editor::SequencePlayerProps,
-    sequence_list::{list::render_list, reload_titles_button::render_reload_titles_button},
+    sequence_list::{list::render_list, sync_sequences_button::render_sync_sequences_button},
 };
 use luda_editor_rpc::Socket;
 use namui::{render, Entity, Wh, XywhRect};
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{
+    collections::{BTreeMap, HashMap},
+    sync::Arc,
+    time::Duration,
+};
 
 const LIST_WIDTH: f32 = 800.0;
 const BUTTON_HEIGHT: f32 = 36.0;
@@ -36,24 +37,22 @@ pub struct SequenceListProps {
 }
 
 pub struct SequenceList {
-    sequence_load_state_map: SequenceLoadStateMap,
-    sequence_titles_load_state: SequenceTitlesLoadState,
+    sequences_sync_state: SequenceSyncState,
     socket: Socket,
     scroll_y: f32,
     sequence_player: SequencePlayer,
     subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
     sequence_preview_progress_map: SequencePreviewProgressMap,
+    opened_sequence_title: Option<String>,
+    error_message: Option<String>,
 }
 
 impl SequenceList {
     pub fn new(socket: Socket) -> Self {
         let mut sequence_list = Self {
-            sequence_load_state_map: HashMap::new(),
-            sequence_titles_load_state: SequenceTitlesLoadState {
+            sequences_sync_state: SequenceSyncState {
                 started_at: Duration::from_millis(0),
-                detail: types::SequenceTitlesLoadStateDetail::Failed {
-                    error: "never loaded".to_string(),
-                },
+                detail: types::SequencesSyncStateDetail::Loading,
             },
             socket,
             scroll_y: 0.0,
@@ -63,8 +62,10 @@ impl SequenceList {
             ),
             subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
             sequence_preview_progress_map: HashMap::new(),
+            opened_sequence_title: None,
+            error_message: None,
         };
-        sequence_list.load_sequence_titles();
+        sequence_list.load_local_sequences();
         sequence_list
     }
 }
@@ -75,56 +76,43 @@ impl Entity for SequenceList {
     fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<SequenceListEvent>() {
             match event {
-                SequenceListEvent::SequenceLoadStateUpdateEvent { path, state } => match state {
-                    Some(state) => {
-                        if let Some(old_state) = self.sequence_load_state_map.get(path) {
-                            if old_state.started_at > state.started_at {
-                                return;
-                            }
-                        }
-
-                        self.sequence_load_state_map
-                            .insert(path.clone(), (*state).clone());
-                    }
-                    None => {
-                        self.sequence_load_state_map.remove(path);
-                    }
-                },
-                SequenceListEvent::SequenceTitleButtonClickedEvent { path } => {
-                    let should_clear_load_state = self.sequence_load_state_map.get(path).is_some();
-                    match should_clear_load_state {
-                        true => clear_sequence(path),
-                        false => self.load_sequence(path),
-                    }
+                SequenceListEvent::SequenceTitleButtonClickedEvent { title } => {
+                    self.opened_sequence_title = Some(title.clone());
                 }
-                SequenceListEvent::SequenceTitlesLoadStateUpdateEvent { state } => {
-                    let old_state = &self.sequence_titles_load_state;
+                SequenceListEvent::SequencesSyncStateUpdateEvent { state } => {
+                    let old_state = &self.sequences_sync_state;
                     let is_old_state_newer = old_state.started_at > state.started_at;
                     if is_old_state_newer {
                         return;
                     }
 
-                    self.sequence_titles_load_state = state.clone();
+                    self.sequences_sync_state = state.clone();
+                    self.error_message = match &state.detail {
+                        SequencesSyncStateDetail::Failed { error } => Some(error.clone()),
+                        _ => None,
+                    };
                 }
-                SequenceListEvent::SequenceReloadTitlesButtonClickedEvent => {
-                    self.load_sequence_titles()
+                SequenceListEvent::SyncSequencesButtonClickedEvent => {
+                    self.error_message = None;
+                    self.sync_sequences_from_google_spreadsheet()
                 }
                 SequenceListEvent::ScrolledEvent { scroll_y } => {
                     self.scroll_y = *scroll_y;
                 }
-                SequenceListEvent::PreviewSliderMovedEvent { path, progress } => {
-                    if let Some(load_state) = self.sequence_load_state_map.get(path) {
-                        if let SequenceLoadStateDetail::Loaded { sequence } = &load_state.detail {
-                            let duration = calculate_sequence_duration(
-                                sequence,
-                                &self.subtitle_play_duration_measurer,
-                            );
-                            let moved_time = duration * progress;
-                            self.sequence_player.update_sequence(sequence.clone());
-                            self.sequence_player.seek(moved_time);
-                            self.sequence_preview_progress_map
-                                .insert(path.clone(), *progress);
-                        }
+                SequenceListEvent::PreviewSliderMovedEvent { title, progress } => {
+                    if let SequencesSyncStateDetail::Loaded { title_sequence_map } =
+                        &self.sequences_sync_state.detail
+                    {
+                        let sequence = title_sequence_map.get(title).unwrap();
+                        let duration = calculate_sequence_duration(
+                            sequence,
+                            &self.subtitle_play_duration_measurer,
+                        );
+                        let moved_time = duration * progress;
+                        self.sequence_player.update_sequence(sequence.clone());
+                        self.sequence_player.seek(moved_time);
+                        self.sequence_preview_progress_map
+                            .insert(title.clone(), *progress);
                     }
                 }
             }
@@ -148,7 +136,7 @@ impl Entity for SequenceList {
             namui::translate(
                 MARGIN,
                 MARGIN,
-                render_reload_titles_button(Wh {
+                render_sync_sequences_button(Wh {
                     width: LIST_WIDTH,
                     height: BUTTON_HEIGHT
                 })
@@ -158,10 +146,10 @@ impl Entity for SequenceList {
                 MARGIN + SPACING + BUTTON_HEIGHT,
                 render_list(
                     list_wh,
-                    &self.sequence_titles_load_state,
-                    &self.sequence_load_state_map,
+                    &self.sequences_sync_state,
                     &self.sequence_preview_progress_map,
-                    self.scroll_y
+                    self.scroll_y,
+                    &self.opened_sequence_title
                 )
             ),
             self.sequence_player.render(&SequencePlayerProps {
@@ -172,13 +160,6 @@ impl Entity for SequenceList {
             })
         ]
     }
-}
-
-fn clear_sequence(path: &String) {
-    namui::event::send(SequenceListEvent::SequenceLoadStateUpdateEvent {
-        path: path.clone(),
-        state: None,
-    })
 }
 
 fn calculate_sequence_duration(

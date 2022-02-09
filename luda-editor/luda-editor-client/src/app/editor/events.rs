@@ -61,4 +61,7 @@ pub enum EditorEvent {
         mouse_global_xy: namui::Xy<f32>,
         mouse_position_in_time: Time,
     },
+    SubtitleSyncRequestEvent {
+        subtitles: Vec<Subtitle>,
+    },
 }

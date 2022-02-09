@@ -4,14 +4,19 @@ use self::{events::TopBarEvent, go_back_button::render_go_back_button};
 use crate::app::{events::RouterEvent, sequence_list::SequenceList};
 use namui::{render, Color, RenderingTree, Wh, XywhRect};
 mod saving_status_text;
-use super::sequence_saver::SequenceSaverStatus;
+use super::{
+    sequence_saver::SequenceSaverStatus, sheet_sequence_syncer::SheetSequenceSyncerStatus,
+};
 use saving_status_text::*;
+mod sheet_sequence_syncer_bar;
+use sheet_sequence_syncer_bar::*;
 
 const MARGIN: f32 = 4.0;
 
 pub struct TopBarProps<'a> {
     pub xywh: XywhRect<f32>,
     pub sequence_saver_status: &'a SequenceSaverStatus,
+    pub sheet_sequence_syncer_status: &'a SheetSequenceSyncerStatus,
 }
 
 pub struct TopBar {}
@@ -63,7 +68,15 @@ impl TopBar {
                         height: props.xywh.height - 2.0 * MARGIN,
                         sequence_saver_status: props.sequence_saver_status,
                     }),
-                )
+                ),
+                namui::translate(
+                    props.xywh.width - MARGIN,
+                    MARGIN,
+                    render_sheet_sequence_syncer_bar(&SheetSequenceSyncerBarProps {
+                        height: props.xywh.height - 2.0 * MARGIN,
+                        syncer_status: props.sheet_sequence_syncer_status,
+                    }),
+                ),
             ],
         )
     }

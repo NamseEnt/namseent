@@ -2,10 +2,10 @@ mod timeline;
 use self::{
     clip_editor::{camera_clip_editor::image_browser::ImageBrowserItem, ClipEditor},
     events::*,
-    job::*,
 };
 use super::types::*;
 use crate::app::editor::{clip_editor::ClipEditorProps, top_bar::TopBarProps};
+pub use job::*;
 use luda_editor_rpc::Socket;
 use namui::prelude::*;
 use std::{cmp::Ordering, collections::BTreeSet, sync::Arc};
@@ -27,6 +27,8 @@ mod context_menu;
 use context_menu::*;
 mod sequence_saver;
 use sequence_saver::SequenceSaver;
+mod sheet_sequence_syncer;
+use sheet_sequence_syncer::*;
 
 pub struct EditorProps {
     pub screen_wh: namui::Wh<f32>,
@@ -47,6 +49,7 @@ pub struct Editor {
     clip_id_to_check_as_click: Option<String>,
     context_menu: Option<ContextMenu>,
     sequence_saver: SequenceSaver,
+    sheet_sequence_syncer: SheetSequenceSyncer,
 }
 
 impl namui::Entity for Editor {
@@ -222,6 +225,13 @@ impl namui::Entity for Editor {
                 } => {
                     self.open_context_menu(mouse_global_xy, mouse_position_in_time);
                 }
+                EditorEvent::SubtitleSyncRequestEvent { subtitles } => {
+                    self.job = Some(Job::SyncSubtitles(SyncSubtitlesJob {
+                        subtitles: subtitles.clone(),
+                    }));
+                    let result = self.execute_job();
+                    namui::event::send(SheetSequenceSyncerEvent::SyncDone(result));
+                }
                 _ => {}
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
@@ -346,6 +356,7 @@ impl namui::Entity for Editor {
             .as_mut()
             .map(move |context_menu| context_menu.update(event));
         self.sequence_saver.update(event);
+        self.sheet_sequence_syncer.update(event);
     }
 
     fn render(&self, props: &Self::Props) -> namui::RenderingTree {
@@ -403,6 +414,7 @@ impl namui::Entity for Editor {
             self.top_bar.render(&TopBarProps {
                 xywh: top_bar_xywh,
                 sequence_saver_status: &self.sequence_saver.get_status(),
+                sheet_sequence_syncer_status: &self.sheet_sequence_syncer.get_status(),
             }),
             match &self.context_menu {
                 Some(context_menu) => context_menu.render(&ContextMenuProps {}),
@@ -413,7 +425,12 @@ impl namui::Entity for Editor {
 }
 
 impl Editor {
-    pub fn new(socket: Socket, sequence: Arc<Sequence>, sequence_file_path: &str) -> Self {
+    pub fn new(
+        socket: Socket,
+        sequence: Arc<Sequence>,
+        sequence_file_path: &str,
+        sequence_title: &str,
+    ) -> Self {
         spawn_local({
             let socket = socket.clone();
             async move {
@@ -458,6 +475,7 @@ impl Editor {
                 sequence.clone(),
                 socket.clone(),
             ),
+            sheet_sequence_syncer: SheetSequenceSyncer::new(sequence_title),
         }
     }
     fn calculate_timeline_xywh(&self, screen_wh: &namui::Wh<f32>) -> XywhRect<f32> {
@@ -468,20 +486,19 @@ impl Editor {
             height: 200.0,
         }
     }
-    fn execute_job(&mut self) {
+    fn execute_job(&mut self) -> Result<(), String> {
         let job = &self.job.take();
         if job.is_none() {
-            panic!("job is None");
+            return Err("job is None".to_string());
         }
         let job = job.as_ref().unwrap();
         match job.execute(&self.get_sequence()) {
-            Err(reason) => {
-                namui::log(format!("job execute failed: {:?}", reason));
-            }
+            Err(reason) => Err(reason),
             Ok(next_sequence) => {
                 let next_sequence = Arc::new(next_sequence);
                 self.history.push(next_sequence.clone());
                 self.on_change_sequence();
+                Ok(())
             }
         }
     }

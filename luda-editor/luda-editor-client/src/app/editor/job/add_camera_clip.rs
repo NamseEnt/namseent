@@ -34,7 +34,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn insert_camera_clip_for_empty_track_should_works() {
-        let sequence = mock_sequence(&[]);
+        let sequence = mock_sequence(&[], &[]);
         let job = AddCameraClipJob {
             camera_clip: mock_camera_clip("0", Time::from_ms(0.0), Time::from_ms(1.0)),
             time_to_insert: Time::from_ms(1.0),
@@ -53,7 +53,7 @@ mod tests {
         // job : insert 4 between 1 and 2
         // result : 0 1 4 2 3
 
-        let sequence = mock_sequence(&["0", "1", "2", "3"]);
+        let sequence = mock_sequence(&["0", "1", "2", "3"], &[]);
         let job = AddCameraClipJob {
             camera_clip: mock_camera_clip("4", Time::from_ms(0.0), Time::from_ms(1.0)),
             time_to_insert: Time::from_ms(1.75),
@@ -72,7 +72,7 @@ mod tests {
         // job : insert 4 at front
         // result : 4 0 1 2 3
 
-        let sequence = mock_sequence(&["0", "1", "2", "3"]);
+        let sequence = mock_sequence(&["0", "1", "2", "3"], &[]);
         let job = AddCameraClipJob {
             camera_clip: mock_camera_clip("4", Time::from_ms(0.0), Time::from_ms(1.0)),
             time_to_insert: Time::from_ms(0.0),
@@ -91,7 +91,7 @@ mod tests {
         // job : insert 4 at back
         // result : 0 1 2 3 4
 
-        let sequence = mock_sequence(&["0", "1", "2", "3"]);
+        let sequence = mock_sequence(&["0", "1", "2", "3"], &[]);
         let job = AddCameraClipJob {
             camera_clip: mock_camera_clip("4", Time::from_ms(0.0), Time::from_ms(1.0)),
             time_to_insert: Time::from_ms(4.0),

@@ -1,4 +1,6 @@
-use crate::{BlendMode, Color, ColorFilter, Paint, PaintStyle, StrokeCap, Xy};
+use crate::{
+    namui::skia::StrokeJoin, BlendMode, Color, ColorFilter, Paint, PaintStyle, StrokeCap, Xy,
+};
 use once_cell::sync::OnceCell;
 use ordered_float::OrderedFloat;
 use serde::Serialize;
@@ -14,6 +16,7 @@ pub struct PaintBuilder {
     anti_alias: Option<bool>,
     stroke_width: Option<f32>,
     stroke_cap: Option<StrokeCap>,
+    stroke_join: Option<StrokeJoin>,
     color_filter: Option<(Color, BlendMode)>,
 }
 
@@ -32,6 +35,7 @@ impl PaintBuilder {
             anti_alias: None,
             stroke_width: None,
             stroke_cap: None,
+            stroke_join: None,
             color_filter: None,
         }
     }
@@ -53,6 +57,10 @@ impl PaintBuilder {
     }
     pub fn set_stroke_cap(mut self, cap: StrokeCap) -> Self {
         self.stroke_cap = Some(cap);
+        self
+    }
+    pub fn set_stroke_join(mut self, join: StrokeJoin) -> Self {
+        self.stroke_join = Some(join);
         self
     }
     pub fn set_color_filter(mut self, color: &Color, blend_mode: &BlendMode) -> Self {
@@ -92,6 +100,9 @@ impl PaintBuilder {
         }
         if let Some(cap) = &self.stroke_cap {
             paint = paint.set_stroke_cap(cap);
+        }
+        if let Some(join) = &self.stroke_join {
+            paint = paint.set_stroke_join(join);
         }
         if let Some((color, blend_mode)) = &self.color_filter {
             let color_filter = Self::get_or_create_color_filter(&color, &blend_mode);
