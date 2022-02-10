@@ -29,6 +29,7 @@ mod sequence_saver;
 use sequence_saver::SequenceSaver;
 mod sheet_sequence_syncer;
 use sheet_sequence_syncer::*;
+mod clip_select;
 
 pub struct EditorProps {
     pub screen_wh: namui::Wh<f32>,
@@ -39,7 +40,7 @@ pub struct Editor {
     timeline: Timeline,
     clip_editor: Option<ClipEditor>,
     image_filename_objects: Vec<ImageFilenameObject>,
-    selected_clip_ids: BTreeSet<String>,
+    selected_clip_ids: Arc<BTreeSet<String>>,
     sequence_player: SequencePlayer,
     subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
     history: History<Arc<Sequence>>,
@@ -87,7 +88,7 @@ impl namui::Entity for Editor {
                             }
                             CameraClipBodyPart::Body => {
                                 self.job = Some(Job::MoveCameraClip(MoveCameraClipJob {
-                                    clip_ids: self.selected_clip_ids.clone(),
+                                    clip_ids: self.get_selected_clip_ids().clone(),
                                     click_anchor_in_time: *click_in_time,
                                     last_mouse_position_in_time: *click_in_time,
                                     is_moved: false,
@@ -105,7 +106,7 @@ impl namui::Entity for Editor {
 
                     if self.job.is_none() {
                         self.job = Some(Job::MoveSubtitleClip(MoveSubtitleClipJob {
-                            clip_ids: self.selected_clip_ids.clone(),
+                            clip_ids: self.get_selected_clip_ids().clone(),
                             click_anchor_in_time: *click_in_time,
                             last_mouse_position_in_time: *click_in_time,
                             is_moved: false,
@@ -309,7 +310,7 @@ impl namui::Entity for Editor {
                         && !self.selected_clip_ids.is_empty()
                     {
                         self.job = Some(Job::DeleteCameraClip(DeleteCameraClipJob {
-                            clip_ids: self.selected_clip_ids.clone(),
+                            clip_ids: self.get_selected_clip_ids().clone(),
                         }));
                         self.execute_job();
                     } else if key_event.code == namui::Code::Space {
@@ -460,7 +461,7 @@ impl Editor {
             image_filename_objects: vec![],
             job: None,
             clip_editor: None,
-            selected_clip_ids: BTreeSet::new(),
+            selected_clip_ids: Arc::new(BTreeSet::new()),
             sequence_player: SequencePlayer::new(
                 sequence.clone(),
                 Box::new(LudaEditorServerCameraAngleImageLoader {}),
@@ -555,120 +556,6 @@ impl Editor {
             }
         }
     }
-    fn get_single_selected_clip(&self) -> Option<Clip> {
-        self.selected_clip_ids
-            .iter()
-            .next()
-            .and_then(|id| self.get_sequence().get_clip(id))
-    }
-    fn select_only_this_clip(&mut self, clip_id: &str) {
-        self.selected_clip_ids.clear();
-        self.selected_clip_ids.insert(clip_id.to_string());
-        self.clip_editor = Some(ClipEditor::new(
-            &self.get_sequence().get_clip(clip_id).unwrap(),
-        ));
-    }
-    fn multi_select_clip(&mut self, clip_id: &str) {
-        if self.selected_clip_ids.is_empty() {
-            self.selected_clip_ids.insert(clip_id.to_string());
-        } else if !self.selected_clip_ids.contains(clip_id) {
-            let sequence = self.get_sequence().clone();
-            let selected_clip_track = self.get_selected_clip_track().unwrap();
-            let selecting_clip_track = sequence.find_track_by_clip_id(clip_id).unwrap();
-
-            if selected_clip_track.get_id() != selecting_clip_track.get_id() {
-                self.selected_clip_ids.clear();
-            }
-            self.selected_clip_ids.insert(clip_id.to_string());
-        }
-
-        if self.selected_clip_ids.len() == 1 {
-            self.clip_editor = Some(ClipEditor::new(
-                &self.get_sequence().get_clip(clip_id).unwrap(),
-            ));
-        } else {
-            self.clip_editor = None;
-        }
-    }
-    fn deselect_all_clips(&mut self) {
-        self.selected_clip_ids.clear();
-        self.clip_editor = None;
-    }
-    fn deselect_clips<T: AsRef<str>>(&mut self, clip_ids: &[T]) {
-        for clip_id in clip_ids {
-            self.selected_clip_ids.remove(clip_id.as_ref());
-        }
-        if self.selected_clip_ids.len() == 1 {
-            let selected_clip_id = self.selected_clip_ids.iter().next().unwrap();
-            self.clip_editor = Some(ClipEditor::new(
-                &self.get_sequence().get_clip(selected_clip_id).unwrap(),
-            ));
-        } else {
-            self.clip_editor = None;
-        }
-    }
-    fn remove_dangling_selected_clips(&mut self) {
-        let sequence = self.get_sequence().clone();
-
-        let mut clip_ids_to_remove = vec![];
-        self.selected_clip_ids
-            .iter()
-            .filter(|clip_id| sequence.find_track_by_clip_id(clip_id).is_none())
-            .for_each(|clip_id| {
-                clip_ids_to_remove.push(clip_id.clone());
-            });
-
-        self.deselect_clips(&clip_ids_to_remove);
-    }
-
-    fn is_clip_in_same_track_with_selected_clips(&self, clip_id: &str) -> bool {
-        if self.selected_clip_ids.len() == 0 {
-            return false;
-        }
-
-        let sequence = self.get_sequence().clone();
-        let selected_clip_track = self.get_selected_clip_track().unwrap();
-        let clip_track = sequence.find_track_by_clip_id(clip_id).unwrap();
-
-        selected_clip_track.get_id() == clip_track.get_id()
-    }
-
-    fn select_all_between_clips<T: AsRef<str>>(&mut self, clip_ids: &[T]) {
-        let track = self.get_selected_clip_track().unwrap();
-
-        let clips = clip_ids
-            .iter()
-            .map(|clip_id| track.find_clip(clip_id.as_ref()).unwrap())
-            .collect::<Vec<_>>();
-
-        let most_left_clip = clips
-            .iter()
-            .min_by(|a, b| a.get_start_time().partial_cmp(&b.get_start_time()).unwrap())
-            .unwrap();
-
-        let most_right_clip = clips
-            .iter()
-            .max_by(|a, b| {
-                self.get_clip_end_time(a)
-                    .partial_cmp(&self.get_clip_end_time(b))
-                    .unwrap()
-            })
-            .unwrap();
-
-        let mut selected_clip_ids = BTreeSet::new();
-        selected_clip_ids.insert(most_left_clip.get_id().to_string());
-        selected_clip_ids.insert(most_right_clip.get_id().to_string());
-
-        for clip in track.get_clips() {
-            if clip.get_start_time() >= most_left_clip.get_start_time()
-                && self.get_clip_end_time(&clip) <= self.get_clip_end_time(most_right_clip)
-            {
-                selected_clip_ids.insert(clip.get_id().to_string());
-            }
-        }
-
-        self.selected_clip_ids = selected_clip_ids;
-    }
 
     pub(crate) fn get_clip_end_time(&self, clip: &Clip) -> Time {
         match clip {
@@ -692,7 +579,7 @@ impl Editor {
         } else if keyboard_manager.any_code_press(&[namui::Code::ShiftLeft])
             && self.is_clip_in_same_track_with_selected_clips(clip_id)
         {
-            let mut selected_clip_ids = self.selected_clip_ids.clone();
+            let mut selected_clip_ids = self.get_selected_clip_ids().clone();
             selected_clip_ids.insert(clip_id.to_string());
             self.select_all_between_clips(&selected_clip_ids.into_iter().collect::<Vec<_>>());
         } else if !self.selected_clip_ids.contains(clip_id) {
@@ -700,49 +587,6 @@ impl Editor {
         } else {
             self.clip_id_to_check_as_click = Some(clip_id.to_string());
         }
-    }
-
-    fn select_at_once(&mut self, direction: Direction) {
-        if self.selected_clip_ids.is_empty() {
-            return;
-        }
-
-        let track = &*self.get_selected_clip_track().unwrap();
-
-        let start_point_to_select = match direction {
-            Direction::Forward => self
-                .selected_clip_ids
-                .iter()
-                .map(|clip_id| {
-                    let clip = track.find_clip(clip_id).unwrap();
-                    self.get_clip_end_time(&clip)
-                })
-                .max()
-                .unwrap(),
-            Direction::Backward => self
-                .selected_clip_ids
-                .iter()
-                .map(|clip_id| track.find_clip(clip_id).unwrap().get_start_time())
-                .min()
-                .unwrap(),
-        };
-
-        let ordering = match direction {
-            Direction::Forward => Ordering::Less,
-            Direction::Backward => Ordering::Greater,
-        };
-
-        track.get_clips().iter().for_each(|clip| {
-            let results = [
-                clip.get_start_time().partial_cmp(&start_point_to_select),
-                self.get_clip_end_time(&clip)
-                    .partial_cmp(&start_point_to_select),
-            ];
-
-            if results.iter().all(|result| result == &Some(ordering)) {
-                self.selected_clip_ids.insert(clip.get_id().to_string());
-            }
-        });
     }
 
     fn get_selected_clip_track(&self) -> Option<Arc<Track>> {
