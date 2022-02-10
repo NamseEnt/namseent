@@ -108,14 +108,8 @@ impl App {
         let onmessage_callback = Closure::wrap(Box::new(move |e: MessageEvent| {
             // Handle difference Text/Binary,...
             if let Ok(array_buffer) = e.data().dyn_into::<js_sys::ArrayBuffer>() {
-                namui::log(format!(
-                    "message event, received arraybuffer: {:?}",
-                    array_buffer
-                ));
                 let u8_array = js_sys::Uint8Array::new(&array_buffer);
-                let len = u8_array.byte_length() as usize;
                 let packet = u8_array.to_vec();
-                namui::log(format!("Arraybuffer received {}bytes: {:?}", len, packet));
                 receiving_sender.send(Ok(packet)).unwrap();
             } else {
                 namui::log(format!("message event, received Unknown: {:?}", e.data()));
@@ -138,7 +132,6 @@ impl App {
             namui::log(format!("socket opened"));
             spawn_local(async move {
                 while let Some(packet) = sending_receiver.recv().await {
-                    namui::log(format!("sending packet: {:?}", packet));
                     cloned_web_socket.send_with_u8_array(&packet).unwrap();
                 }
             });
