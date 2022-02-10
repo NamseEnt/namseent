@@ -82,12 +82,12 @@ mod tests {
             r#"
         {
             "Ko": {
-                "100": "ko/NotoSansKR-Thin.otf",
-                "300": "ko/NotoSansKR-Light.otf",
-                "400": "ko/NotoSansKR-Regular.otf",
-                "500": "ko/NotoSansKR-Medium.otf",
-                "700": "ko/NotoSansKR-Bold.otf",
-                "900": "ko/NotoSansKR-Black.otf"
+                "100": "ko/NotoSansKR-Thin.woff2",
+                "300": "ko/NotoSansKR-Light.woff2",
+                "400": "ko/NotoSansKR-Regular.woff2",
+                "500": "ko/NotoSansKR-Medium.woff2",
+                "700": "ko/NotoSansKR-Bold.woff2",
+                "900": "ko/NotoSansKR-Black.woff2"
             }
         }"#,
         )
@@ -96,12 +96,12 @@ mod tests {
         let answer = HashMap::from([(
             Language::Ko,
             HashMap::from([
-                (FontWeight::_100, "ko/NotoSansKR-Thin.otf".to_string()),
-                (FontWeight::_300, "ko/NotoSansKR-Light.otf".to_string()),
-                (FontWeight::_400, "ko/NotoSansKR-Regular.otf".to_string()),
-                (FontWeight::_500, "ko/NotoSansKR-Medium.otf".to_string()),
-                (FontWeight::_700, "ko/NotoSansKR-Bold.otf".to_string()),
-                (FontWeight::_900, "ko/NotoSansKR-Black.otf".to_string()),
+                (FontWeight::_100, "ko/NotoSansKR-Thin.woff2".to_string()),
+                (FontWeight::_300, "ko/NotoSansKR-Light.woff2".to_string()),
+                (FontWeight::_400, "ko/NotoSansKR-Regular.woff2".to_string()),
+                (FontWeight::_500, "ko/NotoSansKR-Medium.woff2".to_string()),
+                (FontWeight::_700, "ko/NotoSansKR-Bold.woff2".to_string()),
+                (FontWeight::_900, "ko/NotoSansKR-Black.woff2".to_string()),
             ]),
         )]);
 
