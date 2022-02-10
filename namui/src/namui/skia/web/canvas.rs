@@ -82,6 +82,27 @@ impl Canvas {
             matrix[2][2],
         ]);
     }
+    pub(crate) fn concat_matrix(&self, matrix: &[[f32; 3]; 3]) {
+        self.0.concat(&[
+            matrix[0][0],
+            matrix[0][1],
+            matrix[0][2],
+            matrix[1][0],
+            matrix[1][1],
+            matrix[1][2],
+            matrix[2][0],
+            matrix[2][1],
+            matrix[2][2],
+        ]);
+    }
+
+    pub(crate) fn draw_text(&self, string: &str, x: f32, y: f32, paint: &Paint, font: &Font) {
+        self.0.drawText(string, x, y, &paint.0, &font.0);
+    }
+    pub(crate) fn rotate(&self, radian: f32) {
+        self.0
+            .rotate(radian / (2.0 * std::f32::consts::PI) * 360.0, 0.0, 0.0);
+    }
 }
 
 impl Drop for Canvas {

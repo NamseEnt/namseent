@@ -33,6 +33,7 @@ pub enum SpecialRenderingNode {
     MouseCursor(MouseCursorNode),
     WithId(WithIdNode),
     Absolute(AbsoluteNode),
+    Rotate(RotateNode),
 }
 #[derive(Serialize, Clone, Debug)]
 pub enum RenderingTree {
@@ -51,6 +52,7 @@ impl SpecialRenderingNode {
             SpecialRenderingNode::MouseCursor(node) => &node.rendering_tree,
             SpecialRenderingNode::WithId(node) => &node.rendering_tree,
             SpecialRenderingNode::Absolute(node) => &node.rendering_tree,
+            SpecialRenderingNode::Rotate(node) => &node.rendering_tree,
         }
     }
 }
@@ -119,6 +121,17 @@ impl RenderingTree {
 
                     canvas.set_matrix(&back_up_matrix);
                 }
+                SpecialRenderingNode::Rotate(rotate) => {
+                    let canvas = namui_context.surface.canvas();
+
+                    canvas.rotate(rotate.ccw_radian);
+
+                    for child in &rotate.rendering_tree {
+                        child.draw(namui_context);
+                    }
+
+                    canvas.rotate(-rotate.ccw_radian);
+                }
                 _ => {
                     for child in special.get_children() {
                         child.draw(namui_context);
@@ -157,25 +170,37 @@ impl RenderingTree {
         });
     }
     pub fn get_mouse_cursor(&self, xy: &Xy<f32>) -> Option<MouseCursor> {
+        let matrix = Matrix3x3::identity();
+        self.get_mouse_cursor_with_matrix(&xy, &matrix)
+    }
+    fn get_mouse_cursor_with_matrix(
+        &self,
+        xy: &Xy<f32>,
+        matrix: &Matrix3x3,
+    ) -> Option<MouseCursor> {
         match self {
             RenderingTree::Children(ref children) => children
                 .iter()
                 .rev()
-                .find_map(|child| child.get_mouse_cursor(xy)),
+                .find_map(|child| child.get_mouse_cursor_with_matrix(xy, &matrix)),
             RenderingTree::Special(special) => match special {
                 SpecialRenderingNode::Translate(translate) => {
-                    let next_xy = Xy {
-                        x: xy.x - translate.x,
-                        y: xy.y - translate.y,
-                    };
+                    let translation_matrix = Matrix3x3::from_slice(&[
+                        [1.0, 0.0, -translate.x],
+                        [0.0, 1.0, -translate.y],
+                        [0.0, 0.0, 1.0],
+                    ]);
+                    let matrix = matrix * translation_matrix;
+
                     translate
                         .rendering_tree
                         .iter()
                         .rev()
-                        .find_map(|child| child.get_mouse_cursor(&next_xy))
+                        .find_map(|child| child.get_mouse_cursor_with_matrix(&xy, &matrix))
                 }
                 SpecialRenderingNode::Clip(clip) => {
-                    let is_path_contains = clip.path_builder.build().contains(xy);
+                    let transformed_xy = matrix.transform_xy(&xy);
+                    let is_path_contains = clip.path_builder.build().contains(&transformed_xy);
                     let is_xy_filtered = match clip.clip_op {
                         ClipOp::Intersect => !is_path_contains,
                         ClipOp::Difference => is_path_contains,
@@ -186,35 +211,45 @@ impl RenderingTree {
                         clip.rendering_tree
                             .iter()
                             .rev()
-                            .find_map(|child| child.get_mouse_cursor(&xy))
+                            .find_map(|child| child.get_mouse_cursor_with_matrix(&xy, &matrix))
                     }
                 }
                 SpecialRenderingNode::MouseCursor(mouse_cursor) => mouse_cursor
                     .rendering_tree
                     .iter()
                     .rev()
-                    .find_map(|child| child.get_mouse_cursor(&xy))
+                    .find_map(|child| child.get_mouse_cursor_with_matrix(&xy, &matrix))
                     .or(mouse_cursor
                         .rendering_tree
                         .iter()
-                        .any(|child| child.is_point_in(&xy))
+                        .any(|child| child.is_point_in(&xy, &matrix))
                         .then(|| mouse_cursor.cursor)),
                 SpecialRenderingNode::Absolute(absolute) => {
-                    let next_xy = Xy {
-                        x: absolute.x,
-                        y: absolute.y,
-                    };
+                    let matrix = Matrix3x3::from_slice(&[
+                        [1.0, 0.0, -absolute.x],
+                        [0.0, 1.0, -absolute.y],
+                        [0.0, 0.0, 1.0],
+                    ]);
                     absolute
                         .rendering_tree
                         .iter()
                         .rev()
-                        .find_map(|child| child.get_mouse_cursor(&next_xy))
+                        .find_map(|child| child.get_mouse_cursor_with_matrix(&xy, &matrix))
+                }
+                SpecialRenderingNode::Rotate(rotate) => {
+                    let matrix = matrix * rotate.get_counter_wise_matrix();
+
+                    rotate
+                        .rendering_tree
+                        .iter()
+                        .rev()
+                        .find_map(|child| child.get_mouse_cursor_with_matrix(&xy, &matrix))
                 }
                 _ => special
                     .get_children()
                     .iter()
                     .rev()
-                    .find_map(|child| child.get_mouse_cursor(&xy)),
+                    .find_map(|child| child.get_mouse_cursor_with_matrix(&xy, &matrix)),
             },
             _ => None,
         }
@@ -224,36 +259,46 @@ impl RenderingTree {
         mouse_event_type: MouseEventType,
         raw_mouse_event: &RawMouseEvent,
     ) {
-        self.call_mouse_event_impl(&mouse_event_type, raw_mouse_event, &raw_mouse_event.xy);
+        self.call_mouse_event_impl(
+            &mouse_event_type,
+            raw_mouse_event,
+            &raw_mouse_event.xy,
+            &Matrix3x3::identity(),
+        );
     }
     fn call_mouse_event_impl(
         &self,
         mouse_event_type: &MouseEventType,
         raw_mouse_event: &RawMouseEvent,
-        local_xy: &Xy<f32>,
+        xy: &Xy<f32>,
+        matrix: &Matrix3x3,
     ) {
         match self {
             RenderingTree::Children(ref children) => {
                 children.iter().rev().for_each(|child| {
-                    child.call_mouse_event_impl(mouse_event_type, raw_mouse_event, local_xy);
+                    child.call_mouse_event_impl(mouse_event_type, raw_mouse_event, xy, matrix);
                 });
             }
             RenderingTree::Special(special) => match special {
                 SpecialRenderingNode::Translate(translate) => {
-                    let next_local_xy = Xy {
-                        x: local_xy.x - translate.x,
-                        y: local_xy.y - translate.y,
-                    };
+                    let translation_matrix = Matrix3x3::from_slice(&[
+                        [1.0, 0.0, -translate.x],
+                        [0.0, 1.0, -translate.y],
+                        [0.0, 0.0, 1.0],
+                    ]);
+                    let matrix = translation_matrix * matrix;
                     translate.rendering_tree.iter().rev().for_each(|child| {
                         child.call_mouse_event_impl(
                             mouse_event_type,
                             raw_mouse_event,
-                            &next_local_xy,
+                            &xy,
+                            &matrix,
                         );
                     });
                 }
                 SpecialRenderingNode::Clip(clip) => {
-                    let is_path_contains = clip.path_builder.build().contains(local_xy);
+                    let transformed_xy = matrix.transform_xy(&xy);
+                    let is_path_contains = clip.path_builder.build().contains(&transformed_xy);
                     let is_xy_filtered = match clip.clip_op {
                         ClipOp::Intersect => !is_path_contains,
                         ClipOp::Difference => is_path_contains,
@@ -263,7 +308,8 @@ impl RenderingTree {
                             child.call_mouse_event_impl(
                                 mouse_event_type,
                                 raw_mouse_event,
-                                local_xy,
+                                xy,
+                                matrix,
                             );
                         });
                     }
@@ -278,11 +324,11 @@ impl RenderingTree {
                         if attach_event
                             .rendering_tree
                             .iter()
-                            .any(|child| child.is_point_in(local_xy))
+                            .any(|child| child.is_point_in(&xy, matrix))
                         {
                             func(&MouseEvent {
                                 global_xy: raw_mouse_event.xy,
-                                local_xy: *local_xy,
+                                local_xy: matrix.transform_xy(&xy),
                                 pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
                                 button: raw_mouse_event.button,
                             });
@@ -290,21 +336,35 @@ impl RenderingTree {
                     }
                 }
                 SpecialRenderingNode::Absolute(absolute) => {
-                    let next_local_xy = Xy {
-                        x: raw_mouse_event.xy.x - absolute.x,
-                        y: raw_mouse_event.xy.y - absolute.y,
-                    };
+                    let matrix = Matrix3x3::from_slice(&[
+                        [1.0, 0.0, -absolute.x],
+                        [0.0, 1.0, -absolute.y],
+                        [0.0, 0.0, 1.0],
+                    ]);
                     absolute.rendering_tree.iter().rev().for_each(|child| {
                         child.call_mouse_event_impl(
                             mouse_event_type,
                             raw_mouse_event,
-                            &next_local_xy,
+                            &xy,
+                            &matrix,
+                        );
+                    });
+                }
+                SpecialRenderingNode::Rotate(rotate) => {
+                    let matrix = matrix * rotate.get_counter_wise_matrix();
+
+                    rotate.rendering_tree.iter().rev().for_each(|child| {
+                        child.call_mouse_event_impl(
+                            mouse_event_type,
+                            raw_mouse_event,
+                            &xy,
+                            &matrix,
                         );
                     });
                 }
                 _ => {
                     special.get_children().iter().rev().for_each(|child| {
-                        child.call_mouse_event_impl(mouse_event_type, raw_mouse_event, local_xy);
+                        child.call_mouse_event_impl(mouse_event_type, raw_mouse_event, xy, matrix);
                     });
                 }
             },
@@ -312,25 +372,32 @@ impl RenderingTree {
         }
     }
 
-    fn is_point_in(&self, local_xy: &Xy<f32>) -> bool {
+    fn is_point_in(&self, xy: &Xy<f32>, matrix: &Matrix3x3) -> bool {
         match self {
             RenderingTree::Children(ref children) => {
-                children.iter().any(|child| child.is_point_in(local_xy))
+                children.iter().any(|child| child.is_point_in(xy, matrix))
             }
-            RenderingTree::Node(rendering_data) => rendering_data.is_inside(local_xy),
+            RenderingTree::Node(rendering_data) => {
+                rendering_data.is_inside(&matrix.transform_xy(&xy))
+            }
             RenderingTree::Special(special) => match special {
                 SpecialRenderingNode::Translate(translate) => {
-                    let next_local_xy = Xy {
-                        x: local_xy.x - translate.x,
-                        y: local_xy.y - translate.y,
-                    };
+                    let translation_matrix = Matrix3x3::from_slice(&[
+                        [1.0, 0.0, -translate.x],
+                        [0.0, 1.0, -translate.y],
+                        [0.0, 0.0, 1.0],
+                    ]);
+                    let matrix = translation_matrix * matrix;
                     translate
                         .rendering_tree
                         .iter()
-                        .any(|child| child.is_point_in(&next_local_xy))
+                        .any(|child| child.is_point_in(&xy, &matrix))
                 }
                 SpecialRenderingNode::Clip(clip) => {
-                    let is_path_contains = clip.path_builder.build().contains(local_xy);
+                    let is_path_contains = clip
+                        .path_builder
+                        .build()
+                        .contains(&matrix.transform_xy(&xy));
                     let is_xy_filtered = match clip.clip_op {
                         ClipOp::Intersect => !is_path_contains,
                         ClipOp::Difference => is_path_contains,
@@ -339,22 +406,31 @@ impl RenderingTree {
                         && clip
                             .rendering_tree
                             .iter()
-                            .any(|child| child.is_point_in(local_xy))
+                            .any(|child| child.is_point_in(xy, matrix))
                 }
                 SpecialRenderingNode::Absolute(absolute) => {
-                    let next_local_xy = Xy {
-                        x: absolute.x,
-                        y: absolute.y,
-                    };
+                    let matrix = Matrix3x3::from_slice(&[
+                        [1.0, 0.0, -absolute.x],
+                        [0.0, 1.0, -absolute.y],
+                        [0.0, 0.0, 1.0],
+                    ]);
                     absolute
                         .rendering_tree
                         .iter()
-                        .any(|child| child.is_point_in(&next_local_xy))
+                        .any(|child| child.is_point_in(&xy, &matrix))
+                }
+                SpecialRenderingNode::Rotate(rotate) => {
+                    let matrix = matrix * rotate.get_counter_wise_matrix();
+
+                    rotate
+                        .rendering_tree
+                        .iter()
+                        .any(|child| child.is_point_in(&xy, &matrix))
                 }
                 _ => special
                     .get_children()
                     .iter()
-                    .any(|child| child.is_point_in(local_xy)),
+                    .any(|child| child.is_point_in(&xy, &matrix)),
             },
             RenderingTree::Empty => false,
         }
@@ -413,6 +489,18 @@ impl RenderingTree {
                                 if !result.is_exit {
                                     result.is_exit = true;
                                     result.xy = result.xy + next_xy;
+                                }
+                                result
+                            })
+                        })
+                    }
+                    SpecialRenderingNode::Rotate(rotate) => {
+                        let matrix = rotate.get_matrix();
+
+                        rotate.rendering_tree.iter().rev().find_map(|child| {
+                            get_xy_with_exit_button(child, id).map(|mut result| {
+                                if !result.is_exit {
+                                    result.xy = matrix.transform_xy(&result.xy);
                                 }
                                 result
                             })

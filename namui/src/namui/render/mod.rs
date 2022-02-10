@@ -24,3 +24,7 @@ pub mod with_id;
 pub use with_id::*;
 pub mod absolute;
 pub use absolute::*;
+pub mod rotate;
+pub use rotate::*;
+pub mod matrix;
+pub use matrix::*;
