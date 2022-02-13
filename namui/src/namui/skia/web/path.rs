@@ -101,6 +101,15 @@ impl Path {
         self.canvas_kit_path.lineTo(x, y);
         self
     }
+    pub(crate) fn arc_to(self, oval: &LtrbRect, start_radian: f32, delta_radian: f32) -> Self {
+        self.canvas_kit_path.arcToOval(
+            &[oval.left, oval.top, oval.right, oval.bottom],
+            start_radian * 180.0 / std::f32::consts::PI,
+            delta_radian * 180.0 / std::f32::consts::PI,
+            false,
+        );
+        self
+    }
     pub(crate) fn scale(self, x: f32, y: f32) -> Self {
         self.transform(&[x, 0.0, 0.0, 0.0, y, 0.0, 0.0, 0.0, 1.0])
     }
@@ -122,6 +131,14 @@ impl Path {
             ],
             None,
             None,
+        );
+        self
+    }
+    pub(crate) fn add_arc(self, oval: &LtrbRect, start_radian: f32, delta_radian: f32) -> Self {
+        self.canvas_kit_path.addArc(
+            &[oval.left, oval.top, oval.right, oval.bottom],
+            start_radian * 180.0 / std::f32::consts::PI,
+            delta_radian * 180.0 / std::f32::consts::PI,
         );
         self
     }

@@ -13,10 +13,12 @@ enum PathCommand {
     Stroke(StrokeOptions),
     MoveTo(Xy<f32>),
     LineTo(Xy<f32>),
+    ArcTo(LtrbRect, f32, f32),
     Scale(Xy<f32>),
     Translate(Xy<f32>),
     Transform([f32; 9]),
     AddOval(LtrbRect),
+    AddArc(LtrbRect, f32, f32),
     AddPoly(Vec<Xy<f32>>, bool),
     Close,
 }
@@ -58,6 +60,11 @@ impl PathBuilder {
         self.commands.push(PathCommand::LineTo(Xy { x, y }));
         self
     }
+    pub fn arc_to(mut self, oval: &LtrbRect, start_radian: f32, delta_radian: f32) -> Self {
+        self.commands
+            .push(PathCommand::ArcTo(*oval, start_radian, delta_radian));
+        self
+    }
     pub fn scale(mut self, x: f32, y: f32) -> Self {
         self.commands.push(PathCommand::Scale(Xy { x, y }));
         self
@@ -72,6 +79,11 @@ impl PathBuilder {
     }
     pub fn add_oval(mut self, ltrb_rect: &LtrbRect) -> Self {
         self.commands.push(PathCommand::AddOval(*ltrb_rect));
+        self
+    }
+    pub fn add_arc(mut self, oval: &LtrbRect, start_radian: f32, delta_radian: f32) -> Self {
+        self.commands
+            .push(PathCommand::AddArc(*oval, start_radian, delta_radian));
         self
     }
     pub fn add_poly(mut self, xy_array: &[Xy<f32>], close: bool) -> Self {
@@ -113,10 +125,16 @@ impl PathBuilder {
                 }
                 PathCommand::MoveTo(xy) => path.move_to(xy.x, xy.y),
                 PathCommand::LineTo(xy) => path.line_to(xy.x, xy.y),
+                PathCommand::ArcTo(oval, start_radian, delta_radian) => {
+                    path.arc_to(&oval, *start_radian, *delta_radian)
+                }
                 PathCommand::Scale(xy) => path.scale(xy.x, xy.y),
                 PathCommand::Translate(xy) => path.translate(xy.x, xy.y),
                 PathCommand::Transform(matrix_3x3) => path.transform(&matrix_3x3),
                 PathCommand::AddOval(ltrb_rect) => path.add_oval(&ltrb_rect),
+                PathCommand::AddArc(oval, start_radian, delta_radian) => {
+                    path.add_arc(&oval, *start_radian, *delta_radian)
+                }
                 PathCommand::AddPoly(xy_array, close) => path.add_poly(&xy_array, *close),
                 PathCommand::Close => path.close(),
             }
