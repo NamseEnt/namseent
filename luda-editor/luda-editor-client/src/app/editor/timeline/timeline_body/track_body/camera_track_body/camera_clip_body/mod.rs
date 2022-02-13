@@ -49,7 +49,11 @@ impl CameraClipBody {
             height: clip_rect.height,
             style: namui::RectStyle {
                 fill: Some(namui::RectFill {
-                    color: namui::Color::from_f01(0.4, 0.4, 0.8, 1.0),
+                    color: if is_highlight {
+                        namui::Color::from_f01(0.8, 0.6, 0.8, 1.0)
+                    } else {
+                        namui::Color::from_f01(0.4, 0.4, 0.8, 1.0)
+                    },
                 }),
                 round: Some(namui::RectRound {
                     radius: CAMERA_CLIP_ROUND_RADIUS,
