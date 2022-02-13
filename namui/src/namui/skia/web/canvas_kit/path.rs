@@ -8,18 +8,23 @@ extern "C" {
     #[wasm_bindgen(constructor, js_class="Path", js_namespace = ["globalThis", "CanvasKit"])]
     pub fn new() -> CanvasKitPath;
 
-    // ///
-    // /// Appends arc to Path, as the start of new contour. Arc added is part of ellipse
-    // /// bounded by oval, from startAngle through sweepAngle. Both startAngle and
-    // /// sweepAngle are measured in degrees, where zero degrees is aligned with the
-    // /// positive x-axis, and positive sweeps extends arc clockwise.
-    // /// Returns the modified path for easier chaining.
-    // /// @param oval
-    // /// @param startAngle
-    // /// @param sweepAngle
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn addArc(this: &CanvasKitPath, oval: js_sys::Float32Array, startAngle: AngleInDegrees, sweepAngle: AngleInDegrees) -> CanvasKitPath;
+    ///
+    /// Appends arc to Path, as the start of new contour. Arc added is part of ellipse
+    /// bounded by oval, from startAngle through sweepAngle. Both startAngle and
+    /// sweepAngle are measured in degrees, where zero degrees is aligned with the
+    /// positive x-axis, and positive sweeps extends arc clockwise.
+    /// Returns the modified path for easier chaining.
+    /// @param oval
+    /// @param startAngle
+    /// @param sweepAngle
+    ///
+    #[wasm_bindgen(method)]
+    pub fn addArc(
+        this: &CanvasKitPath,
+        oval: &[f32],
+        startAngleInDegrees: f32,
+        sweepAngleInDegrees: f32,
+    ) -> CanvasKitPath;
 
     ///
     /// Adds oval to Path, appending kMove_Verb, four kConic_Verb, and kClose_Verb.
@@ -116,20 +121,25 @@ extern "C" {
     // pub fn arc(this: &CanvasKitPath, x: number, y: number, radius: number, startAngle: AngleInRadians, endAngle: AngleInRadians,
     //     isCCW: Option<bool) -> CanvasKitPath;
 
-    // ///
-    // /// Appends arc to Path. Arc added is part of ellipse
-    // /// bounded by oval, from startAngle through sweepAngle. Both startAngle and
-    // /// sweepAngle are measured in degrees, where zero degrees is aligned with the
-    // /// positive x-axis, and positive sweeps extends arc clockwise.
-    // /// Returns the modified path for easier chaining.
-    // /// @param oval
-    // /// @param startAngle
-    // /// @param endAngle
-    // /// @param forceMoveTo
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn arcToOval(this: &CanvasKitPath, oval: js_sys::Float32Array, startAngle: AngleInDegrees, endAngle: AngleInDegrees,
-    //           forceMoveTo: bool) -> CanvasKitPath;
+    ///
+    /// Appends arc to Path. Arc added is part of ellipse
+    /// bounded by oval, from startAngle through sweepAngle. Both startAngle and
+    /// sweepAngle are measured in degrees, where zero degrees is aligned with the
+    /// positive x-axis, and positive sweeps extends arc clockwise.
+    /// Returns the modified path for easier chaining.
+    /// @param oval
+    /// @param startAngle
+    /// @param sweepAngle
+    /// @param forceMoveTo
+    ///
+    #[wasm_bindgen(method)]
+    pub fn arcToOval(
+        this: &CanvasKitPath,
+        oval: &[f32],
+        startAngle: f32,
+        sweepAngle: f32,
+        forceMoveTo: bool,
+    ) -> CanvasKitPath;
 
     // ///
     // /// Appends arc to Path. Arc is implemented by one or more conics weighted to
