@@ -164,20 +164,6 @@ struct SubtitleClipBodyRenderSetting {
     tail_circle_center_xy: Xy<f32>,
 }
 
-fn render_debug_xy(xy: &Xy<f32>, color: Color) -> RenderingTree {
-    path(
-        namui::PathBuilder::new().add_rect(&LtrbRect {
-            left: xy.x,
-            top: xy.y,
-            right: xy.x + 1.0,
-            bottom: xy.y + 1.0,
-        }),
-        namui::PaintBuilder::new()
-            .set_color(color)
-            .set_style(PaintStyle::Fill),
-    )
-}
-
 fn render_text_box(
     text: &str,
     head_circle_center_xy: &Xy<f32>,
