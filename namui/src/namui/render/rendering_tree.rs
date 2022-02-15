@@ -5,6 +5,7 @@ use std::collections::HashSet;
 
 #[derive(Clone, Debug)]
 pub struct MouseEvent {
+    pub id: String,
     pub local_xy: Xy<f32>,
     pub global_xy: Xy<f32>,
     pub pressing_buttons: HashSet<MouseButton>,
@@ -16,6 +17,7 @@ pub enum MouseEventType {
     Move,
 }
 pub struct WheelEvent<'a> {
+    pub id: String,
     pub delta_xy: &'a Xy<f32>,
     pub namui_context: &'a NamuiContext,
 }
@@ -331,6 +333,7 @@ impl RenderingTree {
                             .any(|child| child.is_point_in(&xy, matrix))
                         {
                             func(&MouseEvent {
+                                id: raw_mouse_event.id.clone(),
                                 global_xy: raw_mouse_event.xy,
                                 local_xy: matrix.transform_xy(&xy),
                                 pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
