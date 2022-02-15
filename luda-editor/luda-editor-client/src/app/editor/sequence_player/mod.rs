@@ -36,6 +36,20 @@ pub struct SequencePlayerProps<'a> {
     pub with_buttons: bool,
 }
 
+#[cfg(test)]
+use mockall::{automock, predicate::*};
+#[cfg_attr(test, automock)]
+pub trait SequencePlay {
+    fn play(&mut self);
+    fn pause(&mut self);
+    fn toggle_playback(&mut self);
+    fn seek(&mut self, time: Time);
+    fn update_sequence(&mut self, sequence: Arc<Sequence>);
+    fn get_playback_time(&self) -> Time;
+    fn update(&mut self, event: &dyn std::any::Any);
+    fn render<'a>(&self, props: &SequencePlayerProps<'a>) -> RenderingTree;
+}
+
 impl SequencePlayer {
     pub fn new(
         sequence: Arc<Sequence>,
@@ -57,23 +71,52 @@ impl SequencePlayer {
         this.call_loading_timeout();
         this
     }
-    pub fn play(&mut self) {
+    fn start_play(&mut self) {
+        if self.is_paused || self.started_at.is_some() || !self.content_loader.is_loaded() {
+            return;
+        }
+
+        self.started_at = Some(Time::now());
+        let id = self.id.clone();
+        namui::request_animation_frame(|| {
+            namui::event::send(SequencePlayerEvent::AnimationFrame(id))
+        });
+    }
+    fn call_loading_timeout(&self) {
+        let id = self.id.clone();
+        namui::set_timeout(
+            move || namui::event::send(SequencePlayerEvent::CheckLoading(id)),
+            Duration::from_secs(1),
+        );
+    }
+    fn get_playback_status(&self) -> PlaybackStatus {
+        if !self.content_loader.is_loaded() {
+            return PlaybackStatus::Loading;
+        }
+        if self.is_paused {
+            return PlaybackStatus::Paused(self.last_paused_playback_time);
+        }
+        PlaybackStatus::Playing(self.get_playback_time())
+    }
+}
+impl SequencePlay for SequencePlayer {
+    fn play(&mut self) {
         self.is_paused = false;
         self.start_play();
     }
-    pub fn pause(&mut self) {
+    fn pause(&mut self) {
         self.last_paused_playback_time = self.get_playback_time();
         self.is_paused = true;
         self.started_at = None;
     }
-    pub fn toggle_playback(&mut self) {
+    fn toggle_playback(&mut self) {
         if self.is_paused {
             self.play();
         } else {
             self.pause();
         }
     }
-    pub fn seek(&mut self, time: Time) {
+    fn seek(&mut self, time: Time) {
         match self.get_playback_status() {
             PlaybackStatus::Loading | PlaybackStatus::Paused(_) => {
                 self.last_paused_playback_time = time;
@@ -84,11 +127,11 @@ impl SequencePlayer {
             }
         }
     }
-    pub fn update_sequence(&mut self, sequence: Arc<Sequence>) {
+    fn update_sequence(&mut self, sequence: Arc<Sequence>) {
         self.sequence = sequence.clone();
         self.content_loader = ContentLoader::new(sequence, self.camera_angle_image_loader.as_ref());
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
+    fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<SequencePlayerEvent>() {
             match event {
                 SequencePlayerEvent::CheckLoading(id) => {
@@ -121,18 +164,7 @@ impl SequencePlayer {
             }
         }
     }
-    fn start_play(&mut self) {
-        if self.is_paused || self.started_at.is_some() || !self.content_loader.is_loaded() {
-            return;
-        }
-
-        self.started_at = Some(Time::now());
-        let id = self.id.clone();
-        namui::request_animation_frame(|| {
-            namui::event::send(SequencePlayerEvent::AnimationFrame(id))
-        });
-    }
-    pub fn render(&self, props: &SequencePlayerProps) -> RenderingTree {
+    fn render<'a>(&self, props: &'a SequencePlayerProps) -> RenderingTree {
         let wh = props.xywh.wh();
         // NOTE : will be translated by props.xywh.xy.
 
@@ -193,26 +225,10 @@ impl SequencePlayer {
             ],
         )
     }
-    pub fn get_playback_time(&self) -> Time {
+    fn get_playback_time(&self) -> Time {
         self.started_at
             .map_or(self.last_paused_playback_time, |start_at| {
                 Time::now() - start_at + self.last_paused_playback_time
             })
-    }
-    fn get_playback_status(&self) -> PlaybackStatus {
-        if !self.content_loader.is_loaded() {
-            return PlaybackStatus::Loading;
-        }
-        if self.is_paused {
-            return PlaybackStatus::Paused(self.last_paused_playback_time);
-        }
-        PlaybackStatus::Playing(self.get_playback_time())
-    }
-    fn call_loading_timeout(&self) {
-        let id = self.id.clone();
-        namui::set_timeout(
-            move || namui::event::send(SequencePlayerEvent::CheckLoading(id)),
-            Duration::from_secs(1),
-        );
     }
 }

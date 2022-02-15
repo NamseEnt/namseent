@@ -16,7 +16,7 @@ mod clip_editor;
 mod events;
 mod job;
 mod sequence_player;
-pub use sequence_player::{SequencePlayer, SequencePlayerProps};
+pub use sequence_player::{SequencePlay, SequencePlayer, SequencePlayerProps};
 mod history;
 use history::History;
 mod top_bar;
@@ -41,7 +41,7 @@ pub struct Editor {
     clip_editor: Option<ClipEditor>,
     image_filename_objects: Vec<ImageFilenameObject>,
     selected_clip_ids: Arc<BTreeSet<String>>,
-    sequence_player: SequencePlayer,
+    sequence_player: Box<dyn SequencePlay>,
     subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
     history: History<Arc<Sequence>>,
     top_bar: TopBar,
@@ -462,10 +462,10 @@ impl Editor {
             job: None,
             clip_editor: None,
             selected_clip_ids: Arc::new(BTreeSet::new()),
-            sequence_player: SequencePlayer::new(
+            sequence_player: Box::new(SequencePlayer::new(
                 sequence.clone(),
                 Box::new(LudaEditorServerCameraAngleImageLoader {}),
-            ),
+            )),
             subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
             history: History::new(sequence.clone()),
             top_bar: TopBar::new(),

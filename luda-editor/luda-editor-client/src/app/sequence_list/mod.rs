@@ -15,16 +15,12 @@ use super::{
     },
 };
 use crate::app::{
-    editor::SequencePlayerProps,
+    editor::{SequencePlay, SequencePlayerProps},
     sequence_list::{list::render_list, sync_sequences_button::render_sync_sequences_button},
 };
 use luda_editor_rpc::Socket;
 use namui::{render, Entity, Wh, XywhRect};
-use std::{
-    collections::{BTreeMap, HashMap},
-    sync::Arc,
-    time::Duration,
-};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 const LIST_WIDTH: f32 = 800.0;
 const BUTTON_HEIGHT: f32 = 36.0;
