@@ -28,6 +28,9 @@ impl Editor {
 
         self.update_selected_clips(&mut selected_clip_ids.into_iter());
     }
+    pub(super) fn deselect_all_clips(&mut self) {
+        self.update_selected_clips(&mut ([] as [String; 0]).into_iter());
+    }
     pub(super) fn deselect_clips<T: AsRef<str>>(&mut self, clip_ids: &[T]) {
         let mut selected_clip_ids = (*self.selected_clip_ids).clone();
 
@@ -61,10 +64,15 @@ impl Editor {
 
         selected_clip_track.get_id() == clip_track.get_id()
     }
-    pub(super) fn select_all_between_clips<T: AsRef<str>>(&mut self, clip_ids: &[T]) {
+    pub(super) fn select_all_to_time(&mut self, time: &Time) {
+        if self.selected_clip_ids.len() == 0 {
+            return;
+        }
+
         let track = self.get_selected_clip_track().unwrap();
 
-        let clips = clip_ids
+        let clips = self
+            .selected_clip_ids
             .iter()
             .map(|clip_id| track.find_clip(clip_id.as_ref()).unwrap())
             .collect::<Vec<_>>();
@@ -87,9 +95,28 @@ impl Editor {
         selected_clip_ids.insert(most_left_clip.get_id().to_string());
         selected_clip_ids.insert(most_right_clip.get_id().to_string());
 
+        let most_left_clip_start_time = most_left_clip.get_start_time();
+        let most_right_clip_end_time = self.get_clip_end_time(most_right_clip);
+
+        if most_right_clip_end_time <= time {
+            for clip in track.get_clips() {
+                let clip_start_time = clip.get_start_time();
+                if most_left_clip_start_time <= clip_start_time && clip_start_time <= time {
+                    selected_clip_ids.insert(clip.get_id().to_string());
+                }
+            }
+        } else if time <= most_left_clip_start_time {
+            for clip in track.get_clips() {
+                let clip_end_time = self.get_clip_end_time(&clip);
+                if time <= clip_end_time && clip_end_time <= most_right_clip_end_time {
+                    selected_clip_ids.insert(clip.get_id().to_string());
+                }
+            }
+        }
+
         for clip in track.get_clips() {
-            if clip.get_start_time() >= most_left_clip.get_start_time()
-                && self.get_clip_end_time(&clip) <= self.get_clip_end_time(most_right_clip)
+            if clip.get_start_time() >= most_left_clip_start_time
+                && self.get_clip_end_time(&clip) <= most_right_clip_end_time
             {
                 selected_clip_ids.insert(clip.get_id().to_string());
             }
@@ -169,6 +196,193 @@ impl Editor {
             ));
         } else {
             self.clip_editor = None;
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::app::editor::sequence_player::MockSequencePlay;
+
+    use super::super::*;
+    use super::*;
+    use luda_editor_rpc::response_waiter::ResponseWaiter;
+    use namui::prelude::*;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn shift_click_should_not_select_crossed_back_clip() {
+        // make clip 1, 2, 3
+        // clip 2 and 3 is crossed.
+        let clips = vec![
+            mock_camera_clip("1", Time::from_ms(1000.0), Time::from_ms(2000.0)),
+            mock_camera_clip("2", Time::from_ms(2000.0), Time::from_ms(3000.0)),
+            mock_camera_clip("3", Time::from_ms(2500.0), Time::from_ms(3500.0)),
+        ];
+        let sequence = mock_sequence(clips);
+        let mut editor = mock_editor(sequence);
+        // select 1 clip
+        editor.select_only_this_clip("1");
+
+        // shift click 2 front
+        editor.select_all_to_time(&Time::from_ms(2250.0));
+
+        // result should be 1 and 2.
+        assert_eq!(
+            editor.get_selected_clip_ids().iter().collect::<Vec<_>>(),
+            ["1", "2"]
+        );
+    }
+    #[test]
+    #[wasm_bindgen_test]
+    fn shift_click_should_not_select_crossed_back_clip_backward() {
+        // make clip 1, 2, 3
+        // clip 1 and 2 is crossed.
+        let clips = vec![
+            mock_camera_clip("1", Time::from_ms(1000.0), Time::from_ms(2000.0)),
+            mock_camera_clip("2", Time::from_ms(1500.0), Time::from_ms(2500.0)),
+            mock_camera_clip("3", Time::from_ms(3000.0), Time::from_ms(4000.0)),
+        ];
+        let sequence = mock_sequence(clips);
+        let mut editor = mock_editor(sequence);
+        // select 3 clip
+        editor.select_only_this_clip("3");
+        // shift click 2 back
+        editor.select_all_to_time(&Time::from_ms(2250.0));
+        // result should be 2 and 3.
+        assert_eq!(
+            editor.get_selected_clip_ids().iter().collect::<Vec<_>>(),
+            ["2", "3"]
+        );
+    }
+    #[test]
+    #[wasm_bindgen_test]
+    fn shift_click_should_select_crossed_middle_clip() {
+        // make clip 1, 2, 3
+        // clip 1 and 2 is crossed.
+        let clips = vec![
+            mock_camera_clip("1", Time::from_ms(1000.0), Time::from_ms(2000.0)),
+            mock_camera_clip("2", Time::from_ms(1500.0), Time::from_ms(2500.0)),
+            mock_camera_clip("3", Time::from_ms(3000.0), Time::from_ms(4000.0)),
+        ];
+        let sequence = mock_sequence(clips);
+        let mut editor = mock_editor(sequence);
+        // select 1 clip
+        editor.select_only_this_clip("1");
+        // shift click 3
+        editor.select_all_to_time(&Time::from_ms(3500.0));
+        // result should be 1, 2 and 3.
+        assert_eq!(
+            editor.get_selected_clip_ids().iter().collect::<Vec<_>>(),
+            ["1", "2", "3"]
+        );
+    }
+    #[test]
+    #[wasm_bindgen_test]
+    fn shift_click_should_select_crossed_middle_clip_backward() {
+        // make clip 1, 2, 3
+        // clip 2 and 3 is crossed.
+        let clips = vec![
+            mock_camera_clip("1", Time::from_ms(1000.0), Time::from_ms(2000.0)),
+            mock_camera_clip("2", Time::from_ms(2000.0), Time::from_ms(3000.0)),
+            mock_camera_clip("3", Time::from_ms(2500.0), Time::from_ms(3500.0)),
+        ];
+        let sequence = mock_sequence(clips);
+        let mut editor = mock_editor(sequence);
+        // select 3 clip
+        editor.select_only_this_clip("3");
+        // shift click 1
+        editor.select_all_to_time(&Time::from_ms(1500.0));
+        // result should be 1, 2 and 3.
+        assert_eq!(
+            editor.get_selected_clip_ids().iter().collect::<Vec<_>>(),
+            ["1", "2", "3"]
+        );
+    }
+    #[test]
+    #[wasm_bindgen_test]
+    fn shift_click_should_not_select_swallowed_clip_if_not_click_common() {
+        // make clip 1, 2, 3
+        // clip 2 shallow clip 3.
+        let clips = vec![
+            mock_camera_clip("1", Time::from_ms(1000.0), Time::from_ms(2000.0)),
+            mock_camera_clip("2", Time::from_ms(2000.0), Time::from_ms(4000.0)),
+            mock_camera_clip("3", Time::from_ms(3000.0), Time::from_ms(3500.0)),
+        ];
+        let sequence = mock_sequence(clips);
+        let mut editor = mock_editor(sequence);
+        // select 1 clip
+        editor.select_only_this_clip("1");
+        // shift click the parts on 2, not on 3
+        editor.select_all_to_time(&Time::from_ms(2500.0));
+        // result should be 1 and 2.
+        assert_eq!(
+            editor.get_selected_clip_ids().iter().collect::<Vec<_>>(),
+            ["1", "2"]
+        );
+    }
+    #[test]
+    #[wasm_bindgen_test]
+    fn shift_click_should_select_swallowed_clip_if_click_common() {
+        // make clip 1, 2, 3
+        // clip 2 shallow clip 3.
+        let clips = vec![
+            mock_camera_clip("1", Time::from_ms(1000.0), Time::from_ms(2000.0)),
+            mock_camera_clip("2", Time::from_ms(2000.0), Time::from_ms(4000.0)),
+            mock_camera_clip("3", Time::from_ms(3000.0), Time::from_ms(3500.0)),
+        ];
+        let sequence = mock_sequence(clips);
+        let mut editor = mock_editor(sequence);
+        // select 1 clip
+        editor.select_only_this_clip("1");
+        // shift click the parts on 2 and 3
+        editor.select_all_to_time(&Time::from_ms(3250.0));
+        // result should be 1, 2 and 3.
+        assert_eq!(
+            editor.get_selected_clip_ids().iter().collect::<Vec<_>>(),
+            ["1", "2", "3"]
+        );
+    }
+
+    fn mock_socket() -> Socket {
+        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
+        let response_waiter = ResponseWaiter::new();
+        Socket::new(sender.clone(), response_waiter.clone())
+    }
+    fn mock_sequence(camera_clips: Vec<Arc<CameraClip>>) -> Arc<Sequence> {
+        Arc::new(Sequence {
+            tracks: vec![
+                Arc::new(Track::Camera(CameraTrack {
+                    id: "track-1".to_string(),
+                    clips: camera_clips.into(),
+                })),
+                Arc::new(Track::Subtitle(SubtitleTrack {
+                    id: "track-2".to_string(),
+                    clips: Arc::new([]),
+                })),
+            ]
+            .into(),
+        })
+    }
+    fn mock_editor(sequence: Arc<Sequence>) -> Editor {
+        let socket = mock_socket();
+        Editor {
+            timeline: Timeline::new(),
+            image_filename_objects: vec![],
+            job: None,
+            clip_editor: None,
+            selected_clip_ids: Arc::new(BTreeSet::new()),
+            sequence_player: Box::new(MockSequencePlay::new()),
+            subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
+            history: History::new(sequence.clone()),
+            top_bar: TopBar::new(),
+            clipboard: None,
+            language: namui::Language::Ko,
+            clip_id_to_check_as_click: None,
+            context_menu: None,
+            sequence_saver: SequenceSaver::new("", sequence.clone(), socket.clone()),
+            sheet_sequence_syncer: SheetSequenceSyncer::new(""),
         }
     }
 }
