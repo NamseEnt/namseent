@@ -29,13 +29,20 @@ impl MouseManager {
                 mouse_position: mouse_position.clone(),
                 ..*namui::state()
             });
+            let button = get_button(&event);
             namui::event::send(namui::NamuiEvent::MouseDown(crate::RawMouseEvent {
+                id: format!(
+                    "mousedown-{:?}-{:?}-{}",
+                    button,
+                    crate::now(),
+                    crate::nanoid()
+                ),
                 xy: Xy {
                     x: mouse_position.x as f32,
                     y: mouse_position.y as f32,
                 },
                 pressing_buttons: get_pressing_buttons(&event),
-                button: Some(get_button(&event)),
+                button: Some(button),
             }));
         }) as Box<dyn FnMut(_)>);
 
@@ -58,13 +65,20 @@ impl MouseManager {
                 mouse_position: mouse_position.clone(),
                 ..*namui::state()
             });
+            let button = get_button(&event);
             namui::event::send(namui::NamuiEvent::MouseUp(crate::RawMouseEvent {
+                id: format!(
+                    "mouseup-{:?}-{:?}-{}",
+                    button,
+                    crate::now(),
+                    crate::nanoid()
+                ),
                 xy: Xy {
                     x: mouse_position.x as f32,
                     y: mouse_position.y as f32,
                 },
                 pressing_buttons: get_pressing_buttons(&event),
-                button: Some(get_button(&event)),
+                button: Some(button),
             }));
         }) as Box<dyn FnMut(_)>);
 
@@ -85,6 +99,7 @@ impl MouseManager {
                 ..*namui::state()
             });
             namui::event::send(namui::NamuiEvent::MouseMove(crate::RawMouseEvent {
+                id: format!("mousemove-{:?}-{}", crate::now(), crate::nanoid()),
                 xy: Xy {
                     x: mouse_position.x as f32,
                     y: mouse_position.y as f32,

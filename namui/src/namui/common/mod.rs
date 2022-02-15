@@ -184,6 +184,7 @@ pub enum MouseButton {
 }
 
 pub struct RawMouseEvent {
+    pub id: String,
     pub xy: Xy<f32>,
     pub pressing_buttons: HashSet<MouseButton>,
     pub button: Option<MouseButton>,

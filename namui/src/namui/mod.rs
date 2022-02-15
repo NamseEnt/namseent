@@ -113,6 +113,7 @@ pub async fn start<TProps>(
             }
             Some(NamuiEvent::Wheel(xy)) => {
                 namui_context.rendering_tree.call_wheel_event(&WheelEvent {
+                    id: format!("wheel-{:?}-{}", now(), nanoid()),
                     delta_xy: xy,
                     namui_context: &namui_context,
                 });
