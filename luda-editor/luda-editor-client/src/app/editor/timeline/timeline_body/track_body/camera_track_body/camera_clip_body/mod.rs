@@ -108,12 +108,12 @@ impl CameraClipBody {
                     CameraClipBodyPart::Body
                 };
 
-                let event = EditorEvent::CameraClipBodyMouseDownEvent {
+                namui::event::send(EditorEvent::CameraClipBodyMouseDownEvent {
+                    mouse_event_id: event.id.clone(),
                     clip_id: clip_id.clone(),
                     click_in_time: timeline_start_at + PixelSize(event.local_xy.x) * time_per_pixel,
                     clicked_part,
-                };
-                namui::event::send(event);
+                });
             })
         });
 

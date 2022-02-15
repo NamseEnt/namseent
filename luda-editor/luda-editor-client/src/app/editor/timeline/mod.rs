@@ -25,6 +25,7 @@ pub struct Timeline {
     time_ruler_height: f32,
     pub start_at: Time,
     pub time_per_pixel: TimePerPixel,
+    timeline_body: TimelineBody,
 }
 impl Timeline {
     pub fn new() -> Self {
@@ -33,6 +34,7 @@ impl Timeline {
             time_ruler_height: 20.0,
             time_per_pixel: TimePerPixel::new(Time::from_ms(50.0), PixelSize(1.0)),
             start_at: Time::from_sec(0.0),
+            timeline_body: TimelineBody::new(),
         }
     }
 }
@@ -91,6 +93,8 @@ impl Timeline {
                 _ => {}
             }
         }
+
+        self.timeline_body.update(event);
     }
 
     pub fn render(&self, props: &TimelineProps) -> namui::RenderingTree {
