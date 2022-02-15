@@ -78,7 +78,6 @@ impl SubtitleClipBody {
         };
 
         let render_setting = SubtitleClipBodyRenderSetting {
-            clip_wh,
             circle_radius,
             head_left_top,
             tail_right_bottom,
@@ -156,7 +155,6 @@ impl SubtitleClipBody {
 }
 
 struct SubtitleClipBodyRenderSetting {
-    clip_wh: Wh<f32>,
     circle_radius: f32,
     head_left_top: Xy<f32>,
     tail_right_bottom: Xy<f32>,
