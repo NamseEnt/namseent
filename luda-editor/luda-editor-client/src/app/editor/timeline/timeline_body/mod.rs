@@ -4,18 +4,54 @@ pub mod track_body;
 use super::TimelineRenderContext;
 use crate::app::{
     editor::events::EditorEvent,
-    types::{PixelSize, Track},
+    types::{PixelSize, Time, Track},
 };
 use track_body::*;
 
-pub struct TimelineBody {}
+pub struct TimelineBody {
+    last_clip_clicked_mouse_event_id: Option<String>,
+}
 pub struct TimelineBodyProps<'a> {
     pub width: f32,
     pub height: f32,
     pub tracks: &'a [Arc<Track>],
     pub context: &'a TimelineRenderContext<'a>,
 }
+
+struct TimelineBodyLeftClickEvent {
+    pub mouse_event_id: String,
+    pub mouse_position_in_time: Time,
+}
+
 impl TimelineBody {
+    pub(crate) fn new() -> TimelineBody {
+        TimelineBody {
+            last_clip_clicked_mouse_event_id: None,
+        }
+    }
+    pub fn update(&mut self, event: &dyn std::any::Any) {
+        if let Some(event) = event.downcast_ref::<TimelineBodyLeftClickEvent>() {
+            let is_mouse_on_clip = if let Some(last_clip_clicked_mouse_event_id) =
+                &self.last_clip_clicked_mouse_event_id
+            {
+                last_clip_clicked_mouse_event_id.eq(&event.mouse_event_id)
+            } else {
+                false
+            };
+            namui::event::send(EditorEvent::TimelineBodyLeftClickEvent {
+                is_mouse_on_clip,
+                mouse_position_in_time: event.mouse_position_in_time,
+            });
+        } else if let Some(event) = event.downcast_ref::<EditorEvent>() {
+            match event {
+                EditorEvent::CameraClipBodyMouseDownEvent { mouse_event_id, .. }
+                | EditorEvent::SubtitleClipHeadMouseDownEvent { mouse_event_id, .. } => {
+                    self.last_clip_clicked_mouse_event_id = Some(mouse_event_id.clone());
+                }
+                _ => {}
+            }
+        }
+    }
     pub fn render(props: &TimelineBodyProps) -> RenderingTree {
         let track_body_height = 80.0; // TODO
         let track_bodies = props
@@ -60,6 +96,8 @@ impl TimelineBody {
             let height = props.height;
             let time_per_pixel = props.context.time_per_pixel;
             let start_at = props.context.start_at;
+            let get_mouse_position_in_time =
+                move |local_x| PixelSize(local_x) * time_per_pixel + start_at;
             builder
                 .on_wheel(move |event| {
                     let managers = namui::managers();
@@ -100,9 +138,16 @@ impl TimelineBody {
                 })
                 .on_mouse_move_in(move |event| {
                     namui::event::send(EditorEvent::TimelineBodyMouseMoveEvent {
-                        mouse_position_in_time: PixelSize(event.local_xy.x) * time_per_pixel
-                            + start_at,
+                        mouse_position_in_time: get_mouse_position_in_time(event.local_xy.x),
                     })
+                })
+                .on_mouse_down(move |event| {
+                    if event.button == Some(MouseButton::Left) {
+                        namui::event::send(TimelineBodyLeftClickEvent {
+                            mouse_event_id: event.id.clone(),
+                            mouse_position_in_time: get_mouse_position_in_time(event.local_xy.x),
+                        })
+                    }
                 })
         });
         render![

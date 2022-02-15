@@ -136,6 +136,7 @@ impl SubtitleClipBody {
                         let clip_id = props.clip.id.clone();
                         builder.on_mouse_down(move |event| {
                             namui::event::send(EditorEvent::SubtitleClipHeadMouseDownEvent {
+                                mouse_event_id: event.id.clone(),
                                 clip_id: clip_id.clone(),
                                 click_in_time: timeline_start_at
                                     + PixelSize(event.local_xy.x + x) * time_per_pixel,

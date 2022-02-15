@@ -8,11 +8,13 @@ use std::sync::Arc;
 
 pub enum EditorEvent {
     CameraClipBodyMouseDownEvent {
+        mouse_event_id: String,
         clip_id: String,
         click_in_time: Time,
         clicked_part: CameraClipBodyPart,
     },
     SubtitleClipHeadMouseDownEvent {
+        mouse_event_id: String,
         clip_id: String,
         click_in_time: Time,
     },
@@ -52,6 +54,10 @@ pub enum EditorEvent {
         click_position_in_time: Time,
     },
     TimelineBodyMouseMoveEvent {
+        mouse_position_in_time: Time,
+    },
+    TimelineBodyLeftClickEvent {
+        is_mouse_on_clip: bool,
         mouse_position_in_time: Time,
     },
     SequenceUpdateEvent {

@@ -220,6 +220,22 @@ impl namui::Entity for Editor {
                     }
                     _ => {}
                 },
+                EditorEvent::TimelineBodyLeftClickEvent {
+                    is_mouse_on_clip,
+                    mouse_position_in_time,
+                } => {
+                    self.sequence_player.seek(*mouse_position_in_time);
+                    if !is_mouse_on_clip {
+                        let keyboard_manager = &namui::managers().keyboard_manager;
+                        if keyboard_manager.any_code_press(&[namui::Code::ControlLeft]) {
+                            // do nothing please
+                        } else if keyboard_manager.any_code_press(&[namui::Code::ShiftLeft]) {
+                            self.select_all_to_time(mouse_position_in_time);
+                        } else {
+                            self.deselect_all_clips();
+                        }
+                    }
+                }
                 EditorEvent::CameraTrackBodyRightClickEvent {
                     mouse_global_xy,
                     mouse_position_in_time,
