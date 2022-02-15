@@ -315,6 +315,10 @@ impl RenderingTree {
                     }
                 }
                 SpecialRenderingNode::AttachEvent(attach_event) => {
+                    attach_event.rendering_tree.iter().rev().for_each(|child| {
+                        child.call_mouse_event_impl(mouse_event_type, raw_mouse_event, xy, matrix);
+                    });
+
                     let func = match mouse_event_type {
                         MouseEventType::Move => &attach_event.on_mouse_move_in,
                         MouseEventType::Down => &attach_event.on_mouse_down,
