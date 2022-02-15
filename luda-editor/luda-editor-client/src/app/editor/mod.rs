@@ -64,7 +64,7 @@ impl namui::Entity for Editor {
                     clicked_part,
                     ..
                 } => {
-                    self.on_clip_mouse_down(clip_id);
+                    self.on_clip_mouse_down(clip_id, click_in_time);
 
                     if self.job.is_none() {
                         match clicked_part {
@@ -102,7 +102,7 @@ impl namui::Entity for Editor {
                     click_in_time,
                     ..
                 } => {
-                    self.on_clip_mouse_down(clip_id);
+                    self.on_clip_mouse_down(clip_id, click_in_time);
 
                     if self.job.is_none() {
                         self.job = Some(Job::MoveSubtitleClip(MoveSubtitleClipJob {
@@ -565,7 +565,7 @@ impl Editor {
             }
         }
     }
-    fn on_clip_mouse_down(&mut self, clip_id: &str) {
+    fn on_clip_mouse_down(&mut self, clip_id: &str, click_in_time: &Time) {
         self.clip_id_to_check_as_click = None;
 
         let keyboard_manager = &namui::managers().keyboard_manager;
@@ -579,9 +579,7 @@ impl Editor {
         } else if keyboard_manager.any_code_press(&[namui::Code::ShiftLeft])
             && self.is_clip_in_same_track_with_selected_clips(clip_id)
         {
-            let mut selected_clip_ids = self.get_selected_clip_ids().clone();
-            selected_clip_ids.insert(clip_id.to_string());
-            self.select_all_between_clips(&selected_clip_ids.into_iter().collect::<Vec<_>>());
+            self.select_all_to_time(click_in_time);
         } else if !self.selected_clip_ids.contains(clip_id) {
             self.select_only_this_clip(clip_id);
         } else {
