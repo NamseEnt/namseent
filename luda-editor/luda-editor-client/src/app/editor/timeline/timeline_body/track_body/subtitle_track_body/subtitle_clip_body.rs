@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use crate::app::{
     editor::{events::EditorEvent, TimelineRenderContext},
-    types::{PixelSize, SubtitleClip, Time, TimePerPixel},
+    types::{PixelSize, SubtitleClip, Time},
 };
 use namui::prelude::*;
 
