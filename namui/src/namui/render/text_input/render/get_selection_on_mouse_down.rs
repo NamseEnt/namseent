@@ -1,4 +1,4 @@
-use crate::namui::{self, get_text_width, managers, render::Selection, TextInput};
+use crate::namui::{self, get_text_width_internal, managers, render::Selection, TextInput};
 
 pub(crate) fn get_selection_on_mouse_down(
     click_x: f32,
@@ -31,7 +31,7 @@ pub(crate) fn get_selection_on_mouse_down(
     // }
 
     //     const textWidth = getTextWidth(font, text, param.dropShadowX);
-    let text_width = get_text_width(
+    let text_width = get_text_width_internal(
         &font,
         &text_input.text,
         text_input.text_style.drop_shadow.map(|shadow| shadow.x),
