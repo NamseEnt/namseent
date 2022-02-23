@@ -1,5 +1,5 @@
 use crate::{
-    namui::{self, get_text_width, RenderingTree, TextInput},
+    namui::{self, get_text_width_internal, RenderingTree, TextInput},
     render,
 };
 
@@ -100,9 +100,9 @@ fn get_text_xs(
     let drop_shadow_x = text_input.text_style.drop_shadow.map(|shadow| shadow.x);
 
     let (left_text_width, selected_text_width, right_text_width) = (
-        get_text_width(&font, left_text_string, drop_shadow_x),
-        get_text_width(&font, selected_text_string, drop_shadow_x),
-        get_text_width(&font, right_text_string, drop_shadow_x),
+        get_text_width_internal(&font, left_text_string, drop_shadow_x),
+        get_text_width_internal(&font, selected_text_string, drop_shadow_x),
+        get_text_width_internal(&font, right_text_string, drop_shadow_x),
     );
 
     match text_input.text_align {
