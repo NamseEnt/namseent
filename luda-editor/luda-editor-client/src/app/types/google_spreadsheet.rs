@@ -18,10 +18,12 @@ impl SpreadsheetValuesGet {
                 }
 
                 let id = row[0].clone();
+                let speaker = row[1].clone();
                 // TODO : Make error if id is empty
                 let korean_text = row[6].clone();
                 Some(Subtitle {
                     id,
+                    speaker,
                     language_text_map: vec![(Language::Ko, korean_text)].into_iter().collect(),
                 })
             })

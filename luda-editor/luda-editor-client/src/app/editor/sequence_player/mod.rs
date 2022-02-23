@@ -1,7 +1,7 @@
 use self::content_loader::ContentLoader;
 use crate::app::types::*;
 use namui::{Color, Language, RenderingTree};
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 mod content_loader;
 mod player_screen;
 use player_screen::*;
@@ -34,6 +34,7 @@ pub struct SequencePlayerProps<'a> {
     pub language: Language,
     pub subtitle_play_duration_measurer: &'a dyn SubtitlePlayDurationMeasure,
     pub with_buttons: bool,
+    pub subtitle_character_color_map: &'a HashMap<String, Color>,
 }
 
 #[cfg(test)]
@@ -214,6 +215,7 @@ impl SequencePlay for SequencePlayer {
                     camera_angle_image_loader: self.camera_angle_image_loader.as_ref(),
                     language: props.language,
                     subtitle_play_duration_measurer: props.subtitle_play_duration_measurer,
+                    subtitle_character_color_map: props.subtitle_character_color_map,
                 }),
                 match props.with_buttons {
                     true => render_buttons(&ButtonsProps {

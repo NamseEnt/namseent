@@ -1,5 +1,6 @@
 use crate::app::types::*;
-use namui::{Language, RenderingTree, Wh, Xy, XywhRect};
+use namui::{Color, Language, RenderingTree, Wh, Xy, XywhRect};
+use std::collections::HashMap;
 mod subtitle_track;
 use super::PlaybackStatus;
 use subtitle_track::*;
@@ -11,6 +12,7 @@ pub(super) struct PlayerScreenProps<'a> {
     pub camera_angle_image_loader: &'a dyn CameraAngleImageLoader,
     pub language: Language,
     pub subtitle_play_duration_measurer: &'a dyn SubtitlePlayDurationMeasure,
+    pub subtitle_character_color_map: &'a HashMap<String, Color>,
 }
 
 pub(super) fn render_player_screen(props: &PlayerScreenProps) -> RenderingTree {
@@ -77,6 +79,7 @@ pub(super) fn render_player_screen(props: &PlayerScreenProps) -> RenderingTree {
                         props.camera_angle_image_loader,
                         props.language,
                         props.subtitle_play_duration_measurer,
+                        props.subtitle_character_color_map,
                     ),
                 ],
             )
@@ -91,6 +94,7 @@ fn render_sequence_in_player_screen(
     camera_angle_image_loader: &dyn CameraAngleImageLoader,
     language: Language,
     subtitle_play_duration_measurer: &dyn SubtitlePlayDurationMeasure,
+    subtitle_character_color_map: &HashMap<String, Color>,
 ) -> RenderingTree {
     RenderingTree::Children(
         sequence
@@ -113,6 +117,7 @@ fn render_sequence_in_player_screen(
                     playback_time,
                     language,
                     subtitle_play_duration_measurer,
+                    subtitle_character_color_map,
                 ),
             })
             .collect(),

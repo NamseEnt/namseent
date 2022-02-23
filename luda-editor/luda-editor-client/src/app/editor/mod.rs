@@ -402,6 +402,7 @@ impl namui::Entity for Editor {
             height: clip_editor_xywh.height - top_bar_xywh.height,
         };
         let playback_time = self.sequence_player.get_playback_time();
+        let meta = self.get_meta();
         render![
             self.timeline.render(&TimelineProps {
                 playback_time: &playback_time,
@@ -430,8 +431,9 @@ impl namui::Entity for Editor {
             self.sequence_player.render(&SequencePlayerProps {
                 xywh: &sequence_player_xywh,
                 language: self.language,
-                subtitle_play_duration_measurer: &self.get_meta(),
+                subtitle_play_duration_measurer: &meta,
                 with_buttons: true,
+                subtitle_character_color_map: &meta.subtitle_character_color_map,
             }),
             self.top_bar.render(&TopBarProps {
                 xywh: top_bar_xywh,

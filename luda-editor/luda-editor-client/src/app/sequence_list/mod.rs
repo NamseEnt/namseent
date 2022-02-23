@@ -19,7 +19,7 @@ use crate::app::{
     sequence_list::{list::render_list, sync_sequences_button::render_sync_sequences_button},
 };
 use luda_editor_rpc::Socket;
-use namui::{render, Wh, XywhRect};
+use namui::{render, Color, Wh, XywhRect};
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 const LIST_WIDTH: f32 = 800.0;
@@ -31,6 +31,7 @@ const MARGIN: f32 = 4.0;
 pub struct SequenceListProps<'a> {
     pub wh: Wh<f32>,
     pub subtitle_play_duration_measurer: &'a dyn SubtitlePlayDurationMeasure,
+    pub subtitle_character_color_map: &'a HashMap<String, Color>,
 }
 
 pub struct SequenceList {
@@ -147,6 +148,7 @@ impl SequenceList {
                 language: namui::Language::Ko,
                 subtitle_play_duration_measurer: props.subtitle_play_duration_measurer,
                 with_buttons: false,
+                subtitle_character_color_map: props.subtitle_character_color_map
             })
         ]
     }

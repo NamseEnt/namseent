@@ -42,6 +42,7 @@ impl Router {
             Page::SequenceList(sequence_list) => sequence_list.render(&SequenceListProps {
                 wh: props.screen_wh,
                 subtitle_play_duration_measurer: &props.meta.clone(),
+                subtitle_character_color_map: &props.meta.subtitle_character_color_map,
             }),
         }
     }
