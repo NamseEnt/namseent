@@ -10,6 +10,8 @@ use super::{
 use saving_status_text::*;
 mod sheet_sequence_syncer_bar;
 use sheet_sequence_syncer_bar::*;
+mod meta_update_button;
+use meta_update_button::*;
 
 const MARGIN: f32 = 4.0;
 
@@ -30,6 +32,7 @@ impl TopBar {
         if let Some(event) = event.downcast_ref::<TopBarEvent>() {
             match event {
                 TopBarEvent::GoBackButtonClicked => change_page_to_sequence_list(),
+                _ => {}
             }
         }
     }
@@ -55,6 +58,11 @@ impl TopBar {
             },
         });
 
+        let meta_update_button_wh = Wh {
+            width: 108.0,
+            height: props.xywh.height - 2.0 * MARGIN,
+        };
+
         namui::translate(
             props.xywh.x,
             props.xywh.y,
@@ -70,11 +78,18 @@ impl TopBar {
                     }),
                 ),
                 namui::translate(
-                    props.xywh.width - MARGIN,
+                    props.xywh.width - MARGIN * 2.0 - meta_update_button_wh.width,
                     MARGIN,
                     render_sheet_sequence_syncer_bar(&SheetSequenceSyncerBarProps {
                         height: props.xywh.height - 2.0 * MARGIN,
                         syncer_status: props.sheet_sequence_syncer_status,
+                    }),
+                ),
+                namui::translate(
+                    props.xywh.width - MARGIN - meta_update_button_wh.width,
+                    MARGIN,
+                    render_meta_update_button(&MetaUpdateButtonProps {
+                        wh: meta_update_button_wh
                     }),
                 ),
             ],

@@ -3,7 +3,10 @@ use self::{
     clip_editor::{camera_clip_editor::image_browser::ImageBrowserItem, ClipEditor},
     events::*,
 };
-use super::types::*;
+use super::types::{
+    meta::{Meta, MetaContainer},
+    *,
+};
 use crate::app::editor::{clip_editor::ClipEditorProps, top_bar::TopBarProps};
 pub use job::*;
 use luda_editor_rpc::Socket;
@@ -42,7 +45,6 @@ pub struct Editor {
     image_filename_objects: Vec<ImageFilenameObject>,
     selected_clip_ids: Arc<BTreeSet<String>>,
     sequence_player: Box<dyn SequencePlay>,
-    subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
     history: History<Arc<Sequence>>,
     top_bar: TopBar,
     clipboard: Option<Clipboard>,
@@ -51,6 +53,7 @@ pub struct Editor {
     context_menu: Option<ContextMenu>,
     sequence_saver: SequenceSaver,
     sheet_sequence_syncer: SheetSequenceSyncer,
+    meta_container: Arc<MetaContainer>,
 }
 
 impl namui::Entity for Editor {
@@ -406,7 +409,7 @@ impl namui::Entity for Editor {
                 job: &self.job,
                 selected_clip_ids: self.selected_clip_ids.iter().collect::<Vec<_>>().as_slice(),
                 sequence: self.get_sequence(),
-                subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
+                subtitle_play_duration_measurer: &self.get_meta(),
             }),
             match &self.clip_editor {
                 None => RenderingTree::Empty,
@@ -427,7 +430,7 @@ impl namui::Entity for Editor {
             self.sequence_player.render(&SequencePlayerProps {
                 xywh: &sequence_player_xywh,
                 language: self.language,
-                subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
+                subtitle_play_duration_measurer: &self.get_meta(),
                 with_buttons: true,
             }),
             self.top_bar.render(&TopBarProps {
@@ -449,6 +452,7 @@ impl Editor {
         sequence: Arc<Sequence>,
         sequence_file_path: &str,
         sequence_title: &str,
+        meta_container: Arc<MetaContainer>,
     ) -> Self {
         spawn_local({
             let socket = socket.clone();
@@ -482,7 +486,6 @@ impl Editor {
                 sequence.clone(),
                 Box::new(LudaEditorServerCameraAngleImageLoader {}),
             )),
-            subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
             history: History::new(sequence.clone()),
             top_bar: TopBar::new(),
             clipboard: None,
@@ -495,6 +498,7 @@ impl Editor {
                 socket.clone(),
             ),
             sheet_sequence_syncer: SheetSequenceSyncer::new(sequence_title),
+            meta_container,
         }
     }
     fn calculate_timeline_xywh(&self, screen_wh: &namui::Wh<f32>) -> XywhRect<f32> {
@@ -576,9 +580,7 @@ impl Editor {
     pub(crate) fn get_clip_end_time(&self, clip: &Clip) -> Time {
         match clip {
             Clip::Camera(clip) => clip.end_at,
-            Clip::Subtitle(clip) => {
-                clip.end_at(self.language, &self.subtitle_play_duration_measurer)
-            }
+            Clip::Subtitle(clip) => clip.end_at(self.language, &self.get_meta()),
         }
     }
     fn on_clip_mouse_down(&mut self, clip_id: &str, click_in_time: &Time) {
@@ -641,6 +643,9 @@ impl Editor {
                     .into_character_pose_emotion(),
             },
         }
+    }
+    fn get_meta(&self) -> Meta {
+        self.meta_container.get_meta().unwrap()
     }
 }
 

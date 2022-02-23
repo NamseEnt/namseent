@@ -202,6 +202,9 @@ impl Editor {
 
 #[cfg(test)]
 mod tests {
+    use std::array::IntoIter;
+    use std::collections::HashMap;
+
     use crate::app::editor::sequence_player::MockSequencePlay;
 
     use super::super::*;
@@ -374,7 +377,6 @@ mod tests {
             clip_editor: None,
             selected_clip_ids: Arc::new(BTreeSet::new()),
             sequence_player: Box::new(MockSequencePlay::new()),
-            subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
             history: History::new(sequence.clone()),
             top_bar: TopBar::new(),
             clipboard: None,
@@ -383,6 +385,17 @@ mod tests {
             context_menu: None,
             sequence_saver: SequenceSaver::new("", sequence.clone(), socket.clone()),
             sheet_sequence_syncer: SheetSequenceSyncer::new(""),
+            meta_container: Arc::new(MetaContainer::new(
+                Some(Meta {
+                    subtitle_language_minimum_play_duration_map: HashMap::<_, _>::from_iter(
+                        IntoIter::new([(Language::Ko, Time::from_ms(1000.0))]),
+                    ),
+                    subtitle_language_play_duration_per_character_map: HashMap::<_, _>::from_iter(
+                        IntoIter::new([(Language::Ko, Time::from_ms(100.0))]),
+                    ),
+                }),
+                Arc::new(MockMetaLoad::new()),
+            )),
         }
     }
 }

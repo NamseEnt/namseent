@@ -10,7 +10,7 @@ pub(super) struct PlayerScreenProps<'a> {
     pub sequence: &'a Sequence,
     pub camera_angle_image_loader: &'a dyn CameraAngleImageLoader,
     pub language: Language,
-    pub subtitle_play_duration_measurer: &'a SubtitlePlayDurationMeasurer,
+    pub subtitle_play_duration_measurer: &'a dyn SubtitlePlayDurationMeasure,
 }
 
 pub(super) fn render_player_screen(props: &PlayerScreenProps) -> RenderingTree {
@@ -90,7 +90,7 @@ fn render_sequence_in_player_screen(
     playback_time: &Time,
     camera_angle_image_loader: &dyn CameraAngleImageLoader,
     language: Language,
-    subtitle_play_duration_measurer: &SubtitlePlayDurationMeasurer,
+    subtitle_play_duration_measurer: &dyn SubtitlePlayDurationMeasure,
 ) -> RenderingTree {
     RenderingTree::Children(
         sequence

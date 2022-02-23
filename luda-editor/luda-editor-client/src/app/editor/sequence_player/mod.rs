@@ -32,7 +32,7 @@ enum PlaybackStatus {
 pub struct SequencePlayerProps<'a> {
     pub xywh: &'a namui::XywhRect<f32>,
     pub language: Language,
-    pub subtitle_play_duration_measurer: &'a SubtitlePlayDurationMeasurer,
+    pub subtitle_play_duration_measurer: &'a dyn SubtitlePlayDurationMeasure,
     pub with_buttons: bool,
 }
 
@@ -213,7 +213,7 @@ impl SequencePlay for SequencePlayer {
                     playback_status: &playback_status,
                     camera_angle_image_loader: self.camera_angle_image_loader.as_ref(),
                     language: props.language,
-                    subtitle_play_duration_measurer: &props.subtitle_play_duration_measurer,
+                    subtitle_play_duration_measurer: props.subtitle_play_duration_measurer,
                 }),
                 match props.with_buttons {
                     true => render_buttons(&ButtonsProps {

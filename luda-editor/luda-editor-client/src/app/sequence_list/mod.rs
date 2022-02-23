@@ -11,7 +11,7 @@ use self::{
 use super::{
     editor::SequencePlayer,
     types::{
-        LudaEditorServerCameraAngleImageLoader, Sequence, SubtitlePlayDurationMeasurer, Time, Track,
+        LudaEditorServerCameraAngleImageLoader, Sequence, SubtitlePlayDurationMeasure, Time, Track,
     },
 };
 use crate::app::{
@@ -19,7 +19,7 @@ use crate::app::{
     sequence_list::{list::render_list, sync_sequences_button::render_sync_sequences_button},
 };
 use luda_editor_rpc::Socket;
-use namui::{render, Entity, Wh, XywhRect};
+use namui::{render, Wh, XywhRect};
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 const LIST_WIDTH: f32 = 800.0;
@@ -28,8 +28,9 @@ const RECT_RADIUS: f32 = 4.0;
 const SPACING: f32 = 4.0;
 const MARGIN: f32 = 4.0;
 
-pub struct SequenceListProps {
+pub struct SequenceListProps<'a> {
     pub wh: Wh<f32>,
+    pub subtitle_play_duration_measurer: &'a dyn SubtitlePlayDurationMeasure,
 }
 
 pub struct SequenceList {
@@ -37,7 +38,6 @@ pub struct SequenceList {
     socket: Socket,
     scroll_y: f32,
     sequence_player: SequencePlayer,
-    subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer,
     sequence_preview_progress_map: SequencePreviewProgressMap,
     opened_sequence_title: Option<String>,
     error_message: Option<String>,
@@ -56,7 +56,6 @@ impl SequenceList {
                 Arc::new(Sequence::default()),
                 Box::new(LudaEditorServerCameraAngleImageLoader {}),
             ),
-            subtitle_play_duration_measurer: SubtitlePlayDurationMeasurer::new(),
             sequence_preview_progress_map: HashMap::new(),
             opened_sequence_title: None,
             error_message: None,
@@ -66,10 +65,8 @@ impl SequenceList {
     }
 }
 
-impl Entity for SequenceList {
-    type Props = SequenceListProps;
-
-    fn update(&mut self, event: &dyn std::any::Any) {
+impl SequenceList {
+    pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<SequenceListEvent>() {
             match event {
                 SequenceListEvent::SequenceTitleButtonClickedEvent { title } => {
@@ -100,10 +97,7 @@ impl Entity for SequenceList {
                         &self.sequences_sync_state.detail
                     {
                         let sequence = title_sequence_map.get(title).unwrap();
-                        let duration = calculate_sequence_duration(
-                            sequence,
-                            &self.subtitle_play_duration_measurer,
-                        );
+                        let duration = calculate_sequence_duration(sequence);
                         let moved_time = duration * progress;
                         self.sequence_player.update_sequence(sequence.clone());
                         self.sequence_player.seek(moved_time);
@@ -116,7 +110,7 @@ impl Entity for SequenceList {
         self.sequence_player.update(event);
     }
 
-    fn render(&self, props: &Self::Props) -> namui::RenderingTree {
+    pub fn render(&self, props: &SequenceListProps) -> namui::RenderingTree {
         let list_wh = Wh {
             width: LIST_WIDTH,
             height: props.wh.height - 2.0 * MARGIN - SPACING - BUTTON_HEIGHT,
@@ -151,17 +145,14 @@ impl Entity for SequenceList {
             self.sequence_player.render(&SequencePlayerProps {
                 xywh: &preview_xywh,
                 language: namui::Language::Ko,
-                subtitle_play_duration_measurer: &self.subtitle_play_duration_measurer,
+                subtitle_play_duration_measurer: props.subtitle_play_duration_measurer,
                 with_buttons: false,
             })
         ]
     }
 }
 
-fn calculate_sequence_duration(
-    sequence: &Arc<Sequence>,
-    subtitle_play_duration_measurer: &SubtitlePlayDurationMeasurer,
-) -> Time {
+fn calculate_sequence_duration(sequence: &Arc<Sequence>) -> Time {
     sequence
         .tracks
         .iter()
@@ -170,8 +161,6 @@ fn calculate_sequence_duration(
                 .clips
                 .iter()
                 .fold(duration, |duration, clip| duration.max(clip.end_at)),
-            Track::Subtitle(track) => track.clips.iter().fold(duration, |duration, clip| {
-                duration.max(clip.end_at(namui::Language::Ko, subtitle_play_duration_measurer))
-            }),
+            Track::Subtitle(track) => Time::zero(),
         })
 }
