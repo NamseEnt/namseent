@@ -116,55 +116,70 @@ fn render_subtitle(
         language,
         serif: false,
     };
+
     let subtitle_text = subtitle.language_text_map.get(&language).unwrap().clone();
     let text_box_width = get_text_width(&subtitle_text, &text_box_font_type, None);
+
     let name = subtitle.speaker.clone();
-    let name_box_width = get_text_width(&name, &text_box_font_type, None);
+    let is_no_name = name.is_empty();
+    let name_box_width = if is_no_name {
+        Some(0.0)
+    } else {
+        get_text_width(&name, &text_box_font_type, None)
+    };
 
     if text_box_width.is_none() || name_box_width.is_none() {
         return RenderingTree::Empty;
     }
 
     let text_box_width = text_box_width.unwrap() + BACKGROUND_MARGIN.left + BACKGROUND_MARGIN.right;
-    let name_box_width = name_box_width.unwrap() + BACKGROUND_MARGIN.left + BACKGROUND_MARGIN.right;
-
-    let name_box_center_x = subtitle_center_xy.x - text_box_width / 2.0 + 1.0; // NOTE : 1.0 is for floating point error.
+    let name_box_width = if is_no_name {
+        0.0
+    } else {
+        name_box_width.unwrap() + BACKGROUND_MARGIN.left + BACKGROUND_MARGIN.right
+    };
     let text_box_center_x = subtitle_center_xy.x + name_box_width / 2.0;
 
-    let name_background_color = subtitle_character_color_map
-        .get(&name)
-        .unwrap_or_else(|| &Color::WHITE)
-        .clone();
-
-    let is_name_background_color_dark = (name_background_color.r as u32
-        + name_background_color.g as u32
-        + name_background_color.b as u32)
-        / 3
-        < 128;
-
-    let name_text_color = if is_name_background_color_dark {
-        Color::WHITE
+    let name_box = if is_no_name {
+        RenderingTree::Empty
     } else {
-        Color::BLACK
+        let name_box_center_x = subtitle_center_xy.x - text_box_width / 2.0 + 1.0; // NOTE : 1.0 is for floating point error.
+
+        let name_background_color = subtitle_character_color_map
+            .get(&name)
+            .unwrap_or_else(|| &Color::WHITE)
+            .clone();
+
+        let is_name_background_color_dark = (name_background_color.r as u32
+            + name_background_color.g as u32
+            + name_background_color.b as u32)
+            / 3
+            < 128;
+
+        let name_text_color = if is_name_background_color_dark {
+            Color::WHITE
+        } else {
+            Color::BLACK
+        };
+        namui::text(namui::TextParam {
+            x: name_box_center_x,
+            y: subtitle_center_xy.y,
+            align: namui::TextAlign::Center,
+            baseline: namui::TextBaseline::Bottom,
+            font_type: text_box_font_type,
+            style: namui::TextStyle {
+                color: name_text_color,
+                background: Some(namui::TextStyleBackground {
+                    color: name_background_color,
+                    margin: Some(BACKGROUND_MARGIN),
+                }),
+                border: None,
+                drop_shadow: None,
+            },
+            text: name,
+        })
     };
 
-    let name_box = namui::text(namui::TextParam {
-        x: name_box_center_x,
-        y: subtitle_center_xy.y,
-        align: namui::TextAlign::Center,
-        baseline: namui::TextBaseline::Bottom,
-        font_type: text_box_font_type,
-        style: namui::TextStyle {
-            color: name_text_color,
-            background: Some(namui::TextStyleBackground {
-                color: name_background_color,
-                margin: Some(BACKGROUND_MARGIN),
-            }),
-            border: None,
-            drop_shadow: None,
-        },
-        text: name,
-    });
     let text_box = namui::text(namui::TextParam {
         x: text_box_center_x,
         y: subtitle_center_xy.y,
