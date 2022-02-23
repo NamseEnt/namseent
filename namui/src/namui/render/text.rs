@@ -176,39 +176,15 @@ fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
     );
 
     let font_metrics = font.get_metrics();
-    let glyph_ids = font.get_glyph_ids(&param.text);
-    let glyphs_top_bottom = get_glyphs_top_bottom(font, &glyph_ids);
 
+    let height = -font_metrics.ascent + font_metrics.descent;
     let bottom_of_baseline = get_bottom_of_baseline(&param.baseline, &font_metrics);
-    let (mut height, mut top) = match glyphs_top_bottom {
-        Some((top, bottom)) => {
-            let height = bottom - top
-                + if let Some(drop_shadow) = param.style.drop_shadow {
-                    drop_shadow.y
-                } else {
-                    0.0
-                };
-            let top = param.y + bottom_of_baseline + top;
-            (height, top)
-        }
-        Option::None => (
-            -font_metrics.ascent + font_metrics.descent,
-            param.y + bottom_of_baseline + font_metrics.ascent,
-        ),
-    };
-
-    let minimum_height = param.font_type.size as f32;
-
-    if height < minimum_height {
-        let delta_height = minimum_height - height;
-        top -= delta_height / 2.0;
-        height = minimum_height;
-    }
+    let top = param.y + bottom_of_baseline + font_metrics.ascent;
 
     let margin = background.margin.unwrap_or(LtrbRect::default());
 
-    let final_x = margin.left + get_left_in_align(param.x, param.align, width);
-    let final_y = margin.top + top;
+    let final_x = -margin.left + get_left_in_align(param.x, param.align, width);
+    let final_y = -margin.top + top;
     let final_width = width + margin.left + margin.right;
     let final_height = height + margin.top + margin.bottom;
 
