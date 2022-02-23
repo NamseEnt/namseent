@@ -28,6 +28,8 @@ pub use meta::*;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Subtitle {
     pub id: String,
+    #[serde(default)] // TODO: Remove this attribute after sync data.
+    pub speaker: String,
     pub language_text_map: HashMap<Language, String>,
 }
 

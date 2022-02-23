@@ -393,6 +393,10 @@ mod tests {
                     subtitle_language_play_duration_per_character_map: HashMap::<_, _>::from_iter(
                         IntoIter::new([(Language::Ko, Time::from_ms(100.0))]),
                     ),
+                    subtitle_character_color_map: HashMap::<_, _>::from_iter(IntoIter::new([(
+                        "하연".to_string(),
+                        Color::WHITE,
+                    )])),
                 }),
                 Arc::new(MockMetaLoad::new()),
             )),

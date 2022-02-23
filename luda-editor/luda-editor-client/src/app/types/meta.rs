@@ -10,6 +10,7 @@ use wasm_bindgen_futures::spawn_local;
 pub struct Meta {
     pub subtitle_language_minimum_play_duration_map: HashMap<Language, Time>,
     pub subtitle_language_play_duration_per_character_map: HashMap<Language, Time>,
+    pub subtitle_character_color_map: HashMap<String, Color>,
 }
 
 pub async fn save_meta(meta: &Meta, socket: &Socket) -> Result<(), String> {

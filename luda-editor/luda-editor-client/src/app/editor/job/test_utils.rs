@@ -128,6 +128,7 @@ pub fn mock_subtitle_clip(clip_id: &str, start_at: Time) -> Arc<SubtitleClip> {
 pub fn mock_subtitle(clip_id: &str) -> Subtitle {
     Subtitle {
         id: clip_id.to_string(),
+        speaker: "".to_string(),
         language_text_map: vec![(Language::Ko, "hello_world".to_string())]
             .into_iter()
             .collect(),
