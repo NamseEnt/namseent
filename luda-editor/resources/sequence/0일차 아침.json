@@ -764,7 +764,7 @@
               "milliseconds": 35018.133
             },
             "end_at": {
-              "milliseconds": 38008.133
+              "milliseconds": 40078.133
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -788,41 +788,12 @@
             }
           },
           {
-            "id": "CameraClip-8n5_4HgUJHaJfuUjtfdCE",
-            "start_at": {
-              "milliseconds": 38008.133
-            },
-            "end_at": {
-              "milliseconds": 39408.14
-            },
-            "camera_angle": {
-              "character_pose_emotion": [
-                "오하연",
-                "탁자폰",
-                "근심"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.51431155,
-                  "y": 0.69300145
-                },
-                "radius": 0.35183874
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
-              }
-            }
-          },
-          {
             "id": "CameraClip--iPhpIKp4CbWnA0oH0oDa",
             "start_at": {
-              "milliseconds": 39408.14
+              "milliseconds": 40078.133
             },
             "end_at": {
-              "milliseconds": 43449.72
+              "milliseconds": 44119.71
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -859,6 +830,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0001",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "아이돌 안하실래요?"
               }
@@ -871,6 +843,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0002",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "..."
               }
@@ -883,6 +856,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0003",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "..."
               }
@@ -895,6 +869,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0004",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "이상한거 아니에요"
               }
@@ -907,6 +882,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0005",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "그 말 하니까 더 이상한데요"
               }
@@ -919,6 +895,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0006",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "앗..."
               }
@@ -931,6 +908,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0008",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "저흰 돈 안뜯는데..."
               }
@@ -943,6 +921,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0009",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "들었어요?"
               }
@@ -955,6 +934,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0010",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "누가 엿들으래요!"
               }
@@ -967,6 +947,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0011",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "아 아니... 그게..."
               }
@@ -979,6 +960,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0012",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "그... 그냥..."
               }
@@ -991,6 +973,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0013",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "뒤에 앉아 있었는데..."
               }
@@ -1003,6 +986,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0014",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "들을려고 한건 아니에요"
               }
@@ -1015,6 +999,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0016",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "돈 갚는거 도와드릴까요?"
               }
@@ -1027,6 +1012,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0017",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "네"
               }
@@ -1039,6 +1025,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0018",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "네?"
               }
@@ -1051,6 +1038,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0019",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "개인방송이랑 다르지만"
               }
@@ -1059,10 +1047,11 @@
           {
             "id": "2022-02-07-22-33-0020",
             "start_at": {
-              "milliseconds": 30421.543
+              "milliseconds": 30720.268
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0020",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "더 재미있을거에요"
               }
@@ -1075,6 +1064,7 @@
             },
             "subtitle": {
               "id": "2022-02-22-16-40-0001",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "하기 싫어서 그만두신거 아니잖아요?"
               }
@@ -1087,6 +1077,7 @@
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0021",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "이상한거 따라가지 말랬는데..."
               }
@@ -1095,10 +1086,11 @@
           {
             "id": "2022-02-07-22-33-0022",
             "start_at": {
-              "milliseconds": 38243.62
+              "milliseconds": 38963.62
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0022",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "엄마가..."
               }
@@ -1107,10 +1099,11 @@
           {
             "id": "2022-02-07-22-33-0023",
             "start_at": {
-              "milliseconds": 39663.62
+              "milliseconds": 40623.62
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0023",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "이거 명함 보시고 한번 오세요."
               }
@@ -1119,10 +1112,11 @@
           {
             "id": "2022-02-07-22-33-0024",
             "start_at": {
-              "milliseconds": 42135.34
+              "milliseconds": 43095.34
             },
             "subtitle": {
               "id": "2022-02-07-22-33-0024",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "여기 근처에요!"
               }

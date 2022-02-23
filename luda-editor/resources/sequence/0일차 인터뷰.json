@@ -10,7 +10,7 @@
               "milliseconds": 0.0
             },
             "end_at": {
-              "milliseconds": 2060.0
+              "milliseconds": 3150.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -36,10 +36,10 @@
           {
             "id": "CameraClip-jjZ4735B8NP9yLRAVOt6M",
             "start_at": {
-              "milliseconds": 2060.0
+              "milliseconds": 3150.0
             },
             "end_at": {
-              "milliseconds": 3130.0
+              "milliseconds": 4910.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -65,10 +65,10 @@
           {
             "id": "CameraClip-qu-k5c9eOogo8GBKKGtv4",
             "start_at": {
-              "milliseconds": 3130.0
+              "milliseconds": 4910.0
             },
             "end_at": {
-              "milliseconds": 4160.0
+              "milliseconds": 5980.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -94,10 +94,10 @@
           {
             "id": "CameraClip-OdGF-PSS8HuCUtBf_fY_U",
             "start_at": {
-              "milliseconds": 4160.0
+              "milliseconds": 5980.0
             },
             "end_at": {
-              "milliseconds": 6170.0
+              "milliseconds": 8590.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -123,10 +123,10 @@
           {
             "id": "CameraClip-iTg3O_N9vMX02IOaHygON",
             "start_at": {
-              "milliseconds": 6170.0
+              "milliseconds": 8590.0
             },
             "end_at": {
-              "milliseconds": 8140.0
+              "milliseconds": 10980.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -152,10 +152,10 @@
           {
             "id": "CameraClip-YTr_O9hy9k5VNHe34Zjx9",
             "start_at": {
-              "milliseconds": 8140.0
+              "milliseconds": 10980.0
             },
             "end_at": {
-              "milliseconds": 9820.0
+              "milliseconds": 13170.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -181,10 +181,10 @@
           {
             "id": "CameraClip-Tf8Edjy1I6TKW1BebZar-",
             "start_at": {
-              "milliseconds": 9820.0
+              "milliseconds": 13170.0
             },
             "end_at": {
-              "milliseconds": 11440.0
+              "milliseconds": 15190.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -210,10 +210,10 @@
           {
             "id": "CameraClip-_ABbukQ6XGG3ZRc-Cbd4K",
             "start_at": {
-              "milliseconds": 11440.0
+              "milliseconds": 15190.0
             },
             "end_at": {
-              "milliseconds": 13370.0
+              "milliseconds": 17120.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -239,10 +239,10 @@
           {
             "id": "CameraClip-gjhGFW1YiSlTUHQKMOcna",
             "start_at": {
-              "milliseconds": 13370.0
+              "milliseconds": 17120.0
             },
             "end_at": {
-              "milliseconds": 15770.0
+              "milliseconds": 20020.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -268,10 +268,10 @@
           {
             "id": "CameraClip-cLXcFmgC83lPJCcAVavmI",
             "start_at": {
-              "milliseconds": 15770.0
+              "milliseconds": 20020.0
             },
             "end_at": {
-              "milliseconds": 17710.0
+              "milliseconds": 21960.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -297,10 +297,10 @@
           {
             "id": "CameraClip-ufeTuFB2KqTuVmbodoatg",
             "start_at": {
-              "milliseconds": 17710.0
+              "milliseconds": 21960.0
             },
             "end_at": {
-              "milliseconds": 19360.0
+              "milliseconds": 23610.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -326,10 +326,10 @@
           {
             "id": "CameraClip-AhTT6a3g9SKX-g300zczb",
             "start_at": {
-              "milliseconds": 19360.0
+              "milliseconds": 23610.0
             },
             "end_at": {
-              "milliseconds": 20850.0
+              "milliseconds": 26180.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -355,10 +355,10 @@
           {
             "id": "CameraClip-qUkEvdy0nEpPQWN5ENNvZ",
             "start_at": {
-              "milliseconds": 20850.0
+              "milliseconds": 26180.0
             },
             "end_at": {
-              "milliseconds": 22870.0
+              "milliseconds": 29000.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -384,10 +384,10 @@
           {
             "id": "CameraClip-cGIe0aTCkzmiES5uEL_gQ",
             "start_at": {
-              "milliseconds": 22870.0
+              "milliseconds": 29000.0
             },
             "end_at": {
-              "milliseconds": 25200.0
+              "milliseconds": 32180.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -413,10 +413,10 @@
           {
             "id": "CameraClip-zydKgAlO4AJ0rpQVsQ1iN",
             "start_at": {
-              "milliseconds": 25200.0
+              "milliseconds": 32180.0
             },
             "end_at": {
-              "milliseconds": 27300.0
+              "milliseconds": 34280.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -442,10 +442,10 @@
           {
             "id": "CameraClip-CqtAFaPJoVzF_s6O0WAT0",
             "start_at": {
-              "milliseconds": 27300.0
+              "milliseconds": 34280.0
             },
             "end_at": {
-              "milliseconds": 31460.0
+              "milliseconds": 38440.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -471,10 +471,10 @@
           {
             "id": "CameraClip-MbNKWmxA_muI56_9KNPxj",
             "start_at": {
-              "milliseconds": 31460.0
+              "milliseconds": 38440.0
             },
             "end_at": {
-              "milliseconds": 33100.0
+              "milliseconds": 41270.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -500,10 +500,10 @@
           {
             "id": "CameraClip-23SJdj6cjsXclitcoFdTK",
             "start_at": {
-              "milliseconds": 33100.0
+              "milliseconds": 41270.0
             },
             "end_at": {
-              "milliseconds": 35320.0
+              "milliseconds": 44240.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -529,10 +529,10 @@
           {
             "id": "CameraClip-XrX02f9BAQYF6zfAlcs2I",
             "start_at": {
-              "milliseconds": 35320.0
+              "milliseconds": 44240.0
             },
             "end_at": {
-              "milliseconds": 37140.0
+              "milliseconds": 46060.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -558,10 +558,10 @@
           {
             "id": "CameraClip-G03bNUmSw9bFO2gpdFkZF",
             "start_at": {
-              "milliseconds": 37140.0
+              "milliseconds": 46060.0
             },
             "end_at": {
-              "milliseconds": 39140.0
+              "milliseconds": 48980.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -587,10 +587,10 @@
           {
             "id": "CameraClip-jZutdnMGyMXX3JkaTZ084",
             "start_at": {
-              "milliseconds": 39140.0
+              "milliseconds": 48980.0
             },
             "end_at": {
-              "milliseconds": 41140.0
+              "milliseconds": 50980.0
             },
             "camera_angle": {
               "character_pose_emotion": [
@@ -627,6 +627,7 @@
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0001",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "아.. 제가 인터넷 방송을 했었는데…"
               }
@@ -635,10 +636,11 @@
           {
             "id": "2022-02-22-21-38-0002",
             "start_at": {
-              "milliseconds": 2120.0002
+              "milliseconds": 3140.0002
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0002",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "악플러들이 좌표찍고"
               }
@@ -647,10 +649,11 @@
           {
             "id": "2022-02-22-21-38-0003",
             "start_at": {
-              "milliseconds": 3150.0
+              "milliseconds": 4910.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0003",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "잘 안됐어요."
               }
@@ -659,10 +662,11 @@
           {
             "id": "2022-02-22-21-38-0004",
             "start_at": {
-              "milliseconds": 4200.0
+              "milliseconds": 5990.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0004",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "의도적으로 공격을 한 것 같더라고요."
               }
@@ -671,10 +675,11 @@
           {
             "id": "2022-02-22-21-38-0005",
             "start_at": {
-              "milliseconds": 6200.0
+              "milliseconds": 8600.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0005",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "그냥, 에펙이나… 롤같은거…"
               }
@@ -683,10 +688,11 @@
           {
             "id": "2022-02-22-21-38-0006",
             "start_at": {
-              "milliseconds": 8170.0
+              "milliseconds": 10980.001
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0006",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "계속 참다가 대응을 좀 안좋게…"
               }
@@ -695,10 +701,11 @@
           {
             "id": "2022-02-22-21-38-0007",
             "start_at": {
-              "milliseconds": 9870.0
+              "milliseconds": 13170.001
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0007",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "방송, 그래도 재미 있었어요!"
               }
@@ -707,10 +714,11 @@
           {
             "id": "2022-02-22-21-38-0008",
             "start_at": {
-              "milliseconds": 11470.0
+              "milliseconds": 15200.001
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0008",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "악플러한테 욕을 했어요. 좀 심하게"
               }
@@ -719,10 +727,11 @@
           {
             "id": "2022-02-22-21-38-0009",
             "start_at": {
-              "milliseconds": 13430.0
+              "milliseconds": 17160.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0009",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "..."
               }
@@ -731,10 +740,11 @@
           {
             "id": "2022-02-22-21-38-0010",
             "start_at": {
-              "milliseconds": 14430.0
+              "milliseconds": 18640.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0010",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "누가 그래요?"
               }
@@ -743,10 +753,11 @@
           {
             "id": "2022-02-22-21-38-0011",
             "start_at": {
-              "milliseconds": 15849.998
+              "milliseconds": 20040.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0011",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "이게 좀 말씀드리기 어려운 욕설을…"
               }
@@ -755,10 +766,11 @@
           {
             "id": "2022-02-22-21-38-0012",
             "start_at": {
-              "milliseconds": 17749.998
+              "milliseconds": 21940.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0012",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "아니 걔네가 먼저 그랬어요!!"
               }
@@ -767,10 +779,11 @@
           {
             "id": "2022-02-22-21-38-0013",
             "start_at": {
-              "milliseconds": 19389.998
+              "milliseconds": 23580.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0013",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "욕한거 잘라다가 돌아다니니까"
               }
@@ -779,10 +792,11 @@
           {
             "id": "2022-02-22-21-38-0014",
             "start_at": {
-              "milliseconds": 20909.998
+              "milliseconds": 26210.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0014",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "소속사에서 하연씨를 짜른 것 같더라고요"
               }
@@ -791,10 +805,11 @@
           {
             "id": "2022-02-22-21-38-0015",
             "start_at": {
-              "milliseconds": 22959.998
+              "milliseconds": 28980.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0015",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "근데 그전에, 거기서 장비를 준 것 같은데"
               }
@@ -803,10 +818,11 @@
           {
             "id": "2022-02-22-21-38-0016",
             "start_at": {
-              "milliseconds": 25269.998
+              "milliseconds": 32160.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0016",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "그게 무료가 아니고… 강매..."
               }
@@ -815,10 +831,11 @@
           {
             "id": "2022-02-22-21-38-0017",
             "start_at": {
-              "milliseconds": 27380.002
+              "milliseconds": 34270.004
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0017",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "..."
               }
@@ -827,10 +844,11 @@
           {
             "id": "2022-02-22-21-38-0018",
             "start_at": {
-              "milliseconds": 28919.998
+              "milliseconds": 35810.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0018",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "저"
               }
@@ -839,10 +857,11 @@
           {
             "id": "2022-02-22-21-38-0019",
             "start_at": {
-              "milliseconds": 29899.998
+              "milliseconds": 37360.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0019",
+              "speaker": "하연",
               "language_text_map": {
                 "Ko": "여기 편집해주시면 안돼요?"
               }
@@ -851,10 +870,11 @@
           {
             "id": "2022-02-22-21-38-0020",
             "start_at": {
-              "milliseconds": 31519.998
+              "milliseconds": 38980.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0020",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "방송 막 뜰 때 그만뒀으니까…"
               }
@@ -863,10 +883,11 @@
           {
             "id": "2022-02-22-21-38-0021",
             "start_at": {
-              "milliseconds": 33170.0
+              "milliseconds": 41260.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0021",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "돈 못갚아서 난감한 상황인 것 같아요."
               }
@@ -875,22 +896,24 @@
           {
             "id": "2022-02-22-21-38-0022",
             "start_at": {
-              "milliseconds": 35390.0
+              "milliseconds": 44250.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0022",
+              "speaker": "",
               "language_text_map": {
-                "Ko": "- 피디님은 어떻게 잘 아세요?"
+                "Ko": "Q. 피디님은 어떻게 잘 아세요?"
               }
             }
           },
           {
             "id": "2022-02-22-21-38-0023",
             "start_at": {
-              "milliseconds": 36970.0
+              "milliseconds": 45830.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0023",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "저요?"
               }
@@ -899,10 +922,11 @@
           {
             "id": "2022-02-22-21-38-0024",
             "start_at": {
-              "milliseconds": 37930.0
+              "milliseconds": 47540.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0024",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "…"
               }
@@ -911,10 +935,11 @@
           {
             "id": "2022-02-22-21-38-0025",
             "start_at": {
-              "milliseconds": 39240.0
+              "milliseconds": 48980.0
             },
             "subtitle": {
               "id": "2022-02-22-21-38-0025",
+              "speaker": "피디",
               "language_text_map": {
                 "Ko": "비밀인데, 시청자였어요"
               }
