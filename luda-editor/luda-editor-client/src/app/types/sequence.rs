@@ -119,7 +119,7 @@ impl SubtitleTrack {
         &self,
         time: &Time,
         language: Language,
-        duration_measurer: &SubtitlePlayDurationMeasurer,
+        duration_measurer: &dyn SubtitlePlayDurationMeasure,
     ) -> Option<&SubtitleClip> {
         self.clips.iter().find_map(|clip| {
             if clip.is_at_time(&time, language, duration_measurer) {
@@ -322,7 +322,7 @@ impl SubtitleClip {
         &self,
         time: &Time,
         language: Language,
-        duration_measurer: &SubtitlePlayDurationMeasurer,
+        duration_measurer: &dyn SubtitlePlayDurationMeasure,
     ) -> bool {
         self.start_at <= time && time < self.end_at(language, duration_measurer)
     }
@@ -330,7 +330,7 @@ impl SubtitleClip {
     pub(crate) fn end_at(
         &self,
         language: Language,
-        duration_measurer: &SubtitlePlayDurationMeasurer,
+        duration_measurer: &dyn SubtitlePlayDurationMeasure,
     ) -> Time {
         self.start_at + duration_measurer.get_play_duration(&self.subtitle, &language)
     }

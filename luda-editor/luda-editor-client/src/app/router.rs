@@ -2,12 +2,13 @@ use super::{
     editor::EditorProps,
     events::RouterEvent,
     sequence_list::{SequenceList, SequenceListProps},
-    types::{AppContext, Page},
+    types::{meta::Meta, AppContext, Page},
 };
 use namui::{Entity, Wh};
 
-pub struct RouterProps {
+pub struct RouterProps<'a> {
     pub screen_wh: Wh<f32>,
+    pub meta: &'a Meta,
 }
 
 pub struct Router {
@@ -15,10 +16,8 @@ pub struct Router {
     context: AppContext,
 }
 
-impl Entity for Router {
-    type Props = RouterProps;
-
-    fn update(&mut self, event: &dyn std::any::Any) {
+impl Router {
+    pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<RouterEvent>() {
             match &event {
                 RouterEvent::PageChangeToEditorEvent(initializer) => {
@@ -35,19 +34,17 @@ impl Entity for Router {
         }
     }
 
-    fn render(&self, props: &Self::Props) -> namui::RenderingTree {
+    pub fn render(&self, props: &RouterProps) -> namui::RenderingTree {
         match &self.page {
             Page::Editor(editor) => editor.render(&EditorProps {
                 screen_wh: props.screen_wh,
             }),
             Page::SequenceList(sequence_list) => sequence_list.render(&SequenceListProps {
                 wh: props.screen_wh,
+                subtitle_play_duration_measurer: &props.meta.clone(),
             }),
         }
     }
-}
-
-impl Router {
     pub fn new(context: AppContext) -> Self {
         Self {
             page: Page::SequenceList(SequenceList::new(context.socket.clone())),

@@ -10,7 +10,7 @@ use crate::app::{
             timeline_header::{TimelineHeader, TimelineHeaderProps},
         },
     },
-    types::{PixelSize, Sequence, SubtitlePlayDurationMeasurer, Time, TimePerPixel},
+    types::{PixelSize, Sequence, SubtitlePlayDurationMeasure, Time, TimePerPixel},
 };
 use playback_time_view::*;
 mod time_ruler;
@@ -44,14 +44,14 @@ pub struct TimelineProps<'a> {
     pub job: &'a Option<Job>,
     pub selected_clip_ids: &'a [&'a String],
     pub sequence: &'a Sequence,
-    pub subtitle_play_duration_measurer: &'a SubtitlePlayDurationMeasurer,
+    pub subtitle_play_duration_measurer: &'a dyn SubtitlePlayDurationMeasure,
 }
 pub struct TimelineRenderContext<'a> {
     pub time_per_pixel: TimePerPixel,
     pub job: &'a Option<Job>,
     pub selected_clip_ids: &'a [&'a String],
     start_at: Time,
-    pub subtitle_play_duration_measurer: &'a SubtitlePlayDurationMeasurer,
+    pub subtitle_play_duration_measurer: &'a dyn SubtitlePlayDurationMeasure,
     pub language: Language, // TODO : Set this from setting page
 }
 impl Timeline {

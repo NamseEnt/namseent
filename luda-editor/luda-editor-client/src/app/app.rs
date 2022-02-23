@@ -1,23 +1,41 @@
-use super::{router::RouterProps, types::AppContext, Router};
+use super::{
+    router::RouterProps,
+    types::{
+        meta::{self, *},
+        AppContext,
+    },
+    Router,
+};
+use async_trait::async_trait;
+use luda_editor_rpc::Socket;
 use namui::Wh;
+use std::sync::Arc;
 use wasm_bindgen_futures::spawn_local;
 
 pub struct App {
     router: Router,
+    meta_container: Arc<MetaContainer>,
 }
 
 impl namui::Entity for App {
     type Props = ();
     fn render(&self, _: &Self::Props) -> namui::RenderingTree {
-        let screen_size = namui::screen::size();
-        self.router.render(&RouterProps {
-            screen_wh: Wh {
-                width: screen_size.width as f32,
-                height: screen_size.height as f32,
-            },
-        })
+        match self.meta_container.get_meta() {
+            Some(meta) => {
+                let screen_size = namui::screen::size();
+                self.router.render(&RouterProps {
+                    screen_wh: Wh {
+                        width: screen_size.width as f32,
+                        height: screen_size.height as f32,
+                    },
+                    meta: &meta,
+                })
+            }
+            None => namui::RenderingTree::Empty,
+        }
     }
     fn update(&mut self, event: &dyn std::any::Any) {
+        self.meta_container.update(event);
         self.router.update(event);
     }
 }
@@ -25,19 +43,18 @@ impl namui::Entity for App {
 impl App {
     pub fn new() -> Self {
         let socket = App::create_socket();
-        let screen_size = namui::screen::size();
+        let meta_container = Arc::new(MetaContainer::new(None, Arc::new(socket.clone())));
+        meta_container.start_reloading();
         Self {
             router: Router::new(AppContext {
-                screen_size: namui::Wh {
-                    width: screen_size.width as f32,
-                    height: screen_size.height as f32,
-                },
                 socket,
+                meta_container: meta_container.clone(),
             }),
+            meta_container: meta_container.clone(),
         }
     }
     fn create_socket() -> luda_editor_rpc::Socket {
-        use luda_editor_rpc::{async_trait::async_trait, response_waiter::*, RpcHandle, *};
+        use luda_editor_rpc::{response_waiter::*, RpcHandle, *};
         use tokio::sync::mpsc::unbounded_channel;
         use tokio_stream::wrappers::UnboundedReceiverStream;
         use wasm_bindgen::{closure::Closure, JsCast};
@@ -141,5 +158,12 @@ impl App {
         onopen_callback.forget();
 
         socket
+    }
+}
+
+#[async_trait]
+impl MetaLoad for Socket {
+    async fn load_meta(&self) -> Result<Meta, String> {
+        meta::get_meta(&self).await
     }
 }

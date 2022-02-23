@@ -25,7 +25,13 @@ pub fn render_open_button(
                     let title = title.clone();
                     namui::event::send(RouterEvent::PageChangeToEditorEvent(Box::new(
                         move |context| -> Editor {
-                            Editor::new(context.socket.clone(), sequence.clone(), &path, &title)
+                            Editor::new(
+                                context.socket.clone(),
+                                sequence.clone(),
+                                &path,
+                                &title,
+                                context.meta_container.clone(),
+                            )
                         },
                     )));
                 })

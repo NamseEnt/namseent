@@ -1,7 +1,8 @@
+use super::MetaContainer;
 use luda_editor_rpc::Socket;
-use namui::Wh;
+use std::sync::Arc;
 
 pub struct AppContext {
-    pub screen_size: Wh<f32>,
     pub socket: Socket,
+    pub meta_container: Arc<MetaContainer>,
 }

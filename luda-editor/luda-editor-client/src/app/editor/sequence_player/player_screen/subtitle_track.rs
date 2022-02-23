@@ -7,7 +7,7 @@ pub(super) fn render_subtitle_track_in_player_screen(
     screen_wh: &Wh<f32>,
     playback_time: &Time,
     language: Language,
-    subtitle_play_duration_measurer: &SubtitlePlayDurationMeasurer,
+    subtitle_play_duration_measurer: &dyn SubtitlePlayDurationMeasure,
 ) -> RenderingTree {
     let mut clips_in_playback_time = track
         .clips
@@ -43,7 +43,7 @@ fn get_line_index_pushing_up(
     playback_time: &Time,
     target_clip: &SubtitleClip,
     language: Language,
-    subtitle_play_duration_measurer: &SubtitlePlayDurationMeasurer,
+    subtitle_play_duration_measurer: &dyn SubtitlePlayDurationMeasure,
 ) -> usize {
     let mut clips_come_after_target: Vec<_> = clips
         .iter()
