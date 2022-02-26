@@ -7,7 +7,6 @@ use crate::{
 };
 use futures::{
     channel::mpsc::{unbounded, UnboundedSender},
-    executor::block_on,
     lock::Mutex,
     SinkExt, StreamExt,
 };
@@ -38,30 +37,40 @@ impl WebServer {
             warp::path::end().map(|| warp::redirect(Uri::from_static("index.html")));
 
         let bundle = option.bundle.clone();
-        let serve_wasm_bundle = warp::path("bundle_bg.wasm").map(
-            move || -> Result<warp::hyper::Response<Vec<u8>>, warp::http::Error> {
+        let serve_wasm_bundle = warp::path("bundle_bg.wasm").and_then(move || {
+            let bundle = bundle.clone();
+            async move {
                 debug_println!("serve_wasm_bundle: locking web_server.bundle...");
-                let bundle = block_on(bundle.read()).wasm.clone();
+                let wasm = bundle.read().await.wasm.clone();
                 debug_println!("serve_wasm_bundle: web_server.bundle locked");
 
-                response::Builder::new()
+                match response::Builder::new()
                     .header("Content-Type", "application/wasm")
-                    .body(bundle.clone())
-            },
-        );
+                    .body(wasm)
+                {
+                    Ok(reply) => Ok(reply),
+                    Err(_) => Err(warp::reject()),
+                }
+            }
+        });
 
         let bundle = option.bundle.clone();
-        let serve_js_bundle = warp::path("bundle.js").map(
-            move || -> Result<warp::hyper::Response<Vec<u8>>, warp::http::Error> {
+        let serve_js_bundle = warp::path("bundle.js").and_then(move || {
+            let bundle = bundle.clone();
+            async move {
                 debug_println!("serve_js_bundle: locking web_server.bundle...");
-                let bundle = block_on(bundle.read()).js.clone();
+                let js = bundle.read().await.js.clone();
                 debug_println!("serve_js_bundle: web_server.bundle locked");
 
-                response::Builder::new()
+                match response::Builder::new()
                     .header("Content-Type", "text/javascript")
-                    .body(bundle.clone())
-            },
-        );
+                    .body(js)
+                {
+                    Ok(reply) => Ok(reply),
+                    Err(_) => Err(warp::reject()),
+                }
+            }
+        });
 
         let serve_engine = warp::path("engine").and(warp::fs::dir(get_engine_dir()));
 
