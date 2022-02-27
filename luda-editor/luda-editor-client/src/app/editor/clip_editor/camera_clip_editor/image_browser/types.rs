@@ -13,6 +13,7 @@ impl ImageFilenameObject {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ImageBrowserItem {
     Back,
+    Empty,
     Character(String),
     CharacterPose(String, String),
     CharacterPoseEmotion(String, String, String),
@@ -57,6 +58,9 @@ impl ImageBrowserItem {
             }
             ImageBrowserItem::CharacterPoseEmotion(character, pose, emotion) => {
                 vec![character.clone(), pose.clone(), emotion.clone()]
+            }
+            ImageBrowserItem::Empty => {
+                vec!["Empty".to_string()]
             }
         }
         .join("/")

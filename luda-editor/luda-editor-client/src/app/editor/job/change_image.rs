@@ -4,7 +4,7 @@ use crate::app::types::*;
 #[derive(Debug, Clone)]
 pub struct ChangeImageJob {
     pub clip_id: String,
-    pub character_pose_emotion: CharacterPoseEmotion,
+    pub character_pose_emotion: Option<CharacterPoseEmotion>,
 }
 
 impl JobExecute for ChangeImageJob {

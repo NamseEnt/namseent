@@ -31,8 +31,14 @@ impl ContentLoader {
             match track.as_ref() {
                 Track::Camera(camera_track) => {
                     for clip in camera_track.clips.iter() {
-                        let image_source = camera_angle_image_loader
-                            .get_image_source(&clip.camera_angle.character_pose_emotion);
+                        let character_pose_emotion = match &clip.camera_angle.character_pose_emotion
+                        {
+                            Some(character_pose_emotion) => character_pose_emotion,
+                            None => continue,
+                        };
+
+                        let image_source =
+                            camera_angle_image_loader.get_image_source(&character_pose_emotion);
 
                         if image_source.is_none() {
                             panic!("image source is none");

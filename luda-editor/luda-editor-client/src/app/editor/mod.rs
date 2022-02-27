@@ -180,10 +180,19 @@ impl namui::Entity for Editor {
                         }));
                     };
                 }
-                EditorEvent::ImageBrowserSelectEvent { selected_item } => match selected_item {
-                    ImageBrowserItem::CharacterPoseEmotion(character, pose, emotion) => {
-                        let character_pose_emotion =
-                            CharacterPoseEmotion(character.clone(), pose.clone(), emotion.clone());
+                EditorEvent::ImageBrowserSelectEvent { selected_item } => {
+                    let character_pose_emotion = match selected_item {
+                        ImageBrowserItem::CharacterPoseEmotion(character, pose, emotion) => {
+                            Some(Some(CharacterPoseEmotion(
+                                character.clone(),
+                                pose.clone(),
+                                emotion.clone(),
+                            )))
+                        }
+                        ImageBrowserItem::Empty => Some(None),
+                        _ => None,
+                    };
+                    character_pose_emotion.map(|character_pose_emotion| {
                         let clip = self.get_single_selected_clip().unwrap();
                         if Some(&character_pose_emotion)
                             == clip
@@ -198,9 +207,8 @@ impl namui::Entity for Editor {
                             character_pose_emotion,
                         }));
                         self.execute_job();
-                    }
-                    _ => {}
-                },
+                    });
+                }
                 EditorEvent::TimelineTimeRulerClickEvent {
                     click_position_in_time,
                 } => {
@@ -641,8 +649,7 @@ impl Editor {
                     right: 1.0,
                     bottom: 1.0,
                 },
-                character_pose_emotion: self.image_filename_objects[0]
-                    .into_character_pose_emotion(),
+                character_pose_emotion: None,
             },
         }
     }

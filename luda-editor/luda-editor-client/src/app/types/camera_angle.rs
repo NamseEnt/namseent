@@ -3,7 +3,7 @@ use namui::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CameraAngle {
-    pub character_pose_emotion: CharacterPoseEmotion,
+    pub character_pose_emotion: Option<CharacterPoseEmotion>,
     pub source_01_circumscribed: Circumscribed,
     pub crop_screen_01_rect: LtrbRect,
 }
@@ -35,7 +35,12 @@ impl CameraAngle {
         wh: &Wh<f32>,
         camera_angle_image_loader: &dyn CameraAngleImageLoader,
     ) -> RenderingTree {
-        let image_source = camera_angle_image_loader.get_image_source(&self.character_pose_emotion);
+        if self.character_pose_emotion.is_none() {
+            return RenderingTree::Empty;
+        }
+        let character_pose_emotion = self.character_pose_emotion.as_ref().unwrap();
+
+        let image_source = camera_angle_image_loader.get_image_source(&character_pose_emotion);
         if image_source.is_none() {
             return RenderingTree::Empty;
         }

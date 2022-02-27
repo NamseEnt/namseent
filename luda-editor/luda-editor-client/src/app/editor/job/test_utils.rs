@@ -97,11 +97,7 @@ pub fn mock_camera_clip(clip_id: &str, start_at: Time, end_at: Time) -> Arc<Came
         start_at,
         end_at,
         camera_angle: CameraAngle {
-            character_pose_emotion: CharacterPoseEmotion(
-                "c".to_string(),
-                "p".to_string(),
-                "e".to_string(),
-            ),
+            character_pose_emotion: None,
             source_01_circumscribed: Circumscribed {
                 center: Xy { x: 0.0, y: 0.0 },
                 radius: 1.0,

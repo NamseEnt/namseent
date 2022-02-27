@@ -3,6 +3,7 @@ use std::collections::BTreeSet;
 mod browser_item;
 use browser_item::*;
 mod back_button;
+mod empty_button;
 mod scroll;
 use crate::app::{
     editor::events::EditorEvent,
@@ -22,17 +23,23 @@ pub struct ImageBrowser {
 }
 
 impl ImageBrowser {
-    pub fn new(character_pose_emotion: &CharacterPoseEmotion, clip_id: &str) -> Self {
+    pub fn new(character_pose_emotion: &Option<CharacterPoseEmotion>, clip_id: &str) -> Self {
         Self {
-            directory: ImageBrowserDirectory::CharacterPose(
-                character_pose_emotion.0.clone(),
-                character_pose_emotion.1.clone(),
-            ),
-            selected_item: Some(ImageBrowserItem::CharacterPoseEmotion(
-                character_pose_emotion.0.clone(),
-                character_pose_emotion.1.clone(),
-                character_pose_emotion.2.clone(),
-            )),
+            directory: match character_pose_emotion {
+                Some(character_pose_emotion) => ImageBrowserDirectory::CharacterPose(
+                    character_pose_emotion.0.clone(),
+                    character_pose_emotion.1.clone(),
+                ),
+                None => ImageBrowserDirectory::Root,
+            },
+            selected_item: match character_pose_emotion {
+                Some(character_pose_emotion) => Some(ImageBrowserItem::CharacterPoseEmotion(
+                    character_pose_emotion.0.clone(),
+                    character_pose_emotion.1.clone(),
+                    character_pose_emotion.2.clone(),
+                )),
+                None => Some(ImageBrowserItem::Empty),
+            },
             scroll: Scroll::new(),
             current_directory_label_layout: XywhRect {
                 x: 20.0,
@@ -84,22 +91,26 @@ impl ImageBrowser {
                             emotion.clone(),
                         ));
                     }
+                    ImageBrowserItem::Empty => {
+                        self.selected_item = Some(ImageBrowserItem::Empty);
+                    }
                 },
                 EditorEvent::SequenceUpdateEvent { sequence } => {
                     sequence.find_clip(&self.clip_id).map(|clip| {
-                        let CharacterPoseEmotion(character, pose, emotion) =
-                            &clip.camera_angle.character_pose_emotion;
-                        let item = Some(ImageBrowserItem::CharacterPoseEmotion(
-                            character.clone(),
-                            pose.clone(),
-                            emotion.clone(),
-                        ));
+                        let item =
+                            Some(get_image_browser_item_from_camera_angle(&clip.camera_angle));
 
                         if self.selected_item != item {
-                            self.directory = ImageBrowserDirectory::CharacterPose(
-                                character.clone(),
-                                pose.clone(),
-                            );
+                            self.directory = match item.as_ref().unwrap() {
+                                ImageBrowserItem::Empty => ImageBrowserDirectory::Root,
+                                ImageBrowserItem::CharacterPoseEmotion(character, pose, _) => {
+                                    ImageBrowserDirectory::CharacterPose(
+                                        character.clone(),
+                                        pose.clone(),
+                                    )
+                                }
+                                _ => unreachable!(),
+                            };
                             self.selected_item = item;
                         }
                     });
@@ -132,6 +143,8 @@ impl ImageBrowser {
         let mut browser_items = vec![];
         if !is_root {
             browser_items.push(self.render_back_button(item_size, thumbnail_rect));
+        } else {
+            browser_items.push(self.render_empty_button(item_size, thumbnail_rect));
         }
         browser_items.extend(
             self.get_browser_item_props(item_size, thumbnail_rect, props.image_filename_objects)
@@ -228,6 +241,17 @@ impl ImageBrowser {
     }
 }
 
+fn get_image_browser_item_from_camera_angle(
+    camera_angle: &crate::app::types::CameraAngle,
+) -> ImageBrowserItem {
+    match &camera_angle.character_pose_emotion {
+        Some(CharacterPoseEmotion(character, pose, emotion)) => {
+            ImageBrowserItem::CharacterPoseEmotion(character.clone(), pose.clone(), emotion.clone())
+        }
+        None => ImageBrowserItem::Empty,
+    }
+}
+
 impl ImageFilenameObject {
     pub fn new(camera_shot_url: &String) -> Self {
         let file_name_with_extension = camera_shot_url.split("/").last().unwrap();
@@ -289,6 +313,7 @@ impl ImageFilenameObject {
                 self.character == *character && self.pose == *pose && self.emotion == *emotion
             }
             ImageBrowserItem::Back => false,
+            ImageBrowserItem::Empty => false,
         }
     }
 }

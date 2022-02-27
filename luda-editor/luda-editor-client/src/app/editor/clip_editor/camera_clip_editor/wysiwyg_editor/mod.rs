@@ -34,7 +34,8 @@ impl WysiwygEditor {
         let image_url = props
             .camera_angle
             .character_pose_emotion
-            .get_url(props.image_filename_objects);
+            .as_ref()
+            .and_then(|image_url| image_url.get_url(props.image_filename_objects));
         if image_url.is_none() {
             return RenderingTree::Empty;
         }
