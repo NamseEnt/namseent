@@ -74,20 +74,20 @@ impl namui::Entity for Editor {
                             CameraClipBodyPart::Sash(sash_direction) => {
                                 if self.selected_clip_ids.len() != 1 {
                                     namui::log!("selected_clip_ids.len() should be 1 to resize, but it's {}", self.selected_clip_ids.len());
-                                    return;
-                                }
-                                let clip_id = self.selected_clip_ids.iter().next().unwrap();
+                                } else {
+                                    let clip_id = self.selected_clip_ids.iter().next().unwrap();
 
-                                self.job = Some(Job::ResizeCameraClip(ResizeCameraClipJob {
-                                    clip_id: clip_id.clone(),
-                                    click_anchor_in_time: *click_in_time,
-                                    last_mouse_position_in_time: *click_in_time,
-                                    is_moved: false,
-                                    resize_direction: match *sash_direction {
-                                        SashDirection::Left => ResizeDirection::Left,
-                                        SashDirection::Right => ResizeDirection::Right,
-                                    },
-                                }));
+                                    self.job = Some(Job::ResizeCameraClip(ResizeCameraClipJob {
+                                        clip_id: clip_id.clone(),
+                                        click_anchor_in_time: *click_in_time,
+                                        last_mouse_position_in_time: *click_in_time,
+                                        is_moved: false,
+                                        resize_direction: match *sash_direction {
+                                            SashDirection::Left => ResizeDirection::Left,
+                                            SashDirection::Right => ResizeDirection::Right,
+                                        },
+                                    }));
+                                }
                             }
                             CameraClipBodyPart::Body => {
                                 self.job = Some(Job::MoveCameraClip(MoveCameraClipJob {
