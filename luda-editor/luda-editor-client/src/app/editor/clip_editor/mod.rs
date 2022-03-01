@@ -24,7 +24,7 @@ impl ClipEditor {
                 &clip.id,
             )),
             Clip::Subtitle(_) => ClipEditor::Subtitle,
-            Clip::Background(_) => todo!(),
+            _ => todo!(),
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
