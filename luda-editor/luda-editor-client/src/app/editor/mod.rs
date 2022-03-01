@@ -12,7 +12,7 @@ pub use job::*;
 use luda_editor_rpc::Socket;
 use namui::prelude::*;
 use std::{cmp::Ordering, collections::BTreeSet, sync::Arc};
-use timeline::timeline_body::track_body::camera_track_body::camera_clip_body::*;
+use timeline::timeline_body::track_body::*;
 pub use timeline::*;
 use wasm_bindgen_futures::spawn_local;
 mod clip_editor;
@@ -61,7 +61,7 @@ impl namui::Entity for Editor {
     fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<EditorEvent>() {
             match event {
-                EditorEvent::CameraClipBodyMouseDownEvent {
+                EditorEvent::ResizableClipBodyMouseDownEvent {
                     clip_id,
                     click_in_time,
                     clicked_part,
@@ -71,13 +71,13 @@ impl namui::Entity for Editor {
 
                     if self.job.is_none() {
                         match clicked_part {
-                            CameraClipBodyPart::Sash(sash_direction) => {
+                            ResizableClipBodyPart::Sash(sash_direction) => {
                                 if self.selected_clip_ids.len() != 1 {
                                     namui::log!("selected_clip_ids.len() should be 1 to resize, but it's {}", self.selected_clip_ids.len());
                                 } else {
                                     let clip_id = self.selected_clip_ids.iter().next().unwrap();
 
-                                    self.job = Some(Job::ResizeCameraClip(ResizeCameraClipJob {
+                                    self.job = Some(Job::ResizeClip(ResizeClipJob {
                                         clip_id: clip_id.clone(),
                                         click_anchor_in_time: *click_in_time,
                                         last_mouse_position_in_time: *click_in_time,
@@ -89,8 +89,8 @@ impl namui::Entity for Editor {
                                     }));
                                 }
                             }
-                            CameraClipBodyPart::Body => {
-                                self.job = Some(Job::MoveCameraClip(MoveCameraClipJob {
+                            ResizableClipBodyPart::Body => {
+                                self.job = Some(Job::MoveClip(MoveClipJob {
                                     clip_ids: self.get_selected_clip_ids().clone(),
                                     click_anchor_in_time: *click_in_time,
                                     last_mouse_position_in_time: *click_in_time,
@@ -108,7 +108,7 @@ impl namui::Entity for Editor {
                     self.on_clip_mouse_down(clip_id, click_in_time);
 
                     if self.job.is_none() {
-                        self.job = Some(Job::MoveSubtitleClip(MoveSubtitleClipJob {
+                        self.job = Some(Job::MoveClip(MoveClipJob {
                             clip_ids: self.get_selected_clip_ids().clone(),
                             click_anchor_in_time: *click_in_time,
                             last_mouse_position_in_time: *click_in_time,
@@ -217,15 +217,11 @@ impl namui::Entity for Editor {
                 EditorEvent::TimelineBodyMouseMoveEvent {
                     mouse_position_in_time,
                 } => match self.job {
-                    Some(Job::MoveCameraClip(ref mut job)) => {
+                    Some(Job::MoveClip(ref mut job)) => {
                         job.last_mouse_position_in_time = *mouse_position_in_time;
                         job.is_moved = true;
                     }
-                    Some(Job::MoveSubtitleClip(ref mut job)) => {
-                        job.last_mouse_position_in_time = *mouse_position_in_time;
-                        job.is_moved = true;
-                    }
-                    Some(Job::ResizeCameraClip(ref mut job)) => {
+                    Some(Job::ResizeClip(ref mut job)) => {
                         job.last_mouse_position_in_time = *mouse_position_in_time;
                         job.is_moved = true;
                     }
@@ -277,9 +273,8 @@ impl namui::Entity for Editor {
                     _ => {}
                 },
                 NamuiEvent::MouseUp(_) => match self.job {
-                    Some(Job::MoveCameraClip(MoveCameraClipJob { is_moved, .. }))
-                    | Some(Job::MoveSubtitleClip(MoveSubtitleClipJob { is_moved, .. }))
-                    | Some(Job::ResizeCameraClip(ResizeCameraClipJob { is_moved, .. })) => {
+                    Some(Job::MoveClip(MoveClipJob { is_moved, .. }))
+                    | Some(Job::ResizeClip(ResizeClipJob { is_moved, .. })) => {
                         if is_moved {
                             self.execute_job();
                         } else {
@@ -564,6 +559,9 @@ impl Editor {
 
         match selected_clip {
             None => {}
+            Some(Clip::Background(background_clip)) => {
+                self.clipboard = Some(Clipboard::BackgroundClip(background_clip.clone()));
+            }
             Some(Clip::Camera(camera_clip)) => {
                 self.clipboard = Some(Clipboard::CameraClip(camera_clip.clone()));
             }
@@ -577,6 +575,13 @@ impl Editor {
         }
 
         match self.clipboard.as_ref().unwrap() {
+            Clipboard::BackgroundClip(background_clip) => {
+                self.job = Some(Job::AddBackgroundClip(AddBackgroundClipJob {
+                    background_clip: Arc::new(background_clip.duplicate()),
+                    time_to_insert: self.sequence_player.get_playback_time(),
+                }));
+                self.execute_job();
+            }
             Clipboard::CameraClip(camera_clip) => {
                 self.job = Some(Job::AddCameraClip(AddCameraClipJob {
                     camera_clip: Arc::new(camera_clip.duplicate()),
@@ -589,6 +594,7 @@ impl Editor {
 
     pub(crate) fn get_clip_end_time(&self, clip: &Clip) -> Time {
         match clip {
+            Clip::Background(clip) => clip.end_at,
             Clip::Camera(clip) => clip.end_at,
             Clip::Subtitle(clip) => clip.end_at(self.language, &self.get_meta()),
         }

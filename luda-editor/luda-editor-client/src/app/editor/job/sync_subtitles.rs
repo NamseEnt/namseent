@@ -10,8 +10,7 @@ impl JobExecute for SyncSubtitlesJob {
     fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
         let sequence = sequence.clone();
         let subtitle_track_id = get_subtitle_track_id(&sequence);
-        match sequence.replace_track(&subtitle_track_id, |track: &SubtitleTrack| {
-            let mut track = track.clone();
+        match sequence.replace_track(&subtitle_track_id, |mut track: SubtitleTrack| {
             track.sync(&self.subtitles);
             Ok(track)
         }) {
@@ -43,7 +42,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn change_subtitle_text() {
-        let sequence = mock_sequence(&[], &["0"]);
+        let sequence = mock_sequence(&[], &[], &["0"]);
 
         let mut subtitle = mock_subtitle("0");
         let changed_subtitle_text = "changed subtitle text";
@@ -75,7 +74,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn insert_new_subtitle_clip_in_empty_subtitle_track() {
-        let sequence = mock_sequence(&[], &[]);
+        let sequence = mock_sequence(&[], &[], &[]);
         let job = SyncSubtitlesJob {
             subtitles: vec![mock_subtitle("0")],
         };
@@ -94,7 +93,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn insert_new_subtitle_clips_in_empty_subtitle_track() {
-        let sequence = mock_sequence(&[], &[]);
+        let sequence = mock_sequence(&[], &[], &[]);
         let job = SyncSubtitlesJob {
             subtitles: vec![mock_subtitle("0"), mock_subtitle("1")],
         };
@@ -117,7 +116,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn insert_new_subtitle_clips_in_front_of_subtitle_track() {
-        let sequence = mock_sequence(&[], &["0", "1"]);
+        let sequence = mock_sequence(&[], &[], &["0", "1"]);
         let job = SyncSubtitlesJob {
             subtitles: vec![
                 mock_subtitle("2"),
@@ -148,7 +147,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn insert_new_subtitle_clips_in_back_of_subtitle_track() {
-        let sequence = mock_sequence(&[], &["0", "1"]);
+        let sequence = mock_sequence(&[], &[], &["0", "1"]);
         let job = SyncSubtitlesJob {
             subtitles: vec![
                 mock_subtitle("0"),
@@ -185,7 +184,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn insert_new_subtitle_clips_in_middle_of_subtitle_track() {
-        let sequence = mock_sequence(&[], &["0", "1"]);
+        let sequence = mock_sequence(&[], &[], &["0", "1"]);
         let job = SyncSubtitlesJob {
             subtitles: vec![
                 mock_subtitle("0"),
@@ -216,7 +215,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn sync_twice_should_keep_value_of_boolean_is_needed_to_update_position() {
-        let mut sequence = mock_sequence(&[], &["0"]);
+        let mut sequence = mock_sequence(&[], &[], &["0"]);
 
         for _ in 0..2 {
             let job = SyncSubtitlesJob {

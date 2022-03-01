@@ -1,4 +1,4 @@
-use super::{get_camera_track_id, JobExecute};
+use super::JobExecute;
 use crate::app::types::*;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -7,7 +7,7 @@ pub enum ResizeDirection {
     Right,
 }
 #[derive(Debug, Clone)]
-pub struct ResizeCameraClipJob {
+pub struct ResizeClipJob {
     pub clip_id: String,
     pub click_anchor_in_time: Time,
     pub last_mouse_position_in_time: Time,
@@ -15,14 +15,15 @@ pub struct ResizeCameraClipJob {
     pub is_moved: bool,
 }
 
-impl JobExecute for ResizeCameraClipJob {
+impl JobExecute for ResizeClipJob {
     fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
         let sequence = sequence.clone();
-        let camera_track_id = get_camera_track_id(&sequence);
-        match sequence.replace_track(&camera_track_id, |track: &CameraTrack| {
-            let mut track = track.clone();
-            self.resize_clip_in_track(&mut track);
-            Ok(track)
+        let track_id = match sequence.find_track_by_clip_id(&self.clip_id) {
+            Some(track) => track.get_id().to_string(),
+            None => return Err(format!("cannot find track of clip_id {}", self.clip_id)),
+        };
+        match sequence.replace_track(&track_id, |mut track: ResizableTrack| {
+            Ok(self.resize_clip_in_track(track))
         }) {
             UpdateResult::Updated(replacer) => Ok(replacer),
             UpdateResult::NotUpdated => Err("Camera track not found".to_string()),
@@ -31,7 +32,7 @@ impl JobExecute for ResizeCameraClipJob {
     }
 }
 
-impl ResizeCameraClipJob {
+impl ResizeClipJob {
     pub fn get_delta_time(&self) -> Time {
         (self.last_mouse_position_in_time - self.click_anchor_in_time)
             * match self.resize_direction {
@@ -39,8 +40,13 @@ impl ResizeCameraClipJob {
                 ResizeDirection::Right => 1.0,
             }
     }
-    pub fn resize_clip_in_track(&self, track: &mut CameraTrack) {
-        track.resize_clip_delta(&self.clip_id, self.get_delta_time());
+    pub fn resize_clip_in_track<TTrack>(&self, track: TTrack) -> TTrack
+    where
+        TTrack: From<ResizableTrack> + Into<ResizableTrack>,
+    {
+        let mut resizable_track: ResizableTrack = track.into();
+        resizable_track.resize_clip_delta(&self.clip_id, self.get_delta_time());
+        resizable_track.into()
     }
 }
 
@@ -53,8 +59,8 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn increase_by_left_direction_should_work() {
-        let sequence = mock_sequence(&["0", "1", "2"], &[]);
-        let job = ResizeCameraClipJob {
+        let sequence = mock_sequence(&[], &["0", "1", "2"], &[]);
+        let job = ResizeClipJob {
             clip_id: "1".to_string(),
             click_anchor_in_time: Time::from_ms(0.0),
             last_mouse_position_in_time: Time::from_ms(-0.5),
@@ -78,8 +84,8 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn decrease_by_left_direction_should_work() {
-        let sequence = mock_sequence(&["0", "1", "2"], &[]);
-        let job = ResizeCameraClipJob {
+        let sequence = mock_sequence(&[], &["0", "1", "2"], &[]);
+        let job = ResizeClipJob {
             clip_id: "1".to_string(),
             click_anchor_in_time: Time::from_ms(0.0),
             last_mouse_position_in_time: Time::from_ms(0.5),
@@ -103,8 +109,8 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn increase_by_right_direction_should_work() {
-        let sequence = mock_sequence(&["0", "1", "2"], &[]);
-        let job = ResizeCameraClipJob {
+        let sequence = mock_sequence(&[], &["0", "1", "2"], &[]);
+        let job = ResizeClipJob {
             clip_id: "1".to_string(),
             click_anchor_in_time: Time::from_ms(0.0),
             last_mouse_position_in_time: Time::from_ms(0.5),
@@ -128,8 +134,8 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn decrease_by_right_direction_should_work() {
-        let sequence = mock_sequence(&["0", "1", "2"], &[]);
-        let job = ResizeCameraClipJob {
+        let sequence = mock_sequence(&[], &["0", "1", "2"], &[]);
+        let job = ResizeClipJob {
             clip_id: "1".to_string(),
             click_anchor_in_time: Time::from_ms(0.0),
             last_mouse_position_in_time: Time::from_ms(-0.5),

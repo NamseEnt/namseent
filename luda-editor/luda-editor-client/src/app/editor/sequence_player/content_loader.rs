@@ -59,6 +59,7 @@ impl ContentLoader {
                 Track::Subtitle(_) => {
                     // NOTE: namui starts engine after loading fonts.
                 }
+                Track::Background(_) => todo!(),
             }
         }
     }

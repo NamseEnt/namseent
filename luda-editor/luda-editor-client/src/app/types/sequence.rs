@@ -1,6 +1,6 @@
 use super::*;
 use serde::{Deserialize, Serialize};
-use std::{collections::VecDeque, sync::Arc};
+use std::sync::Arc;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Sequence {
@@ -11,6 +11,13 @@ impl Sequence {
     pub fn get_clip(&self, id: &str) -> Option<Clip> {
         for track in self.tracks.iter() {
             match track.as_ref() {
+                Track::Background(track) => {
+                    for clip in track.clips.iter() {
+                        if clip.id == id {
+                            return Some(Clip::Background(clip.clone()));
+                        }
+                    }
+                }
                 Track::Camera(track) => {
                     for clip in track.clips.iter() {
                         if clip.id == id {
@@ -39,6 +46,7 @@ impl Sequence {
     }
     pub fn find_track_by_clip_id(&self, clip_id: &str) -> Option<Arc<Track>> {
         self.find_track(|track| match track {
+            Track::Background(track) => track.clips.iter().any(|clip| clip.id.eq(clip_id)),
             Track::Camera(track) => track.clips.iter().any(|clip| clip.id.eq(clip_id)),
             Track::Subtitle(track) => track.clips.iter().any(|clip| clip.id.eq(clip_id)),
         })
@@ -76,181 +84,6 @@ impl Default for Sequence {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub enum Track {
-    Camera(CameraTrack),
-    Subtitle(SubtitleTrack),
-}
-
-impl Track {
-    pub fn get_id(&self) -> &str {
-        match self {
-            Track::Camera(track) => &track.id,
-            Track::Subtitle(track) => &track.id,
-        }
-    }
-
-    pub fn get_clips(&self) -> Vec<Clip> {
-        match self {
-            Track::Camera(track) => track
-                .clips
-                .iter()
-                .map(|clip| Clip::Camera(clip.clone()))
-                .collect::<Vec<_>>(),
-            Track::Subtitle(track) => track
-                .clips
-                .iter()
-                .map(|clip| Clip::Subtitle(clip.clone()))
-                .collect::<Vec<_>>(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SubtitleTrack {
-    pub id: String,
-    pub clips: Arc<[Arc<SubtitleClip>]>,
-}
-
-pub const DEFAULT_SUBTITLE_INSERT_INTERVAL_MS: f32 = 1000.0;
-
-impl SubtitleTrack {
-    pub(crate) fn get_clip_at_time(
-        &self,
-        time: &Time,
-        language: Language,
-        duration_measurer: &dyn SubtitlePlayDurationMeasure,
-    ) -> Option<&SubtitleClip> {
-        self.clips.iter().find_map(|clip| {
-            if clip.is_at_time(&time, language, duration_measurer) {
-                Some(clip.as_ref())
-            } else {
-                None
-            }
-        })
-    }
-
-    pub(crate) fn sync(&mut self, subtitles: &[Subtitle]) {
-        let mut clip_queue: VecDeque<Arc<SubtitleClip>> = self.clips.to_vec().into();
-        let mut subtitle_queue: VecDeque<Subtitle> = subtitles.to_vec().into();
-
-        let mut result_clips = vec![];
-
-        loop {
-            let front_clip = clip_queue.front();
-            let front_subtitle = subtitle_queue.front();
-            if front_subtitle.is_none() {
-                break;
-            }
-            let front_subtitle = front_subtitle.unwrap();
-
-            match front_clip {
-                Some(front_clip) => {
-                    if subtitle_queue
-                        .iter()
-                        .all(|subtitle| subtitle.id != front_clip.id)
-                    {
-                        clip_queue.pop_front();
-                        continue;
-                    }
-
-                    if front_clip.id == front_subtitle.id {
-                        result_clips.push(Arc::new(SubtitleClip {
-                            id: front_clip.id.clone(),
-                            start_at: front_clip.start_at,
-                            subtitle: front_subtitle.clone(),
-                            is_needed_to_update_position: front_clip.is_needed_to_update_position,
-                        }));
-                        clip_queue.pop_front();
-                        subtitle_queue.pop_front();
-                        continue;
-                    }
-
-                    if clip_queue.iter().any(|clip| clip.id == front_subtitle.id) {
-                        clip_queue.pop_front();
-                        continue;
-                    }
-
-                    let mut subtitles_to_insert_in_the_middle =
-                        vec![subtitle_queue.pop_front().unwrap()];
-
-                    while let Some(subtitle) = subtitle_queue.front() {
-                        if subtitle.id != front_clip.id {
-                            subtitles_to_insert_in_the_middle
-                                .push(subtitle_queue.pop_front().unwrap());
-                        } else {
-                            break;
-                        }
-                    }
-
-                    let right_clip = subtitle_queue.front().map(|_| front_clip);
-
-                    let (left_time, interval) = if let Some(right_clip) = right_clip {
-                        let right_time = right_clip.start_at;
-
-                        match result_clips.last() {
-                            Some(clip) => {
-                                let interval = (right_time - clip.start_at)
-                                    / (subtitles_to_insert_in_the_middle.len() as f32 + 1.0);
-                                let left_time = clip.start_at + interval;
-                                (left_time, interval)
-                            }
-                            None => (
-                                Time::zero(),
-                                right_time / (subtitles_to_insert_in_the_middle.len() as f32 + 1.0),
-                            ),
-                        }
-                    } else {
-                        let interval = Time::from_ms(DEFAULT_SUBTITLE_INSERT_INTERVAL_MS);
-                        let left_time = match result_clips.last() {
-                            Some(clip) => clip.start_at + interval,
-                            None => Time::zero(),
-                        };
-                        (left_time, interval)
-                    };
-
-                    subtitles_to_insert_in_the_middle
-                        .iter()
-                        .enumerate()
-                        .for_each(|(index, subtitle)| {
-                            let start_at = left_time + interval * (index as f32);
-                            result_clips.push(Arc::new(SubtitleClip {
-                                id: subtitle.id.clone(),
-                                start_at,
-                                subtitle: subtitle.clone(),
-                                is_needed_to_update_position: true,
-                            }));
-                        });
-                }
-                None => {
-                    let interval = Time::from_ms(DEFAULT_SUBTITLE_INSERT_INTERVAL_MS);
-
-                    let left_time = match result_clips.last() {
-                        Some(clip) => clip.start_at + interval,
-                        None => Time::zero(),
-                    };
-
-                    subtitle_queue
-                        .iter()
-                        .enumerate()
-                        .for_each(|(index, subtitle)| {
-                            let start_at = left_time + interval * (index as f32);
-                            result_clips.push(Arc::new(SubtitleClip {
-                                id: subtitle.id.clone(),
-                                start_at,
-                                subtitle: subtitle.clone(),
-                                is_needed_to_update_position: true,
-                            }));
-                        });
-                    subtitle_queue.clear();
-                    break;
-                }
-            }
-        }
-        self.clips = result_clips.into();
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CameraClip {
     pub id: String,
@@ -275,8 +108,33 @@ impl CameraClip {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackgroundClip {
+    pub id: String,
+    pub start_at: Time,
+    pub end_at: Time,
+    pub camera_angle: CameraAngle,
+}
+impl BackgroundClip {
+    pub fn is_at_time(&self, time: &Time) -> bool {
+        self.start_at <= time && time < self.end_at
+    }
+    pub fn duplicate(&self) -> BackgroundClip {
+        BackgroundClip {
+            id: BackgroundClip::get_new_id(),
+            start_at: self.start_at,
+            end_at: self.end_at,
+            camera_angle: self.camera_angle.clone(),
+        }
+    }
+    pub fn get_new_id() -> String {
+        format!("BackgroundClip-{}", namui::nanoid())
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Clip {
+    Background(Arc<BackgroundClip>),
     Camera(Arc<CameraClip>),
     Subtitle(Arc<SubtitleClip>),
 }
@@ -284,6 +142,7 @@ pub enum Clip {
 impl Clip {
     pub fn get_id(&self) -> &str {
         match self {
+            Clip::Background(clip) => &clip.id,
             Clip::Camera(clip) => &clip.id,
             Clip::Subtitle(clip) => &clip.id,
         }
@@ -297,9 +156,49 @@ impl Clip {
 
     pub(crate) fn get_start_time(&self) -> Time {
         match self {
+            Clip::Background(clip) => clip.start_at,
             Clip::Camera(clip) => clip.start_at,
             Clip::Subtitle(clip) => clip.start_at,
         }
+    }
+}
+impl AsRef<BackgroundClip> for Clip {
+    fn as_ref(&self) -> &BackgroundClip {
+        match self {
+            Clip::Background(clip) => clip.as_ref(),
+            _ => panic!("Clip is not BackgroundClip"),
+        }
+    }
+}
+impl From<BackgroundClip> for Clip {
+    fn from(clip: BackgroundClip) -> Self {
+        Clip::Background(Arc::new(clip))
+    }
+}
+impl AsRef<CameraClip> for Clip {
+    fn as_ref(&self) -> &CameraClip {
+        match self {
+            Clip::Camera(clip) => clip.as_ref(),
+            _ => panic!("Clip is not CameraClip"),
+        }
+    }
+}
+impl From<CameraClip> for Clip {
+    fn from(clip: CameraClip) -> Self {
+        Clip::Camera(Arc::new(clip))
+    }
+}
+impl AsRef<SubtitleClip> for Clip {
+    fn as_ref(&self) -> &SubtitleClip {
+        match self {
+            Clip::Subtitle(clip) => clip.as_ref(),
+            _ => panic!("Clip is not SubtitleClip"),
+        }
+    }
+}
+impl From<SubtitleClip> for Clip {
+    fn from(clip: SubtitleClip) -> Self {
+        Clip::Subtitle(Arc::new(clip))
     }
 }
 
@@ -318,7 +217,7 @@ fn is_false(value: impl std::borrow::Borrow<bool>) -> bool {
 }
 
 impl SubtitleClip {
-    fn is_at_time(
+    pub fn is_at_time(
         &self,
         time: &Time,
         language: Language,
@@ -389,105 +288,72 @@ pub trait ClipReplacer<ClipType> {
         Self: Sized;
 }
 
-impl ClipReplacer<SubtitleClip> for Sequence {
-    fn replace_clip(
-        mut self,
-        clip_id: &str,
-        replace_callback: impl FnOnce(&SubtitleClip) -> Result<SubtitleClip, String> + Copy,
-    ) -> UpdateResult<Self, String> {
-        match update_arcs(&mut self.tracks, |track| {
-            if let Track::Subtitle(track) = track {
-                let track = track.clone();
-                match track.replace_clip(clip_id, replace_callback) {
-                    UpdateResult::Updated(track) => UpdateResult::Updated(Track::Subtitle(track)),
+macro_rules! sequence_clip_replacer {
+    ($track: ident, $clip: tt) => {
+        impl ClipReplacer<$clip> for Sequence {
+            fn replace_clip(
+                mut self,
+                clip_id: &str,
+                replace_callback: impl FnOnce(&$clip) -> Result<$clip, String> + Copy,
+            ) -> UpdateResult<Self, String> {
+                match update_arcs(&mut self.tracks, |track| {
+                    if let Track::$track(track) = track {
+                        let track = track.clone();
+                        match track.replace_clip(clip_id, replace_callback) {
+                            UpdateResult::Updated(track) => {
+                                UpdateResult::Updated(Track::$track(track))
+                            }
+                            UpdateResult::NotUpdated => UpdateResult::NotUpdated,
+                            UpdateResult::Err(error) => UpdateResult::Err(error),
+                        }
+                    } else {
+                        return UpdateResult::NotUpdated;
+                    }
+                }) {
+                    UpdateResult::Updated(_) => UpdateResult::Updated(self),
                     UpdateResult::NotUpdated => UpdateResult::NotUpdated,
                     UpdateResult::Err(error) => UpdateResult::Err(error),
                 }
-            } else {
-                return UpdateResult::NotUpdated;
             }
-        }) {
-            UpdateResult::Updated(_) => UpdateResult::Updated(self),
-            UpdateResult::NotUpdated => UpdateResult::NotUpdated,
-            UpdateResult::Err(error) => UpdateResult::Err(error),
         }
-    }
+    };
 }
 
-impl ClipReplacer<CameraClip> for Sequence {
-    fn replace_clip(
-        mut self,
-        clip_id: &str,
-        replace_callback: impl FnOnce(&CameraClip) -> Result<CameraClip, String> + Copy,
-    ) -> UpdateResult<Self, String> {
-        match update_arcs(&mut self.tracks, |track| {
-            if let Track::Camera(track) = track {
-                let track = track.clone();
-                match track.replace_clip(clip_id, replace_callback) {
-                    UpdateResult::Updated(track) => UpdateResult::Updated(Track::Camera(track)),
+macro_rules! track_clip_replacer {
+    ($track: tt, $clip: tt) => {
+        impl ClipReplacer<$clip> for $track {
+            fn replace_clip(
+                mut self,
+                clip_id: &str,
+                replace_callback: impl FnOnce(&$clip) -> Result<$clip, String> + Copy,
+            ) -> UpdateResult<Self, String> {
+                match update_arcs(&mut self.clips, |clip| {
+                    if clip.id == *clip_id {
+                        match replace_callback(clip) {
+                            Ok(clip) => UpdateResult::Updated(clip),
+                            Err(error) => {
+                                return UpdateResult::Err(error);
+                            }
+                        }
+                    } else {
+                        UpdateResult::NotUpdated
+                    }
+                }) {
+                    UpdateResult::Updated(_) => UpdateResult::Updated(self),
                     UpdateResult::NotUpdated => UpdateResult::NotUpdated,
                     UpdateResult::Err(error) => UpdateResult::Err(error),
                 }
-            } else {
-                return UpdateResult::NotUpdated;
             }
-        }) {
-            UpdateResult::Updated(_) => UpdateResult::Updated(self),
-            UpdateResult::NotUpdated => UpdateResult::NotUpdated,
-            UpdateResult::Err(error) => UpdateResult::Err(error),
         }
-    }
+    };
 }
 
-impl ClipReplacer<CameraClip> for CameraTrack {
-    fn replace_clip(
-        mut self,
-        clip_id: &str,
-        replace_callback: impl FnOnce(&CameraClip) -> Result<CameraClip, String> + Copy,
-    ) -> UpdateResult<Self, String> {
-        match update_arcs(&mut self.clips, |clip| {
-            if clip.id == *clip_id {
-                match replace_callback(clip) {
-                    Ok(clip) => UpdateResult::Updated(clip),
-                    Err(error) => {
-                        return UpdateResult::Err(error);
-                    }
-                }
-            } else {
-                UpdateResult::NotUpdated
-            }
-        }) {
-            UpdateResult::Updated(_) => UpdateResult::Updated(self),
-            UpdateResult::NotUpdated => UpdateResult::NotUpdated,
-            UpdateResult::Err(error) => UpdateResult::Err(error),
-        }
-    }
-}
-
-impl ClipReplacer<SubtitleClip> for SubtitleTrack {
-    fn replace_clip(
-        mut self,
-        clip_id: &str,
-        replace_callback: impl FnOnce(&SubtitleClip) -> Result<SubtitleClip, String> + Copy,
-    ) -> UpdateResult<Self, String> {
-        match update_arcs(&mut self.clips, |clip| {
-            if clip.id == *clip_id {
-                match replace_callback(clip) {
-                    Ok(clip) => UpdateResult::Updated(clip),
-                    Err(error) => {
-                        return UpdateResult::Err(error);
-                    }
-                }
-            } else {
-                UpdateResult::NotUpdated
-            }
-        }) {
-            UpdateResult::Updated(_) => UpdateResult::Updated(self),
-            UpdateResult::NotUpdated => UpdateResult::NotUpdated,
-            UpdateResult::Err(error) => UpdateResult::Err(error),
-        }
-    }
-}
+sequence_clip_replacer!(Background, BackgroundClip);
+track_clip_replacer!(BackgroundTrack, BackgroundClip);
+sequence_clip_replacer!(Camera, CameraClip);
+track_clip_replacer!(CameraTrack, CameraClip);
+sequence_clip_replacer!(Subtitle, SubtitleClip);
+track_clip_replacer!(SubtitleTrack, SubtitleClip);
 
 pub trait ClipFind<ClipType> {
     fn find_clip(&self, clip_id: &str) -> Option<&ClipType>
@@ -511,71 +377,33 @@ impl ClipFind<CameraClip> for Sequence {
     }
 }
 
-impl Track {
-    pub fn find_clip(&self, clip_id: &str) -> Option<Clip> {
-        self.get_clips()
-            .iter()
-            .find(|clip| clip.get_id().eq(clip_id))
-            .map(|clip| clip.clone())
-    }
-}
-
 pub trait TrackReplacer<TrackType> {
     fn replace_track(
         self,
         track_id: &str,
-        replace_callback: impl FnOnce(&TrackType) -> Result<TrackType, String> + Copy,
+        replace_callback: impl FnOnce(TrackType) -> Result<TrackType, String> + Copy,
     ) -> UpdateResult<Self, String>
     where
         Self: Sized;
 }
 
-impl TrackReplacer<CameraTrack> for Sequence {
+impl<TTrack> TrackReplacer<TTrack> for Sequence
+where
+    TTrack: From<Track>,
+    Track: From<TTrack>,
+{
     fn replace_track(
         mut self,
         track_id: &str,
-        replace_callback: impl FnOnce(&CameraTrack) -> Result<CameraTrack, String> + Copy,
+        replace_callback: impl FnOnce(TTrack) -> Result<TTrack, String> + Copy,
     ) -> UpdateResult<Self, String> {
         match update_arcs(&mut self.tracks, |track| {
-            if let Track::Camera(camera_track) = track {
-                if camera_track.id == *track_id {
-                    match replace_callback(camera_track) {
-                        Ok(track) => UpdateResult::Updated(Track::Camera(track)),
-                        Err(error) => {
-                            return UpdateResult::Err(error);
-                        }
+            if track.get_id() == track_id {
+                match replace_callback(track.clone().into()) {
+                    Ok(track) => UpdateResult::Updated(track.into()),
+                    Err(error) => {
+                        return UpdateResult::Err(error);
                     }
-                } else {
-                    return UpdateResult::NotUpdated;
-                }
-            } else {
-                return UpdateResult::NotUpdated;
-            }
-        }) {
-            UpdateResult::Updated(_) => UpdateResult::Updated(self),
-            UpdateResult::NotUpdated => UpdateResult::NotUpdated,
-            UpdateResult::Err(error) => UpdateResult::Err(error),
-        }
-    }
-}
-
-impl TrackReplacer<SubtitleTrack> for Sequence {
-    fn replace_track(
-        mut self,
-        track_id: &str,
-        replace_callback: impl FnOnce(&SubtitleTrack) -> Result<SubtitleTrack, String> + Copy,
-    ) -> UpdateResult<Self, String> {
-        match update_arcs(&mut self.tracks, |track| {
-            if let Track::Subtitle(subtitle_track) = track {
-                if subtitle_track.id == *track_id {
-                    match replace_callback(subtitle_track) {
-                        Ok(track) => UpdateResult::Updated(Track::Subtitle(track)),
-                        Err(error) => {
-                            return UpdateResult::Err(error);
-                        }
-                    }
-                } else {
-                    return UpdateResult::NotUpdated;
                 }
             } else {
                 return UpdateResult::NotUpdated;

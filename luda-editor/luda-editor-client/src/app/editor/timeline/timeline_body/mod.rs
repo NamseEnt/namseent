@@ -44,7 +44,7 @@ impl TimelineBody {
             });
         } else if let Some(event) = event.downcast_ref::<EditorEvent>() {
             match event {
-                EditorEvent::CameraClipBodyMouseDownEvent { mouse_event_id, .. }
+                EditorEvent::ResizableClipBodyMouseDownEvent { mouse_event_id, .. }
                 | EditorEvent::SubtitleClipHeadMouseDownEvent { mouse_event_id, .. } => {
                     self.last_clip_clicked_mouse_event_id = Some(mouse_event_id.clone());
                 }

@@ -17,11 +17,8 @@ pub struct SubtitleTrackBodyProps<'a> {
 impl SubtitleTrackBody {
     pub fn render(props: &SubtitleTrackBodyProps) -> RenderingTree {
         let clips = match &props.context.job {
-            Some(Job::MoveSubtitleClip(job)) => {
-                let track = props.track.clone();
-
-                let track = job.move_subtitle_clip_in(track).unwrap();
-
+            Some(Job::MoveClip(job)) => {
+                let track = job.move_clip_in_track(props.track.clone());
                 track.clips
             }
             _ => props.track.clips.clone(),
