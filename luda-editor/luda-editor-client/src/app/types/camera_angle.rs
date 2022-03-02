@@ -4,6 +4,7 @@ use namui::prelude::*;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CameraAngle {
     pub character_pose_emotion: Option<CharacterPoseEmotion>,
+    pub background: Option<String>,
     pub source_01_circumscribed: Circumscribed,
     pub crop_screen_01_rect: LtrbRect,
 }

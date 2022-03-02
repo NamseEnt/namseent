@@ -23,8 +23,14 @@ pub enum EditorEvent {
     CharacterImageFilesUpdatedEvent {
         character_image_files: BTreeSet<ImageBrowserFile>,
     },
+    BackgroundImageFilesUpdatedEvent {
+        background_image_files: BTreeSet<ImageBrowserFile>,
+    },
     CharacterImageBrowserSelectEvent {
         character_pose_emotion: Option<CharacterPoseEmotion>,
+    },
+    BackgroundImageBrowserSelectEvent {
+        background: Option<String>,
     },
     ScrolledEvent {
         scroll_y: f32,

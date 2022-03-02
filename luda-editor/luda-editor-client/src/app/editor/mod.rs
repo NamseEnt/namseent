@@ -11,6 +11,7 @@ use super::types::{
     *,
 };
 use crate::app::editor::{clip_editor::ClipEditorProps, top_bar::TopBarProps};
+use futures::{join, FutureExt};
 pub use job::*;
 use luda_editor_rpc::Socket;
 use namui::prelude::*;
@@ -46,6 +47,7 @@ pub struct Editor {
     timeline: Timeline,
     clip_editor: Option<ClipEditor>,
     character_image_files: BTreeSet<ImageBrowserFile>,
+    background_image_files: BTreeSet<ImageBrowserFile>,
     selected_clip_ids: Arc<BTreeSet<String>>,
     sequence_player: Box<dyn SequencePlay>,
     history: History<Arc<Sequence>>,
@@ -124,6 +126,11 @@ impl namui::Entity for Editor {
                 } => {
                     self.character_image_files = character_image_files.clone();
                 }
+                EditorEvent::BackgroundImageFilesUpdatedEvent {
+                    background_image_files,
+                } => {
+                    self.background_image_files = background_image_files.clone();
+                }
                 EditorEvent::WysiwygEditorInnerImageMouseDownEvent {
                     mouse_xy,
                     container_size,
@@ -187,23 +194,36 @@ impl namui::Entity for Editor {
                     character_pose_emotion,
                 } => {
                     let clip = self.get_single_selected_clip().unwrap();
-                    if clip.as_camera_clip().map_or_else(
-                        || false,
-                        |camera_clip| {
-                            camera_clip
-                                .camera_angle
-                                .character_pose_emotion
-                                .eq(character_pose_emotion)
-                        },
-                    ) {
-                        return;
-                    }
-
-                    self.job = Some(Job::ChangeImage(ChangeImageJob {
-                        clip_id: clip.get_id().to_string(),
-                        character_pose_emotion: character_pose_emotion.clone(),
-                    }));
-                    self.execute_job();
+                    clip.as_camera_clip().map(|camera_clip| {
+                        if camera_clip
+                            .camera_angle
+                            .character_pose_emotion
+                            .ne(character_pose_emotion)
+                        {
+                            self.job = Some(Job::ChangeImage(ChangeImageJob {
+                                clip_id: clip.get_id().to_string(),
+                                character_pose_emotion: character_pose_emotion.clone(),
+                                background: camera_clip.camera_angle.background.clone(),
+                            }));
+                            self.execute_job();
+                        }
+                    });
+                }
+                EditorEvent::BackgroundImageBrowserSelectEvent { background } => {
+                    let clip = self.get_single_selected_clip().unwrap();
+                    clip.as_camera_clip().map(|camera_clip| {
+                        if camera_clip.camera_angle.background.ne(background) {
+                            self.job = Some(Job::ChangeImage(ChangeImageJob {
+                                clip_id: clip.get_id().to_string(),
+                                character_pose_emotion: camera_clip
+                                    .camera_angle
+                                    .character_pose_emotion
+                                    .clone(),
+                                background: background.clone(),
+                            }));
+                            self.execute_job();
+                        }
+                    });
                 }
                 EditorEvent::TimelineTimeRulerClickEvent {
                     click_position_in_time,
@@ -423,6 +443,7 @@ impl namui::Entity for Editor {
                             .unwrap(),
                         xywh: clip_editor_xywh,
                         character_image_files: &self.character_image_files,
+                        background_image_files: &self.background_image_files,
                         job: &self.job,
                     })
                 }
@@ -458,29 +479,51 @@ impl Editor {
         spawn_local({
             let socket = socket.clone();
             async move {
-                let result = socket
+                let character_image_urls_future = socket
                     .get_character_image_urls(luda_editor_rpc::get_character_image_urls::Request {})
-                    .await;
-                match result {
-                    Ok(response) => {
-                        let character_image_files =
-                            convert_character_image_urls_to_character_image_files(
-                                &response.character_image_urls,
-                            );
+                    .map(|result| match result {
+                        Ok(response) => {
+                            let character_image_files =
+                                convert_character_image_urls_to_character_image_files(
+                                    &response.character_image_urls,
+                                );
 
-                        namui::event::send(EditorEvent::CharacterImageFilesUpdatedEvent {
-                            character_image_files,
-                        })
-                    }
-                    Err(error) => {
-                        namui::log(format!("error on get_character_image_urls: {:?}", error))
-                    }
-                }
+                            namui::event::send(EditorEvent::CharacterImageFilesUpdatedEvent {
+                                character_image_files,
+                            })
+                        }
+                        Err(error) => {
+                            namui::log(format!("error on get_character_image_urls: {:?}", error))
+                        }
+                    });
+
+                let background_image_urls_future = socket
+                    .get_background_image_urls(
+                        luda_editor_rpc::get_background_image_urls::Request {},
+                    )
+                    .map(|result| match result {
+                        Ok(response) => {
+                            let background_image_files =
+                                convert_background_image_urls_to_background_image_files(
+                                    &response.background_image_urls,
+                                );
+
+                            namui::event::send(EditorEvent::BackgroundImageFilesUpdatedEvent {
+                                background_image_files,
+                            })
+                        }
+                        Err(error) => {
+                            namui::log(format!("error on get_background_image_urls: {:?}", error))
+                        }
+                    });
+
+                join!(character_image_urls_future, background_image_urls_future);
             }
         });
         Self {
             timeline: Timeline::new(),
             character_image_files: BTreeSet::new(),
+            background_image_files: BTreeSet::new(),
             job: None,
             clip_editor: None,
             selected_clip_ids: Arc::new(BTreeSet::new()),
@@ -653,6 +696,7 @@ impl Editor {
                     bottom: 1.0,
                 },
                 character_pose_emotion: None,
+                background: None,
             },
         }
     }
@@ -665,6 +709,15 @@ fn convert_character_image_urls_to_character_image_files(
     character_image_urls: &[String],
 ) -> BTreeSet<ImageBrowserFile> {
     character_image_urls
+        .iter()
+        .map(|url| ImageBrowserFile::new(url.clone()))
+        .collect()
+}
+
+fn convert_background_image_urls_to_background_image_files(
+    background_image_urls: &[String],
+) -> BTreeSet<ImageBrowserFile> {
+    background_image_urls
         .iter()
         .map(|url| ImageBrowserFile::new(url.clone()))
         .collect()

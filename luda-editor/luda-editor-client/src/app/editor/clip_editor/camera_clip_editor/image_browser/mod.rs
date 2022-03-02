@@ -11,6 +11,7 @@ pub use types::*;
 
 #[derive(Debug)]
 pub struct ImageBrowser {
+    id: String,
     directory: ImageBrowserDirectory,
     selected_item: Option<ImageBrowserItem>,
     scroll: Scroll,
@@ -24,11 +25,13 @@ pub struct ImageBrowserProps<'a> {
 
 impl ImageBrowser {
     pub fn new(
+        id: &str,
         directory: ImageBrowserDirectory,
         selected_item: Option<ImageBrowserItem>,
         thumbnail_url_prefix: &str,
     ) -> Self {
         Self {
+            id: id.to_string(),
             directory,
             selected_item,
             scroll: Scroll::new(),
@@ -38,27 +41,31 @@ impl ImageBrowser {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<ImageBrowserEvent>() {
             match event {
-                ImageBrowserEvent::Select(selected_item) => match selected_item {
-                    ImageBrowserItem::Back => {
-                        let last_directory = self.directory.clone();
-                        self.directory.navigate_to_parent();
-                        self.selected_item = if self.directory.is_root() {
-                            None
-                        } else {
-                            Some(ImageBrowserItem::Directory(last_directory))
-                        };
+                ImageBrowserEvent::Select { browser_id, item } => {
+                    if self.id.eq(browser_id) {
+                        match item {
+                            ImageBrowserItem::Back => {
+                                let last_directory = self.directory.clone();
+                                self.directory.navigate_to_parent();
+                                self.selected_item = if self.directory.is_root() {
+                                    None
+                                } else {
+                                    Some(ImageBrowserItem::Directory(last_directory))
+                                };
+                            }
+                            ImageBrowserItem::Empty => {
+                                self.selected_item = Some(ImageBrowserItem::Empty);
+                            }
+                            ImageBrowserItem::Directory(directory) => {
+                                self.directory = directory.clone();
+                                self.selected_item = None;
+                            }
+                            ImageBrowserItem::File(file) => {
+                                self.selected_item = Some(ImageBrowserItem::File(file.clone()));
+                            }
+                        }
                     }
-                    ImageBrowserItem::Empty => {
-                        self.selected_item = Some(ImageBrowserItem::Empty);
-                    }
-                    ImageBrowserItem::Directory(directory) => {
-                        self.directory = directory.clone();
-                        self.selected_item = None;
-                    }
-                    ImageBrowserItem::File(file) => {
-                        self.selected_item = Some(ImageBrowserItem::File(file.clone()));
-                    }
-                },
+                }
             }
         };
         self.scroll.update(event);
@@ -91,9 +98,9 @@ impl ImageBrowser {
 
         let mut browser_items = vec![];
         if !is_root {
-            browser_items.push(self.render_back_button(item_size, thumbnail_rect));
+            browser_items.push(self.render_back_button(&self.id, item_size, thumbnail_rect));
         } else {
-            browser_items.push(self.render_empty_button(item_size, thumbnail_rect));
+            browser_items.push(self.render_empty_button(&self.id, item_size, thumbnail_rect));
         }
         browser_items.extend(
             self.get_directory_files_browser_item_props(item_size, thumbnail_rect, props.files)
@@ -211,6 +218,7 @@ impl ImageBrowser {
                 item,
                 item_size,
                 thumbnail_rect,
+                browser_id: self.id.clone(),
             })
             .collect()
     }
@@ -243,5 +251,9 @@ impl ImageBrowser {
             _ => unreachable!(),
         };
         self.selected_item = item;
+    }
+
+    pub(crate) fn get_id(&self) -> String {
+        self.id.clone()
     }
 }

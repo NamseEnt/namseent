@@ -71,6 +71,12 @@ impl App {
             ) -> Result<luda_editor_rpc::get_character_image_urls::Response, String> {
                 unreachable!()
             }
+            async fn get_background_image_urls(
+                &mut self,
+                _: luda_editor_rpc::get_background_image_urls::Request,
+            ) -> Result<luda_editor_rpc::get_background_image_urls::Response, String> {
+                unreachable!()
+            }
             async fn read_file(
                 &mut self,
                 _: luda_editor_rpc::read_file::Request,

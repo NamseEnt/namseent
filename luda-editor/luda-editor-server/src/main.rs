@@ -104,6 +104,30 @@ impl luda_editor_rpc::RpcHandle for RpcHandler {
             Err(err) => Err(format!("{:?}", err)),
         }
     }
+    async fn get_background_image_urls(
+        &mut self,
+        _: luda_editor_rpc::get_background_image_urls::Request,
+    ) -> Result<luda_editor_rpc::get_background_image_urls::Response, String> {
+        let resource_background_image_path = resource_path().join("backgrounds");
+        println!(
+            "[get_background_image_urls] {:?}",
+            resource_background_image_path
+        );
+        let mut background_image_urls = Vec::new();
+        match visit_dirs(&resource_background_image_path, &mut |entry| {
+            let full_path = entry.path();
+            let path = full_path
+                .strip_prefix(&resource_background_image_path)
+                .unwrap();
+            let path = format!("/{}", path.display());
+            background_image_urls.push(path);
+        }) {
+            Ok(_) => Ok(luda_editor_rpc::get_background_image_urls::Response {
+                background_image_urls,
+            }),
+            Err(err) => Err(format!("{:?}", err)),
+        }
+    }
     async fn read_file(
         &mut self,
         request: luda_editor_rpc::read_file::Request,

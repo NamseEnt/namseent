@@ -7,6 +7,7 @@ pub struct BrowserItemProps {
     pub is_selected: bool,
     pub item_size: Wh<f32>,
     pub thumbnail_rect: XywhRect<f32>,
+    pub browser_id: String,
 }
 
 pub fn render_browser_item(props: &BrowserItemProps) -> RenderingTree {
@@ -36,8 +37,12 @@ pub fn render_browser_item(props: &BrowserItemProps) -> RenderingTree {
         })
         .attach_event(move |builder| {
             let item = props.item.clone();
+            let browser_id = props.browser_id.clone();
             builder.on_mouse_down(move |_| {
-                namui::event::send(ImageBrowserEvent::Select(item.clone()));
+                namui::event::send(ImageBrowserEvent::Select {
+                    browser_id: browser_id.clone(),
+                    item: item.clone(),
+                });
             })
         }),
         text(TextParam {

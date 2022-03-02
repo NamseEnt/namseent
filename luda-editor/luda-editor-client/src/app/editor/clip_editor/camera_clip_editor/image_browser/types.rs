@@ -138,5 +138,8 @@ impl ImageBrowserDirectory {
 }
 
 pub enum ImageBrowserEvent {
-    Select(ImageBrowserItem),
+    Select {
+        browser_id: String,
+        item: ImageBrowserItem,
+    },
 }

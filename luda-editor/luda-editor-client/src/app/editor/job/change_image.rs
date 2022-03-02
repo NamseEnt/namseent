@@ -5,6 +5,7 @@ use crate::app::types::*;
 pub struct ChangeImageJob {
     pub clip_id: String,
     pub character_pose_emotion: Option<CharacterPoseEmotion>,
+    pub background: Option<String>,
 }
 
 impl JobExecute for ChangeImageJob {
@@ -14,6 +15,9 @@ impl JobExecute for ChangeImageJob {
             let mut clip = clip.clone();
             if clip.camera_angle.character_pose_emotion != self.character_pose_emotion {
                 clip.camera_angle.character_pose_emotion = self.character_pose_emotion.clone();
+            }
+            if clip.camera_angle.background != self.background {
+                clip.camera_angle.background = self.background.clone();
             }
             Ok(clip)
         }) {
