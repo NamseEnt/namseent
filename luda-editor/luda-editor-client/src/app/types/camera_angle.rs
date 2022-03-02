@@ -9,7 +9,7 @@ pub struct CameraAngle {
 }
 
 pub trait CameraAngleImageLoader {
-    fn get_image_source(
+    fn get_character_image_source(
         &self,
         character_pose_emotion: &CharacterPoseEmotion,
     ) -> Option<ImageSource>;
@@ -17,13 +17,13 @@ pub trait CameraAngleImageLoader {
 
 pub struct LudaEditorServerCameraAngleImageLoader;
 impl CameraAngleImageLoader for LudaEditorServerCameraAngleImageLoader {
-    fn get_image_source(
+    fn get_character_image_source(
         &self,
         character_pose_emotion: &CharacterPoseEmotion,
     ) -> Option<ImageSource> {
         let url = format!(
-            "http://localhost:3030/resources/images/{}-{}-{}.png",
-            character_pose_emotion.0, character_pose_emotion.1, character_pose_emotion.2
+            "http://localhost:3030/resources/characterImages{}",
+            character_pose_emotion.to_url()
         );
         Some(ImageSource::Url(url))
     }
@@ -40,7 +40,8 @@ impl CameraAngle {
         }
         let character_pose_emotion = self.character_pose_emotion.as_ref().unwrap();
 
-        let image_source = camera_angle_image_loader.get_image_source(&character_pose_emotion);
+        let image_source =
+            camera_angle_image_loader.get_character_image_source(&character_pose_emotion);
         if image_source.is_none() {
             return RenderingTree::Empty;
         }

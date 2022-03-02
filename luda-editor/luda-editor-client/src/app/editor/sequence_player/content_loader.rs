@@ -37,8 +37,8 @@ impl ContentLoader {
                             None => continue,
                         };
 
-                        let image_source =
-                            camera_angle_image_loader.get_image_source(&character_pose_emotion);
+                        let image_source = camera_angle_image_loader
+                            .get_character_image_source(&character_pose_emotion);
 
                         if image_source.is_none() {
                             panic!("image source is none");

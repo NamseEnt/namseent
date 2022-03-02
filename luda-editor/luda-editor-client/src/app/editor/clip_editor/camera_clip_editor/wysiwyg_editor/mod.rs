@@ -2,12 +2,13 @@ use self::{
     cropper::{Cropper, CropperProps},
     resizer::{Resizer, ResizerProps},
 };
+use super::image_browser::ImageBrowserFile;
 use crate::app::{
     editor::{events::EditorEvent, job::Job},
     types::*,
 };
 use namui::prelude::*;
-use std::sync::Arc;
+use std::{collections::BTreeSet, sync::Arc};
 pub mod cropper;
 pub mod resizer;
 
@@ -16,7 +17,7 @@ pub struct WysiwygEditor {}
 pub struct WysiwygEditorProps<'a> {
     pub xywh: XywhRect<f32>,
     pub camera_angle: &'a CameraAngle,
-    pub image_filename_objects: &'a Vec<ImageFilenameObject>,
+    pub character_image_files: &'a BTreeSet<ImageBrowserFile>,
     pub job: &'a Option<Job>,
 }
 
@@ -31,17 +32,25 @@ impl WysiwygEditor {
             height: props.xywh.height,
         };
 
-        let image_url = props
-            .camera_angle
-            .character_pose_emotion
-            .as_ref()
-            .and_then(|image_url| image_url.get_url(props.image_filename_objects));
-        if image_url.is_none() {
+        let image_loader = LudaEditorServerCameraAngleImageLoader {};
+
+        let image_source =
+            props
+                .camera_angle
+                .character_pose_emotion
+                .as_ref()
+                .and_then(|character_pose_emotion| {
+                    image_loader.get_character_image_source(character_pose_emotion)
+                });
+        if image_source.is_none() {
             return RenderingTree::Empty;
         }
-        let image_url = image_url.unwrap();
+        let image_source = image_source.unwrap();
 
-        let image = namui::managers().image_manager.clone().try_load(&image_url);
+        let image = match image_source {
+            ImageSource::Url(url) => namui::managers().image_manager.clone().try_load(&url),
+            ImageSource::Image(image) => Some(image),
+        };
         if image.is_none() {
             return RenderingTree::Empty;
         }

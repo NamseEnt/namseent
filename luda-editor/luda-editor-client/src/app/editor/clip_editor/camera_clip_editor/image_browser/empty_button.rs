@@ -1,8 +1,4 @@
-use super::ImageBrowser;
-use crate::app::editor::{
-    clip_editor::camera_clip_editor::image_browser::ImageBrowserItem, events::EditorEvent,
-};
-use namui::prelude::*;
+use super::*;
 
 impl ImageBrowser {
     pub fn render_empty_button(
@@ -51,10 +47,7 @@ impl ImageBrowser {
             })
             .attach_event(|builder| {
                 builder.on_mouse_down(move |_| {
-                    namui::log(format!("select browser item {}", "empty"));
-                    namui::event::send(EditorEvent::ImageBrowserSelectEvent {
-                        selected_item: ImageBrowserItem::Empty,
-                    });
+                    namui::event::send(ImageBrowserEvent::Select(ImageBrowserItem::Empty));
                 })
             }),
             text(TextParam {

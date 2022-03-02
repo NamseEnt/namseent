@@ -1,8 +1,4 @@
-use super::ImageBrowser;
-use crate::app::editor::{
-    clip_editor::camera_clip_editor::image_browser::ImageBrowserItem, events::EditorEvent,
-};
-use namui::prelude::*;
+use super::*;
 
 impl ImageBrowser {
     pub fn render_back_button(
@@ -55,10 +51,7 @@ impl ImageBrowser {
             })
             .attach_event(|builder| {
                 builder.on_mouse_down(move |_| {
-                    namui::log(format!("select browser item {}", "back"));
-                    namui::event::send(EditorEvent::ImageBrowserSelectEvent {
-                        selected_item: ImageBrowserItem::Back,
-                    });
+                    namui::event::send(ImageBrowserEvent::Select(ImageBrowserItem::Back));
                 })
             }),
             text(TextParam {

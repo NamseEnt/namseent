@@ -1,4 +1,8 @@
-use self::camera_clip_editor::{CameraClipEditor, CameraClipEditorProps};
+use std::collections::BTreeSet;
+
+use self::camera_clip_editor::{
+    image_browser::ImageBrowserFile, CameraClipEditor, CameraClipEditorProps,
+};
 use super::job::Job;
 use crate::app::types::*;
 pub mod camera_clip_editor;
@@ -12,17 +16,14 @@ pub enum ClipEditor {
 pub struct ClipEditorProps<'a> {
     pub clip: Clip,
     pub xywh: XywhRect<f32>,
-    pub image_filename_objects: &'a Vec<ImageFilenameObject>,
+    pub character_image_files: &'a BTreeSet<ImageBrowserFile>,
     pub job: &'a Option<Job>,
 }
 
 impl ClipEditor {
     pub fn new(clip: &Clip) -> Self {
         match clip {
-            Clip::Camera(clip) => ClipEditor::Camera(CameraClipEditor::new(
-                &clip.camera_angle.character_pose_emotion,
-                &clip.id,
-            )),
+            Clip::Camera(clip) => ClipEditor::Camera(CameraClipEditor::new(&clip)),
             Clip::Subtitle(_) => ClipEditor::Subtitle,
             _ => todo!(),
         }
@@ -42,7 +43,7 @@ impl ClipEditor {
                 Clip::Camera(camera_clip) => camera_clip_editor.render(&CameraClipEditorProps {
                     camera_clip: &camera_clip,
                     xywh: props.xywh,
-                    image_filename_objects: &props.image_filename_objects,
+                    character_image_files: &props.character_image_files,
                     job: &props.job,
                 }),
                 _ => unreachable!("clip should be camera clip but received {:?}", props.clip),

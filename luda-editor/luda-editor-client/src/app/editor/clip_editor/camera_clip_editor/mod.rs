@@ -1,11 +1,17 @@
+use self::image_browser::{
+    ImageBrowserDirectory, ImageBrowserEvent, ImageBrowserFile, ImageBrowserItem,
+};
 pub use self::{
     image_browser::{ImageBrowser, ImageBrowserProps},
     wysiwyg_editor::{WysiwygEditor, WysiwygEditorProps},
 };
-use crate::app::{editor::job::Job, types::*};
+use crate::app::{
+    editor::{events::EditorEvent, job::Job},
+    types::*,
+};
 use namui::prelude::*;
 use preview::*;
-use std::sync::Arc;
+use std::{collections::BTreeSet, sync::Arc};
 mod button;
 pub mod image_browser;
 pub mod preview;
@@ -18,45 +24,67 @@ pub struct CameraClipEditor {
     image_browser: ImageBrowser,
     wysiwyg_editor: WysiwygEditor,
     selected_tab: Tab,
-}
-
-impl CameraClipEditor {
-    pub fn new(character_pose_emotion: &Option<CharacterPoseEmotion>, clip_id: &str) -> Self {
-        Self {
-            image_browser: ImageBrowser::new(character_pose_emotion, clip_id),
-            wysiwyg_editor: WysiwygEditor::new(),
-            selected_tab: Tab::CharacterImage,
-        }
-    }
+    clip_id: String,
 }
 
 pub struct CameraClipEditorProps<'a> {
     pub camera_clip: &'a CameraClip,
     pub xywh: XywhRect<f32>,
-    pub image_filename_objects: &'a Vec<ImageFilenameObject>,
+    pub character_image_files: &'a BTreeSet<ImageBrowserFile>,
     pub job: &'a Option<Job>,
 }
 
-impl CameraAngleImageLoader for CameraClipEditorProps<'_> {
-    fn get_image_source(
-        &self,
-        character_pose_emotion: &CharacterPoseEmotion,
-    ) -> Option<ImageSource> {
-        self.image_filename_objects
-            .iter()
-            .find(|object| object.into_character_pose_emotion() == *character_pose_emotion)
-            .map(|object| ImageSource::Url(object.url.clone()))
-    }
-}
-
 impl CameraClipEditor {
+    pub fn new(clip: &CameraClip) -> Self {
+        let character_image_directory = get_character_image_directory(clip);
+        let character_image_item = get_character_image_item(clip);
+        Self {
+            image_browser: ImageBrowser::new(
+                character_image_directory,
+                character_image_item,
+                "http://localhost:3030/resources/characterImages",
+            ),
+            wysiwyg_editor: WysiwygEditor::new(),
+            selected_tab: Tab::CharacterImage,
+            clip_id: clip.id.clone(),
+        }
+    }
     pub fn update(&mut self, event: &dyn std::any::Any) {
+        self.image_browser.update(event);
+
         if let Some(event) = event.downcast_ref::<TabEvent>() {
             match event {
                 TabEvent::ClickTabButton(tab) => self.selected_tab = *tab,
             }
+        } else if let Some(event) = event.downcast_ref::<EditorEvent>() {
+            match event {
+                EditorEvent::SequenceUpdateEvent { sequence } => {
+                    sequence.find_clip(&self.clip_id).map(|clip| {
+                        let item = get_character_image_item(clip);
+                        self.image_browser.select(item);
+                    });
+                }
+                _ => {}
+            }
+        } else if let Some(event) = event.downcast_ref::<ImageBrowserEvent>() {
+            match event {
+                ImageBrowserEvent::Select(item) => {
+                    let character_pose_emotion = match item {
+                        ImageBrowserItem::Empty => Some(None),
+                        ImageBrowserItem::File(file) => {
+                            Some(Some(convert_file_to_character_pose_emotion(file)))
+                        }
+                        _ => None,
+                    };
+                    character_pose_emotion.map(|character_pose_emotion| {
+                        namui::event::send(EditorEvent::CharacterImageBrowserSelectEvent {
+                            character_pose_emotion,
+                        });
+                    });
+                }
+                _ => {}
+            }
         }
-        self.image_browser.update(event);
     }
     pub fn render(&self, props: &CameraClipEditorProps) -> RenderingTree {
         let left_box_wh = Wh {
@@ -99,14 +127,18 @@ impl CameraClipEditor {
                 }),
                 namui::ClipOp::Intersect,
                 namui::render![
-                    self.render_left_box(&left_box_wh, &camera_angle, props),
+                    self.render_left_box(
+                        &left_box_wh,
+                        &camera_angle,
+                        &LudaEditorServerCameraAngleImageLoader {}
+                    ),
                     namui::translate(
                         left_box_wh.width,
                         0.0,
                         self.render_right_box(
                             &right_box_wh,
                             &camera_angle,
-                            props.image_filename_objects,
+                            props.character_image_files,
                             props.job,
                         )
                     ),
@@ -170,7 +202,7 @@ impl CameraClipEditor {
         &self,
         wh: &Wh<f32>,
         camera_angle: &CameraAngle,
-        image_filename_objects: &Vec<ImageFilenameObject>,
+        character_image_files: &BTreeSet<ImageBrowserFile>,
         job: &Option<Job>,
     ) -> RenderingTree {
         let border = namui::rect(namui::RectParam {
@@ -195,7 +227,7 @@ impl CameraClipEditor {
             Tab::CharacterImage => self.image_browser.render(&ImageBrowserProps {
                 width: wh.width,
                 height: wh.height,
-                image_filename_objects,
+                files: character_image_files,
             }),
             Tab::CharacterPosition => self.wysiwyg_editor.render(&WysiwygEditorProps {
                 xywh: XywhRect {
@@ -205,7 +237,7 @@ impl CameraClipEditor {
                     height: wh.width / (1920.0 / 1080.0),
                 },
                 camera_angle,
-                image_filename_objects,
+                character_image_files,
                 job,
             }),
             Tab::BackgroundImage => todo!(),
@@ -221,5 +253,38 @@ impl CameraClipEditor {
             namui::ClipOp::Intersect,
             namui::render![border, content],
         )
+    }
+}
+
+fn convert_file_to_character_pose_emotion(file: &ImageBrowserFile) -> CharacterPoseEmotion {
+    let url = file.get_url();
+    // remove only extension but keep dot in middle of name.
+    let last_dot_index = url.rfind('.').unwrap();
+
+    let mut splits = url.split_at(last_dot_index).0.split("/");
+
+    let _ = splits.next().unwrap();
+    let character = splits.next().unwrap();
+    let pose = splits.next().unwrap();
+    let emotion = splits.next().unwrap();
+
+    CharacterPoseEmotion(character.to_string(), pose.to_string(), emotion.to_string())
+}
+
+fn get_character_image_item(clip: &CameraClip) -> Option<ImageBrowserItem> {
+    match clip.camera_angle.character_pose_emotion.as_ref() {
+        Some(character_pose_emotion) => Some(ImageBrowserItem::File(ImageBrowserFile::new(
+            character_pose_emotion.to_url(),
+        ))),
+        None => Some(ImageBrowserItem::Empty),
+    }
+}
+
+fn get_character_image_directory(clip: &CameraClip) -> ImageBrowserDirectory {
+    match clip.camera_angle.character_pose_emotion.as_ref() {
+        Some(character_pose_emotion) => {
+            ImageBrowserFile::new(character_pose_emotion.to_url()).get_directory()
+        }
+        None => ImageBrowserDirectory::root(),
     }
 }

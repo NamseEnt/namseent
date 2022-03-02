@@ -1,3 +1,9 @@
+use std::{
+    fs::{self, DirEntry},
+    io,
+    path::Path,
+};
+
 use futures::{
     join,
     stream::{self, StreamExt},
@@ -74,36 +80,28 @@ pub struct RpcHandler {}
 
 #[async_trait]
 impl luda_editor_rpc::RpcHandle for RpcHandler {
-    async fn get_camera_shot_urls(
+    async fn get_character_image_urls(
         &mut self,
-        _: luda_editor_rpc::get_camera_shot_urls::Request,
-    ) -> Result<luda_editor_rpc::get_camera_shot_urls::Response, String> {
-        let resource_image_path = resource_path().join("images");
-        println!("[get_camera_shot_urls] {:?}", resource_image_path);
-
-        match std::fs::read_dir(resource_image_path) {
-            Ok(entries) => {
-                let mut camera_shot_urls = Vec::new();
-
-                for entry in entries {
-                    match entry {
-                        Ok(entry) => {
-                            let name = entry.file_name().into_string().unwrap();
-                            camera_shot_urls
-                                .push(format!("http://localhost:3030/resources/images/{}", name));
-                        }
-                        Err(e) => {
-                            println!("{}", e);
-                        }
-                    }
-                }
-                Ok(luda_editor_rpc::get_camera_shot_urls::Response { camera_shot_urls })
-            }
-            Err(error) => {
-                let error_message = format!("get_camera_shot_urls error: {}", error);
-                println!("{}", error_message);
-                Err(error_message)
-            }
+        _: luda_editor_rpc::get_character_image_urls::Request,
+    ) -> Result<luda_editor_rpc::get_character_image_urls::Response, String> {
+        let resource_character_image_path = resource_path().join("characterImages");
+        println!(
+            "[get_character_image_urls] {:?}",
+            resource_character_image_path
+        );
+        let mut character_image_urls = Vec::new();
+        match visit_dirs(&resource_character_image_path, &mut |entry| {
+            let full_path = entry.path();
+            let path = full_path
+                .strip_prefix(&resource_character_image_path)
+                .unwrap();
+            let path = format!("/{}", path.display());
+            character_image_urls.push(path);
+        }) {
+            Ok(_) => Ok(luda_editor_rpc::get_character_image_urls::Response {
+                character_image_urls,
+            }),
+            Err(err) => Err(format!("{:?}", err)),
         }
     }
     async fn read_file(
@@ -238,4 +236,18 @@ impl luda_editor_rpc::RpcHandle for RpcHandler {
         }
         Ok(luda_editor_rpc::put_sequences::Response {})
     }
+}
+fn visit_dirs(dir: &Path, cb: &mut dyn FnMut(&DirEntry)) -> io::Result<()> {
+    if dir.is_dir() {
+        for entry in fs::read_dir(dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                visit_dirs(&path, cb)?;
+            } else {
+                cb(&entry);
+            }
+        }
+    }
+    Ok(())
 }

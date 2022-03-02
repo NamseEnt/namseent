@@ -3,8 +3,8 @@ pub use nrpc::*;
 pub use types::*;
 
 def_rpc! {
-    get_camera_shot_urls({}) -> {
-        camera_shot_urls: Vec<String>,
+    get_character_image_urls({}) -> {
+        character_image_urls: Vec<String>,
     },
     read_file({
         dest_path: String,

@@ -39,27 +39,10 @@ pub struct Circumscribed {
     pub radius: f32,
 }
 
-#[derive(Debug, Clone)]
-pub struct ImageFilenameObject {
-    pub character: String,
-    pub pose: String,
-    pub emotion: String,
-    pub url: String,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CharacterPoseEmotion(pub String, pub String, pub String);
-
 impl CharacterPoseEmotion {
-    pub fn get_url(&self, image_filename_objects: &Vec<ImageFilenameObject>) -> Option<String> {
-        for image_filename_object in image_filename_objects {
-            if image_filename_object.character == self.0
-                && image_filename_object.pose == self.1
-                && image_filename_object.emotion == self.2
-            {
-                return Some(image_filename_object.url.clone());
-            }
-        }
-        None
+    pub(crate) fn to_url(&self) -> String {
+        format!("/{}/{}/{}.png", self.0, self.1, self.2)
     }
 }
