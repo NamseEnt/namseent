@@ -132,11 +132,13 @@ impl namui::Entity for Editor {
                     self.background_image_files = background_image_files.clone();
                 }
                 EditorEvent::WysiwygEditorInnerImageMouseDownEvent {
+                    target,
                     mouse_xy,
                     container_size,
                 } => {
                     if self.job.is_none() {
                         self.job = Some(Job::WysiwygMoveImage(WysiwygMoveImageJob {
+                            target: target.clone(),
                             clip_id: self
                                 .get_single_selected_clip()
                                 .unwrap()
@@ -149,6 +151,7 @@ impl namui::Entity for Editor {
                     };
                 }
                 EditorEvent::WysiwygEditorResizerHandleMouseDownEvent {
+                    target,
                     mouse_xy,
                     handle,
                     center_xy,
@@ -157,6 +160,7 @@ impl namui::Entity for Editor {
                 } => {
                     if self.job.is_none() {
                         self.job = Some(Job::WysiwygResizeImage(WysiwygResizeImageJob {
+                            target: target.clone(),
                             clip_id: self
                                 .get_single_selected_clip()
                                 .unwrap()
@@ -171,7 +175,7 @@ impl namui::Entity for Editor {
                         }));
                     };
                 }
-                EditorEvent::WysiwygEditorCropperHandleMouseDownEvent {
+                EditorEvent::CharacterWysiwygEditorCropperHandleMouseDownEvent {
                     mouse_xy,
                     handle,
                     container_size,
@@ -194,32 +198,47 @@ impl namui::Entity for Editor {
                     character_pose_emotion,
                 } => {
                     let clip = self.get_single_selected_clip().unwrap();
+
                     clip.as_camera_clip().map(|camera_clip| {
                         if camera_clip
                             .camera_angle
-                            .character_pose_emotion
+                            .character
+                            .as_ref()
+                            .map(|character| character.character_pose_emotion.clone())
                             .ne(character_pose_emotion)
                         {
                             self.job = Some(Job::ChangeImage(ChangeImageJob {
                                 clip_id: clip.get_id().to_string(),
                                 character_pose_emotion: character_pose_emotion.clone(),
-                                background: camera_clip.camera_angle.background.clone(),
+                                background_name: camera_clip
+                                    .camera_angle
+                                    .background
+                                    .as_ref()
+                                    .map(|background| background.name.clone()),
                             }));
                             self.execute_job();
                         }
                     });
                 }
-                EditorEvent::BackgroundImageBrowserSelectEvent { background } => {
+                EditorEvent::BackgroundImageBrowserSelectEvent { background_name } => {
                     let clip = self.get_single_selected_clip().unwrap();
+
                     clip.as_camera_clip().map(|camera_clip| {
-                        if camera_clip.camera_angle.background.ne(background) {
+                        if camera_clip
+                            .camera_angle
+                            .background
+                            .as_ref()
+                            .map(|background| background.name.clone())
+                            .ne(background_name)
+                        {
                             self.job = Some(Job::ChangeImage(ChangeImageJob {
                                 clip_id: clip.get_id().to_string(),
                                 character_pose_emotion: camera_clip
                                     .camera_angle
-                                    .character_pose_emotion
-                                    .clone(),
-                                background: background.clone(),
+                                    .character
+                                    .as_ref()
+                                    .map(|character| character.character_pose_emotion.clone()),
+                                background_name: background_name.clone(),
                             }));
                             self.execute_job();
                         }
@@ -685,17 +704,7 @@ impl Editor {
             start_at: *start_at,
             end_at: start_at + Time::from_sec(3.0),
             camera_angle: CameraAngle {
-                source_01_circumscribed: Circumscribed {
-                    center: Xy { x: 0.5, y: 0.5 },
-                    radius: 0.5,
-                },
-                crop_screen_01_rect: LtrbRect {
-                    left: 0.0,
-                    top: 0.0,
-                    right: 1.0,
-                    bottom: 1.0,
-                },
-                character_pose_emotion: None,
+                character: None,
                 background: None,
             },
         }

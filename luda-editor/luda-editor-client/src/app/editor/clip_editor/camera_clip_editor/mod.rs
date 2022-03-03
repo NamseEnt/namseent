@@ -1,10 +1,4 @@
-use self::image_browser::{
-    ImageBrowserDirectory, ImageBrowserEvent, ImageBrowserFile, ImageBrowserItem,
-};
-pub use self::{
-    image_browser::{ImageBrowser, ImageBrowserProps},
-    wysiwyg_editor::{WysiwygEditor, WysiwygEditorProps},
-};
+use self::{image_browser::*, wysiwyg_editor::*};
 use crate::app::{
     editor::{events::EditorEvent, job::Job},
     types::*,
@@ -23,9 +17,16 @@ use tab::*;
 pub struct CameraClipEditor {
     character_image_browser: ImageBrowser,
     background_image_browser: ImageBrowser,
-    wysiwyg_editor: WysiwygEditor,
+    character_wysiwyg_editor: CharacterWysiwygEditor,
+    background_wysiwyg_editor: BackgroundWysiwygEditor,
     selected_tab: Tab,
     clip_id: String,
+}
+
+#[derive(Debug, Clone)]
+pub enum WysiwygTarget {
+    Character,
+    Background,
 }
 
 pub struct CameraClipEditorProps<'a> {
@@ -55,7 +56,8 @@ impl CameraClipEditor {
                 background_image_item,
                 "http://localhost:3030/resources/backgrounds",
             ),
-            wysiwyg_editor: WysiwygEditor::new(),
+            character_wysiwyg_editor: CharacterWysiwygEditor::new(),
+            background_wysiwyg_editor: BackgroundWysiwygEditor::new(),
             selected_tab: Tab::CharacterImage,
             clip_id: clip.id.clone(),
         }
@@ -96,20 +98,54 @@ impl CameraClipEditor {
                             });
                         });
                     } else if self.background_image_browser.get_id().eq(browser_id) {
-                        let background = match item {
+                        let background_name = match item {
                             ImageBrowserItem::Empty => Some(None),
                             ImageBrowserItem::File(file) => {
                                 Some(Some(convert_file_to_background(file)))
                             }
                             _ => None,
                         };
-                        background.map(|background| {
+                        background_name.map(|background_name| {
                             namui::event::send(EditorEvent::BackgroundImageBrowserSelectEvent {
-                                background,
+                                background_name,
                             });
                         });
                     }
                 }
+            }
+        } else if let Some(event) = event.downcast_ref::<WysiwygEvent>() {
+            match event {
+                WysiwygEvent::ResizerHandleMouseDownEvent {
+                    target_id,
+                    mouse_xy,
+                    handle,
+                    center_xy,
+                    container_size,
+                    image_size_ratio,
+                } => {
+                    let target = self.get_wysiwyg_target(target_id);
+                    namui::event::send(EditorEvent::WysiwygEditorResizerHandleMouseDownEvent {
+                        target,
+                        mouse_xy: mouse_xy.clone(),
+                        handle: handle.clone(),
+                        center_xy: center_xy.clone(),
+                        container_size: container_size.clone(),
+                        image_size_ratio: image_size_ratio.clone(),
+                    });
+                }
+                WysiwygEvent::InnerImageMouseDownEvent {
+                    container_size,
+                    mouse_xy,
+                    target_id,
+                } => {
+                    let target = self.get_wysiwyg_target(target_id);
+                    namui::event::send(EditorEvent::WysiwygEditorInnerImageMouseDownEvent {
+                        target,
+                        container_size: container_size.clone(),
+                        mouse_xy: mouse_xy.clone(),
+                    });
+                }
+                _ => {}
             }
         }
     }
@@ -250,23 +286,35 @@ impl CameraClipEditor {
                 height: wh.height,
                 files: props.character_image_files,
             }),
-            Tab::CharacterPosition => self.wysiwyg_editor.render(&WysiwygEditorProps {
-                xywh: XywhRect {
-                    x: 0.0,
-                    y: 0.0,
-                    width: wh.width,
-                    height: wh.width / (1920.0 / 1080.0),
-                },
-                camera_angle,
-                character_image_files: props.character_image_files,
-                job: props.job,
-            }),
+            Tab::CharacterPosition => {
+                self.character_wysiwyg_editor
+                    .render(&CharacterWysiwygEditorProps {
+                        xywh: XywhRect {
+                            x: 0.0,
+                            y: 0.0,
+                            width: wh.width,
+                            height: wh.width / (1920.0 / 1080.0),
+                        },
+                        camera_angle,
+                    })
+            }
             Tab::BackgroundImage => self.background_image_browser.render(&ImageBrowserProps {
                 width: wh.width,
                 height: wh.height,
                 files: props.background_image_files,
             }),
-            Tab::BackgroundPosition => todo!(),
+            Tab::BackgroundPosition => {
+                self.background_wysiwyg_editor
+                    .render(&BackgroundWysiwygEditorProps {
+                        xywh: XywhRect {
+                            x: 0.0,
+                            y: 0.0,
+                            width: wh.width,
+                            height: wh.height,
+                        },
+                        camera_angle,
+                    })
+            }
         };
         namui::clip(
             namui::PathBuilder::new().add_rect(&namui::LtrbRect {
@@ -278,6 +326,16 @@ impl CameraClipEditor {
             namui::ClipOp::Intersect,
             namui::render![border, content],
         )
+    }
+
+    fn get_wysiwyg_target(&self, target_id: &str) -> WysiwygTarget {
+        if self.character_wysiwyg_editor.get_id() == target_id {
+            WysiwygTarget::Character
+        } else if self.background_wysiwyg_editor.get_id() == target_id {
+            WysiwygTarget::Background
+        } else {
+            unreachable!()
+        }
     }
 }
 fn convert_file_to_character_pose_emotion(file: &ImageBrowserFile) -> CharacterPoseEmotion {
@@ -302,17 +360,17 @@ fn convert_file_to_background(file: &ImageBrowserFile) -> String {
     url.split_at(last_dot_index).0[1..].to_string()
 }
 fn get_character_image_item(clip: &CameraClip) -> Option<ImageBrowserItem> {
-    match clip.camera_angle.character_pose_emotion.as_ref() {
-        Some(character_pose_emotion) => Some(ImageBrowserItem::File(ImageBrowserFile::new(
-            character_pose_emotion.to_url(),
+    match clip.camera_angle.character.as_ref() {
+        Some(character) => Some(ImageBrowserItem::File(ImageBrowserFile::new(
+            character.character_pose_emotion.to_url(),
         ))),
         None => Some(ImageBrowserItem::Empty),
     }
 }
 fn get_character_image_directory(clip: &CameraClip) -> ImageBrowserDirectory {
-    match clip.camera_angle.character_pose_emotion.as_ref() {
-        Some(character_pose_emotion) => {
-            ImageBrowserFile::new(character_pose_emotion.to_url()).get_directory()
+    match clip.camera_angle.character.as_ref() {
+        Some(character) => {
+            ImageBrowserFile::new(character.character_pose_emotion.to_url()).get_directory()
         }
         None => ImageBrowserDirectory::root(),
     }
@@ -321,14 +379,16 @@ fn get_background_image_item(clip: &CameraClip) -> Option<ImageBrowserItem> {
     match clip.camera_angle.background.as_ref() {
         Some(background) => Some(ImageBrowserItem::File(ImageBrowserFile::new(format!(
             "/{}.jpeg",
-            background
+            background.name
         )))),
         None => Some(ImageBrowserItem::Empty),
     }
 }
 fn get_background_image_directory(clip: &CameraClip) -> ImageBrowserDirectory {
     match clip.camera_angle.background.as_ref() {
-        Some(background) => ImageBrowserFile::new(format!("/{}.jpeg", background)).get_directory(),
+        Some(background) => {
+            ImageBrowserFile::new(format!("/{}.jpeg", background.name)).get_directory()
+        }
         None => ImageBrowserDirectory::root(),
     }
 }

@@ -136,18 +136,8 @@ pub fn mock_background_clip(clip_id: &str, start_at: Time, end_at: Time) -> Arc<
         start_at,
         end_at,
         camera_angle: CameraAngle {
+            character: None,
             background: None,
-            character_pose_emotion: None,
-            source_01_circumscribed: Circumscribed {
-                center: Xy { x: 0.0, y: 0.0 },
-                radius: 1.0,
-            },
-            crop_screen_01_rect: LtrbRect {
-                left: 0.0,
-                top: 0.0,
-                right: 1.0,
-                bottom: 1.0,
-            },
         },
     })
 }
@@ -158,18 +148,8 @@ pub fn mock_camera_clip(clip_id: &str, start_at: Time, end_at: Time) -> Arc<Came
         start_at,
         end_at,
         camera_angle: CameraAngle {
+            character: None,
             background: None,
-            character_pose_emotion: None,
-            source_01_circumscribed: Circumscribed {
-                center: Xy { x: 0.0, y: 0.0 },
-                radius: 1.0,
-            },
-            crop_screen_01_rect: LtrbRect {
-                left: 0.0,
-                top: 0.0,
-                right: 1.0,
-                bottom: 1.0,
-            },
         },
     })
 }

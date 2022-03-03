@@ -1,7 +1,8 @@
 use super::JobExecute;
 use crate::app::{
-    editor::clip_editor::camera_clip_editor::wysiwyg_editor::resizer::{
-        ResizerHandle, ResizerHandleDirection,
+    editor::clip_editor::camera_clip_editor::{
+        wysiwyg_editor::resizer::{ResizerHandle, ResizerHandleDirection},
+        WysiwygTarget,
     },
     types::*,
 };
@@ -9,6 +10,7 @@ use namui::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct WysiwygResizeImageJob {
+    pub target: WysiwygTarget,
     pub clip_id: String,
     pub start_global_mouse_xy: namui::Xy<f32>,
     pub last_global_mouse_xy: namui::Xy<f32>,
@@ -36,6 +38,7 @@ impl JobExecute for WysiwygResizeImageJob {
 impl WysiwygResizeImageJob {
     pub fn resize_camera_angle(&self, camera_angle: &mut CameraAngle) {
         let mouse_diff_xy = self.last_global_mouse_xy - self.start_global_mouse_xy;
+
         let source_01_circumscribed = resize_by_center(
             &self.handle,
             &self.center_xy,
@@ -43,8 +46,20 @@ impl WysiwygResizeImageJob {
             &self.container_size,
             &self.image_size_ratio,
         );
-
-        camera_angle.source_01_circumscribed = source_01_circumscribed;
+        match self.target {
+            WysiwygTarget::Character => {
+                let character = camera_angle.character.as_mut();
+                if let Some(character) = character {
+                    character.source_01_circumscribed = source_01_circumscribed;
+                }
+            }
+            WysiwygTarget::Background => {
+                let background = camera_angle.background.as_mut();
+                if let Some(background) = background {
+                    background.source_01_circumscribed = source_01_circumscribed;
+                }
+            }
+        };
     }
 }
 

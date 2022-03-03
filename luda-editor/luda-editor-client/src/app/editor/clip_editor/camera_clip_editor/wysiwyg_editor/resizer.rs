@@ -1,17 +1,17 @@
-use crate::app::editor::EditorEvent::WysiwygEditorResizerHandleMouseDownEvent;
-use crate::app::types::CameraAngle;
+use crate::app::editor::clip_editor::camera_clip_editor::wysiwyg_editor::WysiwygEvent;
 use namui::prelude::*;
 
-pub struct Resizer {}
+pub struct Resizer {
+    id: String,
+}
 
 impl Resizer {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(id: &str) -> Self {
+        Self { id: id.to_string() }
     }
 }
 
 pub struct ResizerProps<'a> {
-    pub camera_angle: &'a CameraAngle,
     pub source_rect: &'a XywhRect<f32>,
     pub container_size: &'a Wh<f32>,
 }
@@ -35,60 +35,67 @@ impl Resizer {
                     ..Default::default()
                 },
             }),
-            render_resize_handles(props.source_rect, props.container_size),
+            self.render_resize_handles(props.source_rect, props.container_size),
         ]
     }
-}
 
-fn render_resize_handles(source_rect: &XywhRect<f32>, container_size: &Wh<f32>) -> RenderingTree {
-    const HANDLE_RADIUS: f32 = 5.0;
+    fn render_resize_handles(
+        &self,
+        source_rect: &XywhRect<f32>,
+        container_size: &Wh<f32>,
+    ) -> RenderingTree {
+        const HANDLE_RADIUS: f32 = 5.0;
+        RenderingTree::Children(
+            get_handles(&source_rect)
+                .iter()
+                .map(|handle| {
+                    let path = namui::PathBuilder::new().add_oval(&LtrbRect {
+                        left: handle.xy.x - HANDLE_RADIUS,
+                        top: handle.xy.y - HANDLE_RADIUS,
+                        right: handle.xy.x + HANDLE_RADIUS,
+                        bottom: handle.xy.y + HANDLE_RADIUS,
+                    });
 
-    RenderingTree::Children(
-        get_handles(&source_rect)
-            .iter()
-            .map(|handle| {
-                let path = namui::PathBuilder::new().add_oval(&LtrbRect {
-                    left: handle.xy.x - HANDLE_RADIUS,
-                    top: handle.xy.y - HANDLE_RADIUS,
-                    right: handle.xy.x + HANDLE_RADIUS,
-                    bottom: handle.xy.y + HANDLE_RADIUS,
-                });
+                    let fill_paint = namui::PaintBuilder::new()
+                        .set_style(namui::PaintStyle::Fill)
+                        .set_color(Color::WHITE);
 
-                let fill_paint = namui::PaintBuilder::new()
-                    .set_style(namui::PaintStyle::Fill)
-                    .set_color(Color::WHITE);
+                    let stroke_paint = namui::PaintBuilder::new()
+                        .set_style(namui::PaintStyle::Stroke)
+                        .set_color(Color::grayscale_f01(0.5))
+                        .set_stroke_width(2.0)
+                        .set_anti_alias(true);
 
-                let stroke_paint = namui::PaintBuilder::new()
-                    .set_style(namui::PaintStyle::Stroke)
-                    .set_color(Color::grayscale_f01(0.5))
-                    .set_stroke_width(2.0)
-                    .set_anti_alias(true);
+                    let resizer_id = self.id.clone();
 
-                render![
-                    namui::path(path.clone(), fill_paint),
-                    namui::path(path, stroke_paint),
-                ]
-                .with_mouse_cursor(handle.cursor())
-                .attach_event(move |builder| {
-                    let handle = handle.clone();
-                    let container_size = container_size.clone();
-                    let source_rect = source_rect.clone();
-                    builder.on_mouse_down(move |mouse_event| {
-                        namui::event::send(WysiwygEditorResizerHandleMouseDownEvent {
-                            handle,
-                            center_xy: source_rect.center(),
-                            mouse_xy: mouse_event.global_xy,
-                            container_size,
-                            image_size_ratio: Wh {
-                                width: source_rect.width,
-                                height: source_rect.height,
-                            },
+                    render![
+                        namui::path(path.clone(), fill_paint),
+                        namui::path(path, stroke_paint),
+                    ]
+                    .with_mouse_cursor(handle.cursor())
+                    .attach_event(move |builder| {
+                        let resizer_id = resizer_id.clone();
+                        let handle = handle.clone();
+                        let container_size = container_size.clone();
+                        let source_rect = source_rect.clone();
+                        builder.on_mouse_down(move |mouse_event| {
+                            namui::event::send(WysiwygEvent::ResizerHandleMouseDownEvent {
+                                target_id: resizer_id.clone(),
+                                handle,
+                                center_xy: source_rect.center(),
+                                mouse_xy: mouse_event.global_xy,
+                                container_size,
+                                image_size_ratio: Wh {
+                                    width: source_rect.width,
+                                    height: source_rect.height,
+                                },
+                            })
                         })
                     })
                 })
-            })
-            .collect::<Vec<RenderingTree>>(),
-    )
+                .collect::<Vec<RenderingTree>>(),
+        )
+    }
 }
 
 fn get_opposite_handle(handle: &ResizerHandle, source_rect: &XywhRect<f32>) -> ResizerHandle {

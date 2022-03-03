@@ -13,23 +13,25 @@
               "milliseconds": 3150.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "하연",
-                "앉아두손모으고",
-                "웃음"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.48333332,
-                  "y": 0.65555555
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "앉아두손모으고",
+                  "웃음"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.48333332,
+                    "y": 0.65555555
+                  },
+                  "radius": 0.4326241
                 },
-                "radius": 0.4326241
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -42,23 +44,25 @@
               "milliseconds": 4910.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "피디",
-                "기본",
-                "의심"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.49375,
-                  "y": 0.85555553
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "의심"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49375,
+                    "y": 0.85555553
+                  },
+                  "radius": 0.5
                 },
-                "radius": 0.5
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -71,23 +75,25 @@
               "milliseconds": 5980.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "하연",
-                "앉아두손모으고",
-                "웃음"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.48333332,
-                  "y": 0.65555555
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "앉아두손모으고",
+                  "웃음"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.48333332,
+                    "y": 0.65555555
+                  },
+                  "radius": 0.4326241
                 },
-                "radius": 0.4326241
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -100,23 +106,25 @@
               "milliseconds": 8590.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "피디",
-                "기본",
-                "의심"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.49375,
-                  "y": 0.85555553
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "의심"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49375,
+                    "y": 0.85555553
+                  },
+                  "radius": 0.5
                 },
-                "radius": 0.5
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -129,23 +137,25 @@
               "milliseconds": 10980.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "하연",
-                "앉아두손모으고",
-                "걱정"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.48333332,
-                  "y": 0.65555555
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "앉아두손모으고",
+                  "걱정"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.48333332,
+                    "y": 0.65555555
+                  },
+                  "radius": 0.4326241
                 },
-                "radius": 0.4326241
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -158,23 +168,25 @@
               "milliseconds": 13170.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "피디",
-                "기본",
-                "눈감음"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.49375,
-                  "y": 0.85555553
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "눈감음"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49375,
+                    "y": 0.85555553
+                  },
+                  "radius": 0.5
                 },
-                "radius": 0.5
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -187,23 +199,25 @@
               "milliseconds": 15190.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "하연",
-                "앉아두손모으고",
-                "웃음"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.48333332,
-                  "y": 0.65555555
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "앉아두손모으고",
+                  "웃음"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.48333332,
+                    "y": 0.65555555
+                  },
+                  "radius": 0.4326241
                 },
-                "radius": 0.4326241
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -216,23 +230,25 @@
               "milliseconds": 17120.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "피디",
-                "기본",
-                "당황"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.49375,
-                  "y": 0.85555553
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "당황"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49375,
+                    "y": 0.85555553
+                  },
+                  "radius": 0.5
                 },
-                "radius": 0.5
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -245,23 +261,25 @@
               "milliseconds": 20020.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "하연",
-                "앉아두손모으고",
-                "걱정"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.48333332,
-                  "y": 0.65555555
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "앉아두손모으고",
+                  "걱정"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.48333332,
+                    "y": 0.65555555
+                  },
+                  "radius": 0.4326241
                 },
-                "radius": 0.4326241
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -274,23 +292,25 @@
               "milliseconds": 21960.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "피디",
-                "기본",
-                "눈치"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.49375,
-                  "y": 0.85555553
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "눈치"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49375,
+                    "y": 0.85555553
+                  },
+                  "radius": 0.5
                 },
-                "radius": 0.5
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -303,23 +323,25 @@
               "milliseconds": 23610.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "하연",
-                "허리에손주먹",
-                "화남"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.48333332,
-                  "y": 0.65555555
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "허리에손주먹",
+                  "화남"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.48333332,
+                    "y": 0.65555555
+                  },
+                  "radius": 0.4326241
                 },
-                "radius": 0.4326241
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -332,23 +354,25 @@
               "milliseconds": 26180.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "피디",
-                "기본",
-                "무표정"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.49375,
-                  "y": 0.85555553
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "무표정"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49375,
+                    "y": 0.85555553
+                  },
+                  "radius": 0.5
                 },
-                "radius": 0.5
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -361,23 +385,25 @@
               "milliseconds": 29000.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "피디",
-                "기본",
-                "눈감고곤란"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.49375,
-                  "y": 0.85555553
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "눈감고곤란"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49375,
+                    "y": 0.85555553
+                  },
+                  "radius": 0.5
                 },
-                "radius": 0.5
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -390,23 +416,25 @@
               "milliseconds": 32180.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "피디",
-                "기본",
-                "눈치"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.49375,
-                  "y": 0.85555553
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "눈치"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49375,
+                    "y": 0.85555553
+                  },
+                  "radius": 0.5
                 },
-                "radius": 0.5
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -419,23 +447,25 @@
               "milliseconds": 34280.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "피디",
-                "기본",
-                "당황웃음"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.49375,
-                  "y": 0.85555553
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "당황웃음"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49375,
+                    "y": 0.85555553
+                  },
+                  "radius": 0.5
                 },
-                "radius": 0.5
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -448,23 +478,25 @@
               "milliseconds": 38440.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "하연",
-                "앉아두손모으고",
-                "걱정"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.48333332,
-                  "y": 0.65555555
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "앉아두손모으고",
+                  "걱정"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.48333332,
+                    "y": 0.65555555
+                  },
+                  "radius": 0.4326241
                 },
-                "radius": 0.4326241
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -477,23 +509,25 @@
               "milliseconds": 41270.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "피디",
-                "기본",
-                "눈감고곤란"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.49375,
-                  "y": 0.85555553
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "눈감고곤란"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49375,
+                    "y": 0.85555553
+                  },
+                  "radius": 0.5
                 },
-                "radius": 0.5
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -506,23 +540,25 @@
               "milliseconds": 44240.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "피디",
-                "기본",
-                "궁금"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.49375,
-                  "y": 0.85555553
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "궁금"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49375,
+                    "y": 0.85555553
+                  },
+                  "radius": 0.5
                 },
-                "radius": 0.5
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -535,23 +571,25 @@
               "milliseconds": 46060.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "피디",
-                "기본",
-                "무표정"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.49375,
-                  "y": 0.85555553
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "무표정"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49375,
+                    "y": 0.85555553
+                  },
+                  "radius": 0.5
                 },
-                "radius": 0.5
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -564,23 +602,25 @@
               "milliseconds": 48980.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "피디",
-                "기본",
-                "당황웃음"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.49375,
-                  "y": 0.85555553
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "당황웃음"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49375,
+                    "y": 0.85555553
+                  },
+                  "radius": 0.5
                 },
-                "radius": 0.5
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           },
@@ -593,23 +633,25 @@
               "milliseconds": 50980.0
             },
             "camera_angle": {
-              "character_pose_emotion": [
-                "피디",
-                "기본",
-                "활짝웃음"
-              ],
-              "source_01_circumscribed": {
-                "center": {
-                  "x": 0.49375,
-                  "y": 0.85555553
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "활짝웃음"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49375,
+                    "y": 0.85555553
+                  },
+                  "radius": 0.5
                 },
-                "radius": 0.5
-              },
-              "crop_screen_01_rect": {
-                "left": 0.0,
-                "top": 0.0,
-                "right": 1.0,
-                "bottom": 1.0
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
               }
             }
           }

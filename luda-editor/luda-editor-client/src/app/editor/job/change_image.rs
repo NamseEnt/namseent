@@ -5,7 +5,7 @@ use crate::app::types::*;
 pub struct ChangeImageJob {
     pub clip_id: String,
     pub character_pose_emotion: Option<CharacterPoseEmotion>,
-    pub background: Option<String>,
+    pub background_name: Option<String>,
 }
 
 impl JobExecute for ChangeImageJob {
@@ -13,11 +13,39 @@ impl JobExecute for ChangeImageJob {
         let sequence = sequence.clone();
         match sequence.replace_clip(&self.clip_id, |clip: &CameraClip| {
             let mut clip = clip.clone();
-            if clip.camera_angle.character_pose_emotion != self.character_pose_emotion {
-                clip.camera_angle.character_pose_emotion = self.character_pose_emotion.clone();
+            match clip.camera_angle.character.as_mut() {
+                Some(character) => match &self.character_pose_emotion {
+                    Some(character_pose_emotion) => {
+                        character.character_pose_emotion = character_pose_emotion.clone();
+                    }
+                    None => {
+                        clip.camera_angle.character = None;
+                    }
+                },
+                None => match &self.character_pose_emotion {
+                    Some(character_pose_emotion) => {
+                        clip.camera_angle.character =
+                            Some(CameraAngleCharacter::default(character_pose_emotion));
+                    }
+                    None => {}
+                },
             }
-            if clip.camera_angle.background != self.background {
-                clip.camera_angle.background = self.background.clone();
+            match clip.camera_angle.background.as_mut() {
+                Some(background) => match &self.background_name {
+                    Some(background_name) => {
+                        background.name = background_name.clone();
+                    }
+                    None => {
+                        clip.camera_angle.background = None;
+                    }
+                },
+                None => match &self.background_name {
+                    Some(background_name) => {
+                        clip.camera_angle.background =
+                            Some(CameraAngleBackground::default(background_name));
+                    }
+                    None => {}
+                },
             }
             Ok(clip)
         }) {
