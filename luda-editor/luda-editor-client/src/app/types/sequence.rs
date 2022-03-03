@@ -11,13 +11,6 @@ impl Sequence {
     pub fn get_clip(&self, id: &str) -> Option<Clip> {
         for track in self.tracks.iter() {
             match track.as_ref() {
-                Track::Background(track) => {
-                    for clip in track.clips.iter() {
-                        if clip.id == id {
-                            return Some(Clip::Background(clip.clone()));
-                        }
-                    }
-                }
                 Track::Camera(track) => {
                     for clip in track.clips.iter() {
                         if clip.id == id {
@@ -46,7 +39,6 @@ impl Sequence {
     }
     pub fn find_track_by_clip_id(&self, clip_id: &str) -> Option<Arc<Track>> {
         self.find_track(|track| match track {
-            Track::Background(track) => track.clips.iter().any(|clip| clip.id.eq(clip_id)),
             Track::Camera(track) => track.clips.iter().any(|clip| clip.id.eq(clip_id)),
             Track::Subtitle(track) => track.clips.iter().any(|clip| clip.id.eq(clip_id)),
         })
@@ -108,33 +100,8 @@ impl CameraClip {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BackgroundClip {
-    pub id: String,
-    pub start_at: Time,
-    pub end_at: Time,
-    pub camera_angle: CameraAngle,
-}
-impl BackgroundClip {
-    pub fn is_at_time(&self, time: &Time) -> bool {
-        self.start_at <= time && time < self.end_at
-    }
-    pub fn duplicate(&self) -> BackgroundClip {
-        BackgroundClip {
-            id: BackgroundClip::get_new_id(),
-            start_at: self.start_at,
-            end_at: self.end_at,
-            camera_angle: self.camera_angle.clone(),
-        }
-    }
-    pub fn get_new_id() -> String {
-        format!("BackgroundClip-{}", namui::nanoid())
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum Clip {
-    Background(Arc<BackgroundClip>),
     Camera(Arc<CameraClip>),
     Subtitle(Arc<SubtitleClip>),
 }
@@ -142,7 +109,6 @@ pub enum Clip {
 impl Clip {
     pub fn get_id(&self) -> &str {
         match self {
-            Clip::Background(clip) => &clip.id,
             Clip::Camera(clip) => &clip.id,
             Clip::Subtitle(clip) => &clip.id,
         }
@@ -156,23 +122,9 @@ impl Clip {
 
     pub(crate) fn get_start_time(&self) -> Time {
         match self {
-            Clip::Background(clip) => clip.start_at,
             Clip::Camera(clip) => clip.start_at,
             Clip::Subtitle(clip) => clip.start_at,
         }
-    }
-}
-impl AsRef<BackgroundClip> for Clip {
-    fn as_ref(&self) -> &BackgroundClip {
-        match self {
-            Clip::Background(clip) => clip.as_ref(),
-            _ => panic!("Clip is not BackgroundClip"),
-        }
-    }
-}
-impl From<BackgroundClip> for Clip {
-    fn from(clip: BackgroundClip) -> Self {
-        Clip::Background(Arc::new(clip))
     }
 }
 impl AsRef<CameraClip> for Clip {
@@ -348,8 +300,6 @@ macro_rules! track_clip_replacer {
     };
 }
 
-sequence_clip_replacer!(Background, BackgroundClip);
-track_clip_replacer!(BackgroundTrack, BackgroundClip);
 sequence_clip_replacer!(Camera, CameraClip);
 track_clip_replacer!(CameraTrack, CameraClip);
 sequence_clip_replacer!(Subtitle, SubtitleClip);

@@ -2,27 +2,6 @@ use crate::app::types::*;
 use namui::prelude::*;
 use std::sync::Arc;
 
-pub fn extract_background_clip_ids(sequence: &Sequence) -> Vec<String> {
-    sequence
-        .tracks
-        .iter()
-        .filter_map::<Vec<String>, _>(|track| {
-            if let Track::Background(background_track) = track.as_ref() {
-                Some(
-                    background_track
-                        .clips
-                        .iter()
-                        .map(|clip| clip.id.clone())
-                        .collect(),
-                )
-            } else {
-                None
-            }
-        })
-        .flatten()
-        .collect()
-}
-
 pub fn extract_camera_clip_ids(sequence: &Sequence) -> Vec<String> {
     sequence
         .tracks
@@ -80,21 +59,7 @@ pub fn extract_subtitle_clips(sequence: &Sequence) -> Vec<Arc<SubtitleClip>> {
         .collect()
 }
 
-pub fn mock_sequence(
-    background_clip_ids: &[&str],
-    camera_clip_ids: &[&str],
-    subtitle_clip_ids: &[&str],
-) -> Sequence {
-    let mut background_clips = Vec::new();
-    background_clip_ids
-        .iter()
-        .enumerate()
-        .for_each(|(index, id)| {
-            let start_at = Time::from_ms(index as f32);
-            let end_at = Time::from_ms((index + 1) as f32);
-            background_clips.push(mock_background_clip(id, start_at, end_at));
-        });
-
+pub fn mock_sequence(camera_clip_ids: &[&str], subtitle_clip_ids: &[&str]) -> Sequence {
     let mut camera_clips = Vec::new();
     camera_clip_ids.iter().enumerate().for_each(|(index, id)| {
         let start_at = Time::from_ms(index as f32);
@@ -113,10 +78,6 @@ pub fn mock_sequence(
 
     Sequence {
         tracks: vec![
-            Arc::new(Track::Background(BackgroundTrack {
-                id: "track-background".to_string(),
-                clips: background_clips.into(),
-            })),
             Arc::new(Track::Camera(CameraTrack {
                 id: "track-camera".to_string(),
                 clips: camera_clips.into(),
@@ -128,18 +89,6 @@ pub fn mock_sequence(
         ]
         .into(),
     }
-}
-
-pub fn mock_background_clip(clip_id: &str, start_at: Time, end_at: Time) -> Arc<BackgroundClip> {
-    Arc::new(BackgroundClip {
-        id: clip_id.to_string(),
-        start_at,
-        end_at,
-        camera_angle: CameraAngle {
-            character: None,
-            background: None,
-        },
-    })
 }
 
 pub fn mock_camera_clip(clip_id: &str, start_at: Time, end_at: Time) -> Arc<CameraClip> {

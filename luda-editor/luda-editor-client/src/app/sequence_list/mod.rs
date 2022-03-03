@@ -164,9 +164,5 @@ fn calculate_sequence_duration(sequence: &Arc<Sequence>) -> Time {
                 .iter()
                 .fold(duration, |duration, clip| duration.max(clip.end_at)),
             Track::Subtitle(_) => duration,
-            Track::Background(track) => track
-                .clips
-                .iter()
-                .fold(duration, |duration, clip| duration.max(clip.end_at)),
         })
 }

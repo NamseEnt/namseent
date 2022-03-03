@@ -32,7 +32,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn delete_clip_should_push_clips_front() {
-        let sequence = mock_sequence(&[], &["0", "1", "2", "3", "4"], &[]);
+        let sequence = mock_sequence(&["0", "1", "2", "3", "4"], &[]);
         let job = DeleteCameraClipJob {
             clip_ids: vec!["1".to_string(), "3".to_string()].into_iter().collect(),
         };

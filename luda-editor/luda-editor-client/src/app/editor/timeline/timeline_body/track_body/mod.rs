@@ -29,7 +29,6 @@ impl TrackBody {
                 track: subtitle_track,
                 context: props.context,
             }),
-            Track::Background(_) => todo!(),
         }
     }
 }

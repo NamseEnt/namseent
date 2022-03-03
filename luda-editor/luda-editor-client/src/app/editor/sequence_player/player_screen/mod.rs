@@ -119,7 +119,6 @@ fn render_sequence_in_player_screen(
                     subtitle_play_duration_measurer,
                     subtitle_character_color_map,
                 ),
-                Track::Background(_) => todo!(),
             })
             .collect(),
     )

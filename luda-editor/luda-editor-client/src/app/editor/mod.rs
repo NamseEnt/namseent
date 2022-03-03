@@ -618,9 +618,6 @@ impl Editor {
 
         match selected_clip {
             None => {}
-            Some(Clip::Background(background_clip)) => {
-                self.clipboard = Some(Clipboard::BackgroundClip(background_clip.clone()));
-            }
             Some(Clip::Camera(camera_clip)) => {
                 self.clipboard = Some(Clipboard::CameraClip(camera_clip.clone()));
             }
@@ -634,13 +631,6 @@ impl Editor {
         }
 
         match self.clipboard.as_ref().unwrap() {
-            Clipboard::BackgroundClip(background_clip) => {
-                self.job = Some(Job::AddBackgroundClip(AddBackgroundClipJob {
-                    background_clip: Arc::new(background_clip.duplicate()),
-                    time_to_insert: self.sequence_player.get_playback_time(),
-                }));
-                self.execute_job();
-            }
             Clipboard::CameraClip(camera_clip) => {
                 self.job = Some(Job::AddCameraClip(AddCameraClipJob {
                     camera_clip: Arc::new(camera_clip.duplicate()),
@@ -653,7 +643,6 @@ impl Editor {
 
     pub(crate) fn get_clip_end_time(&self, clip: &Clip) -> Time {
         match clip {
-            Clip::Background(clip) => clip.end_at,
             Clip::Camera(clip) => clip.end_at,
             Clip::Subtitle(clip) => clip.end_at(self.language, &self.get_meta()),
         }

@@ -59,7 +59,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn increase_by_left_direction_should_work() {
-        let sequence = mock_sequence(&[], &["0", "1", "2"], &[]);
+        let sequence = mock_sequence(&["0", "1", "2"], &[]);
         let job = ResizeClipJob {
             clip_id: "1".to_string(),
             click_anchor_in_time: Time::from_ms(0.0),
@@ -84,7 +84,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn decrease_by_left_direction_should_work() {
-        let sequence = mock_sequence(&[], &["0", "1", "2"], &[]);
+        let sequence = mock_sequence(&["0", "1", "2"], &[]);
         let job = ResizeClipJob {
             clip_id: "1".to_string(),
             click_anchor_in_time: Time::from_ms(0.0),
@@ -109,7 +109,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn increase_by_right_direction_should_work() {
-        let sequence = mock_sequence(&[], &["0", "1", "2"], &[]);
+        let sequence = mock_sequence(&["0", "1", "2"], &[]);
         let job = ResizeClipJob {
             clip_id: "1".to_string(),
             click_anchor_in_time: Time::from_ms(0.0),
@@ -134,7 +134,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn decrease_by_right_direction_should_work() {
-        let sequence = mock_sequence(&[], &["0", "1", "2"], &[]);
+        let sequence = mock_sequence(&["0", "1", "2"], &[]);
         let job = ResizeClipJob {
             clip_id: "1".to_string(),
             click_anchor_in_time: Time::from_ms(0.0),
