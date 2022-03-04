@@ -109,7 +109,7 @@ impl ImageBrowserDirectory {
         expected result
           self: /a/b
           directory: /a/bc
-          --> (b, c)
+          --> (b, bc)
         */
         let mut self_chunks_iter = self_chunks.into_iter().peekable();
         let mut directory_chunks_iter = directory_chunks.into_iter().peekable();
