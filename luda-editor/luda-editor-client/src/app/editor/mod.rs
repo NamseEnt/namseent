@@ -1,9 +1,6 @@
 mod timeline;
 use self::{
-    clip_editor::{
-        camera_clip_editor::image_browser::{ImageBrowserFile, ImageBrowserItem},
-        ClipEditor,
-    },
+    clip_editor::{camera_clip_editor::image_browser::ImageBrowserFile, ClipEditor},
     events::*,
 };
 use super::types::{
