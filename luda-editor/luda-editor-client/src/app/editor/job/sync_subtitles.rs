@@ -10,8 +10,7 @@ impl JobExecute for SyncSubtitlesJob {
     fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
         let sequence = sequence.clone();
         let subtitle_track_id = get_subtitle_track_id(&sequence);
-        match sequence.replace_track(&subtitle_track_id, |track: &SubtitleTrack| {
-            let mut track = track.clone();
+        match sequence.replace_track(&subtitle_track_id, |mut track: SubtitleTrack| {
             track.sync(&self.subtitles);
             Ok(track)
         }) {

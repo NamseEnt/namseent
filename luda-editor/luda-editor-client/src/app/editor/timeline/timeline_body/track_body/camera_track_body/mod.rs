@@ -1,11 +1,10 @@
-use self::camera_clip_body::{CameraClipBody, CameraClipBodyProps};
+use super::*;
 use crate::app::{
     editor::{events::EditorEvent, job::Job, TimelineRenderContext},
-    types::{CameraClip, CameraTrack, ClipReplacer, PixelSize},
+    types::*,
 };
 use namui::prelude::*;
 use std::collections::LinkedList;
-pub mod camera_clip_body;
 
 pub struct CameraTrackBody {}
 pub struct CameraTrackBodyProps<'a> {
@@ -30,7 +29,7 @@ fn move_clip_at_last(track: &mut CameraTrack, clip_ids: Vec<&String>) {
 impl CameraTrackBody {
     pub fn render(props: &CameraTrackBodyProps) -> RenderingTree {
         let clips = match &props.context.job {
-            Some(Job::MoveCameraClip(job)) => {
+            Some(Job::MoveClip(job)) => {
                 let mut track = props.track.clone();
 
                 let mut moving_clips = vec![];
@@ -60,14 +59,24 @@ impl CameraTrackBody {
                         .unwrap()
                 });
 
-                move_clip_at_last(&mut track, moving_clip_ids);
+                move_clip_at_last(&mut track, moving_clip_ids.to_vec());
 
                 track.clips
             }
-            Some(Job::ResizeCameraClip(job)) => {
-                let mut track = props.track.clone();
-                job.resize_clip_in_track(&mut track);
-                track.clips
+            Some(Job::ResizeClip(job)) => {
+                if props
+                    .track
+                    .clips
+                    .iter()
+                    .find(|clip| job.clip_id == clip.id)
+                    .is_none()
+                {
+                    props.track.clips.clone()
+                } else {
+                    let mut track = props.track.clone();
+                    let mut track = job.resize_clip_in_track(track);
+                    track.clips
+                }
             }
             _ => props.track.clips.clone(),
         };
@@ -105,17 +114,36 @@ impl CameraTrackBody {
                 clips
                     .iter()
                     .map(|clip| {
-                        CameraClipBody::render(&CameraClipBodyProps {
+                        ResizableClipBody::render(&ResizableClipBodyProps {
                             track_body_wh: &Wh {
                                 width: props.width,
                                 height: props.height,
                             },
-                            clip: clip,
+                            clip: clip.as_ref(),
                             context: props.context,
                         })
                     })
                     .collect::<Vec<_>>(),
             ),
         ]
+    }
+}
+
+impl ResizableClip for CameraClip {
+    fn id(&self) -> String {
+        self.id.clone()
+    }
+
+    fn start_at(&self) -> Time {
+        self.start_at
+    }
+
+    fn end_at(&self) -> Time {
+        self.end_at
+    }
+
+    fn render(&self, wh: &Wh<f32>) -> RenderingTree {
+        self.camera_angle
+            .render(wh, &LudaEditorServerCameraAngleImageLoader {})
     }
 }

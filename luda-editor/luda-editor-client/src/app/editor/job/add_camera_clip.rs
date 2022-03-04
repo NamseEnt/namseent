@@ -1,4 +1,4 @@
-use super::{get_camera_track_id, JobExecute};
+use super::JobExecute;
 use crate::app::types::*;
 use std::sync::Arc;
 
@@ -12,8 +12,7 @@ impl JobExecute for AddCameraClipJob {
     fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
         let sequence = sequence.clone();
         let camera_track_id = get_camera_track_id(&sequence);
-        match sequence.replace_track(&camera_track_id, |track: &CameraTrack| {
-            let mut track = track.clone();
+        match sequence.replace_track(&camera_track_id, |mut track: CameraTrack| {
             track.insert_clip(self.camera_clip.clone(), self.time_to_insert);
             Ok(track)
         }) {
@@ -22,6 +21,16 @@ impl JobExecute for AddCameraClipJob {
             UpdateResult::Err(error) => Err(error),
         }
     }
+}
+pub(crate) fn get_camera_track_id(sequence: &Sequence) -> String {
+    sequence
+        .tracks
+        .iter()
+        .find_map(|track| match track.as_ref() {
+            Track::Camera(track) => Some(track.id.clone()),
+            _ => None,
+        })
+        .unwrap()
 }
 
 #[cfg(test)]

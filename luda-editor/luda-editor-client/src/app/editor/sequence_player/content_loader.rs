@@ -31,27 +31,20 @@ impl ContentLoader {
             match track.as_ref() {
                 Track::Camera(camera_track) => {
                     for clip in camera_track.clips.iter() {
-                        let character_pose_emotion = match &clip.camera_angle.character_pose_emotion
-                        {
-                            Some(character_pose_emotion) => character_pose_emotion,
+                        match clip.camera_angle.character.as_ref() {
                             None => continue,
-                        };
+                            Some(character) => {
+                                let image_source = camera_angle_image_loader
+                                    .get_character_image_source(&character);
 
-                        let image_source =
-                            camera_angle_image_loader.get_image_source(&character_pose_emotion);
-
-                        if image_source.is_none() {
-                            panic!("image source is none");
-                        }
-                        match image_source.unwrap() {
-                            namui::ImageSource::Url(url) => {
-                                if managers.image_manager.clone().try_load(&url).is_some() {
-                                    continue;
+                                match image_source {
+                                    namui::ImageSource::Url(url) => {
+                                        if managers.image_manager.clone().try_load(&url).is_none() {
+                                            loading_contents.push_back(LoadingContent::Image(url));
+                                        }
+                                    }
+                                    _ => {}
                                 }
-                                loading_contents.push_back(LoadingContent::Image(url));
-                            }
-                            namui::ImageSource::Image(_) => {
-                                continue;
                             }
                         }
                     }

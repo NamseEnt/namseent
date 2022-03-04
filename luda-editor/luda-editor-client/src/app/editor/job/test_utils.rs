@@ -79,11 +79,11 @@ pub fn mock_sequence(camera_clip_ids: &[&str], subtitle_clip_ids: &[&str]) -> Se
     Sequence {
         tracks: vec![
             Arc::new(Track::Camera(CameraTrack {
-                id: "track-1".to_string(),
+                id: "track-camera".to_string(),
                 clips: camera_clips.into(),
             })),
             Arc::new(Track::Subtitle(SubtitleTrack {
-                id: "track-2".to_string(),
+                id: "track-subtitle".to_string(),
                 clips: subtitle_clips.into(),
             })),
         ]
@@ -97,17 +97,8 @@ pub fn mock_camera_clip(clip_id: &str, start_at: Time, end_at: Time) -> Arc<Came
         start_at,
         end_at,
         camera_angle: CameraAngle {
-            character_pose_emotion: None,
-            source_01_circumscribed: Circumscribed {
-                center: Xy { x: 0.0, y: 0.0 },
-                radius: 1.0,
-            },
-            crop_screen_01_rect: LtrbRect {
-                left: 0.0,
-                top: 0.0,
-                right: 1.0,
-                bottom: 1.0,
-            },
+            character: None,
+            background: None,
         },
     })
 }

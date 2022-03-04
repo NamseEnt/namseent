@@ -3,7 +3,9 @@ use crate::app::{editor::TimelineRenderContext, types::Track};
 use namui::prelude::*;
 pub mod camera_track_body;
 use self::subtitle_track_body::{SubtitleTrackBody, SubtitleTrackBodyProps};
+mod resizable_clip_body;
 mod subtitle_track_body;
+pub use resizable_clip_body::*;
 
 pub struct TrackBody {}
 pub struct TrackBodyProps<'a> {

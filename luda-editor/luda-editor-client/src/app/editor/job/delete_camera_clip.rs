@@ -11,8 +11,7 @@ impl JobExecute for DeleteCameraClipJob {
     fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
         let sequence = sequence.clone();
         let camera_track_id = get_camera_track_id(&sequence);
-        match sequence.replace_track(&camera_track_id, |track: &CameraTrack| {
-            let mut track = track.clone();
+        match sequence.replace_track(&camera_track_id, |mut track: CameraTrack| {
             track.delete_clips(&self.clip_ids.iter().collect::<Vec<_>>());
             Ok(track)
         }) {

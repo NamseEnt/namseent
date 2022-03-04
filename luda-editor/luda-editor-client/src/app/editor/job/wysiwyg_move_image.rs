@@ -1,8 +1,9 @@
 use super::JobExecute;
-use crate::app::types::*;
+use crate::app::{editor::clip_editor::camera_clip_editor::WysiwygTarget, types::*};
 
 #[derive(Debug, Clone)]
 pub struct WysiwygMoveImageJob {
+    pub target: WysiwygTarget,
     pub clip_id: String,
     pub start_global_mouse_xy: namui::Xy<f32>,
     pub last_global_mouse_xy: namui::Xy<f32>,
@@ -27,10 +28,23 @@ impl JobExecute for WysiwygMoveImageJob {
 impl WysiwygMoveImageJob {
     pub fn move_camera_angle(&self, camera_angle: &mut CameraAngle) {
         let mouse_diff_xy = self.last_global_mouse_xy - self.start_global_mouse_xy;
-
-        camera_angle.source_01_circumscribed.center.x +=
-            mouse_diff_xy.x / self.container_size.width;
-        camera_angle.source_01_circumscribed.center.y +=
-            mouse_diff_xy.y / self.container_size.height;
+        match self.target {
+            WysiwygTarget::Character => {
+                camera_angle.character.as_mut().map(|character| {
+                    character.source_01_circumscribed.center.x +=
+                        mouse_diff_xy.x / self.container_size.width;
+                    character.source_01_circumscribed.center.y +=
+                        mouse_diff_xy.y / self.container_size.height;
+                });
+            }
+            WysiwygTarget::Background => {
+                camera_angle.background.as_mut().map(|background| {
+                    background.source_01_circumscribed.center.x +=
+                        mouse_diff_xy.x / self.container_size.width;
+                    background.source_01_circumscribed.center.y +=
+                        mouse_diff_xy.y / self.container_size.height;
+                });
+            }
+        }
     }
 }

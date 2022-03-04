@@ -65,10 +65,16 @@ impl App {
 
         #[async_trait]
         impl RpcHandle for RpcHandler {
-            async fn get_camera_shot_urls(
+            async fn get_character_image_urls(
                 &mut self,
-                _: luda_editor_rpc::get_camera_shot_urls::Request,
-            ) -> Result<luda_editor_rpc::get_camera_shot_urls::Response, String> {
+                _: luda_editor_rpc::get_character_image_urls::Request,
+            ) -> Result<luda_editor_rpc::get_character_image_urls::Response, String> {
+                unreachable!()
+            }
+            async fn get_background_image_urls(
+                &mut self,
+                _: luda_editor_rpc::get_background_image_urls::Request,
+            ) -> Result<luda_editor_rpc::get_background_image_urls::Response, String> {
                 unreachable!()
             }
             async fn read_file(
