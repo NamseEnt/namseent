@@ -59,7 +59,10 @@ function displayErrorMessages(errorMessages) {
 function createWebSocket() {
   const websocket = new WebSocket(`ws://${location.host}/hotReload`);
   websocket.onopen = () => console.log("connected");
-  websocket.onclose = () => console.log("connected");
+  websocket.onclose = () => {
+    console.log("disconnected");
+    setTimeout(createWebSocket, 1000);
+  };
   websocket.onmessage = (message) => {
     const namuiMessage = JSON.parse(message.data);
     switch (namuiMessage.type) {
