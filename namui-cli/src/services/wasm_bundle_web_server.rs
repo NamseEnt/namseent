@@ -15,7 +15,7 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
-use tokio::{join, spawn, sync::RwLock};
+use tokio::{spawn, sync::RwLock};
 use warp::ws;
 use warp::{hyper::Uri, ws::Message, Filter};
 
