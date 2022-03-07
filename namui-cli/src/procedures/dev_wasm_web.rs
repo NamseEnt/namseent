@@ -14,7 +14,11 @@ use std::{
 
 pub fn dev_wasm_web(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     const PORT: u16 = 8080;
-    println!("server is running on http://localhost:{}", PORT);
+    let wasm_bundle_web_server_url = format!("http://localhost:{}", PORT);
+
+    let _ = webbrowser::open(&wasm_bundle_web_server_url);
+    println!("server is running on {}", wasm_bundle_web_server_url);
+
     let build_dist_path = manifest_path.parent().unwrap().join("pkg");
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
 

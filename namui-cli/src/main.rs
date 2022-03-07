@@ -1,10 +1,10 @@
-mod build;
 mod procedures;
 mod services;
 mod util;
 use clap::{App, Arg};
 use procedures::dev_wasm_web;
 use std::{env::current_dir, path::PathBuf};
+mod types;
 
 #[tokio::main]
 async fn main() {
@@ -29,7 +29,7 @@ async fn main() {
     let result = dev_wasm_web(&manifest_path);
 
     match result {
-        Ok(_) => todo!(),
+        Ok(_) => {}
         Err(error) => {
             eprintln!("{}", error);
             std::process::exit(1);

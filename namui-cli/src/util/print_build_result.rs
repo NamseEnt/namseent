@@ -1,4 +1,4 @@
-use crate::build::types::ErrorMessage;
+use crate::types::ErrorMessage;
 
 pub fn print_build_result(error_messages: &Vec<ErrorMessage>, cli_error_messages: &Vec<String>) {
     clear_console();

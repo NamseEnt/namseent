@@ -1,4 +1,4 @@
-use crate::{build::types::ErrorMessage, debug_println};
+use crate::{debug_println, types::ErrorMessage};
 use cargo_metadata::{diagnostic::DiagnosticLevel, CompilerMessage, Message};
 use std::{
     io::Read,
