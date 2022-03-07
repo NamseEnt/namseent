@@ -1,7 +1,7 @@
 pub mod build;
 mod build_server;
 mod bundle;
-mod types;
+pub mod types;
 mod web_server;
 
 pub use build::build;

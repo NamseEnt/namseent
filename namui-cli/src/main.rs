@@ -1,30 +1,38 @@
 mod build;
+mod procedures;
+mod services;
 mod util;
-
 use clap::{App, Arg};
-use futures::{self, executor::block_on};
+use procedures::dev_wasm_web;
+use std::{env::current_dir, path::PathBuf};
 
-// use cargo::core::compiler::;
 #[tokio::main]
 async fn main() {
     let matches = App::new("Namui")
         .arg(
-            Arg::with_name("target_dir")
+            Arg::with_name("manifest_path")
                 .help("Target directory to run 'cargo build'. Mostly, root dir of crate")
                 .index(1)
                 .required(false),
         )
-        .arg(
-            Arg::with_name("watch")
-                .help("Build in watch mode")
-                .required(false)
-                .long("watch")
-                .short("w")
-                .takes_value(false),
-        )
         .get_matches();
 
-    let target_dir = matches.value_of("target_dir");
-    let watch = matches.occurrences_of("watch") != 0;
-    block_on(build::build(target_dir, watch));
+    let manifest_path = matches
+        .value_of("manifest_path")
+        .map(|manifest_path| PathBuf::from(manifest_path))
+        .unwrap_or(
+            current_dir()
+                .expect("No current dir found")
+                .join("Cargo.toml"),
+        );
+
+    let result = dev_wasm_web(&manifest_path);
+
+    match result {
+        Ok(_) => todo!(),
+        Err(error) => {
+            eprintln!("{}", error);
+            std::process::exit(1);
+        }
+    }
 }
