@@ -5,7 +5,6 @@ use std::{
     collections::HashSet,
     path::{Path, PathBuf},
     str::FromStr,
-    thread,
     time::Duration,
 };
 
@@ -21,12 +20,12 @@ impl RustProjectWatchService {
     pub(crate) fn watch(
         &self,
         manifest_path: &Path,
-        callback: impl Fn() + std::marker::Send + 'static + Clone,
+        callback: impl Fn(),
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut watching_paths = HashSet::new();
 
         let (watcher_sender, watcher_receiver) = std::sync::mpsc::channel::<_>();
-        let mut watcher = PollWatcher::new(watcher_sender, Duration::from_millis(1000))?;
+        let mut watcher = PollWatcher::new(watcher_sender, Duration::from_millis(100))?;
 
         loop {
             RustProjectWatchService::update_watching_paths(
@@ -53,7 +52,7 @@ impl RustProjectWatchService {
                             },
                         }
                     }
-                    thread::spawn(callback.clone());
+                    callback();
                 }
                 _ => (),
             };

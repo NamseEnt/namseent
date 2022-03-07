@@ -8,5 +8,5 @@ macro_rules! debug_println {
 #[cfg(not(feature = "cli_debug"))]
 #[macro_export]
 macro_rules! debug_println {
-    ($( $args:expr ),*) => {};
+    ($( $args:expr ),*) => {$( let _ = $args; )*};
 }

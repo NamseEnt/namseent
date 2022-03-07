@@ -19,7 +19,7 @@ pub struct RustBuildService {
 pub enum BuildResult {
     Canceled,
     Successful(CargoBuildResult),
-    Failed(String),
+    Failed(String), // It's not failed if cargo build result has error messages.
 }
 
 #[derive(Clone)]
@@ -127,21 +127,14 @@ impl CancelableBuilder {
 
                     match spawned_process.try_wait()? {
                         None => {}
-                        Some(exit_status) => {
-                            return if exit_status.success() {
-                                Ok(BuildResult::Successful(parse_cargo_build_result(
-                                    stdout_reading_thread
-                                        .join()
-                                        .expect("fail to get stdout from thread")
-                                        .as_bytes(),
-                                )))
-                            } else {
-                                Ok(BuildResult::Failed(
-                                    stderr_reading_thread
-                                        .join()
-                                        .expect("fail to get stderr from thread"),
-                                ))
-                            };
+                        Some(_) => {
+                            let result = parse_cargo_build_result(
+                                stdout_reading_thread
+                                    .join()
+                                    .expect("fail to get stdout from thread")
+                                    .as_bytes(),
+                            )?;
+                            return Ok(BuildResult::Successful(result));
                         }
                     };
                 }
@@ -196,7 +189,7 @@ pub struct CargoBuildResult {
     pub is_successful: bool,
 }
 
-fn parse_cargo_build_result(stdout: &[u8]) -> CargoBuildResult {
+fn parse_cargo_build_result(stdout: &[u8]) -> Result<CargoBuildResult, Box<dyn std::error::Error>> {
     let mut warning_messages: Vec<ErrorMessage> = Vec::new();
     let mut error_messages: Vec<ErrorMessage> = Vec::new();
     let mut other_messages: Vec<ErrorMessage> = Vec::new();
@@ -204,7 +197,7 @@ fn parse_cargo_build_result(stdout: &[u8]) -> CargoBuildResult {
 
     let reader = std::io::BufReader::new(stdout);
     for message in cargo_metadata::Message::parse_stream(reader) {
-        match message.unwrap() {
+        match message? {
             Message::CompilerMessage(message) => match message.message.level {
                 DiagnosticLevel::Warning => {
                     if let Ok(message) = convert_compiler_message_to_namui_error_message(&message) {
@@ -229,12 +222,12 @@ fn parse_cargo_build_result(stdout: &[u8]) -> CargoBuildResult {
         }
     }
 
-    CargoBuildResult {
+    Ok(CargoBuildResult {
         warning_messages,
         error_messages,
         other_messages,
         is_successful,
-    }
+    })
 }
 
 fn convert_compiler_message_to_namui_error_message(
