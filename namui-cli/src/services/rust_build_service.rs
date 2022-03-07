@@ -1,4 +1,4 @@
-use crate::build::types::ErrorMessage;
+use crate::{build::types::ErrorMessage, debug_println};
 use cargo_metadata::{diagnostic::DiagnosticLevel, CompilerMessage, Message};
 use std::{
     io::Read,
@@ -14,6 +14,7 @@ use std::{
 
 pub struct RustBuildService {
     builder: Mutex<Option<Arc<CancelableBuilder>>>,
+    is_build_just_started: AtomicBool,
 }
 pub enum BuildResult {
     Canceled,
@@ -37,16 +38,23 @@ impl RustBuildService {
     pub(crate) fn new() -> Self {
         Self {
             builder: Mutex::new(None),
+            is_build_just_started: AtomicBool::new(false),
         }
     }
 
     pub(crate) fn cancel_and_start_build(&self, build_option: &BuildOption) -> BuildResult {
+        if self.is_build_just_started.swap(true, Ordering::Relaxed) {
+            return BuildResult::Canceled;
+        }
+
         let result_receiver = {
             let mut builder_lock = self.builder.lock().unwrap();
             if let Some(builder) = builder_lock.take() {
                 builder.cancel();
             }
 
+            self.is_build_just_started.store(false, Ordering::Relaxed);
+            println!("starting build");
             let (builder, result_receiver) = CancelableBuilder::start(build_option);
             *builder_lock = Some(builder);
             result_receiver
@@ -63,9 +71,16 @@ struct CancelableBuilder {
 
 impl CancelableBuilder {
     pub fn cancel(&self) {
+        if self.is_canceled.load(Ordering::Relaxed) {
+            return;
+        }
+
         self.is_cancel_requested.store(true, Ordering::Relaxed);
+        debug_println!("build cancel requested");
+
         loop {
-            thread::sleep(Duration::from_secs(1));
+            thread::sleep(Duration::from_millis(100));
+
             if self.is_canceled.load(Ordering::Relaxed) {
                 break;
             }
@@ -78,76 +93,72 @@ impl CancelableBuilder {
         Arc<CancelableBuilder>,
         std::sync::mpsc::Receiver<BuildResult>,
     ) {
-        let (result_sender, result_receiver) = std::sync::mpsc::channel();
-
         let builder = Arc::new(Self {
             is_cancel_requested: AtomicBool::new(false),
             is_canceled: AtomicBool::new(false),
         });
         let build_option = build_option.clone();
 
-        thread::spawn({
-            let builder = builder.clone();
-            move || {
-                let send_about_build_end = |result| {
-                    result_sender.send(result).unwrap();
-                    builder.is_canceled.store(true, Ordering::Relaxed);
-                };
-                let mut spawned_process = match Self::spawn_build_process(&build_option) {
-                    Ok(spawned_process) => spawned_process,
-                    Err(error) => {
-                        send_about_build_end(BuildResult::Failed(error.to_string()));
-                        return;
-                    }
-                };
+        let builder_thread_fn = {
+            move |builder: Arc<Self>| -> Result<BuildResult, Box<dyn std::error::Error>> {
+                let mut spawned_process = Self::spawn_build_process(&build_option)?;
 
-                let mut stdout_string = String::new();
-                let mut stderr_string = String::new();
                 let mut stdout = spawned_process.stdout.take().unwrap();
                 let mut stderr = spawned_process.stderr.take().unwrap();
+                let stdout_reading_thread = thread::spawn(move || {
+                    let mut string = String::new();
+                    stdout.read_to_string(&mut string).unwrap();
+                    string
+                });
+                let stderr_reading_thread = thread::spawn(move || {
+                    let mut string = String::new();
+                    stderr.read_to_string(&mut string).unwrap();
+                    string
+                });
 
                 loop {
-                    thread::sleep(Duration::from_secs(1));
+                    thread::sleep(Duration::from_millis(100));
 
                     if builder.is_cancel_requested.load(Ordering::Relaxed) {
-                        spawned_process.kill().unwrap();
-                        send_about_build_end(BuildResult::Canceled);
-                        return;
+                        debug_println!("cancel requested received");
+                        spawned_process.kill()?;
+                        return Ok(BuildResult::Canceled);
                     }
 
-                    let _ = stdout.read_to_string(&mut stdout_string);
-                    let _ = stderr.read_to_string(&mut stderr_string);
-
-                    match spawned_process.try_wait() {
-                        Ok(None) => {}
-                        Ok(_) => match spawned_process.wait() {
-                            Ok(exit_status) => {
-                                let _ = stdout.read_to_string(&mut stdout_string);
-                                let _ = stderr.read_to_string(&mut stderr_string);
-
-                                if exit_status.success() {
-                                    send_about_build_end(BuildResult::Successful(
-                                        parse_cargo_build_result(stdout_string.as_bytes()),
-                                    ));
-                                } else {
-                                    send_about_build_end(BuildResult::Failed(stderr_string));
-                                }
-                                return;
-                            }
-                            Err(error) => {
-                                send_about_build_end(BuildResult::Failed(error.to_string()));
-                                println!("error on wait_with_output: {}", error);
-                                return;
-                            }
-                        },
-                        Err(error) => {
-                            spawned_process.kill().unwrap();
-                            println!("error on try_wait: {}", error);
-                            send_about_build_end(BuildResult::Failed(error.to_string()));
-                            return;
+                    match spawned_process.try_wait()? {
+                        None => {}
+                        Some(exit_status) => {
+                            return if exit_status.success() {
+                                Ok(BuildResult::Successful(parse_cargo_build_result(
+                                    stdout_reading_thread
+                                        .join()
+                                        .expect("fail to get stdout from thread")
+                                        .as_bytes(),
+                                )))
+                            } else {
+                                Ok(BuildResult::Failed(
+                                    stderr_reading_thread
+                                        .join()
+                                        .expect("fail to get stderr from thread"),
+                                ))
+                            };
                         }
                     };
                 }
+            }
+        };
+
+        let (result_sender, result_receiver) = std::sync::mpsc::channel();
+
+        thread::spawn({
+            let builder = builder.clone();
+            move || {
+                let build_result = match builder_thread_fn(builder.clone()) {
+                    Ok(result) => result,
+                    Err(error) => BuildResult::Failed(error.to_string()),
+                };
+                result_sender.send(build_result).unwrap();
+                builder.is_canceled.store(true, Ordering::Relaxed);
             }
         });
 

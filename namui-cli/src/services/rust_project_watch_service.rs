@@ -5,6 +5,7 @@ use std::{
     collections::HashSet,
     path::{Path, PathBuf},
     str::FromStr,
+    thread,
     time::Duration,
 };
 
@@ -20,7 +21,7 @@ impl RustProjectWatchService {
     pub(crate) fn watch(
         &self,
         manifest_path: &Path,
-        callback: impl Fn(),
+        callback: impl Fn() + std::marker::Send + 'static + Clone,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut watching_paths = HashSet::new();
 
@@ -35,7 +36,7 @@ impl RustProjectWatchService {
             )?;
 
             let event = watcher_receiver.recv()?;
-            debug_println!("event: {:?}", event);
+            debug_println!("watch event");
             match event {
                 DebouncedEvent::Create(_)
                 | DebouncedEvent::Remove(_)
@@ -52,7 +53,7 @@ impl RustProjectWatchService {
                             },
                         }
                     }
-                    callback();
+                    thread::spawn(callback.clone());
                 }
                 _ => (),
             };
