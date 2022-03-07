@@ -128,13 +128,23 @@ impl CancelableBuilder {
                     match spawned_process.try_wait()? {
                         None => {}
                         Some(_) => {
-                            let result = parse_cargo_build_result(
+                            match parse_cargo_build_result(
                                 stdout_reading_thread
                                     .join()
                                     .expect("fail to get stdout from thread")
                                     .as_bytes(),
-                            )?;
-                            return Ok(BuildResult::Successful(result));
+                            ) {
+                                Ok(result) => {
+                                    return Ok(BuildResult::Successful(result));
+                                }
+                                Err(_) => {
+                                    let error = stderr_reading_thread
+                                        .join()
+                                        .expect("fail to get stderr from thread");
+
+                                    return Ok(BuildResult::Failed(error));
+                                }
+                            }
                         }
                     };
                 }
