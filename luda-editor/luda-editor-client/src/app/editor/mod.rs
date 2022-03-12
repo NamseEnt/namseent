@@ -266,9 +266,13 @@ impl namui::Entity for Editor {
                     self.sequence_player.seek(*mouse_position_in_time);
                     if !is_mouse_on_clip {
                         let keyboard_manager = &namui::managers().keyboard_manager;
-                        if keyboard_manager.any_code_press(&[namui::Code::ControlLeft]) {
+                        if keyboard_manager
+                            .any_code_press(&[namui::Code::ControlLeft, namui::Code::ControlRight])
+                        {
                             // do nothing please
-                        } else if keyboard_manager.any_code_press(&[namui::Code::ShiftLeft]) {
+                        } else if keyboard_manager
+                            .any_code_press(&[namui::Code::ShiftLeft, namui::Code::ShiftRight])
+                        {
                             self.select_all_to_time(mouse_position_in_time);
                         } else {
                             self.deselect_all_clips();
@@ -327,37 +331,37 @@ impl namui::Entity for Editor {
                     if key_event.code == namui::Code::KeyZ
                         && namui::managers()
                             .keyboard_manager
-                            .any_code_press(&[namui::Code::ControlLeft])
+                            .any_code_press(&[namui::Code::ControlLeft, namui::Code::ControlRight])
                     {
                         self.undo();
                     } else if key_event.code == namui::Code::KeyY
                         && namui::managers()
                             .keyboard_manager
-                            .any_code_press(&[namui::Code::ControlLeft])
+                            .any_code_press(&[namui::Code::ControlLeft, namui::Code::ControlRight])
                     {
                         self.redo();
                     } else if key_event.code == namui::Code::KeyC
                         && namui::managers()
                             .keyboard_manager
-                            .any_code_press(&[namui::Code::ControlLeft])
+                            .any_code_press(&[namui::Code::ControlLeft, namui::Code::ControlRight])
                     {
                         self.copy_to_clipboard();
                     } else if key_event.code == namui::Code::KeyV
                         && namui::managers()
                             .keyboard_manager
-                            .any_code_press(&[namui::Code::ControlLeft])
+                            .any_code_press(&[namui::Code::ControlLeft, namui::Code::ControlRight])
                     {
                         self.paste_clipboard();
                     } else if key_event.code == namui::Code::Home
                         && namui::managers()
                             .keyboard_manager
-                            .any_code_press(&[namui::Code::ShiftLeft])
+                            .any_code_press(&[namui::Code::ShiftLeft, namui::Code::ShiftRight])
                     {
                         self.select_at_once(Direction::Forward);
                     } else if key_event.code == namui::Code::End
                         && namui::managers()
                             .keyboard_manager
-                            .any_code_press(&[namui::Code::ShiftLeft])
+                            .any_code_press(&[namui::Code::ShiftLeft, namui::Code::ShiftRight])
                     {
                         self.select_at_once(Direction::Backward);
                     } else if key_event.code == namui::Code::Delete
@@ -649,13 +653,14 @@ impl Editor {
 
         let keyboard_manager = &namui::managers().keyboard_manager;
 
-        if keyboard_manager.any_code_press(&[namui::Code::ControlLeft]) {
+        if keyboard_manager.any_code_press(&[namui::Code::ControlLeft, namui::Code::ControlRight]) {
             if self.selected_clip_ids.contains(clip_id) {
                 self.deselect_clips(&[clip_id]);
             } else {
                 self.multi_select_clip(clip_id);
             }
-        } else if keyboard_manager.any_code_press(&[namui::Code::ShiftLeft])
+        } else if keyboard_manager
+            .any_code_press(&[namui::Code::ShiftLeft, namui::Code::ShiftRight])
             && self.is_clip_in_same_track_with_selected_clips(clip_id)
         {
             self.select_all_to_time(click_in_time);
