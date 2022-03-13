@@ -1323,14 +1323,46 @@
               "milliseconds": 87955.45
             },
             "end_at": {
-              "milliseconds": 89535.414
+              "milliseconds": 88655.414
             },
             "camera_angle": {
               "character": {
                 "character_pose_emotion": [
                   "피디",
                   "기본",
-                  "의심"
+                  "당황"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.51666665,
+                    "y": 0.7123457
+                  },
+                  "radius": 0.45470998
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-DncSt0NT1dhfPDXAHH9hp",
+            "start_at": {
+              "milliseconds": 88655.414
+            },
+            "end_at": {
+              "milliseconds": 89905.375
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "놀람"
                 ],
                 "source_01_circumscribed": {
                   "center": {
@@ -1352,10 +1384,10 @@
           {
             "id": "CameraClip-zVwIFqPycvxHO6w5Oawhe",
             "start_at": {
-              "milliseconds": 89535.414
+              "milliseconds": 89905.375
             },
             "end_at": {
-              "milliseconds": 91575.375
+              "milliseconds": 91575.336
             },
             "camera_angle": {
               "character": {
@@ -1384,10 +1416,10 @@
           {
             "id": "CameraClip-6MwT6DkyiYGaRxNz02jet",
             "start_at": {
-              "milliseconds": 91575.375
+              "milliseconds": 91575.336
             },
             "end_at": {
-              "milliseconds": 93335.375
+              "milliseconds": 93335.336
             },
             "camera_angle": {
               "character": null,
@@ -1397,10 +1429,10 @@
           {
             "id": "CameraClip-oSkT8SWO1qxYs7oxLDXtj",
             "start_at": {
-              "milliseconds": 93335.375
+              "milliseconds": 93335.336
             },
             "end_at": {
-              "milliseconds": 94755.375
+              "milliseconds": 94755.336
             },
             "camera_angle": {
               "character": null,
@@ -1410,10 +1442,10 @@
           {
             "id": "CameraClip-NNfiKDGXOe9Xtnt5M7x4r",
             "start_at": {
-              "milliseconds": 94755.375
+              "milliseconds": 94755.336
             },
             "end_at": {
-              "milliseconds": 96840.53
+              "milliseconds": 96840.49
             },
             "camera_angle": {
               "character": {
@@ -1442,10 +1474,10 @@
           {
             "id": "CameraClip-GibFaRruVS5o482KGvmBK",
             "start_at": {
-              "milliseconds": 96840.53
+              "milliseconds": 96840.49
             },
             "end_at": {
-              "milliseconds": 99205.69
+              "milliseconds": 99205.65
             },
             "camera_angle": {
               "character": {
@@ -1474,10 +1506,10 @@
           {
             "id": "CameraClip-nQXhMkW88sUeREIxmAxD_",
             "start_at": {
-              "milliseconds": 99205.69
+              "milliseconds": 99205.65
             },
             "end_at": {
-              "milliseconds": 100500.84
+              "milliseconds": 100500.805
             },
             "camera_angle": {
               "character": {
@@ -1506,10 +1538,10 @@
           {
             "id": "CameraClip-KLtrg1AP8uPR6GD5-WOgH",
             "start_at": {
-              "milliseconds": 100500.84
+              "milliseconds": 100500.805
             },
             "end_at": {
-              "milliseconds": 101746.0
+              "milliseconds": 101745.96
             },
             "camera_angle": {
               "character": {
@@ -1538,10 +1570,10 @@
           {
             "id": "CameraClip-wrxaPaqzngEhDtCydVDV8",
             "start_at": {
-              "milliseconds": 101746.0
+              "milliseconds": 101745.96
             },
             "end_at": {
-              "milliseconds": 103031.16
+              "milliseconds": 103031.12
             },
             "camera_angle": {
               "character": {
@@ -1570,10 +1602,10 @@
           {
             "id": "CameraClip-JyWaF1iVR3-XXxM-fbBv_",
             "start_at": {
-              "milliseconds": 103031.16
+              "milliseconds": 103031.12
             },
             "end_at": {
-              "milliseconds": 105236.31
+              "milliseconds": 105236.27
             },
             "camera_angle": {
               "character": {
@@ -1602,10 +1634,10 @@
           {
             "id": "CameraClip-AsRI6fO2q48XDuKYLkG20",
             "start_at": {
-              "milliseconds": 105236.31
+              "milliseconds": 105236.27
             },
             "end_at": {
-              "milliseconds": 106701.47
+              "milliseconds": 106701.43
             },
             "camera_angle": {
               "character": {
@@ -1634,10 +1666,10 @@
           {
             "id": "CameraClip-BCSwnBaDaoHNb-uJVFxdX",
             "start_at": {
-              "milliseconds": 106701.47
+              "milliseconds": 106701.43
             },
             "end_at": {
-              "milliseconds": 108166.625
+              "milliseconds": 108166.586
             },
             "camera_angle": {
               "character": {
@@ -1666,10 +1698,10 @@
           {
             "id": "CameraClip-ipnsOxDvuTwuGMm9FloWl",
             "start_at": {
-              "milliseconds": 108166.625
+              "milliseconds": 108166.586
             },
             "end_at": {
-              "milliseconds": 109751.78
+              "milliseconds": 109751.74
             },
             "camera_angle": {
               "character": {
@@ -1698,10 +1730,10 @@
           {
             "id": "CameraClip-17t6u_YBF1ktnnxIwOGv6",
             "start_at": {
-              "milliseconds": 109751.78
+              "milliseconds": 109751.74
             },
             "end_at": {
-              "milliseconds": 111847.85
+              "milliseconds": 111847.81
             },
             "camera_angle": {
               "character": {
@@ -1730,10 +1762,10 @@
           {
             "id": "CameraClip-8bM68NEPNIGCx8INhZUqq",
             "start_at": {
-              "milliseconds": 111847.85
+              "milliseconds": 111847.81
             },
             "end_at": {
-              "milliseconds": 113433.01
+              "milliseconds": 113432.97
             },
             "camera_angle": {
               "character": {
@@ -1838,7 +1870,7 @@
             },
             "subtitle": {
               "id": "2022-02-22-23-01-0006",
-              "speaker": "나레이션",
+              "speaker": "",
               "language_text_map": {
                 "Ko": "그때, 한 여자가 회사 문을 열고 들어온다."
               }
@@ -2419,20 +2451,20 @@
           {
             "id": "2022-02-22-23-01-0053",
             "start_at": {
-              "milliseconds": 88179.75
+              "milliseconds": 88689.75
             },
             "subtitle": {
               "id": "2022-02-22-23-01-0053",
               "speaker": "피디",
               "language_text_map": {
-                "Ko": "안주면 나가요!"
+                "Ko": "안주면 신고해!"
               }
             }
           },
           {
             "id": "2022-02-22-23-01-0054",
             "start_at": {
-              "milliseconds": 89569.75
+              "milliseconds": 90469.75
             },
             "subtitle": {
               "id": "2022-02-22-23-01-0054",
