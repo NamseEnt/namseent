@@ -67,9 +67,11 @@ impl SubtitlePlayDurationMeasure for Meta {
 
 #[cfg(test)]
 mod tests {
-    use crate::app::types::subtitle_play_duration_measure::{
-        count_token_in_text, remove_token_from_text,
+    use crate::app::types::{
+        subtitle_play_duration_measure::{count_token_in_text, remove_token_from_text},
+        Meta, Subtitle, SubtitlePlayDurationMeasure, Time,
     };
+    use std::collections::HashMap;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
@@ -121,5 +123,107 @@ mod tests {
         let token = format!("..");
         let expected = format!("Now testing");
         assert_eq!(remove_token_from_text(&text, &token), expected);
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn two_dot_first() {
+        let meta: Meta = serde_json::from_str(
+            "{
+            \"subtitle_language_minimum_play_duration_map\": {
+                \"Ko\": {
+                    \"milliseconds\": 1000.0
+                }
+            },
+            \"subtitle_language_play_duration_per_character_map\": {
+                \"Ko\": {
+                    \"milliseconds\": 1000.0
+                }
+            },
+            \"subtitle_specific_text_token_play_duration_map\": {
+                \"..\": {
+                    \"milliseconds\": 1.0
+                },
+                \"...\": {
+                    \"milliseconds\": 10.0
+                }
+            },
+            \"subtitle_character_color_map\": {}
+        }",
+        )
+        .unwrap();
+        let subtitle: Subtitle = mock_subtitle("Now... testing.....");
+        // 1. two dot: 3 * 1.0 = 3.0
+        // Now. testing.
+
+        // 2. three dot: 0 * 10.0 = 0.0
+        // Now. testing.
+
+        // 3. remaining without IGNORED_CHARACTERS: 10 * 1000.0
+        // Nowtesting
+
+        // total: 10003.0
+        let expected: Time = Time::from_ms(10003.0);
+
+        assert_eq!(
+            meta.get_play_duration(&subtitle, &namui::Language::Ko),
+            expected
+        );
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn three_dot_first() {
+        let meta: Meta = serde_json::from_str(
+            "{
+            \"subtitle_language_minimum_play_duration_map\": {
+                \"Ko\": {
+                    \"milliseconds\": 1000.0
+                }
+            },
+            \"subtitle_language_play_duration_per_character_map\": {
+                \"Ko\": {
+                    \"milliseconds\": 1000.0
+                }
+            },
+            \"subtitle_specific_text_token_play_duration_map\": {
+                \"...\": {
+                    \"milliseconds\": 1.0
+                },
+                \"..\": {
+                    \"milliseconds\": 10.0
+                }
+            },
+            \"subtitle_character_color_map\": {}
+        }",
+        )
+        .unwrap();
+        let subtitle: Subtitle = mock_subtitle("Now... testing.....");
+        // 1. three dot: 2 * 1.0 = 2.0
+        // Now testing..
+
+        // 2. two dot: 1 * 10.0 = 10.0
+        // Now testing
+
+        // 3. remaining without IGNORED_CHARACTERS: 10 * 1000.0
+        // Nowtesting
+
+        // total: 10012.0
+        let expected: Time = Time::from_ms(10012.0);
+
+        assert_eq!(
+            meta.get_play_duration(&subtitle, &namui::Language::Ko),
+            expected
+        );
+    }
+
+    fn mock_subtitle(content: &str) -> Subtitle {
+        let mut language_text_map = HashMap::new();
+        language_text_map.insert(namui::Language::Ko, format!("{}", content));
+        Subtitle {
+            id: format!("id"),
+            speaker: format!("speaker"),
+            language_text_map,
+        }
     }
 }
