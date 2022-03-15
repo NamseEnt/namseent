@@ -209,6 +209,7 @@ mod tests {
 
     use super::super::*;
     use super::*;
+    use linked_hash_map::LinkedHashMap;
     use luda_editor_rpc::response_waiter::ResponseWaiter;
     use namui::prelude::*;
     use wasm_bindgen_test::wasm_bindgen_test;
@@ -393,6 +394,9 @@ mod tests {
                     ),
                     subtitle_language_play_duration_per_character_map: HashMap::<_, _>::from_iter(
                         IntoIter::new([(Language::Ko, Time::from_ms(100.0))]),
+                    ),
+                    subtitle_specific_text_token_play_duration_map: LinkedHashMap::from_iter(
+                        IntoIter::new([(format!("..."), Time::from_ms(100.0))]),
                     ),
                     subtitle_character_color_map: HashMap::<_, _>::from_iter(IntoIter::new([(
                         "하연".to_string(),

@@ -2,6 +2,7 @@ use std::sync::Mutex;
 
 use super::*;
 use async_trait::async_trait;
+use linked_hash_map::LinkedHashMap;
 use luda_editor_rpc::Socket;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
@@ -10,6 +11,7 @@ use wasm_bindgen_futures::spawn_local;
 pub struct Meta {
     pub subtitle_language_minimum_play_duration_map: HashMap<Language, Time>,
     pub subtitle_language_play_duration_per_character_map: HashMap<Language, Time>,
+    pub subtitle_specific_text_token_play_duration_map: LinkedHashMap<String, Time>,
     pub subtitle_character_color_map: HashMap<String, Color>,
 }
 
