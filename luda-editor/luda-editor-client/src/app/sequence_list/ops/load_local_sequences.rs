@@ -47,6 +47,7 @@ impl SequenceList {
 pub async fn get_sequences_with_title(
     socket: &Socket,
 ) -> Result<LinkedHashMap<String, Arc<Sequence>>, String> {
+    let sequence_index = SequenceIndex::load(socket).await;
     socket
         .get_sequences(luda_editor_rpc::get_sequences::Request {})
         .await
@@ -63,6 +64,9 @@ pub async fn get_sequences_with_title(
                     }
                 }
             }
-            Ok(sequences.into_iter().collect())
+
+            let unsorted_title_sequence_map: LinkedHashMap<String, Arc<Sequence>> =
+                sequences.into_iter().collect();
+            Ok(sequence_index.sort_title_sequence_map(&unsorted_title_sequence_map))
         })
 }

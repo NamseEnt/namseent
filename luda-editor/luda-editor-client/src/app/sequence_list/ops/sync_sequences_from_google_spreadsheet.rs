@@ -3,7 +3,7 @@ use crate::app::{
     editor::{JobExecute, SyncSubtitlesJob},
     sequence_list::{
         events::SequenceListEvent,
-        types::{self, SequenceSyncState},
+        types::{self, SequenceIndex, SequenceSyncState},
         SequenceList,
     },
     types::*,
@@ -57,6 +57,9 @@ async fn sync_sequences_with_sheets(
     socket: &Socket,
 ) -> Result<LinkedHashMap<String, Arc<Sequence>>, String> {
     let sheets = google_spreadsheet::get_sheets().await?;
+    SequenceIndex::new(sheets.iter().map(|sheet| sheet.title.clone()).collect())
+        .save(socket)
+        .await?;
     let mut title_sequence_map = get_sequences_with_title(&socket).await?;
 
     create_new_sequences_if_not_exist_in_sequences_but_in_sheets(&mut title_sequence_map, &sheets);
