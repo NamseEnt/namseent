@@ -25,12 +25,6 @@ impl SequenceIndex {
                 sorted_title_sequence_map.insert(title.clone(), sequence.clone())
             });
         }
-        for (title, sequence) in title_sequence_map {
-            if sorted_title_sequence_map.contains_key(title) {
-                continue;
-            }
-            sorted_title_sequence_map.insert(title.clone(), sequence.clone());
-        }
         sorted_title_sequence_map
     }
 
@@ -70,7 +64,7 @@ mod tests {
 
     #[test]
     #[wasm_bindgen_test]
-    fn sort_indexed_first_then_concat_rest() {
+    fn sort_indexed_then_ignore_rest() {
         let index: Vec<String> = vec!["4".to_string(), "2".to_string()];
         let mut map: LinkedHashMap<String, bool> = LinkedHashMap::new();
         map.insert("1".to_string(), true);
@@ -81,17 +75,10 @@ mod tests {
         let sorted_map = SequenceIndex::new(index).sort_title_sequence_map(&map);
         let sorted_keys: Vec<String> = sorted_map.keys().map(|key| key.clone()).collect();
 
-        // input:  [1, 2, 3, 4]
-        // index:  [4, 2]
-        // 1. sort indexed first   [4, 2]  [1, 3]
-        // 2. then concat rest     [4, 2, 1, 3]
-        // expected:   [4, 2, 1, 3]
-        let expected_keys: Vec<String> = vec![
-            "4".to_string(),
-            "2".to_string(),
-            "1".to_string(),
-            "3".to_string(),
-        ];
+        // input:       [1, 2, 3, 4]
+        // index:       [4, 2]
+        // expected:    [4, 2]
+        let expected_keys: Vec<String> = vec!["4".to_string(), "2".to_string()];
         assert_eq!(sorted_keys, expected_keys);
     }
 
@@ -106,12 +93,10 @@ mod tests {
         let sorted_map = SequenceIndex::new(index).sort_title_sequence_map(&map);
         let sorted_keys: Vec<String> = sorted_map.keys().map(|key| key.clone()).collect();
 
-        // input:  [1, 2]
-        // index:  [4, 2]
-        // 1. ignore not existing  [2]  [1]
-        // 2. then concat rest     [2, 1]
-        // expected:   [2, 1]
-        let expected_keys: Vec<String> = vec!["2".to_string(), "1".to_string()];
+        // input:       [1, 2]
+        // index:       [4, 2]
+        // expected:    [2]
+        let expected_keys: Vec<String> = vec!["2".to_string()];
         assert_eq!(sorted_keys, expected_keys);
     }
 }
