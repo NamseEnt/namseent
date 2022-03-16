@@ -2,8 +2,9 @@ use crate::app::{
     sequence_list::{events::SequenceListEvent, types::*, SequenceList},
     types::*,
 };
+use linked_hash_map::LinkedHashMap;
 use luda_editor_rpc::Socket;
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 use wasm_bindgen_futures::spawn_local;
 
 impl SequenceList {
@@ -45,7 +46,7 @@ impl SequenceList {
 
 pub async fn get_sequences_with_title(
     socket: &Socket,
-) -> Result<BTreeMap<String, Arc<Sequence>>, String> {
+) -> Result<LinkedHashMap<String, Arc<Sequence>>, String> {
     socket
         .get_sequences(luda_editor_rpc::get_sequences::Request {})
         .await

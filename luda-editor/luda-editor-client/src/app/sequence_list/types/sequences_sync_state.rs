@@ -1,11 +1,12 @@
 use crate::app::types::Sequence;
-use std::{collections::BTreeMap, sync::Arc, time::Duration};
+use linked_hash_map::LinkedHashMap;
+use std::{sync::Arc, time::Duration};
 
 #[derive(Clone)]
 pub enum SequencesSyncStateDetail {
     Loading,
     Loaded {
-        title_sequence_map: BTreeMap<String, Arc<Sequence>>,
+        title_sequence_map: LinkedHashMap<String, Arc<Sequence>>,
     },
     Failed {
         error: String,
