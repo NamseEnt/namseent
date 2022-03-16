@@ -3,14 +3,15 @@ use crate::app::{
     editor::{JobExecute, SyncSubtitlesJob},
     sequence_list::{
         events::SequenceListEvent,
-        types::{self, SequenceSyncState},
+        types::{self, SequenceIndex, SequenceSyncState},
         SequenceList,
     },
     types::*,
 };
+use linked_hash_map::LinkedHashMap;
 use luda_editor_rpc::Socket;
 use namui::{Namui, NamuiImpl};
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 use wasm_bindgen_futures::spawn_local;
 
 impl SequenceList {
@@ -54,8 +55,11 @@ impl SequenceList {
 
 async fn sync_sequences_with_sheets(
     socket: &Socket,
-) -> Result<BTreeMap<String, Arc<Sequence>>, String> {
+) -> Result<LinkedHashMap<String, Arc<Sequence>>, String> {
     let sheets = google_spreadsheet::get_sheets().await?;
+
+    save_order_of_spreadsheet_to_local(&socket, &sheets).await?;
+
     let mut title_sequence_map = get_sequences_with_title(&socket).await?;
 
     create_new_sequences_if_not_exist_in_sequences_but_in_sheets(&mut title_sequence_map, &sheets);
@@ -71,7 +75,7 @@ async fn sync_sequences_with_sheets(
 
 async fn save_sequences(
     socket: &Socket,
-    title_sequence_map: &BTreeMap<String, Arc<Sequence>>,
+    title_sequence_map: &LinkedHashMap<String, Arc<Sequence>>,
 ) -> Result<(), String> {
     socket
         .put_sequences(luda_editor_rpc::put_sequences::Request {
@@ -85,15 +89,25 @@ async fn save_sequences(
 }
 
 fn delete_sequence_if_not_exist_in_sheets(
-    title_sequence_map: &mut BTreeMap<String, Arc<Sequence>>,
+    title_sequence_map: &mut LinkedHashMap<String, Arc<Sequence>>,
     sheets: &[Sheet],
 ) {
-    title_sequence_map.retain(|title, _| sheets.iter().any(|sheet| sheet.title.eq(title)));
+    let titles_in_sheets: Vec<&String> = sheets.iter().map(|sheet| &sheet.title).collect();
+    let titles_not_exist_in_sheets: Vec<String> = title_sequence_map
+        .keys()
+        .filter_map(|title| match titles_in_sheets.contains(&title) {
+            true => None,
+            false => Some(title.clone()),
+        })
+        .collect();
+    for title in titles_not_exist_in_sheets {
+        title_sequence_map.remove(&title);
+    }
 }
 
 fn sync_sequences_subtitles_from_sheets(
     sheets: &[Sheet],
-    title_sequence_map: &mut BTreeMap<String, Arc<Sequence>>,
+    title_sequence_map: &mut LinkedHashMap<String, Arc<Sequence>>,
 ) -> Result<(), String> {
     for sheet in sheets {
         let sequence = title_sequence_map.get_mut(&sheet.title).unwrap();
@@ -108,7 +122,7 @@ fn sync_sequences_subtitles_from_sheets(
 }
 
 fn create_new_sequences_if_not_exist_in_sequences_but_in_sheets(
-    title_sequence_map: &mut BTreeMap<String, Arc<Sequence>>,
+    title_sequence_map: &mut LinkedHashMap<String, Arc<Sequence>>,
     sheets: &[Sheet],
 ) {
     for sheet in sheets {
@@ -117,4 +131,12 @@ fn create_new_sequences_if_not_exist_in_sequences_but_in_sheets(
             title_sequence_map.insert(sheet.title.clone(), new_sequence);
         }
     }
+}
+
+async fn save_order_of_spreadsheet_to_local(
+    socket: &Socket,
+    sheets: &Vec<Sheet>,
+) -> Result<(), String> {
+    let sheet_titles: Vec<String> = sheets.iter().map(|sheet| sheet.title.clone()).collect();
+    SequenceIndex::new(sheet_titles).save(socket).await
 }
