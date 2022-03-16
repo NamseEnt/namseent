@@ -4,12 +4,12 @@ use luda_editor_rpc::Socket;
 const SEQUENCE_INDEX_PATH: &str = "sequence_index.json";
 
 pub struct SequenceIndex {
-    sequences: Vec<String>,
+    sequence_titles: Vec<String>,
 }
 
 impl SequenceIndex {
-    pub fn new(sequences: Vec<String>) -> Self {
-        Self { sequences }
+    pub fn new(sequence_titles: Vec<String>) -> Self {
+        Self { sequence_titles }
     }
 
     pub fn sort_title_sequence_map<T>(
@@ -20,7 +20,7 @@ impl SequenceIndex {
         T: Clone,
     {
         let mut sorted_title_sequence_map: LinkedHashMap<String, T> = LinkedHashMap::new();
-        for title in &self.sequences {
+        for title in &self.sequence_titles {
             title_sequence_map.get(title).and_then(|sequence| {
                 sorted_title_sequence_map.insert(title.clone(), sequence.clone())
             });
@@ -38,7 +38,7 @@ impl SequenceIndex {
         socket
             .write_file(luda_editor_rpc::write_file::Request {
                 dest_path: SEQUENCE_INDEX_PATH.to_string(),
-                file: serde_json::to_vec(&self.sequences).unwrap(),
+                file: serde_json::to_vec(&self.sequence_titles).unwrap(),
             })
             .await
             .and_then(|_| Ok(()))
@@ -51,14 +51,14 @@ impl SequenceIndex {
             })
             .await
             .and_then(|response| {
-                let sequences: Result<Vec<String>, serde_json::Error> =
+                let sequence_titles: Result<Vec<String>, serde_json::Error> =
                     serde_json::from_slice(&response.file);
-                match sequences {
-                    Ok(sequences) => Ok(sequences),
+                match sequence_titles {
+                    Ok(sequence_titles) => Ok(sequence_titles),
                     Err(error) => Err(error.to_string()),
                 }
             })
-            .and_then(|sequences| Ok(Self { sequences }))
+            .and_then(|sequence_titles| Ok(Self { sequence_titles }))
     }
 }
 
