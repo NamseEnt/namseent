@@ -44,8 +44,8 @@ impl SequenceIndex {
             .and_then(|_| Ok(()))
     }
 
-    pub async fn load(socket: &Socket) -> Self {
-        match socket
+    pub async fn try_load(socket: &Socket) -> Result<Self, String> {
+        socket
             .read_file(luda_editor_rpc::read_file::Request {
                 dest_path: SEQUENCE_INDEX_PATH.to_string(),
             })
@@ -57,13 +57,8 @@ impl SequenceIndex {
                     Ok(sequences) => Ok(sequences),
                     Err(error) => Err(error.to_string()),
                 }
-            }) {
-            Ok(sequences) => Self { sequences },
-            Err(error) => {
-                namui::log!("{}", error);
-                Self { sequences: vec![] }
-            }
-        }
+            })
+            .and_then(|sequences| Ok(Self { sequences }))
     }
 }
 

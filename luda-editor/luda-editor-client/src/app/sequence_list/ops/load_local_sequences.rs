@@ -47,7 +47,7 @@ impl SequenceList {
 pub async fn get_sequences_with_title(
     socket: &Socket,
 ) -> Result<LinkedHashMap<String, Arc<Sequence>>, String> {
-    let sequence_index = SequenceIndex::load(socket).await;
+    let sequence_index = SequenceIndex::try_load(socket).await?;
     socket
         .get_sequences(luda_editor_rpc::get_sequences::Request {})
         .await
