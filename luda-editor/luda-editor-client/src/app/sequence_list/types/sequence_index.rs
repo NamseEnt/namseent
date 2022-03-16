@@ -44,7 +44,7 @@ impl SequenceIndex {
             .and_then(|_| Ok(()))
     }
 
-    pub async fn try_load(socket: &Socket) -> Result<Self, String> {
+    pub async fn load(socket: &Socket) -> Result<Self, String> {
         socket
             .read_file(luda_editor_rpc::read_file::Request {
                 dest_path: SEQUENCE_INDEX_PATH.to_string(),
