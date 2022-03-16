@@ -57,9 +57,9 @@ async fn sync_sequences_with_sheets(
     socket: &Socket,
 ) -> Result<LinkedHashMap<String, Arc<Sequence>>, String> {
     let sheets = google_spreadsheet::get_sheets().await?;
-    SequenceIndex::new(sheets.iter().map(|sheet| sheet.title.clone()).collect())
-        .save(socket)
-        .await?;
+
+    save_order_of_spreadsheet_to_local(&socket, &sheets).await?;
+
     let mut title_sequence_map = get_sequences_with_title(&socket).await?;
 
     create_new_sequences_if_not_exist_in_sequences_but_in_sheets(&mut title_sequence_map, &sheets);
@@ -131,4 +131,12 @@ fn create_new_sequences_if_not_exist_in_sequences_but_in_sheets(
             title_sequence_map.insert(sheet.title.clone(), new_sequence);
         }
     }
+}
+
+async fn save_order_of_spreadsheet_to_local(
+    socket: &Socket,
+    sheets: &Vec<Sheet>,
+) -> Result<(), String> {
+    let sheet_titles: Vec<String> = sheets.iter().map(|sheet| sheet.title.clone()).collect();
+    SequenceIndex::new(sheet_titles).save(socket).await
 }
