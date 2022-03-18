@@ -9,9 +9,12 @@ use futures::{
     SinkExt, StreamExt,
 };
 use nanoid::nanoid;
+use serde::Deserialize;
 use std::{
     collections::HashMap,
     env::current_exe,
+    fs::File,
+    io::BufReader,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -172,11 +175,30 @@ impl WasmBundleWebServer {
 }
 
 fn get_cli_root_path() -> PathBuf {
-    let mut exe_path = current_exe().expect("Current exe path not found.");
+    let mut exe_path = get_exe_path_from_config()
+        .or(current_exe())
+        .expect("Current exe path not found.");
     exe_path.pop();
     exe_path.pop();
     exe_path.pop();
     exe_path
+}
+
+#[derive(Deserialize)]
+struct Config {
+    exe_path: String,
+}
+
+fn get_exe_path_from_config() -> Result<PathBuf, String> {
+    let mut exe_or_symlink_path = current_exe().map_err(|error| error.to_string())?;
+    exe_or_symlink_path.set_file_name("namui.config.json");
+    let config_path = exe_or_symlink_path;
+
+    let config_file = File::open(config_path).map_err(|error| error.to_string())?;
+    let reader = BufReader::new(config_file);
+    let config: Config = serde_json::from_reader(reader).map_err(|error| error.to_string())?;
+    let exe_path = PathBuf::from(config.exe_path);
+    Ok(exe_path)
 }
 
 fn get_static_dir() -> PathBuf {
