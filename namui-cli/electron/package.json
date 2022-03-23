@@ -1,0 +1,14 @@
+{
+  "name": "namui-cli-electron",
+  "version": "1.0.0",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "start:windows": "dotenv -e .wsl-env -- $WINDOWS_ELECTRON_EXE_PATH .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^5.0.0",
+    "electron": "^17.1.2"
+  }
+}
