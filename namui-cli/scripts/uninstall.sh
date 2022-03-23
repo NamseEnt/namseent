@@ -1,23 +1,32 @@
-#!/bin/sh
+#!/bin/bash
 
-BIN_DIR="$HOME/.cargo/bin"
-if [ ! -d $BIN_DIR ]; then
-    echo "Could not find dir \"$BIN_DIR\". Is there a cargo installed?"
-    exit 1
-fi
+function main() {
+    cargo_bin_dir_path="$HOME/.cargo/bin"
+    symlink_path="$cargo_bin_dir_path/namui"
 
-NAMUI_LINK_PATH="$BIN_DIR/namui"
+    remove_symlink $symlink_path
 
-if [ ! -e $NAMUI_LINK_PATH ]; then
-    echo "Could not find link \"$NAMUI_LINK_PATH\". Seems already uninstalled."
-    exit 0
-fi
+    echo "Successfully uninstalled."
+}
 
-echo "Deleting link."
-cd $BIN_DIR && rm -f namui
-if [ $? -ne 0 ]; then
-    echo "Delete failed."
-    exit 2
-fi
+# Error Code
+EXIT_SYMLINK_REMOVE_FAIL=1
 
-echo "Successfully uninstalled."
+#######################################
+# Arguments:
+#   symlink_path: string
+#######################################
+function remove_symlink() {
+    symlink_path=$1
+    if [ -e $symlink_path ]; then
+        rm -f $symlink_path
+        if [ $? -ne 0 ]; then
+            echo "Delete failed."
+            exit $EXIT_SYMLINK_REMOVE_FAIL
+        fi
+    else
+        echo "Could not find link \"$symlink_path\". Seems already uninstalled."
+    fi
+}
+
+main
