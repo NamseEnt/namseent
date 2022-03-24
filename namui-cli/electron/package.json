@@ -4,10 +4,11 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "start:windows": "dotenv -e .wsl-env -- $WINDOWS_ELECTRON_EXE_PATH .",
+    "start:windows": "dotenv -e .wsl-env cross-var %WINDOWS_ELECTRON_EXE_PATH% .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
+    "cross-var": "^1.1.0",
     "dotenv-cli": "^5.0.0",
     "electron": "^17.1.2"
   }

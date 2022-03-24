@@ -32,6 +32,7 @@ pub struct BuildOption {
 #[derive(Clone)]
 pub enum BuildPlatform {
     WasmWeb,
+    WasmElectron,
 }
 
 impl RustBuildService {
@@ -172,7 +173,7 @@ impl CancelableBuilder {
         build_option: &BuildOption,
     ) -> Result<Child, Box<dyn std::error::Error>> {
         match build_option.platform {
-            BuildPlatform::WasmWeb => Ok(Command::new("wasm-pack")
+            BuildPlatform::WasmElectron | BuildPlatform::WasmWeb => Ok(Command::new("wasm-pack")
                 .args([
                     "build",
                     "--target",

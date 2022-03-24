@@ -1,6 +1,7 @@
 use crate::{
     debug_println,
     types::{ErrorMessage, WebsocketMessage},
+    util::get_cli_root_path,
 };
 use futures::{
     channel::mpsc::{unbounded, UnboundedSender},
@@ -11,7 +12,6 @@ use futures::{
 use nanoid::nanoid;
 use std::{
     collections::HashMap,
-    env::current_exe,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -169,14 +169,6 @@ impl WasmBundleWebServer {
         }
         debug_println!("send_cached_error_messages: sended to {}", id);
     }
-}
-
-fn get_cli_root_path() -> PathBuf {
-    let mut exe_path = current_exe().expect("Current exe path not found.");
-    exe_path.pop();
-    exe_path.pop();
-    exe_path.pop();
-    exe_path
 }
 
 fn get_static_dir() -> PathBuf {
