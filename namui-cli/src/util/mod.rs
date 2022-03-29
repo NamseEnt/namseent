@@ -9,3 +9,5 @@ mod get_namui_config;
 pub use get_namui_config::*;
 mod get_electron_root_path;
 pub use get_electron_root_path::*;
+mod overwrite_hot_reload_script_with_empty_file;
+pub use overwrite_hot_reload_script_with_empty_file::*;
