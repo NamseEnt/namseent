@@ -1,28 +1,28 @@
 {
-    "folders": [
-        {
-            "path": "luda-editor/luda-editor-client"
-        },
-        {
-            "path": "luda-editor/luda-editor-server"
-        },
-        {
-            "path": "luda-editor/luda-editor-rpc"
-        },
-        {
-            "path": "namui-cli"
-        },
-        {
-            "path": "namui"
-        },
-        {
-            "path": "nrpc"
-        },
-        {
-            "path": "./"
-        }
-    ],
-    "settings": {
-        "cSpell.words": ["hasher", "resizer", "Resizer"]
+  "folders": [
+    {
+      "path": "luda-editor/luda-editor-client"
+    },
+    {
+      "path": "luda-editor/luda-editor-server"
+    },
+    {
+      "path": "luda-editor/luda-editor-rpc"
+    },
+    {
+      "path": "namui-cli"
+    },
+    {
+      "path": "namui"
+    },
+    {
+      "path": "nrpc"
+    },
+    {
+      "path": "./"
     }
+  ],
+  "settings": {
+    "cSpell.words": ["hasher", "resizer", "Resizer", "rfind"]
+  }
 }
