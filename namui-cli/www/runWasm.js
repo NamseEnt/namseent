@@ -1,5 +1,5 @@
 async function run() {
-    await wasm_bindgen("/bundle_bg.wasm");
+    await wasm_bindgen("bundle_bg.wasm");
     const CanvasKit = await CanvasKitInit({
         locateFile: (file) => "./canvaskit-wasm/" + file,
     });

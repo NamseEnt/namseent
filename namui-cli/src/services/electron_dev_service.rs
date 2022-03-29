@@ -1,8 +1,5 @@
-use crate::util::get_cli_root_path;
-use std::{
-    path::PathBuf,
-    process::{Child, Command, Stdio},
-};
+use crate::util::get_electron_root_path;
+use std::process::{Child, Command, Stdio};
 use wsl::is_wsl;
 
 pub fn start_electron_dev_service(port: &u16) -> Result<Child, String> {
@@ -20,8 +17,4 @@ pub fn start_electron_dev_service(port: &u16) -> Result<Child, String> {
         .stderr(Stdio::null())
         .spawn()
         .map_err(|error| error.to_string())
-}
-
-fn get_electron_root_path() -> PathBuf {
-    get_cli_root_path().join("electron")
 }

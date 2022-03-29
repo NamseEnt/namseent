@@ -1,20 +1,24 @@
 const { app, BrowserWindow } = require("electron");
-
-const port = parseInt(process.argv[2]);
-if (typeof port !== "number" || isNaN(port)) {
-    console.error("Port not served");
-    process.exit(1);
-}
+const isDev = require("electron-is-dev");
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
         width: 1280,
         height: 720,
     });
-    mainWindow.webContents.openDevTools();
 
-    app.getGPUInfo("complete").then((data) => console.log(data));
-    mainWindow.loadURL(`http://localhost:${port}`);
+    if (isDev) {
+        const port = parseInt(process.argv[2]);
+        if (typeof port !== "number" || isNaN(port)) {
+            console.error("Port not served");
+            process.exit(1);
+        }
+
+        mainWindow.webContents.openDevTools();
+        mainWindow.loadURL(`http://localhost:${port}`);
+    } else {
+        mainWindow.loadFile("../index.html");
+    }
 }
 
 app.whenReady().then(() => {
