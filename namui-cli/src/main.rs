@@ -1,7 +1,7 @@
 mod procedures;
 mod services;
 mod util;
-use procedures::{dev_wasm_electron, dev_wasm_web};
+use procedures::{dev_wasm_electron, dev_wasm_web, release_wasm_web};
 use std::env::current_dir;
 mod types;
 use clap::{Parser, Subcommand};
@@ -17,6 +17,7 @@ struct Cli {
 enum Commands {
     DevWasmWeb {},
     DevWasmElectron {},
+    ReleaseWasmWeb {},
 }
 
 #[tokio::main]
@@ -29,6 +30,7 @@ async fn main() {
     let result = match &cli.command {
         Commands::DevWasmWeb {} => dev_wasm_web(&manifest_path),
         Commands::DevWasmElectron {} => dev_wasm_electron(&manifest_path),
+        Commands::ReleaseWasmWeb {} => release_wasm_web(&manifest_path),
     };
 
     match result {
