@@ -7,6 +7,7 @@ use crate::{
     util::{get_cli_root_path, get_namui_config, print_build_result},
 };
 use std::{
+    fs::write,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -54,6 +55,8 @@ pub fn release_wasm_web(manifest_path: &Path) -> Result<(), Box<dyn std::error::
     ));
     resource_collect_service.collect_resources(ops)?;
 
+    overwrite_hot_reload_script(&release_path)?;
+
     Ok(())
 }
 
@@ -75,4 +78,14 @@ fn build(
         BuildResult::Canceled => unreachable!(),
         BuildResult::Failed(error) => Err(error),
     }
+}
+
+fn overwrite_hot_reload_script(release_path: &PathBuf) -> Result<(), String> {
+    const HOT_RELOAD_SCRIPT_NAME: &str = "hotReload.js";
+    let hot_reload_script_path = release_path.join(&HOT_RELOAD_SCRIPT_NAME);
+    if hot_reload_script_path.exists() {
+        write(hot_reload_script_path, "")
+            .map_err(|error| format!("overwrite_hot_reload_script fail: {}", error))?;
+    }
+    Ok(())
 }
