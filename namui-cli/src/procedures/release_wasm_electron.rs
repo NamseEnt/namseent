@@ -6,7 +6,7 @@ use crate::{
         rust_build_service::{BuildOption, BuildPlatform, BuildResult, RustBuildService},
     },
     util::{
-        get_cli_root_path, get_namui_bundle_index, overwrite_hot_reload_script_with_empty_file,
+        get_cli_root_path, get_namui_bundle_list, overwrite_hot_reload_script_with_empty_file,
         print_build_result,
     },
 };
@@ -41,8 +41,8 @@ pub fn release_wasm_electron(
         project_root_path.clone(),
     )?;
 
-    let namui_bundle_index = get_namui_bundle_index(&project_root_path)?;
-    let mut ops: Vec<CollectOperation> = namui_bundle_index
+    let namui_bundle_list = get_namui_bundle_list(&project_root_path)?;
+    let mut ops: Vec<CollectOperation> = namui_bundle_list
         .iter()
         .map(|src_dest_path_pair| {
             CollectOperation::new(

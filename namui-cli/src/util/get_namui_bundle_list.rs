@@ -3,24 +3,24 @@ use std::{fs, path::PathBuf};
 const SEPARATOR: &str = ":";
 const COMMENT_FLAG: &str = "#";
 
-type NamuiBundleIndex = Vec<(String, String)>;
+type NamuiBundleList = Vec<(String, String)>;
 
-pub fn get_namui_bundle_index(project_root_path: &PathBuf) -> Result<NamuiBundleIndex, String> {
-    let namui_bundle_index_path = project_root_path.join(".namuibundle");
-    if !namui_bundle_index_path.exists() {
+pub fn get_namui_bundle_list(project_root_path: &PathBuf) -> Result<NamuiBundleList, String> {
+    let namui_bundle_list_path = project_root_path.join(".namuibundle");
+    if !namui_bundle_list_path.exists() {
         return Ok(vec![]);
     }
-    fs::read(namui_bundle_index_path)
+    fs::read(namui_bundle_list_path)
         .map_err(|error| format!("namui config read error: {}", error))
         .and_then(|file| {
-            let namui_bundle_index_string = String::from_utf8(file)
+            let namui_bundle_list_string = String::from_utf8(file)
                 .map_err(|error| format!("parse namui_bundle fail: {}", error))?;
-            parse_namui_bundle_index(namui_bundle_index_string)
+            parse_namui_bundle_list(namui_bundle_list_string)
         })
 }
 
-fn parse_namui_bundle_index(namui_bundle_index_string: String) -> Result<NamuiBundleIndex, String> {
-    Ok(namui_bundle_index_string
+fn parse_namui_bundle_list(namui_bundle_list_string: String) -> Result<NamuiBundleList, String> {
+    Ok(namui_bundle_list_string
         .lines()
         .filter_map(|line| split_by_separator(line))
         .collect())
@@ -45,11 +45,11 @@ fn split_by_separator(line: &str) -> Option<(String, String)> {
 #[cfg(test)]
 mod tests {
     use super::split_by_separator;
-    use crate::util::get_namui_bundle_index::{COMMENT_FLAG, SEPARATOR};
+    use crate::util::get_namui_bundle_list::{COMMENT_FLAG, SEPARATOR};
 
     #[test]
-    fn parse_namui_bundle_index() {
-        let namui_bundle_index_string = vec![
+    fn parse_namui_bundle_list() {
+        let namui_bundle_list_string = vec![
             format!("{}should be ignore", COMMENT_FLAG),
             format!("    "),
             format!("path/of/src{}path/of/dest", SEPARATOR),
@@ -59,7 +59,7 @@ mod tests {
         ]
         .join("\n");
         assert_eq!(
-            super::parse_namui_bundle_index(namui_bundle_index_string).unwrap(),
+            super::parse_namui_bundle_list(namui_bundle_list_string).unwrap(),
             vec![
                 ("path/of/src".to_string(), "path/of/dest".to_string()),
                 ("path/of/src".to_string(), "".to_string()),
