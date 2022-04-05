@@ -207,7 +207,7 @@ mod test {
 
         let tokenizer = Tokenizer::new(input);
         let mut lexer = Lexer::new(tokenizer);
-        let namui_bundle_list = lexer.parse().unwrap();
+        let namui_bundle_manifest = lexer.parse().unwrap();
 
         let include_src_path = Path {
             elements: vec![
@@ -254,10 +254,10 @@ mod test {
             ],
         };
 
-        let expected_namui_bundle_list = NamuiBundleManifest::new(
+        let expected_namui_bundle_manifest = NamuiBundleManifest::new(
             vec![IncludeOperation::new(include_src_path, include_dest_path)],
             vec![ExcludeOperation::new(exclude_path)],
         );
-        assert_eq!(namui_bundle_list, expected_namui_bundle_list);
+        assert_eq!(namui_bundle_manifest, expected_namui_bundle_manifest);
     }
 }
