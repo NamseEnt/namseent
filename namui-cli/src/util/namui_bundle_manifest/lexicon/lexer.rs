@@ -1,8 +1,8 @@
 use super::{
     path::{Path, PathElement},
-    ExcludeOperation, IncludeOperation, NamuiBundleList,
+    ExcludeOperation, IncludeOperation, NamuiBundleManifest,
 };
-use crate::util::get_namui_bundle_list::token::{Token, Tokenizer};
+use crate::util::namui_bundle_manifest::token::{Token, Tokenizer};
 use regex::Regex;
 
 pub struct Lexer {
@@ -17,7 +17,7 @@ impl Lexer {
         }
     }
 
-    pub fn parse(self: &mut Self) -> Result<NamuiBundleList, String> {
+    pub fn parse(self: &mut Self) -> Result<NamuiBundleManifest, String> {
         let mut include: Vec<IncludeOperation> = Vec::new();
         let mut exclude: Vec<ExcludeOperation> = Vec::new();
 
@@ -25,7 +25,7 @@ impl Lexer {
             match self.last_token {
                 Token::Exclude => exclude.push(self.parse_exclude_operation()?),
                 Token::Comment(_) | Token::EndOfLine => self.next_token(),
-                Token::EndOfFile => break Ok(NamuiBundleList::new(include, exclude)),
+                Token::EndOfFile => break Ok(NamuiBundleManifest::new(include, exclude)),
                 _ => include.push(self.parse_include_operation()?),
             }
         }
@@ -254,7 +254,7 @@ mod test {
             ],
         };
 
-        let expected_namui_bundle_list = NamuiBundleList::new(
+        let expected_namui_bundle_list = NamuiBundleManifest::new(
             vec![IncludeOperation::new(include_src_path, include_dest_path)],
             vec![ExcludeOperation::new(exclude_path)],
         );

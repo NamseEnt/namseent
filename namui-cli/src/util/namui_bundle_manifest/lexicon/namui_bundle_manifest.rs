@@ -4,11 +4,11 @@ use std::{collections::HashMap, path::PathBuf};
 type SrcDestPathMap = HashMap<PathBuf, PathBuf>;
 
 #[derive(PartialEq, Eq, Debug)]
-pub struct NamuiBundleList {
+pub struct NamuiBundleManifest {
     include: Vec<IncludeOperation>,
     exclude: Vec<ExcludeOperation>,
 }
-impl NamuiBundleList {
+impl NamuiBundleManifest {
     pub fn new(include: Vec<IncludeOperation>, exclude: Vec<ExcludeOperation>) -> Self {
         Self { include, exclude }
     }

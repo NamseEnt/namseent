@@ -1,10 +1,12 @@
 use super::{
-    lexicon::{Lexer, NamuiBundleList},
+    lexicon::{Lexer, NamuiBundleManifest},
     token::Tokenizer,
 };
 use std::{fs, path::PathBuf};
 
-pub fn get_namui_bundle_list(project_root_path: &PathBuf) -> Result<NamuiBundleList, String> {
+pub fn get_namui_bundle_manifest(
+    project_root_path: &PathBuf,
+) -> Result<NamuiBundleManifest, String> {
     let namui_bundle_list_path = project_root_path.join(".namuibundle");
     let namui_bundle_list_string = match namui_bundle_list_path.exists() {
         true => fs::read(namui_bundle_list_path)

@@ -5,7 +5,7 @@ use crate::{
         rust_build_service::{BuildOption, BuildPlatform, BuildResult, RustBuildService},
     },
     util::{
-        get_cli_root_path, get_namui_bundle_list, overwrite_hot_reload_script_with_empty_file,
+        get_cli_root_path, get_namui_bundle_manifest, overwrite_hot_reload_script_with_empty_file,
         print_build_result,
     },
 };
@@ -32,8 +32,8 @@ pub fn release_wasm_web(manifest_path: &Path) -> Result<(), Box<dyn std::error::
         project_root_path.clone(),
     )?;
 
-    let namui_bundle_list = get_namui_bundle_list(&project_root_path)?;
-    let mut ops: Vec<CollectOperation> = namui_bundle_list
+    let namui_bundle_manifest = get_namui_bundle_manifest(&project_root_path)?;
+    let mut ops: Vec<CollectOperation> = namui_bundle_manifest
         .flatten(&project_root_path, &release_path)?
         .iter()
         .map(|(src_path, dest_path)| CollectOperation::new(src_path, dest_path))
