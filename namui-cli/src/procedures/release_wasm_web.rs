@@ -34,13 +34,9 @@ pub fn release_wasm_web(manifest_path: &Path) -> Result<(), Box<dyn std::error::
 
     let namui_bundle_list = get_namui_bundle_list(&project_root_path)?;
     let mut ops: Vec<CollectOperation> = namui_bundle_list
+        .flatten(&project_root_path, &release_path)?
         .iter()
-        .map(|src_dest_path_pair| {
-            CollectOperation::new(
-                &PathBuf::from(&src_dest_path_pair.0),
-                &PathBuf::from("resources").join(&src_dest_path_pair.1),
-            )
-        })
+        .map(|(src_path, dest_path)| CollectOperation::new(src_path, dest_path))
         .collect();
     ops.push(CollectOperation::new(
         &namui_static_path,

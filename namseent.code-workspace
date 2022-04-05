@@ -23,6 +23,13 @@
     }
   ],
   "settings": {
-    "cSpell.words": ["hasher", "namuibundle", "resizer", "Resizer", "rfind"]
+    "cSpell.words": [
+      "Deque",
+      "hasher",
+      "namuibundle",
+      "resizer",
+      "Resizer",
+      "rfind"
+    ]
   }
 }
