@@ -13,7 +13,7 @@ impl NamuiBundleManifest {
         Self { include, exclude }
     }
 
-    pub fn flatten(
+    pub fn query(
         self: &Self,
         src_root_path: &PathBuf,
         dest_root_path: &PathBuf,
