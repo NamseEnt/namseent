@@ -8,6 +8,7 @@ pub fn test(target: &Target, manifest_path: &PathBuf) -> Result<(), Box<dyn Erro
         use super::linux;
         match target {
             Target::WasmUnknownWeb => linux::wasm_unknown_web::test(&manifest_path),
+            _ => unimplemented!(),
         }
     } else {
         Result::Err(format!("{} is unsupported os", std::env::consts::OS).into())

@@ -26,12 +26,18 @@ pub enum Commands {
         #[clap(short, long, parse(from_os_str))]
         manifest_path: Option<PathBuf>,
     },
+    Target {
+        #[clap(arg_enum)]
+        target: Target,
+    },
 }
 
 #[derive(Clone, ArgEnum)]
 pub enum Target {
     #[clap(rename_all = "kebab-case")]
     WasmUnknownWeb,
+    WasmWindowsElectron,
+    WasmLinuxElectron,
 }
 
 #[derive(Clone, ArgEnum)]
