@@ -7,7 +7,7 @@ use clap::StructOpt;
 use cli::{Cli, Commands};
 use procedures::{dev_wasm_electron, dev_wasm_web, release_wasm_electron, release_wasm_web};
 use std::env::current_dir;
-use util::set_namui_user_config;
+use util::{print_namui_cfg, set_namui_user_config};
 
 #[tokio::main]
 async fn main() {
@@ -31,6 +31,9 @@ async fn main() {
             procedures::test(target, &manifest_path)
         }
         Commands::Target { target } => set_namui_user_config(target),
+        Commands::Print { printable_object } => match printable_object {
+            cli::PrintableObject::Cfg => print_namui_cfg(),
+        },
     };
 
     match result {

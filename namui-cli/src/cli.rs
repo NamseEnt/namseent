@@ -30,6 +30,10 @@ pub enum Commands {
         #[clap(arg_enum)]
         target: Target,
     },
+    Print {
+        #[clap(arg_enum)]
+        printable_object: PrintableObject,
+    },
 }
 
 #[derive(Clone, ArgEnum)]
@@ -38,6 +42,12 @@ pub enum Target {
     WasmUnknownWeb,
     WasmWindowsElectron,
     WasmLinuxElectron,
+}
+
+#[derive(Clone, ArgEnum)]
+pub enum PrintableObject {
+    #[clap(rename_all = "camelCase")]
+    Cfg,
 }
 
 #[derive(Clone, ArgEnum)]
