@@ -29,6 +29,7 @@ num = "0.4.0"
 bincode = "1.3"
 lru = "0.7"
 ordered-float = "2.10"
+namui-cfg = { path = "../namui-cfg" }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"

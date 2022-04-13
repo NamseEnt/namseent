@@ -77,7 +77,7 @@ fn build(
 ) -> Result<(), String> {
     debug_println!("build fn run");
     match rust_build_service.cancel_and_start_build(&BuildOption {
-        platform: BuildPlatform::WasmElectron,
+        platform: BuildPlatform::ReleaseWasmElectron,
         dist_path: build_dist_path.to_path_buf(),
         project_root_path: project_root_path.to_path_buf(),
     }) {

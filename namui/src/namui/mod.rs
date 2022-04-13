@@ -31,6 +31,7 @@ use self::{
 mod random;
 pub use self::random::*;
 pub mod screen;
+pub use namui_cfg::*;
 
 #[cfg(not(test))]
 #[cfg(target_family = "wasm")]

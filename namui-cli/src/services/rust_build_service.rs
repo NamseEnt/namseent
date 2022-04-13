@@ -31,8 +31,10 @@ pub struct BuildOption {
 
 #[derive(Clone)]
 pub enum BuildPlatform {
-    WasmWeb,
-    WasmElectron,
+    DevWasmWeb,
+    ReleaseWasmWeb,
+    DevWasmElectron,
+    ReleaseWasmElectron,
 }
 
 impl RustBuildService {
@@ -172,24 +174,48 @@ impl CancelableBuilder {
     fn spawn_build_process(
         build_option: &BuildOption,
     ) -> Result<Child, Box<dyn std::error::Error>> {
-        match build_option.platform {
-            BuildPlatform::WasmElectron | BuildPlatform::WasmWeb => Ok(Command::new("wasm-pack")
-                .args([
-                    "build",
-                    "--target",
-                    "no-modules",
-                    "--out-name",
-                    "bundle",
-                    "--dev",
-                    build_option.project_root_path.to_str().unwrap(),
-                    "--",
-                    "--message-format",
-                    "json",
-                ])
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()?),
-        }
+        Ok(Command::new("wasm-pack")
+            .args([
+                "build",
+                "--target",
+                "no-modules",
+                "--out-name",
+                "bundle",
+                "--dev",
+                build_option.project_root_path.to_str().unwrap(),
+                "--",
+                "--message-format",
+                "json",
+            ])
+            .envs(get_envs_for_build_platform(&build_option.platform))
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?)
+    }
+}
+
+fn get_envs_for_build_platform(platform: &BuildPlatform) -> [(&str, &str); 3] {
+    match platform {
+        BuildPlatform::DevWasmWeb => [
+            ("NAMUI_CFG_TARGET_ENV", "dev"),
+            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
+            ("NAMUI_CFG_TARGET_PLATFORM", "web"),
+        ],
+        BuildPlatform::ReleaseWasmWeb => [
+            ("NAMUI_CFG_TARGET_ENV", "release"),
+            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
+            ("NAMUI_CFG_TARGET_PLATFORM", "web"),
+        ],
+        BuildPlatform::DevWasmElectron => [
+            ("NAMUI_CFG_TARGET_ENV", "dev"),
+            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
+            ("NAMUI_CFG_TARGET_PLATFORM", "electron"),
+        ],
+        BuildPlatform::ReleaseWasmElectron => [
+            ("NAMUI_CFG_TARGET_ENV", "release"),
+            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
+            ("NAMUI_CFG_TARGET_PLATFORM", "electron"),
+        ],
     }
 }
 
