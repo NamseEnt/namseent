@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function main() {
-    cargo_bin_dir_path="$HOME/.cargo/bin"
+    cargo_bin_dir_path=$(dirname $(which cargo))
     symlink_path="$cargo_bin_dir_path/namui"
 
     remove_symlink $symlink_path
