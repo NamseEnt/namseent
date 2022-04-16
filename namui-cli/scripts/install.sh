@@ -3,7 +3,7 @@
 function main() {
     cli_root_path=$(cd $(dirname $0) && cd .. && pwd -P)
     cli_path="$cli_root_path/target/debug/namui-cli"
-    cargo_bin_dir_path="$HOME/.cargo/bin"
+    cargo_bin_dir_path=$(dirname $(which cargo))
     electron_root_path="$cli_root_path/electron"
 
     check_cargo_installed
