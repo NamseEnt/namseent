@@ -118,7 +118,7 @@ function install_electron() {
 
 function is_os_wsl() {
     # https://github.com/microsoft/WSL/issues/423
-    if [ $(uname -r | sed -n 's/.*\( *Microsoft *\).*/\1/ip') ]; then
+    if [ $(which explorer.exe) ]; then
         echo 1
     else
         echo 0
