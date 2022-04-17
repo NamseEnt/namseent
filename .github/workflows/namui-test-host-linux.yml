@@ -2,7 +2,7 @@ name: namui-test-host-linux
 on: push
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/namui-test-host
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/namui-test-host:latest
 jobs:
   test-and-push:
     permissions:
@@ -43,13 +43,11 @@ jobs:
           --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
 
           # Test namui-cli
-          docker run --rm --name namui-test-host \
-          --mount type=bind,source="$(pwd)",target=/namseent \
+          docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
           $IMAGE_NAME cargo test --manifest-path /namseent/namui-cli/Cargo.toml
 
           # Test namui
-          docker run --rm --name namui-test-host \
-          --mount type=bind,source="$(pwd)",target=/namseent \
+          docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
           $IMAGE_NAME namui test wasm-unknown-web -m /namseent/namui/Cargo.toml
 
       - name: Login to GitHub Container Registry
@@ -63,23 +61,19 @@ jobs:
       - name: Push namui-test-host image
         if: github.ref == 'refs/heads/master' && steps.filter.outputs.namui-test-host == 'true'
         run: |
-          docker tag $IMAGE_NAME $IMAGE_NAME:latest
-          docker push $IMAGE_NAME:latest
+          docker push $IMAGE_NAME
 
       - name: Test namui
         if: steps.filter.outputs.namui == 'true'
-        run: docker run --rm --name namui-test-host \
-          --mount type=bind,source="$(pwd)",target=/namseent \
+        run: docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
           $IMAGE_NAME namui test wasm-unknown-web -m /namseent/namui/Cargo.toml
 
       - name: Test luda-editor-client
         if: steps.filter.outputs.luda-editor-client == 'true'
-        run: docker run --rm --name namui-test-host \
-          --mount type=bind,source="$(pwd)",target=/namseent \
+        run: docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
           $IMAGE_NAME namui test wasm-unknown-web -m /namseent/luda-editor/luda-editor-client/Cargo.toml
 
       - name: Test nrpc
         if: steps.filter.outputs.nrpc == 'true'
-        run: docker run --rm --name namui-test-host \
-          --mount type=bind,source="$(pwd)",target=/namseent \
+        run: docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
           $IMAGE_NAME cargo test --manifest-path /namseent/nrpc/Cargo.toml
