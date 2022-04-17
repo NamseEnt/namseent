@@ -25,7 +25,7 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let cargo_directory_of_docker = PathBuf::from_str("/usr/local/cargo")?;
     println!("cargo directory of docker: {:?}", cargo_directory_of_docker);
 
-    let cargo_cache_bind_directory_tuples = ["/registry/index/", "/registry/cache/", "/git/db/"]
+    let cargo_cache_bind_directory_tuples = ["registry/index", "registry/cache", "git/db"]
         .iter()
         .map(|cache_path_suffix| {
             (
