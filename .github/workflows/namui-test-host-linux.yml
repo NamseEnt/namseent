@@ -1,4 +1,5 @@
 name: namui-test-host-linux
+on: push
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/namui-test-host
