@@ -20,6 +20,16 @@ pub enum Commands {
         #[clap(short, long, arg_enum, default_value = "auto")]
         arch: ElectronPackageArch,
     },
+    Test {
+        #[clap(arg_enum)]
+        target: Target,
+    },
+}
+
+#[derive(Clone, ArgEnum)]
+pub enum Target {
+    #[clap(rename_all = "kebab-case")]
+    WasmUnknownWeb,
 }
 
 #[derive(Clone, ArgEnum)]
