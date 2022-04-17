@@ -1,5 +1,8 @@
 name: namui-test-host-linux
-on: push
+on:
+  push:
+    branches: master
+  pull_request:
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/namui-test-host:latest
 jobs:
@@ -66,13 +69,13 @@ jobs:
         run: docker push $IMAGE_NAME
 
       - name: Test namui
-        if: steps.filter.outputs.namui == 'true'
+        if: github.ref != 'refs/heads/master' && steps.filter.outputs.namui == 'true'
         run: docker exec namui-test-host namui test wasm-unknown-web -m /namseent/namui/Cargo.toml
 
       - name: Test luda-editor-client
-        if: steps.filter.outputs.luda-editor-client == 'true'
+        if: github.ref != 'refs/heads/master' && steps.filter.outputs.luda-editor-client == 'true'
         run: docker exec namui-test-host namui test wasm-unknown-web -m /namseent/luda-editor/luda-editor-client/Cargo.toml
 
       - name: Test nrpc
-        if: steps.filter.outputs.nrpc == 'true'
+        if: github.ref != 'refs/heads/master' && steps.filter.outputs.nrpc == 'true'
         run: docker exec namui-test-host cargo test --manifest-path /namseent/nrpc/Cargo.toml
