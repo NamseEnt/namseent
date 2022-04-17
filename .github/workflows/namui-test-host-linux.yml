@@ -37,15 +37,15 @@ jobs:
       - name: Build and test namui-test-host image
         if: steps.filter.outputs.namui-test-host == 'true'
         run: |
-          # Build namui-test-host image
+          echo Build namui-test-host image
           docker build . --file docker-images/namui-test-host/linux.Dockerfile \
           --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
 
-          # Test namui-cli
+          echo Test namui-cli
           docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
           $IMAGE_NAME cargo test --manifest-path /namseent/namui-cli/Cargo.toml
 
-          # Test namui
+          echo Test namui
           docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
           $IMAGE_NAME namui test wasm-unknown-web -m /namseent/namui/Cargo.toml
 
