@@ -32,7 +32,8 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), Box<dyn Error>> {
                 cargo_directory.join(cache_path_suffix),
                 cargo_directory_of_docker.join(cache_path_suffix),
             )
-        });
+        })
+        .filter(|(cargo_cache_path, _)| cargo_cache_path.exists());
 
     let bind_directory_tuples = [(source_root_directory_to_bind, source_bind_path)]
         .into_iter()
