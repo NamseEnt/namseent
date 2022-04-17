@@ -67,6 +67,7 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), Box<dyn Error>> {
             "--chrome",
             directory.to_str().unwrap(),
         ]);
+    println!("args: {:?}", args);
     let result = Command::new("docker").args(args).status()?;
 
     if !result.success() {
