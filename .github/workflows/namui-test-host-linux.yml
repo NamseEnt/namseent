@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set IMAGE_NAME lowercase
-        run: IMAGE_NAME=$(echo $IMAGE_NAME | tr '[A-Z]' '[a-z]')
+        run: echo "IMAGE_NAME=$(echo $IMAGE_NAME | tr '[A-Z]' '[a-z]')" >> ${GITHUB_ENV}
 
       - uses: actions/checkout@v3
 
