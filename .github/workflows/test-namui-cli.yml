@@ -2,21 +2,15 @@ name: test-namui-cli
 on:
   push:
     paths:
+      - .github/workflows/test-namui-cli.yml
       - "namui-cli/**"
 jobs:
   test-namui-cli:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/namseent/namui-test-host:latest
     steps:
-      - name: Get source
-        uses: actions/checkout@v2
-
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-
-      - name: Run namui-cli test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --manifest-path namui-cli/Cargo.toml
+      - uses: actions/checkout@v2
+      - run: |
+          cd namui-cli
+          cargo test

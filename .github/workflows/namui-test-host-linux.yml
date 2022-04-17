@@ -1,0 +1,52 @@
+name: namui-test-host-linux
+on:
+  push:
+    paths:
+      - .github/workflows/namui-test-host-linux.yml
+      - namui-cli
+      - docker-images/namui-test-host/**
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: namui-test-host
+jobs:
+  test-and-push:
+    permissions:
+      packages: write
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build image
+        run: docker build . --file docker-images/namui-test-host/linux.Dockerfile --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
+
+      - name: Test with image
+        run: |
+          docker run -d -it --rm --name namui-test-host \
+            --mount type=bind,source="$(pwd)",target=/namseent \
+            $IMAGE_NAME ash
+          docker exec -w /namseent/namui namui-test-host namui test wasm-unknown-web
+          docker stop namui-test-host
+
+      - name: Login to GitHub Container Registry
+        if: github.ref == 'refs/heads/master'
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image
+        if: github.ref == 'refs/heads/master'
+        run: |
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
+
+          # Change all uppercase to lowercase
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
+          VERSION=latest
+
+          echo IMAGE_ID=$IMAGE_ID
+          echo VERSION=$VERSION
+          docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
+          docker push $IMAGE_ID:$VERSION

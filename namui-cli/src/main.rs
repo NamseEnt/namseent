@@ -22,6 +22,7 @@ async fn main() {
         Commands::ReleaseWasmElectron { platform, arch } => {
             release_wasm_electron(&manifest_path, platform.into(), arch.into())
         }
+        Commands::Test { target } => procedures::test(target),
     };
 
     match result {

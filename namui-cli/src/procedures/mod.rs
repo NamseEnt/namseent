@@ -6,3 +6,7 @@ pub mod release_wasm_web;
 pub use release_wasm_web::*;
 pub mod release_wasm_electron;
 pub use release_wasm_electron::*;
+#[cfg(target_os = "linux")]
+pub mod linux;
+pub mod test;
+pub use test::*;
