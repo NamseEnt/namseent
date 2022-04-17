@@ -1,7 +1,6 @@
 name: namui-test-host-linux
 on: push
 env:
-  REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/namui-test-host:latest
 jobs:
   test-and-push:
@@ -37,7 +36,7 @@ jobs:
 
       - name: Build and test namui-test-host image
         if: steps.filter.outputs.namui-test-host == 'true'
-        run:
+        run: |
           # Build namui-test-host image
           docker build . --file docker-images/namui-test-host/linux.Dockerfile \
           --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
@@ -65,15 +64,18 @@ jobs:
 
       - name: Test namui
         if: steps.filter.outputs.namui == 'true'
-        run: docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
+        run:
+          docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
           $IMAGE_NAME namui test wasm-unknown-web -m /namseent/namui/Cargo.toml
 
       - name: Test luda-editor-client
         if: steps.filter.outputs.luda-editor-client == 'true'
-        run: docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
+        run:
+          docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
           $IMAGE_NAME namui test wasm-unknown-web -m /namseent/luda-editor/luda-editor-client/Cargo.toml
 
       - name: Test nrpc
         if: steps.filter.outputs.nrpc == 'true'
-        run: docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
+        run:
+          docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
           $IMAGE_NAME cargo test --manifest-path /namseent/nrpc/Cargo.toml
