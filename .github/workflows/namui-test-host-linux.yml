@@ -10,6 +10,9 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
+      - name: Set IMAGE_NAME lowercase
+        run: IMAGE_NAME=$(echo $IMAGE_NAME | tr '[A-Z]' '[a-z]')
+
       - uses: actions/checkout@v3
 
       - uses: dorny/paths-filter@v2
