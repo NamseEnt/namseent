@@ -38,12 +38,16 @@ jobs:
       - name: Build and test namui-test-host image
         if: steps.filter.outputs.namui-test-host == 'true'
         run:
-          docker build . --file docker-images/namui-test-host/linux.Dockerfile --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
+          # Build namui-test-host image
+          docker build . --file docker-images/namui-test-host/linux.Dockerfile \
+          --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
 
+          # Test namui-cli
           docker run --rm --name namui-test-host \
           --mount type=bind,source="$(pwd)",target=/namseent \
           $IMAGE_NAME cargo test --manifest-path /namseent/namui-cli/Cargo.toml
 
+          # Test namui
           docker run --rm --name namui-test-host \
           --mount type=bind,source="$(pwd)",target=/namseent \
           $IMAGE_NAME namui test wasm-unknown-web -m /namseent/namui/Cargo.toml
@@ -73,3 +77,9 @@ jobs:
         run: docker run --rm --name namui-test-host \
           --mount type=bind,source="$(pwd)",target=/namseent \
           $IMAGE_NAME namui test wasm-unknown-web -m /namseent/luda-editor/luda-editor-client/Cargo.toml
+
+      - name: Test nrpc
+        if: steps.filter.outputs.nrpc == 'true'
+        run: docker run --rm --name namui-test-host \
+          --mount type=bind,source="$(pwd)",target=/namseent \
+          $IMAGE_NAME cargo test --manifest-path /namseent/nrpc/Cargo.toml
