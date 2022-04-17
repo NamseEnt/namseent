@@ -22,7 +22,13 @@ async fn main() {
         Commands::ReleaseWasmElectron { platform, arch } => {
             release_wasm_electron(&manifest_path, platform.into(), arch.into())
         }
-        Commands::Test { target } => procedures::test(target),
+        Commands::Test {
+            target,
+            manifest_path: option_manifest_path,
+        } => procedures::test(
+            target,
+            option_manifest_path.as_ref().unwrap_or(&manifest_path),
+        ),
     };
 
     match result {

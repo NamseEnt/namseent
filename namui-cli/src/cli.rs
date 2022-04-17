@@ -1,6 +1,6 @@
 use crate::services::electron_package_service::{Arch, Platform};
 use clap::{ArgEnum, Parser, Subcommand};
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 
 #[derive(Parser)]
 #[clap(version)]
@@ -23,6 +23,8 @@ pub enum Commands {
     Test {
         #[clap(arg_enum)]
         target: Target,
+        #[clap(short, long, parse(from_os_str))]
+        manifest_path: Option<PathBuf>,
     },
 }
 
