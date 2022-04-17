@@ -25,6 +25,7 @@ jobs:
       - run: rustup target add wasm32-unknown-unknown
 
       - run: cargo --help
+      - run: which cargo
 
       - uses: actions/checkout@v3
 
