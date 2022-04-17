@@ -15,8 +15,3 @@ RUN apk upgrade -U -a \
 RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
 RUN rustup target add wasm32-unknown-unknown
-
-WORKDIR /app
-
-COPY namui-cli ./namui-cli
-RUN ash namui-cli/scripts/install.sh
