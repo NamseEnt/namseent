@@ -34,20 +34,25 @@ jobs:
               - .github/workflows/namui-test-host-linux.yml
               - nrpc/**
 
-      - name: Build and test namui-test-host image
+      - name: Build namui-test-host image
         if: steps.filter.outputs.namui-test-host == 'true'
-        run: |
-          echo Build namui-test-host image
+        run:
           docker build . --file docker-images/namui-test-host/linux.Dockerfile \
           --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
 
+      - name: Run namui-test-host container
+        run: docker run -d -it --rm --name namui-test-host \
+          --mount type=bind,source="$(pwd)",target=/namseent \
+          $IMAGE_NAME ash
+
+      - name: Test namui-test-host image
+        if: steps.filter.outputs.namui-test-host == 'true'
+        run: |
           echo Test namui-cli
-          docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
-          $IMAGE_NAME cargo test --manifest-path /namseent/namui-cli/Cargo.toml
+          docker exec namui-test-host cargo test --manifest-path /namseent/namui-cli/Cargo.toml
 
           echo Test namui
-          docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
-          $IMAGE_NAME namui test wasm-unknown-web -m /namseent/namui/Cargo.toml
+          docker exec namui-test-host namui test wasm-unknown-web -m /namseent/namui/Cargo.toml
 
       - name: Login to GitHub Container Registry
         if: github.ref == 'refs/heads/master' && steps.filter.outputs.namui-test-host == 'true'
@@ -59,23 +64,16 @@ jobs:
 
       - name: Push namui-test-host image
         if: github.ref == 'refs/heads/master' && steps.filter.outputs.namui-test-host == 'true'
-        run: |
-          docker push $IMAGE_NAME
+        run: docker push $IMAGE_NAME
 
       - name: Test namui
         if: steps.filter.outputs.namui == 'true'
-        run:
-          docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
-          $IMAGE_NAME namui test wasm-unknown-web -m /namseent/namui/Cargo.toml
+        run: docker exec namui-test-host namui test wasm-unknown-web -m /namseent/namui/Cargo.toml
 
       - name: Test luda-editor-client
         if: steps.filter.outputs.luda-editor-client == 'true'
-        run:
-          docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
-          $IMAGE_NAME namui test wasm-unknown-web -m /namseent/luda-editor/luda-editor-client/Cargo.toml
+        run: docker exec namui-test-host namui test wasm-unknown-web -m /namseent/luda-editor/luda-editor-client/Cargo.toml
 
       - name: Test nrpc
         if: steps.filter.outputs.nrpc == 'true'
-        run:
-          docker run --rm --mount type=bind,source="$(pwd)",target=/namseent \
-          $IMAGE_NAME cargo test --manifest-path /namseent/nrpc/Cargo.toml
+        run: docker exec namui-test-host cargo test --manifest-path /namseent/nrpc/Cargo.toml
