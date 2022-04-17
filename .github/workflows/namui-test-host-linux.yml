@@ -24,6 +24,9 @@ jobs:
 
       - run: rustup target add wasm32-unknown-unknown
 
+      - name: namui-cli install
+        run: bash namui-cli/scripts/install.sh
+
       - uses: actions/checkout@v3
 
       - uses: dorny/paths-filter@v2
