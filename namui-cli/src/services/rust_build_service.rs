@@ -1,4 +1,4 @@
-use crate::{debug_println, types::ErrorMessage};
+use crate::{cli::Target, debug_println, types::ErrorMessage};
 use cargo_metadata::{diagnostic::DiagnosticLevel, CompilerMessage, Message};
 use std::{
     io::Read,
@@ -26,15 +26,8 @@ pub enum BuildResult {
 pub struct BuildOption {
     pub dist_path: PathBuf,
     pub project_root_path: PathBuf,
-    pub platform: BuildPlatform,
-}
-
-#[derive(Clone)]
-pub enum BuildPlatform {
-    DevWasmWeb,
-    ReleaseWasmWeb,
-    DevWasmElectron,
-    ReleaseWasmElectron,
+    pub target: Target,
+    pub watch: bool,
 }
 
 impl RustBuildService {
@@ -187,36 +180,37 @@ impl CancelableBuilder {
                 "--message-format",
                 "json",
             ])
-            .envs(get_envs_for_build_platform(&build_option.platform))
+            .envs(get_envs(build_option))
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()?)
     }
 }
 
-fn get_envs_for_build_platform(platform: &BuildPlatform) -> [(&str, &str); 3] {
-    match platform {
-        BuildPlatform::DevWasmWeb => [
-            ("NAMUI_CFG_TARGET_ENV", "dev"),
+fn get_envs(build_option: &BuildOption) -> Vec<(&str, &str)> {
+    let mut envs = match build_option.target {
+        Target::WasmUnknownWeb => vec![
+            ("NAMUI_CFG_TARGET_OS", "unknown"),
+            ("NAMUI_CFG_TARGET_ENV", "web"),
             ("NAMUI_CFG_TARGET_ARCH", "wasm"),
-            ("NAMUI_CFG_TARGET_PLATFORM", "web"),
         ],
-        BuildPlatform::ReleaseWasmWeb => [
-            ("NAMUI_CFG_TARGET_ENV", "release"),
+        Target::WasmWindowsElectron => vec![
+            ("NAMUI_CFG_TARGET_OS", "windows"),
+            ("NAMUI_CFG_TARGET_ENV", "electron"),
             ("NAMUI_CFG_TARGET_ARCH", "wasm"),
-            ("NAMUI_CFG_TARGET_PLATFORM", "web"),
         ],
-        BuildPlatform::DevWasmElectron => [
-            ("NAMUI_CFG_TARGET_ENV", "dev"),
+        Target::WasmLinuxElectron => vec![
+            ("NAMUI_CFG_TARGET_OS", "linux"),
+            ("NAMUI_CFG_TARGET_ENV", "electron"),
             ("NAMUI_CFG_TARGET_ARCH", "wasm"),
-            ("NAMUI_CFG_TARGET_PLATFORM", "electron"),
         ],
-        BuildPlatform::ReleaseWasmElectron => [
-            ("NAMUI_CFG_TARGET_ENV", "release"),
-            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
-            ("NAMUI_CFG_TARGET_PLATFORM", "electron"),
-        ],
+    };
+
+    if build_option.watch {
+        envs.push(("NAMUI_CFG_WATCH_RELOAD", ""));
     }
+
+    envs
 }
 
 pub struct CargoBuildResult {

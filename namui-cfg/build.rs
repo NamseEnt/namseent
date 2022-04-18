@@ -1,10 +1,11 @@
 use std::env;
 
 static NAMUI_CFG_ENV_PREFIX: &str = "NAMUI_CFG_";
-static DEFAULT_NAMUI_CFG_KEYS: [&str; 3] = [
+static DEFAULT_NAMUI_CFG_KEYS: [&str; 4] = [
+    "NAMUI_CFG_TARGET_OS",
     "NAMUI_CFG_TARGET_ENV",
     "NAMUI_CFG_TARGET_ARCH",
-    "NAMUI_CFG_TARGET_PLATFORM",
+    "NAMUI_CFG_WATCH_RELOAD",
 ];
 
 fn main() {

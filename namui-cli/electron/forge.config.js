@@ -7,13 +7,11 @@ module.exports = {
             //  package result
             // {
             //     outputPath: String,
-            //     platform: String,
             //     arch: String,
             // }
             console.log(
                 JSON.stringify({
                     outputPath: options.outputPaths[0],
-                    platform: options.platform,
                     arch: options.arch,
                 }),
             );

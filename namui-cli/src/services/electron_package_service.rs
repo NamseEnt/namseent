@@ -12,7 +12,7 @@ impl ElectronPackageService {
     pub fn package_electron_app(
         self: &Self,
         arch: Option<Arch>,
-        platform: Option<Platform>,
+        platform: Platform,
     ) -> Result<PackageResult, String> {
         println!("start package electron app");
         let mut args = vec!["run".to_string(), "package".to_string(), "--".to_string()];
@@ -20,9 +20,7 @@ impl ElectronPackageService {
         if let Some(arch) = arch {
             args.push(format!("--arch={}", arch));
         }
-        if let Some(platform) = platform {
-            args.push(format!("--platform={}", platform));
-        }
+        args.push(format!("--platform={}", platform));
 
         let output = Command::new("npm")
             .current_dir(get_electron_root_path())
@@ -74,7 +72,6 @@ impl std::fmt::Display for Platform {
 #[serde(rename_all = "camelCase")]
 pub struct PackageResult {
     pub arch: Arch,
-    pub platform: Platform,
     pub output_path: String,
 }
 

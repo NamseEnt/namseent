@@ -1,8 +1,9 @@
 use crate::{
+    cli::Target,
     debug_println,
     services::{
         resource_collect_service::{CollectOperation, ResourceCollectService},
-        rust_build_service::{BuildOption, BuildPlatform, BuildResult, RustBuildService},
+        rust_build_service::{BuildOption, BuildResult, RustBuildService},
     },
     util::{
         get_cli_root_path, get_namui_bundle_manifest, overwrite_hot_reload_script_with_empty_file,
@@ -14,19 +15,19 @@ use std::{
     sync::Arc,
 };
 
-pub fn release_wasm_web(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+pub fn build(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let build_dist_path = manifest_path.parent().unwrap().join("pkg");
     let namui_static_path = get_cli_root_path().join("www");
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     let release_path = project_root_path
         .join("target")
         .join("namui")
-        .join("release_wasm_web");
+        .join("wasm_unknown_web");
 
     let rust_build_service = Arc::new(RustBuildService::new());
     let resource_collect_service = ResourceCollectService::new(&project_root_path, &release_path);
 
-    build(
+    build_(
         rust_build_service.clone(),
         build_dist_path.clone(),
         project_root_path.clone(),
@@ -57,16 +58,17 @@ pub fn release_wasm_web(manifest_path: &Path) -> Result<(), Box<dyn std::error::
     Ok(())
 }
 
-fn build(
+fn build_(
     rust_build_service: Arc<RustBuildService>,
     build_dist_path: PathBuf,
     project_root_path: PathBuf,
 ) -> Result<(), String> {
     debug_println!("build fn run");
     match rust_build_service.cancel_and_start_build(&BuildOption {
-        platform: BuildPlatform::ReleaseWasmWeb,
+        target: Target::WasmUnknownWeb,
         dist_path: build_dist_path.to_path_buf(),
         project_root_path: project_root_path.to_path_buf(),
+        watch: false,
     }) {
         BuildResult::Successful(cargo_build_result) => {
             print_build_result(&cargo_build_result.error_messages, &vec![]);
