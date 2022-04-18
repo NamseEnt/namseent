@@ -25,10 +25,10 @@ async fn main() {
         Commands::Test {
             target,
             manifest_path: option_manifest_path,
-        } => procedures::test(
-            target,
-            option_manifest_path.as_ref().unwrap_or(&manifest_path),
-        ),
+        } => {
+            let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
+            procedures::test(target, &manifest_path)
+        }
     };
 
     match result {

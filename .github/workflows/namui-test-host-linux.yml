@@ -15,7 +15,19 @@ jobs:
       - name: Set IMAGE_NAME lowercase
         run: echo "IMAGE_NAME=$(echo $IMAGE_NAME | tr '[A-Z]' '[a-z]')" >> ${GITHUB_ENV}
 
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: wasm-pack install
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - run: rustup target add wasm32-unknown-unknown
+
       - uses: actions/checkout@v3
+
+      - name: namui-cli install
+        run: bash namui-cli/scripts/install.sh
 
       - uses: dorny/paths-filter@v2
         id: filter
@@ -42,19 +54,14 @@ jobs:
         run: docker build . -f docker-images/namui-test-host/linux.Dockerfile
           -t $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
 
-      - name: Run namui-test-host container
-        run: docker run -d -it --rm --name namui-test-host
-          --mount type=bind,source="$(pwd)",target=/namseent
-          $IMAGE_NAME ash
-
       - name: Test namui-test-host image
         if: steps.filter.outputs.namui-test-host == 'true'
         run: |
           echo Test namui-cli
-          docker exec namui-test-host cargo test --manifest-path /namseent/namui-cli/Cargo.toml
+          cargo test --manifest-path namui-cli/Cargo.toml
 
           echo Test namui
-          docker exec namui-test-host namui test wasm-unknown-web -m /namseent/namui/Cargo.toml
+          namui test wasm-unknown-web -m namui/Cargo.toml
 
       - name: Login to GitHub Container Registry
         if: github.ref == 'refs/heads/master' && steps.filter.outputs.namui-test-host == 'true'
@@ -70,12 +77,12 @@ jobs:
 
       - name: Test namui
         if: github.ref != 'refs/heads/master' && steps.filter.outputs.namui == 'true'
-        run: docker exec namui-test-host namui test wasm-unknown-web -m /namseent/namui/Cargo.toml
+        run: namui test wasm-unknown-web -m namui/Cargo.toml
 
       - name: Test luda-editor-client
         if: github.ref != 'refs/heads/master' && steps.filter.outputs.luda-editor-client == 'true'
-        run: docker exec namui-test-host namui test wasm-unknown-web -m /namseent/luda-editor/luda-editor-client/Cargo.toml
+        run: namui test wasm-unknown-web -m luda-editor/luda-editor-client/Cargo.toml
 
       - name: Test nrpc
         if: github.ref != 'refs/heads/master' && steps.filter.outputs.nrpc == 'true'
-        run: docker exec namui-test-host cargo test --manifest-path /namseent/nrpc/Cargo.toml
+        run: cargo test --manifest-path nrpc/Cargo.toml
