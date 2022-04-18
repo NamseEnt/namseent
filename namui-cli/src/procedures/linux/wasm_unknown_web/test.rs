@@ -33,9 +33,12 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), Box<dyn Error>> {
         })
         .filter(|(cargo_cache_path, _)| cargo_cache_path.exists());
 
-    let bind_directory_tuples = [(source_root_directory_to_bind, source_bind_path)]
-        .into_iter()
-        .chain(cargo_cache_bind_directory_tuples);
+    let bind_directory_tuples = [(
+        source_root_directory_to_bind.clone(),
+        source_bind_path.clone(),
+    )]
+    .into_iter()
+    .chain(cargo_cache_bind_directory_tuples);
 
     let bind_args: Vec<String> = bind_directory_tuples
         .map(|(source, target)| {
@@ -55,16 +58,29 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), Box<dyn Error>> {
         .parent()
         .expect("No parent directory found");
 
+    let command_to_pass_to_docker = format!(
+        "{}",
+        [
+            format!(
+                "wasm-pack test --headless --chrome {}",
+                directory.to_str().unwrap()
+            ),
+            format!(
+                "find {} -user $(whoami) -print0 | xargs -0 chmod 777",
+                source_bind_path.to_str().unwrap()
+            ),
+        ]
+        .join(" && ")
+    );
+
     let args = ["run", "--rm"]
         .into_iter()
         .chain(bind_args.iter().map(|s| s.as_ref()))
         .chain([
             "ghcr.io/namseent/namui-test-host:latest",
-            "wasm-pack",
-            "test",
-            "--headless",
-            "--chrome",
-            directory.to_str().unwrap(),
+            "sh",
+            "-c",
+            &command_to_pass_to_docker,
         ]);
     let result = Command::new("docker").args(args).status()?;
 
