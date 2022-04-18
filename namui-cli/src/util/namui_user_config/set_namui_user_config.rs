@@ -27,7 +27,10 @@ pub fn set_namui_user_config(target: &Target) -> Result<(), Box<dyn std::error::
     .iter()
     .map(|(key, value)| (key.to_string(), value.to_string()))
     .collect();
-    let namui_user_config = NamuiUserConfig { cfg_map };
+    let namui_user_config = NamuiUserConfig {
+        cfg_map,
+        target: target.clone(),
+    };
 
     fs::write(
         &namui_user_config_path,

@@ -6,7 +6,7 @@ mod util;
 use clap::StructOpt;
 use cli::{Cli, Commands};
 use std::env::current_dir;
-use util::{print_namui_cfg, set_namui_user_config};
+use util::{get_current_target, print_namui_cfg, print_namui_target, set_namui_user_config};
 
 #[tokio::main]
 async fn main() {
@@ -14,33 +14,38 @@ async fn main() {
     let manifest_path = current_dir()
         .expect("No current dir found")
         .join("Cargo.toml");
+    let current_target = get_current_target().expect("Failed to get current target");
 
     let result = match &cli.command {
         Commands::Test {
-            target,
+            target: option_target,
             manifest_path: option_manifest_path,
         } => {
+            let target = option_target.as_ref().unwrap_or(&current_target);
             let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
             procedures::test(target, &manifest_path)
         }
         Commands::Target { target } => set_namui_user_config(target),
         Commands::Print { printable_object } => match printable_object {
             cli::PrintableObject::Cfg => print_namui_cfg(),
+            cli::PrintableObject::Target => print_namui_target(),
         },
         Commands::Start {
-            target,
+            target: option_target,
             manifest_path: option_manifest_path,
         } => {
+            let target = option_target.as_ref().unwrap_or(&current_target);
             let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
-            procedures::start(target, &manifest_path)
+            procedures::start(&target, &manifest_path)
         }
         Commands::Build {
-            target,
+            target: option_target,
             manifest_path: option_manifest_path,
             arch,
         } => {
+            let target = option_target.as_ref().unwrap_or(&current_target);
             let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
-            procedures::build(target, &manifest_path, arch.into())
+            procedures::build(&target, &manifest_path, arch.into())
         }
     };
 

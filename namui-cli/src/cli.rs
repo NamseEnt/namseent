@@ -1,6 +1,7 @@
 use crate::services::electron_package_service;
 use clap::{ArgEnum, Parser, Subcommand};
-use std::path::PathBuf;
+use serde::{Deserialize, Serialize};
+use std::{fmt::Display, path::PathBuf};
 
 #[derive(Parser)]
 #[clap(version)]
@@ -13,13 +14,13 @@ pub struct Cli {
 pub enum Commands {
     Start {
         #[clap(arg_enum)]
-        target: Target,
+        target: Option<Target>,
         #[clap(short, long, parse(from_os_str))]
         manifest_path: Option<PathBuf>,
     },
     Build {
         #[clap(arg_enum)]
-        target: Target,
+        target: Option<Target>,
         #[clap(short, long, parse(from_os_str))]
         manifest_path: Option<PathBuf>,
         #[clap(arg_enum, default_value = "auto")]
@@ -27,7 +28,7 @@ pub enum Commands {
     },
     Test {
         #[clap(arg_enum)]
-        target: Target,
+        target: Option<Target>,
         #[clap(short, long, parse(from_os_str))]
         manifest_path: Option<PathBuf>,
     },
@@ -41,18 +42,32 @@ pub enum Commands {
     },
 }
 
-#[derive(Clone, ArgEnum)]
+#[derive(Clone, ArgEnum, Serialize, Deserialize)]
 pub enum Target {
     #[clap(rename_all = "kebab-case")]
     WasmUnknownWeb,
     WasmWindowsElectron,
     WasmLinuxElectron,
 }
+impl Display for Target {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Target::WasmUnknownWeb => "wasm-unknown-web",
+                Target::WasmWindowsElectron => "wasm-windows-electron",
+                Target::WasmLinuxElectron => "wasm-linux-electron",
+            }
+        )
+    }
+}
 
 #[derive(Clone, ArgEnum)]
 pub enum PrintableObject {
     #[clap(rename_all = "camelCase")]
     Cfg,
+    Target,
 }
 
 #[derive(Clone, ArgEnum)]
