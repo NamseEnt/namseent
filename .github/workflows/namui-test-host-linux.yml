@@ -8,33 +8,33 @@ env:
 jobs:
   diff:
     runs-on: ubuntu-latest
-    # outputs:
-    #   namui-test-host: ${{ steps.filter.outputs.namui-test-host }}
-    #   namui: ${{ steps.filter.outputs.namui }}
-    #   luda-editor-client: ${{ steps.filter.outputs.luda-editor-client }}
-    #   nrpc: ${{ steps.filter.outputs.nrpc }}
+    outputs:
+      namui-test-host: ${{ steps.filter.outputs.namui-test-host }}
+      namui: ${{ steps.filter.outputs.namui }}
+      luda-editor-client: ${{ steps.filter.outputs.luda-editor-client }}
+      nrpc: ${{ steps.filter.outputs.nrpc }}
     steps:
       - uses: actions/checkout@v3
-      # - uses: dorny/paths-filter@v2
-      #   id: filter
-      #   with:
-      #     filters: |
-      #       namui-test-host:
-      #         - .github/**
-      #         - namui-cli/**
-      #         - docker-images/namui-test-host/linux.Dockerfile
-      #       namui:
-      #         - .github/**
-      #         - namui-cli/**
-      #         - namui/**
-      #       luda-editor-client:
-      #         - .github/**
-      #         - luda-editor/luda-editor-client/**
-      #         - luda-editor/luda-editor-rpc/**
-      #         - namui/**
-      #       nrpc:
-      #         - .github/**
-      #         - nrpc/**
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            namui-test-host:
+              - .github/**
+              - namui-cli/**
+              - docker-images/namui-test-host/linux.Dockerfile
+            namui:
+              - .github/**
+              - namui-cli/**
+              - namui/**
+            luda-editor-client:
+              - .github/**
+              - luda-editor/luda-editor-client/**
+              - luda-editor/luda-editor-rpc/**
+              - namui/**
+            nrpc:
+              - .github/**
+              - nrpc/**
 
   set-up:
     needs: diff
@@ -47,56 +47,55 @@ jobs:
       - run: ls -al .github/actions
       - uses: ./.github/actions/prepare-docker-image
         with:
-          # namui-cli-changed: needs.diff.outputs.namui-cli
-          namui-cli-changed: "true"
+          namui-cli-changed: needs.diff.outputs.namui-cli
 
-  # update-namui-test-host-image:
-  #   needs: [diff, set-up, test-namui-cli, test-namui]
-  #   if: needs.diff.outputs.namui-cli == 'true' && github.ref == 'refs/heads/master'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: ./.github/actions/restore-docker-image
-  #     - uses: ./.github/actions/push-docker-image
+  update-namui-test-host-image:
+    needs: [diff, set-up, test-namui-cli, test-namui]
+    if: needs.diff.outputs.namui-cli == 'true' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/restore-docker-image
+      - uses: ./.github/actions/push-docker-image
 
-  # test-namui-cli:
-  #   needs: [diff, set-up]
-  #   if: needs.diff.outputs.namui-cli == 'true'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: ./.github/actions/init-test-job
-  #     - run: cargo test --manifest-path namui-cli/Cargo.toml
+  test-namui-cli:
+    needs: [diff, set-up]
+    if: needs.diff.outputs.namui-cli == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/init-test-job
+      - run: cargo test --manifest-path namui-cli/Cargo.toml
 
-  # test-namui:
-  #   needs: [diff, set-up]
-  #   if: needs.diff.outputs.namui == 'true'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: ./.github/actions/init-test-job
-  #     - uses: ./.github/actions/namui-test
-  #       with:
-  #         target: wasm-unknown-web
-  #         path: namui
+  test-namui:
+    needs: [diff, set-up]
+    if: needs.diff.outputs.namui == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/init-test-job
+      - uses: ./.github/actions/namui-test
+        with:
+          target: wasm-unknown-web
+          path: namui
 
-  # test-luda-editor-client:
-  #   needs: [diff, set-up]
-  #   if: needs.diff.outputs.luda-editor-client == 'true'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: ./.github/actions/init-test-job
-  #     - uses: ./.github/actions/namui-test
-  #       with:
-  #         target: wasm-unknown-web
-  #         path: luda-editor/luda-editor-client
+  test-luda-editor-client:
+    needs: [diff, set-up]
+    if: needs.diff.outputs.luda-editor-client == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/init-test-job
+      - uses: ./.github/actions/namui-test
+        with:
+          target: wasm-unknown-web
+          path: luda-editor/luda-editor-client
 
-  # test-nrpc:
-  #   needs: [diff, set-up]
-  #   if: needs.diff.outputs.nrpc == 'true'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: ./.github/actions/init-test-job
-  #     - run: cargo test --manifest-path nrpc/Cargo.toml
+  test-nrpc:
+    needs: [diff, set-up]
+    if: needs.diff.outputs.nrpc == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/init-test-job
+      - run: cargo test --manifest-path nrpc/Cargo.toml
