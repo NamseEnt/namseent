@@ -13,7 +13,7 @@ runs:
       run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
     - shell: bash
-      run: rustup target add wasm32-unknown-unknown
+      run: time rustup target add wasm32-unknown-unknown
 
     - uses: actions/cache@v3
       id: namui-cli-rust-cache
@@ -28,8 +28,7 @@ runs:
     - name: Get npm cache directory
       id: npm-cache-dir
       shell: bash
-      run: |
-        echo "::set-output name=dir::$(npm config get cache)"
+      run: time echo "::set-output name=dir::$(npm config get cache)"
 
     - uses: actions/cache@v3
       id: npm-cache # use this to check for `cache-hit` ==> if: steps.npm-cache.outputs.cache-hit != 'true'
@@ -41,4 +40,4 @@ runs:
 
     - name: install namui-cli
       shell: bash
-      run: bash namui-cli/scripts/install.sh
+      run: time bash namui-cli/scripts/install.sh

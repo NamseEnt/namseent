@@ -1,0 +1,16 @@
+name: Delete ghcr image
+inputs:
+  name:
+    required: true
+  tag:
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Delete image
+      uses: bots-house/ghcr-delete-image-action@v1.0.0
+      with:
+        owner: ${{ github.repository_owner }}
+        name: ${{ inputs.name }}
+        token: ${{ github.token }}
+        tag: ${{ inputs.tag }}

@@ -7,8 +7,8 @@ runs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        password: ${{ github.token }}
 
     - name: Push namui-test-host image
       shell: bash
-      run: docker push $IMAGE_NAME
+      run: time docker push $LATEST_IMAGE_NAME
