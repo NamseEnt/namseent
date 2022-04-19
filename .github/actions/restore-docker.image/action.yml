@@ -9,6 +9,7 @@ runs:
         path: /tmp/namui-test-host-image.tar
 
     - name: Load image
+      shell: bash
       run: |
         docker load --input /tmp/namui-test-host-image.tar
         docker image ls -a

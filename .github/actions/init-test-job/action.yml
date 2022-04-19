@@ -9,9 +9,11 @@ runs:
         toolchain: stable
 
     - name: wasm-pack install
+      shell: bash
       run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
-    - run: rustup target add wasm32-unknown-unknown
+    - shell: bash
+      run: rustup target add wasm32-unknown-unknown
 
     - uses: actions/cache@v3
       id: namui-cli-rust-cache
@@ -25,6 +27,7 @@ runs:
 
     - name: Get npm cache directory
       id: npm-cache-dir
+      shell: bash
       run: |
         echo "::set-output name=dir::$(npm config get cache)"
 
@@ -37,4 +40,5 @@ runs:
           ${{ runner.os }}-node-
 
     - name: install namui-cli
+      shell: bash
       run: bash namui-cli/scripts/install.sh

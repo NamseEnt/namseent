@@ -17,4 +17,5 @@ runs:
         key: ${{ runner.os }}-cargo-${{ inputs.path }}-${{ inputs.target }}-${{ hashFiles('${{ inputs.path }}/Cargo.lock') }}
 
     - name: Test
+      shell: bash
       run: namui test ${{ inputs.target }} -m ${{ inputs.path }}/Cargo.toml

@@ -10,4 +10,5 @@ runs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Push namui-test-host image
+      shell: bash
       run: docker push $IMAGE_NAME
