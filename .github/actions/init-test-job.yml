@@ -4,7 +4,7 @@ runs:
   steps:
     - uses: actions/checkout@v3
 
-    - uses: actions/restore-docker-image
+    - uses: .github/actions/restore-docker-image
 
     - uses: actions-rs/toolchain@v1
       with:

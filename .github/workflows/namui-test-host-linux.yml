@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/prepare-docker-image
+      - uses: .github/actions/prepare-docker-image
         with:
           namui-cli-changed: needs.diff.outputs.namui-cli
 
@@ -53,15 +53,15 @@ jobs:
     if: needs.diff.outputs.namui-cli == 'true' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/restore-docker-image
-      - uses: actions/push-docker-image
+      - uses: .github/actions/restore-docker-image
+      - uses: .github/actions/push-docker-image
 
   test-namui-cli:
     needs: [diff, set-up]
     if: needs.diff.outputs.namui-cli == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/init-test-job
+      - uses: .github/actions/init-test-job
       - run: cargo test --manifest-path namui-cli/Cargo.toml
 
   test-namui:
@@ -69,8 +69,8 @@ jobs:
     if: needs.diff.outputs.namui == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/init-test-job
-      - uses: actions/namui-test
+      - uses: .github/actions/init-test-job
+      - uses: .github/actions/namui-test
         with:
           target: wasm-unknown-web
           path: namui
@@ -80,8 +80,8 @@ jobs:
     if: needs.diff.outputs.luda-editor-client == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/init-test-job
-      - uses: actions/namui-test
+      - uses: .github/actions/init-test-job
+      - uses: .github/actions/namui-test
         with:
           target: wasm-unknown-web
           path: luda-editor/luda-editor-client
@@ -91,5 +91,5 @@ jobs:
     if: needs.diff.outputs.nrpc == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/init-test-job
+      - uses: .github/actions/init-test-job
       - run: cargo test --manifest-path nrpc/Cargo.toml
