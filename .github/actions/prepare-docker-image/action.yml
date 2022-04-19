@@ -7,11 +7,13 @@ runs:
   steps:
     - name: Build image
       if: inputs.namui-cli-changed == 'true'
+      shell: bash
       run: docker build . -f docker-images/namui-test-host/linux.Dockerfile
         -t $IMAGE_NAME --cache-from $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
 
     - name: Save image
-      run: docker save $IMAGE_NAME -o type=docker,dest=/tmp/namui-test-host-image.tar
+      shell: bash
+      run: docker save $IMAGE_NAME -o /tmp/namui-test-host-image.tar
 
     - name: Upload image to artifact
       uses: actions/upload-artifact@v2

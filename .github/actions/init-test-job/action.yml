@@ -2,7 +2,7 @@ name: Init test job
 runs:
   using: composite
   steps:
-    - uses: .github/actions/restore-docker-image
+    - uses: ./.github/actions/restore-docker-image
 
     - uses: actions-rs/toolchain@v1
       with:
