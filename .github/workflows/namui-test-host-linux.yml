@@ -45,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: ls -al .github/actions
-      # - uses: .github/actions/prepare-docker-image
+      - uses: .github/actions/prepare-docker-image.yml
       #   with:
       #     # namui-cli-changed: needs.diff.outputs.namui-cli
       #     namui-cli-changed: "true"
