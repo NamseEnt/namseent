@@ -1,0 +1,14 @@
+name: Restore docker image
+runs:
+  using: composite
+  steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: namui-test-host-image
+        path: /tmp/namui-test-host-image.tar
+
+    - name: Load image
+      run: |
+        docker load --input /tmp/namui-test-host-image.tar
+        docker image ls -a

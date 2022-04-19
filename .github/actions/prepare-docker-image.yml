@@ -1,0 +1,20 @@
+name: Prepare docker image
+inputs:
+  namui-cli-changed:
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Build image
+      if: inputs.namui-cli-changed == 'true'
+      run: docker build . -f docker-images/namui-test-host/linux.Dockerfile
+        -t $IMAGE_NAME --cache-from $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
+
+    - name: Save image
+      run: docker save $IMAGE_NAME -o type=docker,dest=/tmp/namui-test-host-image.tar
+
+    - name: Upload image to artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: namui-test-host-image
+        path: /tmp/namui-test-host-image.tar
