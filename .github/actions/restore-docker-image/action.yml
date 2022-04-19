@@ -6,7 +6,7 @@ runs:
       uses: actions/download-artifact@v3
       with:
         name: namui-test-host-image
-        path: /tmp/namui-test-host-image.tar
+        path: /tmp
 
     - name: Load image
       shell: bash
