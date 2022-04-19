@@ -1,0 +1,11 @@
+[package]
+edition = "2021"
+name = "namui-cfg"
+version = "0.1.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+lazy_static = "1.4.0"
+rust_cfg_parser = "0.1.0"

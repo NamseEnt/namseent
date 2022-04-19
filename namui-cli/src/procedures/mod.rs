@@ -1,12 +1,8 @@
-pub mod dev_wasm_web;
-pub use dev_wasm_web::*;
-pub mod dev_wasm_electron;
-pub use dev_wasm_electron::*;
-pub mod release_wasm_web;
-pub use release_wasm_web::*;
-pub mod release_wasm_electron;
-pub use release_wasm_electron::*;
+mod build;
 #[cfg(target_os = "linux")]
 pub mod linux;
-pub mod test;
+mod start;
+mod test;
+pub use build::*;
+pub use start::*;
 pub use test::*;

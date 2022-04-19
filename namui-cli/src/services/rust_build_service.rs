@@ -1,4 +1,4 @@
-use crate::{debug_println, types::ErrorMessage};
+use crate::{cli::Target, debug_println, types::ErrorMessage};
 use cargo_metadata::{diagnostic::DiagnosticLevel, CompilerMessage, Message};
 use std::{
     io::Read,
@@ -26,13 +26,8 @@ pub enum BuildResult {
 pub struct BuildOption {
     pub dist_path: PathBuf,
     pub project_root_path: PathBuf,
-    pub platform: BuildPlatform,
-}
-
-#[derive(Clone)]
-pub enum BuildPlatform {
-    WasmWeb,
-    WasmElectron,
+    pub target: Target,
+    pub watch: bool,
 }
 
 impl RustBuildService {
@@ -172,25 +167,50 @@ impl CancelableBuilder {
     fn spawn_build_process(
         build_option: &BuildOption,
     ) -> Result<Child, Box<dyn std::error::Error>> {
-        match build_option.platform {
-            BuildPlatform::WasmElectron | BuildPlatform::WasmWeb => Ok(Command::new("wasm-pack")
-                .args([
-                    "build",
-                    "--target",
-                    "no-modules",
-                    "--out-name",
-                    "bundle",
-                    "--dev",
-                    build_option.project_root_path.to_str().unwrap(),
-                    "--",
-                    "--message-format",
-                    "json",
-                ])
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()?),
-        }
+        Ok(Command::new("wasm-pack")
+            .args([
+                "build",
+                "--target",
+                "no-modules",
+                "--out-name",
+                "bundle",
+                "--dev",
+                build_option.project_root_path.to_str().unwrap(),
+                "--",
+                "--message-format",
+                "json",
+            ])
+            .envs(get_envs(build_option))
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?)
     }
+}
+
+fn get_envs(build_option: &BuildOption) -> Vec<(&str, &str)> {
+    let mut envs = match build_option.target {
+        Target::WasmUnknownWeb => vec![
+            ("NAMUI_CFG_TARGET_OS", "unknown"),
+            ("NAMUI_CFG_TARGET_ENV", "web"),
+            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
+        ],
+        Target::WasmWindowsElectron => vec![
+            ("NAMUI_CFG_TARGET_OS", "windows"),
+            ("NAMUI_CFG_TARGET_ENV", "electron"),
+            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
+        ],
+        Target::WasmLinuxElectron => vec![
+            ("NAMUI_CFG_TARGET_OS", "linux"),
+            ("NAMUI_CFG_TARGET_ENV", "electron"),
+            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
+        ],
+    };
+
+    if build_option.watch {
+        envs.push(("NAMUI_CFG_WATCH_RELOAD", ""));
+    }
+
+    envs
 }
 
 pub struct CargoBuildResult {

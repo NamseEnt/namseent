@@ -10,6 +10,9 @@
       "path": "luda-editor/luda-editor-rpc"
     },
     {
+      "path": "namui-cfg"
+    },
+    {
       "path": "namui-cli"
     },
     {

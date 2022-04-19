@@ -1,6 +1,7 @@
-use crate::services::electron_package_service::{Arch, Platform};
+use crate::services::electron_package_service;
 use clap::{ArgEnum, Parser, Subcommand};
-use std::{path::PathBuf, str::FromStr};
+use serde::{Deserialize, Serialize};
+use std::{fmt::Display, path::PathBuf};
 
 #[derive(Parser)]
 #[clap(version)]
@@ -11,56 +12,62 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    DevWasmWeb {},
-    DevWasmElectron {},
-    ReleaseWasmWeb {},
-    ReleaseWasmElectron {
-        #[clap(short, long, arg_enum, default_value = "auto")]
-        platform: ElectronPackagePlatform,
-        #[clap(short, long, arg_enum, default_value = "auto")]
+    Start {
+        #[clap(arg_enum)]
+        target: Option<Target>,
+        #[clap(short, long, parse(from_os_str))]
+        manifest_path: Option<PathBuf>,
+    },
+    Build {
+        #[clap(arg_enum)]
+        target: Option<Target>,
+        #[clap(short, long, parse(from_os_str))]
+        manifest_path: Option<PathBuf>,
+        #[clap(arg_enum, default_value = "auto")]
         arch: ElectronPackageArch,
     },
     Test {
         #[clap(arg_enum)]
-        target: Target,
+        target: Option<Target>,
         #[clap(short, long, parse(from_os_str))]
         manifest_path: Option<PathBuf>,
     },
+    Target {
+        #[clap(arg_enum)]
+        target: Target,
+    },
+    Print {
+        #[clap(arg_enum)]
+        printable_object: PrintableObject,
+    },
 }
 
-#[derive(Clone, ArgEnum)]
+#[derive(Clone, ArgEnum, Serialize, Deserialize)]
 pub enum Target {
     #[clap(rename_all = "kebab-case")]
     WasmUnknownWeb,
+    WasmWindowsElectron,
+    WasmLinuxElectron,
+}
+impl Display for Target {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Target::WasmUnknownWeb => "wasm-unknown-web",
+                Target::WasmWindowsElectron => "wasm-windows-electron",
+                Target::WasmLinuxElectron => "wasm-linux-electron",
+            }
+        )
+    }
 }
 
 #[derive(Clone, ArgEnum)]
-#[clap(short, long)]
-pub enum ElectronPackagePlatform {
+pub enum PrintableObject {
     #[clap(rename_all = "camelCase")]
-    Auto,
-    Win32,
-    Linux,
-}
-impl FromStr for ElectronPackagePlatform {
-    type Err = String;
-    fn from_str(tr: &str) -> Result<Self, Self::Err> {
-        match tr {
-            "auto" => Ok(Self::Auto),
-            "win32" => Ok(Self::Win32),
-            "linux" => Ok(Self::Linux),
-            _ => Err(format!("Unknown platform")),
-        }
-    }
-}
-impl Into<Option<Platform>> for &ElectronPackagePlatform {
-    fn into(self) -> Option<Platform> {
-        match self {
-            ElectronPackagePlatform::Auto => None,
-            ElectronPackagePlatform::Win32 => Some(Platform::Win32),
-            ElectronPackagePlatform::Linux => Some(Platform::Linux),
-        }
-    }
+    Cfg,
+    Target,
 }
 
 #[derive(Clone, ArgEnum)]
@@ -70,21 +77,11 @@ pub enum ElectronPackageArch {
     Auto,
     X64,
 }
-impl FromStr for ElectronPackageArch {
-    type Err = String;
-    fn from_str(tr: &str) -> Result<Self, Self::Err> {
-        match tr {
-            "auto" => Ok(Self::Auto),
-            "win32" => Ok(Self::X64),
-            _ => Err(format!("Unknown arch")),
-        }
-    }
-}
-impl Into<Option<Arch>> for &ElectronPackageArch {
-    fn into(self) -> Option<Arch> {
+impl Into<Option<electron_package_service::Arch>> for &ElectronPackageArch {
+    fn into(self) -> Option<electron_package_service::Arch> {
         match self {
             ElectronPackageArch::Auto => None,
-            ElectronPackageArch::X64 => Some(Arch::X64),
+            ElectronPackageArch::X64 => Some(electron_package_service::Arch::X64),
         }
     }
 }

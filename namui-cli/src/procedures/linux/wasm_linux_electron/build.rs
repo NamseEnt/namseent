@@ -1,9 +1,10 @@
 use crate::{
+    cli::Target,
     debug_println,
     services::{
         electron_package_service::{Arch, ElectronPackageService, Platform},
         resource_collect_service::{CollectOperation, ResourceCollectService},
-        rust_build_service::{BuildOption, BuildPlatform, BuildResult, RustBuildService},
+        rust_build_service::{BuildOption, BuildResult, RustBuildService},
     },
     util::{
         get_cli_root_path, get_namui_bundle_manifest, overwrite_hot_reload_script_with_empty_file,
@@ -15,27 +16,23 @@ use std::{
     sync::Arc,
 };
 
-pub fn release_wasm_electron(
-    manifest_path: &Path,
-    platform: Option<Platform>,
-    arch: Option<Arch>,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn build(manifest_path: &Path, arch: Option<Arch>) -> Result<(), Box<dyn std::error::Error>> {
     let build_dist_path = manifest_path.parent().unwrap().join("pkg");
     let namui_static_path = get_cli_root_path().join("www");
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
 
     let electron_package_service = ElectronPackageService::new();
-    let package_result = electron_package_service.package_electron_app(arch, platform)?;
+    let package_result = electron_package_service.package_electron_app(arch, Platform::Linux)?;
 
-    let release_path = project_root_path.join("target").join("namui").join(format!(
-        "release_wasm_electron_{}_{}",
-        &package_result.platform, &package_result.arch
-    ));
+    let release_path = project_root_path
+        .join("target")
+        .join("namui")
+        .join(format!("wasm_linux_{}_electron", &package_result.arch));
 
     let rust_build_service = Arc::new(RustBuildService::new());
     let resource_collect_service = ResourceCollectService::new(&project_root_path, &release_path);
 
-    build(
+    build_(
         rust_build_service.clone(),
         build_dist_path.clone(),
         project_root_path.clone(),
@@ -70,16 +67,17 @@ pub fn release_wasm_electron(
     Ok(())
 }
 
-fn build(
+fn build_(
     rust_build_service: Arc<RustBuildService>,
     build_dist_path: PathBuf,
     project_root_path: PathBuf,
 ) -> Result<(), String> {
     debug_println!("build fn run");
     match rust_build_service.cancel_and_start_build(&BuildOption {
-        platform: BuildPlatform::WasmElectron,
+        target: Target::WasmLinuxElectron,
         dist_path: build_dist_path.to_path_buf(),
         project_root_path: project_root_path.to_path_buf(),
+        watch: false,
     }) {
         BuildResult::Successful(cargo_build_result) => {
             print_build_result(&cargo_build_result.error_messages, &vec![]);

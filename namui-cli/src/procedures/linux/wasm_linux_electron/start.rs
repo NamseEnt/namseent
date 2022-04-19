@@ -1,7 +1,9 @@
 use crate::{
+    cli::Target,
     debug_println,
     services::{
-        rust_build_service::{BuildOption, BuildPlatform, BuildResult, RustBuildService},
+        electron_dev_service::{start_electron_dev_service, CrossPlatform},
+        rust_build_service::{BuildOption, BuildResult, RustBuildService},
         rust_project_watch_service::RustProjectWatchService,
         wasm_bundle_web_server::WasmBundleWebServer,
     },
@@ -12,11 +14,11 @@ use std::{
     sync::Arc,
 };
 
-pub fn dev_wasm_web(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+pub fn start(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     const PORT: u16 = 8080;
     let wasm_bundle_web_server_url = format!("http://localhost:{}", PORT);
 
-    let _ = webbrowser::open(&wasm_bundle_web_server_url);
+    let _ = start_electron_dev_service(&PORT, CrossPlatform::None).unwrap();
     println!("server is running on {}", wasm_bundle_web_server_url);
 
     let build_dist_path = manifest_path.parent().unwrap().join("pkg");
@@ -58,9 +60,10 @@ async fn build(
 ) {
     debug_println!("build fn run");
     match rust_build_service.cancel_and_start_build(&BuildOption {
-        platform: BuildPlatform::WasmWeb,
+        target: Target::WasmLinuxElectron,
         dist_path: build_dist_path.to_path_buf(),
         project_root_path: project_root_path.to_path_buf(),
+        watch: true,
     }) {
         BuildResult::Canceled => {
             debug_println!("build canceled");
