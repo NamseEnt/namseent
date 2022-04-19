@@ -1,15 +1,15 @@
 name: Prepare docker image
 inputs:
-  namui-cli-changed:
+  namui-test-host-changed:
     required: true
 runs:
   using: composite
   steps:
     - shell: bash
-      run: echo ${{ inputs.namui-cli-changed }}
+      run: echo ${{ inputs.namui-test-host-changed }}
 
     - name: Build image
-      if: inputs.namui-cli-changed == 'true'
+      if: inputs.namui-test-host-changed == 'true'
       shell: bash
       run: docker build . -f docker-images/namui-test-host/linux.Dockerfile
         -t $IMAGE_NAME --cache-from $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
