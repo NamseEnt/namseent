@@ -20,20 +20,20 @@ jobs:
         with:
           filters: |
             namui-test-host:
-              - .github/workflows/namui-test-host-linux.yml
+              - .github/**
               - namui-cli/**
               - docker-images/namui-test-host/linux.Dockerfile
             namui:
-              - .github/workflows/namui-test-host-linux.yml
+              - .github/**
               - namui-cli/**
               - namui/**
             luda-editor-client:
-              - .github/workflows/namui-test-host-linux.yml
+              - .github/**
               - luda-editor/luda-editor-client/**
               - luda-editor/luda-editor-rpc/**
               - namui/**
             nrpc:
-              - .github/workflows/namui-test-host-linux.yml
+              - .github/**
               - nrpc/**
 
   set-up:
