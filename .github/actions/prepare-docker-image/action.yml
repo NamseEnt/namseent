@@ -8,7 +8,8 @@ runs:
     - name: Build image
       if: inputs.namui-test-host-changed == 'true'
       shell: bash
-      run: docker build . -f docker-images/namui-test-host/linux.Dockerfile
+      run:
+        DOCKER_BUILDKIT=1 docker build . -f docker-images/namui-test-host/linux.Dockerfile
         -t $IMAGE_NAME --cache-from $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
 
     - name: Save image
