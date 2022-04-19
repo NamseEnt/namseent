@@ -61,7 +61,7 @@ jobs:
       - name: Build namui-test-host image
         if: steps.filter.outputs.namui-test-host == 'true'
         run: docker build . -f docker-images/namui-test-host/linux.Dockerfile
-          -t $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
+          -t $IMAGE_NAME --cache-from $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
 
       - name: Test namui-test-host image
         if: steps.filter.outputs.namui-test-host == 'true'
