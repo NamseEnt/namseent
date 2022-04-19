@@ -14,7 +14,7 @@ jobs:
     #   luda-editor-client: ${{ steps.filter.outputs.luda-editor-client }}
     #   nrpc: ${{ steps.filter.outputs.nrpc }}
     steps:
-      # - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
       # - uses: dorny/paths-filter@v2
       #   id: filter
       #   with:
