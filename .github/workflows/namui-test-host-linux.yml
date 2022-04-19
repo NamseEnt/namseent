@@ -9,6 +9,7 @@ jobs:
   check-rebuild:
     runs-on: ubuntu-latest
     outputs:
+      namui-test-host: ${{ steps.filter.outputs.namui-test-host }}
       namui-cli: ${{ steps.filter.outputs.namui-cli }}
       namui: ${{ steps.filter.outputs.namui }}
       luda-editor-client: ${{ steps.filter.outputs.luda-editor-client }}
