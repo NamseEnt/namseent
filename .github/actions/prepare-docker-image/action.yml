@@ -16,7 +16,7 @@ runs:
       run: docker save $IMAGE_NAME -o /tmp/namui-test-host-image.tar
 
     - name: Upload image to artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: namui-test-host-image
         path: /tmp/namui-test-host-image.tar
