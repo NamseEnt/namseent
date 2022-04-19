@@ -44,10 +44,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: ls -al .github/actions
       - uses: ./.github/actions/prepare-docker-image
         with:
-          namui-cli-changed: needs.diff.outputs.namui-cli
+          namui-cli-changed: ${{ needs.diff.outputs.namui-cli }}
 
   update-namui-test-host-image:
     needs: [diff, set-up, test-namui-cli, test-namui]
