@@ -5,6 +5,10 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Save image
+      shell: bash
+      run: echo ${{ inputs.namui-cli-changed }}
+
     - name: Build image
       if: inputs.namui-cli-changed == 'true'
       shell: bash
