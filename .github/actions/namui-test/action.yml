@@ -13,7 +13,7 @@ runs:
           ~/.cargo/registry/index/
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
-          ${{ inputs.path }}/target/
+          **/target/
         key: ${{ runner.os }}-cargo-${{ inputs.path }}-${{ inputs.target }}-${{ hashFiles('${{ inputs.path }}/Cargo.lock') }}
 
     - name: Test
