@@ -6,7 +6,7 @@ on:
 env:
   IMAGE_NAME: ghcr.io/namseent/namui-test-host:latest
 jobs:
-  diff:
+  check-rebuild:
     runs-on: ubuntu-latest
     outputs:
       namui-cli: ${{ steps.filter.outputs.namui-cli }}
@@ -40,7 +40,7 @@ jobs:
               - nrpc/**
 
   set-up:
-    needs: diff
+    needs: check-rebuild
     permissions:
       packages: write
       contents: read
@@ -49,11 +49,11 @@ jobs:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/prepare-docker-image
         with:
-          namui-test-host-changed: ${{ needs.diff.outputs.namui-test-host }}
+          namui-test-host-changed: ${{ needs.check-rebuild.outputs.namui-test-host }}
 
   update-namui-test-host-image:
-    needs: [diff, set-up, test-namui-cli, test-namui]
-    if: needs.diff.outputs.namui-test-host == 'true' && github.ref == 'refs/heads/master'
+    needs: [check-rebuild, set-up, test-namui-cli, test-namui]
+    if: needs.check-rebuild.outputs.namui-test-host == 'true' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -61,8 +61,8 @@ jobs:
       - uses: ./.github/actions/push-docker-image
 
   test-namui-cli:
-    needs: [diff, set-up]
-    if: needs.diff.outputs.namui-cli == 'true'
+    needs: [check-rebuild, set-up]
+    if: needs.check-rebuild.outputs.namui-cli == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -70,8 +70,8 @@ jobs:
       - run: cargo test --manifest-path namui-cli/Cargo.toml
 
   test-namui:
-    needs: [diff, set-up]
-    if: needs.diff.outputs.namui == 'true'
+    needs: [check-rebuild, set-up]
+    if: needs.check-rebuild.outputs.namui == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -82,8 +82,8 @@ jobs:
           path: namui
 
   test-luda-editor-client:
-    needs: [diff, set-up]
-    if: needs.diff.outputs.luda-editor-client == 'true'
+    needs: [check-rebuild, set-up]
+    if: needs.check-rebuild.outputs.luda-editor-client == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -94,8 +94,8 @@ jobs:
           path: luda-editor/luda-editor-client
 
   test-nrpc:
-    needs: [diff, set-up]
-    if: needs.diff.outputs.nrpc == 'true'
+    needs: [check-rebuild, set-up]
+    if: needs.check-rebuild.outputs.nrpc == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
