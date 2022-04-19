@@ -5,7 +5,7 @@ FROM rust:1.58-alpine
 ENV CARGO_HOME=/usr/local/cargo
 
 RUN apk upgrade -U -a \
-    && apk add \
+    && apk add --no-cache \
     chromium-chromedriver \
     curl \
     musl-dev \

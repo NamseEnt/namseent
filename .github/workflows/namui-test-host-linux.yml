@@ -4,94 +4,101 @@ on:
     branches: master
   pull_request:
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/namui-test-host:latest
+  IMAGE_NAME: ghcr.io/namseent/namui-test-host:latest
 jobs:
-  test-and-push:
-    permissions:
-      packages: write
-      contents: read
+  check-rebuild:
     runs-on: ubuntu-latest
+    outputs:
+      namui-test-host: ${{ steps.filter.outputs.namui-test-host }}
+      namui-cli: ${{ steps.filter.outputs.namui-cli }}
+      namui: ${{ steps.filter.outputs.namui }}
+      luda-editor-client: ${{ steps.filter.outputs.luda-editor-client }}
+      nrpc: ${{ steps.filter.outputs.nrpc }}
     steps:
-      - name: Set IMAGE_NAME lowercase
-        run: echo "IMAGE_NAME=$(echo $IMAGE_NAME | tr '[A-Z]' '[a-z]')" >> ${GITHUB_ENV}
-
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-
-      - name: wasm-pack install
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
-      - run: rustup target add wasm32-unknown-unknown
-
       - uses: actions/checkout@v3
-
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            **/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: namui-cli install
-        run: bash namui-cli/scripts/install.sh
-
       - uses: dorny/paths-filter@v2
         id: filter
         with:
           filters: |
             namui-test-host:
-              - .github/workflows/namui-test-host-linux.yml
+              - .github/**
+              - docker-images/namui-test-host/linux.Dockerfile
+            namui-cli:
+              - .github/**
               - namui-cli/**
               - docker-images/namui-test-host/linux.Dockerfile
             namui:
-              - .github/workflows/namui-test-host-linux.yml
+              - .github/**
+              - namui-cli/**
               - namui/**
             luda-editor-client:
-              - .github/workflows/namui-test-host-linux.yml
+              - .github/**
               - luda-editor/luda-editor-client/**
               - luda-editor/luda-editor-rpc/**
               - namui/**
             nrpc:
-              - .github/workflows/namui-test-host-linux.yml
+              - .github/**
               - nrpc/**
 
-      - name: Build namui-test-host image
-        if: steps.filter.outputs.namui-test-host == 'true'
-        run: docker build . -f docker-images/namui-test-host/linux.Dockerfile
-          -t $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
-
-      - name: Test namui-test-host image
-        if: steps.filter.outputs.namui-test-host == 'true'
-        run: |
-          echo Test namui-cli
-          cargo test --manifest-path namui-cli/Cargo.toml
-
-          echo Test namui
-          namui test wasm-unknown-web -m namui/Cargo.toml
-
-      - name: Login to GitHub Container Registry
-        if: github.ref == 'refs/heads/master' && steps.filter.outputs.namui-test-host == 'true'
-        uses: docker/login-action@v1
+  set-up:
+    needs: check-rebuild
+    permissions:
+      packages: write
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/prepare-docker-image
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          namui-test-host-changed: ${{ needs.check-rebuild.outputs.namui-test-host }}
 
-      - name: Push namui-test-host image
-        if: github.ref == 'refs/heads/master' && steps.filter.outputs.namui-test-host == 'true'
-        run: docker push $IMAGE_NAME
+  update-namui-test-host-image:
+    needs: [check-rebuild, set-up, test-namui-cli, test-namui]
+    if: needs.check-rebuild.outputs.namui-test-host == 'true' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/restore-docker-image
+      - uses: ./.github/actions/push-docker-image
 
-      - name: Test namui
-        if: github.ref != 'refs/heads/master' && steps.filter.outputs.namui == 'true'
-        run: namui test wasm-unknown-web -m namui/Cargo.toml
+  test-namui-cli:
+    needs: [check-rebuild, set-up]
+    if: needs.check-rebuild.outputs.namui-cli == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/init-test-job
+      - run: cargo test --manifest-path namui-cli/Cargo.toml
 
-      - name: Test luda-editor-client
-        if: github.ref != 'refs/heads/master' && steps.filter.outputs.luda-editor-client == 'true'
-        run: namui test wasm-unknown-web -m luda-editor/luda-editor-client/Cargo.toml
+  test-namui:
+    needs: [check-rebuild, set-up]
+    if: needs.check-rebuild.outputs.namui == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/init-test-job
+      - uses: ./.github/actions/namui-test
+        with:
+          target: wasm-unknown-web
+          path: namui
 
-      - name: Test nrpc
-        if: github.ref != 'refs/heads/master' && steps.filter.outputs.nrpc == 'true'
-        run: cargo test --manifest-path nrpc/Cargo.toml
+  test-luda-editor-client:
+    needs: [check-rebuild, set-up]
+    if: needs.check-rebuild.outputs.luda-editor-client == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/init-test-job
+      - uses: ./.github/actions/namui-test
+        with:
+          target: wasm-unknown-web
+          path: luda-editor/luda-editor-client
+
+  test-nrpc:
+    needs: [check-rebuild, set-up]
+    if: needs.check-rebuild.outputs.nrpc == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/init-test-job
+      - run: cargo test --manifest-path nrpc/Cargo.toml

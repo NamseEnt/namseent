@@ -1,0 +1,21 @@
+name: Run namui test
+inputs:
+  target:
+    required: true
+  path:
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          **/target/
+        key: ${{ runner.os }}-cargo-${{ inputs.path }}-${{ inputs.target }}-${{ hashFiles('${{ inputs.path }}/Cargo.lock') }}
+
+    - name: Test
+      shell: bash
+      run: namui test ${{ inputs.target }} -m ${{ inputs.path }}/Cargo.toml
