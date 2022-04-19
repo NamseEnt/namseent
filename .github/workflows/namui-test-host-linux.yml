@@ -9,10 +9,10 @@ jobs:
   diff:
     runs-on: ubuntu-latest
     outputs:
-      - namui-test-host: ${{ steps.filter.outputs.namui-test-host }}
-      - namui: ${{ steps.filter.outputs.namui }}
-      - luda-editor-client: ${{ steps.filter.outputs.luda-editor-client }}
-      - nrpc: ${{ steps.filter.outputs.nrpc }}
+      namui-test-host: ${{ steps.filter.outputs.namui-test-host }}
+      namui: ${{ steps.filter.outputs.namui }}
+      luda-editor-client: ${{ steps.filter.outputs.luda-editor-client }}
+      nrpc: ${{ steps.filter.outputs.nrpc }}
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
