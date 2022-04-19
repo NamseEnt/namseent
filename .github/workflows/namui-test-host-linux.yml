@@ -9,7 +9,7 @@ jobs:
   diff:
     runs-on: ubuntu-latest
     outputs:
-      namui-test-host: ${{ steps.filter.outputs.namui-test-host }}
+      namui-cli: ${{ steps.filter.outputs.namui-cli }}
       namui: ${{ steps.filter.outputs.namui }}
       luda-editor-client: ${{ steps.filter.outputs.luda-editor-client }}
       nrpc: ${{ steps.filter.outputs.nrpc }}
@@ -20,6 +20,9 @@ jobs:
         with:
           filters: |
             namui-test-host:
+              - .github/**
+              - docker-images/namui-test-host/linux.Dockerfile
+            namui-cli:
               - .github/**
               - namui-cli/**
               - docker-images/namui-test-host/linux.Dockerfile
@@ -50,7 +53,7 @@ jobs:
 
   update-namui-test-host-image:
     needs: [diff, set-up, test-namui-cli, test-namui]
-    if: needs.diff.outputs.namui-cli == 'true' && github.ref == 'refs/heads/master'
+    if: needs.diff.outputs.namui-test-host == 'true' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
