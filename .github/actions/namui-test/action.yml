@@ -18,4 +18,4 @@ runs:
 
     - name: Test
       shell: bash
-      run: time namui test ${{ inputs.target }} -m ${{ inputs.path }}/Cargo.toml
+      run: time namui test ${{ inputs.target }} -m ${{ inputs.path }}/Cargo.toml 2> /dev/null
