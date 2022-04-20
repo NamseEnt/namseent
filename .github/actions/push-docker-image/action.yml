@@ -11,4 +11,4 @@ runs:
 
     - name: Push namui-test-host image
       shell: bash
-      run: docker push $IMAGE_NAME
+      run: time docker push $LATEST_IMAGE_NAME

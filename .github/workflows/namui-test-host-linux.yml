@@ -4,7 +4,9 @@ on:
     branches: master
   pull_request:
 env:
-  IMAGE_NAME: ghcr.io/namseent/namui-test-host:latest
+  INNER_IMAGE_TAG: github-actions-${{ github.run_id }}
+  INNER_IMAGE_NAME: ghcr.io/namseent/namui-test-host:github-actions-${{ github.run_id }}
+  LATEST_IMAGE_NAME: ghcr.io/namseent/namui-test-host:latest
 jobs:
   check-rebuild:
     runs-on: ubuntu-latest
@@ -102,3 +104,28 @@ jobs:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/init-test-job
       - run: cargo test --manifest-path nrpc/Cargo.toml
+
+  clean-up:
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    needs:
+      - set-up
+      - update-namui-test-host-image
+      # PLEASE ADD ALL TEST HERE!
+      - test-namui-cli
+      - test-namui
+      - test-luda-editor-client
+      - test-nrpc
+    steps:
+      - uses: actions/checkout@v3
+
+      # TODO: 'Delete inner image' doesn't work for now.
+      # - name: Delete inner image
+      #   uses: bots-house/ghcr-delete-image-action@v1.0.1
+      #   with:
+      #     owner: ${{ github.repository_owner }}
+      #     name: namui-test-host
+      #     token: ${{ github.token }}
+      #     tag: ${{ env.INNER_IMAGE_TAG }}

@@ -2,14 +2,10 @@ name: Restore docker image
 runs:
   using: composite
   steps:
-    - name: Download artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: namui-test-host-image
-        path: /tmp
-
-    - name: Load image
+    - name: Pull inner image
       shell: bash
-      run: |
-        docker load --input /tmp/namui-test-host-image.tar
-        docker image ls -a
+      run: time docker pull $INNER_IMAGE_NAME
+
+    - name: Tag inner image as latest
+      shell: bash
+      run: time docker tag $INNER_IMAGE_NAME $LATEST_IMAGE_NAME
