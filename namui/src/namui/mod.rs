@@ -32,6 +32,7 @@ mod random;
 pub use self::random::*;
 pub mod screen;
 pub use namui_cfg::*;
+pub mod fs;
 pub mod math;
 
 #[cfg(not(test))]
