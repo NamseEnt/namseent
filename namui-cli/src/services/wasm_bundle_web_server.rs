@@ -20,7 +20,8 @@ use std::{
 use tokio::{spawn, sync::RwLock};
 use tokio_util::codec::{BytesCodec, FramedRead};
 use warp::{
-    hyper::{Body, Uri},
+    http::HeaderValue,
+    hyper::{header::CONTENT_TYPE, Body, Uri},
     reject, reply,
     ws::Message,
     Filter,
@@ -198,7 +199,7 @@ fn create_bundle_metadata_static(
             let bundle_metadata_service = bundle_metadata_service.clone();
             async move {
                 match bundle_metadata_service.bundle_metadata() {
-                    Ok(bundle_metadata_json) => Ok(warp::reply::json(&bundle_metadata_json)),
+                    Ok(bundle_metadata_json) => json_response(bundle_metadata_json),
                     Err(_) => Err(reject::reject()),
                 }
             }
@@ -240,4 +241,13 @@ async fn file_response(src_path: &PathBuf) -> Result<reply::Response, warp::Reje
             _ => Err(reject::reject()),
         },
     }
+}
+
+fn json_response(json_string: String) -> Result<reply::Response, warp::Rejection> {
+    let mut response = reply::Response::new(Body::from(json_string));
+    response.headers_mut().insert(
+        CONTENT_TYPE,
+        HeaderValue::from_static("text/html; charset=utf-8"),
+    );
+    Ok(response)
 }
