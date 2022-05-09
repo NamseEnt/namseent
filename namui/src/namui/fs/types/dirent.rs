@@ -1,11 +1,12 @@
-use std::path::PathBuf;
+use std::{hash::Hash, path::PathBuf};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum DirentKind {
     Directory,
     File,
 }
 
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Dirent {
     path: PathBuf,
     kind: DirentKind,
