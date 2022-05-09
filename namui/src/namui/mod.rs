@@ -30,7 +30,9 @@ mod random;
 pub use self::random::*;
 pub mod screen;
 pub use namui_cfg::*;
+mod animation;
 pub mod math;
+pub use self::animation::*;
 
 #[cfg(not(test))]
 #[cfg(target_family = "wasm")]
