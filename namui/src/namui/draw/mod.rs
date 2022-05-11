@@ -76,6 +76,16 @@ impl DrawCall {
             command.draw(namui_context);
         });
     }
+
+    pub(crate) fn get_bounding_box(&self) -> Option<crate::LtrbRect> {
+        self.commands
+            .iter()
+            .map(|command| command.get_bounding_box())
+            .filter_map(|bounding_box| bounding_box)
+            .reduce(|acc, bounding_box| {
+                crate::LtrbRect::get_minimum_rectangle_containing(&acc, &bounding_box)
+            })
+    }
 }
 
 impl DrawCommand {
@@ -130,7 +140,41 @@ impl DrawCommand {
                 let local_y = local_xy.y;
                 local_x >= *x && local_x <= x_max && local_y >= *y && local_y <= y_max
             }
-            DrawCommand::Text(text_draw_command) => todo!(),
+            DrawCommand::Text(text_draw_command) => text_draw_command
+                .get_bounding_box()
+                .map_or(false, |bounding_box| bounding_box.is_xy_inside(&local_xy)),
+        }
+    }
+
+    fn get_bounding_box(&self) -> Option<crate::LtrbRect> {
+        match self {
+            DrawCommand::Path(path_draw_command) => {
+                let path = path_draw_command.path_builder.build();
+                let paint = path_draw_command.paint_builder.build();
+
+                let mut stroke_path_builder = path_draw_command.path_builder.clone();
+                let stroke_result = stroke_path_builder.stroke(StrokeOptions {
+                    cap: Some(paint.get_stroke_cap()),
+                    join: Some(paint.get_stroke_join()),
+                    width: Some(paint.get_stroke_width()),
+                    miter_limit: Some(paint.get_stroke_miter()),
+                    precision: None,
+                });
+
+                let path = match stroke_result {
+                    Ok(()) => stroke_path_builder.build(),
+                    Err(()) => path,
+                };
+
+                path.get_bounding_box()
+            }
+            DrawCommand::Image(image_draw_command) => Some(crate::LtrbRect {
+                left: image_draw_command.xywh.x,
+                top: image_draw_command.xywh.y,
+                right: image_draw_command.xywh.x + image_draw_command.xywh.width,
+                bottom: image_draw_command.xywh.y + image_draw_command.xywh.height,
+            }),
+            DrawCommand::Text(text_draw_command) => text_draw_command.get_bounding_box(),
         }
     }
 }

@@ -48,11 +48,11 @@ impl Font {
         paint: Option<&Paint>,
     ) -> Vec<LtrbRect> {
         let canvas_kit_font = &self.0;
-        let boundItems = canvas_kit_font
+        let bound_items = canvas_kit_font
             .getGlyphBounds(glyph_ids, paint.map(|p| &p.0))
             .to_vec();
 
-        let mut iter = boundItems.iter().peekable();
+        let mut iter = bound_items.iter().peekable();
         let mut bounds = Vec::new();
 
         while iter.peek().is_some() {

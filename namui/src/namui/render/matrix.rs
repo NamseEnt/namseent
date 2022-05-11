@@ -77,6 +77,19 @@ impl Matrix3x3 {
             y: self.values[1][0] * xy.x + self.values[1][1] * xy.y + self.values[1][2],
         }
     }
+
+    pub(crate) fn transform_rect(&self, rect: &crate::LtrbRect) -> crate::LtrbRect {
+        crate::LtrbRect {
+            left: self.values[0][0] * rect.left + self.values[0][1] * rect.top + self.values[0][2],
+            top: self.values[1][0] * rect.left + self.values[1][1] * rect.top + self.values[1][2],
+            right: self.values[0][0] * rect.right
+                + self.values[0][1] * rect.bottom
+                + self.values[0][2],
+            bottom: self.values[1][0] * rect.right
+                + self.values[1][1] * rect.bottom
+                + self.values[1][2],
+        }
+    }
 }
 
 impl std::ops::Mul for Matrix3x3 {

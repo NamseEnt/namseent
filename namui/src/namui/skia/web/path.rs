@@ -34,6 +34,19 @@ impl Path {
     pub fn contains(&self, xy: &Xy<f32>) -> bool {
         self.canvas_kit_path.contains(xy.x, xy.y)
     }
+    pub fn get_bounding_box(&self) -> Option<LtrbRect> {
+        let bounds = self.canvas_kit_path.getBounds();
+        if bounds[0] == 0.0 && bounds[1] == 0.0 && bounds[2] == 0.0 && bounds[3] == 0.0 {
+            None
+        } else {
+            Some(LtrbRect {
+                left: bounds[0],
+                top: bounds[1],
+                right: bounds[2],
+                bottom: bounds[3],
+            })
+        }
+    }
 
     pub(crate) fn add_rect(self, ltrb_rect: &LtrbRect) -> Self {
         self.canvas_kit_path.addRect(
