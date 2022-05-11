@@ -264,15 +264,15 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub fn equals(this: &CanvasKitPath, other: Path) -> bool;
 
-    // ///
-    // /// Returns minimum and maximum axes values of Point array.
-    // /// Returns (0, 0, 0, 0) if Path contains no points. Returned bounds width and height may
-    // /// be larger or smaller than area affected when Path is drawn.
-    // /// @param outputArray - if provided, the bounding box will be copied into this array instead of
-    // ///                      allocating a new one.
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn getBounds(this: &CanvasKitPath, outputArray: Option<Rect) -> Rect;
+    ///
+    /// Returns minimum and maximum axes values of Point array.
+    /// Returns (0, 0, 0, 0) if Path contains no points. Returned bounds width and height may
+    /// be larger or smaller than area affected when Path is drawn.
+    /// @param outputArray - if provided, the bounding box will be copied into this array instead of
+    ///                      allocating a new one.
+    ///
+    #[wasm_bindgen(method)]
+    pub fn getBounds(this: &CanvasKitPath) -> Box<[f32]>;
 
     // ///
     // /// Return the FillType for this path.

@@ -23,6 +23,43 @@ impl LtrbRect {
             y: (self.top + self.bottom) / 2.0,
         }
     }
+
+    pub fn intersect(&self, other: &LtrbRect) -> Option<LtrbRect> {
+        let is_intersect = self.left <= other.right
+            && self.right >= other.left
+            && self.top >= other.bottom
+            && self.bottom <= other.top;
+
+        is_intersect.then(|| LtrbRect {
+            left: self.left.max(other.left),
+            top: self.top.max(other.top),
+            right: self.right.min(other.right),
+            bottom: self.bottom.min(other.bottom),
+        })
+    }
+
+    pub fn is_xy_outside(&self, xy: &Xy<f32>) -> bool {
+        xy.x < self.left || xy.x > self.right || xy.y < self.top || xy.y > self.bottom
+    }
+
+    pub fn is_xy_on_border(&self, xy: &Xy<f32>) -> bool {
+        ((xy.x == self.left || xy.x == self.right) && (self.top <= xy.y && xy.y <= self.bottom))
+            || ((xy.y == self.top || xy.y == self.bottom)
+                && (self.left <= xy.x && xy.x <= self.right))
+    }
+
+    pub fn is_xy_inside(&self, xy: &Xy<f32>) -> bool {
+        self.left <= xy.x && xy.x <= self.right && self.top <= xy.y && xy.y <= self.bottom
+    }
+
+    pub fn get_minimum_rectangle_containing(a: &LtrbRect, b: &LtrbRect) -> LtrbRect {
+        LtrbRect {
+            left: a.left.min(b.left),
+            top: a.top.min(b.top),
+            right: a.right.max(b.right),
+            bottom: a.bottom.max(b.bottom),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]

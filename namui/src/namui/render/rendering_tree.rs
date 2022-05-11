@@ -379,6 +379,7 @@ impl RenderingTree {
         }
     }
 
+    // NOTE: matrix is reversed to keep xy in same.
     fn is_point_in(&self, xy: &Xy<f32>, matrix: &Matrix3x3) -> bool {
         match self {
             RenderingTree::Children(ref children) => {
@@ -524,17 +525,166 @@ impl RenderingTree {
         }
         get_xy_with_exit_button(self, id).map(|result| result.xy)
     }
+    pub fn get_bounding_box(&self) -> Option<XywhRect<f32>> {
+        fn get_bounding_box_with_matrix(
+            rendering_tree: &RenderingTree,
+            matrix: &Matrix3x3,
+        ) -> Option<LtrbRect> {
+            fn get_bounding_box_with_matrix_of_rendering_trees<'a>(
+                rendering_trees: impl Iterator<Item = &'a RenderingTree>,
+                matrix: &Matrix3x3,
+            ) -> Option<LtrbRect> {
+                rendering_trees
+                    .map(|child| get_bounding_box_with_matrix(&child, &matrix))
+                    .filter_map(|bounding_box| bounding_box)
+                    .reduce(|acc, bounding_box| {
+                        LtrbRect::get_minimum_rectangle_containing(&acc, &bounding_box)
+                    })
+            }
+
+            match rendering_tree {
+                RenderingTree::Children(ref children) => {
+                    get_bounding_box_with_matrix_of_rendering_trees(children.iter(), matrix)
+                }
+                RenderingTree::Node(rendering_data) => rendering_data
+                    .get_bounding_box()
+                    .map(|bounding_box| matrix.transform_rect(&bounding_box)),
+                RenderingTree::Special(special) => match special {
+                    SpecialRenderingNode::Translate(translate) => {
+                        let translation_matrix = Matrix3x3::from_slice(&[
+                            [1.0, 0.0, translate.x],
+                            [0.0, 1.0, translate.y],
+                            [0.0, 0.0, 1.0],
+                        ]);
+                        let matrix = translation_matrix * matrix;
+                        get_bounding_box_with_matrix_of_rendering_trees(
+                            translate.rendering_tree.iter(),
+                            &matrix,
+                        )
+                    }
+                    SpecialRenderingNode::Clip(clip) => {
+                        get_bounding_box_with_matrix_of_rendering_trees(
+                            clip.rendering_tree.iter(),
+                            &matrix,
+                        )
+                        .and_then(|bounding_box| {
+                            let path = clip.path_builder.build();
+
+                            let clip_bounding_box = path.get_bounding_box();
+
+                            match clip.clip_op {
+                                ClipOp::Intersect => {
+                                    clip_bounding_box.and_then(|clip_bounding_box| {
+                                        bounding_box.intersect(&clip_bounding_box)
+                                    })
+                                }
+                                ClipOp::Difference => match clip_bounding_box {
+                                    Some(clip_bounding_box) => {
+                                        if bounding_box == clip_bounding_box {
+                                            return None;
+                                        }
+
+                                        let xs = [
+                                            bounding_box.left,
+                                            bounding_box.right,
+                                            clip_bounding_box.left,
+                                            clip_bounding_box.right,
+                                        ];
+                                        let ys = [
+                                            bounding_box.top,
+                                            bounding_box.bottom,
+                                            clip_bounding_box.top,
+                                            clip_bounding_box.bottom,
+                                        ];
+
+                                        let sixteen_xys = xs
+                                            .iter()
+                                            .zip(ys.iter())
+                                            .map(|(x, y)| Xy { x: *x, y: *y });
+
+                                        let difference_area_xys = sixteen_xys.filter(|xy| {
+                                            (clip_bounding_box.is_xy_outside(&xy)
+                                                || clip_bounding_box.is_xy_on_border(&xy))
+                                                && !bounding_box.is_xy_outside(&xy)
+                                        });
+
+                                        difference_area_xys.fold(None, |acc, xy| match acc {
+                                            Some(rect) => Some(LtrbRect {
+                                                left: rect.left.min(xy.x),
+                                                top: rect.top.min(xy.y),
+                                                right: rect.right.max(xy.x),
+                                                bottom: rect.bottom.max(xy.y),
+                                            }),
+                                            None => Some(LtrbRect {
+                                                left: xy.x,
+                                                top: xy.y,
+                                                right: xy.x,
+                                                bottom: xy.y,
+                                            }),
+                                        })
+                                    }
+                                    None => Some(bounding_box),
+                                },
+                            }
+                        })
+                    }
+                    SpecialRenderingNode::Absolute(absolute) => {
+                        let matrix = Matrix3x3::from_slice(&[
+                            [1.0, 0.0, absolute.x],
+                            [0.0, 1.0, absolute.y],
+                            [0.0, 0.0, 1.0],
+                        ]);
+                        get_bounding_box_with_matrix_of_rendering_trees(
+                            absolute.rendering_tree.iter(),
+                            &matrix,
+                        )
+                    }
+                    SpecialRenderingNode::Rotate(rotate) => {
+                        let matrix = matrix * rotate.get_matrix();
+
+                        get_bounding_box_with_matrix_of_rendering_trees(
+                            rotate.rendering_tree.iter(),
+                            &matrix,
+                        )
+                    }
+                    _ => get_bounding_box_with_matrix_of_rendering_trees(
+                        special.get_children().iter(),
+                        &matrix,
+                    ),
+                },
+                RenderingTree::Empty => None,
+            }
+        }
+
+        get_bounding_box_with_matrix(&self, &Matrix3x3::identity()).and_then(|bounding_box| {
+            Some(XywhRect {
+                x: bounding_box.left,
+                y: bounding_box.top,
+                width: bounding_box.right - bounding_box.left,
+                height: bounding_box.bottom - bounding_box.top,
+            })
+        })
+    }
 }
 
 impl RenderingData {
     fn is_inside(&self, local_xy: &Xy<f32>) -> bool {
         self.draw_calls.iter().any(|draw_call| {
-            // TODO : Handle drawCall.clip
             draw_call
                 .commands
                 .iter()
                 .any(|draw_command| draw_command.is_inside(local_xy))
         })
+    }
+
+    fn get_bounding_box(&self) -> Option<LtrbRect> {
+        self.draw_calls
+            .iter()
+            .map(|draw_call| draw_call.get_bounding_box())
+            .filter_map(|bounding_box| bounding_box)
+            .reduce(|acc, bounding_box| {
+                LtrbRect::get_minimum_rectangle_containing(&acc, &bounding_box)
+            })
     }
 }
 

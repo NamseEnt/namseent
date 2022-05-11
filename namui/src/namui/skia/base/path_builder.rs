@@ -50,7 +50,7 @@ impl PathBuilder {
     }
     pub fn stroke(&mut self, options: StrokeOptions) -> Result<(), ()> {
         self.commands.push(PathCommand::Stroke(options));
-        Ok(())
+        Ok(()) // TODO: This is false Ok. Make it sure with stroke execution.
     }
     pub fn move_to(mut self, x: f32, y: f32) -> Self {
         self.commands.push(PathCommand::MoveTo(Xy { x, y }));
