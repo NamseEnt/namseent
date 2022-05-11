@@ -72,7 +72,7 @@ macro_rules! __rust_force_expr {
 /// - namui::RenderingTree
 /// - namui::RenderingData
 #[macro_export]
-macro_rules! render {
+macro_rules! render_macro {
     ( $( $x:expr ),+ $(,)? ) => (
         $crate::__rust_force_expr!(
             {
@@ -94,7 +94,11 @@ macro_rules! render {
     );
 }
 
-pub use render;
+pub use render_macro as render;
+
+pub fn render(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> RenderingTree {
+    RenderingTree::Children(rendering_trees.into_iter().collect())
+}
 
 pub type Rendering = RenderingTree;
 
