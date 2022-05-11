@@ -1,0 +1,155 @@
+macro_rules! overload_binary_operator_rhs {
+    ($self_type: tt, $floating_type: tt, $ops_trait: tt, $ops_method: tt, $ops_sign: tt, [$($lhs_type: tt),*]) => {
+        $(overload_binary_operator_rhs!($self_type, $floating_type, $ops_trait, $ops_method, $ops_sign, $lhs_type);)*
+    };
+    ($self_type: tt, $floating_type: tt, $ops_trait: tt, $ops_method: tt, $ops_sign: tt, $lhs_type: tt) => {
+        impl std::ops::$ops_trait<$self_type> for $lhs_type {
+            type Output = $self_type;
+
+            fn $ops_method(self, rhs: $self_type) -> $self_type {
+                $self_type(rhs.0 $ops_sign self as $floating_type)
+            }
+        }
+        impl std::ops::$ops_trait<&$self_type> for $lhs_type {
+            type Output = $self_type;
+
+            fn $ops_method(self, rhs: &$self_type) -> $self_type {
+                $self_type(rhs.0 $ops_sign self as $floating_type)
+            }
+        }
+    };
+}
+
+macro_rules! overload_binary_operator {
+    ($self_type: tt, $floating_type: tt, +) => { overload_binary_operator!($self_type, $floating_type, Add, add, +); };
+    ($self_type: tt, $floating_type: tt, -) => { overload_binary_operator!($self_type, $floating_type, Sub, sub, -); };
+    ($self_type: tt, $floating_type: tt, *) => { overload_binary_operator!($self_type, $floating_type, Mul, mul, *); };
+    ($self_type: tt, $floating_type: tt, /) => { overload_binary_operator!($self_type, $floating_type, Div, div, /); };
+    ($self_type: tt, $floating_type: tt, $ops_trait: tt, $ops_method: tt, $ops_sign: tt) => {
+        impl<T> std::ops::$ops_trait<T> for $self_type
+        where
+            T: num::NumCast,
+        {
+            type Output = $self_type;
+
+            fn $ops_method(self, rhs: T) -> $self_type {
+                let rhs: $floating_type = num::NumCast::from::<T>(rhs).unwrap();
+                $self_type (self.0 $ops_sign rhs)
+            }
+        }
+        impl<T> std::ops::$ops_trait<T> for &$self_type
+        where
+            T: num::NumCast,
+        {
+            type Output = $self_type;
+
+            fn $ops_method(self, rhs: T) -> $self_type {
+                let rhs: $floating_type = num::NumCast::from::<T>(rhs).unwrap();
+                $self_type (self.0 $ops_sign rhs)
+            }
+        }
+        overload_binary_operator_rhs!($self_type, $floating_type, $ops_trait, $ops_method, $ops_sign, [
+            usize, u8, u16, u32, u64, u128, isize, i8, i16, i32, i64, i128, f32, f64
+        ]);
+    };
+}
+
+macro_rules! overload_arithmetic_operator {
+    ($self_type: tt, $floating_type: tt) => {
+        overload_binary_operator!($self_type, $floating_type, +);
+        overload_binary_operator!($self_type, $floating_type, -);
+        overload_binary_operator!($self_type, $floating_type, *);
+        overload_binary_operator!($self_type, $floating_type, /);
+    };
+}
+
+macro_rules! overload_binary_operator_with_self {
+    ($self_type: tt, $ops: tt) => {
+        auto_ops::impl_op!($ops |lhs: $self_type, rhs: $self_type| -> $self_type { $self_type(lhs.0 $ops rhs.0) });
+        auto_ops::impl_op!($ops |lhs: $self_type, rhs: &$self_type| -> $self_type { $self_type(lhs.0 $ops rhs.0) });
+        auto_ops::impl_op!($ops |lhs: &$self_type, rhs: $self_type| -> $self_type { $self_type(lhs.0 $ops rhs.0) });
+        auto_ops::impl_op!($ops |lhs: &$self_type, rhs: &$self_type| -> $self_type { $self_type(lhs.0 $ops rhs.0) });
+    };
+}
+
+macro_rules! overload_assignment_operator_with_self {
+    ($self_type: tt, $ops: tt) => {
+        auto_ops::impl_op!($ops |lhs: &mut $self_type, rhs: $self_type| { lhs.0 $ops rhs.0 });
+        auto_ops::impl_op!($ops |lhs: &mut $self_type, rhs: &$self_type| { lhs.0 $ops rhs.0 });
+    };
+}
+
+macro_rules! overload_binary_operator_with_self_with_type {
+    ($self_type: tt, $ops: tt, $type: tt) => {
+        auto_ops::impl_op!($ops |lhs: $self_type, rhs: $self_type| -> $type { lhs.0 $ops rhs.0 });
+        auto_ops::impl_op!($ops |lhs: $self_type, rhs: &$self_type| -> $type { lhs.0 $ops rhs.0 });
+        auto_ops::impl_op!($ops |lhs: &$self_type, rhs: $self_type| -> $type { lhs.0 $ops rhs.0 });
+        auto_ops::impl_op!($ops |lhs: &$self_type, rhs: &$self_type| -> $type { lhs.0 $ops rhs.0 });
+    };
+}
+
+macro_rules! impl_froms {
+    ($self_type: tt, $floating_type: tt, [$($from_type: tt),*]) => {
+        $(impl_froms!($self_type, $floating_type, $from_type);)*
+    };
+    ($self_type: tt, $floating_type: tt, $from_type: tt) => {
+        impl From<$from_type> for $self_type {
+            fn from(value: $from_type) -> Self {
+                $self_type(value as $floating_type)
+            }
+        }
+        impl From<&$from_type> for $self_type {
+            fn from(value: &$from_type) -> Self {
+                $self_type(*value as $floating_type)
+            }
+        }
+        impl From<$self_type> for $from_type {
+            fn from(value: $self_type) -> Self {
+                value.0 as $from_type
+            }
+        }
+        impl From<&$self_type> for $from_type {
+            fn from(value: &$self_type) -> Self {
+                value.0 as $from_type
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! define_singular_floating_tuple {
+    ($name: ident, $type: tt) => {
+        define_singular_floating_tuple!($name, $type, []);
+    };
+    ($name: ident, $type: tt, [$( $trait: path ),*]) => {
+        #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, $( $trait, )*)]
+        pub struct $name(pub $type);
+
+        impl $name {
+            pub fn new(value: $type) -> Self {
+                $name(value)
+            }
+        }
+        impl_froms!($name, $type, [usize, u8, u16, u32, u64, u128, isize, i8, i16, i32, i64, i128, f32, f64]);
+
+        impl Eq for $name {}
+        impl Ord for $name {
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                ordered_float::OrderedFloat(self.0).cmp(&ordered_float::OrderedFloat(other.0))
+            }
+        }
+
+        // Self and Self
+        overload_binary_operator_with_self!($name, +);
+        overload_binary_operator_with_self!($name, -);
+        overload_binary_operator_with_self_with_type!($name, /, $type);
+
+        overload_assignment_operator_with_self!($name, +=);
+        overload_assignment_operator_with_self!($name, -=);
+        // END: Self and Self
+
+        // numerics arithmetic binary operators overloading
+        overload_arithmetic_operator!($name, $type);
+        // END: numerics arithmetic binary operators overloading
+    };
+}

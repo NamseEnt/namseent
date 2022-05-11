@@ -9,31 +9,31 @@ pub enum KeyframeLine {
     Linear,
 }
 
-pub struct KeyframeGraph<T>
+pub struct KeyframeGraph<TValue>
 where
-    T: std::ops::Mul<f32, Output = T> + std::ops::Add<Output = T>,
+    TValue: std::ops::Mul<f32, Output = TValue> + std::ops::Add<Output = TValue>,
 {
-    start_point: KeyframePoint<T>,
-    next_points_with_lines: Vec<(KeyframePoint<T>, KeyframeLine)>,
+    start_point: KeyframePoint<TValue>,
+    next_points_with_lines: Vec<(KeyframePoint<TValue>, KeyframeLine)>,
 }
 
-impl<'a, T> KeyframeGraph<T>
+impl<'a, TValue> KeyframeGraph<TValue>
 where
-    T: 'a + std::ops::Mul<f32, Output = T> + std::ops::Add<Output = T>,
-    &'a T: std::ops::Mul<f32, Output = T>,
+    TValue: 'a + std::ops::Mul<f32, Output = TValue> + std::ops::Add<Output = TValue>,
+    &'a TValue: std::ops::Mul<f32, Output = TValue>,
 {
-    pub fn new(start_point: KeyframePoint<T>) -> Self {
+    pub fn new(start_point: KeyframePoint<TValue>) -> Self {
         Self {
             start_point,
             next_points_with_lines: Vec::new(),
         }
     }
-    pub fn push(&mut self, point: KeyframePoint<T>, line: KeyframeLine) {
+    pub fn push(&mut self, point: KeyframePoint<TValue>, line: KeyframeLine) {
         self.next_points_with_lines.push((point, line));
         self.next_points_with_lines
             .sort_by_key(|(point, _)| point.time);
     }
-    pub(crate) fn get_value(&'a self, time: &Time) -> Option<T> {
+    pub(crate) fn get_value(&'a self, time: &Time) -> Option<TValue> {
         let mut current_point = &self.start_point;
         for (next_point, line) in &self.next_points_with_lines {
             if current_point.time <= time && time <= next_point.time {
@@ -52,7 +52,7 @@ where
         }
         None
     }
-    pub(crate) fn get_last_point(&self) -> &KeyframePoint<T> {
+    pub(crate) fn get_last_point(&self) -> &KeyframePoint<TValue> {
         &self
             .next_points_with_lines
             .last()

@@ -102,10 +102,11 @@ pub use render_macro as render;
 pub fn render(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> RenderingTree {
     RenderingTree::Children(rendering_trees.into_iter().collect())
 }
+
 #[macro_export]
 macro_rules! try_render {
-    { $($token:tt)* } => (
-        (|| {
+    { $($token: tt)* } => (
+        (|| -> Option<namui::RenderingTree> {
             $($token)*
         })().unwrap_or_else(|| namui::RenderingTree::Empty)
     );

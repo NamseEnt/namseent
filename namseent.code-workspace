@@ -10,6 +10,12 @@
       "path": "luda-editor/luda-editor-rpc"
     },
     {
+      "path": "namui-animation-editor"
+    },
+    {
+      "path": "namui-prebuilt"
+    },
+    {
       "path": "namui-cfg"
     },
     {
