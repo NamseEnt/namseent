@@ -379,6 +379,7 @@ impl RenderingTree {
         }
     }
 
+    // NOTE: matrix is reversed to keep xy in same.
     fn is_point_in(&self, xy: &Xy<f32>, matrix: &Matrix3x3) -> bool {
         match self {
             RenderingTree::Children(ref children) => {
@@ -551,8 +552,8 @@ impl RenderingTree {
                 RenderingTree::Special(special) => match special {
                     SpecialRenderingNode::Translate(translate) => {
                         let translation_matrix = Matrix3x3::from_slice(&[
-                            [1.0, 0.0, -translate.x],
-                            [0.0, 1.0, -translate.y],
+                            [1.0, 0.0, translate.x],
+                            [0.0, 1.0, translate.y],
                             [0.0, 0.0, 1.0],
                         ]);
                         let matrix = translation_matrix * matrix;
@@ -629,8 +630,8 @@ impl RenderingTree {
                     }
                     SpecialRenderingNode::Absolute(absolute) => {
                         let matrix = Matrix3x3::from_slice(&[
-                            [1.0, 0.0, -absolute.x],
-                            [0.0, 1.0, -absolute.y],
+                            [1.0, 0.0, absolute.x],
+                            [0.0, 1.0, absolute.y],
                             [0.0, 0.0, 1.0],
                         ]);
                         get_bounding_box_with_matrix_of_rendering_trees(
@@ -639,7 +640,7 @@ impl RenderingTree {
                         )
                     }
                     SpecialRenderingNode::Rotate(rotate) => {
-                        let matrix = matrix * rotate.get_counter_wise_matrix();
+                        let matrix = matrix * rotate.get_matrix();
 
                         get_bounding_box_with_matrix_of_rendering_trees(
                             rotate.rendering_tree.iter(),
