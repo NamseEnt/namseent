@@ -15,6 +15,7 @@ jobs:
       namui-cli: ${{ steps.filter.outputs.namui-cli }}
       namui: ${{ steps.filter.outputs.namui }}
       luda-editor-client: ${{ steps.filter.outputs.luda-editor-client }}
+      namui-prebuilt: ${{ steps.filter.outputs.namui-prebuilt }}
       nrpc: ${{ steps.filter.outputs.nrpc }}
     steps:
       - uses: actions/checkout@v3
@@ -38,6 +39,10 @@ jobs:
               - luda-editor/luda-editor-client/**
               - luda-editor/luda-editor-rpc/**
               - namui/**
+            namui-prebuilt:
+              - .github/**
+              - namui/**
+              - namui-prebuilt/**
             nrpc:
               - .github/**
               - nrpc/**
@@ -96,6 +101,18 @@ jobs:
           target: wasm-unknown-web
           path: luda-editor/luda-editor-client
 
+  test-namui-prebuilt:
+    needs: [check-rebuild, set-up]
+    if: needs.check-rebuild.outputs.namui-prebuilt == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/init-test-job
+      - uses: ./.github/actions/namui-test
+        with:
+          target: wasm-unknown-web
+          path: namui-prebuilt
+
   test-nrpc:
     needs: [check-rebuild, set-up]
     if: needs.check-rebuild.outputs.nrpc == 'true'
@@ -117,6 +134,7 @@ jobs:
       - test-namui-cli
       - test-namui
       - test-luda-editor-client
+      - test-namui-prebuilt
       - test-nrpc
     steps:
       - uses: actions/checkout@v3
