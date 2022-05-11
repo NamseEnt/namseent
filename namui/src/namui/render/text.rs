@@ -48,7 +48,7 @@ pub fn text(param: TextParam) -> RenderingTree {
             RenderingTree::Empty
         }
         Some(font) => {
-            render![
+            crate::render![
                 draw_background(&param, font.as_ref()),
                 namui::RenderingData {
                     draw_calls: vec![namui::DrawCall {

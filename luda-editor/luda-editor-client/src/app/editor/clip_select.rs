@@ -373,8 +373,6 @@ mod tests {
         let socket = mock_socket();
         Editor {
             timeline: Timeline::new(),
-            character_image_files: BTreeSet::new(),
-            background_image_files: BTreeSet::new(),
             job: None,
             clip_editor: None,
             selected_clip_ids: Arc::new(BTreeSet::new()),
