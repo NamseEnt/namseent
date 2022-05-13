@@ -2,6 +2,7 @@ use namui::prelude::*;
 
 #[derive(Debug)]
 pub struct ScrollView {
+    pub id: String,
     pub scroll_y: f32,
 }
 
@@ -14,17 +15,23 @@ pub struct Props {
 }
 
 pub enum Event {
-    Scrolled(f32),
+    Scrolled(String, f32),
 }
 
 impl ScrollView {
     pub fn new() -> Self {
-        Self { scroll_y: 0.0 }
+        Self {
+            id: namui::nanoid(),
+            scroll_y: 0.0,
+        }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<Event>() {
             match event {
-                Event::Scrolled(scroll_y) => {
+                Event::Scrolled(id, scroll_y) => {
+                    if id != &self.id {
+                        return;
+                    }
                     self.scroll_y = *scroll_y;
                 }
                 _ => {}
@@ -32,6 +39,7 @@ impl ScrollView {
         }
     }
     pub fn render(&self, props: &Props) -> RenderingTree {
+        let button_id = self.id.clone();
         let content_bounding_box = props.content.get_bounding_box();
         if content_bounding_box.is_none() {
             return RenderingTree::Empty;
@@ -97,6 +105,7 @@ impl ScrollView {
             let width = content_bounding_box.width + props.scroll_bar_width;
             let height = props.height;
             let whole_rect_id = whole_rect_id.clone();
+            let button_id = button_id.clone();
             builder.on_wheel(move |event| {
                 let managers = namui::managers();
 
@@ -121,7 +130,7 @@ impl ScrollView {
                     (0.0_f32).max(content_bounding_box.height - height),
                 );
 
-                namui::event::send(Event::Scrolled(next_scroll_y));
+                namui::event::send(Event::Scrolled(button_id.clone(), next_scroll_y));
             })
         });
 
