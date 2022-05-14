@@ -7,8 +7,24 @@ pub(crate) struct Body {
 }
 
 pub(crate) struct Props<'a> {
-    pub wh: Wh<PixelSize>,
     pub layers: &'a [Arc<namui::animation::Layer>],
+}
+
+impl dubu::Dubu<Props<'_>> for Body {
+    fn render(&self, wh: Wh<f32>, props: Props) -> RenderingTree {
+        self.list_view.render(list_view::Props {
+            x: 0.0,
+            y: 0.0,
+            height: wh.height.into(),
+            item_wh: Wh {
+                width: wh.width.into(),
+                height: ROW_HEIGHT.into(),
+            },
+            scroll_bar_width: 10.0,
+            items: props.layers,
+            item_render: |layer| render_row(&layer, wh.width.into()),
+        })
+    }
 }
 
 impl Body {
@@ -19,20 +35,6 @@ impl Body {
     }
     pub(crate) fn update(&mut self, event: &dyn std::any::Any) {
         self.list_view.update(event);
-    }
-    pub(crate) fn render(&self, props: &Props) -> namui::RenderingTree {
-        self.list_view.render(list_view::Props {
-            x: 0.0,
-            y: 0.0,
-            height: props.wh.height.into(),
-            item_wh: Wh {
-                width: props.wh.width.into(),
-                height: ROW_HEIGHT.into(),
-            },
-            scroll_bar_width: 10.0,
-            items: props.layers,
-            item_render: |layer| render_row(&layer, props.wh.width),
-        })
     }
 }
 
