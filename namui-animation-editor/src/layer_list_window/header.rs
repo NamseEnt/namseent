@@ -1,29 +1,34 @@
-use namui::{prelude::*, types::PixelSize};
+use namui::prelude::*;
+use namui_prebuilt::dubu::Dubu;
 
 pub(crate) struct Header {}
-
-pub(crate) struct Props {
-    pub wh: Wh<PixelSize>,
-}
 
 impl Header {
     pub(crate) fn new() -> Self {
         Self {}
     }
-    pub(crate) fn update(&mut self, _event: &dyn std::any::Any) {}
-    pub(crate) fn render(&self, props: &Props) -> namui::RenderingTree {
-        let button_xywh: XywhRect<PixelSize> = XywhRect {
-            x: 2.0.into(),
-            y: 2.0.into(),
-            width: props.wh.height - 4.0,
-            height: props.wh.height - 4.0,
+}
+
+impl UpdateOnEvent for Header {
+    fn update(&mut self, event: &dyn std::any::Any) {}
+}
+
+pub struct Props();
+
+impl Dubu<Props> for Header {
+    fn render(&self, wh: Wh<f32>, _props: Props) -> RenderingTree {
+        let button_xywh = XywhRect {
+            x: 2.0,
+            y: 2.0,
+            width: wh.height - 4.0,
+            height: wh.height - 4.0,
         };
         let add_layer_button = render![
             namui::rect(RectParam {
-                x: button_xywh.x.into(),
-                y: button_xywh.y.into(),
-                width: button_xywh.width.into(),
-                height: button_xywh.height.into(),
+                x: button_xywh.x,
+                y: button_xywh.y,
+                width: button_xywh.width,
+                height: button_xywh.height,
                 style: RectStyle {
                     fill: Some(RectFill {
                         color: Color::WHITE,
@@ -59,8 +64,8 @@ impl Header {
             namui::rect(RectParam {
                 x: 0.0,
                 y: 0.0,
-                width: props.wh.width.into(),
-                height: props.wh.height.into(),
+                width: wh.width,
+                height: wh.height,
                 style: RectStyle {
                     fill: Some(RectFill {
                         color: Color::BLACK,
@@ -70,8 +75,8 @@ impl Header {
             }),
             namui::text(TextParam {
                 text: "Layers".to_string(),
-                x: f32::from(props.wh.width / 2.0),
-                y: f32::from(props.wh.height / 2.0),
+                x: f32::from(wh.width / 2.0),
+                y: f32::from(wh.height / 2.0),
                 align: TextAlign::Center,
                 baseline: TextBaseline::Middle,
                 font_type: FontType {

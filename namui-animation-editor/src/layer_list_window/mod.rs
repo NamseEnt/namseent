@@ -1,4 +1,5 @@
 use namui::prelude::*;
+use namui_prebuilt::dubu;
 use std::sync::Arc;
 mod body;
 mod header;
@@ -25,25 +26,24 @@ impl LayerListWindow {
         self.body.update(event);
     }
     pub(crate) fn render(&self, props: &Props) -> namui::RenderingTree {
-        let header_height = namui::types::PixelSize::new(20.0).min(props.wh.height);
-        namui::render![
-            self.header.render(&header::Props {
-                wh: Wh {
-                    width: props.wh.width,
-                    height: header_height,
-                },
-            }),
-            translate(
-                0.0,
-                header_height.into(),
-                self.body.render(&body::Props {
-                    wh: Wh {
-                        width: props.wh.width,
-                        height: props.wh.height - header_height,
-                    },
-                    layers: props.layers,
-                })
-            ),
-        ]
+        let header_row = dubu::Row {
+            height: dubu::Size::Fixed(props.wh.height.min(20.0.into()).into()),
+            dubu: &self.header,
+        };
+
+        let container = dubu::Container {
+            wh: Wh {
+                width: props.wh.width.into(),
+                height: props.wh.height.into(),
+            },
+            dubu: &dubu::Slice::Top(header_row, &self.body),
+        };
+
+        container.render((
+            header::Props(),
+            body::Props {
+                layers: props.layers,
+            },
+        ))
     }
 }
