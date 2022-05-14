@@ -19,7 +19,7 @@ pub use skia::{
 };
 pub(crate) use skia::{ColorFilter, Paint, Path};
 pub mod event;
-pub use event::NamuiEvent;
+pub use event::{NamuiEvent, UpdateOnEvent};
 mod render;
 pub use self::manager::Code;
 use self::manager::Managers;
@@ -50,8 +50,13 @@ pub use self::namui_mock::*;
 
 pub trait Entity {
     type Props;
-    fn update(&mut self, event: &dyn Any);
     fn render(&self, props: &Self::Props) -> RenderingTree;
+    fn update(&mut self, event: &dyn std::any::Any);
+}
+impl<T> crate::event::UpdateOnEvent for dyn Entity<Props = T> {
+    fn update(&mut self, event: &dyn std::any::Any) {
+        self.update(event);
+    }
 }
 
 pub fn init() -> NamuiContext {
