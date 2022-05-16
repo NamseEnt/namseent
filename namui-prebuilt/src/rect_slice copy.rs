@@ -1,6 +1,7 @@
 use namui::prelude::*;
 
-pub trait Dubu<Props> {
+// TODO: Use GAT for Props when GAT is supported by rust.
+pub trait RectSlice<Props> {
     fn render(&self, wh: Wh<f32>, props: Props) -> RenderingTree;
 }
 
@@ -20,13 +21,13 @@ impl Size<'_> {
 
 #[derive(Clone)]
 pub enum Slice<'a, PropsA, PropsB> {
-    Left(Column<'a, PropsA>, &'a dyn Dubu<PropsB>),
-    Right(&'a dyn Dubu<PropsA>, Column<'a, PropsB>),
-    Top(Row<'a, PropsA>, &'a dyn Dubu<PropsB>),
-    Bottom(&'a dyn Dubu<PropsA>, Row<'a, PropsB>),
+    Left(Column<'a, PropsA>, &'a Fill<'a, PropsB>),
+    Right(&'a Fill<'a, PropsA>, Column<'a, PropsB>),
+    Top(Row<'a, PropsA>, &'a Fill<'a, PropsB>),
+    Bottom(&'a Fill<'a, PropsA>, Row<'a, PropsB>),
 }
 
-impl<'a, PropsA, PropsB> Dubu<(PropsA, PropsB)> for Slice<'a, PropsA, PropsB> {
+impl<'a, PropsA, PropsB> RectSlice<(PropsA, PropsB)> for Slice<'a, PropsA, PropsB> {
     fn render(&self, wh: Wh<f32>, (props_a, props_b): (PropsA, PropsB)) -> RenderingTree {
         let a_wh = match self {
             Slice::Left(a, _) => Wh {
@@ -62,7 +63,7 @@ impl<'a, PropsA, PropsB> Dubu<(PropsA, PropsB)> for Slice<'a, PropsA, PropsB> {
             },
         };
 
-        let render_ab = |a: &dyn Dubu<PropsA>, b: &dyn Dubu<PropsB>| -> RenderingTree {
+        let render_ab = |a: &dyn RectSlice<PropsA>, b: &dyn RectSlice<PropsB>| -> RenderingTree {
             namui::render![
                 a.render(a_wh, props_a),
                 namui::translate(
@@ -88,7 +89,7 @@ impl<'a, PropsA, PropsB> Dubu<(PropsA, PropsB)> for Slice<'a, PropsA, PropsB> {
 }
 
 pub struct Fill<'a, Props>(pub &'a dyn Fn(Wh<f32>, Props) -> RenderingTree);
-impl<Props> Dubu<Props> for Fill<'_, Props> {
+impl<Props> RectSlice<Props> for Fill<'_, Props> {
     fn render(&self, wh: Wh<f32>, props: Props) -> RenderingTree {
         (self.0)(wh, props)
     }
@@ -97,92 +98,86 @@ impl<Props> Dubu<Props> for Fill<'_, Props> {
 #[derive(Clone)]
 pub struct Row<'a, Props> {
     pub height: Size<'a>,
-    pub dubu: &'a dyn Dubu<Props>,
+    pub rect_slice: &'a dyn RectSlice<Props>,
 }
 
-impl<'a, Props> Dubu<Props> for Row<'a, Props> {
+impl<'a, Props> RectSlice<Props> for Row<'a, Props> {
     fn render(&self, wh: Wh<f32>, props: Props) -> RenderingTree {
-        self.dubu.render(wh, props)
+        self.rect_slice.render(wh, props)
     }
 }
 
 #[derive(Clone)]
 pub struct Column<'a, Props> {
     pub width: Size<'a>,
-    pub dubu: &'a dyn Dubu<Props>,
+    pub rect_slice: &'a dyn RectSlice<Props>,
 }
 
-impl<'a, Props> Dubu<Props> for Column<'a, Props> {
+impl<'a, Props> RectSlice<Props> for Column<'a, Props> {
     fn render(&self, wh: Wh<f32>, props: Props) -> RenderingTree {
-        self.dubu.render(wh, props)
+        self.rect_slice.render(wh, props)
     }
 }
 
-#[derive(Clone)]
-pub struct Container<'a, Props> {
-    pub wh: Wh<f32>,
-    pub dubu: &'a dyn Dubu<Props>,
-}
-impl<Props> Container<'_, Props> {
-    pub fn render(&self, props: Props) -> RenderingTree {
-        self.dubu.render(self.wh, props)
-    }
-}
+// #[derive(Clone)]
+// pub struct Container<'a, Props> {
+//     pub wh: Wh<f32>,
+//     pub rect_slice: &'a dyn RectSlice<Props>,
+// }
+// impl<Props> Container<'_, Props> {
+//     pub fn render(&self, props: Props) -> RenderingTree {
+//         self.rect_slice.render(self.wh, props)
+//     }
+// }
 
-mod test {
-    use super::*;
-
-    #[allow(dead_code)]
-    fn example() -> RenderingTree {
-        let button = Column {
-            width: Size::FromParentWh(&|parent_wh| parent_wh.height),
-            dubu: &Fill(&|wh, _: ()| {
-                namui::rect(namui::RectParam {
-                    x: 0.0,
-                    y: 0.0,
-                    width: wh.width,
-                    height: wh.height,
-                    style: namui::RectStyle {
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                })
-            }),
-        };
-        let label = Fill(&|wh, _: ()| {
-            namui::text(TextParam {
-                x: wh.width / 2.0,
-                y: wh.height / 2.0,
-                text: "label".to_string(),
-                style: TextStyle {
+#[allow(dead_code)]
+fn example() -> RenderingTree {
+    let button = Column {
+        width: Size::FromParentWh(&|parent_wh| parent_wh.height),
+        rect_slice: &Fill(&|wh, _: ()| {
+            namui::rect(namui::RectParam {
+                x: 0.0,
+                y: 0.0,
+                width: wh.width,
+                height: wh.height,
+                style: namui::RectStyle {
                     ..Default::default()
                 },
-                align: TextAlign::Center,
-                baseline: TextBaseline::Middle,
-                font_type: FontType {
-                    font_weight: FontWeight::REGULAR,
-                    language: Language::Ko,
-                    serif: false,
-                    size: (wh.height * 0.8) as i16,
-                },
+                ..Default::default()
             })
-        });
-
-        let header = Row {
-            height: Size::Fixed(20.0),
-            dubu: &Slice::Left(button, &label),
-        };
-
-        let body = Fill(&|_wh, _: ()| todo!());
-
-        let container = Container {
-            wh: Wh {
-                width: 500.0,
-                height: 500.0,
+        }),
+    };
+    let label = Fill(&|wh, _: ()| {
+        namui::text(TextParam {
+            x: wh.width / 2.0,
+            y: wh.height / 2.0,
+            text: "label".to_string(),
+            style: TextStyle {
+                ..Default::default()
             },
-            dubu: &Slice::Top(header, &body),
-        };
+            align: TextAlign::Center,
+            baseline: TextBaseline::Middle,
+            font_type: FontType {
+                font_weight: FontWeight::REGULAR,
+                language: Language::Ko,
+                serif: false,
+                size: (wh.height * 0.8) as i16,
+            },
+        })
+    });
 
-        container.render((((), ()), ()))
-    }
+    let header = Row {
+        height: Size::Fixed(20.0),
+        rect_slice: &Slice::Left(button, &label),
+    };
+
+    let body = Fill(&|_wh, _: ()| todo!());
+
+    Slice::Top(header, &body).render(
+        Wh {
+            width: 500.0,
+            height: 500.0,
+        },
+        (((), ()), ()),
+    )
 }
