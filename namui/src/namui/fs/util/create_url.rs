@@ -21,11 +21,9 @@ pub fn create_url(path_like: impl PathLike) -> String {
 
 #[cfg(test)]
 mod tests {
-    use namui_cfg::namui_cfg;
     use std::path::PathBuf;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    #[namui_cfg(not(all(target_env = "electron", not(watch_reload))))]
     #[test]
     #[wasm_bindgen_test]
     fn create_url() {
