@@ -194,7 +194,7 @@ mod tests {
         struct Button {
             render_called: AtomicBool,
         }
-        impl<'a> traits::Column<()> for Button {
+        impl traits::Column<()> for Button {
             fn get_width(&self, parent_wh: Wh<f32>) -> f32 {
                 parent_wh.height
             }
@@ -229,7 +229,7 @@ mod tests {
         struct Body {
             render_called: AtomicBool,
         }
-        impl<'a> traits::Fill<()> for Body {
+        impl traits::Fill<()> for Body {
             fn render(&self, wh: Wh<f32>, _props: ()) -> RenderingTree {
                 self.render_called
                     .store(true, std::sync::atomic::Ordering::Relaxed);
@@ -261,6 +261,10 @@ mod tests {
             true,
             body.render_called
                 .load(std::sync::atomic::Ordering::Relaxed)
+        );
+        assert_eq!(
+            true,
+            label_render_called.load(std::sync::atomic::Ordering::Relaxed)
         );
     }
 }
