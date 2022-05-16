@@ -1,5 +1,5 @@
 use namui::prelude::*;
-use namui_prebuilt::dubu;
+use namui_prebuilt::rect_slice::{self, traits::RectSlice};
 use std::sync::Arc;
 mod body;
 mod header;
@@ -26,24 +26,17 @@ impl LayerListWindow {
         self.body.update(event);
     }
     pub(crate) fn render(&self, props: &Props) -> namui::RenderingTree {
-        let header_row = dubu::Row {
-            height: dubu::Size::Fixed(props.wh.height.min(20.0.into()).into()),
-            dubu: &self.header,
-        };
-
-        let container = dubu::Container {
-            wh: Wh {
+        rect_slice::Slice::Top(&self.header, &self.body).render(
+            Wh {
                 width: props.wh.width.into(),
                 height: props.wh.height.into(),
             },
-            dubu: &dubu::Slice::Top(header_row, &self.body),
-        };
-
-        container.render((
-            header::Props(),
-            body::Props {
-                layers: props.layers,
-            },
-        ))
+            (
+                header::Props(),
+                body::Props {
+                    layers: props.layers,
+                },
+            ),
+        )
     }
 }

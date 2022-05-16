@@ -10,7 +10,7 @@ pub(crate) struct Props<'a> {
     pub layers: &'a [Arc<namui::animation::Layer>],
 }
 
-impl dubu::Dubu<Props<'_>> for Body {
+impl rect_slice::traits::Fill<Props<'_>> for Body {
     fn render(&self, wh: Wh<f32>, props: Props) -> RenderingTree {
         self.list_view.render(list_view::Props {
             x: 0.0,
