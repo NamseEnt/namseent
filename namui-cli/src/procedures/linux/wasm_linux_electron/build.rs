@@ -28,6 +28,7 @@ pub fn build(manifest_path: &Path, arch: Option<Arch>) -> Result<(), Box<dyn std
         .join("target")
         .join("namui")
         .join(format!("wasm_linux_{}_electron", &package_result.arch));
+    let release_bundle_path = release_path.join("resources").join("bundle");
 
     let rust_build_service = Arc::new(RustBuildService::new());
     let resource_collect_service = ResourceCollectService::new(&project_root_path, &release_path);
@@ -40,7 +41,7 @@ pub fn build(manifest_path: &Path, arch: Option<Arch>) -> Result<(), Box<dyn std
 
     let namui_bundle_manifest = get_namui_bundle_manifest(&project_root_path)?;
     let mut ops: Vec<CollectOperation> = namui_bundle_manifest
-        .query(&project_root_path, &release_path)?
+        .query(&project_root_path, &release_bundle_path)?
         .iter()
         .map(|(src_path, dest_path)| CollectOperation::new(src_path, dest_path))
         .collect();

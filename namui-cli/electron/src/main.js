@@ -1,10 +1,14 @@
 const { app, BrowserWindow } = require("electron");
 const isDev = require("electron-is-dev");
+const path = require("path");
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
         width: 1280,
         height: 720,
+        webPreferences: {
+            preload: path.join(__dirname, "preload.js"),
+        },
     });
 
     if (isDev) {
