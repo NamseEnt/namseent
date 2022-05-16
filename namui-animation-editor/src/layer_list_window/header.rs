@@ -1,5 +1,5 @@
 use namui::prelude::*;
-use namui_prebuilt::dubu::Dubu;
+use namui_prebuilt::rect_slice;
 
 pub(crate) struct Header {}
 
@@ -15,7 +15,10 @@ impl UpdateOnEvent for Header {
 
 pub struct Props();
 
-impl Dubu<Props> for Header {
+impl<'a> rect_slice::traits::Row<'a, Props> for Header {
+    fn get_height(&self, _parent_wh: Wh<f32>) -> rect_slice::Size<'a> {
+        rect_slice::Size::Fixed(20.0)
+    }
     fn render(&self, wh: Wh<f32>, _props: Props) -> RenderingTree {
         let button_xywh = XywhRect {
             x: 2.0,
