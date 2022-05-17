@@ -1,5 +1,6 @@
 pub mod list_view;
 pub mod rect_slice;
+pub mod rect_slice_v2;
 pub mod scroll_view;
 
 #[cfg(test)]
