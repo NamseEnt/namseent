@@ -1,6 +1,8 @@
 const { app, BrowserWindow } = require("electron");
 const isDev = require("electron-is-dev");
+const { writeFile, write, writeFileSync } = require("fs");
 const path = require("path");
+const { exit } = require("process");
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -11,7 +13,9 @@ function createWindow() {
         },
     });
 
-    if (isDev) {
+    if (isTest()) {
+        mainWindow.loadFile("../test.html");
+    } else if (isDev) {
         const port = parseInt(process.argv[2]);
         if (typeof port !== "number" || isNaN(port)) {
             console.error("Port not served");
@@ -36,3 +40,7 @@ app.whenReady().then(() => {
 app.on("window-all-closed", function () {
     if (process.platform !== "darwin") app.quit();
 });
+
+function isTest() {
+    return process.argv.some((arg) => arg === "--test");
+}
