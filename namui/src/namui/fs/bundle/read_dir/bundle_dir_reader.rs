@@ -94,6 +94,8 @@ pub enum BundleDirReaderError {
     NetworkError(String),
     ParseError(String),
     DirNotExist,
+    MetadataFileNotFound(String),
+    Other(String),
 }
 impl From<LoadBundleMetadataError> for BundleDirReaderError {
     fn from(error: LoadBundleMetadataError) -> Self {
@@ -104,6 +106,10 @@ impl From<LoadBundleMetadataError> for BundleDirReaderError {
             LoadBundleMetadataError::ParseError(message) => {
                 BundleDirReaderError::ParseError(message)
             }
+            LoadBundleMetadataError::FileNotFound(message) => {
+                BundleDirReaderError::MetadataFileNotFound(message)
+            }
+            LoadBundleMetadataError::Other(message) => BundleDirReaderError::Other(message),
         }
     }
 }

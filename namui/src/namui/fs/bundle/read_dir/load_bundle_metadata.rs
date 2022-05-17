@@ -1,4 +1,7 @@
+#[allow(unused_imports)]
 use crate::fetch_get_vec_u8;
+use crate::fs::electron;
+#[allow(unused_imports)]
 use futures::TryFutureExt;
 use namui_cfg::namui_cfg;
 use std::path::PathBuf;
@@ -7,11 +10,17 @@ use std::path::PathBuf;
 pub enum LoadBundleMetadataError {
     NetworkError(String),
     ParseError(String),
+    FileNotFound(String),
+    Other(String),
 }
 
 #[namui_cfg(all(target_env = "electron", not(watch_reload)))]
 pub async fn load_bundle_metadata() -> Result<Vec<PathBuf>, LoadBundleMetadataError> {
-    todo!()
+    let file = electron::read_vec_u8("/bundle_metadata.json")
+        .map_err(|error| error.into())
+        .await?;
+    serde_json::from_slice(&file)
+        .map_err(|error| LoadBundleMetadataError::ParseError(error.to_string()))
 }
 
 #[namui_cfg(not(all(target_env = "electron", not(watch_reload))))]
@@ -21,4 +30,15 @@ pub async fn load_bundle_metadata() -> Result<Vec<PathBuf>, LoadBundleMetadataEr
         .await?;
     serde_json::from_slice(&file)
         .map_err(|error| LoadBundleMetadataError::ParseError(error.to_string()))
+}
+
+impl Into<LoadBundleMetadataError> for electron::ReadVecU8Error {
+    fn into(self) -> LoadBundleMetadataError {
+        match self {
+            electron::ReadVecU8Error::FileNotFound(message) => {
+                LoadBundleMetadataError::FileNotFound(message)
+            }
+            electron::ReadVecU8Error::Other(message) => LoadBundleMetadataError::Other(message),
+        }
+    }
 }
