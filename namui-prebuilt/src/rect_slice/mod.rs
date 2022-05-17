@@ -1,6 +1,8 @@
 use namui::prelude::*;
 use std::sync::Arc;
+mod macros;
 pub mod traits;
+pub use macros::*;
 // TODO: Use GAT for Props when GAT is supported by rust.
 
 #[derive(Clone)]
