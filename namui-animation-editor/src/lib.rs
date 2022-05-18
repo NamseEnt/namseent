@@ -1,4 +1,5 @@
 use namui::prelude::*;
+use namui_prebuilt::*;
 use std::sync::Arc;
 mod events;
 pub use events::Event;
@@ -23,12 +24,25 @@ impl AnimationEditor {
         self.layer_list_window.update(event);
     }
     pub fn render(&self, props: &Props) -> namui::RenderingTree {
-        self.layer_list_window.render(&layer_list_window::Props {
-            layers: props.layers,
-            wh: Wh {
-                width: props.wh.width,
-                height: props.wh.height,
-            },
+        horizontal![
+            ratio!(
+                1.0,
+                vertical![
+                    ratio!(
+                        1.0,
+                        &self.layer_list_window,
+                        layer_list_window::Props {
+                            layers: props.layers,
+                        }
+                    ),
+                    ratio!(2.0, |wh| { RenderingTree::Empty }),
+                    ratio!(2.0, |wh| { RenderingTree::Empty }),
+                ]
+            ),
+            ratio!(2.0, |wh| { RenderingTree::Empty })
+        ](Wh {
+            width: props.wh.width.into(),
+            height: props.wh.height.into(),
         })
     }
 }

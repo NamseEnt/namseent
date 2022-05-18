@@ -10,7 +10,7 @@ pub(crate) struct Props<'a> {
     pub layers: &'a [Arc<namui::animation::Layer>],
 }
 
-impl rect_slice::traits::Fill<Props<'_>> for Body {
+impl table::CellRender<Props<'_>> for Body {
     fn render(&self, wh: Wh<f32>, props: Props) -> RenderingTree {
         self.list_view.render(list_view::Props {
             x: 0.0,
@@ -18,11 +18,11 @@ impl rect_slice::traits::Fill<Props<'_>> for Body {
             height: wh.height.into(),
             item_wh: Wh {
                 width: wh.width.into(),
-                height: ROW_HEIGHT.into(),
+                height: 48.0,
             },
             scroll_bar_width: 10.0,
             items: props.layers,
-            item_render: |layer| render_row(&layer, wh.width.into()),
+            item_render: |wh, layer| render_row(wh, &layer),
         })
     }
 }
@@ -38,25 +38,19 @@ impl Body {
     }
 }
 
-const ROW_HEIGHT: PixelSize = PixelSize(48.0);
-lazy_static! {
-    static ref ROW_LEFT_CELL_WIDTH: PixelSize = ROW_HEIGHT / 1080.0 * 1920.0;
-}
-const ROW_UNIT_MARGIN: PixelSize = PixelSize(10.0);
+const MARGIN: f32 = 10.0;
 
-fn render_left_cell(layer: &namui::animation::Layer, width: PixelSize) -> RenderingTree {
-    // TODO: Preview Animation
-
+fn render_shadowing_toggle_button_cell(wh: Wh<f32>) -> RenderingTree {
     namui::rect(RectParam {
-        x: 0.0,
-        y: 0.0,
-        width: width.into(),
-        height: ROW_HEIGHT.into(),
+        x: MARGIN,
+        y: MARGIN,
+        width: wh.width - MARGIN * 2.0,
+        height: wh.height - MARGIN * 2.0,
         style: RectStyle {
             stroke: Some(RectStroke {
                 color: Color::BLACK,
                 width: 1.0,
-                border_position: BorderPosition::Middle,
+                border_position: BorderPosition::Inside,
             }),
             fill: Some(RectFill {
                 color: Color::WHITE,
@@ -67,79 +61,52 @@ fn render_left_cell(layer: &namui::animation::Layer, width: PixelSize) -> Render
     })
 }
 
-fn render_right_cell(layer: &namui::animation::Layer, width: PixelSize) -> RenderingTree {
-    // TODO: Make toggle button, prebuilt in namui_prebuilt too.
-    let button_width: PixelSize = ROW_HEIGHT - ROW_UNIT_MARGIN * 2.0;
-    let shadowing_toggle_button = namui::rect(RectParam {
-        x: 10.0,
-        y: 10.0,
-        width: button_width.into(),
-        height: button_width.into(),
-        style: RectStyle {
-            stroke: Some(RectStroke {
-                color: Color::BLACK,
-                width: 1.0,
-                border_position: BorderPosition::Middle,
-            }),
-            fill: Some(RectFill {
-                color: Color::WHITE,
-            }),
-            ..Default::default()
-        },
-        ..Default::default()
-    });
-
-    let x_next_to_shadowing_toggle_button_margin = ROW_HEIGHT;
-
-    render![
-        namui::rect(RectParam {
-            x: 0.0,
-            y: 0.0,
-            width: width.into(),
-            height: ROW_HEIGHT.into(),
-            style: RectStyle {
-                stroke: Some(RectStroke {
-                    color: Color::BLACK,
-                    width: 1.0,
-                    border_position: BorderPosition::Middle,
-                }),
-                fill: Some(RectFill {
-                    color: Color::WHITE,
-                }),
-                ..Default::default()
-            },
-            ..Default::default()
-        }),
-        shadowing_toggle_button,
-        namui::text(TextParam {
-            x: (x_next_to_shadowing_toggle_button_margin + ROW_UNIT_MARGIN).into(),
-            y: (ROW_HEIGHT / 2.0).into(),
-            text: layer.name.clone(),
-            style: TextStyle {
-                color: Color::BLACK,
-                ..Default::default()
-            },
-            align: TextAlign::Left,
-            baseline: TextBaseline::Middle,
-            font_type: FontType {
-                font_weight: FontWeight::REGULAR,
-                language: Language::Ko,
-                serif: false,
-                size: ((ROW_HEIGHT - ROW_UNIT_MARGIN * 2) / 0.8).into(),
-            }
-        }),
-    ]
+fn get_font_size(height: f32) -> i16 {
+    // 0, 4, 8, 16, 20, ...
+    let mut font_size = (height * 0.8) as i16;
+    if font_size % 4 != 0 {
+        font_size += 4 - font_size % 4;
+    }
+    font_size
 }
 
-fn render_row(layer: &animation::Layer, width: PixelSize) -> RenderingTree {
-    // TODO
+fn render_label_cell(wh: Wh<f32>, layer: &namui::animation::Layer) -> RenderingTree {
+    render![namui::text(TextParam {
+        x: MARGIN,
+        y: wh.height / 2.0,
+        text: layer.name.clone(),
+        style: TextStyle {
+            color: Color::BLACK,
+            ..Default::default()
+        },
+        align: TextAlign::Left,
+        baseline: TextBaseline::Middle,
+        font_type: FontType {
+            font_weight: FontWeight::REGULAR,
+            language: Language::Ko,
+            serif: false,
+            size: get_font_size(wh.height - MARGIN * 2.0),
+        }
+    }),]
+}
 
+fn render_preview_cell(wh: Wh<f32>, layer: &namui::animation::Layer) -> RenderingTree {
+    // TODO: Preview Animation
+
+    simple_rect(wh, Color::BLACK, 1.0, Color::WHITE)
+}
+
+fn render_row(wh: Wh<f32>, layer: &animation::Layer) -> RenderingTree {
     render![
-        render_left_cell(&layer, *ROW_LEFT_CELL_WIDTH),
-        namui::translate(
-            (*ROW_LEFT_CELL_WIDTH).into(),
-            0.0,
-            render_right_cell(&layer, width - *ROW_LEFT_CELL_WIDTH)
-        )
+        simple_rect(wh, Color::BLACK, 1.0, Color::WHITE),
+        horizontal![
+            calculative!(|parent_wh| parent_wh.height, |wh| {
+                render_shadowing_toggle_button_cell(wh)
+            }),
+            ratio!(1.0, |wh| render_label_cell(wh, layer)),
+            calculative!(|parent_wh| { parent_wh.height / 1080.0 * 1920.0 }, |wh| {
+                render_preview_cell(wh, layer)
+            }),
+        ](wh),
     ]
 }

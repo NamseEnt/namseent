@@ -1,5 +1,5 @@
 use namui::prelude::*;
-use namui_prebuilt::rect_slice::{self, traits::RectSlice};
+use namui_prebuilt::*;
 use std::sync::Arc;
 mod body;
 mod header;
@@ -10,7 +10,6 @@ pub(crate) struct LayerListWindow {
 }
 
 pub(crate) struct Props<'a> {
-    pub wh: Wh<namui::types::PixelSize>,
     pub layers: &'a [Arc<namui::animation::Layer>],
 }
 
@@ -25,18 +24,25 @@ impl LayerListWindow {
         self.header.update(event);
         self.body.update(event);
     }
-    pub(crate) fn render(&self, props: &Props) -> namui::RenderingTree {
-        rect_slice::Slice::Top(&self.header, &self.body).render(
-            Wh {
-                width: props.wh.width.into(),
-                height: props.wh.height.into(),
-            },
-            (
-                header::Props(),
-                body::Props {
-                    layers: props.layers,
-                },
-            ),
-        )
+}
+
+impl table::CellRender<Props<'_>> for LayerListWindow {
+    fn render(&self, wh: Wh<f32>, props: Props<'_>) -> RenderingTree {
+        render![
+            simple_rect(wh, Color::BLACK, 1.0, Color::WHITE),
+            vertical![
+                fixed!(20.0, &self.header, header::Props()),
+                ratio!(
+                    1.0,
+                    &self.body,
+                    body::Props {
+                        layers: props.layers
+                    }
+                ),
+            ](Wh {
+                width: wh.width.into(),
+                height: wh.height.into(),
+            })
+        ]
     }
 }
