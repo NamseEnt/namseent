@@ -215,8 +215,8 @@ macro_rules! vertical {
             for height in heights {
                 let render_fn = render_fn_queue.pop_front().unwrap();
                 let rendering_tree = namui::translate(
-                    y,
                     0.0,
+                    y,
                     render_fn(Wh {
                         width: wh.width,
                         height,
