@@ -61,15 +61,6 @@ fn render_shadowing_toggle_button_cell(wh: Wh<f32>) -> RenderingTree {
     })
 }
 
-fn get_font_size(height: f32) -> i16 {
-    // 0, 4, 8, 16, 20, ...
-    let mut font_size = (height * 0.8) as i16;
-    if font_size % 4 != 0 {
-        font_size += 4 - font_size % 4;
-    }
-    font_size
-}
-
 fn render_label_cell(wh: Wh<f32>, layer: &namui::animation::Layer) -> RenderingTree {
     render![namui::text(TextParam {
         x: MARGIN,
@@ -85,7 +76,7 @@ fn render_label_cell(wh: Wh<f32>, layer: &namui::animation::Layer) -> RenderingT
             font_weight: FontWeight::REGULAR,
             language: Language::Ko,
             serif: false,
-            size: get_font_size(wh.height - MARGIN * 2.0),
+            size: crate::adjust_font_size(wh.height - MARGIN * 2.0),
         }
     }),]
 }
