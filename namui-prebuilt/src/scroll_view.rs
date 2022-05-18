@@ -88,13 +88,11 @@ impl ScrollView {
         let whole_rect = rect(RectParam {
             x: 0.0,
             y: 0.0,
-            width: content_bounding_box.width + props.scroll_bar_width,
+            width: content_bounding_box.width,
             height: props.height,
             style: RectStyle {
-                stroke: Some(RectStroke {
-                    width: 1.0,
-                    border_position: BorderPosition::Middle,
-                    color: Color::BLACK,
+                fill: Some(RectFill {
+                    color: Color::TRANSPARENT,
                 }),
                 ..Default::default()
             },
