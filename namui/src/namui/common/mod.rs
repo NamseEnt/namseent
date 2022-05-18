@@ -6,6 +6,7 @@ use crate::Code;
 use serde::{Deserialize, Serialize};
 use serde_repr::*;
 use std::collections::HashSet;
+use std::sync::Arc;
 use std::time::Duration;
 use strum_macros::EnumIter;
 mod xy;
@@ -26,6 +27,7 @@ pub struct NamuiContext {
     pub(crate) fps_info: FpsInfo,
     pub(crate) rendering_tree: RenderingTree,
     pub(crate) event_receiver: EventReceiver,
+    pub(crate) fallback_font_typefaces: Vec<Arc<Typeface>>,
 }
 impl NamuiContext {
     pub fn get_rendering_tree_xy(&self, id: &str) -> Option<Xy<f32>> {

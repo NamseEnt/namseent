@@ -61,7 +61,7 @@ pub async fn start<TProps>(
     state: &mut dyn Entity<Props = TProps>,
     props: &TProps,
 ) {
-    init_font().await;
+    init_font(&mut namui_context).await;
 
     namui_context.rendering_tree = state.render(props);
 
@@ -149,11 +149,11 @@ fn set_mouse_cursor(rendering_tree: &RenderingTree) {
     mouse_manager.set_mouse_cursor(cursor);
 }
 
-async fn init_font() {
+async fn init_font(namui_context: &mut NamuiContext) {
     let font_manager = &mut *managers().font_manager;
     let typeface_manager = &mut font_manager.typeface_manager;
 
-    match load_sans_typeface_of_all_languages(typeface_manager).await {
+    match load_all_fonts(namui_context, typeface_manager).await {
         Ok(()) => {
             log("Font loaded".to_string());
         }
