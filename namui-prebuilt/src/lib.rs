@@ -2,6 +2,8 @@ pub mod list_view;
 pub mod scroll_view;
 mod simple_rect;
 pub use simple_rect::simple_rect;
+mod center_text;
+pub use center_text::center_text;
 pub mod table;
 
 #[cfg(test)]
