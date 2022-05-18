@@ -11,7 +11,7 @@ pub struct Props<TItem, TIterator, TItems, TItemRender>
 where
     TIterator: ExactSizeIterator<Item = TItem>,
     TItems: IntoIterator<Item = TItem, IntoIter = TIterator>,
-    TItemRender: Fn(TItem) -> RenderingTree,
+    TItemRender: Fn(Wh<f32>, TItem) -> RenderingTree,
 {
     pub x: f32,
     pub y: f32,
@@ -40,7 +40,7 @@ impl ListView {
     where
         TIterator: ExactSizeIterator<Item = TItem>,
         TItems: IntoIterator<Item = TItem, IntoIter = TIterator>,
-        TItemRender: Fn(TItem) -> RenderingTree,
+        TItemRender: Fn(Wh<f32>, TItem) -> RenderingTree,
     {
         let items_iter = props.items.into_iter();
         let item_len = items_iter.len();
@@ -64,7 +64,7 @@ impl ListView {
             translate(
                 0.0,
                 index as f32 * props.item_wh.height,
-                (props.item_render)(item),
+                (props.item_render)(props.item_wh, item),
             )
         });
 
@@ -106,7 +106,7 @@ fn test_props_passing() {
         scroll_bar_width: 10.0,
         item_wh: Wh::new(100.0, 100.0),
         items: items.iter().enumerate(),
-        item_render: |(_index, _item)| namui::render![],
+        item_render: |_wh, (_index, _item)| namui::render![],
     });
     let _props_with_slice_iter = list_view.render(Props {
         x: 0.0,
@@ -115,7 +115,7 @@ fn test_props_passing() {
         scroll_bar_width: 10.0,
         item_wh: Wh::new(100.0, 100.0),
         items: items.iter(),
-        item_render: |_item| namui::render![],
+        item_render: |_wh, _item| namui::render![],
     });
     let _props_with_reference_of_slice = list_view.render(Props {
         x: 0.0,
@@ -124,6 +124,6 @@ fn test_props_passing() {
         scroll_bar_width: 10.0,
         item_wh: Wh::new(100.0, 100.0),
         items: &items,
-        item_render: |_item| namui::render![],
+        item_render: |_wh, _item| namui::render![],
     });
 }
