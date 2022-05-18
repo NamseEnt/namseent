@@ -1,5 +1,7 @@
 pub mod list_view;
 pub mod scroll_view;
+mod simple_rect;
+pub use simple_rect::simple_rect;
 pub mod table;
 
 #[cfg(test)]
