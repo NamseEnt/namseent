@@ -97,7 +97,8 @@ impl Canvas {
     }
 
     pub(crate) fn draw_text(&self, string: &str, x: f32, y: f32, paint: &Paint, font: &Font) {
-        self.0.drawText(string, x, y, &paint.0, &font.0);
+        self.0
+            .drawText(string, x, y, &paint.0, &font.canvas_kit_font);
     }
     pub(crate) fn rotate(&self, radian: f32) {
         self.0

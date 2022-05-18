@@ -1,12 +1,44 @@
 use crate::{
     fetch_get_json, fetch_get_vec_u8,
-    namui::{self, manager::TypefaceManager, FontWeight, Language, TypefaceType},
+    namui::{
+        self,
+        manager::{FontManager, TypefaceManager},
+        FontWeight, Language, TypefaceType,
+    },
+    NamuiContext, Typeface,
 };
-use futures::future::join_all;
-use std::{collections::HashMap, iter::FromIterator};
+use futures::{future::join_all, join};
+use std::{collections::HashMap, iter::FromIterator, sync::Arc};
 
 type TypefaceFileUrls = HashMap<TypefaceType, String>;
 type TypefaceFileUrlsFile = HashMap<Language, HashMap<FontWeight, String>>;
+
+pub async fn load_all_fonts(
+    namui_context: &mut NamuiContext,
+    typeface_manager: &mut TypefaceManager,
+) -> Result<(), String> {
+    join!(
+        load_fallback_font_typefaces(namui_context),
+        load_sans_typeface_of_all_languages(typeface_manager)
+    );
+
+    Ok(())
+}
+
+async fn load_fallback_font_typefaces(namui_context: &mut NamuiContext) -> Result<(), String> {
+    let font = get_noto_color_emoji_typeface().await?;
+    namui_context.fallback_font_typefaces.push(Arc::new(font));
+    Ok(())
+}
+
+async fn get_noto_color_emoji_typeface() -> Result<Typeface, String> {
+    let url = "resources/font/NotoColorEmoji.woff2";
+    let bytes = fetch_get_vec_u8(url)
+        .await
+        .expect(format!("Could not fetch {}", url).as_str());
+
+    Ok(Typeface::new(&bytes))
+}
 
 pub async fn load_sans_typeface_of_all_languages(
     typeface_manager: &mut TypefaceManager,
@@ -14,7 +46,7 @@ pub async fn load_sans_typeface_of_all_languages(
     let typeface_file_urls: TypefaceFileUrls = get_typeface_file_urls().await?;
 
     let typeface_files: HashMap<TypefaceType, Vec<u8>> =
-        get_typeface_files(&typeface_file_urls).await;
+        get_typeface_files(&typeface_file_urls).await?;
     typeface_files
         .iter()
         .for_each(|(typeface_type, bytes)| typeface_manager.load_typeface(&typeface_type, bytes));
@@ -53,16 +85,18 @@ async fn get_typeface_file_urls() -> Result<TypefaceFileUrls, String> {
 
 async fn get_typeface_files(
     typeface_file_urls: &TypefaceFileUrls,
-) -> HashMap<TypefaceType, Vec<u8>> {
+) -> Result<HashMap<TypefaceType, Vec<u8>>, String> {
     let iter = join_all(typeface_file_urls.into_iter().map(
         |(typeface_type, font_file_url)| async move {
-            let bytes = fetch_get_vec_u8(font_file_url).await.unwrap();
+            let bytes = fetch_get_vec_u8(font_file_url)
+                .await
+                .expect(format!("Could not fetch {}", font_file_url).as_str());
             (*typeface_type, bytes)
         },
     ))
     .await;
 
-    return HashMap::from_iter(iter);
+    Ok(HashMap::from_iter(iter))
 }
 
 #[cfg(test)]

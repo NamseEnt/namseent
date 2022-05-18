@@ -1,19 +1,24 @@
 use super::*;
+use crate::namui::skia::GlyphIds;
 
 #[wasm_bindgen]
 extern "C" {
     pub type TextBlobFactory;
-    // ///
-    // /// Return a TextBlob with a single run of text.
-    // ///
-    // /// It does not perform typeface fallback for characters not found in the Typeface.
-    // /// It does not perform kerning or other complex shaping; glyphs are positioned based on their
-    // /// default advances.
-    // /// @param glyphs - if using Malloc'd array, be sure to use CanvasKit.MallocGlyphIDs().
-    // /// @param font
-    // ///
-    // #[wasm_bindgen(structural, method)]
-    // pub fn MakeFromGlyphs(this: &TextBlobFactory, glyphs: InputGlyphIDArray, font: Font) -> CanvasKitTextBlob;
+    ///
+    /// Return a TextBlob with a single run of text.
+    ///
+    /// It does not perform typeface fallback for characters not found in the Typeface.
+    /// It does not perform kerning or other complex shaping; glyphs are positioned based on their
+    /// default advances.
+    /// @param glyphs - if using Malloc'd array, be sure to use CanvasKit.MallocGlyphIDs().
+    /// @param font
+    ///
+    #[wasm_bindgen(structural, method)]
+    pub fn MakeFromGlyphs(
+        this: &TextBlobFactory,
+        glyphs: &GlyphIds,
+        font: &CanvasKitFont,
+    ) -> CanvasKitTextBlob;
 
     // ///
     // /// Returns a TextBlob built from a single run of text with rotation, scale, and translations.
