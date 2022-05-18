@@ -1,9 +1,5 @@
-#[allow(unused_imports)]
-use js_sys::Uint8Array;
 use namui_cfg::namui_cfg;
 use wasm_bindgen::prelude::wasm_bindgen;
-#[allow(unused_imports)]
-use wasm_bindgen::{JsCast, JsValue};
 
 pub enum ReadVecU8Error {
     FileNotFound(String),
@@ -12,11 +8,12 @@ pub enum ReadVecU8Error {
 
 #[namui_cfg(all(target_env = "electron", not(watch_reload)))]
 pub async fn read_vec_u8(path: &str) -> Result<Vec<u8>, ReadVecU8Error> {
+    use wasm_bindgen::JsCast;
     read_vec_u8_from_electron(path)
         .await
         .and_then(|file| {
             file.dyn_into()
-                .and_then(|array_buffer: Uint8Array| Ok(array_buffer.to_vec()))
+                .and_then(|array_buffer: js_sys::Uint8Array| Ok(array_buffer.to_vec()))
         })
         .map_err(|error| {
             let error: js_sys::Error = error.dyn_into().unwrap();
@@ -29,7 +26,9 @@ extern "C" {
     #[namui_cfg(all(target_env = "electron", not(watch_reload)))]
     #[wasm_bindgen(catch)]
     #[wasm_bindgen(js_namespace = ["window", "namuiApi", "fileSystem"], js_name = read)]
-    async fn read_vec_u8_from_electron(path: &str) -> Result<JsValue, JsValue>;
+    async fn read_vec_u8_from_electron(
+        path: &str,
+    ) -> Result<wasm_bindgen::JsValue, wasm_bindgen::JsValue>;
 }
 
 impl Into<ReadVecU8Error> for js_sys::Error {
