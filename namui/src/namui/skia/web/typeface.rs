@@ -1,11 +1,16 @@
 use super::*;
-use std::sync::Arc;
+use std::{hash::Hash, sync::Arc};
 
 unsafe impl Sync for CanvasKitTypeface {}
 unsafe impl Send for CanvasKitTypeface {}
-pub struct Typeface(pub Arc<CanvasKitTypeface>);
+pub struct Typeface {
+    pub id: u64,
+    pub canvas_kit_typeface: Arc<CanvasKitTypeface>,
+}
 impl Typeface {
     pub fn new(bytes: &Vec<u8>) -> Typeface {
+        let id = bytes.iter().fold(0, |acc, x| acc + *x as u64);
+
         let array_buffer = js_sys::ArrayBuffer::new(bytes.len() as u32);
 
         let array_buffer_view = js_sys::Uint8Array::new(&array_buffer);
@@ -16,11 +21,25 @@ impl Typeface {
             .RefDefault()
             .MakeTypefaceFromData(array_buffer);
 
-        Typeface(Arc::new(typeface))
+        Typeface {
+            id,
+            canvas_kit_typeface: Arc::new(typeface),
+        }
     }
 }
 impl Drop for Typeface {
     fn drop(&mut self) {
-        self.0.delete();
+        self.canvas_kit_typeface.delete();
     }
 }
+impl Hash for Typeface {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+impl PartialEq for Typeface {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+impl Eq for Typeface {}

@@ -66,6 +66,7 @@ impl NamuiImpl for Namui {
             },
             rendering_tree: RenderingTree::Empty,
             event_receiver: crate::event::init(),
+            fallback_font_typefaces: Vec::new(),
         }
     }
 
