@@ -85,14 +85,14 @@ mod tests {
         );
         assert_eq!(
             path_dirent_list_map
-                .get(&PathBuf::from("two"))
+                .get(&PathBuf::from("three/two"))
                 .unwrap()
                 .len(),
             2
         );
         assert_eq!(
             path_dirent_list_map
-                .get(&PathBuf::from("one"))
+                .get(&PathBuf::from("three/two/one"))
                 .unwrap()
                 .len(),
             1
@@ -100,7 +100,7 @@ mod tests {
 
         assert_eq!(
             path_dirent_list_map
-                .get(&PathBuf::from("one"))
+                .get(&PathBuf::from("three/two/one"))
                 .unwrap()
                 .first()
                 .unwrap()
@@ -109,7 +109,7 @@ mod tests {
         );
         assert_eq!(
             path_dirent_list_map
-                .get(&PathBuf::from("one"))
+                .get(&PathBuf::from("three/two/one"))
                 .unwrap()
                 .first()
                 .unwrap()
