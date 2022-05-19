@@ -1,20 +1,25 @@
 use crate::fs::types::{Dirent, DirentKind};
-use dashmap::{DashMap, DashSet};
+use dashmap::DashMap;
 use std::path::PathBuf;
 
 pub fn make_path_dirent_list_map(bundle_metadata: &Vec<PathBuf>) -> DashMap<PathBuf, Vec<Dirent>> {
-    let path_dirent_list_map: DashMap<PathBuf, DashSet<Dirent>> = DashMap::new();
+    let path_dirent_list_map: DashMap<PathBuf, DashMap<PathBuf, Dirent>> = DashMap::new();
     for path in bundle_metadata {
         create_all_dirent_in_path(&path_dirent_list_map, path);
     }
     path_dirent_list_map
         .into_iter()
-        .map(|(path, dirent_set)| (path, dirent_set.into_iter().collect()))
+        .map(|(path, dirent_map)| {
+            (
+                path,
+                dirent_map.into_iter().map(|(_, dirent)| dirent).collect(),
+            )
+        })
         .collect()
 }
 
 fn create_all_dirent_in_path(
-    path_dirent_list_map: &DashMap<PathBuf, DashSet<Dirent>>,
+    path_dirent_list_map: &DashMap<PathBuf, DashMap<PathBuf, Dirent>>,
     path: &PathBuf,
 ) {
     let component_names =
@@ -44,19 +49,20 @@ fn create_all_dirent_in_path(
 }
 
 fn push_dirent(
-    path_dirent_list_map: &DashMap<PathBuf, DashSet<Dirent>>,
+    path_dirent_list_map: &DashMap<PathBuf, DashMap<PathBuf, Dirent>>,
     dir_path: &PathBuf,
     name: &str,
     kind: DirentKind,
 ) {
     ensure_dir(path_dirent_list_map, dir_path);
     let pre_dirent_set = path_dirent_list_map.get_mut(dir_path).unwrap();
-    pre_dirent_set.insert(Dirent::new(dir_path.join(name), kind));
+    let path = dir_path.join(name);
+    pre_dirent_set.insert(path.clone(), Dirent::new(path, kind));
 }
 
-fn ensure_dir(path_dirent_list_map: &DashMap<PathBuf, DashSet<Dirent>>, path: &PathBuf) {
+fn ensure_dir(path_dirent_list_map: &DashMap<PathBuf, DashMap<PathBuf, Dirent>>, path: &PathBuf) {
     if path_dirent_list_map.get(path).is_none() {
-        path_dirent_list_map.insert(path.clone(), DashSet::new());
+        path_dirent_list_map.insert(path.clone(), DashMap::new());
     }
 }
 
