@@ -79,7 +79,7 @@ async fn build(
                 cli_error_messages.push(format!(
                     "could not load bundle manifest for bundle metadata service: {}",
                     error
-                ))
+                ));
             }
             print_build_result(&cargo_build_result.error_messages, &cli_error_messages);
             wasm_bundle_web_server
