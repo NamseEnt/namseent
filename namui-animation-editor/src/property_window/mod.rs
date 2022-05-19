@@ -1,5 +1,5 @@
 use namui::{animation::Layer, prelude::*};
-use namui_prebuilt::*;
+use namui_prebuilt::{table::vertical, *};
 
 pub(crate) struct PropertyWindow {}
 
@@ -16,20 +16,43 @@ impl PropertyWindow {
 
 impl table::CellRender<Props<'_>> for PropertyWindow {
     fn render(&self, wh: Wh<f32>, props: Props<'_>) -> RenderingTree {
+        let properties = [
+            Property {
+                name: "X".to_string(),
+            },
+            Property {
+                name: "Y".to_string(),
+            },
+            Property {
+                name: "Width".to_string(),
+            },
+            Property {
+                name: "Height".to_string(),
+            },
+            Property {
+                name: "Rotation".to_string(),
+            },
+            Property {
+                name: "Sprite".to_string(),
+            },
+            Property {
+                name: "Visibility".to_string(),
+            },
+            Property {
+                name: "Left Line".to_string(),
+            },
+            Property {
+                name: "Right Line".to_string(),
+            },
+        ];
         render![
             simple_rect(wh, Color::BLACK, 1.0, Color::WHITE),
-            vertical![
-                fixed!(20.0, |wh| render_header(wh)),
-                ratio!(1.0, |wh| render_x_row(wh)),
-                ratio!(1.0, |wh| render_x_row(wh)),
-                ratio!(1.0, |wh| render_x_row(wh)),
-                ratio!(1.0, |wh| render_x_row(wh)),
-                ratio!(1.0, |wh| render_x_row(wh)),
-                ratio!(1.0, |wh| render_x_row(wh)),
-                ratio!(1.0, |wh| render_x_row(wh)),
-                ratio!(1.0, |wh| render_x_row(wh)),
-                ratio!(1.0, |wh| render_x_row(wh)),
-            ](wh)
+            vertical(chains![
+                [fixed!(20.0, |wh| render_header(wh))],
+                properties
+                    .iter()
+                    .map(|property| ratio!(1.0, |wh| render_property_row(wh, property)))
+            ])(wh)
         ]
     }
 }
@@ -58,7 +81,11 @@ fn render_header(wh: Wh<f32>) -> RenderingTree {
     ]
 }
 
-fn render_x_row(wh: Wh<f32>) -> RenderingTree {
+struct Property {
+    name: String,
+}
+
+fn render_property_row(wh: Wh<f32>, property: &Property) -> RenderingTree {
     render![
         simple_rect(wh, Color::BLACK, 1.0, Color::WHITE),
         horizontal![
@@ -66,7 +93,10 @@ fn render_x_row(wh: Wh<f32>) -> RenderingTree {
                 render_graph_visible_toggle_cell(wh)
             }),
             ratio!(3.0, |wh| {
-                simple_rect(wh, Color::BLACK, 1.0, Color::WHITE)
+                render![
+                    simple_rect(wh, Color::BLACK, 1.0, Color::WHITE),
+                    center_text(wh, &property.name, Color::BLACK),
+                ]
             }),
             ratio!(3.0, |wh| { simple_rect(wh, Color::BLACK, 1.0, Color::RED) }),
             ratio!(1.0, |wh| {
