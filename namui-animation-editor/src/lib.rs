@@ -43,7 +43,7 @@ impl AnimationEditor {
                         2.0,
                         &self.property_window,
                         property_window::Props {
-                            layer: None, // TODO
+                            layer: Some(&props.layers[0]), // TODO
                         }
                     ),
                 ]
