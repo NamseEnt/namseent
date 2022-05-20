@@ -9,19 +9,17 @@ pub enum KeyframeLine {
     Linear,
 }
 
-pub struct KeyframeGraph<TValue>
-where
-    TValue: std::ops::Mul<f32, Output = TValue> + std::ops::Add<Output = TValue>,
-{
+pub trait KeyframeValue {
+    fn interpolate(&self, next: &Self, ratio: f32) -> Self;
+    fn unit() -> &'static str;
+}
+
+pub struct KeyframeGraph<TValue: KeyframeValue> {
     start_point: KeyframePoint<TValue>,
     next_points_with_lines: Vec<(KeyframePoint<TValue>, KeyframeLine)>,
 }
 
-impl<'a, TValue> KeyframeGraph<TValue>
-where
-    TValue: 'a + std::ops::Mul<f32, Output = TValue> + std::ops::Add<Output = TValue>,
-    &'a TValue: std::ops::Mul<f32, Output = TValue>,
-{
+impl<'a, TValue: KeyframeValue> KeyframeGraph<TValue> {
     pub fn new(start_point: KeyframePoint<TValue>) -> Self {
         Self {
             start_point,
@@ -33,17 +31,18 @@ where
         self.next_points_with_lines
             .sort_by_key(|(point, _)| point.time);
     }
-    pub(crate) fn get_value(&'a self, time: &Time) -> Option<TValue> {
+    pub fn get_value(&'a self, time: &Time) -> Option<TValue> {
         let mut current_point = &self.start_point;
         for (next_point, line) in &self.next_points_with_lines {
-            if current_point.time <= time && time <= next_point.time {
+            if current_point.time <= time && time < next_point.time {
                 match line {
                     KeyframeLine::Linear => {
                         let relative_time_ratio =
                             (time - current_point.time) / (next_point.time - current_point.time);
                         return Some(
-                            &(current_point.value) * (1.0 - relative_time_ratio)
-                                + &(next_point.value) * relative_time_ratio,
+                            current_point
+                                .value
+                                .interpolate(&next_point.value, relative_time_ratio),
                         );
                     }
                 }
@@ -65,6 +64,12 @@ where
 mod tests {
     use super::*;
     use wasm_bindgen_test::wasm_bindgen_test;
+
+    impl KeyframeValue for f32 {
+        fn interpolate(&self, next: &Self, ratio: f32) -> Self {
+            self * (1.0 - ratio) + next * ratio
+        }
+    }
 
     #[test]
     #[wasm_bindgen_test]
