@@ -8,6 +8,7 @@ mod namui_state;
 mod skia;
 pub use common::*;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
+use futures::future::join;
 pub use render::{
     absolute, clip, image::*, path::*, rect::*, rotate, text::*, text_input_event, translate,
     types::*, ImageSource, MouseCursor, MouseEvent, MouseEventCallback, MouseEventType,
@@ -62,7 +63,7 @@ pub async fn start<TProps>(
     state: &mut dyn Entity<Props = TProps>,
     props: &TProps,
 ) {
-    init_font().await;
+    join(init_font(), init_filesystem()).await;
 
     namui_context.rendering_tree = state.render(props);
 
@@ -160,6 +161,17 @@ async fn init_font() {
         }
         Err(e) => {
             log(format!("Font loading failed: {}", e));
+        }
+    };
+}
+
+async fn init_filesystem() {
+    match fs::init().await {
+        Ok(()) => {
+            log("Filesystem initialized".to_string());
+        }
+        Err(e) => {
+            log(format!("Filesystem initialize failed: {}", e));
         }
     };
 }
