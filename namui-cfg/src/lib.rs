@@ -32,7 +32,7 @@ pub fn namui_cfg(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 fn load_cfg_from_namui_cli(cfg_map: &mut CfgMap) -> Result<(), Box<dyn std::error::Error>> {
-    println!("{}", String::from_utf8(
+    panic!("{}", String::from_utf8(
         Command::new("which")
             .args(["namui"])
             .output()
