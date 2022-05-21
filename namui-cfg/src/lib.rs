@@ -32,15 +32,15 @@ pub fn namui_cfg(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 fn load_cfg_from_namui_cli(cfg_map: &mut CfgMap) -> Result<(), Box<dyn std::error::Error>> {
-    panic!("echo $PATH -> {}", String::from_utf8(
-        Command::new("echo")
-            .args(["$PATH"])
-            .output()
-            .map_err(|error| format!("Could not run which {:?}", error))?
-            .stdout,
-    )?);
+//     panic!("echo $PATH -> {}", String::from_utf8(
+//         Command::new("echo")
+//             .args(["$PATH"])
+//             .output()
+//             .map_err(|error| format!("Could not run which {:?}", error))?
+//             .stdout,
+//     )?);
     let namui_cli_print_cfg_output = String::from_utf8(
-        Command::new("namui")
+        Command::new("/home/runner/.cargo/bin/namui")
             .args(["print", "cfg"])
             .output()
             .map_err(|error| format!("Could not run namui-cli {:?}", error))?
