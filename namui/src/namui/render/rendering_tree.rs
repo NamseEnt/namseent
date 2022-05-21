@@ -1,41 +1,12 @@
+use std::borrow::Borrow;
+
 use super::*;
 use crate::namui::{ClipOp, DrawCall, NamuiContext, Xy, *};
 use serde::Serialize;
-use std::collections::HashSet;
 
-#[derive(Clone, Debug)]
-pub struct MouseEvent {
-    pub id: String,
-    pub local_xy: Xy<f32>,
-    pub global_xy: Xy<f32>,
-    pub pressing_buttons: HashSet<MouseButton>,
-    pub button: Option<MouseButton>,
-}
-pub enum MouseEventType {
-    Down,
-    Up,
-    Move,
-}
-pub struct WheelEvent<'a> {
-    pub id: String,
-    pub delta_xy: &'a Xy<f32>,
-    pub namui_context: &'a NamuiContext,
-}
-pub type MouseEventCallback = Arc<dyn Fn(&MouseEvent)>;
-pub type WheelEventCallback = Arc<dyn Fn(&WheelEvent)>;
 #[derive(Serialize, Default, Clone, Debug)]
 pub struct RenderingData {
     pub draw_calls: Vec<DrawCall>,
-}
-#[derive(Serialize, Clone, Debug)]
-pub enum SpecialRenderingNode {
-    Translate(TranslateNode),
-    Clip(ClipNode),
-    AttachEvent(AttachEventNode),
-    MouseCursor(MouseCursorNode),
-    WithId(WithIdNode),
-    Absolute(AbsoluteNode),
-    Rotate(RotateNode),
 }
 #[derive(Serialize, Clone, Debug)]
 pub enum RenderingTree {
@@ -46,7 +17,7 @@ pub enum RenderingTree {
 }
 
 impl SpecialRenderingNode {
-    fn get_children(&self) -> &Vec<RenderingTree> {
+    fn get_rendering_tree(&self) -> &RenderingTree {
         match self {
             SpecialRenderingNode::Translate(node) => &node.rendering_tree,
             SpecialRenderingNode::Clip(node) => &node.rendering_tree,
@@ -83,9 +54,7 @@ impl RenderingTree {
                         .canvas()
                         .translate(translate.x, translate.y);
 
-                    for child in &translate.rendering_tree {
-                        child.draw(namui_context);
-                    }
+                    translate.rendering_tree.draw(namui_context);
 
                     namui_context
                         .surface
@@ -100,9 +69,7 @@ impl RenderingTree {
                     let path = clip.path_builder.build();
                     canvas.clip_path(path.as_ref(), &clip.clip_op, true);
 
-                    for child in &clip.rendering_tree {
-                        child.draw(namui_context);
-                    }
+                    clip.rendering_tree.draw(namui_context);
 
                     canvas.restore();
                 }
@@ -117,9 +84,7 @@ impl RenderingTree {
                         [0.0, 0.0, 1.0],
                     ]);
 
-                    for child in &absolute.rendering_tree {
-                        child.draw(namui_context);
-                    }
+                    absolute.rendering_tree.draw(namui_context);
 
                     canvas.set_matrix(&back_up_matrix);
                 }
@@ -128,16 +93,12 @@ impl RenderingTree {
 
                     canvas.rotate(rotate.ccw_radian);
 
-                    for child in &rotate.rendering_tree {
-                        child.draw(namui_context);
-                    }
+                    rotate.rendering_tree.draw(namui_context);
 
                     canvas.rotate(-rotate.ccw_radian);
                 }
                 _ => {
-                    for child in special.get_children() {
-                        child.draw(namui_context);
-                    }
+                    special.get_rendering_tree().draw(namui_context);
                 }
             },
             RenderingTree::Empty => {}
@@ -151,9 +112,7 @@ impl RenderingTree {
                 });
             }
             RenderingTree::Special(special) => {
-                special.get_children().iter().rev().for_each(|child| {
-                    child.visit_rln(callback);
-                });
+                special.get_rendering_tree().visit_rln(callback);
             }
             _ => {}
         }
@@ -196,9 +155,7 @@ impl RenderingTree {
 
                     translate
                         .rendering_tree
-                        .iter()
-                        .rev()
-                        .find_map(|child| child.get_mouse_cursor_with_matrix(&xy, &matrix))
+                        .get_mouse_cursor_with_matrix(&xy, &matrix)
                 }
                 SpecialRenderingNode::Clip(clip) => {
                     let transformed_xy = matrix.transform_xy(&xy);
@@ -211,20 +168,15 @@ impl RenderingTree {
                         None
                     } else {
                         clip.rendering_tree
-                            .iter()
-                            .rev()
-                            .find_map(|child| child.get_mouse_cursor_with_matrix(&xy, &matrix))
+                            .get_mouse_cursor_with_matrix(&xy, &matrix)
                     }
                 }
                 SpecialRenderingNode::MouseCursor(mouse_cursor) => mouse_cursor
                     .rendering_tree
-                    .iter()
-                    .rev()
-                    .find_map(|child| child.get_mouse_cursor_with_matrix(&xy, &matrix))
+                    .get_mouse_cursor_with_matrix(&xy, &matrix)
                     .or(mouse_cursor
                         .rendering_tree
-                        .iter()
-                        .any(|child| child.is_point_in(&xy, &matrix))
+                        .is_point_in(&xy, &matrix)
                         .then(|| mouse_cursor.cursor)),
                 SpecialRenderingNode::Absolute(absolute) => {
                     let matrix = Matrix3x3::from_slice(&[
@@ -234,24 +186,18 @@ impl RenderingTree {
                     ]);
                     absolute
                         .rendering_tree
-                        .iter()
-                        .rev()
-                        .find_map(|child| child.get_mouse_cursor_with_matrix(&xy, &matrix))
+                        .get_mouse_cursor_with_matrix(&xy, &matrix)
                 }
                 SpecialRenderingNode::Rotate(rotate) => {
                     let matrix = matrix * rotate.get_counter_wise_matrix();
 
                     rotate
                         .rendering_tree
-                        .iter()
-                        .rev()
-                        .find_map(|child| child.get_mouse_cursor_with_matrix(&xy, &matrix))
+                        .get_mouse_cursor_with_matrix(&xy, &matrix)
                 }
                 _ => special
-                    .get_children()
-                    .iter()
-                    .rev()
-                    .find_map(|child| child.get_mouse_cursor_with_matrix(&xy, &matrix)),
+                    .get_rendering_tree()
+                    .get_mouse_cursor_with_matrix(&xy, &matrix),
             },
             _ => None,
         }
@@ -289,14 +235,12 @@ impl RenderingTree {
                         [0.0, 0.0, 1.0],
                     ]);
                     let matrix = translation_matrix * matrix;
-                    translate.rendering_tree.iter().rev().for_each(|child| {
-                        child.call_mouse_event_impl(
-                            mouse_event_type,
-                            raw_mouse_event,
-                            &xy,
-                            &matrix,
-                        );
-                    });
+                    translate.rendering_tree.call_mouse_event_impl(
+                        mouse_event_type,
+                        raw_mouse_event,
+                        &xy,
+                        &matrix,
+                    );
                 }
                 SpecialRenderingNode::Clip(clip) => {
                     let transformed_xy = matrix.transform_xy(&xy);
@@ -306,20 +250,21 @@ impl RenderingTree {
                         ClipOp::Difference => is_path_contains,
                     };
                     if !is_xy_filtered {
-                        clip.rendering_tree.iter().rev().for_each(|child| {
-                            child.call_mouse_event_impl(
-                                mouse_event_type,
-                                raw_mouse_event,
-                                xy,
-                                matrix,
-                            );
-                        });
+                        clip.rendering_tree.call_mouse_event_impl(
+                            mouse_event_type,
+                            raw_mouse_event,
+                            xy,
+                            matrix,
+                        );
                     }
                 }
                 SpecialRenderingNode::AttachEvent(attach_event) => {
-                    attach_event.rendering_tree.iter().rev().for_each(|child| {
-                        child.call_mouse_event_impl(mouse_event_type, raw_mouse_event, xy, matrix);
-                    });
+                    attach_event.rendering_tree.call_mouse_event_impl(
+                        mouse_event_type,
+                        raw_mouse_event,
+                        xy,
+                        matrix,
+                    );
 
                     let func = match mouse_event_type {
                         MouseEventType::Move => &attach_event.on_mouse_move_in,
@@ -327,11 +272,7 @@ impl RenderingTree {
                         MouseEventType::Up => &attach_event.on_mouse_up,
                     };
                     if let Some(func) = func {
-                        if attach_event
-                            .rendering_tree
-                            .iter()
-                            .any(|child| child.is_point_in(&xy, matrix))
-                        {
+                        if attach_event.rendering_tree.is_point_in(&xy, matrix) {
                             func(&MouseEvent {
                                 id: raw_mouse_event.id.clone(),
                                 global_xy: raw_mouse_event.xy,
@@ -348,31 +289,30 @@ impl RenderingTree {
                         [0.0, 1.0, -absolute.y],
                         [0.0, 0.0, 1.0],
                     ]);
-                    absolute.rendering_tree.iter().rev().for_each(|child| {
-                        child.call_mouse_event_impl(
-                            mouse_event_type,
-                            raw_mouse_event,
-                            &xy,
-                            &matrix,
-                        );
-                    });
+                    absolute.rendering_tree.call_mouse_event_impl(
+                        mouse_event_type,
+                        raw_mouse_event,
+                        &xy,
+                        &matrix,
+                    );
                 }
                 SpecialRenderingNode::Rotate(rotate) => {
                     let matrix = matrix * rotate.get_counter_wise_matrix();
 
-                    rotate.rendering_tree.iter().rev().for_each(|child| {
-                        child.call_mouse_event_impl(
-                            mouse_event_type,
-                            raw_mouse_event,
-                            &xy,
-                            &matrix,
-                        );
-                    });
+                    rotate.rendering_tree.call_mouse_event_impl(
+                        mouse_event_type,
+                        raw_mouse_event,
+                        &xy,
+                        &matrix,
+                    );
                 }
                 _ => {
-                    special.get_children().iter().rev().for_each(|child| {
-                        child.call_mouse_event_impl(mouse_event_type, raw_mouse_event, xy, matrix);
-                    });
+                    special.get_rendering_tree().call_mouse_event_impl(
+                        mouse_event_type,
+                        raw_mouse_event,
+                        xy,
+                        matrix,
+                    );
                 }
             },
             _ => {}
@@ -396,10 +336,7 @@ impl RenderingTree {
                         [0.0, 0.0, 1.0],
                     ]);
                     let matrix = translation_matrix * matrix;
-                    translate
-                        .rendering_tree
-                        .iter()
-                        .any(|child| child.is_point_in(&xy, &matrix))
+                    translate.rendering_tree.is_point_in(&xy, &matrix)
                 }
                 SpecialRenderingNode::Clip(clip) => {
                     let is_path_contains = clip
@@ -410,11 +347,7 @@ impl RenderingTree {
                         ClipOp::Intersect => !is_path_contains,
                         ClipOp::Difference => is_path_contains,
                     };
-                    !is_xy_filtered
-                        && clip
-                            .rendering_tree
-                            .iter()
-                            .any(|child| child.is_point_in(xy, matrix))
+                    !is_xy_filtered && clip.rendering_tree.is_point_in(xy, matrix)
                 }
                 SpecialRenderingNode::Absolute(absolute) => {
                     let matrix = Matrix3x3::from_slice(&[
@@ -422,23 +355,14 @@ impl RenderingTree {
                         [0.0, 1.0, -absolute.y],
                         [0.0, 0.0, 1.0],
                     ]);
-                    absolute
-                        .rendering_tree
-                        .iter()
-                        .any(|child| child.is_point_in(&xy, &matrix))
+                    absolute.rendering_tree.is_point_in(&xy, &matrix)
                 }
                 SpecialRenderingNode::Rotate(rotate) => {
                     let matrix = matrix * rotate.get_counter_wise_matrix();
 
-                    rotate
-                        .rendering_tree
-                        .iter()
-                        .any(|child| child.is_point_in(&xy, &matrix))
+                    rotate.rendering_tree.is_point_in(&xy, &matrix)
                 }
-                _ => special
-                    .get_children()
-                    .iter()
-                    .any(|child| child.is_point_in(&xy, &matrix)),
+                _ => special.get_rendering_tree().is_point_in(&xy, &matrix),
             },
             RenderingTree::Empty => false,
         }
@@ -464,13 +388,12 @@ impl RenderingTree {
                             x: translate.x,
                             y: translate.y,
                         };
-                        translate.rendering_tree.iter().rev().find_map(|child| {
-                            get_xy_with_exit_button(child, id).map(|mut result| {
-                                if !result.is_exit {
-                                    result.xy = result.xy + next_xy;
-                                }
-                                result
-                            })
+
+                        get_xy_with_exit_button(&translate.rendering_tree, id).map(|mut result| {
+                            if !result.is_exit {
+                                result.xy = result.xy + next_xy;
+                            }
+                            result
                         })
                     }
                     SpecialRenderingNode::WithId(with_id) => {
@@ -480,11 +403,7 @@ impl RenderingTree {
                                 is_exit: false,
                             })
                         } else {
-                            special
-                                .get_children()
-                                .iter()
-                                .rev()
-                                .find_map(|child| get_xy_with_exit_button(child, id))
+                            get_xy_with_exit_button(special.get_rendering_tree(), id)
                         }
                     }
                     SpecialRenderingNode::Absolute(absolute) => {
@@ -492,33 +411,26 @@ impl RenderingTree {
                             x: absolute.x,
                             y: absolute.y,
                         };
-                        absolute.rendering_tree.iter().rev().find_map(|child| {
-                            get_xy_with_exit_button(child, id).map(|mut result| {
-                                if !result.is_exit {
-                                    result.is_exit = true;
-                                    result.xy = result.xy + next_xy;
-                                }
-                                result
-                            })
+
+                        get_xy_with_exit_button(&absolute.rendering_tree, id).map(|mut result| {
+                            if !result.is_exit {
+                                result.is_exit = true;
+                                result.xy = result.xy + next_xy;
+                            }
+                            result
                         })
                     }
                     SpecialRenderingNode::Rotate(rotate) => {
                         let matrix = rotate.get_matrix();
 
-                        rotate.rendering_tree.iter().rev().find_map(|child| {
-                            get_xy_with_exit_button(child, id).map(|mut result| {
-                                if !result.is_exit {
-                                    result.xy = matrix.transform_xy(&result.xy);
-                                }
-                                result
-                            })
+                        get_xy_with_exit_button(&rotate.rendering_tree, id).map(|mut result| {
+                            if !result.is_exit {
+                                result.xy = matrix.transform_xy(&result.xy);
+                            }
+                            result
                         })
                     }
-                    _ => special
-                        .get_children()
-                        .iter()
-                        .rev()
-                        .find_map(|child| get_xy_with_exit_button(child, id)),
+                    _ => get_xy_with_exit_button(special.get_rendering_tree(), id),
                 },
                 _ => None,
             }
@@ -531,11 +443,12 @@ impl RenderingTree {
             matrix: &Matrix3x3,
         ) -> Option<LtrbRect> {
             fn get_bounding_box_with_matrix_of_rendering_trees<'a>(
-                rendering_trees: impl Iterator<Item = &'a RenderingTree>,
+                rendering_trees: impl IntoIterator<Item = impl Borrow<RenderingTree>>,
                 matrix: &Matrix3x3,
             ) -> Option<LtrbRect> {
                 rendering_trees
-                    .map(|child| get_bounding_box_with_matrix(&child, &matrix))
+                    .into_iter()
+                    .map(|child| get_bounding_box_with_matrix(child.borrow(), &matrix))
                     .filter_map(|bounding_box| bounding_box)
                     .reduce(|acc, bounding_box| {
                         LtrbRect::get_minimum_rectangle_containing(&acc, &bounding_box)
@@ -544,7 +457,7 @@ impl RenderingTree {
 
             match rendering_tree {
                 RenderingTree::Children(ref children) => {
-                    get_bounding_box_with_matrix_of_rendering_trees(children.iter(), matrix)
+                    get_bounding_box_with_matrix_of_rendering_trees(children, matrix)
                 }
                 RenderingTree::Node(rendering_data) => rendering_data
                     .get_bounding_box()
@@ -558,13 +471,13 @@ impl RenderingTree {
                         ]);
                         let matrix = translation_matrix * matrix;
                         get_bounding_box_with_matrix_of_rendering_trees(
-                            translate.rendering_tree.iter(),
+                            [translate.rendering_tree.borrow()],
                             &matrix,
                         )
                     }
                     SpecialRenderingNode::Clip(clip) => {
                         get_bounding_box_with_matrix_of_rendering_trees(
-                            clip.rendering_tree.iter(),
+                            [clip.rendering_tree.borrow()],
                             &matrix,
                         )
                         .and_then(|bounding_box| {
@@ -635,7 +548,7 @@ impl RenderingTree {
                             [0.0, 0.0, 1.0],
                         ]);
                         get_bounding_box_with_matrix_of_rendering_trees(
-                            absolute.rendering_tree.iter(),
+                            [absolute.rendering_tree.borrow()],
                             &matrix,
                         )
                     }
@@ -643,12 +556,12 @@ impl RenderingTree {
                         let matrix = matrix * rotate.get_matrix();
 
                         get_bounding_box_with_matrix_of_rendering_trees(
-                            rotate.rendering_tree.iter(),
+                            [rotate.rendering_tree.borrow()],
                             &matrix,
                         )
                     }
                     _ => get_bounding_box_with_matrix_of_rendering_trees(
-                        special.get_children().iter(),
+                        [special.get_rendering_tree()],
                         &matrix,
                     ),
                 },

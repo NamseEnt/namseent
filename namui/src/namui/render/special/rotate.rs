@@ -1,16 +1,17 @@
-use super::{Matrix3x3, RenderingTree, SpecialRenderingNode};
+use super::SpecialRenderingNode;
+use crate::{namui::render::Matrix3x3, RenderingTree};
 use serde::Serialize;
 
 #[derive(Serialize, Clone, Debug)]
 pub struct RotateNode {
     pub(crate) ccw_radian: f32,
-    pub(crate) rendering_tree: Vec<RenderingTree>,
+    pub(crate) rendering_tree: Box<RenderingTree>,
 }
 
 pub fn rotate(ccw_radian: f32, rendering_tree: RenderingTree) -> RenderingTree {
     RenderingTree::Special(SpecialRenderingNode::Rotate(RotateNode {
         ccw_radian,
-        rendering_tree: vec![rendering_tree],
+        rendering_tree: Box::new(rendering_tree),
     }))
 }
 
