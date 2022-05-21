@@ -12,6 +12,7 @@ use util::{get_current_target, print_namui_cfg, print_namui_target, set_namui_us
 
 #[tokio::main]
 async fn main() {
+    println!("hello namui cli!");
     let cli = Cli::parse();
     let manifest_path = current_dir()
         .expect("No current dir found")
