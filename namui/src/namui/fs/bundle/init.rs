@@ -1,5 +1,5 @@
 use super::{read_dir, BundleDirReaderInitError};
-use crate::fs::FileSystemInitError;
+use crate::fs::init::FileSystemInitError;
 
 pub async fn init() -> Result<(), FileSystemInitError> {
     Ok(read_dir::read_dir::init().await?)

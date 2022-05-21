@@ -1,6 +1,5 @@
-use strum::Display;
-
 use super::bundle::{self, BundleDirReaderInitError};
+use strum::Display;
 
 #[derive(Display)]
 pub enum FileSystemInitError {
