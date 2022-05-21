@@ -17,4 +17,6 @@ RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 RUN rustup target add wasm32-unknown-unknown
 
 COPY namui-cli/ /namui-cli/
+
 RUN sh /namui-cli/scripts/install.sh
+
