@@ -47,7 +47,6 @@ pub enum BundleDirReaderReadError {
 pub enum BundleDirReaderInitError {
     NetworkError(String),
     ParseError(String),
-    DirNotExist,
     MetadataFileNotFound(String),
     Other(String),
 }
