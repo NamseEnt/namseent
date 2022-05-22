@@ -1,11 +1,11 @@
-use super::{MouseEvent, RenderingTree, SpecialRenderingNode, WheelEvent};
-use crate::{MouseEventCallback, WheelEventCallback};
+use super::SpecialRenderingNode;
+use crate::{MouseButton, NamuiContext, RenderingTree, Xy};
 use serde::Serialize;
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 #[derive(Serialize, Clone)]
 pub struct AttachEventNode {
-    pub(crate) rendering_tree: Vec<RenderingTree>,
+    pub(crate) rendering_tree: Box<RenderingTree>,
     #[serde(skip_serializing)]
     pub on_mouse_move_in: Option<MouseEventCallback>,
     #[serde(skip_serializing)]
@@ -20,6 +20,27 @@ pub struct AttachEventNode {
     #[serde(skip_serializing)]
     pub on_wheel: Option<WheelEventCallback>,
 }
+
+#[derive(Clone, Debug)]
+pub struct MouseEvent {
+    pub id: String,
+    pub local_xy: Xy<f32>,
+    pub global_xy: Xy<f32>,
+    pub pressing_buttons: HashSet<MouseButton>,
+    pub button: Option<MouseButton>,
+}
+pub enum MouseEventType {
+    Down,
+    Up,
+    Move,
+}
+pub struct WheelEvent<'a> {
+    pub id: String,
+    pub delta_xy: &'a Xy<f32>,
+    pub namui_context: &'a NamuiContext,
+}
+pub type MouseEventCallback = Arc<dyn Fn(&MouseEvent)>;
+pub type WheelEventCallback = Arc<dyn Fn(&WheelEvent)>;
 
 impl std::fmt::Debug for AttachEventNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -40,7 +61,7 @@ pub struct AttachEventBuilder {
 
 impl RenderingTree {
     pub fn attach_event(
-        &self,
+        self,
         attach_event_build: impl Fn(AttachEventBuilder) -> AttachEventBuilder,
     ) -> RenderingTree {
         let builder = AttachEventBuilder {
@@ -48,7 +69,7 @@ impl RenderingTree {
         };
         let builder = attach_event_build(builder);
         RenderingTree::Special(SpecialRenderingNode::AttachEvent(AttachEventNode {
-            rendering_tree: vec![self.clone()],
+            rendering_tree: Box::new(self),
             on_mouse_move_in: builder.on_mouse_move_in,
             on_mouse_move_out: builder.on_mouse_move_out,
             on_mouse_down: builder.on_mouse_down,

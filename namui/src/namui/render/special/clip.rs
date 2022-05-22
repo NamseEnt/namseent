@@ -1,4 +1,5 @@
-use super::{RenderingTree, SpecialRenderingNode};
+use super::SpecialRenderingNode;
+use crate::RenderingTree;
 use crate::{namui::ClipOp, PathBuilder};
 use serde::Serialize;
 
@@ -6,7 +7,7 @@ use serde::Serialize;
 pub struct ClipNode {
     pub(crate) path_builder: PathBuilder,
     pub(crate) clip_op: ClipOp,
-    pub(crate) rendering_tree: Vec<RenderingTree>,
+    pub(crate) rendering_tree: Box<RenderingTree>,
 }
 
 pub fn clip(
@@ -17,6 +18,6 @@ pub fn clip(
     RenderingTree::Special(SpecialRenderingNode::Clip(ClipNode {
         path_builder,
         clip_op,
-        rendering_tree: vec![rendering_tree],
+        rendering_tree: Box::new(rendering_tree),
     }))
 }
