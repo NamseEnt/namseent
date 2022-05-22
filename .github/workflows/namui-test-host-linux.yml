@@ -25,7 +25,6 @@ jobs:
           filters: |
             namui-test-host:
               - .github/**
-              - namui-cli/**
               - docker-images/namui-test-host/linux.Dockerfile
             namui-cli:
               - .github/**
