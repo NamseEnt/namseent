@@ -39,7 +39,7 @@ impl ContentLoader {
 
                                 match image_source {
                                     namui::ImageSource::Url(url) => {
-                                        if managers.image_manager.clone().try_load(&url).is_none() {
+                                        if managers.image_manager.try_load(&url).is_none() {
                                             loading_contents.push_back(LoadingContent::Image(url));
                                         }
                                     }
@@ -65,7 +65,7 @@ impl ContentLoader {
         while let Some(loading_content) = loading_contents.front() {
             match loading_content {
                 LoadingContent::Image(url) => {
-                    if managers.image_manager.clone().try_load(&url).is_none() {
+                    if managers.image_manager.try_load(&url).is_none() {
                         return false;
                     }
                     loading_contents.pop_front();
