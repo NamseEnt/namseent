@@ -16,6 +16,9 @@
       "path": "namui-cli"
     },
     {
+      "path": "namui-user-config"
+    },
+    {
       "path": "namui"
     },
     {

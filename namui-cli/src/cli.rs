@@ -62,6 +62,24 @@ impl Display for Target {
         )
     }
 }
+impl From<namui_user_config::Target> for Target {
+    fn from(target: namui_user_config::Target) -> Self {
+        match target {
+            namui_user_config::Target::WasmUnknownWeb => Target::WasmUnknownWeb,
+            namui_user_config::Target::WasmWindowsElectron => Target::WasmWindowsElectron,
+            namui_user_config::Target::WasmLinuxElectron => Target::WasmLinuxElectron,
+        }
+    }
+}
+impl Into<namui_user_config::Target> for Target {
+    fn into(self) -> namui_user_config::Target {
+        match self {
+            Target::WasmUnknownWeb => namui_user_config::Target::WasmUnknownWeb,
+            Target::WasmWindowsElectron => namui_user_config::Target::WasmWindowsElectron,
+            Target::WasmLinuxElectron => namui_user_config::Target::WasmLinuxElectron,
+        }
+    }
+}
 
 #[derive(Clone, ArgEnum)]
 pub enum PrintableObject {

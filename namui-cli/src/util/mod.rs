@@ -11,5 +11,5 @@ mod get_electron_root_path;
 pub use get_electron_root_path::*;
 mod overwrite_hot_reload_script_with_empty_file;
 pub use overwrite_hot_reload_script_with_empty_file::*;
-mod namui_user_config;
-pub use namui_user_config::*;
+mod user_config;
+pub use user_config::*;
