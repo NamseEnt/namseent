@@ -12,6 +12,9 @@ struct TextInputExample {
     left_text_input: namui::TextInput,
     center_text_input: namui::TextInput,
     right_text_input: namui::TextInput,
+    left_text: String,
+    center_text: String,
+    right_text: String,
 }
 
 impl TextInputExample {
@@ -20,6 +23,9 @@ impl TextInputExample {
             left_text_input: namui::TextInput::new(),
             center_text_input: namui::TextInput::new(),
             right_text_input: namui::TextInput::new(),
+            left_text: "Left".to_string(),
+            center_text: "Center".to_string(),
+            right_text: "Right".to_string(),
         }
     }
 }
@@ -48,7 +54,7 @@ impl Entity for TextInputExample {
                 y: 200.0,
                 align: TextAlign::Left,
                 baseline: TextBaseline::Top,
-                text: "Left".to_string(),
+                text: self.left_text.clone(),
                 font_type: namui::FontType {
                     font_weight: namui::FontWeight::REGULAR,
                     language: namui::Language::Ko,
@@ -82,7 +88,7 @@ impl Entity for TextInputExample {
                 y: 200.0,
                 align: TextAlign::Left,
                 baseline: TextBaseline::Top,
-                text: "Center".to_string(),
+                text: self.center_text.clone(),
                 font_type: namui::FontType {
                     font_weight: namui::FontWeight::REGULAR,
                     language: namui::Language::Ko,
@@ -116,7 +122,7 @@ impl Entity for TextInputExample {
                 y: 200.0,
                 align: TextAlign::Left,
                 baseline: TextBaseline::Top,
-                text: "Right".to_string(),
+                text: self.right_text.clone(),
                 font_type: namui::FontType {
                     font_weight: namui::FontWeight::REGULAR,
                     language: namui::Language::Ko,
@@ -134,6 +140,20 @@ impl Entity for TextInputExample {
     }
 
     fn update(&mut self, event: &dyn std::any::Any) {
+        if let Some(event) = event.downcast_ref::<text_input::Event>() {
+            match event {
+                text_input::Event::TextUpdated(text_updated) => {
+                    if self.left_text_input.get_id().eq(&text_updated.id) {
+                        self.left_text = text_updated.text.clone();
+                    } else if self.center_text_input.get_id().eq(&text_updated.id) {
+                        self.center_text = text_updated.text.clone();
+                    } else if self.right_text_input.get_id().eq(&text_updated.id) {
+                        self.right_text = text_updated.text.clone();
+                    }
+                }
+                _ => {}
+            }
+        }
         self.left_text_input.update(event);
         self.center_text_input.update(event);
         self.right_text_input.update(event);

@@ -4,17 +4,17 @@ use once_cell::sync::OnceCell;
 use parking_lot::{ReentrantMutex, ReentrantMutexGuard};
 use std::sync::Arc;
 
-#[cfg(not(test))]
+// #[cfg(not(test))]
 #[cfg(target_family = "wasm")]
 pub mod web;
-#[cfg(not(test))]
+// #[cfg(not(test))]
 #[cfg(target_family = "wasm")]
 pub use web::*;
 
-#[cfg(test)]
-pub mod mock;
-#[cfg(test)]
-pub use mock::*;
+// #[cfg(test)]
+// pub mod mock;
+// #[cfg(test)]
+// pub use mock::*;
 
 pub struct Managers {
     pub mouse_manager: MouseManager,

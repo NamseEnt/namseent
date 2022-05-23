@@ -9,7 +9,7 @@ impl TextInput {
         click_x: f32,
     ) -> Option<Range<usize>> {
         let (font, is_shift_key_pressed) = {
-            let mut managers = managers();
+            let managers = managers();
             let font = managers.font_manager.get_font(&props.text_param.font_type);
 
             // TODO : drag selection.
@@ -50,7 +50,6 @@ impl TextInput {
             namui::TextAlign::Center => click_x - props.text_param.x + text_width / 2.0,
             namui::TextAlign::Right => click_x - props.text_param.x + text_width,
         };
-        crate::log!("aligned_x: {}", aligned_x);
 
         Some(get_one_click_selection(
             &props.text_param.text,
