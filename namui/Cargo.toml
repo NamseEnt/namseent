@@ -32,6 +32,7 @@ ordered-float = "2.10"
 namui-cfg = { path = "../namui-cfg" }
 parking_lot = "0.12"
 auto_ops = "0.3"
+parking_lot = "0.12"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"
