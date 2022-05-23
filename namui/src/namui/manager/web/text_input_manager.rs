@@ -45,12 +45,10 @@ impl TextInputManager {
         let custom_data =
             self.find_front_text_input_on_mouse(&namui_context.rendering_tree, raw_mouse_event);
         if custom_data.is_none() {
-            crate::log!("No text input found on mouse down");
             last_focused_text_input_id.take();
             crate::event::send(TextInputEvent::Blur);
             return;
         }
-        crate::log!("Text input found on mouse down");
         let custom_data = custom_data.unwrap();
 
         last_focused_text_input_id.replace(custom_data.text_input.id.clone());
@@ -58,9 +56,6 @@ impl TextInputManager {
         let selection = custom_data
             .text_input
             .get_selection_on_mouse_down(&custom_data.props, raw_mouse_event.xy.x);
-        crate::log!("Selection: {:?}", selection);
-
-        // 어떻게 업데이트 할 것인지.
 
         let event = TextInputEvent::Focus(TextInputFocus {
             id: custom_data.text_input.id.clone(),

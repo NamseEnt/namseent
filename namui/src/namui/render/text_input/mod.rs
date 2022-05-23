@@ -3,6 +3,7 @@ use crate::{
     RectParam, TextParam,
 };
 use std::ops::Range;
+mod draw_caret;
 mod draw_texts_divided_by_selection;
 mod get_selection_on_mouse_down;
 
@@ -50,7 +51,8 @@ impl TextInput {
         let custom_props = props.clone();
         (render![
             namui::rect(props.rect_param),
-            self.draw_texts_divided_by_selection(props.text_param),
+            self.draw_texts_divided_by_selection(props.text_param.clone()),
+            self.draw_caret(&props.text_param),
         ])
         .with_custom(TextInputCustomData {
             text_input: self.clone(),
