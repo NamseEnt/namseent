@@ -22,3 +22,4 @@ webbrowser = "0.5.5"
 regex = "1.5.4"
 wsl = "0.1.0"
 fs_extra = "1.2.0"
+namui-user-config = { path = "../namui-user-config" }

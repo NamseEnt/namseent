@@ -1,4 +1,3 @@
-use crate::cli::Target;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -17,3 +16,15 @@ impl Default for NamuiUserConfig {
 }
 
 pub type NamuiCfgMap = HashMap<String, String>;
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum Target {
+    WasmUnknownWeb,
+    WasmWindowsElectron,
+    WasmLinuxElectron,
+}
+impl std::fmt::Display for Target {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
