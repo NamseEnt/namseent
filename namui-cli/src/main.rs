@@ -5,8 +5,9 @@ mod types;
 mod util;
 use clap::StructOpt;
 use cli::{Cli, Commands};
+use namui_user_config::set_user_config;
 use std::env::current_dir;
-use util::{get_current_target, print_namui_cfg, print_namui_target, set_namui_user_config};
+use util::{get_current_target, print_namui_cfg, print_namui_target};
 
 #[tokio::main]
 async fn main() {
@@ -25,7 +26,7 @@ async fn main() {
             let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
             procedures::test(target, &manifest_path)
         }
-        Commands::Target { target } => set_namui_user_config(target),
+        Commands::Target { target } => set_user_config(&target.clone().into()),
         Commands::Print { printable_object } => match printable_object {
             cli::PrintableObject::Cfg => print_namui_cfg(),
             cli::PrintableObject::Target => print_namui_target(),

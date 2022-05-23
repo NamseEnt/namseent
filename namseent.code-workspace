@@ -16,13 +16,13 @@
       "path": "namui-cli"
     },
     {
+      "path": "namui-user-config"
+    },
+    {
       "path": "namui"
     },
     {
       "path": "nrpc"
-    },
-    {
-      "path": "./"
     }
   ],
   "settings": {

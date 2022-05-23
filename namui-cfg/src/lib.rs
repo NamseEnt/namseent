@@ -1,7 +1,8 @@
 use lazy_static::lazy_static;
+use namui_user_config::get_namui_user_config;
 use proc_macro::TokenStream;
 use rust_cfg_parser::{parse, CfgValue};
-use std::{collections::HashMap, env, process::Command};
+use std::{collections::HashMap, env};
 
 static NAMUI_CFG_ENV_PREFIX: &str = "NAMUI_CFG_";
 
@@ -10,7 +11,7 @@ type CfgMap = HashMap<String, String>;
 lazy_static! {
     static ref CFG_VALUES: Vec<CfgValue> = {
         let mut cfg_map = CfgMap::new();
-        load_cfg_from_namui_cli(&mut cfg_map).unwrap();
+        load_cfg_from_user_config(&mut cfg_map).unwrap();
         load_cfg_from_env(&mut cfg_map).unwrap();
         cfg_map
             .iter()
@@ -31,26 +32,9 @@ pub fn namui_cfg(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 }
 
-fn load_cfg_from_namui_cli(cfg_map: &mut CfgMap) -> Result<(), Box<dyn std::error::Error>> {
-    let namui_cli_print_cfg_output = String::from_utf8(
-        Command::new("namui")
-            .args(["print", "cfg"])
-            .output()?
-            .stdout,
-    )?;
-
-    for line in namui_cli_print_cfg_output.lines() {
-        let equal_sign_index = line.find("=");
-        match equal_sign_index {
-            Some(index) => {
-                let key = line[..index].to_string();
-                let value = line[index + 1..].to_string();
-                cfg_map.insert(key, value);
-            }
-            None => continue,
-        };
-    }
-
+fn load_cfg_from_user_config(cfg_map: &mut CfgMap) -> Result<(), Box<dyn std::error::Error>> {
+    let user_config = get_namui_user_config()?;
+    cfg_map.extend(user_config.cfg_map.into_iter());
     Ok(())
 }
 

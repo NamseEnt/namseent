@@ -8,4 +8,5 @@ proc-macro = true
 
 [dependencies]
 lazy_static = "1.4.0"
+namui-user-config = {path = "../namui-user-config"}
 rust_cfg_parser = "0.1.0"
