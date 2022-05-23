@@ -7,6 +7,7 @@ mod namui_state;
 mod skia;
 pub use common::*;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
+use parking_lot::ReentrantMutexGuard;
 pub use render::{
     absolute, clip, image::*, path::*, rect::*, rotate, text::*, text_input, translate, types::*,
     ImageSource, MouseCursor, MouseEvent, MouseEventCallback, MouseEventType, RenderingData,

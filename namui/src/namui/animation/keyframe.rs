@@ -69,6 +69,10 @@ mod tests {
         fn interpolate(&self, next: &Self, ratio: f32) -> Self {
             self * (1.0 - ratio) + next * ratio
         }
+
+        fn unit() -> &'static str {
+            todo!()
+        }
     }
 
     #[test]
