@@ -23,6 +23,7 @@ pub struct Managers {
     pub screen_manager: ScreenManager,
     pub image_manager: ImageManager,
     pub wheel_manager: WheelManager,
+    pub(crate) text_input_manager: TextInputManager,
 }
 
 pub(crate) static MANAGERS: OnceCell<ReentrantMutex<Arc<Managers>>> = OnceCell::new();

@@ -52,6 +52,7 @@ impl NamuiImpl for Namui {
             screen_manager: ScreenManager::new(),
             image_manager: ImageManager::new(),
             wheel_manager: WheelManager::new(),
+            text_input_manager: TextInputManager::new(),
         });
 
         NamuiContext {
