@@ -20,9 +20,6 @@
     },
     {
       "path": "nrpc"
-    },
-    {
-      "path": "./"
     }
   ],
   "settings": {
