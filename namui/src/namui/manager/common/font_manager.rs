@@ -1,25 +1,25 @@
-use std::{collections::HashMap, sync::Arc};
-
 use crate::{
     namui::{manager::TypefaceManager, skia::Font, FontType, TypefaceType},
     Typeface,
 };
+use dashmap::DashMap;
+use std::sync::Arc;
 
 pub struct FontManager {
-    font_type_fonts: HashMap<FontType, Arc<Font>>,
-    typeface_fonts: HashMap<String, Arc<Font>>,
+    font_type_fonts: DashMap<FontType, Arc<Font>>,
+    typeface_fonts: DashMap<String, Arc<Font>>,
     pub typeface_manager: TypefaceManager,
 }
 
 impl FontManager {
     pub fn new() -> Self {
         Self {
-            font_type_fonts: HashMap::new(),
-            typeface_fonts: HashMap::new(),
+            font_type_fonts: DashMap::new(),
+            typeface_fonts: DashMap::new(),
             typeface_manager: TypefaceManager::new(),
         }
     }
-    pub fn get_font(&mut self, font_type: &FontType) -> Option<Arc<Font>> {
+    pub fn get_font(&self, font_type: &FontType) -> Option<Arc<Font>> {
         let font = self.font_type_fonts.get(font_type);
         match font {
             Some(font) => Some(font.clone()),
@@ -32,7 +32,7 @@ impl FontManager {
             },
         }
     }
-    pub fn get_font_of_typeface(&mut self, typeface: Arc<Typeface>, font_size: i16) -> Arc<Font> {
+    pub fn get_font_of_typeface(&self, typeface: Arc<Typeface>, font_size: i16) -> Arc<Font> {
         let key = Font::generate_id(&typeface, font_size);
         let font = self.typeface_fonts.get(&key);
         match font {

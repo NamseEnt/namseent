@@ -1,5 +1,5 @@
 use crate::{
-    fetch_get_vec_u8,
+    fetch_get_vec_u8, managers,
     namui::{self, skia::Image},
     CANVAS_KIT,
 };
@@ -16,13 +16,13 @@ pub struct ImageManager {
 }
 
 impl ImageManager {
-    pub fn new() -> Arc<Self> {
-        Arc::new(Self {
+    pub fn new() -> Self {
+        Self {
             image_map: DashMap::new(),
             image_requested_set: Mutex::new(HashSet::new()),
-        })
+        }
     }
-    pub fn try_load(self: Arc<Self>, url: &String) -> Option<Arc<Image>> {
+    pub fn try_load(&self, url: &String) -> Option<Arc<Image>> {
         if let Some(image) = self.image_map.get(url) {
             return Some(image.clone());
         };
@@ -36,17 +36,20 @@ impl ImageManager {
             image_requested_set.insert(url.clone());
         }
 
-        self.start_load(url);
+        ImageManager::start_load(url);
         None
     }
-    fn start_load(self: Arc<Self>, url: &String) {
+    fn start_load(url: &String) {
         let url = url.clone();
         spawn_local(async move {
             match fetch_get_vec_u8(&url).await {
                 Ok(data) => match CANVAS_KIT.get().unwrap().MakeImageFromEncoded(&data) {
                     Some(canvas_kit_image) => {
                         let image = Image::from(canvas_kit_image);
-                        self.image_map.insert(url, Arc::new(image));
+                        managers()
+                            .image_manager
+                            .image_map
+                            .insert(url, Arc::new(image));
                     }
                     None => {
                         namui::log(format!(

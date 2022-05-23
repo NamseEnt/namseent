@@ -9,7 +9,7 @@ use crate::{
 
 pub fn draw_image(namui_context: &NamuiContext, command: &ImageDrawCommand) {
     let image = match &command.source {
-        ImageSource::Url(url) => namui::managers().image_manager.clone().try_load(&url),
+        ImageSource::Url(url) => namui::managers().image_manager.try_load(&url),
         ImageSource::Image(image) => Some(image.clone()),
     };
 

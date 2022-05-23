@@ -1,7 +1,8 @@
 pub mod common;
-use std::sync::Arc;
-
 pub use common::*;
+use once_cell::sync::OnceCell;
+use parking_lot::{ReentrantMutex, ReentrantMutexGuard};
+use std::sync::Arc;
 
 #[cfg(not(test))]
 #[cfg(target_family = "wasm")]
@@ -16,10 +17,24 @@ pub mod mock;
 pub use mock::*;
 
 pub struct Managers {
-    pub mouse_manager: Box<MouseManager>,
-    pub font_manager: Box<FontManager>,
-    pub keyboard_manager: Box<KeyboardManager>,
-    pub screen_manager: Box<ScreenManager>,
-    pub image_manager: Arc<ImageManager>,
-    pub wheel_manager: Box<WheelManager>,
+    pub mouse_manager: MouseManager,
+    pub font_manager: FontManager,
+    pub keyboard_manager: KeyboardManager,
+    pub screen_manager: ScreenManager,
+    pub image_manager: ImageManager,
+    pub wheel_manager: WheelManager,
+}
+
+pub(crate) static MANAGERS: OnceCell<ReentrantMutex<Arc<Managers>>> = OnceCell::new();
+pub fn managers() -> ReentrantMutexGuard<'static, Arc<Managers>> {
+    MANAGERS.get().expect("managers not initialized").lock()
+}
+
+pub(crate) fn set_managers(managers: Managers) {
+    if MANAGERS
+        .set(ReentrantMutex::new(Arc::new(managers)))
+        .is_err()
+    {
+        panic!("managers already initialized");
+    }
 }
