@@ -21,8 +21,8 @@ pub(crate) use skia::{ColorFilter, Paint, Path};
 pub mod event;
 pub use event::{NamuiEvent, UpdateOnEvent};
 mod render;
+pub use self::manager::managers;
 pub use self::manager::Code;
-use self::manager::Managers;
 use self::render::WheelEvent;
 use self::{
     font::*,
@@ -157,10 +157,7 @@ fn set_mouse_cursor(rendering_tree: &RenderingTree) {
 }
 
 async fn init_font(namui_context: &mut NamuiContext) {
-    let font_manager = &mut *managers().font_manager;
-    let typeface_manager = &mut font_manager.typeface_manager;
-
-    match load_all_fonts(namui_context, typeface_manager).await {
+    match load_all_fonts(namui_context, &managers().font_manager.typeface_manager).await {
         Ok(()) => {
             log("Font loaded".to_string());
         }
@@ -195,10 +192,6 @@ fn update_fps_info(fps_info: &mut FpsInfo) {
 
 pub fn state() -> Arc<NamuiState> {
     get_namui_state()
-}
-
-pub fn managers() -> std::sync::MutexGuard<'static, Managers> {
-    get_managers()
 }
 
 pub fn log(format: String) {

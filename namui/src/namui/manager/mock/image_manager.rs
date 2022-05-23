@@ -11,13 +11,13 @@ pub struct ImageManager {
 }
 
 impl ImageManager {
-    pub fn new() -> Arc<Self> {
-        Arc::new(Self {
+    pub fn new() -> Self {
+        Self {
             image_map: DashMap::new(),
             image_requested_set: Mutex::new(HashSet::new()),
-        })
+        }
     }
-    pub fn try_load(self: Arc<Self>, url: &String) -> Option<Arc<Image>> {
+    pub fn try_load(&self, url: &String) -> Option<Arc<Image>> {
         todo!()
     }
 }
