@@ -31,6 +31,8 @@ lru = "0.7"
 ordered-float = "2.10"
 namui-cfg = { path = "../namui-cfg" }
 auto_ops = "0.3"
+mockall = "0.11"
+parking_lot = "0.12"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"
@@ -56,4 +58,5 @@ features = [
     "Response",
     "Crypto",
     "CssStyleDeclaration",
+    "HtmlInputElement",
 ]

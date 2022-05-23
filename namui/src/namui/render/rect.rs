@@ -1,29 +1,33 @@
 use crate::namui::{self, *};
 
+#[derive(Clone, Debug)]
 pub enum BorderPosition {
     Inside,
     Outside,
     Middle,
 }
 
+#[derive(Clone, Debug)]
 pub struct RectStroke {
     pub color: Color,
     pub width: f32,
     pub border_position: BorderPosition,
 }
+#[derive(Clone, Debug)]
 pub struct RectFill {
     pub color: Color,
 }
+#[derive(Clone, Debug)]
 pub struct RectRound {
     pub radius: f32,
 }
-#[derive(Default)]
+#[derive(Default, Clone, Debug)]
 pub struct RectStyle {
     pub stroke: Option<RectStroke>,
     pub fill: Option<RectFill>,
     pub round: Option<RectRound>,
 }
-#[derive(Default)]
+#[derive(Default, Clone, Debug)]
 pub struct RectParam {
     pub x: f32,
     pub y: f32,

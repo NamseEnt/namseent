@@ -27,6 +27,7 @@ pub struct TextStyle {
     pub background: Option<TextStyleBackground>,
 }
 
+#[derive(Clone, Debug)]
 pub struct TextParam {
     pub text: String,
     pub x: f32,

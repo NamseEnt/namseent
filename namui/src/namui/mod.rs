@@ -3,15 +3,17 @@ pub(crate) mod draw;
 mod font;
 mod manager;
 use std::any::Any;
+use std::cell::RefCell;
 use std::{sync::Arc, time::Duration};
 mod namui_state;
 mod skia;
 pub use common::*;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
+use parking_lot::ReentrantMutexGuard;
 pub use render::{
-    absolute, clip, image::*, path::*, rect::*, rotate, text::*, text_input_event, translate,
-    types::*, ImageSource, MouseCursor, MouseEvent, MouseEventCallback, MouseEventType,
-    RenderingData, RenderingTree, TextInput, WheelEventCallback,
+    absolute, clip, image::*, path::*, rect::*, rotate, text::*, text_input, translate, types::*,
+    ImageSource, MouseCursor, MouseEvent, MouseEventCallback, MouseEventType, RenderingData,
+    RenderingTree, TextInput, WheelEventCallback,
 };
 pub use skia::{
     types::{ClipOp, Color, PaintStyle, StrokeJoin},
@@ -21,8 +23,8 @@ pub(crate) use skia::{ColorFilter, Paint, Path};
 pub mod event;
 pub use event::{NamuiEvent, UpdateOnEvent};
 mod render;
+pub use self::manager::managers;
 pub use self::manager::Code;
-use self::manager::Managers;
 use self::render::WheelEvent;
 use self::{
     font::*,
@@ -36,17 +38,17 @@ pub mod animation;
 pub mod math;
 pub use lazy_static::lazy_static;
 
-#[cfg(not(test))]
+// #[cfg(not(test))]
 #[cfg(target_family = "wasm")]
 mod namui_web;
-#[cfg(not(test))]
+// #[cfg(not(test))]
 #[cfg(target_family = "wasm")]
 pub use self::namui_web::*;
 
-#[cfg(test)]
-mod namui_mock;
-#[cfg(test)]
-pub use self::namui_mock::*;
+// #[cfg(test)]
+// mod namui_mock;
+// #[cfg(test)]
+// pub use self::namui_mock::*;
 
 pub trait Entity {
     type Props;
@@ -100,6 +102,12 @@ pub async fn start<TProps>(
                 }
             }
             Some(NamuiEvent::MouseDown(raw_mouse_event)) => {
+                {
+                    let mut managers = managers();
+                    managers
+                        .text_input_manager
+                        .on_mouse_down(&namui_context, &raw_mouse_event);
+                }
                 namui_context
                     .rendering_tree
                     .call_mouse_event(MouseEventType::Down, raw_mouse_event);
@@ -107,6 +115,11 @@ pub async fn start<TProps>(
                 namui_context.rendering_tree = state.render(props);
             }
             Some(NamuiEvent::MouseUp(raw_mouse_event)) => {
+                // {
+                //     managers()
+                //     .text_input_manager
+                //     .on_mouse_up(&namui_context, &raw_mouse_event);
+                // }
                 namui_context
                     .rendering_tree
                     .call_mouse_event(MouseEventType::Up, raw_mouse_event);
@@ -114,6 +127,11 @@ pub async fn start<TProps>(
                 namui_context.rendering_tree = state.render(props);
             }
             Some(NamuiEvent::MouseMove(raw_mouse_event)) => {
+                // {
+                //     managers()
+                //     .text_input_manager
+                //     .on_mouse_move(&namui_context, &raw_mouse_event);
+                // }
                 namui_context
                     .rendering_tree
                     .call_mouse_event(MouseEventType::Move, raw_mouse_event);
@@ -143,7 +161,8 @@ pub async fn start<TProps>(
 }
 
 fn set_mouse_cursor(rendering_tree: &RenderingTree) {
-    let mouse_manager = &managers().mouse_manager;
+    let managers = managers();
+    let mouse_manager = managers.mouse_manager;
     let mouse_xy = mouse_manager.mouse_position();
 
     let cursor = rendering_tree
@@ -157,7 +176,8 @@ fn set_mouse_cursor(rendering_tree: &RenderingTree) {
 }
 
 async fn init_font(namui_context: &mut NamuiContext) {
-    let font_manager = &mut *managers().font_manager;
+    let mut managers = managers();
+    let font_manager = &mut managers.font_manager;
     let typeface_manager = &mut font_manager.typeface_manager;
 
     match load_all_fonts(namui_context, typeface_manager).await {
@@ -195,10 +215,6 @@ fn update_fps_info(fps_info: &mut FpsInfo) {
 
 pub fn state() -> Arc<NamuiState> {
     get_namui_state()
-}
-
-pub fn managers() -> std::sync::MutexGuard<'static, Managers> {
-    get_managers()
 }
 
 pub fn log(format: String) {

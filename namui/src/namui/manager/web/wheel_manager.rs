@@ -1,6 +1,5 @@
-use crate::namui::{self, namui_state::NamuiState, NamuiInternal, Xy};
+use crate::namui::{self, Xy};
 use wasm_bindgen::{prelude::Closure, JsCast};
-use web_sys::HtmlElement;
 
 pub struct WheelManager {}
 

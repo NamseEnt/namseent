@@ -1,8 +1,9 @@
-use std::borrow::Borrow;
-
 use super::*;
 use crate::namui::{ClipOp, DrawCall, NamuiContext, Xy, *};
+use mockall::automock;
 use serde::Serialize;
+use std::{borrow::Borrow, collections::VecDeque, ops::ControlFlow};
+mod visit;
 
 #[derive(Serialize, Default, Clone, Debug)]
 pub struct RenderingData {
@@ -17,7 +18,7 @@ pub enum RenderingTree {
 }
 
 impl SpecialRenderingNode {
-    fn get_rendering_tree(&self) -> &RenderingTree {
+    fn get_child(&self) -> &RenderingTree {
         match self {
             SpecialRenderingNode::Translate(node) => &node.rendering_tree,
             SpecialRenderingNode::Clip(node) => &node.rendering_tree,
@@ -26,6 +27,7 @@ impl SpecialRenderingNode {
             SpecialRenderingNode::WithId(node) => &node.rendering_tree,
             SpecialRenderingNode::Absolute(node) => &node.rendering_tree,
             SpecialRenderingNode::Rotate(node) => &node.rendering_tree,
+            SpecialRenderingNode::Custom(node) => &node.rendering_tree,
         }
     }
 }
@@ -98,28 +100,14 @@ impl RenderingTree {
                     canvas.rotate(-rotate.ccw_radian);
                 }
                 _ => {
-                    special.get_rendering_tree().draw(namui_context);
+                    special.get_child().draw(namui_context);
                 }
             },
             RenderingTree::Empty => {}
         }
     }
-    pub fn visit_rln(&self, callback: &dyn Fn(&Self)) {
-        match self {
-            RenderingTree::Children(ref children) => {
-                children.iter().rev().for_each(|child| {
-                    child.visit_rln(callback);
-                });
-            }
-            RenderingTree::Special(special) => {
-                special.get_rendering_tree().visit_rln(callback);
-            }
-            _ => {}
-        }
-        callback(self);
-    }
     pub fn call_wheel_event(&self, wheel_event: &WheelEvent) {
-        self.visit_rln(&|node| {
+        self.visit_rln(|node, _| {
             if let RenderingTree::Special(special) = node {
                 if let SpecialRenderingNode::AttachEvent(attach_event) = special {
                     // NOTE : Should i check if the mouse is in the attach_event?
@@ -128,6 +116,7 @@ impl RenderingTree {
                     }
                 }
             }
+            ControlFlow::Continue(())
         });
     }
     pub fn get_mouse_cursor(&self, xy: &Xy<f32>) -> Option<MouseCursor> {
@@ -196,7 +185,7 @@ impl RenderingTree {
                         .get_mouse_cursor_with_matrix(&xy, &matrix)
                 }
                 _ => special
-                    .get_rendering_tree()
+                    .get_child()
                     .get_mouse_cursor_with_matrix(&xy, &matrix),
             },
             _ => None,
@@ -307,7 +296,7 @@ impl RenderingTree {
                     );
                 }
                 _ => {
-                    special.get_rendering_tree().call_mouse_event_impl(
+                    special.get_child().call_mouse_event_impl(
                         mouse_event_type,
                         raw_mouse_event,
                         xy,
@@ -362,7 +351,7 @@ impl RenderingTree {
 
                     rotate.rendering_tree.is_point_in(&xy, &matrix)
                 }
-                _ => special.get_rendering_tree().is_point_in(&xy, &matrix),
+                _ => special.get_child().is_point_in(&xy, &matrix),
             },
             RenderingTree::Empty => false,
         }
@@ -403,7 +392,7 @@ impl RenderingTree {
                                 is_exit: false,
                             })
                         } else {
-                            get_xy_with_exit_button(special.get_rendering_tree(), id)
+                            get_xy_with_exit_button(special.get_child(), id)
                         }
                     }
                     SpecialRenderingNode::Absolute(absolute) => {
@@ -430,7 +419,7 @@ impl RenderingTree {
                             result
                         })
                     }
-                    _ => get_xy_with_exit_button(special.get_rendering_tree(), id),
+                    _ => get_xy_with_exit_button(special.get_child(), id),
                 },
                 _ => None,
             }
@@ -561,7 +550,7 @@ impl RenderingTree {
                         )
                     }
                     _ => get_bounding_box_with_matrix_of_rendering_trees(
-                        [special.get_rendering_tree()],
+                        [special.get_child()],
                         &matrix,
                     ),
                 },

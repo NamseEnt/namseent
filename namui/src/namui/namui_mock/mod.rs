@@ -62,6 +62,7 @@ impl NamuiImpl for Namui {
                 screen_manager: Box::new(ScreenManager::new()),
                 image_manager: ImageManager::new(),
                 wheel_manager: Box::new(WheelManager::new()),
+                text_input_manager: Box::new(TextInputManager::new()),
             }))
             .is_err()
         {
