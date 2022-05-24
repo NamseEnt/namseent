@@ -3,6 +3,7 @@ use std::{hash::Hash, sync::Arc};
 
 unsafe impl Sync for CanvasKitTypeface {}
 unsafe impl Send for CanvasKitTypeface {}
+#[derive(Clone)]
 pub struct Typeface {
     pub id: u64,
     pub canvas_kit_typeface: Arc<CanvasKitTypeface>,

@@ -15,7 +15,7 @@ type TypefaceFileUrlsFile = HashMap<Language, HashMap<FontWeight, String>>;
 
 pub async fn load_all_fonts(
     namui_context: &mut NamuiContext,
-    typeface_manager: &mut TypefaceManager,
+    typeface_manager: &TypefaceManager,
 ) -> Result<(), String> {
     join!(
         load_fallback_font_typefaces(namui_context),
@@ -41,7 +41,7 @@ async fn get_noto_color_emoji_typeface() -> Result<Typeface, String> {
 }
 
 pub async fn load_sans_typeface_of_all_languages(
-    typeface_manager: &mut TypefaceManager,
+    typeface_manager: &TypefaceManager,
 ) -> Result<(), String> {
     let typeface_file_urls: TypefaceFileUrls = get_typeface_file_urls().await?;
 
