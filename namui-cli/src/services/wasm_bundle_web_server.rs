@@ -247,7 +247,7 @@ fn json_response(json_string: String) -> Result<reply::Response, warp::Rejection
     let mut response = reply::Response::new(Body::from(json_string));
     response.headers_mut().insert(
         CONTENT_TYPE,
-        HeaderValue::from_static("text/html; charset=utf-8"),
+        HeaderValue::from_static("application/json; charset=utf-8"),
     );
     Ok(response)
 }
