@@ -56,4 +56,6 @@ features = [
     "Response",
     "Crypto",
     "CssStyleDeclaration",
+    "HtmlInputElement",
+    "InputEvent",
 ]

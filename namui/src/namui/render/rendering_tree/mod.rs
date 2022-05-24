@@ -26,6 +26,7 @@ impl SpecialRenderingNode {
             SpecialRenderingNode::WithId(node) => &node.rendering_tree,
             SpecialRenderingNode::Absolute(node) => &node.rendering_tree,
             SpecialRenderingNode::Rotate(node) => &node.rendering_tree,
+            SpecialRenderingNode::Custom(node) => &node.rendering_tree,
         }
     }
 }

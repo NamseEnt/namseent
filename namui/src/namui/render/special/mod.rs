@@ -12,6 +12,8 @@ pub mod absolute;
 pub use absolute::*;
 pub mod rotate;
 pub use rotate::*;
+pub mod custom;
+pub use custom::*;
 use serde::Serialize;
 
 #[derive(Serialize, Clone, Debug)]
@@ -23,4 +25,5 @@ pub enum SpecialRenderingNode {
     WithId(WithIdNode),
     Absolute(AbsoluteNode),
     Rotate(RotateNode),
+    Custom(CustomNode),
 }

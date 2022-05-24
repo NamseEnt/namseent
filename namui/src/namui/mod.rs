@@ -2,16 +2,15 @@ mod common;
 pub(crate) mod draw;
 mod font;
 mod manager;
-use std::any::Any;
-use std::{sync::Arc, time::Duration};
+use std::{any::Any, sync::Arc, time::Duration};
 mod namui_state;
 mod skia;
 pub use common::*;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
 pub use render::{
-    absolute, clip, image::*, path::*, rect::*, rotate, text::*, text_input_event, translate,
-    types::*, ImageSource, MouseCursor, MouseEvent, MouseEventCallback, MouseEventType,
-    RenderingData, RenderingTree, TextInput, WheelEventCallback,
+    absolute, clip, image::*, path::*, rect::*, rotate, text::*, text_input, translate, types::*,
+    ImageSource, MouseCursor, MouseEvent, MouseEventCallback, MouseEventType, RenderingData,
+    RenderingTree, TextInput, WheelEventCallback,
 };
 pub use skia::{
     types::{ClipOp, Color, PaintStyle, StrokeJoin},
@@ -21,8 +20,7 @@ pub(crate) use skia::{ColorFilter, Paint, Path};
 pub mod event;
 pub use event::NamuiEvent;
 mod render;
-pub use self::manager::managers;
-pub use self::manager::Code;
+pub use self::manager::{managers, Code};
 use self::render::WheelEvent;
 use self::{
     font::*,
@@ -93,6 +91,12 @@ pub async fn start<TProps>(
                 }
             }
             Some(NamuiEvent::MouseDown(raw_mouse_event)) => {
+                {
+                    let managers = managers();
+                    managers
+                        .text_input_manager
+                        .on_mouse_down(&namui_context, &raw_mouse_event);
+                }
                 namui_context
                     .rendering_tree
                     .call_mouse_event(MouseEventType::Down, raw_mouse_event);
@@ -100,6 +104,12 @@ pub async fn start<TProps>(
                 namui_context.rendering_tree = state.render(props);
             }
             Some(NamuiEvent::MouseUp(raw_mouse_event)) => {
+                {
+                    let managers = managers();
+                    managers
+                        .text_input_manager
+                        .on_mouse_up(&namui_context, &raw_mouse_event);
+                }
                 namui_context
                     .rendering_tree
                     .call_mouse_event(MouseEventType::Up, raw_mouse_event);
@@ -107,6 +117,12 @@ pub async fn start<TProps>(
                 namui_context.rendering_tree = state.render(props);
             }
             Some(NamuiEvent::MouseMove(raw_mouse_event)) => {
+                {
+                    let managers = managers();
+                    managers
+                        .text_input_manager
+                        .on_mouse_move(&namui_context, &raw_mouse_event);
+                }
                 namui_context
                     .rendering_tree
                     .call_mouse_event(MouseEventType::Move, raw_mouse_event);
@@ -136,7 +152,8 @@ pub async fn start<TProps>(
 }
 
 fn set_mouse_cursor(rendering_tree: &RenderingTree) {
-    let mouse_manager = &managers().mouse_manager;
+    let managers = managers();
+    let mouse_manager = &managers.mouse_manager;
     let mouse_xy = mouse_manager.mouse_position();
 
     let cursor = rendering_tree

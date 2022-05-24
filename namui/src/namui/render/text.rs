@@ -27,6 +27,7 @@ pub struct TextStyle {
     pub background: Option<TextStyleBackground>,
 }
 
+#[derive(Clone, Debug)]
 pub struct TextParam {
     pub text: String,
     pub x: f32,
@@ -48,7 +49,7 @@ pub fn text(param: TextParam) -> RenderingTree {
             RenderingTree::Empty
         }
         Some(font) => {
-            render![
+            crate::render![
                 draw_background(&param, font.as_ref()),
                 namui::RenderingData {
                     draw_calls: vec![namui::DrawCall {
