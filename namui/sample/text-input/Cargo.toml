@@ -10,3 +10,6 @@ crate-type = ["cdylib", "rlib"]
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 namui = { path = "../.." }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.2"
