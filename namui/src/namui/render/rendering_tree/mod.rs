@@ -1,8 +1,8 @@
-use std::borrow::Borrow;
-
 use super::*;
 use crate::namui::{ClipOp, DrawCall, NamuiContext, Xy, *};
 use serde::Serialize;
+use std::{borrow::Borrow, ops::ControlFlow};
+mod visit;
 
 #[derive(Serialize, Default, Clone, Debug)]
 pub struct RenderingData {
@@ -104,22 +104,8 @@ impl RenderingTree {
             RenderingTree::Empty => {}
         }
     }
-    pub fn visit_rln(&self, callback: &dyn Fn(&Self)) {
-        match self {
-            RenderingTree::Children(ref children) => {
-                children.iter().rev().for_each(|child| {
-                    child.visit_rln(callback);
-                });
-            }
-            RenderingTree::Special(special) => {
-                special.get_rendering_tree().visit_rln(callback);
-            }
-            _ => {}
-        }
-        callback(self);
-    }
     pub fn call_wheel_event(&self, wheel_event: &WheelEvent) {
-        self.visit_rln(&|node| {
+        self.visit_rln(|node, _| {
             if let RenderingTree::Special(special) = node {
                 if let SpecialRenderingNode::AttachEvent(attach_event) = special {
                     // NOTE : Should i check if the mouse is in the attach_event?
@@ -128,314 +114,102 @@ impl RenderingTree {
                     }
                 }
             }
+            ControlFlow::Continue(())
         });
     }
     pub fn get_mouse_cursor(&self, xy: &Xy<f32>) -> Option<MouseCursor> {
-        let matrix = Matrix3x3::identity();
-        self.get_mouse_cursor_with_matrix(&xy, &matrix)
-    }
-    fn get_mouse_cursor_with_matrix(
-        &self,
-        xy: &Xy<f32>,
-        matrix: &Matrix3x3,
-    ) -> Option<MouseCursor> {
-        match self {
-            RenderingTree::Children(ref children) => children
-                .iter()
-                .rev()
-                .find_map(|child| child.get_mouse_cursor_with_matrix(xy, &matrix)),
-            RenderingTree::Special(special) => match special {
-                SpecialRenderingNode::Translate(translate) => {
-                    let translation_matrix = Matrix3x3::from_slice(&[
-                        [1.0, 0.0, -translate.x],
-                        [0.0, 1.0, -translate.y],
-                        [0.0, 0.0, 1.0],
-                    ]);
-                    let matrix = matrix * translation_matrix;
-
-                    translate
-                        .rendering_tree
-                        .get_mouse_cursor_with_matrix(&xy, &matrix)
-                }
-                SpecialRenderingNode::Clip(clip) => {
-                    let transformed_xy = matrix.transform_xy(&xy);
-                    let is_path_contains = clip.path_builder.build().contains(&transformed_xy);
-                    let is_xy_filtered = match clip.clip_op {
-                        ClipOp::Intersect => !is_path_contains,
-                        ClipOp::Difference => is_path_contains,
-                    };
-                    if is_xy_filtered {
-                        None
-                    } else {
-                        clip.rendering_tree
-                            .get_mouse_cursor_with_matrix(&xy, &matrix)
+        let mut result = None;
+        self.visit_rln(|node, utils| {
+            match node {
+                RenderingTree::Special(special) => match special {
+                    SpecialRenderingNode::MouseCursor(mouse_cursor) => {
+                        if utils.is_xy_in(xy) {
+                            result = Some(mouse_cursor.cursor);
+                            return ControlFlow::Break(());
+                        }
                     }
-                }
-                SpecialRenderingNode::MouseCursor(mouse_cursor) => mouse_cursor
-                    .rendering_tree
-                    .get_mouse_cursor_with_matrix(&xy, &matrix)
-                    .or(mouse_cursor
-                        .rendering_tree
-                        .is_point_in(&xy, &matrix)
-                        .then(|| mouse_cursor.cursor)),
-                SpecialRenderingNode::Absolute(absolute) => {
-                    let matrix = Matrix3x3::from_slice(&[
-                        [1.0, 0.0, -absolute.x],
-                        [0.0, 1.0, -absolute.y],
-                        [0.0, 0.0, 1.0],
-                    ]);
-                    absolute
-                        .rendering_tree
-                        .get_mouse_cursor_with_matrix(&xy, &matrix)
-                }
-                SpecialRenderingNode::Rotate(rotate) => {
-                    let matrix = matrix * rotate.get_counter_wise_matrix();
-
-                    rotate
-                        .rendering_tree
-                        .get_mouse_cursor_with_matrix(&xy, &matrix)
-                }
-                _ => special
-                    .get_rendering_tree()
-                    .get_mouse_cursor_with_matrix(&xy, &matrix),
-            },
-            _ => None,
-        }
+                    _ => {}
+                },
+                _ => {}
+            };
+            ControlFlow::Continue(())
+        });
+        result
     }
     pub fn call_mouse_event(
         &self,
         mouse_event_type: MouseEventType,
         raw_mouse_event: &RawMouseEvent,
     ) {
-        self.call_mouse_event_impl(
-            &mouse_event_type,
-            raw_mouse_event,
-            &raw_mouse_event.xy,
-            &Matrix3x3::identity(),
-        );
-    }
-    fn call_mouse_event_impl(
-        &self,
-        mouse_event_type: &MouseEventType,
-        raw_mouse_event: &RawMouseEvent,
-        xy: &Xy<f32>,
-        matrix: &Matrix3x3,
-    ) {
-        match self {
-            RenderingTree::Children(ref children) => {
-                children.iter().rev().for_each(|child| {
-                    child.call_mouse_event_impl(mouse_event_type, raw_mouse_event, xy, matrix);
-                });
-            }
-            RenderingTree::Special(special) => match special {
-                SpecialRenderingNode::Translate(translate) => {
-                    let translation_matrix = Matrix3x3::from_slice(&[
-                        [1.0, 0.0, -translate.x],
-                        [0.0, 1.0, -translate.y],
-                        [0.0, 0.0, 1.0],
-                    ]);
-                    let matrix = translation_matrix * matrix;
-                    translate.rendering_tree.call_mouse_event_impl(
-                        mouse_event_type,
-                        raw_mouse_event,
-                        &xy,
-                        &matrix,
-                    );
-                }
-                SpecialRenderingNode::Clip(clip) => {
-                    let transformed_xy = matrix.transform_xy(&xy);
-                    let is_path_contains = clip.path_builder.build().contains(&transformed_xy);
-                    let is_xy_filtered = match clip.clip_op {
-                        ClipOp::Intersect => !is_path_contains,
-                        ClipOp::Difference => is_path_contains,
-                    };
-                    if !is_xy_filtered {
-                        clip.rendering_tree.call_mouse_event_impl(
-                            mouse_event_type,
-                            raw_mouse_event,
-                            xy,
-                            matrix,
-                        );
-                    }
-                }
-                SpecialRenderingNode::AttachEvent(attach_event) => {
-                    attach_event.rendering_tree.call_mouse_event_impl(
-                        mouse_event_type,
-                        raw_mouse_event,
-                        xy,
-                        matrix,
-                    );
-
-                    let func = match mouse_event_type {
-                        MouseEventType::Move => &attach_event.on_mouse_move_in,
-                        MouseEventType::Down => &attach_event.on_mouse_down,
-                        MouseEventType::Up => &attach_event.on_mouse_up,
-                    };
-                    if let Some(func) = func {
-                        if attach_event.rendering_tree.is_point_in(&xy, matrix) {
-                            func(&MouseEvent {
-                                id: raw_mouse_event.id.clone(),
-                                global_xy: raw_mouse_event.xy,
-                                local_xy: matrix.transform_xy(&xy),
-                                pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
-                                button: raw_mouse_event.button,
-                            });
-                        }
-                    }
-                }
-                SpecialRenderingNode::Absolute(absolute) => {
-                    let matrix = Matrix3x3::from_slice(&[
-                        [1.0, 0.0, -absolute.x],
-                        [0.0, 1.0, -absolute.y],
-                        [0.0, 0.0, 1.0],
-                    ]);
-                    absolute.rendering_tree.call_mouse_event_impl(
-                        mouse_event_type,
-                        raw_mouse_event,
-                        &xy,
-                        &matrix,
-                    );
-                }
-                SpecialRenderingNode::Rotate(rotate) => {
-                    let matrix = matrix * rotate.get_counter_wise_matrix();
-
-                    rotate.rendering_tree.call_mouse_event_impl(
-                        mouse_event_type,
-                        raw_mouse_event,
-                        &xy,
-                        &matrix,
-                    );
-                }
-                _ => {
-                    special.get_rendering_tree().call_mouse_event_impl(
-                        mouse_event_type,
-                        raw_mouse_event,
-                        xy,
-                        matrix,
-                    );
-                }
-            },
-            _ => {}
-        }
-    }
-
-    // NOTE: matrix is reversed to keep xy in same.
-    fn is_point_in(&self, xy: &Xy<f32>, matrix: &Matrix3x3) -> bool {
-        match self {
-            RenderingTree::Children(ref children) => {
-                children.iter().any(|child| child.is_point_in(xy, matrix))
-            }
-            RenderingTree::Node(rendering_data) => {
-                rendering_data.is_inside(&matrix.transform_xy(&xy))
-            }
-            RenderingTree::Special(special) => match special {
-                SpecialRenderingNode::Translate(translate) => {
-                    let translation_matrix = Matrix3x3::from_slice(&[
-                        [1.0, 0.0, -translate.x],
-                        [0.0, 1.0, -translate.y],
-                        [0.0, 0.0, 1.0],
-                    ]);
-                    let matrix = translation_matrix * matrix;
-                    translate.rendering_tree.is_point_in(&xy, &matrix)
-                }
-                SpecialRenderingNode::Clip(clip) => {
-                    let is_path_contains = clip
-                        .path_builder
-                        .build()
-                        .contains(&matrix.transform_xy(&xy));
-                    let is_xy_filtered = match clip.clip_op {
-                        ClipOp::Intersect => !is_path_contains,
-                        ClipOp::Difference => is_path_contains,
-                    };
-                    !is_xy_filtered && clip.rendering_tree.is_point_in(xy, matrix)
-                }
-                SpecialRenderingNode::Absolute(absolute) => {
-                    let matrix = Matrix3x3::from_slice(&[
-                        [1.0, 0.0, -absolute.x],
-                        [0.0, 1.0, -absolute.y],
-                        [0.0, 0.0, 1.0],
-                    ]);
-                    absolute.rendering_tree.is_point_in(&xy, &matrix)
-                }
-                SpecialRenderingNode::Rotate(rotate) => {
-                    let matrix = matrix * rotate.get_counter_wise_matrix();
-
-                    rotate.rendering_tree.is_point_in(&xy, &matrix)
-                }
-                _ => special.get_rendering_tree().is_point_in(&xy, &matrix),
-            },
-            RenderingTree::Empty => false,
-        }
-    }
-
-    pub(crate) fn get_xy(&self, id: &str) -> Option<Xy<f32>> {
-        struct XyWithExitButton {
-            xy: Xy<f32>,
-            is_exit: bool,
-        }
-        fn get_xy_with_exit_button(
-            rendering_tree: &RenderingTree,
-            id: &str,
-        ) -> Option<XyWithExitButton> {
-            match rendering_tree {
-                RenderingTree::Children(ref children) => children
-                    .iter()
-                    .rev()
-                    .find_map(|child| get_xy_with_exit_button(child, id)),
+        self.visit_rln(|node, utils| {
+            match node {
                 RenderingTree::Special(special) => match special {
-                    SpecialRenderingNode::Translate(translate) => {
-                        let next_xy = Xy {
-                            x: translate.x,
-                            y: translate.y,
+                    SpecialRenderingNode::AttachEvent(attach_event) => {
+                        let func = match mouse_event_type {
+                            MouseEventType::Move => &attach_event.on_mouse_move_in,
+                            MouseEventType::Down => &attach_event.on_mouse_down,
+                            MouseEventType::Up => &attach_event.on_mouse_up,
                         };
-
-                        get_xy_with_exit_button(&translate.rendering_tree, id).map(|mut result| {
-                            if !result.is_exit {
-                                result.xy = result.xy + next_xy;
+                        if let Some(func) = func {
+                            if utils.is_xy_in(&raw_mouse_event.xy) {
+                                func(&MouseEvent {
+                                    id: raw_mouse_event.id.clone(),
+                                    global_xy: raw_mouse_event.xy,
+                                    local_xy: utils.to_local_xy(&raw_mouse_event.xy),
+                                    pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
+                                    button: raw_mouse_event.button,
+                                });
                             }
-                            result
-                        })
-                    }
-                    SpecialRenderingNode::WithId(with_id) => {
-                        if with_id.id == id {
-                            Some(XyWithExitButton {
-                                xy: Xy { x: 0.0, y: 0.0 },
-                                is_exit: false,
-                            })
-                        } else {
-                            get_xy_with_exit_button(special.get_rendering_tree(), id)
                         }
                     }
-                    SpecialRenderingNode::Absolute(absolute) => {
-                        let next_xy = Xy {
-                            x: absolute.x,
-                            y: absolute.y,
-                        };
-
-                        get_xy_with_exit_button(&absolute.rendering_tree, id).map(|mut result| {
-                            if !result.is_exit {
-                                result.is_exit = true;
-                                result.xy = result.xy + next_xy;
-                            }
-                            result
-                        })
-                    }
-                    SpecialRenderingNode::Rotate(rotate) => {
-                        let matrix = rotate.get_matrix();
-
-                        get_xy_with_exit_button(&rotate.rendering_tree, id).map(|mut result| {
-                            if !result.is_exit {
-                                result.xy = matrix.transform_xy(&result.xy);
-                            }
-                            result
-                        })
-                    }
-                    _ => get_xy_with_exit_button(special.get_rendering_tree(), id),
+                    _ => {}
                 },
-                _ => None,
-            }
-        }
-        get_xy_with_exit_button(self, id).map(|result| result.xy)
+                _ => {}
+            };
+            ControlFlow::Continue(())
+        });
+    }
+    pub(crate) fn get_xy(&self, id: &str) -> Option<Xy<f32>> {
+        let mut result = None;
+        self.visit_rln(|node, utils| {
+            match node {
+                RenderingTree::Special(special) => match special {
+                    SpecialRenderingNode::WithId(width_id) => {
+                        if width_id.id == id {
+                            utils.with_ancestors(|ancestors| {
+                                let mut xy = Xy { x: 0.0, y: 0.0 };
+                                for ancestor in ancestors.iter().rev() {
+                                    if let RenderingTree::Special(special) = ancestor {
+                                        match special {
+                                            SpecialRenderingNode::Translate(translate) => {
+                                                xy.x += translate.x;
+                                                xy.y += translate.y;
+                                            }
+                                            SpecialRenderingNode::Absolute(absolute) => {
+                                                xy.x += absolute.x;
+                                                xy.y += absolute.y;
+                                                break;
+                                            }
+                                            SpecialRenderingNode::Rotate(rotate) => {
+                                                let matrix = rotate.get_matrix();
+                                                xy = matrix.transform_xy(&xy);
+                                            }
+                                            _ => {}
+                                        }
+                                    }
+                                }
+                                result = Some(xy);
+                            });
+                            return ControlFlow::Break(());
+                        }
+                    }
+                    _ => {}
+                },
+                _ => {}
+            };
+            ControlFlow::Continue(())
+        });
+        result
     }
     pub fn get_bounding_box(&self) -> Option<XywhRect<f32>> {
         fn get_bounding_box_with_matrix(
@@ -581,15 +355,6 @@ impl RenderingTree {
 }
 
 impl RenderingData {
-    fn is_inside(&self, local_xy: &Xy<f32>) -> bool {
-        self.draw_calls.iter().any(|draw_call| {
-            draw_call
-                .commands
-                .iter()
-                .any(|draw_command| draw_command.is_inside(local_xy))
-        })
-    }
-
     fn get_bounding_box(&self) -> Option<LtrbRect> {
         self.draw_calls
             .iter()
