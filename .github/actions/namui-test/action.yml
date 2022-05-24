@@ -20,13 +20,12 @@ runs:
       shell: bash
       run: time namui test ${{ inputs.target }} -m ${{ inputs.path }}/Cargo.toml
 
-    - name: Check up to date Cargo.lock checked
-      uses: technote-space/get-diff-action@v6
-      with:
-        FILES: |
-          Cargo.lock
-
-    - name: Confirm Cargo.lock
-      if: env.GIT_DIFF
+    - name: Did you push Cargo.lock
       shell: bash
-      run: printf "::error::File change detected. If it's Cargo.lock, you should add it into git\n" && git diff --name-only && exit 1
+      run: |
+        if [[ $(git diff --name-only) ]]; then
+            echo "::error::File change detected. If it's Cargo.lock, you should add it into git"
+            exit 1
+        else
+            echo "Good. Cargo.lock is up to date (or it ignored by gitignore)"
+        fi
