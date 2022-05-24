@@ -2,16 +2,16 @@ mod common;
 pub(crate) mod draw;
 mod font;
 mod manager;
-use std::{any::Any, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 mod namui_state;
 mod skia;
 pub use common::*;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
 use futures::future::join;
 pub use render::{
-    absolute, clip, image::*, path::*, rect::*, rotate, text::*, text_input, translate, types::*,
-    ImageSource, MouseCursor, MouseEvent, MouseEventCallback, MouseEventType, RenderingData,
-    RenderingTree, TextInput, WheelEventCallback,
+    absolute, clip, image::*, path::*, rect::*, rotate, scale, text::*, text_input, translate,
+    types::*, ImageSource, MouseCursor, MouseEvent, MouseEventCallback, MouseEventType,
+    RenderingData, RenderingTree, TextInput, WheelEventCallback,
 };
 pub use skia::{
     types::{ClipOp, Color, PaintStyle, StrokeJoin},
@@ -19,7 +19,7 @@ pub use skia::{
 };
 pub(crate) use skia::{ColorFilter, Paint, Path};
 pub mod event;
-pub use event::NamuiEvent;
+pub use event::{NamuiEvent, UpdateOnEvent};
 mod render;
 pub use self::manager::{managers, Code};
 use self::render::WheelEvent;
@@ -32,7 +32,9 @@ pub use self::random::*;
 pub mod screen;
 pub use namui_cfg::*;
 pub mod fs;
+pub mod animation;
 pub mod math;
+pub use lazy_static::lazy_static;
 
 #[cfg(not(test))]
 #[cfg(target_family = "wasm")]
@@ -48,8 +50,13 @@ pub use self::namui_mock::*;
 
 pub trait Entity {
     type Props;
-    fn update(&mut self, event: &dyn Any);
     fn render(&self, props: &Self::Props) -> RenderingTree;
+    fn update(&mut self, event: &dyn std::any::Any);
+}
+impl<T> crate::event::UpdateOnEvent for dyn Entity<Props = T> {
+    fn update(&mut self, event: &dyn std::any::Any) {
+        self.update(event);
+    }
 }
 
 pub fn init() -> NamuiContext {

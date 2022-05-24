@@ -88,6 +88,14 @@ impl RenderingTree {
                     SpecialRenderingNode::Rotate(rotate) => {
                         matrix = matrix * rotate.get_counter_wise_matrix();
                     }
+                    SpecialRenderingNode::Scale(scale) => {
+                        let scale_matrix = Matrix3x3::from_slice(&[
+                            [-scale.x, 0.0, 0.0],
+                            [0.0, -scale.y, 0.0],
+                            [0.0, 0.0, 1.0],
+                        ]);
+                        matrix = scale_matrix * matrix;
+                    }
                     _ => {}
                 },
                 _ => {}
@@ -244,6 +252,12 @@ impl RenderingTree {
                             height: bottom - top,
                         };
                     }
+                    SpecialRenderingNode::Scale(scale) => {
+                        bounding_box.x *= scale.x;
+                        bounding_box.y *= scale.y;
+                        bounding_box.width *= scale.x;
+                        bounding_box.height *= scale.y;
+                    }
                     _ => {}
                 },
                 _ => {}
@@ -268,6 +282,10 @@ impl RenderingTree {
                     SpecialRenderingNode::Rotate(rotate) => {
                         let matrix = rotate.get_matrix();
                         xy = matrix.transform_xy(&xy);
+                    }
+                    SpecialRenderingNode::Scale(scale) => {
+                        xy.x *= scale.x;
+                        xy.y *= scale.y;
                     }
                     _ => {}
                 }
@@ -321,14 +339,18 @@ mod tests {
     fn to_local_xy_should_work() {
         /*
             tree:
-                 0
-               /   \
-              1     2
-             / \   / \
-            3   4 5   6
-                   \   \
-                    7   8
+                   0
+                 /   \
+                1     2
+               / \   / \
+              3   4 5   6
+             /       \   \
+            9         7   8
+            |
+            10
         */
+        let node_10 = crate::translate(20.0, 20.0, RenderingTree::Empty.with_id("10"));
+        let node_9 = crate::scale(2.0, 2.0, RenderingTree::Empty.with_id("9"));
         let node_8 = crate::translate(20.0, 20.0, RenderingTree::Empty.with_id("8"));
         let node_7 = crate::translate(20.0, 20.0, RenderingTree::Empty.with_id("7"));
         let node_6 = crate::absolute(
@@ -391,6 +413,14 @@ mod tests {
                         "8" => {
                             assert_approx_eq!(f32, local_xy.x, -110.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y, -110.0, ulps = 2);
+                        }
+                        "9" => {
+                            assert_approx_eq!(f32, local_xy.x, -180.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y, -380.0, ulps = 2);
+                        }
+                        "10" => {
+                            assert_approx_eq!(f32, local_xy.x, -200.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y, -400.0, ulps = 2);
                         }
                         _ => {}
                     }

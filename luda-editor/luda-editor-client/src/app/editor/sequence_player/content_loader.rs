@@ -11,42 +11,24 @@ enum LoadingContent {
 }
 
 impl ContentLoader {
-    pub(super) fn new(
-        sequence: Arc<Sequence>,
-        camera_angle_image_loader: &dyn CameraAngleImageLoader,
-    ) -> Self {
+    pub(super) fn new(sequence: Arc<Sequence>) -> Self {
         let mut loader = Self {
             sequence,
             loading_contents: Mutex::new(LinkedList::new()),
         };
 
-        loader.start_loading(camera_angle_image_loader);
+        loader.start_loading();
 
         loader
     }
-    fn start_loading(&mut self, camera_angle_image_loader: &dyn CameraAngleImageLoader) {
+    fn start_loading(&mut self) {
         let managers = namui::managers();
         let mut loading_contents = self.loading_contents.lock().unwrap();
         for track in self.sequence.tracks.iter() {
             match track.as_ref() {
                 Track::Camera(camera_track) => {
                     for clip in camera_track.clips.iter() {
-                        match clip.camera_angle.character.as_ref() {
-                            None => continue,
-                            Some(character) => {
-                                let image_source = camera_angle_image_loader
-                                    .get_character_image_source(&character);
-
-                                match image_source {
-                                    namui::ImageSource::Url(url) => {
-                                        if managers.image_manager.try_load(&url).is_none() {
-                                            loading_contents.push_back(LoadingContent::Image(url));
-                                        }
-                                    }
-                                    _ => {}
-                                }
-                            }
-                        }
+                        // TODO
                     }
                 }
                 Track::Subtitle(_) => {

@@ -17,6 +17,10 @@ pub fn send(event: impl Any + Send + Sync) {
     EVENT_SENDER.get().unwrap().send(Box::new(event)).unwrap();
 }
 
+pub trait UpdateOnEvent {
+    fn update(&mut self, event: &dyn std::any::Any);
+}
+
 pub enum NamuiEvent {
     AnimationFrame,
     MouseDown(RawMouseEvent),

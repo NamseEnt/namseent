@@ -540,13 +540,13 @@ extern "C" {
     // pub fn saveLayer(this: &CanvasKitCanvas, paint?: Paint, bounds?: InputRect | null, backdrop?: ImageFilter | null,
     //               flags?: SaveLayerFlag) -> number;
 
-    //     ///
-    //     /// Scales the current matrix by sx on the x-axis and sy on the y-axis.
-    //     /// @param sx
-    //     /// @param sy
-    //     ///
-    // #[wasm_bindgen(method)]
-    // pub fn scale(this: &CanvasKitCanvas, sx: number, sy: number);
+    ///
+    /// Scales the current matrix by sx on the x-axis and sy on the y-axis.
+    /// @param sx
+    /// @param sy
+    ///
+    #[wasm_bindgen(method)]
+    pub fn scale(this: &CanvasKitCanvas, sx: f32, sy: f32);
 
     //     ///
     //     ///  Skews Matrix by sx on the x-axis and sy on the y-axis. A positive value of sx

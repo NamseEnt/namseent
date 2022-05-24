@@ -374,6 +374,7 @@ dependencies = [
  "luda-editor-rpc",
  "mockall",
  "namui",
+ "namui-animation-editor",
  "num",
  "once_cell",
  "ordered-float",
@@ -432,6 +433,7 @@ dependencies = [
 name = "namui"
 version = "0.1.0"
 dependencies = [
+ "auto_ops",
  "bincode",
  "console_error_panic_hook",
  "dashmap",
@@ -456,12 +458,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "namui-animation-editor"
+version = "0.1.0"
+dependencies = [
+ "namui",
+ "namui-prebuilt",
+]
+
+[[package]]
 name = "namui-cfg"
 version = "0.1.0"
 dependencies = [
  "lazy_static",
  "namui-user-config",
  "rust_cfg_parser",
+]
+
+[[package]]
+name = "namui-prebuilt"
+version = "0.1.0"
+dependencies = [
+ "namui",
 ]
 
 [[package]]
