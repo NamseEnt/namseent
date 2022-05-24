@@ -2,6 +2,7 @@ use crate::{
     cli::Target,
     debug_println,
     services::{
+        bundle_metadata_service::BundleMetadataService,
         resource_collect_service::{CollectOperation, ResourceCollectService},
         rust_build_service::{BuildOption, BuildResult, RustBuildService},
     },
@@ -52,6 +53,10 @@ pub fn build(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         &PathBuf::from(""),
     ));
     resource_collect_service.collect_resources(ops)?;
+
+    let bundle_metadata_service = BundleMetadataService::new();
+    bundle_metadata_service.load_bundle_manifest(&project_root_path)?;
+    bundle_metadata_service.create_bundle_metadata_file(&release_path)?;
 
     overwrite_hot_reload_script_with_empty_file(&release_path)?;
 

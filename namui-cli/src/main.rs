@@ -1,6 +1,8 @@
 mod cli;
 mod procedures;
 mod services;
+#[cfg(test)]
+mod test;
 mod types;
 mod util;
 use clap::StructOpt;
