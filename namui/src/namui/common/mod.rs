@@ -62,9 +62,13 @@ pub fn render(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> Rende
     RenderingTree::Children(rendering_trees.into_iter().collect())
 }
 
+pub fn try_render(func: impl FnOnce() -> Option<RenderingTree>) -> RenderingTree {
+    func().unwrap_or(RenderingTree::Empty)
+}
+
 pub type Rendering = RenderingTree;
 
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq)]
 pub struct Wh<T> {
     pub width: T,
     pub height: T,

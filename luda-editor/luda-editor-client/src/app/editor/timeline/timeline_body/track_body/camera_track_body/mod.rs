@@ -49,11 +49,11 @@ impl CameraTrackBody {
                 let mut track = moving_clips.iter().fold(track, |track, moving_clip| {
                     track
                         .replace_clip(&moving_clip.id, |clip| {
-                            Ok(CameraClip {
-                                id: clip.id.clone(),
-                                start_at: moving_clip.start_at + delta_time,
-                                end_at: moving_clip.end_at + delta_time,
-                                camera_angle: clip.camera_angle.clone(),
+                            Ok({
+                                let mut new_clip = clip.clone();
+                                new_clip.start_at = moving_clip.start_at + delta_time;
+                                new_clip.end_at = moving_clip.end_at + delta_time;
+                                new_clip
                             })
                         })
                         .unwrap()
@@ -143,7 +143,7 @@ impl ResizableClip for CameraClip {
     }
 
     fn render(&self, wh: &Wh<f32>) -> RenderingTree {
-        self.camera_angle
-            .render(wh, &LudaEditorServerCameraAngleImageLoader {})
+        // TODO
+        RenderingTree::Empty
     }
 }

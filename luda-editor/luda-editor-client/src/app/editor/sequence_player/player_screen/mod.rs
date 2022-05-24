@@ -9,7 +9,6 @@ pub(super) struct PlayerScreenProps<'a> {
     pub playback_status: &'a PlaybackStatus,
     pub xywh: &'a XywhRect<f32>,
     pub sequence: &'a Sequence,
-    pub camera_angle_image_loader: &'a dyn CameraAngleImageLoader,
     pub language: Language,
     pub subtitle_play_duration_measurer: &'a dyn SubtitlePlayDurationMeasure,
     pub subtitle_character_color_map: &'a HashMap<String, Color>,
@@ -76,7 +75,6 @@ pub(super) fn render_player_screen(props: &PlayerScreenProps) -> RenderingTree {
                         props.sequence,
                         &screen_wh,
                         playback_time,
-                        props.camera_angle_image_loader,
                         props.language,
                         props.subtitle_play_duration_measurer,
                         props.subtitle_character_color_map,
@@ -91,7 +89,6 @@ fn render_sequence_in_player_screen(
     sequence: &Sequence,
     screen_wh: &Wh<f32>,
     playback_time: &Time,
-    camera_angle_image_loader: &dyn CameraAngleImageLoader,
     language: Language,
     subtitle_play_duration_measurer: &dyn SubtitlePlayDurationMeasure,
     subtitle_character_color_map: &HashMap<String, Color>,
@@ -103,13 +100,7 @@ fn render_sequence_in_player_screen(
             .map(|track| match track.as_ref() {
                 Track::Camera(camera_track) => camera_track
                     .get_clip_at_time(playback_time)
-                    .map(|clip| {
-                        render_camera_clip_in_player_screen(
-                            clip,
-                            screen_wh,
-                            camera_angle_image_loader,
-                        )
-                    })
+                    .map(|clip| render_camera_clip_in_player_screen(clip, screen_wh))
                     .unwrap_or_else(|| RenderingTree::Empty),
                 Track::Subtitle(subtitle_track) => render_subtitle_track_in_player_screen(
                     &subtitle_track,
@@ -124,11 +115,7 @@ fn render_sequence_in_player_screen(
     )
 }
 
-fn render_camera_clip_in_player_screen(
-    clip: &CameraClip,
-    screen_wh: &Wh<f32>,
-    camera_angle_image_loader: &dyn CameraAngleImageLoader,
-) -> RenderingTree {
-    clip.camera_angle
-        .render(screen_wh, camera_angle_image_loader)
+fn render_camera_clip_in_player_screen(clip: &CameraClip, screen_wh: &Wh<f32>) -> RenderingTree {
+    // TODO
+    RenderingTree::Empty
 }

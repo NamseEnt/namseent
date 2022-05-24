@@ -5,7 +5,6 @@ mod simple_rect;
 pub mod table;
 pub mod typography;
 
-use namui::prelude::*;
 pub use simple_rect::simple_rect;
 
 #[cfg(test)]

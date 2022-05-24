@@ -1,8 +1,6 @@
-mod camera_angle;
 mod page;
 mod pixel_size;
 mod router_context;
-pub use camera_angle::*;
 pub use clip::*;
 use namui::prelude::*;
 pub use page::*;

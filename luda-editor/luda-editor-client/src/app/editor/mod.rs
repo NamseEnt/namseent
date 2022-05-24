@@ -1,8 +1,5 @@
 mod timeline;
-use self::{
-    clip_editor::{camera_clip_editor::image_browser::ImageBrowserFile, ClipEditor},
-    events::*,
-};
+use self::{clip_editor::ClipEditor, events::*};
 use super::types::{
     meta::{Meta, MetaContainer},
     *,
@@ -12,7 +9,11 @@ use futures::{join, FutureExt};
 pub use job::*;
 use luda_editor_rpc::Socket;
 use namui::prelude::*;
-use std::{cmp::Ordering, collections::BTreeSet, sync::Arc};
+use std::{
+    cmp::Ordering,
+    collections::BTreeSet,
+    sync::{Arc, RwLock},
+};
 use timeline::timeline_body::track_body::*;
 pub use timeline::*;
 use wasm_bindgen_futures::spawn_local;
@@ -43,8 +44,6 @@ pub struct Editor {
     job: Option<Job>,
     timeline: Timeline,
     clip_editor: Option<ClipEditor>,
-    character_image_files: BTreeSet<ImageBrowserFile>,
-    background_image_files: BTreeSet<ImageBrowserFile>,
     selected_clip_ids: Arc<BTreeSet<String>>,
     sequence_player: Box<dyn SequencePlay>,
     history: History<Arc<Sequence>>,
@@ -118,129 +117,6 @@ impl namui::Entity for Editor {
                         }));
                     }
                 }
-                EditorEvent::CharacterImageFilesUpdatedEvent {
-                    character_image_files,
-                } => {
-                    self.character_image_files = character_image_files.clone();
-                }
-                EditorEvent::BackgroundImageFilesUpdatedEvent {
-                    background_image_files,
-                } => {
-                    self.background_image_files = background_image_files.clone();
-                }
-                EditorEvent::WysiwygEditorInnerImageMouseDownEvent {
-                    target,
-                    mouse_xy,
-                    container_size,
-                } => {
-                    if self.job.is_none() {
-                        self.job = Some(Job::WysiwygMoveImage(WysiwygMoveImageJob {
-                            target: target.clone(),
-                            clip_id: self
-                                .get_single_selected_clip()
-                                .unwrap()
-                                .get_id()
-                                .to_string(),
-                            start_global_mouse_xy: *mouse_xy,
-                            last_global_mouse_xy: *mouse_xy,
-                            container_size: *container_size,
-                        }));
-                    };
-                }
-                EditorEvent::WysiwygEditorResizerHandleMouseDownEvent {
-                    target,
-                    mouse_xy,
-                    handle,
-                    center_xy,
-                    container_size,
-                    image_size_ratio,
-                } => {
-                    if self.job.is_none() {
-                        self.job = Some(Job::WysiwygResizeImage(WysiwygResizeImageJob {
-                            target: target.clone(),
-                            clip_id: self
-                                .get_single_selected_clip()
-                                .unwrap()
-                                .get_id()
-                                .to_string(),
-                            start_global_mouse_xy: *mouse_xy,
-                            last_global_mouse_xy: *mouse_xy,
-                            handle: *handle,
-                            center_xy: *center_xy,
-                            container_size: *container_size,
-                            image_size_ratio: *image_size_ratio,
-                        }));
-                    };
-                }
-                EditorEvent::CharacterWysiwygEditorCropperHandleMouseDownEvent {
-                    mouse_xy,
-                    handle,
-                    container_size,
-                } => {
-                    if self.job.is_none() {
-                        self.job = Some(Job::WysiwygCropImage(WysiwygCropImageJob {
-                            clip_id: self
-                                .get_single_selected_clip()
-                                .unwrap()
-                                .get_id()
-                                .to_string(),
-                            start_global_mouse_xy: *mouse_xy,
-                            last_global_mouse_xy: *mouse_xy,
-                            handle: handle.clone(),
-                            container_size: *container_size,
-                        }));
-                    };
-                }
-                EditorEvent::CharacterImageBrowserSelectEvent {
-                    character_pose_emotion,
-                } => {
-                    let clip = self.get_single_selected_clip().unwrap();
-
-                    clip.as_camera_clip().map(|camera_clip| {
-                        if camera_clip
-                            .camera_angle
-                            .character
-                            .as_ref()
-                            .map(|character| character.character_pose_emotion.clone())
-                            .ne(character_pose_emotion)
-                        {
-                            self.job = Some(Job::ChangeImage(ChangeImageJob {
-                                clip_id: clip.get_id().to_string(),
-                                character_pose_emotion: character_pose_emotion.clone(),
-                                background_name: camera_clip
-                                    .camera_angle
-                                    .background
-                                    .as_ref()
-                                    .map(|background| background.name.clone()),
-                            }));
-                            self.execute_job();
-                        }
-                    });
-                }
-                EditorEvent::BackgroundImageBrowserSelectEvent { background_name } => {
-                    let clip = self.get_single_selected_clip().unwrap();
-
-                    clip.as_camera_clip().map(|camera_clip| {
-                        if camera_clip
-                            .camera_angle
-                            .background
-                            .as_ref()
-                            .map(|background| background.name.clone())
-                            .ne(background_name)
-                        {
-                            self.job = Some(Job::ChangeImage(ChangeImageJob {
-                                clip_id: clip.get_id().to_string(),
-                                character_pose_emotion: camera_clip
-                                    .camera_angle
-                                    .character
-                                    .as_ref()
-                                    .map(|character| character.character_pose_emotion.clone()),
-                                background_name: background_name.clone(),
-                            }));
-                            self.execute_job();
-                        }
-                    });
-                }
                 EditorEvent::TimelineTimeRulerClickEvent {
                     click_position_in_time,
                 } => {
@@ -293,22 +169,17 @@ impl namui::Entity for Editor {
                     let result = self.execute_job();
                     namui::event::send(SheetSequenceSyncerEvent::SyncDone(result));
                 }
+                EditorEvent::CameraClipUpdateEvent { clip_id, update } => {
+                    self.job = Some(Job::UpdateCameraClip(UpdateCameraClipJob {
+                        clip_id: clip_id.clone(),
+                        update: update.clone(),
+                    }));
+                    self.execute_job();
+                }
                 _ => {}
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
-                NamuiEvent::MouseMove(mouse_event) => match self.job {
-                    Some(Job::WysiwygMoveImage(ref mut job)) => {
-                        job.last_global_mouse_xy = mouse_event.xy;
-                    }
-                    Some(Job::WysiwygResizeImage(ref mut job)) => {
-                        job.last_global_mouse_xy = mouse_event.xy;
-                    }
-                    Some(Job::WysiwygCropImage(ref mut job)) => {
-                        job.last_global_mouse_xy = mouse_event.xy;
-                    }
-                    _ => {}
-                },
                 NamuiEvent::MouseUp(_) => match self.job {
                     Some(Job::MoveClip(MoveClipJob { is_moved, .. }))
                     | Some(Job::ResizeClip(ResizeClipJob { is_moved, .. })) => {
@@ -320,11 +191,6 @@ impl namui::Entity for Editor {
                                 self.select_only_this_clip(&clip_id.clone());
                             }
                         }
-                    }
-                    Some(Job::WysiwygMoveImage(_))
-                    | Some(Job::WysiwygResizeImage(_))
-                    | Some(Job::WysiwygCropImage(_)) => {
-                        self.execute_job();
                     }
                     _ => {}
                 },
@@ -469,8 +335,6 @@ impl namui::Entity for Editor {
                             .and_then(|id| self.get_sequence().get_clip(&id))
                             .unwrap(),
                         xywh: clip_editor_xywh,
-                        character_image_files: &self.character_image_files,
-                        background_image_files: &self.background_image_files,
                         job: &self.job,
                     })
                 }
@@ -549,15 +413,10 @@ impl Editor {
         });
         Self {
             timeline: Timeline::new(),
-            character_image_files: BTreeSet::new(),
-            background_image_files: BTreeSet::new(),
             job: None,
             clip_editor: None,
             selected_clip_ids: Arc::new(BTreeSet::new()),
-            sequence_player: Box::new(SequencePlayer::new(
-                sequence.clone(),
-                Box::new(LudaEditorServerCameraAngleImageLoader {}),
-            )),
+            sequence_player: Box::new(SequencePlayer::new(sequence.clone())),
             history: History::new(sequence.clone()),
             top_bar: TopBar::new(),
             clipboard: None,
@@ -641,7 +500,7 @@ impl Editor {
         match self.clipboard.as_ref().unwrap() {
             Clipboard::CameraClip(camera_clip) => {
                 self.job = Some(Job::AddCameraClip(AddCameraClipJob {
-                    camera_clip: Arc::new(camera_clip.duplicate()),
+                    camera_clip: Arc::new(camera_clip.clone_with_new_id()),
                     time_to_insert: self.sequence_player.get_playback_time(),
                 }));
                 self.execute_job();
@@ -698,33 +557,15 @@ impl Editor {
             id: CameraClip::get_new_id(),
             start_at: *start_at,
             end_at: start_at + Time::from_sec(3.0),
-            camera_angle: CameraAngle {
-                character: None,
-                background: None,
+            animation: namui::animation::Animation {
+                id: namui::nanoid(),
+                layers: vec![],
             },
         }
     }
     fn get_meta(&self) -> Meta {
         self.meta_container.get_meta().unwrap()
     }
-}
-
-fn convert_character_image_urls_to_character_image_files(
-    character_image_urls: &[String],
-) -> BTreeSet<ImageBrowserFile> {
-    character_image_urls
-        .iter()
-        .map(|url| ImageBrowserFile::new(url.clone()))
-        .collect()
-}
-
-fn convert_background_image_urls_to_background_image_files(
-    background_image_urls: &[String],
-) -> BTreeSet<ImageBrowserFile> {
-    background_image_urls
-        .iter()
-        .map(|url| ImageBrowserFile::new(url.clone()))
-        .collect()
 }
 
 enum Direction {

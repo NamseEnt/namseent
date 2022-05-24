@@ -133,12 +133,11 @@ impl CameraTrack {
         let clip_index = clips.iter().position(|c| c.id == clip_id).unwrap();
 
         let clip = clips.remove(clip_index);
-        let new_clip = Arc::new(CameraClip {
-            id: clip.id.clone(),
-            start_at: clip.start_at,
-            end_at: clip.end_at + delta_time,
-            camera_angle: clip.camera_angle.clone(),
-        });
+        let new_clip = {
+            let mut new_clip = (*clip).clone();
+            new_clip.end_at = new_clip.end_at + delta_time;
+            Arc::new(new_clip)
+        };
         clips.insert(clip_index, new_clip);
 
         push_front_camera_clips(&mut clips);
@@ -163,12 +162,12 @@ fn push_front_camera_clips(clips: &mut [Arc<CameraClip>]) {
     let mut next_start_at = Time::zero();
     clips.iter_mut().for_each(|clip| {
         let duration = clip.end_at - clip.start_at;
-        let new_clip = Arc::new(CameraClip {
-            id: clip.id.clone(),
-            start_at: next_start_at,
-            end_at: next_start_at + duration,
-            camera_angle: clip.camera_angle.clone(),
-        });
+        let new_clip = {
+            let mut new_clip = (**clip).clone();
+            new_clip.start_at = next_start_at;
+            new_clip.end_at = next_start_at + duration;
+            Arc::new(new_clip)
+        };
         let _ = std::mem::replace(clip, new_clip);
         next_start_at = clip.end_at;
     });

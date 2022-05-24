@@ -19,6 +19,7 @@ jobs:
       nrpc: ${{ steps.filter.outputs.nrpc }}
       namui-sample: ${{ steps.filter.outputs.namui-sample }}
       image-cropper: ${{ steps.filter.outputs.image-cropper }}
+      namui-animation-editor: ${{ steps.filter.outputs.namui-animation-editor }}
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
@@ -55,6 +56,9 @@ jobs:
               - .github/**
               - image-cropper/**
               - namui/**
+            namui-animation-editor:
+              - .github/**
+              - namui-animation-editor/**
 
   set-up:
     needs: check-rebuild
@@ -155,6 +159,22 @@ jobs:
           target: wasm-unknown-web
           path: image-cropper
 
+  test-namui-animation-editor:
+    needs: [check-rebuild, set-up]
+    if: needs.check-rebuild.outputs.namui-animation-editor == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/init-test-job
+      - uses: ./.github/actions/namui-test
+        with:
+          target: wasm-unknown-web
+          path: namui-animation-editor
+      - uses: ./.github/actions/namui-test
+        with:
+          target: wasm-unknown-web
+          path: namui-animation-editor/sample
+
   clean-up:
     if: always()
     runs-on: ubuntu-latest
@@ -171,6 +191,7 @@ jobs:
       - test-nrpc
       - test-namui-sample
       - test-image-cropper
+      - test-namui-animation-editor
     steps:
       - uses: actions/checkout@v3
 

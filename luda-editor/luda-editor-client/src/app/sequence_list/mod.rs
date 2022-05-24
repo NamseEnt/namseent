@@ -10,9 +10,7 @@ use self::{
 };
 use super::{
     editor::SequencePlayer,
-    types::{
-        LudaEditorServerCameraAngleImageLoader, Sequence, SubtitlePlayDurationMeasure, Time, Track,
-    },
+    types::{Sequence, SubtitlePlayDurationMeasure, Time, Track},
 };
 use crate::app::{
     editor::{SequencePlay, SequencePlayerProps},
@@ -53,10 +51,7 @@ impl SequenceList {
             },
             socket,
             scroll_y: 0.0,
-            sequence_player: SequencePlayer::new(
-                Arc::new(Sequence::default()),
-                Box::new(LudaEditorServerCameraAngleImageLoader {}),
-            ),
+            sequence_player: SequencePlayer::new(Arc::new(Sequence::default())),
             sequence_preview_progress_map: HashMap::new(),
             opened_sequence_title: None,
             error_message: None,

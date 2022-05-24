@@ -1,3 +1,4 @@
+pub mod animation;
 mod common;
 pub(crate) mod draw;
 pub mod event;

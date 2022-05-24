@@ -96,9 +96,9 @@ pub fn mock_camera_clip(clip_id: &str, start_at: Time, end_at: Time) -> Arc<Came
         id: clip_id.to_string(),
         start_at,
         end_at,
-        camera_angle: CameraAngle {
-            character: None,
-            background: None,
+        animation: namui::animation::Animation {
+            id: namui::nanoid(),
+            layers: vec![],
         },
     })
 }
