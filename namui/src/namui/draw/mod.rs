@@ -6,8 +6,8 @@ use self::path::draw_path;
 use self::text::draw_text;
 use super::{
     render::ImageFit,
-    skia::{Font, Paint, StrokeOptions},
-    Namui, NamuiContext, NamuiImpl, Path, Xy,
+    skia::{Font, StrokeOptions},
+    NamuiContext,
 };
 use crate::{ImageSource, PaintBuilder, PathBuilder, XywhRect};
 use serde::Serialize;
@@ -102,50 +102,6 @@ impl DrawCommand {
             }
         }
     }
-
-    pub(crate) fn is_inside(&self, local_xy: &Xy<f32>) -> bool {
-        match self {
-            DrawCommand::Path(path_draw_command) => {
-                let path = path_draw_command.path_builder.build();
-                let paint = path_draw_command.paint_builder.build();
-
-                if path.contains(local_xy) {
-                    return true;
-                }
-
-                let mut stroke_path_builder = path_draw_command.path_builder.clone();
-                let stroke_result = stroke_path_builder.stroke(StrokeOptions {
-                    cap: Some(paint.get_stroke_cap()),
-                    join: Some(paint.get_stroke_join()),
-                    width: Some(paint.get_stroke_width()),
-                    miter_limit: Some(paint.get_stroke_miter()),
-                    precision: None,
-                });
-
-                match stroke_result {
-                    Ok(()) => stroke_path_builder.build().contains(local_xy),
-                    Err(()) => false,
-                }
-            }
-            DrawCommand::Image(image_draw_command) => {
-                let XywhRect {
-                    x,
-                    y,
-                    width,
-                    height,
-                } = &image_draw_command.xywh;
-                let x_max = x + width;
-                let y_max = y + height;
-                let local_x = local_xy.x;
-                let local_y = local_xy.y;
-                local_x >= *x && local_x <= x_max && local_y >= *y && local_y <= y_max
-            }
-            DrawCommand::Text(text_draw_command) => text_draw_command
-                .get_bounding_box()
-                .map_or(false, |bounding_box| bounding_box.is_xy_inside(&local_xy)),
-        }
-    }
-
     fn get_bounding_box(&self) -> Option<crate::LtrbRect> {
         match self {
             DrawCommand::Path(path_draw_command) => {
