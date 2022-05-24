@@ -34,6 +34,7 @@ namui-cfg = { path = "../namui-cfg" }
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"
 tokio = { version = "1", default-features = false, features = ["rt", "macros"] }
+float-cmp = "0.9"
 
 [dependencies.web-sys]
 version = "0.3"
