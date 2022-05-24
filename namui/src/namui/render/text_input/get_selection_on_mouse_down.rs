@@ -3,21 +3,16 @@ use crate::namui::{self, get_text_width_internal, managers, TextInput};
 use std::ops::Range;
 
 impl TextInput {
-    pub(crate) fn get_selection_on_mouse_down(
+    pub(crate) fn get_selection_on_mouse_movement(
         &self,
         props: &Props,
         click_x: f32,
+        is_dragging_by_mouse: bool,
     ) -> Option<Range<usize>> {
         let (font, is_shift_key_pressed) = {
             let managers = managers();
             let font = managers.font_manager.get_font(&props.text_param.font_type);
 
-            // TODO : drag selection.
-
-            //     const isShiftKeyPressed = namui.keyboard.anyCodePress([
-            //       Code.ShiftLeft,
-            //       Code.ShiftRight,
-            //     ]);
             let is_shift_key_pressed = managers
                 .keyboard_manager
                 .any_code_press(&[namui::Code::ShiftLeft, namui::Code::ShiftRight]);
@@ -51,11 +46,13 @@ impl TextInput {
             namui::TextAlign::Right => click_x - props.text_param.x + text_width,
         };
 
+        let is_dragging = is_shift_key_pressed || is_dragging_by_mouse;
+
         Some(get_one_click_selection(
             &props.text_param.text,
             &font,
             aligned_x,
-            is_shift_key_pressed,
+            is_dragging,
             &self.selection,
         ))
     }
@@ -65,14 +62,14 @@ fn get_one_click_selection(
     text: &str,
     font: &namui::Font,
     local_x: f32,
-    is_shift_key_pressed: bool,
+    is_dragging: bool,
     last_selection: &Option<Range<usize>>,
 ) -> Range<usize> {
     let selection_index_of_x = get_selection_index_of_x(font, text, local_x);
 
     let start = match last_selection {
         Some(last_selection) => {
-            if !is_shift_key_pressed {
+            if !is_dragging {
                 selection_index_of_x
             } else {
                 last_selection.start

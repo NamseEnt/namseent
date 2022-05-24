@@ -13,8 +13,9 @@ impl TextInput {
         };
         let selection = selection.as_ref().unwrap();
 
-        let left_text_string = &text_param.text[..selection.end];
-        let right_text_string = &text_param.text[selection.end..];
+        let char_vec = text_param.text.chars().collect::<Vec<_>>();
+        let left_text_string: String = char_vec[..selection.end].iter().collect();
+        let right_text_string: String = char_vec[selection.end..].iter().collect();
 
         let font = namui::managers()
             .font_manager
@@ -27,8 +28,8 @@ impl TextInput {
 
         let drop_shadow_x = text_param.style.drop_shadow.map(|shadow| shadow.x);
 
-        let left_text_width = get_text_width_internal(&font, left_text_string, drop_shadow_x);
-        let right_text_width = get_text_width_internal(&font, right_text_string, drop_shadow_x);
+        let left_text_width = get_text_width_internal(&font, &left_text_string, drop_shadow_x);
+        let right_text_width = get_text_width_internal(&font, &right_text_string, drop_shadow_x);
 
         let total_width = left_text_width + right_text_width;
 

@@ -20,6 +20,7 @@ impl MouseManager {
 
         let mouse_down_mouse_position = mouse_position.clone();
         let mouse_down_closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
+            event.prevent_default(); // NOTE: Text input needs this to prevent selection updates.
             let mut mouse_position = mouse_down_mouse_position.write().unwrap();
 
             mouse_position.x = event.client_x() as i16;

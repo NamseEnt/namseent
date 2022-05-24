@@ -115,11 +115,12 @@ pub async fn start<TProps>(
                 namui_context.rendering_tree = state.render(props);
             }
             Some(NamuiEvent::MouseUp(raw_mouse_event)) => {
-                // {
-                //     managers()
-                //     .text_input_manager
-                //     .on_mouse_up(&namui_context, &raw_mouse_event);
-                // }
+                {
+                    let managers = managers();
+                    managers
+                        .text_input_manager
+                        .on_mouse_up(&namui_context, &raw_mouse_event);
+                }
                 namui_context
                     .rendering_tree
                     .call_mouse_event(MouseEventType::Up, raw_mouse_event);
@@ -127,11 +128,12 @@ pub async fn start<TProps>(
                 namui_context.rendering_tree = state.render(props);
             }
             Some(NamuiEvent::MouseMove(raw_mouse_event)) => {
-                // {
-                //     managers()
-                //     .text_input_manager
-                //     .on_mouse_move(&namui_context, &raw_mouse_event);
-                // }
+                {
+                    let managers = managers();
+                    managers
+                        .text_input_manager
+                        .on_mouse_move(&namui_context, &raw_mouse_event);
+                }
                 namui_context
                     .rendering_tree
                     .call_mouse_event(MouseEventType::Move, raw_mouse_event);
