@@ -27,8 +27,8 @@ impl LtrbRect {
     pub fn intersect(&self, other: &LtrbRect) -> Option<LtrbRect> {
         let is_intersect = self.left <= other.right
             && self.right >= other.left
-            && self.top >= other.bottom
-            && self.bottom <= other.top;
+            && self.top <= other.bottom
+            && self.bottom >= other.top;
 
         is_intersect.then(|| LtrbRect {
             left: self.left.max(other.left),
