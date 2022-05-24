@@ -17,6 +17,7 @@ jobs:
       luda-editor-client: ${{ steps.filter.outputs.luda-editor-client }}
       namui-prebuilt: ${{ steps.filter.outputs.namui-prebuilt }}
       nrpc: ${{ steps.filter.outputs.nrpc }}
+      namui-sample: ${{ steps.filter.outputs.namui-sample }}
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
@@ -46,6 +47,9 @@ jobs:
             nrpc:
               - .github/**
               - nrpc/**
+            namui-sample:
+              - .github/**
+              - namui/**
 
   set-up:
     needs: check-rebuild
@@ -122,6 +126,18 @@ jobs:
       - uses: ./.github/actions/init-test-job
       - run: cargo test --manifest-path nrpc/Cargo.toml
 
+  test-namui-sample:
+    needs: [check-rebuild, set-up]
+    if: needs.check-rebuild.outputs.namui-sample == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/init-test-job
+      - uses: ./.github/actions/namui-test
+        with:
+          target: wasm-unknown-web
+          path: namui-sample
+
   clean-up:
     if: always()
     runs-on: ubuntu-latest
@@ -136,6 +152,7 @@ jobs:
       - test-luda-editor-client
       - test-namui-prebuilt
       - test-nrpc
+      - test-namui-sample
     steps:
       - uses: actions/checkout@v3
 
