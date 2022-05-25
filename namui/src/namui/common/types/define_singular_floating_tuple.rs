@@ -124,7 +124,7 @@ macro_rules! define_singular_floating_tuple {
         });
     };
     ($name: ident, $type: tt, $init: expr) => {
-        #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+        #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
         pub struct $name(pub $type);
 
         impl $name {

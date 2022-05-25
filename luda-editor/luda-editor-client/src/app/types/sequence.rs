@@ -81,19 +81,16 @@ pub struct CameraClip {
     pub id: String,
     pub start_at: Time,
     pub end_at: Time,
-    pub camera_angle: CameraAngle,
+    pub animation_layers: Arc<[Arc<namui::animation::Layer>]>,
 }
 impl CameraClip {
     pub fn is_at_time(&self, time: &Time) -> bool {
         self.start_at <= time && time < self.end_at
     }
-    pub fn duplicate(&self) -> CameraClip {
-        CameraClip {
-            id: CameraClip::get_new_id(),
-            start_at: self.start_at,
-            end_at: self.end_at,
-            camera_angle: self.camera_angle.clone(),
-        }
+    pub fn clone_with_new_id(&self) -> CameraClip {
+        let mut new = (*self).clone();
+        new.id = CameraClip::get_new_id();
+        new
     }
     pub fn get_new_id() -> String {
         format!("CameraClip-{}", namui::nanoid())

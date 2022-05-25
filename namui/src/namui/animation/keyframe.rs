@@ -1,10 +1,13 @@
 use crate::types::*;
+use serde::{Deserialize, Serialize};
 
-pub struct KeyframePoint<T> {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KeyframePoint<T: Clone> {
     pub time: Time,
     pub value: T,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum KeyframeLine {
     Linear,
 }
@@ -14,12 +17,13 @@ pub trait KeyframeValue {
     fn unit() -> &'static str;
 }
 
-pub struct KeyframeGraph<TValue: KeyframeValue> {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KeyframeGraph<TValue: KeyframeValue + Clone> {
     start_point: KeyframePoint<TValue>,
     next_points_with_lines: Vec<(KeyframePoint<TValue>, KeyframeLine)>,
 }
 
-impl<'a, TValue: KeyframeValue> KeyframeGraph<TValue> {
+impl<'a, TValue: KeyframeValue + Clone> KeyframeGraph<TValue> {
     pub fn new(start_point: KeyframePoint<TValue>) -> Self {
         Self {
             start_point,

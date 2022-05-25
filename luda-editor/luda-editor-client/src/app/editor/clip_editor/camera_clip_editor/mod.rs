@@ -58,6 +58,7 @@ impl CameraClipEditor {
 
 fn mock_layer(index: i32) -> Arc<namui::animation::Layer> {
     Arc::new(namui::animation::Layer {
+        id: namui::nanoid(),
         name: index.to_string(),
         image: namui::animation::AnimatableImage {
             image_source_url: "".to_string(),

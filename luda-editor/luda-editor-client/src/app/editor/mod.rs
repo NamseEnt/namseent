@@ -113,56 +113,6 @@ impl namui::Entity for Editor {
                         }));
                     }
                 }
-                EditorEvent::CharacterImageBrowserSelectEvent {
-                    character_pose_emotion,
-                } => {
-                    let clip = self.get_single_selected_clip().unwrap();
-
-                    clip.as_camera_clip().map(|camera_clip| {
-                        if camera_clip
-                            .camera_angle
-                            .character
-                            .as_ref()
-                            .map(|character| character.character_pose_emotion.clone())
-                            .ne(character_pose_emotion)
-                        {
-                            self.job = Some(Job::ChangeImage(ChangeImageJob {
-                                clip_id: clip.get_id().to_string(),
-                                character_pose_emotion: character_pose_emotion.clone(),
-                                background_name: camera_clip
-                                    .camera_angle
-                                    .background
-                                    .as_ref()
-                                    .map(|background| background.name.clone()),
-                            }));
-                            self.execute_job();
-                        }
-                    });
-                }
-                EditorEvent::BackgroundImageBrowserSelectEvent { background_name } => {
-                    let clip = self.get_single_selected_clip().unwrap();
-
-                    clip.as_camera_clip().map(|camera_clip| {
-                        if camera_clip
-                            .camera_angle
-                            .background
-                            .as_ref()
-                            .map(|background| background.name.clone())
-                            .ne(background_name)
-                        {
-                            self.job = Some(Job::ChangeImage(ChangeImageJob {
-                                clip_id: clip.get_id().to_string(),
-                                character_pose_emotion: camera_clip
-                                    .camera_angle
-                                    .character
-                                    .as_ref()
-                                    .map(|character| character.character_pose_emotion.clone()),
-                                background_name: background_name.clone(),
-                            }));
-                            self.execute_job();
-                        }
-                    });
-                }
                 EditorEvent::TimelineTimeRulerClickEvent {
                     click_position_in_time,
                 } => {
@@ -404,10 +354,7 @@ impl Editor {
             job: None,
             clip_editor: None,
             selected_clip_ids: Arc::new(BTreeSet::new()),
-            sequence_player: Box::new(SequencePlayer::new(
-                sequence.clone(),
-                Box::new(LudaEditorServerCameraAngleImageLoader {}),
-            )),
+            sequence_player: Box::new(SequencePlayer::new(sequence.clone())),
             history: History::new(sequence.clone()),
             top_bar: TopBar::new(),
             clipboard: None,
@@ -491,7 +438,7 @@ impl Editor {
         match self.clipboard.as_ref().unwrap() {
             Clipboard::CameraClip(camera_clip) => {
                 self.job = Some(Job::AddCameraClip(AddCameraClipJob {
-                    camera_clip: Arc::new(camera_clip.duplicate()),
+                    camera_clip: Arc::new(camera_clip.clone_with_new_id()),
                     time_to_insert: self.sequence_player.get_playback_time(),
                 }));
                 self.execute_job();
@@ -551,10 +498,7 @@ impl Editor {
             id: CameraClip::get_new_id(),
             start_at: *start_at,
             end_at: start_at + Time::from_sec(3.0),
-            camera_angle: CameraAngle {
-                character: None,
-                background: None,
-            },
+            animation_layers: vec![].into(),
         }
     }
     fn get_meta(&self) -> Meta {

@@ -1,6 +1,5 @@
 use crate::app::editor::timeline::timeline_body::track_body::ResizableClipBodyPart;
 use crate::app::types::*;
-use std::collections::BTreeSet;
 use std::sync::Arc;
 
 pub enum EditorEvent {
@@ -14,12 +13,6 @@ pub enum EditorEvent {
         mouse_event_id: String,
         clip_id: String,
         click_in_time: Time,
-    },
-    CharacterImageBrowserSelectEvent {
-        character_pose_emotion: Option<CharacterPoseEmotion>,
-    },
-    BackgroundImageBrowserSelectEvent {
-        background_name: Option<String>,
     },
     ScrolledEvent {
         scroll_y: f32,

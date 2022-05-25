@@ -1,6 +1,7 @@
 use super::*;
 use crate::*;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnimatableImage {
     pub image_source_url: String,
     pub x: KeyframeGraph<PixelSize>,

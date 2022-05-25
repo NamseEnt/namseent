@@ -1,8 +1,6 @@
 use crate::app::types::Sequence;
 mod move_clip;
 pub use self::move_clip::*;
-mod change_image;
-pub use self::change_image::*;
 mod add_camera_clip;
 pub use self::add_camera_clip::*;
 mod resize_clip;
@@ -19,7 +17,6 @@ pub use test_utils::*;
 #[derive(Debug, Clone)]
 pub enum Job {
     MoveClip(MoveClipJob),
-    ChangeImage(ChangeImageJob),
     AddCameraClip(AddCameraClipJob),
     ResizeClip(ResizeClipJob),
     DeleteCameraClip(DeleteCameraClipJob),
@@ -30,7 +27,6 @@ impl Job {
     pub fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
         let job_execute: &dyn JobExecute = match self {
             Job::MoveClip(job) => job,
-            Job::ChangeImage(job) => job,
             Job::AddCameraClip(job) => job,
             Job::ResizeClip(job) => job,
             Job::DeleteCameraClip(job) => job,
