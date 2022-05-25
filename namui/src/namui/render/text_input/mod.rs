@@ -1,70 +1,103 @@
-use crate::namui;
-mod render;
+use crate::{
+    namui::{self, *},
+    RectParam, TextParam,
+};
+use std::ops::Range;
+mod draw_caret;
+mod draw_texts_divided_by_selection;
+mod get_selection_on_mouse_down;
 
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct Selection {
-    pub(crate) start: usize,
-    pub(crate) end: usize,
-}
+pub type Selection = Option<Range<usize>>;
 
 #[derive(Clone, Debug)]
 pub struct TextInput {
-    pub(crate) text: String,
-    pub(crate) selection: Option<Selection>,
+    pub(crate) selection: Selection,
     pub(crate) id: String,
-    pub x: f32,
-    pub y: f32,
-    pub width: f32,
-    pub height: f32,
-    pub background_fill_color: namui::Color,
-    pub border_color: namui::Color,
-    pub border_width: f32,
-    pub text_align: namui::TextAlign,
-    pub text_baseline: namui::TextBaseline,
-    pub font_type: namui::FontType,
-    pub text_style: namui::TextStyle,
+    pub(crate) is_focused: bool,
+}
+#[derive(Clone, Debug)]
+pub struct Props {
+    pub rect_param: RectParam,
+    pub text_param: TextParam,
+}
+#[derive(Clone)]
+pub struct TextInputCustomData {
+    pub text_input: TextInput,
+    pub props: Props,
+}
+pub enum Event {
+    Focus(TextInputFocus),
+    Blur,
+    TextUpdated(TextUpdated),
+    SelectionUpdated(SelectionUpdated),
+}
+pub struct TextInputFocus {
+    pub id: String,
+    pub selection: Selection,
+}
+pub struct TextUpdated {
+    pub id: String,
+    pub text: String,
+    pub selection: Selection,
+}
+pub struct SelectionUpdated {
+    pub id: String,
+    pub selection: Selection,
+}
+impl TextInput {
+    pub fn new() -> TextInput {
+        TextInput {
+            selection: None,
+            id: crate::nanoid(),
+            is_focused: false,
+        }
+    }
+    pub fn get_id(&self) -> &str {
+        &self.id
+    }
 }
 
 impl TextInput {
-    pub fn new(
-        text: String,
-        x: f32,
-        y: f32,
-        width: f32,
-        height: f32,
-        background_fill_color: namui::Color,
-        border_color: namui::Color,
-        border_width: f32,
-        text_align: namui::TextAlign,
-        text_baseline: namui::TextBaseline,
-        font_type: namui::FontType,
-        text_style: namui::TextStyle,
-    ) -> TextInput {
-        TextInput {
-            text,
-            selection: None,
-            id: namui::nanoid(),
-            x,
-            y,
-            width,
-            height,
-            background_fill_color,
-            border_color,
-            border_width,
-            text_align,
-            text_baseline,
-            font_type,
-            text_style,
+    pub fn render(&self, props: Props) -> namui::RenderingTree {
+        let custom_props = props.clone();
+        (render![
+            namui::rect(props.rect_param),
+            self.draw_texts_divided_by_selection(props.text_param.clone()),
+            self.draw_caret(&props.text_param),
+        ])
+        .with_custom(TextInputCustomData {
+            text_input: self.clone(),
+            props: custom_props,
+        })
+    }
+    pub fn update(&mut self, event: &dyn std::any::Any) {
+        if let Some(event) = event.downcast_ref::<Event>() {
+            match event {
+                Event::Focus(focus) => {
+                    if focus.id == self.id {
+                        self.is_focused = true;
+                        self.selection = focus.selection.clone();
+                    } else {
+                        self.is_focused = false;
+                        self.selection = None;
+                    }
+                }
+                Event::Blur => {
+                    self.is_focused = false;
+                    self.selection = None;
+                }
+                Event::SelectionUpdated(selection_updated) => {
+                    if selection_updated.id == self.id {
+                        self.selection = selection_updated.selection.clone();
+                    }
+                }
+                Event::TextUpdated(text_updated) => {
+                    if text_updated.id == self.id {
+                        self.selection = text_updated.selection.clone();
+                    }
+                }
+                _ => {}
+            }
         }
-    }
-}
-
-pub mod text_input_event {
-    pub(crate) struct StateChanged {
-        pub(crate) text: String,
-    }
-    pub(crate) struct SelectionChanged {
-        pub(crate) selection: Option<super::Selection>,
-        pub(crate) id: String,
     }
 }

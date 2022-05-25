@@ -3,6 +3,7 @@ use super::manager::*;
 use super::skia::{canvas_kit, CanvasKit, Surface};
 use super::Namui;
 use crate::RenderingTree;
+use once_cell::sync::OnceCell;
 use std::sync::Arc;
 use std::time::Duration;
 use wasm_bindgen::{prelude::*, JsCast};
@@ -20,7 +21,6 @@ pub(crate) fn window() -> web_sys::Window {
     web_sys::window().expect("no global `window` exists")
 }
 
-use once_cell::sync::OnceCell;
 pub static CANVAS_KIT: OnceCell<Arc<CanvasKit>> = OnceCell::new();
 
 impl NamuiImpl for Namui {
@@ -41,6 +41,7 @@ impl NamuiImpl for Namui {
             screen_manager: ScreenManager::new(),
             image_manager: ImageManager::new(),
             wheel_manager: WheelManager::new(),
+            text_input_manager: TextInputManager::new(),
         });
 
         NamuiContext {

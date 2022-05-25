@@ -8,3 +8,5 @@ pub mod image_manager;
 pub use image_manager::*;
 pub mod wheel_manager;
 pub use wheel_manager::*;
+pub mod text_input_manager;
+pub use text_input_manager::*;
