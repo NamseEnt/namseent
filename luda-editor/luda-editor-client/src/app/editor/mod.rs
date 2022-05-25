@@ -164,6 +164,13 @@ impl namui::Entity for Editor {
                     let result = self.execute_job();
                     namui::event::send(SheetSequenceSyncerEvent::SyncDone(result));
                 }
+                EditorEvent::CameraClipUpdateEvent { clip_id, next_clip } => {
+                    self.job = Some(Job::UpdateCameraClip(UpdateCameraClipJob {
+                        clip_id: clip_id.clone(),
+                        next_clip: next_clip.clone(),
+                    }));
+                    self.execute_job();
+                }
                 _ => {}
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
@@ -310,12 +317,6 @@ impl namui::Entity for Editor {
                 None => RenderingTree::Empty,
                 Some(clip_editor) => {
                     clip_editor.render(&ClipEditorProps {
-                        clip: self
-                            .selected_clip_ids
-                            .iter()
-                            .next()
-                            .and_then(|id| self.get_sequence().get_clip(&id))
-                            .unwrap(),
                         xywh: clip_editor_xywh,
                         job: &self.job,
                     })

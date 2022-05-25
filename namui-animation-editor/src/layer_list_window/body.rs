@@ -22,7 +22,7 @@ impl table::CellRender<Props<'_>> for Body {
             },
             scroll_bar_width: 10.0,
             items: props.layers,
-            item_render: |wh, layer| render_row(wh, &layer),
+            item_render: |wh, layer| render_row(wh, layer.clone()),
         })
     }
 }
@@ -87,17 +87,21 @@ fn render_preview_cell(wh: Wh<f32>, layer: &namui::animation::Layer) -> Renderin
     simple_rect(wh, Color::BLACK, 1.0, Color::WHITE)
 }
 
-fn render_row(wh: Wh<f32>, layer: &animation::Layer) -> RenderingTree {
-    render![
+fn render_row(wh: Wh<f32>, layer: Arc<animation::Layer>) -> RenderingTree {
+    (render![
         simple_rect(wh, Color::BLACK, 1.0, Color::WHITE),
         horizontal![
             calculative!(|parent_wh| parent_wh.height, |wh| {
                 render_shadowing_toggle_button_cell(wh)
             }),
-            ratio!(1.0, |wh| render_label_cell(wh, layer)),
+            ratio!(1.0, |wh| render_label_cell(wh, &layer)),
             calculative!(|parent_wh| { parent_wh.height / 1080.0 * 1920.0 }, |wh| {
-                render_preview_cell(wh, layer)
+                render_preview_cell(wh, &layer)
             }),
         ](wh),
-    ]
+    ])
+    .attach_event(move |builder| {
+        let layer = layer.clone();
+        builder.on_mouse_up(move |_| namui::event::send(super::Event::LayerSelected(layer.clone())))
+    })
 }

@@ -6,24 +6,37 @@ use namui::prelude::*;
 use std::sync::Arc;
 
 pub struct CameraClipEditor {
-    clip_id: String,
     animation_editor: namui_animation_editor::AnimationEditor,
+    clip: Arc<CameraClip>,
 }
 
 pub struct CameraClipEditorProps<'a> {
-    pub camera_clip: &'a CameraClip,
     pub xywh: XywhRect<f32>,
     pub job: &'a Option<Job>,
 }
 
 impl CameraClipEditor {
-    pub fn new(clip: &CameraClip) -> Self {
+    pub fn new(clip: Arc<CameraClip>) -> Self {
         Self {
             animation_editor: namui_animation_editor::AnimationEditor::new(),
-            clip_id: clip.id.clone(),
+            clip,
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
+        if let Some(event) = event.downcast_ref::<namui_animation_editor::Event>() {
+            match event {
+                namui_animation_editor::Event::UpdateLayer(layer) => {
+                    // namui::event::send(EditorEvent::CameraClipUpdateEvent {
+                    //     clip_id: self.clip_id.clone(),
+                    //     next_clip: (), 시발~
+                    // })
+                }
+                namui_animation_editor::Event::Error(_) => {
+                    // TODO
+                }
+                _ => {}
+            }
+        }
         self.animation_editor.update(event);
     }
     pub fn render(&self, props: &CameraClipEditorProps) -> RenderingTree {

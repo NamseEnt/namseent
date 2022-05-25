@@ -30,8 +30,25 @@ impl<'a, TValue: KeyframeValue + Clone> KeyframeGraph<TValue> {
             next_points_with_lines: Vec::new(),
         }
     }
-    pub fn push(&mut self, point: KeyframePoint<TValue>, line: KeyframeLine) {
-        self.next_points_with_lines.push((point, line));
+    pub fn put(&mut self, point: KeyframePoint<TValue>, line: KeyframeLine) {
+        if self.start_point.time == point.time {
+            self.start_point = point;
+        } else {
+            match self
+                .next_points_with_lines
+                .iter_mut()
+                .find(|(p, _)| p.time == point.time)
+            {
+                Some((p, l)) => {
+                    *p = point;
+                    *l = line;
+                }
+                None => {
+                    self.next_points_with_lines.push((point, line));
+                }
+            }
+        }
+
         self.next_points_with_lines
             .sort_by_key(|(point, _)| point.time);
     }
@@ -54,6 +71,16 @@ impl<'a, TValue: KeyframeValue + Clone> KeyframeGraph<TValue> {
             current_point = next_point;
         }
         None
+    }
+    pub fn delete(&mut self, time: Time) {
+        if self.start_point.time == time {
+            if self.next_points_with_lines.is_empty() {
+                return;
+            }
+            self.start_point = self.next_points_with_lines.remove(0).0;
+        } else {
+            self.next_points_with_lines.retain(|(p, _)| p.time != time);
+        }
     }
     pub(crate) fn get_last_point(&self) -> &KeyframePoint<TValue> {
         &self
@@ -97,7 +124,7 @@ mod tests {
             time: Time::from_ms(0.0),
             value: 0.0,
         });
-        graph.push(
+        graph.put(
             KeyframePoint {
                 time: Time::from_ms(10.0),
                 value: 10.0,
@@ -143,7 +170,7 @@ mod tests {
             time: Time::from_ms(5.0),
             value: 0.0,
         });
-        graph.push(
+        graph.put(
             KeyframePoint {
                 time: Time::from_ms(10.0),
                 value: 1.0,
@@ -163,14 +190,14 @@ mod tests {
             time: Time::from_ms(5.0),
             value: 0.0,
         });
-        graph.push(
+        graph.put(
             KeyframePoint {
                 time: Time::from_ms(10.0),
                 value: 1.0,
             },
             KeyframeLine::Linear,
         );
-        graph.push(
+        graph.put(
             KeyframePoint {
                 time: Time::from_ms(1.0),
                 value: 2.0,

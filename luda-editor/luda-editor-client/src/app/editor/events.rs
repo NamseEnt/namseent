@@ -44,4 +44,8 @@ pub enum EditorEvent {
     SubtitleSyncRequestEvent {
         subtitles: Vec<Subtitle>,
     },
+    CameraClipUpdateEvent {
+        clip_id: String,
+        next_clip: Arc<CameraClip>,
+    },
 }

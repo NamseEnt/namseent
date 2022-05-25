@@ -75,14 +75,14 @@ mod tests {
             time: Time::from_ms(0.0),
             value: OneZero::new(0.0),
         });
-        graph.push(
+        graph.put(
             KeyframePoint {
                 time: Time::from_ms(10.0),
                 value: OneZero::new(100.0), // become 1.0
             },
             KeyframeLine::Linear,
         );
-        graph.push(
+        graph.put(
             KeyframePoint {
                 time: Time::from_ms(20.0),
                 value: OneZero::new(0.5),

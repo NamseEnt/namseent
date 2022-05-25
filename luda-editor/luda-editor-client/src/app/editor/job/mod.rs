@@ -9,6 +9,8 @@ mod delete_camera_clip;
 pub use self::delete_camera_clip::*;
 mod sync_subtitles;
 pub use self::sync_subtitles::*;
+mod update_camera_clip;
+pub use self::update_camera_clip::*;
 #[cfg(test)]
 pub mod test_utils;
 #[cfg(test)]
@@ -21,6 +23,7 @@ pub enum Job {
     ResizeClip(ResizeClipJob),
     DeleteCameraClip(DeleteCameraClipJob),
     SyncSubtitles(SyncSubtitlesJob),
+    UpdateCameraClip(UpdateCameraClipJob),
 }
 
 impl Job {
@@ -31,6 +34,7 @@ impl Job {
             Job::ResizeClip(job) => job,
             Job::DeleteCameraClip(job) => job,
             Job::SyncSubtitles(job) => job,
+            Job::UpdateCameraClip(job) => job,
         };
         job_execute.execute(sequence)
     }

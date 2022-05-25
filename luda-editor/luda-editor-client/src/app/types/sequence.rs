@@ -227,11 +227,11 @@ fn update_arcs<T, Error>(
     }
 }
 
-pub trait ClipReplacer<ClipType> {
+pub trait ClipReplacer<Clip> {
     fn replace_clip(
         self,
         clip_id: &str,
-        replace_callback: impl FnOnce(&ClipType) -> Result<ClipType, String> + Copy,
+        replace_callback: impl FnOnce(&Clip) -> Result<Clip, String> + Copy,
     ) -> UpdateResult<Self, String>
     where
         Self: Sized;
@@ -302,8 +302,8 @@ track_clip_replacer!(CameraTrack, CameraClip);
 sequence_clip_replacer!(Subtitle, SubtitleClip);
 track_clip_replacer!(SubtitleTrack, SubtitleClip);
 
-pub trait ClipFind<ClipType> {
-    fn find_clip(&self, clip_id: &str) -> Option<&ClipType>
+pub trait ClipFind<Clip> {
+    fn find_clip(&self, clip_id: &str) -> Option<&Clip>
     where
         Self: Sized;
 }

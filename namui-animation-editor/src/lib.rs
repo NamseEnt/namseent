@@ -8,7 +8,7 @@ mod property_window;
 
 pub struct AnimationEditor {
     layer_list_window: layer_list_window::LayerListWindow,
-    property_window: property_window::PropertyWindow,
+    property_window: Option<property_window::PropertyWindow>,
 }
 
 pub struct Props<'a> {
@@ -20,11 +20,23 @@ impl AnimationEditor {
     pub fn new() -> Self {
         Self {
             layer_list_window: layer_list_window::LayerListWindow::new(),
-            property_window: property_window::PropertyWindow::new(),
+            property_window: None,
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
+        if let Some(event) = event.downcast_ref::<layer_list_window::Event>() {
+            match event {
+                layer_list_window::Event::LayerSelected(layer) => {
+                    self.property_window =
+                        Some(property_window::PropertyWindow::new(layer.clone()));
+                }
+            }
+        }
+
         self.layer_list_window.update(event);
+        if let Some(property_window) = &mut self.property_window {
+            property_window.update(event);
+        }
     }
     pub fn render(&self, props: &Props) -> namui::RenderingTree {
         horizontal![
@@ -39,11 +51,10 @@ impl AnimationEditor {
                         }
                     ),
                     ratio!(2.0, |wh| { RenderingTree::Empty }),
-                    ratio!(
-                        2.0,
-                        &self.property_window,
-                        property_window::Props {
-                            layer: Some(&props.layers[0]), // TODO
+                    self.property_window.as_ref().map_or_else(
+                        || ratio!(2.0, |wh| RenderingTree::Empty),
+                        |property_window| {
+                            ratio!(2.0, property_window, property_window::Props {})
                         }
                     ),
                 ]

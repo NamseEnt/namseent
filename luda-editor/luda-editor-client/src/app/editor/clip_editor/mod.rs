@@ -10,16 +10,15 @@ pub enum ClipEditor {
 }
 
 pub struct ClipEditorProps<'a> {
-    pub clip: Clip,
     pub xywh: XywhRect<f32>,
     pub job: &'a Option<Job>,
 }
 
 impl ClipEditor {
-    pub fn new(clip: &Clip) -> Self {
+    pub fn new(clip: Clip) -> Self {
         match clip {
-            Clip::Camera(clip) => ClipEditor::Camera(CameraClipEditor::new(&clip)),
-            Clip::Subtitle(_) => ClipEditor::Subtitle,
+            Clip::Camera(clip) => ClipEditor::Camera(CameraClipEditor::new(clip)),
+            Clip::Subtitle(clip) => ClipEditor::Subtitle,
             _ => todo!(),
         }
     }
@@ -34,14 +33,12 @@ impl ClipEditor {
 
     pub fn render(&self, props: &ClipEditorProps) -> RenderingTree {
         match &self {
-            ClipEditor::Camera(camera_clip_editor) => match &props.clip {
-                Clip::Camera(camera_clip) => camera_clip_editor.render(&CameraClipEditorProps {
-                    camera_clip: &camera_clip,
+            ClipEditor::Camera(camera_clip_editor) => {
+                camera_clip_editor.render(&CameraClipEditorProps {
                     xywh: props.xywh,
                     job: &props.job,
-                }),
-                _ => unreachable!("clip should be camera clip but received {:?}", props.clip),
-            },
+                })
+            }
             ClipEditor::Subtitle => RenderingTree::Empty,
         }
     }
