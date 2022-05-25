@@ -28,7 +28,7 @@ impl TextInput {
             &text_param.text[right_selection_index..],
         );
 
-        let result = self.get_text_xs(
+        let result = self.get_text_lefts(
             &text_param,
             left_text_string,
             selected_text_string,
@@ -38,16 +38,17 @@ impl TextInput {
             return RenderingTree::Empty;
         };
 
-        let (left_text_x, selected_text_x, right_text_x) = result.unwrap();
+        let (left_text_left, selected_text_left, right_text_left) = result.unwrap();
 
         let left_text_text_param = namui::TextParam {
-            x: left_text_x,
+            x: left_text_left,
             text: left_text_string.to_string(),
+            align: crate::TextAlign::Left,
             ..text_param
         };
 
         let selected_text_text_param = namui::TextParam {
-            x: selected_text_x,
+            x: selected_text_left,
             text: selected_text_string.to_string(),
             style: namui::TextStyle {
                 color: namui::Color::WHITE,
@@ -57,11 +58,13 @@ impl TextInput {
                 }),
                 ..left_text_text_param.style
             },
+            align: crate::TextAlign::Left,
             ..text_param
         };
         let right_text_text_param = namui::TextParam {
-            x: right_text_x,
+            x: right_text_left,
             text: right_text_string.to_string(),
+            align: crate::TextAlign::Left,
             ..text_param
         };
 
@@ -72,7 +75,7 @@ impl TextInput {
         return render![left_text, selected_text, right_text];
     }
 
-    fn get_text_xs(
+    fn get_text_lefts(
         &self,
         text_param: &TextParam,
         left_text_string: &str,
@@ -98,28 +101,23 @@ impl TextInput {
 
         let total_width = left_text_width + selected_text_width + right_text_width;
 
-        match text_param.align {
-            namui::TextAlign::Left => Some((
-                text_param.x,
-                text_param.x + left_text_width,
-                text_param.x + left_text_width + selected_text_width,
-            )),
-            namui::TextAlign::Center => {
-                let center = total_width / 2.0;
-                let total_width = left_text_width + selected_text_width + right_text_width;
+        let result = (
+            text_param.x,
+            text_param.x + left_text_width,
+            text_param.x + left_text_width + selected_text_width,
+        );
 
-                Some((
-                    text_param.x + center - total_width / 2.0 + left_text_width / 2.0,
-                    text_param.x + center - total_width / 2.0
-                        + left_text_width
-                        + selected_text_width / 2.0,
-                    text_param.x + center + total_width / 2.0 - right_text_width / 2.0,
-                ))
-            }
+        match text_param.align {
+            namui::TextAlign::Left => Some(result),
+            namui::TextAlign::Center => Some((
+                result.0 - total_width / 2.0,
+                result.1 - total_width / 2.0,
+                result.2 - total_width / 2.0,
+            )),
             namui::TextAlign::Right => Some((
-                text_param.x + total_width,
-                text_param.x + total_width - right_text_width,
-                text_param.x + total_width - right_text_width - selected_text_width,
+                result.0 - total_width,
+                result.1 - total_width,
+                result.2 - total_width,
             )),
         }
     }
