@@ -15,6 +15,7 @@ struct TextInputExample {
     left_text: String,
     center_text: String,
     right_text: String,
+    left_value: Option<f32>,
 }
 
 impl TextInputExample {
@@ -26,6 +27,7 @@ impl TextInputExample {
             left_text: "Left".to_string(),
             center_text: "Center".to_string(),
             right_text: "Right".to_string(),
+            left_value: None,
         }
     }
 }
@@ -136,7 +138,28 @@ impl Entity for TextInputExample {
             },
         });
 
-        render![left, center, right]
+        let left_value_text = namui::text(TextParam {
+            x: 200.0,
+            y: 500.0,
+            align: TextAlign::Left,
+            baseline: TextBaseline::Top,
+            text: self
+                .left_value
+                .map(|v| v.to_string())
+                .unwrap_or("is't not f32".to_string()),
+            font_type: namui::FontType {
+                font_weight: namui::FontWeight::REGULAR,
+                language: namui::Language::Ko,
+                serif: false,
+                size: 20,
+            },
+            style: namui::TextStyle {
+                color: namui::Color::BLACK,
+                ..Default::default()
+            },
+        });
+
+        render![left, center, right, left_value_text]
     }
 
     fn update(&mut self, event: &dyn std::any::Any) {
@@ -145,10 +168,16 @@ impl Entity for TextInputExample {
                 text_input::Event::TextUpdated(text_updated) => {
                     if self.left_text_input.get_id().eq(&text_updated.id) {
                         self.left_text = text_updated.text.clone();
+                        self.left_value = self.left_text.parse().ok(); // NOTE: You don't have to check value in here, it's would be better UX checking it on blur.
                     } else if self.center_text_input.get_id().eq(&text_updated.id) {
                         self.center_text = text_updated.text.clone();
                     } else if self.right_text_input.get_id().eq(&text_updated.id) {
                         self.right_text = text_updated.text.clone();
+                    }
+                }
+                text_input::Event::Blur(blur) => {
+                    if self.left_text_input.get_id().eq(&blur.id) {
+                        self.left_value = self.left_text.parse().ok();
                     }
                 }
                 _ => {}

@@ -89,15 +89,31 @@ impl TextInputManager {
             .map(|custom_data| custom_data.text_input.id.clone())
             .clone();
 
+        if let Some(last_focused_text_input_id) = &*last_focused_text_input_id {
+            let is_last_focused_text_input_not_clicked = custom_data
+                .as_ref()
+                .and_then(|custom_data| {
+                    last_focused_text_input_id
+                        .eq(&custom_data.text_input.id)
+                        .then(|| ())
+                })
+                .is_none();
+            if is_last_focused_text_input_not_clicked {
+                crate::event::send(text_input::Event::Blur(text_input::Blur {
+                    id: last_focused_text_input_id.clone(),
+                }));
+            }
+        }
+
+        *last_focused_text_input_id = custom_data
+            .as_ref()
+            .map(|custom_data| custom_data.text_input.id.clone());
+
         if custom_data.is_none() {
-            *last_focused_text_input_id = None;
             input_element.blur().unwrap();
-            crate::event::send(text_input::Event::Blur);
             return;
         }
         let custom_data = custom_data.unwrap();
-
-        *last_focused_text_input_id = Some(custom_data.text_input.id.clone());
 
         Self::update_focus_with_mouse_movement(
             &custom_data,
@@ -167,7 +183,7 @@ impl TextInputManager {
 
         input_element.focus().unwrap();
 
-        let event = text_input::Event::Focus(TextInputFocus {
+        let event = text_input::Event::Focus(Focus {
             id: custom_data.text_input.id.clone(),
             selection,
         });
