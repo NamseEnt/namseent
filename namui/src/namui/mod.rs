@@ -2,7 +2,7 @@ mod common;
 pub(crate) mod draw;
 mod font;
 mod manager;
-use std::{any::Any, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 mod namui_state;
 mod skia;
 pub use common::*;
