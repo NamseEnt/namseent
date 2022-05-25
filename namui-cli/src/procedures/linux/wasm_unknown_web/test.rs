@@ -65,12 +65,14 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), Box<dyn Error>> {
                 "wasm-pack test --headless --chrome {}",
                 directory.to_str().unwrap()
             ),
+            "exit_code=$?".to_string(),
             format!(
                 "find {} -user $(whoami) -print0 | xargs -0 chmod 777",
                 source_bind_path.to_str().unwrap()
             ),
+            "exit $exit_code".to_string(),
         ]
-        .join(" && ")
+        .join("; ")
     );
 
     let args = ["run", "--rm"]
