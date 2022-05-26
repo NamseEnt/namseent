@@ -13,7 +13,6 @@ pub type Selection = Option<Range<usize>>;
 pub struct TextInput {
     pub(crate) selection: Selection,
     pub(crate) id: String,
-    pub(crate) is_focused: bool,
 }
 #[derive(Clone, Debug)]
 pub struct Props {
@@ -26,12 +25,16 @@ pub struct TextInputCustomData {
     pub props: Props,
 }
 pub enum Event {
-    Focus(TextInputFocus),
-    Blur,
+    Focus(Focus),
+    Blur(Blur),
     TextUpdated(TextUpdated),
     SelectionUpdated(SelectionUpdated),
 }
-pub struct TextInputFocus {
+
+pub struct Blur {
+    pub id: String,
+}
+pub struct Focus {
     pub id: String,
     pub selection: Selection,
 }
@@ -49,7 +52,6 @@ impl TextInput {
         TextInput {
             selection: None,
             id: crate::nanoid(),
-            is_focused: false,
         }
     }
     pub fn get_id(&self) -> &str {
@@ -75,16 +77,15 @@ impl TextInput {
             match event {
                 Event::Focus(focus) => {
                     if focus.id == self.id {
-                        self.is_focused = true;
                         self.selection = focus.selection.clone();
                     } else {
-                        self.is_focused = false;
-                        self.selection = None;
+                        self.selection = None; // TODO: Remove this and draw unfocus caret in different way
                     }
                 }
-                Event::Blur => {
-                    self.is_focused = false;
-                    self.selection = None;
+                Event::Blur(blur) => {
+                    if blur.id == self.id {
+                        self.selection = None; // TODO: Remove this and draw unfocus caret in different way
+                    }
                 }
                 Event::SelectionUpdated(selection_updated) => {
                     if selection_updated.id == self.id {
