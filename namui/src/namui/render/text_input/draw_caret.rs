@@ -33,24 +33,21 @@ impl TextInput {
 
         let total_width = left_text_width + right_text_width;
 
-        let x = match text_param.align {
+        let left = match text_param.align {
             namui::TextAlign::Left => text_param.x,
-            namui::TextAlign::Center => {
-                let center = total_width / 2.0;
-                text_param.x + center - total_width / 2.0 + left_text_width / 2.0
-            }
-            namui::TextAlign::Right => text_param.x + total_width,
+            namui::TextAlign::Center => text_param.x - total_width / 2.0,
+            namui::TextAlign::Right => text_param.x - total_width,
         } + left_text_width;
 
         let font_metrics = font.get_metrics();
         let font_height = -font_metrics.ascent + font_metrics.descent;
-        let y = get_bottom_of_baseline(&text_param.baseline, &font_metrics)
+        let top = get_bottom_of_baseline(&text_param.baseline, &font_metrics)
             + font_metrics.ascent
             + text_param.y;
 
         crate::rect(RectParam {
-            x,
-            y,
+            x: left,
+            y: top,
             width: 1.0,
             height: font_height,
             style: RectStyle {

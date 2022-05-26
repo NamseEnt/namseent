@@ -84,9 +84,9 @@ impl Entity for TextInputExample {
                 },
             },
             text_param: namui::TextParam {
-                x: 500.0,
+                x: 500.0 + 100.0,
                 y: 200.0,
-                align: TextAlign::Left,
+                align: TextAlign::Center,
                 baseline: TextBaseline::Top,
                 text: self.center_text.clone(),
                 font_type: namui::FontType {
@@ -118,9 +118,9 @@ impl Entity for TextInputExample {
                 },
             },
             text_param: namui::TextParam {
-                x: 800.0,
+                x: 800.0 + 200.0,
                 y: 200.0,
-                align: TextAlign::Left,
+                align: TextAlign::Right,
                 baseline: TextBaseline::Top,
                 text: self.right_text.clone(),
                 font_type: namui::FontType {
