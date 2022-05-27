@@ -40,7 +40,6 @@ impl KeyboardManager {
             if event.key() == "Alt" {
                 event.prevent_default();
             }
-            crate::log!("key down: {}", code_string);
 
             crate::event::send(crate::NamuiEvent::KeyDown(crate::KeyEvent { code }));
         }) as Box<dyn FnMut(_)>);
@@ -58,7 +57,6 @@ impl KeyboardManager {
             }
             let code = code.unwrap();
             pressing_code_set_key_up.write().unwrap().remove(&code);
-            crate::log!("key up: {}", code_string);
         }) as Box<dyn FnMut(_)>);
 
         let pressing_code_set_clear = pressing_code_set.clone();
