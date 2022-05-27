@@ -1,24 +1,25 @@
-use std::sync::Arc;
-
 use namui::{
     animation::{KeyframeGraph, Layer},
     prelude::*,
     types::{PixelSize, Time},
 };
 use namui_prebuilt::{table::vertical, typography::center_text, *};
+use std::sync::{Arc, RwLock};
 
 pub(crate) struct PropertyWindow {
+    animation: Arc<RwLock<animation::Animation>>,
+    layer_id: String,
     input_text: Option<String>,
     x_text_input: namui::TextInput,
-    layer: Arc<Layer>,
 }
 
 pub(crate) struct Props {}
 
 impl PropertyWindow {
-    pub(crate) fn new(layer: Arc<Layer>) -> Self {
+    pub(crate) fn new(animation: Arc<RwLock<animation::Animation>>, layer_id: String) -> Self {
         Self {
-            layer,
+            animation,
+            layer_id,
             input_text: None,
             x_text_input: namui::TextInput::new(),
         }
@@ -36,41 +37,64 @@ impl PropertyWindow {
                 }
                 text_input::Event::Focus(focus) => {
                     if focus.id.eq(self.x_text_input.get_id()) {
-                        self.input_text = Some(
-                            self.layer
-                                .image
-                                .x
-                                .get_value(&Time::from_ms(0.0))
-                                .map_or("".to_string(), |x| f32::from(x).to_string()),
-                        );
+                        let animation = self.animation.read().unwrap();
+                        let layer = animation
+                            .layers
+                            .iter()
+                            .find(|layer| layer.id.eq(&self.layer_id));
+                        if let Some(layer) = layer {
+                            self.input_text = Some(
+                                layer
+                                    .image
+                                    .x
+                                    .get_value(&Time::from_ms(0.0))
+                                    .map_or("".to_string(), |x| f32::from(x).to_string()),
+                            );
+                        } else {
+                            namui::event::send(crate::Event::Error(format!(
+                                "Could not find layer with id {}",
+                                self.layer_id
+                            )));
+                        }
                     }
                 }
                 text_input::Event::Blur(blur) => {
                     if blur.id.eq(self.x_text_input.get_id()) {
-                        let mut next_layer = (*self.layer).clone();
-                        let time = Time::from_ms(0.0); // TODO
-                        let input_text = self.input_text.as_ref().unwrap();
-
+                        let animation = self.animation.read().unwrap();
+                        let layer = animation
+                            .layers
+                            .iter()
+                            .find(|layer| layer.id.eq(&self.layer_id));
                         let event = {
-                            if input_text.is_empty() {
-                                next_layer.image.x.delete(time);
-                                crate::Event::UpdateLayer(Arc::new(next_layer))
-                            } else {
-                                if let Ok(x) = input_text.parse::<f32>() {
-                                    next_layer.image.x.put(
-                                        namui::animation::KeyframePoint {
-                                            time,
-                                            value: x.into(),
-                                        },
-                                        animation::KeyframeLine::Linear,
-                                    );
+                            if let Some(layer) = layer {
+                                let mut next_layer = layer.clone();
+                                let time = Time::from_ms(0.0); // TODO
+                                let input_text = self.input_text.as_ref().unwrap();
+                                if input_text.is_empty() {
+                                    next_layer.image.x.delete(time);
                                     crate::Event::UpdateLayer(Arc::new(next_layer))
                                 } else {
-                                    crate::Event::Error(format!(
-                                        "{} is not a valid number",
-                                        input_text
-                                    ))
+                                    if let Ok(x) = input_text.parse::<f32>() {
+                                        next_layer.image.x.put(
+                                            namui::animation::KeyframePoint {
+                                                time,
+                                                value: x.into(),
+                                            },
+                                            animation::KeyframeLine::Linear,
+                                        );
+                                        crate::Event::UpdateLayer(Arc::new(next_layer))
+                                    } else {
+                                        crate::Event::Error(format!(
+                                            "{} is not a valid number",
+                                            input_text
+                                        ))
+                                    }
                                 }
+                            } else {
+                                crate::Event::Error(format!(
+                                    "Could not find layer with id {}",
+                                    self.layer_id
+                                ))
                             }
                         };
 
@@ -86,6 +110,15 @@ impl PropertyWindow {
 
 impl table::CellRender<Props> for PropertyWindow {
     fn render(&self, wh: Wh<f32>, props: Props) -> RenderingTree {
+        let animation = self.animation.read().unwrap();
+        let layer = animation
+            .layers
+            .iter()
+            .find(|layer| layer.id.eq(&self.layer_id));
+        if layer.is_none() {
+            return RenderingTree::Empty;
+        }
+        let layer = layer.unwrap();
         render![
             simple_rect(wh, Color::BLACK, 1.0, Color::WHITE),
             vertical(chains![
@@ -94,7 +127,7 @@ impl table::CellRender<Props> for PropertyWindow {
                     ratio!(1.0, |wh| render_property_row(
                         wh,
                         "X",
-                        &(self, &self.layer.image.x, &self.x_text_input),
+                        &(self, &layer.image.x, &self.x_text_input),
                     )),
                     ratio!(1.0, |wh|
                         // render_property_row(
@@ -197,9 +230,8 @@ impl PropertyEditCell
     fn render_property_edit_cell(&self, wh: Wh<f32>) -> RenderingTree {
         let (window, pixel_size, text_input) = &self;
         let text = window.input_text.clone().unwrap_or_else(|| {
-            pixel_size
-                .get_value(&Time::from_ms(0.0))
-                .map_or("".to_string(), |v| f32::from(v).to_string())
+            let value = pixel_size.get_value(&Time::from_ms(0.0));
+            value.map_or("".to_string(), |v| f32::from(v).to_string())
         });
 
         render![

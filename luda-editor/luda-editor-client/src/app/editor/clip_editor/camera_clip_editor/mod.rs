@@ -3,36 +3,64 @@ use crate::app::{
     types::*,
 };
 use namui::prelude::*;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 pub struct CameraClipEditor {
     animation_editor: namui_animation_editor::AnimationEditor,
-    clip: Arc<CameraClip>,
+    animation: Arc<RwLock<animation::Animation>>,
+    clip_id: String,
 }
 
 pub struct CameraClipEditorProps<'a> {
     pub xywh: XywhRect<f32>,
     pub job: &'a Option<Job>,
+    pub clip: &'a CameraClip,
 }
 
 impl CameraClipEditor {
     pub fn new(clip: Arc<CameraClip>) -> Self {
+        let animation = Arc::new(RwLock::new(clip.animation.clone()));
         Self {
-            animation_editor: namui_animation_editor::AnimationEditor::new(),
-            clip,
+            animation_editor: namui_animation_editor::AnimationEditor::new(animation.clone()),
+            animation,
+            clip_id: clip.id.clone(),
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<namui_animation_editor::Event>() {
             match event {
                 namui_animation_editor::Event::UpdateLayer(layer) => {
-                    // namui::event::send(EditorEvent::CameraClipUpdateEvent {
-                    //     clip_id: self.clip_id.clone(),
-                    //     next_clip: (), 시발~
-                    // })
+                    let layer = layer.clone();
+                    namui::event::send(EditorEvent::CameraClipUpdateEvent {
+                        clip_id: self.clip_id.clone(),
+                        update: Arc::new(move |clip| {
+                            let mut clip = clip.clone();
+                            clip.animation
+                                .layers
+                                .iter_mut()
+                                .find(|layer| layer.id == layer.id)
+                                .unwrap()
+                                .clone_from(&layer);
+                            clip
+                        }),
+                    })
                 }
-                namui_animation_editor::Event::Error(_) => {
-                    // TODO
+                namui_animation_editor::Event::Error(error) => {
+                    panic!("{:?}", error);
+                }
+                namui_animation_editor::Event::AddLayerButtonClicked => {
+                    namui::event::send(EditorEvent::CameraClipUpdateEvent {
+                        clip_id: self.clip_id.clone(),
+                        update: Arc::new(|clip| {
+                            let mut clip = clip.clone();
+                            clip.animation.layers.push(namui::animation::Layer {
+                                id: namui::nanoid(),
+                                name: "New Layer".to_string(),
+                                image: namui::animation::AnimatableImage::new(),
+                            });
+                            clip
+                        }),
+                    })
                 }
                 _ => {}
             }
@@ -40,9 +68,8 @@ impl CameraClipEditor {
         self.animation_editor.update(event);
     }
     pub fn render(&self, props: &CameraClipEditorProps) -> RenderingTree {
-        let mut layers = vec![];
-        for i in 0..100 {
-            layers.push(mock_layer(i));
+        {
+            (*self.animation.write().unwrap()) = props.clip.animation.clone();
         }
         namui::translate(
             props.xywh.x,
@@ -58,7 +85,6 @@ impl CameraClipEditor {
                 namui::render![self
                     .animation_editor
                     .render(&namui_animation_editor::Props {
-                        layers: &layers,
                         wh: Wh {
                             width: props.xywh.width.into(),
                             height: props.xywh.height.into(),
@@ -67,38 +93,4 @@ impl CameraClipEditor {
             ),
         )
     }
-}
-
-fn mock_layer(index: i32) -> Arc<namui::animation::Layer> {
-    Arc::new(namui::animation::Layer {
-        id: namui::nanoid(),
-        name: index.to_string(),
-        image: namui::animation::AnimatableImage {
-            image_source_url: "".to_string(),
-            x: namui::animation::KeyframeGraph::new(namui::animation::KeyframePoint {
-                time: namui::types::Time::from_ms(5.0),
-                value: 0.0.into(),
-            }),
-            y: namui::animation::KeyframeGraph::new(namui::animation::KeyframePoint {
-                time: namui::types::Time::from_ms(5.0),
-                value: 0.0.into(),
-            }),
-            width: namui::animation::KeyframeGraph::new(namui::animation::KeyframePoint {
-                time: namui::types::Time::from_ms(5.0),
-                value: 0.0.into(),
-            }),
-            height: namui::animation::KeyframeGraph::new(namui::animation::KeyframePoint {
-                time: namui::types::Time::from_ms(5.0),
-                value: 0.0.into(),
-            }),
-            opacity: namui::animation::KeyframeGraph::new(namui::animation::KeyframePoint {
-                time: namui::types::Time::from_ms(5.0),
-                value: 0.0.into(),
-            }),
-            rotation_angle: namui::animation::KeyframeGraph::new(namui::animation::KeyframePoint {
-                time: namui::types::Time::from_ms(5.0),
-                value: 0.0.into(),
-            }),
-        },
-    })
 }

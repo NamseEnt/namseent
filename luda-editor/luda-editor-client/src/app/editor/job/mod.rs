@@ -16,7 +16,6 @@ pub mod test_utils;
 #[cfg(test)]
 pub use test_utils::*;
 
-#[derive(Debug, Clone)]
 pub enum Job {
     MoveClip(MoveClipJob),
     AddCameraClip(AddCameraClipJob),

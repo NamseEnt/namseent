@@ -2,18 +2,17 @@ use super::{get_camera_track_id, JobExecute};
 use crate::app::types::*;
 use std::sync::Arc;
 
-#[derive(Debug, Clone)]
 pub struct UpdateCameraClipJob {
     pub clip_id: String,
-    pub next_clip: Arc<CameraClip>,
+    pub update: Arc<dyn Fn(&CameraClip) -> CameraClip + Send + Sync>,
 }
 
 impl JobExecute for UpdateCameraClipJob {
     fn execute(&self, sequence: &Sequence) -> Result<Sequence, String> {
         let sequence = sequence.clone();
         let camera_track_id = get_camera_track_id(&sequence);
-        match sequence.replace_track(&camera_track_id, |mut track: CameraTrack| {
-            match track.replace_clip(&self.clip_id, |_| Ok((*self.next_clip).clone())) {
+        match sequence.replace_track(&camera_track_id, |track: CameraTrack| {
+            match track.replace_clip(&self.clip_id, |clip| Ok((self.update)(clip))) {
                 UpdateResult::Updated(track) => Ok(track),
                 UpdateResult::NotUpdated => Err("Camera clip not found".to_string()),
                 UpdateResult::Err(err) => Err(err),
@@ -39,7 +38,7 @@ mod tests {
         let sequence = mock_sequence(&[], &[]);
         let job = UpdateCameraClipJob {
             clip_id: "".to_string(),
-            next_clip: mock_camera_clip("0", Time::from_ms(0.0), Time::from_ms(1.0)),
+            update: Arc::new(|camera_clip| camera_clip.clone()),
         };
 
         assert_eq!(job.execute(&sequence).is_err(), true);
@@ -54,7 +53,11 @@ mod tests {
 
         let job = UpdateCameraClipJob {
             clip_id: "0".to_string(),
-            next_clip: mock_camera_clip("0", next_start_time, Time::from_ms(1.0)),
+            update: Arc::new(move |camera_clip| {
+                let mut camera_clip = camera_clip.clone();
+                camera_clip.start_at = next_start_time;
+                camera_clip
+            }),
         };
 
         let result = job.execute(&sequence).unwrap();

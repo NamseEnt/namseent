@@ -1,13 +1,12 @@
-use namui::{prelude::*, types::PixelSize};
+use namui::prelude::*;
 use namui_prebuilt::*;
-use std::sync::Arc;
 
 pub(crate) struct Body {
     list_view: list_view::ListView,
 }
 
 pub(crate) struct Props<'a> {
-    pub layers: &'a [Arc<namui::animation::Layer>],
+    pub layers: &'a [namui::animation::Layer],
 }
 
 impl table::CellRender<Props<'_>> for Body {
@@ -22,7 +21,7 @@ impl table::CellRender<Props<'_>> for Body {
             },
             scroll_bar_width: 10.0,
             items: props.layers,
-            item_render: |wh, layer| render_row(wh, layer.clone()),
+            item_render: |wh, layer| render_row(wh, &layer),
         })
     }
 }
@@ -87,7 +86,7 @@ fn render_preview_cell(wh: Wh<f32>, layer: &namui::animation::Layer) -> Renderin
     simple_rect(wh, Color::BLACK, 1.0, Color::WHITE)
 }
 
-fn render_row(wh: Wh<f32>, layer: Arc<animation::Layer>) -> RenderingTree {
+fn render_row(wh: Wh<f32>, layer: &animation::Layer) -> RenderingTree {
     (render![
         simple_rect(wh, Color::BLACK, 1.0, Color::WHITE),
         horizontal![
@@ -102,6 +101,7 @@ fn render_row(wh: Wh<f32>, layer: Arc<animation::Layer>) -> RenderingTree {
     ])
     .attach_event(move |builder| {
         let layer = layer.clone();
-        builder.on_mouse_up(move |_| namui::event::send(super::Event::LayerSelected(layer.clone())))
+        builder
+            .on_mouse_up(move |_| namui::event::send(super::Event::LayerSelected(layer.id.clone())))
     })
 }

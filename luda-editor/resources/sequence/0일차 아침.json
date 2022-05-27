@@ -5,14 +5,78 @@
         "id": "camera_track_1",
         "clips": [
           {
-            "id": "CameraClip-v-PQEAERdTImc_U6ZglPq",
+            "id": "CameraClip-r1p0wDLRIH4qU8ROc6XqO",
             "start_at": {
               "milliseconds": 0.0
             },
             "end_at": {
               "milliseconds": 3000.0
             },
-            "animation_layers": []
+            "animation": {
+              "id": "gxboHJvCicGYmFQ3ALVBH",
+              "layers": [
+                {
+                  "id": "Y2U7mRKYRMjdvBQMtuDHO",
+                  "name": "New Layer",
+                  "image": {
+                    "image_source_url": null,
+                    "x": {
+                      "points_with_lines": [
+                        [
+                          {
+                            "time": {
+                              "milliseconds": 0.0
+                            },
+                            "value": 4444.0
+                          },
+                          "Linear"
+                        ]
+                      ]
+                    },
+                    "y": {
+                      "points_with_lines": []
+                    },
+                    "width": {
+                      "points_with_lines": []
+                    },
+                    "height": {
+                      "points_with_lines": []
+                    },
+                    "rotation_angle": {
+                      "points_with_lines": []
+                    },
+                    "opacity": {
+                      "points_with_lines": []
+                    }
+                  }
+                },
+                {
+                  "id": "Y2U7mRKYRMjdvBQMtuDHO",
+                  "name": "New Layer",
+                  "image": {
+                    "image_source_url": null,
+                    "x": {
+                      "points_with_lines": []
+                    },
+                    "y": {
+                      "points_with_lines": []
+                    },
+                    "width": {
+                      "points_with_lines": []
+                    },
+                    "height": {
+                      "points_with_lines": []
+                    },
+                    "rotation_angle": {
+                      "points_with_lines": []
+                    },
+                    "opacity": {
+                      "points_with_lines": []
+                    }
+                  }
+                }
+              ]
+            }
           }
         ]
       }

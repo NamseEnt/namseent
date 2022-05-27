@@ -9,7 +9,11 @@ use futures::{join, FutureExt};
 pub use job::*;
 use luda_editor_rpc::Socket;
 use namui::prelude::*;
-use std::{cmp::Ordering, collections::BTreeSet, sync::Arc};
+use std::{
+    cmp::Ordering,
+    collections::BTreeSet,
+    sync::{Arc, RwLock},
+};
 use timeline::timeline_body::track_body::*;
 pub use timeline::*;
 use wasm_bindgen_futures::spawn_local;
@@ -164,10 +168,10 @@ impl namui::Entity for Editor {
                     let result = self.execute_job();
                     namui::event::send(SheetSequenceSyncerEvent::SyncDone(result));
                 }
-                EditorEvent::CameraClipUpdateEvent { clip_id, next_clip } => {
+                EditorEvent::CameraClipUpdateEvent { clip_id, update } => {
                     self.job = Some(Job::UpdateCameraClip(UpdateCameraClipJob {
                         clip_id: clip_id.clone(),
-                        next_clip: next_clip.clone(),
+                        update: update.clone(),
                     }));
                     self.execute_job();
                 }
@@ -317,6 +321,12 @@ impl namui::Entity for Editor {
                 None => RenderingTree::Empty,
                 Some(clip_editor) => {
                     clip_editor.render(&ClipEditorProps {
+                        clip: self
+                            .selected_clip_ids
+                            .iter()
+                            .next()
+                            .and_then(|id| self.get_sequence().get_clip(&id))
+                            .unwrap(),
                         xywh: clip_editor_xywh,
                         job: &self.job,
                     })
@@ -499,7 +509,10 @@ impl Editor {
             id: CameraClip::get_new_id(),
             start_at: *start_at,
             end_at: start_at + Time::from_sec(3.0),
-            animation_layers: vec![].into(),
+            animation: namui::animation::Animation {
+                id: namui::nanoid(),
+                layers: vec![],
+            },
         }
     }
     fn get_meta(&self) -> Meta {

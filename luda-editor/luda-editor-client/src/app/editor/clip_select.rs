@@ -192,7 +192,7 @@ impl Editor {
         if self.selected_clip_ids.len() == 1 {
             let clip_id = self.selected_clip_ids.iter().next().unwrap();
             self.clip_editor = Some(ClipEditor::new(
-                self.get_sequence().get_clip(clip_id).unwrap(),
+                self.get_sequence().get_clip(clip_id).unwrap(), // 이거 업데이트 되어야 해
             ));
         } else {
             self.clip_editor = None;

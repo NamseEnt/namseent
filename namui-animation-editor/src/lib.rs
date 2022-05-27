@@ -1,24 +1,25 @@
 use namui::prelude::*;
 use namui_prebuilt::*;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 mod events;
 pub use events::Event;
 mod layer_list_window;
 mod property_window;
 
 pub struct AnimationEditor {
+    animation: Arc<RwLock<animation::Animation>>,
     layer_list_window: layer_list_window::LayerListWindow,
     property_window: Option<property_window::PropertyWindow>,
 }
 
-pub struct Props<'a> {
+pub struct Props {
     pub wh: Wh<types::PixelSize>,
-    pub layers: &'a [Arc<namui::animation::Layer>],
 }
 
 impl AnimationEditor {
-    pub fn new() -> Self {
+    pub fn new(animation: Arc<RwLock<animation::Animation>>) -> Self {
         Self {
+            animation,
             layer_list_window: layer_list_window::LayerListWindow::new(),
             property_window: None,
         }
@@ -26,9 +27,11 @@ impl AnimationEditor {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<layer_list_window::Event>() {
             match event {
-                layer_list_window::Event::LayerSelected(layer) => {
-                    self.property_window =
-                        Some(property_window::PropertyWindow::new(layer.clone()));
+                layer_list_window::Event::LayerSelected(layer_id) => {
+                    self.property_window = Some(property_window::PropertyWindow::new(
+                        self.animation.clone(),
+                        layer_id.clone(),
+                    ));
                 }
             }
         }
@@ -39,6 +42,7 @@ impl AnimationEditor {
         }
     }
     pub fn render(&self, props: &Props) -> namui::RenderingTree {
+        let animation = self.animation.read().unwrap();
         horizontal![
             ratio!(
                 1.0,
@@ -47,7 +51,7 @@ impl AnimationEditor {
                         1.0,
                         &self.layer_list_window,
                         layer_list_window::Props {
-                            layers: props.layers,
+                            layers: animation.layers.as_slice(),
                         }
                     ),
                     ratio!(2.0, |wh| { RenderingTree::Empty }),

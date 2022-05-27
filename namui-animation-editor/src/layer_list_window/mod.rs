@@ -1,6 +1,5 @@
 use namui::{animation::Layer, prelude::*};
 use namui_prebuilt::*;
-use std::sync::Arc;
 mod body;
 mod header;
 
@@ -10,11 +9,11 @@ pub(crate) struct LayerListWindow {
 }
 
 pub(crate) struct Props<'a> {
-    pub layers: &'a [Arc<Layer>],
+    pub layers: &'a [Layer],
 }
 
 pub(crate) enum Event {
-    LayerSelected(Arc<Layer>),
+    LayerSelected(String),
 }
 
 impl LayerListWindow {

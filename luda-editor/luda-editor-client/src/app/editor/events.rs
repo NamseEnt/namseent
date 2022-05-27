@@ -46,6 +46,6 @@ pub enum EditorEvent {
     },
     CameraClipUpdateEvent {
         clip_id: String,
-        next_clip: Arc<CameraClip>,
+        update: Arc<dyn Fn(&CameraClip) -> CameraClip + Send + Sync>,
     },
 }

@@ -81,7 +81,7 @@ pub struct CameraClip {
     pub id: String,
     pub start_at: Time,
     pub end_at: Time,
-    pub animation_layers: Arc<[Arc<namui::animation::Layer>]>,
+    pub animation: namui::animation::Animation,
 }
 impl CameraClip {
     pub fn is_at_time(&self, time: &Time) -> bool {
