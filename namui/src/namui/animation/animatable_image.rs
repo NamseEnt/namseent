@@ -3,13 +3,26 @@ use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnimatableImage {
-    pub image_source_url: String,
+    pub image_source_url: Option<String>,
     pub x: KeyframeGraph<PixelSize>,
     pub y: KeyframeGraph<PixelSize>,
     pub width: KeyframeGraph<PixelSize>,
     pub height: KeyframeGraph<PixelSize>,
     pub rotation_angle: KeyframeGraph<Angle>,
     pub opacity: KeyframeGraph<OneZero>,
+}
+impl AnimatableImage {
+    pub fn new() -> Self {
+        Self {
+            image_source_url: None,
+            x: KeyframeGraph::new(),
+            y: KeyframeGraph::new(),
+            width: KeyframeGraph::new(),
+            height: KeyframeGraph::new(),
+            rotation_angle: KeyframeGraph::new(),
+            opacity: KeyframeGraph::new(),
+        }
+    }
 }
 
 impl KeyframeValue for PixelSize {
@@ -56,7 +69,7 @@ impl Animate for AnimatableImage {
                     fit: ImageFit::Fill,
                     paint_builder: None,
                 },
-                source: ImageSource::Url(self.image_source_url.clone()),
+                source: ImageSource::Url(self.image_source_url.as_ref()?.clone()),
             }))
         }
     }
@@ -71,10 +84,14 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn one_zero_should_be_interpolated() {
-        let mut graph = KeyframeGraph::new(KeyframePoint {
-            time: Time::from_ms(0.0),
-            value: OneZero::new(0.0),
-        });
+        let mut graph = KeyframeGraph::new();
+        graph.put(
+            KeyframePoint {
+                time: Time::from_ms(0.0),
+                value: OneZero::new(0.0),
+            },
+            KeyframeLine::Linear,
+        );
         graph.put(
             KeyframePoint {
                 time: Time::from_ms(10.0),

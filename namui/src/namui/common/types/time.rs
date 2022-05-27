@@ -40,7 +40,6 @@ impl<'a> PartialEq<&'a Time> for Time {
         self.milliseconds == other.milliseconds
     }
 }
-
 impl<'a> PartialEq<Time> for &'a Time {
     fn eq(&self, other: &Time) -> bool {
         self.milliseconds == other.milliseconds

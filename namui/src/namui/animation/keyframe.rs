@@ -19,42 +19,42 @@ pub trait KeyframeValue {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyframeGraph<TValue: KeyframeValue + Clone> {
-    start_point: KeyframePoint<TValue>,
-    next_points_with_lines: Vec<(KeyframePoint<TValue>, KeyframeLine)>,
+    points_with_lines: Vec<(KeyframePoint<TValue>, KeyframeLine)>,
 }
 
 impl<'a, TValue: KeyframeValue + Clone> KeyframeGraph<TValue> {
-    pub fn new(start_point: KeyframePoint<TValue>) -> Self {
+    pub fn new() -> Self {
         Self {
-            start_point,
-            next_points_with_lines: Vec::new(),
+            points_with_lines: Vec::new(),
         }
     }
     pub fn put(&mut self, point: KeyframePoint<TValue>, line: KeyframeLine) {
-        if self.start_point.time == point.time {
-            self.start_point = point;
-        } else {
-            match self
-                .next_points_with_lines
-                .iter_mut()
-                .find(|(p, _)| p.time == point.time)
-            {
-                Some((p, l)) => {
-                    *p = point;
-                    *l = line;
-                }
-                None => {
-                    self.next_points_with_lines.push((point, line));
-                }
+        match self
+            .points_with_lines
+            .iter_mut()
+            .find(|(p, _)| p.time == point.time)
+        {
+            Some((p, l)) => {
+                *p = point;
+                *l = line;
+            }
+            None => {
+                self.points_with_lines.push((point, line));
             }
         }
 
-        self.next_points_with_lines
-            .sort_by_key(|(point, _)| point.time);
+        self.points_with_lines.sort_by_key(|(point, _)| point.time);
     }
     pub fn get_value(&'a self, time: &Time) -> Option<TValue> {
-        let mut current_point = &self.start_point;
-        for (next_point, line) in &self.next_points_with_lines {
+        let mut iter = self.points_with_lines.iter().peekable();
+
+        loop {
+            let (current_point, line) = iter.next()?;
+            if current_point.time == time {
+                return Some(current_point.value.clone());
+            }
+
+            let (next_point, _) = iter.peek()?;
             if current_point.time <= time && time < next_point.time {
                 match line {
                     KeyframeLine::Linear => {
@@ -68,26 +68,13 @@ impl<'a, TValue: KeyframeValue + Clone> KeyframeGraph<TValue> {
                     }
                 }
             }
-            current_point = next_point;
         }
-        None
     }
     pub fn delete(&mut self, time: Time) {
-        if self.start_point.time == time {
-            if self.next_points_with_lines.is_empty() {
-                return;
-            }
-            self.start_point = self.next_points_with_lines.remove(0).0;
-        } else {
-            self.next_points_with_lines.retain(|(p, _)| p.time != time);
-        }
+        self.points_with_lines.retain(|(p, _)| p.time != time);
     }
-    pub(crate) fn get_last_point(&self) -> &KeyframePoint<TValue> {
-        &self
-            .next_points_with_lines
-            .last()
-            .map(|(point, _)| point)
-            .unwrap_or(&self.start_point)
+    fn get_last_point(&self) -> Option<&KeyframePoint<TValue>> {
+        self.points_with_lines.last().map(|(point, _)| point)
     }
 }
 
@@ -109,10 +96,14 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn should_none_if_time_is_before_than_start_point() {
-        let graph = KeyframeGraph::new(KeyframePoint {
-            time: Time::from_ms(5.0),
-            value: 0.0,
-        });
+        let mut graph = KeyframeGraph::new();
+        graph.put(
+            KeyframePoint {
+                time: Time::from_ms(5.0),
+                value: 0.0,
+            },
+            KeyframeLine::Linear,
+        );
         let value = graph.get_value(&Time::from_ms(1.0));
         assert_eq!(value, None);
     }
@@ -120,10 +111,14 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn should_linear_interpolated_value_if_time_is_between_start_and_end_point_in_linear_line() {
-        let mut graph = KeyframeGraph::new(KeyframePoint {
-            time: Time::from_ms(0.0),
-            value: 0.0,
-        });
+        let mut graph = KeyframeGraph::new();
+        graph.put(
+            KeyframePoint {
+                time: Time::from_ms(0.0),
+                value: 0.0,
+            },
+            KeyframeLine::Linear,
+        );
         graph.put(
             KeyframePoint {
                 time: Time::from_ms(10.0),
@@ -139,13 +134,17 @@ mod tests {
 
     #[test]
     #[wasm_bindgen_test]
-    fn should_last_value_if_time_is_after_last_point() {
-        let graph = KeyframeGraph::new(KeyframePoint {
-            time: Time::from_ms(5.0),
-            value: 0.0,
-        });
+    fn should_get_none_if_time_is_after_last_point() {
+        let mut graph = KeyframeGraph::new();
+        graph.put(
+            KeyframePoint {
+                time: Time::from_ms(5.0),
+                value: 0.0,
+            },
+            KeyframeLine::Linear,
+        );
 
-        let last_point = graph.get_last_point();
+        let last_point = graph.get_last_point().unwrap();
         let time_after_last_point = last_point.time + Time::from_ms(1.0);
         let value = graph.get_value(&time_after_last_point);
         assert_eq!(value, None);
@@ -153,12 +152,35 @@ mod tests {
 
     #[test]
     #[wasm_bindgen_test]
+    fn should_get_value_if_time_is_on_single_point() {
+        let time = Time::from_ms(5.0);
+        let value = 3.0;
+
+        let mut graph = KeyframeGraph::new();
+        graph.put(
+            KeyframePoint {
+                time: time.clone(),
+                value: value.clone(),
+            },
+            KeyframeLine::Linear,
+        );
+
+        let result = graph.get_value(&time);
+        assert_eq!(result, Some(value));
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
     fn get_last_point_should_return_start_point_if_no_next_points() {
-        let graph = KeyframeGraph::new(KeyframePoint {
-            time: Time::from_ms(5.0),
-            value: 0.0,
-        });
-        let last_point = graph.get_last_point();
+        let mut graph = KeyframeGraph::new();
+        graph.put(
+            KeyframePoint {
+                time: Time::from_ms(5.0),
+                value: 0.0,
+            },
+            KeyframeLine::Linear,
+        );
+        let last_point = graph.get_last_point().unwrap();
         assert_eq!(last_point.time, Time::from_ms(5.0));
         assert_eq!(last_point.value, 0.0);
     }
@@ -166,10 +188,14 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn get_last_point_should_return_last_point_if_next_points_exist() {
-        let mut graph = KeyframeGraph::new(KeyframePoint {
-            time: Time::from_ms(5.0),
-            value: 0.0,
-        });
+        let mut graph = KeyframeGraph::new();
+        graph.put(
+            KeyframePoint {
+                time: Time::from_ms(5.0),
+                value: 0.0,
+            },
+            KeyframeLine::Linear,
+        );
         graph.put(
             KeyframePoint {
                 time: Time::from_ms(10.0),
@@ -178,7 +204,7 @@ mod tests {
             KeyframeLine::Linear,
         );
 
-        let last_point = graph.get_last_point();
+        let last_point = graph.get_last_point().unwrap();
         assert_eq!(last_point.time, Time::from_ms(10.0));
         assert_eq!(last_point.value, 1.0);
     }
@@ -186,10 +212,14 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn get_last_point_should_order_by_time() {
-        let mut graph = KeyframeGraph::new(KeyframePoint {
-            time: Time::from_ms(5.0),
-            value: 0.0,
-        });
+        let mut graph = KeyframeGraph::new();
+        graph.put(
+            KeyframePoint {
+                time: Time::from_ms(5.0),
+                value: 0.0,
+            },
+            KeyframeLine::Linear,
+        );
         graph.put(
             KeyframePoint {
                 time: Time::from_ms(10.0),
@@ -205,7 +235,7 @@ mod tests {
             KeyframeLine::Linear,
         );
 
-        let last_point = graph.get_last_point();
+        let last_point = graph.get_last_point().unwrap();
         assert_eq!(last_point.time, Time::from_ms(10.0));
         assert_eq!(last_point.value, 1.0);
     }
