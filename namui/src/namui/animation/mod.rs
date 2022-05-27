@@ -12,6 +12,12 @@ pub struct Layer {
     pub image: AnimatableImage,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Animation {
+    pub id: String,
+    pub layers: Vec<Layer>,
+}
+
 pub trait Animate {
     fn render(&self, time: &Time) -> RenderingTree;
 }
