@@ -146,6 +146,13 @@ impl TextInputManager {
     pub fn on_mouse_up(&self, _namui_context: &NamuiContext, _raw_mouse_event: &RawMouseEvent) {
         *self.dragging_text_input_id.lock().unwrap() = None;
     }
+    pub fn is_focused(&self, text_input_id: &str) -> bool {
+        let last_focused_text_input_id = self.last_focused_text_input_id.lock().unwrap();
+        last_focused_text_input_id
+            .as_ref()
+            .map(|id| id.eq(text_input_id))
+            .unwrap_or(false)
+    }
     fn update_focus_with_mouse_movement(
         custom_data: &TextInputCustomData,
         input_element: HtmlInputElement,
