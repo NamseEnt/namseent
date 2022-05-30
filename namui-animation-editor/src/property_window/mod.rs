@@ -1,7 +1,7 @@
 use namui::{
-    animation::{KeyframeGraph, Layer},
+    animation::{KeyframeGraph, KeyframeValue, Layer},
     prelude::*,
-    types::{PixelSize, Time},
+    types::{Angle, PixelSize, Time},
 };
 use namui_prebuilt::{table::vertical, typography::center_text, *};
 use std::sync::{Arc, RwLock};
@@ -14,6 +14,7 @@ pub(crate) struct PropertyWindow {
     y_text_input: namui::TextInput,
     width_text_input: namui::TextInput,
     height_text_input: namui::TextInput,
+    rotation_text_input: namui::TextInput,
 }
 
 pub(crate) struct Props {}
@@ -28,47 +29,132 @@ impl PropertyWindow {
             y_text_input: namui::TextInput::new(),
             width_text_input: namui::TextInput::new(),
             height_text_input: namui::TextInput::new(),
+            rotation_text_input: namui::TextInput::new(),
         }
     }
     pub(crate) fn update(&mut self, event: &dyn std::any::Any) {
-        struct F32Input<'a> {
-            text_input: &'a mut TextInput,
-            get_graph_mut: for<'b> fn(&'b mut Layer) -> &'b mut KeyframeGraph<PixelSize>,
-            get_graph: for<'b> fn(&'b Layer) -> &'b KeyframeGraph<PixelSize>,
+        enum F32Input<'a> {
+            PixelSize {
+                text_input: &'a mut TextInput,
+                id: String,
+                get_graph_mut: for<'b> fn(&'b mut Layer) -> &'b mut KeyframeGraph<PixelSize>,
+                get_graph: for<'b> fn(&'b Layer) -> &'b KeyframeGraph<PixelSize>,
+            },
+            Angle {
+                text_input: &'a mut TextInput,
+                id: String,
+                get_graph_mut: for<'b> fn(&'b mut Layer) -> &'b mut KeyframeGraph<Angle>,
+                get_graph: for<'b> fn(&'b Layer) -> &'b KeyframeGraph<Angle>,
+            },
+        }
+        impl F32Input<'_> {
+            fn get_text_input_mut(&mut self) -> &mut TextInput {
+                match self {
+                    Self::PixelSize { text_input, .. } => text_input,
+                    Self::Angle { text_input, .. } => text_input,
+                }
+            }
+            fn get_id(&self) -> &str {
+                match self {
+                    Self::PixelSize { id, .. } => id,
+                    Self::Angle { id, .. } => id,
+                }
+            }
+            fn get_text_input_id(&mut self) -> &str {
+                self.get_text_input_mut().get_id()
+            }
+            fn get_value_as_f32(&self, layer: &Layer, time: Time) -> Option<f32> {
+                match self {
+                    Self::PixelSize { get_graph, .. } => {
+                        (get_graph)(layer).get_value(time).map(|v| v.into())
+                    }
+                    Self::Angle { get_graph, .. } => {
+                        (get_graph)(layer).get_value(time).map(|v| v.into())
+                    }
+                }
+            }
+            fn delete(&mut self, layer: &mut Layer, time: Time) {
+                match self {
+                    Self::PixelSize { get_graph_mut, .. } => {
+                        (get_graph_mut)(layer).delete(time);
+                    }
+                    Self::Angle { get_graph_mut, .. } => {
+                        (get_graph_mut)(layer).delete(time);
+                    }
+                }
+            }
+            fn put(
+                &self,
+                next_layer: &mut Layer,
+                value: f32,
+                time: Time,
+                linear: animation::KeyframeLine,
+            ) {
+                match self {
+                    Self::PixelSize { get_graph_mut, .. } => {
+                        (get_graph_mut)(next_layer).put(
+                            namui::animation::KeyframePoint {
+                                time,
+                                value: value.into(),
+                            },
+                            linear,
+                        );
+                    }
+                    Self::Angle { get_graph_mut, .. } => {
+                        (get_graph_mut)(next_layer).put(
+                            namui::animation::KeyframePoint {
+                                time,
+                                value: value.into(),
+                            },
+                            linear,
+                        );
+                    }
+                }
+            }
         }
         let mut f32_inputs = [
-            F32Input {
+            F32Input::PixelSize {
+                id: self.x_text_input.get_id().to_string(),
                 text_input: &mut self.x_text_input,
                 get_graph_mut: |layer| &mut layer.image.x,
                 get_graph: |layer| &layer.image.x,
             },
-            F32Input {
+            F32Input::PixelSize {
+                id: self.y_text_input.get_id().to_string(),
                 text_input: &mut self.y_text_input,
                 get_graph_mut: |layer| &mut layer.image.y,
                 get_graph: |layer| &layer.image.y,
             },
-            F32Input {
+            F32Input::PixelSize {
+                id: self.width_text_input.get_id().to_string(),
                 text_input: &mut self.width_text_input,
                 get_graph_mut: |layer| &mut layer.image.width,
                 get_graph: |layer| &layer.image.width,
             },
-            F32Input {
+            F32Input::PixelSize {
+                id: self.height_text_input.get_id().to_string(),
                 text_input: &mut self.height_text_input,
                 get_graph_mut: |layer| &mut layer.image.height,
                 get_graph: |layer| &layer.image.height,
             },
+            F32Input::Angle {
+                id: self.rotation_text_input.get_id().to_string(),
+                text_input: &mut self.rotation_text_input,
+                get_graph_mut: |layer| &mut layer.image.rotation_angle,
+                get_graph: |layer| &layer.image.rotation_angle,
+            },
         ];
 
         f32_inputs.iter_mut().for_each(|input| {
-            input.text_input.update(event);
+            input.get_text_input_mut().update(event);
         });
 
         if let Some(event) = event.downcast_ref::<text_input::Event>() {
             match event {
                 text_input::Event::TextUpdated(text_updated) => {
                     if f32_inputs
-                        .iter()
-                        .any(|input| input.text_input.get_id() == &text_updated.id)
+                        .iter_mut()
+                        .any(|input| input.get_text_input_id() == &text_updated.id)
                     {
                         self.input_text = Some(text_updated.text.clone());
                     }
@@ -90,14 +176,12 @@ impl PropertyWindow {
 
                     f32_inputs
                         .iter()
-                        .find(|input| input.text_input.get_id().eq(&focus.id))
+                        .find(|input| input.get_id().eq(&focus.id))
                         .map(|input| {
                             if self.input_text.is_none() {
-                                let graph = (input.get_graph)(layer);
+                                let value = input.get_value_as_f32(layer, time);
                                 self.input_text =
-                                    Some(graph.get_value(&time).map_or("".to_string(), |value| {
-                                        f32::from(value).to_string()
-                                    }));
+                                    Some(value.map_or("".to_string(), |value| value.to_string()));
                             }
                         });
                 }
@@ -119,22 +203,20 @@ impl PropertyWindow {
 
                     f32_inputs
                         .iter_mut()
-                        .find(|input| input.text_input.get_id().eq(&blur.id))
+                        .find(|input| input.get_id().eq(&blur.id))
                         .map(|input| {
                             let event = {
                                 let mut next_layer = layer.clone();
-                                let graph = (input.get_graph_mut)(&mut next_layer);
                                 let input_text = self.input_text.as_ref().unwrap();
                                 if input_text.is_empty() {
-                                    graph.delete(time);
+                                    input.delete(&mut next_layer, time);
                                     crate::Event::UpdateLayer(Arc::new(next_layer))
                                 } else {
                                     if let Ok(value) = input_text.parse::<f32>() {
-                                        graph.put(
-                                            namui::animation::KeyframePoint {
-                                                time,
-                                                value: value.into(),
-                                            },
+                                        input.put(
+                                            &mut next_layer,
+                                            value,
+                                            time,
                                             animation::KeyframeLine::Linear,
                                         );
                                         crate::Event::UpdateLayer(Arc::new(next_layer))
@@ -193,13 +275,11 @@ impl table::CellRender<Props> for PropertyWindow {
                         "Height",
                         &(self, &layer.image.height, &self.height_text_input),
                     )),
-                    ratio!(1.0, |wh|
-                        // render_property_row(
-                        //     wh,
-                        //     "Rotation",
-                        //     &self.layer.image.x
-                        // )
-                        RenderingTree::Empty),
+                    ratio!(1.0, |wh| render_property_row(
+                        wh,
+                        "Rotation",
+                        &(self, &layer.image.rotation_angle, &self.rotation_text_input),
+                    )),
                     ratio!(1.0, |wh|
                         // render_property_row(
                         //     wh,
@@ -263,10 +343,10 @@ trait PropertyEditCell {
     fn render_property_edit_cell(&self, wh: Wh<f32>) -> RenderingTree;
 }
 
-impl PropertyEditCell
+impl<T: KeyframeValue + Clone + Into<f32>> PropertyEditCell
     for (
         &'_ PropertyWindow,
-        &'_ KeyframeGraph<PixelSize>,
+        &'_ KeyframeGraph<T>,
         &'_ namui::TextInput,
     )
 {
@@ -276,8 +356,8 @@ impl PropertyEditCell
         let text = if window.input_text.is_some() && text_input.is_focused() {
             window.input_text.clone().unwrap()
         } else {
-            let value = pixel_size.get_value(&Time::from_ms(0.0));
-            value.map_or("".to_string(), |v| f32::from(v).to_string())
+            let value = pixel_size.get_value(Time::from_ms(0.0));
+            value.map_or("".to_string(), |v| v.into().to_string())
         };
 
         render![
