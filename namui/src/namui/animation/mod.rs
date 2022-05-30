@@ -19,5 +19,5 @@ pub struct Animation {
 }
 
 pub trait Animate {
-    fn render(&self, time: &Time) -> RenderingTree;
+    fn render(&self, time: Time) -> RenderingTree;
 }

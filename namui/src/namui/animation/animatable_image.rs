@@ -51,7 +51,7 @@ impl KeyframeValue for OneZero {
 }
 
 impl Animate for AnimatableImage {
-    fn render(&self, time: &Time) -> RenderingTree {
+    fn render(&self, time: Time) -> RenderingTree {
         try_render! {
             let opacity: f32 = self.opacity.get_value(time)?.into();
             if opacity <= 0.0 {

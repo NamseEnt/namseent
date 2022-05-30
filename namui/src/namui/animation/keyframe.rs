@@ -45,7 +45,7 @@ impl<'a, TValue: KeyframeValue + Clone> KeyframeGraph<TValue> {
 
         self.points_with_lines.sort_by_key(|(point, _)| point.time);
     }
-    pub fn get_value(&'a self, time: &Time) -> Option<TValue> {
+    pub fn get_value(&'a self, time: Time) -> Option<TValue> {
         let mut iter = self.points_with_lines.iter().peekable();
 
         loop {
