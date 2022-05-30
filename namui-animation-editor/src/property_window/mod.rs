@@ -11,6 +11,7 @@ pub(crate) struct PropertyWindow {
     layer_id: String,
     input_text: Option<String>,
     x_text_input: namui::TextInput,
+    y_text_input: namui::TextInput,
 }
 
 pub(crate) struct Props {}
@@ -22,63 +23,93 @@ impl PropertyWindow {
             layer_id,
             input_text: None,
             x_text_input: namui::TextInput::new(),
+            y_text_input: namui::TextInput::new(),
         }
     }
     pub(crate) fn update(&mut self, event: &dyn std::any::Any) {
         self.x_text_input.update(event);
+        self.y_text_input.update(event);
 
         if let Some(event) = event.downcast_ref::<text_input::Event>() {
             match event {
                 text_input::Event::TextUpdated(text_updated) => {
-                    if text_updated.id.eq(self.x_text_input.get_id()) {
-                        // TODO: Update layer
+                    if [(self.x_text_input.get_id()), (self.y_text_input.get_id())]
+                        .iter()
+                        .any(|id| id == &text_updated.id)
+                    {
                         self.input_text = Some(text_updated.text.clone());
                     }
                 }
                 text_input::Event::Focus(focus) => {
-                    if focus.id.eq(self.x_text_input.get_id()) {
-                        let animation = self.animation.read().unwrap();
-                        let layer = animation
-                            .layers
-                            .iter()
-                            .find(|layer| layer.id.eq(&self.layer_id));
-                        if let Some(layer) = layer {
+                    let animation = self.animation.read().unwrap();
+                    let layer = animation
+                        .layers
+                        .iter()
+                        .find(|layer| layer.id.eq(&self.layer_id));
+                    if layer.is_none() {
+                        namui::event::send(crate::Event::Error(format!(
+                            "Could not find layer with id {}",
+                            self.layer_id
+                        )));
+                    };
+                    let layer = layer.unwrap();
+                    let time = Time::from_ms(0.0);
+                    [
+                        (&self.x_text_input, &layer.image.x),
+                        (&self.y_text_input, &layer.image.y),
+                    ]
+                    .iter()
+                    .find(|(text_input, _)| text_input.get_id().eq(&focus.id))
+                    .map(|(_, graph)| {
+                        if self.input_text.is_none() {
                             self.input_text = Some(
-                                layer
-                                    .image
-                                    .x
-                                    .get_value(&Time::from_ms(0.0))
-                                    .map_or("".to_string(), |x| f32::from(x).to_string()),
+                                graph
+                                    .get_value(&time)
+                                    .map_or("".to_string(), |value| f32::from(value).to_string()),
                             );
-                        } else {
-                            namui::event::send(crate::Event::Error(format!(
-                                "Could not find layer with id {}",
-                                self.layer_id
-                            )));
                         }
-                    }
+                    });
                 }
                 text_input::Event::Blur(blur) => {
-                    if blur.id.eq(self.x_text_input.get_id()) {
-                        let animation = self.animation.read().unwrap();
-                        let layer = animation
-                            .layers
-                            .iter()
-                            .find(|layer| layer.id.eq(&self.layer_id));
-                        let event = {
-                            if let Some(layer) = layer {
+                    let animation = self.animation.read().unwrap();
+                    let layer = animation
+                        .layers
+                        .iter()
+                        .find(|layer| layer.id.eq(&self.layer_id));
+                    if layer.is_none() {
+                        namui::event::send(crate::Event::Error(format!(
+                            "Could not find layer with id {}",
+                            self.layer_id
+                        )));
+                    };
+                    let layer = layer.unwrap();
+
+                    let time = Time::from_ms(0.0); // TODO
+
+                    let tuples: [(
+                        &str,
+                        for<'a> fn(&'a mut Layer) -> &'a mut KeyframeGraph<PixelSize>,
+                    ); 2] = [
+                        (self.x_text_input.get_id(), |layer| &mut layer.image.x),
+                        (self.y_text_input.get_id(), |layer| &mut layer.image.y),
+                    ];
+                    tuples
+                        .iter()
+                        .find(|(id, _)| id.eq(&blur.id))
+                        .map(|(_, get_graph)| {
+                            let event = {
                                 let mut next_layer = layer.clone();
-                                let time = Time::from_ms(0.0); // TODO
+                                let graph = get_graph(&mut next_layer);
                                 let input_text = self.input_text.as_ref().unwrap();
                                 if input_text.is_empty() {
-                                    next_layer.image.x.delete(time);
+                                    graph.delete(time);
                                     crate::Event::UpdateLayer(Arc::new(next_layer))
                                 } else {
-                                    if let Ok(x) = input_text.parse::<f32>() {
-                                        next_layer.image.x.put(
+                                    if let Ok(value) = input_text.parse::<f32>() {
+                                        graph.put(
                                             namui::animation::KeyframePoint {
                                                 time,
-                                                value: x.into(),
+                                                value: value.into(),
                                             },
                                             animation::KeyframeLine::Linear,
                                         );
@@ -90,17 +121,11 @@ impl PropertyWindow {
                                         ))
                                     }
                                 }
-                            } else {
-                                crate::Event::Error(format!(
-                                    "Could not find layer with id {}",
-                                    self.layer_id
-                                ))
-                            }
-                        };
+                            };
 
-                        namui::event::send(event);
-                        self.input_text = None;
-                    }
+                            namui::event::send(event);
+                            self.input_text = None;
+                        });
                 }
                 _ => {}
             }
@@ -129,13 +154,12 @@ impl table::CellRender<Props> for PropertyWindow {
                         "X",
                         &(self, &layer.image.x, &self.x_text_input),
                     )),
-                    ratio!(1.0, |wh|
-                        // render_property_row(
-                        //     wh,
-                        //     "Y",
-                        //     &self.layer.image.y
-                        // )
-                        RenderingTree::Empty),
+                    // ratio!(1.0, |wh| render_property_row(
+                    //     wh,
+                    //     "Y",
+                    //     &(self, &layer.image.y, &self.y_text_input),
+                    // )),
+                    ratio!(1.0, |wh| RenderingTree::Empty),
                     ratio!(1.0, |wh|
                         // render_property_row(
                         //     wh,
@@ -229,10 +253,13 @@ impl PropertyEditCell
 {
     fn render_property_edit_cell(&self, wh: Wh<f32>) -> RenderingTree {
         let (window, pixel_size, text_input) = &self;
-        let text = window.input_text.clone().unwrap_or_else(|| {
+
+        let text = if window.input_text.is_some() && text_input.is_focused() {
+            window.input_text.clone().unwrap()
+        } else {
             let value = pixel_size.get_value(&Time::from_ms(0.0));
             value.map_or("".to_string(), |v| f32::from(v).to_string())
-        });
+        };
 
         render![
             simple_rect(wh, Color::BLACK, 1.0, Color::WHITE),
