@@ -101,4 +101,8 @@ impl TextInput {
             }
         }
     }
+    pub fn is_focused(&self) -> bool {
+        let managers = crate::managers();
+        managers.text_input_manager.is_focused(&self.id)
+    }
 }

@@ -18,4 +18,7 @@ impl TextInputManager {
     pub fn on_mouse_up(&self, namui_context: &NamuiContext, raw_mouse_event: &RawMouseEvent) {
         todo!()
     }
+    pub fn is_focused(&self, text_input_id: &str) -> bool {
+        todo!();
+    }
 }
