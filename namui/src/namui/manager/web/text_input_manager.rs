@@ -117,6 +117,7 @@ impl TextInputManager {
 
         Self::update_focus_with_mouse_movement(
             &custom_data,
+            namui_context,
             input_element,
             raw_mouse_event.xy.x,
             false,
@@ -138,6 +139,7 @@ impl TextInputManager {
 
         Self::update_focus_with_mouse_movement(
             &custom_data,
+            namui_context,
             Self::get_input_element(),
             raw_mouse_event.xy.x,
             true,
@@ -155,13 +157,20 @@ impl TextInputManager {
     }
     fn update_focus_with_mouse_movement(
         custom_data: &TextInputCustomData,
+        namui_context: &NamuiContext,
         input_element: HtmlInputElement,
         mouse_x: f32,
         is_mouse_move: bool,
     ) {
+        let local_x =
+            Self::get_text_input_xy(&namui_context.rendering_tree, &custom_data.text_input.id)
+                .unwrap()
+                .x;
+        let mouse_local_x = mouse_x - local_x;
+
         let selection = custom_data.text_input.get_selection_on_mouse_movement(
             &custom_data.props,
-            mouse_x,
+            mouse_local_x,
             is_mouse_move,
         );
         let selection_direction = match &selection {
@@ -210,6 +219,30 @@ impl TextInputManager {
                         {
                             if custom_data.text_input.id == id {
                                 return_value = Some(custom_data.clone());
+                                return ControlFlow::Break(());
+                            }
+                        }
+                    }
+                    _ => {}
+                },
+                _ => {}
+            };
+            ControlFlow::Continue(())
+        });
+
+        return_value
+    }
+    fn get_text_input_xy(rendering_tree: &RenderingTree, id: &str) -> Option<Xy<f32>> {
+        let mut return_value = None;
+
+        rendering_tree.visit_rln(|rendering_tree, util| {
+            match rendering_tree {
+                RenderingTree::Special(special) => match special {
+                    render::SpecialRenderingNode::Custom(custom) => {
+                        if let Some(custom_data) = custom.data.downcast_ref::<TextInputCustomData>()
+                        {
+                            if custom_data.text_input.id == id {
+                                return_value = Some(util.get_xy());
                                 return ControlFlow::Break(());
                             }
                         }

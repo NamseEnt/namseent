@@ -6,7 +6,7 @@ impl TextInput {
     pub(crate) fn get_selection_on_mouse_movement(
         &self,
         props: &Props,
-        click_x: f32,
+        click_local_x: f32,
         is_dragging_by_mouse: bool,
     ) -> Option<Range<usize>> {
         let (font, is_shift_key_pressed) = {
@@ -40,9 +40,9 @@ impl TextInput {
         );
 
         let aligned_x = match props.text_param.align {
-            namui::TextAlign::Left => click_x - props.text_param.x,
-            namui::TextAlign::Center => click_x - props.text_param.x + text_width / 2.0,
-            namui::TextAlign::Right => click_x - props.text_param.x + text_width,
+            namui::TextAlign::Left => click_local_x - props.text_param.x,
+            namui::TextAlign::Center => click_local_x - props.text_param.x + text_width / 2.0,
+            namui::TextAlign::Right => click_local_x - props.text_param.x + text_width,
         };
 
         let is_dragging = is_shift_key_pressed || is_dragging_by_mouse;
