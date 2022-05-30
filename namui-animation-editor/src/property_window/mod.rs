@@ -12,6 +12,8 @@ pub(crate) struct PropertyWindow {
     input_text: Option<String>,
     x_text_input: namui::TextInput,
     y_text_input: namui::TextInput,
+    width_text_input: namui::TextInput,
+    height_text_input: namui::TextInput,
 }
 
 pub(crate) struct Props {}
@@ -24,18 +26,49 @@ impl PropertyWindow {
             input_text: None,
             x_text_input: namui::TextInput::new(),
             y_text_input: namui::TextInput::new(),
+            width_text_input: namui::TextInput::new(),
+            height_text_input: namui::TextInput::new(),
         }
     }
     pub(crate) fn update(&mut self, event: &dyn std::any::Any) {
-        self.x_text_input.update(event);
-        self.y_text_input.update(event);
+        struct F32Input<'a> {
+            text_input: &'a mut TextInput,
+            get_graph_mut: for<'b> fn(&'b mut Layer) -> &'b mut KeyframeGraph<PixelSize>,
+            get_graph: for<'b> fn(&'b Layer) -> &'b KeyframeGraph<PixelSize>,
+        }
+        let mut f32_inputs = [
+            F32Input {
+                text_input: &mut self.x_text_input,
+                get_graph_mut: |layer| &mut layer.image.x,
+                get_graph: |layer| &layer.image.x,
+            },
+            F32Input {
+                text_input: &mut self.y_text_input,
+                get_graph_mut: |layer| &mut layer.image.y,
+                get_graph: |layer| &layer.image.y,
+            },
+            F32Input {
+                text_input: &mut self.width_text_input,
+                get_graph_mut: |layer| &mut layer.image.width,
+                get_graph: |layer| &layer.image.width,
+            },
+            F32Input {
+                text_input: &mut self.height_text_input,
+                get_graph_mut: |layer| &mut layer.image.height,
+                get_graph: |layer| &layer.image.height,
+            },
+        ];
+
+        f32_inputs.iter_mut().for_each(|input| {
+            input.text_input.update(event);
+        });
 
         if let Some(event) = event.downcast_ref::<text_input::Event>() {
             match event {
                 text_input::Event::TextUpdated(text_updated) => {
-                    if [(self.x_text_input.get_id()), (self.y_text_input.get_id())]
+                    if f32_inputs
                         .iter()
-                        .any(|id| id == &text_updated.id)
+                        .any(|input| input.text_input.get_id() == &text_updated.id)
                     {
                         self.input_text = Some(text_updated.text.clone());
                     }
@@ -54,21 +87,19 @@ impl PropertyWindow {
                     };
                     let layer = layer.unwrap();
                     let time = Time::from_ms(0.0);
-                    [
-                        (&self.x_text_input, &layer.image.x),
-                        (&self.y_text_input, &layer.image.y),
-                    ]
-                    .iter()
-                    .find(|(text_input, _)| text_input.get_id().eq(&focus.id))
-                    .map(|(_, graph)| {
-                        if self.input_text.is_none() {
-                            self.input_text = Some(
-                                graph
-                                    .get_value(&time)
-                                    .map_or("".to_string(), |value| f32::from(value).to_string()),
-                            );
-                        }
-                    });
+
+                    f32_inputs
+                        .iter()
+                        .find(|input| input.text_input.get_id().eq(&focus.id))
+                        .map(|input| {
+                            if self.input_text.is_none() {
+                                let graph = (input.get_graph)(layer);
+                                self.input_text =
+                                    Some(graph.get_value(&time).map_or("".to_string(), |value| {
+                                        f32::from(value).to_string()
+                                    }));
+                            }
+                        });
                 }
                 text_input::Event::Blur(blur) => {
                     let animation = self.animation.read().unwrap();
@@ -86,20 +117,13 @@ impl PropertyWindow {
 
                     let time = Time::from_ms(0.0); // TODO
 
-                    let tuples: [(
-                        &str,
-                        for<'a> fn(&'a mut Layer) -> &'a mut KeyframeGraph<PixelSize>,
-                    ); 2] = [
-                        (self.x_text_input.get_id(), |layer| &mut layer.image.x),
-                        (self.y_text_input.get_id(), |layer| &mut layer.image.y),
-                    ];
-                    tuples
-                        .iter()
-                        .find(|(id, _)| id.eq(&blur.id))
-                        .map(|(_, get_graph)| {
+                    f32_inputs
+                        .iter_mut()
+                        .find(|input| input.text_input.get_id().eq(&blur.id))
+                        .map(|input| {
                             let event = {
                                 let mut next_layer = layer.clone();
-                                let graph = get_graph(&mut next_layer);
+                                let graph = (input.get_graph_mut)(&mut next_layer);
                                 let input_text = self.input_text.as_ref().unwrap();
                                 if input_text.is_empty() {
                                     graph.delete(time);
@@ -154,26 +178,21 @@ impl table::CellRender<Props> for PropertyWindow {
                         "X",
                         &(self, &layer.image.x, &self.x_text_input),
                     )),
-                    // ratio!(1.0, |wh| render_property_row(
-                    //     wh,
-                    //     "Y",
-                    //     &(self, &layer.image.y, &self.y_text_input),
-                    // )),
-                    ratio!(1.0, |wh| RenderingTree::Empty),
-                    ratio!(1.0, |wh|
-                        // render_property_row(
-                        //     wh,
-                        //     "Width",
-                        //     &self.layer.image.width
-                        // )
-                        RenderingTree::Empty),
-                    ratio!(1.0, |wh|
-                        // render_property_row(
-                        //     wh,
-                        //     "Height",
-                        //     &self.layer.image.height
-                        // )
-                        RenderingTree::Empty),
+                    ratio!(1.0, |wh| render_property_row(
+                        wh,
+                        "Y",
+                        &(self, &layer.image.y, &self.y_text_input),
+                    )),
+                    ratio!(1.0, |wh| render_property_row(
+                        wh,
+                        "Width",
+                        &(self, &layer.image.width, &self.width_text_input),
+                    )),
+                    ratio!(1.0, |wh| render_property_row(
+                        wh,
+                        "Height",
+                        &(self, &layer.image.height, &self.height_text_input),
+                    )),
                     ratio!(1.0, |wh|
                         // render_property_row(
                         //     wh,
