@@ -170,37 +170,14 @@ impl RenderingTree {
             ControlFlow::Continue(())
         });
     }
-    pub(crate) fn get_xy(&self, id: &str) -> Option<Xy<f32>> {
+    pub(crate) fn get_xy_by_id(&self, id: &str) -> Option<Xy<f32>> {
         let mut result = None;
         self.visit_rln(|node, utils| {
             match node {
                 RenderingTree::Special(special) => match special {
-                    SpecialRenderingNode::WithId(width_id) => {
-                        if width_id.id == id {
-                            utils.with_ancestors(|ancestors| {
-                                let mut xy = Xy { x: 0.0, y: 0.0 };
-                                for ancestor in ancestors.iter().rev() {
-                                    if let RenderingTree::Special(special) = ancestor {
-                                        match special {
-                                            SpecialRenderingNode::Translate(translate) => {
-                                                xy.x += translate.x;
-                                                xy.y += translate.y;
-                                            }
-                                            SpecialRenderingNode::Absolute(absolute) => {
-                                                xy.x += absolute.x;
-                                                xy.y += absolute.y;
-                                                break;
-                                            }
-                                            SpecialRenderingNode::Rotate(rotate) => {
-                                                let matrix = rotate.get_matrix();
-                                                xy = matrix.transform_xy(&xy);
-                                            }
-                                            _ => {}
-                                        }
-                                    }
-                                }
-                                result = Some(xy);
-                            });
+                    SpecialRenderingNode::WithId(with_id) => {
+                        if with_id.id == id {
+                            result = Some(utils.get_xy());
                             return ControlFlow::Break(());
                         }
                     }
@@ -208,6 +185,17 @@ impl RenderingTree {
                 },
                 _ => {}
             };
+            ControlFlow::Continue(())
+        });
+        result
+    }
+    pub(crate) fn get_xy_of_child(&self, child: &RenderingTree) -> Option<Xy<f32>> {
+        let mut result = None;
+        self.visit_rln(|node, utils| {
+            if std::ptr::eq(node, child) {
+                result = Some(utils.get_xy());
+                return ControlFlow::Break(());
+            }
             ControlFlow::Continue(())
         });
         result

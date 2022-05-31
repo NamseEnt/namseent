@@ -11,6 +11,9 @@ impl VisitUtils<'_> {
     pub fn to_local_xy(&self, xy: &Xy<f32>) -> Xy<f32> {
         self.rendering_tree.to_local_xy(xy, self.ancestors)
     }
+    pub fn get_xy(&self) -> Xy<f32> {
+        self.rendering_tree.get_xy(self.ancestors)
+    }
     pub fn with_ancestors(&self, mut func: impl FnMut(&[&RenderingTree])) {
         func(self.ancestors)
     }
@@ -247,6 +250,30 @@ impl RenderingTree {
             }
         }
         Some(bounding_box)
+    }
+    fn get_xy(&self, ancestors: &[&RenderingTree]) -> Xy<f32> {
+        let mut xy = Xy { x: 0.0, y: 0.0 };
+        for ancestor in ancestors.iter().rev() {
+            if let RenderingTree::Special(special) = ancestor {
+                match special {
+                    SpecialRenderingNode::Translate(translate) => {
+                        xy.x += translate.x;
+                        xy.y += translate.y;
+                    }
+                    SpecialRenderingNode::Absolute(absolute) => {
+                        xy.x += absolute.x;
+                        xy.y += absolute.y;
+                        break;
+                    }
+                    SpecialRenderingNode::Rotate(rotate) => {
+                        let matrix = rotate.get_matrix();
+                        xy = matrix.transform_xy(&xy);
+                    }
+                    _ => {}
+                }
+            }
+        }
+        xy
     }
 }
 

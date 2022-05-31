@@ -31,7 +31,7 @@ pub struct NamuiContext {
 }
 impl NamuiContext {
     pub fn get_rendering_tree_xy(&self, id: &str) -> Option<Xy<f32>> {
-        self.rendering_tree.get_xy(id)
+        self.rendering_tree.get_xy_by_id(id)
     }
 }
 

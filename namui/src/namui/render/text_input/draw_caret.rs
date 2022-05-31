@@ -14,6 +14,8 @@ impl TextInput {
         let selection = selection.as_ref().unwrap();
 
         let char_vec = text_param.text.chars().collect::<Vec<_>>();
+        let char_vec_len = char_vec.len();
+        let selection = selection.start.min(char_vec_len)..selection.end.min(char_vec_len); // Note: https://docs.google.com/document/d/1BYWl4DeCih52fjgxa8DHszISA3fOJxKrAtCYba6uJXE/edit#heading=h.xoyzkdbf352y
         let left_text_string: String = char_vec[..selection.end].iter().collect();
         let right_text_string: String = char_vec[selection.end..].iter().collect();
 
