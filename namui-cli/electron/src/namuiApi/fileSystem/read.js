@@ -1,11 +1,11 @@
 const { readFile } = require("fs/promises");
-const { join } = require("path");
-
-const resourceRoot = join(__dirname, "../../../..");
+const {
+    resolvePathNamuiToLocal,
+} = require("../../util/resolvePathNamuiToLocal");
 
 async function read(path) {
-    const normalizedPath = join(resourceRoot, path).normalize();
-    return readFile(normalizedPath);
+    const resolvedLocalPath = resolvePathNamuiToLocal(path);
+    return readFile(resolvedLocalPath);
 }
 
 exports.read = read;

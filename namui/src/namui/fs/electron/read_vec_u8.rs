@@ -6,7 +6,7 @@ pub enum ReadVecU8Error {
     Other(String),
 }
 
-#[namui_cfg(all(target_env = "electron", not(watch_reload)))]
+#[namui_cfg(target_env = "electron")]
 pub async fn read_vec_u8(path: &str) -> Result<Vec<u8>, ReadVecU8Error> {
     use wasm_bindgen::JsCast;
     read_vec_u8_from_electron(path)
@@ -23,7 +23,7 @@ pub async fn read_vec_u8(path: &str) -> Result<Vec<u8>, ReadVecU8Error> {
 
 #[wasm_bindgen]
 extern "C" {
-    #[namui_cfg(all(target_env = "electron", not(watch_reload)))]
+    #[namui_cfg(target_env = "electron")]
     #[wasm_bindgen(catch)]
     #[wasm_bindgen(js_namespace = ["window", "namuiApi", "fileSystem"], js_name = read)]
     async fn read_vec_u8_from_electron(
