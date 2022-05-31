@@ -1,5 +1,5 @@
 use namui::{
-    animation::{KeyframeGraph, KeyframeValue, Layer},
+    animation::{KeyframeGraph, KeyframePoint, KeyframeValue, Layer},
     prelude::*,
     types::{Angle, PixelSize, Time},
 };
@@ -7,6 +7,7 @@ use namui_prebuilt::{table::vertical, typography::center_text, *};
 use std::sync::{Arc, RwLock};
 
 pub(crate) struct PropertyWindow {
+    id: String,
     animation: Arc<RwLock<animation::Animation>>,
     layer_id: String,
     input_text: Option<String>,
@@ -19,9 +20,17 @@ pub(crate) struct PropertyWindow {
 
 pub(crate) struct Props {}
 
+enum Event {
+    VisibilityButtonClicked {
+        property_window_id: String,
+        visibility_to_be: bool,
+    },
+}
+
 impl PropertyWindow {
     pub(crate) fn new(animation: Arc<RwLock<animation::Animation>>, layer_id: String) -> Self {
         Self {
+            id: namui::nanoid(),
             animation,
             layer_id,
             input_text: None,
@@ -235,6 +244,42 @@ impl PropertyWindow {
                 }
                 _ => {}
             }
+        } else if let Some(event) = event.downcast_ref::<Event>() {
+            match event {
+                Event::VisibilityButtonClicked {
+                    visibility_to_be,
+                    property_window_id,
+                } => {
+                    if property_window_id.eq(&self.id) {
+                        let animation = self.animation.read().unwrap();
+                        let layer = animation
+                            .layers
+                            .iter()
+                            .find(|layer| layer.id.eq(&self.layer_id));
+                        if layer.is_none() {
+                            namui::event::send(crate::Event::Error(format!(
+                                "Could not find layer with id {}",
+                                self.layer_id
+                            )));
+                        };
+                        let layer = layer.unwrap();
+                        let mut next_layer = layer.clone();
+                        let time = Time::from_ms(0.0); // TODO
+                        let value = match visibility_to_be {
+                            true => 1.0,
+                            false => 0.0,
+                        }
+                        .into();
+
+                        next_layer.image.opacity.put(
+                            KeyframePoint { value, time },
+                            animation::KeyframeLine::Linear,
+                        );
+
+                        namui::event::send(crate::Event::UpdateLayer(Arc::new(next_layer)));
+                    }
+                }
+            }
         }
     }
 }
@@ -250,6 +295,13 @@ impl table::CellRender<Props> for PropertyWindow {
             return RenderingTree::Empty;
         }
         let layer = layer.unwrap();
+        let time = Time::from_ms(0.0);
+
+        let visibility = match layer.image.opacity.get_value(time) {
+            None => false,
+            Some(value) => value == 1.0.into(),
+        };
+
         render![
             simple_rect(wh, Color::BLACK, 1.0, Color::WHITE),
             vertical(chains![
@@ -280,13 +332,11 @@ impl table::CellRender<Props> for PropertyWindow {
                         "Rotation",
                         &(self, &layer.image.rotation_angle, &self.rotation_text_input),
                     )),
-                    ratio!(1.0, |wh|
-                        // render_property_row(
-                        //     wh,
-                        //     "Visibility",
-                        //     &self.layer.image.x
-                        // )
-                        RenderingTree::Empty),
+                    ratio!(1.0, |wh| render_property_row(
+                        wh,
+                        "Visibility",
+                        &(visibility, self.id.clone())
+                    )),
                 ],
             ])(wh)
         ]
@@ -406,6 +456,28 @@ impl<T: KeyframeValue + Clone + Into<f32>> PropertyEditCell
             //     Color::BLACK
             // ),
         ]
+    }
+}
+
+impl PropertyEditCell for (bool, String) {
+    fn render_property_edit_cell(&self, wh: Wh<f32>) -> RenderingTree {
+        let (value, property_window_id) = self.clone();
+
+        let text = { if value { "On" } else { "Off" }.to_string() };
+
+        namui::render([
+            simple_rect(wh, Color::BLACK, 1.0, Color::WHITE),
+            typography::body::right(wh, text, Color::BLACK),
+        ])
+        .attach_event(move |builder| {
+            let property_window_id = property_window_id.clone();
+            builder.on_mouse_up(move |_| {
+                namui::event::send(Event::VisibilityButtonClicked {
+                    visibility_to_be: !value,
+                    property_window_id: property_window_id.clone(),
+                })
+            })
+        })
     }
 }
 
