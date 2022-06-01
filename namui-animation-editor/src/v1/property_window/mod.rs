@@ -175,7 +175,7 @@ impl PropertyWindow {
                         .iter()
                         .find(|layer| layer.id.eq(&self.layer_id));
                     if layer.is_none() {
-                        namui::event::send(crate::Event::Error(format!(
+                        namui::event::send(super::Event::Error(format!(
                             "Could not find layer with id {}",
                             self.layer_id
                         )));
@@ -201,7 +201,7 @@ impl PropertyWindow {
                         .iter()
                         .find(|layer| layer.id.eq(&self.layer_id));
                     if layer.is_none() {
-                        namui::event::send(crate::Event::Error(format!(
+                        namui::event::send(super::Event::Error(format!(
                             "Could not find layer with id {}",
                             self.layer_id
                         )));
@@ -219,7 +219,7 @@ impl PropertyWindow {
                                 let input_text = self.input_text.as_ref().unwrap();
                                 if input_text.is_empty() {
                                     input.delete(&mut next_layer, time);
-                                    crate::Event::UpdateLayer(Arc::new(next_layer))
+                                    super::Event::UpdateLayer(Arc::new(next_layer))
                                 } else {
                                     if let Ok(value) = input_text.parse::<f32>() {
                                         input.put(
@@ -228,9 +228,9 @@ impl PropertyWindow {
                                             time,
                                             animation::KeyframeLine::Linear,
                                         );
-                                        crate::Event::UpdateLayer(Arc::new(next_layer))
+                                        super::Event::UpdateLayer(Arc::new(next_layer))
                                     } else {
-                                        crate::Event::Error(format!(
+                                        super::Event::Error(format!(
                                             "{} is not a valid number",
                                             input_text
                                         ))
@@ -257,7 +257,7 @@ impl PropertyWindow {
                             .iter()
                             .find(|layer| layer.id.eq(&self.layer_id));
                         if layer.is_none() {
-                            namui::event::send(crate::Event::Error(format!(
+                            namui::event::send(super::Event::Error(format!(
                                 "Could not find layer with id {}",
                                 self.layer_id
                             )));
@@ -266,8 +266,8 @@ impl PropertyWindow {
                         let mut next_layer = layer.clone();
                         let time = Time::from_ms(0.0); // TODO
                         let value = match visibility_to_be {
-                            true => 1.0,
-                            false => 0.0,
+                            true => 1.0_f32,
+                            false => 0.0_f32,
                         }
                         .into();
 
@@ -276,7 +276,7 @@ impl PropertyWindow {
                             animation::KeyframeLine::Linear,
                         );
 
-                        namui::event::send(crate::Event::UpdateLayer(Arc::new(next_layer)));
+                        namui::event::send(super::Event::UpdateLayer(Arc::new(next_layer)));
                     }
                 }
             }
