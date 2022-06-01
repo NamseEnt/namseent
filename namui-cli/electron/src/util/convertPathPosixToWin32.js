@@ -3,13 +3,15 @@ const path = require("path");
 function convertPathPosixToWin32(posixPath) {
     const normalizedPosix = path.posix.normalize(posixPath);
     if (path.posix.isAbsolute(normalizedPosix)) {
-        const splitedPosix = normalizedPosix.slice(1).split(path.posix.sep);
-        const driveLetter = splitedPosix[0];
-        if (driveLetter) {
-            splitedPosix[0] = driveLetter + ":";
-            return splitedPosix.join(path.win32.sep);
+        const splittedPosix = normalizedPosix.slice(1).split(path.posix.sep);
+        const root = splittedPosix[0];
+        if (!root) {
+            return "";
         }
-        return "";
+        if (root === "UNC") {
+            return "\\\\" + splittedPosix.slice(1).join(path.win32.sep);
+        }
+        return splittedPosix.join(path.win32.sep);
     }
     return normalizedPosix.split(path.posix.sep).join(path.win32.sep);
 }

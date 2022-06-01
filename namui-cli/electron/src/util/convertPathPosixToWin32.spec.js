@@ -4,9 +4,12 @@ const { convertPathPosixToWin32 } = require("./convertPathPosixToWin32");
 
 test("convert absolute posix path", async () => {
     [
-        ["/C/a/b/c", "C:\\a\\b\\c"],
-        ["/C/a/./c", "C:\\a\\c"],
-        ["/C/a/../c", "C:\\c"],
+        ["/C:/a/b/c", "C:\\a\\b\\c"],
+        ["/C:/a/./c", "C:\\a\\c"],
+        ["/C:/a/../c", "C:\\c"],
+        ["/UNC/a/b/c", "\\\\a\\b\\c"],
+        ["/UNC/a/./c", "\\\\a\\c"],
+        ["/UNC/a/../c", "\\\\c"],
     ].forEach(([input, expected]) => {
         const actual = convertPathPosixToWin32(input);
         assert.strictEqual(actual, expected);
