@@ -1,4 +1,4 @@
-use crate::fs::{electron, types::PathLike};
+use crate::fs::electron;
 use namui_cfg::namui_cfg;
 
 #[derive(Debug)]
@@ -9,7 +9,7 @@ pub enum ReadError {
 }
 
 #[namui_cfg(target_env = "electron")]
-pub async fn read(path_like: impl PathLike) -> Result<Vec<u8>, ReadError> {
+pub async fn read(path_like: impl crate::fs::types::PathLike) -> Result<Vec<u8>, ReadError> {
     let path = path_like.path();
     let path = path.to_str().unwrap_or("");
     crate::fs::electron::read_vec_u8(path)

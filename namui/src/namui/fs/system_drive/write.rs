@@ -1,4 +1,4 @@
-use crate::fs::{electron, types::PathLike};
+use crate::fs::electron;
 use namui_cfg::namui_cfg;
 
 #[derive(Debug)]
@@ -8,7 +8,10 @@ pub enum WriteError {
 }
 
 #[namui_cfg(target_env = "electron")]
-pub async fn write(path_like: impl PathLike, content: Vec<u8>) -> Result<(), WriteError> {
+pub async fn write(
+    path_like: impl crate::fs::types::PathLike,
+    content: Vec<u8>,
+) -> Result<(), WriteError> {
     let path = path_like.path();
     let path = path.to_str().unwrap_or("");
     crate::fs::electron::write_vec_u8(path, content)

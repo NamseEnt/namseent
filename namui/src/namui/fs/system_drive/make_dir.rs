@@ -1,4 +1,4 @@
-use crate::fs::{electron, types::PathLike};
+use crate::fs::electron;
 use namui_cfg::namui_cfg;
 
 #[derive(Debug)]
@@ -7,7 +7,7 @@ pub enum MakeDirError {
 }
 
 #[namui_cfg(target_env = "electron")]
-pub async fn make_dir(path_like: impl PathLike) -> Result<(), MakeDirError> {
+pub async fn make_dir(path_like: impl crate::fs::types::PathLike) -> Result<(), MakeDirError> {
     let path = path_like.path();
     let path = path.to_str().unwrap_or("");
     Ok(electron::make_dir(path).await?)

@@ -1,5 +1,7 @@
 use namui_cfg::namui_cfg;
-use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+use wasm_bindgen::prelude::wasm_bindgen;
+#[allow(unused_imports)]
+use wasm_bindgen::JsValue;
 
 pub enum MakeDirError {
     Other(String),

@@ -1,7 +1,4 @@
-use crate::fs::{
-    electron,
-    types::{Dirent, PathLike},
-};
+use crate::fs::electron;
 use namui_cfg::namui_cfg;
 
 #[derive(Debug)]
@@ -12,7 +9,9 @@ pub enum ReadDirError {
 }
 
 #[namui_cfg(target_env = "electron")]
-pub async fn read_dir(path_like: impl PathLike) -> Result<Vec<Dirent>, ReadDirError> {
+pub async fn read_dir(
+    path_like: impl crate::fs::types::PathLike,
+) -> Result<Vec<crate::fs::types::Dirent>, ReadDirError> {
     let path = path_like.path();
     let path = path.to_str().unwrap_or("");
     Ok(electron::read_dir(path).await?)
