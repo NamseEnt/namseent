@@ -23,9 +23,7 @@ impl Into<WriteError> for electron::WriteVecU8Error {
     fn into(self) -> WriteError {
         match self {
             electron::WriteVecU8Error::Other(message) => WriteError::Other(message),
-            electron::WriteVecU8Error::DirNotFound(message) => {
-                WriteError::DirNotFound(message)
-            }
+            electron::WriteVecU8Error::DirNotFound(message) => WriteError::DirNotFound(message),
         }
     }
 }
