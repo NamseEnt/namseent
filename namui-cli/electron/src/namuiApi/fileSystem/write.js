@@ -1,11 +1,11 @@
-const { readFile } = require("fs/promises");
+const { writeFile } = require("fs/promises");
 const {
     resolvePathNamuiToLocal,
 } = require("../../util/resolvePathNamuiToLocal");
 
-async function read(path) {
+async function write(path, content) {
     const resolvedLocalPath = await resolvePathNamuiToLocal(path);
-    return readFile(resolvedLocalPath);
+    return writeFile(resolvedLocalPath, content);
 }
 
-exports.read = read;
+exports.write = write;
