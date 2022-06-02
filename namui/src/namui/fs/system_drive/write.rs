@@ -3,7 +3,7 @@ use namui_cfg::namui_cfg;
 
 #[derive(Debug)]
 pub enum WriteError {
-    NoSuchFileOrDirector(String),
+    DirNotFound(String),
     Other(String),
 }
 
@@ -23,8 +23,8 @@ impl Into<WriteError> for electron::WriteVecU8Error {
     fn into(self) -> WriteError {
         match self {
             electron::WriteVecU8Error::Other(message) => WriteError::Other(message),
-            electron::WriteVecU8Error::NoSuchFileOrDirector(message) => {
-                WriteError::NoSuchFileOrDirector(message)
+            electron::WriteVecU8Error::DirNotFound(message) => {
+                WriteError::DirNotFound(message)
             }
         }
     }

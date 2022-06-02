@@ -3,7 +3,7 @@ use namui_cfg::namui_cfg;
 
 #[derive(Debug)]
 pub enum ReadDirError {
-    FileNotFound(String),
+    DirNotFound(String),
     ParseError(serde_json::Error),
     Other(String),
 }
@@ -20,7 +20,7 @@ pub async fn read_dir(
 impl From<electron::ReadDirError> for ReadDirError {
     fn from(error: electron::ReadDirError) -> Self {
         match error {
-            electron::ReadDirError::DirNotFound(message) => Self::FileNotFound(message),
+            electron::ReadDirError::DirNotFound(message) => Self::DirNotFound(message),
             electron::ReadDirError::ParseError(error) => Self::ParseError(error),
             electron::ReadDirError::Other(message) => Self::Other(message),
         }
