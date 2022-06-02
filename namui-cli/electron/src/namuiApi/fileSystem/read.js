@@ -4,7 +4,7 @@ const {
 } = require("../../util/resolvePathNamuiToLocal");
 
 async function read(path) {
-    const resolvedLocalPath = resolvePathNamuiToLocal(path);
+    const resolvedLocalPath = await resolvePathNamuiToLocal(path);
     return readFile(resolvedLocalPath);
 }
 

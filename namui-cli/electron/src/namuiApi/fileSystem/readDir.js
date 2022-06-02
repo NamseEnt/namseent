@@ -8,7 +8,7 @@ const {
 const { join } = require("path");
 
 async function readDir(path) {
-    const resolvedLocalPath = resolvePathNamuiToLocal(path);
+    const resolvedLocalPath = await resolvePathNamuiToLocal(path);
     const direntList = await readdir(resolvedLocalPath, {
         withFileTypes: true,
     });
