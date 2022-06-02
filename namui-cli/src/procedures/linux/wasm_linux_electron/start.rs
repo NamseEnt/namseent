@@ -22,7 +22,7 @@ pub fn start(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let build_dist_path = manifest_path.parent().unwrap().join("pkg");
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
 
-    let _ = start_electron_dev_service(&PORT, CrossPlatform::None, &project_root_path).unwrap();
+    start_electron_dev_service(&PORT, CrossPlatform::None, &project_root_path)?;
     let bundle_metadata_service = Arc::new(BundleMetadataService::new());
     let rust_project_watch_service = Arc::new(RustProjectWatchService::new());
     let wasm_bundle_web_server =
