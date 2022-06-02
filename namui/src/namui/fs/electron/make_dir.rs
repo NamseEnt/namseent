@@ -1,7 +1,5 @@
 use namui_cfg::namui_cfg;
-use wasm_bindgen::prelude::wasm_bindgen;
-#[allow(unused_imports)]
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 
 pub enum MakeDirError {
     Other(String),
@@ -9,11 +7,7 @@ pub enum MakeDirError {
 
 #[namui_cfg(target_env = "electron")]
 pub async fn make_dir(path: &str) -> Result<(), MakeDirError> {
-    use wasm_bindgen::JsCast;
-    Ok(make_dir_to_electron(path).await.map_err(|error| {
-        let error: js_sys::Error = error.dyn_into().unwrap();
-        error
-    })?)
+    Ok(make_dir_to_electron(path).await?)
 }
 
 #[wasm_bindgen]
@@ -24,8 +18,9 @@ extern "C" {
     async fn make_dir_to_electron(path: &str) -> Result<(), JsValue>;
 }
 
-impl From<js_sys::Error> for MakeDirError {
-    fn from(error: js_sys::Error) -> Self {
+impl From<JsValue> for MakeDirError {
+    fn from(error: JsValue) -> Self {
+        let error: js_sys::Error = error.dyn_into().unwrap();
         let message = error.message();
         Self::Other(format!("{}", message))
     }

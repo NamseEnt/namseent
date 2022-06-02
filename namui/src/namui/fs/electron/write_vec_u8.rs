@@ -1,7 +1,5 @@
 use namui_cfg::namui_cfg;
-use wasm_bindgen::prelude::wasm_bindgen;
-#[allow(unused_imports)]
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 
 pub enum WriteVecU8Error {
     NoSuchFileOrDirector(String),
@@ -10,13 +8,7 @@ pub enum WriteVecU8Error {
 
 #[namui_cfg(target_env = "electron")]
 pub async fn write_vec_u8(path: &str, content: Vec<u8>) -> Result<(), WriteVecU8Error> {
-    use wasm_bindgen::JsCast;
-    write_vec_u8_to_electron(path, content)
-        .await
-        .map_err(|error| {
-            let error: js_sys::Error = error.dyn_into().unwrap();
-            error.into()
-        })
+    Ok(write_vec_u8_to_electron(path, content).await?)
 }
 
 #[wasm_bindgen]
@@ -27,13 +19,14 @@ extern "C" {
     async fn write_vec_u8_to_electron(path: &str, content: Vec<u8>) -> Result<(), JsValue>;
 }
 
-impl Into<WriteVecU8Error> for js_sys::Error {
-    fn into(self) -> WriteVecU8Error {
-        let message = self.message();
+impl From<JsValue> for WriteVecU8Error {
+    fn from(error: JsValue) -> Self {
+        let error: js_sys::Error = error.dyn_into().unwrap();
+        let message = error.message();
         if message.starts_with("ENOENT", 0) {
-            WriteVecU8Error::NoSuchFileOrDirector(format!("{}", message))
+            Self::NoSuchFileOrDirector(format!("{}", message))
         } else {
-            WriteVecU8Error::Other(format!("{}", message))
+            Self::Other(format!("{}", message))
         }
     }
 }

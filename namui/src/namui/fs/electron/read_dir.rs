@@ -2,7 +2,7 @@ use crate::fs::types::{Dirent, DirentKind};
 use namui_cfg::namui_cfg;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 
 pub enum ReadDirError {
     DirNotFound(String),
@@ -12,16 +12,12 @@ pub enum ReadDirError {
 
 #[namui_cfg(target_env = "electron")]
 pub async fn read_dir(path: &str) -> Result<Vec<crate::fs::types::Dirent>, ReadDirError> {
-    use wasm_bindgen::JsCast;
-    let dirent_list_from_js_string = read_dir_from_electron(path)
-        .await
-        .and_then(|dirent_list_string| {
-            Ok(dirent_list_string.as_string().unwrap_or(String::from("")))
-        })
-        .map_err(|error| {
-            let error: js_sys::Error = error.dyn_into().unwrap();
-            error
-        })?;
+    let dirent_list_from_js_string =
+        read_dir_from_electron(path)
+            .await
+            .and_then(|dirent_list_string| {
+                Ok(dirent_list_string.as_string().unwrap_or(String::from("")))
+            })?;
     let dirent_list_from_js =
         serde_json::from_str::<Vec<DirentFromJs>>(&dirent_list_from_js_string)?;
     let dirent_list = dirent_list_from_js
@@ -41,8 +37,9 @@ extern "C" {
     ) -> Result<wasm_bindgen::JsValue, wasm_bindgen::JsValue>;
 }
 
-impl From<js_sys::Error> for ReadDirError {
-    fn from(error: js_sys::Error) -> Self {
+impl From<JsValue> for ReadDirError {
+    fn from(error: JsValue) -> Self {
+        let error: js_sys::Error = error.dyn_into().unwrap();
         let message = error.message();
         if message.starts_with("ENOENT", 0) {
             Self::DirNotFound(format!("{}", message))
