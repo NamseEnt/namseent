@@ -2,6 +2,7 @@ use crate::{
     cli::Target,
     debug_println,
     services::{
+        bundle_metadata_service::BundleMetadataService,
         electron_package_service::{Arch, ElectronPackageService, Platform},
         resource_collect_service::{CollectOperation, ResourceCollectService},
         rust_build_service::{BuildOption, BuildResult, RustBuildService},
@@ -28,6 +29,7 @@ pub fn build(manifest_path: &Path, arch: Option<Arch>) -> Result<(), Box<dyn std
         .join("target")
         .join("namui")
         .join(format!("wasm_linux_{}_electron", &package_result.arch));
+    let release_bundle_path = release_path.join("resources").join("bundle");
 
     let rust_build_service = Arc::new(RustBuildService::new());
     let resource_collect_service = ResourceCollectService::new(&project_root_path, &release_path);
@@ -40,7 +42,7 @@ pub fn build(manifest_path: &Path, arch: Option<Arch>) -> Result<(), Box<dyn std
 
     let namui_bundle_manifest = get_namui_bundle_manifest(&project_root_path)?;
     let mut ops: Vec<CollectOperation> = namui_bundle_manifest
-        .query(&project_root_path, &release_path)?
+        .query(&project_root_path, &release_bundle_path)?
         .iter()
         .map(|(src_path, dest_path)| CollectOperation::new(src_path, dest_path))
         .collect();
@@ -61,6 +63,10 @@ pub fn build(manifest_path: &Path, arch: Option<Arch>) -> Result<(), Box<dyn std
         &PathBuf::from(""),
     ));
     resource_collect_service.collect_resources(ops)?;
+
+    let bundle_metadata_service = BundleMetadataService::new();
+    bundle_metadata_service.load_bundle_manifest(&project_root_path)?;
+    bundle_metadata_service.create_bundle_metadata_file(&release_path.join("resources"))?;
 
     overwrite_hot_reload_script_with_empty_file(&release_path)?;
 

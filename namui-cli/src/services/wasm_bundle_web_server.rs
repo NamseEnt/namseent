@@ -1,3 +1,4 @@
+use super::{bundle_metadata_service::BundleMetadataService, rust_build_service::CargoBuildResult};
 use crate::{
     debug_println,
     types::{ErrorMessage, WebsocketMessage},
@@ -12,14 +13,20 @@ use futures::{
 use nanoid::nanoid;
 use std::{
     collections::HashMap,
+    io,
     path::{Path, PathBuf},
     sync::Arc,
 };
 use tokio::{spawn, sync::RwLock};
-use warp::ws;
-use warp::{hyper::Uri, ws::Message, Filter};
-
-use super::rust_build_service::CargoBuildResult;
+use tokio_util::codec::{BytesCodec, FramedRead};
+use warp::{
+    http::HeaderValue,
+    hyper::{header::CONTENT_TYPE, Body, Uri},
+    reject, reply,
+    ws::Message,
+    Filter,
+};
+use warp::{path::Tail, ws};
 
 pub struct WasmBundleWebServer {
     sockets: Arc<Mutex<HashMap<String, UnboundedSender<Message>>>>,
@@ -27,7 +34,11 @@ pub struct WasmBundleWebServer {
 }
 
 impl WasmBundleWebServer {
-    pub(crate) fn start(port: u16, bundle_dir_path: &Path) -> Arc<Self> {
+    pub(crate) fn start(
+        port: u16,
+        wasm_bundle_dir_path: &Path,
+        bundle_metadata_service: Arc<BundleMetadataService>,
+    ) -> Arc<Self> {
         let web_server = Arc::new(WasmBundleWebServer {
             sockets: Arc::new(Mutex::new(HashMap::new())),
             cached_error_messages: RwLock::new(Vec::new()),
@@ -91,12 +102,16 @@ impl WasmBundleWebServer {
                 })
             });
 
-        let bundle_static = warp::get().and(warp::fs::dir(bundle_dir_path.to_path_buf()));
+        let wasm_bundle_static = warp::get().and(warp::fs::dir(wasm_bundle_dir_path.to_path_buf()));
         let serve_static = warp::get().and(warp::fs::dir(PathBuf::from(get_static_dir())));
+        let bundle_metadata_static = create_bundle_metadata_static(bundle_metadata_service.clone());
+        let bundle_static = create_bundle_static(bundle_metadata_service.clone());
 
         let routes = redirect_to_index_html
-            .or(bundle_static)
+            .or(wasm_bundle_static)
             .or(serve_static)
+            .or(bundle_metadata_static)
+            .or(bundle_static)
             .or(handle_websocket);
 
         let _ = tokio::spawn(warp::serve(routes).run(([0, 0, 0, 0], port)));
@@ -173,4 +188,66 @@ impl WasmBundleWebServer {
 
 fn get_static_dir() -> PathBuf {
     get_cli_root_path().join("www")
+}
+
+fn create_bundle_metadata_static(
+    bundle_metadata_service: Arc<BundleMetadataService>,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    let bundle_metadata_static = warp::get()
+        .and(warp::path("bundle_metadata.json"))
+        .and_then(move || {
+            let bundle_metadata_service = bundle_metadata_service.clone();
+            async move {
+                match bundle_metadata_service.bundle_metadata() {
+                    Ok(bundle_metadata_json) => json_response(bundle_metadata_json),
+                    Err(_) => Err(reject::reject()),
+                }
+            }
+        });
+    bundle_metadata_static
+}
+
+fn create_bundle_static(
+    bundle_metadata_service: Arc<BundleMetadataService>,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    let bundle_static = warp::get()
+        .and(warp::path("bundle"))
+        .and(warp::path::tail())
+        .and_then(move |tail: Tail| {
+            let bundle_metadata_service = bundle_metadata_service.clone();
+            async move {
+                let url = PathBuf::from(tail.as_str());
+                match bundle_metadata_service.get_src_path(&url) {
+                    Ok(src_path) => match src_path {
+                        Some(src_path) => file_response(&src_path).await,
+                        None => Err(reject::not_found()),
+                    },
+                    Err(_) => Err(reject::reject()),
+                }
+            }
+        });
+    bundle_static
+}
+
+async fn file_response(src_path: &PathBuf) -> Result<reply::Response, warp::Rejection> {
+    match tokio::fs::File::open(src_path).await {
+        Ok(file) => {
+            let frame_reader = FramedRead::new(file, BytesCodec::new());
+            let response = reply::Response::new(Body::wrap_stream(frame_reader));
+            Ok(response)
+        }
+        Err(error) => match error.kind() {
+            io::ErrorKind::NotFound => Err(reject::not_found()),
+            _ => Err(reject::reject()),
+        },
+    }
+}
+
+fn json_response(json_string: String) -> Result<reply::Response, warp::Rejection> {
+    let mut response = reply::Response::new(Body::from(json_string));
+    response.headers_mut().insert(
+        CONTENT_TYPE,
+        HeaderValue::from_static("application/json; charset=utf-8"),
+    );
+    Ok(response)
 }
