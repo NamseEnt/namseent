@@ -7,14 +7,14 @@ macro_rules! overload_binary_operator_rhs {
             type Output = $self_type;
 
             fn $ops_method(self, rhs: $self_type) -> $self_type {
-                $self_type::new(rhs.0 $ops_sign self as $floating_type)
+                $self_type::new(self as $floating_type $ops_sign rhs.0)
             }
         }
         impl std::ops::$ops_trait<&$self_type> for $lhs_type {
             type Output = $self_type;
 
             fn $ops_method(self, rhs: &$self_type) -> $self_type {
-                $self_type::new(rhs.0 $ops_sign self as $floating_type)
+                $self_type::new(self as $floating_type $ops_sign rhs.0)
             }
         }
     };
