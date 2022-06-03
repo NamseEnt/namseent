@@ -33,7 +33,7 @@ pub mod body {
                 font_weight: FontWeight::REGULAR,
                 language: Language::Ko,
                 serif: false,
-                size: 12,
+                size: adjust_font_size(wh.height),
             },
             style: TextStyle {
                 color,
@@ -52,7 +52,7 @@ pub mod body {
                 font_weight: FontWeight::REGULAR,
                 language: Language::Ko,
                 serif: false,
-                size: 12,
+                size: adjust_font_size(wh.height),
             },
             style: TextStyle {
                 color,
@@ -71,7 +71,7 @@ pub mod body {
                 font_weight: FontWeight::REGULAR,
                 language: Language::Ko,
                 serif: false,
-                size: 12,
+                size: adjust_font_size(wh.height),
             },
             style: TextStyle {
                 color,
