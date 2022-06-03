@@ -70,8 +70,8 @@ macro_rules! overload_binary_operator_with_self {
 
 macro_rules! overload_assignment_operator_with_self {
     ($self_type: tt, $ops: tt) => {
-        auto_ops::impl_op!($ops |lhs: &mut $self_type, rhs: $self_type| { lhs.0 $ops rhs.0 });
-        auto_ops::impl_op!($ops |lhs: &mut $self_type, rhs: &$self_type| { lhs.0 $ops rhs.0 });
+        auto_ops::impl_op!($ops |lhs: &mut $self_type, rhs: $self_type| { lhs.0 $ops rhs.0; lhs.0 = $self_type::fit(lhs.0) });
+        auto_ops::impl_op!($ops |lhs: &mut $self_type, rhs: &$self_type| { lhs.0 $ops rhs.0; lhs.0 = $self_type::fit(lhs.0) });
     };
 }
 
@@ -116,16 +116,19 @@ macro_rules! impl_froms {
 macro_rules! define_singular_floating_tuple {
     ($name: ident, $type: tt) => {
         define_singular_floating_tuple!($name, $type, |value| {
-            $name(value)
+            value
         });
     };
-    ($name: ident, $type: tt, $init: expr) => {
+    ($name: ident, $type: tt, $fit: expr) => {
         #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
         pub struct $name(pub $type);
 
         impl $name {
+            fn fit(value: $type) -> $type {
+                $fit(value)
+            }
             pub fn new(value: $type) -> Self {
-                $init(value)
+                Self(Self::fit(value))
             }
         }
         impl_froms!($name, $type, [usize, u8, u16, u32, u64, u128, isize, i8, i16, i32, i64, i128, f32, f64]);
@@ -134,6 +137,12 @@ macro_rules! define_singular_floating_tuple {
         impl Ord for $name {
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
                 ordered_float::OrderedFloat(self.0).cmp(&ordered_float::OrderedFloat(other.0))
+            }
+        }
+        impl std::ops::Neg for $name {
+            type Output = Self;
+            fn neg(self) -> Self {
+                Self(Self::fit(-self.0))
             }
         }
 
