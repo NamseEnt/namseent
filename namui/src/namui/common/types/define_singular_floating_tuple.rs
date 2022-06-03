@@ -21,8 +21,6 @@ macro_rules! overload_binary_operator_rhs {
 }
 
 macro_rules! overload_binary_operator {
-    ($self_type: tt, $floating_type: tt, +) => { overload_binary_operator!($self_type, $floating_type, Add, add, +); };
-    ($self_type: tt, $floating_type: tt, -) => { overload_binary_operator!($self_type, $floating_type, Sub, sub, -); };
     ($self_type: tt, $floating_type: tt, *) => { overload_binary_operator!($self_type, $floating_type, Mul, mul, *); };
     ($self_type: tt, $floating_type: tt, /) => { overload_binary_operator!($self_type, $floating_type, Div, div, /); };
     ($self_type: tt, $floating_type: tt, $ops_trait: tt, $ops_method: tt, $ops_sign: tt) => {
@@ -56,8 +54,6 @@ macro_rules! overload_binary_operator {
 
 macro_rules! overload_arithmetic_operator {
     ($self_type: tt, $floating_type: tt) => {
-        overload_binary_operator!($self_type, $floating_type, +);
-        overload_binary_operator!($self_type, $floating_type, -);
         overload_binary_operator!($self_type, $floating_type, *);
         overload_binary_operator!($self_type, $floating_type, /);
     };
