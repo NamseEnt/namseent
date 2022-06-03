@@ -135,13 +135,13 @@ macro_rules! horizontal {
 }
 
 pub fn vertical<'a>(
-    items: impl Iterator<Item = TableCell<'a>> + 'a,
+    items: impl IntoIterator<Item = TableCell<'a>> + 'a,
 ) -> impl FnOnce(Wh<f32>) -> RenderingTree + 'a {
     slice_internal(Direction::Vertical, items)
 }
 
 pub fn horizontal<'a>(
-    items: impl Iterator<Item = TableCell<'a>> + 'a,
+    items: impl IntoIterator<Item = TableCell<'a>> + 'a,
 ) -> impl FnOnce(Wh<f32>) -> RenderingTree + 'a {
     slice_internal(Direction::Horizontal, items)
 }
@@ -152,7 +152,7 @@ enum Direction {
 }
 fn slice_internal<'a>(
     direction: Direction,
-    items: impl Iterator<Item = TableCell<'a>> + 'a,
+    items: impl IntoIterator<Item = TableCell<'a>> + 'a,
 ) -> impl FnOnce(Wh<f32>) -> RenderingTree + 'a {
     let mut units = Vec::new();
     let mut render_fns = std::collections::VecDeque::new();
@@ -230,9 +230,9 @@ fn slice_internal<'a>(
 #[macro_export]
 macro_rules! chains {
     // item = CellEntity<'a>
-    ($($item_iterator: expr),* $(,)?) => {{
+    ($($item_into_iterator: expr),* $(,)?) => {{
         let render_fn_boxed_items = [].into_iter()
-        $(.chain($item_iterator.into_iter()))*
+        $(.chain($item_into_iterator.into_iter()))*
         ;
 
         render_fn_boxed_items.into_iter()
