@@ -10,6 +10,7 @@ pub struct AnimationEditor {
     animation: Arc<RwLock<animation::Animation>>,
     layer_list_window: layer_list_window::LayerListWindow,
     graph_window: graph_window::GraphWindow,
+    selected_layer_id: Option<String>,
 }
 
 pub struct Props {
@@ -22,13 +23,14 @@ impl AnimationEditor {
             animation,
             layer_list_window: layer_list_window::LayerListWindow::new(),
             graph_window: graph_window::GraphWindow::new(),
+            selected_layer_id: None,
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<layer_list_window::Event>() {
             match event {
                 layer_list_window::Event::LayerSelected(layer_id) => {
-                    // TODO
+                    self.selected_layer_id = Some(layer_id.clone());
                 }
             }
         }
@@ -38,10 +40,17 @@ impl AnimationEditor {
     }
     pub fn render(&self, props: &Props) -> namui::RenderingTree {
         let animation = self.animation.read().unwrap();
+        let selected_layer = self
+            .selected_layer_id
+            .as_ref()
+            .and_then(|layer_id| animation.layers.iter().find(|layer| layer.id.eq(layer_id)));
         horizontal![
             ratio!(
                 1.0,
                 vertical![
+                    calculative!(|parent_wh| { parent_wh.width / 16.0 * 9.0 }, |wh| {
+                        simple_rect(wh, Color::BLACK, 1.0, Color::TRANSPARENT)
+                    }),
                     ratio!(
                         1.0,
                         &self.layer_list_window,
@@ -49,21 +58,20 @@ impl AnimationEditor {
                             layers: animation.layers.as_slice(),
                         }
                     ),
-                    ratio!(2.0, |wh| { RenderingTree::Empty }),
+                    ratio!(1.0, |wh| {
+                        simple_rect(wh, Color::BLACK, 1.0, Color::TRANSPARENT)
+                    }),
                 ]
             ),
             ratio!(
-                2.0,
-                vertical![
-                    calculative!(
-                        |wh| {
-                            let height = wh.width / 1920.0 * 1080.0;
-                            height
-                        },
-                        |wh| { RenderingTree::Empty }
-                    ),
-                    ratio!(1.0, &self.graph_window, graph_window::Props {})
-                ]
+                4.0,
+                vertical![ratio!(
+                    1.0,
+                    &self.graph_window,
+                    graph_window::Props {
+                        layer: selected_layer
+                    }
+                )]
             )
         ](Wh {
             width: props.wh.width.into(),
