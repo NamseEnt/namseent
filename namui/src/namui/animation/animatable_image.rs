@@ -107,11 +107,11 @@ mod tests {
             KeyframeLine::Linear,
         );
         for time in 0..10 {
-            let value = graph.get_value(&Time::from_ms(time as f32));
+            let value = graph.get_value(Time::from_ms(time as f32));
             assert_eq!(value, Some((time as f32 / 10.0).into()));
         }
         for time in 10..20 {
-            let value = graph.get_value(&Time::from_ms(time as f32));
+            let value = graph.get_value(Time::from_ms(time as f32));
             assert!(approx_eq!(
                 f32,
                 value.unwrap().into(),

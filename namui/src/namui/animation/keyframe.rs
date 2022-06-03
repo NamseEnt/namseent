@@ -104,7 +104,7 @@ mod tests {
             },
             KeyframeLine::Linear,
         );
-        let value = graph.get_value(&Time::from_ms(1.0));
+        let value = graph.get_value(Time::from_ms(1.0));
         assert_eq!(value, None);
     }
 
@@ -127,7 +127,7 @@ mod tests {
             KeyframeLine::Linear,
         );
         for time in 0..10 {
-            let value = graph.get_value(&Time::from_ms(time as f32));
+            let value = graph.get_value(Time::from_ms(time as f32));
             assert_eq!(value, Some(time as f32));
         }
     }
@@ -146,7 +146,7 @@ mod tests {
 
         let last_point = graph.get_last_point().unwrap();
         let time_after_last_point = last_point.time + Time::from_ms(1.0);
-        let value = graph.get_value(&time_after_last_point);
+        let value = graph.get_value(time_after_last_point);
         assert_eq!(value, None);
     }
 
@@ -165,7 +165,7 @@ mod tests {
             KeyframeLine::Linear,
         );
 
-        let result = graph.get_value(&time);
+        let result = graph.get_value(time);
         assert_eq!(result, Some(value));
     }
 
