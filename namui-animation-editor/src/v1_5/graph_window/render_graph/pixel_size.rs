@@ -4,12 +4,13 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
     fn render(&self, wh: Wh<f32>) -> RenderingTree {
         let (graph, context) = self;
 
-        let x_axis_guide_lines = self.draw_x_axis_guide_lines(wh);
+        let x_axis_guide_lines = self.render_x_axis_guide_lines(wh);
+        let mouse_guide = self.render_mouse_guide(wh);
 
-        render([x_axis_guide_lines])
+        render([x_axis_guide_lines, mouse_guide])
     }
 
-    fn draw_x_axis_guide_lines(&self, wh: Wh<f32>) -> RenderingTree {
+    fn render_x_axis_guide_lines(&self, wh: Wh<f32>) -> RenderingTree {
         let (_, context) = self;
 
         let value_at_top = context.value_at_bottom + context.value_per_pixel * PixelSize(wh.height);
@@ -117,5 +118,42 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
             Gradation::Bold { y, value } => bold_line(wh, *y, *value),
             Gradation::Light { y } => light_line(wh, *y),
         }))
+    }
+
+    fn render_mouse_guide(&self, wh: Wh<f32>) -> RenderingTree {
+        let (_, context) = self;
+        let mouse_local_xy = {
+            match context.mouse_local_xy {
+                Some(mouse_local_xy) => mouse_local_xy,
+                None => return RenderingTree::Empty,
+            }
+        };
+
+        let value_on_y = context.value_at_bottom
+            + context.value_per_pixel * PixelSize(wh.height - mouse_local_xy.y);
+
+        let label = namui::text(namui::TextParam {
+            x: 7.0,
+            y: -3.0,
+            align: TextAlign::Left,
+            baseline: TextBaseline::Middle,
+            font_type: FontType {
+                font_weight: FontWeight::LIGHT,
+                language: Language::Ko,
+                serif: false,
+                size: 10,
+            },
+            style: TextStyle {
+                background: Some(TextStyleBackground {
+                    color: Color::BLACK,
+                    ..Default::default()
+                }),
+                color: Color::WHITE,
+                ..Default::default()
+            },
+            text: format!("{}", value_on_y.0),
+        });
+
+        namui::translate(mouse_local_xy.x, mouse_local_xy.y, label)
     }
 }
