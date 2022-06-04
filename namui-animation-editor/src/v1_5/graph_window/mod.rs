@@ -192,9 +192,13 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
                 .unwrap_or(last)
         };
 
-        let (bold_line_ys, light_line_ys) = {
-            let mut bold_line_ys = vec![];
-            let mut light_line_ys = vec![];
+        enum Gradation {
+            Bold { y: PixelSize, value: PixelSize },
+            Light { y: PixelSize },
+        }
+
+        let gradations = {
+            let mut gradations = vec![];
 
             let mut value = PixelSize(0.0);
             let mut index = 0;
@@ -207,46 +211,72 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
                 let y = PixelSize(wh.height) - context.value_per_pixel.get_pixel_size(value);
 
                 match index % 5 {
-                    0 => bold_line_ys.push(y),
-                    _ => light_line_ys.push(y),
+                    0 => gradations.push(Gradation::Bold { y, value }),
+                    _ => gradations.push(Gradation::Light { y }),
                 }
                 value += gradation_interval;
                 index += 1;
             }
-            (bold_line_ys, light_line_ys)
+            gradations
         };
 
-        let path_builder = namui::PathBuilder::new()
-            .move_to(0.0, 0.0)
-            .line_to(wh.width, 0.0);
-
-        let bold_line = {
-            let painter_builder = namui::PaintBuilder::new()
-                .set_stroke_width(2.0)
-                .set_style(namui::PaintStyle::Stroke)
-                .set_color(namui::Color::from_u8(0, 0, 255, 255));
-
-            namui::path(path_builder.clone(), painter_builder)
-        };
-
-        let light_line = {
+        fn bold_line(wh: Wh<f32>, y: PixelSize, value: PixelSize) -> RenderingTree {
+            let path_builder = namui::PathBuilder::new()
+                .move_to(0.0, 0.0)
+                .line_to(wh.width, 0.0);
             let painter_builder = namui::PaintBuilder::new()
                 .set_stroke_width(1.0)
                 .set_style(namui::PaintStyle::Stroke)
-                .set_color(namui::Color::from_u8(0, 0, 255, 255));
+                .set_color(namui::Color::from_u8(0, 128, 0, 255));
 
-            namui::path(path_builder, painter_builder)
-        };
+            let gradation_label = namui::text(namui::TextParam {
+                x: 0.0,
+                y: 0.0,
+                align: TextAlign::Left,
+                baseline: TextBaseline::Middle,
+                font_type: FontType {
+                    font_weight: FontWeight::LIGHT,
+                    language: Language::Ko,
+                    serif: false,
+                    size: 10,
+                },
+                style: TextStyle {
+                    background: Some(TextStyleBackground {
+                        color: Color::BLACK,
+                        ..Default::default()
+                    }),
+                    color: Color::WHITE,
+                    ..Default::default()
+                },
+                text: format!("{}", f32::from(value)),
+            });
 
-        render(
-            bold_line_ys
-                .iter()
-                .map(|y| namui::translate(0.0, y.into(), bold_line.clone()))
-                .chain(
-                    light_line_ys
-                        .iter()
-                        .map(|y| namui::translate(0.0, y.into(), light_line.clone())),
-                ),
-        )
+            namui::translate(
+                0.0,
+                y.into(),
+                render([namui::path(path_builder, painter_builder), gradation_label]),
+            )
+        }
+
+        fn light_line(wh: Wh<f32>, y: PixelSize) -> RenderingTree {
+            let path_builder = namui::PathBuilder::new()
+                .move_to(0.0, 0.0)
+                .line_to(wh.width, 0.0);
+            let painter_builder = namui::PaintBuilder::new()
+                .set_stroke_width(1.0)
+                .set_style(namui::PaintStyle::Stroke)
+                .set_color(namui::Color::from_u8(0, 64, 0, 255));
+
+            namui::translate(
+                0.0,
+                y.into(),
+                render([namui::path(path_builder, painter_builder)]),
+            )
+        }
+
+        render(gradations.iter().map(|gradation| match gradation {
+            Gradation::Bold { y, value } => bold_line(wh, *y, *value),
+            Gradation::Light { y } => light_line(wh, *y),
+        }))
     }
 }
