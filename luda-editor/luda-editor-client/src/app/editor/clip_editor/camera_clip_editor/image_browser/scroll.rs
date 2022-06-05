@@ -110,7 +110,6 @@ impl Scroll {
             },
             ..Default::default()
         })
-        .with_id(&whole_rect_id)
         .attach_event(move |builder| {
             let width = inner_width + scroll_bar_width;
             let height = height;
