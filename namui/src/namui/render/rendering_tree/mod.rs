@@ -105,13 +105,23 @@ impl RenderingTree {
             RenderingTree::Empty => {}
         }
     }
-    pub fn call_wheel_event(&self, wheel_event: &WheelEvent) {
+    pub fn call_wheel_event(
+        &self,
+        event_id: String,
+        delta_xy: &Xy<f32>,
+        namui_context: &NamuiContext,
+    ) {
         self.visit_rln(|node, _| {
             if let RenderingTree::Special(special) = node {
                 if let SpecialRenderingNode::AttachEvent(attach_event) = special {
                     // NOTE : Should i check if the mouse is in the attach_event?
                     if let Some(on_wheel) = &attach_event.on_wheel {
-                        on_wheel(wheel_event);
+                        on_wheel(&WheelEvent {
+                            delta_xy,
+                            id: event_id.clone(),
+                            namui_context,
+                            target: node,
+                        });
                     }
                 }
             }

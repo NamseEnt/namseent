@@ -71,7 +71,6 @@ impl TimelineBody {
                 )
             })
             .collect::<Vec<_>>();
-        let border_id = "timeline_border";
         let border = namui::rect(namui::RectParam {
             x: 0.0,
             y: 0.0,
@@ -90,7 +89,6 @@ impl TimelineBody {
             },
             ..Default::default()
         })
-        .with_id(border_id)
         .attach_event(move |builder| {
             let width = props.width;
             let height = props.height;
@@ -106,8 +104,8 @@ impl TimelineBody {
                     let mouse_position = mouse_manager.mouse_position();
                     let timeline_xy = event
                         .namui_context
-                        .get_rendering_tree_xy(border_id)
-                        .unwrap();
+                        .get_rendering_tree_xy_by_id(event.target)
+                        .expect("failed to get timeline xy");
 
                     let is_mouse_in_timeline = mouse_position.x as f32 >= timeline_xy.x
                         && mouse_position.x as f32 <= timeline_xy.x + width
