@@ -55,6 +55,31 @@ impl<'a, 'b> std::ops::Mul<&'b TimePerPixel> for &'a PixelSize {
     }
 }
 
+impl std::ops::Mul<PixelSize> for TimePerPixel {
+    type Output = Time;
+    fn mul(self, rhs: PixelSize) -> Self::Output {
+        rhs * self
+    }
+}
+impl<'a> std::ops::Mul<PixelSize> for &'a TimePerPixel {
+    type Output = Time;
+    fn mul(self, rhs: PixelSize) -> Self::Output {
+        rhs * self
+    }
+}
+impl<'b> std::ops::Mul<&'b PixelSize> for TimePerPixel {
+    type Output = Time;
+    fn mul(self, rhs: &'b PixelSize) -> Self::Output {
+        rhs * self
+    }
+}
+impl<'a, 'b> std::ops::Mul<&'b PixelSize> for &'a TimePerPixel {
+    type Output = Time;
+    fn mul(self, rhs: &'b PixelSize) -> Self::Output {
+        rhs * self
+    }
+}
+
 impl std::ops::Div<PixelSize> for Time {
     type Output = TimePerPixel;
 
