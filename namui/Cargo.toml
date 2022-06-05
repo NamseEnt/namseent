@@ -59,4 +59,5 @@ features = [
     "CssStyleDeclaration",
     "HtmlInputElement",
     "InputEvent",
+    "AddEventListenerOptions",
 ]
