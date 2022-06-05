@@ -146,20 +146,34 @@ impl RenderingTree {
             match node {
                 RenderingTree::Special(special) => match special {
                     SpecialRenderingNode::AttachEvent(attach_event) => {
-                        let func = match mouse_event_type {
-                            MouseEventType::Move => &attach_event.on_mouse_move_in,
-                            MouseEventType::Down => &attach_event.on_mouse_down,
-                            MouseEventType::Up => &attach_event.on_mouse_up,
+                        let (in_func, out_func) = match mouse_event_type {
+                            MouseEventType::Move => (
+                                &attach_event.on_mouse_move_in,
+                                &attach_event.on_mouse_move_out,
+                            ),
+                            MouseEventType::Down => (&attach_event.on_mouse_down, &None),
+                            MouseEventType::Up => (&attach_event.on_mouse_up, &None),
                         };
-                        if let Some(func) = func {
-                            if utils.is_xy_in(&raw_mouse_event.xy) {
-                                func(&MouseEvent {
-                                    id: raw_mouse_event.id.clone(),
-                                    global_xy: raw_mouse_event.xy,
-                                    local_xy: utils.to_local_xy(&raw_mouse_event.xy),
-                                    pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
-                                    button: raw_mouse_event.button,
-                                });
+                        if in_func.is_some() || out_func.is_some() {
+                            let is_mouse_in = utils.is_xy_in(&raw_mouse_event.xy);
+                            let mouse_event = MouseEvent {
+                                id: raw_mouse_event.id.clone(),
+                                global_xy: raw_mouse_event.xy,
+                                local_xy: utils.to_local_xy(&raw_mouse_event.xy),
+                                pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
+                                button: raw_mouse_event.button,
+                            };
+                            match is_mouse_in {
+                                true => {
+                                    if let Some(in_func) = in_func {
+                                        in_func(&mouse_event);
+                                    }
+                                }
+                                false => {
+                                    if let Some(out_func) = out_func {
+                                        out_func(&mouse_event);
+                                    }
+                                }
                             }
                         }
                     }
