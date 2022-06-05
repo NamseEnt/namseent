@@ -132,11 +132,11 @@ pub async fn start<TProps>(
                 namui_context.rendering_tree = state.render(props);
             }
             Some(NamuiEvent::Wheel(xy)) => {
-                namui_context.rendering_tree.call_wheel_event(&WheelEvent {
-                    id: format!("wheel-{:?}-{}", now(), nanoid()),
-                    delta_xy: xy,
-                    namui_context: &namui_context,
-                });
+                namui_context.rendering_tree.call_wheel_event(
+                    format!("wheel-{:?}-{}", now(), nanoid()),
+                    xy,
+                    &namui_context,
+                );
                 state.update(event.as_ref());
                 namui_context.rendering_tree = state.render(props);
             }
