@@ -129,7 +129,9 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
             }
         };
 
-        let value_on_y = context.value_at_bottom
+        let time_at_x = context.start_at + context.time_per_pixel * PixelSize(mouse_local_xy.x);
+
+        let value_at_y = context.value_at_bottom
             + context.value_per_pixel * PixelSize(wh.height - mouse_local_xy.y);
 
         let label = namui::text(namui::TextParam {
@@ -151,7 +153,11 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
                 color: Color::WHITE,
                 ..Default::default()
             },
-            text: format!("{}", value_on_y.0),
+            text: format!(
+                "{:.1}s / {:.0}px",
+                time_at_x.get_total_milliseconds() / 1000.0,
+                value_at_y.0
+            ),
         });
 
         namui::translate(mouse_local_xy.x, mouse_local_xy.y, label)
