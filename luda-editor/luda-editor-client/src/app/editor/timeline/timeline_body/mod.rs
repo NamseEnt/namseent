@@ -104,7 +104,7 @@ impl TimelineBody {
                     let mouse_position = mouse_manager.mouse_position();
                     let timeline_xy = event
                         .namui_context
-                        .get_rendering_tree_xy_by_id(event.target)
+                        .get_rendering_tree_xy(event.target)
                         .expect("failed to get timeline xy");
 
                     let is_mouse_in_timeline = mouse_position.x as f32 >= timeline_xy.x
