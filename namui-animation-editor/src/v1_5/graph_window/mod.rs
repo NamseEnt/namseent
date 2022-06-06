@@ -29,8 +29,22 @@ enum Event {
     GraphMouseMoveOut {
         property_name: PropertyName,
     },
+    GraphShiftMouseWheel {
+        delta: PixelSize,
+    },
+    GraphAltMouseWheel {
+        delta: PixelSize,
+        anchor_xy: Xy<f32>,
+    },
+    GraphCtrlMouseWheel {
+        delta: PixelSize,
+        property_name: PropertyName,
+        anchor_xy: Xy<f32>,
+        row_wh: Wh<f32>,
+    },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PropertyName {
     X,
     Y,
@@ -78,6 +92,85 @@ impl GraphWindow {
                 Event::GraphMouseMoveOut { property_name } => match property_name {
                     PropertyName::X => {
                         self.x_context.mouse_local_xy = None;
+                    }
+                    PropertyName::Y => todo!(),
+                    PropertyName::Width => todo!(),
+                    PropertyName::Height => todo!(),
+                },
+                Event::GraphShiftMouseWheel { delta } => {
+                    self.context.start_at += delta * self.context.time_per_pixel;
+                }
+                Event::GraphAltMouseWheel { delta, anchor_xy } => {
+                    let zoom_by_wheel = |target: f32, delta: f32| -> f32 {
+                        const STEP: f32 = 400.0;
+                        const MIN: f32 = 10.0;
+                        const MAX: f32 = 1000.0;
+
+                        let wheel = STEP * (target / 10.0).log2();
+
+                        let next_wheel = wheel + delta;
+
+                        let zoomed = namui::math::num::clamp(
+                            10.0 * 2.0f32.powf(next_wheel / STEP),
+                            MIN,
+                            MAX,
+                        );
+                        zoomed
+                    };
+                    let time_at_mouse_position = self.context.start_at
+                        + PixelSize(anchor_xy.x) * self.context.time_per_pixel;
+
+                    let next_ms_per_pixel =
+                        zoom_by_wheel(self.context.time_per_pixel.ms_per_pixel(), delta.into());
+                    let next_time_per_pixel = TimePerPixel::from_ms_per_pixel(&next_ms_per_pixel);
+
+                    let next_start_at =
+                        time_at_mouse_position - PixelSize(anchor_xy.x) * next_time_per_pixel;
+
+                    self.context.time_per_pixel = next_time_per_pixel;
+                    self.context.start_at = next_start_at;
+                }
+                Event::GraphCtrlMouseWheel {
+                    delta,
+                    property_name,
+                    anchor_xy,
+                    row_wh,
+                } => match property_name {
+                    PropertyName::X => {
+                        let zoom_by_wheel = |target: ValuePerPixel<PixelSize>,
+                                             delta: f32|
+                         -> ValuePerPixel<PixelSize> {
+                            const STEP: f32 = 400.0;
+                            const MIN: f32 = 1.0;
+                            const MAX: f32 = 100.0;
+
+                            let wheel = STEP * (target.value / target.pixel_size / 10.0).log2();
+
+                            let next_wheel = wheel + delta;
+
+                            let zoomed = namui::math::num::clamp(
+                                10.0 * 2.0f32.powf(next_wheel / STEP),
+                                MIN,
+                                MAX,
+                            );
+
+                            ValuePerPixel {
+                                value: zoomed.into(),
+                                pixel_size: 1.0.into(),
+                            }
+                        };
+                        let value_at_mouse_position = self.x_context.value_at_bottom
+                            + self.x_context.value_per_pixel
+                                * PixelSize(row_wh.height - anchor_xy.x);
+
+                        let next_value_per_pixel =
+                            zoom_by_wheel(self.x_context.value_per_pixel, delta.into());
+
+                        let next_value_at_bottom = value_at_mouse_position
+                            - next_value_per_pixel * PixelSize(row_wh.height - anchor_xy.x);
+
+                        self.x_context.value_per_pixel = next_value_per_pixel;
+                        self.x_context.value_at_bottom = next_value_at_bottom;
                     }
                     PropertyName::Y => todo!(),
                     PropertyName::Width => todo!(),
@@ -179,6 +272,54 @@ fn render_graph_row(
                 namui::event::send(Event::GraphMouseMoveOut {
                     property_name: PropertyName::X,
                 })
+            })
+            .on_wheel(move |event| {
+                let managers = namui::managers();
+                let mouse_global_xy = managers.mouse_manager.mouse_position();
+                let row_xy = event
+                    .namui_context
+                    .get_rendering_tree_xy(event.target)
+                    .expect("ERROR: fail to get rendering_tree_xy");
+
+                let mouse_local_xy = Xy {
+                    x: mouse_global_xy.x as f32 - row_xy.x,
+                    y: mouse_global_xy.y as f32 - row_xy.y,
+                };
+
+                if mouse_local_xy.x < 0.0
+                    || wh.width < mouse_local_xy.x
+                    || mouse_local_xy.y < 0.0
+                    || wh.height < mouse_local_xy.y
+                {
+                    return;
+                }
+
+                if managers
+                    .keyboard_manager
+                    .any_code_press(&[namui::Code::ShiftLeft, namui::Code::ShiftRight])
+                {
+                    namui::event::send(Event::GraphShiftMouseWheel {
+                        delta: PixelSize(event.delta_xy.y),
+                    })
+                } else if managers
+                    .keyboard_manager
+                    .any_code_press(&[namui::Code::AltLeft, namui::Code::AltRight])
+                {
+                    namui::event::send(Event::GraphAltMouseWheel {
+                        delta: PixelSize(event.delta_xy.y),
+                        anchor_xy: mouse_local_xy,
+                    })
+                } else if managers
+                    .keyboard_manager
+                    .any_code_press(&[namui::Code::ControlLeft, namui::Code::ControlRight])
+                {
+                    namui::event::send(Event::GraphCtrlMouseWheel {
+                        delta: PixelSize(event.delta_xy.y),
+                        anchor_xy: mouse_local_xy,
+                        property_name,
+                        row_wh: wh,
+                    })
+                }
             })
     })
 }
