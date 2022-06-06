@@ -5,19 +5,26 @@ pub struct WheelManager {}
 
 impl WheelManager {
     pub fn new() -> Self {
-        let wheel_closure = Closure::wrap(Box::new(move |event: web_sys::WheelEvent| {
-            namui::event::send(namui::NamuiEvent::Wheel(Xy {
-                x: event.delta_x() as f32,
-                y: event.delta_y() as f32,
-            }));
-        }) as Box<dyn FnMut(_)>);
+        namui::window()
+            .document()
+            .unwrap()
+            .add_event_listener_with_callback_and_add_event_listener_options(
+                "wheel",
+                Closure::wrap(Box::new(move |event: web_sys::WheelEvent| {
+                    if event.ctrl_key() {
+                        event.prevent_default()
+                    }
 
-        let window = namui::window();
-        let document = window.document().unwrap();
-        document
-            .add_event_listener_with_callback("wheel", wheel_closure.as_ref().unchecked_ref())
+                    namui::event::send(namui::NamuiEvent::Wheel(Xy {
+                        x: event.delta_x() as f32,
+                        y: event.delta_y() as f32,
+                    }));
+                }) as Box<dyn FnMut(_)>)
+                .into_js_value()
+                .unchecked_ref(),
+                web_sys::AddEventListenerOptions::new().passive(false),
+            )
             .unwrap();
-        wheel_closure.forget();
 
         Self {}
     }
