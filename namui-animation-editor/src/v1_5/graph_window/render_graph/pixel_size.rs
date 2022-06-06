@@ -12,6 +12,7 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
 
     fn render_x_axis_guide_lines(&self, wh: Wh<f32>) -> RenderingTree {
         let (_, context) = self;
+        const BOLD_GRADATION_INTERVAL: usize = 2;
 
         let value_at_top = context.value_at_bottom + context.value_per_pixel * PixelSize(wh.height);
 
@@ -27,7 +28,7 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
                 .into_iter()
                 .find(|value| {
                     let px = context.value_per_pixel.get_pixel_size(*value);
-                    PixelSize(10.0) <= px && px <= PixelSize(40.0)
+                    PixelSize(10.0) <= px && px <= PixelSize(50.0)
                 })
                 .unwrap_or(last)
         };
@@ -42,15 +43,21 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
 
             let mut value = PixelSize(0.0);
             let mut index = 0;
+            while value > context.value_at_bottom {
+                value -= gradation_interval;
+            }
             while value < context.value_at_bottom {
                 value += gradation_interval;
                 index += 1;
             }
 
             while value < value_at_top {
-                let y = PixelSize(wh.height) - context.value_per_pixel.get_pixel_size(value);
+                let y = PixelSize(wh.height)
+                    - context
+                        .value_per_pixel
+                        .get_pixel_size(value - context.value_at_bottom);
 
-                match index % 5 {
+                match index % BOLD_GRADATION_INTERVAL {
                     0 => gradations.push(Gradation::Bold { y, value }),
                     _ => gradations.push(Gradation::Light { y }),
                 }
