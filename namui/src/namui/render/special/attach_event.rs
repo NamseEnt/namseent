@@ -38,6 +38,7 @@ pub struct WheelEvent<'a> {
     pub id: String,
     pub delta_xy: &'a Xy<f32>,
     pub namui_context: &'a NamuiContext,
+    pub target: &'a RenderingTree,
 }
 pub type MouseEventCallback = Arc<dyn Fn(&MouseEvent)>;
 pub type WheelEventCallback = Arc<dyn Fn(&WheelEvent)>;

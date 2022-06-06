@@ -95,7 +95,6 @@ impl Scroll {
             ],
             false => RenderingTree::Empty,
         };
-        let whole_rect_id = namui::nanoid();
         let whole_rect = rect(RectParam {
             x: 0.0,
             y: 0.0,
@@ -111,11 +110,9 @@ impl Scroll {
             },
             ..Default::default()
         })
-        .with_id(&whole_rect_id)
         .attach_event(move |builder| {
             let width = inner_width + scroll_bar_width;
             let height = height;
-            let whole_rect_id = whole_rect_id.clone();
             builder.on_wheel(move |event| {
                 let managers = namui::managers();
 
@@ -123,8 +120,8 @@ impl Scroll {
                 let mouse_position = mouse_manager.mouse_position();
                 let whole_rect_xy = event
                     .namui_context
-                    .get_rendering_tree_xy(&whole_rect_id)
-                    .unwrap();
+                    .get_rendering_tree_xy(event.target)
+                    .expect("failed to get whole_rect xy");
 
                 let is_mouse_in_timeline = mouse_position.x as f32 >= whole_rect_xy.x
                     && mouse_position.x as f32 <= whole_rect_xy.x + width
