@@ -20,6 +20,7 @@ pub(crate) struct GraphWindow {
     mouse_over_row: Option<MouseOverRow>,
     row_height: Option<f32>,
     animation: Arc<RwLock<animation::Animation>>,
+    selected_point: Option<SelectedPoint>,
 }
 
 pub(crate) struct Props<'a> {
@@ -31,6 +32,12 @@ struct MouseOverRow {
     local_xy: Xy<f32>,
 }
 
+struct SelectedPoint {
+    property_name: PropertyName,
+    time: Time,
+}
+
+#[derive(Debug, Clone)]
 enum Event {
     GraphMouseMoveIn {
         property_name: PropertyName,
@@ -63,6 +70,10 @@ enum Event {
     },
     TimelineTimeRulerClicked {
         click_position_in_time: Time,
+    },
+    GraphPointClick {
+        property_name: PropertyName,
+        time: Time,
     },
 }
 
@@ -98,6 +109,7 @@ impl GraphWindow {
             mouse_over_row: None,
             row_height: None,
             animation,
+            selected_point: None,
         }
     }
 }
@@ -148,6 +160,16 @@ impl table::CellRender<Props<'_>> for GraphWindow {
                             value_at_bottom: self.x_context.value_at_bottom,
                             value_per_pixel: self.x_context.value_per_pixel,
                             mouse_local_xy: self.x_context.mouse_local_xy,
+                            property_name: PropertyName::X,
+                            selected_point_time: self.selected_point.as_ref().and_then(
+                                |selected_point| {
+                                    if selected_point.property_name == PropertyName::X {
+                                        Some(selected_point.time)
+                                    } else {
+                                        None
+                                    }
+                                },
+                            ),
                         },
                     ),
                 )
@@ -300,6 +322,8 @@ struct Context<TValue> {
     value_per_pixel: ValuePerPixel<TValue>,
     value_at_bottom: TValue,
     mouse_local_xy: Option<Xy<f32>>,
+    property_name: PropertyName,
+    selected_point_time: Option<Time>,
 }
 
 #[derive(Debug, Clone, Copy)]

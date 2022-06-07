@@ -120,6 +120,15 @@ impl GraphWindow {
                     }
                     namui::event::send(super::super::Event::UpdateLayer(Arc::new(layer)));
                 }
+                Event::GraphPointClick {
+                    property_name,
+                    time,
+                } => {
+                    self.selected_point = Some(SelectedPoint {
+                        property_name: *property_name,
+                        time: *time,
+                    });
+                }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             if let NamuiEvent::KeyDown(event) = event {

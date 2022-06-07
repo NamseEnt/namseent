@@ -6,9 +6,9 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
     fn render(&self, wh: Wh<f32>) -> RenderingTree {
         let x_axis_guide_lines = self.render_x_axis_guide_lines(wh);
         let mouse_guide = self.render_mouse_guide(wh);
-        let points = self.render_point_and_lines(wh);
+        let point_and_lines = self.render_point_and_lines(wh);
 
-        render([x_axis_guide_lines, mouse_guide, points])
+        render([x_axis_guide_lines, mouse_guide, point_and_lines])
     }
 
     fn render_x_axis_guide_lines(&self, wh: Wh<f32>) -> RenderingTree {
@@ -181,7 +181,15 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
             let next_point_line = iter.peek();
 
             let point_xy = get_xy_of_point(wh, context, point);
-            rendered.push(render_point_xy(point_xy));
+            rendered.push(render_point_xy(
+                point_xy,
+                context.mouse_local_xy,
+                Event::GraphPointClick {
+                    property_name: context.property_name,
+                    time: point.time,
+                },
+                context.selected_point_time == Some(point.time),
+            ));
 
             if let Some((next_point, _)) = next_point_line {
                 let next_point_xy = get_xy_of_point(wh, context, next_point);
@@ -193,8 +201,22 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
     }
 }
 
-fn render_point_xy(xy: Xy<PixelSize>) -> RenderingTree {
-    const RADIUS: f32 = 2.0;
+fn render_point_xy(
+    xy: Xy<PixelSize>,
+    mouse_local_xy: Option<Xy<f32>>,
+    on_click_event: Event,
+    is_selected: bool,
+) -> RenderingTree {
+    const RADIUS: f32 = 4.0;
+
+    let is_mouse_on_point = match mouse_local_xy {
+        Some(mouse_local_xy) => {
+            (mouse_local_xy.x - f32::from(xy.x)).abs() < RADIUS
+                && (mouse_local_xy.y - f32::from(xy.y)).abs() < RADIUS
+        }
+        None => false,
+    };
+
     let point_builder = namui::PathBuilder::new()
         .add_oval(&LtrbRect {
             left: -RADIUS,
@@ -203,15 +225,25 @@ fn render_point_xy(xy: Xy<PixelSize>) -> RenderingTree {
             bottom: RADIUS,
         })
         .close();
+
+    let color = if is_mouse_on_point || is_selected {
+        Color::from_u8(255, 255, 0, 255)
+    } else {
+        Color::from_u8(255, 0, 0, 255)
+    };
     let painter_builder = namui::PaintBuilder::new()
         .set_style(namui::PaintStyle::Fill)
-        .set_color(namui::Color::RED);
+        .set_color(color);
 
     namui::translate(
         xy.x.into(),
         xy.y.into(),
         namui::path(point_builder, painter_builder),
     )
+    .attach_event(|builder| {
+        let on_click_event = on_click_event.clone();
+        builder.on_mouse_down(move |_| namui::event::send(on_click_event.clone()))
+    })
 }
 
 fn render_line(from: Xy<PixelSize>, to: Xy<PixelSize>) -> RenderingTree {
