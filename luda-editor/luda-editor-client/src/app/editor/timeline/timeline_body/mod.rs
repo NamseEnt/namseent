@@ -117,13 +117,13 @@ impl TimelineBody {
 
                     let keyboard_manager = &managers.keyboard_manager;
                     if keyboard_manager
-                        .any_code_press(&[namui::Code::ShiftLeft, namui::Code::ShiftRight])
+                        .any_code_press([namui::Code::ShiftLeft, namui::Code::ShiftRight])
                     {
                         namui::event::send(EditorEvent::TimelineMoveEvent {
                             pixel: PixelSize(event.delta_xy.y),
                         })
                     } else if keyboard_manager
-                        .any_code_press(&[namui::Code::AltLeft, namui::Code::AltRight])
+                        .any_code_press([namui::Code::AltLeft, namui::Code::AltRight])
                     {
                         let anchor_x_in_timeline =
                             PixelSize(mouse_position.x as f32 - timeline_xy.x);
