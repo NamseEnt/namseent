@@ -15,7 +15,7 @@ impl TextInput {
 
             let is_shift_key_pressed = managers
                 .keyboard_manager
-                .any_code_press(&[namui::Code::ShiftLeft, namui::Code::ShiftRight]);
+                .any_code_press([namui::Code::ShiftLeft, namui::Code::ShiftRight]);
 
             (font, is_shift_key_pressed)
         };

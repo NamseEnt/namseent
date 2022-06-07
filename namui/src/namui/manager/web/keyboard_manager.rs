@@ -12,7 +12,7 @@ pub struct KeyboardManager {
 }
 
 impl KeyboardManager {
-    pub fn any_code_press(&self, codes: &[Code]) -> bool {
+    pub fn any_code_press(&self, codes: impl IntoIterator<Item = Code>) -> bool {
         let pressing_code_set = self.pressing_code_set.read().unwrap();
         for code in codes {
             if pressing_code_set.contains(&code) {
