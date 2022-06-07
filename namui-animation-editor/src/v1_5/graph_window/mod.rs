@@ -150,13 +150,13 @@ impl GraphWindow {
                     PropertyName::X => {
                         let value_at_mouse_position = self.x_context.value_at_bottom
                             + self.x_context.value_per_pixel
-                                * PixelSize(row_wh.height - anchor_xy.x);
+                                * PixelSize(row_wh.height - anchor_xy.y);
 
                         let next_value_per_pixel =
                             zoom_pixel_size_per_pixel(self.x_context.value_per_pixel, delta.into());
 
                         let next_value_at_bottom = value_at_mouse_position
-                            - next_value_per_pixel * PixelSize(row_wh.height - anchor_xy.x);
+                            - next_value_per_pixel * PixelSize(row_wh.height - anchor_xy.y);
 
                         self.x_context.value_per_pixel = next_value_per_pixel;
                         self.x_context.value_at_bottom = next_value_at_bottom;
