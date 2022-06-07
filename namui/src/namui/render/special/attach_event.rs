@@ -22,12 +22,13 @@ pub struct AttachEventNode {
 }
 
 #[derive(Clone, Debug)]
-pub struct MouseEvent {
+pub struct MouseEvent<'a> {
     pub id: String,
     pub local_xy: Xy<f32>,
     pub global_xy: Xy<f32>,
     pub pressing_buttons: HashSet<MouseButton>,
     pub button: Option<MouseButton>,
+    pub target: &'a RenderingTree,
 }
 pub enum MouseEventType {
     Down,

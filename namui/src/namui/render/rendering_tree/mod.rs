@@ -172,6 +172,7 @@ impl RenderingTree {
                                 local_xy: utils.to_local_xy(&raw_mouse_event.xy),
                                 pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
                                 button: raw_mouse_event.button,
+                                target: node,
                             };
                             match is_mouse_in {
                                 true => {
