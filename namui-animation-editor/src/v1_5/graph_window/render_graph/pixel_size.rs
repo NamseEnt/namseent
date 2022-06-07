@@ -17,7 +17,7 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
         let value_at_top = context.value_at_bottom + context.value_per_pixel * PixelSize(wh.height);
 
         let gradation_interval = {
-            let gradation_value_candidates: Vec<_> = [5, 10, 20, 50, 100, 200, 500]
+            let gradation_value_candidates: Vec<_> = [5, 10, 25, 50, 100, 200, 500]
                 .into_iter()
                 .map(|value| PixelSize(value as f32))
                 .collect();
