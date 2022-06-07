@@ -82,7 +82,7 @@ impl Timeline {
 
                     let next_ms_per_pixel =
                         zoom_by_wheel(&self.time_per_pixel.ms_per_pixel(), delta);
-                    let next_time_per_pixel = TimePerPixel::from_ms_per_pixel(&next_ms_per_pixel);
+                    let next_time_per_pixel = TimePerPixel::from_ms_per_pixel(next_ms_per_pixel);
 
                     let next_start_at =
                         time_of_mouse_position - anchor_x_in_timeline * next_time_per_pixel;

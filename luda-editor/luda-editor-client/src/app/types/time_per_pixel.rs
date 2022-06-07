@@ -12,10 +12,10 @@ impl TimePerPixel {
     pub(crate) fn ms_per_pixel(&self) -> f32 {
         self.time.milliseconds / self.pixel_size.0
     }
-    pub(crate) fn from_ms_per_pixel(ms_per_pixel: &f32) -> Self {
+    pub(crate) fn from_ms_per_pixel(ms_per_pixel: f32) -> Self {
         TimePerPixel {
             time: Time {
-                milliseconds: *ms_per_pixel,
+                milliseconds: ms_per_pixel,
             },
             pixel_size: PixelSize(1.0),
         }
