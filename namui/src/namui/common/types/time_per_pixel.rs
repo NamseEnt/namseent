@@ -90,3 +90,11 @@ impl std::ops::Div<PixelSize> for Time {
         }
     }
 }
+
+impl std::ops::Div<TimePerPixel> for Time {
+    type Output = PixelSize;
+
+    fn div(self, rhs: TimePerPixel) -> Self::Output {
+        (self / rhs.time) * rhs.pixel_size
+    }
+}
