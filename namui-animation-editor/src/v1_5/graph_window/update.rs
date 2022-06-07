@@ -41,7 +41,10 @@ impl GraphWindow {
                 Event::GraphShiftMouseWheel { delta } => {
                     self.context.start_at += delta * self.context.time_per_pixel;
                 }
-                Event::GraphAltMouseWheel { delta, anchor_xy } => {
+                Event::GraphAltMouseWheel {
+                    delta,
+                    mouse_local_xy: anchor_xy,
+                } => {
                     let time_at_mouse_position = self.context.start_at
                         + PixelSize(anchor_xy.x) * self.context.time_per_pixel;
 
@@ -57,7 +60,7 @@ impl GraphWindow {
                 Event::GraphCtrlMouseWheel {
                     delta,
                     property_name,
-                    anchor_xy,
+                    mouse_local_xy: anchor_xy,
                     row_wh,
                 } => match property_name {
                     PropertyName::X => {
@@ -85,6 +88,37 @@ impl GraphWindow {
                     click_position_in_time,
                 } => {
                     // TODO
+                }
+                Event::GraphMouseRightClick {
+                    property_name,
+                    mouse_local_xy,
+                    row_wh,
+                    layer_id,
+                } => {
+                    let time = self.context.start_at
+                        + PixelSize(mouse_local_xy.x) * self.context.time_per_pixel;
+
+                    let animation = self.animation.read().unwrap();
+                    let layer = animation.layers.iter().find(|layer| layer.id.eq(layer_id));
+                    if layer.is_none() {
+                        return;
+                    }
+                    let mut layer = layer.unwrap().clone();
+                    match property_name {
+                        PropertyName::X => layer.image.x.put(
+                            animation::KeyframePoint {
+                                time,
+                                value: self.x_context.value_at_bottom
+                                    + self.x_context.value_per_pixel
+                                        * PixelSize(row_wh.height - mouse_local_xy.y),
+                            },
+                            animation::KeyframeLine::Linear,
+                        ),
+                        PropertyName::Y => todo!(),
+                        PropertyName::Width => todo!(),
+                        PropertyName::Height => todo!(),
+                    }
+                    namui::event::send(super::super::Event::UpdateLayer(Arc::new(layer)));
                 }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {

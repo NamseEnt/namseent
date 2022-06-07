@@ -1,5 +1,5 @@
 use namui::{
-    animation::KeyframeGraph,
+    animation::{KeyframeGraph, Layer},
     prelude::*,
     types::{PixelSize, Time, TimePerPixel},
 };
@@ -7,6 +7,7 @@ use namui_prebuilt::{
     table::{fixed_closure, ratio_closure, vertical},
     *,
 };
+use std::sync::{Arc, RwLock};
 mod render_graph;
 use render_graph::*;
 mod time_ruler;
@@ -18,6 +19,7 @@ pub(crate) struct GraphWindow {
     x_context: PropertyContext<PixelSize>,
     mouse_over_row: Option<MouseOverRow>,
     row_height: Option<f32>,
+    animation: Arc<RwLock<animation::Animation>>,
 }
 
 pub(crate) struct Props<'a> {
@@ -42,12 +44,18 @@ enum Event {
     },
     GraphAltMouseWheel {
         delta: PixelSize,
-        anchor_xy: Xy<f32>,
+        mouse_local_xy: Xy<f32>,
     },
     GraphCtrlMouseWheel {
         delta: PixelSize,
         property_name: PropertyName,
-        anchor_xy: Xy<f32>,
+        mouse_local_xy: Xy<f32>,
+        row_wh: Wh<f32>,
+    },
+    GraphMouseRightClick {
+        layer_id: String,
+        property_name: PropertyName,
+        mouse_local_xy: Xy<f32>,
         row_wh: Wh<f32>,
     },
     RowHeightChange {
@@ -72,7 +80,7 @@ pub(crate) struct GraphWindowContext {
 }
 
 impl GraphWindow {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(animation: Arc<RwLock<animation::Animation>>) -> Self {
         Self {
             id: namui::nanoid(),
             context: GraphWindowContext {
@@ -89,6 +97,7 @@ impl GraphWindow {
             },
             mouse_over_row: None,
             row_height: None,
+            animation,
         }
     }
 }
@@ -128,6 +137,7 @@ impl table::CellRender<Props<'_>> for GraphWindow {
                 }
                 render_graph_row(
                     wh,
+                    layer,
                     &self.context,
                     PropertyName::X,
                     (
@@ -163,6 +173,7 @@ impl table::CellRender<Props<'_>> for GraphWindow {
 
 fn render_graph_row(
     wh: Wh<f32>,
+    layer: &Layer,
     context: &GraphWindowContext,
     property_name: PropertyName,
     render_graph: impl RenderGraph,
@@ -190,6 +201,7 @@ fn render_graph_row(
         label,
     ])
     .attach_event(|builder| {
+        let layer_id = layer.id.clone();
         builder
             .on_mouse_move_in(move |event| {
                 namui::event::send(Event::GraphMouseMoveIn {
@@ -199,6 +211,16 @@ fn render_graph_row(
             })
             .on_mouse_move_out(move |_| {
                 namui::event::send(Event::GraphMouseMoveOut { property_name })
+            })
+            .on_mouse_down(move |event| {
+                if event.button == Some(MouseButton::Right) {
+                    namui::event::send(Event::GraphMouseRightClick {
+                        layer_id: layer_id.clone(),
+                        property_name,
+                        mouse_local_xy: event.local_xy,
+                        row_wh: wh,
+                    })
+                }
             })
             .on_wheel(move |event| {
                 let managers = namui::managers();
@@ -234,7 +256,7 @@ fn render_graph_row(
                 {
                     namui::event::send(Event::GraphAltMouseWheel {
                         delta: PixelSize(event.delta_xy.y),
-                        anchor_xy: mouse_local_xy,
+                        mouse_local_xy,
                     })
                 } else if managers
                     .keyboard_manager
@@ -242,7 +264,7 @@ fn render_graph_row(
                 {
                     namui::event::send(Event::GraphCtrlMouseWheel {
                         delta: PixelSize(event.delta_xy.y),
-                        anchor_xy: mouse_local_xy,
+                        mouse_local_xy,
                         property_name,
                         row_wh: wh,
                     })

@@ -76,6 +76,9 @@ impl<'a, TValue: KeyframeValue + Clone> KeyframeGraph<TValue> {
     fn get_last_point(&self) -> Option<&KeyframePoint<TValue>> {
         self.points_with_lines.last().map(|(point, _)| point)
     }
+    pub fn get_points_with_lines(&self) -> &[(KeyframePoint<TValue>, KeyframeLine)] {
+        &self.points_with_lines
+    }
 }
 
 #[cfg(test)]

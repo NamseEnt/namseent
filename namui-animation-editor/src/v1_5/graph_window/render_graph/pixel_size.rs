@@ -1,13 +1,14 @@
+use namui::animation::KeyframePoint;
+
 use super::*;
 
 impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
     fn render(&self, wh: Wh<f32>) -> RenderingTree {
-        let (graph, context) = self;
-
         let x_axis_guide_lines = self.render_x_axis_guide_lines(wh);
         let mouse_guide = self.render_mouse_guide(wh);
+        let points = self.render_point_and_lines(wh);
 
-        render([x_axis_guide_lines, mouse_guide])
+        render([x_axis_guide_lines, mouse_guide, points])
     }
 
     fn render_x_axis_guide_lines(&self, wh: Wh<f32>) -> RenderingTree {
@@ -169,4 +170,71 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
 
         namui::translate(mouse_local_xy.x, mouse_local_xy.y, label)
     }
+
+    fn render_point_and_lines(&self, wh: Wh<f32>) -> RenderingTree {
+        let (graph, context) = self;
+
+        let mut iter = graph.get_points_with_lines().iter().peekable();
+        let mut rendered = vec![];
+
+        while let Some((point, _)) = iter.next() {
+            let next_point_line = iter.peek();
+
+            let point_xy = get_xy_of_point(wh, context, point);
+            rendered.push(render_point_xy(point_xy));
+
+            if let Some((next_point, _)) = next_point_line {
+                let next_point_xy = get_xy_of_point(wh, context, next_point);
+                rendered.push(render_line(point_xy, next_point_xy));
+            }
+        }
+
+        render(rendered)
+    }
+}
+
+fn render_point_xy(xy: Xy<PixelSize>) -> RenderingTree {
+    const RADIUS: f32 = 2.0;
+    let point_builder = namui::PathBuilder::new()
+        .add_oval(&LtrbRect {
+            left: -RADIUS,
+            top: -RADIUS,
+            right: RADIUS,
+            bottom: RADIUS,
+        })
+        .close();
+    let painter_builder = namui::PaintBuilder::new()
+        .set_style(namui::PaintStyle::Fill)
+        .set_color(namui::Color::RED);
+
+    namui::translate(
+        xy.x.into(),
+        xy.y.into(),
+        namui::path(point_builder, painter_builder),
+    )
+}
+
+fn render_line(from: Xy<PixelSize>, to: Xy<PixelSize>) -> RenderingTree {
+    let path_builder = namui::PathBuilder::new()
+        .move_to(from.x.into(), from.y.into())
+        .line_to(to.x.into(), to.y.into());
+    let painter_builder = namui::PaintBuilder::new()
+        .set_stroke_width(1.0)
+        .set_style(namui::PaintStyle::Stroke)
+        .set_color(namui::Color::from_u8(128, 0, 0, 255));
+
+    namui::path(path_builder, painter_builder)
+}
+
+fn get_xy_of_point(
+    wh: Wh<f32>,
+    context: &Context<PixelSize>,
+    point: &KeyframePoint<PixelSize>,
+) -> Xy<PixelSize> {
+    let x = (point.time - context.start_at) / context.time_per_pixel;
+    let y = PixelSize(wh.height)
+        - context
+            .value_per_pixel
+            .get_pixel_size(point.value - context.value_at_bottom);
+    Xy { x, y }
 }

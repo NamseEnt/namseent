@@ -122,18 +122,6 @@ fn get_gradations(
     let mut index: i32 = 0;
     loop {
         let x = gradation_start_px + index * gap_px;
-        namui::log!(
-            "gradation_start_px: {:?}, index: {:?}, gap_px: {:?}, x: {:?}, time_ruler_width: {:?}, gradation_gap_time: {:?}, time_per_pixel: {:?}, start_at: {:?}",
-            gradation_start_px,
-            index,
-            gap_px,
-            x,
-            time_ruler_width,
-            gradation_gap_time,
-            time_per_pixel,
-            start_at
-        );
-
         if x >= time_ruler_width {
             break;
         }

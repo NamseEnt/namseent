@@ -73,13 +73,14 @@ impl Entity for AnimationEditorExample {
                 }
                 Event::UpdateLayer(layer) => {
                     let mut animation = self.animation.write().unwrap();
-                    let layer = animation
+                    animation
                         .layers
                         .iter_mut()
                         .find(|l| l.id == layer.id)
-                        .unwrap();
-                    layer.name = layer.name.clone();
-                    layer.image = layer.image.clone();
+                        .map(|found_layer| {
+                            found_layer.name = layer.name.clone();
+                            found_layer.image = layer.image.clone();
+                        });
                 }
                 Event::Error(error) => {
                     namui::log!("error: {}", error);

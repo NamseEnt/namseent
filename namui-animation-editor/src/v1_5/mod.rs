@@ -20,10 +20,10 @@ pub struct Props {
 impl AnimationEditor {
     pub fn new(animation: Arc<RwLock<animation::Animation>>) -> Self {
         Self {
-            animation,
             layer_list_window: layer_list_window::LayerListWindow::new(),
-            graph_window: graph_window::GraphWindow::new(),
+            graph_window: graph_window::GraphWindow::new(animation.clone()),
             selected_layer_id: None,
+            animation,
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
