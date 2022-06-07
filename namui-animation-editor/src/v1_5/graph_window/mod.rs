@@ -254,8 +254,31 @@ impl GraphWindow {
             }
         } else if managers
             .keyboard_manager
-            .any_code_press([Code::ControlLeft, Code::ControlRight])
+            .any_code_press([Code::ShiftLeft, Code::ShiftRight])
         {
+            match arrow {
+                Arrow::Left | Arrow::Right => {
+                    self.context.start_at += self.context.time_per_pixel
+                        * PixelSize(match arrow {
+                            Arrow::Left => -10.0,
+                            Arrow::Right => 10.0,
+                            _ => unreachable!(),
+                        });
+                }
+                Arrow::Top | Arrow::Bottom => match mouse_over_row.property_name {
+                    PropertyName::X => {
+                        self.x_context.value_at_bottom += self.x_context.value_per_pixel
+                            * PixelSize(match arrow {
+                                Arrow::Top => 10.0,
+                                Arrow::Bottom => -10.0,
+                                _ => unreachable!(),
+                            });
+                    }
+                    PropertyName::Y => todo!(),
+                    PropertyName::Width => todo!(),
+                    PropertyName::Height => todo!(),
+                },
+            }
         }
     }
     // else if todo!() && selected_point.is_some() {
