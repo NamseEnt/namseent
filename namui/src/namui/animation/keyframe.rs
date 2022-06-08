@@ -86,7 +86,7 @@ impl<'a, TValue: KeyframeValue + Clone> KeyframeGraph<TValue> {
     }
     pub fn delete(&mut self, id: impl AsRef<str>) {
         self.points_with_lines
-            .retain(|(point, _)| point.id.eq(id.as_ref()));
+            .retain(|(point, _)| point.id.ne(id.as_ref()));
     }
     fn get_last_point(&self) -> Option<&KeyframePoint<TValue>> {
         self.points_with_lines.last().map(|(point, _)| point)
