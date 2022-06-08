@@ -86,24 +86,18 @@ mod tests {
     fn one_zero_should_be_interpolated() {
         let mut graph = KeyframeGraph::new();
         graph.put(
-            KeyframePoint {
-                time: Time::from_ms(0.0),
-                value: OneZero::new(0.0),
-            },
+            KeyframePoint::new(Time::from_ms(0.0), OneZero::new(0.0)),
             KeyframeLine::Linear,
         );
         graph.put(
-            KeyframePoint {
-                time: Time::from_ms(10.0),
-                value: OneZero::new(100.0), // become 1.0
-            },
+            KeyframePoint::new(
+                Time::from_ms(10.0),
+                OneZero::new(100.0), // become 1.0
+            ),
             KeyframeLine::Linear,
         );
         graph.put(
-            KeyframePoint {
-                time: Time::from_ms(20.0),
-                value: OneZero::new(0.5),
-            },
+            KeyframePoint::new(Time::from_ms(20.0), OneZero::new(0.5)),
             KeyframeLine::Linear,
         );
         for time in 0..10 {
