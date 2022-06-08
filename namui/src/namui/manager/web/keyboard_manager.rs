@@ -88,21 +88,29 @@ impl KeyboardManager {
             )
             .unwrap();
 
+        let reset_pressing_code_set_closure = Closure::wrap(Box::new({
+            let pressing_code_set = pressing_code_set.clone();
+            move || {
+                pressing_code_set.write().unwrap().clear();
+            }
+        }) as Box<dyn FnMut()>)
+        .into_js_value();
+
         ["blur", "visibilitychange"].iter().for_each(|event_name| {
             document
                 .add_event_listener_with_callback(
                     *event_name,
-                    Closure::wrap(Box::new({
-                        let pressing_code_set = pressing_code_set.clone();
-                        move || {
-                            pressing_code_set.write().unwrap().clear();
-                        }
-                    }) as Box<dyn FnMut()>)
-                    .into_js_value()
-                    .unchecked_ref(),
+                    reset_pressing_code_set_closure.unchecked_ref(),
                 )
                 .unwrap();
         });
+        window()
+            .unwrap()
+            .add_event_listener_with_callback(
+                "blur",
+                reset_pressing_code_set_closure.unchecked_ref(),
+            )
+            .unwrap();
 
         KeyboardManager {
             pressing_code_set: pressing_code_set.clone(),
