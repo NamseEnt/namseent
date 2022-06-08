@@ -2,7 +2,7 @@ use namui::animation::KeyframePoint;
 
 use super::*;
 
-impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
+impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<'_, PixelSize>) {
     fn render(&self, wh: Wh<f32>) -> RenderingTree {
         let x_axis_guide_lines = self.render_x_axis_guide_lines(wh);
         let mouse_guide = self.render_mouse_guide(wh);
@@ -185,10 +185,11 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<PixelSize>) {
                 point_xy,
                 context.mouse_local_xy,
                 Event::GraphPointClick {
+                    layer_id: context.layer.id.clone(),
                     property_name: context.property_name,
-                    time: point.time,
+                    point_id: point.id().to_string(),
                 },
-                context.selected_point_time == Some(point.time),
+                context.selected_point_id == Some(point.id().to_string()),
             ));
 
             if let Some((next_point, _)) = next_point_line {

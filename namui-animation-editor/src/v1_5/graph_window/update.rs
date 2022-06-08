@@ -106,12 +106,12 @@ impl GraphWindow {
                     let mut layer = layer.unwrap().clone();
                     match property_name {
                         PropertyName::X => layer.image.x.put(
-                            animation::KeyframePoint {
+                            animation::KeyframePoint::new(
                                 time,
-                                value: self.x_context.value_at_bottom
+                                self.x_context.value_at_bottom
                                     + self.x_context.value_per_pixel
                                         * PixelSize(row_wh.height - mouse_local_xy.y),
-                            },
+                            ),
                             animation::KeyframeLine::Linear,
                         ),
                         PropertyName::Y => todo!(),
@@ -121,23 +121,97 @@ impl GraphWindow {
                     namui::event::send(super::super::Event::UpdateLayer(Arc::new(layer)));
                 }
                 Event::GraphPointClick {
+                    layer_id,
                     property_name,
-                    time,
+                    point_id,
                 } => {
-                    self.selected_point = Some(SelectedPoint {
+                    self.selected_point_address = Some(SelectedPointAddress {
+                        layer_id: layer_id.clone(),
                         property_name: *property_name,
-                        time: *time,
+                        point_id: point_id.clone(),
                     });
                 }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             if let NamuiEvent::KeyDown(event) = event {
-                self.handle_key_down(event);
+                self.handle_arrow_key_down(event);
             }
         }
     }
 
-    fn handle_key_down(&mut self, event: &KeyEvent) {
+    fn handle_arrow_key_down(&mut self, event: &KeyEvent) {
+        let arrow = match event.code {
+            Code::ArrowLeft => Arrow::Left,
+            Code::ArrowRight => Arrow::Right,
+            Code::ArrowUp => Arrow::Top,
+            Code::ArrowDown => Arrow::Bottom,
+            _ => return,
+        };
+
+        self.handle_point_move(arrow);
+        self.handle_graph_move_and_zoom(arrow);
+    }
+
+    fn handle_point_move(&self, arrow: Arrow) {
+        if self.selected_point_address.is_none() {
+            return;
+        }
+        let selected_point_address = self.selected_point_address.as_ref().unwrap();
+
+        let animation = self.animation.read().unwrap();
+        let layer = animation
+            .layers
+            .iter()
+            .find(|layer| layer.id.eq(&selected_point_address.layer_id));
+        if layer.is_none() {
+            return;
+        }
+        let mut layer = layer.unwrap().clone();
+
+        match selected_point_address.property_name {
+            PropertyName::X => {
+                let mut selected_point = layer
+                    .image
+                    .x
+                    .get_point(&selected_point_address.point_id)
+                    .unwrap()
+                    .clone();
+
+                match arrow {
+                    Arrow::Left | Arrow::Right => {
+                        selected_point.time += self.context.time_per_pixel
+                            * PixelSize(match arrow {
+                                Arrow::Left => -1.0,
+                                Arrow::Right => 1.0,
+                                _ => unreachable!(),
+                            });
+                    }
+                    Arrow::Top | Arrow::Bottom => {
+                        selected_point.value += self.x_context.value_per_pixel
+                            * PixelSize({
+                                match arrow {
+                                    Arrow::Top => 1.0,
+                                    Arrow::Bottom => -1.0,
+                                    _ => unreachable!(),
+                                }
+                            });
+                    }
+                };
+                layer
+                    .image
+                    .x
+                    .put(selected_point, animation::KeyframeLine::Linear);
+                namui::log!("layer.image.x: {:?}", layer.image.x);
+            }
+            PropertyName::Y => todo!(),
+            PropertyName::Width => todo!(),
+            PropertyName::Height => todo!(),
+        }
+
+        namui::event::send(super::super::Event::UpdateLayer(Arc::new(layer)));
+    }
+
+    fn handle_graph_move_and_zoom(&mut self, arrow: Arrow) {
         if self.row_height.is_none() {
             return;
         }
@@ -146,20 +220,6 @@ impl GraphWindow {
             return;
         }
         let mouse_over_row = self.mouse_over_row.as_ref().unwrap();
-
-        enum Arrow {
-            Left,
-            Right,
-            Top,
-            Bottom,
-        }
-        let arrow = match event.code {
-            Code::ArrowLeft => Arrow::Left,
-            Code::ArrowRight => Arrow::Right,
-            Code::ArrowUp => Arrow::Top,
-            Code::ArrowDown => Arrow::Bottom,
-            _ => return,
-        };
 
         let managers = namui::managers();
         if managers
@@ -242,9 +302,6 @@ impl GraphWindow {
             }
         }
     }
-    // else if todo!() && selected_point.is_some() {
-    //     todo!()
-    // }
 }
 
 fn zoom_time_per_pixel(target: TimePerPixel, delta: f32) -> TimePerPixel {
@@ -280,4 +337,12 @@ fn zoom_pixel_size_per_pixel(
         value: zoomed.into(),
         pixel_size: 1.0_f32.into(),
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Arrow {
+    Left,
+    Right,
+    Top,
+    Bottom,
 }

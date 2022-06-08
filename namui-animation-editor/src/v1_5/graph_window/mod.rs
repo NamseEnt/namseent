@@ -20,7 +20,7 @@ pub(crate) struct GraphWindow {
     mouse_over_row: Option<MouseOverRow>,
     row_height: Option<f32>,
     animation: Arc<RwLock<animation::Animation>>,
-    selected_point: Option<SelectedPoint>,
+    selected_point_address: Option<SelectedPointAddress>,
 }
 
 pub(crate) struct Props<'a> {
@@ -32,9 +32,10 @@ struct MouseOverRow {
     local_xy: Xy<f32>,
 }
 
-struct SelectedPoint {
+struct SelectedPointAddress {
+    layer_id: String,
     property_name: PropertyName,
-    time: Time,
+    point_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -72,8 +73,9 @@ enum Event {
         click_position_in_time: Time,
     },
     GraphPointClick {
+        layer_id: String,
         property_name: PropertyName,
-        time: Time,
+        point_id: String,
     },
 }
 
@@ -109,7 +111,7 @@ impl GraphWindow {
             mouse_over_row: None,
             row_height: None,
             animation,
-            selected_point: None,
+            selected_point_address: None,
         }
     }
 }
@@ -161,15 +163,16 @@ impl table::CellRender<Props<'_>> for GraphWindow {
                             value_per_pixel: self.x_context.value_per_pixel,
                             mouse_local_xy: self.x_context.mouse_local_xy,
                             property_name: PropertyName::X,
-                            selected_point_time: self.selected_point.as_ref().and_then(
-                                |selected_point| {
-                                    if selected_point.property_name == PropertyName::X {
-                                        Some(selected_point.time)
+                            selected_point_id: self.selected_point_address.as_ref().and_then(
+                                |selected_point_address| {
+                                    if selected_point_address.property_name == PropertyName::X {
+                                        Some(selected_point_address.point_id.clone())
                                     } else {
                                         None
                                     }
                                 },
                             ),
+                            layer,
                         },
                     ),
                 )
@@ -316,14 +319,15 @@ impl<TValue: std::ops::Div<Output = f32> + Copy> ValuePerPixel<TValue> {
     }
 }
 
-struct Context<TValue> {
+struct Context<'a, TValue> {
     start_at: Time,
     time_per_pixel: TimePerPixel,
     value_per_pixel: ValuePerPixel<TValue>,
     value_at_bottom: TValue,
     mouse_local_xy: Option<Xy<f32>>,
     property_name: PropertyName,
-    selected_point_time: Option<Time>,
+    selected_point_id: Option<String>,
+    layer: &'a Layer,
 }
 
 #[derive(Debug, Clone, Copy)]

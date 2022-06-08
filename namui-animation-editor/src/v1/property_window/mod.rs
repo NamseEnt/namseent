@@ -82,13 +82,13 @@ impl PropertyWindow {
                     }
                 }
             }
-            fn delete(&mut self, layer: &mut Layer, time: Time) {
+            fn delete(&mut self, layer: &mut Layer, id: impl AsRef<str>) {
                 match self {
                     Self::PixelSize { get_graph_mut, .. } => {
-                        (get_graph_mut)(layer).delete(time);
+                        (get_graph_mut)(layer).delete(id);
                     }
                     Self::Angle { get_graph_mut, .. } => {
-                        (get_graph_mut)(layer).delete(time);
+                        (get_graph_mut)(layer).delete(id);
                     }
                 }
             }
@@ -102,19 +102,13 @@ impl PropertyWindow {
                 match self {
                     Self::PixelSize { get_graph_mut, .. } => {
                         (get_graph_mut)(next_layer).put(
-                            namui::animation::KeyframePoint {
-                                time,
-                                value: value.into(),
-                            },
+                            namui::animation::KeyframePoint::new(time, value.into()),
                             linear,
                         );
                     }
                     Self::Angle { get_graph_mut, .. } => {
                         (get_graph_mut)(next_layer).put(
-                            namui::animation::KeyframePoint {
-                                time,
-                                value: value.into(),
-                            },
+                            namui::animation::KeyframePoint::new(time, value.into()),
                             linear,
                         );
                     }
@@ -218,7 +212,8 @@ impl PropertyWindow {
                                 let mut next_layer = layer.clone();
                                 let input_text = self.input_text.as_ref().unwrap();
                                 if input_text.is_empty() {
-                                    input.delete(&mut next_layer, time);
+                                    // input.delete(&mut next_layer, time);
+                                    todo!();
                                     super::Event::UpdateLayer(Arc::new(next_layer))
                                 } else {
                                     if let Ok(value) = input_text.parse::<f32>() {
@@ -272,7 +267,7 @@ impl PropertyWindow {
                         .into();
 
                         next_layer.image.opacity.put(
-                            KeyframePoint { value, time },
+                            KeyframePoint::new(time, value),
                             animation::KeyframeLine::Linear,
                         );
 
