@@ -8,11 +8,13 @@ impl GraphWindow {
                 Event::GraphMouseMoveIn {
                     property_name,
                     local_xy,
+                    row_wh,
                 } => {
                     self.mouse_over_row = Some(MouseOverRow {
                         property_name: *property_name,
                         local_xy: *local_xy,
                     });
+
                     match property_name {
                         PropertyName::X => {
                             self.x_context.mouse_local_xy = Some(*local_xy);
@@ -20,7 +22,9 @@ impl GraphWindow {
                         PropertyName::Y => todo!(),
                         PropertyName::Width => todo!(),
                         PropertyName::Height => todo!(),
-                    }
+                    };
+
+                    self.handle_dragging_move(*property_name, *local_xy, *row_wh);
                 }
                 Event::GraphMouseMoveOut { property_name } => {
                     if self
@@ -122,23 +126,72 @@ impl GraphWindow {
                     }
                     namui::event::send(super::super::Event::UpdateLayer(Arc::new(layer)));
                 }
-                Event::GraphPointClick {
-                    layer_id,
-                    property_name,
-                    point_id,
-                } => {
-                    self.selected_point_address = Some(SelectedPointAddress {
-                        layer_id: layer_id.clone(),
-                        property_name: *property_name,
-                        point_id: point_id.clone(),
-                    });
+                Event::GraphPointMouseDown { point_address } => {
+                    self.selected_point_address = Some(point_address.clone());
+                    self.dragging_point_address = Some(point_address.clone());
                 }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
-            if let NamuiEvent::KeyDown(event) = event {
-                self.handle_key_down(event);
+            match event {
+                NamuiEvent::KeyDown(event) => self.handle_key_down(event),
+                NamuiEvent::MouseUp(event) => {
+                    self.dragging_point_address = None;
+                }
+                _ => {}
             }
         }
+    }
+
+    fn handle_dragging_move(
+        &self,
+        property_name: PropertyName,
+        local_xy: Xy<f32>,
+        row_wh: Wh<f32>,
+    ) {
+        if self.dragging_point_address.is_none() {
+            return;
+        }
+
+        let dragging_point_address = self.dragging_point_address.as_ref().unwrap();
+
+        if dragging_point_address.property_name != property_name {
+            return;
+        }
+
+        let mut animation = self.animation.write().unwrap();
+
+        let layer = animation
+            .layers
+            .iter_mut()
+            .find(|layer| layer.id.eq(&dragging_point_address.layer_id));
+        if layer.is_none() {
+            return;
+        }
+        let layer = layer.unwrap();
+
+        let time_on_x = self.context.start_at + PixelSize(local_xy.x) * self.context.time_per_pixel;
+
+        match property_name {
+            PropertyName::X => {
+                let mut point = layer
+                    .image
+                    .x
+                    .get_point(&dragging_point_address.point_id)
+                    .unwrap()
+                    .clone();
+
+                let value_on_y = self.x_context.value_at_bottom
+                    + self.x_context.value_per_pixel * PixelSize(row_wh.height - local_xy.y);
+
+                point.time = time_on_x;
+                point.value = value_on_y;
+
+                layer.image.x.put(point, animation::KeyframeLine::Linear);
+            }
+            PropertyName::Y => todo!(),
+            PropertyName::Width => todo!(),
+            PropertyName::Height => todo!(),
+        };
     }
 }
 

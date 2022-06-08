@@ -181,14 +181,15 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<'_, PixelSize>) {
             let next_point_line = iter.peek();
 
             let point_xy = get_xy_of_point(wh, context, point);
+            let point_address = PointAddress {
+                layer_id: context.layer.id.clone(),
+                property_name: context.property_name,
+                point_id: point.id().to_string(),
+            };
             rendered.push(render_point_xy(
                 point_xy,
                 context.mouse_local_xy,
-                Event::GraphPointClick {
-                    layer_id: context.layer.id.clone(),
-                    property_name: context.property_name,
-                    point_id: point.id().to_string(),
-                },
+                point_address,
                 context.selected_point_id == Some(point.id().to_string()),
             ));
 
@@ -205,7 +206,7 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<'_, PixelSize>) {
 fn render_point_xy(
     xy: Xy<PixelSize>,
     mouse_local_xy: Option<Xy<f32>>,
-    on_click_event: Event,
+    point_address: PointAddress,
     is_selected: bool,
 ) -> RenderingTree {
     const RADIUS: f32 = 4.0;
@@ -242,8 +243,12 @@ fn render_point_xy(
         namui::path(point_builder, painter_builder),
     )
     .attach_event(|builder| {
-        let on_click_event = on_click_event.clone();
-        builder.on_mouse_down(move |_| namui::event::send(on_click_event.clone()))
+        let point_address = point_address.clone();
+        builder.on_mouse_down(move |_| {
+            namui::event::send(Event::GraphPointMouseDown {
+                point_address: point_address.clone(),
+            })
+        })
     })
 }
 

@@ -20,7 +20,8 @@ pub(crate) struct GraphWindow {
     mouse_over_row: Option<MouseOverRow>,
     row_height: Option<f32>,
     animation: Arc<RwLock<animation::Animation>>,
-    selected_point_address: Option<SelectedPointAddress>,
+    selected_point_address: Option<PointAddress>,
+    dragging_point_address: Option<PointAddress>,
 }
 
 pub(crate) struct Props<'a> {
@@ -32,7 +33,8 @@ struct MouseOverRow {
     local_xy: Xy<f32>,
 }
 
-struct SelectedPointAddress {
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct PointAddress {
     layer_id: String,
     property_name: PropertyName,
     point_id: String,
@@ -43,6 +45,7 @@ enum Event {
     GraphMouseMoveIn {
         property_name: PropertyName,
         local_xy: Xy<f32>,
+        row_wh: Wh<f32>,
     },
     GraphMouseMoveOut {
         property_name: PropertyName,
@@ -72,10 +75,8 @@ enum Event {
     TimelineTimeRulerClicked {
         click_position_in_time: Time,
     },
-    GraphPointClick {
-        layer_id: String,
-        property_name: PropertyName,
-        point_id: String,
+    GraphPointMouseDown {
+        point_address: PointAddress,
     },
 }
 
@@ -112,6 +113,7 @@ impl GraphWindow {
             row_height: None,
             animation,
             selected_point_address: None,
+            dragging_point_address: None,
         }
     }
 }
@@ -232,6 +234,7 @@ fn render_graph_row(
                 namui::event::send(Event::GraphMouseMoveIn {
                     property_name,
                     local_xy: event.local_xy,
+                    row_wh: wh,
                 })
             })
             .on_mouse_move_out(move |_| {
