@@ -8,7 +8,6 @@ use serde_repr::*;
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
-use strum_macros::EnumIter;
 mod xy;
 pub use xy::*;
 mod set_timeout;
@@ -128,7 +127,7 @@ impl Wh<f64> {
     }
 }
 
-#[derive(Debug, Hash, Eq, PartialEq, EnumIter, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub enum Language {
     Ko,
 }
