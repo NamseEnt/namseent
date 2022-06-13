@@ -22,6 +22,7 @@ pub(crate) struct GraphWindow {
     animation: Arc<RwLock<animation::Animation>>,
     selected_point_address: Option<PointAddress>,
     dragging: Option<Dragging>,
+    playback_time: Time,
 }
 
 pub(crate) struct Props<'a> {
@@ -127,6 +128,7 @@ impl GraphWindow {
             animation,
             selected_point_address: None,
             dragging: None,
+            playback_time: Time::zero(),
         }
     }
 }
@@ -145,70 +147,98 @@ impl table::CellRender<Props<'_>> for GraphWindow {
         // rotation_angle: KeyframeGraph<Angle>,
         // opacity: KeyframeGraph<OneZero>,
 
-        vertical([
-            fixed_closure(20.0, |wh| {
-                time_ruler::render(&time_ruler::Props {
-                    start_at: self.context.start_at,
-                    time_per_pixel: self.context.time_per_pixel,
-                    xywh: XywhRect {
-                        x: 0.0.into(),
-                        y: 0.0.into(),
-                        width: wh.width,
-                        height: wh.height,
-                    },
-                })
-            }),
-            ratio_closure(1.0, |wh| {
-                if self.row_height != Some(wh.height) {
-                    namui::event::send(Event::RowHeightChange {
-                        row_height: wh.height,
-                    });
-                }
-                render_graph_row(
-                    wh,
-                    layer,
-                    &self.context,
-                    PropertyName::X,
-                    (
-                        &layer.image.x,
-                        Context {
-                            start_at: self.context.start_at,
-                            time_per_pixel: self.context.time_per_pixel,
-                            value_at_bottom: self.x_context.value_at_bottom,
-                            value_per_pixel: self.x_context.value_per_pixel,
-                            mouse_local_xy: self.x_context.mouse_local_xy,
-                            property_name: PropertyName::X,
-                            selected_point_id: self.selected_point_address.as_ref().and_then(
-                                |selected_point_address| {
-                                    if selected_point_address.property_name == PropertyName::X {
-                                        Some(selected_point_address.point_id.clone())
-                                    } else {
-                                        None
-                                    }
-                                },
-                            ),
-                            layer,
+        render([
+            vertical([
+                fixed_closure(20.0, |wh| {
+                    time_ruler::render(&time_ruler::Props {
+                        start_at: self.context.start_at,
+                        time_per_pixel: self.context.time_per_pixel,
+                        xywh: XywhRect {
+                            x: 0.0.into(),
+                            y: 0.0.into(),
+                            width: wh.width,
+                            height: wh.height,
                         },
-                    ),
-                )
-            }),
-            ratio!(1.0, |wh| {
-                simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
-            }),
-            ratio!(1.0, |wh| {
-                simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
-            }),
-            ratio!(1.0, |wh| {
-                simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
-            }),
-            ratio!(1.0, |wh| {
-                simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
-            }),
-            ratio!(1.0, |wh| {
-                simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
-            }),
-        ])(wh)
+                    })
+                }),
+                ratio_closure(1.0, |wh| {
+                    if self.row_height != Some(wh.height) {
+                        namui::event::send(Event::RowHeightChange {
+                            row_height: wh.height,
+                        });
+                    }
+                    render_graph_row(
+                        wh,
+                        layer,
+                        &self.context,
+                        PropertyName::X,
+                        (
+                            &layer.image.x,
+                            Context {
+                                start_at: self.context.start_at,
+                                time_per_pixel: self.context.time_per_pixel,
+                                value_at_bottom: self.x_context.value_at_bottom,
+                                value_per_pixel: self.x_context.value_per_pixel,
+                                mouse_local_xy: self.x_context.mouse_local_xy,
+                                property_name: PropertyName::X,
+                                selected_point_id: self.selected_point_address.as_ref().and_then(
+                                    |selected_point_address| {
+                                        if selected_point_address.property_name == PropertyName::X {
+                                            Some(selected_point_address.point_id.clone())
+                                        } else {
+                                            None
+                                        }
+                                    },
+                                ),
+                                layer,
+                            },
+                        ),
+                    )
+                }),
+                ratio!(1.0, |wh| {
+                    simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
+                }),
+                ratio!(1.0, |wh| {
+                    simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
+                }),
+                ratio!(1.0, |wh| {
+                    simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
+                }),
+                ratio!(1.0, |wh| {
+                    simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
+                }),
+                ratio!(1.0, |wh| {
+                    simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
+                }),
+            ])(wh),
+            render_playback_time_line(
+                wh,
+                self.playback_time,
+                self.context.start_at,
+                self.context.time_per_pixel,
+            ),
+        ])
     }
+}
+
+fn render_playback_time_line(
+    wh: Wh<f32>,
+    playback_time: Time,
+    start_at: Time,
+    time_per_pixel: TimePerPixel,
+) -> RenderingTree {
+    let x = (playback_time - start_at) / time_per_pixel;
+    namui::log!("self.playback_time: {:?}, x: {:?}", playback_time, x);
+    let color = Color::RED;
+    let path = namui::PathBuilder::new()
+        .move_to(x.into(), 0.0)
+        .line_to(x.into(), wh.height);
+    let paint = namui::PaintBuilder::new()
+        .set_color(color)
+        .set_style(namui::PaintStyle::Stroke)
+        .set_stroke_width(1.0);
+
+    namui::path(path, paint)
 }
 
 fn render_graph_row(

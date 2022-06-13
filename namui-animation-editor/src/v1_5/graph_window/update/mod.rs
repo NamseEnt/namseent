@@ -142,6 +142,8 @@ impl GraphWindow {
                             property_name: *property_name,
                         })
                     }
+                    self.playback_time = self.context.start_at
+                        + PixelSize(mouse_local_xy.x) * self.context.time_per_pixel;
                 }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
