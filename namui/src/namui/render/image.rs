@@ -19,7 +19,7 @@ pub struct ImageStyle {
 
 #[derive(Debug, Serialize, Clone)]
 pub enum ImageSource {
-    Url(String),
+    Url(Url),
     #[serde(skip_serializing)]
     Image(Arc<Image>),
 }

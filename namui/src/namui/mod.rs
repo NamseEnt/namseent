@@ -33,6 +33,7 @@ pub mod screen;
 pub use namui_cfg::*;
 pub mod fs;
 pub mod math;
+pub use url::Url;
 
 #[cfg(not(test))]
 #[cfg(target_family = "wasm")]
