@@ -7,24 +7,24 @@ impl GraphWindow {
             match event {
                 Event::GraphMouseMoveIn {
                     property_name,
-                    local_xy,
+                    mouse_local_xy,
                     row_wh,
                 } => {
                     self.mouse_over_row = Some(MouseOverRow {
                         property_name: *property_name,
-                        local_xy: *local_xy,
+                        mouse_local_xy: *mouse_local_xy,
                     });
 
                     match property_name {
                         PropertyName::X => {
-                            self.x_context.mouse_local_xy = Some(*local_xy);
+                            self.x_context.mouse_local_xy = Some(*mouse_local_xy);
                         }
                         PropertyName::Y => todo!(),
                         PropertyName::Width => todo!(),
                         PropertyName::Height => todo!(),
                     };
 
-                    self.handle_dragging_move(*property_name, *local_xy, *row_wh);
+                    self.handle_dragging_move(*property_name, *mouse_local_xy, *row_wh);
                 }
                 Event::GraphMouseMoveOut { property_name } => {
                     if self
@@ -95,7 +95,7 @@ impl GraphWindow {
                 } => {
                     // TODO
                 }
-                Event::GraphMouseRightClick {
+                Event::GraphMouseRightDown {
                     property_name,
                     mouse_local_xy,
                     row_wh,
@@ -127,15 +127,28 @@ impl GraphWindow {
                     namui::event::send(super::super::Event::UpdateLayer(Arc::new(layer)));
                 }
                 Event::GraphPointMouseDown { point_address } => {
-                    self.selected_point_address = Some(point_address.clone());
-                    self.dragging_point_address = Some(point_address.clone());
+                    if self.dragging.is_none() {
+                        self.selected_point_address = Some(point_address.clone());
+                        self.dragging = Some(Dragging::Point(point_address.clone()));
+                    }
+                }
+                Event::GraphMouseLeftDown {
+                    property_name,
+                    mouse_local_xy,
+                } => {
+                    if self.dragging.is_none() {
+                        self.dragging = Some(Dragging::Background {
+                            last_mouse_local_xy: *mouse_local_xy,
+                            property_name: *property_name,
+                        })
+                    }
                 }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
                 NamuiEvent::KeyDown(event) => self.handle_key_down(event),
-                NamuiEvent::MouseUp(event) => {
-                    self.dragging_point_address = None;
+                NamuiEvent::MouseUp(_) => {
+                    self.dragging = None;
                 }
                 _ => {}
             }
@@ -143,18 +156,38 @@ impl GraphWindow {
     }
 
     fn handle_dragging_move(
-        &self,
+        &mut self,
         property_name: PropertyName,
-        local_xy: Xy<f32>,
+        mouse_local_xy: Xy<f32>,
         row_wh: Wh<f32>,
     ) {
-        if self.dragging_point_address.is_none() {
+        if self.dragging.is_none() {
             return;
         }
 
-        let dragging_point_address = self.dragging_point_address.as_ref().unwrap();
+        let dragging = self.dragging.clone().unwrap();
 
-        if dragging_point_address.property_name != property_name {
+        match dragging {
+            Dragging::Point(point_address) => {
+                self.handle_point_dragging(&point_address, property_name, mouse_local_xy, row_wh)
+            }
+            Dragging::Background {
+                property_name,
+                last_mouse_local_xy,
+            } => {
+                self.handle_background_dragging(property_name, last_mouse_local_xy, mouse_local_xy)
+            }
+        };
+    }
+
+    fn handle_point_dragging(
+        &self,
+        point_address: &PointAddress,
+        property_name: PropertyName,
+        mouse_local_xy: Xy<f32>,
+        row_wh: Wh<f32>,
+    ) {
+        if point_address.property_name != property_name {
             return;
         }
 
@@ -163,25 +196,26 @@ impl GraphWindow {
         let layer = animation
             .layers
             .iter_mut()
-            .find(|layer| layer.id.eq(&dragging_point_address.layer_id));
+            .find(|layer| layer.id.eq(&point_address.layer_id));
         if layer.is_none() {
             return;
         }
         let layer = layer.unwrap();
 
-        let time_on_x = self.context.start_at + PixelSize(local_xy.x) * self.context.time_per_pixel;
+        let time_on_x =
+            self.context.start_at + PixelSize(mouse_local_xy.x) * self.context.time_per_pixel;
 
         match property_name {
             PropertyName::X => {
                 let mut point = layer
                     .image
                     .x
-                    .get_point(&dragging_point_address.point_id)
+                    .get_point(&point_address.point_id)
                     .unwrap()
                     .clone();
 
                 let value_on_y = self.x_context.value_at_bottom
-                    + self.x_context.value_per_pixel * PixelSize(row_wh.height - local_xy.y);
+                    + self.x_context.value_per_pixel * PixelSize(row_wh.height - mouse_local_xy.y);
 
                 point.time = time_on_x;
                 point.value = value_on_y;
@@ -192,6 +226,31 @@ impl GraphWindow {
             PropertyName::Width => todo!(),
             PropertyName::Height => todo!(),
         };
+    }
+    fn handle_background_dragging(
+        &mut self,
+        property_name: PropertyName,
+        last_mouse_local_xy: Xy<f32>,
+        mouse_local_xy: Xy<f32>,
+    ) {
+        let mouse_delta_xy = mouse_local_xy - last_mouse_local_xy;
+
+        self.context.start_at -= self.context.time_per_pixel * PixelSize(mouse_delta_xy.x);
+
+        match property_name {
+            PropertyName::X => {
+                self.x_context.value_at_bottom +=
+                    self.x_context.value_per_pixel * PixelSize(mouse_delta_xy.y);
+            }
+            PropertyName::Y => todo!(),
+            PropertyName::Width => todo!(),
+            PropertyName::Height => todo!(),
+        }
+
+        self.dragging = Some(Dragging::Background {
+            property_name,
+            last_mouse_local_xy: mouse_local_xy,
+        });
     }
 }
 

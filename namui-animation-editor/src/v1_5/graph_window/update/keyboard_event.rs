@@ -95,7 +95,7 @@ impl GraphWindow {
             match arrow {
                 Arrow::Left | Arrow::Right => {
                     let time_at_mouse_position = self.context.start_at
-                        + PixelSize(mouse_over_row.local_xy.x) * self.context.time_per_pixel;
+                        + PixelSize(mouse_over_row.mouse_local_xy.x) * self.context.time_per_pixel;
 
                     let next_time_per_pixel = zoom_time_per_pixel(
                         self.context.time_per_pixel,
@@ -107,7 +107,7 @@ impl GraphWindow {
                     );
 
                     let next_start_at = time_at_mouse_position
-                        - PixelSize(mouse_over_row.local_xy.x) * next_time_per_pixel;
+                        - PixelSize(mouse_over_row.mouse_local_xy.x) * next_time_per_pixel;
 
                     self.context.time_per_pixel = next_time_per_pixel;
                     self.context.start_at = next_start_at;
@@ -116,7 +116,7 @@ impl GraphWindow {
                     PropertyName::X => {
                         let value_at_mouse_position = self.x_context.value_at_bottom
                             + self.x_context.value_per_pixel
-                                * PixelSize(row_height - mouse_over_row.local_xy.y);
+                                * PixelSize(row_height - mouse_over_row.mouse_local_xy.y);
 
                         let next_value_per_pixel = zoom_pixel_size_per_pixel(
                             self.x_context.value_per_pixel,
@@ -129,7 +129,7 @@ impl GraphWindow {
 
                         let next_value_at_bottom = value_at_mouse_position
                             - next_value_per_pixel
-                                * PixelSize(row_height - mouse_over_row.local_xy.y);
+                                * PixelSize(row_height - mouse_over_row.mouse_local_xy.y);
 
                         self.x_context.value_per_pixel = next_value_per_pixel;
                         self.x_context.value_at_bottom = next_value_at_bottom;

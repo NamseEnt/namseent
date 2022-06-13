@@ -21,16 +21,25 @@ pub(crate) struct GraphWindow {
     row_height: Option<f32>,
     animation: Arc<RwLock<animation::Animation>>,
     selected_point_address: Option<PointAddress>,
-    dragging_point_address: Option<PointAddress>,
+    dragging: Option<Dragging>,
 }
 
 pub(crate) struct Props<'a> {
     pub layer: Option<&'a namui::animation::Layer>,
 }
 
+#[derive(Debug, Clone)]
+enum Dragging {
+    Point(PointAddress),
+    Background {
+        property_name: PropertyName,
+        last_mouse_local_xy: Xy<f32>,
+    },
+}
+
 struct MouseOverRow {
     property_name: PropertyName,
-    local_xy: Xy<f32>,
+    mouse_local_xy: Xy<f32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,7 +53,7 @@ struct PointAddress {
 enum Event {
     GraphMouseMoveIn {
         property_name: PropertyName,
-        local_xy: Xy<f32>,
+        mouse_local_xy: Xy<f32>,
         row_wh: Wh<f32>,
     },
     GraphMouseMoveOut {
@@ -63,11 +72,15 @@ enum Event {
         mouse_local_xy: Xy<f32>,
         row_wh: Wh<f32>,
     },
-    GraphMouseRightClick {
+    GraphMouseRightDown {
         layer_id: String,
         property_name: PropertyName,
         mouse_local_xy: Xy<f32>,
         row_wh: Wh<f32>,
+    },
+    GraphMouseLeftDown {
+        property_name: PropertyName,
+        mouse_local_xy: Xy<f32>,
     },
     RowHeightChange {
         row_height: f32,
@@ -113,7 +126,7 @@ impl GraphWindow {
             row_height: None,
             animation,
             selected_point_address: None,
-            dragging_point_address: None,
+            dragging: None,
         }
     }
 }
@@ -233,22 +246,25 @@ fn render_graph_row(
             .on_mouse_move_in(move |event| {
                 namui::event::send(Event::GraphMouseMoveIn {
                     property_name,
-                    local_xy: event.local_xy,
+                    mouse_local_xy: event.local_xy,
                     row_wh: wh,
                 })
             })
             .on_mouse_move_out(move |_| {
                 namui::event::send(Event::GraphMouseMoveOut { property_name })
             })
-            .on_mouse_down(move |event| {
-                if event.button == Some(MouseButton::Right) {
-                    namui::event::send(Event::GraphMouseRightClick {
-                        layer_id: layer_id.clone(),
-                        property_name,
-                        mouse_local_xy: event.local_xy,
-                        row_wh: wh,
-                    })
-                }
+            .on_mouse_down(move |event| match event.button {
+                Some(MouseButton::Left) => namui::event::send(Event::GraphMouseLeftDown {
+                    property_name,
+                    mouse_local_xy: event.local_xy,
+                }),
+                Some(MouseButton::Right) => namui::event::send(Event::GraphMouseRightDown {
+                    layer_id: layer_id.clone(),
+                    property_name,
+                    mouse_local_xy: event.local_xy,
+                    row_wh: wh,
+                }),
+                _ => {}
             })
             .on_wheel(move |event| {
                 let managers = namui::managers();
