@@ -12,6 +12,8 @@ use crate::debug_println;
 
 pub struct RustProjectWatchService {}
 
+const WATCHING_ITEMS_IN_PROJECT: [&str; 3] = ["src", "Cargo.toml", ".namuibundle"];
+
 impl RustProjectWatchService {
     pub(crate) fn new() -> Self {
         Self {}
@@ -65,8 +67,8 @@ impl RustProjectWatchService {
         watcher: &mut impl Watcher,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let local_path_in_repr = Regex::new(r"\(path\+file://([^\)]+)\)$").unwrap();
-        let project_src_path = manifest_path.parent().unwrap().join("src");
-        let mut local_dependencies_src_paths = HashSet::new();
+        let project_root_path = manifest_path.parent().unwrap();
+        let mut local_dependencies_root_paths = HashSet::new();
 
         let metadata = MetadataCommand::new()
             .manifest_path(&manifest_path)
@@ -78,8 +80,8 @@ impl RustProjectWatchService {
                     let path = dependency.pkg.repr;
                     if let Some(captures) = local_path_in_repr.captures(&path) {
                         if let Some(matched_path) = captures.get(1) {
-                            local_dependencies_src_paths
-                                .insert(PathBuf::from_str(matched_path.as_str())?.join("src"));
+                            local_dependencies_root_paths
+                                .insert(PathBuf::from_str(matched_path.as_str())?);
                         }
                     }
                 }
@@ -87,9 +89,14 @@ impl RustProjectWatchService {
         }
 
         let watched_paths = watching_paths.clone();
-        let next_watching_paths = local_dependencies_src_paths
-            .union(&HashSet::from_iter([project_src_path].iter().cloned()))
-            .cloned()
+        let next_watching_paths = local_dependencies_root_paths
+            .union(&HashSet::from_iter([project_root_path.to_path_buf()]))
+            .into_iter()
+            .flat_map(|root_path| {
+                WATCHING_ITEMS_IN_PROJECT
+                    .iter()
+                    .map(|watching_item| root_path.join(watching_item))
+            })
             .collect::<HashSet<_>>();
 
         let unwatch_paths = watched_paths
