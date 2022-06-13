@@ -19,6 +19,7 @@ use std::{
 };
 use tokio::{spawn, sync::RwLock};
 use tokio_util::codec::{BytesCodec, FramedRead};
+use urlencoding::decode;
 use warp::{
     http::HeaderValue,
     hyper::{header::CONTENT_TYPE, Body, Uri},
@@ -216,7 +217,12 @@ fn create_bundle_static(
         .and_then(move |tail: Tail| {
             let bundle_metadata_service = bundle_metadata_service.clone();
             async move {
-                let url = PathBuf::from(tail.as_str());
+                let tail = decode(tail.as_str());
+                if tail.is_err() {
+                    return Err(reject::reject());
+                }
+                let tail = tail.unwrap().into_owned();
+                let url = PathBuf::from(&tail);
                 match bundle_metadata_service.get_src_path(&url) {
                     Ok(src_path) => match src_path {
                         Some(src_path) => file_response(&src_path).await,
