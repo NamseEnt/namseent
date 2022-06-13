@@ -67,7 +67,6 @@ impl GraphWindow {
                     .image
                     .x
                     .put(selected_point, animation::KeyframeLine::Linear);
-                namui::log!("layer.image.x: {:?}", layer.image.x);
             }
             PropertyName::Y => todo!(),
             PropertyName::Width => todo!(),

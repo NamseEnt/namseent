@@ -1,15 +1,17 @@
-use namui::prelude::*;
+use namui::{prelude::*, types::Time};
 use namui_prebuilt::*;
 use std::sync::{Arc, RwLock};
 mod events;
 pub use events::Event;
 mod graph_window;
 mod layer_list_window;
+mod preview_window;
 
 pub struct AnimationEditor {
     animation: Arc<RwLock<animation::Animation>>,
     layer_list_window: layer_list_window::LayerListWindow,
     graph_window: graph_window::GraphWindow,
+    preview_window: preview_window::PreviewWindow,
     selected_layer_id: Option<String>,
 }
 
@@ -22,6 +24,7 @@ impl AnimationEditor {
         Self {
             layer_list_window: layer_list_window::LayerListWindow::new(),
             graph_window: graph_window::GraphWindow::new(animation.clone()),
+            preview_window: preview_window::PreviewWindow::new(),
             selected_layer_id: None,
             animation,
         }
@@ -48,9 +51,14 @@ impl AnimationEditor {
             ratio!(
                 1.0,
                 vertical![
-                    calculative!(|parent_wh| { parent_wh.width / 16.0 * 9.0 }, |wh| {
-                        simple_rect(wh, Color::BLACK, 1.0, Color::TRANSPARENT)
-                    }),
+                    calculative!(
+                        |parent_wh| { parent_wh.width / 16.0 * 9.0 },
+                        &self.preview_window,
+                        preview_window::Props {
+                            animation: &animation,
+                            playback_time: Time::zero(),
+                        }
+                    ),
                     ratio!(
                         1.0,
                         &self.layer_list_window,

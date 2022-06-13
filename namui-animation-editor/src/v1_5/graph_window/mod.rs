@@ -228,7 +228,6 @@ fn render_playback_time_line(
     time_per_pixel: TimePerPixel,
 ) -> RenderingTree {
     let x = (playback_time - start_at) / time_per_pixel;
-    namui::log!("self.playback_time: {:?}, x: {:?}", playback_time, x);
     let color = Color::RED;
     let path = namui::PathBuilder::new()
         .move_to(x.into(), 0.0)
