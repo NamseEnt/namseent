@@ -21,3 +21,9 @@ pub struct Animation {
 pub trait Animate {
     fn render(&self, time: Time) -> RenderingTree;
 }
+
+impl Animate for Animation {
+    fn render(&self, time: Time) -> RenderingTree {
+        crate::render(self.layers.iter().map(|layer| layer.image.render(time)))
+    }
+}
