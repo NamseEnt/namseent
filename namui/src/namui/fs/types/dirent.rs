@@ -1,4 +1,6 @@
-use std::{hash::Hash, path::PathBuf};
+use percent_encoding::percent_decode_str;
+use std::{borrow::Cow, hash::Hash, path::PathBuf};
+use url::Url;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum DirentKind {
@@ -7,35 +9,53 @@ pub enum DirentKind {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub struct Dirent {
-    path: PathBuf,
-    kind: DirentKind,
+pub enum Dirent {
+    Directory(Url),
+    File(Url),
 }
 
 impl Dirent {
-    pub fn new(path: PathBuf, kind: DirentKind) -> Self {
-        Self { path, kind }
+    pub(crate) fn new(url: Url, kind: DirentKind) -> Dirent {
+        match kind {
+            DirentKind::Directory => Dirent::Directory(url),
+            DirentKind::File => Dirent::File(url),
+        }
     }
-
     pub fn is_dir(&self) -> bool {
-        match self.kind {
-            DirentKind::Directory => true,
+        match self {
+            Dirent::Directory(_) => true,
             _ => false,
         }
     }
 
     pub fn is_file(&self) -> bool {
-        match self.kind {
-            DirentKind::File => true,
+        match self {
+            Dirent::File(_) => true,
             _ => false,
         }
     }
 
-    pub fn kind(&self) -> &DirentKind {
-        &self.kind
+    pub fn kind(&self) -> DirentKind {
+        match self {
+            Dirent::Directory(_) => DirentKind::Directory,
+            Dirent::File(_) => DirentKind::File,
+        }
     }
 
-    pub fn path(&self) -> &PathBuf {
-        &self.path
+    pub fn url(&self) -> &Url {
+        match self {
+            Dirent::Directory(url) => url,
+            Dirent::File(url) => url,
+        }
+    }
+
+    pub fn path_string(&self) -> Cow<str> {
+        percent_decode_str(self.url().path())
+            .decode_utf8()
+            .expect("invalid url path")
+    }
+
+    pub fn path_buf(&self) -> PathBuf {
+        PathBuf::from(self.path_string().to_string())
     }
 }

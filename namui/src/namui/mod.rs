@@ -35,6 +35,7 @@ pub mod animation;
 pub mod fs;
 pub mod math;
 pub use lazy_static::lazy_static;
+pub use url::Url;
 
 #[cfg(not(test))]
 #[cfg(target_family = "wasm")]

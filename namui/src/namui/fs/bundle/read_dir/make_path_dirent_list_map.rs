@@ -1,6 +1,7 @@
 use crate::fs::types::{Dirent, DirentKind};
 use dashmap::DashMap;
 use std::path::PathBuf;
+use url::Url;
 
 pub fn make_path_dirent_list_map(bundle_metadata: &Vec<PathBuf>) -> DashMap<PathBuf, Vec<Dirent>> {
     let path_dirent_list_map: DashMap<PathBuf, DashMap<PathBuf, Dirent>> = DashMap::new();
@@ -57,7 +58,9 @@ fn push_dirent(
     ensure_dir(path_dirent_list_map, dir_path);
     let pre_dirent_set = path_dirent_list_map.get_mut(dir_path).unwrap();
     let path = dir_path.join(name);
-    pre_dirent_set.insert(path.clone(), Dirent::new(path, kind));
+    let url_string = format!("bundle:{}", path.display());
+    let url = Url::parse(&url_string).expect(&format!("url parse error: {}", url_string));
+    pre_dirent_set.insert(path.clone(), Dirent::new(url, kind));
 }
 
 fn ensure_dir(path_dirent_list_map: &DashMap<PathBuf, DashMap<PathBuf, Dirent>>, path: &PathBuf) {
@@ -70,6 +73,7 @@ fn ensure_dir(path_dirent_list_map: &DashMap<PathBuf, DashMap<PathBuf, Dirent>>,
 mod tests {
     use super::make_path_dirent_list_map;
     use std::path::PathBuf;
+    use url::Url;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
@@ -119,8 +123,8 @@ mod tests {
                 .unwrap()
                 .first()
                 .unwrap()
-                .path(),
-            &PathBuf::from("three/two/one/file1")
+                .url(),
+            &Url::parse("bundle:three/two/one/file1").unwrap()
         );
     }
 

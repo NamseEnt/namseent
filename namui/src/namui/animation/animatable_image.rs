@@ -3,7 +3,7 @@ use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnimatableImage {
-    pub image_source_url: Option<String>,
+    pub image_source_url: Option<Url>,
     pub x: KeyframeGraph<PixelSize>,
     pub y: KeyframeGraph<PixelSize>,
     pub width: KeyframeGraph<PixelSize>,
