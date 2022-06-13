@@ -185,7 +185,7 @@ async fn init_filesystem() {
             log("Filesystem initialized".to_string());
         }
         Err(e) => {
-            log(format!("Filesystem initialize failed: {}", e));
+            log(format!("Filesystem initialize failed: {:?}", e));
         }
     };
 }

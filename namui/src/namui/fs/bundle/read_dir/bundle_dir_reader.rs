@@ -44,6 +44,7 @@ pub enum BundleDirReaderReadError {
     Other(String),
 }
 
+#[derive(Debug)]
 pub enum BundleDirReaderInitError {
     NetworkError(String),
     ParseError(String),
