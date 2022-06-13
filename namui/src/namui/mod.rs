@@ -31,8 +31,8 @@ mod random;
 pub use self::random::*;
 pub mod screen;
 pub use namui_cfg::*;
-pub mod fs;
 pub mod animation;
+pub mod fs;
 pub mod math;
 pub use lazy_static::lazy_static;
 
@@ -192,7 +192,7 @@ async fn init_filesystem() {
             log("Filesystem initialized".to_string());
         }
         Err(e) => {
-            log(format!("Filesystem initialize failed: {}", e));
+            log(format!("Filesystem initialize failed: {:?}", e));
         }
     };
 }
