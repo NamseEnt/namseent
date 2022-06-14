@@ -95,7 +95,8 @@ impl GraphWindow {
                         self.dragging = Some(Dragging::Background {
                             last_mouse_local_xy: *mouse_local_xy,
                             property_name: *property_name,
-                        })
+                        });
+                        self.selected_point_address = None;
                     }
                     self.playback_time = self.context.start_at
                         + PixelSize(mouse_local_xy.x) * self.context.time_per_pixel;
@@ -129,9 +130,12 @@ impl GraphWindow {
                 self.handle_point_dragging(&point_address, property_name, mouse_local_xy, row_wh)
             }
             Dragging::Background {
-                property_name,
+                property_name: dragging_property_name,
                 last_mouse_local_xy,
             } => {
+                if dragging_property_name != property_name {
+                    return;
+                }
                 self.handle_background_dragging(property_name, last_mouse_local_xy, mouse_local_xy)
             }
         };
