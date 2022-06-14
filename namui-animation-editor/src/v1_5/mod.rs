@@ -1,5 +1,5 @@
 use namui::{prelude::*, types::Time};
-use namui_prebuilt::*;
+use namui_prebuilt::{table::*, *};
 use std::sync::{Arc, RwLock};
 mod events;
 pub use events::Event;
@@ -60,9 +60,9 @@ impl AnimationEditor {
             .and_then(|layer_id| animation.layers.iter().find(|layer| layer.id.eq(layer_id)));
 
         horizontal![
-            ratio!(
+            ratio(
                 1.0,
-                vertical![
+                vertical([
                     calculative!(
                         |parent_wh| { parent_wh.width / 16.0 * 9.0 },
                         &self.preview_window,
@@ -87,7 +87,7 @@ impl AnimationEditor {
                                 .and_then(|layer| layer.image.image_source_url.clone()),
                         }
                     ),
-                ]
+                ])
             ),
             ratio!(
                 4.0,

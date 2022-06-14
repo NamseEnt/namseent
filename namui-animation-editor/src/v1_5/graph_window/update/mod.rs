@@ -1,5 +1,7 @@
 use super::*;
+mod context;
 mod keyboard_event;
+mod layer;
 
 impl GraphWindow {
     pub(crate) fn update(&mut self, event: &dyn std::any::Any) {
@@ -42,21 +44,15 @@ impl GraphWindow {
                 Event::GraphCtrlMouseWheel {
                     delta,
                     property_name,
-                    mouse_local_xy: anchor_xy,
+                    mouse_local_xy,
                     row_wh,
                 } => {
-                    let property_context = self.get_property_context_mut(*property_name);
-                    let value_at_mouse_position = property_context.value_at_bottom
-                        + property_context.value_per_pixel * PixelSize(row_wh.height - anchor_xy.y);
-
-                    let next_value_per_pixel =
-                        zoom_pixel_size_per_pixel(property_context.value_per_pixel, delta.into());
-
-                    let next_value_at_bottom = value_at_mouse_position
-                        - next_value_per_pixel * PixelSize(row_wh.height - anchor_xy.y);
-
-                    property_context.value_per_pixel = next_value_per_pixel;
-                    property_context.value_at_bottom = next_value_at_bottom;
+                    self.zoom_property_context(
+                        *property_name,
+                        delta.into(),
+                        mouse_local_xy.y,
+                        row_wh.height,
+                    );
                 }
                 Event::RowHeightChange { row_height } => {
                     self.row_height = Some(*row_height);
@@ -72,9 +68,6 @@ impl GraphWindow {
                     row_wh,
                     layer_id,
                 } => {
-                    let time = self.context.start_at
-                        + PixelSize(mouse_local_xy.x) * self.context.time_per_pixel;
-
                     let mut layer = {
                         let animation = self.animation.read();
                         let layer = animation.layers.iter().find(|layer| layer.id.eq(layer_id));
@@ -84,17 +77,8 @@ impl GraphWindow {
                         layer.unwrap().clone()
                     };
 
-                    let property_context = self.get_property_context_mut(*property_name);
-                    let graph = get_keyframe_graph_mut(&mut layer, *property_name);
-                    graph.put(
-                        animation::KeyframePoint::new(
-                            time,
-                            property_context.value_at_bottom
-                                + property_context.value_per_pixel
-                                    * PixelSize(row_wh.height - mouse_local_xy.y),
-                        ),
-                        animation::KeyframeLine::Linear,
-                    );
+                    self.add_point_into_xy(&mut layer, *property_name, *mouse_local_xy, *row_wh);
+
                     namui::event::send(super::super::Event::UpdateLayer(Arc::new(layer)));
                 }
                 Event::GraphPointMouseDown { point_address } => {
@@ -175,21 +159,13 @@ impl GraphWindow {
         }
         let mut layer = layer.unwrap().clone();
 
-        let time_on_x =
-            self.context.start_at + PixelSize(mouse_local_xy.x) * self.context.time_per_pixel;
-
-        let property_context = self.get_property_context(property_name);
-        let graph = get_keyframe_graph_mut(&mut layer, property_name);
-
-        let mut point = graph.get_point(&point_address.point_id).unwrap().clone();
-
-        let value_on_y = property_context.value_at_bottom
-            + property_context.value_per_pixel * PixelSize(row_wh.height - mouse_local_xy.y);
-
-        point.time = time_on_x;
-        point.value = value_on_y;
-
-        graph.put(point, animation::KeyframeLine::Linear);
+        self.move_point_into_xy(
+            &mut layer,
+            property_name,
+            &point_address.point_id,
+            mouse_local_xy,
+            row_wh,
+        );
 
         namui::event::send(super::super::Event::UpdateLayer(Arc::new(layer)));
     }
@@ -202,46 +178,12 @@ impl GraphWindow {
         let mouse_delta_xy = mouse_local_xy - last_mouse_local_xy;
 
         self.context.start_at -= self.context.time_per_pixel * PixelSize(mouse_delta_xy.x);
-
-        let property_context = self.get_property_context_mut(property_name);
-
-        property_context.value_at_bottom +=
-            property_context.value_per_pixel * PixelSize(mouse_delta_xy.y);
+        self.move_property_context_by(property_name, mouse_delta_xy.y);
 
         self.dragging = Some(Dragging::Background {
             property_name,
             last_mouse_local_xy: mouse_local_xy,
         });
-    }
-    fn get_property_context_mut(
-        &mut self,
-        property_name: PropertyName,
-    ) -> &mut PropertyContext<PixelSize> {
-        match property_name {
-            PropertyName::X => &mut self.x_context,
-            PropertyName::Y => &mut self.y_context,
-            PropertyName::Width => &mut self.width_context,
-            PropertyName::Height => &mut self.height_context,
-        }
-    }
-    fn get_property_context(&self, property_name: PropertyName) -> &PropertyContext<PixelSize> {
-        match property_name {
-            PropertyName::X => &self.x_context,
-            PropertyName::Y => &self.y_context,
-            PropertyName::Width => &self.width_context,
-            PropertyName::Height => &self.height_context,
-        }
-    }
-}
-fn get_keyframe_graph_mut(
-    layer: &mut Layer,
-    property_name: PropertyName,
-) -> &mut KeyframeGraph<PixelSize> {
-    match property_name {
-        PropertyName::X => &mut layer.image.x,
-        PropertyName::Y => &mut layer.image.y,
-        PropertyName::Width => &mut layer.image.width,
-        PropertyName::Height => &mut layer.image.height,
     }
 }
 
@@ -258,24 +200,4 @@ fn zoom_time_per_pixel(target: TimePerPixel, delta: f32) -> TimePerPixel {
 
     let zoomed = namui::math::num::clamp(10.0 * 2.0f32.powf(next_wheel / STEP), MIN, MAX);
     TimePerPixel::from_ms_per_pixel(zoomed)
-}
-
-fn zoom_pixel_size_per_pixel(
-    target: ValuePerPixel<PixelSize>,
-    delta: f32,
-) -> ValuePerPixel<PixelSize> {
-    const STEP: f32 = 400.0;
-    const MIN: f32 = 1.0;
-    const MAX: f32 = 100.0;
-
-    let wheel = STEP * (target.value / target.pixel_size / 10.0).log2();
-
-    let next_wheel = wheel + delta;
-
-    let zoomed = namui::math::num::clamp(10.0 * 2.0f32.powf(next_wheel / STEP), MIN, MAX);
-
-    ValuePerPixel {
-        value: zoomed.into(),
-        pixel_size: 1.0_f32.into(),
-    }
 }

@@ -5,7 +5,7 @@ use namui::{
     types::{PixelSize, Time, TimePerPixel},
 };
 use namui_prebuilt::{
-    table::{fixed_closure, horizontal, ratio_closure, vertical},
+    table::{fixed, horizontal, ratio, vertical},
     *,
 };
 
@@ -72,7 +72,7 @@ impl table::CellRender<Props> for ImageSelectWindow {
                 horizontal((0..COLUMN_COUNT).map(|index| {
                     let entry = entries.get(index);
                     let selected_layer_image_url = props.selected_layer_image_url.clone();
-                    ratio_closure(1.0, move |wh| match entry {
+                    ratio(1.0, move |wh| match entry {
                         Some(entry) => {
                             let is_selected = selected_layer_image_url == Some(entry.url().clone());
                             render_entry(wh, entry, is_selected)
@@ -92,8 +92,8 @@ fn render_entry(wh: Wh<f32>, entry: &Dirent, is_selected: bool) -> RenderingTree
     };
     namui::render([
         vertical([
-            ratio_closure(0.8, |wh| render_thumbnail(wh, entry)),
-            ratio_closure(0.2, |wh| {
+            ratio(0.8, |wh| render_thumbnail(wh, entry)),
+            ratio(0.2, |wh| {
                 typography::center_text(
                     wh,
                     entry

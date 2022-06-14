@@ -26,7 +26,7 @@ pub fn ratio_trait<'a, Props: 'a>(
     }
 }
 
-pub fn ratio_closure<'a>(
+pub fn ratio<'a>(
     ratio: f32,
     cell_render_closure: impl FnOnce(Wh<f32>) -> RenderingTree + 'a,
 ) -> TableCell<'a> {
@@ -42,7 +42,7 @@ macro_rules! ratio {
         $crate::table::ratio_trait($ratio, $cell_render_trait, $props)
     };
     ($ratio: expr, $cell_render_closure: expr) => {
-        $crate::table::ratio_closure($ratio, $cell_render_closure)
+        $crate::table::ratio($ratio, $cell_render_closure)
     };
 }
 
@@ -57,7 +57,7 @@ pub fn fixed_trait<'a, Props: 'a>(
     }
 }
 
-pub fn fixed_closure<'a>(
+pub fn fixed<'a>(
     pixel: f32,
     cell_render_closure: impl FnOnce(Wh<f32>) -> RenderingTree + 'a,
 ) -> TableCell<'a> {
@@ -73,7 +73,7 @@ macro_rules! fixed {
         $crate::table::fixed_trait($pixel, $cell_render_trait, $props)
     };
     ($pixel: expr, $cell_render_closure: expr) => {
-        $crate::table::fixed_closure($pixel, $cell_render_closure)
+        $crate::table::fixed($pixel, $cell_render_closure)
     };
 }
 
@@ -88,7 +88,7 @@ pub fn calculative_trait<'a, Props: 'a>(
     }
 }
 
-pub fn calculative_closure<'a>(
+pub fn calculative<'a>(
     from_parent_wh: impl FnOnce(Wh<f32>) -> f32 + 'static,
     cell_render_closure: impl FnOnce(Wh<f32>) -> RenderingTree + 'a,
 ) -> TableCell<'a> {
@@ -104,7 +104,7 @@ macro_rules! calculative {
         $crate::table::calculative_trait($from_parent_wh, $cell_render_trait, $props)
     };
     ($from_parent_wh: expr, $cell_render_closure: expr) => {
-        $crate::table::calculative_closure($from_parent_wh, $cell_render_closure)
+        $crate::table::calculative($from_parent_wh, $cell_render_closure)
     };
 }
 

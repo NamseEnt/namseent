@@ -34,35 +34,25 @@ impl GraphWindow {
         }
         let mut layer = layer.unwrap().clone();
 
-        let property_context = self.get_property_context(selected_point_address.property_name);
-        let graph = get_keyframe_graph_mut(&mut layer, selected_point_address.property_name);
-
-        let mut selected_point = graph
-            .get_point(&selected_point_address.point_id)
-            .unwrap()
-            .clone();
-
-        match arrow {
-            Arrow::Left | Arrow::Right => {
-                selected_point.time += self.context.time_per_pixel
-                    * PixelSize(match arrow {
-                        Arrow::Left => -1.0,
-                        Arrow::Right => 1.0,
-                        _ => unreachable!(),
-                    });
-            }
-            Arrow::Top | Arrow::Bottom => {
-                selected_point.value += property_context.value_per_pixel
-                    * PixelSize({
-                        match arrow {
-                            Arrow::Top => 1.0,
-                            Arrow::Bottom => -1.0,
-                            _ => unreachable!(),
-                        }
-                    });
-            }
+        let delta_xy = Xy {
+            x: match arrow {
+                Arrow::Left => -1.0,
+                Arrow::Right => 1.0,
+                _ => 0.0,
+            },
+            y: match arrow {
+                Arrow::Top => 1.0,
+                Arrow::Bottom => -1.0,
+                _ => 0.0,
+            },
         };
-        graph.put(selected_point, animation::KeyframeLine::Linear);
+
+        self.move_point_by_xy(
+            &mut layer,
+            selected_point_address.property_name,
+            &selected_point_address.point_id,
+            delta_xy,
+        );
 
         namui::event::send(super::super::super::Event::UpdateLayer(Arc::new(layer)));
     }
@@ -103,28 +93,16 @@ impl GraphWindow {
                     self.context.start_at = next_start_at;
                 }
                 Arrow::Top | Arrow::Bottom => {
-                    let property_context =
-                        self.get_property_context_mut(mouse_over_row.property_name);
-
-                    let value_at_mouse_position = property_context.value_at_bottom
-                        + property_context.value_per_pixel
-                            * PixelSize(row_height - mouse_over_row.mouse_local_xy.y);
-
-                    let next_value_per_pixel = zoom_pixel_size_per_pixel(
-                        property_context.value_per_pixel,
+                    self.zoom_property_context(
+                        mouse_over_row.property_name,
                         match arrow {
                             Arrow::Top => 10.0,
                             Arrow::Bottom => -10.0,
                             _ => unreachable!(),
                         },
+                        mouse_over_row.mouse_local_xy.y,
+                        row_height,
                     );
-
-                    let next_value_at_bottom = value_at_mouse_position
-                        - next_value_per_pixel
-                            * PixelSize(row_height - mouse_over_row.mouse_local_xy.y);
-
-                    property_context.value_per_pixel = next_value_per_pixel;
-                    property_context.value_at_bottom = next_value_at_bottom;
                 }
             }
         } else if managers
@@ -141,14 +119,14 @@ impl GraphWindow {
                         });
                 }
                 Arrow::Top | Arrow::Bottom => {
-                    let property_context =
-                        self.get_property_context_mut(mouse_over_row.property_name);
-                    property_context.value_at_bottom += property_context.value_per_pixel
-                        * PixelSize(match arrow {
+                    self.move_property_context_by(
+                        mouse_over_row.property_name,
+                        match arrow {
                             Arrow::Top => 10.0,
                             Arrow::Bottom => -10.0,
                             _ => unreachable!(),
-                        });
+                        },
+                    );
                 }
             }
         }

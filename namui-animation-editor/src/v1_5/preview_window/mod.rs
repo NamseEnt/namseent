@@ -4,7 +4,7 @@ use namui::{
     types::{PixelSize, Time, TimePerPixel},
 };
 use namui_prebuilt::{
-    table::{fixed_closure, ratio_closure, vertical},
+    table::{fixed, ratio, vertical},
     *,
 };
 use std::{

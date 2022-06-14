@@ -1,7 +1,9 @@
 use super::*;
 use namui::animation::KeyframePoint;
 
-impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<'_, PixelSize>) {
+impl<TValue: KeyframeValue + Clone + From<f32>> RenderGraph
+    for (&'_ KeyframeGraph<PixelSize>, Context<'_, PixelSize>)
+{
     fn render(&self, wh: Wh<f32>) -> RenderingTree {
         let x_axis_guide_lines = self.render_x_axis_guide_lines(wh);
         let mouse_guide = self.render_mouse_guide(wh);
