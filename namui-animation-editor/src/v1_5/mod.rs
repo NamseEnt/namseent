@@ -17,10 +17,15 @@ pub struct AnimationEditor {
     preview_window: preview_window::PreviewWindow,
     image_select_window: image_select_window::ImageSelectWindow,
     selected_layer_id: Option<String>,
+    playback_time: Time,
 }
 
 pub struct Props {
     pub wh: Wh<types::PixelSize>,
+}
+
+pub(crate) enum InternalEvent {
+    SetPlaybackTime(Time),
 }
 
 impl AnimationEditor {
@@ -33,17 +38,23 @@ impl AnimationEditor {
             image_select_window: image_select_window::ImageSelectWindow::new(),
             selected_layer_id: Some(animation.clone().read().layers.first().unwrap().id.clone()),
             animation,
+            playback_time: Time::zero(),
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<layer_list_window::Event>() {
+        if let Some(event) = event.downcast_ref::<InternalEvent>() {
+            match event {
+                InternalEvent::SetPlaybackTime(time) => {
+                    self.playback_time = *time;
+                }
+            }
+        } else if let Some(event) = event.downcast_ref::<layer_list_window::Event>() {
             match event {
                 layer_list_window::Event::LayerSelected(layer_id) => {
                     self.selected_layer_id = Some(layer_id.clone());
                 }
             }
-        }
-        if let Some(event) = event.downcast_ref::<image_select_window::Event>() {
+        } else if let Some(event) = event.downcast_ref::<image_select_window::Event>() {
             self.handle_image_select_window_event(event);
         }
 
@@ -68,7 +79,7 @@ impl AnimationEditor {
                         &self.preview_window,
                         preview_window::Props {
                             animation: &animation,
-                            playback_time: Time::zero(),
+                            playback_time: self.playback_time,
                         }
                     ),
                     ratio!(
@@ -93,7 +104,8 @@ impl AnimationEditor {
                 4.0,
                 &self.graph_window,
                 graph_window::Props {
-                    layer: selected_layer
+                    layer: selected_layer,
+                    playback_time: self.playback_time,
                 }
             )
         ](Wh {

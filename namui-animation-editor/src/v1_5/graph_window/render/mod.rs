@@ -95,7 +95,7 @@ impl table::CellRender<Props<'_>> for GraphWindow {
             ])(wh),
             render_playback_time_line(
                 wh,
-                self.playback_time,
+                props.playback_time,
                 self.context.start_at,
                 self.context.time_per_pixel,
             ),

@@ -98,8 +98,10 @@ impl GraphWindow {
                         });
                         self.selected_point_address = None;
                     }
-                    self.playback_time = self.context.start_at
-                        + PixelSize(mouse_local_xy.x) * self.context.time_per_pixel;
+                    namui::event::send(super::super::InternalEvent::SetPlaybackTime(
+                        self.context.start_at
+                            + PixelSize(mouse_local_xy.x) * self.context.time_per_pixel,
+                    ));
                 }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {

@@ -52,26 +52,29 @@ impl KeyframeValue for OneZero {
 
 impl Animate for AnimatableImage {
     fn render(&self, time: Time) -> RenderingTree {
-        try_render! {
+        try_render(|| {
             let opacity: f32 = self.opacity.get_value(time)?.into();
             if opacity <= 0.0 {
                 return None;
             }
 
-            Some(namui::image(ImageParam {
-                xywh: XywhRect {
-                    x: self.x.get_value(time)?.into(),
-                    y: self.y.get_value(time)?.into(),
-                    width: self.width.get_value(time)?.into(),
-                    height: self.height.get_value(time)?.into(),
-                },
-                style: ImageStyle {
-                    fit: ImageFit::Fill,
-                    paint_builder: None,
-                },
-                source: ImageSource::Url(self.image_source_url.as_ref()?.clone()),
-            }))
-        }
+            Some(namui::rotate(
+                self.rotation_angle.get_value(time)?.into(),
+                namui::image(ImageParam {
+                    xywh: XywhRect {
+                        x: self.x.get_value(time)?.into(),
+                        y: self.y.get_value(time)?.into(),
+                        width: self.width.get_value(time)?.into(),
+                        height: self.height.get_value(time)?.into(),
+                    },
+                    style: ImageStyle {
+                        fit: ImageFit::Fill,
+                        paint_builder: None,
+                    },
+                    source: ImageSource::Url(self.image_source_url.as_ref()?.clone()),
+                }),
+            ))
+        })
     }
 }
 

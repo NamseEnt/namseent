@@ -46,8 +46,8 @@ impl table::CellRender<Props<'_>> for PreviewWindow {
             }),
             ClipOp::Intersect,
             namui::scale(
-                1920.0 / wh.width,
-                1080.0 / wh.height,
+                wh.width / 1920.0,
+                wh.height / 1080.0,
                 props.animation.render(props.playback_time),
             ),
         )

@@ -105,13 +105,8 @@ pub fn render(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> Rende
     RenderingTree::Children(rendering_trees.into_iter().collect())
 }
 
-#[macro_export]
-macro_rules! try_render {
-    { $($token: tt)* } => (
-        (|| -> Option<namui::RenderingTree> {
-            $($token)*
-        })().unwrap_or_else(|| namui::RenderingTree::Empty)
-    );
+pub fn try_render(func: impl FnOnce() -> Option<RenderingTree>) -> RenderingTree {
+    func().unwrap_or(RenderingTree::Empty)
 }
 
 pub type Rendering = RenderingTree;

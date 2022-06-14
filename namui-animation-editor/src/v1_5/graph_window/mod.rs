@@ -27,11 +27,11 @@ pub(crate) struct GraphWindow {
     animation: ReadOnlyLock<animation::Animation>,
     selected_point_address: Option<PointAddress>,
     dragging: Option<Dragging>,
-    playback_time: Time,
 }
 
 pub(crate) struct Props<'a> {
     pub layer: Option<&'a namui::animation::Layer>,
+    pub playback_time: Time,
 }
 
 #[derive(Debug, Clone)]
@@ -168,7 +168,6 @@ impl GraphWindow {
             animation,
             selected_point_address: None,
             dragging: None,
-            playback_time: Time::zero(),
         }
     }
 }
