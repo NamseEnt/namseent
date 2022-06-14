@@ -31,7 +31,7 @@ impl AnimationEditor {
             graph_window: graph_window::GraphWindow::new(animation.clone()),
             preview_window: preview_window::PreviewWindow::new(),
             image_select_window: image_select_window::ImageSelectWindow::new(),
-            selected_layer_id: None,
+            selected_layer_id: Some(animation.clone().read().layers.first().unwrap().id.clone()),
             animation,
         }
     }
@@ -58,6 +58,7 @@ impl AnimationEditor {
             .selected_layer_id
             .as_ref()
             .and_then(|layer_id| animation.layers.iter().find(|layer| layer.id.eq(layer_id)));
+
         horizontal![
             ratio!(
                 1.0,
@@ -90,13 +91,10 @@ impl AnimationEditor {
             ),
             ratio!(
                 4.0,
-                vertical![ratio!(
-                    1.0,
-                    &self.graph_window,
-                    graph_window::Props {
-                        layer: selected_layer
-                    }
-                )]
+                &self.graph_window,
+                graph_window::Props {
+                    layer: selected_layer
+                }
             )
         ](Wh {
             width: props.wh.width.into(),

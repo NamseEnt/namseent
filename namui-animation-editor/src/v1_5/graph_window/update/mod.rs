@@ -15,34 +15,10 @@ impl GraphWindow {
                         mouse_local_xy: *mouse_local_xy,
                     });
 
-                    match property_name {
-                        PropertyName::X => {
-                            self.x_context.mouse_local_xy = Some(*mouse_local_xy);
-                        }
-                        PropertyName::Y => todo!(),
-                        PropertyName::Width => todo!(),
-                        PropertyName::Height => todo!(),
-                    };
-
                     self.handle_dragging_move(*property_name, *mouse_local_xy, *row_wh);
                 }
-                Event::GraphMouseMoveOut { property_name } => {
-                    if self
-                        .mouse_over_row
-                        .as_ref()
-                        .map(|row| row.property_name == *property_name)
-                        == Some(true)
-                    {
-                        self.mouse_over_row = None;
-                    }
-                    match property_name {
-                        PropertyName::X => {
-                            self.x_context.mouse_local_xy = None;
-                        }
-                        PropertyName::Y => todo!(),
-                        PropertyName::Width => todo!(),
-                        PropertyName::Height => todo!(),
-                    }
+                Event::GraphMouseMoveOut => {
+                    self.mouse_over_row = None;
                 }
                 Event::GraphShiftMouseWheel { delta } => {
                     self.context.start_at += delta * self.context.time_per_pixel;
@@ -68,25 +44,20 @@ impl GraphWindow {
                     property_name,
                     mouse_local_xy: anchor_xy,
                     row_wh,
-                } => match property_name {
-                    PropertyName::X => {
-                        let value_at_mouse_position = self.x_context.value_at_bottom
-                            + self.x_context.value_per_pixel
-                                * PixelSize(row_wh.height - anchor_xy.y);
+                } => {
+                    let property_context = self.get_property_context_mut(*property_name);
+                    let value_at_mouse_position = property_context.value_at_bottom
+                        + property_context.value_per_pixel * PixelSize(row_wh.height - anchor_xy.y);
 
-                        let next_value_per_pixel =
-                            zoom_pixel_size_per_pixel(self.x_context.value_per_pixel, delta.into());
+                    let next_value_per_pixel =
+                        zoom_pixel_size_per_pixel(property_context.value_per_pixel, delta.into());
 
-                        let next_value_at_bottom = value_at_mouse_position
-                            - next_value_per_pixel * PixelSize(row_wh.height - anchor_xy.y);
+                    let next_value_at_bottom = value_at_mouse_position
+                        - next_value_per_pixel * PixelSize(row_wh.height - anchor_xy.y);
 
-                        self.x_context.value_per_pixel = next_value_per_pixel;
-                        self.x_context.value_at_bottom = next_value_at_bottom;
-                    }
-                    PropertyName::Y => todo!(),
-                    PropertyName::Width => todo!(),
-                    PropertyName::Height => todo!(),
-                },
+                    property_context.value_per_pixel = next_value_per_pixel;
+                    property_context.value_at_bottom = next_value_at_bottom;
+                }
                 Event::RowHeightChange { row_height } => {
                     self.row_height = Some(*row_height);
                 }
@@ -104,26 +75,26 @@ impl GraphWindow {
                     let time = self.context.start_at
                         + PixelSize(mouse_local_xy.x) * self.context.time_per_pixel;
 
-                    let animation = self.animation.read();
-                    let layer = animation.layers.iter().find(|layer| layer.id.eq(layer_id));
-                    if layer.is_none() {
-                        return;
-                    }
-                    let mut layer = layer.unwrap().clone();
-                    match property_name {
-                        PropertyName::X => layer.image.x.put(
-                            animation::KeyframePoint::new(
-                                time,
-                                self.x_context.value_at_bottom
-                                    + self.x_context.value_per_pixel
-                                        * PixelSize(row_wh.height - mouse_local_xy.y),
-                            ),
-                            animation::KeyframeLine::Linear,
+                    let mut layer = {
+                        let animation = self.animation.read();
+                        let layer = animation.layers.iter().find(|layer| layer.id.eq(layer_id));
+                        if layer.is_none() {
+                            return;
+                        }
+                        layer.unwrap().clone()
+                    };
+
+                    let property_context = self.get_property_context_mut(*property_name);
+                    let graph = get_keyframe_graph_mut(&mut layer, *property_name);
+                    graph.put(
+                        animation::KeyframePoint::new(
+                            time,
+                            property_context.value_at_bottom
+                                + property_context.value_per_pixel
+                                    * PixelSize(row_wh.height - mouse_local_xy.y),
                         ),
-                        PropertyName::Y => todo!(),
-                        PropertyName::Width => todo!(),
-                        PropertyName::Height => todo!(),
-                    }
+                        animation::KeyframeLine::Linear,
+                    );
                     namui::event::send(super::super::Event::UpdateLayer(Arc::new(layer)));
                 }
                 Event::GraphPointMouseDown { point_address } => {
@@ -207,27 +178,19 @@ impl GraphWindow {
         let time_on_x =
             self.context.start_at + PixelSize(mouse_local_xy.x) * self.context.time_per_pixel;
 
-        match property_name {
-            PropertyName::X => {
-                let mut point = layer
-                    .image
-                    .x
-                    .get_point(&point_address.point_id)
-                    .unwrap()
-                    .clone();
+        let property_context = self.get_property_context(property_name);
+        let graph = get_keyframe_graph_mut(&mut layer, property_name);
 
-                let value_on_y = self.x_context.value_at_bottom
-                    + self.x_context.value_per_pixel * PixelSize(row_wh.height - mouse_local_xy.y);
+        let mut point = graph.get_point(&point_address.point_id).unwrap().clone();
 
-                point.time = time_on_x;
-                point.value = value_on_y;
+        let value_on_y = property_context.value_at_bottom
+            + property_context.value_per_pixel * PixelSize(row_wh.height - mouse_local_xy.y);
 
-                layer.image.x.put(point, animation::KeyframeLine::Linear);
-            }
-            PropertyName::Y => todo!(),
-            PropertyName::Width => todo!(),
-            PropertyName::Height => todo!(),
-        };
+        point.time = time_on_x;
+        point.value = value_on_y;
+
+        graph.put(point, animation::KeyframeLine::Linear);
+
         namui::event::send(super::super::Event::UpdateLayer(Arc::new(layer)));
     }
     fn handle_background_dragging(
@@ -240,20 +203,45 @@ impl GraphWindow {
 
         self.context.start_at -= self.context.time_per_pixel * PixelSize(mouse_delta_xy.x);
 
-        match property_name {
-            PropertyName::X => {
-                self.x_context.value_at_bottom +=
-                    self.x_context.value_per_pixel * PixelSize(mouse_delta_xy.y);
-            }
-            PropertyName::Y => todo!(),
-            PropertyName::Width => todo!(),
-            PropertyName::Height => todo!(),
-        }
+        let property_context = self.get_property_context_mut(property_name);
+
+        property_context.value_at_bottom +=
+            property_context.value_per_pixel * PixelSize(mouse_delta_xy.y);
 
         self.dragging = Some(Dragging::Background {
             property_name,
             last_mouse_local_xy: mouse_local_xy,
         });
+    }
+    fn get_property_context_mut(
+        &mut self,
+        property_name: PropertyName,
+    ) -> &mut PropertyContext<PixelSize> {
+        match property_name {
+            PropertyName::X => &mut self.x_context,
+            PropertyName::Y => &mut self.y_context,
+            PropertyName::Width => &mut self.width_context,
+            PropertyName::Height => &mut self.height_context,
+        }
+    }
+    fn get_property_context(&self, property_name: PropertyName) -> &PropertyContext<PixelSize> {
+        match property_name {
+            PropertyName::X => &self.x_context,
+            PropertyName::Y => &self.y_context,
+            PropertyName::Width => &self.width_context,
+            PropertyName::Height => &self.height_context,
+        }
+    }
+}
+fn get_keyframe_graph_mut(
+    layer: &mut Layer,
+    property_name: PropertyName,
+) -> &mut KeyframeGraph<PixelSize> {
+    match property_name {
+        PropertyName::X => &mut layer.image.x,
+        PropertyName::Y => &mut layer.image.y,
+        PropertyName::Width => &mut layer.image.width,
+        PropertyName::Height => &mut layer.image.height,
     }
 }
 

@@ -34,44 +34,35 @@ impl GraphWindow {
         }
         let mut layer = layer.unwrap().clone();
 
-        match selected_point_address.property_name {
-            PropertyName::X => {
-                let mut selected_point = layer
-                    .image
-                    .x
-                    .get_point(&selected_point_address.point_id)
-                    .unwrap()
-                    .clone();
+        let property_context = self.get_property_context(selected_point_address.property_name);
+        let graph = get_keyframe_graph_mut(&mut layer, selected_point_address.property_name);
 
-                match arrow {
-                    Arrow::Left | Arrow::Right => {
-                        selected_point.time += self.context.time_per_pixel
-                            * PixelSize(match arrow {
-                                Arrow::Left => -1.0,
-                                Arrow::Right => 1.0,
-                                _ => unreachable!(),
-                            });
-                    }
-                    Arrow::Top | Arrow::Bottom => {
-                        selected_point.value += self.x_context.value_per_pixel
-                            * PixelSize({
-                                match arrow {
-                                    Arrow::Top => 1.0,
-                                    Arrow::Bottom => -1.0,
-                                    _ => unreachable!(),
-                                }
-                            });
-                    }
-                };
-                layer
-                    .image
-                    .x
-                    .put(selected_point, animation::KeyframeLine::Linear);
+        let mut selected_point = graph
+            .get_point(&selected_point_address.point_id)
+            .unwrap()
+            .clone();
+
+        match arrow {
+            Arrow::Left | Arrow::Right => {
+                selected_point.time += self.context.time_per_pixel
+                    * PixelSize(match arrow {
+                        Arrow::Left => -1.0,
+                        Arrow::Right => 1.0,
+                        _ => unreachable!(),
+                    });
             }
-            PropertyName::Y => todo!(),
-            PropertyName::Width => todo!(),
-            PropertyName::Height => todo!(),
-        }
+            Arrow::Top | Arrow::Bottom => {
+                selected_point.value += property_context.value_per_pixel
+                    * PixelSize({
+                        match arrow {
+                            Arrow::Top => 1.0,
+                            Arrow::Bottom => -1.0,
+                            _ => unreachable!(),
+                        }
+                    });
+            }
+        };
+        graph.put(selected_point, animation::KeyframeLine::Linear);
 
         namui::event::send(super::super::super::Event::UpdateLayer(Arc::new(layer)));
     }
@@ -84,7 +75,7 @@ impl GraphWindow {
         if self.mouse_over_row.is_none() {
             return;
         }
-        let mouse_over_row = self.mouse_over_row.as_ref().unwrap();
+        let mouse_over_row = self.mouse_over_row.clone().unwrap();
 
         let managers = namui::managers();
         if managers
@@ -111,32 +102,30 @@ impl GraphWindow {
                     self.context.time_per_pixel = next_time_per_pixel;
                     self.context.start_at = next_start_at;
                 }
-                Arrow::Top | Arrow::Bottom => match mouse_over_row.property_name {
-                    PropertyName::X => {
-                        let value_at_mouse_position = self.x_context.value_at_bottom
-                            + self.x_context.value_per_pixel
-                                * PixelSize(row_height - mouse_over_row.mouse_local_xy.y);
+                Arrow::Top | Arrow::Bottom => {
+                    let property_context =
+                        self.get_property_context_mut(mouse_over_row.property_name);
 
-                        let next_value_per_pixel = zoom_pixel_size_per_pixel(
-                            self.x_context.value_per_pixel,
-                            match arrow {
-                                Arrow::Top => 10.0,
-                                Arrow::Bottom => -10.0,
-                                _ => unreachable!(),
-                            },
-                        );
+                    let value_at_mouse_position = property_context.value_at_bottom
+                        + property_context.value_per_pixel
+                            * PixelSize(row_height - mouse_over_row.mouse_local_xy.y);
 
-                        let next_value_at_bottom = value_at_mouse_position
-                            - next_value_per_pixel
-                                * PixelSize(row_height - mouse_over_row.mouse_local_xy.y);
+                    let next_value_per_pixel = zoom_pixel_size_per_pixel(
+                        property_context.value_per_pixel,
+                        match arrow {
+                            Arrow::Top => 10.0,
+                            Arrow::Bottom => -10.0,
+                            _ => unreachable!(),
+                        },
+                    );
 
-                        self.x_context.value_per_pixel = next_value_per_pixel;
-                        self.x_context.value_at_bottom = next_value_at_bottom;
-                    }
-                    PropertyName::Y => todo!(),
-                    PropertyName::Width => todo!(),
-                    PropertyName::Height => todo!(),
-                },
+                    let next_value_at_bottom = value_at_mouse_position
+                        - next_value_per_pixel
+                            * PixelSize(row_height - mouse_over_row.mouse_local_xy.y);
+
+                    property_context.value_per_pixel = next_value_per_pixel;
+                    property_context.value_at_bottom = next_value_at_bottom;
+                }
             }
         } else if managers
             .keyboard_manager
@@ -151,19 +140,16 @@ impl GraphWindow {
                             _ => unreachable!(),
                         });
                 }
-                Arrow::Top | Arrow::Bottom => match mouse_over_row.property_name {
-                    PropertyName::X => {
-                        self.x_context.value_at_bottom += self.x_context.value_per_pixel
-                            * PixelSize(match arrow {
-                                Arrow::Top => 10.0,
-                                Arrow::Bottom => -10.0,
-                                _ => unreachable!(),
-                            });
-                    }
-                    PropertyName::Y => todo!(),
-                    PropertyName::Width => todo!(),
-                    PropertyName::Height => todo!(),
-                },
+                Arrow::Top | Arrow::Bottom => {
+                    let property_context =
+                        self.get_property_context_mut(mouse_over_row.property_name);
+                    property_context.value_at_bottom += property_context.value_per_pixel
+                        * PixelSize(match arrow {
+                            Arrow::Top => 10.0,
+                            Arrow::Bottom => -10.0,
+                            _ => unreachable!(),
+                        });
+                }
             }
         }
     }

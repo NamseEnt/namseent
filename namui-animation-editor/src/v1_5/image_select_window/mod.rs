@@ -41,21 +41,22 @@ impl ImageSelectWindow {
 impl table::CellRender<Props> for ImageSelectWindow {
     fn render(&self, wh: Wh<f32>, props: Props) -> RenderingTree {
         let dir = namui::fs::bundle::read_dir("img").unwrap();
-        let two_grouped_entries =
-            dir.into_iter()
-                .fold(vec![], |mut acc: Vec<Vec<Dirent>>, entry| {
-                    match acc.last_mut() {
-                        Some(vec) => {
-                            if vec.len() == 2 {
-                                acc.push(vec![entry]);
-                            } else {
-                                vec.push(entry);
-                            }
+        const COLUMN_COUNT: usize = 2;
+        let grouped_entries = dir
+            .into_iter()
+            .fold(vec![], |mut acc: Vec<Vec<Dirent>>, entry| {
+                match acc.last_mut() {
+                    Some(vec) => {
+                        if vec.len() == COLUMN_COUNT {
+                            acc.push(vec![entry]);
+                        } else {
+                            vec.push(entry);
                         }
-                        None => acc.push(vec![entry]),
                     }
-                    acc
-                });
+                    None => acc.push(vec![entry]),
+                }
+                acc
+            });
 
         self.list_view.render(list_view::Props {
             x: 0.0,
@@ -66,9 +67,9 @@ impl table::CellRender<Props> for ImageSelectWindow {
                 height: wh.width / 2.0,
             },
             scroll_bar_width: 1.0,
-            items: two_grouped_entries,
+            items: grouped_entries,
             item_render: move |wh, entries| {
-                horizontal((0..2).map(|index| {
+                horizontal((0..COLUMN_COUNT).map(|index| {
                     let entry = entries.get(index);
                     let selected_layer_image_url = props.selected_layer_image_url.clone();
                     ratio_closure(1.0, move |wh| match entry {

@@ -18,6 +18,9 @@ pub(crate) struct GraphWindow {
     id: String,
     context: GraphWindowContext,
     x_context: PropertyContext<PixelSize>,
+    y_context: PropertyContext<PixelSize>,
+    width_context: PropertyContext<PixelSize>,
+    height_context: PropertyContext<PixelSize>,
     mouse_over_row: Option<MouseOverRow>,
     row_height: Option<f32>,
     animation: ReadOnlyLock<animation::Animation>,
@@ -39,6 +42,7 @@ enum Dragging {
     },
 }
 
+#[derive(Debug, Clone)]
 struct MouseOverRow {
     property_name: PropertyName,
     mouse_local_xy: Xy<f32>,
@@ -58,9 +62,7 @@ enum Event {
         mouse_local_xy: Xy<f32>,
         row_wh: Wh<f32>,
     },
-    GraphMouseMoveOut {
-        property_name: PropertyName,
-    },
+    GraphMouseMoveOut,
     GraphShiftMouseWheel {
         delta: PixelSize,
     },
@@ -122,7 +124,27 @@ impl GraphWindow {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
                 },
-                mouse_local_xy: None,
+            },
+            y_context: PropertyContext {
+                value_at_bottom: 0.0.into(),
+                value_per_pixel: ValuePerPixel {
+                    value: 10.0.into(),
+                    pixel_size: 1.0.into(),
+                },
+            },
+            width_context: PropertyContext {
+                value_at_bottom: 0.0.into(),
+                value_per_pixel: ValuePerPixel {
+                    value: 10.0.into(),
+                    pixel_size: 1.0.into(),
+                },
+            },
+            height_context: PropertyContext {
+                value_at_bottom: 0.0.into(),
+                value_per_pixel: ValuePerPixel {
+                    value: 10.0.into(),
+                    pixel_size: 1.0.into(),
+                },
             },
             mouse_over_row: None,
             row_height: None,
@@ -163,53 +185,60 @@ impl table::CellRender<Props<'_>> for GraphWindow {
                     })
                 }),
                 ratio_closure(1.0, |wh| {
-                    if self.row_height != Some(wh.height) {
-                        namui::event::send(Event::RowHeightChange {
-                            row_height: wh.height,
-                        });
-                    }
-                    render_graph_row(
-                        wh,
-                        layer,
-                        &self.context,
-                        PropertyName::X,
-                        (
-                            &layer.image.x,
-                            Context {
-                                start_at: self.context.start_at,
-                                time_per_pixel: self.context.time_per_pixel,
-                                value_at_bottom: self.x_context.value_at_bottom,
-                                value_per_pixel: self.x_context.value_per_pixel,
-                                mouse_local_xy: self.x_context.mouse_local_xy,
-                                property_name: PropertyName::X,
-                                selected_point_id: self.selected_point_address.as_ref().and_then(
-                                    |selected_point_address| {
-                                        if selected_point_address.property_name == PropertyName::X {
-                                            Some(selected_point_address.point_id.clone())
-                                        } else {
-                                            None
-                                        }
-                                    },
-                                ),
+                    vertical([
+                        ratio_closure(1.0, |wh| {
+                            if self.row_height != Some(wh.height) {
+                                namui::event::send(Event::RowHeightChange {
+                                    row_height: wh.height,
+                                });
+                            }
+                            self.render_pixel_size_graph_row(
+                                wh,
                                 layer,
-                            },
-                        ),
-                    )
-                }),
-                ratio!(1.0, |wh| {
-                    simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
-                }),
-                ratio!(1.0, |wh| {
-                    simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
-                }),
-                ratio!(1.0, |wh| {
-                    simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
-                }),
-                ratio!(1.0, |wh| {
-                    simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
-                }),
-                ratio!(1.0, |wh| {
-                    simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
+                                PropertyName::X,
+                                &layer.image.x,
+                                &self.x_context,
+                            )
+                        }),
+                        ratio!(1.0, |wh| {
+                            self.render_pixel_size_graph_row(
+                                wh,
+                                layer,
+                                PropertyName::Y,
+                                &layer.image.y,
+                                &self.y_context,
+                            )
+                        }),
+                        ratio!(1.0, |wh| {
+                            self.render_pixel_size_graph_row(
+                                wh,
+                                layer,
+                                PropertyName::Width,
+                                &layer.image.width,
+                                &self.width_context,
+                            )
+                        }),
+                        ratio!(1.0, |wh| {
+                            self.render_pixel_size_graph_row(
+                                wh,
+                                layer,
+                                PropertyName::Height,
+                                &layer.image.height,
+                                &self.height_context,
+                            )
+                        }),
+                        ratio!(1.0, |wh| {
+                            simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
+                        }),
+                        ratio!(1.0, |wh| {
+                            simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)
+                        }),
+                    ])(wh)
+                    .attach_event(|builder| {
+                        builder.on_mouse_move_out(|_| {
+                            namui::event::send(Event::GraphMouseMoveOut);
+                        })
+                    })
                 }),
             ])(wh),
             render_playback_time_line(
@@ -219,6 +248,50 @@ impl table::CellRender<Props<'_>> for GraphWindow {
                 self.context.time_per_pixel,
             ),
         ])
+    }
+}
+
+impl GraphWindow {
+    fn render_pixel_size_graph_row(
+        &self,
+        wh: Wh<f32>,
+        layer: &Layer,
+        property_name: PropertyName,
+        graph: &KeyframeGraph<PixelSize>,
+        property_context: &PropertyContext<PixelSize>,
+    ) -> RenderingTree {
+        render_graph_row(
+            wh,
+            layer,
+            property_name,
+            (
+                graph,
+                Context {
+                    start_at: self.context.start_at,
+                    time_per_pixel: self.context.time_per_pixel,
+                    value_at_bottom: property_context.value_at_bottom,
+                    value_per_pixel: property_context.value_per_pixel,
+                    mouse_local_xy: self.mouse_over_row.as_ref().and_then(|mouse_over_row| {
+                        if mouse_over_row.property_name == property_name {
+                            Some(mouse_over_row.mouse_local_xy)
+                        } else {
+                            None
+                        }
+                    }),
+                    property_name,
+                    selected_point_id: self.selected_point_address.as_ref().and_then(
+                        |selected_point_address| {
+                            if selected_point_address.property_name == property_name {
+                                Some(selected_point_address.point_id.clone())
+                            } else {
+                                None
+                            }
+                        },
+                    ),
+                    layer,
+                },
+            ),
+        )
     }
 }
 
@@ -244,7 +317,6 @@ fn render_playback_time_line(
 fn render_graph_row(
     wh: Wh<f32>,
     layer: &Layer,
-    context: &GraphWindowContext,
     property_name: PropertyName,
     render_graph: impl RenderGraph,
 ) -> RenderingTree {
@@ -279,9 +351,6 @@ fn render_graph_row(
                     mouse_local_xy: event.local_xy,
                     row_wh: wh,
                 })
-            })
-            .on_mouse_move_out(move |_| {
-                namui::event::send(Event::GraphMouseMoveOut { property_name })
             })
             .on_mouse_down(move |event| match event.button {
                 Some(MouseButton::Left) => namui::event::send(Event::GraphMouseLeftDown {
@@ -383,5 +452,4 @@ struct Context<'a, TValue> {
 struct PropertyContext<TValue> {
     value_per_pixel: ValuePerPixel<TValue>,
     value_at_bottom: TValue,
-    mouse_local_xy: Option<Xy<f32>>,
 }

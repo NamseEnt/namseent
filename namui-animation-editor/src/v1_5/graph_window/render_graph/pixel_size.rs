@@ -1,6 +1,5 @@
-use namui::animation::KeyframePoint;
-
 use super::*;
+use namui::animation::KeyframePoint;
 
 impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<'_, PixelSize>) {
     fn render(&self, wh: Wh<f32>) -> RenderingTree {
@@ -8,7 +7,16 @@ impl RenderGraph for (&'_ KeyframeGraph<PixelSize>, Context<'_, PixelSize>) {
         let mouse_guide = self.render_mouse_guide(wh);
         let point_and_lines = self.render_point_and_lines(wh);
 
-        render([x_axis_guide_lines, mouse_guide, point_and_lines])
+        namui::clip(
+            namui::PathBuilder::new().add_rect(&LtrbRect {
+                left: 0.0,
+                top: 0.0,
+                right: wh.width,
+                bottom: wh.height,
+            }),
+            ClipOp::Intersect,
+            render([x_axis_guide_lines, mouse_guide, point_and_lines]),
+        )
     }
 
     fn render_x_axis_guide_lines(&self, wh: Wh<f32>) -> RenderingTree {
