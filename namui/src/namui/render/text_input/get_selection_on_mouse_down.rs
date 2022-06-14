@@ -82,7 +82,7 @@ fn get_one_click_selection(
 
 fn get_selection_index_of_x(font: &namui::Font, text: &str, local_x: f32) -> usize {
     let glyph_ids = font.get_glyph_ids(text);
-    let glyph_widths = font.get_glyph_widths(&glyph_ids, None);
+    let glyph_widths = font.get_glyph_widths(glyph_ids, None);
 
     let mut left = 0.0;
     let index = glyph_widths.iter().position(|width| {

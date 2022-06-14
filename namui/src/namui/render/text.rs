@@ -57,15 +57,6 @@ pub fn text(param: TextParam) -> RenderingTree {
                             // draw_shadow(),
                             draw_border(&param, font.clone()),
                             Some(draw_text(&param, font.clone())),
-                            // commands: vec![namui::DrawCommand::Text(namui::TextDrawCommand {
-                            //     text: param.text,
-                            //     x: 100,
-                            //     y: 100,
-                            //     align: namui::TextAlign::Left,
-                            //     baseline: namui::TextBaseline::Top,
-                            //     font,
-                            //     paint: param.paint,
-                            // })],
                         ]
                         .into_iter()
                         .filter_map(|command| command)
@@ -176,7 +167,7 @@ fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
         param.style.drop_shadow.map(|drop_shadow| drop_shadow.x),
     );
 
-    let font_metrics = font.get_metrics();
+    let font_metrics = font.metrics;
 
     let height = -font_metrics.ascent + font_metrics.descent;
     let bottom_of_baseline = get_bottom_of_baseline(&param.baseline, &font_metrics);
@@ -206,7 +197,7 @@ fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
 
 pub(crate) fn get_text_width_internal(font: &Font, text: &str, drop_shadow_x: Option<f32>) -> f32 {
     let glyph_ids = font.get_glyph_ids(text);
-    let glyph_widths = font.get_glyph_widths(&glyph_ids, Option::None);
+    let glyph_widths = font.get_glyph_widths(glyph_ids, Option::None);
     glyph_widths.iter().fold(0.0, |acc, cur| acc + cur) + drop_shadow_x.unwrap_or(0.0)
 }
 
@@ -214,12 +205,12 @@ pub fn get_text_width(text: &str, font_type: &FontType, drop_shadow_x: Option<f3
     let font = namui::managers().font_manager.get_font(&font_type);
     font.map(|font| {
         let glyph_ids = font.get_glyph_ids(text);
-        let glyph_widths = font.get_glyph_widths(&glyph_ids, Option::None);
+        let glyph_widths = font.get_glyph_widths(glyph_ids, Option::None);
         glyph_widths.iter().fold(0.0, |acc, cur| acc + cur) + drop_shadow_x.unwrap_or(0.0)
     })
 }
 
-fn get_glyphs_top_bottom(font: &Font, glyph_ids: &GlyphIds) -> Option<(f32, f32)> {
+fn get_glyphs_top_bottom(font: &Font, glyph_ids: Arc<GlyphIds>) -> Option<(f32, f32)> {
     if glyph_ids.len() == 0 {
         return None;
     }
