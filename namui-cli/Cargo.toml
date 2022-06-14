@@ -24,3 +24,4 @@ wsl = "0.1.0"
 fs_extra = "1.2.0"
 namui-user-config = { path = "../namui-user-config" }
 tokio-util = { version = "0.7.1", features = ["codec"] }
+urlencoding = "2.1"
