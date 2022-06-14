@@ -21,6 +21,7 @@ pub trait UpdateOnEvent {
     fn update(&mut self, event: &dyn std::any::Any);
 }
 
+#[derive(Debug)]
 pub enum NamuiEvent {
     AnimationFrame,
     MouseDown(RawMouseEvent),

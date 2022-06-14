@@ -1,6 +1,4 @@
-use crate::{
-    namui::skia::StrokeJoin, BlendMode, Color, ColorFilter, Paint, PaintStyle, StrokeCap, Xy,
-};
+use crate::{namui::skia::StrokeJoin, BlendMode, Color, ColorFilter, Paint, PaintStyle, StrokeCap};
 use once_cell::sync::OnceCell;
 use ordered_float::OrderedFloat;
 use serde::Serialize;
@@ -84,30 +82,19 @@ impl PaintBuilder {
     }
 
     fn create_paint(&self) -> Arc<Paint> {
-        let mut paint = Paint::new();
-
-        if let Some(color) = self.color {
-            paint = paint.set_color(color);
-        }
-        if let Some(style) = &self.paint_style {
-            paint = paint.set_style(style);
-        }
-        if let Some(value) = self.anti_alias {
-            paint = paint.set_anti_alias(value);
-        }
-        if let Some(width) = self.stroke_width {
-            paint = paint.set_stroke_width(width);
-        }
-        if let Some(cap) = &self.stroke_cap {
-            paint = paint.set_stroke_cap(cap);
-        }
-        if let Some(join) = &self.stroke_join {
-            paint = paint.set_stroke_join(join);
-        }
-        if let Some((color, blend_mode)) = &self.color_filter {
-            let color_filter = Self::get_or_create_color_filter(&color, &blend_mode);
-            paint = paint.set_color_filter(&color_filter);
-        }
+        let id = self.generate_id();
+        let paint = Paint::new(
+            id,
+            self.color,
+            self.paint_style.as_ref(),
+            self.anti_alias,
+            self.stroke_width,
+            self.stroke_cap.as_ref(),
+            self.stroke_join.as_ref(),
+            self.color_filter
+                .as_ref()
+                .map(|(color, blend_mode)| Self::get_or_create_color_filter(&color, &blend_mode)),
+        );
 
         Arc::new(paint)
     }
@@ -126,6 +113,19 @@ impl PaintBuilder {
             }
         }
     }
+
+    fn generate_id(&self) -> Box<[u8]> {
+        bincode::serialize(&(
+            &self.color,
+            &self.paint_style,
+            &self.anti_alias,
+            &self.stroke_width,
+            &self.stroke_cap,
+            &self.color_filter,
+        ))
+        .unwrap()
+        .into()
+    }
 }
 
 impl Hash for PaintBuilder {
@@ -142,3 +142,20 @@ impl Hash for PaintBuilder {
 }
 
 impl std::cmp::Eq for PaintBuilder {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn paint_builder_generate_id_should_unique_per_setting() {
+        let paint_builder_1 = PaintBuilder::new().set_color(Color::BLACK);
+        let paint_builder_2 = PaintBuilder::new().set_color(Color::BLACK);
+        let paint_builder_3 = PaintBuilder::new().set_color(Color::RED);
+
+        assert_eq!(paint_builder_1.generate_id(), paint_builder_2.generate_id());
+        assert_ne!(paint_builder_1.generate_id(), paint_builder_3.generate_id());
+    }
+}

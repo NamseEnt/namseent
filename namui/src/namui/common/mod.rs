@@ -201,6 +201,7 @@ pub enum MouseButton {
     Right,
 }
 
+#[derive(Debug)]
 pub struct RawMouseEvent {
     pub id: String,
     pub xy: Xy<f32>,
@@ -208,6 +209,7 @@ pub struct RawMouseEvent {
     pub button: Option<MouseButton>,
 }
 
+#[derive(Debug)]
 pub struct KeyEvent {
     pub code: Code,
 }

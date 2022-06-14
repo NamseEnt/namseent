@@ -1,10 +1,10 @@
+use crate::Xy;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
+    sync::Arc,
 };
-
-use crate::Xy;
-use serde::{Deserialize, Serialize};
 
 pub type GlyphIds = [u16];
 
@@ -62,7 +62,7 @@ impl LtrbRect {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub struct FontMetrics {
     /// suggested space above the baseline. < 0
     pub ascent: f32,
