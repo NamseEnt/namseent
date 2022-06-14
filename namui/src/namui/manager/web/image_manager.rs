@@ -8,11 +8,12 @@ use std::{
     collections::HashSet,
     sync::{Arc, Mutex},
 };
+use url::Url;
 use wasm_bindgen_futures::spawn_local;
 
 pub struct ImageManager {
-    image_map: DashMap<String, Arc<Image>>,
-    image_requested_set: Mutex<HashSet<String>>,
+    image_map: DashMap<Url, Arc<Image>>,
+    image_requested_set: Mutex<HashSet<Url>>,
 }
 
 impl ImageManager {
@@ -22,7 +23,7 @@ impl ImageManager {
             image_requested_set: Mutex::new(HashSet::new()),
         }
     }
-    pub fn try_load(&self, url: &String) -> Option<Arc<Image>> {
+    pub fn try_load(&self, url: &Url) -> Option<Arc<Image>> {
         if let Some(image) = self.image_map.get(url) {
             return Some(image.clone());
         };
@@ -39,10 +40,20 @@ impl ImageManager {
         ImageManager::start_load(url);
         None
     }
-    fn start_load(url: &String) {
+    fn start_load(url: &Url) {
         let url = url.clone();
         spawn_local(async move {
-            match fetch_get_vec_u8(&url).await {
+            let read_url_result = match url.scheme() {
+                "http" | "https" => fetch_get_vec_u8(url.as_str())
+                    .await
+                    .map_err(|e| format!("{}", e)),
+                "bundle" => crate::fs::bundle::read(url.clone())
+                    .await
+                    .map_err(|e| format!("{:?}", e)),
+                _ => Err(format!("unknown scheme: {}", url.scheme())),
+            };
+
+            match read_url_result {
                 Ok(data) => match CANVAS_KIT.get().unwrap().MakeImageFromEncoded(&data) {
                     Some(canvas_kit_image) => {
                         let image = Image::from(canvas_kit_image);
@@ -52,17 +63,15 @@ impl ImageManager {
                             .insert(url, Arc::new(image));
                     }
                     None => {
-                        namui::log(format!(
-                            "failed to MakeImageFromEncoded: {}, {:?}",
-                            url, data
-                        ));
+                        crate::log!("failed to MakeImageFromEncoded: {}, {:?}", url, data);
                     }
                 },
                 Err(error) => {
-                    namui::log(format!(
+                    crate::log!(
                         "ImageManager::start_load: failed to load image: {}, {}",
-                        url, error
-                    ));
+                        url,
+                        error
+                    );
                 }
             }
         });

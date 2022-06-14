@@ -7,7 +7,7 @@ pub(super) struct ContentLoader {
 }
 
 enum LoadingContent {
-    Image(String),
+    Image(namui::Url),
 }
 
 impl ContentLoader {

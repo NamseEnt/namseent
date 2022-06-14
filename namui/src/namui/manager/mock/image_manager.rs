@@ -4,6 +4,7 @@ use std::{
     collections::HashSet,
     sync::{Arc, Mutex},
 };
+use url::Url;
 
 pub struct ImageManager {
     image_map: DashMap<String, Arc<Image>>,
@@ -17,7 +18,7 @@ impl ImageManager {
             image_requested_set: Mutex::new(HashSet::new()),
         }
     }
-    pub fn try_load(&self, url: &String) -> Option<Arc<Image>> {
+    pub fn try_load(&self, url: &Url) -> Option<Arc<Image>> {
         todo!()
     }
 }

@@ -1,7 +1,7 @@
 use crate::fs::types::{Dirent, DirentKind};
 use namui_cfg::namui_cfg;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use url::Url;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 
 pub enum ReadDirError {
@@ -62,8 +62,9 @@ struct DirentFromJs {
 }
 impl Into<Dirent> for DirentFromJs {
     fn into(self) -> Dirent {
+        let url_string = format!("bundle:{}", self.path);
         Dirent::new(
-            PathBuf::from(self.path),
+            Url::parse(&url_string).expect(&format!("fail to parse url: {}", url_string)),
             match self.is_dir {
                 true => DirentKind::Directory,
                 false => DirentKind::File,

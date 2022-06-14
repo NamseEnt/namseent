@@ -29,6 +29,8 @@ lru = "0.7"
 ordered-float = "2.10"
 namui-cfg = { path = "../namui-cfg" }
 parking_lot = "0.12"
+url = { version = "2", features = ["serde"] }
+percent-encoding = "2"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"

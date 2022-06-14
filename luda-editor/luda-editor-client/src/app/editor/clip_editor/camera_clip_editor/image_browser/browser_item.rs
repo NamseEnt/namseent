@@ -2,7 +2,7 @@ use super::*;
 
 pub struct BrowserItemProps {
     pub name: String,
-    pub thumbnail_url: Option<String>,
+    pub thumbnail_url: Option<Url>,
     pub item: ImageBrowserItem,
     pub is_selected: bool,
     pub item_size: Wh<f32>,
