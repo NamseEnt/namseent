@@ -37,7 +37,7 @@ pub fn draw_text(namui_context: &NamuiContext, command: &TextDrawCommand) {
             .get(&font.id)
             .map(|bottom| bottom + font.size as f32)
             .unwrap_or_else(|| {
-                let metrics = font.get_metrics();
+                let metrics = font.metrics;
                 let bottom = command.y as f32 + get_bottom_of_baseline(&command.baseline, &metrics);
                 bottom_of_fonts.insert(font.id.clone(), bottom);
                 bottom
@@ -102,7 +102,7 @@ fn get_glyph_groups(
                 .map(|(glyph_id, _)| *glyph_id)
                 .collect();
 
-            let widths = font.get_glyph_widths(&available_glyph_ids, Option::Some(paint));
+            let widths = font.get_glyph_widths(available_glyph_ids.into(), Option::Some(paint));
 
             widths
                 .into_iter()
@@ -146,7 +146,7 @@ pub fn get_bottom_of_baseline(baseline: &TextBaseline, font_metrics: &FontMetric
     }
 }
 fn get_fallback_fonts(namui_context: &NamuiContext, font_size: i16) -> VecDeque<Arc<Font>> {
-    let mut managers = crate::managers();
+    let managers = crate::managers();
     namui_context
         .fallback_font_typefaces
         .iter()
@@ -168,18 +168,18 @@ impl TextDrawCommand {
         let glyph_ids = font.get_glyph_ids(&self.text);
 
         let paint = self.paint_builder.build();
-        let glyph_bounds = font.get_glyph_bounds(&glyph_ids, Some(&paint));
+        let glyph_bounds = font.get_glyph_bounds(glyph_ids.clone(), Some(&paint));
 
         glyph_bounds
             .iter()
             .map(|bound| (bound.top, bound.bottom))
             .reduce(|acc, (top, bottom)| (acc.0.min(top), acc.1.max(bottom)))
             .and_then(|(top, bottom)| {
-                let widths = font.get_glyph_widths(&glyph_ids, Option::Some(&paint));
+                let widths = font.get_glyph_widths(glyph_ids, Option::Some(&paint));
                 let width = widths.iter().fold(0.0, |prev, curr| prev + curr);
                 let x_axis_anchor = get_left_in_align(self.x as f32, self.align, width);
 
-                let metrics = font.get_metrics();
+                let metrics = font.metrics;
                 let y_axis_anchor =
                     self.y as f32 + get_bottom_of_baseline(&self.baseline, &metrics);
 

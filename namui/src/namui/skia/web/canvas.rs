@@ -5,10 +5,12 @@ use super::*;
 pub(crate) struct Canvas(pub CanvasKitCanvas);
 impl Canvas {
     pub fn draw_text_blob(&self, text_blob: &TextBlob, x: f32, y: f32, paint: &Paint) {
-        self.0.drawTextBlob(&text_blob.0, x, y, &paint.0);
+        self.0
+            .drawTextBlob(&text_blob.0, x, y, &paint.canvas_kit_paint);
     }
     pub fn draw_path(&self, path: &Path, paint: &Paint) {
-        self.0.drawPath(&path.canvas_kit_path, &paint.0);
+        self.0
+            .drawPath(&path.canvas_kit_path, &paint.canvas_kit_paint);
     }
     pub fn translate(&self, dx: f32, dy: f32) {
         self.0.translate(dx, dy);
@@ -55,7 +57,7 @@ impl Canvas {
             dest_rect_lrtb_array,
             filter_mode.into_canvas_kit(),
             mipmap_mode.into_canvas_kit(),
-            paint.map(|p| &p.0),
+            paint.map(|paint| &paint.canvas_kit_paint),
         );
     }
     pub(crate) fn get_matrix(&self) -> [[f32; 3]; 3] {
@@ -98,7 +100,7 @@ impl Canvas {
 
     pub(crate) fn draw_text(&self, string: &str, x: f32, y: f32, paint: &Paint, font: &Font) {
         self.0
-            .drawText(string, x, y, &paint.0, &font.canvas_kit_font);
+            .drawText(string, x, y, &paint.canvas_kit_paint, &font.canvas_kit_font);
     }
     pub(crate) fn rotate(&self, radian: f32) {
         self.0

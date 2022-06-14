@@ -4,42 +4,51 @@ pub use base::*;
 
 unsafe impl Sync for CanvasKitPaint {}
 unsafe impl Send for CanvasKitPaint {}
-pub(crate) struct Paint(pub(crate) CanvasKitPaint);
+pub(crate) struct Paint {
+    id: Box<[u8]>,
+    pub(crate) canvas_kit_paint: CanvasKitPaint,
+}
 impl Paint {
-    pub fn new() -> Self {
-        Paint(CanvasKitPaint::new())
-    }
-    pub fn set_color(self, color: Color) -> Self {
-        self.0.setColor(&color.into_float32_array());
-        self
-    }
+    pub fn new(
+        id: Box<[u8]>,
+        color: Option<Color>,
+        style: Option<&PaintStyle>,
+        anti_alias: Option<bool>,
+        stroke_width: Option<f32>,
+        stroke_cap: Option<&StrokeCap>,
+        stroke_join: Option<&StrokeJoin>,
+        color_filter: Option<impl AsRef<ColorFilter>>,
+    ) -> Self {
+        let canvas_kit_paint = CanvasKitPaint::new();
+        if let Some(color) = color {
+            canvas_kit_paint.setColor(&color.into_float32_array());
+        }
+        if let Some(style) = style {
+            canvas_kit_paint.setStyle(style.into_canvas_kit());
+        }
+        if let Some(anti_alias) = anti_alias {
+            canvas_kit_paint.setAntiAlias(anti_alias);
+        }
+        if let Some(stroke_width) = stroke_width {
+            canvas_kit_paint.setStrokeWidth(stroke_width);
+        }
+        if let Some(stroke_cap) = stroke_cap {
+            canvas_kit_paint.setStrokeCap(stroke_cap.into_canvas_kit());
+        }
+        if let Some(stroke_join) = stroke_join {
+            canvas_kit_paint.setStrokeJoin(stroke_join.into_canvas_kit());
+        }
+        if let Some(color_filter) = color_filter {
+            canvas_kit_paint.setColorFilter(&color_filter.as_ref().0);
+        }
 
-    pub fn set_style(self, style: &PaintStyle) -> Self {
-        self.0.setStyle(style.into_canvas_kit());
-        self
-    }
-    pub fn set_anti_alias(self, value: bool) -> Self {
-        self.0.setAntiAlias(value);
-        self
-    }
-    pub fn set_stroke_width(self, width: f32) -> Self {
-        self.0.setStrokeWidth(width);
-        self
-    }
-    pub fn set_stroke_cap(self, cap: &StrokeCap) -> Self {
-        self.0.setStrokeCap(cap.into_canvas_kit());
-        self
-    }
-    pub fn set_stroke_join(self, join: &StrokeJoin) -> Self {
-        self.0.setStrokeJoin(join.into_canvas_kit());
-        self
-    }
-    pub fn set_color_filter(self, color_filter: &ColorFilter) -> Self {
-        self.0.setColorFilter(&color_filter.0);
-        self
+        Paint {
+            id,
+            canvas_kit_paint,
+        }
     }
     pub fn get_stroke_cap(&self) -> StrokeCap {
-        let stroke_cap = self.0.getStrokeCap();
+        let stroke_cap = self.canvas_kit_paint.getStrokeCap();
 
         let butt_value = &STROKE_CAP_BUTT_VALUE;
         let round_value = &STROKE_CAP_ROUND_VALUE;
@@ -52,7 +61,7 @@ impl Paint {
         }
     }
     pub fn get_stroke_join(&self) -> StrokeJoin {
-        let stroke_join = self.0.getStrokeJoin();
+        let stroke_join = self.canvas_kit_paint.getStrokeJoin();
 
         let bevel_value = &STROKE_JOIN_BEVEL_VALUE;
         let miter_value = &STROKE_JOIN_MITER_VALUE;
@@ -65,16 +74,16 @@ impl Paint {
         }
     }
     pub fn get_stroke_width(&self) -> f32 {
-        self.0.getStrokeWidth()
+        self.canvas_kit_paint.getStrokeWidth()
     }
     pub fn get_stroke_miter(&self) -> f32 {
-        self.0.getStrokeMiter()
+        self.canvas_kit_paint.getStrokeMiter()
     }
 }
 
 impl Drop for Paint {
     fn drop(&mut self) {
-        self.0.delete();
+        self.canvas_kit_paint.delete();
     }
 }
 
@@ -86,6 +95,23 @@ impl std::fmt::Debug for Paint {
 
 impl Clone for Paint {
     fn clone(&self) -> Self {
-        Paint(self.0.copy())
+        Paint {
+            id: self.id.clone(),
+            canvas_kit_paint: self.canvas_kit_paint.copy(),
+        }
     }
 }
+
+impl std::hash::Hash for Paint {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+impl PartialEq for Paint {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Eq for Paint {}

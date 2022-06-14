@@ -17,6 +17,8 @@ pub fn send(event: impl Any + Send + Sync) {
     EVENT_SENDER.get().unwrap().send(Box::new(event)).unwrap();
 }
 
+
+#[derive(Debug)]
 pub enum NamuiEvent {
     AnimationFrame,
     MouseDown(RawMouseEvent),
