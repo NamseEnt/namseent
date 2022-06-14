@@ -227,7 +227,7 @@ impl ImageBrowser {
         &self,
         item: &ImageBrowserItem,
         files: &BTreeSet<ImageBrowserFile>,
-    ) -> Option<String> {
+    ) -> Option<Url> {
         match item {
             ImageBrowserItem::Back => unreachable!(),
             ImageBrowserItem::Empty => unreachable!(),
@@ -237,7 +237,7 @@ impl ImageBrowser {
                 .and_then(|file| Some(file.get_url())),
             ImageBrowserItem::File(file) => Some(file.get_url()),
         }
-        .map(|url| format!("{}{}", self.thumbnail_url_prefix, url))
+        .map(|url| Url::parse(&format!("{}{}", self.thumbnail_url_prefix, url)).unwrap())
     }
 
     pub(crate) fn select(&mut self, item: Option<ImageBrowserItem>) {

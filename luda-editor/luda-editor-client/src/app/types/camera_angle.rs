@@ -159,18 +159,20 @@ pub trait CameraAngleImageLoader {
 pub struct LudaEditorServerCameraAngleImageLoader;
 impl CameraAngleImageLoader for LudaEditorServerCameraAngleImageLoader {
     fn get_character_image_source(&self, character: &CameraAngleCharacter) -> ImageSource {
-        let url = format!(
+        let url = namui::Url::parse(&format!(
             "http://localhost:3030/resources/characterImages{}",
             character.character_pose_emotion.to_url()
-        );
+        ))
+        .unwrap();
         ImageSource::Url(url)
     }
 
     fn get_background_image_source(&self, background: &CameraAngleBackground) -> ImageSource {
-        let url = format!(
+        let url = namui::Url::parse(&format!(
             "http://localhost:3030/resources/backgrounds/{}.jpeg",
             background.name
-        );
+        ))
+        .unwrap();
         ImageSource::Url(url)
     }
 }
