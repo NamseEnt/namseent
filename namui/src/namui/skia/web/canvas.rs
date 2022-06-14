@@ -104,6 +104,9 @@ impl Canvas {
         self.0
             .rotate(radian / (2.0 * std::f32::consts::PI) * 360.0, 0.0, 0.0);
     }
+    pub(crate) fn scale(&self, x: f32, y: f32) {
+        self.0.scale(x, y);
+    }
 }
 
 impl Drop for Canvas {

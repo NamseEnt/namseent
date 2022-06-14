@@ -27,6 +27,7 @@ impl SpecialRenderingNode {
             SpecialRenderingNode::Absolute(node) => &node.rendering_tree,
             SpecialRenderingNode::Rotate(node) => &node.rendering_tree,
             SpecialRenderingNode::Custom(node) => &node.rendering_tree,
+            SpecialRenderingNode::Scale(node) => &node.rendering_tree,
         }
     }
 }
@@ -97,6 +98,15 @@ impl RenderingTree {
                     rotate.rendering_tree.draw(namui_context);
 
                     canvas.rotate(-rotate.ccw_radian);
+                }
+                SpecialRenderingNode::Scale(scale) => {
+                    let canvas = namui_context.surface.canvas();
+
+                    canvas.scale(scale.x, scale.y);
+
+                    scale.rendering_tree.draw(namui_context);
+
+                    canvas.scale(1.0 / scale.x, 1.0 / scale.y);
                 }
                 _ => {
                     special.get_rendering_tree().draw(namui_context);
@@ -345,6 +355,14 @@ impl RenderingTree {
 
                         get_bounding_box_with_matrix_of_rendering_trees(
                             [rotate.rendering_tree.borrow()],
+                            &matrix,
+                        )
+                    }
+                    SpecialRenderingNode::Scale(scale) => {
+                        let matrix = matrix * scale.get_matrix();
+
+                        get_bounding_box_with_matrix_of_rendering_trees(
+                            [scale.rendering_tree.borrow()],
                             &matrix,
                         )
                     }

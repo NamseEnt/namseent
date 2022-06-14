@@ -9,9 +9,9 @@ pub use common::*;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
 use futures::future::join;
 pub use render::{
-    absolute, clip, image::*, path::*, rect::*, rotate, text::*, text_input, translate, types::*,
-    ImageSource, MouseCursor, MouseEvent, MouseEventCallback, MouseEventType, RenderingData,
-    RenderingTree, TextInput, WheelEventCallback,
+    absolute, clip, image::*, path::*, rect::*, rotate, scale, text::*, text_input, translate,
+    types::*, ImageSource, MouseCursor, MouseEvent, MouseEventCallback, MouseEventType,
+    RenderingData, RenderingTree, TextInput, WheelEventCallback,
 };
 pub use skia::{
     types::{ClipOp, Color, PaintStyle, StrokeJoin},
