@@ -10,6 +10,7 @@ pub(crate) struct LayerListWindow {
 
 pub(crate) struct Props<'a> {
     pub layers: &'a [Layer],
+    pub selected_layer_id: Option<String>,
 }
 
 pub(crate) enum Event {
@@ -39,7 +40,8 @@ impl table::CellRender<Props<'_>> for LayerListWindow {
                     1.0,
                     &self.body,
                     body::Props {
-                        layers: props.layers
+                        layers: props.layers,
+                        selected_layer_id: props.selected_layer_id,
                     }
                 ),
             ](Wh {

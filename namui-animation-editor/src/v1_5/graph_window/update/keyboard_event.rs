@@ -24,7 +24,7 @@ impl GraphWindow {
         }
         let selected_point_address = self.selected_point_address.as_ref().unwrap();
 
-        let animation = self.animation.read().unwrap();
+        let animation = self.animation.read();
         let layer = animation
             .layers
             .iter()
@@ -178,7 +178,7 @@ impl GraphWindow {
         }
         let selected_point_address = self.selected_point_address.as_ref().unwrap();
 
-        let animation = self.animation.read().unwrap();
+        let animation = self.animation.read();
         let layer = animation
             .layers
             .iter()

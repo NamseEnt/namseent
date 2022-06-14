@@ -7,7 +7,10 @@ use namui_prebuilt::{
     table::{fixed_closure, ratio_closure, vertical},
     *,
 };
-use std::sync::{Arc, RwLock};
+use std::{
+    any::Any,
+    sync::{Arc, RwLock},
+};
 
 pub(crate) struct PreviewWindow {}
 
@@ -28,6 +31,8 @@ impl PreviewWindow {
     pub(crate) fn new() -> Self {
         Self {}
     }
+
+    pub(crate) fn update(&mut self, _event: &dyn Any) {}
 }
 
 impl table::CellRender<Props<'_>> for PreviewWindow {

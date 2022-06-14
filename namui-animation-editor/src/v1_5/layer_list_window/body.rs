@@ -7,6 +7,7 @@ pub(crate) struct Body {
 
 pub(crate) struct Props<'a> {
     pub layers: &'a [namui::animation::Layer],
+    pub selected_layer_id: Option<String>,
 }
 
 impl table::CellRender<Props<'_>> for Body {
@@ -21,7 +22,10 @@ impl table::CellRender<Props<'_>> for Body {
             },
             scroll_bar_width: 10.0,
             items: props.layers,
-            item_render: |wh, layer| render_row(wh, &layer),
+            item_render: |wh, layer| {
+                let selected = props.selected_layer_id == Some(layer.id.clone());
+                render_row(wh, &layer, selected)
+            },
         })
     }
 }
@@ -86,9 +90,12 @@ fn render_preview_cell(wh: Wh<f32>, layer: &namui::animation::Layer) -> Renderin
     simple_rect(wh, Color::BLACK, 1.0, Color::WHITE)
 }
 
-fn render_row(wh: Wh<f32>, layer: &animation::Layer) -> RenderingTree {
+fn render_row(wh: Wh<f32>, layer: &animation::Layer, is_selected: bool) -> RenderingTree {
+    let border = match is_selected {
+        true => simple_rect(wh, Color::RED, 2.0, Color::TRANSPARENT),
+        false => simple_rect(wh, Color::BLACK, 1.0, Color::TRANSPARENT),
+    };
     (render![
-        simple_rect(wh, Color::BLACK, 1.0, Color::WHITE),
         horizontal![
             calculative!(|parent_wh| parent_wh.height, |wh| {
                 render_shadowing_toggle_button_cell(wh)
@@ -98,6 +105,7 @@ fn render_row(wh: Wh<f32>, layer: &animation::Layer) -> RenderingTree {
                 render_preview_cell(wh, &layer)
             }),
         ](wh),
+        border,
     ])
     .attach_event(move |builder| {
         let layer = layer.clone();

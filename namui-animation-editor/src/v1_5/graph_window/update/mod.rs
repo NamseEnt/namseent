@@ -104,7 +104,7 @@ impl GraphWindow {
                     let time = self.context.start_at
                         + PixelSize(mouse_local_xy.x) * self.context.time_per_pixel;
 
-                    let animation = self.animation.read().unwrap();
+                    let animation = self.animation.read();
                     let layer = animation.layers.iter().find(|layer| layer.id.eq(layer_id));
                     if layer.is_none() {
                         return;
@@ -193,16 +193,16 @@ impl GraphWindow {
             return;
         }
 
-        let mut animation = self.animation.write().unwrap();
+        let animation = self.animation.read();
 
         let layer = animation
             .layers
-            .iter_mut()
+            .iter()
             .find(|layer| layer.id.eq(&point_address.layer_id));
         if layer.is_none() {
             return;
         }
-        let layer = layer.unwrap();
+        let mut layer = layer.unwrap().clone();
 
         let time_on_x =
             self.context.start_at + PixelSize(mouse_local_xy.x) * self.context.time_per_pixel;
@@ -228,6 +228,7 @@ impl GraphWindow {
             PropertyName::Width => todo!(),
             PropertyName::Height => todo!(),
         };
+        namui::event::send(super::super::Event::UpdateLayer(Arc::new(layer)));
     }
     fn handle_background_dragging(
         &mut self,
