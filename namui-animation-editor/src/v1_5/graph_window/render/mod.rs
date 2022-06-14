@@ -1,6 +1,6 @@
 use super::*;
 mod render_graph;
-use namui::animation::KeyframeValue;
+use namui::{animation::KeyframeValue, types::OneZero};
 use render_graph::*;
 
 impl table::CellRender<Props<'_>> for GraphWindow {
@@ -9,13 +9,6 @@ impl table::CellRender<Props<'_>> for GraphWindow {
             return simple_rect(wh, Color::WHITE, 1.0, Color::BLACK);
         }
         let layer = props.layer.unwrap();
-
-        // x: KeyframeGraph<PixelSize>,
-        // y: KeyframeGraph<PixelSize>,
-        // width: KeyframeGraph<PixelSize>,
-        // height: KeyframeGraph<PixelSize>,
-        // rotation_angle: KeyframeGraph<Angle>,
-        // opacity: KeyframeGraph<OneZero>,
 
         render([
             vertical([
@@ -83,7 +76,15 @@ impl table::CellRender<Props<'_>> for GraphWindow {
                                 &self.rotation_angle_context,
                             )
                         }),
-                        ratio(1.0, |wh| simple_rect(wh, Color::WHITE, 1.0, Color::BLACK)),
+                        ratio(1.0, |wh| {
+                            self.render_f32_based_graph_row(
+                                wh,
+                                layer,
+                                PropertyName::Opacity,
+                                &layer.image.opacity,
+                                &self.opacity_context,
+                            )
+                        }),
                     ])(wh)
                     .attach_event(|builder| {
                         builder.on_mouse_move_out(|_| {
@@ -110,6 +111,47 @@ impl GraphWindow {
         property_name: PropertyName,
         graph: &KeyframeGraph<TValue>,
         property_context: &PropertyContext<TValue>,
+    ) -> RenderingTree {
+        render_graph_row(
+            wh,
+            layer,
+            property_name,
+            (
+                graph,
+                Context {
+                    start_at: self.context.start_at,
+                    time_per_pixel: self.context.time_per_pixel,
+                    value_at_bottom: property_context.value_at_bottom,
+                    value_per_pixel: property_context.value_per_pixel,
+                    mouse_local_xy: self.mouse_over_row.as_ref().and_then(|mouse_over_row| {
+                        if mouse_over_row.property_name == property_name {
+                            Some(mouse_over_row.mouse_local_xy)
+                        } else {
+                            None
+                        }
+                    }),
+                    property_name,
+                    selected_point_id: self.selected_point_address.as_ref().and_then(
+                        |selected_point_address| {
+                            if selected_point_address.property_name == property_name {
+                                Some(selected_point_address.point_id.clone())
+                            } else {
+                                None
+                            }
+                        },
+                    ),
+                    layer,
+                },
+            ),
+        )
+    }
+    fn render_one_zero_graph_row(
+        &self,
+        wh: Wh<f32>,
+        layer: &Layer,
+        property_name: PropertyName,
+        graph: &KeyframeGraph<OneZero>,
+        property_context: &PropertyContext<OneZero>,
     ) -> RenderingTree {
         render_graph_row(
             wh,
@@ -185,6 +227,7 @@ fn render_graph_row(
                 PropertyName::Width => "Width",
                 PropertyName::Height => "Height",
                 PropertyName::RotationAngle => "Rotate",
+                PropertyName::Opacity => "Opacity",
             },
             Color::BLACK,
         ),

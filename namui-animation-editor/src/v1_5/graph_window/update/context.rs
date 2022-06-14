@@ -45,6 +45,9 @@ impl GraphWindow {
                 anchor_y,
                 row_height,
             ),
+            PropertyName::Opacity => {
+                for_f32_based(&mut self.opacity_context, delta, anchor_y, row_height)
+            }
         }
     }
 
@@ -65,6 +68,7 @@ impl GraphWindow {
             PropertyName::Width => for_f32_based(&mut self.width_context, delta),
             PropertyName::Height => for_f32_based(&mut self.height_context, delta),
             PropertyName::RotationAngle => for_f32_based(&mut self.rotation_angle_context, delta),
+            PropertyName::Opacity => for_f32_based(&mut self.opacity_context, delta),
         }
     }
 }

@@ -71,6 +71,14 @@ impl GraphWindow {
                 local_xy,
                 row_wh,
             ),
+            PropertyName::Opacity => for_f32_based(
+                &self.context,
+                &mut layer.image.opacity,
+                &self.opacity_context,
+                point_id,
+                local_xy,
+                row_wh,
+            ),
         }
     }
     pub(super) fn move_point_by_xy(
@@ -134,6 +142,13 @@ impl GraphWindow {
                 point_id,
                 delta_xy,
             ),
+            PropertyName::Opacity => for_f32_based(
+                &self.context,
+                &mut layer.image.opacity,
+                &self.opacity_context,
+                point_id,
+                delta_xy,
+            ),
         }
     }
     pub(super) fn add_point_into_xy(
@@ -193,6 +208,13 @@ impl GraphWindow {
                 &self.context,
                 &mut layer.image.rotation_angle,
                 &self.rotation_angle_context,
+                local_xy,
+                row_wh,
+            ),
+            PropertyName::Opacity => for_f32_based(
+                &self.context,
+                &mut layer.image.opacity,
+                &self.opacity_context,
                 local_xy,
                 row_wh,
             ),

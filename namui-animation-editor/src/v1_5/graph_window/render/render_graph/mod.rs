@@ -1,6 +1,5 @@
 use super::*;
 mod f32_based;
-// mod pixel_size;
 
 pub(super) trait RenderGraph {
     fn render(&self, wh: Wh<f32>) -> RenderingTree;

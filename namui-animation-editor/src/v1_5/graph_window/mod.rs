@@ -1,7 +1,7 @@
 use namui::{
     animation::{KeyframeGraph, Layer},
     prelude::*,
-    types::{Angle, PixelSize, Time, TimePerPixel},
+    types::{Angle, OneZero, PixelSize, Time, TimePerPixel},
 };
 use namui_prebuilt::{
     table::{fixed, ratio, vertical},
@@ -21,6 +21,7 @@ pub(crate) struct GraphWindow {
     width_context: PropertyContext<PixelSize>,
     height_context: PropertyContext<PixelSize>,
     rotation_angle_context: PropertyContext<Angle>,
+    opacity_context: PropertyContext<OneZero>,
     mouse_over_row: Option<MouseOverRow>,
     row_height: Option<f32>,
     animation: ReadOnlyLock<animation::Animation>,
@@ -104,6 +105,7 @@ enum PropertyName {
     Width,
     Height,
     RotationAngle,
+    Opacity,
 }
 
 pub(crate) struct GraphWindowContext {
@@ -151,6 +153,13 @@ impl GraphWindow {
                 value_at_bottom: 0.0.into(),
                 value_per_pixel: ValuePerPixel {
                     value: 10.0.into(),
+                    pixel_size: 1.0.into(),
+                },
+            },
+            opacity_context: PropertyContext {
+                value_at_bottom: 0.0.into(),
+                value_per_pixel: ValuePerPixel {
+                    value: 0.01.into(),
                     pixel_size: 1.0.into(),
                 },
             },
