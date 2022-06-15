@@ -23,66 +23,72 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
 
     fn render_x_axis_guide_lines(&self, wh: Wh<f32>) -> RenderingTree {
         let (_, context) = self;
+        let property_context = &context.property_context;
         const BOLD_GRADATION_INTERVAL: usize = 2;
 
-        let value_at_top = context.value_at_bottom.into()
-            + (context.value_per_pixel * PixelSize(wh.height)).into();
+        let value_at_top = property_context.value_at_bottom.into()
+            + (property_context.value_per_pixel * PixelSize(wh.height)).into();
 
-        let gradation_interval = {
-            let gradation_value_candidates: Vec<_> = [5, 10, 25, 50, 100, 200, 500]
-                .into_iter()
-                .map(|value| TValue::from(value as f32))
-                .collect();
+        let gradation_interval: TValue = {
+            let gradation_value_candidates = &property_context.gradation_value_candidates;
 
             let last = *gradation_value_candidates.last().unwrap();
 
-            gradation_value_candidates
+            *gradation_value_candidates
                 .into_iter()
                 .find(|value| {
-                    let px = context.value_per_pixel.get_pixel_size(*value);
-                    PixelSize(10.0) <= px && px <= PixelSize(50.0)
+                    let px = property_context.value_per_pixel.get_pixel_size(**value);
+                    property_context.gradation_pixel_size_range.contains(&px)
                 })
-                .unwrap_or(last)
+                .unwrap_or(&last)
         };
 
-        enum Gradation {
-            Bold { y: PixelSize, value: PixelSize },
+        enum Gradation<TValue: KeyframeValue + Copy> {
+            Bold { y: PixelSize, value: TValue },
             Light { y: PixelSize },
         }
 
         let gradations = {
             let mut gradations = vec![];
 
-            let mut value = 0.0;
-            let mut index = 0;
-            while value > context.value_at_bottom.into() {
-                value -= gradation_interval.into();
-            }
-            while value < context.value_at_bottom.into() {
-                value += gradation_interval.into();
-                index += 1;
-            }
+            let is_bold_gradation = |gradation_value: TValue| -> bool {
+                let gradation_value: f32 = gradation_value.into();
+                let gradation_interval: f32 = gradation_interval.into();
+                gradation_value % (gradation_interval * BOLD_GRADATION_INTERVAL as f32) == 0.0
+            };
 
+            let gradation_value_just_under_bottom: TValue = {
+                let value_at_bottom: f32 = property_context.value_at_bottom.into();
+                let gradation_interval: f32 = gradation_interval.into();
+                (value_at_bottom - gradation_interval - (value_at_bottom % gradation_interval))
+                    .into()
+            };
+
+            let mut value: f32 = gradation_value_just_under_bottom.into();
+            let value_at_top: f32 = value_at_top.into();
             while value < value_at_top {
                 let y = PixelSize(wh.height)
-                    - context
+                    - property_context
                         .value_per_pixel
-                        .get_pixel_size((value - context.value_at_bottom.into()).into());
+                        .get_pixel_size((value - property_context.value_at_bottom.into()).into());
 
-                match index % BOLD_GRADATION_INTERVAL {
-                    0 => gradations.push(Gradation::Bold {
+                match is_bold_gradation(value.into()) {
+                    true => gradations.push(Gradation::Bold {
                         y,
                         value: value.into(),
                     }),
-                    _ => gradations.push(Gradation::Light { y }),
+                    false => gradations.push(Gradation::Light { y }),
                 }
                 value += gradation_interval.into();
-                index += 1;
             }
             gradations
         };
 
-        fn bold_line(wh: Wh<f32>, y: PixelSize, value: PixelSize) -> RenderingTree {
+        fn bold_line<TValue: KeyframeValue>(
+            wh: Wh<f32>,
+            y: PixelSize,
+            value: TValue,
+        ) -> RenderingTree {
             let path_builder = namui::PathBuilder::new()
                 .move_to(0.0, 0.0)
                 .line_to(wh.width, 0.0);
@@ -110,7 +116,7 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
                     color: Color::WHITE,
                     ..Default::default()
                 },
-                text: format!("{}", f32::from(value)),
+                text: format!("{}", value),
             });
 
             namui::translate(
@@ -136,14 +142,20 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
             )
         }
 
-        render(gradations.iter().map(|gradation| match gradation {
-            Gradation::Bold { y, value } => bold_line(wh, *y, *value),
-            Gradation::Light { y } => light_line(wh, *y),
-        }))
+        render(
+            gradations
+                .iter()
+                .map(|gradation: &Gradation<TValue>| match gradation {
+                    Gradation::Bold { y, value } => bold_line(wh, *y, *value),
+                    Gradation::Light { y } => light_line(wh, *y),
+                }),
+        )
     }
 
     fn render_mouse_guide(&self, wh: Wh<f32>) -> RenderingTree {
         let (_, context) = self;
+        let property_context = &context.property_context;
+
         let mouse_local_xy = {
             match context.mouse_local_xy {
                 Some(mouse_local_xy) => mouse_local_xy,
@@ -153,8 +165,8 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
 
         let time_at_x = context.start_at + context.time_per_pixel * PixelSize(mouse_local_xy.x);
 
-        let value_at_y: TValue = (context.value_at_bottom.into()
-            + (context.value_per_pixel * PixelSize(wh.height - mouse_local_xy.y)).into())
+        let value_at_y: TValue = (property_context.value_at_bottom.into()
+            + (property_context.value_per_pixel * PixelSize(wh.height - mouse_local_xy.y)).into())
         .into();
 
         let label = namui::text(namui::TextParam {
@@ -286,8 +298,8 @@ fn get_xy_of_point<TValue: KeyframeValue + Copy + From<f32> + Into<f32>>(
 ) -> Xy<PixelSize> {
     let x = (point.time - context.start_at) / context.time_per_pixel;
     let y = PixelSize(wh.height)
-        - context
-            .value_per_pixel
-            .get_pixel_size((point.value.into() - context.value_at_bottom.into()).into());
+        - context.property_context.value_per_pixel.get_pixel_size(
+            (point.value.into() - context.property_context.value_at_bottom.into()).into(),
+        );
     Xy { x, y }
 }

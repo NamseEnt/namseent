@@ -121,8 +121,7 @@ impl GraphWindow {
                 Context {
                     start_at: self.context.start_at,
                     time_per_pixel: self.context.time_per_pixel,
-                    value_at_bottom: property_context.value_at_bottom,
-                    value_per_pixel: property_context.value_per_pixel,
+                    property_context,
                     mouse_local_xy: self.mouse_over_row.as_ref().and_then(|mouse_over_row| {
                         if mouse_over_row.property_name == property_name {
                             Some(mouse_over_row.mouse_local_xy)
@@ -162,8 +161,7 @@ impl GraphWindow {
                 Context {
                     start_at: self.context.start_at,
                     time_per_pixel: self.context.time_per_pixel,
-                    value_at_bottom: property_context.value_at_bottom,
-                    value_per_pixel: property_context.value_per_pixel,
+                    property_context,
                     mouse_local_xy: self.mouse_over_row.as_ref().and_then(|mouse_over_row| {
                         if mouse_over_row.property_name == property_name {
                             Some(mouse_over_row.mouse_local_xy)

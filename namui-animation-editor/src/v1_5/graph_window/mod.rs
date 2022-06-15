@@ -7,7 +7,7 @@ use namui_prebuilt::{
     table::{fixed, ratio, vertical},
     *,
 };
-use std::sync::Arc;
+use std::{ops::Range, sync::Arc};
 mod render;
 use super::read_only_lock::ReadOnlyLock;
 mod time_ruler;
@@ -127,6 +127,11 @@ impl GraphWindow {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
                 },
+                gradation_value_candidates: [5, 10, 25, 50, 100, 200, 500]
+                    .iter()
+                    .map(|&x| (x as f32).into())
+                    .collect(),
+                gradation_pixel_size_range: 15.0.into()..30.0.into(),
             },
             y_context: PropertyContext {
                 value_at_bottom: 0.0.into(),
@@ -134,6 +139,11 @@ impl GraphWindow {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
                 },
+                gradation_value_candidates: [5, 10, 25, 50, 100, 200, 500]
+                    .iter()
+                    .map(|&x| (x as f32).into())
+                    .collect(),
+                gradation_pixel_size_range: 15.0.into()..30.0.into(),
             },
             width_context: PropertyContext {
                 value_at_bottom: 0.0.into(),
@@ -141,6 +151,11 @@ impl GraphWindow {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
                 },
+                gradation_value_candidates: [5, 10, 25, 50, 100, 200, 500]
+                    .iter()
+                    .map(|&x| (x as f32).into())
+                    .collect(),
+                gradation_pixel_size_range: 15.0.into()..30.0.into(),
             },
             height_context: PropertyContext {
                 value_at_bottom: 0.0.into(),
@@ -148,13 +163,23 @@ impl GraphWindow {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
                 },
+                gradation_value_candidates: [5, 10, 25, 50, 100, 200, 500]
+                    .iter()
+                    .map(|&x| (x as f32).into())
+                    .collect(),
+                gradation_pixel_size_range: 15.0.into()..30.0.into(),
             },
             rotation_angle_context: PropertyContext {
                 value_at_bottom: 0.0.into(),
                 value_per_pixel: ValuePerPixel {
-                    value: 10.0.into(),
+                    value: 1.0.into(),
                     pixel_size: 1.0.into(),
                 },
+                gradation_value_candidates: [5, 10, 15, 30, 60, 90, 360]
+                    .iter()
+                    .map(|&x| (x as f32).into())
+                    .collect(),
+                gradation_pixel_size_range: 15.0.into()..30.0.into(),
             },
             opacity_context: PropertyContext {
                 value_at_bottom: 0.0.into(),
@@ -162,6 +187,8 @@ impl GraphWindow {
                     value: 0.01.into(),
                     pixel_size: 1.0.into(),
                 },
+                gradation_value_candidates: [0.1].iter().map(|&x| (x as f32).into()).collect(),
+                gradation_pixel_size_range: 15.0.into()..30.0.into(),
             },
             mouse_over_row: None,
             row_height: None,
@@ -196,16 +223,17 @@ impl<TValue: Into<f32> + Copy> ValuePerPixel<TValue> {
 struct Context<'a, TValue> {
     start_at: Time,
     time_per_pixel: TimePerPixel,
-    value_per_pixel: ValuePerPixel<TValue>,
-    value_at_bottom: TValue,
+    property_context: &'a PropertyContext<TValue>,
     mouse_local_xy: Option<Xy<f32>>,
     property_name: PropertyName,
     selected_point_id: Option<String>,
     layer: &'a Layer,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct PropertyContext<TValue> {
     value_per_pixel: ValuePerPixel<TValue>,
     value_at_bottom: TValue,
+    gradation_value_candidates: Box<[TValue]>,
+    gradation_pixel_size_range: Range<PixelSize>,
 }
