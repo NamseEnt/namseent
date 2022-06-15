@@ -98,7 +98,6 @@ impl GraphWindow {
             let mut point = graph.get_point(point_id.as_ref()).unwrap().clone();
 
             point.time += PixelSize(delta_xy.x) * context.time_per_pixel;
-            point.value.into();
             point.value = (Into::<f32>::into(point.value)
                 + (property_context.value_per_pixel * PixelSize(delta_xy.y)).into())
             .into();

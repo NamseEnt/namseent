@@ -153,8 +153,9 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
 
         let time_at_x = context.start_at + context.time_per_pixel * PixelSize(mouse_local_xy.x);
 
-        let value_at_y = context.value_at_bottom.into()
-            + (context.value_per_pixel * PixelSize(wh.height - mouse_local_xy.y)).into();
+        let value_at_y: TValue = (context.value_at_bottom.into()
+            + (context.value_per_pixel * PixelSize(wh.height - mouse_local_xy.y)).into())
+        .into();
 
         let label = namui::text(namui::TextParam {
             x: 7.0,
@@ -176,9 +177,9 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
                 ..Default::default()
             },
             text: format!(
-                "{:.1}s / {:.0}px",
+                "{:.1}s / {}",
                 time_at_x.get_total_milliseconds() / 1000.0,
-                Into::<f32>::into(value_at_y)
+                value_at_y,
             ),
         });
 

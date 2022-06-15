@@ -1,5 +1,6 @@
 use crate::types::*;
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyframePoint<T: Clone> {
@@ -26,7 +27,7 @@ pub enum KeyframeLine {
     Linear,
 }
 
-pub trait KeyframeValue {
+pub trait KeyframeValue: Display {
     fn interpolate(&self, next: &Self, ratio: f32) -> Self;
     fn unit() -> &'static str;
 }

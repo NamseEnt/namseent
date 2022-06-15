@@ -1,7 +1,7 @@
 use namui::{
     animation::{KeyframeGraph, KeyframePoint, KeyframeValue, Layer},
     prelude::*,
-    types::{Angle, PixelSize, Time},
+    types::{Degree, PixelSize, Time},
 };
 use namui_prebuilt::{table::vertical, typography::center_text, *};
 use std::sync::{Arc, RwLock};
@@ -49,24 +49,24 @@ impl PropertyWindow {
                 get_graph_mut: for<'b> fn(&'b mut Layer) -> &'b mut KeyframeGraph<PixelSize>,
                 get_graph: for<'b> fn(&'b Layer) -> &'b KeyframeGraph<PixelSize>,
             },
-            Angle {
+            Degree {
                 text_input: &'a mut TextInput,
                 id: String,
-                get_graph_mut: for<'b> fn(&'b mut Layer) -> &'b mut KeyframeGraph<Angle>,
-                get_graph: for<'b> fn(&'b Layer) -> &'b KeyframeGraph<Angle>,
+                get_graph_mut: for<'b> fn(&'b mut Layer) -> &'b mut KeyframeGraph<Degree>,
+                get_graph: for<'b> fn(&'b Layer) -> &'b KeyframeGraph<Degree>,
             },
         }
         impl F32Input<'_> {
             fn get_text_input_mut(&mut self) -> &mut TextInput {
                 match self {
                     Self::PixelSize { text_input, .. } => text_input,
-                    Self::Angle { text_input, .. } => text_input,
+                    Self::Degree { text_input, .. } => text_input,
                 }
             }
             fn get_id(&self) -> &str {
                 match self {
                     Self::PixelSize { id, .. } => id,
-                    Self::Angle { id, .. } => id,
+                    Self::Degree { id, .. } => id,
                 }
             }
             fn get_text_input_id(&mut self) -> &str {
@@ -77,7 +77,7 @@ impl PropertyWindow {
                     Self::PixelSize { get_graph, .. } => {
                         (get_graph)(layer).get_value(time).map(|v| v.into())
                     }
-                    Self::Angle { get_graph, .. } => {
+                    Self::Degree { get_graph, .. } => {
                         (get_graph)(layer).get_value(time).map(|v| v.into())
                     }
                 }
@@ -87,7 +87,7 @@ impl PropertyWindow {
                     Self::PixelSize { get_graph_mut, .. } => {
                         (get_graph_mut)(layer).delete(id);
                     }
-                    Self::Angle { get_graph_mut, .. } => {
+                    Self::Degree { get_graph_mut, .. } => {
                         (get_graph_mut)(layer).delete(id);
                     }
                 }
@@ -106,7 +106,7 @@ impl PropertyWindow {
                             linear,
                         );
                     }
-                    Self::Angle { get_graph_mut, .. } => {
+                    Self::Degree { get_graph_mut, .. } => {
                         (get_graph_mut)(next_layer).put(
                             namui::animation::KeyframePoint::new(time, value.into()),
                             linear,
@@ -140,7 +140,7 @@ impl PropertyWindow {
                 get_graph_mut: |layer| &mut layer.image.height,
                 get_graph: |layer| &layer.image.height,
             },
-            F32Input::Angle {
+            F32Input::Degree {
                 id: self.rotation_text_input.get_id().to_string(),
                 text_input: &mut self.rotation_text_input,
                 get_graph_mut: |layer| &mut layer.image.rotation_angle,

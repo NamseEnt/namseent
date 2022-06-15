@@ -8,7 +8,7 @@ pub struct AnimatableImage {
     pub y: KeyframeGraph<PixelSize>,
     pub width: KeyframeGraph<PixelSize>,
     pub height: KeyframeGraph<PixelSize>,
-    pub rotation_angle: KeyframeGraph<Angle>,
+    pub rotation_angle: KeyframeGraph<Degree>,
     pub opacity: KeyframeGraph<OneZero>,
 }
 impl AnimatableImage {
@@ -33,7 +33,7 @@ impl KeyframeValue for PixelSize {
         "px"
     }
 }
-impl KeyframeValue for Angle {
+impl KeyframeValue for Degree {
     fn interpolate(&self, next: &Self, ratio: f32) -> Self {
         self * (1.0 - ratio) + next * ratio
     }

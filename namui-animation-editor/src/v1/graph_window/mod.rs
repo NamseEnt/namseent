@@ -1,7 +1,7 @@
 use namui::{
     animation::{KeyframeGraph, KeyframePoint, KeyframeValue, Layer},
     prelude::*,
-    types::{Angle, PixelSize, Time},
+    types::{Degree, PixelSize, Time},
 };
 use namui_prebuilt::{
     table::{horizontal, vertical},

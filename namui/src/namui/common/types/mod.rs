@@ -4,11 +4,14 @@ mod time;
 pub use self::time::*;
 mod time_per_pixel;
 pub use self::time_per_pixel::*;
+mod pixel_size;
+pub use pixel_size::*;
+mod degree;
+pub use degree::*;
+mod one_zero;
+pub use one_zero::*;
 
 // NOTE: Please move type into new file when it has impl.
-define_singular_floating_tuple!(PixelSize, f32); // NOTE: `PixelSize` naming is for distinguishing from `PixelColor`.
-define_singular_floating_tuple!(Angle, f32);
-define_singular_floating_tuple!(OneZero, f32, |value| num::clamp(value, 0.0, 1.0));
 
 #[cfg(test)]
 mod tests {
