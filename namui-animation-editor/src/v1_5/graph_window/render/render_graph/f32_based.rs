@@ -54,7 +54,10 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
             let is_bold_gradation = |gradation_value: TValue| -> bool {
                 let gradation_value: f32 = gradation_value.into();
                 let gradation_interval: f32 = gradation_interval.into();
-                gradation_value % (gradation_interval * BOLD_GRADATION_INTERVAL as f32) == 0.0
+                let divisor = gradation_interval * BOLD_GRADATION_INTERVAL as f32;
+                let indicator = gradation_value % divisor;
+                let error = 0.001;
+                (0.0..error).contains(&indicator) || (divisor - error..).contains(&indicator)
             };
 
             let gradation_value_just_under_bottom: TValue = {
@@ -64,22 +67,23 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
                     .into()
             };
 
-            let mut value: f32 = gradation_value_just_under_bottom.into();
-            let value_at_top: f32 = value_at_top.into();
-            while value < value_at_top {
+            let mut value: TValue = gradation_value_just_under_bottom;
+            while value.into() <= value_at_top.into() {
                 let y = PixelSize(wh.height)
-                    - property_context
-                        .value_per_pixel
-                        .get_pixel_size((value - property_context.value_at_bottom.into()).into());
+                    - property_context.value_per_pixel.get_pixel_size(
+                        (value.into() - property_context.value_at_bottom.into()).into(),
+                    );
 
-                match is_bold_gradation(value.into()) {
-                    true => gradations.push(Gradation::Bold {
-                        y,
-                        value: value.into(),
-                    }),
+                match is_bold_gradation(value) {
+                    true => gradations.push(Gradation::Bold { y, value }),
                     false => gradations.push(Gradation::Light { y }),
                 }
-                value += gradation_interval.into();
+
+                if value.into() == value_at_top {
+                    break;
+                }
+
+                value = (value.into() + gradation_interval.into()).into();
             }
             gradations
         };
