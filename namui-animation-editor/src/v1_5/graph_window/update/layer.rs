@@ -21,11 +21,11 @@ impl GraphWindow {
             let mut point = graph.get_point(point_id.as_ref()).unwrap().clone();
 
             let time_on_x = context.start_at + PixelSize(local_xy.x) * context.time_per_pixel;
-            let value_on_y = property_context.value_at_bottom.into()
-                + (property_context.value_per_pixel * PixelSize(row_wh.height - local_xy.y)).into();
+            let value_on_y =
+                property_context.get_value_on_y(row_wh.height.into(), local_xy.y.into());
 
             point.time = time_on_x;
-            point.value = value_on_y.into();
+            point.value = value_on_y;
 
             graph.put(point, animation::KeyframeLine::Linear);
         }
@@ -165,11 +165,11 @@ impl GraphWindow {
             row_wh: Wh<f32>,
         ) {
             let time_on_x = context.start_at + PixelSize(local_xy.x) * context.time_per_pixel;
-            let value_on_y = property_context.value_at_bottom.into()
-                + (property_context.value_per_pixel * PixelSize(row_wh.height - local_xy.y)).into();
+            let value_on_y =
+                property_context.get_value_on_y(row_wh.height.into(), local_xy.y.into());
 
             graph.put(
-                KeyframePoint::new(time_on_x, value_on_y.into()),
+                KeyframePoint::new(time_on_x, value_on_y),
                 animation::KeyframeLine::Linear,
             );
         }

@@ -7,7 +7,10 @@ use namui_prebuilt::{
     table::{fixed, ratio, vertical},
     *,
 };
-use std::{ops::Range, sync::Arc};
+use std::{
+    ops::{Div, Range},
+    sync::Arc,
+};
 mod render;
 use super::read_only_lock::ReadOnlyLock;
 mod time_ruler;
@@ -122,7 +125,7 @@ impl GraphWindow {
                 time_per_pixel: Time::from_ms(50.0) / PixelSize::new(1.0),
             },
             x_context: PropertyContext {
-                value_at_bottom: 0.0.into(),
+                pixel_size_zero_to_bottom: 0.0.into(),
                 value_per_pixel: ValuePerPixel {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
@@ -134,7 +137,7 @@ impl GraphWindow {
                 gradation_pixel_size_range: 15.0.into()..30.0.into(),
             },
             y_context: PropertyContext {
-                value_at_bottom: 0.0.into(),
+                pixel_size_zero_to_bottom: 0.0.into(),
                 value_per_pixel: ValuePerPixel {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
@@ -146,7 +149,7 @@ impl GraphWindow {
                 gradation_pixel_size_range: 15.0.into()..30.0.into(),
             },
             width_context: PropertyContext {
-                value_at_bottom: 0.0.into(),
+                pixel_size_zero_to_bottom: 0.0.into(),
                 value_per_pixel: ValuePerPixel {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
@@ -158,7 +161,7 @@ impl GraphWindow {
                 gradation_pixel_size_range: 15.0.into()..30.0.into(),
             },
             height_context: PropertyContext {
-                value_at_bottom: 0.0.into(),
+                pixel_size_zero_to_bottom: 0.0.into(),
                 value_per_pixel: ValuePerPixel {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
@@ -170,7 +173,7 @@ impl GraphWindow {
                 gradation_pixel_size_range: 15.0.into()..30.0.into(),
             },
             rotation_angle_context: PropertyContext {
-                value_at_bottom: 0.0.into(),
+                pixel_size_zero_to_bottom: 0.0.into(),
                 value_per_pixel: ValuePerPixel {
                     value: 1.0.into(),
                     pixel_size: 1.0.into(),
@@ -182,7 +185,7 @@ impl GraphWindow {
                 gradation_pixel_size_range: 15.0.into()..30.0.into(),
             },
             opacity_context: PropertyContext {
-                value_at_bottom: 0.0.into(),
+                pixel_size_zero_to_bottom: 0.0.into(),
                 value_per_pixel: ValuePerPixel {
                     value: 0.01.into(),
                     pixel_size: 1.0.into(),
@@ -212,11 +215,26 @@ impl<TValue: Into<f32> + From<f32>> std::ops::Mul<PixelSize> for ValuePerPixel<T
         (self.value.into() * (rhs / self.pixel_size)).into()
     }
 }
+impl<TValue: Into<f32> + From<f32> + Copy> std::ops::Mul<PixelSize> for &'_ ValuePerPixel<TValue> {
+    type Output = TValue;
+
+    fn mul(self, rhs: PixelSize) -> Self::Output {
+        (self.value.into() * (rhs / self.pixel_size)).into()
+    }
+}
 impl<TValue: Into<f32> + Copy> ValuePerPixel<TValue> {
     fn get_pixel_size(&self, value: TValue) -> PixelSize {
         let value: f32 = value.into();
         let self_value: f32 = self.value.into();
         (value / self_value) * self.pixel_size
+    }
+}
+impl<TValue: Into<f32>> Div for ValuePerPixel<TValue> {
+    type Output = f32;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        (self.value.into() / Into::<f32>::into(self.pixel_size))
+            / (rhs.value.into() / Into::<f32>::into(rhs.pixel_size))
     }
 }
 
@@ -233,7 +251,19 @@ struct Context<'a, TValue> {
 #[derive(Debug, Clone)]
 struct PropertyContext<TValue> {
     value_per_pixel: ValuePerPixel<TValue>,
-    value_at_bottom: TValue,
+    pixel_size_zero_to_bottom: PixelSize,
     gradation_value_candidates: Box<[TValue]>,
     gradation_pixel_size_range: Range<PixelSize>,
+}
+
+impl<TValue: Into<f32> + From<f32> + Copy> PropertyContext<TValue> {
+    fn get_value_on_y(&self, row_height: PixelSize, y: PixelSize) -> TValue {
+        self.value_per_pixel * (row_height - y + self.pixel_size_zero_to_bottom)
+    }
+    fn get_value_at_bottom(&self, row_height: PixelSize) -> TValue {
+        self.get_value_on_y(row_height, row_height)
+    }
+    fn get_value_at_top(&self, row_height: PixelSize) -> TValue {
+        self.get_value_on_y(row_height, 0.0.into())
+    }
 }

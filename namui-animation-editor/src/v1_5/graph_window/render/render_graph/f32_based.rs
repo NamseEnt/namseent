@@ -26,8 +26,7 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
         let property_context = &context.property_context;
         const BOLD_GRADATION_INTERVAL: usize = 2;
 
-        let value_at_top = property_context.value_at_bottom.into()
-            + (property_context.value_per_pixel * PixelSize(wh.height)).into();
+        let value_at_top = property_context.get_value_at_top(wh.height.into());
 
         let gradation_interval: TValue = {
             let gradation_value_candidates = &property_context.gradation_value_candidates;
@@ -61,7 +60,9 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
             };
 
             let gradation_value_just_under_bottom: TValue = {
-                let value_at_bottom: f32 = property_context.value_at_bottom.into();
+                let value_at_bottom: f32 = property_context
+                    .get_value_at_bottom(wh.height.into())
+                    .into();
                 let gradation_interval: f32 = gradation_interval.into();
                 (value_at_bottom - gradation_interval - (value_at_bottom % gradation_interval))
                     .into()
@@ -69,17 +70,18 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
 
             let mut value: TValue = gradation_value_just_under_bottom;
             while value.into() <= value_at_top.into() {
+                let value_at_bottom = property_context.get_value_at_bottom(wh.height.into());
                 let y = PixelSize(wh.height)
-                    - property_context.value_per_pixel.get_pixel_size(
-                        (value.into() - property_context.value_at_bottom.into()).into(),
-                    );
+                    - property_context
+                        .value_per_pixel
+                        .get_pixel_size((value.into() - value_at_bottom.into()).into());
 
                 match is_bold_gradation(value) {
                     true => gradations.push(Gradation::Bold { y, value }),
                     false => gradations.push(Gradation::Light { y }),
                 }
 
-                if value.into() == value_at_top {
+                if value.into() == value_at_top.into() {
                     break;
                 }
 
@@ -169,9 +171,7 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
 
         let time_at_x = context.start_at + context.time_per_pixel * PixelSize(mouse_local_xy.x);
 
-        let value_at_y: TValue = (property_context.value_at_bottom.into()
-            + (property_context.value_per_pixel * PixelSize(wh.height - mouse_local_xy.y)).into())
-        .into();
+        let value_at_y = property_context.get_value_on_y(wh.height.into(), mouse_local_xy.y.into());
 
         let label = namui::text(namui::TextParam {
             x: 7.0,
@@ -303,7 +303,12 @@ fn get_xy_of_point<TValue: KeyframeValue + Copy + From<f32> + Into<f32>>(
     let x = (point.time - context.start_at) / context.time_per_pixel;
     let y = PixelSize(wh.height)
         - context.property_context.value_per_pixel.get_pixel_size(
-            (point.value.into() - context.property_context.value_at_bottom.into()).into(),
+            (point.value.into()
+                - context
+                    .property_context
+                    .get_value_at_bottom(wh.height.into())
+                    .into())
+            .into(),
         );
     Xy { x, y }
 }

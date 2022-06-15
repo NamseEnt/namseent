@@ -20,14 +20,15 @@ impl GraphWindow {
             let next_value_per_pixel =
                 zoom_f32_based_per_pixel(property_context.value_per_pixel, delta.into());
 
-            let value_at_mouse_position: f32 = property_context.value_at_bottom.into()
-                + (property_context.value_per_pixel * bottom_to_anchor).into();
+            let zoomed_ratio = next_value_per_pixel / property_context.value_per_pixel;
 
-            let next_value_at_bottom =
-                value_at_mouse_position - (next_value_per_pixel * bottom_to_anchor).into();
+            let zero_to_anchor_y = property_context.pixel_size_zero_to_bottom + bottom_to_anchor;
+            let zoomed_zero_to_anchor_y = zero_to_anchor_y / zoomed_ratio;
+
+            let next_pixel_size_zero_to_bottom = zoomed_zero_to_anchor_y - bottom_to_anchor;
 
             property_context.value_per_pixel = next_value_per_pixel;
-            property_context.value_at_bottom = next_value_at_bottom.into();
+            property_context.pixel_size_zero_to_bottom = next_pixel_size_zero_to_bottom;
         }
 
         match property_name {
@@ -56,10 +57,7 @@ impl GraphWindow {
             property_context: &mut PropertyContext<TValue>,
             delta: f32,
         ) {
-            property_context.value_at_bottom =
-                (Into::<f32>::into(property_context.value_at_bottom)
-                    + (property_context.value_per_pixel * PixelSize(delta)).into())
-                .into();
+            property_context.pixel_size_zero_to_bottom += PixelSize(delta);
         }
 
         match property_name {
