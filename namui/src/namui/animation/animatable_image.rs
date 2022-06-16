@@ -58,8 +58,9 @@ impl Animate for AnimatableImage {
                 return None;
             }
 
+            let ccw_radian = -self.rotation_angle.get_value(time)?.to_radian();
             Some(namui::rotate(
-                self.rotation_angle.get_value(time)?.into(),
+                ccw_radian.into(),
                 namui::image(ImageParam {
                     xywh: XywhRect {
                         x: self.x.get_value(time)?.into(),

@@ -10,6 +10,8 @@ mod degree;
 pub use degree::*;
 mod one_zero;
 pub use one_zero::*;
+mod radian;
+pub use radian::*;
 
 // NOTE: Please move type into new file when it has impl.
 
