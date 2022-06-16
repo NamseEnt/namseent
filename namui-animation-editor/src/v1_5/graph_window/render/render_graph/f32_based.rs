@@ -71,8 +71,7 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
 
             let mut value: TValue = gradation_value_just_under_bottom;
             while value.into() <= value_at_top.into() {
-                let y = PixelSize(wh.height) + property_context.pixel_size_zero_to_bottom
-                    - property_context.value_per_pixel.get_pixel_size(value);
+                let y = get_y_of_value(property_context, wh.height, value);
 
                 match is_bold_gradation(value) {
                     true => gradations.push(Gradation::Bold { y, value }),
@@ -299,14 +298,15 @@ fn get_xy_of_point<TValue: KeyframeValue + Copy + From<f32> + Into<f32>>(
     point: &KeyframePoint<TValue>,
 ) -> Xy<PixelSize> {
     let x = (point.time - context.start_at) / context.time_per_pixel;
-    let y = PixelSize(wh.height)
-        - context.property_context.value_per_pixel.get_pixel_size(
-            (point.value.into()
-                - context
-                    .property_context
-                    .get_value_at_bottom(wh.height.into())
-                    .into())
-            .into(),
-        );
+    let y = get_y_of_value(context.property_context, wh.height, point.value);
     Xy { x, y }
+}
+
+fn get_y_of_value<TValue: KeyframeValue + Copy + From<f32> + Into<f32>>(
+    property_context: &PropertyContext<TValue>,
+    height: f32,
+    value: TValue,
+) -> PixelSize {
+    PixelSize(height) + property_context.pixel_size_zero_to_bottom
+        - property_context.value_per_pixel.get_pixel_size(value)
 }
