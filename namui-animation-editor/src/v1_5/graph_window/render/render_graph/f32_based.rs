@@ -51,12 +51,13 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
             let mut gradations = vec![];
 
             let is_bold_gradation = |gradation_value: TValue| -> bool {
-                let gradation_value: f32 = gradation_value.into();
-                let gradation_interval: f32 = gradation_interval.into();
-                let divisor = gradation_interval * BOLD_GRADATION_INTERVAL as f32;
-                let indicator = gradation_value % divisor;
+                let gradation_value_f32: f32 = gradation_value.into();
+                let gradation_interval_f32: f32 = gradation_interval.into();
+                let divisor = gradation_interval_f32 * BOLD_GRADATION_INTERVAL as f32;
+                let indicator = gradation_value_f32 % divisor;
                 let error = 0.001;
-                (0.0..error).contains(&indicator) || (divisor - error..).contains(&indicator)
+                (-error..error).contains(&indicator)
+                    || (divisor - error..divisor + error).contains(&indicator)
             };
 
             let gradation_value_just_under_bottom: TValue = {
@@ -64,7 +65,7 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
                     .get_value_at_bottom(wh.height.into())
                     .into();
                 let gradation_interval: f32 = gradation_interval.into();
-                (value_at_bottom - gradation_interval - (value_at_bottom % gradation_interval))
+                (value_at_bottom - (value_at_bottom % gradation_interval) - gradation_interval)
                     .into()
             };
 
