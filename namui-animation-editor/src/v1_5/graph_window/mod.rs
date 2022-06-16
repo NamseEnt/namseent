@@ -8,6 +8,7 @@ use namui_prebuilt::{
     *,
 };
 use std::{
+    fmt::Debug,
     ops::{Div, Range},
     sync::Arc,
 };
@@ -135,6 +136,11 @@ impl GraphWindow {
                     .map(|&x| (x as f32).into())
                     .collect(),
                 gradation_pixel_size_range: 15.0.into()..30.0.into(),
+                zoom: Arc::new(F32BasedZoom {
+                    step: 400.0,
+                    min: 1.0,
+                    max: 100.0,
+                }),
             },
             y_context: PropertyContext {
                 pixel_size_zero_to_bottom: 0.0.into(),
@@ -147,6 +153,11 @@ impl GraphWindow {
                     .map(|&x| (x as f32).into())
                     .collect(),
                 gradation_pixel_size_range: 15.0.into()..30.0.into(),
+                zoom: Arc::new(F32BasedZoom {
+                    step: 400.0,
+                    min: 1.0,
+                    max: 100.0,
+                }),
             },
             width_context: PropertyContext {
                 pixel_size_zero_to_bottom: 0.0.into(),
@@ -159,6 +170,11 @@ impl GraphWindow {
                     .map(|&x| (x as f32).into())
                     .collect(),
                 gradation_pixel_size_range: 15.0.into()..30.0.into(),
+                zoom: Arc::new(F32BasedZoom {
+                    step: 400.0,
+                    min: 1.0,
+                    max: 100.0,
+                }),
             },
             height_context: PropertyContext {
                 pixel_size_zero_to_bottom: 0.0.into(),
@@ -171,6 +187,11 @@ impl GraphWindow {
                     .map(|&x| (x as f32).into())
                     .collect(),
                 gradation_pixel_size_range: 15.0.into()..30.0.into(),
+                zoom: Arc::new(F32BasedZoom {
+                    step: 400.0,
+                    min: 1.0,
+                    max: 100.0,
+                }),
             },
             rotation_angle_context: PropertyContext {
                 pixel_size_zero_to_bottom: 0.0.into(),
@@ -183,6 +204,11 @@ impl GraphWindow {
                     .map(|&x| (x as f32).into())
                     .collect(),
                 gradation_pixel_size_range: 15.0.into()..30.0.into(),
+                zoom: Arc::new(F32BasedZoom {
+                    step: 400.0,
+                    min: 1.0,
+                    max: 100.0,
+                }),
             },
             opacity_context: PropertyContext {
                 pixel_size_zero_to_bottom: 0.0.into(),
@@ -192,6 +218,11 @@ impl GraphWindow {
                 },
                 gradation_value_candidates: [0.1].iter().map(|&x| (x as f32).into()).collect(),
                 gradation_pixel_size_range: 15.0.into()..30.0.into(),
+                zoom: Arc::new(F32BasedZoom {
+                    step: 400.0,
+                    min: 0.005,
+                    max: 0.1,
+                }),
             },
             mouse_over_row: None,
             row_height: None,
@@ -254,6 +285,7 @@ struct PropertyContext<TValue> {
     pixel_size_zero_to_bottom: PixelSize,
     gradation_value_candidates: Box<[TValue]>,
     gradation_pixel_size_range: Range<PixelSize>,
+    zoom: Arc<dyn Zoom<TValue>>,
 }
 
 impl<TValue: Into<f32> + From<f32> + Copy> PropertyContext<TValue> {
@@ -265,5 +297,43 @@ impl<TValue: Into<f32> + From<f32> + Copy> PropertyContext<TValue> {
     }
     fn get_value_at_top(&self, row_height: PixelSize) -> TValue {
         self.get_value_on_y(row_height, 0.0.into())
+    }
+}
+
+// const STEP: f32 = 400.0;
+// const MIN: f32 = 1.0;
+// const MAX: f32 = 100.0;
+trait Zoom<TValue> {
+    fn zoom(&self, target: ValuePerPixel<TValue>, delta: f32) -> ValuePerPixel<TValue>;
+}
+
+impl<TValue> Debug for dyn Zoom<TValue> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Zoom")
+    }
+}
+
+struct F32BasedZoom {
+    pub step: f32,
+    pub min: f32,
+    pub max: f32,
+}
+
+impl<TValue: Into<f32> + From<f32> + Copy> Zoom<TValue> for F32BasedZoom {
+    fn zoom(&self, target: ValuePerPixel<TValue>, delta: f32) -> ValuePerPixel<TValue> {
+        let wheel = self.step * (target.value.into() / f32::from(target.pixel_size) / 10.0).log2();
+
+        let next_wheel = wheel + delta;
+
+        let zoomed = namui::math::num::clamp(
+            10.0 * 2.0f32.powf(next_wheel / self.step),
+            self.min,
+            self.max,
+        );
+
+        ValuePerPixel {
+            value: zoomed.into(),
+            pixel_size: 1.0_f32.into(),
+        }
     }
 }

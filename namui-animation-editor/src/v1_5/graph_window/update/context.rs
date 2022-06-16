@@ -17,8 +17,9 @@ impl GraphWindow {
         ) {
             let bottom_to_anchor = PixelSize(row_height - anchor_y);
 
-            let next_value_per_pixel =
-                zoom_f32_based_per_pixel(property_context.value_per_pixel, delta.into());
+            let next_value_per_pixel = property_context
+                .zoom
+                .zoom(property_context.value_per_pixel, delta.into());
 
             let zoomed_ratio = next_value_per_pixel / property_context.value_per_pixel;
 
@@ -68,25 +69,5 @@ impl GraphWindow {
             PropertyName::RotationAngle => for_f32_based(&mut self.rotation_angle_context, delta),
             PropertyName::Opacity => for_f32_based(&mut self.opacity_context, delta),
         }
-    }
-}
-
-fn zoom_f32_based_per_pixel<TValue: KeyframeValue + Copy + From<f32> + Into<f32>>(
-    target: ValuePerPixel<TValue>,
-    delta: f32,
-) -> ValuePerPixel<TValue> {
-    const STEP: f32 = 400.0;
-    const MIN: f32 = 1.0;
-    const MAX: f32 = 100.0;
-
-    let wheel = STEP * (target.value.into() / f32::from(target.pixel_size) / 10.0).log2();
-
-    let next_wheel = wheel + delta;
-
-    let zoomed = namui::math::num::clamp(10.0 * 2.0f32.powf(next_wheel / STEP), MIN, MAX);
-
-    ValuePerPixel {
-        value: zoomed.into(),
-        pixel_size: 1.0_f32.into(),
     }
 }
