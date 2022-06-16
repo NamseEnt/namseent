@@ -70,11 +70,8 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
 
             let mut value: TValue = gradation_value_just_under_bottom;
             while value.into() <= value_at_top.into() {
-                let value_at_bottom = property_context.get_value_at_bottom(wh.height.into());
-                let y = PixelSize(wh.height)
-                    - property_context
-                        .value_per_pixel
-                        .get_pixel_size((value.into() - value_at_bottom.into()).into());
+                let y = PixelSize(wh.height) + property_context.pixel_size_zero_to_bottom
+                    - property_context.value_per_pixel.get_pixel_size(value);
 
                 match is_bold_gradation(value) {
                     true => gradations.push(Gradation::Bold { y, value }),
