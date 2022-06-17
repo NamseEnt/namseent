@@ -1,0 +1,24 @@
+[package]
+authors = ["bigfoodK <satcom1600@hanmail.net>"]
+edition = "2021"
+name = "image-cropper"
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+js-sys = "0.3.58"
+namui = {path = "../namui"}
+tokio = {version = "1"}
+wasm-bindgen = "0.2.81"
+wasm-bindgen-futures = "0.4.31"
+
+[dependencies.web-sys]
+features = [
+  "Window",
+  "HtmlInputElement",
+  "FileList",
+  "File",
+]
+version = "0.3"
