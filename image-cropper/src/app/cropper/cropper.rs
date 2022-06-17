@@ -1,4 +1,4 @@
-use super::render_back_button::render_back_button;
+use super::render_app_bar::render_app_bar;
 use namui::{image, render, Image, ImageFit, ImageParam, ImageStyle, RenderingTree, Wh, XywhRect};
 use std::sync::Arc;
 
@@ -17,6 +17,8 @@ impl Cropper {
     pub fn update(&mut self, _event: &dyn std::any::Any) {}
 
     pub fn render(&self, props: CropperProps) -> RenderingTree {
+        const APP_BAR_HEIGHT: f32 = 48.0;
+
         render([
             image(ImageParam {
                 xywh: props.xywh,
@@ -26,9 +28,9 @@ impl Cropper {
                     paint_builder: None,
                 },
             }),
-            render_back_button(Wh {
-                width: 128.0,
-                height: 32.0,
+            render_app_bar(Wh {
+                width: props.xywh.width,
+                height: APP_BAR_HEIGHT,
             }),
         ])
     }
