@@ -6,7 +6,7 @@ use web_sys::{
     HtmlImageElement, Url,
 };
 
-pub fn save_image(image_url: String, selection_list: Vec<Selection>) {
+pub fn save_image(image_url: String, image_name: String, selection_list: Vec<Selection>) {
     let canvas = create_canvas_element();
     let context = get_context(&canvas);
     let image_element = create_image_element();
@@ -17,7 +17,7 @@ pub fn save_image(image_url: String, selection_list: Vec<Selection>) {
                 let target = event.target().expect("image element not found")
                 .dyn_into::<HtmlImageElement>()
                 .expect("failed to cast image element");
-                selection_list.into_iter().for_each(|selection| {
+                selection_list.into_iter().enumerate().for_each(|(index, selection)| {
                     let polygon = selection.get_polygon();
                     if let Some(bounding_box) = get_bounding_box(&polygon) {
                         canvas.set_width(bounding_box.width as u32);
@@ -35,7 +35,7 @@ pub fn save_image(image_url: String, selection_list: Vec<Selection>) {
                                 bounding_box.height.into(),
                             )
                             .expect("failed to draw image to offscreen canvas");
-                        save_canvas_to_png(&canvas);
+                        save_canvas_to_png(&canvas, make_sequential_file_name(&image_name, index + 1));
                     }
                 })
             }) as Box<dyn FnOnce(Event)>)
@@ -47,14 +47,21 @@ pub fn save_image(image_url: String, selection_list: Vec<Selection>) {
     image_element.set_src(image_url.as_str());
 }
 
-fn save_canvas_to_png(canvas: &HtmlCanvasElement) {
+fn make_sequential_file_name(original_name: &String, index: usize) -> String {
+    let mut name = original_name.clone();
+    let most_right_dot = name.rfind(".").unwrap_or(name.len());
+    name.insert_str(most_right_dot, format!("_{:02}", index).as_str());
+    name
+}
+
+fn save_canvas_to_png(canvas: &HtmlCanvasElement, name: String) {
     canvas
         .to_blob_with_type(
-            Closure::wrap(Box::new(move |blob: Blob| {
+            Closure::once(Box::new(move |blob: Blob| {
                 Url::create_object_url_with_blob(&blob)
-                    .and_then(|url| Ok(download_url(url)))
+                    .and_then(|url| Ok(download_url(url, name)))
                     .expect("failed to download canvas to png");
-            }) as Box<dyn FnMut(Blob)>)
+            }) as Box<dyn FnOnce(Blob)>)
             .into_js_value()
             .as_ref()
             .unchecked_ref(),
@@ -63,9 +70,9 @@ fn save_canvas_to_png(canvas: &HtmlCanvasElement) {
         .expect("failed to create blob url from canvas")
 }
 
-fn download_url(url: String) {
+fn download_url(url: String, name: String) {
     let anchor_element = create_anchor_element();
-    anchor_element.set_download("test");
+    anchor_element.set_download(name.as_str());
     anchor_element.set_href(url.as_str());
     anchor_element.click();
 }

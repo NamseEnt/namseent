@@ -16,14 +16,16 @@ pub struct CropperProps {
 
 pub struct Cropper {
     image_url: String,
+    image_name: String,
     canvas: Canvas,
     selection_list: Vec<Selection>,
     job: Option<Job>,
 }
 impl Cropper {
-    pub fn new(image: Arc<Image>, url: String) -> Self {
+    pub fn new(image: Arc<Image>, url: String, name: String) -> Self {
         Self {
             image_url: url,
+            image_name: name,
             canvas: Canvas::new(image.clone()),
             selection_list: Vec::new(),
             job: None,
@@ -54,9 +56,11 @@ impl Cropper {
                         }
                     }
                 }
-                CropperEvent::SaveButtonClicked => {
-                    save_image(self.image_url.clone(), self.selection_list.clone())
-                }
+                CropperEvent::SaveButtonClicked => save_image(
+                    self.image_url.clone(),
+                    self.image_name.clone(),
+                    self.selection_list.clone(),
+                ),
             }
         }
         if let Some(event) = event.downcast_ref::<NamuiEvent>() {

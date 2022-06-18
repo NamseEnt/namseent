@@ -17,12 +17,15 @@ pub struct FileSelector {
 impl FileSelector {
     pub fn new() -> Self {
         let input_element = create_image_input_element();
-        set_file_handler(&input_element, |file, url| match make_namui_image(file) {
-            Ok(image) => namui::event::send(FileSelectorEvent::NamuiImagePrepared {
-                image: Arc::new(image),
-                url,
-            }),
-            Err(error) => namui::event::send(FileSelectorEvent::NamuiImageMakeFailed(error)),
+        set_file_handler(&input_element, |file, url, name| {
+            match make_namui_image(file) {
+                Ok(image) => namui::event::send(FileSelectorEvent::NamuiImagePrepared {
+                    image: Arc::new(image),
+                    url,
+                    name,
+                }),
+                Err(error) => namui::event::send(FileSelectorEvent::NamuiImageMakeFailed(error)),
+            }
         });
 
         Self {
@@ -39,14 +42,16 @@ impl FileSelector {
                 FileSelectorEvent::NamuiImageMakeFailed(message) => {
                     alert(format!("failed to make image: {}", message).as_str())
                 }
-                FileSelectorEvent::NamuiImagePrepared { image, url } => {
+                FileSelectorEvent::NamuiImagePrepared { image, url, name } => {
                     let image = image.clone();
                     let url = url.clone();
+                    let name = name.clone();
                     namui::event::send(RouterEvent::PageChangeRequestedToCropperEvent(Box::new(
                         move || {
                             let image = image.clone();
                             let url = url.clone();
-                            Cropper::new(image, url)
+                            let name = name.clone();
+                            Cropper::new(image, url, name)
                         },
                     )))
                 }
@@ -84,7 +89,7 @@ fn create_image_input_element() -> HtmlInputElement {
     input_element
 }
 
-fn set_file_handler(element: &HtmlInputElement, handler: fn(Vec<u8>, String)) {
+fn set_file_handler(element: &HtmlInputElement, handler: fn(Vec<u8>, String, String)) {
     element
         .add_event_listener_with_callback(
             "change",
@@ -103,9 +108,10 @@ fn set_file_handler(element: &HtmlInputElement, handler: fn(Vec<u8>, String)) {
                                         .await
                                         .expect("failed to read File as ArrayBuffer"),
                                 );
+                                let name = file.name();
                                 let url = Url::create_object_url_with_blob(file.as_ref())
                                     .expect("Failed to create object url of image");
-                                handler(uint8array.to_vec(), url);
+                                handler(uint8array.to_vec(), url, name);
                             })
                         }
                     }
