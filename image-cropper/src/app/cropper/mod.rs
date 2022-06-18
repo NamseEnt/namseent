@@ -1,3 +1,4 @@
+mod canvas;
 mod cropper;
 mod render_app_bar;
 mod render_back_button;
