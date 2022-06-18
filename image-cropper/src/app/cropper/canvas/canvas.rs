@@ -1,12 +1,18 @@
+use crate::app::cropper::{
+    event::CropperEvent,
+    selection::{RectSelection, Selection},
+};
+
 use super::CanvasEvent;
 use namui::{
-    clip, image, render, Color, Image, ImageFit, ImageParam, ImageStyle, RectFill, RectParam,
-    RectStyle, RenderingTree, Wh, Xy,
+    clip, image, render, translate, Color, Image, ImageFit, ImageParam, ImageStyle, RectFill,
+    RectParam, RectStyle, RenderingTree, Wh, Xy, XywhRect,
 };
 use std::sync::Arc;
 
-pub struct CanvasProps {
+pub struct CanvasProps<'a> {
     pub wh: Wh<f32>,
+    pub selection_list: &'a Vec<Selection>,
 }
 
 pub struct Canvas {
@@ -50,54 +56,73 @@ impl Canvas {
         };
         render([
             render_background(&props.wh).attach_event(|builder| {
-                builder.on_wheel(move |event| {
-                    let canvas_wh = props.wh.clone();
+                builder
+                    .on_wheel(move |event| {
+                        let offset = offset.clone();
+                        let scale = scale.clone();
+                        let canvas_wh = props.wh.clone();
 
-                    let managers = namui::managers();
-                    let mouse_manager = &managers.mouse_manager;
-                    let mouse_position = mouse_manager.mouse_position();
-                    let canvas_xy = event
-                        .namui_context
-                        .get_rendering_tree_xy(event.target)
-                        .expect("failed to get canvas xy");
-                    let local_mouse_position = Xy {
-                        x: mouse_position.x as f32 - canvas_xy.x,
-                        y: mouse_position.y as f32 - canvas_xy.y,
-                    };
-                    let is_mouse_in_canvas = !(local_mouse_position.x < 0.0
-                        || local_mouse_position.x > canvas_wh.width
-                        || local_mouse_position.y < 0.0
-                        || local_mouse_position.y > canvas_wh.height);
+                        let managers = namui::managers();
+                        let mouse_manager = &managers.mouse_manager;
+                        let mouse_position = mouse_manager.mouse_position();
+                        let canvas_xy = event
+                            .namui_context
+                            .get_rendering_tree_xy(event.target)
+                            .expect("failed to get canvas xy");
+                        let local_mouse_position = Xy {
+                            x: mouse_position.x as f32 - canvas_xy.x,
+                            y: mouse_position.y as f32 - canvas_xy.y,
+                        };
+                        let is_mouse_in_canvas = !(local_mouse_position.x < 0.0
+                            || local_mouse_position.x > canvas_wh.width
+                            || local_mouse_position.y < 0.0
+                            || local_mouse_position.y > canvas_wh.height);
 
-                    if !is_mouse_in_canvas {
-                        return;
-                    }
+                        if !is_mouse_in_canvas {
+                            return;
+                        }
 
-                    let keyboard_manager = &managers.keyboard_manager;
-                    if keyboard_manager.any_code_press([namui::Code::ControlLeft]) {
-                        zoom(
-                            event.delta_xy,
-                            &offset,
-                            &local_mouse_position,
-                            &canvas_wh,
-                            &image_size,
-                            scale,
-                        )
-                    } else if keyboard_manager.any_code_press([namui::Code::ShiftLeft]) {
-                        scroll(
-                            &Xy {
-                                x: event.delta_xy.y,
-                                y: event.delta_xy.x,
-                            },
-                            &offset,
-                            &canvas_wh,
-                            &image_size,
-                            scale,
-                        )
-                    } else {
-                        scroll(event.delta_xy, &offset, &canvas_wh, &image_size, scale)
-                    }
-                })
+                        let keyboard_manager = &managers.keyboard_manager;
+                        if keyboard_manager.any_code_press([namui::Code::ControlLeft]) {
+                            zoom(
+                                event.delta_xy,
+                                &offset,
+                                &local_mouse_position,
+                                &canvas_wh,
+                                &image_size,
+                                scale,
+                            )
+                        } else if keyboard_manager.any_code_press([namui::Code::ShiftLeft]) {
+                            scroll(
+                                &Xy {
+                                    x: event.delta_xy.y,
+                                    y: event.delta_xy.x,
+                                },
+                                &offset,
+                                &canvas_wh,
+                                &image_size,
+                                scale,
+                            )
+                        } else {
+                            scroll(event.delta_xy, &offset, &canvas_wh, &image_size, scale)
+                        }
+                    })
+                    .on_mouse_down(move |event| {
+                        let offset = offset.clone();
+                        let scale = scale.clone();
+                        let local_xy_on_image = Xy {
+                            x: -offset.x + event.local_xy.x / scale,
+                            y: -offset.y + event.local_xy.y / scale,
+                        };
+                        namui::event::send(CropperEvent::SelectionCreate(Selection::RectSelection(
+                            RectSelection::new(XywhRect {
+                                x: local_xy_on_image.x,
+                                y: local_xy_on_image.y,
+                                width: 100.0,
+                                height: 100.0,
+                            }),
+                        )))
+                    })
             }),
             clip(
                 namui::PathBuilder::new().add_rect(&namui::LtrbRect {
@@ -107,19 +132,31 @@ impl Canvas {
                     bottom: props.wh.height,
                 }),
                 namui::ClipOp::Intersect,
-                image(ImageParam {
-                    xywh: namui::XywhRect {
-                        x: scaled_offset.x,
-                        y: scaled_offset.y,
-                        width: scaled_image_size.width,
-                        height: scaled_image_size.height,
-                    },
-                    source: namui::ImageSource::Image(self.image.clone()),
-                    style: ImageStyle {
-                        fit: ImageFit::Fill,
-                        paint_builder: None,
-                    },
-                }),
+                translate(
+                    scaled_offset.x,
+                    scaled_offset.y,
+                    render([
+                        image(ImageParam {
+                            xywh: namui::XywhRect {
+                                x: 0.0,
+                                y: 0.0,
+                                width: scaled_image_size.width,
+                                height: scaled_image_size.height,
+                            },
+                            source: namui::ImageSource::Image(self.image.clone()),
+                            style: ImageStyle {
+                                fit: ImageFit::Fill,
+                                paint_builder: None,
+                            },
+                        }),
+                        render(
+                            props
+                                .selection_list
+                                .into_iter()
+                                .map(|selection| selection.render(scale)),
+                        ),
+                    ]),
+                ),
             ),
         ])
     }

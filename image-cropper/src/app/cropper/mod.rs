@@ -1,6 +1,8 @@
 mod canvas;
 mod cropper;
+mod event;
 mod render_app_bar;
 mod render_back_button;
 mod render_save_button;
+mod selection;
 pub use cropper::*;

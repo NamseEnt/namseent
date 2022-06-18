@@ -1,4 +1,6 @@
-use super::{canvas::Canvas, render_app_bar::render_app_bar};
+use super::{
+    canvas::Canvas, event::CropperEvent, render_app_bar::render_app_bar, selection::Selection,
+};
 use crate::app::cropper::canvas::CanvasProps;
 use namui::{render, translate, Image, RenderingTree, Wh, XywhRect};
 use std::sync::Arc;
@@ -9,15 +11,24 @@ pub struct CropperProps {
 
 pub struct Cropper {
     canvas: Canvas,
+    selection_list: Vec<Selection>,
 }
 impl Cropper {
     pub fn new(image: Arc<Image>) -> Self {
         Self {
             canvas: Canvas::new(image.clone()),
+            selection_list: Vec::new(),
         }
     }
 
     pub fn update(&mut self, event: &dyn std::any::Any) {
+        if let Some(event) = event.downcast_ref::<CropperEvent>() {
+            match &event {
+                CropperEvent::SelectionCreate(selection) => {
+                    self.selection_list.push(selection.clone())
+                }
+            }
+        }
         self.canvas.update(event);
     }
 
@@ -37,6 +48,7 @@ impl Cropper {
                         width: props.xywh.width,
                         height: props.xywh.height - APP_BAR_HEIGHT,
                     },
+                    selection_list: &self.selection_list,
                 }),
             ),
         ])
