@@ -20,5 +20,11 @@ features = [
   "HtmlInputElement",
   "FileList",
   "File",
+  "HtmlCanvasElement",
+  "CanvasRenderingContext2d",
+  "HtmlImageElement",
+  "HtmlAnchorElement",
+  "Blob",
+  "Url",
 ]
 version = "0.3"

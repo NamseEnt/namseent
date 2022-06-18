@@ -8,4 +8,5 @@ pub enum CropperEvent {
         direction: RectSelectionResizeDirection,
     },
     MouseMoveInCanvas(Xy<f32>),
+    SaveButtonClicked,
 }

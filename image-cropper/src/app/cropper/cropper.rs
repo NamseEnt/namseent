@@ -3,6 +3,7 @@ use super::{
     event::CropperEvent,
     job::{Job, RectSelectionResize},
     render_app_bar::render_app_bar,
+    save_image::save_image,
     selection::Selection,
 };
 use crate::app::cropper::canvas::CanvasProps;
@@ -14,13 +15,15 @@ pub struct CropperProps {
 }
 
 pub struct Cropper {
+    image_url: String,
     canvas: Canvas,
     selection_list: Vec<Selection>,
     job: Option<Job>,
 }
 impl Cropper {
-    pub fn new(image: Arc<Image>) -> Self {
+    pub fn new(image: Arc<Image>, url: String) -> Self {
         Self {
+            image_url: url,
             canvas: Canvas::new(image.clone()),
             selection_list: Vec::new(),
             job: None,
@@ -50,6 +53,9 @@ impl Cropper {
                             Job::RectSelectionResize(job) => job.update_position(position.clone()),
                         }
                     }
+                }
+                CropperEvent::SaveButtonClicked => {
+                    save_image(self.image_url.clone(), self.selection_list.clone())
                 }
             }
         }

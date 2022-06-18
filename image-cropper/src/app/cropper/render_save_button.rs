@@ -1,3 +1,4 @@
+use super::event::CropperEvent;
 use namui::{
     render, Color, FontType, FontWeight, Language, RectFill, RectParam, RectRound, RectStyle,
     RenderingTree, TextAlign, TextBaseline, TextParam, TextStyle, Wh,
@@ -18,7 +19,9 @@ pub fn render_save_button(wh: &Wh<f32>) -> RenderingTree {
                 round: Some(RectRound { radius: 5.0 }),
             },
         })
-        .attach_event(|builder| builder.on_mouse_down(|_| {}))
+        .attach_event(|builder| {
+            builder.on_mouse_down(|_| namui::event::send(CropperEvent::SaveButtonClicked))
+        })
         .with_mouse_cursor(namui::MouseCursor::Pointer),
         namui::text(TextParam {
             text: "Save".to_string(),

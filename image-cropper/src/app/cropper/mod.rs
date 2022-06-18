@@ -5,5 +5,6 @@ mod job;
 mod render_app_bar;
 mod render_back_button;
 mod render_save_button;
+mod save_image;
 mod selection;
 pub use cropper::*;
