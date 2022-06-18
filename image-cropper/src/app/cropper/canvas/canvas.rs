@@ -123,6 +123,15 @@ impl Canvas {
                             }),
                         )))
                     })
+                    .on_mouse_move_in(move |event| {
+                        let offset = offset.clone();
+                        let scale = scale.clone();
+                        let local_xy_on_image = Xy {
+                            x: -offset.x + event.local_xy.x / scale,
+                            y: -offset.y + event.local_xy.y / scale,
+                        };
+                        namui::event::send(CropperEvent::MouseMoveInCanvas(local_xy_on_image))
+                    })
             }),
             clip(
                 namui::PathBuilder::new().add_rect(&namui::LtrbRect {

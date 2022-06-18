@@ -18,6 +18,12 @@ impl Selection {
         }
     }
 
+    fn get_id(&self) -> &String {
+        match self {
+            Selection::RectSelection(selection) => selection.get_id(),
+        }
+    }
+
     pub fn get_bounding_box(&self) -> Option<XywhRect<f32>> {
         let polygon = self.get_polygon();
         polygon
@@ -52,4 +58,27 @@ impl Selection {
 pub trait SelectionTrait {
     fn render(&self, scale: f32) -> RenderingTree;
     fn get_polygon(&self) -> Vec<Xy<f32>>;
+    fn get_id(&self) -> &String;
+}
+
+pub trait SelectionListModify<M>
+where
+    M: FnMut(Selection) -> Selection,
+{
+    fn modify_selection(&self, id: impl AsRef<str>, modifier: M) -> Self;
+}
+impl<M> SelectionListModify<M> for Vec<Selection>
+where
+    M: FnMut(Selection) -> Selection,
+{
+    fn modify_selection(&self, id: impl AsRef<str>, mut modifier: M) -> Self {
+        let new_selection_list = self.clone();
+        new_selection_list
+            .into_iter()
+            .map(|selection| match selection.get_id() == id.as_ref() {
+                true => modifier(selection),
+                false => selection,
+            })
+            .collect()
+    }
 }

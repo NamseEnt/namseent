@@ -1,6 +1,7 @@
 mod canvas;
 mod cropper;
 mod event;
+mod job;
 mod render_app_bar;
 mod render_back_button;
 mod render_save_button;
