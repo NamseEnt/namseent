@@ -149,8 +149,8 @@ fn get_pressing_buttons(mouse_event: &web_sys::MouseEvent) -> HashSet<crate::Mou
 
     const MOUSE_BUTTONS_CONVERTING_TUPLES: [(u16, crate::MouseButton); 3] = [
         (1 << 0, crate::MouseButton::Left),
-        (1 << 1, crate::MouseButton::Middle),
-        (1 << 2, crate::MouseButton::Right),
+        (1 << 1, crate::MouseButton::Right),
+        (1 << 2, crate::MouseButton::Middle),
     ];
 
     HashSet::from_iter(
