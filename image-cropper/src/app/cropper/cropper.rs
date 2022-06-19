@@ -1,7 +1,7 @@
 use super::{
     canvas::Canvas,
     event::CropperEvent,
-    job::{Job, RectSelectionResize},
+    job::{Job, RectSelectionCreate, RectSelectionResize},
     render_app_bar::render_app_bar,
     save_image::save_image,
     selection::Selection,
@@ -35,8 +35,14 @@ impl Cropper {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<CropperEvent>() {
             match &event {
-                CropperEvent::SelectionCreate(selection) => {
-                    self.selection_list.push(selection.clone())
+                CropperEvent::MouseDownInCanvas { position, tool } => {
+                    if self.job.is_none() {
+                        self.job = Some(match tool {
+                            super::canvas::Tool::RectSelection => {
+                                Job::RectSelectionCreate(RectSelectionCreate::new(position))
+                            }
+                        })
+                    }
                 }
                 CropperEvent::RectSelectionResizeHandleClicked {
                     selection_id,
@@ -53,6 +59,7 @@ impl Cropper {
                     if let Some(job) = &mut self.job {
                         match job {
                             Job::RectSelectionResize(job) => job.update_position(position.clone()),
+                            Job::RectSelectionCreate(job) => job.update_position(position.clone()),
                         }
                     }
                 }
@@ -68,7 +75,7 @@ impl Cropper {
                 NamuiEvent::MouseUp(_) => {
                     if let Some(job) = &self.job {
                         match job {
-                            Job::RectSelectionResize(_) => {
+                            Job::RectSelectionResize(_) | Job::RectSelectionCreate(_) => {
                                 self.execute_job();
                             }
                         }

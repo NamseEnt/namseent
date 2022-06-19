@@ -1,8 +1,11 @@
-use super::{job::RectSelectionResizeDirection, selection::Selection};
+use super::{canvas::Tool, job::RectSelectionResizeDirection};
 use namui::Xy;
 
 pub enum CropperEvent {
-    SelectionCreate(Selection),
+    MouseDownInCanvas {
+        position: Xy<f32>,
+        tool: Tool,
+    },
     RectSelectionResizeHandleClicked {
         selection_id: String,
         direction: RectSelectionResizeDirection,
