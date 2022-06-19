@@ -1,7 +1,9 @@
 use super::{render_file_select_dialog_open_button, FileSelectorEvent};
 use crate::app::{cropper::Cropper, router::RouterEvent, util::alert};
 use js_sys::Uint8Array;
-use namui::{translate, Image, RenderingTree, Wh, CANVAS_KIT};
+use namui::{
+    render, translate, Color, Image, RectFill, RectParam, RectStyle, RenderingTree, Wh, CANVAS_KIT,
+};
 use std::sync::Arc;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use wasm_bindgen_futures::{spawn_local, JsFuture};
@@ -66,12 +68,31 @@ impl FileSelector {
             width: props.screen_wh.width - (2.0 * MARGIN),
             height: BUTTON_HEIGHT,
         };
-        translate(
-            MARGIN,
-            (props.screen_wh.height - BUTTON_HEIGHT) / 2.0,
-            render_file_select_dialog_open_button(button_wh),
-        )
+        render([
+            render_background(&props.screen_wh),
+            translate(
+                MARGIN,
+                (props.screen_wh.height - BUTTON_HEIGHT) / 2.0,
+                render_file_select_dialog_open_button(button_wh),
+            ),
+        ])
     }
+}
+
+fn render_background(wh: &Wh<f32>) -> RenderingTree {
+    namui::rect(RectParam {
+        x: 0.0,
+        y: 0.0,
+        width: wh.width,
+        height: wh.height,
+        style: RectStyle {
+            stroke: None,
+            fill: Some(RectFill {
+                color: Color::from_u8(36, 37, 42, 255),
+            }),
+            round: None,
+        },
+    })
 }
 
 fn create_image_input_element() -> HtmlInputElement {
