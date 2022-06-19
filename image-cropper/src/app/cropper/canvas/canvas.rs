@@ -23,7 +23,7 @@ impl Canvas {
             scale: 1.0,
             offset: Xy { x: 0.0, y: 0.0 },
             image,
-            tool: Tool::RectSelection,
+            tool: Tool::new(),
         }
     }
 
@@ -37,13 +37,14 @@ impl Canvas {
                 }
             }
         }
+        self.tool.update(event);
     }
 
     pub fn render(&self, props: CanvasProps) -> RenderingTree {
         let image_size = self.image.size();
         let offset = self.offset.clone();
         let scale = self.scale.clone();
-        let tool = self.tool.clone();
+        let current_tool_type = self.tool.get_current_tool_type().clone();
 
         let scaled_image_size = Wh {
             width: image_size.width * self.scale,
@@ -107,7 +108,7 @@ impl Canvas {
                         }
                     })
                     .on_mouse_down(move |event| {
-                        let tool = tool.clone();
+                        let current_tool_type = current_tool_type.clone();
                         let offset = offset.clone();
                         let scale = scale.clone();
                         let local_xy_on_image = Xy {
@@ -116,7 +117,7 @@ impl Canvas {
                         };
                         namui::event::send(CropperEvent::MouseDownInCanvas {
                             position: local_xy_on_image,
-                            tool,
+                            tool_type: current_tool_type,
                         })
                     })
                     .on_mouse_move_in(move |event| {
@@ -163,6 +164,7 @@ impl Canvas {
                     ]),
                 ),
             ),
+            self.tool.render_cursor_icon(),
         ])
     }
 }

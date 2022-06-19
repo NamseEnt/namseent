@@ -31,7 +31,7 @@ fn render_background(wh: &Wh<f32>) -> RenderingTree {
         style: RectStyle {
             stroke: None,
             fill: Some(RectFill {
-                color: Color::from_u8(8, 14, 44, 255),
+                color: Color::from_u8(44, 62, 80, 255),
             }),
             round: None,
         },

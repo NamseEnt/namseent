@@ -35,10 +35,13 @@ impl Cropper {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<CropperEvent>() {
             match &event {
-                CropperEvent::MouseDownInCanvas { position, tool } => {
+                CropperEvent::MouseDownInCanvas {
+                    position,
+                    tool_type: tool,
+                } => {
                     if self.job.is_none() {
                         self.job = Some(match tool {
-                            super::canvas::Tool::RectSelection => {
+                            super::canvas::ToolType::RectSelection => {
                                 Job::RectSelectionCreate(RectSelectionCreate::new(position))
                             }
                         })
