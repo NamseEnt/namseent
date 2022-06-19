@@ -39,6 +39,16 @@ impl SelectionTrait for RectSelection {
                     }),
                     ..Default::default()
                 },
+            })
+            .attach_event(|builder| {
+                let id = self.id.clone();
+                builder.on_mouse_down(move |event| {
+                    if event.pressing_buttons.contains(&namui::MouseButton::Right) {
+                        namui::event::send(CropperEvent::SelectionRightClicked {
+                            target_id: id.clone(),
+                        })
+                    }
+                })
             }),
             render_handles(&scaled_xywh, self.id.clone()),
         ])

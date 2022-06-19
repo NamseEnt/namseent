@@ -2,7 +2,7 @@ use super::{canvas::ToolType, job::RectSelectionResizeDirection};
 use namui::Xy;
 
 pub enum CropperEvent {
-    MouseDownInCanvas {
+    LeftMouseDownInCanvas {
         position: Xy<f32>,
         tool_type: ToolType,
     },
@@ -12,4 +12,7 @@ pub enum CropperEvent {
     },
     MouseMoveInCanvas(Xy<f32>),
     SaveButtonClicked,
+    SelectionRightClicked {
+        target_id: String,
+    },
 }

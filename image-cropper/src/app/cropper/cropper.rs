@@ -35,7 +35,7 @@ impl Cropper {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<CropperEvent>() {
             match &event {
-                CropperEvent::MouseDownInCanvas {
+                CropperEvent::LeftMouseDownInCanvas {
                     position,
                     tool_type: tool,
                 } => {
@@ -71,6 +71,9 @@ impl Cropper {
                     self.image_name.clone(),
                     self.selection_list.clone(),
                 ),
+                CropperEvent::SelectionRightClicked { target_id } => self
+                    .selection_list
+                    .retain(|selection| selection.get_id() != target_id),
             }
         }
         if let Some(event) = event.downcast_ref::<NamuiEvent>() {

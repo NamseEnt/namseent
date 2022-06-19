@@ -18,7 +18,7 @@ impl Selection {
         }
     }
 
-    fn get_id(&self) -> &String {
+    pub fn get_id(&self) -> &String {
         match self {
             Selection::RectSelection(selection) => selection.get_id(),
         }

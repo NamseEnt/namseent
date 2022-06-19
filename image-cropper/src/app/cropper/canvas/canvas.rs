@@ -108,17 +108,19 @@ impl Canvas {
                         }
                     })
                     .on_mouse_down(move |event| {
-                        let current_tool_type = current_tool_type.clone();
-                        let offset = offset.clone();
-                        let scale = scale.clone();
-                        let local_xy_on_image = Xy {
-                            x: -offset.x + event.local_xy.x / scale,
-                            y: -offset.y + event.local_xy.y / scale,
-                        };
-                        namui::event::send(CropperEvent::MouseDownInCanvas {
-                            position: local_xy_on_image,
-                            tool_type: current_tool_type,
-                        })
+                        if event.pressing_buttons.contains(&namui::MouseButton::Left) {
+                            let current_tool_type = current_tool_type.clone();
+                            let offset = offset.clone();
+                            let scale = scale.clone();
+                            let local_xy_on_image = Xy {
+                                x: -offset.x + event.local_xy.x / scale,
+                                y: -offset.y + event.local_xy.y / scale,
+                            };
+                            namui::event::send(CropperEvent::LeftMouseDownInCanvas {
+                                position: local_xy_on_image,
+                                tool_type: current_tool_type,
+                            })
+                        }
                     })
                     .on_mouse_move_in(move |event| {
                         let offset = offset.clone();
