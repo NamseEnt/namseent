@@ -7,7 +7,7 @@ pub struct TimeTextsProps<'a> {
 }
 
 pub fn render_time_texts(props: &TimeTextsProps) -> RenderingTree {
-    const LEFT_MARGIN_PX: PixelSize = PixelSize(5.0);
+    let left_margin_px: PixelSize = PixelSize::new(5.0);
     const TEXT_SIZE: i16 = 10;
     RenderingTree::Children(
         props
@@ -23,7 +23,7 @@ pub fn render_time_texts(props: &TimeTextsProps) -> RenderingTree {
 
                 let text = format!("{:02}:{:02}.{:03}", minutes, seconds, milliseconds);
                 namui::text(namui::TextParam {
-                    x: (x + LEFT_MARGIN_PX).into(),
+                    x: (x + left_margin_px).into(),
                     y: props.height / 2.0,
                     align: namui::TextAlign::Left,
                     baseline: namui::TextBaseline::Middle,

@@ -1,7 +1,7 @@
 use namui::{
     animation::{KeyframeGraph, Layer},
     prelude::*,
-    types::{Degree, OneZero, PixelSize, Time, TimePerPixel},
+    types::{Degree, OneZero, Percent, PixelSize, Time, TimePerPixel},
 };
 use namui_prebuilt::{
     table::{fixed, ratio, vertical},
@@ -21,8 +21,8 @@ pub(crate) struct GraphWindow {
     context: GraphWindowContext,
     x_context: PropertyContext<PixelSize>,
     y_context: PropertyContext<PixelSize>,
-    width_context: PropertyContext<PixelSize>,
-    height_context: PropertyContext<PixelSize>,
+    width_context: PropertyContext<Percent>,
+    height_context: PropertyContext<Percent>,
     rotation_angle_context: PropertyContext<Degree>,
     opacity_context: PropertyContext<OneZero>,
     mouse_over_row: Option<MouseOverRow>,
@@ -125,7 +125,7 @@ impl GraphWindow {
                 time_per_pixel: Time::from_ms(50.0) / PixelSize::new(1.0),
             },
             x_context: PropertyContext {
-                pixel_size_zero_to_bottom: PixelSize(-20.0),
+                pixel_size_zero_to_bottom: PixelSize::new(-20.0),
                 value_per_pixel: ValuePerPixel {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
@@ -142,7 +142,7 @@ impl GraphWindow {
                 }),
             },
             y_context: PropertyContext {
-                pixel_size_zero_to_bottom: PixelSize(-20.0),
+                pixel_size_zero_to_bottom: PixelSize::new(-20.0),
                 value_per_pixel: ValuePerPixel {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
@@ -159,7 +159,7 @@ impl GraphWindow {
                 }),
             },
             width_context: PropertyContext {
-                pixel_size_zero_to_bottom: PixelSize(-20.0),
+                pixel_size_zero_to_bottom: PixelSize::new(-20.0),
                 value_per_pixel: ValuePerPixel {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
@@ -176,7 +176,7 @@ impl GraphWindow {
                 }),
             },
             height_context: PropertyContext {
-                pixel_size_zero_to_bottom: PixelSize(-20.0),
+                pixel_size_zero_to_bottom: PixelSize::new(-20.0),
                 value_per_pixel: ValuePerPixel {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
@@ -193,7 +193,7 @@ impl GraphWindow {
                 }),
             },
             rotation_angle_context: PropertyContext {
-                pixel_size_zero_to_bottom: PixelSize(-20.0),
+                pixel_size_zero_to_bottom: PixelSize::new(-20.0),
                 value_per_pixel: ValuePerPixel {
                     value: 1.0.into(),
                     pixel_size: 1.0.into(),
@@ -210,7 +210,7 @@ impl GraphWindow {
                 }),
             },
             opacity_context: PropertyContext {
-                pixel_size_zero_to_bottom: PixelSize(-20.0),
+                pixel_size_zero_to_bottom: PixelSize::new(-20.0),
                 value_per_pixel: ValuePerPixel {
                     value: 0.01.into(),
                     pixel_size: 1.0.into(),

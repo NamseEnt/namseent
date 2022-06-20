@@ -6,8 +6,8 @@ pub struct AnimatableImage {
     pub image_source_url: Option<Url>,
     pub x: KeyframeGraph<PixelSize>,
     pub y: KeyframeGraph<PixelSize>,
-    pub width: KeyframeGraph<PixelSize>,
-    pub height: KeyframeGraph<PixelSize>,
+    pub width: KeyframeGraph<Percent>,
+    pub height: KeyframeGraph<Percent>,
     pub rotation_angle: KeyframeGraph<Degree>,
     pub opacity: KeyframeGraph<OneZero>,
 }
@@ -31,6 +31,14 @@ impl KeyframeValue for PixelSize {
     }
     fn unit() -> &'static str {
         "px"
+    }
+}
+impl KeyframeValue for Percent {
+    fn interpolate(&self, next: &Self, ratio: f32) -> Self {
+        Self::new(self.0 * (1.0 - ratio) + next.0 * ratio)
+    }
+    fn unit() -> &'static str {
+        "%"
     }
 }
 impl KeyframeValue for Degree {
@@ -57,22 +65,31 @@ impl Animate for AnimatableImage {
             if opacity <= 0.0 {
                 return None;
             }
-
             let ccw_radian = -self.rotation_angle.get_value(time)?.to_radian();
+            let x = self.x.get_value(time)?;
+            let y = self.y.get_value(time)?;
+            let width = self.width.get_value(time)?;
+            let height = self.height.get_value(time)?;
+            let source_url = self.image_source_url.as_ref()?.clone();
+
+            let managers = namui::managers();
+            let image = managers.image_manager.try_load(&source_url)?;
+            let image_size = image.size();
+
             Some(namui::rotate(
                 ccw_radian.into(),
                 namui::image(ImageParam {
                     xywh: XywhRect {
-                        x: self.x.get_value(time)?.into(),
-                        y: self.y.get_value(time)?.into(),
-                        width: self.width.get_value(time)?.into(),
-                        height: self.height.get_value(time)?.into(),
+                        x: x.into(),
+                        y: y.into(),
+                        width: (width * image_size.width).into(),
+                        height: (height * image_size.height).into(),
                     },
                     style: ImageStyle {
                         fit: ImageFit::Fill,
                         paint_builder: None,
                     },
-                    source: ImageSource::Url(self.image_source_url.as_ref()?.clone()),
+                    source: ImageSource::Image(image),
                 }),
             ))
         })

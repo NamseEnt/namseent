@@ -7,14 +7,14 @@ macro_rules! overload_binary_operator_rhs {
             type Output = $self_type;
 
             fn $ops_method(self, rhs: $self_type) -> $self_type {
-                $self_type::new(self as $floating_type $ops_sign rhs.0)
+                $self_type(self as $floating_type $ops_sign rhs.0)
             }
         }
         impl std::ops::$ops_trait<&$self_type> for $lhs_type {
             type Output = $self_type;
 
             fn $ops_method(self, rhs: &$self_type) -> $self_type {
-                $self_type::new(self as $floating_type $ops_sign rhs.0)
+                $self_type(self as $floating_type $ops_sign rhs.0)
             }
         }
     };
@@ -61,52 +61,52 @@ macro_rules! overload_arithmetic_operator {
 
 macro_rules! overload_binary_operator_with_self {
     ($self_type: tt, $ops: tt) => {
-        auto_ops::impl_op!($ops |lhs: $self_type, rhs: $self_type| -> $self_type { $self_type::new(lhs.0 $ops rhs.0) });
-        auto_ops::impl_op!($ops |lhs: $self_type, rhs: &$self_type| -> $self_type { $self_type::new(lhs.0 $ops rhs.0) });
-        auto_ops::impl_op!($ops |lhs: &$self_type, rhs: $self_type| -> $self_type { $self_type::new(lhs.0 $ops rhs.0) });
-        auto_ops::impl_op!($ops |lhs: &$self_type, rhs: &$self_type| -> $self_type { $self_type::new(lhs.0 $ops rhs.0) });
+        auto_ops::impl_op!($ops |lhs: $self_type, rhs: $self_type| -> $self_type { $self_type(lhs.0 $ops rhs.0) });
+        auto_ops::impl_op!($ops |lhs: $self_type, rhs: &$self_type| -> $self_type { $self_type(lhs.0 $ops rhs.0) });
+        auto_ops::impl_op!($ops |lhs: &$self_type, rhs: $self_type| -> $self_type { $self_type(lhs.0 $ops rhs.0) });
+        auto_ops::impl_op!($ops |lhs: &$self_type, rhs: &$self_type| -> $self_type { $self_type(lhs.0 $ops rhs.0) });
     };
 }
 
 macro_rules! overload_assignment_operator_with_self {
     ($self_type: tt, $ops: tt) => {
-        auto_ops::impl_op!($ops |lhs: &mut $self_type, rhs: $self_type| { lhs.0 $ops rhs.0; lhs.0 = $self_type::fit(lhs.0) });
-        auto_ops::impl_op!($ops |lhs: &mut $self_type, rhs: &$self_type| { lhs.0 $ops rhs.0; lhs.0 = $self_type::fit(lhs.0) });
+        auto_ops::impl_op!($ops |lhs: &mut $self_type, rhs: $self_type| { lhs.0 $ops rhs.0; *lhs = $self_type(lhs.0) });
+        auto_ops::impl_op!($ops |lhs: &mut $self_type, rhs: &$self_type| { lhs.0 $ops rhs.0; *lhs = $self_type(lhs.0) });
     };
 }
 
 macro_rules! overload_binary_operator_with_self_with_type {
     ($self_type: tt, $ops: tt, $type: tt) => {
-        auto_ops::impl_op!($ops |lhs: $self_type, rhs: $self_type| -> $type { lhs.0 $ops rhs.0 });
-        auto_ops::impl_op!($ops |lhs: $self_type, rhs: &$self_type| -> $type { lhs.0 $ops rhs.0 });
-        auto_ops::impl_op!($ops |lhs: &$self_type, rhs: $self_type| -> $type { lhs.0 $ops rhs.0 });
-        auto_ops::impl_op!($ops |lhs: &$self_type, rhs: &$self_type| -> $type { lhs.0 $ops rhs.0 });
+        auto_ops::impl_op!($ops |lhs: $self_type, rhs: $self_type| -> $type { Into::<$type>::into(lhs.0) $ops Into::<$type>::into(rhs.0) });
+        auto_ops::impl_op!($ops |lhs: $self_type, rhs: &$self_type| -> $type { Into::<$type>::into(lhs.0) $ops Into::<$type>::into(rhs.0) });
+        auto_ops::impl_op!($ops |lhs: &$self_type, rhs: $self_type| -> $type { Into::<$type>::into(lhs.0) $ops Into::<$type>::into(rhs.0) });
+        auto_ops::impl_op!($ops |lhs: &$self_type, rhs: &$self_type| -> $type { Into::<$type>::into(lhs.0) $ops Into::<$type>::into(rhs.0) });
     };
 }
 
 macro_rules! impl_froms {
-    ($self_type: tt, $floating_type: tt, [$($from_type: tt),*]) => {
-        $(impl_froms!($self_type, $floating_type, $from_type);)*
+    ($self_type: tt, $floating_type: tt, $into_type_fn: expr, $from_type_fn: expr, [$($from_type: tt),*]) => {
+        $(impl_froms!($self_type, $floating_type, $into_type_fn, $from_type_fn, $from_type);)*
     };
-    ($self_type: tt, $floating_type: tt, $from_type: tt) => {
+    ($self_type: tt, $floating_type: tt, $into_type_fn: expr, $from_type_fn: expr, $from_type: tt) => {
         impl From<$from_type> for $self_type {
             fn from(value: $from_type) -> Self {
-                $self_type::new(value as $floating_type)
+                $self_type($into_type_fn(value as $floating_type))
             }
         }
         impl From<&$from_type> for $self_type {
             fn from(value: &$from_type) -> Self {
-                $self_type::new(*value as $floating_type)
+                $self_type($into_type_fn(*value as $floating_type))
             }
         }
         impl From<$self_type> for $from_type {
             fn from(value: $self_type) -> Self {
-                value.0 as $from_type
+                $from_type_fn(value.0) as $from_type
             }
         }
         impl From<&$self_type> for $from_type {
             fn from(value: &$self_type) -> Self {
-                value.0 as $from_type
+                $from_type_fn(value.0) as $from_type
             }
         }
     };
@@ -117,21 +117,25 @@ macro_rules! define_singular_floating_tuple {
     ($name: ident, $type: tt) => {
         define_singular_floating_tuple!($name, $type, |value| {
             value
+        }, |value| {
+            value
         });
     };
-    ($name: ident, $type: tt, $fit: expr) => {
+    ($name: ident, $type: tt, $into_type_fn: expr) => {
+        define_singular_floating_tuple!($name, $type, $into_type_fn, |value| {
+            value
+        });
+    };
+    ($name: ident, $type: tt, $into_type_fn: expr, $from_type_fn: expr) => {
         #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
-        pub struct $name(pub $type);
+        pub struct $name(pub(crate) $type);
 
         impl $name {
-            fn fit(value: $type) -> $type {
-                $fit(value)
-            }
             pub fn new(value: $type) -> Self {
-                Self(Self::fit(value))
+                $name(value)
             }
         }
-        impl_froms!($name, $type, [usize, u8, u16, u32, u64, u128, isize, i8, i16, i32, i64, i128, f32, f64]);
+        impl_froms!($name, $type, $into_type_fn, $from_type_fn, [usize, u8, u16, u32, u64, u128, isize, i8, i16, i32, i64, i128, f32, f64]);
 
         impl Eq for $name {}
         impl Ord for $name {
@@ -142,7 +146,7 @@ macro_rules! define_singular_floating_tuple {
         impl std::ops::Neg for $name {
             type Output = Self;
             fn neg(self) -> Self {
-                Self(Self::fit(-self.0))
+                (-self.0).into()
             }
         }
 

@@ -30,13 +30,13 @@ impl GraphWindow {
                     mouse_local_xy: anchor_xy,
                 } => {
                     let time_at_mouse_position = self.context.start_at
-                        + PixelSize(anchor_xy.x) * self.context.time_per_pixel;
+                        + PixelSize::new(anchor_xy.x) * self.context.time_per_pixel;
 
                     let next_time_per_pixel =
                         zoom_time_per_pixel(self.context.time_per_pixel, delta.into());
 
                     let next_start_at =
-                        time_at_mouse_position - PixelSize(anchor_xy.x) * next_time_per_pixel;
+                        time_at_mouse_position - PixelSize::new(anchor_xy.x) * next_time_per_pixel;
 
                     self.context.time_per_pixel = next_time_per_pixel;
                     self.context.start_at = next_start_at;
@@ -100,7 +100,7 @@ impl GraphWindow {
                     }
                     namui::event::send(crate::graph_editor::Event::SetPlaybackTime(
                         self.context.start_at
-                            + PixelSize(mouse_local_xy.x) * self.context.time_per_pixel,
+                            + PixelSize::new(mouse_local_xy.x) * self.context.time_per_pixel,
                     ));
                 }
             }
@@ -183,7 +183,7 @@ impl GraphWindow {
     ) {
         let mouse_delta_xy = mouse_local_xy - last_mouse_local_xy;
 
-        self.context.start_at -= self.context.time_per_pixel * PixelSize(mouse_delta_xy.x);
+        self.context.start_at -= self.context.time_per_pixel * PixelSize::new(mouse_delta_xy.x);
         self.move_property_context_by(property_name, mouse_delta_xy.y);
 
         self.dragging = Some(Dragging::Background {

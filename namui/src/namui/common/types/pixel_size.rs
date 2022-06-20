@@ -5,6 +5,6 @@ define_singular_floating_tuple!(PixelSize, f32); // NOTE: `PixelSize` naming is 
 
 impl Display for PixelSize {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:.0}px", self.0)
+        write!(f, "{:.*?}px", f.precision().unwrap_or(0), self.0)
     }
 }
