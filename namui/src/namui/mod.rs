@@ -60,8 +60,12 @@ impl<T> crate::event::UpdateOnEvent for dyn Entity<Props = T> {
     }
 }
 
-pub fn init() -> NamuiContext {
-    Namui::init()
+pub async fn init() -> NamuiContext {
+    let mut namui_context = Namui::init();
+
+    join(init_font(&mut namui_context), init_filesystem()).await;
+
+    namui_context
 }
 
 pub async fn start<TProps>(
@@ -69,8 +73,6 @@ pub async fn start<TProps>(
     state: &mut dyn Entity<Props = TProps>,
     props: &TProps,
 ) {
-    join(init_font(&mut namui_context), init_filesystem()).await;
-
     namui_context.rendering_tree = state.render(props);
 
     Namui::request_animation_frame(Box::new(move || {
