@@ -1,5 +1,5 @@
 use super::*;
-use namui::{prelude::*, types::Time};
+use namui::prelude::*;
 use std::sync::{Arc, RwLock};
 
 pub struct AnimationEditor {

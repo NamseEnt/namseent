@@ -6,6 +6,7 @@ pub struct WysiwygWindow {
     animation: crate::ReadOnlyLock<animation::Animation>,
     left_top_xy: Xy<f32>,
     mouse_drag_anchor_xy: Option<Xy<f32>>,
+    real_pixel_size_per_screen_pixel_size: f32,
 }
 
 pub struct Props {
@@ -17,6 +18,7 @@ enum Event {
     MouseMoveIn { mouse_xy: Xy<f32> },
     ShiftWheel { delta: f32 },
     Wheel { delta: f32 },
+    AltWheel { delta: f32, mouse_local_xy: Xy<f32> },
 }
 
 impl WysiwygWindow {
@@ -25,6 +27,7 @@ impl WysiwygWindow {
             animation,
             left_top_xy: Xy { x: -5.0, y: -5.0 },
             mouse_drag_anchor_xy: None,
+            real_pixel_size_per_screen_pixel_size: 2.0,
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -35,7 +38,8 @@ impl WysiwygWindow {
                 }
                 Event::MouseMoveIn { mouse_xy } => {
                     if let Some(mouse_drag_anchor_xy) = self.mouse_drag_anchor_xy {
-                        let delta = mouse_drag_anchor_xy - *mouse_xy;
+                        let delta = self.real_pixel_size_per_screen_pixel_size
+                            * (mouse_drag_anchor_xy - *mouse_xy);
                         self.left_top_xy = self.left_top_xy + delta;
 
                         self.mouse_drag_anchor_xy = Some(*mouse_xy);
@@ -47,6 +51,24 @@ impl WysiwygWindow {
                 Event::Wheel { delta } => {
                     self.left_top_xy.y += delta;
                 }
+                Event::AltWheel {
+                    delta,
+                    mouse_local_xy,
+                } => {
+                    let next_real_pixel_size_per_screen_pixel_size =
+                        zoom(self.real_pixel_size_per_screen_pixel_size, *delta);
+
+                    let real_xy_on_mouse_xy = self.left_top_xy
+                        + self.real_pixel_size_per_screen_pixel_size * *mouse_local_xy;
+
+                    let next_left_top_xy = real_xy_on_mouse_xy
+                        - next_real_pixel_size_per_screen_pixel_size * *mouse_local_xy;
+
+                    self.left_top_xy = next_left_top_xy;
+
+                    self.real_pixel_size_per_screen_pixel_size =
+                        next_real_pixel_size_per_screen_pixel_size;
+                }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
@@ -55,4 +77,18 @@ impl WysiwygWindow {
             }
         }
     }
+}
+
+fn zoom(target: f32, delta: f32) -> f32 {
+    const STEP: f32 = 400.0;
+    const MIN: f32 = 0.01;
+    const MAX: f32 = 4.0;
+
+    let wheel = STEP * (target / 10.0).log2();
+
+    let next_wheel = wheel + delta;
+
+    let zoomed = namui::math::num::clamp(10.0 * 2.0f32.powf(next_wheel / STEP), MIN, MAX);
+
+    zoomed
 }
