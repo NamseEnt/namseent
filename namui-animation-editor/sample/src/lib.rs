@@ -1,11 +1,12 @@
-use namui::prelude::*;
+use namui::{animation::KeyframePoint, prelude::*, types::*};
 use namui_animation_editor::{self, *};
 use std::sync::{Arc, RwLock};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub async fn start() {
-    let namui_context = namui::init();
+    let namui_context = namui::init().await;
+
     let wh = {
         let managers = namui::managers();
         let screen_size = managers.screen_manager.screen_size();
@@ -30,12 +31,42 @@ struct AnimationEditorExample {
 
 impl AnimationEditorExample {
     fn new() -> Self {
+        let mut image = namui::animation::AnimatableImage::new();
+        namui::log!("{:?}", namui::fs::bundle::read_dir("img"));
+
+        image.image_source_url =
+            Some(Url::parse("bundle:img/%EB%86%80%EB%9E%8C%EB%8C%80.png").unwrap());
+        image.x.put(
+            KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize(0.0)),
+            animation::KeyframeLine::Linear,
+        );
+        image.y.put(
+            KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize(0.0)),
+            animation::KeyframeLine::Linear,
+        );
+        image.width.put(
+            KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize(100.0)),
+            animation::KeyframeLine::Linear,
+        );
+        image.height.put(
+            KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize(100.0)),
+            animation::KeyframeLine::Linear,
+        );
+        image.rotation_angle.put(
+            KeyframePoint::<Degree>::new(Time::zero(), 0.0.into()),
+            animation::KeyframeLine::Linear,
+        );
+        image.opacity.put(
+            KeyframePoint::<OneZero>::new(Time::zero(), 1.0.into()),
+            animation::KeyframeLine::Linear,
+        );
+
         let animation = Arc::new(RwLock::new(animation::Animation {
             id: namui::nanoid(),
             layers: vec![animation::Layer {
                 id: namui::nanoid(),
                 name: "New Layer".to_string(),
-                image: namui::animation::AnimatableImage::new(),
+                image,
             }],
         }));
         Self {
@@ -65,6 +96,7 @@ impl Entity for AnimationEditorExample {
             match event {
                 Event::AddLayerButtonClicked => {
                     let mut animation = self.animation.write().unwrap();
+
                     animation.layers.push(animation::Layer {
                         id: namui::nanoid(),
                         name: "New Layer".to_string(),

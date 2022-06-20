@@ -8,6 +8,7 @@ pub struct WysiwygWindow {
     mouse_drag_anchor_xy: Option<Xy<f32>>,
     real_pixel_size_per_screen_pixel_size: f32,
     last_wh: Option<Wh<f32>>,
+    playback_time: Time,
 }
 
 pub struct Props {
@@ -31,6 +32,7 @@ impl WysiwygWindow {
             mouse_drag_anchor_xy: None,
             real_pixel_size_per_screen_pixel_size: 2.0,
             last_wh: None,
+            playback_time: Time::zero(),
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {

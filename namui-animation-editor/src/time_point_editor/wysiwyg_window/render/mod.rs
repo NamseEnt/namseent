@@ -1,4 +1,5 @@
 use super::*;
+mod layer;
 mod viewport;
 
 impl WysiwygWindow {
@@ -10,6 +11,11 @@ impl WysiwygWindow {
             namui::event::send(Event::UpdateWh { wh });
             return RenderingTree::Empty;
         }
+
+        let layers = animation
+            .layers
+            .iter()
+            .map(|layer| self.render_layer(layer));
 
         clip(
             PathBuilder::new().add_rect(&LtrbRect {
@@ -23,7 +29,11 @@ impl WysiwygWindow {
                 scale(
                     1.0 / self.real_pixel_size_per_screen_pixel_size,
                     1.0 / self.real_pixel_size_per_screen_pixel_size,
-                    render([self.render_viewport()]),
+                    translate(
+                        -self.real_left_top_xy.x,
+                        -self.real_left_top_xy.y,
+                        render(layers.chain([self.render_viewport()])),
+                    ),
                 ),
                 simple_rect(props.wh, Color::BLACK, 1.0, Color::TRANSPARENT).attach_event(
                     |builder| {
