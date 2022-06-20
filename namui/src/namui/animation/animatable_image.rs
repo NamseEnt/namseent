@@ -51,7 +51,7 @@ impl KeyframeValue for Degree {
 }
 impl KeyframeValue for OneZero {
     fn interpolate(&self, next: &Self, ratio: f32) -> Self {
-        Self::new(self.0 * (1.0 - ratio) + next.0 * ratio)
+        Self::from(self.0 * (1.0 - ratio) + next.0 * ratio)
     }
     fn unit() -> &'static str {
         ""
@@ -107,18 +107,18 @@ mod tests {
     fn one_zero_should_be_interpolated() {
         let mut graph = KeyframeGraph::new();
         graph.put(
-            KeyframePoint::new(Time::from_ms(0.0), OneZero::new(0.0)),
+            KeyframePoint::new(Time::from_ms(0.0), OneZero::from(0.0)),
             KeyframeLine::Linear,
         );
         graph.put(
             KeyframePoint::new(
                 Time::from_ms(10.0),
-                OneZero::new(100.0), // become 1.0
+                OneZero::from(100.0), // become 1.0
             ),
             KeyframeLine::Linear,
         );
         graph.put(
-            KeyframePoint::new(Time::from_ms(20.0), OneZero::new(0.5)),
+            KeyframePoint::new(Time::from_ms(20.0), OneZero::from(0.5)),
             KeyframeLine::Linear,
         );
         for time in 0..10 {

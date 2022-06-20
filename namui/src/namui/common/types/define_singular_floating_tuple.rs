@@ -127,15 +127,21 @@ macro_rules! define_singular_floating_tuple {
         });
     };
     ($name: ident, $type: tt, $into_type_fn: expr, $from_type_fn: expr) => {
-        #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+        #[derive(Debug, Clone, Copy, PartialOrd, serde::Serialize, serde::Deserialize)]
         pub struct $name(pub(crate) $type);
 
         impl $name {
-            pub fn new(value: $type) -> Self {
-                $name(value)
+            pub fn from(value: $type) -> Self {
+                $name($into_type_fn(value))
             }
         }
         impl_froms!($name, $type, $into_type_fn, $from_type_fn, [usize, u8, u16, u32, u64, u128, isize, i8, i16, i32, i64, i128, f32, f64]);
+
+        impl PartialEq for $name {
+            fn eq(&self, other: &Self) -> bool {
+                $into_type_fn(self.0) == $into_type_fn(other.0)
+            }
+        }
 
         impl Eq for $name {}
         impl Ord for $name {

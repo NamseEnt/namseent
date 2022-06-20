@@ -44,17 +44,30 @@ impl<'a, TValue: KeyframeValue + Clone> KeyframeGraph<TValue> {
         }
     }
     pub fn put(&mut self, point: KeyframePoint<TValue>, line: KeyframeLine) {
-        match self
+        let same_id_point = self
             .points_with_lines
             .iter_mut()
-            .find(|(p, _)| p.id.eq(&point.id))
-        {
+            .find(|(p, _)| p.id.eq(&point.id));
+        match same_id_point {
             Some((p, l)) => {
                 *p = point;
                 *l = line;
             }
             None => {
-                self.points_with_lines.push((point, line));
+                let same_time_point = self
+                    .points_with_lines
+                    .iter_mut()
+                    .find(|(p, _)| p.time.eq(&point.time));
+
+                match same_time_point {
+                    Some((p, l)) => {
+                        *p = point;
+                        *l = line;
+                    }
+                    None => {
+                        self.points_with_lines.push((point, line));
+                    }
+                }
             }
         }
 

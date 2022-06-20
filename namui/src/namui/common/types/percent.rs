@@ -7,8 +7,13 @@ define_singular_floating_tuple!(Percent, f32, |f32_value| 100.0 * f32_value, |tu
 
 impl Display for Percent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let in_f32: f32 = self.into();
-        write!(f, "{:.*?}%", f.precision().unwrap_or(1), in_f32)
+        write!(f, "{:.*?}%", f.precision().unwrap_or(1), self.0)
+    }
+}
+
+impl Percent {
+    pub fn new(percent: f32) -> Percent {
+        Percent(percent)
     }
 }
 
@@ -26,5 +31,13 @@ mod tests {
         let a_b: i32 = (a * b).into();
 
         assert_eq!(c as i32, a_b);
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn percent_display_should_work() {
+        let b = Percent::new(150.0);
+
+        assert_eq!(format!("{}", b), "150.0%");
     }
 }

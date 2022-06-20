@@ -26,6 +26,6 @@ mod tests {
     #[wasm_bindgen_test]
     fn sub_singular_floating_tuple() {
         define_singular_floating_tuple!(A, f32);
-        assert_eq!(A::new(80.0), A::new(100.0) - A::new(20.0));
+        assert_eq!(A::from(80.0), A::from(100.0) - A::from(20.0));
     }
 }
