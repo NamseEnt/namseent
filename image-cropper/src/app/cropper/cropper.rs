@@ -1,13 +1,13 @@
 use super::{
     canvas::Canvas,
     event::CropperEvent,
-    job::{Job, RectSelectionCreate, RectSelectionResize},
+    job::{Job, RectSelectionCreate, RectSelectionResize, RectSelectionResizeDirection},
     render_app_bar::render_app_bar,
     save_image::save_image,
     selection::Selection,
 };
 use crate::app::cropper::canvas::CanvasProps;
-use namui::{render, translate, Image, NamuiEvent, RenderingTree, Wh, XywhRect};
+use namui::{render, translate, Image, NamuiEvent, RenderingTree, Wh, Xy, XywhRect};
 use std::sync::Arc;
 
 pub struct CropperProps {
@@ -37,26 +37,17 @@ impl Cropper {
             match &event {
                 CropperEvent::LeftMouseDownInCanvas {
                     position,
-                    tool_type: tool,
-                } => {
-                    if self.job.is_none() {
-                        self.job = Some(match tool {
-                            super::canvas::ToolType::RectSelection => {
-                                Job::RectSelectionCreate(RectSelectionCreate::new(position))
-                            }
-                        })
+                    tool_type,
+                } => match tool_type {
+                    super::canvas::ToolType::RectSelection => {
+                        self.create_rect_selection_create_job(position)
                     }
-                }
+                },
                 CropperEvent::RectSelectionResizeHandleClicked {
                     selection_id,
                     direction,
                 } => {
-                    if self.job.is_none() {
-                        self.job = Some(Job::RectSelectionResize(RectSelectionResize::new(
-                            selection_id.clone(),
-                            direction.clone(),
-                        )))
-                    }
+                    self.create_rect_selection_resize_job(selection_id, direction);
                 }
                 CropperEvent::MouseMoveInCanvas(position) => {
                     if let Some(job) = &mut self.job {
@@ -71,9 +62,9 @@ impl Cropper {
                     self.image_name.clone(),
                     self.selection_list.clone(),
                 ),
-                CropperEvent::SelectionRightClicked { target_id } => self
-                    .selection_list
-                    .retain(|selection| selection.get_id() != target_id),
+                CropperEvent::SelectionRightClicked { target_id } => {
+                    self.remove_selection(target_id)
+                }
             }
         }
         if let Some(event) = event.downcast_ref::<NamuiEvent>() {
@@ -120,6 +111,30 @@ impl Cropper {
                 }),
             ),
         ])
+    }
+
+    fn create_rect_selection_create_job(&mut self, position: &Xy<f32>) {
+        if self.job.is_none() {
+            self.job = Some(Job::RectSelectionCreate(RectSelectionCreate::new(position)))
+        }
+    }
+
+    fn create_rect_selection_resize_job(
+        &mut self,
+        selection_id: &String,
+        direction: &RectSelectionResizeDirection,
+    ) {
+        if self.job.is_none() {
+            self.job = Some(Job::RectSelectionResize(RectSelectionResize::new(
+                selection_id.clone(),
+                direction.clone(),
+            )))
+        }
+    }
+
+    fn remove_selection(&mut self, target_id: &String) {
+        self.selection_list
+            .retain(|selection| selection.get_id() != target_id)
     }
 
     fn execute_job(&mut self) {
