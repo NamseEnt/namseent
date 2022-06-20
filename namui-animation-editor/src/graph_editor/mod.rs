@@ -1,12 +1,12 @@
 use namui::{prelude::*, types::Time};
 use namui_prebuilt::{table::*, *};
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 mod graph_window;
 mod image_select_window;
 mod layer_list_window;
 mod preview_window;
 
-pub struct AnimationEditor {
+pub struct GraphEditor {
     animation: crate::ReadOnlyLock<animation::Animation>,
     layer_list_window: layer_list_window::LayerListWindow,
     graph_window: graph_window::GraphWindow,
@@ -24,9 +24,8 @@ pub(crate) enum Event {
     SetPlaybackTime(Time),
 }
 
-impl AnimationEditor {
-    pub fn new(animation: Arc<RwLock<animation::Animation>>) -> Self {
-        let animation = crate::ReadOnlyLock::new(animation);
+impl GraphEditor {
+    pub fn new(animation: crate::ReadOnlyLock<animation::Animation>) -> Self {
         Self {
             layer_list_window: layer_list_window::LayerListWindow::new(),
             graph_window: graph_window::GraphWindow::new(animation.clone()),

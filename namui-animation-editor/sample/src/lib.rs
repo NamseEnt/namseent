@@ -1,5 +1,5 @@
 use namui::prelude::*;
-use namui_animation_editor::v1_5::{self, *};
+use namui_animation_editor::{self, *};
 use std::sync::{Arc, RwLock};
 use wasm_bindgen::prelude::*;
 
@@ -52,7 +52,7 @@ impl Entity for AnimationEditorExample {
     type Props = Props;
 
     fn render(&self, props: &Self::Props) -> RenderingTree {
-        self.animation_editor.render(&v1_5::Props {
+        self.animation_editor.render(namui_animation_editor::Props {
             wh: Wh {
                 width: props.wh.width.into(),
                 height: props.wh.height.into(),
@@ -61,7 +61,7 @@ impl Entity for AnimationEditorExample {
     }
 
     fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<v1_5::Event>() {
+        if let Some(event) = event.downcast_ref::<namui_animation_editor::Event>() {
             match event {
                 Event::AddLayerButtonClicked => {
                     let mut animation = self.animation.write().unwrap();

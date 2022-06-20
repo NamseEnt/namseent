@@ -1,8 +1,11 @@
 pub mod events;
 pub use events::Event;
-pub mod graph_editor;
+mod graph_editor;
 mod read_only_lock;
 pub(crate) use read_only_lock::ReadOnlyLock;
+pub mod animation_editor;
+pub use animation_editor::{AnimationEditor, Props};
+mod time_point_editor;
 
 pub(crate) fn adjust_font_size(height: f32) -> i16 {
     // 0, 4, 8, 16, 20, ...
