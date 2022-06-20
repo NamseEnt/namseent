@@ -268,7 +268,7 @@ impl TextInputManager {
                     render::SpecialRenderingNode::Custom(custom) => {
                         if let Some(custom_data) = custom.data.downcast_ref::<TextInputCustomData>()
                         {
-                            let is_custom_in_mouse = utils.is_xy_in(&raw_mouse_event.xy);
+                            let is_custom_in_mouse = utils.is_xy_in(raw_mouse_event.xy);
 
                             if is_custom_in_mouse {
                                 return_value = Some(custom_data.clone());

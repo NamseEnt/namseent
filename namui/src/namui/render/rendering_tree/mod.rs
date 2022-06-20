@@ -138,7 +138,7 @@ impl RenderingTree {
             ControlFlow::Continue(())
         });
     }
-    pub(crate) fn get_mouse_cursor(&self, xy: &Xy<f32>) -> Option<MouseCursor> {
+    pub(crate) fn get_mouse_cursor(&self, xy: Xy<f32>) -> Option<MouseCursor> {
         let mut result = None;
         self.visit_rln(|node, utils| {
             match node {
@@ -175,11 +175,11 @@ impl RenderingTree {
                             MouseEventType::Up => (&attach_event.on_mouse_up, &None),
                         };
                         if in_func.is_some() || out_func.is_some() {
-                            let is_mouse_in = utils.is_xy_in(&raw_mouse_event.xy);
+                            let is_mouse_in = utils.is_xy_in(raw_mouse_event.xy);
                             let mouse_event = MouseEvent {
                                 id: raw_mouse_event.id.clone(),
                                 global_xy: raw_mouse_event.xy,
-                                local_xy: utils.to_local_xy(&raw_mouse_event.xy),
+                                local_xy: utils.to_local_xy(raw_mouse_event.xy),
                                 pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
                                 button: raw_mouse_event.button,
                                 target: node,

@@ -71,7 +71,7 @@ impl Matrix3x3 {
         }
     }
 
-    pub(crate) fn transform_xy(&self, xy: &crate::Xy<f32>) -> crate::Xy<f32> {
+    pub(crate) fn transform_xy(&self, xy: crate::Xy<f32>) -> crate::Xy<f32> {
         crate::Xy {
             x: self.values[0][0] * xy.x + self.values[0][1] * xy.y + self.values[0][2],
             y: self.values[1][0] * xy.x + self.values[1][1] * xy.y + self.values[1][2],
