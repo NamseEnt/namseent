@@ -270,12 +270,13 @@ pub enum ClipOp {
     Intersect,
     Difference,
 }
-
+#[derive(Debug, Serialize, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum AlphaType {
     Opaque,
     Premul,
     Unpremul,
 }
+#[derive(Debug, Serialize, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum ColorType {
     Alpha8,
     Rgb565,
@@ -287,9 +288,10 @@ pub enum ColorType {
     RgbaF16,
     RgbaF32,
 }
+#[derive(Debug, Serialize, Clone, Copy, PartialEq)]
 pub struct PartialImageInfo {
-    pub alphaType: AlphaType,
-    pub colorType: ColorType,
+    pub alpha_type: AlphaType,
+    pub color_type: ColorType,
     pub height: f32,
     pub width: f32,
 }
