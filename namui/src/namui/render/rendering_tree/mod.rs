@@ -37,7 +37,7 @@ impl SpecialRenderingNode {
 /// - events = Reverse post-order (RLN)
 /// reference: https://en.wikipedia.org/wiki/Tree_traversal
 impl RenderingTree {
-    pub fn draw(&self, namui_context: &NamuiContext) {
+    pub(crate) fn draw(&self, namui_context: &NamuiContext) {
         match self {
             RenderingTree::Children(ref children) => {
                 for child in children {
@@ -115,7 +115,7 @@ impl RenderingTree {
             RenderingTree::Empty => {}
         }
     }
-    pub fn call_wheel_event(
+    pub(crate) fn call_wheel_event(
         &self,
         event_id: String,
         delta_xy: &Xy<f32>,
@@ -138,7 +138,7 @@ impl RenderingTree {
             ControlFlow::Continue(())
         });
     }
-    pub fn get_mouse_cursor(&self, xy: &Xy<f32>) -> Option<MouseCursor> {
+    pub(crate) fn get_mouse_cursor(&self, xy: &Xy<f32>) -> Option<MouseCursor> {
         let mut result = None;
         self.visit_rln(|node, utils| {
             match node {
@@ -157,7 +157,7 @@ impl RenderingTree {
         });
         result
     }
-    pub fn call_mouse_event(
+    pub(crate) fn call_mouse_event(
         &self,
         mouse_event_type: MouseEventType,
         raw_mouse_event: &RawMouseEvent,
