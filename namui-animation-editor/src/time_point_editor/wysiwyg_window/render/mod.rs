@@ -29,6 +29,21 @@ impl WysiwygWindow {
                             mouse_xy: event.local_xy,
                         });
                     })
+                    .on_wheel(|event| {
+                        let managers = namui::managers();
+                        if managers
+                            .keyboard_manager
+                            .any_code_press([Code::ShiftLeft, Code::ShiftRight])
+                        {
+                            namui::event::send(super::Event::ShiftWheel {
+                                delta: event.delta_xy.y,
+                            });
+                        } else {
+                            namui::event::send(super::Event::Wheel {
+                                delta: event.delta_xy.y,
+                            });
+                        }
+                    })
             }),
         )
     }

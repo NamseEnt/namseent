@@ -15,6 +15,8 @@ pub struct Props {
 enum Event {
     BackgroundClicked { mouse_xy: Xy<f32> },
     MouseMoveIn { mouse_xy: Xy<f32> },
+    ShiftWheel { delta: f32 },
+    Wheel { delta: f32 },
 }
 
 impl WysiwygWindow {
@@ -38,6 +40,12 @@ impl WysiwygWindow {
 
                         self.mouse_drag_anchor_xy = Some(*mouse_xy);
                     }
+                }
+                Event::ShiftWheel { delta } => {
+                    self.left_top_xy.x += delta;
+                }
+                Event::Wheel { delta } => {
+                    self.left_top_xy.y += delta;
                 }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
