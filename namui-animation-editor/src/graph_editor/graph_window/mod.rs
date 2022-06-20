@@ -13,7 +13,6 @@ use std::{
     sync::Arc,
 };
 mod render;
-use super::read_only_lock::ReadOnlyLock;
 mod time_ruler;
 mod update;
 
@@ -28,7 +27,7 @@ pub(crate) struct GraphWindow {
     opacity_context: PropertyContext<OneZero>,
     mouse_over_row: Option<MouseOverRow>,
     row_height: Option<f32>,
-    animation: ReadOnlyLock<animation::Animation>,
+    animation: crate::ReadOnlyLock<animation::Animation>,
     selected_point_address: Option<PointAddress>,
     dragging: Option<Dragging>,
 }
@@ -118,7 +117,7 @@ pub(crate) struct GraphWindowContext {
 }
 
 impl GraphWindow {
-    pub(crate) fn new(animation: ReadOnlyLock<animation::Animation>) -> Self {
+    pub(crate) fn new(animation: crate::ReadOnlyLock<animation::Animation>) -> Self {
         Self {
             id: namui::nanoid(),
             context: GraphWindowContext {

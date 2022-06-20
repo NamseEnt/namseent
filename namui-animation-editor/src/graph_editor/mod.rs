@@ -1,17 +1,13 @@
 use namui::{prelude::*, types::Time};
 use namui_prebuilt::{table::*, *};
 use std::sync::{Arc, RwLock};
-mod events;
-pub use events::Event;
 mod graph_window;
 mod image_select_window;
 mod layer_list_window;
 mod preview_window;
-mod read_only_lock;
-use read_only_lock::*;
 
 pub struct AnimationEditor {
-    animation: ReadOnlyLock<animation::Animation>,
+    animation: crate::ReadOnlyLock<animation::Animation>,
     layer_list_window: layer_list_window::LayerListWindow,
     graph_window: graph_window::GraphWindow,
     preview_window: preview_window::PreviewWindow,
@@ -24,13 +20,13 @@ pub struct Props {
     pub wh: Wh<types::PixelSize>,
 }
 
-pub(crate) enum InternalEvent {
+pub(crate) enum Event {
     SetPlaybackTime(Time),
 }
 
 impl AnimationEditor {
     pub fn new(animation: Arc<RwLock<animation::Animation>>) -> Self {
-        let animation = ReadOnlyLock::new(animation);
+        let animation = crate::ReadOnlyLock::new(animation);
         Self {
             layer_list_window: layer_list_window::LayerListWindow::new(),
             graph_window: graph_window::GraphWindow::new(animation.clone()),
@@ -42,9 +38,9 @@ impl AnimationEditor {
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<InternalEvent>() {
+        if let Some(event) = event.downcast_ref::<Event>() {
             match event {
-                InternalEvent::SetPlaybackTime(time) => {
+                Event::SetPlaybackTime(time) => {
                     self.playback_time = *time;
                 }
             }
@@ -129,7 +125,7 @@ impl AnimationEditor {
                 }
                 let mut layer = layer.unwrap().clone();
                 layer.image.image_source_url = Some(url.clone());
-                namui::event::send(Event::UpdateLayer(Arc::new(layer)));
+                namui::event::send(crate::Event::UpdateLayer(Arc::new(layer)));
             }
         }
     }

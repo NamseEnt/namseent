@@ -79,7 +79,7 @@ impl GraphWindow {
 
                     self.add_point_into_xy(&mut layer, *property_name, *mouse_local_xy, *row_wh);
 
-                    namui::event::send(super::super::Event::UpdateLayer(Arc::new(layer)));
+                    namui::event::send(crate::Event::UpdateLayer(Arc::new(layer)));
                 }
                 Event::GraphPointMouseDown { point_address } => {
                     if self.dragging.is_none() {
@@ -98,7 +98,7 @@ impl GraphWindow {
                         });
                         self.selected_point_address = None;
                     }
-                    namui::event::send(super::super::InternalEvent::SetPlaybackTime(
+                    namui::event::send(crate::graph_editor::Event::SetPlaybackTime(
                         self.context.start_at
                             + PixelSize(mouse_local_xy.x) * self.context.time_per_pixel,
                     ));
@@ -173,7 +173,7 @@ impl GraphWindow {
             row_wh,
         );
 
-        namui::event::send(super::super::Event::UpdateLayer(Arc::new(layer)));
+        namui::event::send(crate::Event::UpdateLayer(Arc::new(layer)));
     }
     fn handle_background_dragging(
         &mut self,

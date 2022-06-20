@@ -54,7 +54,7 @@ impl GraphWindow {
             delta_xy,
         );
 
-        namui::event::send(super::super::super::Event::UpdateLayer(Arc::new(layer)));
+        namui::event::send(crate::Event::UpdateLayer(Arc::new(layer)));
     }
 
     fn handle_graph_move_and_zoom(&mut self, arrow: Arrow) {
@@ -152,7 +152,7 @@ impl GraphWindow {
         }
         let mut layer = layer.unwrap().clone();
         layer.image.x.delete(&selected_point_address.point_id);
-        namui::event::send(super::super::super::Event::UpdateLayer(Arc::new(layer)));
+        namui::event::send(crate::Event::UpdateLayer(Arc::new(layer)));
     }
 }
 
