@@ -56,7 +56,7 @@ impl ImageManager {
             match read_url_result {
                 Ok(data) => match CANVAS_KIT.get().unwrap().MakeImageFromEncoded(&data) {
                     Some(canvas_kit_image) => {
-                        let image = Image::from(canvas_kit_image);
+                        let image = Image::new(canvas_kit_image);
                         managers()
                             .image_manager
                             .image_map

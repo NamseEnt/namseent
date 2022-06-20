@@ -20,6 +20,23 @@ macro_rules! canvas_kit_enum {
             $($enum_item:ident: $static_enum_item:ident),* $(,)?
         }
     ) => {
+        canvas_kit_enum!(
+            $enum_name,
+            $canvas_enum_values_name,
+            $canvas_enum_name,
+            {
+                $($enum_item: $enum_item: $static_enum_item),*
+            }
+        );
+    };
+    (
+        $enum_name:ident,
+        $canvas_enum_values_name:ident,
+        $canvas_enum_name:ident,
+        {
+            $($enum_item:ident: $canvas_kit_enum_item:ident: $static_enum_item:ident),* $(,)?
+        }
+    ) => {
         #[wasm_bindgen]
         extern "C" {
             pub type $canvas_enum_values_name;
@@ -32,7 +49,7 @@ macro_rules! canvas_kit_enum {
 
             $(
                 #[wasm_bindgen(method, getter)]
-                pub fn $enum_item(this: &$canvas_enum_values_name) -> $canvas_enum_name;
+                pub fn $canvas_kit_enum_item(this: &$canvas_enum_values_name) -> $canvas_enum_name;
             )*
         }
 
@@ -40,7 +57,7 @@ macro_rules! canvas_kit_enum {
         lazy_static! {
             $(
                 pub static ref $static_enum_item: Lazy<f32> =
-                    Lazy::new(|| canvas_kit().$enum_name().$enum_item().value());
+                    Lazy::new(|| canvas_kit().$enum_name().$canvas_kit_enum_item().value());
             )*
         }
 
@@ -49,7 +66,7 @@ macro_rules! canvas_kit_enum {
             pub(crate) fn into_canvas_kit(&self) -> $canvas_enum_name {
                 match self {
                     $(
-                        $enum_name::$enum_item => canvas_kit().$enum_name().$enum_item(),
+                        $enum_name::$enum_item => canvas_kit().$enum_name().$canvas_kit_enum_item(),
                     )*
                 }
             }
@@ -110,15 +127,15 @@ canvas_kit_enum!(
     CanvasKitColorTypeEnumValues,
     CanvasKitColorType,
     {
-        Alpha8: COLOR_TYPE_ALPHA_8_VALUE,
-        Rgb565: COLOR_TYPE_RGB_565_VALUE,
-        Rgba8888: COLOR_TYPE_RGBA_8888_VALUE,
-        Bgra8888: COLOR_TYPE_BGRA_8888_VALUE,
-        Rgba1010102: COLOR_TYPE_RGBA_1010102_VALUE,
-        Rgb101010x: COLOR_TYPE_RGB_101010X_VALUE,
-        Gray8: COLOR_TYPE_GRAY_8_VALUE,
-        RgbaF16: COLOR_TYPE_RGBA_F16_VALUE,
-        RgbaF32: COLOR_TYPE_RGBA_F32_VALUE,
+        Alpha8: Alpha_8: COLOR_TYPE_ALPHA_8_VALUE,
+        Rgb565: RGB_565: COLOR_TYPE_RGB_565_VALUE,
+        Rgba8888: RGBA_8888: COLOR_TYPE_RGBA_8888_VALUE,
+        Bgra8888: BGRA_8888: COLOR_TYPE_BGRA_8888_VALUE,
+        Rgba1010102: RGBA_1010102: COLOR_TYPE_RGBA_1010102_VALUE,
+        Rgb101010x: RGB_101010x: COLOR_TYPE_RGB_101010X_VALUE,
+        Gray8: Gray_8: COLOR_TYPE_GRAY_8_VALUE,
+        RgbaF16: RGBA_F16: COLOR_TYPE_RGBA_F16_VALUE,
+        RgbaF32: RGBA_F32: COLOR_TYPE_RGBA_F32_VALUE,
     }
 );
 canvas_kit_enum!(
