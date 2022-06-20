@@ -7,7 +7,7 @@ pub struct TimeTextsProps<'a> {
 }
 
 pub fn render_time_texts(props: &TimeTextsProps) -> RenderingTree {
-    let left_margin_px: PixelSize = PixelSize::new(5.0);
+    let left_margin_px: PixelSize = PixelSize::from(5.0);
     const TEXT_SIZE: i16 = 10;
     RenderingTree::Children(
         props

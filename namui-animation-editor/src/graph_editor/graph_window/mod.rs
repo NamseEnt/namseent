@@ -122,10 +122,10 @@ impl GraphWindow {
             id: namui::nanoid(),
             context: GraphWindowContext {
                 start_at: Time::zero(),
-                time_per_pixel: Time::from_ms(50.0) / PixelSize::new(1.0),
+                time_per_pixel: Time::from_ms(50.0) / PixelSize::from(1.0),
             },
             x_context: PropertyContext {
-                pixel_size_zero_to_bottom: PixelSize::new(-20.0),
+                pixel_size_zero_to_bottom: PixelSize::from(-20.0),
                 value_per_pixel: ValuePerPixel {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
@@ -142,7 +142,7 @@ impl GraphWindow {
                 }),
             },
             y_context: PropertyContext {
-                pixel_size_zero_to_bottom: PixelSize::new(-20.0),
+                pixel_size_zero_to_bottom: PixelSize::from(-20.0),
                 value_per_pixel: ValuePerPixel {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
@@ -159,7 +159,7 @@ impl GraphWindow {
                 }),
             },
             width_context: PropertyContext {
-                pixel_size_zero_to_bottom: PixelSize::new(-20.0),
+                pixel_size_zero_to_bottom: PixelSize::from(-20.0),
                 value_per_pixel: ValuePerPixel {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
@@ -176,7 +176,7 @@ impl GraphWindow {
                 }),
             },
             height_context: PropertyContext {
-                pixel_size_zero_to_bottom: PixelSize::new(-20.0),
+                pixel_size_zero_to_bottom: PixelSize::from(-20.0),
                 value_per_pixel: ValuePerPixel {
                     value: 10.0.into(),
                     pixel_size: 1.0.into(),
@@ -193,7 +193,7 @@ impl GraphWindow {
                 }),
             },
             rotation_angle_context: PropertyContext {
-                pixel_size_zero_to_bottom: PixelSize::new(-20.0),
+                pixel_size_zero_to_bottom: PixelSize::from(-20.0),
                 value_per_pixel: ValuePerPixel {
                     value: 1.0.into(),
                     pixel_size: 1.0.into(),
@@ -210,7 +210,7 @@ impl GraphWindow {
                 }),
             },
             opacity_context: PropertyContext {
-                pixel_size_zero_to_bottom: PixelSize::new(-20.0),
+                pixel_size_zero_to_bottom: PixelSize::from(-20.0),
                 value_per_pixel: ValuePerPixel {
                     value: 0.01.into(),
                     pixel_size: 1.0.into(),

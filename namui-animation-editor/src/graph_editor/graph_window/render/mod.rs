@@ -284,14 +284,14 @@ fn render_graph_row(
                     .any_code_press([namui::Code::ShiftLeft, namui::Code::ShiftRight])
                 {
                     namui::event::send(Event::GraphShiftMouseWheel {
-                        delta: PixelSize::new(event.delta_xy.y),
+                        delta: PixelSize::from(event.delta_xy.y),
                     })
                 } else if managers
                     .keyboard_manager
                     .any_code_press([namui::Code::AltLeft, namui::Code::AltRight])
                 {
                     namui::event::send(Event::GraphAltMouseWheel {
-                        delta: PixelSize::new(event.delta_xy.y),
+                        delta: PixelSize::from(event.delta_xy.y),
                         mouse_local_xy,
                     })
                 } else if managers
@@ -299,7 +299,7 @@ fn render_graph_row(
                     .any_code_press([namui::Code::ControlLeft, namui::Code::ControlRight])
                 {
                     namui::event::send(Event::GraphCtrlMouseWheel {
-                        delta: PixelSize::new(event.delta_xy.y),
+                        delta: PixelSize::from(event.delta_xy.y),
                         mouse_local_xy,
                         property_name,
                         row_wh: wh,

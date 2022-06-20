@@ -17,6 +17,62 @@ impl WysiwygWindow {
             .iter()
             .map(|layer| self.render_layer(layer));
 
+        let background =
+            simple_rect(props.wh, Color::BLACK, 1.0, Color::TRANSPARENT).attach_event(|builder| {
+                builder
+                    .on_mouse_down(|event| {
+                        namui::event::send(super::Event::BackgroundClicked {
+                            mouse_xy: event.local_xy,
+                        });
+                    })
+                    .on_mouse_move_in(|event| {
+                        namui::event::send(super::Event::MouseMoveIn {
+                            mouse_local_xy: event.local_xy,
+                        });
+                    })
+                    .on_wheel(move |event| {
+                        let managers = namui::managers();
+                        let mouse_global_xy = managers.mouse_manager.mouse_position();
+                        let row_xy = event
+                            .namui_context
+                            .get_rendering_tree_xy(event.target)
+                            .expect("ERROR: fail to get rendering_tree_xy");
+
+                        let mouse_local_xy = Xy {
+                            x: mouse_global_xy.x as f32 - row_xy.x,
+                            y: mouse_global_xy.y as f32 - row_xy.y,
+                        };
+
+                        if mouse_local_xy.x < 0.0
+                            || wh.width < mouse_local_xy.x
+                            || mouse_local_xy.y < 0.0
+                            || wh.height < mouse_local_xy.y
+                        {
+                            return;
+                        }
+                        if managers
+                            .keyboard_manager
+                            .any_code_press([Code::ShiftLeft, Code::ShiftRight])
+                        {
+                            namui::event::send(super::Event::ShiftWheel {
+                                delta: event.delta_xy.y,
+                            });
+                        } else if managers
+                            .keyboard_manager
+                            .any_code_press([Code::AltLeft, Code::AltRight])
+                        {
+                            namui::event::send(super::Event::AltWheel {
+                                delta: event.delta_xy.y,
+                                mouse_local_xy,
+                            });
+                        } else {
+                            namui::event::send(super::Event::Wheel {
+                                delta: event.delta_xy.y,
+                            });
+                        }
+                    })
+            });
+
         clip(
             PathBuilder::new().add_rect(&LtrbRect {
                 left: 0.0,
@@ -26,6 +82,7 @@ impl WysiwygWindow {
             }),
             ClipOp::Intersect,
             render([
+                background,
                 scale(
                     1.0 / self.real_pixel_size_per_screen_pixel_size,
                     1.0 / self.real_pixel_size_per_screen_pixel_size,
@@ -34,62 +91,6 @@ impl WysiwygWindow {
                         -self.real_left_top_xy.y,
                         render(layers.chain([self.render_viewport()])),
                     ),
-                ),
-                simple_rect(props.wh, Color::BLACK, 1.0, Color::TRANSPARENT).attach_event(
-                    |builder| {
-                        builder
-                            .on_mouse_down(|event| {
-                                namui::event::send(super::Event::BackgroundClicked {
-                                    mouse_xy: event.local_xy,
-                                });
-                            })
-                            .on_mouse_move_in(|event| {
-                                namui::event::send(super::Event::MouseMoveIn {
-                                    mouse_xy: event.local_xy,
-                                });
-                            })
-                            .on_wheel(move |event| {
-                                let managers = namui::managers();
-                                let mouse_global_xy = managers.mouse_manager.mouse_position();
-                                let row_xy = event
-                                    .namui_context
-                                    .get_rendering_tree_xy(event.target)
-                                    .expect("ERROR: fail to get rendering_tree_xy");
-
-                                let mouse_local_xy = Xy {
-                                    x: mouse_global_xy.x as f32 - row_xy.x,
-                                    y: mouse_global_xy.y as f32 - row_xy.y,
-                                };
-
-                                if mouse_local_xy.x < 0.0
-                                    || wh.width < mouse_local_xy.x
-                                    || mouse_local_xy.y < 0.0
-                                    || wh.height < mouse_local_xy.y
-                                {
-                                    return;
-                                }
-                                if managers
-                                    .keyboard_manager
-                                    .any_code_press([Code::ShiftLeft, Code::ShiftRight])
-                                {
-                                    namui::event::send(super::Event::ShiftWheel {
-                                        delta: event.delta_xy.y,
-                                    });
-                                } else if managers
-                                    .keyboard_manager
-                                    .any_code_press([Code::AltLeft, Code::AltRight])
-                                {
-                                    namui::event::send(super::Event::AltWheel {
-                                        delta: event.delta_xy.y,
-                                        mouse_local_xy,
-                                    });
-                                } else {
-                                    namui::event::send(super::Event::Wheel {
-                                        delta: event.delta_xy.y,
-                                    });
-                                }
-                            })
-                    },
                 ),
             ]),
         )

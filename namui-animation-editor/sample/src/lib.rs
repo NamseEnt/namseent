@@ -32,16 +32,15 @@ struct AnimationEditorExample {
 impl AnimationEditorExample {
     fn new() -> Self {
         let mut image = namui::animation::AnimatableImage::new();
-        namui::log!("{:?}", namui::fs::bundle::read_dir("img"));
 
         image.image_source_url =
             Some(Url::parse("bundle:img/%EB%86%80%EB%9E%8C%EB%8C%80.png").unwrap());
         image.x.put(
-            KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize::new(0.0)),
+            KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize::from(0.0)),
             animation::KeyframeLine::Linear,
         );
         image.y.put(
-            KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize::new(0.0)),
+            KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize::from(0.0)),
             animation::KeyframeLine::Linear,
         );
         image.width.put(

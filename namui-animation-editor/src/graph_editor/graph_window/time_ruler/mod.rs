@@ -20,8 +20,8 @@ pub struct Gradation {
 
 pub(super) fn render(props: &Props) -> RenderingTree {
     let gradation_gap_time = get_gradation_gap_time(
-        PixelSize::new(100.0),
-        PixelSize::new(500.0),
+        PixelSize::from(100.0),
+        PixelSize::from(500.0),
         props.time_per_pixel,
     );
 
@@ -73,7 +73,7 @@ pub(super) fn render(props: &Props) -> RenderingTree {
                             return;
                         }
                         let click_position_in_time =
-                            PixelSize::new(event.local_xy.x) * time_per_pixel + start_at;
+                            PixelSize::from(event.local_xy.x) * time_per_pixel + start_at;
                         namui::event::send(super::Event::TimelineTimeRulerClicked {
                             click_position_in_time,
                         });

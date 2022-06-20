@@ -167,7 +167,7 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
         };
 
         let time_at_x =
-            context.start_at + context.time_per_pixel * PixelSize::new(mouse_local_xy.x);
+            context.start_at + context.time_per_pixel * PixelSize::from(mouse_local_xy.x);
 
         let value_at_y = property_context.get_value_on_y(wh.height.into(), mouse_local_xy.y.into());
 
@@ -308,6 +308,6 @@ fn get_y_of_value<TValue: KeyframeValue + Copy + From<f32> + Into<f32>>(
     height: f32,
     value: TValue,
 ) -> PixelSize {
-    PixelSize::new(height) + property_context.pixel_size_zero_to_bottom
+    PixelSize::from(height) + property_context.pixel_size_zero_to_bottom
         - property_context.value_per_pixel.get_pixel_size(value)
 }

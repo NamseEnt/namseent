@@ -75,7 +75,7 @@ impl GraphWindow {
             match arrow {
                 Arrow::Left | Arrow::Right => {
                     let time_at_mouse_position = self.context.start_at
-                        + PixelSize::new(mouse_over_row.mouse_local_xy.x)
+                        + PixelSize::from(mouse_over_row.mouse_local_xy.x)
                             * self.context.time_per_pixel;
 
                     let next_time_per_pixel = zoom_time_per_pixel(
@@ -88,7 +88,7 @@ impl GraphWindow {
                     );
 
                     let next_start_at = time_at_mouse_position
-                        - PixelSize::new(mouse_over_row.mouse_local_xy.x) * next_time_per_pixel;
+                        - PixelSize::from(mouse_over_row.mouse_local_xy.x) * next_time_per_pixel;
 
                     self.context.time_per_pixel = next_time_per_pixel;
                     self.context.start_at = next_start_at;
@@ -113,7 +113,7 @@ impl GraphWindow {
             match arrow {
                 Arrow::Left | Arrow::Right => {
                     self.context.start_at += self.context.time_per_pixel
-                        * PixelSize::new(match arrow {
+                        * PixelSize::from(match arrow {
                             Arrow::Left => -10.0,
                             Arrow::Right => 10.0,
                             _ => unreachable!(),

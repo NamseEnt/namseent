@@ -15,7 +15,7 @@ impl GraphWindow {
             anchor_y: f32,
             row_height: f32,
         ) {
-            let bottom_to_anchor = PixelSize::new(row_height - anchor_y);
+            let bottom_to_anchor = PixelSize::from(row_height - anchor_y);
 
             let next_value_per_pixel = property_context
                 .zoom
@@ -58,7 +58,7 @@ impl GraphWindow {
             property_context: &mut PropertyContext<TValue>,
             delta: f32,
         ) {
-            property_context.pixel_size_zero_to_bottom += PixelSize::new(delta);
+            property_context.pixel_size_zero_to_bottom += PixelSize::from(delta);
         }
 
         match property_name {
