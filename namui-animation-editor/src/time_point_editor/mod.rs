@@ -24,8 +24,6 @@ impl TimePointEditor {
         self.wysiwyg_window.update(event);
     }
     pub fn render(&self, props: Props) -> namui::RenderingTree {
-        let animation = self.animation.read();
-
         vertical([
             ratio(
                 8.0,

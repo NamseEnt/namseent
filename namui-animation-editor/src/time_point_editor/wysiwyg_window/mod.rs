@@ -9,6 +9,7 @@ pub struct WysiwygWindow {
     real_pixel_size_per_screen_pixel_size: f32,
     last_wh: Option<Wh<f32>>,
     playback_time: Time,
+    selected_layer_id: Option<String>,
 }
 
 pub struct Props {
@@ -22,6 +23,7 @@ enum Event {
     Wheel { delta: f32 },
     AltWheel { delta: f32, mouse_local_xy: Xy<f32> },
     UpdateWh { wh: Wh<f32> },
+    LayerClicked { layer_id: String },
 }
 
 impl WysiwygWindow {
@@ -33,6 +35,7 @@ impl WysiwygWindow {
             real_pixel_size_per_screen_pixel_size: 2.0,
             last_wh: None,
             playback_time: Time::zero(),
+            selected_layer_id: None,
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -77,6 +80,9 @@ impl WysiwygWindow {
                 Event::UpdateWh { wh } => {
                     self.last_wh = Some(*wh);
                     self.center_viewport(*wh);
+                }
+                Event::LayerClicked { layer_id } => {
+                    self.selected_layer_id = Some(layer_id.clone());
                 }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
