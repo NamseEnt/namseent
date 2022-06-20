@@ -111,7 +111,7 @@ pub fn try_render(func: impl FnOnce() -> Option<RenderingTree>) -> RenderingTree
 
 pub type Rendering = RenderingTree;
 
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq)]
 pub struct Wh<T> {
     pub width: T,
     pub height: T,

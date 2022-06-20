@@ -4,9 +4,10 @@ mod render;
 
 pub struct WysiwygWindow {
     animation: crate::ReadOnlyLock<animation::Animation>,
-    left_top_xy: Xy<f32>,
+    real_left_top_xy: Xy<f32>,
     mouse_drag_anchor_xy: Option<Xy<f32>>,
     real_pixel_size_per_screen_pixel_size: f32,
+    last_wh: Option<Wh<f32>>,
 }
 
 pub struct Props {
@@ -19,15 +20,17 @@ enum Event {
     ShiftWheel { delta: f32 },
     Wheel { delta: f32 },
     AltWheel { delta: f32, mouse_local_xy: Xy<f32> },
+    UpdateWh { wh: Wh<f32> },
 }
 
 impl WysiwygWindow {
     pub fn new(animation: crate::ReadOnlyLock<animation::Animation>) -> Self {
         Self {
             animation,
-            left_top_xy: Xy { x: -5.0, y: -5.0 },
+            real_left_top_xy: Xy { x: -5.0, y: -5.0 },
             mouse_drag_anchor_xy: None,
             real_pixel_size_per_screen_pixel_size: 2.0,
+            last_wh: None,
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -40,16 +43,16 @@ impl WysiwygWindow {
                     if let Some(mouse_drag_anchor_xy) = self.mouse_drag_anchor_xy {
                         let delta = self.real_pixel_size_per_screen_pixel_size
                             * (mouse_drag_anchor_xy - *mouse_xy);
-                        self.left_top_xy = self.left_top_xy + delta;
+                        self.real_left_top_xy = self.real_left_top_xy + delta;
 
                         self.mouse_drag_anchor_xy = Some(*mouse_xy);
                     }
                 }
                 Event::ShiftWheel { delta } => {
-                    self.left_top_xy.x += delta;
+                    self.real_left_top_xy.x += delta;
                 }
                 Event::Wheel { delta } => {
-                    self.left_top_xy.y += delta;
+                    self.real_left_top_xy.y += delta;
                 }
                 Event::AltWheel {
                     delta,
@@ -58,24 +61,50 @@ impl WysiwygWindow {
                     let next_real_pixel_size_per_screen_pixel_size =
                         zoom(self.real_pixel_size_per_screen_pixel_size, *delta);
 
-                    let real_xy_on_mouse_xy = self.left_top_xy
+                    let real_xy_on_mouse_xy = self.real_left_top_xy
                         + self.real_pixel_size_per_screen_pixel_size * *mouse_local_xy;
 
                     let next_left_top_xy = real_xy_on_mouse_xy
                         - next_real_pixel_size_per_screen_pixel_size * *mouse_local_xy;
 
-                    self.left_top_xy = next_left_top_xy;
+                    self.real_left_top_xy = next_left_top_xy;
 
                     self.real_pixel_size_per_screen_pixel_size =
                         next_real_pixel_size_per_screen_pixel_size;
+                }
+                Event::UpdateWh { wh } => {
+                    self.last_wh = Some(*wh);
+                    self.center_viewport(*wh);
                 }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
                 NamuiEvent::MouseUp(_) => self.mouse_drag_anchor_xy = None,
+                NamuiEvent::KeyDown(event) => {
+                    if let Some(wh) = self.last_wh {
+                        if event.code == Code::Space {
+                            self.center_viewport(wh);
+                        }
+                    }
+                }
                 _ => {}
             }
         }
+    }
+
+    fn center_viewport(&mut self, wh: Wh<f32>) {
+        let viewport_center_in_real_pixel = Xy {
+            x: 1920.0 / 2.0,
+            y: 1080.0 / 2.0,
+        };
+
+        let window_center_in_real_pixel = self.real_pixel_size_per_screen_pixel_size / 2.0
+            * Xy {
+                x: wh.width,
+                y: wh.height,
+            };
+
+        self.real_left_top_xy = viewport_center_in_real_pixel - window_center_in_real_pixel;
     }
 }
 

@@ -6,6 +6,11 @@ impl WysiwygWindow {
         let animation = self.animation.read();
         let wh = props.wh;
 
+        if self.last_wh != Some(wh) {
+            namui::event::send(Event::UpdateWh { wh });
+            return RenderingTree::Empty;
+        }
+
         clip(
             PathBuilder::new().add_rect(&LtrbRect {
                 left: 0.0,

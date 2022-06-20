@@ -3,8 +3,8 @@ use super::*;
 impl WysiwygWindow {
     pub(crate) fn render_viewport(&self) -> namui::RenderingTree {
         translate(
-            -self.left_top_xy.x,
-            -self.left_top_xy.y,
+            -self.real_left_top_xy.x,
+            -self.real_left_top_xy.y,
             simple_rect(
                 Wh {
                     width: 1920.0,
