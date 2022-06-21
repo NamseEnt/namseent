@@ -71,6 +71,17 @@ impl TimelineWindow {
                         })
                 });
 
+        let playback_time_x = (props.playback_time - self.start_at) / self.time_per_pixel;
+        let playback_time_line = namui::path(
+            PathBuilder::new()
+                .move_to(playback_time_x.into(), 0.0)
+                .line_to(playback_time_x.into(), props.wh.height),
+            PaintBuilder::new()
+                .set_style(PaintStyle::Stroke)
+                .set_color(Color::RED)
+                .set_stroke_width(1.0),
+        );
+
         render([
             background_for_event,
             vertical([
@@ -92,6 +103,7 @@ impl TimelineWindow {
                 }),
                 ratio(7.0, |wh| self.render_selected_layer_timeline(wh, &props)),
             ])(props.wh),
+            playback_time_line,
         ])
     }
 }

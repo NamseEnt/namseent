@@ -30,6 +30,7 @@ impl TimelineWindow {
 pub(crate) struct Props<'a> {
     pub layers: &'a [Layer],
     pub wh: Wh<f32>,
+    pub playback_time: Time,
 }
 
 enum Event {

@@ -12,13 +12,16 @@ pub struct TimePointEditor {
     image_select_window: image_select_window::ImageSelectWindow,
     layer_list_window: layer_list_window::LayerListWindow,
     selected_layer_id: Option<String>,
+    playback_time: Time,
 }
 
 pub struct Props {
     pub wh: Wh<f32>,
 }
 
-pub(crate) enum Event {}
+pub(crate) enum Event {
+    UpdatePlaybackTime(Time),
+}
 
 impl TimePointEditor {
     pub fn new(animation: crate::ReadOnlyLock<animation::Animation>) -> Self {
@@ -29,6 +32,7 @@ impl TimePointEditor {
             layer_list_window: layer_list_window::LayerListWindow::new(),
             animation,
             selected_layer_id: None,
+            playback_time: Time::zero(),
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -37,6 +41,12 @@ impl TimePointEditor {
                 layer_list_window::Event::LayerSelected(layer_id) => {
                     self.selected_layer_id = Some(layer_id.clone());
                     self.timeline_window.selected_layer_id = self.selected_layer_id.clone();
+                }
+            }
+        } else if let Some(event) = event.downcast_ref::<Event>() {
+            match event {
+                Event::UpdatePlaybackTime(time) => {
+                    self.playback_time = *time;
                 }
             }
         }
@@ -81,7 +91,10 @@ impl TimePointEditor {
                         ]),
                     ),
                     ratio(8.0, |wh| {
-                        self.wysiwyg_window.render(wysiwyg_window::Props { wh })
+                        self.wysiwyg_window.render(wysiwyg_window::Props {
+                            wh,
+                            playback_time: self.playback_time,
+                        })
                     }),
                 ]),
             ),
@@ -89,6 +102,7 @@ impl TimePointEditor {
                 self.timeline_window.render(timeline_window::Props {
                     wh,
                     layers: &animation.layers,
+                    playback_time: self.playback_time,
                 })
             }),
         ])(Wh {

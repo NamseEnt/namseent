@@ -47,22 +47,26 @@ impl WysiwygWindow {
                 Event::LayerClicked {
                     layer_id,
                     anchor_xy,
+                    playback_time,
                 } => {
                     self.selected_layer_id = Some(layer_id.clone());
                     if self.dragging.is_none() {
                         self.dragging = Some(Dragging::ImageBody {
                             anchor_xy: *anchor_xy,
+                            playback_time: *playback_time,
                         });
                     }
                 }
                 &Event::ResizeCircleClicked {
                     location,
                     anchor_xy,
+                    playback_time,
                 } => {
                     if self.dragging.is_none() {
                         self.dragging = Some(Dragging::ResizeCircle {
                             location,
                             anchor_xy,
+                            playback_time,
                         });
                     }
                 }

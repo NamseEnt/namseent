@@ -8,11 +8,25 @@ pub struct WysiwygWindow {
     real_left_top_xy: Xy<f32>,
     real_pixel_size_per_screen_pixel_size: f32,
     last_wh: Option<Wh<f32>>,
-    playback_time: Time,
     selected_layer_id: Option<String>,
     dragging: Option<Dragging>,
     mouse_local_xy: Option<Xy<f32>>,
 }
+
+impl WysiwygWindow {
+    pub fn new(animation: crate::ReadOnlyLock<animation::Animation>) -> Self {
+        Self {
+            animation,
+            real_left_top_xy: Xy { x: -5.0, y: -5.0 },
+            real_pixel_size_per_screen_pixel_size: 2.0,
+            last_wh: None,
+            selected_layer_id: None,
+            dragging: None,
+            mouse_local_xy: None,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 enum ResizeCircleLocation {
     LeftTop,
@@ -32,14 +46,17 @@ enum Dragging {
     ResizeCircle {
         location: ResizeCircleLocation,
         anchor_xy: Xy<f32>,
+        playback_time: Time,
     },
     ImageBody {
         anchor_xy: Xy<f32>,
+        playback_time: Time,
     },
 }
 
 pub struct Props {
     pub wh: Wh<f32>,
+    pub playback_time: Time,
 }
 
 enum Event {
@@ -65,24 +82,11 @@ enum Event {
     LayerClicked {
         layer_id: String,
         anchor_xy: Xy<f32>,
+        playback_time: Time,
     },
     ResizeCircleClicked {
         location: ResizeCircleLocation,
         anchor_xy: Xy<f32>,
+        playback_time: Time,
     },
-}
-
-impl WysiwygWindow {
-    pub fn new(animation: crate::ReadOnlyLock<animation::Animation>) -> Self {
-        Self {
-            animation,
-            real_left_top_xy: Xy { x: -5.0, y: -5.0 },
-            real_pixel_size_per_screen_pixel_size: 2.0,
-            last_wh: None,
-            playback_time: Time::zero(),
-            selected_layer_id: None,
-            dragging: None,
-            mouse_local_xy: None,
-        }
-    }
 }

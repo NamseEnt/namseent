@@ -30,6 +30,10 @@ impl TimelineWindow {
                             last_mouse_local_xy: mouse_local_xy,
                         });
                     }
+
+                    let time =
+                        self.start_at + PixelSize::from(mouse_local_xy.x) * self.time_per_pixel;
+                    namui::event::send(crate::time_point_editor::Event::UpdatePlaybackTime(time));
                 }
                 &Event::TimelineMouseMoveIn { mouse_local_xy } => {
                     self.handle_timeline_dragging(mouse_local_xy);

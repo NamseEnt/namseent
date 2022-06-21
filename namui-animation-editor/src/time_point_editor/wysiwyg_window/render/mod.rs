@@ -15,7 +15,7 @@ impl WysiwygWindow {
         let layers = animation
             .layers
             .iter()
-            .map(|layer| self.render_layer(layer));
+            .map(|layer| self.render_layer(layer, props.playback_time));
 
         let background =
             simple_rect(props.wh, Color::BLACK, 1.0, Color::TRANSPARENT).attach_event(|builder| {

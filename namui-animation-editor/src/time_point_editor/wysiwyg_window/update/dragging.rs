@@ -26,6 +26,7 @@ impl WysiwygWindow {
             &Dragging::ResizeCircle {
                 location,
                 anchor_xy,
+                playback_time,
             } => {
                 let delta_in_real =
                     self.real_pixel_size_per_screen_pixel_size * (mouse_local_xy - anchor_xy);
@@ -45,17 +46,25 @@ impl WysiwygWindow {
                     | ResizeCircleLocation::RightTop => {
                         self.update_size(
                             &mut layer,
+                            playback_time,
                             delta_in_real,
                             WidthHeight::Height,
                             PlusMinus::Minus,
                         );
-                        self.update_xy(&mut layer, delta_in_real, XY::Y, PlusMinus::Plus);
+                        self.update_xy(
+                            &mut layer,
+                            playback_time,
+                            delta_in_real,
+                            XY::Y,
+                            PlusMinus::Plus,
+                        );
                     }
                     ResizeCircleLocation::LeftBottom
                     | ResizeCircleLocation::Bottom
                     | ResizeCircleLocation::RightBottom => {
                         self.update_size(
                             &mut layer,
+                            playback_time,
                             delta_in_real,
                             WidthHeight::Height,
                             PlusMinus::Plus,
@@ -70,17 +79,25 @@ impl WysiwygWindow {
                     | ResizeCircleLocation::LeftBottom => {
                         self.update_size(
                             &mut layer,
+                            playback_time,
                             delta_in_real,
                             WidthHeight::Width,
                             PlusMinus::Minus,
                         );
-                        self.update_xy(&mut layer, delta_in_real, XY::X, PlusMinus::Plus);
+                        self.update_xy(
+                            &mut layer,
+                            playback_time,
+                            delta_in_real,
+                            XY::X,
+                            PlusMinus::Plus,
+                        );
                     }
                     ResizeCircleLocation::RightTop
                     | ResizeCircleLocation::Right
                     | ResizeCircleLocation::RightBottom => {
                         self.update_size(
                             &mut layer,
+                            playback_time,
                             delta_in_real,
                             WidthHeight::Width,
                             PlusMinus::Plus,
@@ -94,9 +111,13 @@ impl WysiwygWindow {
                 self.dragging = Some(Dragging::ResizeCircle {
                     location,
                     anchor_xy: mouse_local_xy,
+                    playback_time,
                 });
             }
-            Dragging::ImageBody { anchor_xy } => {
+            &Dragging::ImageBody {
+                anchor_xy,
+                playback_time,
+            } => {
                 let delta_in_real =
                     self.real_pixel_size_per_screen_pixel_size * (mouse_local_xy - anchor_xy);
 
@@ -109,13 +130,26 @@ impl WysiwygWindow {
                 }
                 let mut layer = layer.unwrap().clone();
 
-                self.update_xy(&mut layer, delta_in_real, XY::X, PlusMinus::Plus);
-                self.update_xy(&mut layer, delta_in_real, XY::Y, PlusMinus::Plus);
+                self.update_xy(
+                    &mut layer,
+                    playback_time,
+                    delta_in_real,
+                    XY::X,
+                    PlusMinus::Plus,
+                );
+                self.update_xy(
+                    &mut layer,
+                    playback_time,
+                    delta_in_real,
+                    XY::Y,
+                    PlusMinus::Plus,
+                );
 
                 namui::event::send(crate::Event::UpdateLayer(Arc::new(layer)));
 
                 self.dragging = Some(Dragging::ImageBody {
                     anchor_xy: mouse_local_xy,
+                    playback_time,
                 });
             }
         }
@@ -123,6 +157,7 @@ impl WysiwygWindow {
     fn update_size(
         &self,
         layer: &mut Layer,
+        playback_time: Time,
         delta_in_real: Xy<f32>,
         width_height: WidthHeight,
         plus_minus: PlusMinus,
@@ -136,7 +171,7 @@ impl WysiwygWindow {
             WidthHeight::Width => &mut layer.image.width,
             WidthHeight::Height => &mut layer.image.height,
         };
-        let value = graph.get_value(self.playback_time).unwrap();
+        let value = graph.get_value(playback_time).unwrap();
         let image_value = match width_height {
             WidthHeight::Width => image_wh.width,
             WidthHeight::Height => image_wh.height,
@@ -152,16 +187,23 @@ impl WysiwygWindow {
             });
         let next_value = Percent::from(next / image_value);
         graph.put(
-            KeyframePoint::new(self.playback_time, next_value),
+            KeyframePoint::new(playback_time, next_value),
             animation::KeyframeLine::Linear,
         );
     }
-    fn update_xy(&self, layer: &mut Layer, delta_in_real: Xy<f32>, x_y: XY, plus_minus: PlusMinus) {
+    fn update_xy(
+        &self,
+        layer: &mut Layer,
+        playback_time: Time,
+        delta_in_real: Xy<f32>,
+        x_y: XY,
+        plus_minus: PlusMinus,
+    ) {
         let graph = match x_y {
             XY::X => &mut layer.image.x,
             XY::Y => &mut layer.image.y,
         };
-        let value = graph.get_value(self.playback_time).unwrap();
+        let value = graph.get_value(playback_time).unwrap();
         let current: f32 = value.into();
         let next = current
             + (match plus_minus {
@@ -173,7 +215,7 @@ impl WysiwygWindow {
             });
         let next_value = next.into();
         graph.put(
-            KeyframePoint::new(self.playback_time, next_value),
+            KeyframePoint::new(playback_time, next_value),
             animation::KeyframeLine::Linear,
         );
     }

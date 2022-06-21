@@ -3,10 +3,10 @@ use namui::animation::{Animate, Layer};
 mod editing_tool;
 
 impl WysiwygWindow {
-    pub(super) fn render_layer(&self, layer: &Layer) -> namui::RenderingTree {
+    pub(super) fn render_layer(&self, layer: &Layer, playback_time: Time) -> namui::RenderingTree {
         let rendered_image = layer
             .image
-            .render(self.playback_time)
+            .render(playback_time)
             .with_mouse_cursor(if self.selected_layer_id == Some(layer.id.clone()) {
                 let is_dragging = false; // TODO
                 if is_dragging {
@@ -32,11 +32,12 @@ impl WysiwygWindow {
                     namui::event::send(super::Event::LayerClicked {
                         layer_id: layer_id.clone(),
                         anchor_xy,
+                        playback_time,
                     });
                 })
             });
 
-        let editing_tool = self.render_editing_tool(&layer, &rendered_image);
+        let editing_tool = self.render_editing_tool(&layer, playback_time, &rendered_image);
         render([rendered_image, editing_tool])
     }
 }

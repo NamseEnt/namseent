@@ -4,6 +4,7 @@ impl WysiwygWindow {
     pub(super) fn render_editing_tool(
         &self,
         layer: &Layer,
+        playback_time: Time,
         rendered_image: &RenderingTree,
     ) -> namui::RenderingTree {
         if self.selected_layer_id != Some(layer.id.clone()) {
@@ -17,14 +18,17 @@ impl WysiwygWindow {
         translate(
             bounding_box.x,
             bounding_box.y,
-            render([self.render_border(wh), self.render_circles(wh)]),
+            render([
+                self.render_border(wh),
+                self.render_circles(wh, playback_time),
+            ]),
         )
     }
 
     fn render_border(&self, wh: Wh<f32>) -> RenderingTree {
         simple_rect(wh, Color::grayscale_f01(0.2), 2.0, Color::TRANSPARENT)
     }
-    fn render_circles(&self, wh: Wh<f32>) -> RenderingTree {
+    fn render_circles(&self, wh: Wh<f32>, playback_time: Time) -> RenderingTree {
         const CIRCLE_RADIUS: f32 = 10.0;
         let circle_path = PathBuilder::new().add_oval(&LtrbRect {
             left: -CIRCLE_RADIUS,
@@ -111,6 +115,7 @@ impl WysiwygWindow {
                                 namui::event::send(Event::ResizeCircleClicked {
                                     location,
                                     anchor_xy: mouse_local_xy,
+                                    playback_time,
                                 });
                             })
                         }),
