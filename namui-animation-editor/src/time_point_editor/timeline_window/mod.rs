@@ -10,6 +10,7 @@ pub struct TimelineWindow {
     time_per_pixel: TimePerPixel,
     dragging: Option<Dragging>,
     pub selected_layer_id: Option<String>,
+    selected_point_ids: Option<Vec<String>>,
 }
 
 impl TimelineWindow {
@@ -21,6 +22,7 @@ impl TimelineWindow {
             time_per_pixel: TimePerPixel::from_ms_per_pixel(100.0),
             dragging: None,
             selected_layer_id: None,
+            selected_point_ids: None,
         }
     }
 }

@@ -63,10 +63,13 @@ impl TimelineWindow {
             .set_style(PaintStyle::Fill)
             .set_color(Color::BLACK)
             .set_anti_alias(true);
+        let selected_paint_builder = paint_builder.clone().set_color(Color::RED);
+
         let sign = namui::path(path_builder.clone(), paint_builder.clone());
+        let selected_sign = namui::path(path_builder.clone(), selected_paint_builder.clone());
 
         let signs = keyframes
-            .into_iter()
+            .iter()
             .filter(|keyframe| {
                 self.start_at <= keyframe.time
                     && keyframe.time
@@ -74,10 +77,21 @@ impl TimelineWindow {
             })
             .map(|keyframe| {
                 let x = (keyframe.time - self.start_at) / self.time_per_pixel;
+                let is_selected = match &self.selected_point_ids {
+                    Some(selected_point_ids) => selected_point_ids
+                        .iter()
+                        .any(|id| keyframe.point_ids.contains(id)),
+                    None => false,
+                };
+
+                let sign = match is_selected {
+                    true => selected_sign.clone(),
+                    false => sign.clone(),
+                };
                 translate(
                     x.into(),
                     0.0,
-                    sign.clone().attach_event(|builder| {
+                    sign.attach_event(|builder| {
                         let point_ids = keyframe.point_ids.clone();
                         builder.on_mouse_down(move |event| {
                             namui::event::send(Event::KeyframeClicked {

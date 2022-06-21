@@ -25,6 +25,7 @@ impl TimelineWindow {
                 }
                 &Event::TimelineClicked { mouse_local_xy } => {
                     if self.dragging.is_none() {
+                        self.selected_point_ids = None;
                         self.dragging = Some(Dragging::Background {
                             last_mouse_local_xy: mouse_local_xy,
                         });
@@ -37,6 +38,7 @@ impl TimelineWindow {
                     point_ids,
                     anchor_xy,
                 } => {
+                    self.selected_point_ids = Some(point_ids.clone());
                     if self.dragging.is_none() {
                         self.dragging = Some(Dragging::Keyframe {
                             point_ids: point_ids.clone(),
