@@ -59,6 +59,31 @@ impl TimelineWindow {
                 NamuiEvent::MouseUp(_) => {
                     self.dragging = None;
                 }
+                NamuiEvent::KeyDown(event) => match event.code {
+                    Code::Delete => {
+                        if let Some(selected_point_ids) = &self.selected_point_ids {
+                            let selected_layer_id = self.selected_layer_id.as_ref().unwrap();
+
+                            let animation = self.animation.read();
+
+                            let mut layer = animation
+                                .layers
+                                .iter()
+                                .find(|layer| layer.id.eq(selected_layer_id))
+                                .unwrap()
+                                .clone();
+
+                            for point_id in selected_point_ids {
+                                delete_point(&mut layer, point_id);
+                            }
+
+                            namui::event::send(crate::Event::UpdateLayer(Arc::new(layer)));
+
+                            self.selected_point_ids = None;
+                        }
+                    }
+                    _ => {}
+                },
                 _ => {}
             }
         }
@@ -170,4 +195,13 @@ fn add_new_point<T: KeyframeValue + Clone>(
         KeyframePoint::new(time, value_x),
         animation::KeyframeLine::Linear,
     );
+}
+
+fn delete_point(layer: &mut Layer, point_id: &str) {
+    layer.image.x.delete(point_id);
+    layer.image.y.delete(point_id);
+    layer.image.width.delete(point_id);
+    layer.image.height.delete(point_id);
+    layer.image.opacity.delete(point_id);
+    layer.image.rotation_angle.delete(point_id);
 }
