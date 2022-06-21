@@ -5,6 +5,8 @@ mod read_only_lock;
 pub(crate) use read_only_lock::ReadOnlyLock;
 pub mod animation_editor;
 pub use animation_editor::{AnimationEditor, Props};
+pub(crate) mod image_select_window;
+pub(crate) mod layer_list_window;
 mod time_point_editor;
 pub(crate) mod time_ruler;
 pub(crate) mod zoom;

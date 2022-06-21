@@ -2,8 +2,8 @@ use namui::{prelude::*, types::Time};
 use namui_prebuilt::{table::*, *};
 use std::sync::Arc;
 mod graph_window;
-mod image_select_window;
-mod layer_list_window;
+use crate::image_select_window;
+use crate::layer_list_window;
 mod preview_window;
 
 pub struct GraphEditor {

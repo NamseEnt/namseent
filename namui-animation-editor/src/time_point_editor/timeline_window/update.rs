@@ -21,6 +21,40 @@ impl TimelineWindow {
                     self.time_per_pixel = next_time_per_pixel;
                     self.start_at = next_start_at;
                 }
+                &Event::TimelineClicked { mouse_local_xy } => {
+                    if self.dragging.is_none() {
+                        self.dragging = Some(Dragging::Background {
+                            last_mouse_local_xy: mouse_local_xy,
+                        });
+                    }
+                }
+                &Event::TimelineMouseMoveIn { mouse_local_xy } => {
+                    self.handle_timeline_dragging(mouse_local_xy);
+                }
+            }
+        } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
+            match event {
+                NamuiEvent::MouseUp(_) => {
+                    self.dragging = None;
+                }
+                _ => {}
+            }
+        }
+    }
+    fn handle_timeline_dragging(&mut self, mouse_local_xy: Xy<f32>) {
+        if self.dragging.is_none() {
+            return;
+        }
+
+        let dragging = self.dragging.as_mut().unwrap();
+
+        match dragging {
+            Dragging::Background {
+                last_mouse_local_xy,
+            } => {
+                let delta = mouse_local_xy - *last_mouse_local_xy;
+                self.start_at -= PixelSize::from(delta.x) * self.time_per_pixel;
+                *last_mouse_local_xy = mouse_local_xy;
             }
         }
     }
