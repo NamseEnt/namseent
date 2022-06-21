@@ -1,8 +1,8 @@
-use super::{CanvasEvent, Tool};
+use super::{CanvasEvent, Tool, ToolType};
 use crate::app::cropper::{event::CropperEvent, selection::Selection};
 use namui::{
-    clip, image, render, translate, Color, Image, ImageFit, ImageParam, ImageStyle, RectFill,
-    RectParam, RectStyle, RenderingTree, Wh, Xy,
+    clip, image, render, translate, Color, Image, ImageFit, ImageParam, ImageStyle, NamuiEvent,
+    RectFill, RectParam, RectStyle, RenderingTree, Wh, Xy,
 };
 use std::sync::Arc;
 
@@ -16,6 +16,7 @@ pub struct Canvas {
     offset: Xy<f32>,
     image: Arc<Image>,
     tool: Tool,
+    hand_tool_pushed_position: Option<Xy<f32>>,
 }
 impl Canvas {
     pub fn new(image: Arc<Image>) -> Self {
@@ -24,6 +25,7 @@ impl Canvas {
             offset: Xy { x: 0.0, y: 0.0 },
             image,
             tool: Tool::new(),
+            hand_tool_pushed_position: None,
         }
     }
 
@@ -37,6 +39,36 @@ impl Canvas {
                 }
             }
         }
+        if let Some(event) = event.downcast_ref::<CropperEvent>() {
+            match &event {
+                CropperEvent::LeftMouseDownInCanvas {
+                    position,
+                    tool_type,
+                } => match tool_type {
+                    ToolType::Hand => self.hand_tool_pushed_position = Some(position.clone()),
+                    _ => (),
+                },
+                _ => (),
+            }
+        }
+        if let Some(event) = event.downcast_ref::<NamuiEvent>() {
+            match &event {
+                NamuiEvent::MouseUp(_) => {
+                    self.handle_hand_tool_up();
+                }
+                NamuiEvent::KeyDown(event) => match event.code {
+                    namui::Code::Digit1 | namui::Code::KeyH => {
+                        self.change_tool(ToolType::Hand);
+                    }
+
+                    namui::Code::Digit2 | namui::Code::KeyM => {
+                        self.change_tool(ToolType::RectSelection);
+                    }
+                    _ => (),
+                },
+                _ => (),
+            }
+        }
         self.tool.update(event);
     }
 
@@ -45,6 +77,7 @@ impl Canvas {
         let offset = self.offset.clone();
         let scale = self.scale.clone();
         let current_tool_type = self.tool.get_current_tool_type().clone();
+        let hand_tool_pushed_position = self.hand_tool_pushed_position.clone();
 
         let scaled_image_size = Wh {
             width: image_size.width * self.scale,
@@ -61,6 +94,7 @@ impl Canvas {
                         let offset = offset.clone();
                         let scale = scale.clone();
                         let canvas_wh = props.wh.clone();
+                        let image_size = image_size.clone();
 
                         let managers = namui::managers();
                         let mouse_manager = &managers.mouse_manager;
@@ -123,11 +157,26 @@ impl Canvas {
                         }
                     })
                     .on_mouse_move_in(move |event| {
+                        let hand_tool_pushed_position = hand_tool_pushed_position.clone();
+                        let canvas_wh = props.wh.clone();
+                        let image_size = image_size.clone();
+                        let current_tool_type = current_tool_type.clone();
                         let offset = offset.clone();
                         let scale = scale.clone();
                         let local_xy_on_image = Xy {
                             x: -offset.x + event.local_xy.x / scale,
                             y: -offset.y + event.local_xy.y / scale,
+                        };
+                        match current_tool_type {
+                            ToolType::Hand => handle_hand_tool_drag(
+                                &hand_tool_pushed_position,
+                                &local_xy_on_image,
+                                &offset,
+                                &canvas_wh,
+                                &image_size,
+                                scale,
+                            ),
+                            _ => (),
                         };
                         namui::event::send(CropperEvent::MouseMoveInCanvas(local_xy_on_image))
                     })
@@ -169,6 +218,15 @@ impl Canvas {
             self.tool.render_cursor_icon(),
         ])
     }
+
+    fn change_tool(&mut self, to: ToolType) {
+        self.hand_tool_pushed_position = None;
+        self.tool.change_tool_type(to);
+    }
+
+    fn handle_hand_tool_up(&mut self) {
+        self.hand_tool_pushed_position = None;
+    }
 }
 
 fn render_background(wh: &Wh<f32>) -> RenderingTree {
@@ -185,6 +243,23 @@ fn render_background(wh: &Wh<f32>) -> RenderingTree {
             round: None,
         },
     })
+}
+
+fn handle_hand_tool_drag(
+    moved_from: &Option<Xy<f32>>,
+    moved_to: &Xy<f32>,
+    offset: &Xy<f32>,
+    canvas_wh: &Wh<f32>,
+    image_size: &Wh<f32>,
+    scale: f32,
+) {
+    if let Some(last_position) = moved_from {
+        let scaled_delta_xy = Xy {
+            x: (last_position.x - moved_to.x) * scale,
+            y: (last_position.y - moved_to.y) * scale,
+        };
+        scroll(&scaled_delta_xy, offset, canvas_wh, image_size, scale)
+    }
 }
 
 fn scroll(

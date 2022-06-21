@@ -42,6 +42,7 @@ impl Cropper {
                     super::canvas::ToolType::RectSelection => {
                         self.create_rect_selection_create_job(position)
                     }
+                    _ => (),
                 },
                 CropperEvent::RectSelectionResizeHandleClicked {
                     selection_id,
