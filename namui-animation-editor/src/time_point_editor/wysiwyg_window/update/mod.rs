@@ -44,8 +44,16 @@ impl WysiwygWindow {
                     self.last_wh = Some(*wh);
                     self.center_viewport(*wh);
                 }
-                Event::LayerClicked { layer_id } => {
+                Event::LayerClicked {
+                    layer_id,
+                    anchor_xy,
+                } => {
                     self.selected_layer_id = Some(layer_id.clone());
+                    if self.dragging.is_none() {
+                        self.dragging = Some(Dragging::ImageBody {
+                            anchor_xy: *anchor_xy,
+                        });
+                    }
                 }
                 &Event::ResizeCircleClicked {
                     location,

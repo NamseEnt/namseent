@@ -39,82 +39,27 @@ impl WysiwygWindow {
                 }
                 let mut layer = layer.unwrap().clone();
 
-                let image_url = layer.image.image_source_url.clone().unwrap();
-                let managers = namui::managers();
-                let image = managers.image_manager.try_load(&image_url).unwrap();
-                let image_wh = image.size();
-
-                enum PlusMinus {
-                    Plus,
-                    Minus,
-                }
-                enum WidthHeight {
-                    Width,
-                    Height,
-                }
-                let update_size =
-                    |layer: &mut Layer, width_height: WidthHeight, plus_minus: PlusMinus| {
-                        let graph = match width_height {
-                            WidthHeight::Width => &mut layer.image.width,
-                            WidthHeight::Height => &mut layer.image.height,
-                        };
-                        let value = graph.get_value(self.playback_time).unwrap();
-                        let image_value = match width_height {
-                            WidthHeight::Width => image_wh.width,
-                            WidthHeight::Height => image_wh.height,
-                        };
-                        let current: f32 = (value * image_value).into();
-                        let next = current
-                            + (match plus_minus {
-                                PlusMinus::Plus => 1.0,
-                                PlusMinus::Minus => -1.0,
-                            }) * (match width_height {
-                                WidthHeight::Width => delta_in_real.x,
-                                WidthHeight::Height => delta_in_real.y,
-                            });
-                        let next_value = Percent::from(next / image_value);
-                        graph.put(
-                            KeyframePoint::new(self.playback_time, next_value),
-                            animation::KeyframeLine::Linear,
-                        );
-                    };
-                enum XY {
-                    X,
-                    Y,
-                }
-                let update_xy = |layer: &mut Layer, x_y: XY, plus_minus: PlusMinus| {
-                    let graph = match x_y {
-                        XY::X => &mut layer.image.x,
-                        XY::Y => &mut layer.image.y,
-                    };
-                    let value = graph.get_value(self.playback_time).unwrap();
-                    let current: f32 = value.into();
-                    let next = current
-                        + (match plus_minus {
-                            PlusMinus::Plus => 1.0,
-                            PlusMinus::Minus => -1.0,
-                        }) * (match x_y {
-                            XY::X => delta_in_real.x,
-                            XY::Y => delta_in_real.y,
-                        });
-                    let next_value = next.into();
-                    graph.put(
-                        KeyframePoint::new(self.playback_time, next_value),
-                        animation::KeyframeLine::Linear,
-                    );
-                };
-
                 match location {
                     ResizeCircleLocation::LeftTop
                     | ResizeCircleLocation::Top
                     | ResizeCircleLocation::RightTop => {
-                        update_size(&mut layer, WidthHeight::Height, PlusMinus::Minus);
-                        update_xy(&mut layer, XY::Y, PlusMinus::Plus);
+                        self.update_size(
+                            &mut layer,
+                            delta_in_real,
+                            WidthHeight::Height,
+                            PlusMinus::Minus,
+                        );
+                        self.update_xy(&mut layer, delta_in_real, XY::Y, PlusMinus::Plus);
                     }
                     ResizeCircleLocation::LeftBottom
                     | ResizeCircleLocation::Bottom
                     | ResizeCircleLocation::RightBottom => {
-                        update_size(&mut layer, WidthHeight::Height, PlusMinus::Plus);
+                        self.update_size(
+                            &mut layer,
+                            delta_in_real,
+                            WidthHeight::Height,
+                            PlusMinus::Plus,
+                        );
                     }
                     _ => {}
                 }
@@ -123,13 +68,23 @@ impl WysiwygWindow {
                     ResizeCircleLocation::LeftTop
                     | ResizeCircleLocation::Left
                     | ResizeCircleLocation::LeftBottom => {
-                        update_size(&mut layer, WidthHeight::Width, PlusMinus::Minus);
-                        update_xy(&mut layer, XY::X, PlusMinus::Plus);
+                        self.update_size(
+                            &mut layer,
+                            delta_in_real,
+                            WidthHeight::Width,
+                            PlusMinus::Minus,
+                        );
+                        self.update_xy(&mut layer, delta_in_real, XY::X, PlusMinus::Plus);
                     }
                     ResizeCircleLocation::RightTop
                     | ResizeCircleLocation::Right
                     | ResizeCircleLocation::RightBottom => {
-                        update_size(&mut layer, WidthHeight::Width, PlusMinus::Plus);
+                        self.update_size(
+                            &mut layer,
+                            delta_in_real,
+                            WidthHeight::Width,
+                            PlusMinus::Plus,
+                        );
                     }
                     _ => {}
                 }
@@ -141,6 +96,98 @@ impl WysiwygWindow {
                     anchor_xy: mouse_local_xy,
                 });
             }
+            Dragging::ImageBody { anchor_xy } => {
+                let delta_in_real =
+                    self.real_pixel_size_per_screen_pixel_size * (mouse_local_xy - anchor_xy);
+
+                let layer_id = self.selected_layer_id.clone().unwrap();
+
+                let animation = self.animation.read();
+                let layer = animation.layers.iter().find(|layer| layer.id.eq(&layer_id));
+                if layer.is_none() {
+                    return;
+                }
+                let mut layer = layer.unwrap().clone();
+
+                self.update_xy(&mut layer, delta_in_real, XY::X, PlusMinus::Plus);
+                self.update_xy(&mut layer, delta_in_real, XY::Y, PlusMinus::Plus);
+
+                namui::event::send(crate::Event::UpdateLayer(Arc::new(layer)));
+
+                self.dragging = Some(Dragging::ImageBody {
+                    anchor_xy: mouse_local_xy,
+                });
+            }
         }
     }
+    fn update_size(
+        &self,
+        layer: &mut Layer,
+        delta_in_real: Xy<f32>,
+        width_height: WidthHeight,
+        plus_minus: PlusMinus,
+    ) {
+        let image_url = layer.image.image_source_url.clone().unwrap();
+        let managers = namui::managers();
+        let image = managers.image_manager.try_load(&image_url).unwrap();
+        let image_wh = image.size();
+
+        let graph = match width_height {
+            WidthHeight::Width => &mut layer.image.width,
+            WidthHeight::Height => &mut layer.image.height,
+        };
+        let value = graph.get_value(self.playback_time).unwrap();
+        let image_value = match width_height {
+            WidthHeight::Width => image_wh.width,
+            WidthHeight::Height => image_wh.height,
+        };
+        let current: f32 = (value * image_value).into();
+        let next = current
+            + (match plus_minus {
+                PlusMinus::Plus => 1.0,
+                PlusMinus::Minus => -1.0,
+            }) * (match width_height {
+                WidthHeight::Width => delta_in_real.x,
+                WidthHeight::Height => delta_in_real.y,
+            });
+        let next_value = Percent::from(next / image_value);
+        graph.put(
+            KeyframePoint::new(self.playback_time, next_value),
+            animation::KeyframeLine::Linear,
+        );
+    }
+    fn update_xy(&self, layer: &mut Layer, delta_in_real: Xy<f32>, x_y: XY, plus_minus: PlusMinus) {
+        let graph = match x_y {
+            XY::X => &mut layer.image.x,
+            XY::Y => &mut layer.image.y,
+        };
+        let value = graph.get_value(self.playback_time).unwrap();
+        let current: f32 = value.into();
+        let next = current
+            + (match plus_minus {
+                PlusMinus::Plus => 1.0,
+                PlusMinus::Minus => -1.0,
+            }) * (match x_y {
+                XY::X => delta_in_real.x,
+                XY::Y => delta_in_real.y,
+            });
+        let next_value = next.into();
+        graph.put(
+            KeyframePoint::new(self.playback_time, next_value),
+            animation::KeyframeLine::Linear,
+        );
+    }
+}
+enum PlusMinus {
+    Plus,
+    Minus,
+}
+enum WidthHeight {
+    Width,
+    Height,
+}
+
+enum XY {
+    X,
+    Y,
 }

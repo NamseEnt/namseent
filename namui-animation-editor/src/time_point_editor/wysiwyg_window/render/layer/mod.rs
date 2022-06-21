@@ -19,9 +19,19 @@ impl WysiwygWindow {
             })
             .attach_event(|builder| {
                 let layer_id = layer.id.clone();
-                builder.on_mouse_down(move |_| {
+                let real_left_top_xy = self.real_left_top_xy;
+                let real_pixel_size_per_screen_pixel_size =
+                    self.real_pixel_size_per_screen_pixel_size;
+
+                builder.on_mouse_down(move |event| {
+                    let real_anchor_xy = event.local_xy - real_left_top_xy;
+                    let anchor_xy = Xy {
+                        x: real_anchor_xy.x / real_pixel_size_per_screen_pixel_size,
+                        y: real_anchor_xy.y / real_pixel_size_per_screen_pixel_size,
+                    };
                     namui::event::send(super::Event::LayerClicked {
                         layer_id: layer_id.clone(),
+                        anchor_xy,
                     });
                 })
             });

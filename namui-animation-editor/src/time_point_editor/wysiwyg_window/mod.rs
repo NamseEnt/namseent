@@ -33,6 +33,9 @@ enum Dragging {
         location: ResizeCircleLocation,
         anchor_xy: Xy<f32>,
     },
+    ImageBody {
+        anchor_xy: Xy<f32>,
+    },
 }
 
 pub struct Props {
@@ -61,6 +64,7 @@ enum Event {
     },
     LayerClicked {
         layer_id: String,
+        anchor_xy: Xy<f32>,
     },
     ResizeCircleClicked {
         location: ResizeCircleLocation,
