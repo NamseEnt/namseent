@@ -24,7 +24,7 @@ impl LtrbRect {
         }
     }
 
-    pub fn intersect(&self, other: &LtrbRect) -> Option<LtrbRect> {
+    pub fn intersect(&self, other: LtrbRect) -> Option<LtrbRect> {
         let is_intersect = self.left <= other.right
             && self.right >= other.left
             && self.top <= other.bottom
@@ -38,17 +38,17 @@ impl LtrbRect {
         })
     }
 
-    pub fn is_xy_outside(&self, xy: &Xy<f32>) -> bool {
+    pub fn is_xy_outside(&self, xy: Xy<f32>) -> bool {
         xy.x < self.left || xy.x > self.right || xy.y < self.top || xy.y > self.bottom
     }
 
-    pub fn is_xy_on_border(&self, xy: &Xy<f32>) -> bool {
+    pub fn is_xy_on_border(&self, xy: Xy<f32>) -> bool {
         ((xy.x == self.left || xy.x == self.right) && (self.top <= xy.y && xy.y <= self.bottom))
             || ((xy.y == self.top || xy.y == self.bottom)
                 && (self.left <= xy.x && xy.x <= self.right))
     }
 
-    pub fn is_xy_inside(&self, xy: &Xy<f32>) -> bool {
+    pub fn is_xy_inside(&self, xy: Xy<f32>) -> bool {
         self.left <= xy.x && xy.x <= self.right && self.top <= xy.y && xy.y <= self.bottom
     }
 

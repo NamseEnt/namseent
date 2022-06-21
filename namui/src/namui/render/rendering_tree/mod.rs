@@ -288,7 +288,7 @@ impl RenderingTree {
                             match clip.clip_op {
                                 ClipOp::Intersect => {
                                     clip_bounding_box.and_then(|clip_bounding_box| {
-                                        bounding_box.intersect(&clip_bounding_box)
+                                        bounding_box.intersect(clip_bounding_box)
                                     })
                                 }
                                 ClipOp::Difference => match clip_bounding_box {
@@ -316,9 +316,9 @@ impl RenderingTree {
                                             .map(|(x, y)| Xy { x: *x, y: *y });
 
                                         let difference_area_xys = sixteen_xys.filter(|xy| {
-                                            (clip_bounding_box.is_xy_outside(&xy)
-                                                || clip_bounding_box.is_xy_on_border(&xy))
-                                                && !bounding_box.is_xy_outside(&xy)
+                                            (clip_bounding_box.is_xy_outside(*xy)
+                                                || clip_bounding_box.is_xy_on_border(*xy))
+                                                && !bounding_box.is_xy_outside(*xy)
                                         });
 
                                         difference_area_xys.fold(None, |acc, xy| match acc {
@@ -397,6 +397,11 @@ impl RenderingData {
             .reduce(|acc, bounding_box| {
                 LtrbRect::get_minimum_rectangle_containing(&acc, &bounding_box)
             })
+    }
+    fn is_xy_in(&self, xy: Xy<f32>) -> bool {
+        self.draw_calls
+            .iter()
+            .any(|draw_call| draw_call.is_xy_in(xy))
     }
 }
 

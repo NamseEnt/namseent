@@ -31,7 +31,7 @@ impl Path {
             canvas_kit_path,
         }
     }
-    pub fn contains(&self, xy: &Xy<f32>) -> bool {
+    pub fn contains(&self, xy: Xy<f32>) -> bool {
         self.canvas_kit_path.contains(xy.x, xy.y)
     }
     pub fn get_bounding_box(&self) -> Option<LtrbRect> {

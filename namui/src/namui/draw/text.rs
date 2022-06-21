@@ -1,56 +1,122 @@
-use super::{TextAlign, TextBaseline, TextDrawCommand};
+use super::*;
 use crate::namui::{skia::*, NamuiContext};
 use std::{
     collections::{HashMap, VecDeque},
     sync::Arc,
 };
 
-pub fn draw_text(namui_context: &NamuiContext, command: &TextDrawCommand) {
-    if command.text.len() == 0 {
-        return;
+#[derive(Serialize, Clone, Debug)]
+pub struct TextDrawCommand {
+    pub text: String,
+    #[serde(skip_serializing)]
+    pub font: Arc<Font>,
+    pub x: f32,
+    pub y: f32,
+    pub paint_builder: PaintBuilder,
+    pub align: TextAlign,
+    pub baseline: TextBaseline,
+}
+
+#[derive(Debug, Serialize, Copy, Clone)]
+pub enum TextAlign {
+    Left,
+    Right,
+    Center,
+}
+#[derive(Debug, Serialize, Copy, Clone)]
+pub enum TextBaseline {
+    Top,
+    Bottom,
+    Middle,
+}
+
+impl TextDrawCommand {
+    pub fn draw(&self, namui_context: &NamuiContext) {
+        if self.text.len() == 0 {
+            return;
+        }
+
+        let paint = self.paint_builder.build();
+
+        let fonts = std::iter::once(self.font.clone()).chain(
+            std::iter::once_with(|| get_fallback_fonts(namui_context, self.font.size)).flatten(),
+        );
+
+        let glyph_groups = get_glyph_groups(&self.text, fonts, &paint);
+
+        let total_width = glyph_groups.iter().map(|group| group.width).sum();
+
+        let left = get_left_in_align(self.x as f32, self.align, total_width);
+
+        let mut bottom_of_fonts: HashMap<String, f32> = HashMap::new();
+
+        let mut x = left;
+
+        for GlyphGroup {
+            glyph_ids,
+            width,
+            end_index: _,
+            font,
+        } in glyph_groups
+        {
+            let bottom = bottom_of_fonts
+                .get(&font.id)
+                .map(|bottom| bottom + font.size as f32)
+                .unwrap_or_else(|| {
+                    let metrics = font.metrics;
+                    let bottom = self.y as f32 + get_bottom_of_baseline(&self.baseline, &metrics);
+                    bottom_of_fonts.insert(font.id.clone(), bottom);
+                    bottom
+                });
+
+            let text_blob = TextBlob::from_glyph_ids(&glyph_ids, &font);
+
+            namui_context
+                .surface
+                .canvas()
+                .draw_text_blob(&text_blob, x, bottom, &paint);
+
+            x += width;
+        }
+    }
+    pub fn get_bounding_box(&self) -> Option<LtrbRect> {
+        if self.text.len() == 0 {
+            return None;
+        }
+
+        let font = &self.font;
+
+        let glyph_ids = font.get_glyph_ids(&self.text);
+
+        let paint = self.paint_builder.build();
+        let glyph_bounds = font.get_glyph_bounds(glyph_ids.clone(), Some(&paint));
+
+        glyph_bounds
+            .iter()
+            .map(|bound| (bound.top, bound.bottom))
+            .reduce(|acc, (top, bottom)| (acc.0.min(top), acc.1.max(bottom)))
+            .and_then(|(top, bottom)| {
+                let widths = font.get_glyph_widths(glyph_ids, Option::Some(&paint));
+                let width = widths.iter().fold(0.0, |prev, curr| prev + curr);
+                let x_axis_anchor = get_left_in_align(self.x as f32, self.align, width);
+
+                let metrics = font.metrics;
+                let y_axis_anchor =
+                    self.y as f32 + get_bottom_of_baseline(&self.baseline, &metrics);
+
+                Some(LtrbRect {
+                    left: x_axis_anchor,
+                    top: top + y_axis_anchor,
+                    right: x_axis_anchor + width,
+                    bottom: bottom + y_axis_anchor,
+                })
+            })
     }
 
-    let paint = command.paint_builder.build();
-
-    let fonts = std::iter::once(command.font.clone()).chain(
-        std::iter::once_with(|| get_fallback_fonts(namui_context, command.font.size)).flatten(),
-    );
-
-    let glyph_groups = get_glyph_groups(&command.text, fonts, &paint);
-
-    let total_width = glyph_groups.iter().map(|group| group.width).sum();
-
-    let left = get_left_in_align(command.x as f32, command.align, total_width);
-
-    let mut bottom_of_fonts: HashMap<String, f32> = HashMap::new();
-
-    let mut x = left;
-
-    for GlyphGroup {
-        glyph_ids,
-        width,
-        end_index: _,
-        font,
-    } in glyph_groups
-    {
-        let bottom = bottom_of_fonts
-            .get(&font.id)
-            .map(|bottom| bottom + font.size as f32)
-            .unwrap_or_else(|| {
-                let metrics = font.metrics;
-                let bottom = command.y as f32 + get_bottom_of_baseline(&command.baseline, &metrics);
-                bottom_of_fonts.insert(font.id.clone(), bottom);
-                bottom
-            });
-
-        let text_blob = TextBlob::from_glyph_ids(&glyph_ids, &font);
-
-        namui_context
-            .surface
-            .canvas()
-            .draw_text_blob(&text_blob, x, bottom, &paint);
-
-        x += width;
+    pub(crate) fn is_xy_in(&self, xy: Xy<f32>) -> bool {
+        self.get_bounding_box()
+            .map(|bound| bound.is_xy_inside(xy))
+            .unwrap_or(false)
     }
 }
 
@@ -156,39 +222,4 @@ fn get_fallback_fonts(namui_context: &NamuiContext, font_size: i16) -> VecDeque<
                 .get_font_of_typeface(typeface.clone(), font_size)
         })
         .collect()
-}
-impl TextDrawCommand {
-    pub fn get_bounding_box(&self) -> Option<LtrbRect> {
-        if self.text.len() == 0 {
-            return None;
-        }
-
-        let font = &self.font;
-
-        let glyph_ids = font.get_glyph_ids(&self.text);
-
-        let paint = self.paint_builder.build();
-        let glyph_bounds = font.get_glyph_bounds(glyph_ids.clone(), Some(&paint));
-
-        glyph_bounds
-            .iter()
-            .map(|bound| (bound.top, bound.bottom))
-            .reduce(|acc, (top, bottom)| (acc.0.min(top), acc.1.max(bottom)))
-            .and_then(|(top, bottom)| {
-                let widths = font.get_glyph_widths(glyph_ids, Option::Some(&paint));
-                let width = widths.iter().fold(0.0, |prev, curr| prev + curr);
-                let x_axis_anchor = get_left_in_align(self.x as f32, self.align, width);
-
-                let metrics = font.metrics;
-                let y_axis_anchor =
-                    self.y as f32 + get_bottom_of_baseline(&self.baseline, &metrics);
-
-                Some(LtrbRect {
-                    left: x_axis_anchor,
-                    top: top + y_axis_anchor,
-                    right: x_axis_anchor + width,
-                    bottom: bottom + y_axis_anchor,
-                })
-            })
-    }
 }

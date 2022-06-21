@@ -1,4 +1,4 @@
-use super::ImageDrawCommand;
+use super::*;
 use crate::{
     namui::{
         render::ImageFit,
@@ -7,47 +7,69 @@ use crate::{
     *,
 };
 
-pub fn draw_image(namui_context: &NamuiContext, command: &ImageDrawCommand) {
-    let image = match &command.source {
-        ImageSource::Url(url) => namui::managers().image_manager.try_load(&url),
-        ImageSource::Image(image) => Some(image.clone()),
-    };
+#[derive(Debug, Serialize, Clone)]
+pub struct ImageDrawCommand {
+    pub xywh: XywhRect<f32>,
+    pub source: ImageSource,
+    pub fit: ImageFit,
+    #[serde(skip_serializing)]
+    pub paint_builder: Option<PaintBuilder>,
+}
 
-    if image.is_none() {
-        return;
+impl ImageDrawCommand {
+    pub fn draw(&self, namui_context: &NamuiContext) {
+        let image = match &self.source {
+            ImageSource::Url(url) => namui::managers().image_manager.try_load(&url),
+            ImageSource::Image(image) => Some(image.clone()),
+        };
+
+        if image.is_none() {
+            return;
+        }
+        let image = image.unwrap();
+
+        let image_info = image.get_image_info();
+
+        if self.xywh.width == 0.0
+            || self.xywh.height == 0.0
+            || image_info.width == 0.0
+            || image_info.height == 0.0
+        {
+            return;
+        }
+
+        let image_size = Wh {
+            width: image_info.width,
+            height: image_info.height,
+        };
+        let (src_rect, dest_rect) = get_src_dest_rects_in_fit(self.fit, &image_size, &self.xywh);
+
+        let paint = self
+            .paint_builder
+            .as_ref()
+            .unwrap_or(&PaintBuilder::new())
+            .build();
+
+        namui_context.surface.canvas().draw_image_rect_options(
+            &image,
+            &src_rect,
+            &dest_rect,
+            FilterMode::Linear,
+            MipmapMode::Linear,
+            Some(&paint),
+        );
     }
-    let image = image.unwrap();
-
-    let image_info = image.get_image_info();
-
-    if command.xywh.width == 0.0
-        || command.xywh.height == 0.0
-        || image_info.width == 0.0
-        || image_info.height == 0.0
-    {
-        return;
+    pub fn get_bounding_box(&self) -> Option<crate::LtrbRect> {
+        Some(crate::LtrbRect {
+            left: self.xywh.x,
+            top: self.xywh.y,
+            right: self.xywh.x + self.xywh.width,
+            bottom: self.xywh.y + self.xywh.height,
+        })
     }
-
-    let image_size = Wh {
-        width: image_info.width,
-        height: image_info.height,
-    };
-    let (src_rect, dest_rect) = get_src_dest_rects_in_fit(command.fit, &image_size, &command.xywh);
-
-    let paint = command
-        .paint_builder
-        .as_ref()
-        .unwrap_or(&PaintBuilder::new())
-        .build();
-
-    namui_context.surface.canvas().draw_image_rect_options(
-        &image,
-        &src_rect,
-        &dest_rect,
-        FilterMode::Linear,
-        MipmapMode::Linear,
-        Some(&paint),
-    );
+    pub fn is_xy_in(&self, xy: Xy<f32>) -> bool {
+        self.get_bounding_box().unwrap().is_xy_inside(xy)
+    }
 }
 
 fn get_src_dest_rects_in_fit(
