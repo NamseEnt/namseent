@@ -6,6 +6,7 @@ pub(crate) use read_only_lock::ReadOnlyLock;
 pub mod animation_editor;
 pub use animation_editor::{AnimationEditor, Props};
 mod time_point_editor;
+pub(crate) mod time_ruler;
 
 pub(crate) fn adjust_font_size(height: f32) -> i16 {
     // 0, 4, 8, 16, 20, ...

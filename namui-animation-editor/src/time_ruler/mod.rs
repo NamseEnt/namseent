@@ -18,6 +18,10 @@ pub struct Gradation {
     pub at: Time,
 }
 
+pub enum Event {
+    TimelineTimeRulerClicked { click_position_in_time: Time },
+}
+
 pub(super) fn render(props: &Props) -> RenderingTree {
     let gradation_gap_time = get_gradation_gap_time(
         PixelSize::from(100.0),
@@ -74,7 +78,7 @@ pub(super) fn render(props: &Props) -> RenderingTree {
                         }
                         let click_position_in_time =
                             PixelSize::from(event.local_xy.x) * time_per_pixel + start_at;
-                        namui::event::send(super::Event::TimelineTimeRulerClicked {
+                        namui::event::send(Event::TimelineTimeRulerClicked {
                             click_position_in_time,
                         });
                     };

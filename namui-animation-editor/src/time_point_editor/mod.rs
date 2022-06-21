@@ -1,10 +1,12 @@
 use namui::{prelude::*, types::Time};
 use namui_prebuilt::{table::*, *};
+mod timeline_window;
 mod wysiwyg_window;
 
 pub struct TimePointEditor {
     animation: crate::ReadOnlyLock<animation::Animation>,
     wysiwyg_window: wysiwyg_window::WysiwygWindow,
+    timeline_window: timeline_window::TimelineWindow,
 }
 
 pub struct Props {
@@ -17,6 +19,7 @@ impl TimePointEditor {
     pub fn new(animation: crate::ReadOnlyLock<animation::Animation>) -> Self {
         Self {
             wysiwyg_window: wysiwyg_window::WysiwygWindow::new(animation.clone()),
+            timeline_window: timeline_window::TimelineWindow::new(),
             animation,
         }
     }
@@ -37,7 +40,7 @@ impl TimePointEditor {
                 ]),
             ),
             ratio(2.0, |wh| {
-                simple_rect(wh, Color::BLACK, 1.0, Color::grayscale_f01(0.5))
+                self.timeline_window.render(timeline_window::Props { wh })
             }),
         ])(Wh {
             width: props.wh.width.into(),

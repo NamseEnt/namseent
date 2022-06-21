@@ -57,11 +57,6 @@ impl GraphWindow {
                 Event::RowHeightChange { row_height } => {
                     self.row_height = Some(*row_height);
                 }
-                Event::TimelineTimeRulerClicked {
-                    click_position_in_time,
-                } => {
-                    // TODO
-                }
                 Event::GraphMouseRightDown {
                     property_name,
                     mouse_local_xy,

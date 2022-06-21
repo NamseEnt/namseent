@@ -13,7 +13,7 @@ use std::{
     sync::Arc,
 };
 mod render;
-mod time_ruler;
+use crate::time_ruler;
 mod update;
 
 pub(crate) struct GraphWindow {
@@ -92,9 +92,6 @@ enum Event {
     },
     RowHeightChange {
         row_height: f32,
-    },
-    TimelineTimeRulerClicked {
-        click_position_in_time: Time,
     },
     GraphPointMouseDown {
         point_address: PointAddress,
