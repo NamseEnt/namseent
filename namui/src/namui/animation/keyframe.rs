@@ -102,7 +102,7 @@ impl<'a, TValue: KeyframeValue + Clone> KeyframeGraph<TValue> {
         self.points_with_lines
             .retain(|(point, _)| point.id.ne(id.as_ref()));
     }
-    fn get_last_point(&self) -> Option<&KeyframePoint<TValue>> {
+    pub fn get_last_point(&self) -> Option<&KeyframePoint<TValue>> {
         self.points_with_lines.last().map(|(point, _)| point)
     }
     pub fn get_points_with_lines(&self) -> &[(KeyframePoint<TValue>, KeyframeLine)] {

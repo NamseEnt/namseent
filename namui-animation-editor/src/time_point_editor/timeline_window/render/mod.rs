@@ -46,9 +46,23 @@ impl TimelineWindow {
                             }
                         })
                         .on_mouse_down(|event| {
-                            namui::event::send(Event::TimelineClicked {
-                                mouse_local_xy: event.local_xy,
-                            })
+                            if event.button.is_none() {
+                                return;
+                            }
+                            let button = event.button.unwrap();
+                            match button {
+                                MouseButton::Left => {
+                                    namui::event::send(Event::TimelineLeftMouseDown {
+                                        mouse_local_xy: event.local_xy,
+                                    })
+                                }
+                                MouseButton::Right => {
+                                    namui::event::send(Event::TimelineRightMouseDown {
+                                        mouse_local_xy: event.local_xy,
+                                    })
+                                }
+                                _ => {}
+                            }
                         })
                         .on_mouse_move_in(|event| {
                             namui::event::send(Event::TimelineMouseMoveIn {

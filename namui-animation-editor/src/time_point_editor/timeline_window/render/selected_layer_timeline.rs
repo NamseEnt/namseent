@@ -94,7 +94,7 @@ impl TimelineWindow {
                     sign.attach_event(|builder| {
                         let point_ids = keyframe.point_ids.clone();
                         builder.on_mouse_down(move |event| {
-                            namui::event::send(Event::KeyframeClicked {
+                            namui::event::send(Event::KeyframeMouseDown {
                                 point_ids: point_ids.clone(),
                                 anchor_xy: event.local_xy,
                             });

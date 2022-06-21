@@ -1,6 +1,6 @@
 use super::*;
 use crate::zoom::zoom_time_per_pixel;
-use namui::animation::{KeyframeGraph, KeyframeValue};
+use namui::animation::{KeyframeGraph, KeyframePoint, KeyframeValue};
 use std::sync::Arc;
 
 impl TimelineWindow {
@@ -23,7 +23,7 @@ impl TimelineWindow {
                     self.time_per_pixel = next_time_per_pixel;
                     self.start_at = next_start_at;
                 }
-                &Event::TimelineClicked { mouse_local_xy } => {
+                &Event::TimelineLeftMouseDown { mouse_local_xy } => {
                     if self.dragging.is_none() {
                         self.selected_point_ids = None;
                         self.dragging = Some(Dragging::Background {
@@ -34,7 +34,7 @@ impl TimelineWindow {
                 &Event::TimelineMouseMoveIn { mouse_local_xy } => {
                     self.handle_timeline_dragging(mouse_local_xy);
                 }
-                Event::KeyframeClicked {
+                Event::KeyframeMouseDown {
                     point_ids,
                     anchor_xy,
                 } => {
@@ -44,6 +44,13 @@ impl TimelineWindow {
                             point_ids: point_ids.clone(),
                             anchor_xy: *anchor_xy,
                         });
+                    }
+                }
+                &Event::TimelineRightMouseDown { mouse_local_xy } => {
+                    if self.selected_point_ids.is_none() && self.dragging.is_none() {
+                        self.selected_point_ids = None;
+                        self.dragging = None;
+                        self.crate_new_keyframe(mouse_local_xy);
                     }
                 }
             }
@@ -100,6 +107,32 @@ impl TimelineWindow {
             }
         }
     }
+    fn crate_new_keyframe(&self, mouse_local_xy: Xy<f32>) {
+        if self.selected_layer_id.is_none() {
+            return;
+        }
+        let selected_layer_id = self.selected_layer_id.as_ref().unwrap();
+
+        let animation = self.animation.read();
+
+        let mut layer = animation
+            .layers
+            .iter()
+            .find(|layer| layer.id.eq(selected_layer_id))
+            .unwrap()
+            .clone();
+
+        let time = self.start_at + PixelSize::from(mouse_local_xy.x) * self.time_per_pixel;
+
+        add_new_point(&mut layer.image.x, time, PixelSize::from(0.0));
+        add_new_point(&mut layer.image.y, time, PixelSize::from(0.0));
+        add_new_point(&mut layer.image.width, time, Percent::new(100.0));
+        add_new_point(&mut layer.image.height, time, Percent::new(100.0));
+        add_new_point(&mut layer.image.rotation_angle, time, Degree::from(0.0));
+        add_new_point(&mut layer.image.opacity, time, OneZero::from(1.0));
+
+        namui::event::send(crate::Event::UpdateLayer(Arc::new(layer)));
+    }
 }
 
 fn move_point(layer: &mut Layer, point_id: &str, to_time: Time) {
@@ -121,4 +154,20 @@ fn move_point_in_graph<T: KeyframeValue + Clone>(
         point.time = to_time;
         graph.put(point, animation::KeyframeLine::Linear);
     }
+}
+
+fn add_new_point<T: KeyframeValue + Clone>(
+    graph: &mut KeyframeGraph<T>,
+    time: Time,
+    default_value: T,
+) {
+    let value_x = graph
+        .get_value(time)
+        .or_else(|| graph.get_last_point().map(|point| point.value.clone()))
+        .unwrap_or(default_value);
+
+    graph.put(
+        KeyframePoint::new(time, value_x),
+        animation::KeyframeLine::Linear,
+    );
 }

@@ -40,13 +40,16 @@ enum Event {
         delta: f32,
         anchor_xy: Xy<f32>,
     },
-    TimelineClicked {
+    TimelineLeftMouseDown {
+        mouse_local_xy: Xy<f32>,
+    },
+    TimelineRightMouseDown {
         mouse_local_xy: Xy<f32>,
     },
     TimelineMouseMoveIn {
         mouse_local_xy: Xy<f32>,
     },
-    KeyframeClicked {
+    KeyframeMouseDown {
         point_ids: Vec<String>,
         anchor_xy: Xy<f32>,
     },
