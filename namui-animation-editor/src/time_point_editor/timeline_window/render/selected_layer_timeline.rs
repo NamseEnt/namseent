@@ -1,13 +1,18 @@
 use super::*;
 use namui::animation::{KeyframeGraph, KeyframeValue};
 
+struct MergedKeyframe {
+    point_ids: Vec<String>,
+    time: Time,
+}
+
 impl TimelineWindow {
     pub(super) fn render_selected_layer_timeline(
         &self,
         wh: Wh<f32>,
         props: &Props,
     ) -> RenderingTree {
-        let selected_layer = props
+        let selected_layer = self
             .selected_layer_id
             .as_ref()
             .and_then(|layer_id| props.layers.iter().find(|layer| layer.id.eq(layer_id)));
@@ -17,23 +22,33 @@ impl TimelineWindow {
         }
         let selected_layer = selected_layer.unwrap();
 
-        let mut times_of_points = vec![];
+        let mut keyframes: Vec<MergedKeyframe> = vec![];
 
         let image = &selected_layer.image;
 
         [
-            get_times(&image.x),
-            get_times(&image.y),
-            get_times(&image.width),
-            get_times(&image.height),
-            get_times(&image.rotation_angle),
-            get_times(&image.opacity),
+            get_time_and_id(&image.x),
+            get_time_and_id(&image.y),
+            get_time_and_id(&image.width),
+            get_time_and_id(&image.height),
+            get_time_and_id(&image.rotation_angle),
+            get_time_and_id(&image.opacity),
         ]
         .concat()
-        .iter()
-        .for_each(|time| {
-            if !times_of_points.contains(time) {
-                times_of_points.push(*time);
+        .into_iter()
+        .for_each(|(time, id)| {
+            let same_time_keyframe = keyframes.iter_mut().find(|k| k.time == time);
+
+            match same_time_keyframe {
+                Some(keyframe) => {
+                    keyframe.point_ids.push(id);
+                }
+                None => {
+                    keyframes.push(MergedKeyframe {
+                        point_ids: vec![id],
+                        time,
+                    });
+                }
             }
         });
 
@@ -48,30 +63,40 @@ impl TimelineWindow {
             .set_style(PaintStyle::Fill)
             .set_color(Color::BLACK)
             .set_anti_alias(true);
+        let sign = namui::path(path_builder.clone(), paint_builder.clone());
 
-        let lines = times_of_points
-            .iter()
-            .filter(|time| {
-                self.start_at <= *time
-                    && *time <= self.start_at + (self.time_per_pixel * PixelSize::from(wh.width))
+        let signs = keyframes
+            .into_iter()
+            .filter(|keyframe| {
+                self.start_at <= keyframe.time
+                    && keyframe.time
+                        <= self.start_at + (self.time_per_pixel * PixelSize::from(wh.width))
             })
-            .map(|time| {
-                let x = (time - self.start_at) / self.time_per_pixel;
+            .map(|keyframe| {
+                let x = (keyframe.time - self.start_at) / self.time_per_pixel;
                 translate(
                     x.into(),
                     0.0,
-                    namui::path(path_builder.clone(), paint_builder.clone()),
+                    sign.clone().attach_event(|builder| {
+                        let point_ids = keyframe.point_ids.clone();
+                        builder.on_mouse_down(move |event| {
+                            namui::event::send(Event::KeyframeClicked {
+                                point_ids: point_ids.clone(),
+                                anchor_xy: event.local_xy,
+                            });
+                        })
+                    }),
                 )
             });
 
-        render(lines)
+        render(signs)
     }
 }
 
-fn get_times<T: KeyframeValue + Clone>(graph: &KeyframeGraph<T>) -> Vec<Time> {
+fn get_time_and_id<T: KeyframeValue + Clone>(graph: &KeyframeGraph<T>) -> Vec<(Time, String)> {
     graph
         .get_points_with_lines()
         .iter()
-        .map(|(point, _)| point.time)
+        .map(|(point, _)| (point.time, point.id().to_string()))
         .collect()
 }

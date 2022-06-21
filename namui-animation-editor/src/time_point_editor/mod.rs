@@ -24,7 +24,7 @@ impl TimePointEditor {
     pub fn new(animation: crate::ReadOnlyLock<animation::Animation>) -> Self {
         Self {
             wysiwyg_window: wysiwyg_window::WysiwygWindow::new(animation.clone()),
-            timeline_window: timeline_window::TimelineWindow::new(),
+            timeline_window: timeline_window::TimelineWindow::new(animation.clone()),
             image_select_window: image_select_window::ImageSelectWindow::new(),
             layer_list_window: layer_list_window::LayerListWindow::new(),
             animation,
@@ -36,6 +36,7 @@ impl TimePointEditor {
             match event {
                 layer_list_window::Event::LayerSelected(layer_id) => {
                     self.selected_layer_id = Some(layer_id.clone());
+                    self.timeline_window.selected_layer_id = self.selected_layer_id.clone();
                 }
             }
         }
@@ -88,7 +89,6 @@ impl TimePointEditor {
                 self.timeline_window.render(timeline_window::Props {
                     wh,
                     layers: &animation.layers,
-                    selected_layer_id: self.selected_layer_id.clone(),
                 })
             }),
         ])(Wh {

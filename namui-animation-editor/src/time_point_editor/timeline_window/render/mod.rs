@@ -4,8 +4,9 @@ mod selected_layer_timeline;
 impl TimelineWindow {
     pub(crate) fn render(&self, props: Props) -> RenderingTree {
         let background_for_event =
-            simple_rect(props.wh, Color::TRANSPARENT, 0.0, Color::TRANSPARENT).attach_event(
-                |builder| {
+            simple_rect(props.wh, Color::TRANSPARENT, 0.0, Color::TRANSPARENT)
+                .with_id(&self.id)
+                .attach_event(|builder| {
                     builder
                         .on_wheel(move |event| {
                             let managers = namui::managers();
@@ -54,8 +55,7 @@ impl TimelineWindow {
                                 mouse_local_xy: event.local_xy,
                             })
                         })
-                },
-            );
+                });
 
         render([
             background_for_event,

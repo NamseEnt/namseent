@@ -4,17 +4,23 @@ mod render;
 mod update;
 
 pub struct TimelineWindow {
+    animation: crate::ReadOnlyLock<animation::Animation>,
+    id: String,
     start_at: Time,
     time_per_pixel: TimePerPixel,
     dragging: Option<Dragging>,
+    pub selected_layer_id: Option<String>,
 }
 
 impl TimelineWindow {
-    pub fn new() -> Self {
+    pub fn new(animation: crate::ReadOnlyLock<animation::Animation>) -> Self {
         Self {
+            animation,
+            id: namui::nanoid(),
             start_at: Time::zero(),
             time_per_pixel: TimePerPixel::from_ms_per_pixel(100.0),
             dragging: None,
+            selected_layer_id: None,
         }
     }
 }
@@ -22,16 +28,34 @@ impl TimelineWindow {
 pub(crate) struct Props<'a> {
     pub layers: &'a [Layer],
     pub wh: Wh<f32>,
-    pub selected_layer_id: Option<String>,
 }
 
 enum Event {
-    ShiftWheel { delta: f32 },
-    AltWheel { delta: f32, anchor_xy: Xy<f32> },
-    TimelineClicked { mouse_local_xy: Xy<f32> },
-    TimelineMouseMoveIn { mouse_local_xy: Xy<f32> },
+    ShiftWheel {
+        delta: f32,
+    },
+    AltWheel {
+        delta: f32,
+        anchor_xy: Xy<f32>,
+    },
+    TimelineClicked {
+        mouse_local_xy: Xy<f32>,
+    },
+    TimelineMouseMoveIn {
+        mouse_local_xy: Xy<f32>,
+    },
+    KeyframeClicked {
+        point_ids: Vec<String>,
+        anchor_xy: Xy<f32>,
+    },
 }
 
 enum Dragging {
-    Background { last_mouse_local_xy: Xy<f32> },
+    Background {
+        last_mouse_local_xy: Xy<f32>,
+    },
+    Keyframe {
+        point_ids: Vec<String>,
+        anchor_xy: Xy<f32>,
+    },
 }
