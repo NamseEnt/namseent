@@ -25,6 +25,7 @@ impl TimePointEditor {
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
         self.wysiwyg_window.update(event);
+        self.timeline_window.update(event);
     }
     pub fn render(&self, props: Props) -> namui::RenderingTree {
         vertical([

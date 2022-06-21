@@ -1,7 +1,4 @@
-use namui::{
-    prelude::*,
-    types::{Time, TimePerPixel},
-};
+use namui::{prelude::*, types::*};
 use namui_prebuilt::{table::*, *};
 mod render;
 mod update;
@@ -24,6 +21,9 @@ pub struct Props {
     pub wh: Wh<f32>,
 }
 
-enum Event {}
+enum Event {
+    ShiftWheel { delta: f32 },
+    AltWheel { delta: f32, anchor_xy: Xy<f32> },
+}
 
 enum Dragging {}
