@@ -21,7 +21,7 @@ pub struct AttachEventNode {
     pub on_wheel: Option<WheelEventCallback>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct MouseEvent<'a> {
     pub id: String,
     pub local_xy: Xy<f32>,
@@ -29,6 +29,7 @@ pub struct MouseEvent<'a> {
     pub pressing_buttons: HashSet<MouseButton>,
     pub button: Option<MouseButton>,
     pub target: &'a RenderingTree,
+    pub namui_context: &'a NamuiContext,
 }
 pub enum MouseEventType {
     Down,

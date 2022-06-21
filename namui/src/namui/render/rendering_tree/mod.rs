@@ -161,6 +161,7 @@ impl RenderingTree {
         &self,
         mouse_event_type: MouseEventType,
         raw_mouse_event: &RawMouseEvent,
+        namui_context: &NamuiContext,
     ) {
         self.visit_rln(|node, utils| {
             match node {
@@ -183,6 +184,7 @@ impl RenderingTree {
                                 pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
                                 button: raw_mouse_event.button,
                                 target: node,
+                                namui_context,
                             };
                             match is_mouse_in {
                                 true => {
