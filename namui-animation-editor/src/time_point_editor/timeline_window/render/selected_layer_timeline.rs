@@ -24,33 +24,23 @@ impl TimelineWindow {
 
         let mut keyframes: Vec<MergedKeyframe> = vec![];
 
-        let image = &selected_layer.image;
+        get_all_time_and_ids(&selected_layer)
+            .into_iter()
+            .for_each(|(time, id)| {
+                let same_time_keyframe = keyframes.iter_mut().find(|k| k.time == time);
 
-        [
-            get_time_and_id(&image.x),
-            get_time_and_id(&image.y),
-            get_time_and_id(&image.width),
-            get_time_and_id(&image.height),
-            get_time_and_id(&image.rotation_angle),
-            get_time_and_id(&image.opacity),
-        ]
-        .concat()
-        .into_iter()
-        .for_each(|(time, id)| {
-            let same_time_keyframe = keyframes.iter_mut().find(|k| k.time == time);
-
-            match same_time_keyframe {
-                Some(keyframe) => {
-                    keyframe.point_ids.push(id);
+                match same_time_keyframe {
+                    Some(keyframe) => {
+                        keyframe.point_ids.push(id);
+                    }
+                    None => {
+                        keyframes.push(MergedKeyframe {
+                            point_ids: vec![id],
+                            time,
+                        });
+                    }
                 }
-                None => {
-                    keyframes.push(MergedKeyframe {
-                        point_ids: vec![id],
-                        time,
-                    });
-                }
-            }
-        });
+            });
 
         let path_builder = PathBuilder::new()
             .move_to(-20.0, 0.0)
@@ -93,10 +83,19 @@ impl TimelineWindow {
                     0.0,
                     sign.attach_event(|builder| {
                         let point_ids = keyframe.point_ids.clone();
+                        let keyframe_time = keyframe.time;
+                        let window_id = self.id.clone();
                         builder.on_mouse_down(move |event| {
+                            let window_global_xy = event
+                                .namui_context
+                                .get_rendering_tree_xy_by_id(&window_id)
+                                .unwrap();
+
                             namui::event::send(Event::KeyframeMouseDown {
                                 point_ids: point_ids.clone(),
                                 anchor_xy: event.local_xy,
+                                keyframe_time,
+                                mouse_local_xy: event.global_xy - window_global_xy,
                             });
                         })
                     }),
@@ -105,12 +104,4 @@ impl TimelineWindow {
 
         render(signs)
     }
-}
-
-fn get_time_and_id<T: KeyframeValue + Clone>(graph: &KeyframeGraph<T>) -> Vec<(Time, String)> {
-    graph
-        .get_points_with_lines()
-        .iter()
-        .map(|(point, _)| (point.time, point.id().to_string()))
-        .collect()
 }

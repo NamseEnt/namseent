@@ -1,5 +1,6 @@
+pub use super::Act;
 use super::*;
-use namui::animation::Animation;
+pub use namui::animation::Animation;
 use std::{
     error::Error,
     sync::{atomic::AtomicUsize, Arc, Mutex},
@@ -8,7 +9,11 @@ use std::{
 #[derive(Clone)]
 pub struct AnimationHistory {
     history_system: Arc<Mutex<HistorySystem<Animation>>>,
-    working_ticket: Arc<Mutex<Option<Ticket>>>,
+    working_ticket: Arc<Mutex<Option<ActionTicket>>>,
+}
+
+pub enum Event {
+    ActionUpdated,
 }
 
 impl AnimationHistory {
@@ -24,20 +29,21 @@ impl AnimationHistory {
         history.get_preview()
     }
 
-    pub(crate) fn try_set_action(&self, action: impl Act<Animation>) -> Option<Ticket> {
+    pub(crate) fn try_set_action(&self, action: impl Act<Animation>) -> Option<ActionTicket> {
         let mut history = self.history_system.lock().unwrap();
         if history.has_action() {
             None
         } else {
             history.set_action(action);
-            let ticket = Ticket::new();
-            *self.working_ticket.lock().unwrap() = Some(ticket);
-            Some(ticket)
+            let action_ticket = ActionTicket::new();
+            *self.working_ticket.lock().unwrap() = Some(action_ticket);
+            namui::event::send(Event::ActionUpdated);
+            Some(action_ticket)
         }
     }
 
-    pub(crate) fn act(&self, ticket: Ticket) -> Result<Arc<Animation>, ActError> {
-        if Some(ticket) != *self.working_ticket.lock().unwrap() {
+    pub(crate) fn act(&self, action_ticket: ActionTicket) -> Result<Arc<Animation>, ActError> {
+        if Some(action_ticket) != *self.working_ticket.lock().unwrap() {
             return Err(ActError::WrongTicket);
         }
         *self.working_ticket.lock().unwrap() = None;
@@ -55,16 +61,35 @@ impl AnimationHistory {
             }),
         }
     }
+
+    pub(crate) fn update_action<TAction: Act<Animation>>(
+        &self,
+        action_ticket: ActionTicket,
+        update: impl FnOnce(&mut TAction),
+    ) -> Result<(), UpdateActionError> {
+        if Some(action_ticket) != *self.working_ticket.lock().unwrap() {
+            return Err(UpdateActionError::WrongTicket);
+        }
+
+        let mut history = self.history_system.lock().unwrap();
+        match history.update_action(update) {
+            Ok(_) => Ok(()),
+            Err(error) => Err(match error {
+                super::UpdateActionError::NoAction => UpdateActionError::NoAction,
+                super::UpdateActionError::WrongActionType => UpdateActionError::WrongActionType,
+            }),
+        }
+    }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Ticket {
+pub struct ActionTicket {
     id: usize,
 }
 
 const NEXT_TICKET_ID: AtomicUsize = AtomicUsize::new(0);
-impl Ticket {
+impl ActionTicket {
     pub fn new() -> Self {
-        Ticket {
+        ActionTicket {
             id: NEXT_TICKET_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
         }
     }
@@ -75,4 +100,11 @@ pub enum ActError {
     ActionNotExists,
     ActionFailToRun(Box<dyn Error>),
     WrongTicket,
+}
+
+#[derive(Debug)]
+pub enum UpdateActionError {
+    WrongTicket,
+    NoAction,
+    WrongActionType,
 }

@@ -1,7 +1,6 @@
 use super::*;
 use crate::zoom::zoom_time_per_pixel;
 use namui::animation::{KeyframeGraph, KeyframePoint, KeyframeValue};
-use std::sync::Arc;
 
 impl TimelineWindow {
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -41,13 +40,25 @@ impl TimelineWindow {
                 Event::KeyframeMouseDown {
                     point_ids,
                     anchor_xy,
+                    keyframe_time,
+                    mouse_local_xy,
                 } => {
                     self.selected_point_ids = Some(point_ids.clone());
+                    let layer_id = self.selected_layer_id.as_ref().unwrap();
                     if self.dragging.is_none() {
-                        self.dragging = Some(Dragging::Keyframe {
-                            point_ids: point_ids.clone(),
-                            anchor_xy: *anchor_xy,
-                        });
+                        if let Some(action_ticket) =
+                            self.animation_history
+                                .try_set_action(DraggingKeyframeAction {
+                                    layer_id: layer_id.clone(),
+                                    point_ids: point_ids.clone(),
+                                    drag_end_x: mouse_local_xy.x.into(),
+                                    anchor_x: PixelSize::from(anchor_xy.x),
+                                    time_per_pixel: self.time_per_pixel,
+                                    start_at: self.start_at,
+                                })
+                        {
+                            self.dragging = Some(Dragging::Keyframe { action_ticket });
+                        }
                     }
                 }
                 &Event::TimelineRightMouseDown { mouse_local_xy } => {
@@ -61,6 +72,9 @@ impl TimelineWindow {
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
                 NamuiEvent::MouseUp(_) => {
+                    if let Some(Dragging::Keyframe { action_ticket }) = self.dragging {
+                        self.animation_history.act(action_ticket).unwrap();
+                    }
                     self.dragging = None;
                 }
                 NamuiEvent::KeyDown(event) => match event.code {
@@ -68,22 +82,42 @@ impl TimelineWindow {
                         if let Some(selected_point_ids) = &self.selected_point_ids {
                             let selected_layer_id = self.selected_layer_id.as_ref().unwrap();
 
-                            let animation = self.animation.read();
-
-                            let mut layer = animation
-                                .layers
-                                .iter()
-                                .find(|layer| layer.id.eq(selected_layer_id))
-                                .unwrap()
-                                .clone();
-
-                            for point_id in selected_point_ids {
-                                delete_point(&mut layer, point_id);
+                            struct DeleteKeyframe {
+                                layer_id: String,
+                                point_ids: Vec<String>,
+                            }
+                            impl Act<Animation> for DeleteKeyframe {
+                                fn act(
+                                    &self,
+                                    state: &Animation,
+                                ) -> Result<Animation, Box<dyn std::error::Error>>
+                                {
+                                    let mut animation = state.clone();
+                                    if let Some(layer) = animation
+                                        .layers
+                                        .iter_mut()
+                                        .find(|layer| layer.id.eq(&self.layer_id))
+                                    {
+                                        for point_id in &self.point_ids {
+                                            delete_point(layer, &point_id);
+                                        }
+                                        Ok(animation)
+                                    } else {
+                                        Err("layer not found".into())
+                                    }
+                                }
                             }
 
-                            namui::event::send(crate::Event::UpdateLayer(Arc::new(layer)));
+                            if let Some(action_ticket) =
+                                self.animation_history.try_set_action(DeleteKeyframe {
+                                    layer_id: selected_layer_id.clone(),
+                                    point_ids: selected_point_ids.clone(),
+                                })
+                            {
+                                self.animation_history.act(action_ticket).unwrap();
 
-                            self.selected_point_ids = None;
+                                self.selected_point_ids = None;
+                            }
                         }
                     }
                     _ => {}
@@ -107,32 +141,14 @@ impl TimelineWindow {
                 self.start_at -= PixelSize::from(delta.x) * self.time_per_pixel;
                 *last_mouse_local_xy = mouse_local_xy;
             }
-            Dragging::Keyframe {
-                point_ids,
-                anchor_xy,
-            } => {
-                if self.selected_layer_id.is_none() {
-                    return;
-                }
-                let selected_layer_id = self.selected_layer_id.as_ref().unwrap();
-
-                let animation = self.animation.read();
-
-                let mut layer = animation
-                    .layers
-                    .iter()
-                    .find(|layer| layer.id.eq(selected_layer_id))
-                    .unwrap()
-                    .clone();
-
-                let to_time = self.start_at
-                    + PixelSize::from(mouse_local_xy.x - anchor_xy.x) * self.time_per_pixel;
-
-                for point_id in point_ids {
-                    move_point(&mut layer, point_id, to_time)
-                }
-
-                namui::event::send(crate::Event::UpdateLayer(Arc::new(layer)));
+            Dragging::Keyframe { ref action_ticket } => {
+                self.animation_history
+                    .update_action(*action_ticket, |action: &mut DraggingKeyframeAction| {
+                        action.time_per_pixel = self.time_per_pixel;
+                        action.start_at = self.start_at;
+                        action.drag_end_x = mouse_local_xy.x.into();
+                    })
+                    .unwrap();
             }
         }
     }
@@ -142,25 +158,43 @@ impl TimelineWindow {
         }
         let selected_layer_id = self.selected_layer_id.as_ref().unwrap();
 
-        let animation = self.animation.read();
+        struct CreateNewKeyframeAction {
+            layer_id: String,
+            time: Time,
+        }
+        impl Act<Animation> for CreateNewKeyframeAction {
+            fn act(&self, state: &Animation) -> Result<Animation, Box<dyn std::error::Error>> {
+                let mut animation = state.clone();
 
-        let mut layer = animation
-            .layers
-            .iter()
-            .find(|layer| layer.id.eq(selected_layer_id))
-            .unwrap()
-            .clone();
+                if let Some(layer) = animation
+                    .layers
+                    .iter_mut()
+                    .find(|layer| layer.id.eq(&self.layer_id))
+                {
+                    let time = self.time;
 
-        let time = self.start_at + PixelSize::from(mouse_local_xy.x) * self.time_per_pixel;
+                    add_new_point(&mut layer.image.x, time, PixelSize::from(0.0));
+                    add_new_point(&mut layer.image.y, time, PixelSize::from(0.0));
+                    add_new_point(&mut layer.image.width, time, Percent::new(100.0));
+                    add_new_point(&mut layer.image.height, time, Percent::new(100.0));
+                    add_new_point(&mut layer.image.rotation_angle, time, Degree::from(0.0));
+                    add_new_point(&mut layer.image.opacity, time, OneZero::from(1.0));
+                    Ok(animation)
+                } else {
+                    Err("layer not found".into())
+                }
+            }
+        }
 
-        add_new_point(&mut layer.image.x, time, PixelSize::from(0.0));
-        add_new_point(&mut layer.image.y, time, PixelSize::from(0.0));
-        add_new_point(&mut layer.image.width, time, Percent::new(100.0));
-        add_new_point(&mut layer.image.height, time, Percent::new(100.0));
-        add_new_point(&mut layer.image.rotation_angle, time, Degree::from(0.0));
-        add_new_point(&mut layer.image.opacity, time, OneZero::from(1.0));
-
-        namui::event::send(crate::Event::UpdateLayer(Arc::new(layer)));
+        if let Some(action_ticket) =
+            self.animation_history
+                .try_set_action(CreateNewKeyframeAction {
+                    layer_id: selected_layer_id.clone(),
+                    time: self.start_at + PixelSize::from(mouse_local_xy.x) * self.time_per_pixel,
+                })
+        {
+            self.animation_history.act(action_ticket).unwrap();
+        }
     }
 }
 
@@ -208,4 +242,33 @@ fn delete_point(layer: &mut Layer, point_id: &str) {
     layer.image.height.delete(point_id);
     layer.image.opacity.delete(point_id);
     layer.image.rotation_angle.delete(point_id);
+}
+
+struct DraggingKeyframeAction {
+    layer_id: String,
+    point_ids: Vec<String>,
+    drag_end_x: PixelSize,
+    anchor_x: PixelSize,
+    start_at: Time,
+    time_per_pixel: TimePerPixel,
+}
+impl Act<Animation> for DraggingKeyframeAction {
+    fn act(&self, state: &Animation) -> Result<Animation, Box<dyn std::error::Error>> {
+        let mut animation = state.clone();
+        if let Some(layer) = animation
+            .layers
+            .iter_mut()
+            .find(|layer| layer.id.eq(&self.layer_id))
+        {
+            let to_time = self.start_at + (self.drag_end_x - self.anchor_x) * self.time_per_pixel;
+
+            for point_id in &self.point_ids {
+                move_point(layer, &point_id, to_time)
+            }
+
+            Ok(animation)
+        } else {
+            Err("layer not found".into())
+        }
+    }
 }

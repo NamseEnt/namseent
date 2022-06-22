@@ -1,13 +1,13 @@
 use crate::{image_select_window, layer_list_window, types::AnimationHistory};
 use namui::{animation::Animation, prelude::*, types::Time};
 use namui_prebuilt::{table::*, *};
-// mod timeline_window;
+mod timeline_window;
 // mod wysiwyg_window;
 
 pub struct TimePointEditor {
     animation_history: AnimationHistory,
     // wysiwyg_window: wysiwyg_window::WysiwygWindow,
-    // timeline_window: timeline_window::TimelineWindow,
+    timeline_window: timeline_window::TimelineWindow,
     image_select_window: image_select_window::ImageSelectWindow,
     layer_list_window: layer_list_window::LayerListWindow,
     playback_time: Time,
@@ -25,13 +25,13 @@ pub(crate) enum Event {
 }
 
 impl TimePointEditor {
-    pub fn new(animation: AnimationHistory) -> Self {
+    pub fn new(animation_history: AnimationHistory) -> Self {
         Self {
             // wysiwyg_window: wysiwyg_window::WysiwygWindow::new(animation.clone()),
-            // timeline_window: timeline_window::TimelineWindow::new(animation.clone()),
+            timeline_window: timeline_window::TimelineWindow::new(animation_history.clone()),
             image_select_window: image_select_window::ImageSelectWindow::new(),
-            layer_list_window: layer_list_window::LayerListWindow::new(animation.clone()),
-            animation_history: animation,
+            layer_list_window: layer_list_window::LayerListWindow::new(animation_history.clone()),
+            animation_history,
             playback_time: Time::zero(),
             editing_target: None,
         }
@@ -43,7 +43,7 @@ impl TimePointEditor {
                     self.editing_target = Some(EditingTarget::PlaybackTime {
                         layer_id: layer_id.clone(),
                     });
-                    // self.timeline_window.selected_layer_id = Some(layer_id.clone());
+                    self.timeline_window.selected_layer_id = Some(layer_id.clone());
                 }
                 _ => {}
             }
@@ -62,7 +62,7 @@ impl TimePointEditor {
         }
 
         // self.wysiwyg_window.update(event);
-        // self.timeline_window.update(event);
+        self.timeline_window.update(event);
         self.image_select_window.update(event);
         self.layer_list_window.update(event);
     }
@@ -110,12 +110,11 @@ impl TimePointEditor {
                 ]),
             ),
             ratio(2.0, |wh| {
-                simple_rect(wh, Color::BLACK, 1.0, Color::WHITE)
-                // self.timeline_window.render(timeline_window::Props {
-                //     wh,
-                //     layers: &animation.layers,
-                //     playback_time: self.playback_time,
-                // })
+                self.timeline_window.render(timeline_window::Props {
+                    wh,
+                    layers: &animation.layers,
+                    playback_time: self.playback_time,
+                })
             }),
         ])(Wh {
             width: props.wh.width.into(),

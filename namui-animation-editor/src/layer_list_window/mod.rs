@@ -50,8 +50,10 @@ impl LayerListWindow {
                             Ok(animation)
                         }
                     }
-                    if let Some(ticket) = self.animation_history.try_set_action(AddLayerAction) {
-                        self.animation_history.act(ticket).unwrap();
+                    if let Some(action_ticket) =
+                        self.animation_history.try_set_action(AddLayerAction)
+                    {
+                        self.animation_history.act(action_ticket).unwrap();
                     }
                 }
                 _ => {}

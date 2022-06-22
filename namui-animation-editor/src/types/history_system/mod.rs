@@ -19,6 +19,12 @@ pub enum ActError {
     ActionFailToRun(Box<dyn Error>),
 }
 
+#[derive(Debug)]
+pub enum UpdateActionError {
+    NoAction,
+    WrongActionType,
+}
+
 impl<TState: 'static> HistorySystem<TState> {
     pub fn new(initial_state: TState) -> Self {
         HistorySystem {
@@ -44,11 +50,19 @@ impl<TState: 'static> HistorySystem<TState> {
     pub fn set_action(&mut self, action: impl Act<TState>) {
         self.action = Some(Box::new(action));
     }
-    pub fn with_action<TAction: Act<TState>>(&mut self, callback: impl FnOnce(&mut TAction)) {
+    pub fn update_action<TAction: Act<TState>>(
+        &mut self,
+        update: impl FnOnce(&mut TAction),
+    ) -> Result<(), UpdateActionError> {
         if let Some(action) = &mut self.action {
             if let Some(action) = action.downcast_mut::<TAction>() {
-                callback(action);
+                update(action);
+                Ok(())
+            } else {
+                Err(UpdateActionError::WrongActionType)
             }
+        } else {
+            Err(UpdateActionError::NoAction)
         }
     }
     pub fn undo(&mut self) -> Option<()> {
@@ -99,7 +113,7 @@ mod tests {
         history_system.set_action(RightAction { value: 1 });
 
         let mut is_called = false;
-        history_system.with_action(|action: &mut RightAction| {
+        history_system.update_action(|action: &mut RightAction| {
             action.value = 2;
             is_called = true;
         });
@@ -135,7 +149,7 @@ mod tests {
         }
 
         let mut is_called = false;
-        history_system.with_action(|action: &mut WrongAction| {
+        history_system.update_action(|action: &mut WrongAction| {
             action.value = 2;
             is_called = true;
         });
