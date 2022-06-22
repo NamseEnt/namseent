@@ -5,6 +5,7 @@ mod read_only_lock;
 pub(crate) use read_only_lock::ReadOnlyLock;
 pub mod animation_editor;
 pub use animation_editor::{AnimationEditor, Props};
+pub(crate) mod history_system;
 pub(crate) mod image_select_window;
 pub(crate) mod layer_list_window;
 mod time_point_editor;
@@ -17,3 +18,7 @@ pub(crate) fn adjust_font_size(height: f32) -> i16 {
     font_size -= font_size % 4;
     font_size
 }
+
+#[cfg(test)]
+#[cfg(target_family = "wasm")]
+wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);

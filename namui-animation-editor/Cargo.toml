@@ -8,3 +8,7 @@ edition = "2021"
 [dependencies]
 namui = { path = "../namui" }
 namui-prebuilt = { path = "../namui-prebuilt" }
+downcast-rs = "1.2"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
