@@ -162,7 +162,7 @@ fn set_mouse_cursor(rendering_tree: &RenderingTree) {
     let mouse_xy = mouse_manager.mouse_position();
 
     let cursor = rendering_tree
-        .get_mouse_cursor(&Xy {
+        .get_mouse_cursor(Xy {
             x: mouse_xy.x as f32,
             y: mouse_xy.y as f32,
         })
