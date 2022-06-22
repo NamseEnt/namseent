@@ -2,7 +2,7 @@ use crate::types::*;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct KeyframePoint<T: Clone> {
     id: String,
     pub time: Time,
@@ -101,6 +101,10 @@ impl<'a, TValue: KeyframeValue + Clone> KeyframeGraph<TValue> {
     pub fn delete(&mut self, id: impl AsRef<str>) {
         self.points_with_lines
             .retain(|(point, _)| point.id.ne(id.as_ref()));
+    }
+    pub fn delete_by_time(&mut self, time: Time) {
+        self.points_with_lines
+            .retain(|(point, _)| point.time != time);
     }
     pub fn get_last_point(&self) -> Option<&KeyframePoint<TValue>> {
         self.points_with_lines.last().map(|(point, _)| point)
@@ -257,5 +261,50 @@ mod tests {
         let last_point = last_point.unwrap();
         assert_eq!(last_point.time, Time::from_ms(5.0));
         assert_eq!(last_point.value, 0.0);
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn should_delete_by_id() {
+        let mut graph = KeyframeGraph::new();
+        let first_point = KeyframePoint::new(Time::from_ms(0.0), 0.0);
+        let second_point = KeyframePoint::new(Time::from_ms(10.0), 10.0);
+        graph.put(first_point.clone(), KeyframeLine::Linear);
+        graph.put(second_point.clone(), KeyframeLine::Linear);
+
+        graph.delete(second_point.id);
+
+        assert_eq!(graph.get_last_point(), Some(&first_point.clone()));
+        assert_eq!(graph.get_points_with_lines().len(), 1);
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn should_delete_by_time() {
+        let mut graph = KeyframeGraph::new();
+        let first_time = Time::from_ms(1.0);
+        let first_point = KeyframePoint::new(first_time, 10.0);
+        let second_time = Time::from_ms(2.0);
+        let second_point = KeyframePoint::new(second_time, 10.0);
+        let third_time = Time::from_ms(3.0);
+        let third_point = KeyframePoint::new(third_time, 10.0);
+        graph.put(first_point.clone(), KeyframeLine::Linear);
+        graph.put(second_point.clone(), KeyframeLine::Linear);
+        graph.put(third_point.clone(), KeyframeLine::Linear);
+
+        graph.delete_by_time(second_time);
+
+        assert_eq!(graph.get_last_point(), Some(&third_point));
+        assert_eq!(graph.get_points_with_lines().len(), 2);
+
+        graph.delete_by_time(third_time);
+
+        assert_eq!(graph.get_last_point(), Some(&first_point));
+        assert_eq!(graph.get_points_with_lines().len(), 1);
+
+        graph.delete_by_time(first_time);
+
+        assert_eq!(graph.get_last_point(), None);
+        assert_eq!(graph.get_points_with_lines().len(), 0);
     }
 }
