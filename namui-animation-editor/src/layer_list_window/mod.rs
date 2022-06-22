@@ -1,4 +1,8 @@
-use namui::{animation::Layer, prelude::*};
+use crate::types::{Act, AnimationHistory};
+use namui::{
+    animation::{Animation, Layer},
+    prelude::*,
+};
 use namui_prebuilt::*;
 mod body;
 mod header;
@@ -6,6 +10,7 @@ mod header;
 pub(crate) struct LayerListWindow {
     header: header::Header,
     body: body::Body,
+    animation_history: AnimationHistory,
 }
 
 pub(crate) struct Props<'a> {
@@ -15,16 +20,43 @@ pub(crate) struct Props<'a> {
 
 pub(crate) enum Event {
     LayerSelected(String),
+    AddLayerButtonClicked,
 }
 
 impl LayerListWindow {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(animation_history: AnimationHistory) -> Self {
         Self {
             header: header::Header::new(),
             body: body::Body::new(),
+            animation_history,
         }
     }
     pub(crate) fn update(&mut self, event: &dyn std::any::Any) {
+        if let Some(event) = event.downcast_ref::<Event>() {
+            match event {
+                Event::AddLayerButtonClicked => {
+                    struct AddLayerAction;
+                    impl Act<Animation> for AddLayerAction {
+                        fn act(
+                            &self,
+                            state: &Animation,
+                        ) -> Result<Animation, Box<dyn std::error::Error>> {
+                            let mut animation = state.clone();
+                            animation.layers.push(animation::Layer {
+                                id: namui::nanoid(),
+                                name: "New Layer".to_string(),
+                                image: namui::animation::AnimatableImage::new(),
+                            });
+                            Ok(animation)
+                        }
+                    }
+                    if let Some(ticket) = self.animation_history.try_set_action(AddLayerAction) {
+                        self.animation_history.act(ticket).unwrap();
+                    }
+                }
+                _ => {}
+            }
+        }
         self.header.update(event);
         self.body.update(event);
     }

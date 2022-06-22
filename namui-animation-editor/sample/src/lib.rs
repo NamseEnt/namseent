@@ -25,7 +25,7 @@ pub async fn start() {
 }
 
 struct AnimationEditorExample {
-    animation: Arc<RwLock<animation::Animation>>,
+    animation: animation::Animation,
     animation_editor: AnimationEditor,
 }
 
@@ -60,16 +60,16 @@ impl AnimationEditorExample {
             animation::KeyframeLine::Linear,
         );
 
-        let animation = Arc::new(RwLock::new(animation::Animation {
+        let animation = animation::Animation {
             id: namui::nanoid(),
             layers: vec![animation::Layer {
                 id: namui::nanoid(),
                 name: "New Layer".to_string(),
                 image,
             }],
-        }));
+        };
         Self {
-            animation_editor: AnimationEditor::new(animation.clone()),
+            animation_editor: AnimationEditor::new(&animation),
             animation,
         }
     }
@@ -93,28 +93,11 @@ impl Entity for AnimationEditorExample {
     fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<namui_animation_editor::Event>() {
             match event {
-                Event::AddLayerButtonClicked => {
-                    let mut animation = self.animation.write().unwrap();
-
-                    animation.layers.push(animation::Layer {
-                        id: namui::nanoid(),
-                        name: "New Layer".to_string(),
-                        image: namui::animation::AnimatableImage::new(),
-                    });
-                }
-                Event::UpdateLayer(layer) => {
-                    let mut animation = self.animation.write().unwrap();
-                    animation
-                        .layers
-                        .iter_mut()
-                        .find(|l| l.id == layer.id)
-                        .map(|found_layer| {
-                            found_layer.name = layer.name.clone();
-                            found_layer.image = layer.image.clone();
-                        });
-                }
                 Event::Error(error) => {
                     namui::log!("error: {}", error);
+                }
+                Event::AnimationUpdated(animation) => {
+                    self.animation = (**animation).clone();
                 }
             }
         }

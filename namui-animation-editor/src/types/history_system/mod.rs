@@ -1,7 +1,7 @@
 mod history;
 use downcast_rs::{impl_downcast, Downcast};
 use history::History;
-use std::error::Error;
+use std::{error::Error, sync::Arc};
 
 pub trait Act<TState>: Downcast {
     fn act(&self, state: &TState) -> Result<TState, Box<dyn Error>>;
@@ -10,7 +10,7 @@ impl_downcast!(Act<TState>);
 
 pub struct HistorySystem<TState> {
     action: Option<Box<dyn Act<TState>>>,
-    history: History<TState>,
+    history: History<Arc<TState>>,
 }
 
 #[derive(Debug)]
@@ -23,17 +23,25 @@ impl<TState: 'static> HistorySystem<TState> {
     pub fn new(initial_state: TState) -> Self {
         HistorySystem {
             action: None,
-            history: History::new(initial_state),
+            history: History::new(Arc::new(initial_state)),
         }
     }
-    pub fn get_state(&self) -> &TState {
-        self.history.get()
+    pub fn get_state(&self) -> Arc<TState> {
+        self.history.get().clone()
+    }
+    pub fn get_preview(&self) -> Arc<TState> {
+        if let Some(action) = &self.action {
+            let state = self.get_state();
+            if let Ok(preview) = action.act(&state) {
+                return Arc::new(preview);
+            }
+        }
+        self.get_state()
     }
     pub fn has_action(&self) -> bool {
         self.action.is_some()
     }
     pub fn set_action(&mut self, action: impl Act<TState>) {
-        // let boxed: Box<dyn Act<TState>> = Box::new(action);
         self.action = Some(Box::new(action));
     }
     pub fn with_action<TAction: Act<TState>>(&mut self, callback: impl FnOnce(&mut TAction)) {
@@ -49,18 +57,18 @@ impl<TState: 'static> HistorySystem<TState> {
     pub fn redo(&mut self) -> Option<()> {
         self.history.redo()
     }
-    pub fn act(&mut self) -> Result<&TState, ActError> {
+    pub fn act(&mut self) -> Result<Arc<TState>, ActError> {
         if self.action.is_none() {
             return Err(ActError::ActionNotExists);
         }
         let action = self.action.take().unwrap();
 
         let state = self.get_state();
-        let result = action.act(state);
+        let result = action.act(&state);
 
         match result {
             Ok(state) => {
-                self.history.push(state);
+                self.history.push(Arc::new(state));
                 Ok(self.get_state())
             }
             Err(error) => Err(ActError::ActionFailToRun(error)),
@@ -152,6 +160,6 @@ mod tests {
 
         history_system.set_action(RightAction { value: 2 });
 
-        assert_eq!(history_system.act().unwrap(), &3);
+        assert_eq!(history_system.act().unwrap(), Arc::new(3));
     }
 }

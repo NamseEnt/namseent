@@ -56,7 +56,7 @@ impl table::CellRender<Props> for Header {
         ]
         .attach_event(|builder| {
             builder.on_mouse_up(|_event| {
-                namui::event::send(crate::Event::AddLayerButtonClicked);
+                namui::event::send(super::Event::AddLayerButtonClicked);
             })
         });
 

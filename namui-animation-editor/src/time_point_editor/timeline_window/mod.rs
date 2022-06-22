@@ -1,10 +1,15 @@
-use namui::{animation::Layer, prelude::*, types::*};
+use crate::{easy_lock::EasyLock, history_system::HistorySystem};
+use namui::{
+    animation::{Animation, Layer},
+    prelude::*,
+    types::*,
+};
 use namui_prebuilt::{table::*, *};
 mod render;
 mod update;
 
 pub struct TimelineWindow {
-    animation: crate::ReadOnlyLock<animation::Animation>,
+    animation: EasyLock<HistorySystem<Animation>>,
     id: String,
     start_at: Time,
     time_per_pixel: TimePerPixel,
@@ -14,11 +19,11 @@ pub struct TimelineWindow {
 }
 
 impl TimelineWindow {
-    pub fn new(animation: crate::ReadOnlyLock<animation::Animation>) -> Self {
+    pub fn new(animation: EasyLock<HistorySystem<Animation>>) -> Self {
         Self {
             animation,
             id: namui::nanoid(),
-            start_at: Time::zero(),
+            start_at: Time::from_sec(-10.0),
             time_per_pixel: TimePerPixel::from_ms_per_pixel(100.0),
             dragging: None,
             selected_layer_id: None,

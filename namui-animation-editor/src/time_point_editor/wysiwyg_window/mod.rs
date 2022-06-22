@@ -27,6 +27,11 @@ impl WysiwygWindow {
     }
 }
 
+pub struct Props {
+    pub wh: Wh<f32>,
+    pub playback_time: Time,
+}
+
 #[derive(Clone, Copy, Debug)]
 enum ResizeCircleLocation {
     LeftTop,
@@ -52,11 +57,6 @@ enum Dragging {
         anchor_xy: Xy<f32>,
         playback_time: Time,
     },
-}
-
-pub struct Props {
-    pub wh: Wh<f32>,
-    pub playback_time: Time,
 }
 
 enum Event {

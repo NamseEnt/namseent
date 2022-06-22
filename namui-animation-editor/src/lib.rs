@@ -1,15 +1,13 @@
 pub mod events;
 pub use events::Event;
-mod graph_editor;
-mod read_only_lock;
-pub(crate) use read_only_lock::ReadOnlyLock;
 pub mod animation_editor;
 pub use animation_editor::{AnimationEditor, Props};
-pub(crate) mod history_system;
 pub(crate) mod image_select_window;
 pub(crate) mod layer_list_window;
 mod time_point_editor;
 pub(crate) mod time_ruler;
+mod types;
+pub(crate) use types::*;
 pub(crate) mod zoom;
 
 pub(crate) fn adjust_font_size(height: f32) -> i16 {

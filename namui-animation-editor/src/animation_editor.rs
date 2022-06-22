@@ -1,10 +1,12 @@
 use super::*;
+use crate::{new_easy_lock, HistorySystem};
 use namui::prelude::*;
-use std::sync::{Arc, RwLock};
+// mod graph_editor;
 
 pub struct AnimationEditor {
-    graph_editor: graph_editor::GraphEditor,
+    // graph_editor: graph_editor::GraphEditor,
     time_point_editor: time_point_editor::TimePointEditor,
+    animation_history: AnimationHistory,
 }
 
 pub struct Props {
@@ -14,19 +16,23 @@ pub struct Props {
 pub(crate) enum Event {}
 
 impl AnimationEditor {
-    pub fn new(animation: Arc<RwLock<animation::Animation>>) -> Self {
-        let animation = crate::ReadOnlyLock::new(animation);
+    pub fn new(animation: &animation::Animation) -> Self {
+        let animation_history = AnimationHistory::new(animation.clone());
         Self {
-            graph_editor: graph_editor::GraphEditor::new(animation.clone()),
-            time_point_editor: time_point_editor::TimePointEditor::new(animation.clone()),
+            // graph_editor: graph_editor::GraphEditor::new(animation.clone()),
+            time_point_editor: time_point_editor::TimePointEditor::new(animation_history.clone()),
+            animation_history,
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
-        self.graph_editor.update(event);
+        // self.graph_editor.update(event);
         self.time_point_editor.update(event);
     }
     pub fn render(&self, props: Props) -> namui::RenderingTree {
-        self.time_point_editor
-            .render(time_point_editor::Props { wh: props.wh })
+        let animation = self.animation_history.get_preview();
+        self.time_point_editor.render(time_point_editor::Props {
+            wh: props.wh,
+            animation: &animation,
+        })
     }
 }
