@@ -64,7 +64,6 @@ impl WysiwygWindow {
                                         .real_pixel_size_per_screen_pixel_size,
                                 })
                         {
-                            namui::log!("{:?}", ticket);
                             self.dragging = Some(Dragging::ImageBody { ticket });
                         }
                     }

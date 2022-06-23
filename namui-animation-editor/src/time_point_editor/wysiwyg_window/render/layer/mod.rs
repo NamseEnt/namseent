@@ -15,14 +15,14 @@ impl WysiwygWindow {
                 .image
                 .render(playback_time)
                 .with_mouse_cursor(if is_selected_layer {
-                    let is_dragging = false; // TODO
+                    let is_dragging = matches!(self.dragging, Some(Dragging::ImageBody { .. }));
                     if is_dragging {
                         namui::MouseCursor::Move
                     } else {
                         namui::MouseCursor::Pointer
                     }
                 } else {
-                    MouseCursor::Pointer
+                    MouseCursor::Default
                 });
 
         if is_selected_layer {
@@ -38,11 +38,6 @@ impl WysiwygWindow {
                         x: real_anchor_xy.x / real_pixel_size_per_screen_pixel_size,
                         y: real_anchor_xy.y / real_pixel_size_per_screen_pixel_size,
                     };
-                    namui::log!(
-                        "event.local_xy: {:?}, anchor_xy: {:?}",
-                        event.local_xy,
-                        anchor_xy
-                    );
                     namui::event::send(super::Event::LayerClicked {
                         layer_id: layer_id.clone(),
                         anchor_xy,
