@@ -18,6 +18,7 @@ jobs:
       namui-prebuilt: ${{ steps.filter.outputs.namui-prebuilt }}
       nrpc: ${{ steps.filter.outputs.nrpc }}
       namui-sample: ${{ steps.filter.outputs.namui-sample }}
+      image-cropper: ${{ steps.filter.outputs.image-cropper }}
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
@@ -49,6 +50,10 @@ jobs:
               - nrpc/**
             namui-sample:
               - .github/**
+              - namui/**
+            image-cropper:
+              - .github/**
+              - image-cropper/**
               - namui/**
 
   set-up:
@@ -138,6 +143,18 @@ jobs:
           target: wasm-unknown-web
           path: namui/sample/text-input
 
+  test-image-cropper:
+  needs: [check-rebuild, set-up]
+  if: needs.check-rebuild.outputs.image-cropper == 'true'
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v3
+    - uses: ./.github/actions/init-test-job
+    - uses: ./.github/actions/namui-test
+      with:
+        target: wasm-unknown-web
+        path: image-cropper
+
   clean-up:
     if: always()
     runs-on: ubuntu-latest
@@ -153,6 +170,7 @@ jobs:
       - test-namui-prebuilt
       - test-nrpc
       - test-namui-sample
+      - test-image-cropper
     steps:
       - uses: actions/checkout@v3
 
