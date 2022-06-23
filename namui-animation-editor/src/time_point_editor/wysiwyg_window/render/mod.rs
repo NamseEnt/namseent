@@ -4,7 +4,7 @@ mod viewport;
 
 impl WysiwygWindow {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
-        let animation = self.animation.read();
+        let animation = props.animation;
         let wh = props.wh;
 
         if self.last_wh != Some(wh) {
@@ -12,10 +12,9 @@ impl WysiwygWindow {
             return RenderingTree::Empty;
         }
 
-        let layers = animation
-            .layers
-            .iter()
-            .map(|layer| self.render_layer(layer, props.playback_time));
+        let layers = animation.layers.iter().map(|layer| {
+            self.render_layer(layer, props.playback_time, props.selected_layer_id.clone())
+        });
 
         let background =
             simple_rect(props.wh, Color::BLACK, 1.0, Color::TRANSPARENT).attach_event(|builder| {

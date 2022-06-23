@@ -86,7 +86,7 @@ pub struct ActionTicket {
     id: usize,
 }
 
-const NEXT_TICKET_ID: AtomicUsize = AtomicUsize::new(0);
+static NEXT_TICKET_ID: AtomicUsize = AtomicUsize::new(0);
 impl ActionTicket {
     pub fn new() -> Self {
         ActionTicket {

@@ -6,8 +6,9 @@ impl WysiwygWindow {
         layer: &Layer,
         playback_time: Time,
         rendered_image: &RenderingTree,
+        selected_layer_id: Option<String>,
     ) -> namui::RenderingTree {
-        if self.selected_layer_id != Some(layer.id.clone()) {
+        if selected_layer_id != Some(layer.id.clone()) {
             return namui::RenderingTree::Empty;
         }
 

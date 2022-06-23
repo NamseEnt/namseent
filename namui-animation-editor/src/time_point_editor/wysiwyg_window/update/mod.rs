@@ -1,4 +1,6 @@
 use super::*;
+use crate::types::Act;
+use namui::animation::Animation;
 mod dragging;
 
 impl WysiwygWindow {
@@ -48,13 +50,23 @@ impl WysiwygWindow {
                     layer_id,
                     anchor_xy,
                     playback_time,
+                    mouse_local_xy,
                 } => {
-                    self.selected_layer_id = Some(layer_id.clone());
                     if self.dragging.is_none() {
-                        self.dragging = Some(Dragging::ImageBody {
-                            anchor_xy: *anchor_xy,
-                            playback_time: *playback_time,
-                        });
+                        if let Some(ticket) =
+                            self.animation_history
+                                .try_set_action(dragging::DragImageBody {
+                                    anchor_xy: *anchor_xy,
+                                    last_mouse_local_xy: *mouse_local_xy,
+                                    layer_id: layer_id.clone(),
+                                    playback_time: *playback_time,
+                                    real_pixel_size_per_screen_pixel_size: self
+                                        .real_pixel_size_per_screen_pixel_size,
+                                })
+                        {
+                            namui::log!("{:?}", ticket);
+                            self.dragging = Some(Dragging::ImageBody { ticket });
+                        }
                     }
                 }
                 &Event::ResizeCircleClicked {
@@ -73,7 +85,12 @@ impl WysiwygWindow {
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
-                NamuiEvent::MouseUp(_) => self.dragging = None,
+                NamuiEvent::MouseUp(_) => {
+                    if let Some(Dragging::ImageBody { ticket }) = self.dragging {
+                        self.animation_history.act(ticket).unwrap();
+                    }
+                    self.dragging = None;
+                }
                 NamuiEvent::KeyDown(event) => {
                     if let Some(wh) = self.last_wh {
                         if event.code == Code::Space {

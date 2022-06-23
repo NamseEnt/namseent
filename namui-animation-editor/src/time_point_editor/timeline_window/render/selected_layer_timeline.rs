@@ -1,5 +1,4 @@
 use super::*;
-use namui::animation::{KeyframeGraph, KeyframeValue};
 
 struct MergedKeyframe {
     point_ids: Vec<String>,
