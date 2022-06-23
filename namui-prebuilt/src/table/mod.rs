@@ -218,7 +218,20 @@ fn slice_internal<'a>(
                     height: wh.height,
                 },
             };
-            let rendering_tree = namui::translate(xywh.x, xywh.y, render_fn(xywh.wh()));
+            let rendering_tree = namui::translate(
+                xywh.x,
+                xywh.y,
+                namui::clip(
+                    PathBuilder::new().add_rect(&LtrbRect {
+                        left: 0.0,
+                        top: 0.0,
+                        right: xywh.width,
+                        bottom: xywh.height,
+                    }),
+                    ClipOp::Intersect,
+                    render_fn(xywh.wh()),
+                ),
+            );
 
             rendering_tree_list.push(rendering_tree);
             advanced_pixel_size += pixel_size;
