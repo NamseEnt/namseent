@@ -42,7 +42,6 @@ impl WysiwygWindow {
                         layer_id: layer_id.clone(),
                         anchor_xy,
                         playback_time,
-                        mouse_local_xy: anchor_xy,
                     });
                 })
             });

@@ -12,7 +12,11 @@ impl WysiwygWindow {
             return namui::RenderingTree::Empty;
         }
 
-        let bounding_box = rendered_image.get_bounding_box().unwrap();
+        let bounding_box = rendered_image.get_bounding_box();
+        if bounding_box.is_none() {
+            return namui::RenderingTree::Empty;
+        }
+        let bounding_box = bounding_box.unwrap();
 
         let wh = bounding_box.wh();
 
@@ -21,7 +25,7 @@ impl WysiwygWindow {
             bounding_box.y,
             render([
                 self.render_border(wh),
-                self.render_circles(wh, playback_time),
+                self.render_circles(wh, playback_time, layer.id.clone()),
             ]),
         )
     }
@@ -29,7 +33,12 @@ impl WysiwygWindow {
     fn render_border(&self, wh: Wh<f32>) -> RenderingTree {
         simple_rect(wh, Color::grayscale_f01(0.2), 2.0, Color::TRANSPARENT)
     }
-    fn render_circles(&self, wh: Wh<f32>, playback_time: Time) -> RenderingTree {
+    fn render_circles(
+        &self,
+        wh: Wh<f32>,
+        playback_time: Time,
+        selected_layer_id: String,
+    ) -> RenderingTree {
         const CIRCLE_RADIUS: f32 = 10.0;
         let circle_path = PathBuilder::new().add_oval(&LtrbRect {
             left: -CIRCLE_RADIUS,
@@ -112,11 +121,13 @@ impl WysiwygWindow {
                         .with_mouse_cursor(cursor)
                         .attach_event(|builder| {
                             let mouse_local_xy = self.mouse_local_xy.unwrap();
+                            let layer_id = selected_layer_id.clone();
                             builder.on_mouse_down(move |_| {
                                 namui::event::send(Event::ResizeCircleClicked {
                                     location,
                                     anchor_xy: mouse_local_xy,
                                     playback_time,
+                                    layer_id: layer_id.clone(),
                                 });
                             })
                         }),

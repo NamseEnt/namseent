@@ -46,17 +46,9 @@ enum ResizeCircleLocation {
 }
 
 enum Dragging {
-    Background {
-        anchor_xy: Xy<f32>,
-    },
-    ResizeCircle {
-        location: ResizeCircleLocation,
-        anchor_xy: Xy<f32>,
-        playback_time: Time,
-    },
-    ImageBody {
-        ticket: ActionTicket,
-    },
+    Background { anchor_xy: Xy<f32> },
+    ResizeCircle { ticket: ActionTicket },
+    ImageBody { ticket: ActionTicket },
 }
 
 enum Event {
@@ -83,9 +75,9 @@ enum Event {
         layer_id: String,
         anchor_xy: Xy<f32>,
         playback_time: Time,
-        mouse_local_xy: Xy<f32>,
     },
     ResizeCircleClicked {
+        layer_id: String,
         location: ResizeCircleLocation,
         anchor_xy: Xy<f32>,
         playback_time: Time,

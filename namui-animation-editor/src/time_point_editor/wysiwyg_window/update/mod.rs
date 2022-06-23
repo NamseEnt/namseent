@@ -46,20 +46,19 @@ impl WysiwygWindow {
                     self.last_wh = Some(*wh);
                     self.center_viewport(*wh);
                 }
-                Event::LayerClicked {
-                    layer_id,
+                &Event::LayerClicked {
+                    ref layer_id,
                     anchor_xy,
                     playback_time,
-                    mouse_local_xy,
                 } => {
                     if self.dragging.is_none() {
                         if let Some(ticket) =
                             self.animation_history
                                 .try_set_action(dragging::DragImageBody {
-                                    anchor_xy: *anchor_xy,
-                                    last_mouse_local_xy: *mouse_local_xy,
+                                    anchor_xy,
+                                    last_mouse_local_xy: anchor_xy,
                                     layer_id: layer_id.clone(),
-                                    playback_time: *playback_time,
+                                    playback_time,
                                     real_pixel_size_per_screen_pixel_size: self
                                         .real_pixel_size_per_screen_pixel_size,
                                 })
@@ -69,25 +68,41 @@ impl WysiwygWindow {
                     }
                 }
                 &Event::ResizeCircleClicked {
+                    ref layer_id,
                     location,
                     anchor_xy,
                     playback_time,
                 } => {
                     if self.dragging.is_none() {
-                        self.dragging = Some(Dragging::ResizeCircle {
-                            location,
-                            anchor_xy,
-                            playback_time,
-                        });
+                        if let Some(ticket) =
+                            self.animation_history
+                                .try_set_action(dragging::DragResizeCircle {
+                                    anchor_xy,
+                                    last_mouse_local_xy: anchor_xy,
+                                    layer_id: layer_id.clone(),
+                                    playback_time,
+                                    real_pixel_size_per_screen_pixel_size: self
+                                        .real_pixel_size_per_screen_pixel_size,
+                                    location,
+                                })
+                        {
+                            self.dragging = Some(Dragging::ResizeCircle { ticket });
+                        }
                     }
                 }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
                 NamuiEvent::MouseUp(_) => {
-                    if let Some(Dragging::ImageBody { ticket }) = self.dragging {
-                        self.animation_history.act(ticket).unwrap();
-                    }
+                    match &self.dragging {
+                        Some(dragging) => match dragging {
+                            Dragging::ImageBody { ticket } | Dragging::ResizeCircle { ticket } => {
+                                self.animation_history.act(*ticket).unwrap();
+                            }
+                            _ => {}
+                        },
+                        None => {}
+                    };
                     self.dragging = None;
                 }
                 NamuiEvent::KeyDown(event) => {
