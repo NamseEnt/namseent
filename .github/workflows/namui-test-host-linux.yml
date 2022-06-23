@@ -144,16 +144,16 @@ jobs:
           path: namui/sample/text-input
 
   test-image-cropper:
-  needs: [check-rebuild, set-up]
-  if: needs.check-rebuild.outputs.image-cropper == 'true'
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v3
-    - uses: ./.github/actions/init-test-job
-    - uses: ./.github/actions/namui-test
-      with:
-        target: wasm-unknown-web
-        path: image-cropper
+    needs: [check-rebuild, set-up]
+    if: needs.check-rebuild.outputs.image-cropper == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/init-test-job
+      - uses: ./.github/actions/namui-test
+        with:
+          target: wasm-unknown-web
+          path: image-cropper
 
   clean-up:
     if: always()
