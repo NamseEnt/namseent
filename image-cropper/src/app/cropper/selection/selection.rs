@@ -1,26 +1,30 @@
-use super::RectSelection;
+use super::{PolySelection, RectSelection};
 use namui::{RenderingTree, Xy};
 
 #[derive(Clone)]
 pub enum Selection {
     RectSelection(RectSelection),
+    PolySelection(PolySelection),
 }
 impl Selection {
     pub fn render(&self, scale: f32) -> RenderingTree {
         match self {
             Selection::RectSelection(selection) => selection.render(scale),
+            Selection::PolySelection(selection) => selection.render(scale),
         }
     }
 
     pub fn get_polygon(&self) -> Vec<Xy<f32>> {
         match self {
             Selection::RectSelection(selection) => selection.get_polygon(),
+            Selection::PolySelection(selection) => selection.get_polygon(),
         }
     }
 
     pub fn get_id(&self) -> &String {
         match self {
             Selection::RectSelection(selection) => selection.get_id(),
+            Selection::PolySelection(selection) => selection.get_id(),
         }
     }
 }

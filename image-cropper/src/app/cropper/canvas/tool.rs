@@ -24,6 +24,7 @@ impl Tool {
             self.last_cursor_position.y,
             match self.current_tool_type {
                 ToolType::RectSelection => render_rect_selection_icon(),
+                ToolType::PolySelection => render_poly_selection_icon(),
                 ToolType::Hand => render_hand_icon(),
             },
         )
@@ -50,6 +51,7 @@ impl Tool {
 #[derive(Clone, Copy)]
 pub enum ToolType {
     RectSelection,
+    PolySelection,
     Hand,
 }
 
@@ -71,6 +73,17 @@ fn render_rect_selection_icon() -> RenderingTree {
     })
 }
 
+fn render_poly_selection_icon() -> RenderingTree {
+    let poly_selection_path = get_poly_selection_path()
+        .scale(ICON_SIZE, ICON_SIZE)
+        .translate(ICON_OFFSET, ICON_OFFSET);
+    let paint = PaintBuilder::new()
+        .set_color(Color::grayscale_f01(0.3))
+        .set_style(namui::PaintStyle::Stroke);
+
+    path(poly_selection_path, paint)
+}
+
 fn render_hand_icon() -> RenderingTree {
     let hand_path = get_hand_path()
         .scale(ICON_SIZE, ICON_SIZE)
@@ -80,6 +93,18 @@ fn render_hand_icon() -> RenderingTree {
         .set_style(namui::PaintStyle::Stroke);
 
     path(hand_path, paint)
+}
+
+fn get_poly_selection_path() -> PathBuilder {
+    PathBuilder::new()
+        .move_to(1.0, 1.0)
+        .line_to(0.8, 0.8)
+        .line_to(0.2, 0.6)
+        .line_to(0.0, 0.2)
+        .line_to(0.5, 0.0)
+        .line_to(0.7, 0.2)
+        .line_to(0.8, 0.8)
+        .close()
 }
 
 fn get_hand_path() -> PathBuilder {

@@ -22,6 +22,11 @@ pub fn save_image(image_url: String, image_name: String, selection_list: Vec<Sel
                     if let Some(bounding_box) = get_bounding_box(&polygon) {
                         canvas.set_width(bounding_box.width as u32);
                         canvas.set_height(bounding_box.height as u32);
+                        context.save();
+                        context
+                            .translate(-bounding_box.x as f64, -bounding_box.y as f64)
+                            .expect("failed to translate");
+                        draw_clip_path_with_polygon(&context, &polygon);
                         context
                             .draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
                                 &target,
@@ -29,12 +34,13 @@ pub fn save_image(image_url: String, image_name: String, selection_list: Vec<Sel
                                 bounding_box.y.into(),
                                 bounding_box.width.into(),
                                 bounding_box.height.into(),
-                                0.0,
-                                0.0,
+                                bounding_box.x.into(),
+                                bounding_box.y.into(),
                                 bounding_box.width.into(),
                                 bounding_box.height.into(),
                             )
                             .expect("failed to draw image to offscreen canvas");
+                            context.restore();
                         save_canvas_to_png(&canvas, make_sequential_file_name(&image_name, index + 1));
                     }
                 })
@@ -156,4 +162,16 @@ fn get_bounding_box(polygon: &Vec<Xy<f32>>) -> Option<XywhRect<f32>> {
                 height: bounding_box.bottom - bounding_box.top,
             })
         })
+}
+
+fn draw_clip_path_with_polygon(context: &CanvasRenderingContext2d, polygon: &Vec<Xy<f32>>) {
+    if let Some(first_point) = polygon.first() {
+        context.begin_path();
+        context.move_to(first_point.x as f64, first_point.y as f64);
+        for point in polygon.iter().skip(1) {
+            context.line_to(point.x as f64, point.y as f64);
+        }
+        context.close_path();
+        context.clip();
+    }
 }

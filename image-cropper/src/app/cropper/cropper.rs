@@ -1,7 +1,10 @@
 use super::{
     canvas::Canvas,
     event::CropperEvent,
-    job::{Job, RectSelectionCreate, RectSelectionResize, RectSelectionResizeDirection},
+    job::{
+        Job, PolySelectionCreate, RectSelectionCreate, RectSelectionResize,
+        RectSelectionResizeDirection,
+    },
     render_app_bar::render_app_bar,
     save_image::save_image,
     selection::Selection,
@@ -40,7 +43,13 @@ impl Cropper {
                     tool_type,
                 } => match tool_type {
                     super::canvas::ToolType::RectSelection => {
-                        self.create_rect_selection_create_job(position)
+                        self.create_rect_selection_create_job(position);
+                    }
+                    super::canvas::ToolType::PolySelection => {
+                        self.create_poly_selection_create_job(position);
+                        if let Some(Job::PolySelectionCreate(job)) = &mut self.job {
+                            job.add_point(position.clone());
+                        }
                     }
                     _ => (),
                 },
@@ -55,6 +64,7 @@ impl Cropper {
                         match job {
                             Job::RectSelectionResize(job) => job.update_position(position.clone()),
                             Job::RectSelectionCreate(job) => job.update_position(position.clone()),
+                            Job::PolySelectionCreate(job) => job.update_position(position.clone()),
                         }
                     }
                 }
@@ -66,6 +76,11 @@ impl Cropper {
                 CropperEvent::SelectionRightClicked { target_id } => {
                     self.remove_selection(target_id)
                 }
+                CropperEvent::PolySelectionCreateButtonClicked => {
+                    if let Some(Job::PolySelectionCreate(job)) = &mut self.job {
+                        job.done();
+                    }
+                }
             }
         }
         if let Some(event) = event.downcast_ref::<NamuiEvent>() {
@@ -75,6 +90,11 @@ impl Cropper {
                         match job {
                             Job::RectSelectionResize(_) | Job::RectSelectionCreate(_) => {
                                 self.execute_job();
+                            }
+                            Job::PolySelectionCreate(job) => {
+                                if job.is_done() {
+                                    self.execute_job();
+                                }
                             }
                         }
                     }
@@ -129,6 +149,14 @@ impl Cropper {
             self.job = Some(Job::RectSelectionResize(RectSelectionResize::new(
                 selection_id.clone(),
                 direction.clone(),
+            )))
+        }
+    }
+
+    fn create_poly_selection_create_job(&mut self, position: &Xy<f32>) {
+        if self.job.is_none() {
+            self.job = Some(Job::PolySelectionCreate(PolySelectionCreate::new(
+                position.clone(),
             )))
         }
     }

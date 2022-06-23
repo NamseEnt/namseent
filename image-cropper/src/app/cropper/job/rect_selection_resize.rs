@@ -82,6 +82,7 @@ impl JobExecution for RectSelectionResize {
 
                 Selection::RectSelection(rect_selection)
             }
+            _ => unreachable!(),
         })
     }
 }

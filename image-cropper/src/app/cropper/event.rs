@@ -15,4 +15,5 @@ pub enum CropperEvent {
     SelectionRightClicked {
         target_id: String,
     },
+    PolySelectionCreateButtonClicked,
 }

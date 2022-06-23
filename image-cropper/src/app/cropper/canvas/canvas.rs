@@ -64,6 +64,10 @@ impl Canvas {
                     namui::Code::Digit2 | namui::Code::KeyM => {
                         self.change_tool(ToolType::RectSelection);
                     }
+
+                    namui::Code::Digit3 | namui::Code::KeyL => {
+                        self.change_tool(ToolType::PolySelection);
+                    }
                     _ => (),
                 },
                 _ => (),
