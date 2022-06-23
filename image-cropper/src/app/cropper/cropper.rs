@@ -1,5 +1,5 @@
 use super::{
-    canvas::Canvas,
+    canvas::{Canvas, CanvasEvent},
     event::CropperEvent,
     job::{
         Job, PolySelectionCreate, RectSelectionCreate, RectSelectionResize,
@@ -9,7 +9,7 @@ use super::{
     save_image::save_image,
     selection::Selection,
 };
-use crate::app::cropper::canvas::CanvasProps;
+use crate::app::cropper::{canvas::CanvasProps, selection::SelectionEvent};
 use namui::{render, translate, Image, NamuiEvent, RenderingTree, Wh, Xy, XywhRect};
 use std::sync::Arc;
 
@@ -38,7 +38,16 @@ impl Cropper {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<CropperEvent>() {
             match &event {
-                CropperEvent::LeftMouseDownInCanvas {
+                CropperEvent::SaveButtonClicked => save_image(
+                    self.image_url.clone(),
+                    self.image_name.clone(),
+                    self.selection_list.clone(),
+                ),
+            }
+        }
+        if let Some(event) = event.downcast_ref::<CanvasEvent>() {
+            match &event {
+                CanvasEvent::LeftMouseDownInCanvas {
                     position,
                     tool_type,
                 } => match tool_type {
@@ -53,13 +62,7 @@ impl Cropper {
                     }
                     _ => (),
                 },
-                CropperEvent::RectSelectionResizeHandleClicked {
-                    selection_id,
-                    direction,
-                } => {
-                    self.create_rect_selection_resize_job(selection_id, direction);
-                }
-                CropperEvent::MouseMoveInCanvas(position) => {
+                CanvasEvent::MouseMoveInCanvas(position) => {
                     if let Some(job) = &mut self.job {
                         match job {
                             Job::RectSelectionResize(job) => job.update_position(position.clone()),
@@ -68,18 +71,24 @@ impl Cropper {
                         }
                     }
                 }
-                CropperEvent::SaveButtonClicked => save_image(
-                    self.image_url.clone(),
-                    self.image_name.clone(),
-                    self.selection_list.clone(),
-                ),
-                CropperEvent::SelectionRightClicked { target_id } => {
-                    self.remove_selection(target_id)
+                _ => (),
+            }
+        }
+        if let Some(event) = event.downcast_ref::<SelectionEvent>() {
+            match &event {
+                SelectionEvent::RectSelectionResizeHandleClicked {
+                    selection_id,
+                    direction,
+                } => {
+                    self.create_rect_selection_resize_job(selection_id, direction);
                 }
-                CropperEvent::PolySelectionCreateButtonClicked => {
+                SelectionEvent::PolySelectionCreateButtonClicked => {
                     if let Some(Job::PolySelectionCreate(job)) = &mut self.job {
                         job.done();
                     }
+                }
+                SelectionEvent::SelectionRightClicked { target_id } => {
+                    self.remove_selection(target_id)
                 }
             }
         }

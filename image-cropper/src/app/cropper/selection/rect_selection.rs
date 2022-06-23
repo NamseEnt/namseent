@@ -1,5 +1,5 @@
-use super::SelectionTrait;
-use crate::app::cropper::{event::CropperEvent, job::RectSelectionResizeDirection};
+use super::{SelectionEvent, SelectionTrait};
+use crate::app::cropper::job::RectSelectionResizeDirection;
 use namui::{
     nanoid, render, BorderPosition, Color, MouseCursor, PaintBuilder, PaintStyle, PathBuilder,
     RectParam, RectStroke, RectStyle, RenderingTree, Xy, XywhRect,
@@ -44,7 +44,7 @@ impl SelectionTrait for RectSelection {
                 let id = self.id.clone();
                 builder.on_mouse_down(move |event| {
                     if event.pressing_buttons.contains(&namui::MouseButton::Right) {
-                        namui::event::send(CropperEvent::SelectionRightClicked {
+                        namui::event::send(SelectionEvent::SelectionRightClicked {
                             target_id: id.clone(),
                         })
                     }
@@ -112,7 +112,7 @@ fn render_handles(xywh: &XywhRect<f32>, selection_id: String) -> RenderingTree {
             builder.on_mouse_down(move |_| {
                 let selection_id = selection_id.clone();
                 let direction = direction.clone();
-                namui::event::send(CropperEvent::RectSelectionResizeHandleClicked {
+                namui::event::send(SelectionEvent::RectSelectionResizeHandleClicked {
                     selection_id,
                     direction,
                 })

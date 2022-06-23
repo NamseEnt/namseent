@@ -1,5 +1,5 @@
 use super::{CanvasEvent, Tool, ToolType};
-use crate::app::cropper::{event::CropperEvent, selection::Selection};
+use crate::app::cropper::selection::Selection;
 use namui::{
     clip, image, render, translate, Color, Image, ImageFit, ImageParam, ImageStyle, NamuiEvent,
     RectFill, RectParam, RectStyle, RenderingTree, Wh, Xy,
@@ -37,11 +37,12 @@ impl Canvas {
                     self.offset = offset.clone();
                     self.scale = scale.clone();
                 }
+                _ => (),
             }
         }
-        if let Some(event) = event.downcast_ref::<CropperEvent>() {
+        if let Some(event) = event.downcast_ref::<CanvasEvent>() {
             match &event {
-                CropperEvent::LeftMouseDownInCanvas {
+                CanvasEvent::LeftMouseDownInCanvas {
                     position,
                     tool_type,
                 } => match tool_type {
@@ -154,7 +155,7 @@ impl Canvas {
                                 x: -offset.x + event.local_xy.x / scale,
                                 y: -offset.y + event.local_xy.y / scale,
                             };
-                            namui::event::send(CropperEvent::LeftMouseDownInCanvas {
+                            namui::event::send(CanvasEvent::LeftMouseDownInCanvas {
                                 position: local_xy_on_image,
                                 tool_type: current_tool_type,
                             })
@@ -182,7 +183,7 @@ impl Canvas {
                             ),
                             _ => (),
                         };
-                        namui::event::send(CropperEvent::MouseMoveInCanvas(local_xy_on_image))
+                        namui::event::send(CanvasEvent::MouseMoveInCanvas(local_xy_on_image))
                     })
             }),
             clip(

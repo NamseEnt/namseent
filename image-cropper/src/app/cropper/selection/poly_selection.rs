@@ -1,5 +1,5 @@
 use super::SelectionTrait;
-use crate::app::cropper::event::CropperEvent;
+use crate::app::cropper::selection::SelectionEvent;
 use namui::{
     nanoid, rect, render, Color, PaintBuilder, PaintStyle, PathBuilder, RectFill, RectParam,
     RectStroke, RectStyle, Xy,
@@ -45,7 +45,7 @@ impl PolySelection {
                     })
                     .attach_event(|builder| {
                         builder.on_mouse_down(move |_| {
-                            namui::event::send(CropperEvent::PolySelectionCreateButtonClicked)
+                            namui::event::send(SelectionEvent::PolySelectionCreateButtonClicked)
                         })
                     })
                     .with_mouse_cursor(namui::MouseCursor::Pointer)
@@ -82,7 +82,7 @@ impl SelectionTrait for PolySelection {
                         let id = self.id.clone();
                         builder.on_mouse_down(move |event| {
                             if event.pressing_buttons.contains(&namui::MouseButton::Right) {
-                                namui::event::send(CropperEvent::SelectionRightClicked {
+                                namui::event::send(SelectionEvent::SelectionRightClicked {
                                     target_id: id.clone(),
                                 })
                             }
