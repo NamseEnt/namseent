@@ -23,9 +23,6 @@
     },
     {
       "path": "nrpc"
-    },
-    {
-      "path": "image-cropper"
     }
   ],
   "settings": {
