@@ -1,10 +1,14 @@
-use crate::{image_select_window, layer_list_window, types::AnimationHistory};
+use crate::{
+    image_select_window, layer_list_window,
+    types::{Act, AnimationHistory},
+};
 use namui::{animation::Animation, prelude::*, types::Time};
 use namui_prebuilt::{table::*, *};
 mod timeline_window;
 mod wysiwyg_window;
 
 pub struct TimePointEditor {
+    animation_history: AnimationHistory,
     wysiwyg_window: wysiwyg_window::WysiwygWindow,
     timeline_window: timeline_window::TimelineWindow,
     image_select_window: image_select_window::ImageSelectWindow,
@@ -32,6 +36,7 @@ impl TimePointEditor {
             layer_list_window: layer_list_window::LayerListWindow::new(animation_history.clone()),
             playback_time: Time::zero(),
             editing_target: None,
+            animation_history,
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -55,6 +60,46 @@ impl TimePointEditor {
                         layer_id: layer_id.clone(),
                         time: *time,
                     });
+                }
+            }
+        } else if let Some(event) = event.downcast_ref::<image_select_window::Event>() {
+            match event {
+                image_select_window::Event::ImageSelected(url) => {
+                    if let Some(layer_id) = self.get_selected_layer_id() {
+                        struct SelectImageAction {
+                            url: Url,
+                            layer_id: String,
+                        }
+                        impl Act<Animation> for SelectImageAction {
+                            fn act(
+                                &self,
+                                state: &Animation,
+                            ) -> Result<Animation, Box<dyn std::error::Error>>
+                            {
+                                let mut animation = state.clone();
+
+                                if let Some(layer) = animation
+                                    .layers
+                                    .iter_mut()
+                                    .find(|layer| layer.id.eq(&self.layer_id))
+                                {
+                                    layer.image.image_source_url = Some(self.url.clone());
+                                    Ok(animation)
+                                } else {
+                                    Err("layer not found".into())
+                                }
+                            }
+                        }
+
+                        if let Some(action_ticket) =
+                            self.animation_history.try_set_action(SelectImageAction {
+                                url: url.clone(),
+                                layer_id: layer_id.clone(),
+                            })
+                        {
+                            self.animation_history.act(action_ticket).unwrap();
+                        }
+                    }
                 }
             }
         }

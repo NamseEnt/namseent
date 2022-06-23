@@ -5,23 +5,23 @@ mod render;
 mod update;
 
 pub struct WysiwygWindow {
+    window_id: String,
     animation_history: AnimationHistory,
     real_left_top_xy: Xy<f32>,
     real_pixel_size_per_screen_pixel_size: f32,
     last_wh: Option<Wh<f32>>,
     dragging: Option<Dragging>,
-    mouse_local_xy: Option<Xy<f32>>,
 }
 
 impl WysiwygWindow {
     pub fn new(animation_history: AnimationHistory) -> Self {
         Self {
+            window_id: namui::nanoid(),
             animation_history,
             real_left_top_xy: Xy { x: -5.0, y: -5.0 },
             real_pixel_size_per_screen_pixel_size: 2.0,
             last_wh: None,
             dragging: None,
-            mouse_local_xy: None,
         }
     }
 }

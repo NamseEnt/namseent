@@ -5,7 +5,7 @@ impl TimelineWindow {
     pub(crate) fn render(&self, props: Props) -> RenderingTree {
         let background_for_event =
             simple_rect(props.wh, Color::TRANSPARENT, 0.0, Color::TRANSPARENT)
-                .with_id(&self.id)
+                .with_id(&self.window_id)
                 .attach_event(|builder| {
                     builder
                         .on_wheel(move |event| {

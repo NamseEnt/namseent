@@ -120,12 +120,18 @@ impl WysiwygWindow {
                         .clone()
                         .with_mouse_cursor(cursor)
                         .attach_event(|builder| {
-                            let mouse_local_xy = self.mouse_local_xy.unwrap();
+                            let window_id = self.window_id.clone();
                             let layer_id = selected_layer_id.clone();
-                            builder.on_mouse_down(move |_| {
+                            builder.on_mouse_down(move |event| {
+                                let window_global_xy = event
+                                    .namui_context
+                                    .get_rendering_tree_xy_by_id(&window_id)
+                                    .unwrap();
+                                let anchor_xy = event.global_xy - window_global_xy;
+
                                 namui::event::send(Event::ResizeCircleClicked {
                                     location,
-                                    anchor_xy: mouse_local_xy,
+                                    anchor_xy,
                                     playback_time,
                                     layer_id: layer_id.clone(),
                                 });

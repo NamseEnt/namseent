@@ -82,11 +82,11 @@ impl TimelineWindow {
                         if let Some(selected_point_ids) = &self.selected_point_ids {
                             let selected_layer_id = self.selected_layer_id.as_ref().unwrap();
 
-                            struct DeleteKeyframe {
+                            struct DeleteKeyframeAction {
                                 layer_id: String,
                                 point_ids: Vec<String>,
                             }
-                            impl Act<Animation> for DeleteKeyframe {
+                            impl Act<Animation> for DeleteKeyframeAction {
                                 fn act(
                                     &self,
                                     state: &Animation,
@@ -109,7 +109,7 @@ impl TimelineWindow {
                             }
 
                             if let Some(action_ticket) =
-                                self.animation_history.try_set_action(DeleteKeyframe {
+                                self.animation_history.try_set_action(DeleteKeyframeAction {
                                     layer_id: selected_layer_id.clone(),
                                     point_ids: selected_point_ids.clone(),
                                 })

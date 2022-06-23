@@ -16,8 +16,9 @@ impl WysiwygWindow {
             self.render_layer(layer, props.playback_time, props.selected_layer_id.clone())
         });
 
-        let background =
-            simple_rect(props.wh, Color::BLACK, 1.0, Color::TRANSPARENT).attach_event(|builder| {
+        let background = simple_rect(props.wh, Color::BLACK, 1.0, Color::TRANSPARENT)
+            .with_id(&self.window_id)
+            .attach_event(|builder| {
                 builder
                     .on_mouse_down(|event| {
                         namui::event::send(super::Event::BackgroundClicked {

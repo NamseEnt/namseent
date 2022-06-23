@@ -22,7 +22,7 @@ impl WysiwygWindow {
             }
             &Dragging::ResizeCircle { ticket } => {
                 self.animation_history
-                    .update_action(ticket, |action: &mut DragResizeCircle| {
+                    .update_action(ticket, |action: &mut DragResizeCircleAction| {
                         action.real_pixel_size_per_screen_pixel_size =
                             self.real_pixel_size_per_screen_pixel_size;
                         action.last_mouse_local_xy = mouse_local_xy;
@@ -31,7 +31,7 @@ impl WysiwygWindow {
             }
             &Dragging::ImageBody { ticket } => {
                 self.animation_history
-                    .update_action(ticket, |action: &mut DragImageBody| {
+                    .update_action(ticket, |action: &mut DragImageBodyAction| {
                         action.real_pixel_size_per_screen_pixel_size =
                             self.real_pixel_size_per_screen_pixel_size;
                         action.last_mouse_local_xy = mouse_local_xy;
@@ -118,14 +118,14 @@ fn update_size(
         animation::KeyframeLine::Linear,
     );
 }
-pub(super) struct DragImageBody {
+pub(super) struct DragImageBodyAction {
     pub layer_id: String,
     pub anchor_xy: Xy<f32>,
     pub last_mouse_local_xy: Xy<f32>,
     pub playback_time: Time,
     pub real_pixel_size_per_screen_pixel_size: f32,
 }
-impl Act<Animation> for DragImageBody {
+impl Act<Animation> for DragImageBodyAction {
     fn act(&self, state: &Animation) -> Result<Animation, Box<dyn std::error::Error>> {
         let mut animation = state.clone();
         if let Some(layer) = animation
@@ -157,7 +157,7 @@ impl Act<Animation> for DragImageBody {
         }
     }
 }
-pub(super) struct DragResizeCircle {
+pub(super) struct DragResizeCircleAction {
     pub layer_id: String,
     pub anchor_xy: Xy<f32>,
     pub last_mouse_local_xy: Xy<f32>,
@@ -165,7 +165,7 @@ pub(super) struct DragResizeCircle {
     pub real_pixel_size_per_screen_pixel_size: f32,
     pub location: ResizeCircleLocation,
 }
-impl Act<Animation> for DragResizeCircle {
+impl Act<Animation> for DragResizeCircleAction {
     fn act(&self, state: &Animation) -> Result<Animation, Box<dyn std::error::Error>> {
         let mut animation = state.clone();
         if let Some(layer) = animation

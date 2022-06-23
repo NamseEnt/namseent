@@ -15,7 +15,6 @@ impl WysiwygWindow {
                     }
                 }
                 Event::MouseMoveIn { mouse_local_xy } => {
-                    self.mouse_local_xy = Some(*mouse_local_xy);
                     self.handle_dragging(*mouse_local_xy);
                 }
                 Event::ShiftWheel { delta } => {
@@ -54,7 +53,7 @@ impl WysiwygWindow {
                     if self.dragging.is_none() {
                         if let Some(ticket) =
                             self.animation_history
-                                .try_set_action(dragging::DragImageBody {
+                                .try_set_action(dragging::DragImageBodyAction {
                                     anchor_xy,
                                     last_mouse_local_xy: anchor_xy,
                                     layer_id: layer_id.clone(),
@@ -74,18 +73,17 @@ impl WysiwygWindow {
                     playback_time,
                 } => {
                     if self.dragging.is_none() {
-                        if let Some(ticket) =
-                            self.animation_history
-                                .try_set_action(dragging::DragResizeCircle {
-                                    anchor_xy,
-                                    last_mouse_local_xy: anchor_xy,
-                                    layer_id: layer_id.clone(),
-                                    playback_time,
-                                    real_pixel_size_per_screen_pixel_size: self
-                                        .real_pixel_size_per_screen_pixel_size,
-                                    location,
-                                })
-                        {
+                        if let Some(ticket) = self.animation_history.try_set_action(
+                            dragging::DragResizeCircleAction {
+                                anchor_xy,
+                                last_mouse_local_xy: anchor_xy,
+                                layer_id: layer_id.clone(),
+                                playback_time,
+                                real_pixel_size_per_screen_pixel_size: self
+                                    .real_pixel_size_per_screen_pixel_size,
+                                location,
+                            },
+                        ) {
                             self.dragging = Some(Dragging::ResizeCircle { ticket });
                         }
                     }

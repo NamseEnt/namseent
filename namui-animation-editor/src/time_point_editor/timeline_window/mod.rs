@@ -10,7 +10,7 @@ mod update;
 
 pub struct TimelineWindow {
     animation_history: AnimationHistory,
-    id: String,
+    window_id: String,
     start_at: Time,
     time_per_pixel: TimePerPixel,
     dragging: Option<Dragging>,
@@ -22,7 +22,7 @@ impl TimelineWindow {
     pub fn new(animation_history: AnimationHistory) -> Self {
         Self {
             animation_history,
-            id: namui::nanoid(),
+            window_id: namui::nanoid(),
             start_at: Time::from_sec(-10.0),
             time_per_pixel: TimePerPixel::from_ms_per_pixel(100.0),
             dragging: None,

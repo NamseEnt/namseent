@@ -83,7 +83,7 @@ impl TimelineWindow {
                     sign.attach_event(|builder| {
                         let point_ids = keyframe.point_ids.clone();
                         let keyframe_time = keyframe.time;
-                        let window_id = self.id.clone();
+                        let window_id = self.window_id.clone();
                         builder.on_mouse_down(move |event| {
                             let window_global_xy = event
                                 .namui_context
