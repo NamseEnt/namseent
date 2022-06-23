@@ -98,7 +98,7 @@ impl RenderingTree {
             &mut |node, utils| match node {
                 RenderingTree::Node(node) => {
                     let local_xy = utils.to_local_xy(xy);
-                    if node.is_xy_in(local_xy) {
+                    if node.is_xy_in(local_xy) && is_xy_clip_in_by_ancestors(xy, utils.ancestors) {
                         result = true;
                         ControlFlow::Break(())
                     } else {
@@ -142,6 +142,26 @@ impl RenderingTree {
     }
 }
 
+fn is_xy_clip_in_by_ancestors(xy: Xy<f32>, ancestors: &[&RenderingTree]) -> bool {
+    let mut ancestors = ancestors.to_vec();
+    while let Some(closest_ancestor) = ancestors.pop() {
+        if let RenderingTree::Special(special) = closest_ancestor {
+            if let SpecialRenderingNode::Clip(clip) = special {
+                let utils = VisitUtils {
+                    ancestors: &ancestors,
+                    rendering_tree: closest_ancestor,
+                };
+                let local_xy = utils.to_local_xy(xy);
+                if !clip.is_clip_in(local_xy) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -163,15 +183,15 @@ mod tests {
 
             rln order: 8, 6, 5, 2, 7, 4, 3, 1, 0
         */
-        let node_8 = (RenderingTree::Empty).with_id("8");
-        let node_7 = (RenderingTree::Empty).with_id("7");
-        let node_6 = (render([node_8])).with_id("6");
-        let node_5 = (RenderingTree::Empty).with_id("5");
-        let node_4 = (render([node_7])).with_id("4");
-        let node_3 = (RenderingTree::Empty).with_id("3");
-        let node_2 = (render([node_5, node_6])).with_id("2");
-        let node_1 = (render([node_3, node_4])).with_id("1");
-        let node_0 = (render([node_1, node_2])).with_id("0");
+        let node_8 = RenderingTree::Empty.with_id("8");
+        let node_7 = RenderingTree::Empty.with_id("7");
+        let node_6 = render([node_8]).with_id("6");
+        let node_5 = RenderingTree::Empty.with_id("5");
+        let node_4 = render([node_7]).with_id("4");
+        let node_3 = RenderingTree::Empty.with_id("3");
+        let node_2 = render([node_5, node_6]).with_id("2");
+        let node_1 = render([node_3, node_4]).with_id("1");
+        let node_0 = render([node_1, node_2]).with_id("0");
 
         let mut called_ids = vec![];
         node_0.visit_rln(|rendering_tree, _| {
@@ -387,12 +407,12 @@ mod tests {
 
             rln order: 5, 2, 4, 3, 1, 0
         */
-        let node_5 = (RenderingTree::Empty).with_id("5");
-        let node_4 = (RenderingTree::Empty).with_id("4");
-        let node_3 = (RenderingTree::Empty).with_id("3");
-        let node_2 = (render([node_5])).with_id("2");
-        let node_1 = (render([node_3, node_4])).with_id("1");
-        let node_0 = (render([node_1, node_2])).with_id("0");
+        let node_5 = RenderingTree::Empty.with_id("5");
+        let node_4 = RenderingTree::Empty.with_id("4");
+        let node_3 = RenderingTree::Empty.with_id("3");
+        let node_2 = render([node_5]).with_id("2");
+        let node_1 = render([node_3, node_4]).with_id("1");
+        let node_0 = render([node_1, node_2]).with_id("0");
 
         let mut with_ancestors_call_count = 0;
 
@@ -453,5 +473,10 @@ mod tests {
             ControlFlow::Continue(())
         });
         assert_eq!(with_ancestors_call_count, 6);
+    }
+    #[test]
+    #[wasm_bindgen_test]
+    fn clip_should_block_checking_xy_in() {
+        // TODO: Test this. We cannot test it right now because test runtime doesn't load canvaskit.
     }
 }
