@@ -1,12 +1,9 @@
 use super::namui_state::{update_namui_state, NamuiState};
 use super::render::{RenderingData, RenderingTree};
-use super::skia::*;
-use crate::event::EventReceiver;
-use crate::Code;
+use crate::{Code, NamuiContext};
 use serde::{Deserialize, Serialize};
 use serde_repr::*;
 use std::collections::HashSet;
-use std::sync::Arc;
 use std::time::Duration;
 mod xy;
 pub use xy::*;
@@ -14,28 +11,6 @@ mod set_timeout;
 pub use set_timeout::*;
 mod request_animation_frame;
 pub use request_animation_frame::*;
-
-pub struct FpsInfo {
-    pub fps: u16,
-    pub frame_count: u16,
-    pub last_60_frame_time: Duration,
-}
-
-pub struct NamuiContext {
-    pub(crate) surface: Surface,
-    pub(crate) fps_info: FpsInfo,
-    pub(crate) rendering_tree: RenderingTree,
-    pub(crate) event_receiver: EventReceiver,
-    pub(crate) fallback_font_typefaces: Vec<Arc<Typeface>>,
-}
-impl NamuiContext {
-    pub fn get_rendering_tree_xy_by_id(&self, id: &str) -> Option<Xy<f32>> {
-        self.rendering_tree.get_xy_by_id(id)
-    }
-    pub fn get_rendering_tree_xy(&self, rendering_tree: &RenderingTree) -> Option<Xy<f32>> {
-        self.rendering_tree.get_xy_of_child(rendering_tree)
-    }
-}
 
 pub trait NamuiImpl {
     fn init() -> NamuiContext;

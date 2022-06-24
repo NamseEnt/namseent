@@ -3,7 +3,7 @@ use once_cell::sync::OnceCell;
 use std::any::Any;
 use tokio::sync::mpsc::{self, unbounded_channel};
 
-type Event = Box<dyn Any + Send + Sync>;
+pub type Event = Box<dyn Any + Send + Sync>;
 static EVENT_SENDER: OnceCell<mpsc::UnboundedSender<Event>> = OnceCell::new();
 pub(crate) type EventReceiver = mpsc::UnboundedReceiver<Event>;
 
@@ -16,7 +16,6 @@ pub fn init() -> EventReceiver {
 pub fn send(event: impl Any + Send + Sync) {
     EVENT_SENDER.get().unwrap().send(Box::new(event)).unwrap();
 }
-
 
 #[derive(Debug)]
 pub enum NamuiEvent {
