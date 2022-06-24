@@ -200,6 +200,14 @@ pub struct RawMouseEvent {
 }
 
 #[derive(Debug)]
-pub struct KeyEvent {
+pub struct RawWheelEvent {
+    pub id: String,
+    pub delta_xy: Xy<f32>,
+}
+
+#[derive(Debug)]
+pub struct RawKeyboardEvent {
+    pub id: String,
     pub code: Code,
+    pub pressing_codes: HashSet<Code>,
 }
