@@ -1,5 +1,5 @@
 use super::SpecialRenderingNode;
-use crate::{MouseButton, NamuiContext, RenderingTree, Xy};
+use crate::{Code, MouseButton, NamuiContext, RenderingTree, Xy};
 use serde::Serialize;
 use std::{collections::HashSet, sync::Arc};
 
@@ -19,17 +19,21 @@ pub struct AttachEventNode {
     pub on_mouse_up: Option<MouseEventCallback>,
     #[serde(skip_serializing)]
     pub on_wheel: Option<WheelEventCallback>,
+    #[serde(skip_serializing)]
+    pub on_key_down: Option<KeyboardEventCallback>,
+    #[serde(skip_serializing)]
+    pub on_key_up: Option<KeyboardEventCallback>,
 }
 
 #[derive(Clone)]
 pub struct MouseEvent<'a> {
     pub id: String,
+    pub namui_context: &'a NamuiContext,
+    pub target: &'a RenderingTree,
     pub local_xy: Xy<f32>,
     pub global_xy: Xy<f32>,
     pub pressing_buttons: HashSet<MouseButton>,
     pub button: Option<MouseButton>,
-    pub target: &'a RenderingTree,
-    pub namui_context: &'a NamuiContext,
 }
 pub enum MouseEventType {
     Down,
@@ -38,12 +42,20 @@ pub enum MouseEventType {
 }
 pub struct WheelEvent<'a> {
     pub id: String,
-    pub delta_xy: &'a Xy<f32>,
     pub namui_context: &'a NamuiContext,
     pub target: &'a RenderingTree,
+    pub delta_xy: Xy<f32>,
+}
+pub struct KeyboardEvent<'a> {
+    pub id: String,
+    pub namui_context: &'a NamuiContext,
+    pub target: &'a RenderingTree,
+    pub code: Code,
+    pub pressing_codes: HashSet<Code>,
 }
 pub type MouseEventCallback = Arc<dyn Fn(&MouseEvent)>;
 pub type WheelEventCallback = Arc<dyn Fn(&WheelEvent)>;
+pub type KeyboardEventCallback = Arc<dyn Fn(&KeyboardEvent)>;
 
 impl std::fmt::Debug for AttachEventNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -60,6 +72,8 @@ pub struct AttachEventBuilder {
     pub(crate) on_mouse_down: Option<MouseEventCallback>,
     pub(crate) on_mouse_up: Option<MouseEventCallback>,
     pub(crate) on_wheel: Option<WheelEventCallback>,
+    pub(crate) on_key_down: Option<KeyboardEventCallback>,
+    pub(crate) on_key_up: Option<KeyboardEventCallback>,
 }
 
 impl RenderingTree {
@@ -78,6 +92,8 @@ impl RenderingTree {
             on_mouse_down: builder.on_mouse_down,
             on_mouse_up: builder.on_mouse_up,
             on_wheel: builder.on_wheel,
+            on_key_down: builder.on_key_down,
+            on_key_up: builder.on_key_up,
         }))
     }
 }
@@ -105,6 +121,16 @@ impl AttachEventBuilder {
 
     pub fn on_wheel(mut self, on_wheel: impl Fn(&WheelEvent) + 'static) -> Self {
         self.on_wheel = Some(Arc::new(on_wheel));
+        self
+    }
+
+    pub fn on_key_down(mut self, on_key_down: impl Fn(&KeyboardEvent) + 'static) -> Self {
+        self.on_key_down = Some(Arc::new(on_key_down));
+        self
+    }
+
+    pub fn on_key_up(mut self, on_key_up: impl Fn(&KeyboardEvent) + 'static) -> Self {
+        self.on_key_up = Some(Arc::new(on_key_up));
         self
     }
 }

@@ -1,4 +1,7 @@
-use crate::namui::{self, Xy};
+use crate::{
+    namui::{self, Xy},
+    RawWheelEvent,
+};
 use wasm_bindgen::{prelude::Closure, JsCast};
 
 pub struct WheelManager {}
@@ -15,9 +18,12 @@ impl WheelManager {
                         event.prevent_default()
                     }
 
-                    namui::event::send(namui::NamuiEvent::Wheel(Xy {
-                        x: event.delta_x() as f32,
-                        y: event.delta_y() as f32,
+                    namui::event::send(namui::NamuiEvent::Wheel(RawWheelEvent {
+                        id: format!("wheel-{:?}-{:?}", namui::now(), namui::now()),
+                        delta_xy: Xy {
+                            x: event.delta_x() as f32,
+                            y: event.delta_y() as f32,
+                        },
                     }));
                 }) as Box<dyn FnMut(_)>)
                 .into_js_value()

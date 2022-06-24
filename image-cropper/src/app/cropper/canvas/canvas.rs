@@ -125,25 +125,25 @@ impl Canvas {
                         if keyboard_manager.any_code_press([namui::Code::ControlLeft]) {
                             zoom(
                                 event.delta_xy,
-                                &offset,
-                                &local_mouse_position,
-                                &canvas_wh,
-                                &image_size,
+                                offset,
+                                local_mouse_position,
+                                canvas_wh,
+                                image_size,
                                 scale,
                             )
                         } else if keyboard_manager.any_code_press([namui::Code::ShiftLeft]) {
                             scroll(
-                                &Xy {
+                                Xy {
                                     x: event.delta_xy.y,
                                     y: event.delta_xy.x,
                                 },
-                                &offset,
-                                &canvas_wh,
-                                &image_size,
+                                offset,
+                                canvas_wh,
+                                image_size,
                                 scale,
                             )
                         } else {
-                            scroll(event.delta_xy, &offset, &canvas_wh, &image_size, scale)
+                            scroll(event.delta_xy, offset, canvas_wh, image_size, scale)
                         }
                     })
                     .on_mouse_down(move |event| {
@@ -174,11 +174,11 @@ impl Canvas {
                         };
                         match current_tool_type {
                             ToolType::Hand => handle_hand_tool_drag(
-                                &hand_tool_pushed_position,
-                                &local_xy_on_image,
-                                &offset,
-                                &canvas_wh,
-                                &image_size,
+                                hand_tool_pushed_position,
+                                local_xy_on_image,
+                                offset,
+                                canvas_wh,
+                                image_size,
                                 scale,
                             ),
                             _ => (),
@@ -251,11 +251,11 @@ fn render_background(wh: &Wh<f32>) -> RenderingTree {
 }
 
 fn handle_hand_tool_drag(
-    moved_from: &Option<Xy<f32>>,
-    moved_to: &Xy<f32>,
-    offset: &Xy<f32>,
-    canvas_wh: &Wh<f32>,
-    image_size: &Wh<f32>,
+    moved_from: Option<Xy<f32>>,
+    moved_to: Xy<f32>,
+    offset: Xy<f32>,
+    canvas_wh: Wh<f32>,
+    image_size: Wh<f32>,
     scale: f32,
 ) {
     if let Some(last_position) = moved_from {
@@ -263,17 +263,11 @@ fn handle_hand_tool_drag(
             x: (last_position.x - moved_to.x) * scale,
             y: (last_position.y - moved_to.y) * scale,
         };
-        scroll(&scaled_delta_xy, offset, canvas_wh, image_size, scale)
+        scroll(scaled_delta_xy, offset, canvas_wh, image_size, scale)
     }
 }
 
-fn scroll(
-    delta_xy: &Xy<f32>,
-    offset: &Xy<f32>,
-    canvas_wh: &Wh<f32>,
-    image_size: &Wh<f32>,
-    scale: f32,
-) {
+fn scroll(delta_xy: Xy<f32>, offset: Xy<f32>, canvas_wh: Wh<f32>, image_size: Wh<f32>, scale: f32) {
     let scaled_delta_xy = Xy {
         x: delta_xy.x / scale,
         y: delta_xy.y / scale,
@@ -283,11 +277,11 @@ fn scroll(
 }
 
 fn zoom(
-    delta_xy: &Xy<f32>,
-    offset: &Xy<f32>,
-    local_mouse_position: &Xy<f32>,
-    canvas_wh: &Wh<f32>,
-    image_size: &Wh<f32>,
+    delta_xy: Xy<f32>,
+    offset: Xy<f32>,
+    local_mouse_position: Xy<f32>,
+    canvas_wh: Wh<f32>,
+    image_size: Wh<f32>,
     scale: f32,
 ) {
     const ZOOM_MULTIPLIER: f32 = 1.0 / 1000.0;
@@ -307,8 +301,8 @@ fn zoom(
 
 fn clamp_offset_xy(
     offset_xy: Xy<f32>,
-    canvas_wh: &Wh<f32>,
-    image_wh: &Wh<f32>,
+    canvas_wh: Wh<f32>,
+    image_wh: Wh<f32>,
     scale: f32,
 ) -> Xy<f32> {
     let max_diff = Wh {
@@ -325,7 +319,7 @@ fn clamp_offset_xy(
     }
 }
 
-fn clamp_scale(scale: f32, canvas_wh: &Wh<f32>, image_wh: &Wh<f32>) -> f32 {
+fn clamp_scale(scale: f32, canvas_wh: Wh<f32>, image_wh: Wh<f32>) -> f32 {
     let ratio = Xy {
         x: image_wh.width / canvas_wh.width,
         y: image_wh.height / canvas_wh.height,
