@@ -38,7 +38,7 @@ pub(crate) struct Props<'a> {
     pub playback_time: Time,
 }
 
-enum Event {
+pub(super) enum Event {
     ShiftWheel {
         delta: f32,
     },

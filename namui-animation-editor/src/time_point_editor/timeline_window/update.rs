@@ -28,20 +28,22 @@ impl TimelineWindow {
                         self.dragging = Some(Dragging::Background {
                             last_mouse_local_xy: mouse_local_xy,
                         });
-                    }
 
-                    let time =
-                        self.start_at + PixelSize::from(mouse_local_xy.x) * self.time_per_pixel;
-                    namui::event::send(crate::time_point_editor::Event::UpdatePlaybackTime(time));
+                        let time =
+                            self.start_at + PixelSize::from(mouse_local_xy.x) * self.time_per_pixel;
+                        namui::event::send(crate::time_point_editor::Event::UpdatePlaybackTime(
+                            time,
+                        ));
+                    }
                 }
                 &Event::TimelineMouseMoveIn { mouse_local_xy } => {
                     self.handle_timeline_dragging(mouse_local_xy);
                 }
-                Event::KeyframeMouseDown {
-                    point_ids,
+                &Event::KeyframeMouseDown {
+                    ref point_ids,
                     anchor_xy,
-                    keyframe_time,
                     mouse_local_xy,
+                    keyframe_time,
                 } => {
                     self.selected_point_ids = Some(point_ids.clone());
                     let layer_id = self.selected_layer_id.as_ref().unwrap();
@@ -59,6 +61,10 @@ impl TimelineWindow {
                         {
                             self.dragging = Some(Dragging::Keyframe { action_ticket });
                         }
+
+                        namui::event::send(crate::time_point_editor::Event::UpdatePlaybackTime(
+                            keyframe_time,
+                        ));
                     }
                 }
                 &Event::TimelineRightMouseDown { mouse_local_xy } => {

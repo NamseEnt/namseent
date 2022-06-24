@@ -56,7 +56,7 @@ impl TimePointEditor {
                     self.playback_time = *time;
                 }
                 Event::SelectKeyframe { layer_id, time } => {
-                    self.editing_target = Some(EditingTarget::Time {
+                    self.editing_target = Some(EditingTarget::Keyframe {
                         layer_id: layer_id.clone(),
                         time: *time,
                     });
@@ -170,12 +170,13 @@ impl TimePointEditor {
             .as_ref()
             .and_then(|editing_target| match editing_target {
                 EditingTarget::PlaybackTime { layer_id } => Some(layer_id.clone()),
-                EditingTarget::Time { layer_id, .. } => Some(layer_id.clone()),
+                EditingTarget::Keyframe { layer_id, .. } => Some(layer_id.clone()),
             })
     }
 }
 
-enum EditingTarget {
+#[derive(Clone, Debug, PartialEq)]
+pub enum EditingTarget {
     PlaybackTime { layer_id: String },
-    Time { layer_id: String, time: Time },
+    Keyframe { layer_id: String, time: Time },
 }
