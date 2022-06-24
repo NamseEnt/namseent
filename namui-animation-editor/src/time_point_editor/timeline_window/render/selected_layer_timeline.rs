@@ -11,7 +11,7 @@ impl TimelineWindow {
         wh: Wh<f32>,
         props: &Props,
     ) -> RenderingTree {
-        let selected_layer = self
+        let selected_layer = props
             .selected_layer_id
             .as_ref()
             .and_then(|layer_id| props.layers.iter().find(|layer| layer.id.eq(layer_id)));
@@ -66,12 +66,7 @@ impl TimelineWindow {
             })
             .map(|keyframe| {
                 let x = (keyframe.time - self.start_at) / self.time_per_pixel;
-                let is_selected = match &self.selected_point_ids {
-                    Some(selected_point_ids) => selected_point_ids
-                        .iter()
-                        .any(|id| keyframe.point_ids.contains(id)),
-                    None => false,
-                };
+                let is_selected = keyframe.time == self.playback_time;
 
                 let sign = match is_selected {
                     true => selected_sign.clone(),
@@ -84,6 +79,7 @@ impl TimelineWindow {
                         let point_ids = keyframe.point_ids.clone();
                         let keyframe_time = keyframe.time;
                         let window_id = self.window_id.clone();
+                        let layer_id = selected_layer.id.clone();
                         builder.on_mouse_down(move |event| {
                             let window_global_xy = event
                                 .namui_context
@@ -91,6 +87,7 @@ impl TimelineWindow {
                                 .unwrap();
 
                             namui::event::send(Event::KeyframeMouseDown {
+                                layer_id: layer_id.clone(),
                                 point_ids: point_ids.clone(),
                                 anchor_xy: event.local_xy,
                                 keyframe_time,

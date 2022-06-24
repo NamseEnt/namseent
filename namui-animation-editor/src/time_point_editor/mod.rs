@@ -13,7 +13,6 @@ pub struct TimePointEditor {
     timeline_window: timeline_window::TimelineWindow,
     image_select_window: image_select_window::ImageSelectWindow,
     layer_list_window: layer_list_window::LayerListWindow,
-    playback_time: Time,
     editing_target: Option<EditingTarget>,
 }
 
@@ -23,7 +22,6 @@ pub struct Props<'a> {
 }
 
 pub(crate) enum Event {
-    UpdatePlaybackTime(Time),
     SelectKeyframe { layer_id: String, time: Time },
 }
 
@@ -34,7 +32,6 @@ impl TimePointEditor {
             timeline_window: timeline_window::TimelineWindow::new(animation_history.clone()),
             image_select_window: image_select_window::ImageSelectWindow::new(),
             layer_list_window: layer_list_window::LayerListWindow::new(animation_history.clone()),
-            playback_time: Time::zero(),
             editing_target: None,
             animation_history,
         }
@@ -46,15 +43,11 @@ impl TimePointEditor {
                     self.editing_target = Some(EditingTarget::PlaybackTime {
                         layer_id: layer_id.clone(),
                     });
-                    self.timeline_window.selected_layer_id = Some(layer_id.clone());
                 }
                 _ => {}
             }
         } else if let Some(event) = event.downcast_ref::<Event>() {
             match event {
-                Event::UpdatePlaybackTime(time) => {
-                    self.playback_time = *time;
-                }
                 Event::SelectKeyframe { layer_id, time } => {
                     self.editing_target = Some(EditingTarget::Keyframe {
                         layer_id: layer_id.clone(),
@@ -146,7 +139,7 @@ impl TimePointEditor {
                     ratio(8.0, |wh| {
                         self.wysiwyg_window.render(wysiwyg_window::Props {
                             wh,
-                            playback_time: self.playback_time,
+                            playback_time: self.timeline_window.get_playback_time(),
                             animation,
                             selected_layer_id: selected_layer_id.clone(),
                         })
@@ -157,7 +150,7 @@ impl TimePointEditor {
                 self.timeline_window.render(timeline_window::Props {
                     wh,
                     layers: &animation.layers,
-                    playback_time: self.playback_time,
+                    selected_layer_id: selected_layer_id.clone(),
                 })
             }),
         ])(Wh {

@@ -24,16 +24,13 @@ impl TimelineWindow {
                 }
                 &Event::TimelineLeftMouseDown { mouse_local_xy } => {
                     if self.dragging.is_none() {
-                        self.selected_point_ids = None;
                         self.dragging = Some(Dragging::Background {
                             last_mouse_local_xy: mouse_local_xy,
                         });
 
                         let time =
                             self.start_at + PixelSize::from(mouse_local_xy.x) * self.time_per_pixel;
-                        namui::event::send(crate::time_point_editor::Event::UpdatePlaybackTime(
-                            time,
-                        ));
+                        self.playback_time = time;
                     }
                 }
                 &Event::TimelineMouseMoveIn { mouse_local_xy } => {
@@ -44,9 +41,9 @@ impl TimelineWindow {
                     anchor_xy,
                     mouse_local_xy,
                     keyframe_time,
+                    ref layer_id,
                 } => {
-                    self.selected_point_ids = Some(point_ids.clone());
-                    let layer_id = self.selected_layer_id.as_ref().unwrap();
+                    self.playback_time = keyframe_time;
                     if self.dragging.is_none() {
                         if let Some(action_ticket) =
                             self.animation_history
@@ -61,17 +58,56 @@ impl TimelineWindow {
                         {
                             self.dragging = Some(Dragging::Keyframe { action_ticket });
                         }
-
-                        namui::event::send(crate::time_point_editor::Event::UpdatePlaybackTime(
-                            keyframe_time,
-                        ));
                     }
                 }
-                &Event::TimelineRightMouseDown { mouse_local_xy } => {
-                    if self.selected_point_ids.is_none() && self.dragging.is_none() {
-                        self.selected_point_ids = None;
+                &Event::TimelineRightMouseDown {
+                    mouse_local_xy,
+                    ref selected_layer_id,
+                } => {
+                    if self.dragging.is_none() {
                         self.dragging = None;
-                        self.crate_new_keyframe(mouse_local_xy);
+                        if let Some(layer_id) = selected_layer_id {
+                            self.crate_new_keyframe(mouse_local_xy, &layer_id);
+                        }
+                    }
+                }
+                &Event::TimelineDeleteKeyDown {
+                    ref selected_layer_id,
+                    playback_time,
+                } => {
+                    if let Some(selected_layer_id) = selected_layer_id {
+                        struct DeleteKeyframeAction {
+                            layer_id: String,
+                            time: Time,
+                        }
+                        impl Act<Animation> for DeleteKeyframeAction {
+                            fn act(
+                                &self,
+                                state: &Animation,
+                            ) -> Result<Animation, Box<dyn std::error::Error>>
+                            {
+                                let mut animation = state.clone();
+                                if let Some(layer) = animation
+                                    .layers
+                                    .iter_mut()
+                                    .find(|layer| layer.id.eq(&self.layer_id))
+                                {
+                                    delete_point(layer, self.time);
+                                    Ok(animation)
+                                } else {
+                                    Err("layer not found".into())
+                                }
+                            }
+                        }
+
+                        if let Some(action_ticket) =
+                            self.animation_history.try_set_action(DeleteKeyframeAction {
+                                layer_id: selected_layer_id.clone(),
+                                time: playback_time,
+                            })
+                        {
+                            self.animation_history.act(action_ticket).unwrap();
+                        }
                     }
                 }
             }
@@ -83,51 +119,6 @@ impl TimelineWindow {
                     }
                     self.dragging = None;
                 }
-                NamuiEvent::KeyDown(event) => match event.code {
-                    Code::Delete => {
-                        if let Some(selected_point_ids) = &self.selected_point_ids {
-                            let selected_layer_id = self.selected_layer_id.as_ref().unwrap();
-
-                            struct DeleteKeyframeAction {
-                                layer_id: String,
-                                point_ids: Vec<String>,
-                            }
-                            impl Act<Animation> for DeleteKeyframeAction {
-                                fn act(
-                                    &self,
-                                    state: &Animation,
-                                ) -> Result<Animation, Box<dyn std::error::Error>>
-                                {
-                                    let mut animation = state.clone();
-                                    if let Some(layer) = animation
-                                        .layers
-                                        .iter_mut()
-                                        .find(|layer| layer.id.eq(&self.layer_id))
-                                    {
-                                        for point_id in &self.point_ids {
-                                            delete_point(layer, &point_id);
-                                        }
-                                        Ok(animation)
-                                    } else {
-                                        Err("layer not found".into())
-                                    }
-                                }
-                            }
-
-                            if let Some(action_ticket) =
-                                self.animation_history.try_set_action(DeleteKeyframeAction {
-                                    layer_id: selected_layer_id.clone(),
-                                    point_ids: selected_point_ids.clone(),
-                                })
-                            {
-                                self.animation_history.act(action_ticket).unwrap();
-
-                                self.selected_point_ids = None;
-                            }
-                        }
-                    }
-                    _ => {}
-                },
                 _ => {}
             }
         }
@@ -158,12 +149,7 @@ impl TimelineWindow {
             }
         }
     }
-    fn crate_new_keyframe(&self, mouse_local_xy: Xy<f32>) {
-        if self.selected_layer_id.is_none() {
-            return;
-        }
-        let selected_layer_id = self.selected_layer_id.as_ref().unwrap();
-
+    fn crate_new_keyframe(&mut self, mouse_local_xy: Xy<f32>, layer_id: &str) {
         struct CreateNewKeyframeAction {
             layer_id: String,
             time: Time,
@@ -192,14 +178,17 @@ impl TimelineWindow {
             }
         }
 
+        let time = self.start_at + PixelSize::from(mouse_local_xy.x) * self.time_per_pixel;
         if let Some(action_ticket) =
             self.animation_history
                 .try_set_action(CreateNewKeyframeAction {
-                    layer_id: selected_layer_id.clone(),
-                    time: self.start_at + PixelSize::from(mouse_local_xy.x) * self.time_per_pixel,
+                    layer_id: layer_id.to_string(),
+                    time,
                 })
         {
             self.animation_history.act(action_ticket).unwrap();
+
+            self.playback_time = time;
         }
     }
 }
@@ -241,13 +230,13 @@ fn add_new_point<T: KeyframeValue + Clone>(
     );
 }
 
-fn delete_point(layer: &mut Layer, point_id: &str) {
-    layer.image.x.delete(point_id);
-    layer.image.y.delete(point_id);
-    layer.image.width.delete(point_id);
-    layer.image.height.delete(point_id);
-    layer.image.opacity.delete(point_id);
-    layer.image.rotation_angle.delete(point_id);
+fn delete_point(layer: &mut Layer, time: Time) {
+    layer.image.x.delete_by_time(time);
+    layer.image.y.delete_by_time(time);
+    layer.image.width.delete_by_time(time);
+    layer.image.height.delete_by_time(time);
+    layer.image.opacity.delete_by_time(time);
+    layer.image.rotation_angle.delete_by_time(time);
 }
 
 struct DraggingKeyframeAction {

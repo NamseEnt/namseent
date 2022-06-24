@@ -14,8 +14,7 @@ pub struct TimelineWindow {
     start_at: Time,
     time_per_pixel: TimePerPixel,
     dragging: Option<Dragging>,
-    pub selected_layer_id: Option<String>,
-    selected_point_ids: Option<Vec<String>>,
+    playback_time: Time,
 }
 
 impl TimelineWindow {
@@ -23,19 +22,21 @@ impl TimelineWindow {
         Self {
             animation_history,
             window_id: namui::nanoid(),
-            start_at: Time::from_sec(-10.0),
-            time_per_pixel: TimePerPixel::from_ms_per_pixel(100.0),
+            start_at: Time::from_ms(-1000.0),
+            time_per_pixel: TimePerPixel::from_ms_per_pixel(10.0),
             dragging: None,
-            selected_layer_id: None,
-            selected_point_ids: None,
+            playback_time: Time::zero(),
         }
+    }
+    pub fn get_playback_time(&self) -> Time {
+        self.playback_time
     }
 }
 
 pub(crate) struct Props<'a> {
     pub layers: &'a [Layer],
     pub wh: Wh<f32>,
-    pub playback_time: Time,
+    pub selected_layer_id: Option<String>,
 }
 
 pub(super) enum Event {
@@ -51,6 +52,7 @@ pub(super) enum Event {
     },
     TimelineRightMouseDown {
         mouse_local_xy: Xy<f32>,
+        selected_layer_id: Option<String>,
     },
     TimelineMouseMoveIn {
         mouse_local_xy: Xy<f32>,
@@ -60,6 +62,11 @@ pub(super) enum Event {
         anchor_xy: Xy<f32>,
         keyframe_time: Time,
         mouse_local_xy: Xy<f32>,
+        layer_id: String,
+    },
+    TimelineDeleteKeyDown {
+        selected_layer_id: Option<String>,
+        playback_time: Time,
     },
 }
 
