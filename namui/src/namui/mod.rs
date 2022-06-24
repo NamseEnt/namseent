@@ -81,6 +81,8 @@ pub async fn start<TProps>(
         match event.downcast_ref::<NamuiEvent>() {
             Some(NamuiEvent::AnimationFrame) => {
                 invoke_and_flush_all_animation_frame_callbacks();
+                state.update(event.as_ref());
+                namui_context.rendering_tree = state.render(props);
 
                 update_fps_info(&mut namui_context.fps_info);
 
