@@ -85,8 +85,6 @@ pub struct AttachEventBuilder2 {
     pub(crate) on_mouse_down: Option<MouseEventCallback>,
     pub(crate) on_mouse_up: Option<MouseEventCallback>,
     pub(crate) on_wheel: Option<WheelEventCallback>,
-    pub(crate) on_key_down: Option<KeyboardEventCallback>,
-    pub(crate) on_key_up: Option<KeyboardEventCallback>,
 }
 
 impl RenderingTree {
@@ -125,8 +123,6 @@ impl RenderingTree {
             on_mouse_down: builder.on_mouse_down,
             on_mouse_up: builder.on_mouse_up,
             on_wheel: builder.on_wheel,
-            on_key_down: builder.on_key_down,
-            on_key_up: builder.on_key_up,
         }))
     }
 }
@@ -197,16 +193,6 @@ impl AttachEventBuilder2 {
 
     pub fn on_wheel(&mut self, on_wheel: impl Fn(&WheelEvent) + 'static) -> &mut Self {
         self.on_wheel = Some(Arc::new(on_wheel));
-        self
-    }
-
-    pub fn on_key_down(&mut self, on_key_down: impl Fn(&KeyboardEvent) + 'static) -> &mut Self {
-        self.on_key_down = Some(Arc::new(on_key_down));
-        self
-    }
-
-    pub fn on_key_up(&mut self, on_key_up: impl Fn(&KeyboardEvent) + 'static) -> &mut Self {
-        self.on_key_up = Some(Arc::new(on_key_up));
         self
     }
 }
