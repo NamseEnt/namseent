@@ -23,6 +23,44 @@ impl AnimatableImage {
             opacity: KeyframeGraph::new(),
         }
     }
+    pub fn get_visible_time_range(&self) -> Option<(Time, Time)> {
+        if self.image_source_url.is_none() {
+            return None;
+        }
+
+        let start_time = [
+            self.x.get_first_point().map(|point| point.time),
+            self.y.get_first_point().map(|point| point.time),
+            self.width.get_first_point().map(|point| point.time),
+            self.height.get_first_point().map(|point| point.time),
+            self.rotation_angle
+                .get_first_point()
+                .map(|point| point.time),
+            self.opacity.get_first_point().map(|point| point.time),
+        ]
+        .into_iter()
+        .filter_map(|time| time)
+        .min();
+
+        let end_time = [
+            self.x.get_last_point().map(|point| point.time),
+            self.y.get_last_point().map(|point| point.time),
+            self.width.get_last_point().map(|point| point.time),
+            self.height.get_last_point().map(|point| point.time),
+            self.rotation_angle.get_last_point().map(|point| point.time),
+            self.opacity.get_last_point().map(|point| point.time),
+        ]
+        .into_iter()
+        .filter_map(|time| time)
+        .max();
+
+        if let Some(start_time) = start_time {
+            if let Some(end_time) = end_time {
+                return Some((start_time, end_time));
+            }
+        }
+        None
+    }
 }
 
 impl KeyframeValue for PixelSize {

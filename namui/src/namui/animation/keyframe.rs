@@ -106,6 +106,9 @@ impl<'a, TValue: KeyframeValue + Clone> KeyframeGraph<TValue> {
         self.points_with_lines
             .retain(|(point, _)| point.time != time);
     }
+    pub fn get_first_point(&self) -> Option<&KeyframePoint<TValue>> {
+        self.points_with_lines.first().map(|(point, _)| point)
+    }
     pub fn get_last_point(&self) -> Option<&KeyframePoint<TValue>> {
         self.points_with_lines.last().map(|(point, _)| point)
     }
