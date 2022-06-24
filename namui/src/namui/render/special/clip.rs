@@ -26,17 +26,11 @@ impl ClipNode {
     pub(crate) fn is_clip_in(&self, xy: Xy<f32>) -> bool {
         let path = self.path_builder.build();
 
-        let clip_bounding_box = path.get_bounding_box();
+        let path_contains = path.contains(xy);
 
         match self.clip_op {
-            ClipOp::Intersect => match clip_bounding_box {
-                Some(clip_bounding_box) => clip_bounding_box.is_xy_inside(xy),
-                None => false,
-            },
-            ClipOp::Difference => match clip_bounding_box {
-                Some(clip_bounding_box) => clip_bounding_box.is_xy_outside(xy),
-                None => true,
-            },
+            ClipOp::Intersect => path_contains,
+            ClipOp::Difference => !path_contains,
         }
     }
 }
