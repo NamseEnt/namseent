@@ -117,8 +117,7 @@ impl RenderingTree {
     }
     pub(crate) fn call_wheel_event(
         &self,
-        event_id: String,
-        delta_xy: &Xy<f32>,
+        raw_wheel_event: &RawWheelEvent,
         namui_context: &NamuiContext,
     ) {
         self.visit_rln(|node, _| {
@@ -127,10 +126,37 @@ impl RenderingTree {
                     // NOTE : Should i check if the mouse is in the attach_event?
                     if let Some(on_wheel) = &attach_event.on_wheel {
                         on_wheel(&WheelEvent {
-                            delta_xy,
-                            id: event_id.clone(),
+                            delta_xy: raw_wheel_event.delta_xy,
+                            id: raw_wheel_event.id.clone(),
                             namui_context,
                             target: node,
+                        });
+                    }
+                }
+            }
+            ControlFlow::Continue(())
+        });
+    }
+    pub(crate) fn call_keyboard_event(
+        &self,
+        raw_keyboard_event: &RawKeyboardEvent,
+        namui_context: &NamuiContext,
+        down_up: DownUp,
+    ) {
+        self.visit_rln(|node, _| {
+            if let RenderingTree::Special(special) = node {
+                if let SpecialRenderingNode::AttachEvent(attach_event) = special {
+                    let callback = match down_up {
+                        DownUp::Down => &attach_event.on_key_down,
+                        DownUp::Up => &attach_event.on_key_up,
+                    };
+                    if let Some(callback) = &callback {
+                        callback(&KeyboardEvent {
+                            id: raw_keyboard_event.id.clone(),
+                            namui_context,
+                            target: node,
+                            code: raw_keyboard_event.code,
+                            pressing_codes: raw_keyboard_event.pressing_codes.clone(),
                         });
                     }
                 }
@@ -403,6 +429,11 @@ impl RenderingData {
             .iter()
             .any(|draw_call| draw_call.is_xy_in(xy))
     }
+}
+
+pub(crate) enum DownUp {
+    Down,
+    Up,
 }
 
 // NOTE: I will uncomment this when wasm_bindgen_test support init canvas_kit
