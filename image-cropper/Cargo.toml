@@ -14,6 +14,9 @@ tokio = {version = "1"}
 wasm-bindgen = "0.2.81"
 wasm-bindgen-futures = "0.4.31"
 
+[dev-dependencies]
+wasm-bindgen-test = "0.2"
+
 [profile.release]
 lto = true
 opt-level = 3
