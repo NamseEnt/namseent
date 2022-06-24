@@ -1,11 +1,8 @@
 use super::*;
-use crate::namui::{self, Xy};
+use crate::namui::Xy;
 pub use base::*;
 use serde::Serialize;
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use wasm_bindgen::JsValue;
 
 unsafe impl Sync for CanvasKitPath {}
