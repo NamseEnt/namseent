@@ -171,7 +171,7 @@ impl RenderingTree {
                 RenderingTree::Special(special) => match special {
                     SpecialRenderingNode::MouseCursor(mouse_cursor) => {
                         if utils.is_xy_in(xy) {
-                            result = Some(mouse_cursor.cursor);
+                            result = Some(*(mouse_cursor.cursor.clone()));
                             return ControlFlow::Break(());
                         }
                     }

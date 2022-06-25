@@ -8,11 +8,9 @@ impl NamuiContext {
         state: &mut dyn Entity<Props = TProps>,
         props: &TProps,
     ) {
-        let mut event_count = 0;
-
         loop {
             let event = self.event_receiver.recv().await.unwrap();
-            event_count += 1;
+            self.event_count += 1;
 
             self.pre_update_and_render(&event);
 

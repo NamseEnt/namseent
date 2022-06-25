@@ -120,7 +120,7 @@ impl MouseManager {
 
         mouse_manager
     }
-    pub fn set_mouse_cursor(&self, cursor: MouseCursor) {
+    pub fn set_mouse_cursor(&self, cursor: &MouseCursor) {
         let element = namui::window().document().unwrap().body().unwrap();
         element
             .style()
@@ -140,6 +140,7 @@ impl MouseCursor {
             Self::Grab => "grab",
             Self::Move => "move",
             Self::Pointer => "pointer",
+            MouseCursor::Custom(_) => "none",
         }
     }
 }
