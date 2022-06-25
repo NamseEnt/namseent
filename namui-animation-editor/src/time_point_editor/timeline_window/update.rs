@@ -144,6 +144,10 @@ impl TimelineWindow {
                         action.time_per_pixel = self.time_per_pixel;
                         action.start_at = self.start_at;
                         action.drag_end_x = mouse_local_xy.x.into();
+
+                        self.playback_time = self.start_at
+                            + (PixelSize::from(mouse_local_xy.x) - action.anchor_x)
+                                * self.time_per_pixel;
                     })
                     .unwrap();
             }
