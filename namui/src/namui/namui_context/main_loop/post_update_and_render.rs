@@ -47,16 +47,23 @@ impl NamuiContext {
     fn set_mouse_cursor(&self) {
         let managers = managers();
         let mouse_manager = &managers.mouse_manager;
-        let mouse_xy = mouse_manager.mouse_position();
+        let mouse_xy = {
+            let mouse_position = mouse_manager.mouse_position();
+            Xy {
+                x: mouse_position.x as f32,
+                y: mouse_position.y as f32,
+            }
+        };
 
         let cursor = self
             .rendering_tree
-            .get_mouse_cursor(Xy {
-                x: mouse_xy.x as f32,
-                y: mouse_xy.y as f32,
-            })
+            .get_mouse_cursor(mouse_xy)
             .unwrap_or(MouseCursor::Default);
 
-        mouse_manager.set_mouse_cursor(cursor);
+        mouse_manager.set_mouse_cursor(&cursor);
+
+        if let MouseCursor::Custom(custom) = cursor {
+            absolute(mouse_xy.x, mouse_xy.y, custom).draw(self);
+        }
     }
 }

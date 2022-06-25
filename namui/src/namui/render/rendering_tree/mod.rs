@@ -16,6 +16,10 @@ pub enum RenderingTree {
     Empty,
 }
 
+// NOTE : to support putting MouseCursor into event.
+unsafe impl Send for RenderingTree {}
+unsafe impl Sync for RenderingTree {}
+
 impl SpecialRenderingNode {
     fn get_rendering_tree(&self) -> &RenderingTree {
         match self {
@@ -171,7 +175,7 @@ impl RenderingTree {
                 RenderingTree::Special(special) => match special {
                     SpecialRenderingNode::MouseCursor(mouse_cursor) => {
                         if utils.is_xy_in(xy) {
-                            result = Some(mouse_cursor.cursor);
+                            result = Some(*(mouse_cursor.cursor.clone()));
                             return ControlFlow::Break(());
                         }
                     }
