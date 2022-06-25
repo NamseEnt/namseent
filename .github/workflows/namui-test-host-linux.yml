@@ -199,3 +199,5 @@ jobs:
       - test-namui-sample
       - test-image-cropper
     # NOTE: This is for status check of pull request.
+    steps:
+      - run: ""
