@@ -1,8 +1,7 @@
-use super::common::{FpsInfo, NamuiContext, NamuiImpl};
+use super::common::NamuiImpl;
 use super::manager::*;
 use super::skia::{canvas_kit, CanvasKit, Surface};
 use super::Namui;
-use crate::RenderingTree;
 use once_cell::sync::OnceCell;
 use std::sync::Arc;
 use std::time::Duration;
@@ -24,7 +23,7 @@ pub(crate) fn window() -> web_sys::Window {
 pub static CANVAS_KIT: OnceCell<Arc<CanvasKit>> = OnceCell::new();
 
 impl NamuiImpl for Namui {
-    fn init() -> NamuiContext {
+    fn init() -> crate::NamuiContext {
         console_error_panic_hook::set_once();
         prevent_context_menu_open();
 
@@ -44,17 +43,7 @@ impl NamuiImpl for Namui {
             text_input_manager: TextInputManager::new(),
         });
 
-        NamuiContext {
-            surface,
-            fps_info: FpsInfo {
-                fps: 0,
-                frame_count: 0,
-                last_60_frame_time: Namui::now(),
-            },
-            rendering_tree: RenderingTree::Empty,
-            event_receiver: crate::event::init(),
-            fallback_font_typefaces: Vec::new(),
-        }
+        crate::NamuiContext::new(surface)
     }
 
     fn request_animation_frame(callback: Box<dyn FnOnce()>) {

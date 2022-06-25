@@ -22,7 +22,6 @@ pub mod event;
 pub use event::NamuiEvent;
 mod render;
 pub use self::manager::{managers, Code};
-use self::render::WheelEvent;
 use self::{
     font::*,
     namui_state::{get_namui_state, NamuiState},
@@ -34,6 +33,8 @@ pub use namui_cfg::*;
 pub mod fs;
 pub mod math;
 pub use url::Url;
+mod namui_context;
+pub use namui_context::NamuiContext;
 
 #[cfg(not(test))]
 #[cfg(target_family = "wasm")]
@@ -62,137 +63,11 @@ pub async fn init() -> NamuiContext {
 }
 
 pub async fn start<TProps>(
-    mut namui_context: NamuiContext,
+    namui_context: NamuiContext,
     state: &mut dyn Entity<Props = TProps>,
     props: &TProps,
 ) {
-    namui_context.rendering_tree = state.render(props);
-
-    Namui::request_animation_frame(Box::new(move || {
-        on_frame();
-    }));
-
-    let mut event_count = 0;
-
-    loop {
-        let event = namui_context.event_receiver.recv().await.unwrap();
-        event_count += 1;
-
-        match event.downcast_ref::<NamuiEvent>() {
-            Some(NamuiEvent::AnimationFrame) => {
-                invoke_and_flush_all_animation_frame_callbacks();
-                state.update(event.as_ref());
-                namui_context.rendering_tree = state.render(props);
-
-                update_fps_info(&mut namui_context.fps_info);
-
-                namui_context.rendering_tree.draw(&namui_context);
-
-                set_mouse_cursor(&namui_context.rendering_tree);
-
-                namui_context.surface.flush();
-
-                if namui_context.fps_info.frame_count == 0 {
-                    log(format!("event_count: {}", event_count));
-                    event_count = 0;
-                }
-            }
-            Some(NamuiEvent::MouseDown(raw_mouse_event)) => {
-                {
-                    let managers = managers();
-                    managers
-                        .text_input_manager
-                        .on_mouse_down(&namui_context, &raw_mouse_event);
-                }
-                namui_context.rendering_tree.call_mouse_event(
-                    MouseEventType::Down,
-                    raw_mouse_event,
-                    &namui_context,
-                );
-                state.update(event.as_ref());
-                namui_context.rendering_tree = state.render(props);
-            }
-            Some(NamuiEvent::MouseUp(raw_mouse_event)) => {
-                {
-                    let managers = managers();
-                    managers
-                        .text_input_manager
-                        .on_mouse_up(&namui_context, &raw_mouse_event);
-                }
-                namui_context.rendering_tree.call_mouse_event(
-                    MouseEventType::Up,
-                    raw_mouse_event,
-                    &namui_context,
-                );
-                state.update(event.as_ref());
-                namui_context.rendering_tree = state.render(props);
-            }
-            Some(NamuiEvent::MouseMove(raw_mouse_event)) => {
-                {
-                    let managers = managers();
-                    managers
-                        .text_input_manager
-                        .on_mouse_move(&namui_context, &raw_mouse_event);
-                }
-                namui_context.rendering_tree.call_mouse_event(
-                    MouseEventType::Move,
-                    raw_mouse_event,
-                    &namui_context,
-                );
-                state.update(event.as_ref());
-                namui_context.rendering_tree = state.render(props);
-            }
-            Some(NamuiEvent::Wheel(raw_wheel_event)) => {
-                namui_context
-                    .rendering_tree
-                    .call_wheel_event(raw_wheel_event, &namui_context);
-                state.update(event.as_ref());
-                namui_context.rendering_tree = state.render(props);
-            }
-            Some(NamuiEvent::KeyDown(raw_keyboard_event)) => {
-                namui_context.rendering_tree.call_keyboard_event(
-                    raw_keyboard_event,
-                    &namui_context,
-                    render::DownUp::Down,
-                );
-                state.update(event.as_ref());
-                namui_context.rendering_tree = state.render(props);
-            }
-            Some(NamuiEvent::KeyUp(raw_keyboard_event)) => {
-                namui_context.rendering_tree.call_keyboard_event(
-                    raw_keyboard_event,
-                    &namui_context,
-                    render::DownUp::Up,
-                );
-                state.update(event.as_ref());
-                namui_context.rendering_tree = state.render(props);
-            }
-            _ => {
-                state.update(event.as_ref());
-                namui_context.rendering_tree = state.render(props);
-            }
-        }
-
-        let now = crate::now();
-        while let Some(timeout) = pull_timeout(now) {
-            timeout();
-        }
-    }
-}
-
-fn set_mouse_cursor(rendering_tree: &RenderingTree) {
-    let managers = managers();
-    let mouse_manager = &managers.mouse_manager;
-    let mouse_xy = mouse_manager.mouse_position();
-
-    let cursor = rendering_tree
-        .get_mouse_cursor(Xy {
-            x: mouse_xy.x as f32,
-            y: mouse_xy.y as f32,
-        })
-        .unwrap_or(MouseCursor::Default);
-
-    mouse_manager.set_mouse_cursor(cursor);
+    namui_context.start(state, props).await;
 }
 
 async fn init_font(namui_context: &mut NamuiContext) {
@@ -223,21 +98,6 @@ fn on_frame() {
     Namui::request_animation_frame(Box::new(move || {
         on_frame();
     }));
-}
-
-fn update_fps_info(fps_info: &mut FpsInfo) {
-    let now = Namui::now();
-    let duration = now - fps_info.last_60_frame_time;
-
-    if duration > Duration::from_secs(1) {
-        fps_info.last_60_frame_time = Namui::now();
-        fps_info.fps = (fps_info.frame_count as f32 / duration.as_secs_f32()) as u16;
-        fps_info.frame_count = 0;
-
-        Namui::log(format!("FPS: {}", fps_info.fps));
-    } else {
-        fps_info.frame_count += 1;
-    }
 }
 
 pub fn state() -> Arc<NamuiState> {
