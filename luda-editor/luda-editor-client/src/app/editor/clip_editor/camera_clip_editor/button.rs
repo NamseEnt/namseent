@@ -43,7 +43,7 @@ pub fn render_button(
             if event.button == Some(MouseButton::Left) {
                 on_click();
             }
-        })
+        });
     });
     translate(
         xywh.x,

@@ -146,7 +146,7 @@ impl TimelineBody {
                             mouse_position_in_time: get_mouse_position_in_time(event.local_xy.x),
                         })
                     }
-                })
+                });
         });
         render![
             border,

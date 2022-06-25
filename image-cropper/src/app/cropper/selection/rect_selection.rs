@@ -48,7 +48,7 @@ impl SelectionTrait for RectSelection {
                             target_id: id.clone(),
                         })
                     }
-                })
+                });
             }),
             render_handles(&scaled_xywh, self.id.clone()),
         ])
@@ -116,7 +116,7 @@ fn render_handles(xywh: &XywhRect<f32>, selection_id: String) -> RenderingTree {
                     selection_id,
                     direction,
                 })
-            })
+            });
         })
     }))
 }

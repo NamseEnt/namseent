@@ -76,26 +76,15 @@ pub struct AttachEventBuilder {
     pub(crate) on_key_up: Option<KeyboardEventCallback>,
 }
 
-#[derive(Default)]
-pub struct AttachEventBuilder2 {
-    pub(crate) on_mouse_move_in: Option<MouseEventCallback>,
-    pub(crate) on_mouse_move_out: Option<MouseEventCallback>,
-    // onClickOut: Option<MouseEventCallback>,
-    // onMouseIn?: () => void;
-    pub(crate) on_mouse_down: Option<MouseEventCallback>,
-    pub(crate) on_mouse_up: Option<MouseEventCallback>,
-    pub(crate) on_wheel: Option<WheelEventCallback>,
-}
-
 impl RenderingTree {
     pub fn attach_event(
         self,
-        attach_event_build: impl Fn(AttachEventBuilder) -> AttachEventBuilder,
+        attach_event_build: impl Fn(&mut AttachEventBuilder),
     ) -> RenderingTree {
-        let builder = AttachEventBuilder {
+        let mut builder = AttachEventBuilder {
             ..Default::default()
         };
-        let builder = attach_event_build(builder);
+        attach_event_build(&mut builder);
         RenderingTree::Special(SpecialRenderingNode::AttachEvent(AttachEventNode {
             rendering_tree: Box::new(self),
             on_mouse_move_in: builder.on_mouse_move_in,
@@ -107,64 +96,9 @@ impl RenderingTree {
             on_key_up: builder.on_key_up,
         }))
     }
-
-    pub fn attach_event2(
-        self,
-        attach_event_build: impl Fn(&mut AttachEventBuilder2),
-    ) -> RenderingTree {
-        let mut builder = AttachEventBuilder2 {
-            ..Default::default()
-        };
-        attach_event_build(&mut builder);
-        RenderingTree::Special(SpecialRenderingNode::AttachEvent(AttachEventNode {
-            rendering_tree: Box::new(self),
-            on_mouse_move_in: builder.on_mouse_move_in,
-            on_mouse_move_out: builder.on_mouse_move_out,
-            on_mouse_down: builder.on_mouse_down,
-            on_mouse_up: builder.on_mouse_up,
-            on_wheel: builder.on_wheel,
-        }))
-    }
 }
 
 impl AttachEventBuilder {
-    pub fn on_mouse_move_in(mut self, on_mouse_move_in: impl Fn(&MouseEvent) + 'static) -> Self {
-        self.on_mouse_move_in = Some(Arc::new(on_mouse_move_in));
-        self
-    }
-
-    pub fn on_mouse_move_out(mut self, on_mouse_move_out: impl Fn(&MouseEvent) + 'static) -> Self {
-        self.on_mouse_move_out = Some(Arc::new(on_mouse_move_out));
-        self
-    }
-
-    pub fn on_mouse_down(mut self, on_mouse_down: impl Fn(&MouseEvent) + 'static) -> Self {
-        self.on_mouse_down = Some(Arc::new(on_mouse_down));
-        self
-    }
-
-    pub fn on_mouse_up(mut self, on_mouse_up: impl Fn(&MouseEvent) + 'static) -> Self {
-        self.on_mouse_up = Some(Arc::new(on_mouse_up));
-        self
-    }
-
-    pub fn on_wheel(mut self, on_wheel: impl Fn(&WheelEvent) + 'static) -> Self {
-        self.on_wheel = Some(Arc::new(on_wheel));
-        self
-    }
-
-    pub fn on_key_down(mut self, on_key_down: impl Fn(&KeyboardEvent) + 'static) -> Self {
-        self.on_key_down = Some(Arc::new(on_key_down));
-        self
-    }
-
-    pub fn on_key_up(mut self, on_key_up: impl Fn(&KeyboardEvent) + 'static) -> Self {
-        self.on_key_up = Some(Arc::new(on_key_up));
-        self
-    }
-}
-
-impl AttachEventBuilder2 {
     pub fn on_mouse_move_in(
         &mut self,
         on_mouse_move_in: impl Fn(&MouseEvent) + 'static,

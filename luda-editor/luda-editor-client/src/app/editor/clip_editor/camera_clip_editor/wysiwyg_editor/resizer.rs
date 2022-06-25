@@ -90,7 +90,7 @@ impl Resizer {
                                     height: source_rect.height,
                                 },
                             })
-                        })
+                        });
                     })
                 })
                 .collect::<Vec<RenderingTree>>(),

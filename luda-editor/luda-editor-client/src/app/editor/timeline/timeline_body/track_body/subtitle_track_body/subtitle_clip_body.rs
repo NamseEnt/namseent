@@ -141,7 +141,7 @@ impl SubtitleClipBody {
                                 click_in_time: timeline_start_at
                                     + PixelSize(event.local_xy.x + x) * time_per_pixel,
                             });
-                        })
+                        });
                     }),
                 render_text_box(
                     &subtitle_text,

@@ -71,7 +71,7 @@ pub(super) fn render_sheet_sequence_syncer_bar(
     .attach_event(|builder| {
         builder.on_mouse_up(|_| {
             namui::event::send(SheetSequenceSyncerEvent::RequestSyncStart);
-        })
+        });
     });
     let button_text = namui::text(TextParam {
         x: button_width / 2.0,

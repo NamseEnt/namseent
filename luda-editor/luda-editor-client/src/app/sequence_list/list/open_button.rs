@@ -34,7 +34,7 @@ pub fn render_open_button(
                             )
                         },
                     )));
-                })
+                });
             })
             .with_mouse_cursor(namui::MouseCursor::Pointer),
         render_button_text(wh, "Open".to_string())

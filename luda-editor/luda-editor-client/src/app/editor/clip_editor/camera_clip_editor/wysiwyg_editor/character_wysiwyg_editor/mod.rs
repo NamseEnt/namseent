@@ -176,7 +176,7 @@ fn render_inner_image(
                         mouse_xy: event.global_xy,
                         container_size: container_size.clone(),
                     })
-                })
+                });
             })
             .with_mouse_cursor(MouseCursor::Move),
     )

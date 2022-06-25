@@ -122,7 +122,7 @@ impl ResizableClipBody {
                     click_in_time: timeline_start_at + PixelSize(event.local_xy.x) * time_per_pixel,
                     clicked_part,
                 });
-            })
+            });
         });
 
         let sashes = if is_sashes_showing {
