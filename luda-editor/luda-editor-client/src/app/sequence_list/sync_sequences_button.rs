@@ -10,7 +10,7 @@ pub fn render_sync_sequences_button(wh: Wh<f32>) -> RenderingTree {
             .attach_event(move |builder| {
                 builder.on_mouse_down(move |_| {
                     namui::event::send(SequenceListEvent::SyncSequencesButtonClickedEvent {});
-                })
+                });
             })
             .with_mouse_cursor(namui::MouseCursor::Pointer),
         render_button_text(wh, "Sync sequences from Google Spreadsheet".to_string())

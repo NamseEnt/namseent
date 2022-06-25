@@ -126,7 +126,7 @@ impl ScrollView {
                 );
 
                 namui::event::send(Event::Scrolled(button_id.clone(), next_scroll_y));
-            })
+            });
         });
 
         namui::translate(

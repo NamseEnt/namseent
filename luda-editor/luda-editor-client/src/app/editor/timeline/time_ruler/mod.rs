@@ -78,7 +78,7 @@ pub(super) fn render_time_ruler(props: &TimeRulerProps) -> RenderingTree {
                     };
                     event_builder
                         .on_mouse_down(time_ruler_dragging_closure)
-                        .on_mouse_move_in(time_ruler_dragging_closure)
+                        .on_mouse_move_in(time_ruler_dragging_closure);
                 }),
                 render_time_texts(&TimeTextsProps {
                     gradations: &gradations,

@@ -80,7 +80,7 @@ impl ContextMenu {
                                 time_to_create_clip,
                             ));
                         }
-                    })
+                    });
                 }),
                 text(TextParam {
                     x: 10.0,

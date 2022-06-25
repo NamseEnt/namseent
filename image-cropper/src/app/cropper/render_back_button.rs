@@ -24,7 +24,7 @@ pub fn render_back_button(wh: &Wh<f32>) -> RenderingTree {
                 namui::event::send(RouterEvent::PageChangeRequestedToFileSelectorEvent(
                     Box::new(|| FileSelector::new()),
                 ));
-            })
+            });
         })
         .with_mouse_cursor(namui::MouseCursor::Pointer),
         namui::text(TextParam {

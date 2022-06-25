@@ -83,7 +83,7 @@ pub fn render_list(
                 namui::event::send(SequenceListEvent::ScrolledEvent {
                     scroll_y: next_scroll_y,
                 });
-            })
+            });
         }),
         namui::clip(
             namui::PathBuilder::new().add_rect(&namui::LtrbRect {

@@ -22,7 +22,7 @@ pub fn render_file_select_dialog_open_button(wh: Wh<f32>) -> RenderingTree {
         .attach_event(|builder| {
             builder.on_mouse_down(|_| {
                 namui::event::send(FileSelectorEvent::FileSelectDialogOpenButtonClicked);
-            })
+            });
         })
         .with_mouse_cursor(namui::MouseCursor::Pointer),
         namui::text(TextParam {

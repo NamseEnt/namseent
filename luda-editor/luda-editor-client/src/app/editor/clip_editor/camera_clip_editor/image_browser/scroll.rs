@@ -140,7 +140,7 @@ impl Scroll {
                 namui::event::send(EditorEvent::ScrolledEvent {
                     scroll_y: next_scroll_y,
                 });
-            })
+            });
         });
 
         namui::translate(x, y, render![whole_rect, inner, scroll_bar])
