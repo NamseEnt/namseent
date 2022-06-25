@@ -12,5 +12,5 @@ impl MouseManager {
     pub fn mouse_position(&self) -> Xy<i16> {
         Xy { x: 0, y: 0 }
     }
-    pub fn set_mouse_cursor(&self, cursor: MouseCursor) {}
+    pub fn set_mouse_cursor(&self, cursor: &MouseCursor) {}
 }

@@ -2,7 +2,7 @@ use super::SpecialRenderingNode;
 use crate::RenderingTree;
 use serde::Serialize;
 
-#[derive(Serialize, Debug, Clone, Copy)]
+#[derive(Serialize, Debug, Clone)]
 pub enum MouseCursor {
     TopBottomResize,
     LeftRightResize,
@@ -13,19 +13,20 @@ pub enum MouseCursor {
     Grab,
     Move,
     Pointer,
+    Custom(RenderingTree),
 }
 
 #[derive(Serialize, Clone, Debug)]
 pub struct MouseCursorNode {
     pub(crate) rendering_tree: Box<RenderingTree>,
-    pub cursor: MouseCursor,
+    pub cursor: Box<MouseCursor>,
 }
 
 impl RenderingTree {
     pub fn with_mouse_cursor(self, cursor: MouseCursor) -> RenderingTree {
         RenderingTree::Special(SpecialRenderingNode::MouseCursor(MouseCursorNode {
             rendering_tree: Box::new(self),
-            cursor,
+            cursor: Box::new(cursor),
         }))
     }
 }
