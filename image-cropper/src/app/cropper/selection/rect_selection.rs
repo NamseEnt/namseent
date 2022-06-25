@@ -105,7 +105,7 @@ fn render_handles(xywh: &XywhRect<f32>, selection_id: String) -> RenderingTree {
             namui::path(path.clone(), fill_paint),
             namui::path(path, stroke_paint),
         ])
-        .with_mouse_cursor(handle.cursor)
+        .with_mouse_cursor(handle.cursor.clone())
         .attach_event(move |builder| {
             let selection_id = selection_id.clone();
             let direction = direction.clone();

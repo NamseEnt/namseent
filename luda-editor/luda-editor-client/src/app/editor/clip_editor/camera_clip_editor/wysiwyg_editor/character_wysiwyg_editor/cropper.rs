@@ -59,7 +59,7 @@ fn render_handles(dest_rect: &LtrbRect, container_size: &Wh<f32>) -> RenderingTr
                     namui::path(path.clone(), fill_paint),
                     namui::path(path, stroke_paint),
                 ]
-                .with_mouse_cursor(handle.cursor)
+                .with_mouse_cursor(handle.cursor.clone())
                 .attach_event(move |builder| {
                     let handle = handle.clone();
                     let container_size = container_size.clone();
