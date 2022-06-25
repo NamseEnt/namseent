@@ -63,7 +63,7 @@ pub async fn init() -> NamuiContext {
 }
 
 pub async fn start<TProps>(
-    mut namui_context: NamuiContext,
+    namui_context: NamuiContext,
     state: &mut dyn Entity<Props = TProps>,
     props: &TProps,
 ) {
