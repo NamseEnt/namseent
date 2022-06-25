@@ -182,3 +182,20 @@ jobs:
       #     name: namui-test-host
       #     token: ${{ github.token }}
       #     tag: ${{ env.INNER_IMAGE_TAG }}
+
+  post-test:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    needs:
+      - set-up
+      - update-namui-test-host-image
+      # PLEASE ADD ALL TEST HERE!
+      - test-namui-cli
+      - test-namui
+      - test-luda-editor-client
+      - test-namui-prebuilt
+      - test-nrpc
+      - test-namui-sample
+      - test-image-cropper
+    # NOTE: This is for status check of pull request.
