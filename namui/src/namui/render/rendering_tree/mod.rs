@@ -16,6 +16,10 @@ pub enum RenderingTree {
     Empty,
 }
 
+// NOTE : to support putting MouseCursor into event.
+unsafe impl Send for RenderingTree {}
+unsafe impl Sync for RenderingTree {}
+
 impl SpecialRenderingNode {
     fn get_rendering_tree(&self) -> &RenderingTree {
         match self {
