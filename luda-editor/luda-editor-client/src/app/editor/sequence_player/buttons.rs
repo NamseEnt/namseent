@@ -61,7 +61,7 @@ pub(super) fn render_buttons(props: &ButtonsProps) -> RenderingTree {
                     true => ButtonsEvent::PlayButtonClicked,
                     false => ButtonsEvent::PauseButtonClicked,
                 })
-            })
+            });
         }),
         path(play_pause_toggle_button, button_paint)
     ]

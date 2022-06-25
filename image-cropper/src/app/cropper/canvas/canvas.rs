@@ -184,7 +184,7 @@ impl Canvas {
                             _ => (),
                         };
                         namui::event::send(CanvasEvent::MouseMoveInCanvas(local_xy_on_image))
-                    })
+                    });
             }),
             clip(
                 namui::PathBuilder::new().add_rect(&namui::LtrbRect {

@@ -106,7 +106,7 @@ impl CameraTrackBody {
                             + PixelSize(event.local_xy.x) * time_per_pixel,
                     })
                 }
-            })
+            });
         });
         render![
             body_border,

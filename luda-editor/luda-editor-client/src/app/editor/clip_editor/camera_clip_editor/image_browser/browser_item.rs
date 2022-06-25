@@ -43,7 +43,7 @@ pub fn render_browser_item(props: &BrowserItemProps) -> RenderingTree {
                     browser_id: browser_id.clone(),
                     item: item.clone(),
                 });
-            })
+            });
         }),
         text(TextParam {
             x: props.item_size.width / 2.0,

@@ -25,8 +25,9 @@ pub fn render_meta_update_button(props: &MetaUpdateButtonProps) -> RenderingTree
         })
         .with_mouse_cursor(namui::MouseCursor::Pointer)
         .attach_event(move |builder| {
-            builder
-                .on_mouse_down(move |_| namui::event::send(MetaContainerEvent::MetaReloadRequested))
+            builder.on_mouse_down(move |_| {
+                namui::event::send(MetaContainerEvent::MetaReloadRequested)
+            });
         }),
         namui::text(namui::TextParam {
             text: "Update Meta".to_string(),

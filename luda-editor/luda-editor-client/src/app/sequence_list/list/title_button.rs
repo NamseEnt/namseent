@@ -23,7 +23,7 @@ pub fn render_title_button(width: f32, title: &String) -> RenderingTreeRow {
                         namui::event::send(SequenceListEvent::SequenceTitleButtonClickedEvent {
                             title,
                         });
-                    })
+                    });
                 }),
             render_button_text(button_wh, title.clone()),
         ],

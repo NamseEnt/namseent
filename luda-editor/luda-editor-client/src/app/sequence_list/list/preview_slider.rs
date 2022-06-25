@@ -24,7 +24,7 @@ pub fn render_preview_slider(
                 let title = title.clone();
                 let progress = (event.local_xy.x / wh.width).clamp(0.0, 1.0);
                 namui::event::send(SequenceListEvent::PreviewSliderMovedEvent { title, progress });
-            })
+            });
         }),
         namui::translate(
             thumb_x,

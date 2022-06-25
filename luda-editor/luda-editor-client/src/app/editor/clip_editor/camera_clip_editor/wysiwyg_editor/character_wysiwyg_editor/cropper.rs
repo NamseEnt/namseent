@@ -69,7 +69,7 @@ fn render_handles(dest_rect: &LtrbRect, container_size: &Wh<f32>) -> RenderingTr
                             mouse_xy: mouse_event.global_xy,
                             container_size: container_size,
                         })
-                    })
+                    });
                 })
             })
             .collect(),

@@ -46,7 +46,7 @@ impl PolySelection {
                     .attach_event(|builder| {
                         builder.on_mouse_down(move |_| {
                             namui::event::send(SelectionEvent::PolySelectionCreateButtonClicked)
-                        })
+                        });
                     })
                     .with_mouse_cursor(namui::MouseCursor::Pointer)
                 }
@@ -86,7 +86,7 @@ impl SelectionTrait for PolySelection {
                                     target_id: id.clone(),
                                 })
                             }
-                        })
+                        });
                     }),
                     self.render_selection_create_button(scale),
                 ])

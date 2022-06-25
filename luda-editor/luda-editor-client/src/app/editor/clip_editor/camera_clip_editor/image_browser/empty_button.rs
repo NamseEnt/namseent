@@ -53,7 +53,7 @@ impl ImageBrowser {
                         browser_id: browser_id.clone(),
                         item: ImageBrowserItem::Empty,
                     });
-                })
+                });
             }),
             text(TextParam {
                 x: item_size.width / 2.0,
