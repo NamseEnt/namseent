@@ -129,7 +129,7 @@ impl AttachEventBuilder {
         self.on_wheel = Some(Arc::new(on_wheel));
         self
     }
-    
+
     pub fn on_key_down(&mut self, on_key_down: impl Fn(&KeyboardEvent) + 'static) -> &mut Self {
         self.on_key_down = Some(Arc::new(on_key_down));
         self
