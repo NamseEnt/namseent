@@ -41,7 +41,8 @@ impl KeyboardManager {
                             return;
                         }
                         let code = code.unwrap();
-                        pressing_code_set.write().unwrap().insert(code);
+                        let mut pressing_code_set = pressing_code_set.write().unwrap();
+                        pressing_code_set.insert(code);
 
                         match code {
                             Code::Space
@@ -56,7 +57,16 @@ impl KeyboardManager {
                             _ => {}
                         }
 
-                        crate::event::send(crate::NamuiEvent::KeyDown(crate::KeyEvent { code }));
+                        crate::event::send(crate::NamuiEvent::KeyDown(crate::RawKeyboardEvent {
+                            id: format!(
+                                "keydown-{:?}-{:?}-{}",
+                                code,
+                                crate::now(),
+                                crate::nanoid()
+                            ),
+                            code,
+                            pressing_codes: pressing_code_set.clone(),
+                        }));
                     }
                 }) as Box<dyn FnMut(_)>)
                 .into_js_value()
@@ -80,7 +90,14 @@ impl KeyboardManager {
                             return;
                         }
                         let code = code.unwrap();
-                        pressing_code_set.write().unwrap().remove(&code);
+                        let mut pressing_code_set = pressing_code_set.write().unwrap();
+                        pressing_code_set.remove(&code);
+
+                        crate::event::send(crate::NamuiEvent::KeyUp(crate::RawKeyboardEvent {
+                            id: format!("keyup-{:?}-{:?}-{}", code, crate::now(), crate::nanoid()),
+                            code,
+                            pressing_codes: pressing_code_set.clone(),
+                        }));
                     }
                 }) as Box<dyn FnMut(_)>)
                 .into_js_value()

@@ -142,11 +142,27 @@ pub async fn start<TProps>(
                 state.update(event.as_ref());
                 namui_context.rendering_tree = state.render(props);
             }
-            Some(NamuiEvent::Wheel(xy)) => {
-                namui_context.rendering_tree.call_wheel_event(
-                    format!("wheel-{:?}-{}", now(), nanoid()),
-                    xy,
+            Some(NamuiEvent::Wheel(raw_wheel_event)) => {
+                namui_context
+                    .rendering_tree
+                    .call_wheel_event(raw_wheel_event, &namui_context);
+                state.update(event.as_ref());
+                namui_context.rendering_tree = state.render(props);
+            }
+            Some(NamuiEvent::KeyDown(raw_keyboard_event)) => {
+                namui_context.rendering_tree.call_keyboard_event(
+                    raw_keyboard_event,
                     &namui_context,
+                    render::DownUp::Down,
+                );
+                state.update(event.as_ref());
+                namui_context.rendering_tree = state.render(props);
+            }
+            Some(NamuiEvent::KeyUp(raw_keyboard_event)) => {
+                namui_context.rendering_tree.call_keyboard_event(
+                    raw_keyboard_event,
+                    &namui_context,
+                    render::DownUp::Up,
                 );
                 state.update(event.as_ref());
                 namui_context.rendering_tree = state.render(props);
