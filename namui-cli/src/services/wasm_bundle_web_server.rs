@@ -113,7 +113,8 @@ impl WasmBundleWebServer {
             .or(serve_static)
             .or(bundle_metadata_static)
             .or(bundle_static)
-            .or(handle_websocket);
+            .or(handle_websocket)
+            .map(|reply| warp::reply::with_header(reply, "cache-control", "no-cache"));
 
         let _ = tokio::spawn(warp::serve(routes).run(([0, 0, 0, 0], port)));
 
