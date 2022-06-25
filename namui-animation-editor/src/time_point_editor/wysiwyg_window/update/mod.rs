@@ -105,7 +105,7 @@ impl WysiwygWindow {
                 }
                 NamuiEvent::KeyDown(event) => {
                     if let Some(wh) = self.last_wh {
-                        if event.code == Code::Space {
+                        if event.code == Code::Home {
                             self.center_viewport(wh);
                         }
                     }
