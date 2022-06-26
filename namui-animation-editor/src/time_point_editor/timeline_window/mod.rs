@@ -87,8 +87,8 @@ fn get_all_time_and_ids(layer: &Layer) -> Vec<(Time, String)> {
     [
         get_time_and_id(&layer.image.x),
         get_time_and_id(&layer.image.y),
-        get_time_and_id(&layer.image.width),
-        get_time_and_id(&layer.image.height),
+        get_time_and_id(&layer.image.width_percent),
+        get_time_and_id(&layer.image.height_percent),
         get_time_and_id(&layer.image.rotation_angle),
         get_time_and_id(&layer.image.opacity),
     ]

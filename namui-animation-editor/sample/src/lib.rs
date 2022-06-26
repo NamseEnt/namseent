@@ -36,23 +36,28 @@ impl AnimationEditorExample {
         image.image_source_url =
             Some(Url::parse("bundle:img/%EB%86%80%EB%9E%8C%EB%8C%80.png").unwrap());
         image.x.put(
-            KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize::from(0.0)),
+            // KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize::from(0.0)),
+            KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize::from(500.0)),
             animation::KeyframeLine::Linear,
         );
         image.y.put(
+            // KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize::from(0.0)),
             KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize::from(0.0)),
             animation::KeyframeLine::Linear,
         );
-        image.width.put(
-            KeyframePoint::<Percent>::new(Time::zero(), Percent::new(100.0)),
+        image.width_percent.put(
+            // KeyframePoint::<Percent>::new(Time::zero(), Percent::new(100.0)),
+            KeyframePoint::<Percent>::new(Time::zero(), Percent::new(50.0)),
             animation::KeyframeLine::Linear,
         );
-        image.height.put(
-            KeyframePoint::<Percent>::new(Time::zero(), Percent::new(100.0)),
+        image.height_percent.put(
+            // KeyframePoint::<Percent>::new(Time::zero(), Percent::new(100.0)),
+            KeyframePoint::<Percent>::new(Time::zero(), Percent::new(50.0)),
             animation::KeyframeLine::Linear,
         );
         image.rotation_angle.put(
-            KeyframePoint::<Degree>::new(Time::zero(), 0.0.into()),
+            KeyframePoint::<Degree>::new(Time::zero(), Degree::from(30.0)),
+            // KeyframePoint::<Degree>::new(Time::zero(), Degree::from(0.0)),
             animation::KeyframeLine::Linear,
         );
         image.opacity.put(

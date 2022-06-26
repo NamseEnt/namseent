@@ -1,50 +1,19 @@
 use super::*;
 
 impl WysiwygWindow {
-    pub(super) fn render_editing_tool(
+    pub(super) fn render_resize_circles(
         &self,
-        layer: &Layer,
+        wh: Wh<PixelSize>,
         playback_time: Time,
-        rendered_image: &RenderingTree,
-        selected_layer_id: Option<String>,
-    ) -> namui::RenderingTree {
-        if selected_layer_id != Some(layer.id.clone()) {
-            return namui::RenderingTree::Empty;
-        }
-
-        let bounding_box = rendered_image.get_bounding_box();
-        if bounding_box.is_none() {
-            return namui::RenderingTree::Empty;
-        }
-        let bounding_box = bounding_box.unwrap();
-
-        let wh = bounding_box.wh();
-
-        translate(
-            bounding_box.x,
-            bounding_box.y,
-            render([
-                self.render_border(wh),
-                self.render_circles(wh, playback_time, layer.id.clone()),
-            ]),
-        )
-    }
-
-    fn render_border(&self, wh: Wh<f32>) -> RenderingTree {
-        simple_rect(wh, Color::grayscale_f01(0.2), 2.0, Color::TRANSPARENT)
-    }
-    fn render_circles(
-        &self,
-        wh: Wh<f32>,
-        playback_time: Time,
-        selected_layer_id: String,
+        layer_id: &str,
+        rotation_radian: Radian,
     ) -> RenderingTree {
-        const CIRCLE_RADIUS: f32 = 10.0;
+        let circle_radius = 6.0 * self.real_pixel_size_per_screen_pixel_size;
         let circle_path = PathBuilder::new().add_oval(&LtrbRect {
-            left: -CIRCLE_RADIUS,
-            top: -CIRCLE_RADIUS,
-            right: CIRCLE_RADIUS,
-            bottom: CIRCLE_RADIUS,
+            left: -circle_radius,
+            top: -circle_radius,
+            right: circle_radius,
+            bottom: circle_radius,
         });
         let circle_fill_paint = PaintBuilder::new()
             .set_style(PaintStyle::Fill)
@@ -52,7 +21,7 @@ impl WysiwygWindow {
         let circle_stroke_paint = PaintBuilder::new()
             .set_style(PaintStyle::Stroke)
             .set_color(Color::grayscale_f01(0.5))
-            .set_stroke_width(3.0)
+            .set_stroke_width(1.0 * self.real_pixel_size_per_screen_pixel_size)
             .set_anti_alias(true);
 
         let circle_rendering_tree = render([
@@ -64,25 +33,25 @@ impl WysiwygWindow {
             [
                 (
                     ResizeCircleLocation::LeftTop,
-                    0.0,
-                    0.0,
+                    PixelSize::from(0.0),
+                    PixelSize::from(0.0),
                     MouseCursor::LeftTopRightBottomResize,
                 ),
                 (
                     ResizeCircleLocation::Top,
                     wh.width / 2.0,
-                    0.0,
+                    PixelSize::from(0.0),
                     MouseCursor::TopBottomResize,
                 ),
                 (
                     ResizeCircleLocation::RightTop,
                     wh.width,
-                    0.0,
+                    PixelSize::from(0.0),
                     MouseCursor::RightTopLeftBottomResize,
                 ),
                 (
                     ResizeCircleLocation::Left,
-                    0.0,
+                    PixelSize::from(0.0),
                     wh.height / 2.0,
                     MouseCursor::LeftRightResize,
                 ),
@@ -94,7 +63,7 @@ impl WysiwygWindow {
                 ),
                 (
                     ResizeCircleLocation::LeftBottom,
-                    0.0,
+                    PixelSize::from(0.0),
                     wh.height,
                     MouseCursor::RightTopLeftBottomResize,
                 ),
@@ -114,14 +83,14 @@ impl WysiwygWindow {
             .into_iter()
             .map(|(location, x, y, cursor)| {
                 translate(
-                    x,
-                    y,
+                    x.into(),
+                    y.into(),
                     circle_rendering_tree
                         .clone()
                         .with_mouse_cursor(cursor)
                         .attach_event(|builder| {
                             let window_id = self.window_id.clone();
-                            let layer_id = selected_layer_id.clone();
+                            let layer_id = layer_id.to_string();
                             builder.on_mouse_down(move |event| {
                                 let window_global_xy = event
                                     .namui_context
@@ -129,11 +98,12 @@ impl WysiwygWindow {
                                     .unwrap();
                                 let anchor_xy = event.global_xy - window_global_xy;
 
-                                namui::event::send(Event::ResizeCircleClicked {
+                                namui::event::send(Event::ResizeCircleMouseDown {
                                     location,
                                     anchor_xy,
                                     playback_time,
                                     layer_id: layer_id.clone(),
+                                    rotation_radian,
                                 });
                             })
                         }),

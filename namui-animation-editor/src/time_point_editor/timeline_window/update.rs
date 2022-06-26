@@ -171,8 +171,8 @@ impl TimelineWindow {
 
                     add_new_point(&mut layer.image.x, time, PixelSize::from(0.0));
                     add_new_point(&mut layer.image.y, time, PixelSize::from(0.0));
-                    add_new_point(&mut layer.image.width, time, Percent::new(100.0));
-                    add_new_point(&mut layer.image.height, time, Percent::new(100.0));
+                    add_new_point(&mut layer.image.width_percent, time, Percent::new(100.0));
+                    add_new_point(&mut layer.image.height_percent, time, Percent::new(100.0));
                     add_new_point(&mut layer.image.rotation_angle, time, Degree::from(0.0));
                     add_new_point(&mut layer.image.opacity, time, OneZero::from(1.0));
                     Ok(animation)
@@ -200,8 +200,8 @@ impl TimelineWindow {
 fn move_point(layer: &mut Layer, point_id: &str, to_time: Time) {
     move_point_in_graph(&mut layer.image.x, point_id, to_time);
     move_point_in_graph(&mut layer.image.y, point_id, to_time);
-    move_point_in_graph(&mut layer.image.width, point_id, to_time);
-    move_point_in_graph(&mut layer.image.height, point_id, to_time);
+    move_point_in_graph(&mut layer.image.width_percent, point_id, to_time);
+    move_point_in_graph(&mut layer.image.height_percent, point_id, to_time);
     move_point_in_graph(&mut layer.image.opacity, point_id, to_time);
     move_point_in_graph(&mut layer.image.rotation_angle, point_id, to_time);
 }
@@ -237,8 +237,8 @@ fn add_new_point<T: KeyframeValue + Clone>(
 fn delete_point(layer: &mut Layer, time: Time) {
     layer.image.x.delete_by_time(time);
     layer.image.y.delete_by_time(time);
-    layer.image.width.delete_by_time(time);
-    layer.image.height.delete_by_time(time);
+    layer.image.width_percent.delete_by_time(time);
+    layer.image.height_percent.delete_by_time(time);
     layer.image.opacity.delete_by_time(time);
     layer.image.rotation_angle.delete_by_time(time);
 }

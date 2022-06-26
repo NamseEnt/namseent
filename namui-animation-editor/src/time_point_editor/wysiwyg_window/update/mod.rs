@@ -45,7 +45,7 @@ impl WysiwygWindow {
                     self.last_wh = Some(*wh);
                     self.center_viewport(*wh);
                 }
-                &Event::LayerClicked {
+                &Event::SelectedLayerMouseDown {
                     ref layer_id,
                     anchor_xy,
                     playback_time,
@@ -66,11 +66,12 @@ impl WysiwygWindow {
                         }
                     }
                 }
-                &Event::ResizeCircleClicked {
+                &Event::ResizeCircleMouseDown {
                     ref layer_id,
                     location,
                     anchor_xy,
                     playback_time,
+                    rotation_radian,
                 } => {
                     if self.dragging.is_none() {
                         if let Some(ticket) = self.animation_history.try_set_action(
@@ -82,9 +83,31 @@ impl WysiwygWindow {
                                 real_pixel_size_per_screen_pixel_size: self
                                     .real_pixel_size_per_screen_pixel_size,
                                 location,
+                                rotation_radian,
                             },
                         ) {
                             self.dragging = Some(Dragging::ResizeCircle { ticket });
+                        }
+                    }
+                }
+                &Event::RotationToolMouseDown {
+                    image_center_real_xy,
+                    mouse_local_xy: mouse_real_xy,
+                    playback_time,
+                    ref layer_id,
+                } => {
+                    if self.dragging.is_none() {
+                        if let Some(ticket) =
+                            self.animation_history
+                                .try_set_action(dragging::DragRotationAction {
+                                    image_center_real_xy,
+                                    start_mouse_real_xy: mouse_real_xy,
+                                    end_mouse_real_xy: mouse_real_xy,
+                                    playback_time,
+                                    layer_id: layer_id.clone(),
+                                })
+                        {
+                            self.dragging = Some(Dragging::Rotation { ticket });
                         }
                     }
                 }
@@ -94,7 +117,9 @@ impl WysiwygWindow {
                 NamuiEvent::MouseUp(_) => {
                     match &self.dragging {
                         Some(dragging) => match dragging {
-                            Dragging::ImageBody { ticket } | Dragging::ResizeCircle { ticket } => {
+                            Dragging::ImageBody { ticket }
+                            | Dragging::ResizeCircle { ticket }
+                            | Dragging::Rotation { ticket } => {
                                 self.animation_history.act(*ticket).unwrap();
                             }
                             _ => {}

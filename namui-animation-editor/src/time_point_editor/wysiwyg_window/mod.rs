@@ -1,5 +1,8 @@
 use crate::types::{ActionTicket, AnimationHistory};
-use namui::{prelude::*, types::Time};
+use namui::{
+    prelude::*,
+    types::{Radian, Time},
+};
 use namui_prebuilt::*;
 mod render;
 mod update;
@@ -34,7 +37,7 @@ pub struct Props<'a> {
 }
 
 #[derive(Clone, Copy, Debug)]
-enum ResizeCircleLocation {
+pub(crate) enum ResizeCircleLocation {
     LeftTop,
     Top,
     RightTop,
@@ -49,6 +52,7 @@ enum Dragging {
     Background { anchor_xy: Xy<f32> },
     ResizeCircle { ticket: ActionTicket },
     ImageBody { ticket: ActionTicket },
+    Rotation { ticket: ActionTicket },
 }
 
 enum Event {
@@ -71,15 +75,22 @@ enum Event {
     UpdateWh {
         wh: Wh<f32>,
     },
-    LayerClicked {
+    SelectedLayerMouseDown {
         layer_id: String,
         anchor_xy: Xy<f32>,
         playback_time: Time,
     },
-    ResizeCircleClicked {
+    ResizeCircleMouseDown {
         layer_id: String,
         location: ResizeCircleLocation,
         anchor_xy: Xy<f32>,
         playback_time: Time,
+        rotation_radian: Radian,
+    },
+    RotationToolMouseDown {
+        image_center_real_xy: Xy<f32>,
+        mouse_local_xy: Xy<f32>,
+        playback_time: Time,
+        layer_id: String,
     },
 }

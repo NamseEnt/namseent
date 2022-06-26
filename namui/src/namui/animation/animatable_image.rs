@@ -6,10 +6,11 @@ pub struct AnimatableImage {
     pub image_source_url: Option<Url>,
     pub x: KeyframeGraph<PixelSize>,
     pub y: KeyframeGraph<PixelSize>,
-    pub width: KeyframeGraph<Percent>,
-    pub height: KeyframeGraph<Percent>,
+    pub width_percent: KeyframeGraph<Percent>,
+    pub height_percent: KeyframeGraph<Percent>,
     pub rotation_angle: KeyframeGraph<Degree>,
     pub opacity: KeyframeGraph<OneZero>,
+    pub anchor_xy: Xy<Percent>,
 }
 impl AnimatableImage {
     pub fn new() -> Self {
@@ -17,10 +18,14 @@ impl AnimatableImage {
             image_source_url: None,
             x: KeyframeGraph::new(),
             y: KeyframeGraph::new(),
-            width: KeyframeGraph::new(),
-            height: KeyframeGraph::new(),
+            width_percent: KeyframeGraph::new(),
+            height_percent: KeyframeGraph::new(),
             rotation_angle: KeyframeGraph::new(),
             opacity: KeyframeGraph::new(),
+            anchor_xy: Xy {
+                x: Percent::new(50.0),
+                y: Percent::new(50.0),
+            },
         }
     }
     pub fn get_visible_time_range(&self) -> Option<(Time, Time)> {
@@ -31,8 +36,10 @@ impl AnimatableImage {
         let start_time = [
             self.x.get_first_point().map(|point| point.time),
             self.y.get_first_point().map(|point| point.time),
-            self.width.get_first_point().map(|point| point.time),
-            self.height.get_first_point().map(|point| point.time),
+            self.width_percent.get_first_point().map(|point| point.time),
+            self.height_percent
+                .get_first_point()
+                .map(|point| point.time),
             self.rotation_angle
                 .get_first_point()
                 .map(|point| point.time),
@@ -45,8 +52,8 @@ impl AnimatableImage {
         let end_time = [
             self.x.get_last_point().map(|point| point.time),
             self.y.get_last_point().map(|point| point.time),
-            self.width.get_last_point().map(|point| point.time),
-            self.height.get_last_point().map(|point| point.time),
+            self.width_percent.get_last_point().map(|point| point.time),
+            self.height_percent.get_last_point().map(|point| point.time),
             self.rotation_angle.get_last_point().map(|point| point.time),
             self.opacity.get_last_point().map(|point| point.time),
         ]
@@ -60,6 +67,33 @@ impl AnimatableImage {
             }
         }
         None
+    }
+    pub fn get_image_pixel_size_wh(&self, time: Time) -> Option<Wh<PixelSize>> {
+        let width_percent = self.width_percent.get_value(time)?;
+        let height_percent = self.height_percent.get_value(time)?;
+
+        self.image_source_url
+            .as_ref()
+            .and_then(|image_source_url| {
+                let managers = managers();
+                managers.image_manager.try_load(image_source_url)
+            })
+            .and_then(|image| {
+                let size = image.size();
+                Some(Wh {
+                    width: (width_percent * size.width).into(),
+                    height: (height_percent * size.height).into(),
+                })
+            })
+    }
+    pub fn get_anchor_pixel_size_wh(&self, playback_time: Time) -> Option<Xy<PixelSize>> {
+        self.get_image_pixel_size_wh(playback_time)
+            .and_then(|image_wh| {
+                Some(Xy {
+                    x: self.anchor_xy.x * image_wh.width,
+                    y: self.anchor_xy.y * image_wh.height,
+                })
+            })
     }
 }
 
@@ -103,33 +137,44 @@ impl Animate for AnimatableImage {
             if opacity <= 0.0 {
                 return None;
             }
-            let ccw_radian = -self.rotation_angle.get_value(time)?.to_radian();
+            let radian = self.rotation_angle.get_value(time)?.to_radian();
             let x = self.x.get_value(time)?;
             let y = self.y.get_value(time)?;
-            let width = self.width.get_value(time)?;
-            let height = self.height.get_value(time)?;
             let source_url = self.image_source_url.as_ref()?.clone();
 
             let managers = namui::managers();
             let image = managers.image_manager.try_load(&source_url)?;
-            let image_size = image.size();
 
-            Some(namui::rotate(
-                ccw_radian.into(),
-                namui::image(ImageParam {
-                    xywh: XywhRect {
-                        x: x.into(),
-                        y: y.into(),
-                        width: (width * image_size.width).into(),
-                        height: (height * image_size.height).into(),
-                    },
-                    style: ImageStyle {
-                        fit: ImageFit::Fill,
-                        paint_builder: None,
-                    },
-                    source: ImageSource::Image(image),
-                }),
-            ))
+            let image_wh = self.get_image_pixel_size_wh(time)?;
+            let anchor_xy = self.get_anchor_pixel_size_wh(time)?;
+
+            let image_rendering_tree = namui::image(ImageParam {
+                xywh: XywhRect {
+                    x: 0.0,
+                    y: 0.0,
+                    width: image_wh.width.into(),
+                    height: image_wh.height.into(),
+                },
+                style: ImageStyle {
+                    fit: ImageFit::Fill,
+                    paint_builder: None,
+                },
+                source: ImageSource::Image(image),
+            });
+            let transformed_image = namui::translate(
+                x.into(),
+                y.into(),
+                namui::rotate(
+                    radian.into(),
+                    namui::translate(
+                        (-anchor_xy.x).into(),
+                        (-anchor_xy.y).into(),
+                        image_rendering_tree,
+                    ),
+                ),
+            );
+
+            Some(transformed_image)
         })
     }
 }
