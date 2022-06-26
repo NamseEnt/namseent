@@ -97,11 +97,11 @@ impl RenderingTree {
                 SpecialRenderingNode::Rotate(rotate) => {
                     let canvas = namui_context.surface.canvas();
 
-                    canvas.rotate(rotate.ccw_radian);
+                    canvas.rotate(rotate.radian);
 
                     rotate.rendering_tree.draw(namui_context);
 
-                    canvas.rotate(-rotate.ccw_radian);
+                    canvas.rotate(-rotate.radian);
                 }
                 SpecialRenderingNode::Scale(scale) => {
                     let canvas = namui_context.surface.canvas();

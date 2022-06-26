@@ -79,7 +79,7 @@ impl RenderingTree {
                         xy.y -= absolute.y;
                     }
                     SpecialRenderingNode::Rotate(rotate) => {
-                        xy = rotate.get_matrix().transform_xy(xy);
+                        xy = rotate.get_counter_wise_matrix().transform_xy(xy);
                     }
                     SpecialRenderingNode::Scale(scale) => {
                         xy.x /= scale.x;
