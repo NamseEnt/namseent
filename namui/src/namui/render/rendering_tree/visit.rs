@@ -79,7 +79,7 @@ impl RenderingTree {
                         xy.y -= absolute.y;
                     }
                     SpecialRenderingNode::Rotate(rotate) => {
-                        xy = rotate.get_counter_wise_matrix().transform_xy(xy);
+                        xy = rotate.get_matrix().transform_xy(xy);
                     }
                     SpecialRenderingNode::Scale(scale) => {
                         xy.x /= scale.x;
@@ -229,7 +229,7 @@ mod tests {
         let node_8 = crate::translate(20.0, 20.0, RenderingTree::Empty.with_id("8"));
         let node_7 = crate::translate(20.0, 20.0, RenderingTree::Empty.with_id("7"));
         let node_6 = crate::absolute(100.0, 100.0, render([node_8]).with_id("6"));
-        let node_5 = crate::rotate(std::f32::consts::PI, render([node_7]).with_id("5"));
+        let node_5 = crate::rotate(std::f32::consts::PI / 2.0, render([node_7]).with_id("5"));
         let node_4 = crate::translate(20.0, 30.0, RenderingTree::Empty.with_id("4"));
         let node_3 = render([node_9]).with_id("3");
         let node_2 = render([node_5, node_6]).with_id("2");
@@ -270,7 +270,7 @@ mod tests {
                             call_count += 1;
                         }
                         "5" => {
-                            assert_approx_eq!(f32, local_xy.x, -10.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x, 10.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y, -10.0, ulps = 2);
                             call_count += 1;
                         }
@@ -280,7 +280,7 @@ mod tests {
                             call_count += 1;
                         }
                         "7" => {
-                            assert_approx_eq!(f32, local_xy.x, -30.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x, -10.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y, -30.0, ulps = 2);
                             call_count += 1;
                         }
