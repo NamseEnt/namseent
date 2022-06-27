@@ -17,8 +17,10 @@ extern "C" {
     // #[wasm_bindgen(structural, method)]
     // pub fn delete(this: &CanvasKitAnimatedImage);
 
-    #[wasm_bindgen(structural, method)]
-    pub fn delete(this: &CanvasKitCanvas);
+    /// Do not delete CanvasKitCanvas!
+    /// https://chromium.googlesource.com/skia/+/8f46ecc84fab83ffccd2977a633006d77ec3c161/modules/canvaskit/canvaskit/types/index.d.ts#2288
+    // #[wasm_bindgen(structural, method)]
+    // pub fn delete(this: &CanvasKitCanvas);
 
     #[wasm_bindgen(structural, method)]
     pub fn delete(this: &CanvasKitColorFilter);
