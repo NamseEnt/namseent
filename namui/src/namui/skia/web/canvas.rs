@@ -110,9 +110,3 @@ impl Canvas {
         self.0.scale(x, y);
     }
 }
-
-impl Drop for Canvas {
-    fn drop(&mut self) {
-        self.0.delete();
-    }
-}
