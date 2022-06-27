@@ -30,7 +30,7 @@ impl TimelineWindow {
 
                         let time =
                             self.start_at + PixelSize::from(mouse_local_xy.x) * self.time_per_pixel;
-                        self.playback_time = time;
+                        self.set_playback_time(time);
                     }
                 }
                 &Event::TimelineMouseMoveIn { mouse_local_xy } => {
@@ -43,7 +43,7 @@ impl TimelineWindow {
                     keyframe_time,
                     ref layer_id,
                 } => {
-                    self.playback_time = keyframe_time;
+                    self.set_playback_time(keyframe_time);
                     if self.dragging.is_none() {
                         if let Some(action_ticket) =
                             self.animation_history
@@ -110,6 +110,9 @@ impl TimelineWindow {
                         }
                     }
                 }
+                Event::TimelineSpaceKeyDown => {
+                    self.playing_status.toggle_play();
+                }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
@@ -139,17 +142,21 @@ impl TimelineWindow {
                 *last_mouse_local_xy = mouse_local_xy;
             }
             Dragging::Keyframe { ref action_ticket } => {
+                let mut anchor_x = PixelSize::from(0.0);
                 self.animation_history
                     .update_action(*action_ticket, |action: &mut DraggingKeyframeAction| {
                         action.time_per_pixel = self.time_per_pixel;
                         action.start_at = self.start_at;
                         action.drag_end_x = mouse_local_xy.x.into();
 
-                        self.playback_time = self.start_at
-                            + (PixelSize::from(mouse_local_xy.x) - action.anchor_x)
-                                * self.time_per_pixel;
+                        anchor_x = action.anchor_x;
                     })
                     .unwrap();
+
+                self.set_playback_time(
+                    self.start_at
+                        + (PixelSize::from(mouse_local_xy.x) - anchor_x) * self.time_per_pixel,
+                );
             }
         }
     }
@@ -192,7 +199,7 @@ impl TimelineWindow {
         {
             self.animation_history.act(action_ticket).unwrap();
 
-            self.playback_time = time;
+            self.set_playback_time(time);
         }
     }
 }

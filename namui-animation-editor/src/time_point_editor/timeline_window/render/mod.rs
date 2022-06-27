@@ -7,7 +7,7 @@ impl TimelineWindow {
             simple_rect(props.wh, Color::TRANSPARENT, 0.0, Color::TRANSPARENT)
                 .with_id(&self.window_id)
                 .attach_event(|builder| {
-                    let playback_time = self.playback_time;
+                    let playback_time = self.get_playback_time();
                     let selected_layer_id = props.selected_layer_id.clone();
                     builder
                         .on_wheel(move |event| {
@@ -71,6 +71,7 @@ impl TimelineWindow {
                                 mouse_local_xy: event.local_xy,
                             })
                         });
+
                     let selected_layer_id = props.selected_layer_id.clone();
                     builder.on_key_down(move |event| {
                         if event.code == Code::Delete {
@@ -78,11 +79,13 @@ impl TimelineWindow {
                                 selected_layer_id: selected_layer_id.clone(),
                                 playback_time,
                             });
+                        } else if event.code == Code::Space {
+                            namui::event::send(Event::TimelineSpaceKeyDown);
                         }
                     });
                 });
 
-        let playback_time_x = (self.playback_time - self.start_at) / self.time_per_pixel;
+        let playback_time_x = (self.get_playback_time() - self.start_at) / self.time_per_pixel;
         let playback_time_line = namui::path(
             PathBuilder::new()
                 .move_to(playback_time_x.into(), 0.0)

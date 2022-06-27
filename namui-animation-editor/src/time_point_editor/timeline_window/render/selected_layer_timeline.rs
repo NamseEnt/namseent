@@ -66,7 +66,7 @@ impl TimelineWindow {
             })
             .map(|keyframe| {
                 let x = (keyframe.time - self.start_at) / self.time_per_pixel;
-                let is_selected = keyframe.time == self.playback_time;
+                let is_selected = keyframe.time == self.get_playback_time();
 
                 let sign = match is_selected {
                     true => selected_sign.clone(),

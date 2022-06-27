@@ -5,6 +5,8 @@ use namui::{
     types::*,
 };
 use namui_prebuilt::{table::*, *};
+mod playing_status;
+use playing_status::*;
 mod render;
 mod update;
 
@@ -14,7 +16,7 @@ pub struct TimelineWindow {
     start_at: Time,
     time_per_pixel: TimePerPixel,
     dragging: Option<Dragging>,
-    playback_time: Time,
+    playing_status: PlayingStatus,
 }
 
 impl TimelineWindow {
@@ -25,11 +27,14 @@ impl TimelineWindow {
             start_at: Time::from_ms(-1000.0),
             time_per_pixel: TimePerPixel::from_ms_per_pixel(10.0),
             dragging: None,
-            playback_time: Time::zero(),
+            playing_status: PlayingStatus::new(),
         }
     }
     pub fn get_playback_time(&self) -> Time {
-        self.playback_time
+        self.playing_status.get_playback_time()
+    }
+    pub fn set_playback_time(&mut self, time: Time) {
+        self.playing_status.set_playback_time(time);
     }
 }
 
@@ -68,6 +73,7 @@ pub(super) enum Event {
         selected_layer_id: Option<String>,
         playback_time: Time,
     },
+    TimelineSpaceKeyDown,
 }
 
 enum Dragging {
