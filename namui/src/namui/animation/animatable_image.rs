@@ -92,6 +92,57 @@ impl AnimatableImage {
                 })
             })
     }
+    pub fn get_keyframe_infos(&self) -> Vec<KeyframeInfo> {
+        get_keyframe_info(&self.x, KeyframeType::X)
+            .into_iter()
+            .chain(get_keyframe_info(&self.y, KeyframeType::Y))
+            .chain(get_keyframe_info(
+                &self.width_percent,
+                KeyframeType::WidthPercent,
+            ))
+            .chain(get_keyframe_info(
+                &self.height_percent,
+                KeyframeType::HeightPercent,
+            ))
+            .chain(get_keyframe_info(
+                &self.rotation_angle,
+                KeyframeType::RotationAngle,
+            ))
+            .chain(get_keyframe_info(&self.opacity, KeyframeType::Opacity))
+            .collect()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct KeyframeInfo {
+    pub keyframe_type: KeyframeType,
+    pub id: String,
+    pub time: Time,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum KeyframeType {
+    X,
+    Y,
+    WidthPercent,
+    HeightPercent,
+    RotationAngle,
+    Opacity,
+}
+
+fn get_keyframe_info<T: KeyframeValue + Clone>(
+    graph: &KeyframeGraph<T>,
+    keyframe_type: KeyframeType,
+) -> Vec<KeyframeInfo> {
+    graph
+        .get_points_with_lines()
+        .into_iter()
+        .map(|(point, _)| KeyframeInfo {
+            keyframe_type,
+            id: point.id().to_string(),
+            time: point.time,
+        })
+        .collect()
 }
 
 impl KeyframeValue for PixelSize {
