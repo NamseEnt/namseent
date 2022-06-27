@@ -13,6 +13,7 @@ namui = {path = "../namui"}
 tokio = {version = "1"}
 wasm-bindgen = "0.2.81"
 wasm-bindgen-futures = "0.4.31"
+zip = {version = "0.6.2", default-features = false}
 
 [dev-dependencies]
 wasm-bindgen-test = "0.2"
