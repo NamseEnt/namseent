@@ -2,8 +2,8 @@ use crate::{
     image_select_window, layer_list_window,
     types::{Act, AnimationHistory},
 };
-use namui::{animation::Animation, prelude::*, types::Time};
-use namui_prebuilt::{table::*, *};
+use namui::{animation::Animation, prelude::*};
+use namui_prebuilt::table::*;
 mod timeline_window;
 mod wysiwyg_window;
 
@@ -19,10 +19,6 @@ pub struct TimePointEditor {
 pub struct Props<'a> {
     pub wh: Wh<f32>,
     pub animation: &'a Animation,
-}
-
-pub(crate) enum Event {
-    SelectKeyframe { layer_id: String, time: Time },
 }
 
 impl TimePointEditor {
@@ -45,15 +41,6 @@ impl TimePointEditor {
                     });
                 }
                 _ => {}
-            }
-        } else if let Some(event) = event.downcast_ref::<Event>() {
-            match event {
-                Event::SelectKeyframe { layer_id, time } => {
-                    self.editing_target = Some(EditingTarget::Keyframe {
-                        layer_id: layer_id.clone(),
-                        time: *time,
-                    });
-                }
             }
         } else if let Some(event) = event.downcast_ref::<image_select_window::Event>() {
             match event {
@@ -163,7 +150,6 @@ impl TimePointEditor {
             .as_ref()
             .and_then(|editing_target| match editing_target {
                 EditingTarget::PlaybackTime { layer_id } => Some(layer_id.clone()),
-                EditingTarget::Keyframe { layer_id, .. } => Some(layer_id.clone()),
             })
     }
 }
@@ -171,5 +157,4 @@ impl TimePointEditor {
 #[derive(Clone, Debug, PartialEq)]
 pub enum EditingTarget {
     PlaybackTime { layer_id: String },
-    Keyframe { layer_id: String, time: Time },
 }
