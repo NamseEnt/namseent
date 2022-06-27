@@ -64,6 +64,12 @@ impl<'a> PartialOrd<Time> for &'a Time {
     }
 }
 
+impl std::hash::Hash for Time {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        bincode::serialize(&self.milliseconds).unwrap().hash(state);
+    }
+}
+
 macro_rules! overload_time_binary_operator_with_numeric {
     ($ops: tt, $numeric_type: tt) => {
         impl_op!($ops|lhs: Time, rhs: $numeric_type| -> Time { Time { milliseconds: lhs.milliseconds $ops rhs as f32 } });

@@ -1,6 +1,7 @@
 use super::*;
 use namui::animation::{Animate, Layer};
 mod editing_tool;
+mod moving_path;
 
 impl WysiwygWindow {
     pub(super) fn render_layer(
@@ -15,6 +16,8 @@ impl WysiwygWindow {
         let is_selected_layer = selected_layer_id == Some(layer.id.clone());
 
         if is_selected_layer {
+            rendering_tree.push(self.render_moving_path(layer));
+
             let is_playback_time_on_keyframe = layer
                 .image
                 .get_keyframe_infos()

@@ -10,7 +10,7 @@ pub struct AnimatableImage {
     pub height_percent: KeyframeGraph<Percent>,
     pub rotation_angle: KeyframeGraph<Degree>,
     pub opacity: KeyframeGraph<OneZero>,
-    pub anchor_xy: Xy<Percent>,
+    pub anchor_percent_xy: Xy<Percent>,
 }
 impl AnimatableImage {
     pub fn new() -> Self {
@@ -22,7 +22,7 @@ impl AnimatableImage {
             height_percent: KeyframeGraph::new(),
             rotation_angle: KeyframeGraph::new(),
             opacity: KeyframeGraph::new(),
-            anchor_xy: Xy {
+            anchor_percent_xy: Xy {
                 x: Percent::new(50.0),
                 y: Percent::new(50.0),
             },
@@ -87,8 +87,8 @@ impl AnimatableImage {
         self.get_image_pixel_size_wh(playback_time)
             .and_then(|image_wh| {
                 Some(Xy {
-                    x: self.anchor_xy.x * image_wh.width,
-                    y: self.anchor_xy.y * image_wh.height,
+                    x: self.anchor_percent_xy.x * image_wh.width,
+                    y: self.anchor_percent_xy.y * image_wh.height,
                 })
             })
     }

@@ -55,8 +55,8 @@ impl AnimationEditorExample {
             animation::KeyframeLine::Linear,
         );
         image.rotation_angle.put(
-            KeyframePoint::<Degree>::new(Time::zero(), Degree::from(30.0)),
-            // KeyframePoint::<Degree>::new(Time::zero(), Degree::from(0.0)),
+            // KeyframePoint::<Degree>::new(Time::zero(), Degree::from(30.0)),
+            KeyframePoint::<Degree>::new(Time::zero(), Degree::from(0.0)),
             animation::KeyframeLine::Linear,
         );
         image.opacity.put(
