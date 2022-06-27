@@ -65,32 +65,32 @@ impl RenderingTree {
         callback(self, utils)
     }
     fn to_local_xy(&self, xy: Xy<f32>, ancestors: &[&Self]) -> Xy<f32> {
-        let mut xy = xy.clone();
+        let mut result_xy = xy;
         for ancestor in ancestors.iter() {
             match ancestor {
                 RenderingTree::Special(special) => match special {
                     SpecialRenderingNode::Translate(translate) => {
-                        xy.x -= translate.x;
-                        xy.y -= translate.y;
+                        result_xy.x -= translate.x;
+                        result_xy.y -= translate.y;
                     }
                     SpecialRenderingNode::Absolute(absolute) => {
-                        xy = xy.clone();
-                        xy.x -= absolute.x;
-                        xy.y -= absolute.y;
+                        result_xy = xy;
+                        result_xy.x -= absolute.x;
+                        result_xy.y -= absolute.y;
                     }
                     SpecialRenderingNode::Rotate(rotate) => {
-                        xy = rotate.get_counter_wise_matrix().transform_xy(xy);
+                        result_xy = rotate.get_counter_wise_matrix().transform_xy(result_xy);
                     }
                     SpecialRenderingNode::Scale(scale) => {
-                        xy.x /= scale.x;
-                        xy.y /= scale.y;
+                        result_xy.x /= scale.x;
+                        result_xy.y /= scale.y;
                     }
                     _ => {}
                 },
                 _ => {}
             }
         }
-        xy
+        result_xy
     }
     fn is_xy_in(&self, xy: Xy<f32>, ancestors: &[&Self]) -> bool {
         let mut result = false;
@@ -227,12 +227,12 @@ mod tests {
         let node_10 = crate::translate(20.0, 20.0, RenderingTree::Empty.with_id("10"));
         let node_9 = crate::scale(2.0, 2.0, render([node_10]).with_id("9"));
         let node_8 = crate::translate(20.0, 20.0, RenderingTree::Empty.with_id("8"));
-        let node_7 = crate::translate(20.0, 20.0, RenderingTree::Empty.with_id("7"));
+        let node_7 = crate::translate(10.0, 20.0, RenderingTree::Empty.with_id("7"));
         let node_6 = crate::absolute(100.0, 100.0, render([node_8]).with_id("6"));
         let node_5 = crate::rotate(std::f32::consts::PI / 2.0, render([node_7]).with_id("5"));
         let node_4 = crate::translate(20.0, 30.0, RenderingTree::Empty.with_id("4"));
         let node_3 = render([node_9]).with_id("3");
-        let node_2 = render([node_5, node_6]).with_id("2");
+        let node_2 = crate::translate(50.0, 100.0, render([node_5, node_6]).with_id("2"));
         let node_1 = crate::translate(100.0, 200.0, render([node_3, node_4]).with_id("1"));
         let node_0 = render([node_1, node_2]).with_id("0");
 
@@ -255,8 +255,8 @@ mod tests {
                             call_count += 1;
                         }
                         "2" => {
-                            assert_approx_eq!(f32, local_xy.x, 10.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y, 10.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x, -40.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y, -90.0, ulps = 2);
                             call_count += 1;
                         }
                         "3" => {
@@ -270,8 +270,8 @@ mod tests {
                             call_count += 1;
                         }
                         "5" => {
-                            assert_approx_eq!(f32, local_xy.x, 10.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y, -10.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x, -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y, 40.0, ulps = 2);
                             call_count += 1;
                         }
                         "6" => {
@@ -280,8 +280,8 @@ mod tests {
                             call_count += 1;
                         }
                         "7" => {
-                            assert_approx_eq!(f32, local_xy.x, -10.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y, -30.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x, -100.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y, 20.0, ulps = 2);
                             call_count += 1;
                         }
                         "8" => {
