@@ -1,5 +1,5 @@
 use super::Props;
-use crate::namui::{self, get_text_width_internal, managers, TextInput};
+use crate::namui::{self, get_text_width_internal, TextInput};
 use std::ops::Range;
 
 impl TextInput {
@@ -10,12 +10,10 @@ impl TextInput {
         is_dragging_by_mouse: bool,
     ) -> Option<Range<usize>> {
         let (font, is_shift_key_pressed) = {
-            let managers = managers();
-            let font = managers.font_manager.get_font(&props.text_param.font_type);
+            let font = crate::font::get_font(props.text_param.font_type);
 
-            let is_shift_key_pressed = managers
-                .keyboard_manager
-                .any_code_press([namui::Code::ShiftLeft, namui::Code::ShiftRight]);
+            let is_shift_key_pressed =
+                crate::keyboard::any_code_press([namui::Code::ShiftLeft, namui::Code::ShiftRight]);
 
             (font, is_shift_key_pressed)
         };

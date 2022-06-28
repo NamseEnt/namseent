@@ -82,9 +82,7 @@ impl TextInput {
         selected_text_string: &str,
         right_text_string: &str,
     ) -> Option<(f32, f32, f32)> {
-        let font = namui::managers()
-            .font_manager
-            .get_font(&text_param.font_type);
+        let font = namui::font::get_font(text_param.font_type);
 
         if font.is_none() {
             return None;

@@ -17,9 +17,9 @@ pub struct ImageDrawCommand {
 }
 
 impl ImageDrawCommand {
-    pub fn draw(&self, namui_context: &NamuiContext) {
+    pub fn draw(&self) {
         let image = match &self.source {
-            ImageSource::Url(url) => namui::managers().image_manager.try_load(&url),
+            ImageSource::Url(url) => crate::image::try_load(&url),
             ImageSource::Image(image) => Some(image.clone()),
         };
 
@@ -50,7 +50,7 @@ impl ImageDrawCommand {
             .unwrap_or(&PaintBuilder::new())
             .build();
 
-        namui_context.surface.canvas().draw_image_rect_options(
+        crate::graphics::surface().canvas().draw_image_rect_options(
             &image,
             &src_rect,
             &dest_rect,

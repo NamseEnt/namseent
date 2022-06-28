@@ -118,14 +118,14 @@ fn render_subtitle(
     };
 
     let subtitle_text = subtitle.language_text_map.get(&language).unwrap().clone();
-    let text_box_width = get_text_width(&subtitle_text, &text_box_font_type, None);
+    let text_box_width = get_text_width(&subtitle_text, text_box_font_type, None);
 
     let name = subtitle.speaker.clone();
     let is_no_name = name.is_empty();
     let name_box_width = if is_no_name {
         Some(0.0)
     } else {
-        get_text_width(&name, &text_box_font_type, None)
+        get_text_width(&name, text_box_font_type, None)
     };
 
     if text_box_width.is_none() || name_box_width.is_none() {

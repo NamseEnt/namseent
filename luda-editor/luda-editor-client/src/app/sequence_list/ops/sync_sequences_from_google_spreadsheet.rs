@@ -10,13 +10,12 @@ use crate::app::{
 };
 use linked_hash_map::LinkedHashMap;
 use luda_editor_rpc::Socket;
-use namui::{Namui, NamuiImpl};
 use std::sync::Arc;
 use wasm_bindgen_futures::spawn_local;
 
 impl SequenceList {
     pub fn sync_sequences_from_google_spreadsheet(&mut self) {
-        let started_at = Namui::now();
+        let started_at = namui::now();
         namui::event::send(SequenceListEvent::SequencesSyncStateUpdateEvent {
             state: SequenceSyncState {
                 started_at,

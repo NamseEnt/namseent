@@ -1,11 +1,11 @@
-use crate::namui;
-
 use super::*;
 
 pub(crate) struct Surface {
     canvas_kit_surface: CanvasKitSurface,
     canvas: Canvas,
 }
+unsafe impl Send for Surface {}
+unsafe impl Sync for Surface {}
 impl Surface {
     pub fn new(canvas_kit_surface: CanvasKitSurface) -> Surface {
         let canvas = canvas_kit_surface.getCanvas();

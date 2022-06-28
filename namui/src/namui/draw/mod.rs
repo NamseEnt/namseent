@@ -21,9 +21,9 @@ pub struct DrawCall {
 }
 
 impl DrawCall {
-    pub fn draw(&self, namui_context: &NamuiContext) {
+    pub fn draw(&self) {
         self.commands.iter().for_each(|command| {
-            command.draw(namui_context);
+            command.draw();
         });
     }
 
@@ -43,16 +43,16 @@ impl DrawCall {
 }
 
 impl DrawCommand {
-    pub fn draw(&self, namui_context: &NamuiContext) {
+    pub fn draw(&self) {
         match self {
             DrawCommand::Image(command) => {
-                command.draw(namui_context);
+                command.draw();
             }
             DrawCommand::Path(command) => {
-                command.draw(namui_context);
+                command.draw();
             }
             DrawCommand::Text(command) => {
-                command.draw(namui_context);
+                command.draw();
             }
         }
     }

@@ -10,10 +10,10 @@ pub struct PathDrawCommand {
 }
 
 impl PathDrawCommand {
-    pub fn draw(&self, namui_context: &NamuiContext) {
+    pub fn draw(&self) {
         let path = self.path_builder.build();
         let paint = self.paint_builder.build();
-        namui_context.surface.canvas().draw_path(&path, &paint);
+        crate::graphics::surface().canvas().draw_path(&path, &paint);
     }
     pub fn get_bounding_box(&self) -> Option<crate::LtrbRect> {
         let path = self.path_builder.build();

@@ -32,7 +32,7 @@ impl BackgroundWysiwygEditor {
 
         let image_source = image_loader.get_background_image_source(background);
         let image = match image_source {
-            ImageSource::Url(url) => namui::managers().image_manager.try_load(&url),
+            ImageSource::Url(url) => namui::image::try_load(&url),
             ImageSource::Image(image) => Some(image),
         };
         if image.is_none() {

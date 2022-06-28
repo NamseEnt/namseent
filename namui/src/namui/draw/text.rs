@@ -1,5 +1,5 @@
 use super::*;
-use crate::namui::{skia::*, NamuiContext};
+use crate::{namui::skia::*, system::graphics};
 use std::{
     collections::{HashMap, VecDeque},
     sync::Arc,
@@ -31,16 +31,15 @@ pub enum TextBaseline {
 }
 
 impl TextDrawCommand {
-    pub fn draw(&self, namui_context: &NamuiContext) {
+    pub fn draw(&self) {
         if self.text.len() == 0 {
             return;
         }
 
         let paint = self.paint_builder.build();
 
-        let fonts = std::iter::once(self.font.clone()).chain(
-            std::iter::once_with(|| get_fallback_fonts(namui_context, self.font.size)).flatten(),
-        );
+        let fonts = std::iter::once(self.font.clone())
+            .chain(std::iter::once_with(|| get_fallback_fonts(self.font.size)).flatten());
 
         let glyph_groups = get_glyph_groups(&self.text, fonts, &paint);
 
@@ -71,8 +70,7 @@ impl TextDrawCommand {
 
             let text_blob = TextBlob::from_glyph_ids(&glyph_ids, &font);
 
-            namui_context
-                .surface
+            graphics::surface()
                 .canvas()
                 .draw_text_blob(&text_blob, x, bottom, &paint);
 
@@ -211,15 +209,8 @@ pub fn get_bottom_of_baseline(baseline: &TextBaseline, font_metrics: &FontMetric
         TextBaseline::Middle => (-font_metrics.ascent - font_metrics.descent) / 2.0,
     }
 }
-fn get_fallback_fonts(namui_context: &NamuiContext, font_size: i16) -> VecDeque<Arc<Font>> {
-    let managers = crate::managers();
-    namui_context
-        .fallback_font_typefaces
-        .iter()
-        .map(|typeface| {
-            managers
-                .font_manager
-                .get_font_of_typeface(typeface.clone(), font_size)
-        })
+fn get_fallback_fonts(font_size: i16) -> VecDeque<Arc<Font>> {
+    crate::typeface::get_fallback_font_typefaces()
+        .map(|typeface| crate::font::get_font_of_typeface(typeface.clone(), font_size))
         .collect()
 }

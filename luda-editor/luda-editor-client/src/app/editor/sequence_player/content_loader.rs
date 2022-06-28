@@ -25,7 +25,6 @@ impl ContentLoader {
         loader
     }
     fn start_loading(&mut self, camera_angle_image_loader: &dyn CameraAngleImageLoader) {
-        let managers = namui::managers();
         let mut loading_contents = self.loading_contents.lock().unwrap();
         for track in self.sequence.tracks.iter() {
             match track.as_ref() {
@@ -39,7 +38,7 @@ impl ContentLoader {
 
                                 match image_source {
                                     namui::ImageSource::Url(url) => {
-                                        if managers.image_manager.try_load(&url).is_none() {
+                                        if namui::image::try_load(&url).is_none() {
                                             loading_contents.push_back(LoadingContent::Image(url));
                                         }
                                     }
@@ -61,11 +60,10 @@ impl ContentLoader {
             return true;
         }
 
-        let managers = namui::managers();
         while let Some(loading_content) = loading_contents.front() {
             match loading_content {
                 LoadingContent::Image(url) => {
-                    if managers.image_manager.try_load(&url).is_none() {
+                    if namui::image::try_load(&url).is_none() {
                         return false;
                     }
                     loading_contents.pop_front();

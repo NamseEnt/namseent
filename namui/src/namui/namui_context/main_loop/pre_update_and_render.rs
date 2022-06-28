@@ -1,6 +1,5 @@
-use crate::namui::render::DownUp;
-
 use super::*;
+use crate::namui::render::DownUp;
 
 impl NamuiContext {
     pub(super) fn pre_update_and_render(&mut self, event: &Event) {
@@ -8,14 +7,13 @@ impl NamuiContext {
             match event {
                 NamuiEvent::AnimationFrame => {
                     invoke_and_flush_all_animation_frame_callbacks();
+                    if let Some(screen_size) = self.is_surface_resize_requested.take() {
+                        crate::graphics::resize_surface(screen_size);
+                    }
                 }
                 NamuiEvent::MouseDown(raw_mouse_event) => {
-                    {
-                        let managers = managers();
-                        managers
-                            .text_input_manager
-                            .on_mouse_down(&self, &raw_mouse_event);
-                    }
+                    crate::system::text_input::on_mouse_down(&self, &raw_mouse_event);
+
                     self.rendering_tree.call_mouse_event(
                         MouseEventType::Down,
                         raw_mouse_event,
@@ -23,12 +21,8 @@ impl NamuiContext {
                     );
                 }
                 NamuiEvent::MouseUp(raw_mouse_event) => {
-                    {
-                        let managers = managers();
-                        managers
-                            .text_input_manager
-                            .on_mouse_up(&self, &raw_mouse_event);
-                    }
+                    crate::system::text_input::on_mouse_up();
+
                     self.rendering_tree.call_mouse_event(
                         MouseEventType::Up,
                         raw_mouse_event,
@@ -36,12 +30,8 @@ impl NamuiContext {
                     );
                 }
                 NamuiEvent::MouseMove(raw_mouse_event) => {
-                    {
-                        let managers = managers();
-                        managers
-                            .text_input_manager
-                            .on_mouse_move(&self, &raw_mouse_event);
-                    }
+                    crate::system::text_input::on_mouse_move(&self, &raw_mouse_event);
+
                     self.rendering_tree.call_mouse_event(
                         MouseEventType::Move,
                         raw_mouse_event,
@@ -62,7 +52,9 @@ impl NamuiContext {
                     self.rendering_tree
                         .call_keyboard_event(raw_keyboard_event, &self, DownUp::Up);
                 }
-                _ => {}
+                NamuiEvent::ScreenResize(screen_size) => {
+                    self.is_surface_resize_requested = Some(screen_size.clone());
+                }
             }
         }
     }
