@@ -55,36 +55,34 @@ impl RenderingTree {
             }
             RenderingTree::Special(special) => match special {
                 SpecialRenderingNode::Translate(translate) => {
-                    namui_context
-                        .surface
+                    crate::system::graphics::surface()
                         .canvas()
                         .translate(translate.x, translate.y);
 
                     translate.rendering_tree.draw(namui_context);
 
-                    namui_context
-                        .surface
+                    crate::system::graphics::surface()
                         .canvas()
                         .translate(-translate.x, -translate.y);
                 }
                 SpecialRenderingNode::Clip(clip) => {
-                    let canvas = namui_context.surface.canvas();
-
-                    canvas.save();
+                    crate::system::graphics::surface().canvas().save();
 
                     let path = clip.path_builder.build();
-                    canvas.clip_path(path.as_ref(), &clip.clip_op, true);
+                    crate::system::graphics::surface().canvas().clip_path(
+                        path.as_ref(),
+                        &clip.clip_op,
+                        true,
+                    );
 
                     clip.rendering_tree.draw(namui_context);
 
-                    canvas.restore();
+                    crate::system::graphics::surface().canvas().restore();
                 }
                 SpecialRenderingNode::Absolute(absolute) => {
-                    let canvas = namui_context.surface.canvas();
+                    let back_up_matrix = crate::system::graphics::surface().canvas().get_matrix();
 
-                    let back_up_matrix = canvas.get_matrix();
-
-                    canvas.set_matrix(&[
+                    crate::system::graphics::surface().canvas().set_matrix(&[
                         [1.0, 0.0, absolute.x],
                         [0.0, 1.0, absolute.y],
                         [0.0, 0.0, 1.0],
@@ -92,25 +90,31 @@ impl RenderingTree {
 
                     absolute.rendering_tree.draw(namui_context);
 
-                    canvas.set_matrix(&back_up_matrix);
+                    crate::system::graphics::surface()
+                        .canvas()
+                        .set_matrix(&back_up_matrix);
                 }
                 SpecialRenderingNode::Rotate(rotate) => {
-                    let canvas = namui_context.surface.canvas();
-
-                    canvas.rotate(rotate.radian);
+                    crate::system::graphics::surface()
+                        .canvas()
+                        .rotate(rotate.radian);
 
                     rotate.rendering_tree.draw(namui_context);
 
-                    canvas.rotate(-rotate.radian);
+                    crate::system::graphics::surface()
+                        .canvas()
+                        .rotate(-rotate.radian);
                 }
                 SpecialRenderingNode::Scale(scale) => {
-                    let canvas = namui_context.surface.canvas();
-
-                    canvas.scale(scale.x, scale.y);
+                    crate::system::graphics::surface()
+                        .canvas()
+                        .scale(scale.x, scale.y);
 
                     scale.rendering_tree.draw(namui_context);
 
-                    canvas.scale(1.0 / scale.x, 1.0 / scale.y);
+                    crate::system::graphics::surface()
+                        .canvas()
+                        .scale(1.0 / scale.x, 1.0 / scale.y);
                 }
                 _ => {
                     special.get_rendering_tree().draw(namui_context);

@@ -1,5 +1,5 @@
 use super::*;
-use crate::namui::NamuiContext;
+use crate::{namui::NamuiContext, system::graphics};
 
 #[derive(Debug, Serialize, Clone)]
 pub struct PathDrawCommand {
@@ -13,7 +13,7 @@ impl PathDrawCommand {
     pub fn draw(&self, namui_context: &NamuiContext) {
         let path = self.path_builder.build();
         let paint = self.paint_builder.build();
-        namui_context.surface.canvas().draw_path(&path, &paint);
+        graphics::surface().canvas().draw_path(&path, &paint);
     }
     pub fn get_bounding_box(&self) -> Option<crate::LtrbRect> {
         let path = self.path_builder.build();

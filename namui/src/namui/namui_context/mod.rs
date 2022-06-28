@@ -1,16 +1,13 @@
-use super::{on_frame, skia::Surface};
-use crate::{event::EventReceiver, Entity, NamuiImpl, RenderingTree, Typeface, Wh, Xy};
-use std::{sync::Arc, time::Duration};
+use crate::{event::EventReceiver, Entity, RenderingTree, Wh, Xy};
+use std::time::Duration;
 mod main_loop;
 
 pub struct NamuiContext {
-    pub(crate) surface: Surface,
     fps_info: FpsInfo,
     pub(crate) rendering_tree: RenderingTree,
     pub(crate) event_receiver: EventReceiver,
-    pub(crate) fallback_font_typefaces: Vec<Arc<Typeface>>,
     event_count: u32,
-    canvas_should_be_resized_to: Option<Wh<i16>>,
+    is_surface_resize_requested: Option<Wh<i16>>,
 }
 
 struct FpsInfo {
@@ -20,9 +17,8 @@ struct FpsInfo {
 }
 
 impl NamuiContext {
-    pub(crate) fn new(surface: Surface) -> Self {
+    pub(crate) fn new() -> Self {
         Self {
-            surface,
             fps_info: FpsInfo {
                 fps: 0,
                 frame_count: 0,
@@ -30,17 +26,20 @@ impl NamuiContext {
             },
             rendering_tree: RenderingTree::Empty,
             event_receiver: crate::event::init(),
-            fallback_font_typefaces: Vec::new(),
             event_count: 0,
-            canvas_should_be_resized_to: None,
+            is_surface_resize_requested: None,
         }
     }
     pub async fn start<TProps>(mut self, state: &mut dyn Entity<Props = TProps>, props: &TProps) {
         self.rendering_tree = state.render(props);
 
-        crate::Namui::request_animation_frame(Box::new(move || {
-            on_frame();
-        }));
+        fn on_frame() {
+            crate::event::send(crate::NamuiEvent::AnimationFrame);
+
+            crate::system::graphics::request_animation_frame(on_frame);
+        }
+
+        crate::system::graphics::request_animation_frame(on_frame);
         self.run_main_loop(state, props).await;
     }
     pub fn get_rendering_tree_xy_by_id(&self, id: &str) -> Option<Xy<f32>> {

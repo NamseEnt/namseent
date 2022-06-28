@@ -1,6 +1,5 @@
-use crate::{namui, XywhRect};
-
 use super::*;
+use crate::XywhRect;
 
 pub(crate) struct Canvas(pub CanvasKitCanvas);
 impl Canvas {

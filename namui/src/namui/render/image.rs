@@ -1,7 +1,6 @@
-use std::sync::Arc;
-
 use crate::{draw::ImageDrawCommand, *};
 use serde::Serialize;
+use std::sync::Arc;
 
 #[derive(Debug, Serialize, Clone, Copy)]
 pub enum ImageFit {

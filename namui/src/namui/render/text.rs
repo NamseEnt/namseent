@@ -39,13 +39,13 @@ pub struct TextParam {
 }
 
 pub fn text(param: TextParam) -> RenderingTree {
-    let font = namui::managers().font_manager.get_font(&param.font_type);
+    let font = namui::system::font::get_font(param.font_type);
     match font {
         None => {
-            namui::log(format!(
+            crate::log!(
                 "Font not found: {}",
                 serde_json::to_string(&param.font_type).unwrap()
-            ));
+            );
             RenderingTree::Empty
         }
         Some(font) => {
@@ -201,8 +201,8 @@ pub(crate) fn get_text_width_internal(font: &Font, text: &str, drop_shadow_x: Op
     glyph_widths.iter().fold(0.0, |acc, cur| acc + cur) + drop_shadow_x.unwrap_or(0.0)
 }
 
-pub fn get_text_width(text: &str, font_type: &FontType, drop_shadow_x: Option<f32>) -> Option<f32> {
-    let font = namui::managers().font_manager.get_font(&font_type);
+pub fn get_text_width(text: &str, font_type: FontType, drop_shadow_x: Option<f32>) -> Option<f32> {
+    let font = namui::system::font::get_font(font_type);
     font.map(|font| {
         let glyph_ids = font.get_glyph_ids(text);
         let glyph_widths = font.get_glyph_widths(glyph_ids, Option::None);

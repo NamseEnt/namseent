@@ -1,32 +1,15 @@
-use super::namui_state::{update_namui_state, NamuiState};
 use super::render::{RenderingData, RenderingTree};
-use crate::{Code, NamuiContext};
 use serde::{Deserialize, Serialize};
 use serde_repr::*;
 use std::collections::HashSet;
-use std::time::Duration;
 mod xy;
 pub use xy::*;
 mod set_timeout;
 pub use set_timeout::*;
 mod request_animation_frame;
 pub use request_animation_frame::*;
-
-pub trait NamuiImpl {
-    fn init() -> NamuiContext;
-    fn request_animation_frame(callback: Box<dyn FnOnce()>);
-    fn log(format: String);
-    fn now() -> Duration;
-}
-
-pub struct NamuiInternal {}
-impl NamuiInternal {
-    pub fn update_state(namui_state: NamuiState) {
-        update_namui_state(namui_state);
-    }
-}
-
-pub struct Namui;
+mod codes;
+pub use codes::*;
 
 impl std::convert::From<RenderingData> for RenderingTree {
     fn from(data: RenderingData) -> Self {
