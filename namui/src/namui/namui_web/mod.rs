@@ -31,7 +31,7 @@ impl NamuiImpl for Namui {
         let canvas_element = make_canvas_element().unwrap();
         let canvas_kit_surface = canvas_kit.MakeCanvasSurface(&canvas_element).unwrap();
         let surface = Surface::new(canvas_kit_surface);
-        CANVAS_KIT.set(Arc::new(canvas_kit));
+        let _ = CANVAS_KIT.set(Arc::new(canvas_kit));
 
         set_managers(Managers {
             mouse_manager: MouseManager::new(&canvas_element),
@@ -77,12 +77,14 @@ fn make_canvas_element() -> Result<HtmlCanvasElement, Element> {
     let document = web_sys::window().unwrap().document().unwrap();
     let element = document.create_element("canvas").unwrap();
     let canvas_element = wasm_bindgen::JsCast::dyn_into::<HtmlCanvasElement>(element);
-
     match canvas_element {
         Ok(canvas_element) => {
-            canvas_element.set_width(1920);
-            canvas_element.set_height(1080);
-
+            let screen_size = crate::screen::size();
+            canvas_element.set_width(screen_size.width as u32);
+            canvas_element.set_height(screen_size.height as u32);
+            let _ = canvas_element.style().set_property("width", "100%");
+            let _ = canvas_element.style().set_property("height", "100%");
+            canvas_element.set_id("canvas");
             document
                 .body()
                 .unwrap()

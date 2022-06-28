@@ -1,5 +1,5 @@
 use super::{on_frame, skia::Surface};
-use crate::{event::EventReceiver, Entity, NamuiImpl, RenderingTree, Typeface, Xy};
+use crate::{event::EventReceiver, Entity, NamuiImpl, RenderingTree, Typeface, Wh, Xy};
 use std::{sync::Arc, time::Duration};
 mod main_loop;
 
@@ -10,6 +10,7 @@ pub struct NamuiContext {
     pub(crate) event_receiver: EventReceiver,
     pub(crate) fallback_font_typefaces: Vec<Arc<Typeface>>,
     event_count: u32,
+    canvas_should_be_resized_to: Option<Wh<i16>>,
 }
 
 struct FpsInfo {
@@ -31,6 +32,7 @@ impl NamuiContext {
             event_receiver: crate::event::init(),
             fallback_font_typefaces: Vec::new(),
             event_count: 0,
+            canvas_should_be_resized_to: None,
         }
     }
     pub async fn start<TProps>(mut self, state: &mut dyn Entity<Props = TProps>, props: &TProps) {
