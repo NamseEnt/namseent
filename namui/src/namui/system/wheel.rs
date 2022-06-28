@@ -17,7 +17,7 @@ pub async fn init() -> InitResult {
                 }
 
                 namui::event::send(namui::NamuiEvent::Wheel(RawWheelEvent {
-                    id: format!("wheel-{:?}-{:?}", namui::now(), namui::now()),
+                    id: format!("wheel-{:?}-{}", namui::now(), namui::nanoid()),
                     delta_xy: Xy {
                         x: event.delta_x() as f32,
                         y: event.delta_y() as f32,
