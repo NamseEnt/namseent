@@ -56,10 +56,9 @@ fn start_load(url: &Url) {
         };
 
         match read_url_result {
-            Ok(data) => match canvas_kit().MakeImageFromEncoded(&data) {
-                Some(canvas_kit_image) => {
-                    let image = Image::new(canvas_kit_image);
-                    IMAGE_SYSTEM.image_map.insert(url, Arc::new(image));
+            Ok(data) => match new_image_from_u8(&data) {
+                Some(image) => {
+                    IMAGE_SYSTEM.image_map.insert(url, image);
                 }
                 None => {
                     crate::log!("failed to MakeImageFromEncoded: {}, {:?}", url, data);
@@ -74,4 +73,10 @@ fn start_load(url: &Url) {
             }
         }
     });
+}
+pub fn new_image_from_u8(data: &[u8]) -> Option<Arc<Image>> {
+    match canvas_kit().MakeImageFromEncoded(data) {
+        Some(canvas_kit_image) => Some(Arc::new(Image::new(canvas_kit_image))),
+        None => None,
+    }
 }

@@ -13,7 +13,7 @@ impl Entity for App {
     }
 
     fn render(&self, _: &Self::Props) -> RenderingTree {
-        let screen_size = namui::screen::size();
+        let screen_size = namui::system::screen::size();
         self.router.render(&RouterProps {
             screen_wh: Wh {
                 width: screen_size.width as f32,

@@ -1,10 +1,7 @@
 use super::{render_file_select_dialog_open_button, FileSelectorEvent};
 use crate::app::{cropper::Cropper, router::RouterEvent, util::alert};
 use js_sys::Uint8Array;
-use namui::{
-    render, translate, Color, Image, RectFill, RectParam, RectStyle, RenderingTree, Wh, CANVAS_KIT,
-};
-use std::sync::Arc;
+use namui::{render, translate, Color, RectFill, RectParam, RectStyle, RenderingTree, Wh};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use wasm_bindgen_futures::{spawn_local, JsFuture};
 use web_sys::{window, FileList, HtmlInputElement, InputEvent, Url};
@@ -20,13 +17,14 @@ impl FileSelector {
     pub fn new() -> Self {
         let input_element = create_image_input_element();
         set_file_handler(&input_element, |file, url, name| {
-            match make_namui_image(file) {
-                Ok(image) => namui::event::send(FileSelectorEvent::NamuiImagePrepared {
-                    image: Arc::new(image),
-                    url,
-                    name,
-                }),
-                Err(error) => namui::event::send(FileSelectorEvent::NamuiImageMakeFailed(error)),
+            match namui::system::image::new_image_from_u8(&file) {
+                Some(image) => {
+                    namui::event::send(FileSelectorEvent::NamuiImagePrepared { image, url, name })
+                }
+                None => namui::event::send(FileSelectorEvent::NamuiImageMakeFailed(format!(
+                    "failed to make image of {}",
+                    name
+                ))),
             }
         });
 
@@ -139,18 +137,7 @@ fn set_file_handler(element: &HtmlInputElement, handler: fn(Vec<u8>, String, Str
                 }
             }) as Box<dyn FnMut(InputEvent)>)
             .into_js_value()
-            .as_ref()
             .unchecked_ref(),
         )
         .expect("failed to attach file handler");
-}
-
-fn make_namui_image(u8: impl AsRef<[u8]>) -> Result<Image, String> {
-    match CANVAS_KIT.get() {
-        Some(canvas_kit) => match canvas_kit.MakeImageFromEncoded(u8.as_ref()) {
-            Some(canvas_kit_image) => Ok(Image::new(canvas_kit_image)),
-            None => Err(format!("failed to MakeImageFromEncoded")),
-        },
-        None => Err(format!("failed to get canvas kit")),
-    }
 }

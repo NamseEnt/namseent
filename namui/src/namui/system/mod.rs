@@ -7,11 +7,11 @@ pub mod log;
 pub mod mouse;
 pub mod network;
 mod platform_utils;
+pub mod screen;
 pub mod text_input;
-pub(crate) mod typeface;
-// pub mod screen;
-// pub mod wheel;
 pub mod time;
+pub(crate) mod typeface;
+// pub mod wheel;
 
 use futures::try_join;
 use lazy_static::lazy_static;

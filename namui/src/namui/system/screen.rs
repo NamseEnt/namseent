@@ -1,45 +1,39 @@
-// use crate::namui::{self};
-// use std::sync::{Arc, RwLock};
-// use wasm_bindgen::{prelude::Closure, JsCast};
+use super::platform_utils::web::window;
+use std::sync::{Arc, RwLock};
+use wasm_bindgen::{prelude::Closure, JsCast};
 
-// pub struct ScreenSystem {
-//     screen_size: Arc<RwLock<(i16, i16)>>,
-// }
+pub async fn init() {
+    let window = window();
+    let screen_size = Arc::new(RwLock::new((
+        window.inner_width().unwrap().as_f64().unwrap() as i16,
+        window.inner_height().unwrap().as_f64().unwrap() as i16,
+    )));
 
-// impl ScreenSystem {
-//     pub fn screen_size(&self) -> (i16, i16) {
-//         (*self.screen_size).read().unwrap().clone()
-//     }
-//     pub fn new() -> Self {
-//         let window = namui::window();
-//         let screen_size = Arc::new(RwLock::new((
-//             window.inner_width().unwrap().as_f64().unwrap() as i16,
-//             window.inner_height().unwrap().as_f64().unwrap() as i16,
-//         )));
+    window
+        .add_event_listener_with_callback(
+            "resize",
+            Closure::wrap(Box::new(move || {
+                let window = super::platform_utils::web::window();
+                let mut screen_size = screen_size.write().unwrap();
+                *screen_size = (
+                    window.inner_width().unwrap().as_f64().unwrap() as i16,
+                    window.inner_height().unwrap().as_f64().unwrap() as i16,
+                );
+                crate::event::send(crate::event::NamuiEvent::ScreenResize(crate::Wh {
+                    width: screen_size.0,
+                    height: screen_size.1,
+                }));
+            }) as Box<dyn FnMut()>)
+            .into_js_value()
+            .unchecked_ref(),
+        )
+        .unwrap();
+}
 
-//         let system = ScreenSystem {
-//             screen_size: screen_size.clone(),
-//         };
-
-//         let closure = Closure::wrap(Box::new(move || {
-//             let window = namui::window();
-//             let mut screen_size = screen_size.write().unwrap();
-//             *screen_size = (
-//                 window.inner_width().unwrap().as_f64().unwrap() as i16,
-//                 window.inner_height().unwrap().as_f64().unwrap() as i16,
-//             );
-//             namui::event::send(namui::event::NamuiEvent::ScreenResize(namui::Wh {
-//                 width: screen_size.0,
-//                 height: screen_size.1,
-//             }));
-//         }) as Box<dyn FnMut()>);
-
-//         window
-//             .add_event_listener_with_callback("resize", closure.as_ref().unchecked_ref())
-//             .unwrap();
-
-//         closure.forget();
-
-//         system
-//     }
-// }
+pub fn size() -> crate::Wh<i16> {
+    let window = window();
+    crate::Wh {
+        width: window.inner_width().unwrap().as_f64().unwrap() as i16,
+        height: window.inner_height().unwrap().as_f64().unwrap() as i16,
+    }
+}
