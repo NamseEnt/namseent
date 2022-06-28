@@ -17,7 +17,7 @@ struct FpsInfo {
 }
 
 impl NamuiContext {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(event_receiver: EventReceiver) -> Self {
         Self {
             fps_info: FpsInfo {
                 fps: 0,
@@ -25,7 +25,7 @@ impl NamuiContext {
                 last_60_frame_time: crate::now(),
             },
             rendering_tree: RenderingTree::Empty,
-            event_receiver: crate::event::init(),
+            event_receiver,
             event_count: 0,
             is_surface_resize_requested: None,
         }

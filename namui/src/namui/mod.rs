@@ -34,11 +34,13 @@ pub trait Entity {
 }
 
 pub async fn init() -> NamuiContext {
+    let event_receiver = event::init();
+
     system::init()
         .await
         .expect("Failed to initialize namui system");
 
-    let namui_context = NamuiContext::new();
+    let namui_context = NamuiContext::new(event_receiver);
 
     namui_context
 }
