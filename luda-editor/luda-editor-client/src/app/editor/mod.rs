@@ -265,12 +265,12 @@ impl namui::Entity for Editor {
                 } => {
                     self.sequence_player.seek(*mouse_position_in_time);
                     if !is_mouse_on_clip {
-                        if namui::system::keyboard::any_code_press([
+                        if namui::keyboard::any_code_press([
                             namui::Code::ControlLeft,
                             namui::Code::ControlRight,
                         ]) {
                             // do nothing please
-                        } else if namui::system::keyboard::any_code_press([
+                        } else if namui::keyboard::any_code_press([
                             namui::Code::ShiftLeft,
                             namui::Code::ShiftRight,
                         ]) {
@@ -330,42 +330,42 @@ impl namui::Entity for Editor {
                 },
                 NamuiEvent::KeyDown(key_event) => {
                     if key_event.code == namui::Code::KeyZ
-                        && namui::system::keyboard::any_code_press([
+                        && namui::keyboard::any_code_press([
                             namui::Code::ControlLeft,
                             namui::Code::ControlRight,
                         ])
                     {
                         self.undo();
                     } else if key_event.code == namui::Code::KeyY
-                        && namui::system::keyboard::any_code_press([
+                        && namui::keyboard::any_code_press([
                             namui::Code::ControlLeft,
                             namui::Code::ControlRight,
                         ])
                     {
                         self.redo();
                     } else if key_event.code == namui::Code::KeyC
-                        && namui::system::keyboard::any_code_press([
+                        && namui::keyboard::any_code_press([
                             namui::Code::ControlLeft,
                             namui::Code::ControlRight,
                         ])
                     {
                         self.copy_to_clipboard();
                     } else if key_event.code == namui::Code::KeyV
-                        && namui::system::keyboard::any_code_press([
+                        && namui::keyboard::any_code_press([
                             namui::Code::ControlLeft,
                             namui::Code::ControlRight,
                         ])
                     {
                         self.paste_clipboard();
                     } else if key_event.code == namui::Code::Home
-                        && namui::system::keyboard::any_code_press([
+                        && namui::keyboard::any_code_press([
                             namui::Code::ShiftLeft,
                             namui::Code::ShiftRight,
                         ])
                     {
                         self.select_at_once(Direction::Forward);
                     } else if key_event.code == namui::Code::End
-                        && namui::system::keyboard::any_code_press([
+                        && namui::keyboard::any_code_press([
                             namui::Code::ShiftLeft,
                             namui::Code::ShiftRight,
                         ])
@@ -658,19 +658,14 @@ impl Editor {
     fn on_clip_mouse_down(&mut self, clip_id: &str, click_in_time: &Time) {
         self.clip_id_to_check_as_click = None;
 
-        if namui::system::keyboard::any_code_press([
-            namui::Code::ControlLeft,
-            namui::Code::ControlRight,
-        ]) {
+        if namui::keyboard::any_code_press([namui::Code::ControlLeft, namui::Code::ControlRight]) {
             if self.selected_clip_ids.contains(clip_id) {
                 self.deselect_clips(&[clip_id]);
             } else {
                 self.multi_select_clip(clip_id);
             }
-        } else if namui::system::keyboard::any_code_press([
-            namui::Code::ShiftLeft,
-            namui::Code::ShiftRight,
-        ]) && self.is_clip_in_same_track_with_selected_clips(clip_id)
+        } else if namui::keyboard::any_code_press([namui::Code::ShiftLeft, namui::Code::ShiftRight])
+            && self.is_clip_in_same_track_with_selected_clips(clip_id)
         {
             self.select_all_to_time(click_in_time);
         } else if !self.selected_clip_ids.contains(clip_id) {

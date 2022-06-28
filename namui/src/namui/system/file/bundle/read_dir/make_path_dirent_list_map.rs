@@ -1,4 +1,4 @@
-use crate::system::file::types::{Dirent, DirentKind};
+use crate::file::types::{Dirent, DirentKind};
 use dashmap::DashMap;
 use std::path::PathBuf;
 use url::Url;

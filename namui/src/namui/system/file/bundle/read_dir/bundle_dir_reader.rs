@@ -1,5 +1,5 @@
 use super::{load_bundle_metadata, make_path_dirent_list_map, LoadBundleMetadataError};
-use crate::system::file::types::Dirent;
+use crate::file::types::Dirent;
 use dashmap::DashMap;
 use std::{path::PathBuf, sync::Arc};
 

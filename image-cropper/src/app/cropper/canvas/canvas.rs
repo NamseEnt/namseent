@@ -101,7 +101,7 @@ impl Canvas {
                         let canvas_wh = props.wh.clone();
                         let image_size = image_size.clone();
 
-                        let mouse_position = namui::system::mouse::mouse_position();
+                        let mouse_position = namui::mouse::position();
                         let canvas_xy = event
                             .namui_context
                             .get_rendering_tree_xy(event.target)
@@ -119,7 +119,7 @@ impl Canvas {
                             return;
                         }
 
-                        if namui::system::keyboard::any_code_press([namui::Code::ControlLeft]) {
+                        if namui::keyboard::any_code_press([namui::Code::ControlLeft]) {
                             zoom(
                                 event.delta_xy,
                                 offset,
@@ -128,8 +128,7 @@ impl Canvas {
                                 image_size,
                                 scale,
                             )
-                        } else if namui::system::keyboard::any_code_press([namui::Code::ShiftLeft])
-                        {
+                        } else if namui::keyboard::any_code_press([namui::Code::ShiftLeft]) {
                             scroll(
                                 Xy {
                                     x: event.delta_xy.y,

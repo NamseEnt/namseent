@@ -9,11 +9,11 @@ impl NamuiContext {
                 NamuiEvent::AnimationFrame => {
                     self.update_fps_info();
 
-                    self.rendering_tree.draw(&self);
+                    self.rendering_tree.draw();
 
                     self.set_mouse_cursor();
 
-                    crate::system::graphics::surface().flush();
+                    crate::graphics::surface().flush();
 
                     if self.fps_info.frame_count == 0 {
                         crate::log!("event_count: {}", self.event_count);
@@ -46,7 +46,7 @@ impl NamuiContext {
 
     fn set_mouse_cursor(&self) {
         let mouse_xy = {
-            let mouse_position = crate::system::mouse::mouse_position();
+            let mouse_position = crate::mouse::position();
             Xy {
                 x: mouse_position.x as f32,
                 y: mouse_position.y as f32,
@@ -58,10 +58,10 @@ impl NamuiContext {
             .get_mouse_cursor(mouse_xy)
             .unwrap_or(MouseCursor::Default);
 
-        crate::system::mouse::set_mouse_cursor(&cursor);
+        crate::mouse::set_mouse_cursor(&cursor);
 
         if let MouseCursor::Custom(custom) = cursor {
-            absolute(mouse_xy.x, mouse_xy.y, custom).draw(self);
+            absolute(mouse_xy.x, mouse_xy.y, custom).draw();
         }
     }
 }

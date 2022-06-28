@@ -1,5 +1,5 @@
 use super::bundle::{self, BundleDirReaderInitError};
-use crate::system::InitResult;
+use crate::namui::system::InitResult;
 use std::{
     error::Error,
     fmt::{Display, Formatter},

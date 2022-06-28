@@ -35,7 +35,7 @@ impl CameraAngleCharacter {
     ) -> RenderingTree {
         let image_source = camera_angle_image_loader.get_character_image_source(self);
         let image = match image_source {
-            ImageSource::Url(url) => namui::system::image::try_load(&url),
+            ImageSource::Url(url) => namui::image::try_load(&url),
             ImageSource::Image(image) => Some(image),
         };
         if image.is_none() {
@@ -105,7 +105,7 @@ impl CameraAngleBackground {
     ) -> RenderingTree {
         let image_source = camera_angle_image_loader.get_background_image_source(self);
         let image = match image_source {
-            ImageSource::Url(url) => namui::system::image::try_load(&url),
+            ImageSource::Url(url) => namui::image::try_load(&url),
             ImageSource::Image(image) => Some(image),
         };
         if image.is_none() {

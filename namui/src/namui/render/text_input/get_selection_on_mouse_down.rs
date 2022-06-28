@@ -10,12 +10,10 @@ impl TextInput {
         is_dragging_by_mouse: bool,
     ) -> Option<Range<usize>> {
         let (font, is_shift_key_pressed) = {
-            let font = crate::system::font::get_font(props.text_param.font_type);
+            let font = crate::font::get_font(props.text_param.font_type);
 
-            let is_shift_key_pressed = crate::system::keyboard::any_code_press([
-                namui::Code::ShiftLeft,
-                namui::Code::ShiftRight,
-            ]);
+            let is_shift_key_pressed =
+                crate::keyboard::any_code_press([namui::Code::ShiftLeft, namui::Code::ShiftRight]);
 
             (font, is_shift_key_pressed)
         };

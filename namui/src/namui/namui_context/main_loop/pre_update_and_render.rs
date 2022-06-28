@@ -8,7 +8,7 @@ impl NamuiContext {
                 NamuiEvent::AnimationFrame => {
                     invoke_and_flush_all_animation_frame_callbacks();
                     if let Some(screen_size) = self.is_surface_resize_requested.take() {
-                        crate::system::graphics::resize_surface(screen_size);
+                        crate::graphics::resize_surface(screen_size);
                     }
                 }
                 NamuiEvent::MouseDown(raw_mouse_event) => {

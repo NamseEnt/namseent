@@ -134,7 +134,7 @@ pub fn set_mouse_cursor(cursor: &MouseCursor) {
         .unwrap();
 }
 
-pub fn mouse_position() -> Xy<i16> {
+pub fn position() -> Xy<i16> {
     MOUSE_SYSTEM.mouse_position.read().unwrap().clone()
 }
 

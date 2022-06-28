@@ -17,9 +17,9 @@ pub struct ImageDrawCommand {
 }
 
 impl ImageDrawCommand {
-    pub fn draw(&self, namui_context: &NamuiContext) {
+    pub fn draw(&self) {
         let image = match &self.source {
-            ImageSource::Url(url) => namui::system::image::try_load(&url),
+            ImageSource::Url(url) => crate::image::try_load(&url),
             ImageSource::Image(image) => Some(image.clone()),
         };
 
@@ -50,16 +50,14 @@ impl ImageDrawCommand {
             .unwrap_or(&PaintBuilder::new())
             .build();
 
-        crate::system::graphics::surface()
-            .canvas()
-            .draw_image_rect_options(
-                &image,
-                &src_rect,
-                &dest_rect,
-                FilterMode::Linear,
-                MipmapMode::Linear,
-                Some(&paint),
-            );
+        crate::graphics::surface().canvas().draw_image_rect_options(
+            &image,
+            &src_rect,
+            &dest_rect,
+            FilterMode::Linear,
+            MipmapMode::Linear,
+            Some(&paint),
+        );
     }
     pub fn get_bounding_box(&self) -> Option<crate::LtrbRect> {
         Some(crate::LtrbRect {

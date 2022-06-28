@@ -39,7 +39,7 @@ pub struct TextParam {
 }
 
 pub fn text(param: TextParam) -> RenderingTree {
-    let font = namui::system::font::get_font(param.font_type);
+    let font = namui::font::get_font(param.font_type);
     match font {
         None => {
             crate::log!(
@@ -202,7 +202,7 @@ pub(crate) fn get_text_width_internal(font: &Font, text: &str, drop_shadow_x: Op
 }
 
 pub fn get_text_width(text: &str, font_type: FontType, drop_shadow_x: Option<f32>) -> Option<f32> {
-    let font = namui::system::font::get_font(font_type);
+    let font = namui::font::get_font(font_type);
     font.map(|font| {
         let glyph_ids = font.get_glyph_ids(text);
         let glyph_widths = font.get_glyph_widths(glyph_ids, Option::None);

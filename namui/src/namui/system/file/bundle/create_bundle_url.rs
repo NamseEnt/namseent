@@ -1,4 +1,4 @@
-use crate::system::file::types::PathLike;
+use crate::file::types::PathLike;
 use namui_cfg::namui_cfg;
 
 pub fn create_bundle_url(path_like: impl PathLike) -> String {

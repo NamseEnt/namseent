@@ -114,7 +114,7 @@ impl Scroll {
             let width = inner_width + scroll_bar_width;
             let height = height;
             builder.on_wheel(move |event| {
-                let mouse_position = namui::system::mouse::mouse_position();
+                let mouse_position = namui::mouse::position();
                 let whole_rect_xy = event
                     .namui_context
                     .get_rendering_tree_xy(event.target)

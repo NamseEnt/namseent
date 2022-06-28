@@ -51,10 +51,10 @@ fn start_load(url: &Url) {
     let url = url.clone();
     spawn_local(async move {
         let read_url_result = match url.scheme() {
-            "http" | "https" => crate::system::network::fetch_get_vec_u8(url.as_str())
+            "http" | "https" => crate::network::fetch_get_vec_u8(url.as_str())
                 .await
                 .map_err(|e| format!("{}", e)),
-            "bundle" => crate::system::file::bundle::read(url.clone())
+            "bundle" => crate::file::bundle::read(url.clone())
                 .await
                 .map_err(|e| format!("{:?}", e)),
             _ => Err(format!("unknown scheme: {}", url.scheme())),

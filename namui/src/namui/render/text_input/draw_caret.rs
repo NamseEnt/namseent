@@ -19,7 +19,7 @@ impl TextInput {
         let left_text_string: String = char_vec[..selection.end].iter().collect();
         let right_text_string: String = char_vec[selection.end..].iter().collect();
 
-        let font = namui::system::font::get_font(text_param.font_type);
+        let font = namui::font::get_font(text_param.font_type);
 
         if font.is_none() {
             return RenderingTree::Empty;

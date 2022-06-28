@@ -1,6 +1,6 @@
 use crate::{
     namui::{FontWeight, Language, TypefaceType},
-    system::network::{fetch_get_json, fetch_get_vec_u8},
+    network::*,
     Typeface,
 };
 use futures::{future::join_all, try_join};
@@ -21,7 +21,7 @@ pub async fn load_all_typefaces() -> Result<(), Box<dyn std::error::Error>> {
 async fn load_fallback_font_typefaces() -> Result<(), Box<dyn std::error::Error>> {
     let typeface = get_noto_color_emoji_typeface().await?;
 
-    crate::system::typeface::load_fallback_font_typeface(typeface);
+    crate::typeface::load_fallback_font_typeface(typeface);
     Ok(())
 }
 
@@ -39,9 +39,9 @@ pub async fn load_sans_typeface_of_all_languages() -> Result<(), Box<dyn std::er
 
     let typeface_files: HashMap<TypefaceType, Vec<u8>> =
         get_typeface_files(&typeface_file_urls).await?;
-    typeface_files.iter().for_each(|(typeface_type, bytes)| {
-        crate::system::typeface::load_typeface(&typeface_type, bytes)
-    });
+    typeface_files
+        .iter()
+        .for_each(|(typeface_type, bytes)| crate::typeface::load_typeface(&typeface_type, bytes));
 
     Ok(())
 }

@@ -38,7 +38,7 @@ pub async fn get_subtitles_by_title(sheet_title: &str) -> Result<Vec<Subtitle>, 
         SPREADSHEET_ID, range, API_KEY
     );
 
-    let result = namui::system::network::fetch_get_json::<SpreadsheetValuesGet>(&url).await;
+    let result = namui::network::fetch_get_json::<SpreadsheetValuesGet>(&url).await;
 
     if result.is_err() {
         let error = result.err().unwrap();
@@ -76,7 +76,7 @@ pub async fn get_sheets() -> Result<Vec<Sheet>, String> {
         SPREADSHEET_ID, API_KEY
     );
 
-    let result = namui::system::network::fetch_get_json::<SpreadsheetGet>(&url).await;
+    let result = namui::network::fetch_get_json::<SpreadsheetGet>(&url).await;
 
     if result.is_err() {
         let error = result.err().unwrap();

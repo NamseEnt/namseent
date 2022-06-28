@@ -16,8 +16,9 @@ pub struct FileSelector {
 impl FileSelector {
     pub fn new() -> Self {
         let input_element = create_image_input_element();
-        set_file_handler(&input_element, |file, url, name| {
-            match namui::system::image::new_image_from_u8(&file) {
+        set_file_handler(
+            &input_element,
+            |file, url, name| match namui::image::new_image_from_u8(&file) {
                 Some(image) => {
                     namui::event::send(FileSelectorEvent::NamuiImagePrepared { image, url, name })
                 }
@@ -25,8 +26,8 @@ impl FileSelector {
                     "failed to make image of {}",
                     name
                 ))),
-            }
-        });
+            },
+        );
 
         Self {
             html_input_element: input_element,

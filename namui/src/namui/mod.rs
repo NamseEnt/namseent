@@ -6,7 +6,7 @@ mod namui_context;
 mod random;
 mod render;
 mod skia;
-pub mod system;
+pub(crate) mod system;
 
 pub use self::random::*;
 pub use common::*;
@@ -25,6 +25,7 @@ pub use skia::{
 };
 pub(crate) use skia::{ColorFilter, Paint, Path};
 use std::{sync::Arc, time::Duration};
+pub use system::*;
 pub use url::Url;
 
 pub trait Entity {
@@ -56,7 +57,7 @@ pub async fn start<TProps>(
 #[macro_export]
 macro_rules! log {
     ($($arg:tt)*) => {{
-        $crate::system::log::log(format!($($arg)*));
+        $crate::log::log(format!($($arg)*));
     }}
 }
 

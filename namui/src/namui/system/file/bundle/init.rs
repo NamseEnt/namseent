@@ -1,5 +1,5 @@
 use super::*;
-use crate::system::file::init::FileSystemInitError;
+use crate::file::init::FileSystemInitError;
 
 pub async fn init() -> Result<(), FileSystemInitError> {
     Ok(read_dir::read_dir::init().await?)

@@ -22,7 +22,7 @@ impl namui::Entity for App {
     fn render(&self, _: &Self::Props) -> namui::RenderingTree {
         match self.meta_container.get_meta() {
             Some(meta) => {
-                let screen_size = namui::system::screen::size();
+                let screen_size = namui::screen::size();
                 self.router.render(&RouterProps {
                     screen_wh: Wh {
                         width: screen_size.width as f32,

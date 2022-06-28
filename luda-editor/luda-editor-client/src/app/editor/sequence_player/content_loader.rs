@@ -38,7 +38,7 @@ impl ContentLoader {
 
                                 match image_source {
                                     namui::ImageSource::Url(url) => {
-                                        if namui::system::image::try_load(&url).is_none() {
+                                        if namui::image::try_load(&url).is_none() {
                                             loading_contents.push_back(LoadingContent::Image(url));
                                         }
                                     }
@@ -63,7 +63,7 @@ impl ContentLoader {
         while let Some(loading_content) = loading_contents.front() {
             match loading_content {
                 LoadingContent::Image(url) => {
-                    if namui::system::image::try_load(&url).is_none() {
+                    if namui::image::try_load(&url).is_none() {
                         return false;
                     }
                     loading_contents.pop_front();

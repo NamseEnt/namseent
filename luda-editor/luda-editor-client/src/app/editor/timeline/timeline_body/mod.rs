@@ -98,7 +98,7 @@ impl TimelineBody {
                 move |local_x| PixelSize(local_x) * time_per_pixel + start_at;
             builder
                 .on_wheel(move |event| {
-                    let mouse_position = namui::system::mouse::mouse_position();
+                    let mouse_position = namui::mouse::position();
                     let timeline_xy = event
                         .namui_context
                         .get_rendering_tree_xy(event.target)
@@ -112,14 +112,14 @@ impl TimelineBody {
                         return;
                     }
 
-                    if namui::system::keyboard::any_code_press([
+                    if namui::keyboard::any_code_press([
                         namui::Code::ShiftLeft,
                         namui::Code::ShiftRight,
                     ]) {
                         namui::event::send(EditorEvent::TimelineMoveEvent {
                             pixel: PixelSize(event.delta_xy.y),
                         })
-                    } else if namui::system::keyboard::any_code_press([
+                    } else if namui::keyboard::any_code_press([
                         namui::Code::AltLeft,
                         namui::Code::AltRight,
                     ]) {

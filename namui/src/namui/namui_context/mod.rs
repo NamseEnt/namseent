@@ -36,10 +36,10 @@ impl NamuiContext {
         fn on_frame() {
             crate::event::send(crate::NamuiEvent::AnimationFrame);
 
-            crate::system::graphics::request_animation_frame(on_frame);
+            crate::graphics::request_animation_frame(on_frame);
         }
 
-        crate::system::graphics::request_animation_frame(on_frame);
+        crate::graphics::request_animation_frame(on_frame);
         self.run_main_loop(state, props).await;
     }
     pub fn get_rendering_tree_xy_by_id(&self, id: &str) -> Option<Xy<f32>> {

@@ -1,8 +1,5 @@
 use super::*;
-use crate::{
-    namui::{skia::*, NamuiContext},
-    system::graphics,
-};
+use crate::{namui::skia::*, system::graphics};
 use std::{
     collections::{HashMap, VecDeque},
     sync::Arc,
@@ -34,7 +31,7 @@ pub enum TextBaseline {
 }
 
 impl TextDrawCommand {
-    pub fn draw(&self, _namui_context: &NamuiContext) {
+    pub fn draw(&self) {
         if self.text.len() == 0 {
             return;
         }
@@ -213,7 +210,7 @@ pub fn get_bottom_of_baseline(baseline: &TextBaseline, font_metrics: &FontMetric
     }
 }
 fn get_fallback_fonts(font_size: i16) -> VecDeque<Arc<Font>> {
-    crate::system::typeface::get_fallback_font_typefaces()
-        .map(|typeface| crate::system::font::get_font_of_typeface(typeface.clone(), font_size))
+    crate::typeface::get_fallback_font_typefaces()
+        .map(|typeface| crate::font::get_font_of_typeface(typeface.clone(), font_size))
         .collect()
 }

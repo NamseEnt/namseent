@@ -1,5 +1,5 @@
 use super::BundleDirReaderReadError;
-use crate::system::file::{
+use crate::file::{
     bundle::BundleDirReader,
     types::{Dirent, PathLike},
 };
