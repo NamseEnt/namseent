@@ -22,7 +22,7 @@ impl namui::Entity for App {
     fn render(&self, _: &Self::Props) -> namui::RenderingTree {
         match self.meta_container.get_meta() {
             Some(meta) => {
-                let screen_size = namui::screen::size();
+                let screen_size = namui::system::screen::size();
                 self.router.render(&RouterProps {
                     screen_wh: Wh {
                         width: screen_size.width as f32,
@@ -135,7 +135,7 @@ impl App {
                 let packet = u8_array.to_vec();
                 receiving_sender.send(Ok(packet)).unwrap();
             } else {
-                namui::log(format!("message event, received Unknown: {:?}", e.data()));
+                namui::log!("message event, received Unknown: {:?}", e.data());
             }
         }) as Box<dyn FnMut(MessageEvent)>);
 
@@ -143,16 +143,16 @@ impl App {
         onmessage_callback.forget();
 
         let onerror_callback = Closure::wrap(Box::new(move |e: ErrorEvent| {
-            namui::log(format!("error event: {:?}", e));
+            namui::log!("error event: {:?}", e);
         }) as Box<dyn FnMut(ErrorEvent)>);
         web_socket.set_onerror(Some(onerror_callback.as_ref().unchecked_ref()));
         onerror_callback.forget();
 
-        namui::log(format!("socket created"));
+        namui::log!("socket created");
 
         let cloned_web_socket = web_socket.clone();
         let onopen_callback = Closure::once(move || {
-            namui::log(format!("socket opened"));
+            namui::log!("socket opened");
             spawn_local(async move {
                 while let Some(packet) = sending_receiver.recv().await {
                     cloned_web_socket.send_with_u8_array(&packet).unwrap();

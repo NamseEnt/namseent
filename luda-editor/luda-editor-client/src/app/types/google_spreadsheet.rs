@@ -38,7 +38,7 @@ pub async fn get_subtitles_by_title(sheet_title: &str) -> Result<Vec<Subtitle>, 
         SPREADSHEET_ID, range, API_KEY
     );
 
-    let result = namui::fetch_get_json::<SpreadsheetValuesGet>(&url).await;
+    let result = namui::system::network::fetch_get_json::<SpreadsheetValuesGet>(&url).await;
 
     if result.is_err() {
         let error = result.err().unwrap();
@@ -76,7 +76,7 @@ pub async fn get_sheets() -> Result<Vec<Sheet>, String> {
         SPREADSHEET_ID, API_KEY
     );
 
-    let result = namui::fetch_get_json::<SpreadsheetGet>(&url).await;
+    let result = namui::system::network::fetch_get_json::<SpreadsheetGet>(&url).await;
 
     if result.is_err() {
         let error = result.err().unwrap();
@@ -107,7 +107,7 @@ impl SpreadsheetGet {
                         };
                     }
                     Err(error) => {
-                        namui::log(format!("error on get_subtitles_by_title: {:?}", error));
+                        namui::log!("error on get_subtitles_by_title: {:?}", error);
                         tokio::time::sleep(std::time::Duration::from_secs(delay_sec)).await;
                         delay_sec *= 2;
                     }

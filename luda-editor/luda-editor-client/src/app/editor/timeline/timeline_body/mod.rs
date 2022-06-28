@@ -98,10 +98,7 @@ impl TimelineBody {
                 move |local_x| PixelSize(local_x) * time_per_pixel + start_at;
             builder
                 .on_wheel(move |event| {
-                    let managers = namui::managers();
-
-                    let mouse_manager = &managers.mouse_manager;
-                    let mouse_position = mouse_manager.mouse_position();
+                    let mouse_position = namui::system::mouse::mouse_position();
                     let timeline_xy = event
                         .namui_context
                         .get_rendering_tree_xy(event.target)
@@ -115,16 +112,17 @@ impl TimelineBody {
                         return;
                     }
 
-                    let keyboard_manager = &managers.keyboard_manager;
-                    if keyboard_manager
-                        .any_code_press([namui::Code::ShiftLeft, namui::Code::ShiftRight])
-                    {
+                    if namui::system::keyboard::any_code_press([
+                        namui::Code::ShiftLeft,
+                        namui::Code::ShiftRight,
+                    ]) {
                         namui::event::send(EditorEvent::TimelineMoveEvent {
                             pixel: PixelSize(event.delta_xy.y),
                         })
-                    } else if keyboard_manager
-                        .any_code_press([namui::Code::AltLeft, namui::Code::AltRight])
-                    {
+                    } else if namui::system::keyboard::any_code_press([
+                        namui::Code::AltLeft,
+                        namui::Code::AltRight,
+                    ]) {
                         let anchor_x_in_timeline =
                             PixelSize(mouse_position.x as f32 - timeline_xy.x);
 

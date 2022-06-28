@@ -35,7 +35,7 @@ impl CharacterWysiwygEditor {
 
         let image_source = image_loader.get_character_image_source(character);
         let image = match image_source {
-            ImageSource::Url(url) => namui::managers().image_manager.try_load(&url),
+            ImageSource::Url(url) => namui::system::image::try_load(&url),
             ImageSource::Image(image) => Some(image),
         };
         if image.is_none() {
