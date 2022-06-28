@@ -1,3 +1,4 @@
+use super::InitResult;
 use crate::namui::*;
 use crate::namui::{namui_context::NamuiContext, render::text_input::*};
 use std::{ops::ControlFlow, sync::Mutex};
@@ -12,6 +13,11 @@ const TEXT_INPUT_ELEMENT_ID: &str = "text-input";
 
 lazy_static::lazy_static! {
     static ref TEXT_INPUT_SYSTEM: Arc<TextInputSystem> = Arc::new(TextInputSystem::new());
+}
+
+pub(super) async fn init() -> InitResult {
+    lazy_static::initialize(&TEXT_INPUT_SYSTEM);
+    Ok(())
 }
 
 impl TextInputSystem {

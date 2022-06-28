@@ -16,6 +16,11 @@ lazy_static::lazy_static! {
     });
 }
 
+pub(super) async fn init() -> Result<(), Box<dyn std::error::Error>> {
+    lazy_static::initialize(&TYPEFACE_SYSTEM);
+    load_all_typefaces().await
+}
+
 pub fn get_typeface(option: TypefaceType) -> Option<Arc<Typeface>> {
     TYPEFACE_SYSTEM
         .typefaces
@@ -40,7 +45,4 @@ pub(crate) fn load_fallback_font_typeface(typeface: Typeface) {
     TYPEFACE_SYSTEM
         .fallback_font_typefaces
         .insert(Arc::new(typeface));
-}
-pub(super) async fn init() -> Result<(), Box<dyn std::error::Error>> {
-    load_all_typefaces().await
 }

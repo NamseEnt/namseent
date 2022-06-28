@@ -13,8 +13,13 @@ struct ImageSystem {
     image_requested_set: Mutex<HashSet<Url>>,
 }
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref IMAGE_SYSTEM: Arc<ImageSystem> = Arc::new(ImageSystem::new());
+}
+
+pub(super) async fn init() -> InitResult {
+    lazy_static::initialize(&IMAGE_SYSTEM);
+    Ok(())
 }
 
 impl ImageSystem {

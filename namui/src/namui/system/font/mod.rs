@@ -5,6 +5,8 @@ use crate::{
 use dashmap::DashMap;
 use std::sync::Arc;
 
+use super::InitResult;
+
 struct FontSystem {
     font_type_fonts: DashMap<FontType, Arc<Font>>,
     typeface_fonts: DashMap<String, Arc<Font>>,
@@ -15,6 +17,11 @@ lazy_static::lazy_static! {
         font_type_fonts: DashMap::new(),
         typeface_fonts: DashMap::new(),
     });
+}
+
+pub(super) async fn init() -> InitResult {
+    lazy_static::initialize(&FONT_SYSTEM);
+    Ok(())
 }
 
 pub fn get_font(font_type: FontType) -> Option<Arc<Font>> {

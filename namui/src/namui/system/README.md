@@ -1,6 +1,8 @@
 # How to add system for new platform
 
-- if system file is `abc.rs`, make directory `abc` and branch them into platform directory or file
+## file or directory
+
+if system file is `abc.rs`, make directory `abc` and branch them into platform directory or file
 
 ex)
 
@@ -20,3 +22,7 @@ ex)
     - mod.rs
   - windows.rs
 ```
+
+## init
+
+Don't forget make init fn and call it in mod.rs

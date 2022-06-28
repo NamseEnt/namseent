@@ -1,4 +1,4 @@
-use super::*;
+use super::{platform_utils::web::*, InitResult};
 use crate::namui::skia::{canvas_kit, Surface};
 use std::sync::{Arc, Mutex, MutexGuard};
 use wasm_bindgen::{prelude::Closure, JsCast};
@@ -8,8 +8,13 @@ struct GraphicsSystem {
     pub surface: Mutex<Surface>,
 }
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref GRAPHICS_SYSTEM: Arc<GraphicsSystem> = Arc::new(GraphicsSystem::new());
+}
+
+pub(crate) async fn init() -> InitResult {
+    lazy_static::initialize(&GRAPHICS_SYSTEM);
+    Ok(())
 }
 
 impl GraphicsSystem {

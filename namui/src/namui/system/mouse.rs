@@ -12,6 +12,11 @@ lazy_static::lazy_static! {
     static ref MOUSE_SYSTEM: Arc<MouseSystem> = Arc::new(MouseSystem::new());
 }
 
+pub(crate) async fn init() -> InitResult {
+    lazy_static::initialize(&MOUSE_SYSTEM);
+    Ok(())
+}
+
 impl MouseSystem {
     fn new() -> Self {
         prevent_context_menu_open();

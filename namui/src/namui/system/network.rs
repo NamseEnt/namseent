@@ -1,8 +1,13 @@
+use super::InitResult;
 use core::fmt;
 use js_sys::{ArrayBuffer, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Request, RequestInit, Response};
+
+pub(super) async fn init() -> InitResult {
+    Ok(())
+}
 
 pub async fn fetch_get(url: &str) -> Result<Response, FetchError> {
     let mut options = RequestInit::new();

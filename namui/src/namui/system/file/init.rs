@@ -1,4 +1,5 @@
 use super::bundle::{self, BundleDirReaderInitError};
+use crate::system::InitResult;
 use std::{
     error::Error,
     fmt::{Display, Formatter},
@@ -17,6 +18,6 @@ impl Display for FileSystemInitError {
 }
 impl Error for FileSystemInitError {}
 
-pub async fn init() -> Result<(), Box<dyn Error>> {
+pub async fn init() -> InitResult {
     Ok(bundle::init().await?)
 }

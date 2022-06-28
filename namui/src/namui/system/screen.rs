@@ -1,8 +1,8 @@
-use super::platform_utils::web::window;
+use super::{platform_utils::web::window, InitResult};
 use std::sync::{Arc, RwLock};
 use wasm_bindgen::{prelude::Closure, JsCast};
 
-pub async fn init() {
+pub(super) async fn init() -> InitResult {
     let window = window();
     let screen_size = Arc::new(RwLock::new((
         window.inner_width().unwrap().as_f64().unwrap() as i16,
@@ -28,6 +28,7 @@ pub async fn init() {
             .unchecked_ref(),
         )
         .unwrap();
+    Ok(())
 }
 
 pub fn size() -> crate::Wh<i16> {
