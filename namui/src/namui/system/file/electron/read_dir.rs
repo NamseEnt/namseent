@@ -11,7 +11,7 @@ pub enum ReadDirError {
 }
 
 #[namui_cfg(target_env = "electron")]
-pub async fn read_dir(path: &str) -> Result<Vec<crate::fs::types::Dirent>, ReadDirError> {
+pub async fn read_dir(path: &str) -> Result<Vec<Dirent>, ReadDirError> {
     let dirent_list_from_js_string =
         read_dir_from_electron(path)
             .await
