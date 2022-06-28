@@ -1,11 +1,10 @@
+use super::InitResult;
 use crate::{
     namui::{skia::Font, FontType, TypefaceType},
     Typeface,
 };
 use dashmap::DashMap;
 use std::sync::Arc;
-
-use super::InitResult;
 
 struct FontSystem {
     font_type_fonts: DashMap<FontType, Arc<Font>>,
