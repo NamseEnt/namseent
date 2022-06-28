@@ -102,10 +102,7 @@ impl ScrollView {
             let height = props.height;
             let button_id = button_id.clone();
             builder.on_wheel(move |event| {
-                let managers = namui::managers();
-
-                let mouse_manager = &managers.mouse_manager;
-                let mouse_position = mouse_manager.mouse_position();
+                let mouse_position = namui::system::mouse::mouse_position();
                 let whole_rect_xy = event
                     .namui_context
                     .get_rendering_tree_xy(event.target)
