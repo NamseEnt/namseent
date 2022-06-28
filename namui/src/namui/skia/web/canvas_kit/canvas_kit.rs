@@ -6,6 +6,7 @@ unsafe impl Sync for CanvasKit {}
 unsafe impl Send for CanvasKit {}
 #[wasm_bindgen]
 extern "C" {
+    #[derive(Debug)]
     pub type CanvasKit;
 
     #[wasm_bindgen(js_namespace = globalThis, js_name = getCanvasKit)]

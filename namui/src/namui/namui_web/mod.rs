@@ -31,7 +31,7 @@ impl NamuiImpl for Namui {
         let canvas_element = make_canvas_element().unwrap();
         let canvas_kit_surface = canvas_kit.MakeCanvasSurface(&canvas_element).unwrap();
         let surface = Surface::new(canvas_kit_surface);
-        let _ = CANVAS_KIT.set(Arc::new(canvas_kit));
+        CANVAS_KIT.set(Arc::new(canvas_kit)).unwrap();
 
         set_managers(Managers {
             mouse_manager: MouseManager::new(&canvas_element),
