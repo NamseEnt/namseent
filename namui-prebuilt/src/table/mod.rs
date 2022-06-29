@@ -177,7 +177,7 @@ mod tests {
             RenderingTree::Empty
         });
 
-        let header = fixed(20.0, horizontal![button, label]);
+        let header = fixed(20.0, horizontal([button, label]));
 
         let body = ratio(1.0, |wh| {
             body_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
