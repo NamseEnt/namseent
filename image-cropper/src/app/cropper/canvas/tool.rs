@@ -10,20 +10,23 @@ const ICON_OFFSET: f32 = 8.0;
 pub struct Tool {
     last_cursor_position: Xy<f32>,
     current_tool_type: ToolType,
+    secondary_tool_type: Option<ToolType>,
 }
 impl Tool {
     pub fn new() -> Self {
         Self {
             last_cursor_position: Xy { x: 0.0, y: 0.0 },
             current_tool_type: ToolType::Hand,
+            secondary_tool_type: None,
         }
     }
 
     pub fn render_cursor_icon(&self) -> RenderingTree {
+        let tool_type = self.secondary_tool_type.unwrap_or(self.current_tool_type);
         absolute(
             self.last_cursor_position.x,
             self.last_cursor_position.y,
-            match self.current_tool_type {
+            match tool_type {
                 ToolType::RectSelection => render_rect_selection_icon(),
                 ToolType::PolySelection => render_poly_selection_icon(),
                 ToolType::Hand => render_hand_icon(),
@@ -41,12 +44,21 @@ impl Tool {
         }
     }
 
-    pub fn get_current_tool_type(&self) -> &ToolType {
-        &self.current_tool_type
+    pub fn get_current_tool_type(&self) -> ToolType {
+        let tool_type = self.secondary_tool_type.unwrap_or(self.current_tool_type);
+        tool_type
     }
 
     pub fn change_tool_type(&mut self, to: ToolType) {
         self.current_tool_type = to;
+    }
+
+    pub fn set_secondary_tool_type(&mut self, to: ToolType) {
+        self.secondary_tool_type = Some(to);
+    }
+
+    pub fn unset_secondary_tool_type(&mut self) {
+        self.secondary_tool_type = None;
     }
 }
 

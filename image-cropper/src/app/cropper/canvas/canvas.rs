@@ -1,8 +1,8 @@
 use super::{CanvasEvent, Tool, ToolType};
 use crate::app::cropper::selection::Selection;
 use namui::{
-    clip, image, render, translate, Color, Image, ImageFit, ImageParam, ImageStyle, NamuiEvent,
-    RectFill, RectParam, RectStyle, RenderingTree, Wh, Xy,
+    clip, image, render, translate, Code, Color, Image, ImageFit, ImageParam, ImageStyle,
+    NamuiEvent, RectFill, RectParam, RectStyle, RenderingTree, Wh, Xy,
 };
 use std::sync::Arc;
 
@@ -64,6 +64,18 @@ impl Canvas {
                     namui::Code::Digit4 | namui::Code::KeyZ => {
                         self.change_tool(ToolType::Zoom);
                     }
+
+                    namui::Code::Space => {
+                        if namui::keyboard::any_code_press([Code::ControlLeft]) {
+                            self.tool.set_secondary_tool_type(ToolType::Zoom)
+                        } else {
+                            self.tool.set_secondary_tool_type(ToolType::Hand)
+                        }
+                    }
+                    _ => (),
+                },
+                NamuiEvent::KeyUp(event) => match event.code {
+                    namui::Code::Space => self.tool.unset_secondary_tool_type(),
                     _ => (),
                 },
                 _ => (),
