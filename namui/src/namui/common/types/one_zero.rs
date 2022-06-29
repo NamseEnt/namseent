@@ -1,12 +1,16 @@
-use super::*;
+use num::ToPrimitive;
 use std::fmt::Display;
 
-define_singular_floating_tuple!(OneZero, f32, |value| num::clamp(value, 0.0, 1.0));
+super::common_for_f32_type!(OneZero);
 
 impl Display for OneZero {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let in_f32: f32 = self.into();
-        write!(f, "{:.*?}", f.precision().unwrap_or(3), in_f32)
+        write!(
+            f,
+            "{:.*?}",
+            f.precision().unwrap_or(3),
+            self.to_f32().unwrap()
+        )
     }
 }
 

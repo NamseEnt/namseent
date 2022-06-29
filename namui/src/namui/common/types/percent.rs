@@ -1,20 +1,31 @@
-use serde::{Deserialize, Serialize};
+use num::ToPrimitive;
 use std::fmt::Display;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct Percent(pub(crate) f32);
+super::common_for_f32_type!(Percent);
+
+impl Percent {
+    pub fn new<T: num::cast::AsPrimitive<f32>>(percent: T) -> Percent {
+        Percent(percent.as_())
+    }
+    pub fn from<T>(decimal: T) -> Percent
+    where
+        T: num::Float,
+    {
+        Percent(decimal.to_f32().unwrap() * 100.0)
+    }
+}
 
 impl<T: num::ToPrimitive + num::FromPrimitive> std::ops::Mul<T> for Percent {
     type Output = T;
     fn mul(self, rhs: T) -> Self::Output {
-        T::from_f32((self.0 / 100.0).mul(rhs.to_f32().unwrap())).unwrap()
+        T::from_f32(self.to_f32().unwrap().mul(rhs.to_f32().unwrap())).unwrap()
     }
 }
 
-impl<T: num::ToPrimitive + num::FromPrimitive> std::ops::Div<T> for Percent {
+impl<T: num::ToPrimitive + num::FromPrimitive> std::ops::Mul<T> for &Percent {
     type Output = T;
-    fn div(self, rhs: T) -> Self::Output {
-        T::from_f32((self.0 / 100.0).div(rhs.to_f32().unwrap()).into()).unwrap()
+    fn mul(self, rhs: T) -> Self::Output {
+        T::from_f32(self.to_f32().unwrap().mul(rhs.to_f32().unwrap())).unwrap()
     }
 }
 
@@ -52,18 +63,6 @@ impl Display for Percent {
     }
 }
 
-impl Percent {
-    pub fn new<T: num::cast::AsPrimitive<f32>>(percent: T) -> Percent {
-        Percent(percent.as_())
-    }
-    pub fn from<T>(decimal: T) -> Percent
-    where
-        T: num::Float,
-    {
-        Percent(decimal.to_f32().unwrap() * 100.0)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -73,11 +72,11 @@ mod tests {
     #[wasm_bindgen_test]
     fn percent_multiply_should_work() {
         let a = 4.0_f32;
-        let b = Percent::new(150.0);
+        let b = Percent::new(150.0_f32);
         let c = 6.0_f32;
-        let a_b = b * a;
+        let b_a = b * a;
 
-        assert_eq!(c, a_b);
+        assert_eq!(c, b_a);
     }
 
     #[test]

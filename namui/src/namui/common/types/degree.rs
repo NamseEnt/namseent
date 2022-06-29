@@ -1,7 +1,8 @@
 use super::*;
+use num::FromPrimitive;
 use std::fmt::Display;
 
-define_singular_floating_tuple!(Degree, f32);
+super::common_for_f32_type!(Degree);
 
 impl Display for Degree {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -10,8 +11,8 @@ impl Display for Degree {
 }
 
 impl Degree {
-    pub fn to_radian(&self) -> Radian {
-        Radian(self.0.to_radians())
+    pub fn to_radians(&self) -> Radian {
+        self.into()
     }
 }
 
@@ -40,5 +41,11 @@ impl num::ToPrimitive for Degree {
 
     fn to_f64(&self) -> Option<f64> {
         Some(self.0 as f64)
+    }
+}
+
+impl Into<Radian> for &Degree {
+    fn into(self) -> Radian {
+        Radian::from_f32(self.0.to_radians()).unwrap()
     }
 }

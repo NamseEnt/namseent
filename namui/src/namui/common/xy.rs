@@ -1,5 +1,5 @@
 use crate::types::Radian;
-use num::{traits::real::Real, *};
+use num::traits::real::Real;
 use serde::{Deserialize, Serialize};
 use std::ops::*;
 

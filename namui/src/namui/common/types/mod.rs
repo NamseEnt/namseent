@@ -1,31 +1,48 @@
-#[macro_use]
-mod define_singular_floating_tuple;
-mod time;
-pub use self::time::*;
-mod time_per_pixel;
-pub use self::time_per_pixel::*;
-mod pixel_size;
-pub use pixel_size::*;
 mod degree;
-pub use degree::*;
 mod one_zero;
-pub use one_zero::*;
-mod radian;
-pub use radian::*;
 mod percent;
+mod pixel_size;
+mod radian;
+mod time;
+mod time_per_pixel;
+
+pub use degree::*;
+pub use one_zero::*;
 pub use percent::*;
+pub use pixel_size::*;
+pub use radian::*;
+pub use time::*;
+pub use time_per_pixel::*;
 
-// NOTE: Please move type into new file when it has impl.
+macro_rules! common_for_f32_type {
+    ($your_type: tt) => {
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use wasm_bindgen_test::wasm_bindgen_test;
+        #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize, PartialEq, PartialOrd)]
+        pub struct $your_type(f32);
 
-    #[test]
-    #[wasm_bindgen_test]
-    fn sub_singular_floating_tuple() {
-        define_singular_floating_tuple!(A, f32);
-        assert_eq!(A::from(80.0), A::from(100.0) - A::from(20.0));
+        auto_ops::impl_op!(+|x: $your_type, y: $your_type| -> $your_type {
+            (x.0 + y.0).into()
+        });
+        auto_ops::impl_op!(-|x: $your_type, y: $your_type| -> $your_type { (x.0 - y.0).into() });
+        auto_ops::impl_op!(/|x: $your_type, y: $your_type| -> f32 {
+            x.0 / y.0
+        });
+        auto_ops::impl_op!(-|x: $your_type| -> $your_type {
+            (-x.0).into()
+        });
+
+        impl<T: num::Float> From<T> for $your_type {
+            fn from(value: T) -> Self {
+                num::FromPrimitive::from_f32(value.to_f32().unwrap()).unwrap()
+            }
+        }
+
+        impl Into<f32> for $your_type {
+            fn into(self) -> f32 {
+                num::ToPrimitive::to_f32(&self).unwrap()
+            }
+        }
     }
 }
+
+pub(crate) use common_for_f32_type;
