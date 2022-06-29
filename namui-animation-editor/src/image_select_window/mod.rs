@@ -1,46 +1,84 @@
-use namui::{
-    animation::Animate,
-    prelude::*,
-    system::file::types::Dirent,
-    types::{Time, TimePerPixel},
-};
+use crate::types::{Act, AnimationHistory};
+use namui::{animation::Animation, file::types::Dirent, prelude::*};
 use namui_prebuilt::{
     table::{horizontal, ratio, vertical},
     *,
 };
 
-pub(crate) struct ImageSelectWindow {
+pub struct ImageSelectWindow {
+    animation_history: AnimationHistory,
     list_view: list_view::ListView,
 }
 
-pub(crate) struct Props {
+pub struct Props {
+    pub wh: Wh<f32>,
     pub selected_layer_image_url: Option<Url>,
+    pub selected_layer_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum Event {
-    ImageSelected(Url),
-}
-
-pub(crate) struct ImageSelectWindowContext {
-    pub start_at: Time,
-    pub time_per_pixel: TimePerPixel,
+enum Event {
+    ImageSelected { url: Url, selected_layer_id: String },
 }
 
 impl ImageSelectWindow {
-    pub(crate) fn new() -> Self {
+    pub fn new(animation_history: AnimationHistory) -> Self {
         Self {
             list_view: list_view::ListView::new(),
+            animation_history,
         }
     }
-    pub(crate) fn update(&mut self, event: &dyn std::any::Any) {
+    pub fn update(&mut self, event: &dyn std::any::Any) {
+        if let Some(event) = event.downcast_ref::<Event>() {
+            match event {
+                Event::ImageSelected {
+                    url,
+                    selected_layer_id,
+                } => {
+                    struct SelectImageAction {
+                        url: Url,
+                        layer_id: String,
+                    }
+                    impl Act<Animation> for SelectImageAction {
+                        fn act(
+                            &self,
+                            state: &Animation,
+                        ) -> Result<Animation, Box<dyn std::error::Error>> {
+                            let mut animation = state.clone();
+
+                            if let Some(layer) = animation
+                                .layers
+                                .iter_mut()
+                                .find(|layer| layer.id.eq(&self.layer_id))
+                            {
+                                layer.image.image_source_url = Some(self.url.clone());
+                                Ok(animation)
+                            } else {
+                                Err("layer not found".into())
+                            }
+                        }
+                    }
+
+                    if let Some(action_ticket) =
+                        self.animation_history.try_set_action(SelectImageAction {
+                            url: url.clone(),
+                            layer_id: selected_layer_id.clone(),
+                        })
+                    {
+                        self.animation_history.act(action_ticket).unwrap();
+                    }
+                }
+            }
+        }
         self.list_view.update(event);
     }
-}
-
-impl table::CellRender<Props> for ImageSelectWindow {
-    fn render(&self, wh: Wh<f32>, props: Props) -> RenderingTree {
-        let dir = namui::system::file::bundle::read_dir("img").unwrap();
+    pub fn render(&self, props: Props) -> RenderingTree {
+        if props.selected_layer_id.is_none() {
+            return RenderingTree::Empty;
+        }
+        let selected_layer_id = props.selected_layer_id.unwrap();
+        let selected_layer_image_url = props.selected_layer_image_url.clone();
+        let dir = namui::file::bundle::read_dir("img").unwrap();
         const COLUMN_COUNT: usize = 2;
         let grouped_entries = dir
             .into_iter()
@@ -61,21 +99,35 @@ impl table::CellRender<Props> for ImageSelectWindow {
         self.list_view.render(list_view::Props {
             x: 0.0,
             y: 0.0,
-            height: wh.height,
+            height: props.wh.height,
             item_wh: Wh {
-                width: wh.width,
-                height: wh.width / 2.0,
+                width: props.wh.width,
+                height: props.wh.width / 2.0,
             },
             scroll_bar_width: 1.0,
             items: grouped_entries,
             item_render: move |wh, entries| {
-                horizontal((0..COLUMN_COUNT).map(|index| {
-                    let entry = entries.get(index);
-                    let selected_layer_image_url = props.selected_layer_image_url.clone();
+                let mut column_entries: Vec<Option<Dirent>> =
+                    entries.into_iter().map(|vec| Some(vec)).collect();
+
+                while column_entries.len() < COLUMN_COUNT {
+                    column_entries.push(None);
+                }
+
+                let selected_layer_id = selected_layer_id.clone();
+                let selected_layer_image_url = selected_layer_image_url.clone();
+
+                horizontal(column_entries.into_iter().map(move |entry| {
+                    let selected_layer_id = selected_layer_id.clone();
+                    let selected_layer_image_url = selected_layer_image_url.clone();
+
                     ratio(1.0, move |wh| match entry {
                         Some(entry) => {
+                            let selected_layer_id = selected_layer_id.clone();
+                            let selected_layer_image_url = selected_layer_image_url.clone();
+
                             let is_selected = selected_layer_image_url == Some(entry.url().clone());
-                            render_entry(wh, entry, is_selected)
+                            render_entry(wh, &entry, is_selected, selected_layer_id)
                         }
                         None => RenderingTree::Empty,
                     })
@@ -85,7 +137,12 @@ impl table::CellRender<Props> for ImageSelectWindow {
     }
 }
 
-fn render_entry(wh: Wh<f32>, entry: &Dirent, is_selected: bool) -> RenderingTree {
+fn render_entry(
+    wh: Wh<f32>,
+    entry: &Dirent,
+    is_selected: bool,
+    selected_layer_id: String,
+) -> RenderingTree {
     let selection_highlight_box = match is_selected {
         true => simple_rect(wh, Color::RED, 3.0, Color::TRANSPARENT),
         false => RenderingTree::Empty,
@@ -109,7 +166,13 @@ fn render_entry(wh: Wh<f32>, entry: &Dirent, is_selected: bool) -> RenderingTree
         ])(wh)
         .attach_event(move |builder| {
             let url = entry.url().clone();
-            builder.on_mouse_down(move |_| namui::event::send(Event::ImageSelected(url.clone())));
+            let selected_layer_id = selected_layer_id.clone();
+            builder.on_mouse_down(move |_| {
+                namui::event::send(Event::ImageSelected {
+                    url: url.clone(),
+                    selected_layer_id: selected_layer_id.clone(),
+                })
+            });
         }),
         selection_highlight_box,
     ])

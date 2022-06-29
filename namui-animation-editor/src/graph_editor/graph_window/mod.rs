@@ -1,5 +1,6 @@
 use namui::{
     animation::{KeyframeGraph, Layer},
+    math::num::{FromPrimitive, ToPrimitive},
     prelude::*,
     types::{Degree, OneZero, Percent, PixelSize, Time, TimePerPixel},
 };
@@ -13,7 +14,10 @@ use std::{
     sync::Arc,
 };
 mod render;
-use crate::time_ruler;
+use crate::{
+    time_ruler,
+    types::{ActionTicket, AnimationHistory},
+};
 mod update;
 
 pub(crate) struct GraphWindow {
@@ -26,20 +30,23 @@ pub(crate) struct GraphWindow {
     rotation_angle_context: PropertyContext<Degree>,
     opacity_context: PropertyContext<OneZero>,
     mouse_over_row: Option<MouseOverRow>,
-    row_height: Option<f32>,
-    animation: crate::ReadOnlyLock<animation::Animation>,
-    selected_point_address: Option<PointAddress>,
+    animation_history: AnimationHistory,
     dragging: Option<Dragging>,
+    selected_point_address: Option<PointAddress>,
 }
 
 pub(crate) struct Props<'a> {
+    pub wh: Wh<f32>,
     pub layer: Option<&'a namui::animation::Layer>,
     pub playback_time: Time,
 }
 
 #[derive(Debug, Clone)]
 enum Dragging {
-    Point(PointAddress),
+    Point {
+        point_address: PointAddress,
+        ticket: ActionTicket,
+    },
     Background {
         property_name: PropertyName,
         last_mouse_local_xy: Xy<f32>,
@@ -49,22 +56,14 @@ enum Dragging {
 #[derive(Debug, Clone)]
 struct MouseOverRow {
     property_name: PropertyName,
-    mouse_local_xy: Xy<f32>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct PointAddress {
-    layer_id: String,
-    property_name: PropertyName,
-    point_id: String,
+    mouse_xy_in_row: Xy<f32>,
 }
 
 #[derive(Debug, Clone)]
 enum Event {
     GraphMouseMoveIn {
         property_name: PropertyName,
-        mouse_local_xy: Xy<f32>,
-        row_wh: Wh<f32>,
+        mouse_xy_in_row: Xy<f32>,
     },
     GraphMouseMoveOut,
     GraphShiftMouseWheel {
@@ -80,22 +79,26 @@ enum Event {
         mouse_local_xy: Xy<f32>,
         row_wh: Wh<f32>,
     },
-    GraphMouseRightDown {
-        layer_id: String,
-        property_name: PropertyName,
-        mouse_local_xy: Xy<f32>,
-        row_wh: Wh<f32>,
+    GraphPointMouseDown {
+        point_address: PointAddress,
+        row_height: PixelSize,
+        y_in_row: PixelSize,
     },
     GraphMouseLeftDown {
         property_name: PropertyName,
         mouse_local_xy: Xy<f32>,
     },
-    RowHeightChange {
+    KeyboardKeyDown {
+        code: Code,
         row_height: f32,
     },
-    GraphPointMouseDown {
-        point_address: PointAddress,
-    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PointAddress {
+    layer_id: String,
+    property_name: PropertyName,
+    point_id: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -114,7 +117,7 @@ pub(crate) struct GraphWindowContext {
 }
 
 impl GraphWindow {
-    pub(crate) fn new(animation: crate::ReadOnlyLock<animation::Animation>) -> Self {
+    pub(crate) fn new(animation_history: AnimationHistory) -> Self {
         Self {
             id: namui::nanoid(),
             context: GraphWindowContext {
@@ -124,14 +127,14 @@ impl GraphWindow {
             x_context: PropertyContext {
                 pixel_size_zero_to_bottom: PixelSize::from(-20.0),
                 value_per_pixel: ValuePerPixel {
-                    value: 10.0.into(),
-                    pixel_size: 1.0.into(),
+                    value: PixelSize::from(10.0),
+                    pixel_size: PixelSize::from(1.0),
                 },
                 gradation_value_candidates: [5, 10, 25, 50, 100, 200, 500]
                     .iter()
-                    .map(|&x| (x as f32).into())
+                    .map(|&x| PixelSize::from(x as f32))
                     .collect(),
-                gradation_pixel_size_range: 15.0.into()..30.0.into(),
+                gradation_pixel_size_range: PixelSize::from(15.0)..PixelSize::from(30.0),
                 zoom: Arc::new(F32BasedZoom {
                     step: 400.0,
                     min: 1.0,
@@ -141,14 +144,14 @@ impl GraphWindow {
             y_context: PropertyContext {
                 pixel_size_zero_to_bottom: PixelSize::from(-20.0),
                 value_per_pixel: ValuePerPixel {
-                    value: 10.0.into(),
-                    pixel_size: 1.0.into(),
+                    value: PixelSize::from(10.0),
+                    pixel_size: PixelSize::from(1.0),
                 },
                 gradation_value_candidates: [5, 10, 25, 50, 100, 200, 500]
                     .iter()
-                    .map(|&x| (x as f32).into())
+                    .map(|&x| PixelSize::from(x as f32))
                     .collect(),
-                gradation_pixel_size_range: 15.0.into()..30.0.into(),
+                gradation_pixel_size_range: PixelSize::from(15.0)..PixelSize::from(30.0),
                 zoom: Arc::new(F32BasedZoom {
                     step: 400.0,
                     min: 1.0,
@@ -158,14 +161,14 @@ impl GraphWindow {
             width_context: PropertyContext {
                 pixel_size_zero_to_bottom: PixelSize::from(-20.0),
                 value_per_pixel: ValuePerPixel {
-                    value: 10.0.into(),
-                    pixel_size: 1.0.into(),
+                    value: Percent::new(5.0_f32),
+                    pixel_size: PixelSize::from(1.0),
                 },
                 gradation_value_candidates: [5, 10, 25, 50, 100, 200, 500]
                     .iter()
-                    .map(|&x| (x as f32).into())
+                    .map(|x: &i32| Percent::new(*x))
                     .collect(),
-                gradation_pixel_size_range: 15.0.into()..30.0.into(),
+                gradation_pixel_size_range: PixelSize::from(15.0)..PixelSize::from(30.0),
                 zoom: Arc::new(F32BasedZoom {
                     step: 400.0,
                     min: 1.0,
@@ -175,14 +178,14 @@ impl GraphWindow {
             height_context: PropertyContext {
                 pixel_size_zero_to_bottom: PixelSize::from(-20.0),
                 value_per_pixel: ValuePerPixel {
-                    value: 10.0.into(),
-                    pixel_size: 1.0.into(),
+                    value: Percent::new(5.0_f32),
+                    pixel_size: PixelSize::from(1.0),
                 },
                 gradation_value_candidates: [5, 10, 25, 50, 100, 200, 500]
                     .iter()
-                    .map(|&x| (x as f32).into())
+                    .map(|x: &i32| Percent::new(*x))
                     .collect(),
-                gradation_pixel_size_range: 15.0.into()..30.0.into(),
+                gradation_pixel_size_range: PixelSize::from(15.0)..PixelSize::from(30.0),
                 zoom: Arc::new(F32BasedZoom {
                     step: 400.0,
                     min: 1.0,
@@ -192,14 +195,14 @@ impl GraphWindow {
             rotation_angle_context: PropertyContext {
                 pixel_size_zero_to_bottom: PixelSize::from(-20.0),
                 value_per_pixel: ValuePerPixel {
-                    value: 1.0.into(),
-                    pixel_size: 1.0.into(),
+                    value: Degree::from(1.0),
+                    pixel_size: PixelSize::from(1.0),
                 },
                 gradation_value_candidates: [5, 10, 15, 30, 60, 90, 360]
                     .iter()
-                    .map(|&x| (x as f32).into())
+                    .map(|&x| Degree::from(x as f32))
                     .collect(),
-                gradation_pixel_size_range: 15.0.into()..30.0.into(),
+                gradation_pixel_size_range: PixelSize::from(15.0)..PixelSize::from(30.0),
                 zoom: Arc::new(F32BasedZoom {
                     step: 400.0,
                     min: 1.0,
@@ -209,11 +212,14 @@ impl GraphWindow {
             opacity_context: PropertyContext {
                 pixel_size_zero_to_bottom: PixelSize::from(-20.0),
                 value_per_pixel: ValuePerPixel {
-                    value: 0.01.into(),
-                    pixel_size: 1.0.into(),
+                    value: OneZero::from(0.01),
+                    pixel_size: PixelSize::from(1.0),
                 },
-                gradation_value_candidates: [0.1].iter().map(|&x| (x as f32).into()).collect(),
-                gradation_pixel_size_range: 15.0.into()..30.0.into(),
+                gradation_value_candidates: [0.1]
+                    .iter()
+                    .map(|&x| OneZero::from(x as f32))
+                    .collect(),
+                gradation_pixel_size_range: PixelSize::from(15.0)..PixelSize::from(30.0),
                 zoom: Arc::new(F32BasedZoom {
                     step: 400.0,
                     min: 0.005,
@@ -221,10 +227,9 @@ impl GraphWindow {
                 }),
             },
             mouse_over_row: None,
-            row_height: None,
-            animation,
-            selected_point_address: None,
+            animation_history,
             dragging: None,
+            selected_point_address: None,
         }
     }
 }
@@ -235,33 +240,33 @@ struct ValuePerPixel<TValue> {
     pixel_size: PixelSize,
 }
 
-impl<TValue: Into<f32> + From<f32>> std::ops::Mul<PixelSize> for ValuePerPixel<TValue> {
+impl<TValue: ToPrimitive + FromPrimitive> std::ops::Mul<PixelSize> for ValuePerPixel<TValue> {
     type Output = TValue;
 
     fn mul(self, rhs: PixelSize) -> Self::Output {
-        (self.value.into() * (rhs / self.pixel_size)).into()
+        (&self).mul(rhs)
     }
 }
-impl<TValue: Into<f32> + From<f32> + Copy> std::ops::Mul<PixelSize> for &'_ ValuePerPixel<TValue> {
+impl<TValue: ToPrimitive + FromPrimitive> std::ops::Mul<PixelSize> for &'_ ValuePerPixel<TValue> {
     type Output = TValue;
 
     fn mul(self, rhs: PixelSize) -> Self::Output {
-        (self.value.into() * (rhs / self.pixel_size)).into()
+        TValue::from_f32(self.value.to_f32().unwrap() * (rhs / self.pixel_size)).unwrap()
     }
 }
-impl<TValue: Into<f32> + Copy> ValuePerPixel<TValue> {
+impl<TValue: ToPrimitive + Copy> ValuePerPixel<TValue> {
     fn get_pixel_size(&self, value: TValue) -> PixelSize {
-        let value: f32 = value.into();
-        let self_value: f32 = self.value.into();
+        let value: f32 = value.to_f32().unwrap();
+        let self_value: f32 = self.value.to_f32().unwrap();
         (value / self_value) * self.pixel_size
     }
 }
-impl<TValue: Into<f32>> Div for ValuePerPixel<TValue> {
+impl<TValue: ToPrimitive> Div for ValuePerPixel<TValue> {
     type Output = f32;
 
     fn div(self, rhs: Self) -> Self::Output {
-        (self.value.into() / Into::<f32>::into(self.pixel_size))
-            / (rhs.value.into() / Into::<f32>::into(rhs.pixel_size))
+        (self.value.to_f32().unwrap() / Into::<f32>::into(self.pixel_size))
+            / (rhs.value.to_f32().unwrap() / Into::<f32>::into(rhs.pixel_size))
     }
 }
 
@@ -284,7 +289,7 @@ struct PropertyContext<TValue> {
     zoom: Arc<dyn Zoom<TValue>>,
 }
 
-impl<TValue: Into<f32> + From<f32> + Copy> PropertyContext<TValue> {
+impl<TValue: ToPrimitive + FromPrimitive + Copy> PropertyContext<TValue> {
     fn get_value_on_y(&self, row_height: PixelSize, y: PixelSize) -> TValue {
         self.value_per_pixel * (row_height - y + self.pixel_size_zero_to_bottom)
     }
@@ -315,9 +320,10 @@ struct F32BasedZoom {
     pub max: f32,
 }
 
-impl<TValue: Into<f32> + From<f32> + Copy> Zoom<TValue> for F32BasedZoom {
+impl<TValue: ToPrimitive + FromPrimitive + Copy> Zoom<TValue> for F32BasedZoom {
     fn zoom(&self, target: ValuePerPixel<TValue>, delta: f32) -> ValuePerPixel<TValue> {
-        let wheel = self.step * (target.value.into() / f32::from(target.pixel_size) / 10.0).log2();
+        let wheel = self.step
+            * (target.value.to_f32().unwrap() / f32::from(target.pixel_size) / 10.0).log2();
 
         let next_wheel = wheel + delta;
 
@@ -328,7 +334,7 @@ impl<TValue: Into<f32> + From<f32> + Copy> Zoom<TValue> for F32BasedZoom {
         );
 
         ValuePerPixel {
-            value: zoomed.into(),
+            value: TValue::from_f32(zoomed).unwrap(),
             pixel_size: 1.0_f32.into(),
         }
     }

@@ -17,6 +17,10 @@ impl num::FromPrimitive for PixelSize {
     fn from_u64(n: u64) -> Option<Self> {
         Some(PixelSize(n as f32))
     }
+
+    fn from_f64(n: f64) -> Option<Self> {
+        Some(PixelSize(n as f32))
+    }
 }
 
 impl num::ToPrimitive for PixelSize {
@@ -26,5 +30,9 @@ impl num::ToPrimitive for PixelSize {
 
     fn to_u64(&self) -> Option<u64> {
         Some(self.0 as u64)
+    }
+
+    fn to_f64(&self) -> Option<f64> {
+        Some(self.0 as f64)
     }
 }

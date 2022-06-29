@@ -1,5 +1,4 @@
 use namui::prelude::*;
-use namui_prebuilt::*;
 
 pub(crate) struct Header {}
 
@@ -7,18 +6,19 @@ impl Header {
     pub(crate) fn new() -> Self {
         Self {}
     }
-    pub(crate) fn update(&mut self, event: &dyn std::any::Any) {}
+}
+pub struct Props {
+    pub wh: Wh<f32>,
 }
 
-pub struct Props();
-
-impl table::CellRender<Props> for Header {
-    fn render(&self, wh: Wh<f32>, _props: Props) -> RenderingTree {
+impl Header {
+    pub fn update(&mut self, event: &dyn std::any::Any) {}
+    pub fn render(&self, props: Props) -> RenderingTree {
         let button_xywh = XywhRect {
             x: 2.0,
             y: 2.0,
-            width: wh.height - 4.0,
-            height: wh.height - 4.0,
+            width: props.wh.height - 4.0,
+            height: props.wh.height - 4.0,
         };
         let add_layer_button = render![
             namui::rect(RectParam {
@@ -61,8 +61,8 @@ impl table::CellRender<Props> for Header {
             namui::rect(RectParam {
                 x: 0.0,
                 y: 0.0,
-                width: wh.width,
-                height: wh.height,
+                width: props.wh.width,
+                height: props.wh.height,
                 style: RectStyle {
                     fill: Some(RectFill {
                         color: Color::BLACK,
@@ -72,8 +72,8 @@ impl table::CellRender<Props> for Header {
             }),
             namui::text(TextParam {
                 text: "Layers".to_string(),
-                x: f32::from(wh.width / 2.0),
-                y: f32::from(wh.height / 2.0),
+                x: f32::from(props.wh.width / 2.0),
+                y: f32::from(props.wh.height / 2.0),
                 align: TextAlign::Center,
                 baseline: TextBaseline::Middle,
                 font_type: FontType {

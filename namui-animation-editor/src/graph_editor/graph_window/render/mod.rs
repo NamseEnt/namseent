@@ -3,10 +3,10 @@ mod render_graph;
 use namui::{animation::KeyframeValue, types::OneZero};
 use render_graph::*;
 
-impl table::CellRender<Props<'_>> for GraphWindow {
-    fn render(&self, wh: Wh<f32>, props: Props) -> RenderingTree {
+impl GraphWindow {
+    pub fn render(&self, props: Props) -> RenderingTree {
         if props.layer.is_none() {
-            return simple_rect(wh, Color::WHITE, 1.0, Color::BLACK);
+            return simple_rect(props.wh, Color::WHITE, 1.0, Color::BLACK);
         }
         let layer = props.layer.unwrap();
 
@@ -27,11 +27,6 @@ impl table::CellRender<Props<'_>> for GraphWindow {
                 ratio(1.0, |wh| {
                     vertical([
                         ratio(1.0, |wh| {
-                            if self.row_height != Some(wh.height) {
-                                namui::event::send(Event::RowHeightChange {
-                                    row_height: wh.height,
-                                });
-                            }
                             self.render_f32_based_graph_row(
                                 wh,
                                 layer,
@@ -54,7 +49,7 @@ impl table::CellRender<Props<'_>> for GraphWindow {
                                 wh,
                                 layer,
                                 PropertyName::Width,
-                                &layer.image.width,
+                                &layer.image.width_percent,
                                 &self.width_context,
                             )
                         }),
@@ -63,7 +58,7 @@ impl table::CellRender<Props<'_>> for GraphWindow {
                                 wh,
                                 layer,
                                 PropertyName::Height,
-                                &layer.image.height,
+                                &layer.image.height_percent,
                                 &self.height_context,
                             )
                         }),
@@ -89,12 +84,12 @@ impl table::CellRender<Props<'_>> for GraphWindow {
                     .attach_event(|builder| {
                         builder.on_mouse_move_out(|_| {
                             namui::event::send(Event::GraphMouseMoveOut);
-                        })
+                        });
                     })
                 }),
-            ])(wh),
+            ])(props.wh),
             render_playback_time_line(
-                wh,
+                props.wh,
                 props.playback_time,
                 self.context.start_at,
                 self.context.time_per_pixel,
@@ -104,7 +99,7 @@ impl table::CellRender<Props<'_>> for GraphWindow {
 }
 
 impl GraphWindow {
-    fn render_f32_based_graph_row<TValue: KeyframeValue + Copy + From<f32> + Into<f32>>(
+    fn render_f32_based_graph_row<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive>(
         &self,
         wh: Wh<f32>,
         layer: &Layer,
@@ -124,7 +119,7 @@ impl GraphWindow {
                     property_context,
                     mouse_local_xy: self.mouse_over_row.as_ref().and_then(|mouse_over_row| {
                         if mouse_over_row.property_name == property_name {
-                            Some(mouse_over_row.mouse_local_xy)
+                            Some(mouse_over_row.mouse_xy_in_row)
                         } else {
                             None
                         }
@@ -164,7 +159,7 @@ impl GraphWindow {
                     property_context,
                     mouse_local_xy: self.mouse_over_row.as_ref().and_then(|mouse_over_row| {
                         if mouse_over_row.property_name == property_name {
-                            Some(mouse_over_row.mouse_local_xy)
+                            Some(mouse_over_row.mouse_xy_in_row)
                         } else {
                             None
                         }
@@ -235,14 +230,12 @@ fn render_graph_row(
         render_graph.render(wh),
         label,
     ])
-    .attach_event(|builder| {
-        let layer_id = layer.id.clone();
+    .attach_event(move |builder| {
         builder
             .on_mouse_move_in(move |event| {
                 namui::event::send(Event::GraphMouseMoveIn {
                     property_name,
-                    mouse_local_xy: event.local_xy,
-                    row_wh: wh,
+                    mouse_xy_in_row: event.local_xy,
                 })
             })
             .on_mouse_down(move |event| match event.button {
@@ -250,16 +243,10 @@ fn render_graph_row(
                     property_name,
                     mouse_local_xy: event.local_xy,
                 }),
-                Some(MouseButton::Right) => namui::event::send(Event::GraphMouseRightDown {
-                    layer_id: layer_id.clone(),
-                    property_name,
-                    mouse_local_xy: event.local_xy,
-                    row_wh: wh,
-                }),
                 _ => {}
             })
             .on_wheel(move |event| {
-                let mouse_global_xy = namui::system::mouse::mouse_position();
+                let mouse_global_xy = namui::mouse::position();
                 let row_xy = event
                     .namui_context
                     .get_rendering_tree_xy(event.target)
@@ -278,14 +265,14 @@ fn render_graph_row(
                     return;
                 }
 
-                if namui::system::keyboard::any_code_press([
+                if namui::keyboard::any_code_press([
                     namui::Code::ShiftLeft,
                     namui::Code::ShiftRight,
                 ]) {
                     namui::event::send(Event::GraphShiftMouseWheel {
                         delta: PixelSize::from(event.delta_xy.y),
                     })
-                } else if namui::system::keyboard::any_code_press([
+                } else if namui::keyboard::any_code_press([
                     namui::Code::AltLeft,
                     namui::Code::AltRight,
                 ]) {
@@ -293,7 +280,7 @@ fn render_graph_row(
                         delta: PixelSize::from(event.delta_xy.y),
                         mouse_local_xy,
                     })
-                } else if namui::system::keyboard::any_code_press([
+                } else if namui::keyboard::any_code_press([
                     namui::Code::ControlLeft,
                     namui::Code::ControlRight,
                 ]) {
@@ -305,5 +292,11 @@ fn render_graph_row(
                     })
                 }
             })
+            .on_key_down(move |event| {
+                namui::event::send(Event::KeyboardKeyDown {
+                    code: event.code,
+                    row_height: wh.height,
+                })
+            });
     })
 }

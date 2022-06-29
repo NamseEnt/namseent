@@ -31,7 +31,7 @@ impl WysiwygWindow {
                         });
                     })
                     .on_wheel(move |event| {
-                        let mouse_global_xy = namui::system::mouse::mouse_position();
+                        let mouse_global_xy = namui::mouse::position();
                         let row_xy = event
                             .namui_context
                             .get_rendering_tree_xy(event.target)
@@ -49,17 +49,11 @@ impl WysiwygWindow {
                         {
                             return;
                         }
-                        if namui::system::keyboard::any_code_press([
-                            Code::ShiftLeft,
-                            Code::ShiftRight,
-                        ]) {
+                        if namui::keyboard::any_code_press([Code::ShiftLeft, Code::ShiftRight]) {
                             namui::event::send(super::Event::ShiftWheel {
                                 delta: event.delta_xy.y,
                             });
-                        } else if namui::system::keyboard::any_code_press([
-                            Code::AltLeft,
-                            Code::AltRight,
-                        ]) {
+                        } else if namui::keyboard::any_code_press([Code::AltLeft, Code::AltRight]) {
                             namui::event::send(super::Event::AltWheel {
                                 delta: event.delta_xy.y,
                                 mouse_local_xy,

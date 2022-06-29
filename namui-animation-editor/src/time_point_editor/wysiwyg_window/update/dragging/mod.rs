@@ -81,7 +81,7 @@ fn update_xy(layer: &mut Layer, playback_time: Time, delta: f32, x_y: XY) {
 }
 fn update_size(layer: &mut Layer, playback_time: Time, delta: f32, width_height: WidthHeight) {
     let image_url = layer.image.image_source_url.clone().unwrap();
-    let image = namui::system::image::try_load(&image_url).unwrap();
+    let image = namui::image::try_load(&image_url).unwrap();
     let image_wh = image.size();
 
     let graph = match width_height {

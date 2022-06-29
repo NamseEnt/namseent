@@ -1,32 +1,31 @@
 use namui::{animation::Animate, prelude::*, types::Time};
-use namui_prebuilt::*;
+use namui_prebuilt::{table::*, *};
 
-pub(crate) struct Body {
+pub struct Body {
     list_view: list_view::ListView,
 }
+pub struct Props<'a> {
+    pub wh: Wh<f32>,
+    pub layers: &'a [namui::animation::Layer],
+    pub selected_layer_id: Option<String>,
+}
 impl Body {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             list_view: list_view::ListView::new(),
         }
     }
-    pub(crate) fn update(&mut self, event: &dyn std::any::Any) {
+    pub fn update(&mut self, event: &dyn std::any::Any) {
         self.list_view.update(event);
     }
-}
-pub(crate) struct Props<'a> {
-    pub layers: &'a [namui::animation::Layer],
-    pub selected_layer_id: Option<String>,
-}
-impl table::CellRender<Props<'_>> for Body {
-    fn render(&self, wh: Wh<f32>, props: Props) -> RenderingTree {
+    pub fn render(&self, props: Props) -> RenderingTree {
         let now = Time::now();
         self.list_view.render(list_view::Props {
             x: 0.0,
             y: 0.0,
-            height: wh.height.into(),
+            height: props.wh.height,
             item_wh: Wh {
-                width: wh.width.into(),
+                width: props.wh.width,
                 height: 48.0,
             },
             scroll_bar_width: 10.0,
@@ -92,16 +91,18 @@ fn render_row(
         true => simple_rect(wh, Color::RED, 2.0, Color::TRANSPARENT),
         false => simple_rect(wh, Color::BLACK, 1.0, Color::TRANSPARENT),
     };
-    (render![
-        horizontal![
-            calculative!(|parent_wh| parent_wh.height, |wh| {
-                render_shadowing_toggle_button_cell(wh)
-            }),
-            ratio!(1.0, |wh| render_label_cell(wh, &layer)),
-            calculative!(|parent_wh| { parent_wh.height / 1080.0 * 1920.0 }, |wh| {
-                render_preview_cell(wh, &layer, now)
-            }),
-        ](wh),
+    render([
+        horizontal([
+            calculative(
+                |parent_wh| parent_wh.height,
+                |wh| render_shadowing_toggle_button_cell(wh),
+            ),
+            ratio(1.0, |wh| render_label_cell(wh, &layer)),
+            calculative(
+                |parent_wh| parent_wh.height / 1080.0 * 1920.0,
+                |wh| render_preview_cell(wh, &layer, now),
+            ),
+        ])(wh),
         border,
     ])
     .attach_event(move |builder| {

@@ -20,11 +20,29 @@ impl<T: num::ToPrimitive + num::FromPrimitive> std::ops::Div<T> for Percent {
 
 impl num::FromPrimitive for Percent {
     fn from_i64(n: i64) -> Option<Self> {
-        Some(Percent(n as f32))
+        Some(Percent((n * 100) as f32))
     }
 
     fn from_u64(n: u64) -> Option<Self> {
-        Some(Percent(n as f32))
+        Some(Percent((n * 100) as f32))
+    }
+
+    fn from_f64(n: f64) -> Option<Self> {
+        Some(Percent((n * 100.0) as f32))
+    }
+}
+
+impl num::ToPrimitive for Percent {
+    fn to_i64(&self) -> Option<i64> {
+        Some((self.0 / 100.0) as i64)
+    }
+
+    fn to_u64(&self) -> Option<u64> {
+        Some((self.0 / 100.0) as u64)
+    }
+
+    fn to_f64(&self) -> Option<f64> {
+        Some((self.0 / 100.0) as f64)
     }
 }
 
@@ -35,8 +53,8 @@ impl Display for Percent {
 }
 
 impl Percent {
-    pub fn new(percent: f32) -> Percent {
-        Percent(percent)
+    pub fn new<T: num::cast::AsPrimitive<f32>>(percent: T) -> Percent {
+        Percent(percent.as_())
     }
     pub fn from<T>(decimal: T) -> Percent
     where

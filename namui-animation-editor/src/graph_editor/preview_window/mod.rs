@@ -1,20 +1,14 @@
 use namui::{
-    animation::{Animate, KeyframeGraph, Layer},
+    animation::Animate,
     prelude::*,
-    types::{PixelSize, Time, TimePerPixel},
+    types::{Time, TimePerPixel},
 };
-use namui_prebuilt::{
-    table::{fixed, ratio, vertical},
-    *,
-};
-use std::{
-    any::Any,
-    sync::{Arc, RwLock},
-};
+use std::any::Any;
 
-pub(crate) struct PreviewWindow {}
+pub struct PreviewWindow {}
 
-pub(crate) struct Props<'a> {
+pub struct Props<'a> {
+    pub wh: Wh<f32>,
     pub animation: &'a animation::Animation,
     pub playback_time: Time,
 }
@@ -22,32 +16,29 @@ pub(crate) struct Props<'a> {
 #[derive(Debug, Clone)]
 enum Event {}
 
-pub(crate) struct PreviewWindowContext {
+pub struct PreviewWindowContext {
     pub start_at: Time,
     pub time_per_pixel: TimePerPixel,
 }
 
 impl PreviewWindow {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 
-    pub(crate) fn update(&mut self, _event: &dyn Any) {}
-}
-
-impl table::CellRender<Props<'_>> for PreviewWindow {
-    fn render(&self, wh: Wh<f32>, props: Props) -> RenderingTree {
+    pub fn update(&mut self, _event: &dyn Any) {}
+    pub fn render(&self, props: Props) -> RenderingTree {
         namui::clip(
             namui::PathBuilder::new().add_rect(&LtrbRect {
                 left: 0.0,
                 top: 0.0,
-                right: wh.width,
-                bottom: wh.height,
+                right: props.wh.width,
+                bottom: props.wh.height,
             }),
             ClipOp::Intersect,
             namui::scale(
-                wh.width / 1920.0,
-                wh.height / 1080.0,
+                props.wh.width / 1920.0,
+                props.wh.height / 1080.0,
                 props.animation.render(props.playback_time),
             ),
         )

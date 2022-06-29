@@ -11,7 +11,7 @@ impl TimelineWindow {
                     let selected_layer_id = props.selected_layer_id.clone();
                     builder
                         .on_wheel(move |event| {
-                            let mouse_global_xy = namui::system::mouse::mouse_position();
+                            let mouse_global_xy = namui::mouse::position();
                             let table_xy = event
                                 .namui_context
                                 .get_rendering_tree_xy(event.target)
@@ -29,14 +29,12 @@ impl TimelineWindow {
                             {
                                 return;
                             }
-                            if namui::system::keyboard::any_code_press([
-                                Code::ShiftLeft,
-                                Code::ShiftRight,
-                            ]) {
+                            if namui::keyboard::any_code_press([Code::ShiftLeft, Code::ShiftRight])
+                            {
                                 namui::event::send(Event::ShiftWheel {
                                     delta: event.delta_xy.y,
                                 });
-                            } else if namui::system::keyboard::any_code_press([
+                            } else if namui::keyboard::any_code_press([
                                 Code::AltLeft,
                                 Code::AltRight,
                             ]) {

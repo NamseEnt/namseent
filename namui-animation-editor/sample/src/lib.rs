@@ -8,7 +8,7 @@ pub async fn start() {
     let namui_context = namui::init().await;
 
     let wh = {
-        let screen_size = namui::system::screen::size();
+        let screen_size = namui::screen::size();
         Wh {
             width: screen_size.width as f32,
             height: screen_size.height as f32,

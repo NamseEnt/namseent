@@ -1,23 +1,22 @@
-use namui::{prelude::*, types::Time};
-use namui_prebuilt::{table::*, *};
+use namui::{prelude::*, types::*};
+use namui_prebuilt::table::*;
 use std::sync::Arc;
 mod graph_window;
-use crate::image_select_window;
-use crate::layer_list_window;
+use crate::*;
 mod preview_window;
 
 pub struct GraphEditor {
-    animation: crate::ReadOnlyLock<animation::Animation>,
-    layer_list_window: layer_list_window::LayerListWindow,
+    animation_history: AnimationHistory,
     graph_window: graph_window::GraphWindow,
     preview_window: preview_window::PreviewWindow,
     image_select_window: image_select_window::ImageSelectWindow,
-    selected_layer_id: Option<String>,
     playback_time: Time,
 }
 
-pub struct Props {
-    pub wh: Wh<types::PixelSize>,
+pub struct Props<'a> {
+    pub wh: Wh<f32>,
+    pub layer_list_window: &'a layer_list_window::LayerListWindow,
+    pub animation: &'a Animation,
 }
 
 pub(crate) enum Event {
@@ -25,14 +24,14 @@ pub(crate) enum Event {
 }
 
 impl GraphEditor {
-    pub fn new(animation: crate::ReadOnlyLock<animation::Animation>) -> Self {
+    pub fn new(animation_history: AnimationHistory) -> Self {
         Self {
-            layer_list_window: layer_list_window::LayerListWindow::new(),
-            graph_window: graph_window::GraphWindow::new(animation.clone()),
+            graph_window: graph_window::GraphWindow::new(animation_history.clone()),
             preview_window: preview_window::PreviewWindow::new(),
-            image_select_window: image_select_window::ImageSelectWindow::new(),
-            selected_layer_id: Some(animation.clone().read().layers.first().unwrap().id.clone()),
-            animation,
+            image_select_window: image_select_window::ImageSelectWindow::new(
+                animation_history.clone(),
+            ),
+            animation_history,
             playback_time: Time::zero(),
         }
     }
@@ -43,89 +42,63 @@ impl GraphEditor {
                     self.playback_time = *time;
                 }
             }
-        } else if let Some(event) = event.downcast_ref::<layer_list_window::Event>() {
-            match event {
-                layer_list_window::Event::LayerSelected(layer_id) => {
-                    self.selected_layer_id = Some(layer_id.clone());
-                }
-            }
-        } else if let Some(event) = event.downcast_ref::<image_select_window::Event>() {
-            self.handle_image_select_window_event(event);
         }
 
-        self.layer_list_window.update(event);
         self.graph_window.update(event);
         self.preview_window.update(event);
         self.image_select_window.update(event);
     }
-    pub fn render(&self, props: &Props) -> namui::RenderingTree {
-        let animation = self.animation.read();
-        let selected_layer = self
-            .selected_layer_id
-            .as_ref()
-            .and_then(|layer_id| animation.layers.iter().find(|layer| layer.id.eq(layer_id)));
+    pub fn render(&self, props: Props) -> namui::RenderingTree {
+        let selected_layer =
+            props
+                .layer_list_window
+                .selected_layer_id
+                .as_ref()
+                .and_then(|layer_id| {
+                    props
+                        .animation
+                        .layers
+                        .iter()
+                        .find(|layer| layer.id.eq(layer_id))
+                });
 
-        horizontal![
+        horizontal([
             ratio(
                 1.0,
                 vertical([
-                    calculative!(
-                        |parent_wh| { parent_wh.width / 16.0 * 9.0 },
-                        &self.preview_window,
-                        preview_window::Props {
-                            animation: &animation,
-                            playback_time: self.playback_time,
-                        }
+                    calculative(
+                        |parent_wh| parent_wh.width / 16.0 * 9.0,
+                        |wh| {
+                            self.preview_window.render(preview_window::Props {
+                                wh,
+                                animation: props.animation,
+                                playback_time: self.playback_time,
+                            })
+                        },
                     ),
-                    ratio!(
-                        1.0,
-                        &self.layer_list_window,
-                        layer_list_window::Props {
-                            layers: animation.layers.as_slice(),
-                            selected_layer_id: self.selected_layer_id.clone(),
-                        }
-                    ),
-                    ratio!(
-                        1.0,
-                        &self.image_select_window,
-                        image_select_window::Props {
+                    ratio(1.0, |wh| {
+                        props.layer_list_window.render(layer_list_window::Props {
+                            wh,
+                            layers: props.animation.layers.as_slice(),
+                        })
+                    }),
+                    ratio(1.0, |wh| {
+                        self.image_select_window.render(image_select_window::Props {
+                            wh,
                             selected_layer_image_url: selected_layer
                                 .and_then(|layer| layer.image.image_source_url.clone()),
-                        }
-                    ),
-                ])
+                            selected_layer_id: selected_layer.map(|layer| layer.id.clone()),
+                        })
+                    }),
+                ]),
             ),
-            ratio!(
-                4.0,
-                &self.graph_window,
-                graph_window::Props {
+            ratio(4.0, |wh| {
+                self.graph_window.render(graph_window::Props {
+                    wh,
                     layer: selected_layer,
                     playback_time: self.playback_time,
-                }
-            )
-        ](Wh {
-            width: props.wh.width.into(),
-            height: props.wh.height.into(),
-        })
-    }
-
-    fn handle_image_select_window_event(&mut self, event: &image_select_window::Event) {
-        match event {
-            image_select_window::Event::ImageSelected(url) => {
-                if self.selected_layer_id.is_none() {
-                    return;
-                }
-                let layer_id = self.selected_layer_id.clone().unwrap();
-
-                let animation = self.animation.read();
-                let layer = animation.layers.iter().find(|layer| layer.id.eq(&layer_id));
-                if layer.is_none() {
-                    return;
-                }
-                let mut layer = layer.unwrap().clone();
-                layer.image.image_source_url = Some(url.clone());
-                namui::event::send(crate::Event::UpdateLayer(Arc::new(layer)));
-            }
-        }
+                })
+            }),
+        ])(props.wh)
     }
 }

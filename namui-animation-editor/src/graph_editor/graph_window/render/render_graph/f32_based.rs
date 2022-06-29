@@ -1,7 +1,7 @@
 use super::*;
 use namui::animation::KeyframePoint;
 
-impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
+impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive> RenderGraph
     for (&'_ KeyframeGraph<TValue>, Context<'_, TValue>)
 {
     fn render(&self, wh: Wh<f32>) -> RenderingTree {
@@ -23,15 +23,17 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
 
     fn render_x_axis_guide_lines(&self, wh: Wh<f32>) -> RenderingTree {
         let (_, context) = self;
-        let property_context = &context.property_context;
+        let property_context = context.property_context;
         const BOLD_GRADATION_INTERVAL: usize = 2;
 
-        let value_at_top = property_context.get_value_at_top(wh.height.into());
+        let value_at_top = property_context.get_value_at_top(PixelSize::from(wh.height));
 
         let gradation_interval: TValue = {
             let gradation_value_candidates = &property_context.gradation_value_candidates;
 
-            let last = *gradation_value_candidates.last().unwrap();
+            let last = *gradation_value_candidates
+                .last()
+                .expect("ERROR: gradation_value_candidates is empty");
 
             *gradation_value_candidates
                 .into_iter()
@@ -51,8 +53,8 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
             let mut gradations = vec![];
 
             let is_bold_gradation = |gradation_value: TValue| -> bool {
-                let gradation_value_f32: f32 = gradation_value.into();
-                let gradation_interval_f32: f32 = gradation_interval.into();
+                let gradation_value_f32: f32 = gradation_value.to_f32().unwrap();
+                let gradation_interval_f32: f32 = gradation_interval.to_f32().unwrap();
                 let divisor = gradation_interval_f32 * BOLD_GRADATION_INTERVAL as f32;
                 let indicator = gradation_value_f32 % divisor;
                 let error = 0.001;
@@ -62,15 +64,25 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
 
             let gradation_value_just_under_bottom: TValue = {
                 let value_at_bottom: f32 = property_context
-                    .get_value_at_bottom(wh.height.into())
-                    .into();
-                let gradation_interval: f32 = gradation_interval.into();
-                (value_at_bottom - (value_at_bottom % gradation_interval) - gradation_interval)
-                    .into()
+                    .get_value_at_bottom(PixelSize::from(wh.height))
+                    .to_f32()
+                    .unwrap();
+                let gradation_interval: f32 = gradation_interval.to_f32().unwrap();
+
+                TValue::from_f32(
+                    value_at_bottom - (value_at_bottom % gradation_interval) - gradation_interval,
+                )
+                .unwrap()
             };
 
             let mut value: TValue = gradation_value_just_under_bottom;
-            while value.into() <= value_at_top.into() {
+
+            let mut count = 0;
+            while value.to_f32().unwrap() <= value_at_top.to_f32().unwrap() {
+                count += 1;
+                if count > 1000 {
+                    panic!("ERROR: count > 1000");
+                }
                 let y = get_y_of_value(property_context, wh.height, value);
 
                 match is_bold_gradation(value) {
@@ -78,12 +90,16 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
                     false => gradations.push(Gradation::Light { y }),
                 }
 
-                if value.into() == value_at_top.into() {
+                if value.to_f32().unwrap() == value_at_top.to_f32().unwrap() {
                     break;
                 }
 
-                value = (value.into() + gradation_interval.into()).into();
+                value = TValue::from_f32(
+                    value.to_f32().unwrap() + gradation_interval.to_f32().unwrap(),
+                )
+                .unwrap();
             }
+
             gradations
         };
 
@@ -220,6 +236,7 @@ impl<TValue: KeyframeValue + Copy + From<f32> + Into<f32>> RenderGraph
                 context.mouse_local_xy,
                 point_address,
                 context.selected_point_id == Some(point.id().to_string()),
+                PixelSize::from_f32(wh.height).unwrap(),
             ));
 
             if let Some((next_point, _)) = next_point_line {
@@ -237,6 +254,7 @@ fn render_point_xy(
     mouse_local_xy: Option<Xy<f32>>,
     point_address: PointAddress,
     is_selected: bool,
+    row_height: PixelSize,
 ) -> RenderingTree {
     const RADIUS: f32 = 4.0;
 
@@ -273,11 +291,13 @@ fn render_point_xy(
     )
     .attach_event(|builder| {
         let point_address = point_address.clone();
-        builder.on_mouse_down(move |_| {
+        builder.on_mouse_down(move |event| {
             namui::event::send(Event::GraphPointMouseDown {
                 point_address: point_address.clone(),
+                y_in_row: PixelSize::from_f32(event.local_xy.y).unwrap(),
+                row_height,
             })
-        })
+        });
     })
 }
 
@@ -293,7 +313,7 @@ fn render_line(from: Xy<PixelSize>, to: Xy<PixelSize>) -> RenderingTree {
     namui::path(path_builder, painter_builder)
 }
 
-fn get_xy_of_point<TValue: KeyframeValue + Copy + From<f32> + Into<f32>>(
+fn get_xy_of_point<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive>(
     wh: Wh<f32>,
     context: &Context<TValue>,
     point: &KeyframePoint<TValue>,
@@ -303,7 +323,7 @@ fn get_xy_of_point<TValue: KeyframeValue + Copy + From<f32> + Into<f32>>(
     Xy { x, y }
 }
 
-fn get_y_of_value<TValue: KeyframeValue + Copy + From<f32> + Into<f32>>(
+fn get_y_of_value<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive>(
     property_context: &PropertyContext<TValue>,
     height: f32,
     value: TValue,

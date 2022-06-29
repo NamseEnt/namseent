@@ -2,6 +2,7 @@ pub mod events;
 pub use events::Event;
 pub mod animation_editor;
 pub use animation_editor::{AnimationEditor, Props};
+mod graph_editor;
 pub(crate) mod image_select_window;
 pub(crate) mod layer_list_window;
 mod time_point_editor;

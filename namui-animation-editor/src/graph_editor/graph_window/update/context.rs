@@ -9,7 +9,7 @@ impl GraphWindow {
         anchor_y: f32,
         row_height: f32,
     ) {
-        fn for_f32_based<TValue: KeyframeValue + Copy + From<f32> + Into<f32>>(
+        fn for_f32_based<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive>(
             property_context: &mut PropertyContext<TValue>,
             delta: f32,
             anchor_y: f32,
@@ -54,7 +54,7 @@ impl GraphWindow {
     }
 
     pub(super) fn move_property_context_by(&mut self, property_name: PropertyName, delta: f32) {
-        fn for_f32_based<TValue: KeyframeValue + Copy + From<f32> + Into<f32>>(
+        fn for_f32_based<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive>(
             property_context: &mut PropertyContext<TValue>,
             delta: f32,
         ) {

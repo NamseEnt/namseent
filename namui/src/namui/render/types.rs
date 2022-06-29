@@ -42,6 +42,14 @@ where
             y: self.y.clone(),
         }
     }
+    pub fn from_xy_wh(xy: Xy<T>, wh: Wh<T>) -> Self {
+        XywhRect {
+            x: xy.x,
+            y: xy.y,
+            width: wh.width,
+            height: wh.height,
+        }
+    }
 }
 
 impl<T> XywhRect<T>

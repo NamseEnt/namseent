@@ -3,35 +3,37 @@ use namui::{
     animation::{Animation, Layer},
     prelude::*,
 };
-use namui_prebuilt::*;
+use namui_prebuilt::{table::*, *};
 mod body;
 mod header;
 
-pub(crate) struct LayerListWindow {
+pub struct LayerListWindow {
     header: header::Header,
     body: body::Body,
     animation_history: AnimationHistory,
-}
-
-pub(crate) struct Props<'a> {
-    pub layers: &'a [Layer],
     pub selected_layer_id: Option<String>,
 }
 
-pub(crate) enum Event {
+pub struct Props<'a> {
+    pub wh: Wh<f32>,
+    pub layers: &'a [Layer],
+}
+
+pub enum Event {
     LayerSelected(String),
     AddLayerButtonClicked,
 }
 
 impl LayerListWindow {
-    pub(crate) fn new(animation_history: AnimationHistory) -> Self {
+    pub fn new(animation_history: AnimationHistory) -> Self {
         Self {
             header: header::Header::new(),
             body: body::Body::new(),
             animation_history,
+            selected_layer_id: None,
         }
     }
-    pub(crate) fn update(&mut self, event: &dyn std::any::Any) {
+    pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<Event>() {
             match event {
                 Event::AddLayerButtonClicked => {
@@ -56,32 +58,27 @@ impl LayerListWindow {
                         self.animation_history.act(action_ticket).unwrap();
                     }
                 }
-                _ => {}
+                Event::LayerSelected(layer_id) => {
+                    self.selected_layer_id = Some(layer_id.clone());
+                }
             }
         }
         self.header.update(event);
         self.body.update(event);
     }
-}
-
-impl table::CellRender<Props<'_>> for LayerListWindow {
-    fn render(&self, wh: Wh<f32>, props: Props<'_>) -> RenderingTree {
+    pub fn render(&self, props: Props) -> RenderingTree {
         render![
-            simple_rect(wh, Color::BLACK, 1.0, Color::WHITE),
-            vertical![
-                fixed!(20.0, &self.header, header::Props()),
-                ratio!(
-                    1.0,
-                    &self.body,
-                    body::Props {
+            simple_rect(props.wh, Color::BLACK, 1.0, Color::WHITE),
+            vertical([
+                fixed(20.0, |wh| { self.header.render(header::Props { wh }) }),
+                ratio(1.0, |wh| {
+                    self.body.render(body::Props {
+                        wh: wh,
                         layers: props.layers,
-                        selected_layer_id: props.selected_layer_id,
-                    }
-                ),
-            ](Wh {
-                width: wh.width.into(),
-                height: wh.height.into(),
-            })
+                        selected_layer_id: self.selected_layer_id.clone(),
+                    })
+                }),
+            ])(props.wh)
         ]
     }
 }

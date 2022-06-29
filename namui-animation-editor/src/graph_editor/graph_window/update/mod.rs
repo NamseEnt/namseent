@@ -1,23 +1,26 @@
-use super::*;
 mod context;
 mod keyboard_event;
-mod layer;
+mod move_by;
+mod move_to;
+use self::move_to::MovePointToAction;
+use super::*;
+use crate::types::Act;
+use namui::animation::Animation;
 
 impl GraphWindow {
     pub(crate) fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<Event>() {
             match event {
-                Event::GraphMouseMoveIn {
+                &Event::GraphMouseMoveIn {
                     property_name,
-                    mouse_local_xy,
-                    row_wh,
+                    mouse_xy_in_row,
                 } => {
                     self.mouse_over_row = Some(MouseOverRow {
-                        property_name: *property_name,
-                        mouse_local_xy: *mouse_local_xy,
+                        property_name,
+                        mouse_xy_in_row,
                     });
 
-                    self.handle_dragging_move(*property_name, *mouse_local_xy, *row_wh);
+                    self.handle_dragging_move(property_name, mouse_xy_in_row);
                 }
                 Event::GraphMouseMoveOut => {
                     self.mouse_over_row = None;
@@ -54,32 +57,21 @@ impl GraphWindow {
                         row_wh.height,
                     );
                 }
-                Event::RowHeightChange { row_height } => {
-                    self.row_height = Some(*row_height);
-                }
-                Event::GraphMouseRightDown {
-                    property_name,
-                    mouse_local_xy,
-                    row_wh,
-                    layer_id,
+                &Event::GraphPointMouseDown {
+                    ref point_address,
+                    row_height,
+                    y_in_row,
                 } => {
-                    let mut layer = {
-                        let animation = self.animation.read();
-                        let layer = animation.layers.iter().find(|layer| layer.id.eq(layer_id));
-                        if layer.is_none() {
-                            return;
-                        }
-                        layer.unwrap().clone()
-                    };
-
-                    self.add_point_into_xy(&mut layer, *property_name, *mouse_local_xy, *row_wh);
-
-                    namui::event::send(crate::Event::UpdateLayer(Arc::new(layer)));
-                }
-                Event::GraphPointMouseDown { point_address } => {
                     if self.dragging.is_none() {
                         self.selected_point_address = Some(point_address.clone());
-                        self.dragging = Some(Dragging::Point(point_address.clone()));
+
+                        let action = self.get_move_to_action(point_address, row_height, y_in_row);
+                        if let Some(ticket) = self.animation_history.try_set_action(action) {
+                            self.dragging = Some(Dragging::Point {
+                                point_address: point_address.clone(),
+                                ticket,
+                            });
+                        }
                     }
                 }
                 Event::GraphMouseLeftDown {
@@ -98,11 +90,22 @@ impl GraphWindow {
                             + PixelSize::from(mouse_local_xy.x) * self.context.time_per_pixel,
                     ));
                 }
+                &Event::KeyboardKeyDown { code, row_height } => {
+                    self.handle_key_down(code, row_height)
+                }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
-                NamuiEvent::KeyDown(event) => self.handle_key_down(event),
                 NamuiEvent::MouseUp(_) => {
+                    match &self.dragging {
+                        Some(dragging) => match dragging {
+                            &Dragging::Point { ticket, .. } => {
+                                self.animation_history.act(ticket).unwrap();
+                            }
+                            _ => {}
+                        },
+                        None => {}
+                    }
                     self.dragging = None;
                 }
                 _ => {}
@@ -110,12 +113,7 @@ impl GraphWindow {
         }
     }
 
-    fn handle_dragging_move(
-        &mut self,
-        property_name: PropertyName,
-        mouse_local_xy: Xy<f32>,
-        row_wh: Wh<f32>,
-    ) {
+    fn handle_dragging_move(&mut self, property_name: PropertyName, mouse_xy_in_row: Xy<f32>) {
         if self.dragging.is_none() {
             return;
         }
@@ -123,9 +121,12 @@ impl GraphWindow {
         let dragging = self.dragging.clone().unwrap();
 
         match dragging {
-            Dragging::Point(point_address) => {
-                self.handle_point_dragging(&point_address, property_name, mouse_local_xy, row_wh)
-            }
+            Dragging::Point { ticket, .. } => self
+                .animation_history
+                .update_action(ticket, |action: &mut MovePointToAction| {
+                    action.y_in_row = PixelSize::from_f32(mouse_xy_in_row.y).unwrap();
+                })
+                .unwrap(),
             Dragging::Background {
                 property_name: dragging_property_name,
                 last_mouse_local_xy,
@@ -133,43 +134,11 @@ impl GraphWindow {
                 if dragging_property_name != property_name {
                     return;
                 }
-                self.handle_background_dragging(property_name, last_mouse_local_xy, mouse_local_xy)
+                self.handle_background_dragging(property_name, last_mouse_local_xy, mouse_xy_in_row)
             }
         };
     }
 
-    fn handle_point_dragging(
-        &self,
-        point_address: &PointAddress,
-        property_name: PropertyName,
-        mouse_local_xy: Xy<f32>,
-        row_wh: Wh<f32>,
-    ) {
-        if point_address.property_name != property_name {
-            return;
-        }
-
-        let animation = self.animation.read();
-
-        let layer = animation
-            .layers
-            .iter()
-            .find(|layer| layer.id.eq(&point_address.layer_id));
-        if layer.is_none() {
-            return;
-        }
-        let mut layer = layer.unwrap().clone();
-
-        self.move_point_into_xy(
-            &mut layer,
-            property_name,
-            &point_address.point_id,
-            mouse_local_xy,
-            row_wh,
-        );
-
-        namui::event::send(crate::Event::UpdateLayer(Arc::new(layer)));
-    }
     fn handle_background_dragging(
         &mut self,
         property_name: PropertyName,

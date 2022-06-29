@@ -7,18 +7,18 @@ use namui_prebuilt::table::*;
 mod timeline_window;
 mod wysiwyg_window;
 
-pub struct TimePointEditor {
+pub(crate) struct TimePointEditor {
     animation_history: AnimationHistory,
     wysiwyg_window: wysiwyg_window::WysiwygWindow,
     timeline_window: timeline_window::TimelineWindow,
     image_select_window: image_select_window::ImageSelectWindow,
-    layer_list_window: layer_list_window::LayerListWindow,
     editing_target: Option<EditingTarget>,
 }
 
-pub struct Props<'a> {
+pub(crate) struct Props<'a> {
     pub wh: Wh<f32>,
     pub animation: &'a Animation,
+    pub layer_list_window: &'a layer_list_window::LayerListWindow,
 }
 
 impl TimePointEditor {
@@ -26,8 +26,9 @@ impl TimePointEditor {
         Self {
             wysiwyg_window: wysiwyg_window::WysiwygWindow::new(animation_history.clone()),
             timeline_window: timeline_window::TimelineWindow::new(animation_history.clone()),
-            image_select_window: image_select_window::ImageSelectWindow::new(),
-            layer_list_window: layer_list_window::LayerListWindow::new(animation_history.clone()),
+            image_select_window: image_select_window::ImageSelectWindow::new(
+                animation_history.clone(),
+            ),
             editing_target: None,
             animation_history,
         }
@@ -42,52 +43,11 @@ impl TimePointEditor {
                 }
                 _ => {}
             }
-        } else if let Some(event) = event.downcast_ref::<image_select_window::Event>() {
-            match event {
-                image_select_window::Event::ImageSelected(url) => {
-                    if let Some(layer_id) = self.get_selected_layer_id() {
-                        struct SelectImageAction {
-                            url: Url,
-                            layer_id: String,
-                        }
-                        impl Act<Animation> for SelectImageAction {
-                            fn act(
-                                &self,
-                                state: &Animation,
-                            ) -> Result<Animation, Box<dyn std::error::Error>>
-                            {
-                                let mut animation = state.clone();
-
-                                if let Some(layer) = animation
-                                    .layers
-                                    .iter_mut()
-                                    .find(|layer| layer.id.eq(&self.layer_id))
-                                {
-                                    layer.image.image_source_url = Some(self.url.clone());
-                                    Ok(animation)
-                                } else {
-                                    Err("layer not found".into())
-                                }
-                            }
-                        }
-
-                        if let Some(action_ticket) =
-                            self.animation_history.try_set_action(SelectImageAction {
-                                url: url.clone(),
-                                layer_id: layer_id.clone(),
-                            })
-                        {
-                            self.animation_history.act(action_ticket).unwrap();
-                        }
-                    }
-                }
-            }
         }
 
         self.wysiwyg_window.update(event);
         self.timeline_window.update(event);
         self.image_select_window.update(event);
-        self.layer_list_window.update(event);
     }
     pub fn render(&self, props: Props) -> namui::RenderingTree {
         let animation = props.animation;
@@ -104,22 +64,18 @@ impl TimePointEditor {
                         2.0,
                         vertical([
                             ratio(1.0, |wh| {
-                                self.layer_list_window.render(
+                                props.layer_list_window.render(layer_list_window::Props {
                                     wh,
-                                    layer_list_window::Props {
-                                        layers: &animation.layers,
-                                        selected_layer_id: selected_layer_id.clone(),
-                                    },
-                                )
+                                    layers: &animation.layers,
+                                })
                             }),
                             ratio(1.0, |wh| {
-                                self.image_select_window.render(
+                                self.image_select_window.render(image_select_window::Props {
                                     wh,
-                                    image_select_window::Props {
-                                        selected_layer_image_url: selected_layer
-                                            .and_then(|layer| layer.image.image_source_url.clone()),
-                                    },
-                                )
+                                    selected_layer_image_url: selected_layer
+                                        .and_then(|layer| layer.image.image_source_url.clone()),
+                                    selected_layer_id: selected_layer_id.clone(),
+                                })
                             }),
                         ]),
                     ),
