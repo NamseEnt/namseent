@@ -145,36 +145,12 @@ fn get_keyframe_info<T: KeyframeValue + Clone>(
         .collect()
 }
 
-impl KeyframeValue for PixelSize {
+impl<T: num::ToPrimitive + num::FromPrimitive> KeyframeValue for T {
     fn interpolate(&self, next: &Self, ratio: f32) -> Self {
-        self * (1.0 - ratio) + next * ratio
-    }
-    fn unit() -> &'static str {
-        "px"
-    }
-}
-impl KeyframeValue for Percent {
-    fn interpolate(&self, next: &Self, ratio: f32) -> Self {
-        Self::new(self.0 * (1.0 - ratio) + next.0 * ratio)
-    }
-    fn unit() -> &'static str {
-        "%"
-    }
-}
-impl KeyframeValue for Degree {
-    fn interpolate(&self, next: &Self, ratio: f32) -> Self {
-        self * (1.0 - ratio) + next * ratio
-    }
-    fn unit() -> &'static str {
-        "°"
-    }
-}
-impl KeyframeValue for OneZero {
-    fn interpolate(&self, next: &Self, ratio: f32) -> Self {
-        Self::from(self.0 * (1.0 - ratio) + next.0 * ratio)
-    }
-    fn unit() -> &'static str {
-        ""
+        num::FromPrimitive::from_f32(
+            self.to_f32().unwrap() * (1.0 - ratio) + next.to_f32().unwrap() * ratio,
+        )
+        .unwrap()
     }
 }
 
@@ -185,7 +161,7 @@ impl Animate for AnimatableImage {
             if opacity <= 0.0 {
                 return None;
             }
-            let radian = self.rotation_angle.get_value(time)?.to_radian();
+            let radian = self.rotation_angle.get_value(time)?.to_radians();
             let x = self.x.get_value(time)?;
             let y = self.y.get_value(time)?;
             let source_url = self.image_source_url.as_ref()?.clone();

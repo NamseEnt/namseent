@@ -1,6 +1,5 @@
 use crate::types::*;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct KeyframePoint<T: Clone> {
@@ -27,9 +26,8 @@ pub enum KeyframeLine {
     Linear,
 }
 
-pub trait KeyframeValue: Display {
+pub trait KeyframeValue {
     fn interpolate(&self, next: &Self, ratio: f32) -> Self;
-    fn unit() -> &'static str;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -127,16 +125,6 @@ impl<'a, TValue: KeyframeValue + Clone> KeyframeGraph<TValue> {
 mod tests {
     use super::*;
     use wasm_bindgen_test::wasm_bindgen_test;
-
-    impl KeyframeValue for f32 {
-        fn interpolate(&self, next: &Self, ratio: f32) -> Self {
-            self * (1.0 - ratio) + next * ratio
-        }
-
-        fn unit() -> &'static str {
-            todo!()
-        }
-    }
 
     #[test]
     #[wasm_bindgen_test]
