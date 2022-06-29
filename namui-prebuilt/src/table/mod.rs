@@ -147,18 +147,6 @@ fn slice_internal<'a>(
     }
 }
 
-#[macro_export]
-macro_rules! chains {
-    // item = CellEntity<'a>
-    ($($item_into_iterator: expr),* $(,)?) => {{
-        let render_fn_boxed_items = [].into_iter()
-        $(.chain($item_into_iterator.into_iter()))*
-        ;
-
-        render_fn_boxed_items.into_iter()
-    }};
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -172,30 +160,33 @@ mod tests {
         let label_render_called = AtomicBool::new(false);
         let body_render_called = AtomicBool::new(false);
 
-        let button = calculative!(|parent_wh| { parent_wh.height }, |wh| {
-            button_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
-            assert_eq!(20.0, wh.width);
-            assert_eq!(20.0, wh.height);
-            RenderingTree::Empty
-        });
+        let button = calculative(
+            |parent_wh| parent_wh.height,
+            |wh| {
+                button_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
+                assert_eq!(20.0, wh.width);
+                assert_eq!(20.0, wh.height);
+                RenderingTree::Empty
+            },
+        );
 
-        let label = ratio!(1.0, |wh| {
+        let label = ratio(1.0, |wh| {
             label_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
             assert_eq!(280.0, wh.width);
             assert_eq!(20.0, wh.height);
             RenderingTree::Empty
         });
 
-        let header = fixed!(20.0, horizontal![button, label]);
+        let header = fixed(20.0, horizontal![button, label]);
 
-        let body = ratio!(1.0, |wh| {
+        let body = ratio(1.0, |wh| {
             body_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
             assert_eq!(300.0, wh.width);
             assert_eq!(480.0, wh.height);
             RenderingTree::Empty
         });
 
-        vertical![header, body](Wh {
+        vertical([header, body])(Wh {
             width: 300.0,
             height: 500.0,
         });
