@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct TimePerPixel {
-    pub(super) time: Time,
-    pub(super) pixel_size: PixelSize,
+    time: Time,
+    pixel_size: PixelSize,
 }
 
 impl TimePerPixel {
