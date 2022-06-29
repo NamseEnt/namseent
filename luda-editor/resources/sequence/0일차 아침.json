@@ -5,77 +5,899 @@
         "id": "camera_track_1",
         "clips": [
           {
-            "id": "CameraClip-r1p0wDLRIH4qU8ROc6XqO",
+            "id": "CameraClip-FUammKcSiSygnSI0yia1B",
             "start_at": {
               "milliseconds": 0.0
             },
             "end_at": {
-              "milliseconds": 3000.0
+              "milliseconds": 1780.0
             },
-            "animation": {
-              "id": "gxboHJvCicGYmFQ3ALVBH",
-              "layers": [
-                {
-                  "id": "Y2U7mRKYRMjdvBQMtuDHO",
-                  "name": "New Layer",
-                  "image": {
-                    "image_source_url": null,
-                    "x": {
-                      "points_with_lines": [
-                        [
-                          {
-                            "time": {
-                              "milliseconds": 0.0
-                            },
-                            "value": 4444.0
-                          },
-                          "Linear"
-                        ]
-                      ]
-                    },
-                    "y": {
-                      "points_with_lines": []
-                    },
-                    "width": {
-                      "points_with_lines": []
-                    },
-                    "height": {
-                      "points_with_lines": []
-                    },
-                    "rotation_angle": {
-                      "points_with_lines": []
-                    },
-                    "opacity": {
-                      "points_with_lines": []
-                    }
-                  }
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "활짝웃음"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.513378,
+                    "y": 0.8983649
+                  },
+                  "radius": 0.5
                 },
-                {
-                  "id": "Y2U7mRKYRMjdvBQMtuDHO",
-                  "name": "New Layer",
-                  "image": {
-                    "image_source_url": null,
-                    "x": {
-                      "points_with_lines": []
-                    },
-                    "y": {
-                      "points_with_lines": []
-                    },
-                    "width": {
-                      "points_with_lines": []
-                    },
-                    "height": {
-                      "points_with_lines": []
-                    },
-                    "rotation_angle": {
-                      "points_with_lines": []
-                    },
-                    "opacity": {
-                      "points_with_lines": []
-                    }
-                  }
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
                 }
-              ]
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-gMhNmoyGE9kk9NzodQJGt",
+            "start_at": {
+              "milliseconds": 1780.0
+            },
+            "end_at": {
+              "milliseconds": 3998.101
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "탁자",
+                  "무표정"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5100334,
+                    "y": 0.5297288
+                  },
+                  "radius": 0.3572541
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-CYGinDi4DcRQPLKRLvbtg",
+            "start_at": {
+              "milliseconds": 3998.101
+            },
+            "end_at": {
+              "milliseconds": 5761.9546
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "당황웃음"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.61371225,
+                    "y": 1.0232255
+                  },
+                  "radius": 0.547648
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-18v2L2V6PehkT67Lb0m5c",
+            "start_at": {
+              "milliseconds": 5761.9546
+            },
+            "end_at": {
+              "milliseconds": 7126.1016
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "머리긁",
+                  "미소"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5500628,
+                    "y": 0.9541186
+                  },
+                  "radius": 0.5338529
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-Cjt2m6tLJiZc1-wNo0PFU",
+            "start_at": {
+              "milliseconds": 7126.1016
+            },
+            "end_at": {
+              "milliseconds": 8976.102
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "탁자",
+                  "삐죽"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5301003,
+                    "y": 0.69620955
+                  },
+                  "radius": 0.5
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-KcMbWKO-PwUNg5BlQpR0K",
+            "start_at": {
+              "milliseconds": 8976.102
+            },
+            "end_at": {
+              "milliseconds": 9996.102
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "당황"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5301004,
+                    "y": 1.2551098
+                  },
+                  "radius": 0.72284806
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-rg4_ts86lA5JSTGrDWSND",
+            "start_at": {
+              "milliseconds": 9996.102
+            },
+            "end_at": {
+              "milliseconds": 11121.499
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "의심"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49590397,
+                    "y": 0.9643166
+                  },
+                  "radius": 0.5422358
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-MQti0fwHPTUdmHANtPjMj",
+            "start_at": {
+              "milliseconds": 11121.499
+            },
+            "end_at": {
+              "milliseconds": 11871.501
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "눈치"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49620163,
+                    "y": 0.9055865
+                  },
+                  "radius": 0.49065194
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip--mZonXKh6W3F8Uj9PRyq4",
+            "start_at": {
+              "milliseconds": 11871.501
+            },
+            "end_at": {
+              "milliseconds": 12517.513
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "탁자",
+                  "삐죽"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5301003,
+                    "y": 0.69620955
+                  },
+                  "radius": 0.5
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-C4U75cgzkGnFH4yTDIwwA",
+            "start_at": {
+              "milliseconds": 12517.513
+            },
+            "end_at": {
+              "milliseconds": 13773.6875
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "탁자",
+                  "화남"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.52006686,
+                    "y": 0.7259383
+                  },
+                  "radius": 0.5
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-Z9rLli1SUD2wcb4C_h6Tg",
+            "start_at": {
+              "milliseconds": 13773.6875
+            },
+            "end_at": {
+              "milliseconds": 14830.516
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "탁자",
+                  "화남"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5367893,
+                    "y": 0.73783004
+                  },
+                  "radius": 0.68638444
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-pkBfxuhUJDzEY6PJcWDH5",
+            "start_at": {
+              "milliseconds": 14830.516
+            },
+            "end_at": {
+              "milliseconds": 15908.934
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "머리긁",
+                  "("
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.42596352,
+                    "y": 0.90082467
+                  },
+                  "radius": 0.5
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-TNQetamxWWT1SAYi2-kTs",
+            "start_at": {
+              "milliseconds": 15908.934
+            },
+            "end_at": {
+              "milliseconds": 16987.352
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "머리긁",
+                  "고민"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.42596352,
+                    "y": 0.90082467
+                  },
+                  "radius": 0.5
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-BiSE3eoe46sryS0XsN31j",
+            "start_at": {
+              "milliseconds": 16987.352
+            },
+            "end_at": {
+              "milliseconds": 18821.445
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "눈치"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49084446,
+                    "y": 0.87051904
+                  },
+                  "radius": 0.44260958
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-tJGdEo86-Br33SnVjSy_h",
+            "start_at": {
+              "milliseconds": 18821.445
+            },
+            "end_at": {
+              "milliseconds": 20022.418
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "의심"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.52834445,
+                    "y": 1.1890378
+                  },
+                  "radius": 0.7027133
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-2Zh9NVCT6svHqMMOHcw5h",
+            "start_at": {
+              "milliseconds": 20022.418
+            },
+            "end_at": {
+              "milliseconds": 20979.135
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "탁자폰",
+                  "놀람"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.46465397,
+                    "y": 0.5393022
+                  },
+                  "radius": 0.3962706
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-YBeqaQppocHaM1q-g1m8K",
+            "start_at": {
+              "milliseconds": 20979.135
+            },
+            "end_at": {
+              "milliseconds": 22029.271
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "의심"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.47655874,
+                    "y": 1.301207
+                  },
+                  "radius": 0.74281913
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-J2q_5TU_S6HKF8qxPo2SR",
+            "start_at": {
+              "milliseconds": 22029.271
+            },
+            "end_at": {
+              "milliseconds": 23065.988
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "탁자",
+                  "삐죽"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.63132054,
+                    "y": 0.9652281
+                  },
+                  "radius": 1.1154923
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-BUAaKpsklG-fiVWYwUeXe",
+            "start_at": {
+              "milliseconds": 23065.988
+            },
+            "end_at": {
+              "milliseconds": 24346.125
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "눈치"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.69947535,
+                    "y": 1.5493551
+                  },
+                  "radius": 1.0143863
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-bdu46EQfsCpQYhpd5aD85",
+            "start_at": {
+              "milliseconds": 24346.125
+            },
+            "end_at": {
+              "milliseconds": 25402.676
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "눈감음"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.54530877,
+                    "y": 1.028191
+                  },
+                  "radius": 0.59192055
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-01PT9o0SAisXbECUYAUTV",
+            "start_at": {
+              "milliseconds": 25402.676
+            },
+            "end_at": {
+              "milliseconds": 27139.227
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "짜증"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.54530877,
+                    "y": 1.028191
+                  },
+                  "radius": 0.59192055
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-mWCHYXY78q2-Gu5NDIJO1",
+            "start_at": {
+              "milliseconds": 27139.227
+            },
+            "end_at": {
+              "milliseconds": 28321.66
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "탁자폰",
+                  "무표정"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.4768972,
+                    "y": 0.5460441
+                  },
+                  "radius": 0.36161023
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-nDvSonnn7qrtGcOraiO60",
+            "start_at": {
+              "milliseconds": 28321.66
+            },
+            "end_at": {
+              "milliseconds": 29895.217
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "탁자폰",
+                  "놀람"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.473921,
+                    "y": 0.59366316
+                  },
+                  "radius": 0.5
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-uMf_99CF2p1z-c_DotZwc",
+            "start_at": {
+              "milliseconds": 29895.217
+            },
+            "end_at": {
+              "milliseconds": 32179.898
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "미소"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49331096,
+                    "y": 0.8032328
+                  },
+                  "radius": 0.4661661
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-186SgOf8KAXvDCCdczg4c",
+            "start_at": {
+              "milliseconds": 32179.898
+            },
+            "end_at": {
+              "milliseconds": 33224.58
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "놀람"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49331096,
+                    "y": 0.8032328
+                  },
+                  "radius": 0.47340783
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-NRLSe_t22-1m0KnadLDvX",
+            "start_at": {
+              "milliseconds": 33224.58
+            },
+            "end_at": {
+              "milliseconds": 35018.133
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "탁자폰",
+                  "놀람"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.55308765,
+                    "y": 0.6788483
+                  },
+                  "radius": 0.45899123
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-ogNRBV-B-Ua8xB0z6GWoy",
+            "start_at": {
+              "milliseconds": 35018.133
+            },
+            "end_at": {
+              "milliseconds": 40078.133
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "탁자폰",
+                  "근심"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5288949,
+                    "y": 0.7448532
+                  },
+                  "radius": 0.5
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip--iPhpIKp4CbWnA0oH0oDa",
+            "start_at": {
+              "milliseconds": 40078.133
+            },
+            "end_at": {
+              "milliseconds": 44119.71
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "활짝웃음"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.49331096,
+                    "y": 0.8032328
+                  },
+                  "radius": 0.4661661
+                },
+                "crop_screen_01_rect": {
+                  "left": 0.0,
+                  "top": 0.0,
+                  "right": 1.0,
+                  "bottom": 1.0
+                }
+              },
+              "background": null
             }
           }
         ]

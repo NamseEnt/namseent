@@ -81,16 +81,19 @@ pub struct CameraClip {
     pub id: String,
     pub start_at: Time,
     pub end_at: Time,
-    pub animation: namui::animation::Animation,
+    pub camera_angle: CameraAngle,
 }
 impl CameraClip {
     pub fn is_at_time(&self, time: &Time) -> bool {
         self.start_at <= time && time < self.end_at
     }
-    pub fn clone_with_new_id(&self) -> CameraClip {
-        let mut new = (*self).clone();
-        new.id = CameraClip::get_new_id();
-        new
+    pub fn duplicate(&self) -> CameraClip {
+        CameraClip {
+            id: CameraClip::get_new_id(),
+            start_at: self.start_at,
+            end_at: self.end_at,
+            camera_angle: self.camera_angle.clone(),
+        }
     }
     pub fn get_new_id() -> String {
         format!("CameraClip-{}", namui::nanoid())
@@ -227,11 +230,11 @@ fn update_arcs<T, Error>(
     }
 }
 
-pub trait ClipReplacer<Clip> {
+pub trait ClipReplacer<ClipType> {
     fn replace_clip(
         self,
         clip_id: &str,
-        replace_callback: impl FnOnce(&Clip) -> Result<Clip, String> + Copy,
+        replace_callback: impl FnOnce(&ClipType) -> Result<ClipType, String> + Copy,
     ) -> UpdateResult<Self, String>
     where
         Self: Sized;
@@ -302,8 +305,8 @@ track_clip_replacer!(CameraTrack, CameraClip);
 sequence_clip_replacer!(Subtitle, SubtitleClip);
 track_clip_replacer!(SubtitleTrack, SubtitleClip);
 
-pub trait ClipFind<Clip> {
-    fn find_clip(&self, clip_id: &str) -> Option<&Clip>
+pub trait ClipFind<ClipType> {
+    fn find_clip(&self, clip_id: &str) -> Option<&ClipType>
     where
         Self: Sized;
 }

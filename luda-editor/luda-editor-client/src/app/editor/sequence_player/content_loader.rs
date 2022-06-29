@@ -11,13 +11,16 @@ enum LoadingContent {
 }
 
 impl ContentLoader {
-    pub(super) fn new(sequence: Arc<Sequence>) -> Self {
+    pub(super) fn new(
+        sequence: Arc<Sequence>,
+        camera_angle_image_loader: &dyn CameraAngleImageLoader,
+    ) -> Self {
         let mut loader = Self {
             sequence,
             loading_contents: Mutex::new(LinkedList::new()),
         };
 
-        loader.start_loading();
+        loader.start_loading(camera_angle_image_loader);
 
         loader
     }
