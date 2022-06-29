@@ -16,7 +16,7 @@ pub struct Canvas {
     offset: Xy<f32>,
     image: Arc<Image>,
     tool: Tool,
-    hand_tool_pushed_position: Option<Xy<f32>>,
+    canvas_drag_state: CanvasDragState,
 }
 impl Canvas {
     pub fn new(image: Arc<Image>) -> Self {
@@ -25,7 +25,7 @@ impl Canvas {
             offset: Xy { x: 0.0, y: 0.0 },
             image,
             tool: Tool::new(),
-            hand_tool_pushed_position: None,
+            canvas_drag_state: CanvasDragState::None,
         }
     }
 
@@ -37,25 +37,16 @@ impl Canvas {
                     self.offset = offset.clone();
                     self.scale = scale.clone();
                 }
-                _ => (),
-            }
-        }
-        if let Some(event) = event.downcast_ref::<CanvasEvent>() {
-            match &event {
-                CanvasEvent::LeftMouseDownInCanvas {
-                    position,
-                    tool_type,
-                } => match tool_type {
-                    ToolType::Hand => self.hand_tool_pushed_position = Some(position.clone()),
-                    _ => (),
-                },
+                CanvasEvent::DragStarted(drag_state) => {
+                    self.canvas_drag_state = drag_state.clone();
+                }
                 _ => (),
             }
         }
         if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match &event {
                 NamuiEvent::MouseUp(_) => {
-                    self.handle_hand_tool_up();
+                    self.canvas_drag_state = CanvasDragState::None;
                 }
                 NamuiEvent::KeyDown(event) => match event.code {
                     namui::Code::Digit1 | namui::Code::KeyH => {
@@ -68,6 +59,10 @@ impl Canvas {
 
                     namui::Code::Digit3 | namui::Code::KeyL => {
                         self.change_tool(ToolType::PolySelection);
+                    }
+
+                    namui::Code::Digit4 | namui::Code::KeyZ => {
+                        self.change_tool(ToolType::Zoom);
                     }
                     _ => (),
                 },
@@ -82,7 +77,8 @@ impl Canvas {
         let offset = self.offset.clone();
         let scale = self.scale.clone();
         let current_tool_type = self.tool.get_current_tool_type().clone();
-        let hand_tool_pushed_position = self.hand_tool_pushed_position.clone();
+        let canvas_drag_state = self.canvas_drag_state.clone();
+        let canvas_wh = props.wh.clone();
 
         let scaled_image_size = Wh {
             width: image_size.width * self.scale,
@@ -96,11 +92,6 @@ impl Canvas {
             render_background(&props.wh).attach_event(|builder| {
                 builder
                     .on_wheel(move |event| {
-                        let offset = offset.clone();
-                        let scale = scale.clone();
-                        let canvas_wh = props.wh.clone();
-                        let image_size = image_size.clone();
-
                         let mouse_position = namui::mouse::position();
                         let canvas_xy = event
                             .namui_context
@@ -145,41 +136,66 @@ impl Canvas {
                     })
                     .on_mouse_down(move |event| {
                         if event.pressing_buttons.contains(&namui::MouseButton::Left) {
-                            let current_tool_type = current_tool_type.clone();
-                            let offset = offset.clone();
-                            let scale = scale.clone();
                             let local_xy_on_image = Xy {
                                 x: -offset.x + event.local_xy.x / scale,
                                 y: -offset.y + event.local_xy.y / scale,
                             };
+                            match current_tool_type {
+                                ToolType::Hand => {
+                                    namui::event::send(CanvasEvent::DragStarted(
+                                        CanvasDragState::DraggingHand {
+                                            image_anchor_point: local_xy_on_image.clone(),
+                                        },
+                                    ));
+                                }
+                                ToolType::Zoom => namui::event::send(CanvasEvent::DragStarted(
+                                    CanvasDragState::DraggingZoom {
+                                        canvas_anchor_point: event.local_xy.clone(),
+                                        initial_offset: offset.clone(),
+                                        initial_scale: scale.clone(),
+                                        initial_mouse_xy: event.global_xy.clone(),
+                                    },
+                                )),
+                                _ => (),
+                            };
                             namui::event::send(CanvasEvent::LeftMouseDownInCanvas {
                                 position: local_xy_on_image,
                                 tool_type: current_tool_type,
-                            })
+                            });
                         }
                     })
                     .on_mouse_move_in(move |event| {
-                        let hand_tool_pushed_position = hand_tool_pushed_position.clone();
-                        let canvas_wh = props.wh.clone();
-                        let image_size = image_size.clone();
-                        let current_tool_type = current_tool_type.clone();
-                        let offset = offset.clone();
-                        let scale = scale.clone();
                         let local_xy_on_image = Xy {
                             x: -offset.x + event.local_xy.x / scale,
                             y: -offset.y + event.local_xy.y / scale,
                         };
-                        match current_tool_type {
-                            ToolType::Hand => handle_hand_tool_drag(
-                                hand_tool_pushed_position,
-                                local_xy_on_image,
-                                offset,
+                        match canvas_drag_state {
+                            CanvasDragState::DraggingHand { image_anchor_point } => {
+                                handle_hand_tool_drag(
+                                    image_anchor_point,
+                                    local_xy_on_image,
+                                    offset,
+                                    canvas_wh,
+                                    image_size,
+                                    scale,
+                                )
+                            }
+                            CanvasDragState::DraggingZoom {
+                                canvas_anchor_point: image_anchor_point,
+                                initial_offset,
+                                initial_scale,
+                                initial_mouse_xy,
+                            } => handle_zoom_tool_drag(
+                                image_anchor_point,
+                                initial_offset,
+                                initial_scale,
+                                initial_mouse_xy,
+                                event.global_xy.clone(),
                                 canvas_wh,
                                 image_size,
-                                scale,
                             ),
                             _ => (),
-                        };
+                        }
                         namui::event::send(CanvasEvent::MouseMoveInCanvas(local_xy_on_image))
                     });
             }),
@@ -222,13 +238,23 @@ impl Canvas {
     }
 
     fn change_tool(&mut self, to: ToolType) {
-        self.hand_tool_pushed_position = None;
+        self.canvas_drag_state = CanvasDragState::None;
         self.tool.change_tool_type(to);
     }
+}
 
-    fn handle_hand_tool_up(&mut self) {
-        self.hand_tool_pushed_position = None;
-    }
+#[derive(Clone, Copy)]
+pub enum CanvasDragState {
+    None,
+    DraggingHand {
+        image_anchor_point: Xy<f32>,
+    },
+    DraggingZoom {
+        canvas_anchor_point: Xy<f32>,
+        initial_offset: Xy<f32>,
+        initial_scale: f32,
+        initial_mouse_xy: Xy<f32>,
+    },
 }
 
 fn render_background(wh: &Wh<f32>) -> RenderingTree {
@@ -248,20 +274,42 @@ fn render_background(wh: &Wh<f32>) -> RenderingTree {
 }
 
 fn handle_hand_tool_drag(
-    moved_from: Option<Xy<f32>>,
+    image_anchor_point: Xy<f32>,
     moved_to: Xy<f32>,
     offset: Xy<f32>,
     canvas_wh: Wh<f32>,
     image_size: Wh<f32>,
     scale: f32,
 ) {
-    if let Some(last_position) = moved_from {
-        let scaled_delta_xy = Xy {
-            x: (last_position.x - moved_to.x) * scale,
-            y: (last_position.y - moved_to.y) * scale,
-        };
-        scroll(scaled_delta_xy, offset, canvas_wh, image_size, scale)
-    }
+    let scaled_delta_xy = Xy {
+        x: (image_anchor_point.x - moved_to.x) * scale,
+        y: (image_anchor_point.y - moved_to.y) * scale,
+    };
+    scroll(scaled_delta_xy, offset, canvas_wh, image_size, scale)
+}
+
+fn handle_zoom_tool_drag(
+    canvas_anchor_point: Xy<f32>,
+    initial_offset: Xy<f32>,
+    initial_scale: f32,
+    initial_mouse_xy: Xy<f32>,
+    last_mouse_xy: Xy<f32>,
+    canvas_wh: Wh<f32>,
+    image_size: Wh<f32>,
+) {
+    const DRAG_ZOOM_MULTIPLIER: f32 = 5.0;
+    let multiplied_reverse_delta_xy = Xy {
+        x: (initial_mouse_xy.x - last_mouse_xy.x) * DRAG_ZOOM_MULTIPLIER,
+        y: (initial_mouse_xy.y - last_mouse_xy.y) * DRAG_ZOOM_MULTIPLIER,
+    };
+    zoom(
+        multiplied_reverse_delta_xy,
+        initial_offset,
+        canvas_anchor_point,
+        canvas_wh,
+        image_size,
+        initial_scale,
+    )
 }
 
 fn scroll(delta_xy: Xy<f32>, offset: Xy<f32>, canvas_wh: Wh<f32>, image_size: Wh<f32>, scale: f32) {
@@ -276,7 +324,7 @@ fn scroll(delta_xy: Xy<f32>, offset: Xy<f32>, canvas_wh: Wh<f32>, image_size: Wh
 fn zoom(
     delta_xy: Xy<f32>,
     offset: Xy<f32>,
-    local_mouse_position: Xy<f32>,
+    canvas_anchor_point: Xy<f32>,
     canvas_wh: Wh<f32>,
     image_size: Wh<f32>,
     scale: f32,
@@ -286,8 +334,8 @@ fn zoom(
     let new_scale = clamp_scale(scale + delta_scale, canvas_wh, image_size);
     let scale_factor = (new_scale - scale) / (new_scale * scale);
     let diff_offset = Xy {
-        x: canvas_wh.width * scale_factor * (local_mouse_position.x / canvas_wh.width),
-        y: canvas_wh.height * scale_factor * (local_mouse_position.y / canvas_wh.height),
+        x: canvas_wh.width * scale_factor * (canvas_anchor_point.x / canvas_wh.width),
+        y: canvas_wh.height * scale_factor * (canvas_anchor_point.y / canvas_wh.height),
     };
     let new_offset = clamp_offset_xy(offset - diff_offset, canvas_wh, image_size, new_scale);
     namui::event::send(CanvasEvent::Zoomed {

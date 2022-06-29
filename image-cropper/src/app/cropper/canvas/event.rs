@@ -1,4 +1,4 @@
-use super::ToolType;
+use super::{CanvasDragState, ToolType};
 use namui::Xy;
 
 pub enum CanvasEvent {
@@ -14,4 +14,5 @@ pub enum CanvasEvent {
         tool_type: ToolType,
     },
     MouseMoveInCanvas(Xy<f32>),
+    DragStarted(CanvasDragState),
 }

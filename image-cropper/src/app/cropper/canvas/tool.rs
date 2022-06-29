@@ -2,6 +2,7 @@ use namui::{
     absolute, path, Color, LtrbRect, NamuiEvent, PaintBuilder, PathBuilder, RectParam, RectStroke,
     RectStyle, RenderingTree, Xy,
 };
+use std::f32::consts::PI;
 
 const ICON_SIZE: f32 = 16.0;
 const ICON_OFFSET: f32 = 8.0;
@@ -26,6 +27,7 @@ impl Tool {
                 ToolType::RectSelection => render_rect_selection_icon(),
                 ToolType::PolySelection => render_poly_selection_icon(),
                 ToolType::Hand => render_hand_icon(),
+                ToolType::Zoom => render_zoom_icon(),
             },
         )
     }
@@ -53,6 +55,7 @@ pub enum ToolType {
     RectSelection,
     PolySelection,
     Hand,
+    Zoom,
 }
 
 fn render_rect_selection_icon() -> RenderingTree {
@@ -93,6 +96,17 @@ fn render_hand_icon() -> RenderingTree {
         .set_style(namui::PaintStyle::Stroke);
 
     path(hand_path, paint)
+}
+
+fn render_zoom_icon() -> RenderingTree {
+    let zoom_path = get_zoom_path()
+        .scale(ICON_SIZE, ICON_SIZE)
+        .translate(ICON_OFFSET, ICON_OFFSET);
+    let paint = PaintBuilder::new()
+        .set_color(Color::grayscale_f01(0.3))
+        .set_style(namui::PaintStyle::Stroke);
+
+    path(zoom_path, paint)
 }
 
 fn get_poly_selection_path() -> PathBuilder {
@@ -177,6 +191,23 @@ fn get_hand_path() -> PathBuilder {
             },
             0.0,
             2.251705961447832,
+        )
+        .close()
+}
+
+fn get_zoom_path() -> PathBuilder {
+    PathBuilder::new()
+        .move_to(1.0, 1.0)
+        .line_to(0.6, 0.6)
+        .arc_to(
+            &LtrbRect {
+                left: 0.0,
+                top: 0.0,
+                right: 0.6,
+                bottom: 0.6,
+            },
+            PI / 4.0,
+            -PI * 2.0,
         )
         .close()
 }
