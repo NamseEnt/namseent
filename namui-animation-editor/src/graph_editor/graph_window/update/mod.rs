@@ -73,10 +73,7 @@ impl GraphWindow {
 
                         let action = self.get_move_to_action(point_address, row_height, y_in_row);
                         if let Some(ticket) = self.animation_history.try_set_action(action) {
-                            self.dragging = Some(Dragging::Point {
-                                point_address: point_address.clone(),
-                                ticket,
-                            });
+                            self.dragging = Some(Dragging::Point { ticket });
                         }
                     }
                 }

@@ -1,6 +1,7 @@
-use super::*;
 mod render_graph;
-use namui::{animation::KeyframeValue, types::OneZero};
+
+use super::*;
+use namui::animation::KeyframeValue;
 use render_graph::*;
 
 impl GraphWindow {
@@ -109,47 +110,6 @@ impl GraphWindow {
     ) -> RenderingTree {
         render_graph_row(
             wh,
-            layer,
-            property_name,
-            (
-                graph,
-                Context {
-                    start_at: self.context.start_at,
-                    time_per_pixel: self.context.time_per_pixel,
-                    property_context,
-                    mouse_local_xy: self.mouse_over_row.as_ref().and_then(|mouse_over_row| {
-                        if mouse_over_row.property_name == property_name {
-                            Some(mouse_over_row.mouse_xy_in_row)
-                        } else {
-                            None
-                        }
-                    }),
-                    property_name,
-                    selected_point_id: self.selected_point_address.as_ref().and_then(
-                        |selected_point_address| {
-                            if selected_point_address.property_name == property_name {
-                                Some(selected_point_address.point_id.clone())
-                            } else {
-                                None
-                            }
-                        },
-                    ),
-                    layer,
-                },
-            ),
-        )
-    }
-    fn render_one_zero_graph_row(
-        &self,
-        wh: Wh<f32>,
-        layer: &Layer,
-        property_name: PropertyName,
-        graph: &KeyframeGraph<OneZero>,
-        property_context: &PropertyContext<OneZero>,
-    ) -> RenderingTree {
-        render_graph_row(
-            wh,
-            layer,
             property_name,
             (
                 graph,
@@ -202,7 +162,6 @@ fn render_playback_time_line(
 
 fn render_graph_row(
     wh: Wh<f32>,
-    layer: &Layer,
     property_name: PropertyName,
     render_graph: impl RenderGraph,
 ) -> RenderingTree {

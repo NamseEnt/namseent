@@ -1,8 +1,4 @@
-use namui::{
-    animation::Animate,
-    prelude::*,
-    types::{Time, TimePerPixel},
-};
+use namui::{animation::Animate, prelude::*, types::Time};
 use std::any::Any;
 
 pub struct PreviewWindow {}
@@ -15,11 +11,6 @@ pub struct Props<'a> {
 
 #[derive(Debug, Clone)]
 enum Event {}
-
-pub struct PreviewWindowContext {
-    pub start_at: Time,
-    pub time_per_pixel: TimePerPixel,
-}
 
 impl PreviewWindow {
     pub fn new() -> Self {

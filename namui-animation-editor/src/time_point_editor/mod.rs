@@ -1,14 +1,10 @@
-use crate::{
-    image_select_window, layer_list_window,
-    types::{Act, AnimationHistory},
-};
+use crate::{image_select_window, layer_list_window, types::AnimationHistory};
 use namui::{animation::Animation, prelude::*};
 use namui_prebuilt::table::*;
 mod timeline_window;
 mod wysiwyg_window;
 
 pub(crate) struct TimePointEditor {
-    animation_history: AnimationHistory,
     wysiwyg_window: wysiwyg_window::WysiwygWindow,
     timeline_window: timeline_window::TimelineWindow,
     image_select_window: image_select_window::ImageSelectWindow,
@@ -30,7 +26,6 @@ impl TimePointEditor {
                 animation_history.clone(),
             ),
             editing_target: None,
-            animation_history,
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {

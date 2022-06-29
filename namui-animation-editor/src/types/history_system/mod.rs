@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 mod history;
 use downcast_rs::{impl_downcast, Downcast};
 use history::History;
@@ -113,10 +115,12 @@ mod tests {
         history_system.set_action(RightAction { value: 1 });
 
         let mut is_called = false;
-        history_system.update_action(|action: &mut RightAction| {
-            action.value = 2;
-            is_called = true;
-        });
+        history_system
+            .update_action(|action: &mut RightAction| {
+                action.value = 2;
+                is_called = true;
+            })
+            .unwrap();
 
         assert!(is_called);
     }
@@ -149,10 +153,12 @@ mod tests {
         }
 
         let mut is_called = false;
-        history_system.update_action(|action: &mut WrongAction| {
-            action.value = 2;
-            is_called = true;
-        });
+        history_system
+            .update_action(|action: &mut WrongAction| {
+                action.value = 2;
+                is_called = true;
+            })
+            .unwrap();
 
         assert_eq!(is_called, false);
     }

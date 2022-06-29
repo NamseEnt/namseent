@@ -1,12 +1,10 @@
 use namui::{prelude::*, types::*};
 use namui_prebuilt::table::*;
-use std::sync::Arc;
 mod graph_window;
 use crate::*;
 mod preview_window;
 
 pub struct GraphEditor {
-    animation_history: AnimationHistory,
     graph_window: graph_window::GraphWindow,
     preview_window: preview_window::PreviewWindow,
     image_select_window: image_select_window::ImageSelectWindow,
@@ -31,7 +29,6 @@ impl GraphEditor {
             image_select_window: image_select_window::ImageSelectWindow::new(
                 animation_history.clone(),
             ),
-            animation_history,
             playback_time: Time::zero(),
         }
     }

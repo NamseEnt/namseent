@@ -21,7 +21,6 @@ use crate::{
 mod update;
 
 pub(crate) struct GraphWindow {
-    id: String,
     context: GraphWindowContext,
     x_context: PropertyContext<PixelSize>,
     y_context: PropertyContext<PixelSize>,
@@ -44,7 +43,6 @@ pub(crate) struct Props<'a> {
 #[derive(Debug, Clone)]
 enum Dragging {
     Point {
-        point_address: PointAddress,
         ticket: ActionTicket,
     },
     Background {
@@ -123,7 +121,6 @@ pub(crate) struct GraphWindowContext {
 impl GraphWindow {
     pub(crate) fn new(animation_history: AnimationHistory) -> Self {
         Self {
-            id: namui::nanoid(),
             context: GraphWindowContext {
                 start_at: Time::zero(),
                 time_per_pixel: Time::from_ms(50.0) / PixelSize::from(1.0),
