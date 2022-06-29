@@ -69,5 +69,50 @@ impl GraphWindow {
             PropertyName::RotationAngle => for_f32_based(&mut self.rotation_angle_context, delta),
             PropertyName::Opacity => for_f32_based(&mut self.opacity_context, delta),
         }
+
+        match &self.dragging {
+            Some(dragging) => match dragging {
+                Dragging::Point { ticket, .. } => {
+                    self.animation_history
+                        .update_action(*ticket, |action: &mut MovePointToAction| {
+                            action.property_context = match &action.property_context {
+                                super::move_to::PropertyContextMapping::X(_) => {
+                                    super::move_to::PropertyContextMapping::X(
+                                        self.x_context.clone(),
+                                    )
+                                }
+                                super::move_to::PropertyContextMapping::Y(_) => {
+                                    super::move_to::PropertyContextMapping::Y(
+                                        self.y_context.clone(),
+                                    )
+                                }
+                                super::move_to::PropertyContextMapping::Width(_) => {
+                                    super::move_to::PropertyContextMapping::Width(
+                                        self.width_context.clone(),
+                                    )
+                                }
+                                super::move_to::PropertyContextMapping::Height(_) => {
+                                    super::move_to::PropertyContextMapping::Height(
+                                        self.height_context.clone(),
+                                    )
+                                }
+                                super::move_to::PropertyContextMapping::RotationAngle(_) => {
+                                    super::move_to::PropertyContextMapping::RotationAngle(
+                                        self.rotation_angle_context.clone(),
+                                    )
+                                }
+                                super::move_to::PropertyContextMapping::Opacity(_) => {
+                                    super::move_to::PropertyContextMapping::Opacity(
+                                        self.opacity_context.clone(),
+                                    )
+                                }
+                            }
+                        })
+                        .unwrap();
+                }
+                _ => {}
+            },
+            None => {}
+        }
     }
 }

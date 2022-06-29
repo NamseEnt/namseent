@@ -28,6 +28,12 @@ impl GraphWindow {
                 Event::GraphShiftMouseWheel { delta } => {
                     self.context.start_at += delta * self.context.time_per_pixel;
                 }
+                Event::GraphMouseWheel {
+                    delta,
+                    property_name,
+                } => {
+                    self.move_property_context_by(*property_name, delta.to_f32().unwrap());
+                }
                 Event::GraphAltMouseWheel {
                     delta,
                     mouse_local_xy: anchor_xy,

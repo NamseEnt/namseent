@@ -290,6 +290,11 @@ fn render_graph_row(
                         property_name,
                         row_wh: wh,
                     })
+                } else {
+                    namui::event::send(Event::GraphMouseWheel {
+                        delta: PixelSize::from(event.delta_xy.y),
+                        property_name,
+                    })
                 }
             })
             .on_key_down(move |event| {

@@ -79,6 +79,10 @@ enum Event {
         mouse_local_xy: Xy<f32>,
         row_wh: Wh<f32>,
     },
+    GraphMouseWheel {
+        delta: PixelSize,
+        property_name: PropertyName,
+    },
     GraphPointMouseDown {
         point_address: PointAddress,
         row_height: PixelSize,
