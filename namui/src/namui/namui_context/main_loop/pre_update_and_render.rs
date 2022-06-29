@@ -58,32 +58,4 @@ impl NamuiContext {
             }
         }
     }
-
-    fn resize_canvas(&mut self, screen_size: Wh<i16>) {
-        if let Some(canvas_element) = get_canvas_element() {
-            canvas_element.set_width(screen_size.width as u32);
-            canvas_element.set_height(screen_size.height as u32);
-            let canvas_kit_surface = make_canvas_surface(canvas_element);
-            let surface = Surface::new(canvas_kit_surface);
-            self.surface = surface;
-        };
-    }
-}
-
-fn get_canvas_element() -> Option<HtmlCanvasElement> {
-    window()
-        .document()
-        .and_then(|document| document.get_element_by_id("canvas"))
-        .and_then(|element| match element.dyn_into::<HtmlCanvasElement>() {
-            Ok(canvas) => Some(canvas),
-            Err(_) => None,
-        })
-}
-
-fn make_canvas_surface(canvas_element: HtmlCanvasElement) -> CanvasKitSurface {
-    CANVAS_KIT
-        .get()
-        .unwrap()
-        .MakeCanvasSurface(&canvas_element)
-        .unwrap()
 }

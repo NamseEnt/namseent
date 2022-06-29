@@ -9,7 +9,12 @@ pub struct NamuiContext {
     event_count: u32,
     is_surface_resize_requested: Option<Wh<i16>>,
 }
-struct FpsInfo {}
+
+struct FpsInfo {
+    pub fps: u16,
+    pub frame_count: u16,
+    pub last_60_frame_time: Duration,
+}
 
 impl NamuiContext {
     pub(crate) fn new(event_receiver: EventReceiver) -> Self {
