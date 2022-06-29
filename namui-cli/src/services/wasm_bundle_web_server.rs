@@ -256,6 +256,5 @@ fn json_response(json_string: String) -> Result<reply::Response, warp::Rejection
         CONTENT_TYPE,
         HeaderValue::from_static("application/json; charset=utf-8"),
     );
-
     Ok(response)
 }
