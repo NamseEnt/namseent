@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum LoadBundleMetadataError {
+    #[allow(dead_code)]
     NetworkError(String),
     ParseError(String),
     FileNotFound(String),

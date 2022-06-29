@@ -1,5 +1,5 @@
 use super::*;
-use crate::namui;
+
 pub use base::*;
 
 unsafe impl Sync for CanvasKitPaint {}
@@ -50,27 +50,21 @@ impl Paint {
     pub fn get_stroke_cap(&self) -> StrokeCap {
         let stroke_cap = self.canvas_kit_paint.getStrokeCap();
 
-        let butt_value = &STROKE_CAP_BUTT_VALUE;
-        let round_value = &STROKE_CAP_ROUND_VALUE;
-        let square_value = &STROKE_CAP_SQUARE_VALUE;
-
         match stroke_cap.value() {
-            butt_value => StrokeCap::Butt,
-            round_value => StrokeCap::Round,
-            square_value => StrokeCap::Square,
+            value if STROKE_CAP_BUTT_VALUE.eq(&value) => StrokeCap::Butt,
+            value if STROKE_CAP_ROUND_VALUE.eq(&value) => StrokeCap::Round,
+            value if STROKE_CAP_SQUARE_VALUE.eq(&value) => StrokeCap::Square,
+            value => panic!("Unknown stroke_cap value: {}", value),
         }
     }
     pub fn get_stroke_join(&self) -> StrokeJoin {
         let stroke_join = self.canvas_kit_paint.getStrokeJoin();
 
-        let bevel_value = &STROKE_JOIN_BEVEL_VALUE;
-        let miter_value = &STROKE_JOIN_MITER_VALUE;
-        let round_value = &STROKE_JOIN_ROUND_VALUE;
-
         match stroke_join.value() {
-            bevel_value => StrokeJoin::Bevel,
-            miter_value => StrokeJoin::Miter,
-            round_value => StrokeJoin::Round,
+            value if STROKE_JOIN_BEVEL_VALUE.eq(&value) => StrokeJoin::Bevel,
+            value if STROKE_JOIN_MITER_VALUE.eq(&value) => StrokeJoin::Miter,
+            value if STROKE_JOIN_ROUND_VALUE.eq(&value) => StrokeJoin::Round,
+            value => panic!("Unknown stroke_join value: {}", value),
         }
     }
     pub fn get_stroke_width(&self) -> f32 {
