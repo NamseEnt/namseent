@@ -10,6 +10,7 @@ mod request_animation_frame;
 pub use request_animation_frame::*;
 mod codes;
 pub use codes::*;
+pub mod types;
 
 impl std::convert::From<RenderingData> for RenderingTree {
     fn from(data: RenderingData) -> Self {
