@@ -22,6 +22,9 @@
       "path": "namui"
     },
     {
+      "path": "namui-prebuilt"
+    },
+    {
       "path": "nrpc"
     },
     {
