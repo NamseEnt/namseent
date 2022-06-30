@@ -1,5 +1,4 @@
 use super::*;
-
 pub use base::*;
 
 unsafe impl Sync for CanvasKitPaint {}
