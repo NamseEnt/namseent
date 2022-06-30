@@ -1,6 +1,6 @@
 use crate::{
     draw::text::{get_bottom_of_baseline, get_left_in_align},
-    namui::{self, skia::GlyphIds, *},
+    namui::{self, *},
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -208,25 +208,4 @@ pub fn get_text_width(text: &str, font_type: FontType, drop_shadow_x: Option<f32
         let glyph_widths = font.get_glyph_widths(glyph_ids, Option::None);
         glyph_widths.iter().fold(0.0, |acc, cur| acc + cur) + drop_shadow_x.unwrap_or(0.0)
     })
-}
-
-fn get_glyphs_top_bottom(font: &Font, glyph_ids: Arc<GlyphIds>) -> Option<(f32, f32)> {
-    if glyph_ids.len() == 0 {
-        return None;
-    }
-    let glyph_bounds = font.get_glyph_bounds(glyph_ids, Option::None);
-
-    let glyphs_top = glyph_bounds
-        .iter()
-        .reduce(|prev, cur| if prev.top < cur.top { prev } else { cur })
-        .unwrap()
-        .top;
-
-    let glyphs_bottom = glyph_bounds
-        .iter()
-        .reduce(|prev, cur| if prev.bottom > cur.bottom { prev } else { cur })
-        .unwrap()
-        .bottom;
-
-    Some((glyphs_top, glyphs_bottom))
 }

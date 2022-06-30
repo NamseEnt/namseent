@@ -97,7 +97,6 @@ impl TextInput {
                         self.selection = text_updated.selection.clone();
                     }
                 }
-                _ => {}
             }
         }
     }

@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
-    sync::Arc,
 };
 
 pub type GlyphIds = [u16];
@@ -176,9 +175,9 @@ impl Color {
             0.0
         } else {
             60.0 * match max {
-                r => (g - b) / delta,
-                g => (b - r) / delta + 2.0,
-                b => (r - g) / delta + 4.0,
+                value if value == r => (g - b) / delta,
+                value if value == g => (b - r) / delta + 2.0,
+                value if value == b => (r - g) / delta + 4.0,
                 _ => unreachable!(),
             }
         };
@@ -295,10 +294,12 @@ pub struct PartialImageInfo {
     pub height: f32,
     pub width: f32,
 }
+#[allow(dead_code)]
 pub enum FilterMode {
     Linear,
     Nearest,
 }
+#[allow(dead_code)]
 pub enum MipmapMode {
     None,
     Nearest,

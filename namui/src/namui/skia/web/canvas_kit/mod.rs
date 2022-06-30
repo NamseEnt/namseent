@@ -31,28 +31,3 @@ mod color_filter_factory;
 pub use color_filter_factory::*;
 mod matrix_3x3_helpers;
 pub use matrix_3x3_helpers::*;
-
-#[wasm_bindgen]
-pub struct Color {
-    r: f32,
-    g: f32,
-    b: f32,
-    a: f32,
-}
-
-#[wasm_bindgen]
-pub struct Rect {
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-}
-
-#[wasm_bindgen]
-pub struct RRect {
-    rect: Rect,
-    rx: f32,
-    ry: f32,
-}
-// struct AnimatedImage;
-struct Image;

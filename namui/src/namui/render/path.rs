@@ -1,4 +1,4 @@
-use crate::namui::{self, *};
+use crate::namui::{*};
 
 pub fn path(path_builder: PathBuilder, paint_builder: PaintBuilder) -> RenderingTree {
     RenderingTree::Node(RenderingData {

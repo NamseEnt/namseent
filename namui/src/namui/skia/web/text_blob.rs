@@ -4,6 +4,7 @@ unsafe impl Sync for CanvasKitTextBlob {}
 unsafe impl Send for CanvasKitTextBlob {}
 pub struct TextBlob(pub CanvasKitTextBlob);
 impl TextBlob {
+    #[allow(dead_code)]
     pub fn from_text(string: &str, font: &Font) -> Self {
         TextBlob(
             canvas_kit()
