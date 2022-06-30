@@ -34,7 +34,6 @@ impl ScrollView {
                     }
                     self.scroll_y = *scroll_y;
                 }
-                _ => {}
             }
         }
     }
