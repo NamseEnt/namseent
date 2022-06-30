@@ -1,6 +1,9 @@
+#![deny(warnings)]
+
 pub mod namui;
-pub use namui::*;
 pub mod prelude;
+
+pub use namui::*;
 
 #[cfg(test)]
 #[cfg(target_family = "wasm")]

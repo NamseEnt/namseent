@@ -1,5 +1,5 @@
 use super::*;
-use crate::namui::NamuiContext;
+
 
 #[derive(Debug, Serialize, Clone)]
 pub struct PathDrawCommand {

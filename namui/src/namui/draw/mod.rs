@@ -1,7 +1,7 @@
 pub mod image;
 pub mod path;
 pub mod text;
-use super::{skia::StrokeOptions, NamuiContext};
+use super::{skia::StrokeOptions};
 use crate::{PaintBuilder, PathBuilder, Xy};
 pub use image::ImageDrawCommand;
 pub use path::PathDrawCommand;

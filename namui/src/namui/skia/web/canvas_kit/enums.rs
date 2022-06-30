@@ -63,6 +63,7 @@ macro_rules! canvas_kit_enum {
 
 
         impl $enum_name {
+            #[allow(dead_code)]
             pub(crate) fn into_canvas_kit(&self) -> $canvas_enum_name {
                 match self {
                     $(
