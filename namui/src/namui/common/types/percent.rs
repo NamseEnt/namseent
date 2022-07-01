@@ -1,31 +1,33 @@
-use num::ToPrimitive;
+use super::{ratio::Ratio, *};
+use num::{cast::AsPrimitive, ToPrimitive};
 use std::fmt::Display;
 
-super::common_for_f32_type!(Percent);
+common_for_f32_type!(Percent);
+
+impl Ratio for Percent {
+    fn as_f32(&self) -> f32 {
+        self.0 / 100.0
+    }
+}
+
+impl AsPrimitive<f32> for Percent {
+    fn as_(self) -> f32 {
+        self.to_f32().unwrap()
+    }
+}
 
 impl Percent {
-    pub fn new<T: num::cast::AsPrimitive<f32>>(percent: T) -> Percent {
-        Percent(percent.as_())
-    }
     pub fn from<T>(decimal: T) -> Percent
     where
         T: num::Float,
     {
         Percent(decimal.to_f32().unwrap() * 100.0)
     }
-}
-
-impl<T: num::ToPrimitive + num::FromPrimitive> std::ops::Mul<T> for Percent {
-    type Output = T;
-    fn mul(self, rhs: T) -> Self::Output {
-        T::from_f32(self.to_f32().unwrap().mul(rhs.to_f32().unwrap())).unwrap()
-    }
-}
-
-impl<T: num::ToPrimitive + num::FromPrimitive> std::ops::Mul<T> for &Percent {
-    type Output = T;
-    fn mul(self, rhs: T) -> Self::Output {
-        T::from_f32(self.to_f32().unwrap().mul(rhs.to_f32().unwrap())).unwrap()
+    pub fn from_percent<T>(percent: T) -> Percent
+    where
+        T: num::cast::AsPrimitive<f32>,
+    {
+        Percent(percent.as_())
     }
 }
 
@@ -72,8 +74,8 @@ mod tests {
     #[wasm_bindgen_test]
     fn percent_multiply_should_work() {
         let a = 4.0_f32;
-        let b = Percent::new(150.0_f32);
-        let c = 6.0_f32;
+        let b = Percent::from(150.0_f32);
+        let c = Percent::from(600.0_f32);
         let b_a = b * a;
 
         assert_eq!(c, b_a);
@@ -82,7 +84,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn percent_display_should_work() {
-        let b = Percent::new(150.0);
+        let b = Percent::from(150.0);
 
         assert_eq!(format!("{}", b), "150.0%");
     }

@@ -3,12 +3,12 @@ use super::*;
 impl WysiwygWindow {
     pub(super) fn render_resize_circles(
         &self,
-        wh: Wh<PixelSize>,
+        wh: Wh<Px>,
         playback_time: Time,
         layer_id: &str,
-        rotation_radian: Radian,
+        rotation_angle: Angle,
     ) -> RenderingTree {
-        let circle_radius = 6.0 * self.real_pixel_size_per_screen_pixel_size;
+        let circle_radius = 6.0 * self.real_px_per_screen_px;
         let circle_path = PathBuilder::new().add_oval(&LtrbRect {
             left: -circle_radius,
             top: -circle_radius,
@@ -21,7 +21,7 @@ impl WysiwygWindow {
         let circle_stroke_paint = PaintBuilder::new()
             .set_style(PaintStyle::Stroke)
             .set_color(Color::grayscale_f01(0.5))
-            .set_stroke_width(1.0 * self.real_pixel_size_per_screen_pixel_size)
+            .set_stroke_width(1.0 * self.real_px_per_screen_px)
             .set_anti_alias(true);
 
         let circle_rendering_tree = render([
@@ -33,25 +33,25 @@ impl WysiwygWindow {
             [
                 (
                     ResizeCircleLocation::LeftTop,
-                    PixelSize::from(0.0),
-                    PixelSize::from(0.0),
+                    Px::from(0.0),
+                    Px::from(0.0),
                     MouseCursor::LeftTopRightBottomResize,
                 ),
                 (
                     ResizeCircleLocation::Top,
                     wh.width / 2.0,
-                    PixelSize::from(0.0),
+                    Px::from(0.0),
                     MouseCursor::TopBottomResize,
                 ),
                 (
                     ResizeCircleLocation::RightTop,
                     wh.width,
-                    PixelSize::from(0.0),
+                    Px::from(0.0),
                     MouseCursor::RightTopLeftBottomResize,
                 ),
                 (
                     ResizeCircleLocation::Left,
-                    PixelSize::from(0.0),
+                    Px::from(0.0),
                     wh.height / 2.0,
                     MouseCursor::LeftRightResize,
                 ),
@@ -63,7 +63,7 @@ impl WysiwygWindow {
                 ),
                 (
                     ResizeCircleLocation::LeftBottom,
-                    PixelSize::from(0.0),
+                    Px::from(0.0),
                     wh.height,
                     MouseCursor::RightTopLeftBottomResize,
                 ),
@@ -103,7 +103,7 @@ impl WysiwygWindow {
                                     anchor_xy,
                                     playback_time,
                                     layer_id: layer_id.clone(),
-                                    rotation_radian,
+                                    rotation_angle,
                                 });
                             });
                         }),

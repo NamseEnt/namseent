@@ -17,7 +17,7 @@ impl Act<Animation> for DragRotationAction {
         {
             let center_to_start_xy = self.start_mouse_real_xy - self.image_center_real_xy;
             let center_to_end_xy = self.end_mouse_real_xy - self.image_center_real_xy;
-            let degree = center_to_start_xy.angle_to(center_to_end_xy).to_degree();
+            let angle = center_to_start_xy.angle_to(center_to_end_xy);
 
             let previous_angle = layer
                 .image
@@ -26,7 +26,7 @@ impl Act<Animation> for DragRotationAction {
                 .unwrap();
 
             layer.image.rotation_angle.put(
-                KeyframePoint::new(self.playback_time, previous_angle + degree),
+                KeyframePoint::new(self.playback_time, previous_angle + angle),
                 animation::KeyframeLine::Linear,
             );
 

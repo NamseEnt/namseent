@@ -14,7 +14,7 @@ pub struct TimelineWindow {
     animation_history: AnimationHistory,
     window_id: String,
     start_at: Time,
-    time_per_pixel: TimePerPixel,
+    time_per_px: TimePerPx,
     dragging: Option<Dragging>,
     playing_status: PlayingStatus,
 }
@@ -24,8 +24,8 @@ impl TimelineWindow {
         Self {
             animation_history,
             window_id: namui::nanoid(),
-            start_at: Time::from_ms(-1000.0),
-            time_per_pixel: TimePerPixel::from_ms_per_pixel(10.0),
+            start_at: Time::Ms(-1000.0),
+            time_per_px: Time::Ms(10.0) / Px::from(1.0_f32),
             dragging: None,
             playing_status: PlayingStatus::new(),
         }

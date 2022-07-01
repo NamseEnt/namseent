@@ -1,17 +1,17 @@
 use super::*;
 
 pub(super) enum PropertyContextMapping {
-    X(PropertyContext<PixelSize>),
-    Y(PropertyContext<PixelSize>),
+    X(PropertyContext<Px>),
+    Y(PropertyContext<Px>),
     Width(PropertyContext<Percent>),
     Height(PropertyContext<Percent>),
-    RotationAngle(PropertyContext<Degree>),
+    RotationAngle(PropertyContext<Angle>),
     Opacity(PropertyContext<OneZero>),
 }
 pub(super) struct MovePointToAction {
     pub(super) point_address: PointAddress,
-    pub(super) row_height: PixelSize,
-    pub(super) y_in_row: PixelSize,
+    pub(super) row_height: Px,
+    pub(super) y_in_row: Px,
     pub(super) property_context: PropertyContextMapping,
 }
 
@@ -116,8 +116,8 @@ impl GraphWindow {
     pub(super) fn get_move_to_action(
         &self,
         point_address: &PointAddress,
-        row_height: PixelSize,
-        y_in_row: PixelSize,
+        row_height: Px,
+        y_in_row: Px,
     ) -> MovePointToAction {
         MovePointToAction {
             point_address: point_address.clone(),

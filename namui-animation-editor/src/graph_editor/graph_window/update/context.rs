@@ -15,21 +15,21 @@ impl GraphWindow {
             anchor_y: f32,
             row_height: f32,
         ) {
-            let bottom_to_anchor = PixelSize::from(row_height - anchor_y);
+            let bottom_to_anchor = Px::from(row_height - anchor_y);
 
-            let next_value_per_pixel = property_context
+            let next_value_per_px = property_context
                 .zoom
-                .zoom(property_context.value_per_pixel, delta.into());
+                .zoom(property_context.value_per_px, delta.into());
 
-            let zoomed_ratio = next_value_per_pixel / property_context.value_per_pixel;
+            let zoomed_ratio = next_value_per_px / property_context.value_per_px;
 
-            let zero_to_anchor_y = property_context.pixel_size_zero_to_bottom + bottom_to_anchor;
+            let zero_to_anchor_y = property_context.px_zero_to_bottom + bottom_to_anchor;
             let zoomed_zero_to_anchor_y = zero_to_anchor_y / zoomed_ratio;
 
-            let next_pixel_size_zero_to_bottom = zoomed_zero_to_anchor_y - bottom_to_anchor;
+            let next_px_zero_to_bottom = zoomed_zero_to_anchor_y - bottom_to_anchor;
 
-            property_context.value_per_pixel = next_value_per_pixel;
-            property_context.pixel_size_zero_to_bottom = next_pixel_size_zero_to_bottom;
+            property_context.value_per_px = next_value_per_px;
+            property_context.px_zero_to_bottom = next_px_zero_to_bottom;
         }
 
         match property_name {
@@ -58,7 +58,7 @@ impl GraphWindow {
             property_context: &mut PropertyContext<TValue>,
             delta: f32,
         ) {
-            property_context.pixel_size_zero_to_bottom += PixelSize::from(delta);
+            property_context.px_zero_to_bottom += Px::from(delta);
         }
 
         match property_name {

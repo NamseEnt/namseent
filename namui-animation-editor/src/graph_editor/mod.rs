@@ -29,7 +29,7 @@ impl GraphEditor {
             image_select_window: image_select_window::ImageSelectWindow::new(
                 animation_history.clone(),
             ),
-            playback_time: Time::zero(),
+            playback_time: Time::Ms(0.0),
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {

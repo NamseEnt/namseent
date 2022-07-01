@@ -1,5 +1,7 @@
 mod render_graph;
 
+use std::fmt::Display;
+
 use super::*;
 use namui::animation::KeyframeValue;
 use render_graph::*;
@@ -16,7 +18,7 @@ impl GraphWindow {
                 fixed(20.0, |wh| {
                     time_ruler::render(&time_ruler::Props {
                         start_at: self.context.start_at,
-                        time_per_pixel: self.context.time_per_pixel,
+                        time_per_px: self.context.time_per_px,
                         xywh: XywhRect {
                             x: 0.0.into(),
                             y: 0.0.into(),
@@ -93,14 +95,16 @@ impl GraphWindow {
                 props.wh,
                 props.playback_time,
                 self.context.start_at,
-                self.context.time_per_pixel,
+                self.context.time_per_px,
             ),
         ])
     }
 }
 
 impl GraphWindow {
-    fn render_f32_based_graph_row<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive>(
+    fn render_f32_based_graph_row<
+        TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive + Display,
+    >(
         &self,
         wh: Wh<f32>,
         layer: &Layer,
@@ -115,7 +119,7 @@ impl GraphWindow {
                 graph,
                 Context {
                     start_at: self.context.start_at,
-                    time_per_pixel: self.context.time_per_pixel,
+                    time_per_px: self.context.time_per_px,
                     property_context,
                     mouse_local_xy: self.mouse_over_row.as_ref().and_then(|mouse_over_row| {
                         if mouse_over_row.property_name == property_name {
@@ -145,9 +149,9 @@ fn render_playback_time_line(
     wh: Wh<f32>,
     playback_time: Time,
     start_at: Time,
-    time_per_pixel: TimePerPixel,
+    time_per_px: TimePerPx,
 ) -> RenderingTree {
-    let x = (playback_time - start_at) / time_per_pixel;
+    let x = (playback_time - start_at) / time_per_px;
     let color = Color::RED;
     let path = namui::PathBuilder::new()
         .move_to(x.into(), 0.0)
@@ -229,14 +233,14 @@ fn render_graph_row(
                     namui::Code::ShiftRight,
                 ]) {
                     namui::event::send(Event::GraphShiftMouseWheel {
-                        delta: PixelSize::from(event.delta_xy.y),
+                        delta: Px::from(event.delta_xy.y),
                     })
                 } else if namui::keyboard::any_code_press([
                     namui::Code::AltLeft,
                     namui::Code::AltRight,
                 ]) {
                     namui::event::send(Event::GraphAltMouseWheel {
-                        delta: PixelSize::from(event.delta_xy.y),
+                        delta: Px::from(event.delta_xy.y),
                         mouse_local_xy,
                     })
                 } else if namui::keyboard::any_code_press([
@@ -244,14 +248,14 @@ fn render_graph_row(
                     namui::Code::ControlRight,
                 ]) {
                     namui::event::send(Event::GraphCtrlMouseWheel {
-                        delta: PixelSize::from(event.delta_xy.y),
+                        delta: Px::from(event.delta_xy.y),
                         mouse_local_xy,
                         property_name,
                         row_wh: wh,
                     })
                 } else {
                     namui::event::send(Event::GraphMouseWheel {
-                        delta: PixelSize::from(event.delta_xy.y),
+                        delta: Px::from(event.delta_xy.y),
                         property_name,
                     })
                 }

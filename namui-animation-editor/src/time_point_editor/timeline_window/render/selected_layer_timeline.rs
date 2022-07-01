@@ -61,11 +61,10 @@ impl TimelineWindow {
             .iter()
             .filter(|keyframe| {
                 self.start_at <= keyframe.time
-                    && keyframe.time
-                        <= self.start_at + (self.time_per_pixel * PixelSize::from(wh.width))
+                    && keyframe.time <= self.start_at + (self.time_per_px * Px::from(wh.width))
             })
             .map(|keyframe| {
-                let x = (keyframe.time - self.start_at) / self.time_per_pixel;
+                let x = (keyframe.time - self.start_at) / self.time_per_px;
                 let is_selected = keyframe.time == self.get_playback_time();
 
                 let sign = match is_selected {

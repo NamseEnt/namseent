@@ -83,7 +83,7 @@ impl TimelineWindow {
                     });
                 });
 
-        let playback_time_x = (self.get_playback_time() - self.start_at) / self.time_per_pixel;
+        let playback_time_x = (self.get_playback_time() - self.start_at) / self.time_per_px;
         let playback_time_line = namui::path(
             PathBuilder::new()
                 .move_to(playback_time_x.into(), 0.0)
@@ -106,7 +106,7 @@ impl TimelineWindow {
                             height: wh.height.into(),
                         },
                         start_at: self.start_at,
-                        time_per_pixel: self.time_per_pixel,
+                        time_per_px: self.time_per_px,
                     })
                 }),
                 ratio(2.0, |wh| {

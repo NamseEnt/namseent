@@ -1,14 +1,16 @@
+use num::FromPrimitive;
+
 use super::*;
 use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnimatableImage {
     pub image_source_url: Option<Url>,
-    pub x: KeyframeGraph<PixelSize>,
-    pub y: KeyframeGraph<PixelSize>,
+    pub x: KeyframeGraph<Px>,
+    pub y: KeyframeGraph<Px>,
     pub width_percent: KeyframeGraph<Percent>,
     pub height_percent: KeyframeGraph<Percent>,
-    pub rotation_angle: KeyframeGraph<Degree>,
+    pub rotation_angle: KeyframeGraph<Angle>,
     pub opacity: KeyframeGraph<OneZero>,
     pub anchor_percent_xy: Xy<Percent>,
 }
@@ -23,8 +25,8 @@ impl AnimatableImage {
             rotation_angle: KeyframeGraph::new(),
             opacity: KeyframeGraph::new(),
             anchor_percent_xy: Xy {
-                x: Percent::new(50.0),
-                y: Percent::new(50.0),
+                x: Percent::from_percent(50.0),
+                y: Percent::from_percent(50.0),
             },
         }
     }
@@ -68,7 +70,7 @@ impl AnimatableImage {
         }
         None
     }
-    pub fn get_image_pixel_size_wh(&self, time: Time) -> Option<Wh<PixelSize>> {
+    pub fn get_image_px_wh(&self, time: Time) -> Option<Wh<Px>> {
         let width_percent = self.width_percent.get_value(time)?;
         let height_percent = self.height_percent.get_value(time)?;
 
@@ -78,19 +80,18 @@ impl AnimatableImage {
             .and_then(|image| {
                 let size = image.size();
                 Some(Wh {
-                    width: (width_percent * size.width).into(),
-                    height: (height_percent * size.height).into(),
+                    width: Px::from_f32(size.width).unwrap() * width_percent,
+                    height: Px::from_f32(size.height).unwrap() * height_percent,
                 })
             })
     }
-    pub fn get_anchor_pixel_size_wh(&self, playback_time: Time) -> Option<Xy<PixelSize>> {
-        self.get_image_pixel_size_wh(playback_time)
-            .and_then(|image_wh| {
-                Some(Xy {
-                    x: self.anchor_percent_xy.x * image_wh.width,
-                    y: self.anchor_percent_xy.y * image_wh.height,
-                })
+    pub fn get_anchor_px_wh(&self, playback_time: Time) -> Option<Xy<Px>> {
+        self.get_image_px_wh(playback_time).and_then(|image_wh| {
+            Some(Xy {
+                x: image_wh.width * self.anchor_percent_xy.x,
+                y: image_wh.height * self.anchor_percent_xy.y,
             })
+        })
     }
     pub fn get_keyframe_infos(&self) -> Vec<KeyframeInfo> {
         get_keyframe_info(&self.x, KeyframeType::X)
@@ -161,15 +162,15 @@ impl Animate for AnimatableImage {
             if opacity <= 0.0 {
                 return None;
             }
-            let radian = self.rotation_angle.get_value(time)?.to_radians();
+            let radian = self.rotation_angle.get_value(time)?.as_radians();
             let x = self.x.get_value(time)?;
             let y = self.y.get_value(time)?;
             let source_url = self.image_source_url.as_ref()?.clone();
 
             let image = crate::system::image::try_load(&source_url)?;
 
-            let image_wh = self.get_image_pixel_size_wh(time)?;
-            let anchor_xy = self.get_anchor_pixel_size_wh(time)?;
+            let image_wh = self.get_image_px_wh(time)?;
+            let anchor_xy = self.get_anchor_px_wh(time)?;
 
             let image_rendering_tree = namui::image(ImageParam {
                 xywh: XywhRect {
@@ -213,26 +214,26 @@ mod tests {
     fn one_zero_should_be_interpolated() {
         let mut graph = KeyframeGraph::new();
         graph.put(
-            KeyframePoint::new(Time::from_ms(0.0), OneZero::from(0.0)),
+            KeyframePoint::new(Time::Ms(0.0), OneZero::from(0.0)),
             KeyframeLine::Linear,
         );
         graph.put(
             KeyframePoint::new(
-                Time::from_ms(10.0),
+                Time::Ms(10.0),
                 OneZero::from(100.0), // become 1.0
             ),
             KeyframeLine::Linear,
         );
         graph.put(
-            KeyframePoint::new(Time::from_ms(20.0), OneZero::from(0.5)),
+            KeyframePoint::new(Time::Ms(20.0), OneZero::from(0.5)),
             KeyframeLine::Linear,
         );
         for time in 0..10 {
-            let value = graph.get_value(Time::from_ms(time as f32));
+            let value = graph.get_value(Time::Ms(time as f32));
             assert_eq!(value, Some((time as f32 / 10.0).into()));
         }
         for time in 10..20 {
-            let value = graph.get_value(Time::from_ms(time as f32));
+            let value = graph.get_value(Time::Ms(time as f32));
             assert!(approx_eq!(
                 f32,
                 value.unwrap().into(),

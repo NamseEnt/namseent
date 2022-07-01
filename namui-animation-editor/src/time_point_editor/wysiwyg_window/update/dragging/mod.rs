@@ -18,8 +18,7 @@ impl WysiwygWindow {
         let dragging = self.dragging.as_ref().unwrap();
         match dragging {
             Dragging::Background { anchor_xy } => {
-                let delta =
-                    self.real_pixel_size_per_screen_pixel_size * (mouse_local_xy - anchor_xy);
+                let delta = self.real_px_per_screen_px * (mouse_local_xy - anchor_xy);
                 self.real_left_top_xy = self.real_left_top_xy - delta;
 
                 self.dragging = Some(Dragging::Background {
@@ -29,8 +28,7 @@ impl WysiwygWindow {
             &Dragging::ResizeCircle { ticket } => {
                 self.animation_history
                     .update_action(ticket, |action: &mut DragResizeCircleAction| {
-                        action.real_pixel_size_per_screen_pixel_size =
-                            self.real_pixel_size_per_screen_pixel_size;
+                        action.real_px_per_screen_px = self.real_px_per_screen_px;
                         action.last_mouse_local_xy = mouse_local_xy;
                     })
                     .unwrap();
@@ -38,8 +36,7 @@ impl WysiwygWindow {
             &Dragging::ImageBody { ticket } => {
                 self.animation_history
                     .update_action(ticket, |action: &mut DragImageBodyAction| {
-                        action.real_pixel_size_per_screen_pixel_size =
-                            self.real_pixel_size_per_screen_pixel_size;
+                        action.real_px_per_screen_px = self.real_px_per_screen_px;
                         action.last_mouse_local_xy = mouse_local_xy;
                     })
                     .unwrap();
@@ -47,8 +44,7 @@ impl WysiwygWindow {
             &Dragging::Rotation { ticket } => {
                 self.animation_history
                     .update_action(ticket, |action: &mut DragRotationAction| {
-                        action.end_mouse_real_xy =
-                            self.real_pixel_size_per_screen_pixel_size * mouse_local_xy;
+                        action.end_mouse_real_xy = self.real_px_per_screen_px * mouse_local_xy;
                     })
                     .unwrap();
             }

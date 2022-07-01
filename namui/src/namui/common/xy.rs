@@ -1,7 +1,8 @@
-use crate::types::Radian;
 use num::traits::real::Real;
 use serde::{Deserialize, Serialize};
 use std::ops::*;
+
+use crate::types::Angle;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Xy<T> {
@@ -92,12 +93,14 @@ where
     pub fn length(&self) -> T {
         (self.x * self.x + self.y * self.y).sqrt()
     }
-    pub fn angle_to(&self, rhs: Xy<T>) -> Radian {
-        (self.x * rhs.y - self.y * rhs.x)
-            .atan2(self.x * rhs.x + self.y * rhs.y)
-            .to_f32()
-            .unwrap()
-            .into()
+    pub fn angle_to(&self, rhs: Xy<T>) -> Angle {
+        Angle::Radian(
+            (self.x * rhs.y - self.y * rhs.x)
+                .atan2(self.x * rhs.x + self.y * rhs.y)
+                .to_f32()
+                .unwrap()
+                .into(),
+        )
     }
 }
 impl<T> Xy<T>

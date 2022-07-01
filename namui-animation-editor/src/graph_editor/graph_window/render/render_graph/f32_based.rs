@@ -1,7 +1,9 @@
+use std::fmt::Display;
+
 use super::*;
 use namui::animation::KeyframePoint;
 
-impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive> RenderGraph
+impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive + Display> RenderGraph
     for (&'_ KeyframeGraph<TValue>, Context<'_, TValue>)
 {
     fn render(&self, wh: Wh<f32>) -> RenderingTree {
@@ -26,7 +28,7 @@ impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive> RenderGraph
         let property_context = context.property_context;
         const BOLD_GRADATION_INTERVAL: usize = 2;
 
-        let value_at_top = property_context.get_value_at_top(PixelSize::from(wh.height));
+        let value_at_top = property_context.get_value_at_top(Px::from(wh.height));
 
         let gradation_interval: TValue = {
             let gradation_value_candidates = &property_context.gradation_value_candidates;
@@ -38,15 +40,15 @@ impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive> RenderGraph
             *gradation_value_candidates
                 .into_iter()
                 .find(|value| {
-                    let px = property_context.value_per_pixel.get_pixel_size(**value);
-                    property_context.gradation_pixel_size_range.contains(&px)
+                    let px = property_context.value_per_px.get_px(**value);
+                    property_context.gradation_px_range.contains(&px)
                 })
                 .unwrap_or(&last)
         };
 
         enum Gradation<TValue: KeyframeValue + Copy> {
-            Bold { y: PixelSize, value: TValue },
-            Light { y: PixelSize },
+            Bold { y: Px, value: TValue },
+            Light { y: Px },
         }
 
         let gradations = {
@@ -64,7 +66,7 @@ impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive> RenderGraph
 
             let gradation_value_just_under_bottom: TValue = {
                 let value_at_bottom: f32 = property_context
-                    .get_value_at_bottom(PixelSize::from(wh.height))
+                    .get_value_at_bottom(Px::from(wh.height))
                     .to_f32()
                     .unwrap();
                 let gradation_interval: f32 = gradation_interval.to_f32().unwrap();
@@ -103,9 +105,9 @@ impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive> RenderGraph
             gradations
         };
 
-        fn bold_line<TValue: KeyframeValue>(
+        fn bold_line<TValue: KeyframeValue + Display>(
             wh: Wh<f32>,
-            y: PixelSize,
+            y: Px,
             value: TValue,
         ) -> RenderingTree {
             let path_builder = namui::PathBuilder::new()
@@ -145,7 +147,7 @@ impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive> RenderGraph
             )
         }
 
-        fn light_line(wh: Wh<f32>, y: PixelSize) -> RenderingTree {
+        fn light_line(wh: Wh<f32>, y: Px) -> RenderingTree {
             let path_builder = namui::PathBuilder::new()
                 .move_to(0.0, 0.0)
                 .line_to(wh.width, 0.0);
@@ -182,8 +184,7 @@ impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive> RenderGraph
             }
         };
 
-        let time_at_x =
-            context.start_at + context.time_per_pixel * PixelSize::from(mouse_local_xy.x);
+        let time_at_x = context.start_at + context.time_per_px * Px::from(mouse_local_xy.x);
 
         let value_at_y = property_context.get_value_on_y(wh.height.into(), mouse_local_xy.y.into());
 
@@ -206,11 +207,7 @@ impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive> RenderGraph
                 color: Color::WHITE,
                 ..Default::default()
             },
-            text: format!(
-                "{:.1}s / {}",
-                time_at_x.get_total_milliseconds() / 1000.0,
-                value_at_y,
-            ),
+            text: format!("{:.1}s / {}", time_at_x.as_millis() / 1000.0, value_at_y,),
         });
 
         namui::translate(mouse_local_xy.x, mouse_local_xy.y, label)
@@ -236,7 +233,7 @@ impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive> RenderGraph
                 context.mouse_local_xy,
                 point_address,
                 context.selected_point_id == Some(point.id().to_string()),
-                PixelSize::from_f32(wh.height).unwrap(),
+                Px::from_f32(wh.height).unwrap(),
             ));
 
             if let Some((next_point, _)) = next_point_line {
@@ -250,18 +247,18 @@ impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive> RenderGraph
 }
 
 fn render_point_xy(
-    xy: Xy<PixelSize>,
+    xy: Xy<Px>,
     mouse_local_xy: Option<Xy<f32>>,
     point_address: PointAddress,
     is_selected: bool,
-    row_height: PixelSize,
+    row_height: Px,
 ) -> RenderingTree {
     const RADIUS: f32 = 4.0;
 
     let is_mouse_on_point = match mouse_local_xy {
         Some(mouse_local_xy) => {
-            (mouse_local_xy.x - f32::from(xy.x)).abs() < RADIUS
-                && (mouse_local_xy.y - f32::from(xy.y)).abs() < RADIUS
+            (mouse_local_xy.x - xy.x.to_f32().unwrap()).abs() < RADIUS
+                && (mouse_local_xy.y - xy.y.to_f32().unwrap()).abs() < RADIUS
         }
         None => false,
     };
@@ -294,14 +291,14 @@ fn render_point_xy(
         builder.on_mouse_down(move |event| {
             namui::event::send(Event::GraphPointMouseDown {
                 point_address: point_address.clone(),
-                y_in_row: PixelSize::from_f32(event.local_xy.y).unwrap(),
+                y_in_row: Px::from_f32(event.local_xy.y).unwrap(),
                 row_height,
             })
         });
     })
 }
 
-fn render_line(from: Xy<PixelSize>, to: Xy<PixelSize>) -> RenderingTree {
+fn render_line(from: Xy<Px>, to: Xy<Px>) -> RenderingTree {
     let path_builder = namui::PathBuilder::new()
         .move_to(from.x.into(), from.y.into())
         .line_to(to.x.into(), to.y.into());
@@ -317,8 +314,8 @@ fn get_xy_of_point<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive>(
     wh: Wh<f32>,
     context: &Context<TValue>,
     point: &KeyframePoint<TValue>,
-) -> Xy<PixelSize> {
-    let x = (point.time - context.start_at) / context.time_per_pixel;
+) -> Xy<Px> {
+    let x = (point.time - context.start_at) / context.time_per_px;
     let y = get_y_of_value(context.property_context, wh.height, point.value);
     Xy { x, y }
 }
@@ -327,7 +324,7 @@ fn get_y_of_value<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive>(
     property_context: &PropertyContext<TValue>,
     height: f32,
     value: TValue,
-) -> PixelSize {
-    PixelSize::from(height) + property_context.pixel_size_zero_to_bottom
-        - property_context.value_per_pixel.get_pixel_size(value)
+) -> Px {
+    Px::from(height) + property_context.px_zero_to_bottom
+        - property_context.value_per_px.get_px(value)
 }

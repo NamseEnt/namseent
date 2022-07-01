@@ -77,8 +77,8 @@ impl WysiwygWindow {
             render([
                 background,
                 scale(
-                    1.0 / self.real_pixel_size_per_screen_pixel_size,
-                    1.0 / self.real_pixel_size_per_screen_pixel_size,
+                    1.0 / self.real_px_per_screen_px,
+                    1.0 / self.real_px_per_screen_px,
                     translate(
                         -self.real_left_top_xy.x,
                         -self.real_left_top_xy.y,

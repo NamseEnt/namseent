@@ -122,7 +122,7 @@ fn render_preview_cell(wh: Wh<f32>, layer: &namui::animation::Layer, now: Time) 
                 let duration = end_time - start_time;
 
                 const PLAY_SPEED: f32 = 3.0;
-                let playback_time = if duration == Time::zero() {
+                let playback_time = if duration == Time::Ms(0.0) {
                     start_time
                 } else {
                     (now % (duration / PLAY_SPEED)) * PLAY_SPEED

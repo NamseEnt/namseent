@@ -1,5 +1,5 @@
 use super::*;
-use crate::zoom::zoom_time_per_pixel;
+use crate::zoom::zoom_time_per_px;
 use namui::animation::{KeyframeGraph, KeyframePoint, KeyframeValue};
 
 impl TimelineWindow {
@@ -7,19 +7,18 @@ impl TimelineWindow {
         if let Some(event) = event.downcast_ref::<Event>() {
             match event {
                 &Event::ShiftWheel { delta } => {
-                    self.start_at += PixelSize::from(delta) * self.time_per_pixel;
+                    self.start_at += Px::from(delta) * self.time_per_px;
                 }
                 &Event::AltWheel { delta, anchor_xy } => {
                     let time_at_mouse_position =
-                        self.start_at + PixelSize::from(anchor_xy.x) * self.time_per_pixel;
+                        self.start_at + Px::from(anchor_xy.x) * self.time_per_px;
 
-                    let next_time_per_pixel =
-                        zoom_time_per_pixel(self.time_per_pixel, delta.into());
+                    let next_time_per_px = zoom_time_per_px(self.time_per_px, delta.into());
 
                     let next_start_at =
-                        time_at_mouse_position - PixelSize::from(anchor_xy.x) * next_time_per_pixel;
+                        time_at_mouse_position - Px::from(anchor_xy.x) * next_time_per_px;
 
-                    self.time_per_pixel = next_time_per_pixel;
+                    self.time_per_px = next_time_per_px;
                     self.start_at = next_start_at;
                 }
                 &Event::TimelineLeftMouseDown { mouse_local_xy } => {
@@ -28,8 +27,7 @@ impl TimelineWindow {
                             last_mouse_local_xy: mouse_local_xy,
                         });
 
-                        let time =
-                            self.start_at + PixelSize::from(mouse_local_xy.x) * self.time_per_pixel;
+                        let time = self.start_at + Px::from(mouse_local_xy.x) * self.time_per_px;
                         self.set_playback_time(time);
                     }
                 }
@@ -51,8 +49,8 @@ impl TimelineWindow {
                                     layer_id: layer_id.clone(),
                                     point_ids: point_ids.clone(),
                                     drag_end_x: mouse_local_xy.x.into(),
-                                    anchor_x: PixelSize::from(anchor_xy.x),
-                                    time_per_pixel: self.time_per_pixel,
+                                    anchor_x: Px::from(anchor_xy.x),
+                                    time_per_px: self.time_per_px,
                                     start_at: self.start_at,
                                 })
                         {
@@ -138,14 +136,14 @@ impl TimelineWindow {
                 last_mouse_local_xy,
             } => {
                 let delta = mouse_local_xy - *last_mouse_local_xy;
-                self.start_at -= PixelSize::from(delta.x) * self.time_per_pixel;
+                self.start_at -= Px::from(delta.x) * self.time_per_px;
                 *last_mouse_local_xy = mouse_local_xy;
             }
             Dragging::Keyframe { ref action_ticket } => {
-                let mut anchor_x = PixelSize::from(0.0);
+                let mut anchor_x = Px::from(0.0);
                 self.animation_history
                     .update_action(*action_ticket, |action: &mut DraggingKeyframeAction| {
-                        action.time_per_pixel = self.time_per_pixel;
+                        action.time_per_px = self.time_per_px;
                         action.start_at = self.start_at;
                         action.drag_end_x = mouse_local_xy.x.into();
 
@@ -154,8 +152,7 @@ impl TimelineWindow {
                     .unwrap();
 
                 self.set_playback_time(
-                    self.start_at
-                        + (PixelSize::from(mouse_local_xy.x) - anchor_x) * self.time_per_pixel,
+                    self.start_at + (Px::from(mouse_local_xy.x) - anchor_x) * self.time_per_px,
                 );
             }
         }
@@ -176,11 +173,19 @@ impl TimelineWindow {
                 {
                     let time = self.time;
 
-                    add_new_point(&mut layer.image.x, time, PixelSize::from(0.0));
-                    add_new_point(&mut layer.image.y, time, PixelSize::from(0.0));
-                    add_new_point(&mut layer.image.width_percent, time, Percent::new(100.0));
-                    add_new_point(&mut layer.image.height_percent, time, Percent::new(100.0));
-                    add_new_point(&mut layer.image.rotation_angle, time, Degree::from(0.0));
+                    add_new_point(&mut layer.image.x, time, Px::from(0.0));
+                    add_new_point(&mut layer.image.y, time, Px::from(0.0));
+                    add_new_point(
+                        &mut layer.image.width_percent,
+                        time,
+                        Percent::from_percent(100.0f32),
+                    );
+                    add_new_point(
+                        &mut layer.image.height_percent,
+                        time,
+                        Percent::from_percent(100.0f32),
+                    );
+                    add_new_point(&mut layer.image.rotation_angle, time, Angle::Degree(0.0));
                     add_new_point(&mut layer.image.opacity, time, OneZero::from(1.0));
                     Ok(animation)
                 } else {
@@ -189,7 +194,7 @@ impl TimelineWindow {
             }
         }
 
-        let time = self.start_at + PixelSize::from(mouse_local_xy.x) * self.time_per_pixel;
+        let time = self.start_at + Px::from(mouse_local_xy.x) * self.time_per_px;
         if let Some(action_ticket) =
             self.animation_history
                 .try_set_action(CreateNewKeyframeAction {
@@ -253,10 +258,10 @@ fn delete_point(layer: &mut Layer, time: Time) {
 struct DraggingKeyframeAction {
     layer_id: String,
     point_ids: Vec<String>,
-    drag_end_x: PixelSize,
-    anchor_x: PixelSize,
+    drag_end_x: Px,
+    anchor_x: Px,
     start_at: Time,
-    time_per_pixel: TimePerPixel,
+    time_per_px: TimePerPx,
 }
 impl Act<Animation> for DraggingKeyframeAction {
     fn act(&self, state: &Animation) -> Result<Animation, Box<dyn std::error::Error>> {
@@ -266,7 +271,7 @@ impl Act<Animation> for DraggingKeyframeAction {
             .iter_mut()
             .find(|layer| layer.id.eq(&self.layer_id))
         {
-            let to_time = self.start_at + (self.drag_end_x - self.anchor_x) * self.time_per_pixel;
+            let to_time = self.start_at + (self.drag_end_x - self.anchor_x) * self.time_per_px;
 
             for point_id in &self.point_ids {
                 move_point(layer, &point_id, to_time)

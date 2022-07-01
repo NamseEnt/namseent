@@ -1,16 +1,16 @@
 use super::*;
 
 enum PropertyContextMapping {
-    X(PropertyContext<PixelSize>),
-    Y(PropertyContext<PixelSize>),
+    X(PropertyContext<Px>),
+    Y(PropertyContext<Px>),
     Width(PropertyContext<Percent>),
     Height(PropertyContext<Percent>),
-    RotationAngle(PropertyContext<Degree>),
+    RotationAngle(PropertyContext<Angle>),
     Opacity(PropertyContext<OneZero>),
 }
 pub(super) struct MovePointByAction {
     point_address: PointAddress,
-    delta_y: PixelSize,
+    delta_y: Px,
     property_context: PropertyContextMapping,
 }
 
@@ -32,9 +32,9 @@ impl Act<Animation> for MovePointByAction {
                         .ok_or_else(|| "point not found")?
                         .clone();
 
-                    point.value = PixelSize::from_f32(
+                    point.value = Px::from_f32(
                         point.value.to_f32().unwrap()
-                            + (property_context.value_per_pixel * self.delta_y)
+                            + (property_context.value_per_px * self.delta_y)
                                 .to_f32()
                                 .unwrap(),
                     )
@@ -50,9 +50,9 @@ impl Act<Animation> for MovePointByAction {
                         .ok_or_else(|| "point not found")?
                         .clone();
 
-                    point.value = PixelSize::from_f32(
+                    point.value = Px::from_f32(
                         point.value.to_f32().unwrap()
-                            + (property_context.value_per_pixel * self.delta_y)
+                            + (property_context.value_per_px * self.delta_y)
                                 .to_f32()
                                 .unwrap(),
                     )
@@ -70,7 +70,7 @@ impl Act<Animation> for MovePointByAction {
 
                     point.value = Percent::from_f32(
                         point.value.to_f32().unwrap()
-                            + (property_context.value_per_pixel * self.delta_y)
+                            + (property_context.value_per_px * self.delta_y)
                                 .to_f32()
                                 .unwrap(),
                     )
@@ -91,7 +91,7 @@ impl Act<Animation> for MovePointByAction {
 
                     point.value = Percent::from_f32(
                         point.value.to_f32().unwrap()
-                            + (property_context.value_per_pixel * self.delta_y)
+                            + (property_context.value_per_px * self.delta_y)
                                 .to_f32()
                                 .unwrap(),
                     )
@@ -110,9 +110,9 @@ impl Act<Animation> for MovePointByAction {
                         .ok_or_else(|| "point not found")?
                         .clone();
 
-                    point.value = Degree::from_f32(
+                    point.value = Angle::from_f32(
                         point.value.to_f32().unwrap()
-                            + (property_context.value_per_pixel * self.delta_y)
+                            + (property_context.value_per_px * self.delta_y)
                                 .to_f32()
                                 .unwrap(),
                     )
@@ -133,7 +133,7 @@ impl Act<Animation> for MovePointByAction {
 
                     point.value = OneZero::from_f32(
                         point.value.to_f32().unwrap()
-                            + (property_context.value_per_pixel * self.delta_y)
+                            + (property_context.value_per_px * self.delta_y)
                                 .to_f32()
                                 .unwrap(),
                     )
@@ -157,7 +157,7 @@ impl GraphWindow {
     pub(super) fn get_move_by_action(
         &self,
         point_address: &PointAddress,
-        delta_y: PixelSize,
+        delta_y: Px,
     ) -> MovePointByAction {
         MovePointByAction {
             delta_y,

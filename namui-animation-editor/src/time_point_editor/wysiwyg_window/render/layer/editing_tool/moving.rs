@@ -3,7 +3,7 @@ use super::*;
 impl WysiwygWindow {
     pub(super) fn render_border_with_move_handling(
         &self,
-        wh: Wh<PixelSize>,
+        wh: Wh<Px>,
         playback_time: Time,
         layer_id: &str,
     ) -> RenderingTree {
@@ -13,7 +13,7 @@ impl WysiwygWindow {
                 height: wh.height.into(),
             },
             Color::grayscale_f01(0.2),
-            2.0 * self.real_pixel_size_per_screen_pixel_size,
+            2.0 * self.real_px_per_screen_px,
             Color::TRANSPARENT,
         )
         .with_mouse_cursor({

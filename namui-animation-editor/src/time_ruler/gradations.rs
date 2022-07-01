@@ -1,8 +1,9 @@
 use super::*;
+use namui::math::num::ToPrimitive;
 
 pub struct GradationsProps<'a> {
     pub wh: Wh<f32>,
-    pub gap_px: PixelSize,
+    pub gap_px: Px,
     pub gradations: &'a Vec<Gradation>,
 }
 pub const SUB_GRADATION_FREQUENCY: i32 = 5;
@@ -22,7 +23,7 @@ pub fn render_gradations(props: &GradationsProps) -> RenderingTree {
         .set_stroke_width(1.0);
 
     struct GradationProperty {
-        x: PixelSize,
+        x: Px,
         is_big: bool,
     }
     let mut gradation_properties = Vec::<GradationProperty>::new();
@@ -48,8 +49,11 @@ pub fn render_gradations(props: &GradationsProps) -> RenderingTree {
                     sub_gradation_height
                 };
                 let path = PathBuilder::new()
-                    .move_to(x.into(), (props.wh.height - gradation_height) / 2.0)
-                    .line_to(x.into(), props.wh.height);
+                    .move_to(
+                        x.to_f32().unwrap(),
+                        (props.wh.height - gradation_height) / 2.0,
+                    )
+                    .line_to(x.to_f32().unwrap(), props.wh.height);
                 namui::path(
                     path,
                     if *is_big {

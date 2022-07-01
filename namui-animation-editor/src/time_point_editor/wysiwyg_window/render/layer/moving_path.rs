@@ -1,10 +1,10 @@
 use super::*;
-use namui::types::PixelSize;
+use namui::types::Px;
 use std::collections::BTreeSet;
 
 impl WysiwygWindow {
     pub(super) fn render_moving_path(&self, layer: &Layer) -> namui::RenderingTree {
-        let time_and_xys: Vec<(Time, Xy<PixelSize>)> = {
+        let time_and_xys: Vec<(Time, Xy<Px>)> = {
             let mut result = vec![];
 
             let times = layer
@@ -14,7 +14,7 @@ impl WysiwygWindow {
                 .map(|info| info.time)
                 .collect::<BTreeSet<_>>();
 
-            let get_xy = |time: Time| -> Option<Xy<PixelSize>> {
+            let get_xy = |time: Time| -> Option<Xy<Px>> {
                 let x = layer.image.x.get_value(time)?;
                 let y = layer.image.y.get_value(time)?;
                 Some(Xy { x, y })

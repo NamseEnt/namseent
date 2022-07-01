@@ -27,19 +27,17 @@ impl WysiwygWindow {
                     delta,
                     mouse_local_xy,
                 } => {
-                    let next_real_pixel_size_per_screen_pixel_size =
-                        zoom(self.real_pixel_size_per_screen_pixel_size, *delta);
+                    let next_real_px_per_screen_px = zoom(self.real_px_per_screen_px, *delta);
 
-                    let real_xy_on_mouse_xy = self.real_left_top_xy
-                        + self.real_pixel_size_per_screen_pixel_size * *mouse_local_xy;
+                    let real_xy_on_mouse_xy =
+                        self.real_left_top_xy + self.real_px_per_screen_px * *mouse_local_xy;
 
-                    let next_left_top_xy = real_xy_on_mouse_xy
-                        - next_real_pixel_size_per_screen_pixel_size * *mouse_local_xy;
+                    let next_left_top_xy =
+                        real_xy_on_mouse_xy - next_real_px_per_screen_px * *mouse_local_xy;
 
                     self.real_left_top_xy = next_left_top_xy;
 
-                    self.real_pixel_size_per_screen_pixel_size =
-                        next_real_pixel_size_per_screen_pixel_size;
+                    self.real_px_per_screen_px = next_real_px_per_screen_px;
                 }
                 Event::UpdateWh { wh } => {
                     self.last_wh = Some(*wh);
@@ -58,8 +56,7 @@ impl WysiwygWindow {
                                     last_mouse_local_xy: anchor_xy,
                                     layer_id: layer_id.clone(),
                                     playback_time,
-                                    real_pixel_size_per_screen_pixel_size: self
-                                        .real_pixel_size_per_screen_pixel_size,
+                                    real_px_per_screen_px: self.real_px_per_screen_px,
                                 })
                         {
                             self.dragging = Some(Dragging::ImageBody { ticket });
@@ -71,7 +68,7 @@ impl WysiwygWindow {
                     location,
                     anchor_xy,
                     playback_time,
-                    rotation_radian,
+                    rotation_angle,
                 } => {
                     if self.dragging.is_none() {
                         if let Some(ticket) = self.animation_history.try_set_action(
@@ -80,10 +77,9 @@ impl WysiwygWindow {
                                 last_mouse_local_xy: anchor_xy,
                                 layer_id: layer_id.clone(),
                                 playback_time,
-                                real_pixel_size_per_screen_pixel_size: self
-                                    .real_pixel_size_per_screen_pixel_size,
+                                real_px_per_screen_px: self.real_px_per_screen_px,
                                 location,
-                                rotation_radian,
+                                rotation_angle,
                             },
                         ) {
                             self.dragging = Some(Dragging::ResizeCircle { ticket });
@@ -141,18 +137,18 @@ impl WysiwygWindow {
     }
 
     fn center_viewport(&mut self, wh: Wh<f32>) {
-        let viewport_center_in_real_pixel = Xy {
+        let viewport_center_in_real_px = Xy {
             x: 1920.0 / 2.0,
             y: 1080.0 / 2.0,
         };
 
-        let window_center_in_real_pixel = self.real_pixel_size_per_screen_pixel_size / 2.0
+        let window_center_in_real_px = self.real_px_per_screen_px / 2.0
             * Xy {
                 x: wh.width,
                 y: wh.height,
             };
 
-        self.real_left_top_xy = viewport_center_in_real_pixel - window_center_in_real_pixel;
+        self.real_left_top_xy = viewport_center_in_real_px - window_center_in_real_px;
     }
 }
 

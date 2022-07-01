@@ -51,21 +51,16 @@ impl WysiwygWindow {
     ) -> RenderingTree {
         let x = layer.image.x.get_value(playback_time).unwrap();
         let y = layer.image.y.get_value(playback_time).unwrap();
-        let wh = layer.image.get_image_pixel_size_wh(playback_time).unwrap();
-        let anchor_xy = layer.image.get_anchor_pixel_size_wh(playback_time).unwrap();
+        let wh = layer.image.get_image_px_wh(playback_time).unwrap();
+        let anchor_xy = layer.image.get_anchor_px_wh(playback_time).unwrap();
 
-        let rotation_radian = layer
-            .image
-            .rotation_angle
-            .get_value(playback_time)
-            .unwrap()
-            .to_radian();
+        let rotation_angle = layer.image.rotation_angle.get_value(playback_time).unwrap();
 
         translate(
             x.into(),
             y.into(),
             rotate(
-                rotation_radian.into(),
+                rotation_angle.as_radians(),
                 translate(
                     (-anchor_xy.x).into(),
                     (-anchor_xy.y).into(),
@@ -75,7 +70,7 @@ impl WysiwygWindow {
                             height: wh.height.into(),
                         },
                         Color::grayscale_f01(0.5),
-                        1.0 * self.real_pixel_size_per_screen_pixel_size,
+                        1.0 * self.real_px_per_screen_px,
                         Color::TRANSPARENT,
                     ),
                 ),

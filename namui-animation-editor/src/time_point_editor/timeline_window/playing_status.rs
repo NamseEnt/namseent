@@ -13,7 +13,7 @@ pub enum PlayingStatus {
 impl PlayingStatus {
     pub fn new() -> Self {
         PlayingStatus::Paused {
-            playback_time: Time::zero(),
+            playback_time: Time::Ms(0.0),
         }
     }
     pub fn get_playback_time(&self) -> Time {

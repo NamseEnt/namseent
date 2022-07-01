@@ -26,7 +26,7 @@ impl GraphWindow {
                     self.mouse_over_row = None;
                 }
                 Event::GraphShiftMouseWheel { delta } => {
-                    self.context.start_at += delta * self.context.time_per_pixel;
+                    self.context.start_at += delta * self.context.time_per_px;
                 }
                 Event::GraphMouseWheel {
                     delta,
@@ -38,16 +38,16 @@ impl GraphWindow {
                     delta,
                     mouse_local_xy: anchor_xy,
                 } => {
-                    let time_at_mouse_position = self.context.start_at
-                        + PixelSize::from(anchor_xy.x) * self.context.time_per_pixel;
+                    let time_at_mouse_position =
+                        self.context.start_at + Px::from(anchor_xy.x) * self.context.time_per_px;
 
-                    let next_time_per_pixel =
-                        zoom_time_per_pixel(self.context.time_per_pixel, delta.into());
+                    let next_time_per_px =
+                        zoom_time_per_px(self.context.time_per_px, delta.to_f32().unwrap());
 
                     let next_start_at =
-                        time_at_mouse_position - PixelSize::from(anchor_xy.x) * next_time_per_pixel;
+                        time_at_mouse_position - Px::from(anchor_xy.x) * next_time_per_px;
 
-                    self.context.time_per_pixel = next_time_per_pixel;
+                    self.context.time_per_px = next_time_per_px;
                     self.context.start_at = next_start_at;
                 }
                 Event::GraphCtrlMouseWheel {
@@ -58,7 +58,7 @@ impl GraphWindow {
                 } => {
                     self.zoom_property_context(
                         *property_name,
-                        delta.into(),
+                        delta.to_f32().unwrap(),
                         mouse_local_xy.y,
                         row_wh.height,
                     );
@@ -90,7 +90,7 @@ impl GraphWindow {
                     }
                     namui::event::send(crate::graph_editor::Event::SetPlaybackTime(
                         self.context.start_at
-                            + PixelSize::from(mouse_local_xy.x) * self.context.time_per_pixel,
+                            + Px::from(mouse_local_xy.x) * self.context.time_per_px,
                     ));
                 }
                 &Event::KeyboardKeyDown { code, row_height } => {
@@ -127,7 +127,7 @@ impl GraphWindow {
             Dragging::Point { ticket, .. } => self
                 .animation_history
                 .update_action(ticket, |action: &mut MovePointToAction| {
-                    action.y_in_row = PixelSize::from_f32(mouse_xy_in_row.y).unwrap();
+                    action.y_in_row = Px::from_f32(mouse_xy_in_row.y).unwrap();
                 })
                 .unwrap(),
             Dragging::Background {
@@ -150,7 +150,7 @@ impl GraphWindow {
     ) {
         let mouse_delta_xy = mouse_local_xy - last_mouse_local_xy;
 
-        self.context.start_at -= self.context.time_per_pixel * PixelSize::from(mouse_delta_xy.x);
+        self.context.start_at -= self.context.time_per_px * Px::from(mouse_delta_xy.x);
         self.move_property_context_by(property_name, mouse_delta_xy.y);
 
         self.dragging = Some(Dragging::Background {
@@ -160,17 +160,17 @@ impl GraphWindow {
     }
 }
 
-fn zoom_time_per_pixel(target: TimePerPixel, delta: f32) -> TimePerPixel {
+fn zoom_time_per_px(target: TimePerPx, delta: f32) -> TimePerPx {
     const STEP: f32 = 400.0;
     const MIN: f32 = 10.0;
     const MAX: f32 = 1000.0;
 
-    let ms_per_pixel = target.ms_per_pixel();
+    let ms_per_px = (target * Px::from(1.0f32)).as_millis();
 
-    let wheel = STEP * (ms_per_pixel / 10.0).log2();
+    let wheel = STEP * (ms_per_px / 10.0).log2();
 
     let next_wheel = wheel + delta;
 
     let zoomed = namui::math::num::clamp(10.0 * 2.0f32.powf(next_wheel / STEP), MIN, MAX);
-    TimePerPixel::from_ms_per_pixel(zoomed)
+    Time::Ms(zoomed) / Px::from(1.0f32)
 }

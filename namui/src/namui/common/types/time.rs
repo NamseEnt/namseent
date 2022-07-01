@@ -1,156 +1,256 @@
-use crate::namui;
-use auto_ops::impl_op;
-use num::Float;
+use num::cast::AsPrimitive;
 use ordered_float::OrderedFloat;
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct Time {
-    milliseconds: f32,
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub enum Time {
+    Ms(f32),
+    Sec(f32),
+    Min(f32),
+    Hour(f32),
+    Day(f32),
+    Week(f32),
 }
+
 impl Time {
-    pub fn zero() -> Self {
-        Self { milliseconds: 0.0 }
-    }
-    pub fn from_ms(milliseconds: f32) -> Self {
-        Self { milliseconds }
-    }
-    pub fn from_sec(seconds: f32) -> Time {
-        Time {
-            milliseconds: seconds * 1000.0,
+    pub fn as_millis(&self) -> f32 {
+        match self {
+            Time::Ms(ms) => *ms,
+            Time::Sec(s) => *s * 1000.0,
+            Time::Min(m) => *m * 60.0 * 1000.0,
+            Time::Hour(h) => *h * 60.0 * 60.0 * 1000.0,
+            Time::Day(d) => *d * 24.0 * 60.0 * 60.0 * 1000.0,
+            Time::Week(w) => *w * 7.0 * 24.0 * 60.0 * 60.0 * 1000.0,
         }
     }
-    pub fn get_total_milliseconds(&self) -> f32 {
-        self.milliseconds
+
+    pub fn as_seconds(&self) -> f32 {
+        match self {
+            Time::Ms(ms) => *ms / 1000.0,
+            Time::Sec(s) => *s,
+            Time::Min(m) => *m * 60.0,
+            Time::Hour(h) => *h * 60.0 * 60.0,
+            Time::Day(d) => *d * 24.0 * 60.0 * 60.0,
+            Time::Week(w) => *w * 7.0 * 24.0 * 60.0 * 60.0,
+        }
     }
+
+    pub fn as_minutes(&self) -> f32 {
+        match self {
+            Time::Ms(ms) => *ms / 1000.0 / 60.0,
+            Time::Sec(s) => *s / 60.0,
+            Time::Min(m) => *m,
+            Time::Hour(h) => *h * 60.0,
+            Time::Day(d) => *d * 24.0 * 60.0,
+            Time::Week(w) => *w * 7.0 * 24.0 * 60.0,
+        }
+    }
+
+    pub fn as_hours(&self) -> f32 {
+        match self {
+            Time::Ms(ms) => *ms / 1000.0 / 60.0 / 60.0,
+            Time::Sec(s) => *s / 60.0 / 60.0,
+            Time::Min(m) => *m / 60.0,
+            Time::Hour(h) => *h,
+            Time::Day(d) => *d * 24.0,
+            Time::Week(w) => *w * 7.0 * 24.0,
+        }
+    }
+
+    pub fn as_days(&self) -> f32 {
+        match self {
+            Time::Ms(ms) => *ms / 1000.0 / 60.0 / 60.0 / 24.0,
+            Time::Sec(s) => *s / 60.0 / 60.0 / 24.0,
+            Time::Min(m) => *m / 60.0 / 24.0,
+            Time::Hour(h) => *h / 24.0,
+            Time::Day(d) => *d,
+            Time::Week(w) => *w * 7.0,
+        }
+    }
+
+    pub fn as_weeks(&self) -> f32 {
+        match self {
+            Time::Ms(ms) => *ms / 1000.0 / 60.0 / 60.0 / 24.0 / 7.0,
+            Time::Sec(s) => *s / 60.0 / 60.0 / 24.0 / 7.0,
+            Time::Min(m) => *m / 60.0 / 24.0 / 7.0,
+            Time::Hour(h) => *h / 24.0 / 7.0,
+            Time::Day(d) => *d / 7.0,
+            Time::Week(w) => *w,
+        }
+    }
+
     pub fn now() -> Self {
-        namui::now().into()
+        Time::Ms(crate::now().as_millis() as f32)
     }
 }
-impl Into<std::time::Duration> for Time {
-    fn into(self) -> std::time::Duration {
-        std::time::Duration::from_millis(self.milliseconds as u64)
+
+impl<T: AsPrimitive<f32>> std::ops::Mul<T> for Time {
+    type Output = Time;
+
+    fn mul(self, rhs: T) -> Self::Output {
+        match self {
+            Time::Ms(x) => Time::Ms(x * rhs.as_()),
+            Time::Sec(x) => Time::Sec(x * rhs.as_()),
+            Time::Min(x) => Time::Min(x * rhs.as_()),
+            Time::Hour(x) => Time::Hour(x * rhs.as_()),
+            Time::Day(x) => Time::Day(x * rhs.as_()),
+            Time::Week(x) => Time::Week(x * rhs.as_()),
+        }
     }
 }
-impl Into<Time> for std::time::Duration {
-    fn into(self) -> Time {
-        Time::from_ms(self.as_millis() as f32)
+
+auto_ops::impl_op!(*|lhs: i8, rhs: Time| -> Time { rhs * lhs as f32 });
+auto_ops::impl_op!(*|lhs: u8, rhs: Time| -> Time { rhs * lhs as f32 });
+auto_ops::impl_op!(*|lhs: i16, rhs: Time| -> Time { rhs * lhs as f32 });
+auto_ops::impl_op!(*|lhs: u16, rhs: Time| -> Time { rhs * lhs as f32 });
+auto_ops::impl_op!(*|lhs: i32, rhs: Time| -> Time { rhs * lhs as f32 });
+auto_ops::impl_op!(*|lhs: u32, rhs: Time| -> Time { rhs * lhs as f32 });
+auto_ops::impl_op!(*|lhs: i64, rhs: Time| -> Time { rhs * lhs as f32 });
+auto_ops::impl_op!(*|lhs: u64, rhs: Time| -> Time { rhs * lhs as f32 });
+auto_ops::impl_op!(*|lhs: i128, rhs: Time| -> Time { rhs * lhs as f32 });
+auto_ops::impl_op!(*|lhs: u128, rhs: Time| -> Time { rhs * lhs as f32 });
+auto_ops::impl_op!(*|lhs: isize, rhs: Time| -> Time { rhs * lhs as f32 });
+auto_ops::impl_op!(*|lhs: usize, rhs: Time| -> Time { rhs * lhs as f32 });
+auto_ops::impl_op!(*|lhs: f32, rhs: Time| -> Time { rhs * lhs as f32 });
+auto_ops::impl_op!(*|lhs: f64, rhs: Time| -> Time { rhs * lhs as f32 });
+
+impl<T: AsPrimitive<f32>> std::ops::Div<T> for Time {
+    type Output = Time;
+
+    fn div(self, rhs: T) -> Self::Output {
+        match self {
+            Time::Ms(x) => Time::Ms(x / rhs.as_()),
+            Time::Sec(x) => Time::Sec(x / rhs.as_()),
+            Time::Min(x) => Time::Min(x / rhs.as_()),
+            Time::Hour(x) => Time::Hour(x / rhs.as_()),
+            Time::Day(x) => Time::Day(x / rhs.as_()),
+            Time::Week(x) => Time::Week(x / rhs.as_()),
+        }
     }
 }
+
+impl std::ops::Div for Time {
+    type Output = f32;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        match self {
+            Time::Ms(x) => x.div(rhs.as_millis()),
+            Time::Sec(x) => x.div(rhs.as_seconds()),
+            Time::Min(x) => x.div(rhs.as_minutes()),
+            Time::Hour(x) => x.div(rhs.as_hours()),
+            Time::Day(x) => x.div(rhs.as_days()),
+            Time::Week(x) => x.div(rhs.as_weeks()),
+        }
+    }
+}
+
+impl std::ops::Add for Time {
+    type Output = Time;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        match self {
+            Time::Ms(x) => Time::Ms(x.add(rhs.as_millis())),
+            Time::Sec(x) => Time::Sec(x.add(rhs.as_seconds())),
+            Time::Min(x) => Time::Min(x.add(rhs.as_minutes())),
+            Time::Hour(x) => Time::Hour(x.add(rhs.as_hours())),
+            Time::Day(x) => Time::Day(x.add(rhs.as_days())),
+            Time::Week(x) => Time::Week(x.add(rhs.as_weeks())),
+        }
+    }
+}
+
+impl std::ops::Sub for Time {
+    type Output = Time;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        match self {
+            Time::Ms(x) => Time::Ms(x.sub(rhs.as_millis())),
+            Time::Sec(x) => Time::Sec(x.sub(rhs.as_seconds())),
+            Time::Min(x) => Time::Min(x.sub(rhs.as_minutes())),
+            Time::Hour(x) => Time::Hour(x.sub(rhs.as_hours())),
+            Time::Day(x) => Time::Day(x.sub(rhs.as_days())),
+            Time::Week(x) => Time::Week(x.sub(rhs.as_weeks())),
+        }
+    }
+}
+
+impl std::ops::Rem for Time {
+    type Output = Time;
+
+    fn rem(self, rhs: Self) -> Self::Output {
+        match self {
+            Time::Ms(x) => Time::Ms(x.rem(rhs.as_millis())),
+            Time::Sec(x) => Time::Sec(x.rem(rhs.as_seconds())),
+            Time::Min(x) => Time::Min(x.rem(rhs.as_minutes())),
+            Time::Hour(x) => Time::Hour(x.rem(rhs.as_hours())),
+            Time::Day(x) => Time::Day(x.rem(rhs.as_days())),
+            Time::Week(x) => Time::Week(x.rem(rhs.as_weeks())),
+        }
+    }
+}
+
+impl std::ops::AddAssign for Time {
+    fn add_assign(&mut self, rhs: Self) {
+        match self {
+            Time::Ms(x) => x.add_assign(rhs.as_millis()),
+            Time::Sec(x) => x.add_assign(rhs.as_seconds()),
+            Time::Min(x) => x.add_assign(rhs.as_minutes()),
+            Time::Hour(x) => x.add_assign(rhs.as_hours()),
+            Time::Day(x) => x.add_assign(rhs.as_days()),
+            Time::Week(x) => x.add_assign(rhs.as_weeks()),
+        }
+    }
+}
+
+impl std::ops::SubAssign for Time {
+    fn sub_assign(&mut self, rhs: Self) {
+        match self {
+            Time::Ms(x) => x.sub_assign(rhs.as_millis()),
+            Time::Sec(x) => x.sub_assign(rhs.as_seconds()),
+            Time::Min(x) => x.sub_assign(rhs.as_minutes()),
+            Time::Hour(x) => x.sub_assign(rhs.as_hours()),
+            Time::Day(x) => x.sub_assign(rhs.as_days()),
+            Time::Week(x) => x.sub_assign(rhs.as_weeks()),
+        }
+    }
+}
+
+impl PartialEq for Time {
+    fn eq(&self, other: &Self) -> bool {
+        match self {
+            Time::Ms(x) => OrderedFloat(*x).eq(&OrderedFloat(other.as_millis())),
+            Time::Sec(x) => OrderedFloat(*x).eq(&OrderedFloat(other.as_seconds())),
+            Time::Min(x) => OrderedFloat(*x).eq(&OrderedFloat(other.as_minutes())),
+            Time::Hour(x) => OrderedFloat(*x).eq(&OrderedFloat(other.as_hours())),
+            Time::Day(x) => OrderedFloat(*x).eq(&OrderedFloat(other.as_days())),
+            Time::Week(x) => OrderedFloat(*x).eq(&OrderedFloat(other.as_weeks())),
+        }
+    }
+}
+
 impl Eq for Time {}
+
+impl PartialOrd for Time {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match self {
+            Time::Ms(x) => OrderedFloat(*x).partial_cmp(&OrderedFloat(other.as_millis())),
+            Time::Sec(x) => OrderedFloat(*x).partial_cmp(&OrderedFloat(other.as_seconds())),
+            Time::Min(x) => OrderedFloat(*x).partial_cmp(&OrderedFloat(other.as_minutes())),
+            Time::Hour(x) => OrderedFloat(*x).partial_cmp(&OrderedFloat(other.as_hours())),
+            Time::Day(x) => OrderedFloat(*x).partial_cmp(&OrderedFloat(other.as_days())),
+            Time::Week(x) => OrderedFloat(*x).partial_cmp(&OrderedFloat(other.as_weeks())),
+        }
+    }
+}
+
 impl Ord for Time {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        OrderedFloat(self.milliseconds).cmp(&OrderedFloat(other.milliseconds))
-    }
-}
-impl<'a> PartialEq<&'a Time> for Time {
-    fn eq(&self, other: &&'a Time) -> bool {
-        self.milliseconds == other.milliseconds
-    }
-}
-impl<'a> PartialEq<Time> for &'a Time {
-    fn eq(&self, other: &Time) -> bool {
-        self.milliseconds == other.milliseconds
-    }
-}
-impl<'a> PartialOrd<&'a Time> for Time {
-    fn partial_cmp(&self, other: &&'a Time) -> Option<std::cmp::Ordering> {
-        self.milliseconds.partial_cmp(&other.milliseconds)
-    }
-}
-
-impl<'a> PartialOrd<Time> for &'a Time {
-    fn partial_cmp(&self, other: &Time) -> Option<std::cmp::Ordering> {
-        self.milliseconds.partial_cmp(&other.milliseconds)
-    }
-}
-
-impl std::hash::Hash for Time {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        bincode::serialize(&self.milliseconds).unwrap().hash(state);
-    }
-}
-
-macro_rules! overload_time_binary_operator_with_self {
-    ($ops: tt) => {
-        impl_op!($ops|lhs: Time, rhs: Time| -> Time { Time { milliseconds: lhs.milliseconds $ops rhs.milliseconds } });
-        impl_op!($ops|lhs: Time, rhs: &Time| -> Time { Time { milliseconds: lhs.milliseconds $ops rhs.milliseconds } });
-        impl_op!($ops|lhs: &Time, rhs: Time| -> Time { Time { milliseconds: lhs.milliseconds $ops rhs.milliseconds } });
-        impl_op!($ops|lhs: &Time, rhs: &Time| -> Time { Time { milliseconds: lhs.milliseconds $ops rhs.milliseconds } });
-    };
-}
-
-macro_rules! overload_time_binary_operator_with_self_with_type {
-    ($ops: tt, $type: tt) => {
-        impl_op!($ops|lhs: Time, rhs: Time| -> $type { lhs.milliseconds $ops rhs.milliseconds });
-        impl_op!($ops|lhs: Time, rhs: &Time| -> $type { lhs.milliseconds $ops rhs.milliseconds });
-        impl_op!($ops|lhs: &Time, rhs: Time| -> $type { lhs.milliseconds $ops rhs.milliseconds });
-        impl_op!($ops|lhs: &Time, rhs: &Time| -> $type { lhs.milliseconds $ops rhs.milliseconds });
-    };
-}
-
-macro_rules! overload_time_assignment_operator_with_self {
-    ($ops: tt) => {
-        impl_op!($ops|lhs: &mut Time, rhs: Time| { lhs.milliseconds $ops rhs.milliseconds });
-        impl_op!($ops|lhs: &mut Time, rhs: &Time| { lhs.milliseconds $ops rhs.milliseconds });
-    };
-}
-
-// Unary
-impl_op!(-|lhs: Time| -> Time {
-    Time {
-        milliseconds: -lhs.milliseconds,
-    }
-});
-impl_op!(-|lhs: &Time| -> Time {
-    Time {
-        milliseconds: -lhs.milliseconds,
-    }
-});
-// END: Unary
-
-// Time and Time
-overload_time_binary_operator_with_self!(+);
-overload_time_binary_operator_with_self!(-);
-overload_time_binary_operator_with_self!(*);
-overload_time_binary_operator_with_self_with_type!(/, f32);
-overload_time_binary_operator_with_self!(%);
-
-overload_time_assignment_operator_with_self!(+=);
-overload_time_assignment_operator_with_self!(-=);
-overload_time_assignment_operator_with_self!(*=);
-overload_time_assignment_operator_with_self!(/=);
-overload_time_assignment_operator_with_self!(%=);
-// END: Time and Time
-
-impl<T: Float> std::ops::Mul<T> for Time {
-    type Output = Time;
-    fn mul(self, rhs: T) -> Self::Output {
-        Time {
-            milliseconds: self.milliseconds.mul(rhs.to_f32().unwrap()),
+        match self {
+            Time::Ms(x) => OrderedFloat(*x).cmp(&OrderedFloat(other.as_millis())),
+            Time::Sec(x) => OrderedFloat(*x).cmp(&OrderedFloat(other.as_seconds())),
+            Time::Min(x) => OrderedFloat(*x).cmp(&OrderedFloat(other.as_minutes())),
+            Time::Hour(x) => OrderedFloat(*x).cmp(&OrderedFloat(other.as_hours())),
+            Time::Day(x) => OrderedFloat(*x).cmp(&OrderedFloat(other.as_days())),
+            Time::Week(x) => OrderedFloat(*x).cmp(&OrderedFloat(other.as_weeks())),
         }
-    }
-}
-
-impl<T: Float> std::ops::Mul<T> for &Time {
-    type Output = Time;
-    fn mul(self, rhs: T) -> Self::Output {
-        (*self).mul(rhs)
-    }
-}
-
-impl<T: Float> std::ops::Div<T> for Time {
-    type Output = Time;
-    fn div(self, rhs: T) -> Self::Output {
-        Time {
-            milliseconds: self.milliseconds.div(rhs.to_f32().unwrap()),
-        }
-    }
-}
-
-impl<T: Float> std::ops::Div<T> for &Time {
-    type Output = Time;
-    fn div(self, rhs: T) -> Self::Output {
-        (*self).div(rhs)
     }
 }

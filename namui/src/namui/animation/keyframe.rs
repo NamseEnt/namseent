@@ -130,11 +130,8 @@ mod tests {
     #[wasm_bindgen_test]
     fn should_none_if_time_is_before_than_start_point() {
         let mut graph = KeyframeGraph::new();
-        graph.put(
-            KeyframePoint::new(Time::from_ms(5.0), 0.0),
-            KeyframeLine::Linear,
-        );
-        let value = graph.get_value(Time::from_ms(1.0));
+        graph.put(KeyframePoint::new(Time::Ms(5.0), 0.0), KeyframeLine::Linear);
+        let value = graph.get_value(Time::Ms(1.0));
         assert_eq!(value, None);
     }
 
@@ -142,16 +139,13 @@ mod tests {
     #[wasm_bindgen_test]
     fn should_linear_interpolated_value_if_time_is_between_start_and_end_point_in_linear_line() {
         let mut graph = KeyframeGraph::new();
+        graph.put(KeyframePoint::new(Time::Ms(0.0), 0.0), KeyframeLine::Linear);
         graph.put(
-            KeyframePoint::new(Time::from_ms(0.0), 0.0),
-            KeyframeLine::Linear,
-        );
-        graph.put(
-            KeyframePoint::new(Time::from_ms(10.0), 10.0),
+            KeyframePoint::new(Time::Ms(10.0), 10.0),
             KeyframeLine::Linear,
         );
         for time in 0..10 {
-            let value = graph.get_value(Time::from_ms(time as f32));
+            let value = graph.get_value(Time::Ms(time as f32));
             assert_eq!(value, Some(time as f32));
         }
     }
@@ -160,13 +154,10 @@ mod tests {
     #[wasm_bindgen_test]
     fn should_get_none_if_time_is_after_last_point() {
         let mut graph = KeyframeGraph::new();
-        graph.put(
-            KeyframePoint::new(Time::from_ms(5.0), 0.0),
-            KeyframeLine::Linear,
-        );
+        graph.put(KeyframePoint::new(Time::Ms(5.0), 0.0), KeyframeLine::Linear);
 
         let last_point = graph.get_last_point().unwrap();
-        let time_after_last_point = last_point.time + Time::from_ms(1.0);
+        let time_after_last_point = last_point.time + Time::Ms(1.0);
         let value = graph.get_value(time_after_last_point);
         assert_eq!(value, None);
     }
@@ -174,7 +165,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn should_get_value_if_time_is_on_single_point() {
-        let time = Time::from_ms(5.0);
+        let time = Time::Ms(5.0);
         let value = 3.0;
 
         let mut graph = KeyframeGraph::new();
@@ -191,12 +182,9 @@ mod tests {
     #[wasm_bindgen_test]
     fn get_last_point_should_return_start_point_if_no_next_points() {
         let mut graph = KeyframeGraph::new();
-        graph.put(
-            KeyframePoint::new(Time::from_ms(5.0), 0.0),
-            KeyframeLine::Linear,
-        );
+        graph.put(KeyframePoint::new(Time::Ms(5.0), 0.0), KeyframeLine::Linear);
         let last_point = graph.get_last_point().unwrap();
-        assert_eq!(last_point.time, Time::from_ms(5.0));
+        assert_eq!(last_point.time, Time::Ms(5.0));
         assert_eq!(last_point.value, 0.0);
     }
 
@@ -204,17 +192,14 @@ mod tests {
     #[wasm_bindgen_test]
     fn get_last_point_should_return_last_point_if_next_points_exist() {
         let mut graph = KeyframeGraph::new();
+        graph.put(KeyframePoint::new(Time::Ms(5.0), 0.0), KeyframeLine::Linear);
         graph.put(
-            KeyframePoint::new(Time::from_ms(5.0), 0.0),
-            KeyframeLine::Linear,
-        );
-        graph.put(
-            KeyframePoint::new(Time::from_ms(10.0), 1.0),
+            KeyframePoint::new(Time::Ms(10.0), 1.0),
             KeyframeLine::Linear,
         );
 
         let last_point = graph.get_last_point().unwrap();
-        assert_eq!(last_point.time, Time::from_ms(10.0));
+        assert_eq!(last_point.time, Time::Ms(10.0));
         assert_eq!(last_point.value, 1.0);
     }
 
@@ -222,21 +207,15 @@ mod tests {
     #[wasm_bindgen_test]
     fn get_last_point_should_order_by_time() {
         let mut graph = KeyframeGraph::new();
+        graph.put(KeyframePoint::new(Time::Ms(5.0), 0.0), KeyframeLine::Linear);
         graph.put(
-            KeyframePoint::new(Time::from_ms(5.0), 0.0),
+            KeyframePoint::new(Time::Ms(10.0), 1.0),
             KeyframeLine::Linear,
         );
-        graph.put(
-            KeyframePoint::new(Time::from_ms(10.0), 1.0),
-            KeyframeLine::Linear,
-        );
-        graph.put(
-            KeyframePoint::new(Time::from_ms(1.0), 2.0),
-            KeyframeLine::Linear,
-        );
+        graph.put(KeyframePoint::new(Time::Ms(1.0), 2.0), KeyframeLine::Linear);
 
         let last_point = graph.get_last_point().unwrap();
-        assert_eq!(last_point.time, Time::from_ms(10.0));
+        assert_eq!(last_point.time, Time::Ms(10.0));
         assert_eq!(last_point.value, 1.0);
     }
 
@@ -244,13 +223,13 @@ mod tests {
     #[wasm_bindgen_test]
     fn get_point_with_id_should_work() {
         let mut graph = KeyframeGraph::new();
-        let point = KeyframePoint::new(Time::from_ms(5.0), 0.0);
+        let point = KeyframePoint::new(Time::Ms(5.0), 0.0);
         graph.put(point, KeyframeLine::Linear);
 
         let last_point = graph.get_last_point();
         assert_eq!(last_point.is_some(), true);
         let last_point = last_point.unwrap();
-        assert_eq!(last_point.time, Time::from_ms(5.0));
+        assert_eq!(last_point.time, Time::Ms(5.0));
         assert_eq!(last_point.value, 0.0);
     }
 
@@ -258,8 +237,8 @@ mod tests {
     #[wasm_bindgen_test]
     fn should_delete_by_id() {
         let mut graph = KeyframeGraph::new();
-        let first_point = KeyframePoint::new(Time::from_ms(0.0), 0.0);
-        let second_point = KeyframePoint::new(Time::from_ms(10.0), 10.0);
+        let first_point = KeyframePoint::new(Time::Ms(0.0), 0.0);
+        let second_point = KeyframePoint::new(Time::Ms(10.0), 10.0);
         graph.put(first_point.clone(), KeyframeLine::Linear);
         graph.put(second_point.clone(), KeyframeLine::Linear);
 
@@ -273,11 +252,11 @@ mod tests {
     #[wasm_bindgen_test]
     fn should_delete_by_time() {
         let mut graph = KeyframeGraph::new();
-        let first_time = Time::from_ms(1.0);
+        let first_time = Time::Ms(1.0);
         let first_point = KeyframePoint::new(first_time, 10.0);
-        let second_time = Time::from_ms(2.0);
+        let second_time = Time::Ms(2.0);
         let second_point = KeyframePoint::new(second_time, 10.0);
-        let third_time = Time::from_ms(3.0);
+        let third_time = Time::Ms(3.0);
         let third_point = KeyframePoint::new(third_time, 10.0);
         graph.put(first_point.clone(), KeyframeLine::Linear);
         graph.put(second_point.clone(), KeyframeLine::Linear);

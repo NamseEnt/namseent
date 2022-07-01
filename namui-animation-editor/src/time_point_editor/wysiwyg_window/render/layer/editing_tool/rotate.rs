@@ -5,15 +5,15 @@ use super::*;
 impl WysiwygWindow {
     pub(super) fn render_rotation_tool(
         &self,
-        wh: Wh<PixelSize>,
+        wh: Wh<Px>,
         playback_time: Time,
         selected_layer_id: String,
         image_anchor_local_xy: Xy<f32>,
     ) -> RenderingTree {
-        let arrow_height = 8.0 * self.real_pixel_size_per_screen_pixel_size;
-        let arrow_width = 15.0 * self.real_pixel_size_per_screen_pixel_size;
-        let inner_radius = 5.0 * self.real_pixel_size_per_screen_pixel_size;
-        let outer_radius = 10.0 * self.real_pixel_size_per_screen_pixel_size;
+        let arrow_height = 8.0 * self.real_px_per_screen_px;
+        let arrow_width = 15.0 * self.real_px_per_screen_px;
+        let inner_radius = 5.0 * self.real_px_per_screen_px;
+        let outer_radius = 10.0 * self.real_px_per_screen_px;
         let tail_radian = PI * 1.6;
 
         let rotation_tool_path = PathBuilder::new()
@@ -54,10 +54,10 @@ impl WysiwygWindow {
         let stroke_paint = PaintBuilder::new()
             .set_style(PaintStyle::Stroke)
             .set_color(Color::grayscale_f01(0.5))
-            .set_stroke_width(2.0 * self.real_pixel_size_per_screen_pixel_size)
+            .set_stroke_width(2.0 * self.real_px_per_screen_px)
             .set_anti_alias(true);
 
-        let guide_line_length = 50.0 * self.real_pixel_size_per_screen_pixel_size;
+        let guide_line_length = 50.0 * self.real_px_per_screen_px;
 
         let guide_line_path = PathBuilder::new()
             .move_to(0.0, 0.0)
@@ -81,14 +81,13 @@ impl WysiwygWindow {
         .attach_event(|builder| {
             let window_id = self.window_id.clone();
             let layer_id = selected_layer_id.clone();
-            let real_pixel_size_per_screen_pixel_size = self.real_pixel_size_per_screen_pixel_size;
+            let real_px_per_screen_px = self.real_px_per_screen_px;
             builder.on_mouse_down(move |event| {
                 let window_global_xy = event
                     .namui_context
                     .get_rendering_tree_xy_by_id(&window_id)
                     .unwrap();
-                let mouse_local_xy =
-                    real_pixel_size_per_screen_pixel_size * (event.global_xy - window_global_xy);
+                let mouse_local_xy = real_px_per_screen_px * (event.global_xy - window_global_xy);
 
                 namui::event::send(Event::RotationToolMouseDown {
                     layer_id: layer_id.clone(),

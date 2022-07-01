@@ -24,8 +24,8 @@ impl GraphWindow {
         let selected_point_address = self.selected_point_address.as_ref().unwrap();
 
         let delta_y = match arrow {
-            Arrow::Up => PixelSize::from_f32(1.0).unwrap(),
-            Arrow::Down => PixelSize::from_f32(-1.0).unwrap(),
+            Arrow::Up => Px::from_f32(1.0).unwrap(),
+            Arrow::Down => Px::from_f32(-1.0).unwrap(),
             _ => return,
         };
 
@@ -47,11 +47,10 @@ impl GraphWindow {
             match arrow {
                 Arrow::Left | Arrow::Right => {
                     let time_at_mouse_position = self.context.start_at
-                        + PixelSize::from(mouse_over_row.mouse_xy_in_row.x)
-                            * self.context.time_per_pixel;
+                        + Px::from(mouse_over_row.mouse_xy_in_row.x) * self.context.time_per_px;
 
-                    let next_time_per_pixel = zoom_time_per_pixel(
-                        self.context.time_per_pixel,
+                    let next_time_per_px = zoom_time_per_px(
+                        self.context.time_per_px,
                         match arrow {
                             Arrow::Left => 10.0,
                             Arrow::Right => -10.0,
@@ -60,9 +59,9 @@ impl GraphWindow {
                     );
 
                     let next_start_at = time_at_mouse_position
-                        - PixelSize::from(mouse_over_row.mouse_xy_in_row.x) * next_time_per_pixel;
+                        - Px::from(mouse_over_row.mouse_xy_in_row.x) * next_time_per_px;
 
-                    self.context.time_per_pixel = next_time_per_pixel;
+                    self.context.time_per_px = next_time_per_px;
                     self.context.start_at = next_start_at;
                 }
                 Arrow::Up | Arrow::Down => {
@@ -81,8 +80,8 @@ impl GraphWindow {
         } else if namui::keyboard::any_code_press([Code::ShiftLeft, Code::ShiftRight]) {
             match arrow {
                 Arrow::Left | Arrow::Right => {
-                    self.context.start_at += self.context.time_per_pixel
-                        * PixelSize::from(match arrow {
+                    self.context.start_at += self.context.time_per_px
+                        * Px::from(match arrow {
                             Arrow::Left => -10.0,
                             Arrow::Right => 10.0,
                             _ => unreachable!(),

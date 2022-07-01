@@ -35,32 +35,30 @@ impl AnimationEditorExample {
         image.image_source_url =
             Some(Url::parse("bundle:img/%EB%86%80%EB%9E%8C%EB%8C%80.png").unwrap());
         image.x.put(
-            // KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize::from(0.0)),
-            KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize::from(500.0)),
+            // KeyframePoint::<Px>::new(Time::Ms(0.0), Px::from(0.0)),
+            KeyframePoint::<Px>::new(Time::Ms(0.0), Px::from(500.0)),
             animation::KeyframeLine::Linear,
         );
         image.y.put(
-            // KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize::from(0.0)),
-            KeyframePoint::<PixelSize>::new(Time::zero(), PixelSize::from(0.0)),
+            // KeyframePoint::<Px>::new(Time::Ms(0.0), Px::from(0.0)),
+            KeyframePoint::<Px>::new(Time::Ms(0.0), Px::from(0.0)),
             animation::KeyframeLine::Linear,
         );
         image.width_percent.put(
-            // KeyframePoint::<Percent>::new(Time::zero(), Percent::new(100.0)),
-            KeyframePoint::<Percent>::new(Time::zero(), Percent::new(50.0)),
+            KeyframePoint::<Percent>::new(Time::Ms(0.0), Percent::from_percent(50.0_f32)),
             animation::KeyframeLine::Linear,
         );
         image.height_percent.put(
-            // KeyframePoint::<Percent>::new(Time::zero(), Percent::new(100.0)),
-            KeyframePoint::<Percent>::new(Time::zero(), Percent::new(50.0)),
+            KeyframePoint::<Percent>::new(Time::Ms(0.0), Percent::from_percent(50.0_f32)),
             animation::KeyframeLine::Linear,
         );
         image.rotation_angle.put(
-            // KeyframePoint::<Degree>::new(Time::zero(), Degree::from(30.0)),
-            KeyframePoint::<Degree>::new(Time::zero(), Degree::from(0.0)),
+            // KeyframePoint::<Angle>::new(Time::Ms(0.0), Angle::from(30.0)),
+            KeyframePoint::<Angle>::new(Time::Ms(0.0), Angle::Degree(0.0)),
             animation::KeyframeLine::Linear,
         );
         image.opacity.put(
-            KeyframePoint::<OneZero>::new(Time::zero(), 1.0.into()),
+            KeyframePoint::<OneZero>::new(Time::Ms(0.0), 1.0.into()),
             animation::KeyframeLine::Linear,
         );
 
