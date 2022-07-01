@@ -1,4 +1,5 @@
-use crate::{typography::center_text, *};
+use crate::{simple_rect, typography::center_text};
+use namui::prelude::*;
 use std::sync::Arc;
 
 pub fn text_button(

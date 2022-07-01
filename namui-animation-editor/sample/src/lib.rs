@@ -1,6 +1,5 @@
 use namui::{animation::KeyframePoint, prelude::*, types::*};
 use namui_animation_editor::{self, *};
-use std::sync::{Arc, RwLock};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
