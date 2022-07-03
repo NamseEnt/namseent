@@ -1,3 +1,10 @@
+mod render;
+mod update;
+
+use crate::{
+    time_ruler,
+    types::{ActionTicket, AnimationHistory},
+};
 use namui::{
     animation::{KeyframeGraph, Layer},
     math::num::{FromPrimitive, ToPrimitive},
@@ -13,12 +20,6 @@ use std::{
     ops::{Div, Range},
     sync::Arc,
 };
-mod render;
-use crate::{
-    time_ruler,
-    types::{ActionTicket, AnimationHistory},
-};
-mod update;
 
 pub(crate) struct GraphWindow {
     context: GraphWindowContext,
