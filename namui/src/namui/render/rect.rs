@@ -60,8 +60,8 @@ pub fn rect(
             x,
             y,
             Rect::Xywh {
-                x: 0.0.into(),
-                y: 0.0.into(),
+                x: px(0.0),
+                y: px(0.0),
                 width,
                 height,
             },
@@ -74,8 +74,8 @@ pub fn rect(
             x + stroke_width,
             y + stroke_width,
             Rect::Xywh {
-                x: 0.0.into(),
-                y: 0.0.into(),
+                x: px(0.0),
+                y: px(0.0),
                 width: width - 2.0 * stroke_width,
                 height: height - 2.0 * stroke_width,
             },
@@ -88,8 +88,8 @@ pub fn rect(
             x + stroke_width / 2.0,
             y + stroke_width / 2.0,
             Rect::Xywh {
-                x: 0.0.into(),
-                y: 0.0.into(),
+                x: px(0.0),
+                y: px(0.0),
                 width: width - stroke_width,
                 height: height - stroke_width,
             },

@@ -116,7 +116,7 @@ impl Animate for AnimatableImage {
     fn render(&self, time: Time) -> RenderingTree {
         try_render(|| {
             let image_keyframe = self.image_keyframe_graph.get_value(time)?;
-            let opacity: f32 = image_keyframe.opacity.into();
+            let opacity = image_keyframe.opacity.as_f32();
             if opacity <= 0.0 {
                 return None;
             }
@@ -131,10 +131,10 @@ impl Animate for AnimatableImage {
 
             let image_rendering_tree = namui::image(ImageParam {
                 rect: Rect::Xywh {
-                    x: 0.0.into(),
-                    y: 0.0.into(),
-                    width: image_wh.width.into(),
-                    height: image_wh.height.into(),
+                    x: px(0.0),
+                    y: px(0.0),
+                    width: image_wh.width,
+                    height: image_wh.height,
                 },
                 style: ImageStyle {
                     fit: ImageFit::Fill,
@@ -143,15 +143,11 @@ impl Animate for AnimatableImage {
                 source: ImageSource::Image(image),
             });
             let transformed_image = namui::translate(
-                x.into(),
-                y.into(),
+                x,
+                y,
                 namui::rotate(
                     image_keyframe.rotation_angle,
-                    namui::translate(
-                        (-anchor_xy.x).into(),
-                        (-anchor_xy.y).into(),
-                        image_rendering_tree,
-                    ),
+                    namui::translate(-anchor_xy.x, -anchor_xy.y, image_rendering_tree),
                 ),
             );
 
@@ -206,7 +202,7 @@ mod tests {
             let value = graph.get_value(Time::Ms(time as f32));
             assert!(approx_eq!(
                 f32,
-                value.unwrap().into(),
+                value.unwrap().as_f32(),
                 1.0 - (time - 10) as f32 / 20.0,
                 ulps = 2
             ));

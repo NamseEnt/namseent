@@ -23,8 +23,8 @@ impl PathDrawCommand {
         let stroke_result = stroke_path_builder.stroke(StrokeOptions {
             cap: Some(paint.get_stroke_cap()),
             join: Some(paint.get_stroke_join()),
-            width: Some(paint.get_stroke_width().into()),
-            miter_limit: Some(paint.get_stroke_miter().into()),
+            width: Some(paint.get_stroke_width()),
+            miter_limit: Some(paint.get_stroke_miter()),
             precision: None,
         });
 

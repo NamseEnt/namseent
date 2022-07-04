@@ -31,10 +31,10 @@ impl ImageDrawCommand {
         let image_info = image.get_image_info();
 
         let rect_wh = self.rect.wh();
-        if rect_wh.width == 0.0.into()
-            || rect_wh.height == 0.0.into()
-            || image_info.width == 0.0.into()
-            || image_info.height == 0.0.into()
+        if rect_wh.width == px(0.0)
+            || rect_wh.height == px(0.0)
+            || image_info.width == px(0.0)
+            || image_info.height == px(0.0)
         {
             return;
         }
@@ -76,8 +76,8 @@ fn get_src_dest_rects_in_fit(
     match image_fit {
         ImageFit::Fill => (
             Rect::Xywh {
-                x: 0.0.into(),
-                y: 0.0.into(),
+                x: px(0.0),
+                y: px(0.0),
                 width: image_size.width,
                 height: image_size.height,
             },
@@ -87,8 +87,8 @@ fn get_src_dest_rects_in_fit(
             let dest_rect = calculate_contain_fit_dest_rect(image_size, command_rect);
             (
                 Rect::Xywh {
-                    x: 0.0.into(),
-                    y: 0.0.into(),
+                    x: px(0.0),
+                    y: px(0.0),
                     width: image_size.width,
                     height: image_size.height,
                 },
@@ -122,12 +122,12 @@ fn get_src_dest_rects_in_fit(
 
 fn calculate_none_fit_rects(image_size: Wh<Px>, command_rect: Rect<Px>) -> (Rect<Px>, Rect<Px>) {
     let src_x = if image_size.width <= command_rect.width() {
-        0.0.into()
+        px(0.0)
     } else {
         (image_size.width - command_rect.width()) / 2.0
     };
     let src_y = if image_size.height <= command_rect.height() {
-        0.0.into()
+        px(0.0)
     } else {
         (image_size.height - command_rect.height()) / 2.0
     };
@@ -191,8 +191,8 @@ fn calculate_contain_fit_dest_rect(image_size: Wh<Px>, command_rect: Rect<Px>) -
 fn calculate_cover_fit_src_rect(image_size: Wh<Px>, command_rect: Rect<Px>) -> Rect<Px> {
     if image_size.width / image_size.height == command_rect.width() / command_rect.height() {
         return Rect::Xywh {
-            x: 0.0.into(),
-            y: 0.0.into(),
+            x: px(0.0),
+            y: px(0.0),
             width: image_size.width,
             height: image_size.height,
         };
@@ -203,7 +203,7 @@ fn calculate_cover_fit_src_rect(image_size: Wh<Px>, command_rect: Rect<Px>) -> R
         let delta_x = (k * image_size.width - command_rect.width()) / (2.0 * k);
         return Rect::Xywh {
             x: delta_x,
-            y: 0.0.into(),
+            y: px(0.0),
             width: image_size.width - 2.0 * delta_x,
             height: image_size.height,
         };
@@ -212,7 +212,7 @@ fn calculate_cover_fit_src_rect(image_size: Wh<Px>, command_rect: Rect<Px>) -> R
     let k = command_rect.width() / image_size.width;
     let delta_y = (k * image_size.height - command_rect.height()) / (2.0 * k);
     return Rect::Xywh {
-        x: 0.0.into(),
+        x: px(0.0),
         y: delta_y,
         width: image_size.width,
         height: image_size.height - 2.0 * delta_y,

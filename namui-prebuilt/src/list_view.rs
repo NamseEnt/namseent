@@ -61,7 +61,7 @@ impl ListView {
 
         let rendered_items = visible_items.map(|(index, item)| {
             translate(
-                0.0.into(),
+                px(0.0),
                 index * props.item_wh.height,
                 (props.item_render)(props.item_wh, item),
             )
@@ -71,8 +71,8 @@ impl ListView {
 
         let transparent_pillar = rect(RectParam {
             rect: Rect::Xywh {
-                x: 0.0.into(),
-                y: 0.0.into(),
+                x: px(0.0),
+                y: px(0.0),
                 width: props.item_wh.width,
                 height: content_height,
             },
@@ -101,34 +101,34 @@ fn test_props_passing() {
     let items = [1, 2, 3, 4, 5];
     let _props_with_enumerate_items = list_view.render(Props {
         xy: Xy {
-            x: 0.0.into(),
-            y: 0.0.into(),
+            x: px(0.0),
+            y: px(0.0),
         },
-        height: 100.0.into(),
-        scroll_bar_width: 10.0.into(),
-        item_wh: Wh::new(100.0.into(), 100.0.into()),
+        height: px(100.0),
+        scroll_bar_width: px(10.0),
+        item_wh: Wh::new(px(100.0), px(100.0)),
         items: items.iter().enumerate(),
         item_render: |_wh, (_index, _item)| namui::render![],
     });
     let _props_with_slice_iter = list_view.render(Props {
         xy: Xy {
-            x: 0.0.into(),
-            y: 0.0.into(),
+            x: px(0.0),
+            y: px(0.0),
         },
-        height: 100.0.into(),
-        scroll_bar_width: 10.0.into(),
-        item_wh: Wh::new(100.0.into(), 100.0.into()),
+        height: px(100.0),
+        scroll_bar_width: px(10.0),
+        item_wh: Wh::new(px(100.0), px(100.0)),
         items: items.iter(),
         item_render: |_wh, _item| namui::render![],
     });
     let _props_with_reference_of_slice = list_view.render(Props {
         xy: Xy {
-            x: 0.0.into(),
-            y: 0.0.into(),
+            x: px(0.0),
+            y: px(0.0),
         },
-        height: 100.0.into(),
-        scroll_bar_width: 10.0.into(),
-        item_wh: Wh::new(100.0.into(), 100.0.into()),
+        height: px(100.0),
+        scroll_bar_width: px(10.0),
+        item_wh: Wh::new(px(100.0), px(100.0)),
         items: &items,
         item_render: |_wh, _item| namui::render![],
     });

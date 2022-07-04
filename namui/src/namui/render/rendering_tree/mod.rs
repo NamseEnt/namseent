@@ -83,8 +83,8 @@ impl RenderingTree {
                     let back_up_matrix = crate::graphics::surface().canvas().get_matrix();
 
                     crate::graphics::surface().canvas().set_matrix(&[
-                        [1.0, 0.0, absolute.x.into()],
-                        [0.0, 1.0, absolute.y.into()],
+                        [1.0, 0.0, absolute.x.as_f32()],
+                        [0.0, 1.0, absolute.y.as_f32()],
                         [0.0, 0.0, 1.0],
                     ]);
 
@@ -293,8 +293,8 @@ impl RenderingTree {
                 RenderingTree::Special(special) => match special {
                     SpecialRenderingNode::Translate(translate) => {
                         let translation_matrix = Matrix3x3::from_slice(&[
-                            [1.0, 0.0, translate.x.into()],
-                            [0.0, 1.0, translate.y.into()],
+                            [1.0, 0.0, translate.x.as_f32()],
+                            [0.0, 1.0, translate.y.as_f32()],
                             [0.0, 0.0, 1.0],
                         ]);
                         let matrix = translation_matrix * matrix;
@@ -371,8 +371,8 @@ impl RenderingTree {
                     }
                     SpecialRenderingNode::Absolute(absolute) => {
                         let matrix = Matrix3x3::from_slice(&[
-                            [1.0, 0.0, absolute.x.into()],
-                            [0.0, 1.0, absolute.y.into()],
+                            [1.0, 0.0, absolute.x.as_f32()],
+                            [0.0, 1.0, absolute.y.as_f32()],
                             [0.0, 0.0, 1.0],
                         ]);
                         get_bounding_box_with_matrix_of_rendering_trees(

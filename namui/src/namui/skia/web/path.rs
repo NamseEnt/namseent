@@ -29,7 +29,7 @@ impl Path {
         }
     }
     pub fn contains(&self, xy: Xy<Px>) -> bool {
-        self.canvas_kit_path.contains(xy.x.into(), xy.y.into())
+        self.canvas_kit_path.contains(xy.x.as_f32(), xy.y.as_f32())
     }
     pub fn get_bounding_box(&self) -> Option<Rect<Px>> {
         let bounds = self.canvas_kit_path.getBounds();
@@ -37,10 +37,10 @@ impl Path {
             None
         } else {
             Some(Rect::Ltrb {
-                left: bounds[0].into(),
-                top: bounds[1].into(),
-                right: bounds[2].into(),
-                bottom: bounds[3].into(),
+                left: px(bounds[0]),
+                top: px(bounds[1]),
+                right: px(bounds[2]),
+                bottom: px(bounds[3]),
             })
         }
     }
@@ -49,10 +49,10 @@ impl Path {
         let ltrb = rect.as_ltrb();
         self.canvas_kit_path.addRect(
             &[
-                ltrb.left.into(),
-                ltrb.top.into(),
-                ltrb.right.into(),
-                ltrb.bottom.into(),
+                ltrb.left.as_f32(),
+                ltrb.top.as_f32(),
+                ltrb.right.as_f32(),
+                ltrb.bottom.as_f32(),
             ],
             None,
         );
@@ -63,11 +63,11 @@ impl Path {
         let ltrb = rect.as_ltrb();
 
         let js_rect = js_sys::Float32Array::new_with_length(4);
-        js_rect.set_index(0, ltrb.left.into());
-        js_rect.set_index(1, ltrb.top.into());
-        js_rect.set_index(2, ltrb.right.into());
-        js_rect.set_index(3, ltrb.bottom.into());
-        let rrect = canvas_kit().RRectXY(js_rect, rx.into(), ry.into());
+        js_rect.set_index(0, ltrb.left.as_f32());
+        js_rect.set_index(1, ltrb.top.as_f32());
+        js_rect.set_index(2, ltrb.right.as_f32());
+        js_rect.set_index(3, ltrb.bottom.as_f32());
+        let rrect = canvas_kit().RRectXY(js_rect, rx.as_f32(), ry.as_f32());
         self.canvas_kit_path.addRRect(rrect, None);
 
         self
@@ -75,12 +75,15 @@ impl Path {
     pub(crate) fn stroke(&mut self, options: StrokeOptions) -> Result<(), ()> {
         let js_options = js_sys::Object::new();
         if let Some(width) = options.width {
-            let width: f32 = width.into();
-            js_sys::Reflect::set(&js_options, &"width".into(), &width.into()).unwrap();
+            js_sys::Reflect::set(&js_options, &"width".into(), &width.as_f32().into()).unwrap();
         }
         if let Some(miter_limit) = options.miter_limit {
-            let miter_limit: f32 = miter_limit.into();
-            js_sys::Reflect::set(&js_options, &"miterLimit".into(), &miter_limit.into()).unwrap();
+            js_sys::Reflect::set(
+                &js_options,
+                &"miterLimit".into(),
+                &miter_limit.as_f32().into(),
+            )
+            .unwrap();
         }
         if let Some(precision) = options.precision {
             js_sys::Reflect::set(&js_options, &"precision".into(), &precision.into()).unwrap();
@@ -99,21 +102,21 @@ impl Path {
         }
     }
     pub(crate) fn move_to(self, x: Px, y: Px) -> Self {
-        self.canvas_kit_path.moveTo(x.into(), y.into());
+        self.canvas_kit_path.moveTo(x.as_f32(), y.as_f32());
         self
     }
     pub(crate) fn line_to(self, x: Px, y: Px) -> Self {
-        self.canvas_kit_path.lineTo(x.into(), y.into());
+        self.canvas_kit_path.lineTo(x.as_f32(), y.as_f32());
         self
     }
     pub(crate) fn arc_to(self, oval: Rect<Px>, start_angle: Angle, delta_angle: Angle) -> Self {
         let ltrb = oval.as_ltrb();
         self.canvas_kit_path.arcToOval(
             &[
-                ltrb.left.into(),
-                ltrb.top.into(),
-                ltrb.right.into(),
-                ltrb.bottom.into(),
+                ltrb.left.as_f32(),
+                ltrb.top.as_f32(),
+                ltrb.right.as_f32(),
+                ltrb.bottom.as_f32(),
             ],
             start_angle.as_radians(),
             delta_angle.as_radians(),
@@ -125,7 +128,7 @@ impl Path {
         self.transform(&[x, 0.0, 0.0, 0.0, y, 0.0, 0.0, 0.0, 1.0])
     }
     pub(crate) fn translate(self, x: Px, y: Px) -> Self {
-        self.canvas_kit_path.offset(x.into(), y.into());
+        self.canvas_kit_path.offset(x.as_f32(), y.as_f32());
         self
     }
     pub(crate) fn transform(self, matrix_3x3: &[f32; 9]) -> Self {
@@ -136,10 +139,10 @@ impl Path {
         let ltrb = rect.as_ltrb();
         self.canvas_kit_path.addOval(
             &[
-                ltrb.left.into(),
-                ltrb.top.into(),
-                ltrb.right.into(),
-                ltrb.bottom.into(),
+                ltrb.left.as_f32(),
+                ltrb.top.as_f32(),
+                ltrb.right.as_f32(),
+                ltrb.bottom.as_f32(),
             ],
             None,
             None,
@@ -150,10 +153,10 @@ impl Path {
         let ltrb = oval.as_ltrb();
         self.canvas_kit_path.addArc(
             &[
-                ltrb.left.into(),
-                ltrb.top.into(),
-                ltrb.right.into(),
-                ltrb.bottom.into(),
+                ltrb.left.as_f32(),
+                ltrb.top.as_f32(),
+                ltrb.right.as_f32(),
+                ltrb.bottom.as_f32(),
             ],
             start_angle.as_degrees(),
             delta_angle.as_degrees(),
@@ -163,7 +166,7 @@ impl Path {
     pub(crate) fn add_poly(self, xy_array: &[Xy<Px>], close: bool) -> Self {
         let array = &xy_array
             .iter()
-            .flat_map(|xy| vec![xy.x.into(), xy.y.into()])
+            .flat_map(|xy| vec![xy.x.as_f32(), xy.y.as_f32()])
             .collect::<Vec<f32>>();
         self.canvas_kit_path.addPoly(array, close);
         self

@@ -95,7 +95,7 @@ impl TextDrawCommand {
             .reduce(|acc, (top, bottom)| (acc.0.min(top), acc.1.max(bottom)))
             .and_then(|(top, bottom)| {
                 let widths = font.get_glyph_widths(glyph_ids, Option::Some(&paint));
-                let width = widths.iter().fold(0.0.into(), |prev, curr| prev + curr);
+                let width = widths.iter().fold(px(0.0), |prev, curr| prev + curr);
                 let x_axis_anchor = get_left_in_align(self.x, self.align, width);
 
                 let metrics = font.metrics;

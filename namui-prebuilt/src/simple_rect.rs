@@ -8,8 +8,8 @@ pub fn simple_rect(
 ) -> RenderingTree {
     namui::rect(RectParam {
         rect: Rect::Xywh {
-            x: 0.0.into(),
-            y: 0.0.into(),
+            x: px(0.0),
+            y: px(0.0),
             width: wh.width,
             height: wh.height,
         },

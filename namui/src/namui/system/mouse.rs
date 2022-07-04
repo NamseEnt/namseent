@@ -43,8 +43,8 @@ impl MouseSystem {
                         event.prevent_default(); // NOTE: Text input needs this to prevent selection updates.
                         let mut mouse_position = mouse_position.write().unwrap();
 
-                        mouse_position.x = event.client_x().into();
-                        mouse_position.y = event.client_y().into();
+                        mouse_position.x = px(event.client_x() as f32);
+                        mouse_position.y = px(event.client_y() as f32);
 
                         let button = get_button(&event);
                         namui::event::send(namui::NamuiEvent::MouseDown(crate::RawMouseEvent {
@@ -73,8 +73,8 @@ impl MouseSystem {
                     Box::new(move |event: web_sys::MouseEvent| {
                         let mut mouse_position = mouse_position.write().unwrap();
 
-                        mouse_position.x = event.client_x().into();
-                        mouse_position.y = event.client_y().into();
+                        mouse_position.x = px(event.client_x() as f32);
+                        mouse_position.y = px(event.client_y() as f32);
 
                         let button = get_button(&event);
                         namui::event::send(namui::NamuiEvent::MouseUp(crate::RawMouseEvent {
@@ -103,8 +103,8 @@ impl MouseSystem {
                     Box::new(move |event: web_sys::MouseEvent| {
                         let mut mouse_position = mouse_position.write().unwrap();
 
-                        mouse_position.x = event.client_x().into();
-                        mouse_position.y = event.client_y().into();
+                        mouse_position.x = px(event.client_x() as f32);
+                        mouse_position.y = px(event.client_y() as f32);
 
                         namui::event::send(namui::NamuiEvent::MouseMove(crate::RawMouseEvent {
                             id: format!("mousemove-{:?}-{}", crate::now(), crate::nanoid()),

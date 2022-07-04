@@ -254,58 +254,58 @@ mod tests {
                     let local_xy = utils.to_local_xy(xy);
                     match with_id.id.as_str() {
                         "0" => {
-                            assert_approx_eq!(f32, local_xy.x.into(), 10.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.into(), 10.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), 10.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), 10.0, ulps = 2);
                             call_count += 1;
                         }
                         "1" => {
-                            assert_approx_eq!(f32, local_xy.x.into(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.into(), -190.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
                             call_count += 1;
                         }
                         "2" => {
-                            assert_approx_eq!(f32, local_xy.x.into(), -40.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.into(), -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -40.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
                             call_count += 1;
                         }
                         "3" => {
-                            assert_approx_eq!(f32, local_xy.x.into(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.into(), -190.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
                             call_count += 1;
                         }
                         "4" => {
-                            assert_approx_eq!(f32, local_xy.x.into(), -110.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.into(), -220.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -220.0, ulps = 2);
                             call_count += 1;
                         }
                         "5" => {
-                            assert_approx_eq!(f32, local_xy.x.into(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.into(), 40.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), 40.0, ulps = 2);
                             call_count += 1;
                         }
                         "6" => {
-                            assert_approx_eq!(f32, local_xy.x.into(), -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.into(), -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
                             call_count += 1;
                         }
                         "7" => {
-                            assert_approx_eq!(f32, local_xy.x.into(), -100.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.into(), 20.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -100.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), 20.0, ulps = 2);
                             call_count += 1;
                         }
                         "8" => {
-                            assert_approx_eq!(f32, local_xy.x.into(), -110.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.into(), -110.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -110.0, ulps = 2);
                             call_count += 1;
                         }
                         "9" => {
-                            assert_approx_eq!(f32, local_xy.x.into(), -45.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.into(), -95.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -45.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -95.0, ulps = 2);
                             call_count += 1;
                         }
                         "10" => {
-                            assert_approx_eq!(f32, local_xy.x.into(), -65.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y.into(), -115.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -65.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -115.0, ulps = 2);
                             call_count += 1;
                         }
                         _ => {}
@@ -341,24 +341,24 @@ mod tests {
                     let local_xy_10_10 = utils.to_local_xy(xy_10_10);
                     match with_id.id.as_str() {
                         "0" => {
-                            assert_approx_eq!(f32, local_xy_0_0.x.into(), -2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y.into(), -2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x.into(), 8.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y.into(), 8.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -2.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -2.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 8.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 8.0, ulps = 2);
                             call_count += 1;
                         }
                         "1" => {
-                            assert_approx_eq!(f32, local_xy_0_0.x.into(), -1.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y.into(), -1.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x.into(), 4.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y.into(), 4.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -1.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -1.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 4.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 4.0, ulps = 2);
                             call_count += 1;
                         }
                         "2" => {
-                            assert_approx_eq!(f32, local_xy_0_0.x.into(), -3.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y.into(), -3.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x.into(), 2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y.into(), 2.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -3.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -3.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 2.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 2.0, ulps = 2);
                             call_count += 1;
                         }
                         _ => {}
@@ -393,17 +393,17 @@ mod tests {
                     let local_xy_10_10 = utils.to_local_xy(xy_10_10);
                     match with_id.id.as_str() {
                         "0" => {
-                            assert_approx_eq!(f32, local_xy_0_0.x.into(), 0.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y.into(), 0.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x.into(), 5.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y.into(), 5.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), 0.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), 0.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 5.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 5.0, ulps = 2);
                             call_count += 1;
                         }
                         "1" => {
-                            assert_approx_eq!(f32, local_xy_0_0.x.into(), -2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y.into(), -2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x.into(), 3.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y.into(), 3.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -2.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -2.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 3.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 3.0, ulps = 2);
                             call_count += 1;
                         }
                         _ => {}

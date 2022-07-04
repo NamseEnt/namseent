@@ -200,7 +200,7 @@ fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
 pub(crate) fn get_text_width_internal(font: &Font, text: &str, drop_shadow_x: Option<Px>) -> Px {
     let glyph_ids = font.get_glyph_ids(text);
     let glyph_widths = font.get_glyph_widths(glyph_ids, Option::None);
-    glyph_widths.iter().fold(px(0.0), |acc, cur| acc + cur) + drop_shadow_x.unwrap_or(0.0.into())
+    glyph_widths.iter().fold(px(0.0), |acc, cur| acc + cur) + drop_shadow_x.unwrap_or(px(0.0))
 }
 
 pub fn get_text_width(text: &str, font_type: FontType, drop_shadow_x: Option<Px>) -> Option<Px> {
@@ -208,7 +208,6 @@ pub fn get_text_width(text: &str, font_type: FontType, drop_shadow_x: Option<Px>
     font.map(|font| {
         let glyph_ids = font.get_glyph_ids(text);
         let glyph_widths = font.get_glyph_widths(glyph_ids, Option::None);
-        glyph_widths.iter().fold(px(0.0), |acc, cur| acc + cur)
-            + drop_shadow_x.unwrap_or(0.0.into())
+        glyph_widths.iter().fold(px(0.0), |acc, cur| acc + cur) + drop_shadow_x.unwrap_or(px(0.0))
     })
 }

@@ -25,7 +25,7 @@ pub mod body {
     pub fn left(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> RenderingTree {
         namui::text(TextParam {
             text: String::from(text.as_ref()),
-            x: 0.0.into(),
+            x: px(0.0),
             y: wh.height / 2.0,
             align: TextAlign::Left,
             baseline: TextBaseline::Middle,

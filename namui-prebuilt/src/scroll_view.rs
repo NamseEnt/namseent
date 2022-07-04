@@ -21,7 +21,7 @@ impl ScrollView {
     pub fn new() -> Self {
         Self {
             id: namui::nanoid(),
-            scroll_y: Px::from(0.0),
+            scroll_y: px(0.0),
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -46,19 +46,19 @@ impl ScrollView {
 
         let scroll_y = namui::math::num::clamp(
             self.scroll_y,
-            Px::from(0.0),
-            Px::from(0.0).max(content_bounding_box.height() - props.height),
+            px(0.0),
+            px(0.0).max(content_bounding_box.height() - props.height),
         );
 
         let inner = namui::clip(
             namui::PathBuilder::new().add_rect(Rect::Ltrb {
-                left: 0.0.into(),
-                top: 0.0.into(),
+                left: px(0.0),
+                top: px(0.0),
                 right: content_bounding_box.width(),
                 bottom: props.height,
             }),
             namui::ClipOp::Intersect,
-            namui::translate(0.0.into(), -scroll_y, props.content.clone()),
+            namui::translate(px(0.0), -scroll_y, props.content.clone()),
         );
 
         let scroll_bar_handle_height =
@@ -87,8 +87,8 @@ impl ScrollView {
         };
         let whole_rect = rect(RectParam {
             rect: Rect::Xywh {
-                x: 0.0.into(),
-                y: 0.0.into(),
+                x: px(0.0),
+                y: px(0.0),
                 width: content_bounding_box.width(),
                 height: props.height,
             },

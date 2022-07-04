@@ -1,6 +1,5 @@
-use crate::Px;
-
 use super::*;
+use crate::*;
 pub use base::*;
 
 unsafe impl Sync for CanvasKitPaint {}
@@ -31,7 +30,7 @@ impl Paint {
             canvas_kit_paint.setAntiAlias(anti_alias);
         }
         if let Some(stroke_width) = stroke_width {
-            canvas_kit_paint.setStrokeWidth(stroke_width.into());
+            canvas_kit_paint.setStrokeWidth(stroke_width.as_f32());
         }
         if let Some(stroke_cap) = stroke_cap {
             canvas_kit_paint.setStrokeCap(stroke_cap.into_canvas_kit());
@@ -69,10 +68,10 @@ impl Paint {
         }
     }
     pub fn get_stroke_width(&self) -> Px {
-        self.canvas_kit_paint.getStrokeWidth().into()
+        px(self.canvas_kit_paint.getStrokeWidth())
     }
     pub fn get_stroke_miter(&self) -> Px {
-        self.canvas_kit_paint.getStrokeMiter().into()
+        px(self.canvas_kit_paint.getStrokeMiter())
     }
 }
 

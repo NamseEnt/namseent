@@ -99,8 +99,7 @@ where
             (self.x * rhs.y - self.y * rhs.x)
                 .atan2(self.x * rhs.x + self.y * rhs.y)
                 .to_f32()
-                .unwrap()
-                .into(),
+                .unwrap(),
         )
     }
 }

@@ -107,20 +107,20 @@ fn slice_internal<'a>(
             }
         });
 
-        let mut advanced_pixel_size = 0.0.into();
+        let mut advanced_pixel_size = px(0.0);
 
         for pixel_size in pixel_sizes {
             let render_fn = render_fns.pop_front().unwrap();
             let xywh = match direction {
                 Direction::Vertical => Rect::Xywh {
-                    x: 0.0.into(),
+                    x: px(0.0),
                     y: advanced_pixel_size,
                     width: wh.width,
                     height: pixel_size,
                 },
                 Direction::Horizontal => Rect::Xywh {
                     x: advanced_pixel_size,
-                    y: 0.0.into(),
+                    y: px(0.0),
                     width: pixel_size,
                     height: wh.height,
                 },
@@ -130,8 +130,8 @@ fn slice_internal<'a>(
                 xywh.y(),
                 namui::clip(
                     PathBuilder::new().add_rect(Rect::Xywh {
-                        x: 0.0.into(),
-                        y: 0.0.into(),
+                        x: px(0.0),
+                        y: px(0.0),
                         width: xywh.width(),
                         height: xywh.height(),
                     }),
@@ -177,7 +177,7 @@ mod tests {
             RenderingTree::Empty
         });
 
-        let header = fixed(20.0.into(), horizontal([button, label]));
+        let header = fixed(px(20.0), horizontal([button, label]));
 
         let body = ratio(1.0, |wh| {
             body_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
@@ -187,8 +187,8 @@ mod tests {
         });
 
         vertical([header, body])(Wh {
-            width: 300.0.into(),
-            height: 500.0.into(),
+            width: px(300.0),
+            height: px(500.0),
         });
 
         assert_eq!(
