@@ -68,20 +68,62 @@ macro_rules! common_for_f32_type {
         auto_ops::impl_op!(*|lhs: $your_type, rhs: f64| -> $your_type { rhs * lhs });
 
 
-        auto_ops::impl_op!(*|lhs: i8, rhs: $your_type| -> $your_type { (rhs.0 * lhs as f32).into() });
-        auto_ops::impl_op!(*|lhs: u8, rhs: $your_type| -> $your_type { (rhs.0 * lhs as f32).into() });
-        auto_ops::impl_op!(*|lhs: i16, rhs: $your_type| -> $your_type { (rhs.0 * lhs as f32).into() });
-        auto_ops::impl_op!(*|lhs: u16, rhs: $your_type| -> $your_type { (rhs.0 * lhs as f32).into() });
-        auto_ops::impl_op!(*|lhs: i32, rhs: $your_type| -> $your_type { (rhs.0 * lhs as f32).into() });
-        auto_ops::impl_op!(*|lhs: u32, rhs: $your_type| -> $your_type { (rhs.0 * lhs as f32).into() });
-        auto_ops::impl_op!(*|lhs: i64, rhs: $your_type| -> $your_type { (rhs.0 * lhs as f32).into() });
-        auto_ops::impl_op!(*|lhs: u64, rhs: $your_type| -> $your_type { (rhs.0 * lhs as f32).into() });
-        auto_ops::impl_op!(*|lhs: i128, rhs: $your_type| -> $your_type { (rhs.0 * lhs as f32).into() });
-        auto_ops::impl_op!(*|lhs: u128, rhs: $your_type| -> $your_type { (rhs.0 * lhs as f32).into() });
-        auto_ops::impl_op!(*|lhs: isize, rhs: $your_type| -> $your_type { (rhs.0 * lhs as f32).into() });
-        auto_ops::impl_op!(*|lhs: usize, rhs: $your_type| -> $your_type { (rhs.0 * lhs as f32).into() });
-        auto_ops::impl_op!(*|lhs: f32, rhs: $your_type| -> $your_type { (rhs.0 * lhs as f32).into() });
-        auto_ops::impl_op!(*|lhs: f64, rhs: $your_type| -> $your_type { (rhs.0 * lhs as f32).into() });
+        auto_ops::impl_op!(*|lhs: i8, rhs: $your_type| -> $your_type {
+            let rhs: f32 = rhs.into();
+            (rhs* lhs as f32).into()
+        });
+        auto_ops::impl_op!(*|lhs: u8, rhs: $your_type| -> $your_type {
+            let rhs: f32 = rhs.into();
+            (rhs* lhs as f32).into()
+        });
+        auto_ops::impl_op!(*|lhs: i16, rhs: $your_type| -> $your_type {
+            let rhs: f32 = rhs.into();
+            (rhs* lhs as f32).into()
+        });
+        auto_ops::impl_op!(*|lhs: u16, rhs: $your_type| -> $your_type {
+            let rhs: f32 = rhs.into();
+            (rhs* lhs as f32).into()
+        });
+        auto_ops::impl_op!(*|lhs: i32, rhs: $your_type| -> $your_type {
+            let rhs: f32 = rhs.into();
+            (rhs* lhs as f32).into()
+        });
+        auto_ops::impl_op!(*|lhs: u32, rhs: $your_type| -> $your_type {
+            let rhs: f32 = rhs.into();
+            (rhs* lhs as f32).into()
+        });
+        auto_ops::impl_op!(*|lhs: i64, rhs: $your_type| -> $your_type {
+            let rhs: f32 = rhs.into();
+            (rhs* lhs as f32).into()
+        });
+        auto_ops::impl_op!(*|lhs: u64, rhs: $your_type| -> $your_type {
+            let rhs: f32 = rhs.into();
+            (rhs* lhs as f32).into()
+        });
+        auto_ops::impl_op!(*|lhs: i128, rhs: $your_type| -> $your_type {
+            let rhs: f32 = rhs.into();
+            (rhs* lhs as f32).into()
+        });
+        auto_ops::impl_op!(*|lhs: u128, rhs: $your_type| -> $your_type {
+            let rhs: f32 = rhs.into();
+            (rhs* lhs as f32).into()
+        });
+        auto_ops::impl_op!(*|lhs: isize, rhs: $your_type| -> $your_type {
+            let rhs: f32 = rhs.into();
+            (rhs* lhs as f32).into()
+        });
+        auto_ops::impl_op!(*|lhs: usize, rhs: $your_type| -> $your_type {
+            let rhs: f32 = rhs.into();
+            (rhs* lhs as f32).into()
+        });
+        auto_ops::impl_op!(*|lhs: f32, rhs: $your_type| -> $your_type {
+            let rhs: f32 = rhs.into();
+            (rhs* lhs as f32).into()
+        });
+        auto_ops::impl_op!(*|lhs: f64, rhs: $your_type| -> $your_type {
+            let rhs: f32 = rhs.into();
+            (rhs* lhs as f32).into()
+        });
     }
 }
 
