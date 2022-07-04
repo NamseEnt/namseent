@@ -60,7 +60,7 @@ impl TextDrawCommand {
         {
             let bottom = bottom_of_fonts
                 .get(&font.id)
-                .map(|bottom| *bottom + Px::from(font.size))
+                .map(|bottom| *bottom + px(font.size as f32))
                 .unwrap_or_else(|| {
                     let metrics = font.metrics;
                     let bottom = self.y + get_bottom_of_baseline(&self.baseline, &metrics);

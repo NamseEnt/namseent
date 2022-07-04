@@ -1,7 +1,7 @@
 use super::Props;
 use crate::{
     namui::{self, get_text_width_internal, TextInput},
-    Px,
+    *,
 };
 use std::ops::Range;
 
@@ -85,7 +85,7 @@ fn get_selection_index_of_x(font: &namui::Font, text: &str, local_x: Px) -> usiz
     let glyph_ids = font.get_glyph_ids(text);
     let glyph_widths = font.get_glyph_widths(glyph_ids, None);
 
-    let mut left = Px::from(0.0);
+    let mut left = px(0.0);
     let index = glyph_widths.iter().position(|width| {
         let center = left + width / 2.0;
         if local_x < center {

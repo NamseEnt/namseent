@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
     namui::{self, render::MouseCursor, Xy},
-    Px,
+    *,
 };
 use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
@@ -27,8 +27,8 @@ impl MouseSystem {
         let canvas_element = canvas_element();
 
         let mouse_position = Arc::new(RwLock::new(Xy::<Px> {
-            x: Px::from(0),
-            y: Px::from(0),
+            x: px(0.0),
+            y: px(0.0),
         }));
         let mouse = Self {
             mouse_position: mouse_position.clone(),

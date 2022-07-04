@@ -1,7 +1,6 @@
-use crate::{Px, Rect};
-
 pub use super::base::*;
 use super::*;
+use crate::*;
 use std::sync::{Arc, Mutex};
 
 unsafe impl Sync for CanvasKitFont {}
@@ -107,10 +106,10 @@ impl Font {
 
                 while iter.peek().is_some() {
                     bounds.push(Rect::Ltrb {
-                        left: Px::from(*iter.next().unwrap()),
-                        top: Px::from(*iter.next().unwrap()),
-                        right: Px::from(*iter.next().unwrap()),
-                        bottom: Px::from(*iter.next().unwrap()),
+                        left: px(*iter.next().unwrap()),
+                        top: px(*iter.next().unwrap()),
+                        right: px(*iter.next().unwrap()),
+                        bottom: px(*iter.next().unwrap()),
                     });
                 }
 

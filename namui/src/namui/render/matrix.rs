@@ -65,8 +65,8 @@ impl Matrix3x3 {
 
     pub fn transform_xy(&self, xy: crate::Xy<Px>) -> crate::Xy<Px> {
         crate::Xy {
-            x: self.values[0][0] * xy.x + self.values[0][1] * xy.y + Px::from(self.values[0][2]),
-            y: self.values[1][0] * xy.x + self.values[1][1] * xy.y + Px::from(self.values[1][2]),
+            x: self.values[0][0] * xy.x + self.values[0][1] * xy.y + px(self.values[0][2]),
+            y: self.values[1][0] * xy.x + self.values[1][1] * xy.y + px(self.values[1][2]),
         }
     }
 
