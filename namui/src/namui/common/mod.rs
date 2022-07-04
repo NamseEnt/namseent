@@ -136,7 +136,7 @@ impl FontWeight {
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Copy, Serialize)]
 pub struct FontType {
     pub serif: bool,
-    pub size: i16,
+    pub size: IntPx,
     pub language: Language,
     pub font_weight: FontWeight,
 }

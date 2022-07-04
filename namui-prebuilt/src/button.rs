@@ -3,21 +3,21 @@ use namui::prelude::*;
 use std::sync::Arc;
 
 pub fn text_button(
-    xywh: XywhRect<f32>,
+    rect: Rect<Px>,
     text: &str,
     text_color: Color,
     stroke_color: Color,
-    stroke_width: f32,
+    stroke_width: Px,
     fill_color: Color,
     on_mouse_down: impl Fn() + 'static,
 ) -> namui::RenderingTree {
     let on_mouse_down = Arc::new(on_mouse_down);
     translate(
-        xywh.x,
-        xywh.y,
+        rect.x(),
+        rect.y(),
         render([
-            simple_rect(xywh.wh(), stroke_color, stroke_width, fill_color),
-            center_text(xywh.wh(), text, text_color),
+            simple_rect(rect.wh(), stroke_color, stroke_width, fill_color),
+            center_text(rect.wh(), text, text_color),
         ]),
     )
     .attach_event(|builder| {

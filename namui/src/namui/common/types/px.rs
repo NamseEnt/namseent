@@ -3,6 +3,10 @@ use std::fmt::Display;
 
 super::common_for_f32_type!(Px);
 
+pub fn px(value: f32) -> Px {
+    value.into()
+}
+
 impl Display for Px {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:.*?}px", f.precision().unwrap_or(0), self.0)
