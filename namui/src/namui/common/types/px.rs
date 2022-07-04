@@ -1,10 +1,10 @@
-use num::{FromPrimitive, ToPrimitive};
+use num::{cast::AsPrimitive, FromPrimitive, ToPrimitive};
 use std::fmt::Display;
 
 super::common_for_f32_type!(Px);
 
-pub fn px(value: f32) -> Px {
-    value.into()
+pub const fn px(value: f32) -> Px {
+    Px(value)
 }
 
 impl Display for Px {
@@ -38,5 +38,11 @@ impl ToPrimitive for Px {
 
     fn to_f64(&self) -> Option<f64> {
         Some(self.0 as f64)
+    }
+}
+
+impl AsPrimitive<i32> for Px {
+    fn as_(self) -> i32 {
+        self.0 as i32
     }
 }

@@ -1,3 +1,5 @@
+use num::cast::AsPrimitive;
+
 use super::*;
 use crate::{Wh, Xy};
 
@@ -61,6 +63,56 @@ impl<T: Clone> Rect<T> {
             Rect::Ltrb { top, .. } => top.clone(),
         }
     }
+    #[inline(always)]
+    pub fn set_x(&mut self, x: T) {
+        match self {
+            Rect::Xywh { x: _x, .. } => *_x = x,
+            Rect::Ltrb { left: _left, .. } => *_left = x,
+        }
+    }
+    #[inline(always)]
+    pub fn set_y(&mut self, y: T) {
+        match self {
+            Rect::Xywh { y: _y, .. } => *_y = y,
+            Rect::Ltrb { top: _top, .. } => *_top = y,
+        }
+    }
+    #[inline(always)]
+    pub fn set_left(&mut self, left: T) {
+        match self {
+            Rect::Xywh { x: _x, .. } => *_x = left,
+            Rect::Ltrb { left: _left, .. } => *_left = left,
+        }
+    }
+    #[inline(always)]
+    pub fn set_top(&mut self, top: T) {
+        match self {
+            Rect::Xywh { y: _y, .. } => *_y = top,
+            Rect::Ltrb { top: _top, .. } => *_top = top,
+        }
+    }
+    #[inline(always)]
+    pub fn update_x(&mut self, callback: impl FnOnce(&mut T)) {
+        match self {
+            Rect::Xywh { x, .. } => callback(x),
+            Rect::Ltrb { left, .. } => callback(left),
+        }
+    }
+    #[inline(always)]
+    pub fn update_y(&mut self, callback: impl FnOnce(&mut T)) {
+        match self {
+            Rect::Xywh { y, .. } => callback(y),
+            Rect::Ltrb { top, .. } => callback(top),
+        }
+    }
+    #[inline(always)]
+    pub fn update_left(&mut self, callback: impl FnOnce(&mut T)) {
+        self.update_x(callback);
+    }
+    #[inline(always)]
+    pub fn update_top(&mut self, callback: impl FnOnce(&mut T)) {
+        self.update_y(callback);
+    }
 }
 
 impl<T> Rect<T>
@@ -94,6 +146,25 @@ where
         }
     }
 
+    fn be_xywh(&mut self) {
+        match self {
+            Rect::Xywh { .. } => {}
+            Rect::Ltrb {
+                left,
+                top,
+                right,
+                bottom,
+            } => {
+                *self = Rect::Xywh {
+                    x: left.clone(),
+                    y: top.clone(),
+                    width: right.clone() - left.clone(),
+                    height: bottom.clone() - top.clone(),
+                };
+            }
+        }
+    }
+
     pub fn wh(&self) -> Wh<T> {
         let xywh = self.as_xywh();
         Wh {
@@ -120,6 +191,60 @@ where
         match self {
             Rect::Xywh { height, .. } => height.clone(),
             Rect::Ltrb { bottom, top, .. } => bottom.clone() - top.clone(),
+        }
+    }
+    #[inline(always)]
+    pub fn set_width(&mut self, width: T) {
+        match self {
+            Rect::Xywh { width: _width, .. } => *_width = width,
+            Rect::Ltrb {
+                left, top, bottom, ..
+            } => {
+                *self = Rect::Xywh {
+                    x: left.clone(),
+                    y: top.clone(),
+                    width,
+                    height: bottom.clone() - top.clone(),
+                };
+            }
+        }
+    }
+    #[inline(always)]
+    pub fn set_height(&mut self, height: T) {
+        match self {
+            Rect::Xywh {
+                height: _height, ..
+            } => *_height = height,
+            Rect::Ltrb {
+                left, top, right, ..
+            } => {
+                *self = Rect::Xywh {
+                    x: left.clone(),
+                    y: top.clone(),
+                    width: right.clone() - left.clone(),
+                    height,
+                };
+            }
+        }
+    }
+    #[inline(always)]
+    pub fn update_width(&mut self, callback: impl FnOnce(&mut T)) {
+        match self {
+            Rect::Xywh { width, .. } => callback(width),
+            Rect::Ltrb { .. } => {
+                self.be_xywh();
+                self.update_width(callback);
+            }
+        }
+    }
+    #[inline(always)]
+    pub fn update_height(&mut self, callback: impl FnOnce(&mut T)) {
+        match self {
+            Rect::Xywh { height, .. } => callback(height),
+            Rect::Ltrb { .. } => {
+                self.be_xywh();
+                self.update_height(callback);
+            }
         }
     }
 }
@@ -153,6 +278,24 @@ where
             },
         }
     }
+    fn be_ltrb(&mut self) {
+        match self {
+            Rect::Xywh {
+                x,
+                y,
+                width,
+                height,
+            } => {
+                *self = Rect::Ltrb {
+                    left: x.clone(),
+                    top: y.clone(),
+                    right: x.clone() + width.clone(),
+                    bottom: y.clone() + height.clone(),
+                };
+            }
+            Rect::Ltrb { .. } => {}
+        }
+    }
     #[inline(always)]
     pub fn right(&self) -> T {
         match self {
@@ -165,6 +308,92 @@ where
         match self {
             Rect::Xywh { y, height, .. } => y.clone() + height.clone(),
             Rect::Ltrb { bottom, .. } => bottom.clone(),
+        }
+    }
+    #[inline(always)]
+    pub fn set_right(&mut self, right: T) {
+        match self {
+            Rect::Xywh { x, y, height, .. } => {
+                *self = Rect::Ltrb {
+                    left: x.clone(),
+                    top: y.clone(),
+                    right,
+                    bottom: y.clone() + height.clone(),
+                };
+            }
+            Rect::Ltrb { right: _right, .. } => {
+                *_right = right;
+            }
+        }
+    }
+    #[inline(always)]
+    pub fn set_bottom(&mut self, bottom: T) {
+        match self {
+            Rect::Xywh { x, y, width, .. } => {
+                *self = Rect::Ltrb {
+                    left: x.clone(),
+                    top: y.clone(),
+                    right: x.clone() + width.clone(),
+                    bottom,
+                };
+            }
+            Rect::Ltrb {
+                bottom: _bottom, ..
+            } => {
+                *_bottom = bottom;
+            }
+        }
+    }
+    #[inline(always)]
+    pub fn update_right(&mut self, callback: impl FnOnce(&mut T)) {
+        match self {
+            Rect::Ltrb { right, .. } => callback(right),
+            Rect::Xywh { .. } => {
+                self.be_ltrb();
+                self.update_right(callback);
+            }
+        }
+    }
+    #[inline(always)]
+    pub fn update_bottom(&mut self, callback: impl FnOnce(&mut T)) {
+        match self {
+            Rect::Ltrb { bottom, .. } => callback(bottom),
+            Rect::Xywh { .. } => {
+                self.be_ltrb();
+                self.update_bottom(callback);
+            }
+        }
+    }
+}
+impl<T> Rect<T>
+where
+    T: std::ops::Mul<f32, Output = T> + Clone,
+{
+    pub fn scale(&self, ratio: impl AsPrimitive<f32>) -> Self {
+        let ratio = ratio.as_();
+        match self {
+            Rect::Xywh {
+                x,
+                y,
+                width,
+                height,
+            } => Rect::Xywh {
+                x: x.clone() * ratio,
+                y: y.clone() * ratio,
+                width: width.clone() * ratio,
+                height: height.clone() * ratio,
+            },
+            Rect::Ltrb {
+                left,
+                top,
+                right,
+                bottom,
+            } => Rect::Ltrb {
+                left: left.clone() * ratio,
+                top: top.clone() * ratio,
+                right: right.clone() * ratio,
+                bottom: bottom.clone() * ratio,
+            },
         }
     }
 }

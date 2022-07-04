@@ -3,10 +3,10 @@ use crate::app::{
     cropper::CropperProps,
     file_selector::{FileSelector, FileSelectorProps},
 };
-use namui::Wh;
+use namui::prelude::*;
 
 pub struct RouterProps {
-    pub screen_wh: Wh<f32>,
+    pub screen_wh: Wh<Px>,
 }
 
 pub struct Router {
@@ -43,9 +43,9 @@ impl Router {
                 screen_wh: props.screen_wh.clone(),
             }),
             Page::Cropper(cropper) => cropper.render(CropperProps {
-                xywh: namui::XywhRect {
-                    x: 0.0,
-                    y: 0.0,
+                rect: Rect::Xywh {
+                    x: px(0.0),
+                    y: px(0.0),
                     width: props.screen_wh.width,
                     height: props.screen_wh.height,
                 },

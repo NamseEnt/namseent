@@ -19,6 +19,18 @@ macro_rules! common_for_f32_type {
                     other
                 }
             }
+            pub fn clamp(&self, min: $your_type, max: $your_type) -> $your_type {
+                if self.0 < min.0 {
+                    min
+                } else if self.0 > max.0 {
+                    max
+                } else {
+                    *self
+                }
+            }
+            pub fn as_f32(&self) -> f32 {
+                self.0
+            }
         }
 
         $crate::types::macros::impl_op_forward_ref!(+|x: $your_type, y: $your_type| -> $your_type {

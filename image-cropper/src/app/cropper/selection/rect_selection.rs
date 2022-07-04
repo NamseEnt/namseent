@@ -1,40 +1,29 @@
 use super::{SelectionEvent, SelectionTrait};
 use crate::app::cropper::job::RectSelectionResizeDirection;
-use namui::{
-    nanoid, render, BorderPosition, Color, MouseCursor, PaintBuilder, PaintStyle, PathBuilder,
-    RectParam, RectStroke, RectStyle, RenderingTree, Xy, XywhRect,
-};
+use namui::prelude::*;
 
 #[derive(Clone)]
 pub struct RectSelection {
-    pub xywh: XywhRect<f32>,
+    pub rect: Rect<Px>,
     id: String,
 }
 impl RectSelection {
-    pub fn new(xywh: XywhRect<f32>) -> Self {
+    pub fn new(rect: Rect<Px>) -> Self {
         let id = nanoid();
-        Self { xywh, id }
+        Self { rect, id }
     }
 }
 impl SelectionTrait for RectSelection {
     fn render(&self, scale: f32) -> namui::RenderingTree {
-        let scaled_xywh = XywhRect {
-            x: self.xywh.x * scale,
-            y: self.xywh.y * scale,
-            width: self.xywh.width * scale,
-            height: self.xywh.height * scale,
-        };
+        let scaled_rect = self.rect.scale(scale);
 
         render([
             namui::rect(RectParam {
-                x: scaled_xywh.x,
-                y: scaled_xywh.y,
-                width: scaled_xywh.width,
-                height: scaled_xywh.height,
+                rect: scaled_rect,
                 style: RectStyle {
                     stroke: Some(RectStroke {
                         color: Color::grayscale_f01(0.5),
-                        width: 1.0,
+                        width: px(1.0),
                         border_position: BorderPosition::Inside,
                     }),
                     ..Default::default()
@@ -50,27 +39,27 @@ impl SelectionTrait for RectSelection {
                     }
                 });
             }),
-            render_handles(&scaled_xywh, self.id.clone()),
+            render_handles(scaled_rect, self.id.clone()),
         ])
     }
 
-    fn get_polygon(&self) -> Vec<namui::Xy<f32>> {
+    fn get_polygon(&self) -> Vec<namui::Xy<Px>> {
         vec![
             Xy {
-                x: self.xywh.x,
-                y: self.xywh.y,
+                x: self.rect.x(),
+                y: self.rect.y(),
             },
             Xy {
-                x: self.xywh.x + self.xywh.width,
-                y: self.xywh.y,
+                x: self.rect.x() + self.rect.width(),
+                y: self.rect.y(),
             },
             Xy {
-                x: self.xywh.x + self.xywh.width,
-                y: self.xywh.y + self.xywh.height,
+                x: self.rect.x() + self.rect.width(),
+                y: self.rect.y() + self.rect.height(),
             },
             Xy {
-                x: self.xywh.x,
-                y: self.xywh.y + self.xywh.height,
+                x: self.rect.x(),
+                y: self.rect.y() + self.rect.height(),
             },
         ]
     }
@@ -83,18 +72,18 @@ impl SelectionTrait for RectSelection {
 #[derive(Clone)]
 struct RectSelectionResizeHandle {
     pub handle_direction: RectSelectionResizeDirection,
-    pub polygon_xy: Vec<Xy<f32>>,
+    pub polygon_xy: Vec<Xy<Px>>,
     pub cursor: MouseCursor,
 }
-fn render_handles(xywh: &XywhRect<f32>, selection_id: String) -> RenderingTree {
-    render(get_handles(xywh).iter().map(|handle| {
+fn render_handles(rect: Rect<Px>, selection_id: String) -> RenderingTree {
+    render(get_handles(rect).iter().map(|handle| {
         let selection_id = selection_id.clone();
         let direction = handle.handle_direction.clone();
         let path = PathBuilder::new().add_poly(&handle.polygon_xy, true);
 
         let stroke_paint = PaintBuilder::new()
             .set_style(PaintStyle::Stroke)
-            .set_stroke_width(1.0)
+            .set_stroke_width(px(1.0))
             .set_color(Color::WHITE);
 
         let fill_paint = PaintBuilder::new()
@@ -121,14 +110,14 @@ fn render_handles(xywh: &XywhRect<f32>, selection_id: String) -> RenderingTree {
     }))
 }
 
-fn get_handles(xywh: &XywhRect<f32>) -> Vec<RectSelectionResizeHandle> {
-    let center = xywh.center();
-    const HANDLE_SIZE: f32 = 24.0;
-    const HANDLE_THICKNESS: f32 = 6.0;
-    let left = xywh.x;
-    let top = xywh.y;
-    let right = xywh.x + xywh.width;
-    let bottom = xywh.y + xywh.height;
+fn get_handles(rect: Rect<Px>) -> Vec<RectSelectionResizeHandle> {
+    let center = rect.center();
+    const HANDLE_SIZE: Px = px(24.0);
+    const HANDLE_THICKNESS: Px = px(6.0);
+    let left = rect.left();
+    let top = rect.top();
+    let right = rect.right();
+    let bottom = rect.bottom();
     vec![
         RectSelectionResizeHandle {
             handle_direction: RectSelectionResizeDirection::Top,

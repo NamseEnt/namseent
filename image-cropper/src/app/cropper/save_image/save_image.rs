@@ -5,7 +5,7 @@ use super::{
 };
 use crate::app::cropper::selection::Selection;
 use js_sys::{Array, Uint8Array};
-use namui::{LtrbRect, Xy, XywhRect};
+use namui::prelude::*;
 use std::future::Future;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use wasm_bindgen_futures::spawn_local;
@@ -21,14 +21,17 @@ pub fn save_image(image_url: String, image_name: String, selection_list: Vec<Sel
         for (index, selection) in selection_list.into_iter().enumerate() {
             let polygon = selection.get_polygon();
             if let Some(bounding_box) = get_bounding_box(&polygon) {
-                canvas.set_width(bounding_box.width as u32);
-                canvas.set_height(bounding_box.height as u32);
+                canvas.set_width(bounding_box.width().as_f32() as u32);
+                canvas.set_height(bounding_box.height().as_f32() as u32);
                 context.save();
                 context
-                    .translate(-bounding_box.x as f64, -bounding_box.y as f64)
+                    .translate(
+                        -bounding_box.x().as_f32() as f64,
+                        -bounding_box.y().as_f32() as f64,
+                    )
                     .expect("failed to translate");
                 draw_clip_path_with_polygon(&context, &polygon);
-                draw_selected_image(&context, &target, &bounding_box);
+                draw_selected_image(&context, &target, bounding_box);
                 context.restore();
                 let image_name = make_sequential_file_name(&image_name, index);
                 let png_encoded_u8 = get_png_encoded_u8_from_canvas(&canvas).await;
@@ -44,19 +47,19 @@ pub fn save_image(image_url: String, image_name: String, selection_list: Vec<Sel
 fn draw_selected_image(
     context: &CanvasRenderingContext2d,
     image_element: &HtmlImageElement,
-    selection_bounding_box: &XywhRect<f32>,
+    selection_bounding_box: Rect<Px>,
 ) {
     context
         .draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
             &image_element,
-            selection_bounding_box.x.into(),
-            selection_bounding_box.y.into(),
-            selection_bounding_box.width.into(),
-            selection_bounding_box.height.into(),
-            selection_bounding_box.x.into(),
-            selection_bounding_box.y.into(),
-            selection_bounding_box.width.into(),
-            selection_bounding_box.height.into(),
+            selection_bounding_box.x().as_f32().into(),
+            selection_bounding_box.y().as_f32().into(),
+            selection_bounding_box.width().as_f32().into(),
+            selection_bounding_box.height().as_f32().into(),
+            selection_bounding_box.x().as_f32().into(),
+            selection_bounding_box.y().as_f32().into(),
+            selection_bounding_box.width().as_f32().into(),
+            selection_bounding_box.height().as_f32().into(),
         )
         .expect("failed to draw image to offscreen canvas");
 }
@@ -124,11 +127,11 @@ fn get_context(canvas: &HtmlCanvasElement) -> CanvasRenderingContext2d {
     context
 }
 
-fn get_bounding_box(polygon: &Vec<Xy<f32>>) -> Option<XywhRect<f32>> {
+fn get_bounding_box(polygon: &Vec<Xy<Px>>) -> Option<Rect<Px>> {
     polygon
         .first()
         .and_then(|first_point| {
-            Some(LtrbRect {
+            Some(Rect::Ltrb {
                 left: first_point.x,
                 top: first_point.y,
                 right: first_point.x,
@@ -139,29 +142,24 @@ fn get_bounding_box(polygon: &Vec<Xy<f32>>) -> Option<XywhRect<f32>> {
             let bounding_box =
                 polygon
                     .into_iter()
-                    .fold(initial_bounding_box, |bounding_box: LtrbRect, point| {
-                        LtrbRect {
-                            left: bounding_box.left.min(point.x),
-                            top: bounding_box.top.min(point.y),
-                            right: bounding_box.right.max(point.x),
-                            bottom: bounding_box.bottom.max(point.y),
+                    .fold(initial_bounding_box, |bounding_box: Rect<Px>, point| {
+                        Rect::Ltrb {
+                            left: bounding_box.left().min(point.x),
+                            top: bounding_box.top().min(point.y),
+                            right: bounding_box.right().max(point.x),
+                            bottom: bounding_box.bottom().max(point.y),
                         }
                     });
-            Some(XywhRect {
-                x: bounding_box.left,
-                y: bounding_box.top,
-                width: bounding_box.right - bounding_box.left,
-                height: bounding_box.bottom - bounding_box.top,
-            })
+            Some(bounding_box)
         })
 }
 
-fn draw_clip_path_with_polygon(context: &CanvasRenderingContext2d, polygon: &Vec<Xy<f32>>) {
+fn draw_clip_path_with_polygon(context: &CanvasRenderingContext2d, polygon: &Vec<Xy<Px>>) {
     if let Some(first_point) = polygon.first() {
         context.begin_path();
-        context.move_to(first_point.x as f64, first_point.y as f64);
+        context.move_to(first_point.x.as_f32().into(), first_point.y.as_f32().into());
         for point in polygon.iter().skip(1) {
-            context.line_to(point.x as f64, point.y as f64);
+            context.line_to(point.x.as_f32().into(), point.y.as_f32().into());
         }
         context.close_path();
         context.clip();

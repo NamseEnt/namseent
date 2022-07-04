@@ -1,5 +1,5 @@
 use super::{PolySelection, RectSelection};
-use namui::{RenderingTree, Xy};
+use namui::prelude::*;
 
 #[derive(Clone)]
 pub enum Selection {
@@ -14,7 +14,7 @@ impl Selection {
         }
     }
 
-    pub fn get_polygon(&self) -> Vec<Xy<f32>> {
+    pub fn get_polygon(&self) -> Vec<Xy<Px>> {
         match self {
             Selection::RectSelection(selection) => selection.get_polygon(),
             Selection::PolySelection(selection) => selection.get_polygon(),
@@ -30,7 +30,7 @@ impl Selection {
 }
 pub trait SelectionTrait {
     fn render(&self, scale: f32) -> RenderingTree;
-    fn get_polygon(&self) -> Vec<Xy<f32>>;
+    fn get_polygon(&self) -> Vec<Xy<Px>>;
     fn get_id(&self) -> &String;
 }
 

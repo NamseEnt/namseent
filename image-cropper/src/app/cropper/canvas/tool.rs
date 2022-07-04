@@ -1,21 +1,21 @@
-use namui::{
-    absolute, path, Color, LtrbRect, NamuiEvent, PaintBuilder, PathBuilder, RectParam, RectStroke,
-    RectStyle, RenderingTree, Xy,
-};
+use namui::prelude::*;
 use std::f32::consts::PI;
 
-const ICON_SIZE: f32 = 16.0;
-const ICON_OFFSET: f32 = 8.0;
+const ICON_SIZE: Px = px(16.0);
+const ICON_OFFSET: Px = px(8.0);
 
 pub struct Tool {
-    last_cursor_position: Xy<f32>,
+    last_cursor_position: Xy<Px>,
     current_tool_type: ToolType,
     secondary_tool_type: Option<ToolType>,
 }
 impl Tool {
     pub fn new() -> Self {
         Self {
-            last_cursor_position: Xy { x: 0.0, y: 0.0 },
+            last_cursor_position: Xy {
+                x: px(0.0),
+                y: px(0.0),
+            },
             current_tool_type: ToolType::Hand,
             secondary_tool_type: None,
         }
@@ -72,14 +72,16 @@ pub enum ToolType {
 
 fn render_rect_selection_icon() -> RenderingTree {
     namui::rect(RectParam {
-        x: ICON_OFFSET,
-        y: ICON_OFFSET,
-        width: ICON_SIZE,
-        height: ICON_SIZE,
+        rect: Rect::Xywh {
+            x: ICON_OFFSET,
+            y: ICON_OFFSET,
+            width: ICON_SIZE,
+            height: ICON_SIZE,
+        },
         style: RectStyle {
             stroke: Some(RectStroke {
                 color: Color::grayscale_f01(0.3),
-                width: 2.0,
+                width: px(2.0),
                 border_position: namui::BorderPosition::Inside,
             }),
             fill: None,
@@ -90,7 +92,7 @@ fn render_rect_selection_icon() -> RenderingTree {
 
 fn render_poly_selection_icon() -> RenderingTree {
     let poly_selection_path = get_poly_selection_path()
-        .scale(ICON_SIZE, ICON_SIZE)
+        .scale(ICON_SIZE.as_f32(), ICON_SIZE.as_f32())
         .translate(ICON_OFFSET, ICON_OFFSET);
     let paint = PaintBuilder::new()
         .set_color(Color::grayscale_f01(0.3))
@@ -101,7 +103,7 @@ fn render_poly_selection_icon() -> RenderingTree {
 
 fn render_hand_icon() -> RenderingTree {
     let hand_path = get_hand_path()
-        .scale(ICON_SIZE, ICON_SIZE)
+        .scale(ICON_SIZE.as_f32(), ICON_SIZE.as_f32())
         .translate(ICON_OFFSET, ICON_OFFSET);
     let paint = PaintBuilder::new()
         .set_color(Color::grayscale_f01(0.3))
@@ -112,7 +114,7 @@ fn render_hand_icon() -> RenderingTree {
 
 fn render_zoom_icon() -> RenderingTree {
     let zoom_path = get_zoom_path()
-        .scale(ICON_SIZE, ICON_SIZE)
+        .scale(ICON_SIZE.as_f32(), ICON_SIZE.as_f32())
         .translate(ICON_OFFSET, ICON_OFFSET);
     let paint = PaintBuilder::new()
         .set_color(Color::grayscale_f01(0.3))
@@ -123,103 +125,103 @@ fn render_zoom_icon() -> RenderingTree {
 
 fn get_poly_selection_path() -> PathBuilder {
     PathBuilder::new()
-        .move_to(1.0, 1.0)
-        .line_to(0.8, 0.8)
-        .line_to(0.2, 0.6)
-        .line_to(0.0, 0.2)
-        .line_to(0.5, 0.0)
-        .line_to(0.7, 0.2)
-        .line_to(0.8, 0.8)
+        .move_to(px(1.0), px(1.0))
+        .line_to(px(0.8), px(0.8))
+        .line_to(px(0.2), px(0.6))
+        .line_to(px(0.0), px(0.2))
+        .line_to(px(0.5), px(0.0))
+        .line_to(px(0.7), px(0.2))
+        .line_to(px(0.8), px(0.8))
         .close()
 }
 
 fn get_hand_path() -> PathBuilder {
     PathBuilder::new()
         .arc_to(
-            &LtrbRect {
-                left: 0.0625,
-                top: 0.5625,
-                right: 0.1875,
-                bottom: 0.6875,
+            Rect::Ltrb {
+                left: px(0.0625),
+                top: px(0.5625),
+                right: px(0.1875),
+                bottom: px(0.6875),
             },
-            2.251705961447832,
-            3.141592653589793,
+            Angle::Radian(2.251705961447832),
+            Angle::Radian(2.0 * PI),
         )
-        .line_to(0.25, 0.6458333333333333)
-        .line_to(0.25, 0.1875)
+        .line_to(px(0.25), px(0.6458333333333333))
+        .line_to(px(0.25), px(0.1875))
         .arc_to(
-            &LtrbRect {
-                left: 0.25,
-                top: 0.125,
-                right: 0.375,
-                bottom: 0.25,
+            Rect::Ltrb {
+                left: px(0.25),
+                top: px(0.125),
+                right: px(0.375),
+                bottom: px(0.25),
             },
-            3.141592653589793,
-            3.141592653589793,
+            Angle::Radian(2.0 * PI),
+            Angle::Radian(2.0 * PI),
         )
-        .line_to(0.375, 0.4375)
-        .line_to(0.375, 0.0625)
+        .line_to(px(0.375), px(0.4375))
+        .line_to(px(0.375), px(0.0625))
         .arc_to(
-            &LtrbRect {
-                left: 0.375,
-                top: 0.0,
-                right: 0.5,
-                bottom: 0.125,
+            Rect::Ltrb {
+                left: px(0.375),
+                top: px(0.0),
+                right: px(0.5),
+                bottom: px(0.125),
             },
-            3.141592653589793,
-            3.141592653589793,
+            Angle::Radian(2.0 * PI),
+            Angle::Radian(2.0 * PI),
         )
-        .line_to(0.5, 0.4375)
-        .line_to(0.5, 0.125)
+        .line_to(px(0.5), px(0.4375))
+        .line_to(px(0.5), px(0.125))
         .arc_to(
-            &LtrbRect {
-                left: 0.5,
-                top: 0.0625,
-                right: 0.625,
-                bottom: 0.1875,
+            Rect::Ltrb {
+                left: px(0.5),
+                top: px(0.0625),
+                right: px(0.625),
+                bottom: px(0.1875),
             },
-            3.141592653589793,
-            3.141592653589793,
+            Angle::Radian(2.0 * PI),
+            Angle::Radian(2.0 * PI),
         )
-        .line_to(0.625, 0.5)
-        .line_to(0.625, 0.3125)
+        .line_to(px(0.625), px(0.5))
+        .line_to(px(0.625), px(0.3125))
         .arc_to(
-            &LtrbRect {
-                left: 0.625,
-                top: 0.25,
-                right: 0.75,
-                bottom: 0.375,
+            Rect::Ltrb {
+                left: px(0.625),
+                top: px(0.25),
+                right: px(0.75),
+                bottom: px(0.375),
             },
-            3.141592653589793,
-            3.141592653589793,
+            Angle::Radian(2.0 * PI),
+            Angle::Radian(2.0 * PI),
         )
-        .line_to(0.75, 0.6875)
+        .line_to(px(0.75), px(0.6875))
         .arc_to(
-            &LtrbRect {
-                left: 0.25,
-                top: 0.4375,
-                right: 0.75,
-                bottom: 0.9375,
+            Rect::Ltrb {
+                left: px(0.25),
+                top: px(0.4375),
+                right: px(0.75),
+                bottom: px(0.9375),
             },
-            0.0,
-            2.251705961447832,
+            Angle::Radian(0.0),
+            Angle::Radian(2.251705961447832),
         )
         .close()
 }
 
 fn get_zoom_path() -> PathBuilder {
     PathBuilder::new()
-        .move_to(1.0, 1.0)
-        .line_to(0.6, 0.6)
+        .move_to(px(1.0), px(1.0))
+        .line_to(px(0.6), px(0.6))
         .arc_to(
-            &LtrbRect {
-                left: 0.0,
-                top: 0.0,
-                right: 0.6,
-                bottom: 0.6,
+            Rect::Ltrb {
+                left: px(0.0),
+                top: px(0.0),
+                right: px(0.6),
+                bottom: px(0.6),
             },
-            PI / 4.0,
-            -PI * 2.0,
+            Angle::Radian(PI / 4.0),
+            Angle::Radian(-PI * 2.0),
         )
         .close()
 }
