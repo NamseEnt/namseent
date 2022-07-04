@@ -1,4 +1,4 @@
-use crate::{namui::skia::StrokeOptions, LtrbRect, Path, Xy};
+use crate::{namui::skia::StrokeOptions, *};
 use once_cell::sync::OnceCell;
 use serde::Serialize;
 use std::{
@@ -8,18 +8,18 @@ use std::{
 
 #[derive(Debug, Serialize, Clone)]
 enum PathCommand {
-    AddRect(LtrbRect),
-    AddRrect(LtrbRect, Xy<f32>),
+    AddRect(Rect<Px>),
+    AddRrect(Rect<Px>, Xy<Px>),
     Stroke(StrokeOptions),
-    MoveTo(Xy<f32>),
-    LineTo(Xy<f32>),
-    ArcTo(LtrbRect, f32, f32),
+    MoveTo(Xy<Px>),
+    LineTo(Xy<Px>),
+    ArcTo(Rect<Px>, Angle, Angle),
     Scale(Xy<f32>),
-    Translate(Xy<f32>),
+    Translate(Xy<Px>),
     Transform([f32; 9]),
-    AddOval(LtrbRect),
-    AddArc(LtrbRect, f32, f32),
-    AddPoly(Vec<Xy<f32>>, bool),
+    AddOval(Rect<Px>),
+    AddArc(Rect<Px>, Angle, Angle),
+    AddPoly(Vec<Xy<Px>>, bool),
     Close,
 }
 
@@ -39,37 +39,37 @@ impl PathBuilder {
             commands: Vec::new(),
         }
     }
-    pub fn add_rect(mut self, ltrb_rect: &LtrbRect) -> Self {
-        self.commands.push(PathCommand::AddRect(*ltrb_rect));
+    pub fn add_rect(mut self, rect: Rect<Px>) -> Self {
+        self.commands.push(PathCommand::AddRect(rect));
         self
     }
-    pub fn add_rrect(mut self, rect: &LtrbRect, rx: f32, ry: f32) -> Self {
+    pub fn add_rrect(mut self, rect: Rect<Px>, rx: Px, ry: Px) -> Self {
         self.commands
-            .push(PathCommand::AddRrect(*rect, Xy { x: rx, y: ry }));
+            .push(PathCommand::AddRrect(rect, Xy { x: rx, y: ry }));
         self
     }
     pub fn stroke(&mut self, options: StrokeOptions) -> Result<(), ()> {
         self.commands.push(PathCommand::Stroke(options));
         Ok(()) // TODO: This is false Ok. Make it sure with stroke execution.
     }
-    pub fn move_to(mut self, x: f32, y: f32) -> Self {
+    pub fn move_to(mut self, x: Px, y: Px) -> Self {
         self.commands.push(PathCommand::MoveTo(Xy { x, y }));
         self
     }
-    pub fn line_to(mut self, x: f32, y: f32) -> Self {
+    pub fn line_to(mut self, x: Px, y: Px) -> Self {
         self.commands.push(PathCommand::LineTo(Xy { x, y }));
         self
     }
-    pub fn arc_to(mut self, oval: &LtrbRect, start_radian: f32, delta_radian: f32) -> Self {
+    pub fn arc_to(mut self, oval: Rect<Px>, start_angle: Angle, delta_angle: Angle) -> Self {
         self.commands
-            .push(PathCommand::ArcTo(*oval, start_radian, delta_radian));
+            .push(PathCommand::ArcTo(oval, start_angle, delta_angle));
         self
     }
-    pub fn scale(mut self, x: f32, y: f32) -> Self {
-        self.commands.push(PathCommand::Scale(Xy { x, y }));
+    pub fn scale(mut self, sx: f32, sy: f32) -> Self {
+        self.commands.push(PathCommand::Scale(Xy { x: sx, y: sy }));
         self
     }
-    pub fn translate(mut self, x: f32, y: f32) -> Self {
+    pub fn translate(mut self, x: Px, y: Px) -> Self {
         self.commands.push(PathCommand::Translate(Xy { x, y }));
         self
     }
@@ -77,16 +77,16 @@ impl PathBuilder {
         self.commands.push(PathCommand::Transform(*matrix_3x3));
         self
     }
-    pub fn add_oval(mut self, ltrb_rect: &LtrbRect) -> Self {
-        self.commands.push(PathCommand::AddOval(*ltrb_rect));
+    pub fn add_oval(mut self, rect: Rect<Px>) -> Self {
+        self.commands.push(PathCommand::AddOval(rect));
         self
     }
-    pub fn add_arc(mut self, oval: &LtrbRect, start_radian: f32, delta_radian: f32) -> Self {
+    pub fn add_arc(mut self, oval: Rect<Px>, start_angle: Angle, delta_angle: Angle) -> Self {
         self.commands
-            .push(PathCommand::AddArc(*oval, start_radian, delta_radian));
+            .push(PathCommand::AddArc(oval, start_angle, delta_angle));
         self
     }
-    pub fn add_poly(mut self, xy_array: &[Xy<f32>], close: bool) -> Self {
+    pub fn add_poly(mut self, xy_array: &[Xy<Px>], close: bool) -> Self {
         self.commands
             .push(PathCommand::AddPoly(xy_array.to_vec(), close));
         self
@@ -115,25 +115,23 @@ impl PathBuilder {
         let mut path = Path::new();
         for command in &self.commands {
             path = match command {
-                PathCommand::AddRect(ltrb_rect) => path.add_rect(&ltrb_rect),
-                PathCommand::AddRrect(ltrb_rect, rx_ry) => {
-                    path.add_rrect(&ltrb_rect, rx_ry.x, rx_ry.y)
-                }
-                PathCommand::Stroke(options) => {
+                &PathCommand::AddRect(rect) => path.add_rect(rect),
+                &PathCommand::AddRrect(rect, rx_ry) => path.add_rrect(rect, rx_ry.x, rx_ry.y),
+                &PathCommand::Stroke(options) => {
                     path.stroke(options).unwrap();
                     path
                 }
-                PathCommand::MoveTo(xy) => path.move_to(xy.x, xy.y),
-                PathCommand::LineTo(xy) => path.line_to(xy.x, xy.y),
-                PathCommand::ArcTo(oval, start_radian, delta_radian) => {
-                    path.arc_to(&oval, *start_radian, *delta_radian)
+                &PathCommand::MoveTo(xy) => path.move_to(xy.x, xy.y),
+                &PathCommand::LineTo(xy) => path.line_to(xy.x, xy.y),
+                &PathCommand::ArcTo(oval, start_angle, delta_angle) => {
+                    path.arc_to(oval, start_angle, delta_angle)
                 }
-                PathCommand::Scale(xy) => path.scale(xy.x, xy.y),
-                PathCommand::Translate(xy) => path.translate(xy.x, xy.y),
-                PathCommand::Transform(matrix_3x3) => path.transform(&matrix_3x3),
-                PathCommand::AddOval(ltrb_rect) => path.add_oval(&ltrb_rect),
-                PathCommand::AddArc(oval, start_radian, delta_radian) => {
-                    path.add_arc(&oval, *start_radian, *delta_radian)
+                &PathCommand::Scale(xy) => path.scale(xy.x, xy.y),
+                &PathCommand::Translate(xy) => path.translate(xy.x, xy.y),
+                &PathCommand::Transform(matrix_3x3) => path.transform(&matrix_3x3),
+                &PathCommand::AddOval(rect) => path.add_oval(rect),
+                &PathCommand::AddArc(oval, start_angle, delta_angle) => {
+                    path.add_arc(oval, start_angle, delta_angle)
                 }
                 PathCommand::AddPoly(xy_array, close) => path.add_poly(&xy_array, *close),
                 PathCommand::Close => path.close(),

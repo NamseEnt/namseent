@@ -67,18 +67,19 @@ overload_operator!(Sub, sub);
 overload_operator!(Mul, mul);
 overload_operator!(Div, div);
 
-impl Mul<Xy<f32>> for f32 {
-    type Output = Xy<f32>;
-    fn mul(self, rhs: Xy<f32>) -> Self::Output {
+impl<T: Mul<f32, Output = T>> Mul<Xy<T>> for f32 {
+    type Output = Xy<T>;
+    fn mul(self, rhs: Xy<T>) -> Self::Output {
         Xy {
             x: rhs.x.mul(self),
             y: rhs.y.mul(self),
         }
     }
 }
-impl Div<Xy<f32>> for f32 {
-    type Output = Xy<f32>;
-    fn div(self, rhs: Xy<f32>) -> Self::Output {
+
+impl<T: Div<f32, Output = T>> Div<Xy<T>> for f32 {
+    type Output = Xy<T>;
+    fn div(self, rhs: Xy<T>) -> Self::Output {
         Xy {
             x: rhs.x.div(self),
             y: rhs.y.div(self),

@@ -74,8 +74,8 @@ mod tests {
     #[wasm_bindgen_test]
     fn percent_multiply_should_work() {
         let a = 4.0_f32;
-        let b = Percent::from(150.0_f32);
-        let c = Percent::from(600.0_f32);
+        let b = Percent::from_percent(150.0_f32);
+        let c = Percent::from_percent(600.0_f32);
         let b_a = b * a;
 
         assert_eq!(c, b_a);
@@ -84,7 +84,7 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn percent_display_should_work() {
-        let b = Percent::from(150.0);
+        let b = Percent::from_percent(150.0);
 
         assert_eq!(format!("{}", b), "150.0%");
     }

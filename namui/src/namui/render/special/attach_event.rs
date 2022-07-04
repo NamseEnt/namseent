@@ -1,5 +1,5 @@
 use super::SpecialRenderingNode;
-use crate::{Code, MouseButton, NamuiContext, RenderingTree, Xy};
+use crate::*;
 use serde::Serialize;
 use std::{collections::HashSet, sync::Arc};
 
@@ -30,8 +30,8 @@ pub struct MouseEvent<'a> {
     pub id: String,
     pub namui_context: &'a NamuiContext,
     pub target: &'a RenderingTree,
-    pub local_xy: Xy<f32>,
-    pub global_xy: Xy<f32>,
+    pub local_xy: Xy<Px>,
+    pub global_xy: Xy<Px>,
     pub pressing_buttons: HashSet<MouseButton>,
     pub button: Option<MouseButton>,
 }
@@ -44,7 +44,7 @@ pub struct WheelEvent<'a> {
     pub id: String,
     pub namui_context: &'a NamuiContext,
     pub target: &'a RenderingTree,
-    pub delta_xy: Xy<f32>,
+    pub delta_xy: Xy<Px>,
 }
 pub struct KeyboardEvent<'a> {
     pub id: String,

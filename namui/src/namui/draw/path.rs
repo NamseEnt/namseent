@@ -1,5 +1,5 @@
 use super::*;
-
+use crate::*;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct PathDrawCommand {
@@ -15,7 +15,7 @@ impl PathDrawCommand {
         let paint = self.paint_builder.build();
         crate::graphics::surface().canvas().draw_path(&path, &paint);
     }
-    pub fn get_bounding_box(&self) -> Option<crate::LtrbRect> {
+    pub fn get_bounding_box(&self) -> Option<Rect<Px>> {
         let path = self.path_builder.build();
         let paint = self.paint_builder.build();
 
@@ -23,8 +23,8 @@ impl PathDrawCommand {
         let stroke_result = stroke_path_builder.stroke(StrokeOptions {
             cap: Some(paint.get_stroke_cap()),
             join: Some(paint.get_stroke_join()),
-            width: Some(paint.get_stroke_width()),
-            miter_limit: Some(paint.get_stroke_miter()),
+            width: Some(paint.get_stroke_width().into()),
+            miter_limit: Some(paint.get_stroke_miter().into()),
             precision: None,
         });
 
@@ -35,7 +35,7 @@ impl PathDrawCommand {
 
         path.get_bounding_box()
     }
-    pub fn is_xy_in(&self, xy: Xy<f32>) -> bool {
+    pub fn is_xy_in(&self, xy: Xy<Px>) -> bool {
         let path = self.path_builder.build();
         if path.contains(xy) {
             return true;

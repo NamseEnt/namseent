@@ -1,6 +1,5 @@
 use super::SpecialRenderingNode;
-use crate::{namui::ClipOp, PathBuilder};
-use crate::{RenderingTree, Xy};
+use crate::{namui::ClipOp, *};
 use serde::Serialize;
 
 #[derive(Serialize, Clone, Debug)]
@@ -23,7 +22,7 @@ pub fn clip(
 }
 
 impl ClipNode {
-    pub(crate) fn is_clip_in(&self, xy: Xy<f32>) -> bool {
+    pub(crate) fn is_clip_in(&self, xy: Xy<Px>) -> bool {
         let path = self.path_builder.build();
 
         let path_contains = path.contains(xy);

@@ -14,6 +14,12 @@ impl Angle {
             Angle::Degree(degree) => degree.to_radians(),
         }
     }
+    pub fn as_degrees(&self) -> f32 {
+        match self {
+            Angle::Radian(radian) => radian.to_degrees(),
+            Angle::Degree(degree) => *degree,
+        }
+    }
 
     pub fn sin(&self) -> f32 {
         self.as_radians().sin()
@@ -101,3 +107,31 @@ impl Display for Angle {
         write!(f, "{:.*?}{}", f.precision().unwrap_or(0), value, unit)
     }
 }
+
+super::impl_op_forward_ref!(*|lhs: Angle, rhs: f32| -> Angle {
+    match lhs {
+        Angle::Radian(x) => Angle::Radian(x * rhs),
+        Angle::Degree(x) => Angle::Degree(x * rhs),
+    }
+});
+
+super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i8| -> Angle { lhs * rhs as f32 });
+super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u8| -> Angle { lhs * rhs as f32 });
+super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i16| -> Angle { lhs * rhs as f32 });
+super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u16| -> Angle { lhs * rhs as f32 });
+super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i32| -> Angle { lhs * rhs as f32 });
+super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u32| -> Angle { lhs * rhs as f32 });
+super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i64| -> Angle { lhs * rhs as f32 });
+super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u64| -> Angle { lhs * rhs as f32 });
+super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i128| -> Angle { lhs * rhs as f32 });
+super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u128| -> Angle { lhs * rhs as f32 });
+super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: isize| -> Angle { lhs * rhs as f32 });
+super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: usize| -> Angle { lhs * rhs as f32 });
+super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: f64| -> Angle { lhs * rhs as f32 });
+
+auto_ops::impl_op!(+=|lhs: &mut Angle, rhs: Angle| {
+    match lhs {
+        Angle::Radian(x) => *x += rhs.as_radians(),
+        Angle::Degree(x) => *x += rhs.as_degrees(),
+    };
+});

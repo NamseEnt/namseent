@@ -1,8 +1,5 @@
 use super::{platform_utils::web::window, InitResult};
-use crate::{
-    namui::{self, Xy},
-    RawWheelEvent,
-};
+use crate::{RawWheelEvent, *};
 use wasm_bindgen::{prelude::Closure, JsCast};
 
 pub async fn init() -> InitResult {
@@ -19,8 +16,8 @@ pub async fn init() -> InitResult {
                 namui::event::send(namui::NamuiEvent::Wheel(RawWheelEvent {
                     id: format!("wheel-{:?}-{}", namui::now(), namui::nanoid()),
                     delta_xy: Xy {
-                        x: event.delta_x() as f32,
-                        y: event.delta_y() as f32,
+                        x: Px::from(event.delta_x() as f32),
+                        y: Px::from(event.delta_y() as f32),
                     },
                 }));
             }) as Box<dyn FnMut(_)>)

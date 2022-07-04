@@ -1,9 +1,12 @@
-use crate::{types::*, RenderingTree};
-use serde::{Deserialize, Serialize};
-mod keyframe;
-pub use self::keyframe::*;
 mod animatable_image;
-pub use self::animatable_image::AnimatableImage;
+mod image_keyframe_graph;
+mod keyframe;
+
+use crate::{types::*, RenderingTree};
+pub use animatable_image::AnimatableImage;
+pub use image_keyframe_graph::*;
+pub use keyframe::*;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Layer {

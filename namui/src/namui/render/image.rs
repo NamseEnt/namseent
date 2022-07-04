@@ -24,7 +24,7 @@ pub enum ImageSource {
 }
 
 pub struct ImageParam {
-    pub xywh: XywhRect<f32>,
+    pub rect: Rect<Px>,
     pub source: ImageSource,
     pub style: ImageStyle,
 }
@@ -32,13 +32,13 @@ pub struct ImageParam {
 pub fn image(
     ImageParam {
         source,
-        xywh,
+        rect,
         style,
     }: ImageParam,
 ) -> RenderingTree {
     let image_draw_command = ImageDrawCommand {
         source,
-        xywh,
+        rect,
         fit: style.fit,
         paint_builder: style.paint_builder,
     };

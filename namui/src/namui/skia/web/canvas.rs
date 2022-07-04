@@ -1,18 +1,18 @@
 use super::*;
-use crate::XywhRect;
+use crate::*;
 
 pub(crate) struct Canvas(pub CanvasKitCanvas);
 impl Canvas {
-    pub fn draw_text_blob(&self, text_blob: &TextBlob, x: f32, y: f32, paint: &Paint) {
+    pub fn draw_text_blob(&self, text_blob: &TextBlob, x: Px, y: Px, paint: &Paint) {
         self.0
-            .drawTextBlob(&text_blob.0, x, y, &paint.canvas_kit_paint);
+            .drawTextBlob(&text_blob.0, x.into(), y.into(), &paint.canvas_kit_paint);
     }
     pub fn draw_path(&self, path: &Path, paint: &Paint) {
         self.0
             .drawPath(&path.canvas_kit_path, &paint.canvas_kit_paint);
     }
-    pub fn translate(&self, dx: f32, dy: f32) {
-        self.0.translate(dx, dy);
+    pub fn translate(&self, dx: Px, dy: Px) {
+        self.0.translate(dx.into(), dy.into());
     }
     pub(crate) fn save(&self) {
         self.0.save();
@@ -30,25 +30,25 @@ impl Canvas {
     pub(crate) fn draw_image_rect_options(
         &self,
         image: &Image,
-        src_rect: &XywhRect<f32>,
-        dest_rect: &XywhRect<f32>,
+        src_rect: Rect<Px>,
+        dest_rect: Rect<Px>,
         filter_mode: FilterMode,
         mipmap_mode: MipmapMode,
         paint: Option<&Paint>,
     ) {
-        let src_rect_lrtb = src_rect.into_ltrb();
+        let src_rect_lrtb = src_rect.as_ltrb();
         let src_rect_lrtb_array = js_sys::Float32Array::new_with_length(4);
-        src_rect_lrtb_array.set_index(0, src_rect_lrtb.left as f32);
-        src_rect_lrtb_array.set_index(1, src_rect_lrtb.top as f32);
-        src_rect_lrtb_array.set_index(2, src_rect_lrtb.right as f32);
-        src_rect_lrtb_array.set_index(3, src_rect_lrtb.bottom as f32);
+        src_rect_lrtb_array.set_index(0, src_rect_lrtb.left.into());
+        src_rect_lrtb_array.set_index(1, src_rect_lrtb.top.into());
+        src_rect_lrtb_array.set_index(2, src_rect_lrtb.right.into());
+        src_rect_lrtb_array.set_index(3, src_rect_lrtb.bottom.into());
 
-        let dest_rect_lrtb = dest_rect.into_ltrb();
+        let dest_rect_lrtb = dest_rect.as_ltrb();
         let dest_rect_lrtb_array = js_sys::Float32Array::new_with_length(4);
-        dest_rect_lrtb_array.set_index(0, dest_rect_lrtb.left as f32);
-        dest_rect_lrtb_array.set_index(1, dest_rect_lrtb.top as f32);
-        dest_rect_lrtb_array.set_index(2, dest_rect_lrtb.right as f32);
-        dest_rect_lrtb_array.set_index(3, dest_rect_lrtb.bottom as f32);
+        dest_rect_lrtb_array.set_index(0, dest_rect_lrtb.left.into());
+        dest_rect_lrtb_array.set_index(1, dest_rect_lrtb.top.into());
+        dest_rect_lrtb_array.set_index(2, dest_rect_lrtb.right.into());
+        dest_rect_lrtb_array.set_index(3, dest_rect_lrtb.bottom.into());
 
         self.0.drawImageRectOptions(
             &image.canvas_kit_image,
@@ -83,11 +83,10 @@ impl Canvas {
             matrix[2][2],
         ]);
     }
-    pub(crate) fn rotate(&self, radian: f32) {
-        self.0
-            .rotate(radian / (2.0 * std::f32::consts::PI) * 360.0, 0.0, 0.0);
+    pub(crate) fn rotate(&self, angle: Angle) {
+        self.0.rotate(angle.as_degrees(), 0.0, 0.0);
     }
-    pub(crate) fn scale(&self, x: f32, y: f32) {
-        self.0.scale(x, y);
+    pub(crate) fn scale(&self, sx: f32, sy: f32) {
+        self.0.scale(sx, sy);
     }
 }

@@ -36,33 +36,3 @@ impl ToPrimitive for Px {
         Some(self.0 as f64)
     }
 }
-
-auto_ops::impl_op!(/|lhs: Px, rhs: i8| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: u8| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: i16| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: u16| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: i32| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: u32| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: i64| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: u64| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: i128| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: u128| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: isize| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: usize| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: f32| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: f64| -> Px { Px(lhs.0 / rhs as f32) });
-
-auto_ops::impl_op!(/|lhs: &Px, rhs: i8| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: u8| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: i16| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: u16| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: i32| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: u32| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: i64| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: u64| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: i128| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: u128| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: isize| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: usize| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: f32| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: f64| -> Px { Px(lhs.0 / rhs as f32) });
