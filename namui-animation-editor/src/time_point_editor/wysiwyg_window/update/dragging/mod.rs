@@ -11,7 +11,7 @@ mod moving;
 pub(super) use moving::*;
 
 impl WysiwygWindow {
-    pub fn handle_dragging(&mut self, mouse_local_xy: Xy<f32>) {
+    pub fn handle_dragging(&mut self, mouse_local_xy: Xy<Px>) {
         if self.dragging.is_none() {
             return;
         }
@@ -61,21 +61,19 @@ enum XY {
     Y,
 }
 
-fn update_xy(layer: &mut Layer, playback_time: Time, delta: f32, x_y: XY) {
+fn update_xy(layer: &mut Layer, playback_time: Time, delta: Px, x_y: XY) {
     let graph = match x_y {
         XY::X => &mut layer.image.x,
         XY::Y => &mut layer.image.y,
     };
     let value = graph.get_value(playback_time).unwrap();
-    let current: f32 = value.into();
-    let next = current + delta;
-    let next_value = next.into();
+    let next = value + delta;
     graph.put(
-        KeyframePoint::new(playback_time, next_value),
+        KeyframePoint::new(playback_time, next),
         animation::KeyframeLine::Linear,
     );
 }
-fn update_size(layer: &mut Layer, playback_time: Time, delta: f32, width_height: WidthHeight) {
+fn update_size(layer: &mut Layer, playback_time: Time, delta: Px, width_height: WidthHeight) {
     let image_url = layer.image.image_source_url.clone().unwrap();
     let image = namui::image::try_load(&image_url).unwrap();
     let image_wh = image.size();
@@ -89,7 +87,7 @@ fn update_size(layer: &mut Layer, playback_time: Time, delta: f32, width_height:
         WidthHeight::Width => image_wh.width,
         WidthHeight::Height => image_wh.height,
     };
-    let current: f32 = (value * image_value).into();
+    let current = image_value * value;
     let next = current + delta;
     let next_value = Percent::from(next / image_value);
     graph.put(

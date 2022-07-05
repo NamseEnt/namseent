@@ -211,7 +211,7 @@ mod tests {
     use super::*;
     use linked_hash_map::LinkedHashMap;
     use luda_editor_rpc::response_waiter::ResponseWaiter;
-    
+
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]

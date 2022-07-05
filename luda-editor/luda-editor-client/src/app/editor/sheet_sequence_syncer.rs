@@ -1,6 +1,5 @@
 use crate::app::{editor::events::EditorEvent, types::*};
 
-
 use wasm_bindgen_futures::spawn_local;
 
 #[derive(Clone, Debug, PartialEq)]

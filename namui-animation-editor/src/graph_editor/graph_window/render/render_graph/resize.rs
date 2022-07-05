@@ -8,7 +8,7 @@ impl WysiwygWindow {
         layer_id: &str,
         rotation_angle: Angle,
     ) -> RenderingTree {
-        let circle_radius = px(6.0) * self.real_px_per_screen_px;
+        let circle_radius = 6.0 * self.real_px_per_screen_px;
         let circle_path = PathBuilder::new().add_oval(Rect::Ltrb {
             left: -circle_radius,
             top: -circle_radius,
@@ -21,7 +21,7 @@ impl WysiwygWindow {
         let circle_stroke_paint = PaintBuilder::new()
             .set_style(PaintStyle::Stroke)
             .set_color(Color::grayscale_f01(0.5))
-            .set_stroke_width(px(self.real_px_per_screen_px))
+            .set_stroke_width(self.real_px_per_screen_px)
             .set_anti_alias(true);
 
         let circle_rendering_tree = render([
@@ -83,8 +83,8 @@ impl WysiwygWindow {
             .into_iter()
             .map(|(location, x, y, cursor)| {
                 translate(
-                    x,
-                    y,
+                    x.into(),
+                    y.into(),
                     circle_rendering_tree
                         .clone()
                         .with_mouse_cursor(cursor)

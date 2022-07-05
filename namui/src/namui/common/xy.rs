@@ -9,6 +9,14 @@ pub struct Xy<T> {
     pub x: T,
     pub y: T,
 }
+impl<T: Clone> Xy<T> {
+    pub fn single(value: T) -> Xy<T> {
+        Xy {
+            x: value.clone(),
+            y: value.clone(),
+        }
+    }
+}
 
 impl<T: Clone> Xy<T> {
     pub fn into_type<U>(&self) -> Xy<U>

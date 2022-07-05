@@ -13,7 +13,7 @@ impl WysiwygWindow {
                 height: wh.height.into(),
             },
             Color::grayscale_f01(0.2),
-            2.0 * self.real_px_per_screen_px,
+            px(2.0) * self.real_px_per_screen_px,
             Color::TRANSPARENT,
         )
         .with_mouse_cursor({

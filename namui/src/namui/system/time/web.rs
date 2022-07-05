@@ -1,7 +1,7 @@
-use super::{platform_utils::web::window, InitResult};
+use crate::system::{platform_utils::web::window, InitResult};
 use std::time::Duration;
 
-pub(super) async fn init() -> InitResult {
+pub(crate) async fn init() -> InitResult {
     Ok(())
 }
 

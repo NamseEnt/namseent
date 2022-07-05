@@ -2,7 +2,6 @@ use crate::types::{Act, ActionTicket, AnimationHistory};
 use namui::{
     animation::{Animation, KeyframeGraph, KeyframeValue, Layer},
     prelude::*,
-    types::*,
 };
 use namui_prebuilt::{table::*, *};
 mod playing_status;
@@ -40,7 +39,7 @@ impl TimelineWindow {
 
 pub(crate) struct Props<'a> {
     pub layers: &'a [Layer],
-    pub wh: Wh<f32>,
+    pub wh: Wh<Px>,
     pub selected_layer_id: Option<String>,
 }
 
@@ -50,23 +49,23 @@ pub(super) enum Event {
     },
     AltWheel {
         delta: f32,
-        anchor_xy: Xy<f32>,
+        anchor_xy: Xy<Px>,
     },
     TimelineLeftMouseDown {
-        mouse_local_xy: Xy<f32>,
+        mouse_local_xy: Xy<Px>,
     },
     TimelineRightMouseDown {
-        mouse_local_xy: Xy<f32>,
+        mouse_local_xy: Xy<Px>,
         selected_layer_id: Option<String>,
     },
     TimelineMouseMoveIn {
-        mouse_local_xy: Xy<f32>,
+        mouse_local_xy: Xy<Px>,
     },
     KeyframeMouseDown {
         point_ids: Vec<String>,
-        anchor_xy: Xy<f32>,
+        anchor_xy: Xy<Px>,
         keyframe_time: Time,
-        mouse_local_xy: Xy<f32>,
+        mouse_local_xy: Xy<Px>,
         layer_id: String,
     },
     TimelineDeleteKeyDown {
@@ -77,7 +76,7 @@ pub(super) enum Event {
 }
 
 enum Dragging {
-    Background { last_mouse_local_xy: Xy<f32> },
+    Background { last_mouse_local_xy: Xy<Px> },
     Keyframe { action_ticket: ActionTicket },
 }
 

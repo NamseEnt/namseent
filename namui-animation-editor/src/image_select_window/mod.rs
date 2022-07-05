@@ -11,7 +11,7 @@ pub struct ImageSelectWindow {
 }
 
 pub struct Props {
-    pub wh: Wh<f32>,
+    pub wh: Wh<Px>,
     pub selected_layer_image_url: Option<Url>,
     pub selected_layer_id: Option<String>,
 }
@@ -97,14 +97,13 @@ impl ImageSelectWindow {
             });
 
         self.list_view.render(list_view::Props {
-            x: 0.0,
-            y: 0.0,
+            xy: Xy::single(px(0.0)),
             height: props.wh.height,
             item_wh: Wh {
                 width: props.wh.width,
                 height: props.wh.width / 2.0,
             },
-            scroll_bar_width: 1.0,
+            scroll_bar_width: px(1.0),
             items: grouped_entries,
             item_render: move |wh, entries| {
                 let mut column_entries: Vec<Option<Dirent>> =
@@ -138,13 +137,13 @@ impl ImageSelectWindow {
 }
 
 fn render_entry(
-    wh: Wh<f32>,
+    wh: Wh<Px>,
     entry: &Dirent,
     is_selected: bool,
     selected_layer_id: String,
 ) -> RenderingTree {
     let selection_highlight_box = match is_selected {
-        true => simple_rect(wh, Color::RED, 3.0, Color::TRANSPARENT),
+        true => simple_rect(wh, Color::RED, px(3.0), Color::TRANSPARENT),
         false => RenderingTree::Empty,
     };
     namui::render([
@@ -178,7 +177,7 @@ fn render_entry(
     ])
 }
 
-fn render_thumbnail(wh: Wh<f32>, entry: &Dirent) -> RenderingTree {
+fn render_thumbnail(wh: Wh<Px>, entry: &Dirent) -> RenderingTree {
     if entry.is_dir() {
         return RenderingTree::Empty;
     }
@@ -186,12 +185,7 @@ fn render_thumbnail(wh: Wh<f32>, entry: &Dirent) -> RenderingTree {
     let url = entry.url();
 
     namui::image(namui::ImageParam {
-        xywh: XywhRect {
-            x: 0.0,
-            y: 0.0,
-            width: wh.width,
-            height: wh.height,
-        },
+        rect: Rect::from_xy_wh(Xy::single(px(0.0)), wh),
         source: ImageSource::Url(url.clone()),
         style: ImageStyle {
             fit: ImageFit::Contain,

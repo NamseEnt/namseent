@@ -15,7 +15,7 @@ pub struct LayerListWindow {
 }
 
 pub struct Props<'a> {
-    pub wh: Wh<f32>,
+    pub wh: Wh<Px>,
     pub layers: &'a [Layer],
 }
 
@@ -68,9 +68,9 @@ impl LayerListWindow {
     }
     pub fn render(&self, props: Props) -> RenderingTree {
         render![
-            simple_rect(props.wh, Color::BLACK, 1.0, Color::WHITE),
+            simple_rect(props.wh, Color::BLACK, px(1.0), Color::WHITE),
             vertical([
-                fixed(20.0, |wh| { self.header.render(header::Props { wh }) }),
+                fixed(px(20.0), |wh| { self.header.render(header::Props { wh }) }),
                 ratio(1.0, |wh| {
                     self.body.render(body::Props {
                         wh: wh,

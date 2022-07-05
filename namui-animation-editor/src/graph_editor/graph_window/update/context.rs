@@ -6,14 +6,14 @@ impl GraphWindow {
         &mut self,
         property_name: PropertyName,
         delta: f32,
-        anchor_y: f32,
-        row_height: f32,
+        anchor_y: Px,
+        row_height: Px,
     ) {
         fn for_f32_based<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive>(
             property_context: &mut PropertyContext<TValue>,
             delta: f32,
-            anchor_y: f32,
-            row_height: f32,
+            anchor_y: Px,
+            row_height: Px,
         ) {
             let bottom_to_anchor = Px::from(row_height - anchor_y);
 
@@ -53,12 +53,12 @@ impl GraphWindow {
         }
     }
 
-    pub(super) fn move_property_context_by(&mut self, property_name: PropertyName, delta: f32) {
+    pub(super) fn move_property_context_by(&mut self, property_name: PropertyName, delta: Px) {
         fn for_f32_based<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive>(
             property_context: &mut PropertyContext<TValue>,
-            delta: f32,
+            delta: Px,
         ) {
-            property_context.px_zero_to_bottom += Px::from(delta);
+            property_context.px_zero_to_bottom += delta;
         }
 
         match property_name {

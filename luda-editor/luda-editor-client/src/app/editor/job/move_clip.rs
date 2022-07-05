@@ -22,9 +22,7 @@ impl JobExecute for MoveClipJob {
             Some(track) => track.get_id().to_string(),
             None => return Err(format!("cannot find track of clip id {}", first_clip_id)),
         };
-        match sequence.replace_track(&track_id, |track: Track| {
-            Ok(self.move_clip_in_track(track))
-        }) {
+        match sequence.replace_track(&track_id, |track: Track| Ok(self.move_clip_in_track(track))) {
             UpdateResult::Updated(replacer) => Ok(replacer),
             UpdateResult::NotUpdated => Err("track not found".to_string()),
             UpdateResult::Err(error) => Err(error),

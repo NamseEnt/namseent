@@ -6,24 +6,19 @@ use namui::animation::KeyframePoint;
 impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive + Display> RenderGraph
     for (&'_ KeyframeGraph<TValue>, Context<'_, TValue>)
 {
-    fn render(&self, wh: Wh<f32>) -> RenderingTree {
+    fn render(&self, wh: Wh<Px>) -> RenderingTree {
         let x_axis_guide_lines = self.render_x_axis_guide_lines(wh);
         let mouse_guide = self.render_mouse_guide(wh);
         let point_and_lines = self.render_point_and_lines(wh);
 
         namui::clip(
-            namui::PathBuilder::new().add_rect(&LtrbRect {
-                left: 0.0,
-                top: 0.0,
-                right: wh.width,
-                bottom: wh.height,
-            }),
+            namui::PathBuilder::new().add_rect(Rect::from_xy_wh(Xy::single(px(0.0)), wh)),
             ClipOp::Intersect,
             render([x_axis_guide_lines, mouse_guide, point_and_lines]),
         )
     }
 
-    fn render_x_axis_guide_lines(&self, wh: Wh<f32>) -> RenderingTree {
+    fn render_x_axis_guide_lines(&self, wh: Wh<Px>) -> RenderingTree {
         let (_, context) = self;
         let property_context = context.property_context;
         const BOLD_GRADATION_INTERVAL: usize = 2;
@@ -106,28 +101,28 @@ impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive + Display> Rende
         };
 
         fn bold_line<TValue: KeyframeValue + Display>(
-            wh: Wh<f32>,
+            wh: Wh<Px>,
             y: Px,
             value: TValue,
         ) -> RenderingTree {
             let path_builder = namui::PathBuilder::new()
-                .move_to(0.0, 0.0)
-                .line_to(wh.width, 0.0);
+                .move_to(px(0.0), px(0.0))
+                .line_to(wh.width, px(0.0));
             let painter_builder = namui::PaintBuilder::new()
-                .set_stroke_width(1.0)
+                .set_stroke_width(px(1.0))
                 .set_style(namui::PaintStyle::Stroke)
                 .set_color(namui::Color::from_u8(0, 128, 0, 255));
 
             let gradation_label = namui::text(namui::TextParam {
-                x: 0.0,
-                y: 0.0,
+                x: px(0.0),
+                y: px(0.0),
                 align: TextAlign::Left,
                 baseline: TextBaseline::Middle,
                 font_type: FontType {
                     font_weight: FontWeight::LIGHT,
                     language: Language::Ko,
                     serif: false,
-                    size: 10,
+                    size: int_px(10),
                 },
                 style: TextStyle {
                     background: Some(TextStyleBackground {
@@ -141,24 +136,24 @@ impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive + Display> Rende
             });
 
             namui::translate(
-                0.0,
-                y.into(),
+                px(0.0),
+                y,
                 render([namui::path(path_builder, painter_builder), gradation_label]),
             )
         }
 
-        fn light_line(wh: Wh<f32>, y: Px) -> RenderingTree {
+        fn light_line(wh: Wh<Px>, y: Px) -> RenderingTree {
             let path_builder = namui::PathBuilder::new()
-                .move_to(0.0, 0.0)
-                .line_to(wh.width, 0.0);
+                .move_to(px(0.0), px(0.0))
+                .line_to(wh.width, px(0.0));
             let painter_builder = namui::PaintBuilder::new()
-                .set_stroke_width(1.0)
+                .set_stroke_width(px(1.0))
                 .set_style(namui::PaintStyle::Stroke)
                 .set_color(namui::Color::from_u8(0, 64, 0, 255));
 
             namui::translate(
-                0.0,
-                y.into(),
+                px(0.0),
+                y,
                 render([namui::path(path_builder, painter_builder)]),
             )
         }
@@ -173,7 +168,7 @@ impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive + Display> Rende
         )
     }
 
-    fn render_mouse_guide(&self, wh: Wh<f32>) -> RenderingTree {
+    fn render_mouse_guide(&self, wh: Wh<Px>) -> RenderingTree {
         let (_, context) = self;
         let property_context = &context.property_context;
 
@@ -189,15 +184,15 @@ impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive + Display> Rende
         let value_at_y = property_context.get_value_on_y(wh.height.into(), mouse_local_xy.y.into());
 
         let label = namui::text(namui::TextParam {
-            x: 7.0,
-            y: -3.0,
+            x: px(7.0),
+            y: px(-3.0),
             align: TextAlign::Left,
             baseline: TextBaseline::Middle,
             font_type: FontType {
                 font_weight: FontWeight::LIGHT,
                 language: Language::Ko,
                 serif: false,
-                size: 10,
+                size: int_px(10),
             },
             style: TextStyle {
                 background: Some(TextStyleBackground {
@@ -213,7 +208,7 @@ impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive + Display> Rende
         namui::translate(mouse_local_xy.x, mouse_local_xy.y, label)
     }
 
-    fn render_point_and_lines(&self, wh: Wh<f32>) -> RenderingTree {
+    fn render_point_and_lines(&self, wh: Wh<Px>) -> RenderingTree {
         let (graph, context) = self;
 
         let mut iter = graph.get_points_with_lines().iter().peekable();
@@ -233,7 +228,7 @@ impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive + Display> Rende
                 context.mouse_local_xy,
                 point_address,
                 context.selected_point_id == Some(point.id().to_string()),
-                Px::from_f32(wh.height).unwrap(),
+                wh.height,
             ));
 
             if let Some((next_point, _)) = next_point_line {
@@ -248,23 +243,22 @@ impl<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive + Display> Rende
 
 fn render_point_xy(
     xy: Xy<Px>,
-    mouse_local_xy: Option<Xy<f32>>,
+    mouse_local_xy: Option<Xy<Px>>,
     point_address: PointAddress,
     is_selected: bool,
     row_height: Px,
 ) -> RenderingTree {
-    const RADIUS: f32 = 4.0;
+    const RADIUS: Px = px(4.0);
 
     let is_mouse_on_point = match mouse_local_xy {
         Some(mouse_local_xy) => {
-            (mouse_local_xy.x - xy.x.to_f32().unwrap()).abs() < RADIUS
-                && (mouse_local_xy.y - xy.y.to_f32().unwrap()).abs() < RADIUS
+            (mouse_local_xy.x - xy.x).abs() < RADIUS && (mouse_local_xy.y - xy.y).abs() < RADIUS
         }
         None => false,
     };
 
     let point_builder = namui::PathBuilder::new()
-        .add_oval(&LtrbRect {
+        .add_oval(Rect::Ltrb {
             left: -RADIUS,
             top: -RADIUS,
             right: RADIUS,
@@ -291,7 +285,7 @@ fn render_point_xy(
         builder.on_mouse_down(move |event| {
             namui::event::send(Event::GraphPointMouseDown {
                 point_address: point_address.clone(),
-                y_in_row: Px::from_f32(event.local_xy.y).unwrap(),
+                y_in_row: event.local_xy.y,
                 row_height,
             })
         });
@@ -303,7 +297,7 @@ fn render_line(from: Xy<Px>, to: Xy<Px>) -> RenderingTree {
         .move_to(from.x.into(), from.y.into())
         .line_to(to.x.into(), to.y.into());
     let painter_builder = namui::PaintBuilder::new()
-        .set_stroke_width(1.0)
+        .set_stroke_width(px(1.0))
         .set_style(namui::PaintStyle::Stroke)
         .set_color(namui::Color::from_u8(128, 0, 0, 255));
 
@@ -311,7 +305,7 @@ fn render_line(from: Xy<Px>, to: Xy<Px>) -> RenderingTree {
 }
 
 fn get_xy_of_point<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive>(
-    wh: Wh<f32>,
+    wh: Wh<Px>,
     context: &Context<TValue>,
     point: &KeyframePoint<TValue>,
 ) -> Xy<Px> {
@@ -322,7 +316,7 @@ fn get_xy_of_point<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive>(
 
 fn get_y_of_value<TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive>(
     property_context: &PropertyContext<TValue>,
-    height: f32,
+    height: Px,
     value: TValue,
 ) -> Px {
     Px::from(height) + property_context.px_zero_to_bottom

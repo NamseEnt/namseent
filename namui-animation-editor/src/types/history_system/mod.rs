@@ -153,12 +153,13 @@ mod tests {
         }
 
         let mut is_called = false;
-        history_system
-            .update_action(|action: &mut WrongAction| {
+        assert_eq!(
+            history_system.update_action(|action: &mut WrongAction| {
                 action.value = 2;
                 is_called = true;
-            })
-            .unwrap();
+            }),
+            Err(UpdateActionError::WrongActionType)
+        );
 
         assert_eq!(is_called, false);
     }
