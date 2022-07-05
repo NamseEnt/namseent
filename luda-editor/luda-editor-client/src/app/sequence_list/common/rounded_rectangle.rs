@@ -1,5 +1,5 @@
 use crate::app::sequence_list::RECT_RADIUS;
-use namui::{Color, RectFill, RectParam, RectRound, RectStyle, RenderingTree, Wh};
+use namui::prelude::*;
 use std::convert;
 
 pub enum RoundedRectangleColor {
@@ -10,12 +10,14 @@ pub enum RoundedRectangleColor {
     White,
 }
 
-pub fn render_rounded_rectangle(wh: Wh<f32>, color: RoundedRectangleColor) -> RenderingTree {
+pub fn render_rounded_rectangle(wh: Wh<Px>, color: RoundedRectangleColor) -> RenderingTree {
     namui::rect(RectParam {
-        x: 0.0,
-        y: 0.0,
-        width: wh.width,
-        height: wh.height,
+        rect: Rect::Xywh {
+            x: px(0.0),
+            y: px(0.0),
+            width: wh.width,
+            height: wh.height,
+        },
         style: RectStyle {
             stroke: None,
             fill: Some(RectFill {

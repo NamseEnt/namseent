@@ -4,10 +4,10 @@ use super::{
     sequence_list::{SequenceList, SequenceListProps},
     types::{meta::Meta, AppContext, Page},
 };
-use namui::{Entity, Wh};
+use namui::prelude::*;
 
 pub struct RouterProps<'a> {
-    pub screen_wh: Wh<f32>,
+    pub screen_wh: Wh<Px>,
     pub meta: &'a Meta,
 }
 

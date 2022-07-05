@@ -17,11 +17,11 @@ impl WysiwygWindow {
                 Event::MouseMoveIn { mouse_local_xy } => {
                     self.handle_dragging(*mouse_local_xy);
                 }
-                Event::ShiftWheel { delta } => {
-                    self.real_left_top_xy.x += delta;
+                &Event::ShiftWheel { delta } => {
+                    self.real_left_top_xy.x += px(delta);
                 }
-                Event::Wheel { delta } => {
-                    self.real_left_top_xy.y += delta;
+                &Event::Wheel { delta } => {
+                    self.real_left_top_xy.y += px(delta);
                 }
                 Event::AltWheel {
                     delta,
@@ -136,17 +136,13 @@ impl WysiwygWindow {
         }
     }
 
-    fn center_viewport(&mut self, wh: Wh<f32>) {
+    fn center_viewport(&mut self, wh: Wh<Px>) {
         let viewport_center_in_real_px = Xy {
-            x: 1920.0 / 2.0,
-            y: 1080.0 / 2.0,
+            x: px(1920.0) / 2.0,
+            y: px(1080.0) / 2.0,
         };
 
-        let window_center_in_real_px = self.real_px_per_screen_px / 2.0
-            * Xy {
-                x: wh.width,
-                y: wh.height,
-            };
+        let window_center_in_real_px = (self.real_px_per_screen_px / 2.0) * wh.as_xy();
 
         self.real_left_top_xy = viewport_center_in_real_px - window_center_in_real_px;
     }

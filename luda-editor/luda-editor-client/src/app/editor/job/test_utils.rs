@@ -62,8 +62,8 @@ pub fn extract_subtitle_clips(sequence: &Sequence) -> Vec<Arc<SubtitleClip>> {
 pub fn mock_sequence(camera_clip_ids: &[&str], subtitle_clip_ids: &[&str]) -> Sequence {
     let mut camera_clips = Vec::new();
     camera_clip_ids.iter().enumerate().for_each(|(index, id)| {
-        let start_at = Time::from_ms(index as f32);
-        let end_at = Time::from_ms((index + 1) as f32);
+        let start_at = Time::Ms(index as f32);
+        let end_at = Time::Ms((index + 1) as f32);
         camera_clips.push(mock_camera_clip(id, start_at, end_at));
     });
 
@@ -72,7 +72,7 @@ pub fn mock_sequence(camera_clip_ids: &[&str], subtitle_clip_ids: &[&str]) -> Se
         .iter()
         .enumerate()
         .for_each(|(index, id)| {
-            let start_at = Time::from_ms(index as f32);
+            let start_at = Time::Ms(index as f32);
             subtitle_clips.push(mock_subtitle_clip(id, start_at));
         });
 

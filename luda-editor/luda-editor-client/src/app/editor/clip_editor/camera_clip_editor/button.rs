@@ -2,28 +2,30 @@ use namui::prelude::*;
 use std::sync::Arc;
 
 pub struct ButtonProps<'a> {
-    pub xywh: &'a XywhRect<f32>,
+    pub rect: Rect<Px>,
     pub text: &'a str,
     pub selected: bool,
 }
 
 pub fn render_button(
     ButtonProps {
-        xywh,
+        rect,
         text,
         selected,
     }: &ButtonProps,
     on_click: Arc<impl Fn() + 'static>,
 ) -> Rendering {
-    let rect = namui::rect(RectParam {
-        x: 0.0,
-        y: 0.0,
-        width: xywh.width,
-        height: xywh.height,
+    let border = namui::rect(RectParam {
+        rect: Rect::Xywh {
+            x: px(0.0),
+            y: px(0.0),
+            width: rect.width(),
+            height: rect.height(),
+        },
         style: RectStyle {
             stroke: Some(RectStroke {
                 color: Color::BLACK,
-                width: 1.0,
+                width: px(1.0),
                 border_position: BorderPosition::Inside,
             }),
             fill: Some(RectFill {
@@ -46,13 +48,13 @@ pub fn render_button(
         });
     });
     translate(
-        xywh.x,
-        xywh.y,
-        render![
-            rect,
+        rect.x(),
+        rect.y(),
+        render([
+            border,
             namui::text(TextParam {
-                x: xywh.width / 2.0,
-                y: xywh.height / 2.0,
+                x: rect.width() / 2.0,
+                y: rect.height() / 2.0,
                 text: text.to_string(),
                 style: TextStyle {
                     color: if *selected {
@@ -68,9 +70,9 @@ pub fn render_button(
                     font_weight: FontWeight::REGULAR,
                     language: Language::Ko,
                     serif: false,
-                    size: (xywh.height * 0.8) as i16,
-                }
+                    size: (rect.height() * 0.8).into(),
+                },
             }),
-        ],
+        ]),
     )
 }

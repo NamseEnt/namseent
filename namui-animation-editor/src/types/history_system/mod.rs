@@ -2,7 +2,7 @@
 
 mod history;
 use downcast_rs::{impl_downcast, Downcast};
-use history::*;
+use history::History;
 use std::{error::Error, sync::Arc};
 
 pub trait Act<TState>: Downcast {
@@ -12,7 +12,7 @@ impl_downcast!(Act<TState>);
 
 pub struct HistorySystem<TState> {
     action: Option<Box<dyn Act<TState>>>,
-    history: History<TState>,
+    history: History<Arc<TState>>,
 }
 
 #[derive(Debug)]
@@ -21,21 +21,21 @@ pub enum ActError {
     ActionFailToRun(Box<dyn Error>),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum UpdateActionError {
     NoAction,
     WrongActionType,
 }
 
-impl<TState: 'static + Clone> HistorySystem<TState> {
+impl<TState: 'static> HistorySystem<TState> {
     pub fn new(initial_state: TState) -> Self {
         HistorySystem {
             action: None,
-            history: History::new(initial_state),
+            history: History::new(Arc::new(initial_state)),
         }
     }
-    pub fn get_state(&self) -> &TState {
-        self.history.get()
+    pub fn get_state(&self) -> Arc<TState> {
+        self.history.get().clone()
     }
     pub fn get_preview(&self) -> Arc<TState> {
         if let Some(action) = &self.action {
@@ -44,7 +44,7 @@ impl<TState: 'static + Clone> HistorySystem<TState> {
                 return Arc::new(preview);
             }
         }
-        Arc::new(self.get_state().clone())
+        self.get_state()
     }
     pub fn has_action(&self) -> bool {
         self.action.is_some()
@@ -67,13 +67,13 @@ impl<TState: 'static + Clone> HistorySystem<TState> {
             Err(UpdateActionError::NoAction)
         }
     }
-    pub fn undo(&mut self) -> Result<&TState, UndoError> {
+    pub fn undo(&mut self) -> Option<()> {
         self.history.undo()
     }
-    pub fn redo(&mut self) -> Result<&TState, RedoError> {
+    pub fn redo(&mut self) -> Option<()> {
         self.history.redo()
     }
-    pub fn act(&mut self) -> Result<&TState, ActError> {
+    pub fn act(&mut self) -> Result<Arc<TState>, ActError> {
         if self.action.is_none() {
             return Err(ActError::ActionNotExists);
         }
@@ -84,7 +84,7 @@ impl<TState: 'static + Clone> HistorySystem<TState> {
 
         match result {
             Ok(state) => {
-                self.history.push(state);
+                self.history.push(Arc::new(state));
                 Ok(self.get_state())
             }
             Err(error) => Err(ActError::ActionFailToRun(error)),
@@ -153,11 +153,12 @@ mod tests {
         }
 
         let mut is_called = false;
-        let result = history_system.update_action(|action: &mut WrongAction| {
-            action.value = 2;
-            is_called = true;
-        });
-        assert_eq!(result, Err(UpdateActionError::WrongActionType));
+        history_system
+            .update_action(|action: &mut WrongAction| {
+                action.value = 2;
+                is_called = true;
+            })
+            .unwrap();
 
         assert_eq!(is_called, false);
     }
@@ -179,6 +180,6 @@ mod tests {
 
         history_system.set_action(RightAction { value: 2 });
 
-        assert_eq!(history_system.act().unwrap(), &3);
+        assert_eq!(history_system.act().unwrap(), Arc::new(3));
     }
 }

@@ -52,7 +52,6 @@ impl AnimationHistory {
         let result = history.act();
         match result {
             Ok(state) => {
-                let state = Arc::new(state.clone());
                 namui::event::send(crate::Event::AnimationUpdated(state.clone()));
                 Ok(state)
             }

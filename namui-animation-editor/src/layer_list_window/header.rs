@@ -8,24 +8,21 @@ impl Header {
     }
 }
 pub struct Props {
-    pub wh: Wh<f32>,
+    pub wh: Wh<Px>,
 }
 
 impl Header {
     pub fn update(&mut self, _event: &dyn std::any::Any) {}
     pub fn render(&self, props: Props) -> RenderingTree {
-        let button_xywh = XywhRect {
-            x: 2.0,
-            y: 2.0,
-            width: props.wh.height - 4.0,
-            height: props.wh.height - 4.0,
+        let button_rect = Rect::Xywh {
+            x: px(2.0),
+            y: px(2.0),
+            width: props.wh.height - px(4.0),
+            height: props.wh.height - px(4.0),
         };
         let add_layer_button = render![
             namui::rect(RectParam {
-                x: button_xywh.x,
-                y: button_xywh.y,
-                width: button_xywh.width,
-                height: button_xywh.height,
+                rect: button_rect,
                 style: RectStyle {
                     fill: Some(RectFill {
                         color: Color::WHITE,
@@ -35,15 +32,15 @@ impl Header {
             }),
             namui::text(TextParam {
                 text: "+".to_string(),
-                x: f32::from(button_xywh.x + button_xywh.width / 2.0),
-                y: f32::from(button_xywh.y + button_xywh.height / 2.0),
+                x: button_rect.center().x,
+                y: button_rect.center().y,
                 align: TextAlign::Center,
                 baseline: TextBaseline::Middle,
                 font_type: FontType {
                     font_weight: FontWeight::REGULAR,
                     language: Language::Ko,
                     serif: false,
-                    size: (f32::from(button_xywh.height) * 0.8) as i16,
+                    size: (button_rect.height() * 0.8).into(),
                 },
                 style: TextStyle {
                     color: Color::BLACK,
@@ -59,10 +56,7 @@ impl Header {
 
         let header = render![
             namui::rect(RectParam {
-                x: 0.0,
-                y: 0.0,
-                width: props.wh.width,
-                height: props.wh.height,
+                rect: Rect::from_xy_wh(Xy::single(px(0.0)), props.wh,),
                 style: RectStyle {
                     fill: Some(RectFill {
                         color: Color::BLACK,
@@ -72,15 +66,15 @@ impl Header {
             }),
             namui::text(TextParam {
                 text: "Layers".to_string(),
-                x: f32::from(props.wh.width / 2.0),
-                y: f32::from(props.wh.height / 2.0),
+                x: props.wh.width / 2.0,
+                y: props.wh.height / 2.0,
                 align: TextAlign::Center,
                 baseline: TextBaseline::Middle,
                 font_type: FontType {
                     font_weight: FontWeight::REGULAR,
                     language: Language::Ko,
                     serif: false,
-                    size: (f32::from(button_xywh.height) * 0.8) as i16,
+                    size: (button_rect.height() * 0.8).into(),
                 },
                 style: TextStyle {
                     color: Color::WHITE,

@@ -10,11 +10,11 @@ use super::{
     selection::Selection,
 };
 use crate::app::cropper::{canvas::CanvasProps, selection::SelectionEvent};
-use namui::{render, translate, Image, NamuiEvent, RenderingTree, Wh, Xy, XywhRect};
+use namui::prelude::*;
 use std::sync::Arc;
 
 pub struct CropperProps {
-    pub xywh: XywhRect<f32>,
+    pub rect: Rect<Px>,
 }
 
 pub struct Cropper {
@@ -115,7 +115,7 @@ impl Cropper {
     }
 
     pub fn render(&self, props: CropperProps) -> RenderingTree {
-        const APP_BAR_HEIGHT: f32 = 48.0;
+        const APP_BAR_HEIGHT: Px = px(48.0);
 
         let job_preview_selection_list =
             get_job_preview_selection_list(&self.selection_list, &self.job);
@@ -126,16 +126,16 @@ impl Cropper {
 
         render([
             render_app_bar(Wh {
-                width: props.xywh.width,
+                width: props.rect.width(),
                 height: APP_BAR_HEIGHT,
             }),
             translate(
-                0.0,
+                px(0.0),
                 APP_BAR_HEIGHT,
                 self.canvas.render(CanvasProps {
                     wh: Wh {
-                        width: props.xywh.width,
-                        height: props.xywh.height - APP_BAR_HEIGHT,
+                        width: props.rect.width(),
+                        height: props.rect.height() - APP_BAR_HEIGHT,
                     },
                     selection_list,
                 }),
@@ -143,7 +143,7 @@ impl Cropper {
         ])
     }
 
-    fn create_rect_selection_create_job(&mut self, position: &Xy<f32>) {
+    fn create_rect_selection_create_job(&mut self, position: &Xy<Px>) {
         if self.job.is_none() {
             self.job = Some(Job::RectSelectionCreate(RectSelectionCreate::new(position)))
         }
@@ -162,7 +162,7 @@ impl Cropper {
         }
     }
 
-    fn create_poly_selection_create_job(&mut self, position: &Xy<f32>) {
+    fn create_poly_selection_create_job(&mut self, position: &Xy<Px>) {
         if self.job.is_none() {
             self.job = Some(Job::PolySelectionCreate(PolySelectionCreate::new(
                 position.clone(),

@@ -13,12 +13,12 @@ pub const DEFAULT_SUBTITLE_INSERT_INTERVAL_MS: f32 = 1000.0;
 impl SubtitleTrack {
     pub(crate) fn get_clip_at_time(
         &self,
-        time: &Time,
+        time: Time,
         language: Language,
         duration_measurer: &dyn SubtitlePlayDurationMeasure,
     ) -> Option<&SubtitleClip> {
         self.clips.iter().find_map(|clip| {
-            if clip.is_at_time(&time, language, duration_measurer) {
+            if clip.is_at_time(time, language, duration_measurer) {
                 Some(clip.as_ref())
             } else {
                 None
@@ -92,15 +92,15 @@ impl SubtitleTrack {
                                 (left_time, interval)
                             }
                             None => (
-                                Time::zero(),
+                                Time::Ms(0.0),
                                 right_time / (subtitles_to_insert_in_the_middle.len() as f32 + 1.0),
                             ),
                         }
                     } else {
-                        let interval = Time::from_ms(DEFAULT_SUBTITLE_INSERT_INTERVAL_MS);
+                        let interval = Time::Ms(DEFAULT_SUBTITLE_INSERT_INTERVAL_MS);
                         let left_time = match result_clips.last() {
                             Some(clip) => clip.start_at + interval,
-                            None => Time::zero(),
+                            None => Time::Ms(0.0),
                         };
                         (left_time, interval)
                     };
@@ -119,11 +119,11 @@ impl SubtitleTrack {
                         });
                 }
                 None => {
-                    let interval = Time::from_ms(DEFAULT_SUBTITLE_INSERT_INTERVAL_MS);
+                    let interval = Time::Ms(DEFAULT_SUBTITLE_INSERT_INTERVAL_MS);
 
                     let left_time = match result_clips.last() {
                         Some(clip) => clip.start_at + interval,
-                        None => Time::zero(),
+                        None => Time::Ms(0.0),
                     };
 
                     subtitle_queue

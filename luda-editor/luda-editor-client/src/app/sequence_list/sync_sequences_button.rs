@@ -2,10 +2,10 @@ use crate::app::sequence_list::{
     common::{render_button_text, render_rounded_rectangle, RoundedRectangleColor},
     events::SequenceListEvent,
 };
-use namui::{render, RenderingTree, Wh};
+use namui::prelude::*;
 
-pub fn render_sync_sequences_button(wh: Wh<f32>) -> RenderingTree {
-    render![
+pub fn render_sync_sequences_button(wh: Wh<Px>) -> RenderingTree {
+    render([
         render_rounded_rectangle(wh, RoundedRectangleColor::Blue)
             .attach_event(move |builder| {
                 builder.on_mouse_down(move |_| {
@@ -13,6 +13,6 @@ pub fn render_sync_sequences_button(wh: Wh<f32>) -> RenderingTree {
                 });
             })
             .with_mouse_cursor(namui::MouseCursor::Pointer),
-        render_button_text(wh, "Sync sequences from Google Spreadsheet".to_string())
-    ]
+        render_button_text(wh, "Sync sequences from Google Spreadsheet".to_string()),
+    ])
 }

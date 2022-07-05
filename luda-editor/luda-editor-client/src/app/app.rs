@@ -7,9 +7,11 @@ use super::{
     Router,
 };
 use async_trait::async_trait;
+use linked_hash_map::LinkedHashMap;
 use luda_editor_rpc::Socket;
-use namui::Wh;
-use std::sync::Arc;
+use namui::prelude::*;
+use serde::Serialize;
+use std::{collections::HashMap, sync::Arc};
 use wasm_bindgen_futures::spawn_local;
 
 pub struct App {
@@ -25,8 +27,8 @@ impl namui::Entity for App {
                 let screen_size = namui::screen::size();
                 self.router.render(&RouterProps {
                     screen_wh: Wh {
-                        width: screen_size.width as f32,
-                        height: screen_size.height as f32,
+                        width: screen_size.width,
+                        height: screen_size.height,
                     },
                     meta: &meta,
                 })

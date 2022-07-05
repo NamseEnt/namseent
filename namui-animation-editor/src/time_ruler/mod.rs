@@ -8,7 +8,7 @@ mod time_text;
 use time_text::*;
 
 pub struct Props {
-    pub xywh: XywhRect<f32>,
+    pub rect: Rect<Px>,
     pub start_at: Time,
     pub time_per_px: TimePerPx,
 }
@@ -27,37 +27,26 @@ pub(super) fn render(props: &Props) -> RenderingTree {
         get_gradation_gap_time(Px::from(100.0), Px::from(500.0), props.time_per_px);
 
     let gradations = get_gradations(
-        props.xywh.width.into(),
+        props.rect.width(),
         gradation_gap_time,
         props.time_per_px,
         props.start_at,
     );
 
     translate(
-        props.xywh.x,
-        props.xywh.y,
+        props.rect.x(),
+        props.rect.y(),
         clip(
-            PathBuilder::new().add_rect(
-                &XywhRect {
-                    x: 0.0,
-                    y: 0.0,
-                    width: props.xywh.width,
-                    height: props.xywh.height,
-                }
-                .into_ltrb(),
-            ),
+            PathBuilder::new().add_rect(Rect::from_xy_wh(Xy::single(px(0.0)), props.rect.wh())),
             ClipOp::Intersect,
             render![
                 rect(RectParam {
-                    x: 0.0,
-                    y: 0.0,
-                    width: props.xywh.width,
-                    height: props.xywh.height,
+                    rect: Rect::from_xy_wh(Xy::single(px(0.0)), props.rect.wh(),),
                     style: RectStyle {
                         stroke: Some(RectStroke {
                             border_position: BorderPosition::Inside,
                             color: Color::WHITE,
-                            width: 1.0,
+                            width: px(1.0),
                         }),
                         fill: Some(RectFill {
                             color: Color::BLACK,
@@ -85,11 +74,11 @@ pub(super) fn render(props: &Props) -> RenderingTree {
                 }),
                 render_time_texts(&TimeTextsProps {
                     gradations: &gradations,
-                    height: props.xywh.height,
+                    height: props.rect.height(),
                     time_per_px: props.time_per_px,
                 }),
                 render_gradations(&GradationsProps {
-                    wh: props.xywh.wh(),
+                    wh: props.rect.wh(),
                     gap_px: gradation_gap_time / props.time_per_px,
                     gradations: &gradations,
                 }),

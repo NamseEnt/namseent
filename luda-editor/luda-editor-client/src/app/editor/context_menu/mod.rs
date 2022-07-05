@@ -1,10 +1,9 @@
-use crate::app::types::*;
 use namui::prelude::*;
 
 // NOTE : I think context menu should divided into two parts, one is the view and one is the contents with context.
 pub(super) struct ContextMenu {
     id: String,
-    xy: Xy<f32>,
+    xy: Xy<Px>,
     mouse_position_in_time: Time,
 }
 
@@ -16,12 +15,12 @@ pub(super) enum ContextMenuEvent {
 pub(super) struct ContextMenuProps {}
 
 impl ContextMenu {
-    pub fn new(xy: &Xy<f32>, mouse_position_in_time: &Time) -> Self {
+    pub fn new(xy: Xy<Px>, mouse_position_in_time: Time) -> Self {
         let id = namui::nanoid();
         Self {
             id,
-            xy: *xy,
-            mouse_position_in_time: *mouse_position_in_time,
+            xy,
+            mouse_position_in_time,
         }
     }
     pub fn get_id(&self) -> &str {
@@ -33,8 +32,8 @@ impl ContextMenu {
                 NamuiEvent::MouseDown(mouse_event) => {
                     let context_menu_wh = self.wh();
                     let mouse_relative_position = mouse_event.xy - self.xy;
-                    let is_out_of_context_menu = mouse_relative_position.x < 0.0
-                        || mouse_relative_position.y < 0.0
+                    let is_out_of_context_menu = mouse_relative_position.x < px(0.0)
+                        || mouse_relative_position.y < px(0.0)
                         || mouse_relative_position.x > context_menu_wh.width
                         || mouse_relative_position.y > context_menu_wh.height;
 
@@ -47,25 +46,27 @@ impl ContextMenu {
         }
     }
 
-    pub fn render(&self, props: &ContextMenuProps) -> RenderingTree {
+    pub fn render(&self, _props: &ContextMenuProps) -> RenderingTree {
         // TODO : Fix this code using render_open_button things
         namui::absolute(
             self.xy.x,
             self.xy.y,
-            render![
+            render([
                 rect(RectParam {
-                    x: 0.0,
-                    y: 0.0,
-                    width: self.wh().width,
-                    height: self.wh().height,
+                    rect: Rect::Xywh {
+                        x: px(0.0),
+                        y: px(0.0),
+                        width: self.wh().width,
+                        height: self.wh().height,
+                    },
                     style: RectStyle {
                         stroke: Some(RectStroke {
                             border_position: BorderPosition::Middle,
                             color: Color::BLACK,
-                            width: 1.0,
+                            width: px(1.0),
                         }),
                         fill: Some(RectFill {
-                            color: Color::WHITE
+                            color: Color::WHITE,
                         }),
                         ..Default::default()
                     },
@@ -83,8 +84,8 @@ impl ContextMenu {
                     });
                 }),
                 text(TextParam {
-                    x: 10.0,
-                    y: 12.5,
+                    x: px(10.0),
+                    y: px(12.5),
                     text: "New clip".to_string(),
                     align: TextAlign::Left,
                     baseline: TextBaseline::Middle,
@@ -92,21 +93,21 @@ impl ContextMenu {
                         language: Language::Ko,
                         serif: false,
                         font_weight: FontWeight::REGULAR,
-                        size: 12,
+                        size: int_px(12),
                     },
                     style: TextStyle {
                         color: Color::BLACK,
                         ..Default::default()
                     },
                 }),
-            ],
+            ]),
         )
     }
 
-    fn wh(&self) -> Wh<f32> {
+    fn wh(&self) -> Wh<Px> {
         Wh {
-            width: 100.0,
-            height: 25.0,
+            width: px(100.0),
+            height: px(25.0),
         }
     }
 }

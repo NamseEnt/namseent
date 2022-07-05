@@ -4,16 +4,6 @@ pub struct History<TState> {
     states: Vec<TState>,
 }
 
-#[derive(Debug, PartialEq)]
-pub enum UndoError {
-    NothingToUndo,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum RedoError {
-    NothingToRedo,
-}
-
 impl<TState> History<TState> {
     pub fn new(initial_state: TState) -> Self {
         Self {
@@ -29,12 +19,12 @@ impl<TState> History<TState> {
         self.undo_count = 0;
         self.states.push(state);
     }
-    pub fn undo(&mut self) -> Result<&TState, UndoError> {
+    pub fn undo(&mut self) -> Option<()> {
         if self.undo_count < self.states.len() {
             self.undo_count += 1;
-            Ok(self.get())
+            Some(())
         } else {
-            Err(UndoError::NothingToUndo)
+            None
         }
     }
     pub fn get(&self) -> &TState {
@@ -44,19 +34,19 @@ impl<TState> History<TState> {
             &self.states[self.states.len() - self.undo_count - 1]
         }
     }
-    pub fn redo(&mut self) -> Result<&TState, RedoError> {
+    pub fn redo(&mut self) -> Option<()> {
         if self.undo_count > 0 {
             self.undo_count -= 1;
-            Ok(self.get())
+            Some(())
         } else {
-            Err(RedoError::NothingToRedo)
+            None
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::History;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
@@ -66,8 +56,8 @@ mod tests {
         for i in 1..5 {
             history.push(i);
         }
-        assert_eq!(history.undo(), Ok(&3));
-        assert_eq!(history.undo(), Ok(&2));
+        history.undo();
+        history.undo();
 
         assert_eq!(history.get(), &2);
     }
@@ -78,22 +68,24 @@ mod tests {
         for i in 1..5 {
             history.push(i);
         }
-        assert_eq!(history.undo(), Ok(&3));
-        assert_eq!(history.undo(), Ok(&2));
+        history.undo();
+        history.undo();
 
         history.push(5);
         assert_eq!(history.get(), &5);
 
-        assert_eq!(history.redo(), Err(RedoError::NothingToRedo));
+        history.redo();
+        assert_eq!(history.get(), &5);
+        history.redo();
         assert_eq!(history.get(), &5);
 
-        assert_eq!(history.undo(), Ok(&2));
+        history.undo();
         assert_eq!(history.get(), &2);
-        assert_eq!(history.undo(), Ok(&1));
+        history.undo();
         assert_eq!(history.get(), &1);
-        assert_eq!(history.undo(), Ok(&0));
+        history.undo();
         assert_eq!(history.get(), &0);
-        assert_eq!(history.undo(), Err(UndoError::NothingToUndo));
+        history.undo();
         assert_eq!(history.get(), &0);
     }
     #[test]
@@ -103,15 +95,15 @@ mod tests {
         for i in 1..5 {
             history.push(i);
         }
-        assert_eq!(history.undo(), Ok(&3));
-        assert_eq!(history.undo(), Ok(&2));
+        history.undo();
+        history.undo();
 
         assert_eq!(history.get(), &2);
 
-        assert_eq!(history.redo(), Ok(&3));
+        history.redo();
         assert_eq!(history.get(), &3);
 
-        assert_eq!(history.redo(), Ok(&4));
+        history.redo();
         assert_eq!(history.get(), &4);
     }
 }

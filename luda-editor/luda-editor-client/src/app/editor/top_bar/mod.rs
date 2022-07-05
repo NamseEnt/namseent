@@ -1,22 +1,23 @@
 mod events;
 mod go_back_button;
-use self::{events::TopBarEvent, go_back_button::render_go_back_button};
-use crate::app::{events::RouterEvent, sequence_list::SequenceList};
-use namui::{render, Color, RenderingTree, Wh, XywhRect};
+mod meta_update_button;
 mod saving_status_text;
+mod sheet_sequence_syncer_bar;
+
+use self::{events::TopBarEvent, go_back_button::render_go_back_button};
 use super::{
     sequence_saver::SequenceSaverStatus, sheet_sequence_syncer::SheetSequenceSyncerStatus,
 };
-use saving_status_text::*;
-mod sheet_sequence_syncer_bar;
-use sheet_sequence_syncer_bar::*;
-mod meta_update_button;
+use crate::app::{events::RouterEvent, sequence_list::SequenceList};
 use meta_update_button::*;
+use namui::prelude::*;
+use saving_status_text::*;
+use sheet_sequence_syncer_bar::*;
 
-const MARGIN: f32 = 4.0;
+const MARGIN: Px = px(4.0);
 
 pub struct TopBarProps<'a> {
-    pub xywh: XywhRect<f32>,
+    pub rect: Rect<Px>,
     pub sequence_saver_status: &'a SequenceSaverStatus,
     pub sheet_sequence_syncer_status: &'a SheetSequenceSyncerStatus,
 }
@@ -39,60 +40,62 @@ impl TopBar {
 
     pub fn render(&self, props: &TopBarProps) -> RenderingTree {
         let go_back_button_wh = Wh {
-            width: 64.0,
-            height: props.xywh.height - 2.0 * MARGIN,
+            width: px(64.0),
+            height: props.rect.height() - 2.0 * MARGIN,
         };
 
         let border = namui::rect(namui::RectParam {
-            x: 0.0,
-            y: 0.0,
-            width: props.xywh.width,
-            height: props.xywh.height,
+            rect: Rect::Xywh {
+                x: px(0.0),
+                y: px(0.0),
+                width: props.rect.width(),
+                height: props.rect.height(),
+            },
             style: namui::RectStyle {
                 stroke: Some(namui::RectStroke {
                     color: Color::BLACK,
                     border_position: namui::BorderPosition::Inside,
-                    width: 1.0,
+                    width: px(1.0),
                 }),
                 ..Default::default()
             },
         });
 
         let meta_update_button_wh = Wh {
-            width: 108.0,
-            height: props.xywh.height - 2.0 * MARGIN,
+            width: px(108.0),
+            height: props.rect.height() - 2.0 * MARGIN,
         };
 
         namui::translate(
-            props.xywh.x,
-            props.xywh.y,
-            render![
+            props.rect.x(),
+            props.rect.y(),
+            render([
                 border,
                 namui::translate(MARGIN, MARGIN, render_go_back_button(go_back_button_wh)),
                 namui::translate(
                     go_back_button_wh.width + MARGIN * 2.0,
                     MARGIN,
                     render_saving_status_text(&SavingStatusTextProps {
-                        height: props.xywh.height - 2.0 * MARGIN,
+                        height: props.rect.height() - 2.0 * MARGIN,
                         sequence_saver_status: props.sequence_saver_status,
                     }),
                 ),
                 namui::translate(
-                    props.xywh.width - MARGIN * 2.0 - meta_update_button_wh.width,
+                    props.rect.width() - MARGIN * 2.0 - meta_update_button_wh.width,
                     MARGIN,
                     render_sheet_sequence_syncer_bar(&SheetSequenceSyncerBarProps {
-                        height: props.xywh.height - 2.0 * MARGIN,
+                        height: props.rect.height() - 2.0 * MARGIN,
                         syncer_status: props.sheet_sequence_syncer_status,
                     }),
                 ),
                 namui::translate(
-                    props.xywh.width - MARGIN - meta_update_button_wh.width,
+                    props.rect.width() - MARGIN - meta_update_button_wh.width,
                     MARGIN,
                     render_meta_update_button(&MetaUpdateButtonProps {
-                        wh: meta_update_button_wh
+                        wh: meta_update_button_wh,
                     }),
                 ),
-            ],
+            ]),
         )
     }
 }

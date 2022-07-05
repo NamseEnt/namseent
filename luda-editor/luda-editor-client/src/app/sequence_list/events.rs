@@ -1,6 +1,5 @@
 use super::types::SequenceSyncState;
-use crate::app::types::Sequence;
-use std::{collections::BTreeMap, sync::Arc};
+use namui::prelude::*;
 
 pub enum SequenceListEvent {
     SequenceTitleButtonClickedEvent {
@@ -12,7 +11,7 @@ pub enum SequenceListEvent {
     },
     SyncSequencesButtonClickedEvent,
     ScrolledEvent {
-        scroll_y: f32,
+        scroll_y: Px,
     },
     PreviewSliderMovedEvent {
         title: String,

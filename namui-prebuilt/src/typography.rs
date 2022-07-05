@@ -1,6 +1,6 @@
 use namui::prelude::*;
 
-pub fn center_text(wh: Wh<f32>, text: impl AsRef<str>, color: Color) -> RenderingTree {
+pub fn center_text(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> RenderingTree {
     namui::text(TextParam {
         text: String::from(text.as_ref()),
         x: wh.width / 2.0,
@@ -22,10 +22,10 @@ pub fn center_text(wh: Wh<f32>, text: impl AsRef<str>, color: Color) -> Renderin
 
 pub mod body {
     use super::*;
-    pub fn left(wh: Wh<f32>, text: impl AsRef<str>, color: Color) -> RenderingTree {
+    pub fn left(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> RenderingTree {
         namui::text(TextParam {
             text: String::from(text.as_ref()),
-            x: 0.0,
+            x: px(0.0),
             y: wh.height / 2.0,
             align: TextAlign::Left,
             baseline: TextBaseline::Middle,
@@ -41,7 +41,7 @@ pub mod body {
             },
         })
     }
-    pub fn center(wh: Wh<f32>, text: impl AsRef<str>, color: Color) -> RenderingTree {
+    pub fn center(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> RenderingTree {
         namui::text(TextParam {
             text: String::from(text.as_ref()),
             x: wh.width / 2.0,
@@ -60,7 +60,7 @@ pub mod body {
             },
         })
     }
-    pub fn right(wh: Wh<f32>, text: impl AsRef<str>, color: Color) -> RenderingTree {
+    pub fn right(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> RenderingTree {
         namui::text(TextParam {
             text: String::from(text.as_ref()),
             x: wh.width,
@@ -81,9 +81,9 @@ pub mod body {
     }
 }
 
-fn adjust_font_size(height: f32) -> i16 {
+fn adjust_font_size(height: Px) -> IntPx {
     // 0, 4, 8, 16, 20, ...
-    let mut font_size = (height * 0.7) as i16;
+    let mut font_size: Px = height * 0.7;
     font_size -= font_size % 4;
-    font_size
+    font_size.into()
 }

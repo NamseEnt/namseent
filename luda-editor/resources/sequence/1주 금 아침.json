@@ -1,0 +1,283 @@
+{
+  "tracks": [
+    {
+      "Camera": {
+        "id": "camera-track",
+        "clips": []
+      }
+    },
+    {
+      "Subtitle": {
+        "id": "subtitle-track",
+        "clips": [
+          {
+            "id": "2022-03-12-13-36-0001",
+            "start_at": {
+              "Ms": 0.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0001",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "안녕하십니까~"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0002",
+            "start_at": {
+              "Ms": 1000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0002",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "어 하연씨 왔어요?"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0003",
+            "start_at": {
+              "Ms": 2000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0003",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "피디님, 아이돌은 게임 아이돌 없어요?"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0004",
+            "start_at": {
+              "Ms": 3000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0004",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "게임 아이돌?"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0005",
+            "start_at": {
+              "Ms": 4000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0005",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "버튜버는 게임 방송 하는데"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0006",
+            "start_at": {
+              "Ms": 5000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0006",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "아~ 뭐 케이블에서 게임 방송 하긴 하죠"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0007",
+            "start_at": {
+              "Ms": 6000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0007",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "거기 약간 일반인 코스프레 해야하는거 아니에요?"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0008",
+            "start_at": {
+              "Ms": 7000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0008",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "아니 얼마나 이상하게 하려고 ㅋㅋ"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0009",
+            "start_at": {
+              "Ms": 8000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0009",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "저 그런 데 가고 싶은데~"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0010",
+            "start_at": {
+              "Ms": 9000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0010",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "저 보내주시면 안돼요?"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0011",
+            "start_at": {
+              "Ms": 10000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0011",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "온지 얼마나 됐다고, 데뷔를 해야 나가지~"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0012",
+            "start_at": {
+              "Ms": 11000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0012",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "오늘 저 야근 하고 갈까요?"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0013",
+            "start_at": {
+              "Ms": 12000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0013",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "됐어요ㅋㅋ"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0014",
+            "start_at": {
+              "Ms": 13000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0014",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "오늘 금요일이라 주간 평가가 있거든요?"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0015",
+            "start_at": {
+              "Ms": 14000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0015",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "부담 가지지 말고"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0016",
+            "start_at": {
+              "Ms": 15000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0016",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "그냥 일주일동안 연습한거 보여주는 자리라 생각하면 돼요."
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0017",
+            "start_at": {
+              "Ms": 16000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0017",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "우~"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0018",
+            "start_at": {
+              "Ms": 17000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0018",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "게임 방송 하기 싫어요?"
+              }
+            },
+            "is_needed_to_update_position": true
+          },
+          {
+            "id": "2022-03-12-13-36-0019",
+            "start_at": {
+              "Ms": 18000.0
+            },
+            "subtitle": {
+              "id": "2022-03-12-13-36-0019",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "헤헤… 몇시까지 갈까요?"
+              }
+            },
+            "is_needed_to_update_position": true
+          }
+        ]
+      }
+    }
+  ]
+}

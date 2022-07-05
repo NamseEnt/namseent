@@ -4,7 +4,7 @@ mod selected_layer_timeline;
 impl TimelineWindow {
     pub(crate) fn render(&self, props: Props) -> RenderingTree {
         let background_for_event =
-            simple_rect(props.wh, Color::TRANSPARENT, 0.0, Color::TRANSPARENT)
+            simple_rect(props.wh, Color::TRANSPARENT, px(0.0), Color::TRANSPARENT)
                 .with_id(&self.window_id)
                 .attach_event(|builder| {
                     let playback_time = self.get_playback_time();
@@ -17,14 +17,11 @@ impl TimelineWindow {
                                 .get_rendering_tree_xy(event.target)
                                 .expect("ERROR: fail to get rendering_tree_xy");
 
-                            let mouse_local_xy = Xy {
-                                x: mouse_global_xy.x as f32 - table_xy.x,
-                                y: mouse_global_xy.y as f32 - table_xy.y,
-                            };
+                            let mouse_local_xy = mouse_global_xy - table_xy;
 
-                            if mouse_local_xy.x < 0.0
+                            if mouse_local_xy.x < px(0.0)
                                 || props.wh.width < mouse_local_xy.x
-                                || mouse_local_xy.y < 0.0
+                                || mouse_local_xy.y < px(0.0)
                                 || props.wh.height < mouse_local_xy.y
                             {
                                 return;
@@ -86,12 +83,12 @@ impl TimelineWindow {
         let playback_time_x = (self.get_playback_time() - self.start_at) / self.time_per_px;
         let playback_time_line = namui::path(
             PathBuilder::new()
-                .move_to(playback_time_x.into(), 0.0)
+                .move_to(playback_time_x.into(), px(0.0))
                 .line_to(playback_time_x.into(), props.wh.height),
             PaintBuilder::new()
                 .set_style(PaintStyle::Stroke)
                 .set_color(Color::RED)
-                .set_stroke_width(1.0),
+                .set_stroke_width(px(1.0)),
         );
 
         render([
@@ -99,19 +96,14 @@ impl TimelineWindow {
             vertical([
                 ratio(1.0, |wh| {
                     crate::time_ruler::render(&crate::time_ruler::Props {
-                        xywh: XywhRect {
-                            x: 0.0,
-                            y: 0.0,
-                            width: wh.width.into(),
-                            height: wh.height.into(),
-                        },
+                        rect: Rect::from_xy_wh(Xy::single(px(0.0)), wh),
                         start_at: self.start_at,
                         time_per_px: self.time_per_px,
                     })
                 }),
                 ratio(2.0, |wh| {
                     // TODO: Timeline for other layers
-                    simple_rect(wh, Color::BLACK, 1.0, Color::grayscale_f01(0.5))
+                    simple_rect(wh, Color::BLACK, px(1.0), Color::grayscale_f01(0.5))
                 }),
                 ratio(7.0, |wh| self.render_selected_layer_timeline(wh, &props)),
             ])(props.wh),

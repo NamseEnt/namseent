@@ -14,7 +14,7 @@ pub struct AnimationEditor {
 }
 
 pub struct Props {
-    pub wh: Wh<f32>,
+    pub wh: Wh<Px>,
 }
 
 enum Event {
@@ -57,10 +57,10 @@ impl AnimationEditor {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
         let animation = self.animation_history.get_preview();
 
-        let render_tab_button = |tab: Tab, wh: Wh<f32>| {
+        let render_tab_button = |tab: Tab, wh: Wh<Px>| {
             let is_selected_tab = self.selected_tab == tab;
             text_button(
-                XywhRect::from_xy_wh(Xy { x: 0.0, y: 0.0 }, wh),
+                Rect::from_xy_wh(Xy::single(px(0.0)), wh),
                 match tab {
                     Tab::TimePointEditor => "Timeline",
                     Tab::GraphEditor => "Graph",
@@ -73,7 +73,7 @@ impl AnimationEditor {
                     true => Color::WHITE,
                     false => Color::BLACK,
                 },
-                1.0,
+                px(1.0),
                 match is_selected_tab {
                     true => Color::BLACK,
                     false => Color::WHITE,
@@ -86,7 +86,7 @@ impl AnimationEditor {
 
         vertical([
             fixed(
-                40.0,
+                px(40.0),
                 horizontal([
                     ratio(1.0, |wh| render_tab_button(Tab::TimePointEditor, wh)),
                     ratio(1.0, |wh| render_tab_button(Tab::GraphEditor, wh)),

@@ -16,7 +16,7 @@ impl WysiwygWindow {
             self.render_layer(layer, props.playback_time, props.selected_layer_id.clone())
         });
 
-        let background = simple_rect(props.wh, Color::BLACK, 1.0, Color::TRANSPARENT)
+        let background = simple_rect(props.wh, Color::BLACK, px(1.0), Color::TRANSPARENT)
             .with_id(&self.window_id)
             .attach_event(|builder| {
                 builder
@@ -37,14 +37,11 @@ impl WysiwygWindow {
                             .get_rendering_tree_xy(event.target)
                             .expect("ERROR: fail to get rendering_tree_xy");
 
-                        let mouse_local_xy = Xy {
-                            x: mouse_global_xy.x as f32 - row_xy.x,
-                            y: mouse_global_xy.y as f32 - row_xy.y,
-                        };
+                        let mouse_local_xy = mouse_global_xy - row_xy;
 
-                        if mouse_local_xy.x < 0.0
+                        if mouse_local_xy.x < px(0.0)
                             || wh.width < mouse_local_xy.x
-                            || mouse_local_xy.y < 0.0
+                            || mouse_local_xy.y < px(0.0)
                             || wh.height < mouse_local_xy.y
                         {
                             return;
@@ -67,12 +64,7 @@ impl WysiwygWindow {
             });
 
         clip(
-            PathBuilder::new().add_rect(&LtrbRect {
-                left: 0.0,
-                top: 0.0,
-                right: props.wh.width.into(),
-                bottom: props.wh.height.into(),
-            }),
+            PathBuilder::new().add_rect(Rect::from_xy_wh(Xy::single(px(0.0)), props.wh)),
             ClipOp::Intersect,
             render([
                 background,

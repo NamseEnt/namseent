@@ -1,19 +1,19 @@
 use super::JobExecution;
 use crate::app::cropper::selection::{RectSelection, Selection};
-use namui::{Xy, XywhRect};
+use namui::prelude::*;
 
 pub struct RectSelectionCreate {
-    initial_position: Xy<f32>,
-    last_position: Xy<f32>,
+    initial_position: Xy<Px>,
+    last_position: Xy<Px>,
 }
 impl RectSelectionCreate {
-    pub fn new(initial_position: &Xy<f32>) -> Self {
+    pub fn new(initial_position: &Xy<Px>) -> Self {
         Self {
             initial_position: initial_position.clone(),
             last_position: initial_position.clone(),
         }
     }
-    pub fn update_position(&mut self, position: Xy<f32>) {
+    pub fn update_position(&mut self, position: Xy<Px>) {
         self.last_position = position;
     }
 }
@@ -30,7 +30,7 @@ impl JobExecution for RectSelectionCreate {
             x: self.initial_position.x.max(self.last_position.x),
             y: self.initial_position.y.max(self.last_position.y),
         };
-        let selection_xywh = XywhRect {
+        let selection_xywh = Rect::Xywh {
             x: left_top_point.x,
             y: left_top_point.y,
             width: right_bottom_point.x - left_top_point.x,

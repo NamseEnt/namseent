@@ -11,13 +11,12 @@ pub struct Props<TItem, TIterator, TItems, TItemRender>
 where
     TIterator: ExactSizeIterator<Item = TItem>,
     TItems: IntoIterator<Item = TItem, IntoIter = TIterator>,
-    TItemRender: Fn(Wh<f32>, TItem) -> RenderingTree,
+    TItemRender: Fn(Wh<Px>, TItem) -> RenderingTree,
 {
-    pub x: f32,
-    pub y: f32,
-    pub height: f32,
-    pub scroll_bar_width: f32,
-    pub item_wh: Wh<f32>,
+    pub xy: Xy<Px>,
+    pub height: Px,
+    pub scroll_bar_width: Px,
+    pub item_wh: Wh<Px>,
     pub items: TItems,
     pub item_render: TItemRender,
 }
@@ -40,7 +39,7 @@ impl ListView {
     where
         TIterator: ExactSizeIterator<Item = TItem>,
         TItems: IntoIterator<Item = TItem, IntoIter = TIterator>,
-        TItemRender: Fn(Wh<f32>, TItem) -> RenderingTree,
+        TItemRender: Fn(Wh<Px>, TItem) -> RenderingTree,
     {
         let items_iter = props.items.into_iter();
         let item_len = items_iter.len();
@@ -62,19 +61,21 @@ impl ListView {
 
         let rendered_items = visible_items.map(|(index, item)| {
             translate(
-                0.0,
-                index as f32 * props.item_wh.height,
+                px(0.0),
+                index * props.item_wh.height,
                 (props.item_render)(props.item_wh, item),
             )
         });
 
-        let content_height = item_len as f32 * props.item_wh.height;
+        let content_height = item_len * props.item_wh.height;
 
         let transparent_pillar = rect(RectParam {
-            x: 0.0,
-            y: 0.0,
-            width: props.item_wh.width,
-            height: content_height,
+            rect: Rect::Xywh {
+                x: px(0.0),
+                y: px(0.0),
+                width: props.item_wh.width,
+                height: content_height,
+            },
             style: RectStyle {
                 fill: Some(RectFill {
                     color: Color::TRANSPARENT,
@@ -86,8 +87,7 @@ impl ListView {
         let content = namui::render![transparent_pillar, namui::render(rendered_items),];
 
         self.scroll_view.render(&scroll_view::Props {
-            x: props.x,
-            y: props.y,
+            xy: props.xy,
             height: props.height,
             scroll_bar_width: props.scroll_bar_width,
             content,
@@ -100,29 +100,35 @@ fn test_props_passing() {
     let list_view = ListView::new();
     let items = [1, 2, 3, 4, 5];
     let _props_with_enumerate_items = list_view.render(Props {
-        x: 0.0,
-        y: 0.0,
-        height: 100.0,
-        scroll_bar_width: 10.0,
-        item_wh: Wh::new(100.0, 100.0),
+        xy: Xy {
+            x: px(0.0),
+            y: px(0.0),
+        },
+        height: px(100.0),
+        scroll_bar_width: px(10.0),
+        item_wh: Wh::new(px(100.0), px(100.0)),
         items: items.iter().enumerate(),
         item_render: |_wh, (_index, _item)| namui::render![],
     });
     let _props_with_slice_iter = list_view.render(Props {
-        x: 0.0,
-        y: 0.0,
-        height: 100.0,
-        scroll_bar_width: 10.0,
-        item_wh: Wh::new(100.0, 100.0),
+        xy: Xy {
+            x: px(0.0),
+            y: px(0.0),
+        },
+        height: px(100.0),
+        scroll_bar_width: px(10.0),
+        item_wh: Wh::new(px(100.0), px(100.0)),
         items: items.iter(),
         item_render: |_wh, _item| namui::render![],
     });
     let _props_with_reference_of_slice = list_view.render(Props {
-        x: 0.0,
-        y: 0.0,
-        height: 100.0,
-        scroll_bar_width: 10.0,
-        item_wh: Wh::new(100.0, 100.0),
+        xy: Xy {
+            x: px(0.0),
+            y: px(0.0),
+        },
+        height: px(100.0),
+        scroll_bar_width: px(10.0),
+        item_wh: Wh::new(px(100.0), px(100.0)),
         items: &items,
         item_render: |_wh, _item| namui::render![],
     });

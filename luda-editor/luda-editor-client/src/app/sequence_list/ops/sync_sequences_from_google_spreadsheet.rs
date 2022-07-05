@@ -65,7 +65,7 @@ async fn sync_sequences_with_sheets(
 
     delete_sequence_if_not_exist_in_sheets(&mut title_sequence_map, &sheets);
 
-    sync_sequences_subtitles_from_sheets(&sheets, &mut title_sequence_map);
+    sync_sequences_subtitles_from_sheets(&sheets, &mut title_sequence_map)?;
 
     save_sequences(&socket, &title_sequence_map).await?;
 

@@ -1,6 +1,6 @@
 use namui::prelude::*;
 
-pub fn center_text(wh: Wh<f32>, text: &str, color: Color) -> RenderingTree {
+pub fn center_text(wh: Wh<Px>, text: &str, color: Color) -> RenderingTree {
     namui::text(TextParam {
         text: text.to_string(),
         x: wh.width / 2.0,

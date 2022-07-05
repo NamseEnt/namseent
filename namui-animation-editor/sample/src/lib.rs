@@ -77,7 +77,7 @@ impl AnimationEditorExample {
 }
 
 struct Props {
-    wh: Wh<f32>,
+    wh: Wh<Px>,
 }
 impl Entity for AnimationEditorExample {
     type Props = Props;
