@@ -1,0 +1,84 @@
+use crate::types::{Act, AnimationHistory};
+use namui::{
+    animation::{Animation, Layer},
+    prelude::*,
+};
+use namui_prebuilt::{table::*, *};
+mod body;
+mod header;
+
+pub struct LayerListWindow {
+    header: header::Header,
+    body: body::Body,
+    animation_history: AnimationHistory,
+    pub selected_layer_id: Option<String>,
+}
+
+pub struct Props<'a> {
+    pub wh: Wh<f32>,
+    pub layers: &'a [Layer],
+}
+
+pub enum Event {
+    LayerSelected(String),
+    AddLayerButtonClicked,
+}
+
+impl LayerListWindow {
+    pub fn new(animation_history: AnimationHistory) -> Self {
+        Self {
+            header: header::Header::new(),
+            body: body::Body::new(),
+            animation_history,
+            selected_layer_id: None,
+        }
+    }
+    pub fn update(&mut self, event: &dyn std::any::Any) {
+        if let Some(event) = event.downcast_ref::<Event>() {
+            match event {
+                Event::AddLayerButtonClicked => {
+                    struct AddLayerAction;
+                    impl Act<Animation> for AddLayerAction {
+                        fn act(
+                            &self,
+                            state: &Animation,
+                        ) -> Result<Animation, Box<dyn std::error::Error>> {
+                            let mut animation = state.clone();
+                            animation.layers.push(animation::Layer {
+                                id: namui::nanoid(),
+                                name: "New Layer".to_string(),
+                                image: namui::animation::AnimatableImage::new(),
+                            });
+                            Ok(animation)
+                        }
+                    }
+                    if let Some(action_ticket) =
+                        self.animation_history.try_set_action(AddLayerAction)
+                    {
+                        self.animation_history.act(action_ticket).unwrap();
+                    }
+                }
+                Event::LayerSelected(layer_id) => {
+                    self.selected_layer_id = Some(layer_id.clone());
+                }
+            }
+        }
+        self.header.update(event);
+        self.body.update(event);
+    }
+    pub fn render(&self, props: Props) -> RenderingTree {
+        render![
+            simple_rect(props.wh, Color::BLACK, 1.0, Color::WHITE),
+            vertical([
+                fixed(20.0, |wh| { self.header.render(header::Props { wh }) }),
+                ratio(1.0, |wh| {
+                    self.body.render(body::Props {
+                        wh: wh,
+                        layers: props.layers,
+                        selected_layer_id: self.selected_layer_id.clone(),
+                    })
+                }),
+            ])(props.wh)
+        ]
+    }
+}

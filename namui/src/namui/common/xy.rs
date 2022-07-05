@@ -1,5 +1,8 @@
+use num::traits::real::Real;
 use serde::{Deserialize, Serialize};
 use std::ops::*;
+
+use crate::types::Angle;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Xy<T> {
@@ -83,13 +86,28 @@ impl Div<Xy<f32>> for f32 {
     }
 }
 
-impl Xy<f32> {
-    pub fn length(&self) -> f32 {
+impl<T> Xy<T>
+where
+    T: Real + Copy,
+{
+    pub fn length(&self) -> T {
         (self.x * self.x + self.y * self.y).sqrt()
     }
+    pub fn angle_to(&self, rhs: Xy<T>) -> Angle {
+        Angle::Radian(
+            (self.x * rhs.y - self.y * rhs.x)
+                .atan2(self.x * rhs.x + self.y * rhs.y)
+                .to_f32()
+                .unwrap()
+                .into(),
+        )
+    }
 }
-impl Xy<f64> {
-    pub fn length(&self) -> f64 {
-        (self.x * self.x + self.y * self.y).sqrt()
+impl<T> Xy<T>
+where
+    T: Mul<Output = T> + Add<Output = T> + Clone,
+{
+    pub fn dot(&self, rhs: Xy<T>) -> T {
+        self.x.clone() * rhs.x + self.y.clone() * rhs.y
     }
 }
