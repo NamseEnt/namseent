@@ -1,6 +1,6 @@
 use crate::{
     namui::{self, get_text_width_internal, RenderingTree, TextInput},
-    render, TextParam, TextStyleBackground,
+    render, Px, TextParam, TextStyleBackground,
 };
 
 impl TextInput {
@@ -81,7 +81,7 @@ impl TextInput {
         left_text_string: &str,
         selected_text_string: &str,
         right_text_string: &str,
-    ) -> Option<(f32, f32, f32)> {
+    ) -> Option<(Px, Px, Px)> {
         let font = namui::font::get_font(text_param.font_type);
 
         if font.is_none() {

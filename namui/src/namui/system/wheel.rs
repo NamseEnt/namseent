@@ -1,8 +1,5 @@
 use super::{platform_utils::web::window, InitResult};
-use crate::{
-    namui::{self, Xy},
-    RawWheelEvent,
-};
+use crate::{RawWheelEvent, *};
 use wasm_bindgen::{prelude::Closure, JsCast};
 
 pub async fn init() -> InitResult {

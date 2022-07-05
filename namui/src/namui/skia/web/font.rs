@@ -1,5 +1,6 @@
 pub use super::base::*;
 use super::*;
+use crate::*;
 use std::sync::{Arc, Mutex};
 
 unsafe impl Sync for CanvasKitFont {}
@@ -10,8 +11,8 @@ pub struct Font {
     pub(crate) size: i16,
     pub(crate) metrics: FontMetrics,
     glyph_ids_caches: Mutex<lru::LruCache<String, Arc<GlyphIds>>>,
-    glyph_widths_caches: Mutex<lru::LruCache<(Arc<GlyphIds>, Option<Paint>), Vec<f32>>>,
-    glyph_bounds_caches: Mutex<lru::LruCache<(Arc<GlyphIds>, Option<Paint>), Vec<LtrbRect>>>,
+    glyph_widths_caches: Mutex<lru::LruCache<(Arc<GlyphIds>, Option<Paint>), Vec<Px>>>,
+    glyph_bounds_caches: Mutex<lru::LruCache<(Arc<GlyphIds>, Option<Paint>), Vec<Rect<Px>>>>,
 }
 
 impl Font {
@@ -25,17 +26,17 @@ impl Font {
             size,
             metrics: {
                 let canvas_kit_font_metrics = &canvas_kit_font.getMetrics();
-                let bounds = canvas_kit_font_metrics.bounds().map(|numbers| LtrbRect {
-                    left: numbers[0],
-                    top: numbers[1],
-                    right: numbers[2],
-                    bottom: numbers[3],
+                let bounds = canvas_kit_font_metrics.bounds().map(|numbers| Rect::Ltrb {
+                    left: numbers[0].into(),
+                    top: numbers[1].into(),
+                    right: numbers[2].into(),
+                    bottom: numbers[3].into(),
                 });
 
                 FontMetrics {
-                    ascent: canvas_kit_font_metrics.ascent(),
-                    descent: canvas_kit_font_metrics.descent(),
-                    leading: canvas_kit_font_metrics.leading(),
+                    ascent: canvas_kit_font_metrics.ascent().into(),
+                    descent: canvas_kit_font_metrics.descent().into(),
+                    leading: canvas_kit_font_metrics.leading().into(),
                     bounds,
                 }
             },
@@ -62,17 +63,20 @@ impl Font {
         &self,
         glyph_ids: Arc<GlyphIds>,
         paint: Option<&Paint>,
-    ) -> Vec<f32> {
+    ) -> Vec<Px> {
         let mut caches = self.glyph_widths_caches.lock().unwrap();
 
         let key = (glyph_ids.clone(), paint.cloned());
         match caches.get(&key) {
             Some(glyph_widths) => glyph_widths.clone(),
             None => {
-                let glyph_widths = self
+                let glyph_widths: Vec<Px> = self
                     .canvas_kit_font
                     .getGlyphWidths(&glyph_ids, paint.map(|paint| &paint.canvas_kit_paint))
-                    .to_vec();
+                    .to_vec()
+                    .into_iter()
+                    .map(|n| n.into())
+                    .collect();
                 caches.put(key, glyph_widths.clone());
                 glyph_widths
             }
@@ -82,7 +86,7 @@ impl Font {
         &self,
         glyph_ids: Arc<GlyphIds>,
         paint: Option<&Paint>,
-    ) -> Vec<LtrbRect> {
+    ) -> Vec<Rect<Px>> {
         let mut caches = self.glyph_bounds_caches.lock().unwrap();
 
         let key = (glyph_ids.clone(), paint.cloned());
@@ -101,11 +105,11 @@ impl Font {
                 let mut bounds = Vec::new();
 
                 while iter.peek().is_some() {
-                    bounds.push(LtrbRect {
-                        left: *iter.next().unwrap(),
-                        top: *iter.next().unwrap(),
-                        right: *iter.next().unwrap(),
-                        bottom: *iter.next().unwrap(),
+                    bounds.push(Rect::Ltrb {
+                        left: px(*iter.next().unwrap()),
+                        top: px(*iter.next().unwrap()),
+                        right: px(*iter.next().unwrap()),
+                        bottom: px(*iter.next().unwrap()),
                     });
                 }
 

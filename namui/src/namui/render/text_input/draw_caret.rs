@@ -46,10 +46,12 @@ impl TextInput {
             + text_param.y;
 
         crate::rect(RectParam {
-            x: left,
-            y: top,
-            width: 1.0,
-            height: font_height,
+            rect: Rect::Xywh {
+                x: left,
+                y: top,
+                width: 1.0.into(),
+                height: font_height,
+            },
             style: RectStyle {
                 fill: Some(RectFill {
                     color: Color::grayscale_f01(0.5),

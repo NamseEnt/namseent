@@ -1,5 +1,5 @@
 use super::*;
-use crate::namui::*;
+use crate::*;
 pub use base::*;
 use serde::Serialize;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -25,8 +25,8 @@ impl Image {
             let alpha_type = canvas_kit_image_info.alphaType().value();
             let color_type = canvas_kit_image_info.colorType().value();
             PartialImageInfo {
-                width: canvas_kit_image_info.width(),
-                height: canvas_kit_image_info.height(),
+                width: px(canvas_kit_image_info.width()),
+                height: px(canvas_kit_image_info.height()),
                 alpha_type: match alpha_type {
                     value if ALPHA_TYPE_OPAQUE_VALUE.eq(&value) => AlphaType::Opaque,
                     value if ALPHA_TYPE_PREMUL_VALUE.eq(&value) => AlphaType::Premul,
@@ -56,7 +56,7 @@ impl Image {
     pub fn get_image_info(&self) -> PartialImageInfo {
         self.image_info
     }
-    pub fn size(&self) -> Wh<f32> {
+    pub fn size(&self) -> Wh<Px> {
         let canvas_kit_image_info = self.get_image_info();
         Wh {
             width: canvas_kit_image_info.width,

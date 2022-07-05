@@ -1,5 +1,5 @@
 use super::*;
-use crate::{namui::skia::*, system::graphics};
+use crate::{namui::skia::*, system::graphics, *};
 use std::{
     collections::{HashMap, VecDeque},
     sync::Arc,
@@ -10,8 +10,8 @@ pub struct TextDrawCommand {
     pub text: String,
     #[serde(skip_serializing)]
     pub font: Arc<Font>,
-    pub x: f32,
-    pub y: f32,
+    pub x: Px,
+    pub y: Px,
     pub paint_builder: PaintBuilder,
     pub align: TextAlign,
     pub baseline: TextBaseline,
@@ -45,9 +45,9 @@ impl TextDrawCommand {
 
         let total_width = glyph_groups.iter().map(|group| group.width).sum();
 
-        let left = get_left_in_align(self.x as f32, self.align, total_width);
+        let left = get_left_in_align(self.x, self.align, total_width);
 
-        let mut bottom_of_fonts: HashMap<String, f32> = HashMap::new();
+        let mut bottom_of_fonts: HashMap<String, Px> = HashMap::new();
 
         let mut x = left;
 
@@ -60,10 +60,10 @@ impl TextDrawCommand {
         {
             let bottom = bottom_of_fonts
                 .get(&font.id)
-                .map(|bottom| bottom + font.size as f32)
+                .map(|bottom| *bottom + px(font.size as f32))
                 .unwrap_or_else(|| {
                     let metrics = font.metrics;
-                    let bottom = self.y as f32 + get_bottom_of_baseline(&self.baseline, &metrics);
+                    let bottom = self.y + get_bottom_of_baseline(&self.baseline, &metrics);
                     bottom_of_fonts.insert(font.id.clone(), bottom);
                     bottom
                 });
@@ -77,7 +77,7 @@ impl TextDrawCommand {
             x += width;
         }
     }
-    pub fn get_bounding_box(&self) -> Option<LtrbRect> {
+    pub fn get_bounding_box(&self) -> Option<Rect<Px>> {
         if self.text.len() == 0 {
             return None;
         }
@@ -91,18 +91,17 @@ impl TextDrawCommand {
 
         glyph_bounds
             .iter()
-            .map(|bound| (bound.top, bound.bottom))
+            .map(|bound| (bound.top(), bound.bottom()))
             .reduce(|acc, (top, bottom)| (acc.0.min(top), acc.1.max(bottom)))
             .and_then(|(top, bottom)| {
                 let widths = font.get_glyph_widths(glyph_ids, Option::Some(&paint));
-                let width = widths.iter().fold(0.0, |prev, curr| prev + curr);
-                let x_axis_anchor = get_left_in_align(self.x as f32, self.align, width);
+                let width = widths.iter().fold(px(0.0), |prev, curr| prev + curr);
+                let x_axis_anchor = get_left_in_align(self.x, self.align, width);
 
                 let metrics = font.metrics;
-                let y_axis_anchor =
-                    self.y as f32 + get_bottom_of_baseline(&self.baseline, &metrics);
+                let y_axis_anchor = self.y + get_bottom_of_baseline(&self.baseline, &metrics);
 
-                Some(LtrbRect {
+                Some(Rect::Ltrb {
                     left: x_axis_anchor,
                     top: top + y_axis_anchor,
                     right: x_axis_anchor + width,
@@ -111,7 +110,7 @@ impl TextDrawCommand {
             })
     }
 
-    pub(crate) fn is_xy_in(&self, xy: Xy<f32>) -> bool {
+    pub(crate) fn is_xy_in(&self, xy: Xy<Px>) -> bool {
         self.get_bounding_box()
             .map(|bound| bound.is_xy_inside(xy))
             .unwrap_or(false)
@@ -122,7 +121,7 @@ impl TextDrawCommand {
 struct GlyphGroup {
     glyph_ids: Vec<u16>,
     end_index: usize,
-    width: f32,
+    width: Px,
     font: Arc<Font>,
 }
 fn get_glyph_groups(
@@ -160,7 +159,7 @@ fn get_glyph_groups(
             continue;
         }
 
-        let available_glyph_id_and_index_and_width: Vec<(u16, usize, f32)> = {
+        let available_glyph_id_and_index_and_width: Vec<(u16, usize, Px)> = {
             let available_glyph_ids: Vec<_> = available_glyph_id_and_indexes
                 .iter()
                 .map(|(glyph_id, _)| *glyph_id)
@@ -195,14 +194,14 @@ fn get_glyph_groups(
     groups.sort_by(|a, b| a.end_index.cmp(&b.end_index));
     groups
 }
-pub fn get_left_in_align(x: f32, align: TextAlign, width: f32) -> f32 {
+pub fn get_left_in_align(x: Px, align: TextAlign, width: Px) -> Px {
     match align {
         TextAlign::Left => x,
         TextAlign::Right => x - width,
         TextAlign::Center => x - width / 2.0,
     }
 }
-pub fn get_bottom_of_baseline(baseline: &TextBaseline, font_metrics: &FontMetrics) -> f32 {
+pub fn get_bottom_of_baseline(baseline: &TextBaseline, font_metrics: &FontMetrics) -> Px {
     match baseline {
         TextBaseline::Top => -font_metrics.ascent,
         TextBaseline::Bottom => -font_metrics.descent,
