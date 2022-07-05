@@ -4,7 +4,7 @@ use std::any::Any;
 pub struct PreviewWindow {}
 
 pub struct Props<'a> {
-    pub wh: Wh<f32>,
+    pub wh: Wh<Px>,
     pub animation: &'a animation::Animation,
     pub playback_time: Time,
 }
@@ -20,16 +20,11 @@ impl PreviewWindow {
     pub fn update(&mut self, _event: &dyn Any) {}
     pub fn render(&self, props: Props) -> RenderingTree {
         namui::clip(
-            namui::PathBuilder::new().add_rect(&LtrbRect {
-                left: 0.0,
-                top: 0.0,
-                right: props.wh.width,
-                bottom: props.wh.height,
-            }),
+            namui::PathBuilder::new().add_rect(Rect::from_xy_wh(Xy::single(px(0.0)), props.wh)),
             ClipOp::Intersect,
             namui::scale(
-                props.wh.width / 1920.0,
-                props.wh.height / 1080.0,
+                props.wh.width / px(1920.0),
+                props.wh.height / px(1080.0),
                 props.animation.render(props.playback_time),
             ),
         )

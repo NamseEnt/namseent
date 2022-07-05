@@ -31,6 +31,13 @@ macro_rules! common_for_f32_type {
             pub fn as_f32(&self) -> f32 {
                 self.0
             }
+            pub fn abs(&self) -> $your_type {
+                if self.0 < 0.0 {
+                    -*self
+                } else {
+                    *self
+                }
+            }
         }
 
         $crate::types::macros::impl_op_forward_ref!(+|x: $your_type, y: $your_type| -> $your_type {

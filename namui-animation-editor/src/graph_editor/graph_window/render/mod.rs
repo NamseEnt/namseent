@@ -9,22 +9,17 @@ use render_graph::*;
 impl GraphWindow {
     pub fn render(&self, props: Props) -> RenderingTree {
         if props.layer.is_none() {
-            return simple_rect(props.wh, Color::WHITE, 1.0, Color::BLACK);
+            return simple_rect(props.wh, Color::WHITE, px(1.0), Color::BLACK);
         }
         let layer = props.layer.unwrap();
 
         render([
             vertical([
-                fixed(20.0, |wh| {
+                fixed(px(20.0), |wh| {
                     time_ruler::render(&time_ruler::Props {
                         start_at: self.context.start_at,
                         time_per_px: self.context.time_per_px,
-                        xywh: XywhRect {
-                            x: 0.0.into(),
-                            y: 0.0.into(),
-                            width: wh.width,
-                            height: wh.height,
-                        },
+                        rect: Rect::from_xy_wh(Xy::single(px(0.0)), wh),
                     })
                 }),
                 ratio(1.0, |wh| {
@@ -106,7 +101,7 @@ impl GraphWindow {
         TValue: KeyframeValue + Copy + FromPrimitive + ToPrimitive + Display,
     >(
         &self,
-        wh: Wh<f32>,
+        wh: Wh<Px>,
         layer: &Layer,
         property_name: PropertyName,
         graph: &KeyframeGraph<TValue>,
@@ -146,7 +141,7 @@ impl GraphWindow {
 }
 
 fn render_playback_time_line(
-    wh: Wh<f32>,
+    wh: Wh<Px>,
     playback_time: Time,
     start_at: Time,
     time_per_px: TimePerPx,
@@ -154,27 +149,27 @@ fn render_playback_time_line(
     let x = (playback_time - start_at) / time_per_px;
     let color = Color::RED;
     let path = namui::PathBuilder::new()
-        .move_to(x.into(), 0.0)
-        .line_to(x.into(), wh.height);
+        .move_to(x, px(0.0))
+        .line_to(x, wh.height);
     let paint = namui::PaintBuilder::new()
         .set_color(color)
         .set_style(namui::PaintStyle::Stroke)
-        .set_stroke_width(1.0);
+        .set_stroke_width(px(1.0));
 
     namui::path(path, paint)
 }
 
 fn render_graph_row(
-    wh: Wh<f32>,
+    wh: Wh<Px>,
     property_name: PropertyName,
     render_graph: impl RenderGraph,
 ) -> RenderingTree {
     let label_wh = Wh {
-        width: 30.0,
+        width: px(30.0),
         height: wh.height / 8.0,
     };
     let label = render([
-        simple_rect(label_wh, Color::BLACK, 1.0, Color::WHITE),
+        simple_rect(label_wh, Color::BLACK, px(1.0), Color::WHITE),
         namui_prebuilt::typography::body::center(
             label_wh,
             match property_name {
@@ -189,7 +184,7 @@ fn render_graph_row(
         ),
     ]);
     render([
-        simple_rect(wh, Color::WHITE, 1.0, Color::BLACK),
+        simple_rect(wh, Color::WHITE, px(1.0), Color::BLACK),
         render_graph.render(wh),
         label,
     ])
@@ -216,13 +211,13 @@ fn render_graph_row(
                     .expect("ERROR: fail to get rendering_tree_xy");
 
                 let mouse_local_xy = Xy {
-                    x: mouse_global_xy.x as f32 - row_xy.x,
-                    y: mouse_global_xy.y as f32 - row_xy.y,
+                    x: mouse_global_xy.x - row_xy.x,
+                    y: mouse_global_xy.y - row_xy.y,
                 };
 
-                if mouse_local_xy.x < 0.0
+                if mouse_local_xy.x < px(0.0)
                     || wh.width < mouse_local_xy.x
-                    || mouse_local_xy.y < 0.0
+                    || mouse_local_xy.y < px(0.0)
                     || wh.height < mouse_local_xy.y
                 {
                     return;

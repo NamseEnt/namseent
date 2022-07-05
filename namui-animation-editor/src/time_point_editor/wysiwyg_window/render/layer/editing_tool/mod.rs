@@ -17,19 +17,16 @@ impl WysiwygWindow {
 
         let rotation_angle = layer.image.rotation_angle.get_value(playback_time).unwrap();
 
-        let image_anchor_local_xy = Xy {
-            x: x.into(),
-            y: y.into(),
-        } - self.real_left_top_xy;
+        let image_anchor_local_xy = Xy { x, y } - self.real_left_top_xy;
 
         translate(
-            x.into(),
-            y.into(),
+            x,
+            y,
             rotate(
-                rotation_angle.as_radians(),
+                rotation_angle,
                 translate(
-                    (-anchor_xy.x).into(),
-                    (-anchor_xy.y).into(),
+                    -anchor_xy.x,
+                    -anchor_xy.y,
                     render([
                         self.render_border_with_move_handling(wh, playback_time, &layer.id),
                         self.render_resize_circles(wh, playback_time, &layer.id, rotation_angle),

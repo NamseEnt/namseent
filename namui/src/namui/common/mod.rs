@@ -82,6 +82,14 @@ impl<T> Wh<T> {
         Self { width, height }
     }
 }
+impl<T: Clone> Wh<T> {
+    pub fn as_xy(&self) -> Xy<T> {
+        Xy {
+            x: self.width.clone(),
+            y: self.height.clone(),
+        }
+    }
+}
 impl<T: FromPrimitive + ToPrimitive> Wh<T> {
     pub fn length(&self) -> T {
         let width = self.width.to_f32().unwrap();

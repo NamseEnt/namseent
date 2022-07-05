@@ -2,8 +2,8 @@ use super::*;
 
 pub(in super::super) struct DragImageBodyAction {
     pub layer_id: String,
-    pub anchor_xy: Xy<f32>,
-    pub last_mouse_local_xy: Xy<f32>,
+    pub anchor_xy: Xy<Px>,
+    pub last_mouse_local_xy: Xy<Px>,
     pub playback_time: Time,
     pub real_px_per_screen_px: f32,
 }

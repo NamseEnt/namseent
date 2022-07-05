@@ -1,9 +1,9 @@
 use super::*;
 
 pub(crate) struct DragRotationAction {
-    pub image_center_real_xy: Xy<f32>,
-    pub start_mouse_real_xy: Xy<f32>,
-    pub end_mouse_real_xy: Xy<f32>,
+    pub image_center_real_xy: Xy<Px>,
+    pub start_mouse_real_xy: Xy<Px>,
+    pub end_mouse_real_xy: Xy<Px>,
     pub playback_time: Time,
     pub layer_id: String,
 }

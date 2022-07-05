@@ -4,18 +4,28 @@ use crate::*;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnimatableImage {
     pub image_source_url: Option<Url>,
+    pub x: KeyframeGraph<Px>,
+    pub y: KeyframeGraph<Px>,
+    pub width_percent: KeyframeGraph<Percent>,
+    pub height_percent: KeyframeGraph<Percent>,
+    pub rotation_angle: KeyframeGraph<Angle>,
+    pub opacity: KeyframeGraph<OneZero>,
     pub anchor_percent_xy: Xy<Percent>,
-    pub image_keyframe_graph: ImageKeyframeGraph,
 }
 impl AnimatableImage {
     pub fn new() -> Self {
         Self {
             image_source_url: None,
+            x: KeyframeGraph::new(),
+            y: KeyframeGraph::new(),
+            width_percent: KeyframeGraph::new(),
+            height_percent: KeyframeGraph::new(),
+            rotation_angle: KeyframeGraph::new(),
+            opacity: KeyframeGraph::new(),
             anchor_percent_xy: Xy {
-                x: Percent::from_percent(50.0_f32),
-                y: Percent::from_percent(50.0_f32),
+                x: Percent::from_percent(50.0),
+                y: Percent::from_percent(50.0),
             },
-            image_keyframe_graph: ImageKeyframeGraph::new(),
         }
     }
     pub fn get_visible_time_range(&self) -> Option<(Time, Time)> {
@@ -23,13 +33,44 @@ impl AnimatableImage {
             return None;
         }
 
-        let start_time = self.image_keyframe_graph.get_first_point()?.time;
-        let end_time = self.image_keyframe_graph.get_last_point()?.time;
+        let start_time = [
+            self.x.get_first_point().map(|point| point.time),
+            self.y.get_first_point().map(|point| point.time),
+            self.width_percent.get_first_point().map(|point| point.time),
+            self.height_percent
+                .get_first_point()
+                .map(|point| point.time),
+            self.rotation_angle
+                .get_first_point()
+                .map(|point| point.time),
+            self.opacity.get_first_point().map(|point| point.time),
+        ]
+        .into_iter()
+        .filter_map(|time| time)
+        .min();
 
-        Some((start_time, end_time))
+        let end_time = [
+            self.x.get_last_point().map(|point| point.time),
+            self.y.get_last_point().map(|point| point.time),
+            self.width_percent.get_last_point().map(|point| point.time),
+            self.height_percent.get_last_point().map(|point| point.time),
+            self.rotation_angle.get_last_point().map(|point| point.time),
+            self.opacity.get_last_point().map(|point| point.time),
+        ]
+        .into_iter()
+        .filter_map(|time| time)
+        .max();
+
+        if let Some(start_time) = start_time {
+            if let Some(end_time) = end_time {
+                return Some((start_time, end_time));
+            }
+        }
+        None
     }
     pub fn get_image_px_wh(&self, time: Time) -> Option<Wh<Px>> {
-        let image_keyframe = self.image_keyframe_graph.get_value(time)?;
+        let width_percent = self.width_percent.get_value(time)?;
+        let height_percent = self.height_percent.get_value(time)?;
 
         self.image_source_url
             .as_ref()
@@ -37,8 +78,8 @@ impl AnimatableImage {
             .and_then(|image| {
                 let size = image.size();
                 Some(Wh {
-                    width: size.width * image_keyframe.width_percent,
-                    height: size.height * image_keyframe.height_percent,
+                    width: size.width * width_percent,
+                    height: size.height * height_percent,
                 })
             })
     }
@@ -50,78 +91,78 @@ impl AnimatableImage {
             })
         })
     }
-    // pub fn get_keyframe_infos(&self) -> Vec<KeyframeInfo> {
-    //     get_keyframe_info(&self.x, KeyframeType::X)
-    //         .into_iter()
-    //         .chain(get_keyframe_info(&self.y, KeyframeType::Y))
-    //         .chain(get_keyframe_info(
-    //             &self.width_percent,
-    //             KeyframeType::WidthPercent,
-    //         ))
-    //         .chain(get_keyframe_info(
-    //             &self.height_percent,
-    //             KeyframeType::HeightPercent,
-    //         ))
-    //         .chain(get_keyframe_info(
-    //             &self.rotation_angle,
-    //             KeyframeType::RotationAngle,
-    //         ))
-    //         .chain(get_keyframe_info(&self.opacity, KeyframeType::Opacity))
-    //         .collect()
-    // }
+    pub fn get_keyframe_infos(&self) -> Vec<KeyframeInfo> {
+        get_keyframe_info(&self.x, KeyframeType::X)
+            .into_iter()
+            .chain(get_keyframe_info(&self.y, KeyframeType::Y))
+            .chain(get_keyframe_info(
+                &self.width_percent,
+                KeyframeType::WidthPercent,
+            ))
+            .chain(get_keyframe_info(
+                &self.height_percent,
+                KeyframeType::HeightPercent,
+            ))
+            .chain(get_keyframe_info(
+                &self.rotation_angle,
+                KeyframeType::RotationAngle,
+            ))
+            .chain(get_keyframe_info(&self.opacity, KeyframeType::Opacity))
+            .collect()
+    }
 }
 
-// #[derive(Debug, Clone)]
-// pub struct KeyframeInfo {
-//     pub keyframe_type: KeyframeType,
-//     pub id: String,
-//     pub time: Time,
-// }
+#[derive(Debug, Clone)]
+pub struct KeyframeInfo {
+    pub keyframe_type: KeyframeType,
+    pub id: String,
+    pub time: Time,
+}
 
-// #[derive(Debug, Clone, Copy)]
-// pub enum KeyframeType {
-//     X,
-//     Y,
-//     WidthPercent,
-//     HeightPercent,
-//     RotationAngle,
-//     Opacity,
-// }
+#[derive(Debug, Clone, Copy)]
+pub enum KeyframeType {
+    X,
+    Y,
+    WidthPercent,
+    HeightPercent,
+    RotationAngle,
+    Opacity,
+}
 
-// fn get_keyframe_info<T: KeyframeValue + Clone>(
-//     graph: &KeyframeGraph<T>,
-//     keyframe_type: KeyframeType,
-// ) -> Vec<KeyframeInfo> {
-//     graph
-//         .get_points_with_lines()
-//         .into_iter()
-//         .map(|(point, _)| KeyframeInfo {
-//             keyframe_type,
-//             id: point.id().to_string(),
-//             time: point.time,
-//         })
-//         .collect()
-// }
+fn get_keyframe_info<T: KeyframeValue + Clone>(
+    graph: &KeyframeGraph<T>,
+    keyframe_type: KeyframeType,
+) -> Vec<KeyframeInfo> {
+    graph
+        .get_points_with_lines()
+        .into_iter()
+        .map(|(point, _)| KeyframeInfo {
+            keyframe_type,
+            id: point.id().to_string(),
+            time: point.time,
+        })
+        .collect()
+}
 
-// impl<T: num::ToPrimitive + num::FromPrimitive> KeyframeValue for T {
-//     fn interpolate(&self, next: &Self, ratio: f32) -> Self {
-//         num::FromPrimitive::from_f32(
-//             self.to_f32().unwrap() * (1.0 - ratio) + next.to_f32().unwrap() * ratio,
-//         )
-//         .unwrap()
-//     }
-// }
+impl<T: num::ToPrimitive + num::FromPrimitive> KeyframeValue for T {
+    fn interpolate(&self, next: &Self, ratio: f32) -> Self {
+        num::FromPrimitive::from_f32(
+            self.to_f32().unwrap() * (1.0 - ratio) + next.to_f32().unwrap() * ratio,
+        )
+        .unwrap()
+    }
+}
 
 impl Animate for AnimatableImage {
     fn render(&self, time: Time) -> RenderingTree {
         try_render(|| {
-            let image_keyframe = self.image_keyframe_graph.get_value(time)?;
-            let opacity = image_keyframe.opacity.as_f32();
+            let opacity = self.opacity.get_value(time)?.as_f32();
             if opacity <= 0.0 {
                 return None;
             }
-            let x = image_keyframe.x;
-            let y = image_keyframe.y;
+            let angle = self.rotation_angle.get_value(time)?;
+            let x = self.x.get_value(time)?;
+            let y = self.y.get_value(time)?;
             let source_url = self.image_source_url.as_ref()?.clone();
 
             let image = crate::system::image::try_load(&source_url)?;
@@ -130,12 +171,7 @@ impl Animate for AnimatableImage {
             let anchor_xy = self.get_anchor_px_wh(time)?;
 
             let image_rendering_tree = namui::image(ImageParam {
-                rect: Rect::Xywh {
-                    x: px(0.0),
-                    y: px(0.0),
-                    width: image_wh.width,
-                    height: image_wh.height,
-                },
+                rect: Rect::from_xy_wh(Xy::single(px(0.0)), image_wh),
                 style: ImageStyle {
                     fit: ImageFit::Fill,
                     paint_builder: None,
@@ -146,7 +182,7 @@ impl Animate for AnimatableImage {
                 x,
                 y,
                 namui::rotate(
-                    image_keyframe.rotation_angle,
+                    angle,
                     namui::translate(-anchor_xy.x, -anchor_xy.y, image_rendering_tree),
                 ),
             );
@@ -160,20 +196,7 @@ impl Animate for AnimatableImage {
 mod tests {
     use super::*;
     use float_cmp::approx_eq;
-    use num::{FromPrimitive, ToPrimitive};
     use wasm_bindgen_test::wasm_bindgen_test;
-
-    struct LinearKeyframeLine {}
-
-    impl KeyframeValue<LinearKeyframeLine> for OneZero {
-        fn interpolate(&self, next: &Self, time_ratio: f32, _line: &LinearKeyframeLine) -> Self {
-            let one_zero = OneZero::from_f32(
-                self.to_f32().unwrap() * (1.0 - time_ratio) + next.to_f32().unwrap() * time_ratio,
-            )
-            .unwrap();
-            one_zero
-        }
-    }
 
     #[test]
     #[wasm_bindgen_test]
@@ -181,18 +204,18 @@ mod tests {
         let mut graph = KeyframeGraph::new();
         graph.put(
             KeyframePoint::new(Time::Ms(0.0), OneZero::from(0.0)),
-            LinearKeyframeLine {},
+            KeyframeLine::Linear,
         );
         graph.put(
             KeyframePoint::new(
                 Time::Ms(10.0),
                 OneZero::from(100.0), // become 1.0
             ),
-            LinearKeyframeLine {},
+            KeyframeLine::Linear,
         );
         graph.put(
             KeyframePoint::new(Time::Ms(20.0), OneZero::from(0.5)),
-            LinearKeyframeLine {},
+            KeyframeLine::Linear,
         );
         for time in 0..10 {
             let value = graph.get_value(Time::Ms(time as f32));
@@ -202,7 +225,7 @@ mod tests {
             let value = graph.get_value(Time::Ms(time as f32));
             assert!(approx_eq!(
                 f32,
-                value.unwrap().as_f32(),
+                value.unwrap().into(),
                 1.0 - (time - 10) as f32 / 20.0,
                 ulps = 2
             ));

@@ -8,7 +8,7 @@ struct MergedKeyframe {
 impl TimelineWindow {
     pub(super) fn render_selected_layer_timeline(
         &self,
-        wh: Wh<f32>,
+        wh: Wh<Px>,
         props: &Props,
     ) -> RenderingTree {
         let selected_layer = props
@@ -42,11 +42,11 @@ impl TimelineWindow {
             });
 
         let path_builder = PathBuilder::new()
-            .move_to(-20.0, 0.0)
-            .line_to(-1.0, 20.0)
-            .line_to(-1.0, wh.height)
-            .line_to(0.0, wh.height)
-            .line_to(0.0, 0.0)
+            .move_to(px(-20.0), px(0.0))
+            .line_to(px(-1.0), px(20.0))
+            .line_to(px(-1.0), wh.height)
+            .line_to(px(0.0), wh.height)
+            .line_to(px(0.0), px(0.0))
             .close();
         let paint_builder = PaintBuilder::new()
             .set_style(PaintStyle::Fill)
@@ -72,8 +72,8 @@ impl TimelineWindow {
                     false => sign.clone(),
                 };
                 translate(
-                    x.into(),
-                    0.0,
+                    x,
+                    px(0.0),
                     sign.attach_event(|builder| {
                         let point_ids = keyframe.point_ids.clone();
                         let keyframe_time = keyframe.time;
