@@ -21,7 +21,7 @@ pub enum ActError {
     ActionFailToRun(Box<dyn Error>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum UpdateActionError {
     NoAction,
     WrongActionType,
