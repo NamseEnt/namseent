@@ -16,8 +16,8 @@ pub async fn init() -> InitResult {
                 namui::event::send(namui::NamuiEvent::Wheel(RawWheelEvent {
                     id: format!("wheel-{:?}-{}", namui::now(), namui::nanoid()),
                     delta_xy: Xy {
-                        x: px(event.delta_x() as f32),
-                        y: px(event.delta_y() as f32),
+                        x: event.delta_x() as f32,
+                        y: event.delta_y() as f32,
                     },
                 }));
             }) as Box<dyn FnMut(_)>)

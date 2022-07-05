@@ -13,7 +13,7 @@ struct MovingChunk {
     center_time: Time,
 }
 impl CameraTrack {
-    pub(crate) fn get_clip_at_time(&self, time: &Time) -> Option<&CameraClip> {
+    pub(crate) fn get_clip_at_time(&self, time: Time) -> Option<&CameraClip> {
         self.clips.iter().find_map(|clip| {
             if clip.is_at_time(time) {
                 Some(clip.as_ref())
@@ -160,7 +160,7 @@ impl CameraTrack {
 }
 
 fn push_front_camera_clips(clips: &mut [Arc<CameraClip>]) {
-    let mut next_start_at = Time::zero();
+    let mut next_start_at = Time::Ms(0.0);
     clips.iter_mut().for_each(|clip| {
         let duration = clip.end_at - clip.start_at;
         let new_clip = Arc::new(CameraClip {

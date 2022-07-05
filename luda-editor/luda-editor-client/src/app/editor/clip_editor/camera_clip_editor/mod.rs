@@ -31,7 +31,7 @@ pub enum WysiwygTarget {
 
 pub struct CameraClipEditorProps<'a> {
     pub camera_clip: &'a CameraClip,
-    pub xywh: XywhRect<f32>,
+    pub rect: Rect<Px>,
     pub character_image_files: &'a BTreeSet<ImageBrowserFile>,
     pub background_image_files: &'a BTreeSet<ImageBrowserFile>,
     pub job: &'a Option<Job>,
@@ -151,12 +151,12 @@ impl CameraClipEditor {
     }
     pub fn render(&self, props: &CameraClipEditorProps) -> RenderingTree {
         let left_box_wh = Wh {
-            width: props.xywh.width * 0.25,
-            height: props.xywh.height,
+            width: props.rect.width() * 0.25,
+            height: props.rect.height(),
         };
         let right_box_wh = Wh {
-            width: props.xywh.width - left_box_wh.width,
-            height: props.xywh.height,
+            width: props.rect.width() - left_box_wh.width,
+            height: props.rect.height(),
         };
 
         let camera_angle = &match &props.job {
@@ -179,35 +179,35 @@ impl CameraClipEditor {
         };
 
         namui::translate(
-            props.xywh.x,
-            props.xywh.y,
+            props.rect.x(),
+            props.rect.y(),
             namui::clip(
-                namui::PathBuilder::new().add_rect(&namui::LtrbRect {
-                    left: 0.0,
-                    top: 0.0,
-                    right: props.xywh.width,
-                    bottom: props.xywh.height,
+                namui::PathBuilder::new().add_rect(namui::Rect::Ltrb {
+                    left: px(0.0),
+                    top: px(0.0),
+                    right: props.rect.width(),
+                    bottom: props.rect.height(),
                 }),
                 namui::ClipOp::Intersect,
-                namui::render![
+                namui::render([
                     self.render_left_box(
-                        &left_box_wh,
+                        left_box_wh,
                         &camera_angle,
-                        &LudaEditorServerCameraAngleImageLoader {}
+                        &LudaEditorServerCameraAngleImageLoader {},
                     ),
                     namui::translate(
                         left_box_wh.width,
-                        0.0,
-                        self.render_right_box(&right_box_wh, &camera_angle, &props,)
+                        px(0.0),
+                        self.render_right_box(right_box_wh, &camera_angle, &props),
                     ),
-                ],
+                ]),
             ),
         )
     }
 
     fn render_left_box(
         &self,
-        wh: &Wh<f32>,
+        wh: Wh<Px>,
         camera_angle: &CameraAngle,
         camera_angle_image_loader: &dyn CameraAngleImageLoader,
     ) -> RenderingTree {
@@ -221,9 +221,9 @@ impl CameraClipEditor {
             .map(|(index, tab)| {
                 render_button(
                     &ButtonProps {
-                        xywh: &XywhRect {
-                            x: 0.0,
-                            y: index as f32 * tab_button_wh.height,
+                        rect: Rect::Xywh {
+                            x: px(0.0),
+                            y: index * tab_button_wh.height,
                             width: tab_button_wh.width,
                             height: tab_button_wh.height,
                         },
@@ -235,8 +235,8 @@ impl CameraClipEditor {
             })
             .collect();
 
-        let preview_rect = XywhRect {
-            x: 0.0,
+        let preview_rect = Rect::Xywh {
+            x: px(0.0),
             y: tab_buttons.len() as f32 * tab_button_wh.height,
             width: wh.width,
             height: wh.width / (1920.0 / 1080.0),
@@ -244,7 +244,7 @@ impl CameraClipEditor {
 
         let preview = Preview::new().render(&PreviewProps {
             camera_angle: &camera_angle,
-            xywh: &preview_rect,
+            rect: preview_rect,
             camera_angle_image_loader,
         });
 
@@ -258,19 +258,21 @@ impl CameraClipEditor {
 
     fn render_right_box(
         &self,
-        wh: &Wh<f32>,
+        wh: Wh<Px>,
         camera_angle: &CameraAngle,
         props: &CameraClipEditorProps,
     ) -> RenderingTree {
         let border = namui::rect(namui::RectParam {
-            x: 0.0,
-            y: 0.0,
-            width: wh.width,
-            height: wh.height,
+            rect: Rect::Xywh {
+                x: px(0.0),
+                y: px(0.0),
+                width: wh.width,
+                height: wh.height,
+            },
             style: namui::RectStyle {
                 stroke: Some(namui::RectStroke {
                     color: namui::Color::BLACK,
-                    width: 1.0,
+                    width: px(1.0),
                     border_position: namui::BorderPosition::Inside,
                 }),
                 fill: Some(namui::RectFill {
@@ -289,9 +291,9 @@ impl CameraClipEditor {
             Tab::CharacterPosition => {
                 self.character_wysiwyg_editor
                     .render(&CharacterWysiwygEditorProps {
-                        xywh: XywhRect {
-                            x: 0.0,
-                            y: 0.0,
+                        rect: Rect::Xywh {
+                            x: px(0.0),
+                            y: px(0.0),
                             width: wh.width,
                             height: wh.width / (1920.0 / 1080.0),
                         },
@@ -306,9 +308,9 @@ impl CameraClipEditor {
             Tab::BackgroundPosition => {
                 self.background_wysiwyg_editor
                     .render(&BackgroundWysiwygEditorProps {
-                        xywh: XywhRect {
-                            x: 0.0,
-                            y: 0.0,
+                        rect: Rect::Xywh {
+                            x: px(0.0),
+                            y: px(0.0),
                             width: wh.width,
                             height: wh.height,
                         },
@@ -317,14 +319,14 @@ impl CameraClipEditor {
             }
         };
         namui::clip(
-            namui::PathBuilder::new().add_rect(&namui::LtrbRect {
-                left: 0.0,
-                top: 0.0,
+            namui::PathBuilder::new().add_rect(namui::Rect::Ltrb {
+                left: px(0.0),
+                top: px(0.0),
                 right: wh.width,
                 bottom: wh.height,
             }),
             namui::ClipOp::Intersect,
-            namui::render![border, content],
+            namui::render([border, content]),
         )
     }
 

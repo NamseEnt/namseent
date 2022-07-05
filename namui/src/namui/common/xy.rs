@@ -1,4 +1,4 @@
-use num::traits::real::Real;
+use num::{FromPrimitive, ToPrimitive};
 use serde::{Deserialize, Serialize};
 use std::ops::*;
 
@@ -89,15 +89,31 @@ impl<T: Div<f32, Output = T>> Div<Xy<T>> for f32 {
 
 impl<T> Xy<T>
 where
-    T: Real + Copy,
+    T: ToPrimitive + FromPrimitive + Copy,
 {
     pub fn length(&self) -> T {
-        (self.x * self.x + self.y * self.y).sqrt()
+        let x = self.x.to_f32().unwrap();
+        let y = self.y.to_f32().unwrap();
+        FromPrimitive::from_f32((x * x + y * y).sqrt()).unwrap()
     }
     pub fn angle_to(&self, rhs: Xy<T>) -> Angle {
+        let x = self.x.to_f32().unwrap();
+        let y = self.y.to_f32().unwrap();
+        let rhs_x = rhs.x.to_f32().unwrap();
+        let rhs_y = rhs.y.to_f32().unwrap();
         Angle::Radian(
-            (self.x * rhs.y - self.y * rhs.x)
-                .atan2(self.x * rhs.x + self.y * rhs.y)
+            (x * rhs_y - y * rhs_x)
+                .atan2(x * rhs_x + y * rhs_y)
+                .to_f32()
+                .unwrap(),
+        )
+    }
+    pub fn atan2(&self) -> Angle {
+        Angle::Radian(
+            self.y
+                .to_f32()
+                .unwrap()
+                .atan2(self.x.to_f32().unwrap())
                 .to_f32()
                 .unwrap(),
         )

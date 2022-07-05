@@ -4,7 +4,7 @@ use crate::app::editor::sheet_sequence_syncer::{
 use namui::prelude::*;
 
 pub(super) struct SheetSequenceSyncerBarProps<'a> {
-    pub height: f32,
+    pub height: Px,
     pub syncer_status: &'a SheetSequenceSyncerStatus,
 }
 
@@ -20,7 +20,7 @@ pub(super) fn render_sheet_sequence_syncer_bar(
     };
 
     let button_width = props.height * 2.0;
-    const MARGIN: f32 = 4.0;
+    const MARGIN: Px = px(4.0);
 
     let status_text_rendering_tree = match status_text {
         Some(text_content) => namui::text(TextParam {
@@ -32,7 +32,7 @@ pub(super) fn render_sheet_sequence_syncer_bar(
                 font_weight: FontWeight::REGULAR,
                 language: Language::Ko,
                 serif: false,
-                size: (props.height / 3.5 * 2.0) as i16,
+                size: (props.height / 3.5 * 2.0).into(),
             },
             style: TextStyle {
                 color: Color::BLACK,
@@ -46,13 +46,15 @@ pub(super) fn render_sheet_sequence_syncer_bar(
     };
 
     let button_rect = rect(RectParam {
-        x: 0.0,
-        y: 0.0,
-        width: button_width,
-        height: props.height,
+        rect: Rect::Xywh {
+            x: px(0.0),
+            y: px(0.0),
+            width: button_width,
+            height: props.height,
+        },
         style: RectStyle {
             stroke: Some(RectStroke {
-                width: 1.0,
+                width: px(1.0),
                 border_position: BorderPosition::Inside,
                 color: Color::BLACK,
             }),
@@ -82,7 +84,7 @@ pub(super) fn render_sheet_sequence_syncer_bar(
             font_weight: FontWeight::REGULAR,
             language: Language::Ko,
             serif: false,
-            size: (props.height / 3.0 * 2.0) as i16,
+            size: (props.height / 3.0 * 2.0).into(),
         },
         style: TextStyle {
             color: Color::BLACK,
@@ -93,11 +95,11 @@ pub(super) fn render_sheet_sequence_syncer_bar(
         text: "Sync".to_string(),
     });
 
-    let button = render![button_rect, button_text,];
+    let button = render([button_rect, button_text]);
 
     translate(
         -button_width,
-        0.0,
-        render![status_text_rendering_tree, button,],
+        px(0.0),
+        render([status_text_rendering_tree, button]),
     )
 }

@@ -84,7 +84,7 @@ pub struct CameraClip {
     pub camera_angle: CameraAngle,
 }
 impl CameraClip {
-    pub fn is_at_time(&self, time: &Time) -> bool {
+    pub fn is_at_time(&self, time: Time) -> bool {
         self.start_at <= time && time < self.end_at
     }
     pub fn duplicate(&self) -> CameraClip {
@@ -171,7 +171,7 @@ fn is_false(value: impl std::borrow::Borrow<bool>) -> bool {
 impl SubtitleClip {
     pub fn is_at_time(
         &self,
-        time: &Time,
+        time: Time,
         language: Language,
         duration_measurer: &dyn SubtitlePlayDurationMeasure,
     ) -> bool {

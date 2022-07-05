@@ -44,7 +44,8 @@ pub struct WheelEvent<'a> {
     pub id: String,
     pub namui_context: &'a NamuiContext,
     pub target: &'a RenderingTree,
-    pub delta_xy: Xy<Px>,
+    /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
+    pub delta_xy: Xy<f32>,
 }
 pub struct KeyboardEvent<'a> {
     pub id: String,

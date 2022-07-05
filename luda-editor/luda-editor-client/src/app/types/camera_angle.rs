@@ -10,7 +10,7 @@ pub struct CameraAngle {
 pub struct CameraAngleCharacter {
     pub character_pose_emotion: CharacterPoseEmotion,
     pub source_01_circumscribed: Circumscribed,
-    pub crop_screen_01_rect: LtrbRect,
+    pub crop_screen_01_rect: Rect<f32>,
 }
 impl CameraAngleCharacter {
     pub fn default(character_pose_emotion: &CharacterPoseEmotion) -> Self {
@@ -20,7 +20,7 @@ impl CameraAngleCharacter {
                 center: Xy { x: 0.5, y: 0.5 },
                 radius: 0.5,
             },
-            crop_screen_01_rect: LtrbRect {
+            crop_screen_01_rect: Rect::Ltrb {
                 left: 0.0,
                 top: 0.0,
                 right: 1.0,
@@ -30,7 +30,7 @@ impl CameraAngleCharacter {
     }
     pub fn render(
         &self,
-        wh: &Wh<f32>,
+        wh: Wh<Px>,
         camera_angle_image_loader: &dyn CameraAngleImageLoader,
     ) -> RenderingTree {
         let image_source = camera_angle_image_loader.get_character_image_source(self);
@@ -43,11 +43,11 @@ impl CameraAngleCharacter {
         }
         let image = image.unwrap();
 
-        let clip_rect = LtrbRect {
-            left: num::clamp(self.crop_screen_01_rect.left, 0.0, 1.0) * wh.width,
-            top: num::clamp(self.crop_screen_01_rect.top, 0.0, 1.0) * wh.height,
-            right: num::clamp(self.crop_screen_01_rect.right, 0.0, 1.0) * wh.width,
-            bottom: num::clamp(self.crop_screen_01_rect.bottom, 0.0, 1.0) * wh.height,
+        let clip_rect = Rect::Ltrb {
+            left: num::clamp(self.crop_screen_01_rect.left(), 0.0, 1.0) * wh.width,
+            top: num::clamp(self.crop_screen_01_rect.top(), 0.0, 1.0) * wh.height,
+            right: num::clamp(self.crop_screen_01_rect.right(), 0.0, 1.0) * wh.width,
+            bottom: num::clamp(self.crop_screen_01_rect.bottom(), 0.0, 1.0) * wh.height,
         };
 
         let image_length = self.source_01_circumscribed.radius * 2.0 * wh.length();
@@ -61,7 +61,7 @@ impl CameraAngleCharacter {
             x: self.source_01_circumscribed.center.x * wh.width,
             y: self.source_01_circumscribed.center.y * wh.height,
         };
-        let image_xywh = XywhRect {
+        let image_rect = Rect::Xywh {
             x: image_center.x - image_size.width / 2.0,
             y: image_center.y - image_size.height / 2.0,
             width: image_size.width,
@@ -69,11 +69,11 @@ impl CameraAngleCharacter {
         };
 
         clip(
-            PathBuilder::new().add_rect(&clip_rect),
+            PathBuilder::new().add_rect(clip_rect),
             ClipOp::Intersect,
             namui::image(ImageParam {
                 source: ImageSource::Image(image),
-                xywh: image_xywh,
+                rect: image_rect,
                 style: ImageStyle {
                     fit: ImageFit::Fill,
                     paint_builder: None,
@@ -100,7 +100,7 @@ impl CameraAngleBackground {
     }
     pub fn render(
         &self,
-        wh: &Wh<f32>,
+        wh: Wh<Px>,
         camera_angle_image_loader: &dyn CameraAngleImageLoader,
     ) -> RenderingTree {
         let image_source = camera_angle_image_loader.get_background_image_source(self);
@@ -113,9 +113,9 @@ impl CameraAngleBackground {
         }
         let image = image.unwrap();
 
-        let clip_rect = LtrbRect {
-            left: 0.0,
-            top: 0.0,
+        let clip_rect = Rect::Ltrb {
+            left: px(0.0),
+            top: px(0.0),
             right: wh.width,
             bottom: wh.height,
         };
@@ -129,7 +129,7 @@ impl CameraAngleBackground {
             height: image_source_size.height * circumscribed_to_wh_ratio,
         };
 
-        let image_xywh = XywhRect {
+        let image_rect = Rect::Xywh {
             x: -self.source_01_circumscribed.center.x * zoomed_size.width + wh.width / 2.0,
             y: -self.source_01_circumscribed.center.y * zoomed_size.height + wh.height / 2.0,
             width: zoomed_size.width,
@@ -137,11 +137,11 @@ impl CameraAngleBackground {
         };
 
         clip(
-            PathBuilder::new().add_rect(&clip_rect),
+            PathBuilder::new().add_rect(clip_rect),
             ClipOp::Intersect,
             namui::image(ImageParam {
                 source: ImageSource::Image(image),
-                xywh: image_xywh,
+                rect: image_rect,
                 style: ImageStyle {
                     fit: ImageFit::Fill,
                     paint_builder: None,
@@ -180,10 +180,10 @@ impl CameraAngleImageLoader for LudaEditorServerCameraAngleImageLoader {
 impl CameraAngle {
     pub fn render(
         &self,
-        wh: &Wh<f32>,
+        wh: Wh<Px>,
         camera_angle_image_loader: &dyn CameraAngleImageLoader,
     ) -> RenderingTree {
-        render![
+        render([
             self.background
                 .as_ref()
                 .map_or(RenderingTree::Empty, |background| {
@@ -194,6 +194,6 @@ impl CameraAngle {
                 .map_or(RenderingTree::Empty, |character| {
                     character.render(wh, camera_angle_image_loader)
                 }),
-        ]
+        ])
     }
 }

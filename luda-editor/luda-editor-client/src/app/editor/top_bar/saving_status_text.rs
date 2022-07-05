@@ -2,7 +2,7 @@ use crate::app::editor::sequence_saver::SequenceSaverStatus;
 use namui::prelude::*;
 
 pub(super) struct SavingStatusTextProps<'a> {
-    pub height: f32,
+    pub height: Px,
     pub sequence_saver_status: &'a SequenceSaverStatus,
 }
 
@@ -12,7 +12,7 @@ pub(super) fn render_saving_status_text(props: &SavingStatusTextProps) -> Render
     }
 
     text(TextParam {
-        x: 0.0,
+        x: px(0.0),
         y: props.height / 2.0,
         align: TextAlign::Left,
         baseline: TextBaseline::Middle,
@@ -20,7 +20,7 @@ pub(super) fn render_saving_status_text(props: &SavingStatusTextProps) -> Render
             font_weight: FontWeight::REGULAR,
             language: Language::Ko,
             serif: false,
-            size: (props.height / 3.0 * 2.0) as i16,
+            size: (props.height / 3.0 * 2.0).into(),
         },
         style: TextStyle {
             color: Color::BLACK,

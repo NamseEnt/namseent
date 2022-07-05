@@ -15,7 +15,7 @@ pub trait SubtitlePlayDurationMeasure {
             self.get_specific_text_token_play_duration_map();
         let text = subtitle.language_text_map.get(language).unwrap();
 
-        let mut play_duration: Time = Time::from_ms(0.0);
+        let mut play_duration: Time = Time::Ms(0.0);
         let text_without_token: String = specific_text_token_play_duration_map.iter().fold(
             text.clone(),
             |text_without_token, (token, duration)| {
@@ -163,7 +163,7 @@ mod tests {
         // Nowtesting
 
         // total: 10003.0
-        let expected: Time = Time::from_ms(10003.0);
+        let expected: Time = Time::Ms(10003.0);
 
         assert_eq!(
             meta.get_play_duration(&subtitle, &namui::Language::Ko),
@@ -209,7 +209,7 @@ mod tests {
         // Nowtesting
 
         // total: 10012.0
-        let expected: Time = Time::from_ms(10012.0);
+        let expected: Time = Time::Ms(10012.0);
 
         assert_eq!(
             meta.get_play_duration(&subtitle, &namui::Language::Ko),

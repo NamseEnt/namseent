@@ -1,22 +1,21 @@
 use super::Gradation;
-use crate::app::types::{PixelSize, TimePerPixel};
 use namui::prelude::*;
 
 pub struct TimeTextsProps<'a> {
-    pub height: f32,
-    pub time_per_pixel: TimePerPixel,
+    pub height: Px,
+    pub time_per_px: TimePerPx,
     pub gradations: &'a Vec<Gradation>,
 }
 
-pub fn render_time_texts(props: &TimeTextsProps) -> RenderingTree {
-    const LEFT_MARGIN_PX: PixelSize = PixelSize(5.0);
-    const TEXT_SIZE: i16 = 10;
+pub fn render_time_texts(props: TimeTextsProps) -> RenderingTree {
+    const LEFT_MARGIN_PX: Px = px(5.0);
+    const TEXT_SIZE: IntPx = int_px(10);
     RenderingTree::Children(
         props
             .gradations
             .iter()
             .map(|&Gradation { x, at }| {
-                let total_milliseconds = at.get_total_milliseconds() as i32;
+                let total_milliseconds = at.as_millis() as i32;
                 let total_seconds = total_milliseconds / 1000;
 
                 let minutes = total_seconds / 60;

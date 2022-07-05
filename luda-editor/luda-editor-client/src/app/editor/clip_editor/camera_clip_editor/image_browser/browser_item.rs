@@ -5,21 +5,23 @@ pub struct BrowserItemProps {
     pub thumbnail_url: Option<Url>,
     pub item: ImageBrowserItem,
     pub is_selected: bool,
-    pub item_size: Wh<f32>,
-    pub thumbnail_rect: XywhRect<f32>,
+    pub item_size: Wh<Px>,
+    pub thumbnail_rect: Rect<Px>,
     pub browser_id: String,
 }
 
 pub fn render_browser_item(props: &BrowserItemProps) -> RenderingTree {
-    render![
+    render([
         rect(RectParam {
-            x: 0.0,
-            y: 0.0,
-            width: props.item_size.width,
-            height: props.item_size.height,
+            rect: Rect::Xywh {
+                x: px(0.0),
+                y: px(0.0),
+                width: props.item_size.width,
+                height: props.item_size.height,
+            },
             style: RectStyle {
                 stroke: Some(RectStroke {
-                    width: if props.is_selected { 3.0 } else { 1.0 },
+                    width: if props.is_selected { px(3.0) } else { px(1.0) },
                     border_position: BorderPosition::Inside,
                     color: if props.is_selected {
                         namui::Color::RED
@@ -27,7 +29,7 @@ pub fn render_browser_item(props: &BrowserItemProps) -> RenderingTree {
                         namui::Color::BLACK
                     },
                 }),
-                round: Some(RectRound { radius: 5.0 }),
+                round: Some(RectRound { radius: px(5.0) }),
                 fill: Some(RectFill {
                     color: namui::Color::WHITE,
                 }),
@@ -47,7 +49,7 @@ pub fn render_browser_item(props: &BrowserItemProps) -> RenderingTree {
         }),
         text(TextParam {
             x: props.item_size.width / 2.0,
-            y: props.item_size.height - 20.0,
+            y: props.item_size.height - px(20.0),
             text: props.name.clone(),
             align: TextAlign::Center,
             baseline: TextBaseline::Top,
@@ -55,7 +57,7 @@ pub fn render_browser_item(props: &BrowserItemProps) -> RenderingTree {
                 font_weight: FontWeight::REGULAR,
                 language: Language::Ko,
                 serif: false,
-                size: 16,
+                size: int_px(16),
             },
             style: TextStyle {
                 color: namui::Color::BLACK,
@@ -64,14 +66,16 @@ pub fn render_browser_item(props: &BrowserItemProps) -> RenderingTree {
         }),
         props.thumbnail_url.as_ref().map_or_else(
             || RenderingTree::Empty,
-            |thumbnail_url| image(ImageParam {
-                xywh: props.thumbnail_rect,
-                source: namui::ImageSource::Url(thumbnail_url.clone()),
-                style: ImageStyle {
-                    fit: ImageFit::Contain,
-                    paint_builder: None,
-                },
-            })
+            |thumbnail_url| {
+                image(ImageParam {
+                    rect: props.thumbnail_rect,
+                    source: namui::ImageSource::Url(thumbnail_url.clone()),
+                    style: ImageStyle {
+                        fit: ImageFit::Contain,
+                        paint_builder: None,
+                    },
+                })
+            },
         ),
-    ]
+    ])
 }

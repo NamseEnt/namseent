@@ -1,4 +1,4 @@
-use num::{FromPrimitive, ToPrimitive};
+use num::{cast::AsPrimitive, FromPrimitive, ToPrimitive};
 use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
@@ -10,13 +10,13 @@ pub enum Angle {
 impl Angle {
     pub fn as_radians(&self) -> f32 {
         match self {
-            Angle::Radian(radian) => *radian,
+            Angle::Radian(angle) => *angle,
             Angle::Degree(degree) => degree.to_radians(),
         }
     }
     pub fn as_degrees(&self) -> f32 {
         match self {
-            Angle::Radian(radian) => radian.to_degrees(),
+            Angle::Radian(angle) => angle.to_degrees(),
             Angle::Degree(degree) => *degree,
         }
     }
@@ -31,6 +31,10 @@ impl Angle {
 
     pub fn tan(&self) -> f32 {
         self.as_radians().tan()
+    }
+
+    pub fn atan2(y: impl AsPrimitive<f32>, x: impl AsPrimitive<f32>) -> Self {
+        Angle::Radian(y.as_().atan2(x.as_()))
     }
 }
 
@@ -47,6 +51,14 @@ impl std::ops::Add for Angle {
     }
 }
 
+impl std::ops::Sub for Angle {
+    type Output = Angle;
+
+    fn sub(self, other: Angle) -> Angle {
+        self + (-other)
+    }
+}
+
 impl std::ops::Neg for Angle {
     type Output = Angle;
 
@@ -58,24 +70,46 @@ impl std::ops::Neg for Angle {
     }
 }
 
+impl PartialEq for Angle {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Angle::Radian(a), Angle::Radian(b)) => a == b,
+            (Angle::Degree(a), Angle::Degree(b)) => a == b,
+            (Angle::Radian(a), Angle::Degree(b)) => *a == b.to_radians(),
+            (Angle::Degree(a), Angle::Radian(b)) => *a == b.to_degrees(),
+        }
+    }
+}
+
+impl PartialOrd for Angle {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match (self, other) {
+            (Angle::Radian(a), Angle::Radian(b)) => a.partial_cmp(&b),
+            (Angle::Degree(a), Angle::Degree(b)) => a.partial_cmp(&b),
+            (Angle::Radian(a), Angle::Degree(b)) => a.partial_cmp(&b.to_radians()),
+            (Angle::Degree(a), Angle::Radian(b)) => a.partial_cmp(&b.to_degrees()),
+        }
+    }
+}
+
 impl ToPrimitive for Angle {
     fn to_i64(&self) -> Option<i64> {
         match self {
-            Angle::Radian(radian) => radian.to_i64(),
+            Angle::Radian(angle) => angle.to_i64(),
             Angle::Degree(degree) => degree.to_i64(),
         }
     }
 
     fn to_u64(&self) -> Option<u64> {
         match self {
-            Angle::Radian(radian) => radian.to_u64(),
+            Angle::Radian(angle) => angle.to_u64(),
             Angle::Degree(degree) => degree.to_u64(),
         }
     }
 
     fn to_f64(&self) -> Option<f64> {
         match self {
-            Angle::Radian(radian) => radian.to_f64(),
+            Angle::Radian(angle) => angle.to_f64(),
             Angle::Degree(degree) => degree.to_f64(),
         }
     }

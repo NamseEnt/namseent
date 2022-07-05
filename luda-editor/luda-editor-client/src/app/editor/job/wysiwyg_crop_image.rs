@@ -10,10 +10,10 @@ use namui::prelude::*;
 #[derive(Debug, Clone)]
 pub struct WysiwygCropImageJob {
     pub clip_id: String,
-    pub start_global_mouse_xy: namui::Xy<f32>,
-    pub last_global_mouse_xy: namui::Xy<f32>,
+    pub start_global_mouse_xy: namui::Xy<Px>,
+    pub last_global_mouse_xy: namui::Xy<Px>,
     pub handle: CropperHandle,
-    pub container_size: namui::Wh<f32>,
+    pub container_size: namui::Wh<Px>,
 }
 
 impl JobExecute for WysiwygCropImageJob {
@@ -40,50 +40,50 @@ impl WysiwygCropImageJob {
         }
         let character = character.unwrap();
 
-        let next_ltrb_rect = LtrbRect {
+        let next_ltrb_rect = Rect::Ltrb {
             left: match self.handle.handle_direction {
                 CropperHandleDirection::TopLeft
                 | CropperHandleDirection::BottomLeft
                 | CropperHandleDirection::Left => num::clamp(
-                    character.crop_screen_01_rect.left
+                    character.crop_screen_01_rect.left()
                         + mouse_diff_xy.x / self.container_size.width,
                     0.0,
-                    character.crop_screen_01_rect.right,
+                    character.crop_screen_01_rect.right(),
                 ),
-                _ => character.crop_screen_01_rect.left,
+                _ => character.crop_screen_01_rect.left(),
             },
             top: match self.handle.handle_direction {
                 CropperHandleDirection::TopLeft
                 | CropperHandleDirection::TopRight
                 | CropperHandleDirection::Top => num::clamp(
-                    character.crop_screen_01_rect.top
+                    character.crop_screen_01_rect.top()
                         + mouse_diff_xy.y / self.container_size.height,
                     0.0,
-                    character.crop_screen_01_rect.bottom,
+                    character.crop_screen_01_rect.bottom(),
                 ),
-                _ => character.crop_screen_01_rect.top,
+                _ => character.crop_screen_01_rect.top(),
             },
             right: match self.handle.handle_direction {
                 CropperHandleDirection::TopRight
                 | CropperHandleDirection::BottomRight
                 | CropperHandleDirection::Right => num::clamp(
-                    character.crop_screen_01_rect.right
+                    character.crop_screen_01_rect.right()
                         + mouse_diff_xy.x / self.container_size.width,
-                    character.crop_screen_01_rect.left,
+                    character.crop_screen_01_rect.left(),
                     1.0,
                 ),
-                _ => character.crop_screen_01_rect.right,
+                _ => character.crop_screen_01_rect.right(),
             },
             bottom: match self.handle.handle_direction {
                 CropperHandleDirection::BottomLeft
                 | CropperHandleDirection::BottomRight
                 | CropperHandleDirection::Bottom => num::clamp(
-                    character.crop_screen_01_rect.bottom
+                    character.crop_screen_01_rect.bottom()
                         + mouse_diff_xy.y / self.container_size.height,
-                    character.crop_screen_01_rect.top,
+                    character.crop_screen_01_rect.top(),
                     1.0,
                 ),
-                _ => character.crop_screen_01_rect.bottom,
+                _ => character.crop_screen_01_rect.bottom(),
             },
         };
 

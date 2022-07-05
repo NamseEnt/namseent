@@ -36,7 +36,7 @@ use sheet_sequence_syncer::*;
 mod clip_select;
 
 pub struct EditorProps {
-    pub screen_wh: namui::Wh<f32>,
+    pub screen_wh: namui::Wh<Px>,
 }
 
 pub struct Editor {
@@ -69,7 +69,7 @@ impl namui::Entity for Editor {
                     clicked_part,
                     ..
                 } => {
-                    self.on_clip_mouse_down(clip_id, click_in_time);
+                    self.on_clip_mouse_down(clip_id, *click_in_time);
 
                     if self.job.is_none() {
                         match clicked_part {
@@ -107,7 +107,7 @@ impl namui::Entity for Editor {
                     click_in_time,
                     ..
                 } => {
-                    self.on_clip_mouse_down(clip_id, click_in_time);
+                    self.on_clip_mouse_down(clip_id, *click_in_time);
 
                     if self.job.is_none() {
                         self.job = Some(Job::MoveClip(MoveClipJob {
@@ -213,7 +213,7 @@ impl namui::Entity for Editor {
                                     .as_ref()
                                     .map(|background| background.name.clone()),
                             }));
-                            self.execute_job();
+                            self.execute_job().unwrap();
                         }
                     });
                 }
@@ -237,7 +237,7 @@ impl namui::Entity for Editor {
                                     .map(|character| character.character_pose_emotion.clone()),
                                 background_name: background_name.clone(),
                             }));
-                            self.execute_job();
+                            self.execute_job().unwrap();
                         }
                     });
                 }
@@ -274,7 +274,7 @@ impl namui::Entity for Editor {
                             namui::Code::ShiftLeft,
                             namui::Code::ShiftRight,
                         ]) {
-                            self.select_all_to_time(mouse_position_in_time);
+                            self.select_all_to_time(*mouse_position_in_time);
                         } else {
                             self.deselect_all_clips();
                         }
@@ -284,7 +284,7 @@ impl namui::Entity for Editor {
                     mouse_global_xy,
                     mouse_position_in_time,
                 } => {
-                    self.open_context_menu(mouse_global_xy, mouse_position_in_time);
+                    self.open_context_menu(*mouse_global_xy, *mouse_position_in_time);
                 }
                 EditorEvent::SubtitleSyncRequestEvent { subtitles } => {
                     self.job = Some(Job::SyncSubtitles(SyncSubtitlesJob {
@@ -313,7 +313,7 @@ impl namui::Entity for Editor {
                     Some(Job::MoveClip(MoveClipJob { is_moved, .. }))
                     | Some(Job::ResizeClip(ResizeClipJob { is_moved, .. })) => {
                         if is_moved {
-                            self.execute_job();
+                            self.execute_job().unwrap();
                         } else {
                             self.job.take();
                             if let Some(clip_id) = &self.clip_id_to_check_as_click {
@@ -324,7 +324,7 @@ impl namui::Entity for Editor {
                     Some(Job::WysiwygMoveImage(_))
                     | Some(Job::WysiwygResizeImage(_))
                     | Some(Job::WysiwygCropImage(_)) => {
-                        self.execute_job();
+                        self.execute_job().unwrap();
                     }
                     _ => {}
                 },
@@ -377,7 +377,7 @@ impl namui::Entity for Editor {
                         self.job = Some(Job::DeleteCameraClip(DeleteCameraClipJob {
                             clip_ids: self.get_selected_clip_ids().clone(),
                         }));
-                        self.execute_job();
+                        self.execute_job().unwrap();
                     } else if key_event.code == namui::Code::Space {
                         self.sequence_player.toggle_playback();
                     }
@@ -397,14 +397,14 @@ impl namui::Entity for Editor {
                     }
                 }
                 ContextMenuEvent::CreateCameraClip(time) => {
-                    let new_clip = self.create_default_camera_clip(time);
+                    let new_clip = self.create_default_camera_clip(*time);
                     let new_clip_id = new_clip.id.clone();
 
                     self.job = Some(Job::AddCameraClip(AddCameraClipJob {
                         camera_clip: Arc::new(new_clip),
                         time_to_insert: *time,
                     }));
-                    self.execute_job();
+                    self.execute_job().unwrap();
 
                     if self.get_sequence().find_clip(&new_clip_id).is_some() {
                         self.select_only_this_clip(&new_clip_id);
@@ -428,31 +428,31 @@ impl namui::Entity for Editor {
     }
 
     fn render(&self, props: &Self::Props) -> namui::RenderingTree {
-        let timeline_xywh = self.calculate_timeline_xywh(&props.screen_wh);
-        let top_bar_xywh: XywhRect<f32> = XywhRect {
-            x: 0.0,
-            y: 0.0,
+        let timeline_rect = self.calculate_timeline_rect(&props.screen_wh);
+        let top_bar_rect: Rect<Px> = Rect::Xywh {
+            x: px(0.0),
+            y: px(0.0),
             width: props.screen_wh.width,
-            height: 32.0,
+            height: px(32.0),
         };
-        let clip_editor_xywh = XywhRect {
-            x: 0.0,
-            y: top_bar_xywh.height,
+        let clip_editor_rect = Rect::Xywh {
+            x: px(0.0),
+            y: top_bar_rect.height(),
             width: props.screen_wh.width * 0.5,
-            height: props.screen_wh.height - timeline_xywh.height - top_bar_xywh.height,
+            height: props.screen_wh.height - timeline_rect.height() - top_bar_rect.height(),
         };
-        let sequence_player_xywh = XywhRect {
-            x: clip_editor_xywh.width,
-            y: top_bar_xywh.height,
-            width: props.screen_wh.width - clip_editor_xywh.width,
-            height: clip_editor_xywh.height - top_bar_xywh.height,
+        let sequence_player_rect = Rect::Xywh {
+            x: clip_editor_rect.width(),
+            y: top_bar_rect.height(),
+            width: props.screen_wh.width - clip_editor_rect.width(),
+            height: clip_editor_rect.height() - top_bar_rect.height(),
         };
         let playback_time = self.sequence_player.get_playback_time();
         let meta = self.get_meta();
-        render![
-            self.timeline.render(&TimelineProps {
-                playback_time: &playback_time,
-                xywh: timeline_xywh,
+        render([
+            self.timeline.render(TimelineProps {
+                playback_time: playback_time,
+                rect: timeline_rect,
                 job: &self.job,
                 selected_clip_ids: self.selected_clip_ids.iter().collect::<Vec<_>>().as_slice(),
                 sequence: self.get_sequence(),
@@ -460,30 +460,28 @@ impl namui::Entity for Editor {
             }),
             match &self.clip_editor {
                 None => RenderingTree::Empty,
-                Some(clip_editor) => {
-                    clip_editor.render(&ClipEditorProps {
-                        clip: self
-                            .selected_clip_ids
-                            .iter()
-                            .next()
-                            .and_then(|id| self.get_sequence().get_clip(&id))
-                            .unwrap(),
-                        xywh: clip_editor_xywh,
-                        character_image_files: &self.character_image_files,
-                        background_image_files: &self.background_image_files,
-                        job: &self.job,
-                    })
-                }
+                Some(clip_editor) => clip_editor.render(&ClipEditorProps {
+                    clip: self
+                        .selected_clip_ids
+                        .iter()
+                        .next()
+                        .and_then(|id| self.get_sequence().get_clip(&id))
+                        .unwrap(),
+                    rect: clip_editor_rect,
+                    character_image_files: &self.character_image_files,
+                    background_image_files: &self.background_image_files,
+                    job: &self.job,
+                }),
             },
             self.sequence_player.render(&SequencePlayerProps {
-                xywh: &sequence_player_xywh,
+                rect: &sequence_player_rect,
                 language: self.language,
                 subtitle_play_duration_measurer: &meta,
                 with_buttons: true,
                 subtitle_character_color_map: &meta.subtitle_character_color_map,
             }),
             self.top_bar.render(&TopBarProps {
-                xywh: top_bar_xywh,
+                rect: top_bar_rect,
                 sequence_saver_status: &self.sequence_saver.get_status(),
                 sheet_sequence_syncer_status: &self.sheet_sequence_syncer.get_status(),
             }),
@@ -491,7 +489,7 @@ impl namui::Entity for Editor {
                 Some(context_menu) => context_menu.render(&ContextMenuProps {}),
                 None => RenderingTree::Empty,
             },
-        ]
+        ])
     }
 }
 
@@ -573,12 +571,12 @@ impl Editor {
             meta_container,
         }
     }
-    fn calculate_timeline_xywh(&self, screen_wh: &namui::Wh<f32>) -> XywhRect<f32> {
-        XywhRect {
-            x: 0.0,
-            y: screen_wh.height - 200.0,
+    fn calculate_timeline_rect(&self, screen_wh: &namui::Wh<Px>) -> Rect<Px> {
+        Rect::Xywh {
+            x: px(0.0),
+            y: screen_wh.height - px(200.0),
             width: screen_wh.width,
-            height: 200.0,
+            height: px(200.0),
         }
     }
     fn execute_job(&mut self) -> Result<(), String> {
@@ -644,7 +642,7 @@ impl Editor {
                     camera_clip: Arc::new(camera_clip.duplicate()),
                     time_to_insert: self.sequence_player.get_playback_time(),
                 }));
-                self.execute_job();
+                self.execute_job().unwrap();
             }
         }
     }
@@ -655,7 +653,7 @@ impl Editor {
             Clip::Subtitle(clip) => clip.end_at(self.language, &self.get_meta()),
         }
     }
-    fn on_clip_mouse_down(&mut self, clip_id: &str, click_in_time: &Time) {
+    fn on_clip_mouse_down(&mut self, clip_id: &str, click_in_time: Time) {
         self.clip_id_to_check_as_click = None;
 
         if namui::keyboard::any_code_press([namui::Code::ControlLeft, namui::Code::ControlRight]) {
@@ -684,8 +682,8 @@ impl Editor {
 
     fn open_context_menu(
         &mut self,
-        context_menu_absolute_left_top: &Xy<f32>,
-        mouse_position_in_time: &Time,
+        context_menu_absolute_left_top: Xy<Px>,
+        mouse_position_in_time: Time,
     ) {
         self.context_menu = Some(ContextMenu::new(
             context_menu_absolute_left_top,
@@ -693,11 +691,11 @@ impl Editor {
         ));
     }
 
-    fn create_default_camera_clip(&self, start_at: &Time) -> CameraClip {
+    fn create_default_camera_clip(&self, start_at: Time) -> CameraClip {
         CameraClip {
             id: CameraClip::get_new_id(),
-            start_at: *start_at,
-            end_at: start_at + Time::from_sec(3.0),
+            start_at,
+            end_at: start_at + Time::Sec(3.0),
             camera_angle: CameraAngle {
                 character: None,
                 background: None,

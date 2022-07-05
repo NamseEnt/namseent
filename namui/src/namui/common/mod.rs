@@ -166,7 +166,8 @@ pub struct RawMouseEvent {
 #[derive(Debug)]
 pub struct RawWheelEvent {
     pub id: String,
-    pub delta_xy: Xy<Px>,
+    /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
+    pub delta_xy: Xy<f32>,
 }
 
 #[derive(Debug)]

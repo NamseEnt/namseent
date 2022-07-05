@@ -9,8 +9,8 @@ pub use resizable_clip_body::*;
 
 pub struct TrackBody {}
 pub struct TrackBodyProps<'a> {
-    pub width: f32,
-    pub height: f32,
+    pub width: Px,
+    pub height: Px,
     pub track: &'a Track,
     pub context: &'a TimelineRenderContext<'a>,
 }

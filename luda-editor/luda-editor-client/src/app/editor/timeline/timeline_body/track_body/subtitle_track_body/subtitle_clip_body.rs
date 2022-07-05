@@ -1,29 +1,25 @@
-use std::f32::consts::PI;
-
 use crate::app::{
     editor::{events::EditorEvent, TimelineRenderContext},
-    types::{PixelSize, SubtitleClip, Time},
+    types::SubtitleClip,
 };
 use namui::prelude::*;
 
 pub struct SubtitleClipBody {}
 pub struct SubtitleClipBodyProps<'a> {
-    pub track_body_wh: &'a Wh<f32>,
+    pub track_body_wh: Wh<Px>,
     pub clip: &'a SubtitleClip,
     pub context: &'a TimelineRenderContext<'a>,
 }
 impl SubtitleClipBody {
     pub fn render(props: &SubtitleClipBodyProps) -> RenderingTree {
         let SubtitleClipBodyProps { clip, context, .. } = props;
-        let timeline_start_at = context.start_at;
-        let time_per_pixel = context.time_per_pixel;
-        let x = ((clip.start_at - context.start_at) / context.time_per_pixel).into();
+        let x = (clip.start_at - context.start_at) / context.time_per_px;
         let duration = context
             .subtitle_play_duration_measurer
             .get_play_duration(&clip.subtitle, &context.language);
-        let width: f32 = (duration / context.time_per_pixel).into();
+        let width: Px = duration / context.time_per_px;
 
-        let is_out_of_bounds = x + width < 0.0 || x > props.track_body_wh.width;
+        let is_out_of_bounds = x + width < px(0.0) || x > props.track_body_wh.width;
         if is_out_of_bounds {
             return RenderingTree::Empty;
         }
@@ -35,7 +31,7 @@ impl SubtitleClipBody {
 
         let is_highlight = props.context.selected_clip_ids.contains(&&props.clip.id);
 
-        let border_width = if is_highlight { 2.0 } else { 1.0 };
+        let border_width = if is_highlight { px(2.0) } else { px(1.0) };
 
         let fill_color = if is_highlight {
             Color::from_u8(255, 165, 0, 255)
@@ -43,7 +39,6 @@ impl SubtitleClipBody {
             Color::from_u8(255, 0, 255, 255)
         } else {
             Color::from_f01(0.4, 0.4, 0.8, 1.0)
-            // Color::from_u8(0x48, 0xBF, 0xEF, 255)
         };
         let border_color = if is_highlight {
             Color::RED
@@ -56,9 +51,12 @@ impl SubtitleClipBody {
             height: props.track_body_wh.height,
         };
 
-        let circle_radius: f32 = (Time::from_ms(100.0) / time_per_pixel).into();
+        let circle_radius = Time::Ms(100.0) / context.time_per_px;
 
-        let head_left_top = namui::Xy { x: 0.0, y: 0.0 };
+        let head_left_top = namui::Xy {
+            x: px(0.0),
+            y: px(0.0),
+        };
 
         let tail_right_bottom = namui::Xy {
             x: clip_wh.width,
@@ -87,7 +85,7 @@ impl SubtitleClipBody {
             tail_circle_center_xy,
         };
 
-        let clip_body_path = get_clip_body_path(&render_setting);
+        let clip_body_path = get_clip_body_path(render_setting);
 
         let fill_paint = namui::PaintBuilder::new()
             .set_anti_alias(true)
@@ -111,13 +109,13 @@ impl SubtitleClipBody {
                     font_weight: FontWeight::BOLD,
                     language: context.language.clone(),
                     serif: false,
-                    size: 10,
+                    size: int_px(10),
                 },
                 style: TextStyle {
                     color: Color::from_u8(0xFF, 0x00, 0xFF, 0xFF),
                     border: Some(TextStyleBorder {
                         color: Color::WHITE,
-                        width: 1.0,
+                        width: px(1.0),
                     }),
                     ..Default::default()
                 },
@@ -125,60 +123,62 @@ impl SubtitleClipBody {
             false => RenderingTree::Empty,
         };
 
+        let start_at = context.start_at;
+        let time_per_px = context.time_per_px;
+
         translate(
             x,
-            0.0,
-            render![
+            px(0.0),
+            render([
                 namui::path(clip_body_path.clone(), fill_paint),
                 namui::path(clip_body_path.clone(), stroke_paint)
                     .with_mouse_cursor(MouseCursor::Grab)
-                    .attach_event(|builder| {
+                    .attach_event(move |builder| {
                         let clip_id = props.clip.id.clone();
                         builder.on_mouse_down(move |event| {
                             namui::event::send(EditorEvent::SubtitleClipHeadMouseDownEvent {
                                 mouse_event_id: event.id.clone(),
                                 clip_id: clip_id.clone(),
-                                click_in_time: timeline_start_at
-                                    + PixelSize(event.local_xy.x + x) * time_per_pixel,
+                                click_in_time: start_at + (event.local_xy.x + x) * time_per_px,
                             });
                         });
                     }),
                 render_text_box(
                     &subtitle_text,
-                    &head_circle_center_xy,
-                    &tail_circle_center_xy,
-                    circle_radius
+                    head_circle_center_xy,
+                    tail_circle_center_xy,
+                    circle_radius,
                 ),
                 check_flag,
-            ],
+            ]),
         )
     }
 }
 
 struct SubtitleClipBodyRenderSetting {
-    circle_radius: f32,
-    head_left_top: Xy<f32>,
-    tail_right_bottom: Xy<f32>,
-    head_height: f32,
-    head_circle_center_xy: Xy<f32>,
-    tail_height: f32,
-    tail_circle_center_xy: Xy<f32>,
+    circle_radius: Px,
+    head_left_top: Xy<Px>,
+    tail_right_bottom: Xy<Px>,
+    head_height: Px,
+    head_circle_center_xy: Xy<Px>,
+    tail_height: Px,
+    tail_circle_center_xy: Xy<Px>,
 }
 
 fn render_text_box(
     text: &str,
-    head_circle_center_xy: &Xy<f32>,
-    tail_circle_center_xy: &Xy<f32>,
-    circle_radius: f32,
+    head_circle_center_xy: Xy<Px>,
+    tail_circle_center_xy: Xy<Px>,
+    circle_radius: Px,
 ) -> RenderingTree {
-    let horizontal_padding = 1.0;
-    let vertical_padding = 1.0;
+    let horizontal_padding = px(1.0);
+    let vertical_padding = px(1.0);
     let text_box_width =
         (tail_circle_center_xy - head_circle_center_xy).length() - horizontal_padding * 2.0;
     let text_box_height = circle_radius * 2.0 - vertical_padding * 2.0;
 
     let circle_to_circle_vector = tail_circle_center_xy - head_circle_center_xy;
-    let radian = circle_to_circle_vector.y.atan2(circle_to_circle_vector.x);
+    let angle = circle_to_circle_vector.atan2();
     let text_box_left_top = head_circle_center_xy
         + Xy {
             x: horizontal_padding,
@@ -188,13 +188,15 @@ fn render_text_box(
         text_box_left_top.x,
         text_box_left_top.y,
         rotate(
-            radian,
-            render![
+            angle,
+            render([
                 rect(RectParam {
-                    x: 0.0,
-                    y: 0.0,
-                    width: text_box_width,
-                    height: text_box_height,
+                    rect: Rect::Xywh {
+                        x: px(0.0),
+                        y: px(0.0),
+                        width: text_box_width,
+                        height: text_box_height,
+                    },
                     style: RectStyle {
                         fill: Some(RectFill {
                             color: namui::Color::WHITE,
@@ -203,7 +205,7 @@ fn render_text_box(
                     },
                 }),
                 namui::text(TextParam {
-                    x: 0.0,
+                    x: px(0.0),
                     y: text_box_height / 2.0,
                     text: text.to_string(),
                     align: TextAlign::Left,
@@ -212,19 +214,19 @@ fn render_text_box(
                         font_weight: FontWeight::REGULAR,
                         language: Language::Ko,
                         serif: false,
-                        size: (text_box_height * 0.65) as i16,
+                        size: (text_box_height * 0.65).into(),
                     },
                     style: TextStyle {
                         color: namui::Color::BLACK,
                         ..Default::default()
                     },
                 }),
-            ],
+            ]),
         ),
     )
 }
 
-fn get_clip_body_path(render_setting: &SubtitleClipBodyRenderSetting) -> PathBuilder {
+fn get_clip_body_path(render_setting: SubtitleClipBodyRenderSetting) -> PathBuilder {
     let SubtitleClipBodyRenderSetting {
         circle_radius,
         head_left_top,
@@ -236,23 +238,26 @@ fn get_clip_body_path(render_setting: &SubtitleClipBodyRenderSetting) -> PathBui
         ..
     } = render_setting;
 
-    let length_to_head_center = (head_height.powf(2.0) + circle_radius.powf(2.0)).powf(0.5);
+    let length_to_head_center = Xy {
+        x: head_height,
+        y: circle_radius,
+    }
+    .length();
     let sin_of_head_half_circumcircle = head_height / length_to_head_center;
     let cos_of_head_half_circumcircle = circle_radius / length_to_head_center;
-    let head_circumcircle_radian = sin_of_head_half_circumcircle.asin() * 2.0;
+    let head_circumcircle_angle = Angle::Radian(sin_of_head_half_circumcircle.asin() * 2.0);
 
     let head_circle_to_tail_circle_vector = tail_circle_center_xy - head_circle_center_xy;
-    let head_circle_to_tail_circle_radian =
-        (head_circle_to_tail_circle_vector.y).atan2(head_circle_to_tail_circle_vector.x);
+    let head_circle_to_tail_circle_angle = head_circle_to_tail_circle_vector.atan2();
 
-    let head_circle_oval_rect = LtrbRect {
+    let head_circle_oval_rect = Rect::Ltrb {
         left: head_circle_center_xy.x - circle_radius,
         top: head_circle_center_xy.y - circle_radius,
         right: head_circle_center_xy.x + circle_radius,
         bottom: head_circle_center_xy.y + circle_radius,
     };
 
-    let tail_circle_oval_rect = LtrbRect {
+    let tail_circle_oval_rect = Rect::Ltrb {
         left: tail_circle_center_xy.x - circle_radius,
         top: tail_circle_center_xy.y - circle_radius,
         right: tail_circle_center_xy.x + circle_radius,
@@ -265,10 +270,14 @@ fn get_clip_body_path(render_setting: &SubtitleClipBodyRenderSetting) -> PathBui
             - 2.0 * circle_radius * (sin_of_head_half_circumcircle * cos_of_head_half_circumcircle),
     };
 
-    let length_to_tail_center = (tail_height.powf(2.0) + circle_radius.powf(2.0)).powf(0.5);
+    let length_to_tail_center = Xy {
+        x: tail_height,
+        y: circle_radius,
+    }
+    .length();
     let sin_of_tail_half_circumcircle = head_height / length_to_tail_center;
     let cos_of_tail_half_circumcircle = circle_radius / length_to_tail_center;
-    let tail_circumcircle_radian = sin_of_tail_half_circumcircle.asin() * 2.0;
+    let tail_circumcircle_angle = Angle::Radian(sin_of_tail_half_circumcircle.asin() * 2.0);
 
     let tail_circle_left_point_of_contact_from_tail_right_bottom = Xy {
         x: tail_circle_center_xy.x
@@ -281,26 +290,22 @@ fn get_clip_body_path(render_setting: &SubtitleClipBodyRenderSetting) -> PathBui
 
     let head_circle_right_point_of_contact_from_circle_to_circle_vector = head_circle_center_xy
         + Xy {
-            x: circle_radius * (-(PI / 2.0 - head_circle_to_tail_circle_radian)).cos(),
-            y: circle_radius * (-(PI / 2.0 - head_circle_to_tail_circle_radian)).sin(),
+            x: circle_radius * (-(Angle::Degree(90.0) - head_circle_to_tail_circle_angle)).cos(),
+            y: circle_radius * (-(Angle::Degree(90.0) - head_circle_to_tail_circle_angle)).sin(),
         };
 
-    let head_top_arc_delta_radian =
-        PI / 2.0 + head_circle_to_tail_circle_radian - head_circumcircle_radian;
+    let head_top_arc_delta_angle =
+        Angle::Degree(90.0) + head_circle_to_tail_circle_angle - head_circumcircle_angle;
 
-    let is_need_to_draw_head_top_arc = head_top_arc_delta_radian > 0.0;
+    let is_need_to_draw_head_top_arc = head_top_arc_delta_angle > Angle::Degree(0.0);
     if is_need_to_draw_head_top_arc {
-        let start_radian = PI + head_circumcircle_radian;
+        let start_angle = Angle::Degree(180.0) + head_circumcircle_angle;
         clip_body_path = clip_body_path
             .line_to(
                 head_circle_right_point_of_contact_from_head_left_top.x,
                 head_circle_right_point_of_contact_from_head_left_top.y,
             )
-            .arc_to(
-                &head_circle_oval_rect,
-                start_radian,
-                head_top_arc_delta_radian,
-            );
+            .arc_to(head_circle_oval_rect, start_angle, head_top_arc_delta_angle);
     } else {
         clip_body_path = clip_body_path.line_to(
             head_circle_right_point_of_contact_from_circle_to_circle_vector.x,
@@ -315,30 +320,30 @@ fn get_clip_body_path(render_setting: &SubtitleClipBodyRenderSetting) -> PathBui
     clip_body_path = clip_body_path
         .line_to(tail_bridge_top_xy.x, tail_bridge_top_xy.y)
         .arc_to(
-            &tail_circle_oval_rect,
-            -(PI / 2.0 - head_circle_to_tail_circle_radian),
-            PI / 2.0 - head_circle_to_tail_circle_radian,
+            tail_circle_oval_rect,
+            -(Angle::Degree(90.0) - head_circle_to_tail_circle_angle),
+            Angle::Degree(90.0) - head_circle_to_tail_circle_angle,
         )
         .line_to(tail_right_bottom.x, tail_right_bottom.y);
 
     let tail_circle_left_point_of_contact_from_circle_to_circle_vector = tail_circle_center_xy
         + Xy {
-            x: -circle_radius * (PI / 2.0 - head_circle_to_tail_circle_radian).cos(),
-            y: circle_radius * (PI / 2.0 - head_circle_to_tail_circle_radian).sin(),
+            x: -circle_radius * (Angle::Degree(90.0) - head_circle_to_tail_circle_angle).cos(),
+            y: circle_radius * (Angle::Degree(90.0) - head_circle_to_tail_circle_angle).sin(),
         };
 
-    let tail_bottom_arc_radian =
-        PI / 2.0 + head_circle_to_tail_circle_radian - tail_circumcircle_radian;
+    let tail_bottom_arc_angle =
+        Angle::Degree(90.0) + head_circle_to_tail_circle_angle - tail_circumcircle_angle;
 
-    let is_need_to_draw_tail_bottom_arc = tail_bottom_arc_radian > 0.0;
+    let is_need_to_draw_tail_bottom_arc = tail_bottom_arc_angle > Angle::Degree(0.0);
     if is_need_to_draw_tail_bottom_arc {
-        let start_radian = tail_circumcircle_radian;
+        let start_angle = tail_circumcircle_angle;
         clip_body_path = clip_body_path
             .line_to(
                 tail_circle_left_point_of_contact_from_tail_right_bottom.x,
                 tail_circle_left_point_of_contact_from_tail_right_bottom.y,
             )
-            .arc_to(&head_circle_oval_rect, start_radian, tail_bottom_arc_radian);
+            .arc_to(head_circle_oval_rect, start_angle, tail_bottom_arc_angle);
     } else {
         clip_body_path = clip_body_path.line_to(
             tail_circle_left_point_of_contact_from_circle_to_circle_vector.x,
@@ -355,9 +360,9 @@ fn get_clip_body_path(render_setting: &SubtitleClipBodyRenderSetting) -> PathBui
             head_circle_left_point_of_contact_from_circle_to_circle_vector.y,
         )
         .arc_to(
-            &head_circle_oval_rect,
-            PI / 2.0 + head_circle_to_tail_circle_radian,
-            PI / 2.0 - head_circle_to_tail_circle_radian,
+            head_circle_oval_rect,
+            Angle::Degree(90.0) + head_circle_to_tail_circle_angle,
+            Angle::Degree(90.0) - head_circle_to_tail_circle_angle,
         )
         .line_to(head_left_top.x, head_left_top.y)
         .close();

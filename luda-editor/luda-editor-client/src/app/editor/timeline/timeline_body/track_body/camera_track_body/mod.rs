@@ -3,13 +3,12 @@ use crate::app::{
     editor::{events::EditorEvent, job::Job, TimelineRenderContext},
     types::*,
 };
-use namui::prelude::*;
 use std::collections::LinkedList;
 
 pub struct CameraTrackBody {}
 pub struct CameraTrackBodyProps<'a> {
-    pub width: f32,
-    pub height: f32,
+    pub width: Px,
+    pub height: Px,
     pub track: &'a CameraTrack,
     pub context: &'a TimelineRenderContext<'a>,
 }
@@ -73,8 +72,8 @@ impl CameraTrackBody {
                 {
                     props.track.clips.clone()
                 } else {
-                    let mut track = props.track.clone();
-                    let mut track = job.resize_clip_in_track(track);
+                    let track = props.track.clone();
+                    let track = job.resize_clip_in_track(track);
                     track.clips
                 }
             }
@@ -82,40 +81,41 @@ impl CameraTrackBody {
         };
 
         let body_border = rect(RectParam {
-            x: 0.0,
-            y: 0.0,
-            width: props.width,
-            height: props.height,
+            rect: Rect::Xywh {
+                x: px(0.0),
+                y: px(0.0),
+                width: props.width,
+                height: props.height,
+            },
             style: RectStyle {
                 stroke: Some(RectStroke {
                     border_position: BorderPosition::Middle,
                     color: Color::BLACK,
-                    width: 1.0,
+                    width: px(1.0),
                 }),
                 ..Default::default()
             },
         })
         .attach_event(move |builder| {
             let timeline_start_at = props.context.start_at;
-            let time_per_pixel = props.context.time_per_pixel;
+            let time_per_px = props.context.time_per_px;
             builder.on_mouse_up(move |event| {
                 if event.button == Some(MouseButton::Right) {
                     namui::event::send(EditorEvent::CameraTrackBodyRightClickEvent {
                         mouse_global_xy: event.global_xy,
-                        mouse_position_in_time: timeline_start_at
-                            + PixelSize(event.local_xy.x) * time_per_pixel,
+                        mouse_position_in_time: timeline_start_at + event.local_xy.x * time_per_px,
                     })
                 }
             });
         });
-        render![
+        render([
             body_border,
             RenderingTree::Children(
                 clips
                     .iter()
                     .map(|clip| {
                         ResizableClipBody::render(&ResizableClipBodyProps {
-                            track_body_wh: &Wh {
+                            track_body_wh: Wh {
                                 width: props.width,
                                 height: props.height,
                             },
@@ -125,7 +125,7 @@ impl CameraTrackBody {
                     })
                     .collect::<Vec<_>>(),
             ),
-        ]
+        ])
     }
 }
 
@@ -142,7 +142,7 @@ impl ResizableClip for CameraClip {
         self.end_at
     }
 
-    fn render(&self, wh: &Wh<f32>) -> RenderingTree {
+    fn render(&self, wh: Wh<Px>) -> RenderingTree {
         self.camera_angle
             .render(wh, &LudaEditorServerCameraAngleImageLoader {})
     }

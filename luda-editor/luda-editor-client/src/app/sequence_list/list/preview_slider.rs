@@ -3,10 +3,10 @@ use crate::app::sequence_list::{
     events::SequenceListEvent,
     types::SequencePreviewProgressMap,
 };
-use namui::{render, RenderingTree, Wh};
+use namui::prelude::*;
 
 pub fn render_preview_slider(
-    wh: Wh<f32>,
+    wh: Wh<Px>,
     title: &String,
     sequence_preview_progress_map: &SequencePreviewProgressMap,
 ) -> RenderingTree {
@@ -17,7 +17,7 @@ pub fn render_preview_slider(
     let progress = sequence_preview_progress_map.get(title).unwrap_or(&0.0);
     let thumb_x = (wh.width - thumb_wh.width) * progress;
 
-    render![
+    render([
         render_rounded_rectangle(wh, RoundedRectangleColor::Gray).attach_event(move |builder| {
             let title = title.clone();
             builder.on_mouse_move_in(move |event| {
@@ -28,8 +28,8 @@ pub fn render_preview_slider(
         }),
         namui::translate(
             thumb_x,
-            0.0,
-            render_rounded_rectangle(thumb_wh, RoundedRectangleColor::White)
+            px(0.0),
+            render_rounded_rectangle(thumb_wh, RoundedRectangleColor::White),
         ),
-    ]
+    ])
 }

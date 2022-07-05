@@ -4,6 +4,7 @@ use super::clip_editor::camera_clip_editor::wysiwyg_editor::ResizerHandle;
 use super::clip_editor::camera_clip_editor::WysiwygTarget;
 use crate::app::editor::timeline::timeline_body::track_body::ResizableClipBodyPart;
 use crate::app::types::*;
+use namui::prelude::*;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
@@ -32,32 +33,32 @@ pub enum EditorEvent {
         background_name: Option<String>,
     },
     ScrolledEvent {
-        scroll_y: f32,
+        scroll_y: Px,
     },
     WysiwygEditorInnerImageMouseDownEvent {
         target: WysiwygTarget,
-        mouse_xy: namui::Xy<f32>,
-        container_size: namui::Wh<f32>,
+        mouse_xy: namui::Xy<Px>,
+        container_size: namui::Wh<Px>,
     },
     WysiwygEditorResizerHandleMouseDownEvent {
         target: WysiwygTarget,
-        mouse_xy: namui::Xy<f32>,
+        mouse_xy: namui::Xy<Px>,
         handle: ResizerHandle,
-        center_xy: namui::Xy<f32>,
-        container_size: namui::Wh<f32>,
-        image_size_ratio: namui::Wh<f32>,
+        center_xy: namui::Xy<Px>,
+        container_size: namui::Wh<Px>,
+        image_size_ratio: namui::Wh<Px>,
     },
     CharacterWysiwygEditorCropperHandleMouseDownEvent {
-        mouse_xy: namui::Xy<f32>,
+        mouse_xy: namui::Xy<Px>,
         handle: CropperHandle,
-        container_size: namui::Wh<f32>,
+        container_size: namui::Wh<Px>,
     },
     TimelineMoveEvent {
-        pixel: PixelSize,
+        px: Px,
     },
     TimelineZoomEvent {
         delta: f32,
-        anchor_x_in_timeline: PixelSize,
+        anchor_x_in_timeline: Px,
     },
     TimelineTimeRulerClickEvent {
         click_position_in_time: Time,
@@ -73,7 +74,7 @@ pub enum EditorEvent {
         sequence: Arc<Sequence>,
     },
     CameraTrackBodyRightClickEvent {
-        mouse_global_xy: namui::Xy<f32>,
+        mouse_global_xy: namui::Xy<Px>,
         mouse_position_in_time: Time,
     },
     SubtitleSyncRequestEvent {

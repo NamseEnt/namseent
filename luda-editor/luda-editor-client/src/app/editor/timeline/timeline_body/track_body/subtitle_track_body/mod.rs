@@ -8,8 +8,8 @@ mod subtitle_clip_body;
 
 pub struct SubtitleTrackBody {}
 pub struct SubtitleTrackBodyProps<'a> {
-    pub width: f32,
-    pub height: f32,
+    pub width: Px,
+    pub height: Px,
     pub track: &'a SubtitleTrack,
     pub context: &'a TimelineRenderContext<'a>,
 }
@@ -29,7 +29,7 @@ impl SubtitleTrackBody {
                 .iter()
                 .map(|clip| {
                     SubtitleClipBody::render(&SubtitleClipBodyProps {
-                        track_body_wh: &Wh {
+                        track_body_wh: Wh {
                             width: props.width,
                             height: props.height,
                         },

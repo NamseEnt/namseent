@@ -83,35 +83,18 @@ impl Time {
     }
 }
 
-impl<T: AsPrimitive<f32>> std::ops::Mul<T> for Time {
-    type Output = Time;
-
-    fn mul(self, rhs: T) -> Self::Output {
-        match self {
-            Time::Ms(x) => Time::Ms(x * rhs.as_()),
-            Time::Sec(x) => Time::Sec(x * rhs.as_()),
-            Time::Min(x) => Time::Min(x * rhs.as_()),
-            Time::Hour(x) => Time::Hour(x * rhs.as_()),
-            Time::Day(x) => Time::Day(x * rhs.as_()),
-            Time::Week(x) => Time::Week(x * rhs.as_()),
-        }
+crate::types::macros::impl_op_forward_ref_reversed_all_primitives!(*|lhs: Time,
+                                                                     rhs: f32|
+ -> Time {
+    match lhs {
+        Time::Ms(x) => Time::Ms(x * rhs),
+        Time::Sec(x) => Time::Sec(x * rhs),
+        Time::Min(x) => Time::Min(x * rhs),
+        Time::Hour(x) => Time::Hour(x * rhs),
+        Time::Day(x) => Time::Day(x * rhs),
+        Time::Week(x) => Time::Week(x * rhs),
     }
-}
-
-auto_ops::impl_op!(*|lhs: i8, rhs: Time| -> Time { rhs * lhs as f32 });
-auto_ops::impl_op!(*|lhs: u8, rhs: Time| -> Time { rhs * lhs as f32 });
-auto_ops::impl_op!(*|lhs: i16, rhs: Time| -> Time { rhs * lhs as f32 });
-auto_ops::impl_op!(*|lhs: u16, rhs: Time| -> Time { rhs * lhs as f32 });
-auto_ops::impl_op!(*|lhs: i32, rhs: Time| -> Time { rhs * lhs as f32 });
-auto_ops::impl_op!(*|lhs: u32, rhs: Time| -> Time { rhs * lhs as f32 });
-auto_ops::impl_op!(*|lhs: i64, rhs: Time| -> Time { rhs * lhs as f32 });
-auto_ops::impl_op!(*|lhs: u64, rhs: Time| -> Time { rhs * lhs as f32 });
-auto_ops::impl_op!(*|lhs: i128, rhs: Time| -> Time { rhs * lhs as f32 });
-auto_ops::impl_op!(*|lhs: u128, rhs: Time| -> Time { rhs * lhs as f32 });
-auto_ops::impl_op!(*|lhs: isize, rhs: Time| -> Time { rhs * lhs as f32 });
-auto_ops::impl_op!(*|lhs: usize, rhs: Time| -> Time { rhs * lhs as f32 });
-auto_ops::impl_op!(*|lhs: f32, rhs: Time| -> Time { rhs * lhs as f32 });
-auto_ops::impl_op!(*|lhs: f64, rhs: Time| -> Time { rhs * lhs as f32 });
+});
 
 impl<T: AsPrimitive<f32>> std::ops::Div<T> for Time {
     type Output = Time;

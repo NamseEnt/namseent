@@ -4,32 +4,31 @@ mod list;
 mod ops;
 mod sync_sequences_button;
 mod types;
+
 use self::{
     events::SequenceListEvent,
     types::{SequencePreviewProgressMap, SequenceSyncState, SequencesSyncStateDetail},
 };
 use super::{
     editor::SequencePlayer,
-    types::{
-        LudaEditorServerCameraAngleImageLoader, Sequence, SubtitlePlayDurationMeasure, Time, Track,
-    },
+    types::{LudaEditorServerCameraAngleImageLoader, Sequence, SubtitlePlayDurationMeasure, Track},
 };
 use crate::app::{
     editor::{SequencePlay, SequencePlayerProps},
     sequence_list::{list::render_list, sync_sequences_button::render_sync_sequences_button},
 };
 use luda_editor_rpc::Socket;
-use namui::{render, Color, Wh, XywhRect};
+use namui::prelude::*;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-const LIST_WIDTH: f32 = 800.0;
-const BUTTON_HEIGHT: f32 = 36.0;
-const RECT_RADIUS: f32 = 4.0;
-const SPACING: f32 = 4.0;
-const MARGIN: f32 = 4.0;
+const LIST_WIDTH: Px = px(800.0);
+const BUTTON_HEIGHT: Px = px(36.0);
+const RECT_RADIUS: Px = px(4.0);
+const SPACING: Px = px(4.0);
+const MARGIN: Px = px(4.0);
 
 pub struct SequenceListProps<'a> {
-    pub wh: Wh<f32>,
+    pub wh: Wh<Px>,
     pub subtitle_play_duration_measurer: &'a dyn SubtitlePlayDurationMeasure,
     pub subtitle_character_color_map: &'a HashMap<String, Color>,
 }
@@ -37,7 +36,7 @@ pub struct SequenceListProps<'a> {
 pub struct SequenceList {
     sequences_sync_state: SequenceSyncState,
     socket: Socket,
-    scroll_y: f32,
+    scroll_y: Px,
     sequence_player: SequencePlayer,
     sequence_preview_progress_map: SequencePreviewProgressMap,
     opened_sequence_title: Option<String>,
@@ -52,7 +51,7 @@ impl SequenceList {
                 detail: types::SequencesSyncStateDetail::Loading,
             },
             socket,
-            scroll_y: 0.0,
+            scroll_y: px(0.0),
             sequence_player: SequencePlayer::new(
                 Arc::new(Sequence::default()),
                 Box::new(LudaEditorServerCameraAngleImageLoader {}),
@@ -116,21 +115,21 @@ impl SequenceList {
             width: LIST_WIDTH,
             height: props.wh.height - 2.0 * MARGIN - SPACING - BUTTON_HEIGHT,
         };
-        let preview_xywh = XywhRect {
+        let preview_rect = Rect::Xywh {
             x: MARGIN + list_wh.width + SPACING,
             y: MARGIN,
             width: props.wh.width - list_wh.width - SPACING - 2.0 * MARGIN,
             height: props.wh.height - 2.0 * MARGIN,
         };
 
-        render![
+        render([
             namui::translate(
                 MARGIN,
                 MARGIN,
                 render_sync_sequences_button(Wh {
                     width: LIST_WIDTH,
-                    height: BUTTON_HEIGHT
-                })
+                    height: BUTTON_HEIGHT,
+                }),
             ),
             namui::translate(
                 MARGIN,
@@ -140,17 +139,17 @@ impl SequenceList {
                     &self.sequences_sync_state,
                     &self.sequence_preview_progress_map,
                     self.scroll_y,
-                    &self.opened_sequence_title
-                )
+                    &self.opened_sequence_title,
+                ),
             ),
             self.sequence_player.render(&SequencePlayerProps {
-                xywh: &preview_xywh,
+                rect: &preview_rect,
                 language: namui::Language::Ko,
                 subtitle_play_duration_measurer: props.subtitle_play_duration_measurer,
                 with_buttons: false,
-                subtitle_character_color_map: props.subtitle_character_color_map
-            })
-        ]
+                subtitle_character_color_map: props.subtitle_character_color_map,
+            }),
+        ])
     }
 }
 
@@ -158,7 +157,7 @@ fn calculate_sequence_duration(sequence: &Arc<Sequence>) -> Time {
     sequence
         .tracks
         .iter()
-        .fold(Time::zero(), |duration, track| match track.as_ref() {
+        .fold(Time::Ms(0.0), |duration, track| match track.as_ref() {
             Track::Camera(track) => track
                 .clips
                 .iter()

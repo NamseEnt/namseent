@@ -1,12 +1,12 @@
 {
     "subtitle_language_minimum_play_duration_map": {
         "Ko": {
-            "milliseconds": 1000.0
+            "Ms": 1000.0
         }
     },
     "subtitle_language_play_duration_per_character_map": {
         "Ko": {
-            "milliseconds": 200.0
+            "Ms": 200.0
         }
     },
     "subtitle_specific_text_token_play_duration_map": {},

@@ -1,5 +1,6 @@
 use super::JobExecute;
 use crate::app::types::*;
+use namui::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ResizeDirection {
@@ -22,7 +23,7 @@ impl JobExecute for ResizeClipJob {
             Some(track) => track.get_id().to_string(),
             None => return Err(format!("cannot find track of clip_id {}", self.clip_id)),
         };
-        match sequence.replace_track(&track_id, |mut track: ResizableTrack| {
+        match sequence.replace_track(&track_id, |track: ResizableTrack| {
             Ok(self.resize_clip_in_track(track))
         }) {
             UpdateResult::Updated(replacer) => Ok(replacer),
@@ -62,8 +63,8 @@ mod tests {
         let sequence = mock_sequence(&["0", "1", "2"], &[]);
         let job = ResizeClipJob {
             clip_id: "1".to_string(),
-            click_anchor_in_time: Time::from_ms(0.0),
-            last_mouse_position_in_time: Time::from_ms(-0.5),
+            click_anchor_in_time: Time::Ms(0.0),
+            last_mouse_position_in_time: Time::Ms(-0.5),
             is_moved: true,
             resize_direction: ResizeDirection::Left,
         };
@@ -74,12 +75,12 @@ mod tests {
         assert_eq!(result_clip_ids, expected_clip_ids);
 
         let clips = extract_camera_clips(&result);
-        assert_eq!(clips[0].start_at, Time::from_ms(0.0));
-        assert_eq!(clips[0].end_at, Time::from_ms(1.0));
-        assert_eq!(clips[1].start_at, Time::from_ms(1.0));
-        assert_eq!(clips[1].end_at, Time::from_ms(2.5));
-        assert_eq!(clips[2].start_at, Time::from_ms(2.5));
-        assert_eq!(clips[2].end_at, Time::from_ms(3.5));
+        assert_eq!(clips[0].start_at, Time::Ms(0.0));
+        assert_eq!(clips[0].end_at, Time::Ms(1.0));
+        assert_eq!(clips[1].start_at, Time::Ms(1.0));
+        assert_eq!(clips[1].end_at, Time::Ms(2.5));
+        assert_eq!(clips[2].start_at, Time::Ms(2.5));
+        assert_eq!(clips[2].end_at, Time::Ms(3.5));
     }
     #[test]
     #[wasm_bindgen_test]
@@ -87,8 +88,8 @@ mod tests {
         let sequence = mock_sequence(&["0", "1", "2"], &[]);
         let job = ResizeClipJob {
             clip_id: "1".to_string(),
-            click_anchor_in_time: Time::from_ms(0.0),
-            last_mouse_position_in_time: Time::from_ms(0.5),
+            click_anchor_in_time: Time::Ms(0.0),
+            last_mouse_position_in_time: Time::Ms(0.5),
             is_moved: true,
             resize_direction: ResizeDirection::Left,
         };
@@ -99,12 +100,12 @@ mod tests {
         assert_eq!(result_clip_ids, expected_clip_ids);
 
         let clips = extract_camera_clips(&result);
-        assert_eq!(clips[0].start_at, Time::from_ms(0.0));
-        assert_eq!(clips[0].end_at, Time::from_ms(1.0));
-        assert_eq!(clips[1].start_at, Time::from_ms(1.0));
-        assert_eq!(clips[1].end_at, Time::from_ms(1.5));
-        assert_eq!(clips[2].start_at, Time::from_ms(1.5));
-        assert_eq!(clips[2].end_at, Time::from_ms(2.5));
+        assert_eq!(clips[0].start_at, Time::Ms(0.0));
+        assert_eq!(clips[0].end_at, Time::Ms(1.0));
+        assert_eq!(clips[1].start_at, Time::Ms(1.0));
+        assert_eq!(clips[1].end_at, Time::Ms(1.5));
+        assert_eq!(clips[2].start_at, Time::Ms(1.5));
+        assert_eq!(clips[2].end_at, Time::Ms(2.5));
     }
     #[test]
     #[wasm_bindgen_test]
@@ -112,8 +113,8 @@ mod tests {
         let sequence = mock_sequence(&["0", "1", "2"], &[]);
         let job = ResizeClipJob {
             clip_id: "1".to_string(),
-            click_anchor_in_time: Time::from_ms(0.0),
-            last_mouse_position_in_time: Time::from_ms(0.5),
+            click_anchor_in_time: Time::Ms(0.0),
+            last_mouse_position_in_time: Time::Ms(0.5),
             is_moved: true,
             resize_direction: ResizeDirection::Right,
         };
@@ -124,12 +125,12 @@ mod tests {
         assert_eq!(result_clip_ids, expected_clip_ids);
 
         let clips = extract_camera_clips(&result);
-        assert_eq!(clips[0].start_at, Time::from_ms(0.0));
-        assert_eq!(clips[0].end_at, Time::from_ms(1.0));
-        assert_eq!(clips[1].start_at, Time::from_ms(1.0));
-        assert_eq!(clips[1].end_at, Time::from_ms(2.5));
-        assert_eq!(clips[2].start_at, Time::from_ms(2.5));
-        assert_eq!(clips[2].end_at, Time::from_ms(3.5));
+        assert_eq!(clips[0].start_at, Time::Ms(0.0));
+        assert_eq!(clips[0].end_at, Time::Ms(1.0));
+        assert_eq!(clips[1].start_at, Time::Ms(1.0));
+        assert_eq!(clips[1].end_at, Time::Ms(2.5));
+        assert_eq!(clips[2].start_at, Time::Ms(2.5));
+        assert_eq!(clips[2].end_at, Time::Ms(3.5));
     }
     #[test]
     #[wasm_bindgen_test]
@@ -137,8 +138,8 @@ mod tests {
         let sequence = mock_sequence(&["0", "1", "2"], &[]);
         let job = ResizeClipJob {
             clip_id: "1".to_string(),
-            click_anchor_in_time: Time::from_ms(0.0),
-            last_mouse_position_in_time: Time::from_ms(-0.5),
+            click_anchor_in_time: Time::Ms(0.0),
+            last_mouse_position_in_time: Time::Ms(-0.5),
             is_moved: true,
             resize_direction: ResizeDirection::Right,
         };
@@ -149,11 +150,11 @@ mod tests {
         assert_eq!(result_clip_ids, expected_clip_ids);
 
         let clips = extract_camera_clips(&result);
-        assert_eq!(clips[0].start_at, Time::from_ms(0.0));
-        assert_eq!(clips[0].end_at, Time::from_ms(1.0));
-        assert_eq!(clips[1].start_at, Time::from_ms(1.0));
-        assert_eq!(clips[1].end_at, Time::from_ms(1.5));
-        assert_eq!(clips[2].start_at, Time::from_ms(1.5));
-        assert_eq!(clips[2].end_at, Time::from_ms(2.5));
+        assert_eq!(clips[0].start_at, Time::Ms(0.0));
+        assert_eq!(clips[0].end_at, Time::Ms(1.0));
+        assert_eq!(clips[1].start_at, Time::Ms(1.0));
+        assert_eq!(clips[1].end_at, Time::Ms(1.5));
+        assert_eq!(clips[2].start_at, Time::Ms(1.5));
+        assert_eq!(clips[2].end_at, Time::Ms(2.5));
     }
 }

@@ -2,18 +2,15 @@ use namui::prelude::*;
 use std::sync::Arc;
 pub mod track_body;
 use super::TimelineRenderContext;
-use crate::app::{
-    editor::events::EditorEvent,
-    types::{PixelSize, Time, Track},
-};
+use crate::app::{editor::events::EditorEvent, types::Track};
 use track_body::*;
 
 pub struct TimelineBody {
     last_clip_clicked_mouse_event_id: Option<String>,
 }
 pub struct TimelineBodyProps<'a> {
-    pub width: f32,
-    pub height: f32,
+    pub width: Px,
+    pub height: Px,
     pub tracks: &'a [Arc<Track>],
     pub context: &'a TimelineRenderContext<'a>,
 }
@@ -52,16 +49,16 @@ impl TimelineBody {
             }
         }
     }
-    pub fn render(props: &TimelineBodyProps) -> RenderingTree {
-        let track_body_height = 80.0; // TODO
+    pub fn render(props: TimelineBodyProps) -> RenderingTree {
+        let track_body_height = px(80.0); // TODO
         let track_bodies = props
             .tracks
             .iter()
             .enumerate()
             .map(|(index, track)| {
                 namui::translate(
-                    0.0,
-                    track_body_height * index as f32,
+                    px(0.0),
+                    track_body_height * index,
                     TrackBody::render(&TrackBodyProps {
                         width: props.width,
                         height: track_body_height,
@@ -72,17 +69,19 @@ impl TimelineBody {
             })
             .collect::<Vec<_>>();
         let border = namui::rect(namui::RectParam {
-            x: 0.0,
-            y: 0.0,
-            width: props.width,
-            height: props.height,
+            rect: Rect::Xywh {
+                x: px(0.0),
+                y: px(0.0),
+                width: props.width,
+                height: props.height,
+            },
             style: namui::RectStyle {
                 fill: Some(namui::RectFill {
                     color: namui::Color::from_f01(0.4, 0.4, 0.4, 1.0),
                 }),
                 stroke: Some(namui::RectStroke {
                     color: namui::Color::BLACK,
-                    width: 1.0,
+                    width: px(1.0),
                     border_position: namui::BorderPosition::Inside,
                 }),
                 ..Default::default()
@@ -92,10 +91,10 @@ impl TimelineBody {
         .attach_event(move |builder| {
             let width = props.width;
             let height = props.height;
-            let time_per_pixel = props.context.time_per_pixel;
+            let time_per_px = props.context.time_per_px;
             let start_at = props.context.start_at;
             let get_mouse_position_in_time =
-                move |local_x| PixelSize(local_x) * time_per_pixel + start_at;
+                move |local_x: Px| -> Time { local_x * time_per_px + start_at };
             builder
                 .on_wheel(move |event| {
                     let mouse_position = namui::mouse::position();
@@ -104,10 +103,10 @@ impl TimelineBody {
                         .get_rendering_tree_xy(event.target)
                         .expect("failed to get timeline xy");
 
-                    let is_mouse_in_timeline = mouse_position.x as f32 >= timeline_xy.x
-                        && mouse_position.x as f32 <= timeline_xy.x + width
-                        && mouse_position.y as f32 >= timeline_xy.y
-                        && mouse_position.y as f32 <= timeline_xy.y + height;
+                    let is_mouse_in_timeline = mouse_position.x >= timeline_xy.x
+                        && mouse_position.x <= timeline_xy.x + width
+                        && mouse_position.y >= timeline_xy.y
+                        && mouse_position.y <= timeline_xy.y + height;
                     if !is_mouse_in_timeline {
                         return;
                     }
@@ -117,14 +116,13 @@ impl TimelineBody {
                         namui::Code::ShiftRight,
                     ]) {
                         namui::event::send(EditorEvent::TimelineMoveEvent {
-                            pixel: PixelSize(event.delta_xy.y),
+                            px: px(event.delta_xy.y),
                         })
                     } else if namui::keyboard::any_code_press([
                         namui::Code::AltLeft,
                         namui::Code::AltRight,
                     ]) {
-                        let anchor_x_in_timeline =
-                            PixelSize(mouse_position.x as f32 - timeline_xy.x);
+                        let anchor_x_in_timeline = mouse_position.x - timeline_xy.x;
 
                         namui::event::send(EditorEvent::TimelineZoomEvent {
                             delta: event.delta_xy.y,
@@ -146,21 +144,18 @@ impl TimelineBody {
                     }
                 });
         });
-        render![
+        render([
             border,
             namui::clip(
-                namui::PathBuilder::new().add_rect(
-                    &namui::XywhRect {
-                        x: 0.0,
-                        y: 0.0,
-                        width: props.width,
-                        height: props.height,
-                    }
-                    .into_ltrb()
-                ),
+                namui::PathBuilder::new().add_rect(namui::Rect::Xywh {
+                    x: px(0.0),
+                    y: px(0.0),
+                    width: props.width,
+                    height: props.height,
+                }),
                 namui::ClipOp::Intersect,
-                render![track_bodies],
-            )
-        ]
+                render(track_bodies),
+            ),
+        ])
     }
 }
