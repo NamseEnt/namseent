@@ -10,6 +10,16 @@ impl Ratio for Percent {
     }
 }
 
+pub trait PercentExt {
+    fn percent(self) -> Percent;
+}
+
+impl PercentExt for f32 {
+    fn percent(self) -> Percent {
+        Percent(self)
+    }
+}
+
 impl AsPrimitive<f32> for Percent {
     fn as_(self) -> f32 {
         self.to_f32().unwrap()

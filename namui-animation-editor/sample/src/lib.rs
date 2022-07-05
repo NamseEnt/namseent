@@ -1,4 +1,4 @@
-use namui::{animation::KeyframePoint, prelude::*, types::*};
+use namui::{animation::*, prelude::*};
 use namui_animation_editor::{self, *};
 use wasm_bindgen::prelude::*;
 
@@ -6,13 +6,7 @@ use wasm_bindgen::prelude::*;
 pub async fn start() {
     let namui_context = namui::init().await;
 
-    let wh = {
-        let screen_size = namui::screen::size();
-        Wh {
-            width: screen_size.width as f32,
-            height: screen_size.height as f32,
-        }
-    };
+    let wh = namui::screen::size();
 
     namui::start(
         namui_context,
@@ -33,32 +27,20 @@ impl AnimationEditorExample {
 
         image.image_source_url =
             Some(Url::parse("bundle:img/%EB%86%80%EB%9E%8C%EB%8C%80.png").unwrap());
-        image.x.put(
-            // KeyframePoint::<Px>::new(Time::Ms(0.0), Px::from(0.0)),
-            KeyframePoint::<Px>::new(Time::Ms(0.0), Px::from(500.0)),
-            animation::KeyframeLine::Linear,
-        );
-        image.y.put(
-            // KeyframePoint::<Px>::new(Time::Ms(0.0), Px::from(0.0)),
-            KeyframePoint::<Px>::new(Time::Ms(0.0), Px::from(0.0)),
-            animation::KeyframeLine::Linear,
-        );
-        image.width_percent.put(
-            KeyframePoint::<Percent>::new(Time::Ms(0.0), Percent::from_percent(50.0_f32)),
-            animation::KeyframeLine::Linear,
-        );
-        image.height_percent.put(
-            KeyframePoint::<Percent>::new(Time::Ms(0.0), Percent::from_percent(50.0_f32)),
-            animation::KeyframeLine::Linear,
-        );
-        image.rotation_angle.put(
-            // KeyframePoint::<Angle>::new(Time::Ms(0.0), Angle::from(30.0)),
-            KeyframePoint::<Angle>::new(Time::Ms(0.0), Angle::Degree(0.0)),
-            animation::KeyframeLine::Linear,
-        );
-        image.opacity.put(
-            KeyframePoint::<OneZero>::new(Time::Ms(0.0), 1.0.into()),
-            animation::KeyframeLine::Linear,
+
+        image.image_keyframe_graph.put(
+            KeyframePoint::new(
+                0.0.ms(),
+                ImageKeyframe {
+                    x: 500.0.px(),
+                    y: 000.0.px(),
+                    width_percent: 50.0.percent(),
+                    height_percent: 50.0.percent(),
+                    rotation_angle: 0.0.deg(),
+                    opacity: 1.0.into(),
+                },
+            ),
+            animation::ImageInterpolation::AllLinear,
         );
 
         let animation = animation::Animation {

@@ -1,7 +1,7 @@
 use crate::types::{ActionTicket, AnimationHistory};
 use namui::{
     prelude::*,
-    types::{Angle, Time},
+    types::{Angle, Px, Time},
 };
 use namui_prebuilt::*;
 mod render;
@@ -78,19 +78,19 @@ enum Event {
     SelectedLayerMouseDown {
         layer_id: String,
         anchor_xy: Xy<Px>,
-        playback_time: Time,
+        keyframe_point_id: String,
     },
     ResizeCircleMouseDown {
         layer_id: String,
         location: ResizeCircleLocation,
         anchor_xy: Xy<Px>,
-        playback_time: Time,
+        keyframe_point_id: String,
         rotation_angle: Angle,
     },
     RotationToolMouseDown {
         image_center_real_xy: Xy<Px>,
         mouse_local_xy: Xy<Px>,
-        playback_time: Time,
+        keyframe_point_id: String,
         layer_id: String,
     },
 }

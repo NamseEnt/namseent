@@ -118,8 +118,8 @@ impl Path {
                 ltrb.right.as_f32(),
                 ltrb.bottom.as_f32(),
             ],
-            start_angle.as_radians(),
-            delta_angle.as_radians(),
+            start_angle.as_degrees(),
+            delta_angle.as_degrees(),
             false,
         );
         self

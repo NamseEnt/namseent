@@ -7,6 +7,20 @@ pub enum Angle {
     Degree(f32),
 }
 
+pub trait AngleExt {
+    fn deg(self) -> Angle;
+    fn rad(self) -> Angle;
+}
+
+impl AngleExt for f32 {
+    fn deg(self) -> Angle {
+        Angle::Degree(self)
+    }
+    fn rad(self) -> Angle {
+        Angle::Radian(self)
+    }
+}
+
 impl Angle {
     pub fn as_radians(&self) -> f32 {
         match self {

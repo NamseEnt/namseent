@@ -23,7 +23,7 @@ impl TimelineWindow {
 
         let mut keyframes: Vec<MergedKeyframe> = vec![];
 
-        get_all_time_and_ids(&selected_layer)
+        get_time_and_ids(&selected_layer.image.image_keyframe_graph)
             .into_iter()
             .for_each(|(time, id)| {
                 let same_time_keyframe = keyframes.iter_mut().find(|k| k.time == time);

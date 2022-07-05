@@ -1,12 +1,13 @@
 use super::*;
-use namui::prelude::*;
+use namui::{prelude::*, types::Px};
 use namui_prebuilt::{
     button::text_button,
     table::{fixed, horizontal, ratio, vertical},
+    typography,
 };
 
 pub struct AnimationEditor {
-    graph_editor: graph_editor::GraphEditor,
+    // graph_editor: graph_editor::GraphEditor,
     time_point_editor: time_point_editor::TimePointEditor,
     animation_history: AnimationHistory,
     selected_tab: Tab,
@@ -24,14 +25,14 @@ enum Event {
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Tab {
     TimePointEditor,
-    GraphEditor,
+    // GraphEditor,
 }
 
 impl AnimationEditor {
     pub fn new(animation: &animation::Animation) -> Self {
         let animation_history = AnimationHistory::new(animation.clone());
         Self {
-            graph_editor: graph_editor::GraphEditor::new(animation_history.clone()),
+            // graph_editor: graph_editor::GraphEditor::new(animation_history.clone()),
             time_point_editor: time_point_editor::TimePointEditor::new(animation_history.clone()),
             layer_list_window: layer_list_window::LayerListWindow::new(animation_history.clone()),
             animation_history,
@@ -49,7 +50,7 @@ impl AnimationEditor {
 
         match self.selected_tab {
             Tab::TimePointEditor => self.time_point_editor.update(event),
-            Tab::GraphEditor => self.graph_editor.update(event),
+            // Tab::GraphEditor => self.graph_editor.update(event),
         }
 
         self.layer_list_window.update(event);
@@ -63,7 +64,7 @@ impl AnimationEditor {
                 Rect::from_xy_wh(Xy::single(px(0.0)), wh),
                 match tab {
                     Tab::TimePointEditor => "Timeline",
-                    Tab::GraphEditor => "Graph",
+                    // Tab::GraphEditor => "Graph",
                 },
                 match is_selected_tab {
                     true => Color::WHITE,
@@ -89,7 +90,7 @@ impl AnimationEditor {
                 px(40.0),
                 horizontal([
                     ratio(1.0, |wh| render_tab_button(Tab::TimePointEditor, wh)),
-                    ratio(1.0, |wh| render_tab_button(Tab::GraphEditor, wh)),
+                    // ratio(1.0, |wh| render_tab_button(Tab::GraphEditor, wh)),
                 ]),
             ),
             ratio(1.0, |wh| match self.selected_tab {
@@ -98,11 +99,11 @@ impl AnimationEditor {
                     animation: &animation,
                     layer_list_window: &self.layer_list_window,
                 }),
-                Tab::GraphEditor => self.graph_editor.render(graph_editor::Props {
-                    wh,
-                    animation: &animation,
-                    layer_list_window: &self.layer_list_window,
-                }),
+                // Tab::GraphEditor => self.graph_editor.render(graph_editor::Props {
+                //     wh,
+                //     animation: &animation,
+                //     layer_list_window: &self.layer_list_window,
+                // }),
             }),
         ])(props.wh)
     }

@@ -20,9 +20,12 @@ impl WysiwygWindow {
 
             let is_playback_time_on_keyframe = layer
                 .image
-                .get_keyframe_infos()
+                .image_keyframe_graph
+                .get_points_with_lines()
                 .iter()
-                .any(|keyframe_info| keyframe_info.time == playback_time);
+                .map(|(point, _)| point.time)
+                .any(|time| time == playback_time);
+
             let is_playback_time_in_visible_range = {
                 match layer.image.get_visible_time_range() {
                     Some((start, end)) => start <= playback_time && playback_time <= end,
@@ -49,12 +52,17 @@ impl WysiwygWindow {
         layer: &animation::Layer,
         playback_time: Time,
     ) -> RenderingTree {
-        let x = layer.image.x.get_value(playback_time).unwrap();
-        let y = layer.image.y.get_value(playback_time).unwrap();
+        let keyframe = layer.image.image_keyframe_graph.get_value(playback_time);
+        if keyframe.is_none() {
+            return RenderingTree::Empty;
+        }
+        let keyframe = keyframe.unwrap();
+        let x = keyframe.x;
+        let y = keyframe.y;
         let wh = layer.image.get_image_px_wh(playback_time).unwrap();
         let anchor_xy = layer.image.get_anchor_px_wh(playback_time).unwrap();
 
-        let rotation_angle = layer.image.rotation_angle.get_value(playback_time).unwrap();
+        let rotation_angle = keyframe.rotation_angle;
 
         translate(
             x,

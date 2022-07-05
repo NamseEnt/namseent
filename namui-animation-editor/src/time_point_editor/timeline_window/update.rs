@@ -1,6 +1,6 @@
 use super::*;
 use crate::zoom::zoom_time_per_px;
-use namui::animation::{KeyframeGraph, KeyframePoint, KeyframeValue};
+use namui::animation::*;
 
 impl TimelineWindow {
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -173,20 +173,19 @@ impl TimelineWindow {
                 {
                     let time = self.time;
 
-                    add_new_point(&mut layer.image.x, time, Px::from(0.0));
-                    add_new_point(&mut layer.image.y, time, Px::from(0.0));
                     add_new_point(
-                        &mut layer.image.width_percent,
+                        &mut layer.image.image_keyframe_graph,
                         time,
-                        Percent::from_percent(100.0f32),
+                        ImageKeyframe {
+                            x: 0.0.px(),
+                            y: 0.0.px(),
+                            width_percent: 100.0.percent(),
+                            height_percent: 100.0.percent(),
+                            opacity: 1.0.into(),
+                            rotation_angle: Angle::Degree(0.0),
+                        },
                     );
-                    add_new_point(
-                        &mut layer.image.height_percent,
-                        time,
-                        Percent::from_percent(100.0f32),
-                    );
-                    add_new_point(&mut layer.image.rotation_angle, time, Angle::Degree(0.0));
-                    add_new_point(&mut layer.image.opacity, time, OneZero::from(1.0));
+
                     Ok(animation)
                 } else {
                     Err("layer not found".into())
@@ -209,50 +208,31 @@ impl TimelineWindow {
     }
 }
 
-fn move_point(layer: &mut Layer, point_id: &str, to_time: Time) {
-    move_point_in_graph(&mut layer.image.x, point_id, to_time);
-    move_point_in_graph(&mut layer.image.y, point_id, to_time);
-    move_point_in_graph(&mut layer.image.width_percent, point_id, to_time);
-    move_point_in_graph(&mut layer.image.height_percent, point_id, to_time);
-    move_point_in_graph(&mut layer.image.opacity, point_id, to_time);
-    move_point_in_graph(&mut layer.image.rotation_angle, point_id, to_time);
-}
-
-fn move_point_in_graph<T: KeyframeValue + Clone>(
-    graph: &mut KeyframeGraph<T>,
+fn move_point(
+    layer: &mut Layer,
     point_id: &str,
     to_time: Time,
-) {
-    if let Some(point) = graph.get_point(point_id) {
-        let mut point = point.clone();
-        point.time = to_time;
-        graph.put(point, animation::KeyframeLine::Linear);
-    }
+) -> Result<(), Box<dyn std::error::Error>> {
+    let point = layer
+        .image
+        .image_keyframe_graph
+        .get_point_mut(point_id)
+        .ok_or(format!("point nod fount {}", point_id))?;
+
+    point.time = to_time;
+
+    Ok(())
 }
 
-fn add_new_point<T: KeyframeValue + Clone>(
-    graph: &mut KeyframeGraph<T>,
-    time: Time,
-    default_value: T,
-) {
-    let value_x = graph
-        .get_value(time)
-        .or_else(|| graph.get_last_point().map(|point| point.value.clone()))
-        .unwrap_or(default_value);
-
+fn add_new_point(graph: &mut ImageKeyframeGraph, time: Time, default_value: ImageKeyframe) {
     graph.put(
-        KeyframePoint::new(time, value_x),
-        animation::KeyframeLine::Linear,
+        KeyframePoint::new(time, default_value),
+        animation::ImageInterpolation::AllLinear,
     );
 }
 
 fn delete_point(layer: &mut Layer, time: Time) {
-    layer.image.x.delete_by_time(time);
-    layer.image.y.delete_by_time(time);
-    layer.image.width_percent.delete_by_time(time);
-    layer.image.height_percent.delete_by_time(time);
-    layer.image.opacity.delete_by_time(time);
-    layer.image.rotation_angle.delete_by_time(time);
+    layer.image.image_keyframe_graph.delete_by_time(time)
 }
 
 struct DraggingKeyframeAction {
@@ -274,7 +254,7 @@ impl Act<Animation> for DraggingKeyframeAction {
             let to_time = self.start_at + (self.drag_end_x - self.anchor_x) * self.time_per_px;
 
             for point_id in &self.point_ids {
-                move_point(layer, &point_id, to_time)
+                move_point(layer, &point_id, to_time)?;
             }
 
             Ok(animation)

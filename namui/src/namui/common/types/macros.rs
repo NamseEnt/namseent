@@ -169,18 +169,18 @@ pub(crate) use impl_single_trait;
 macro_rules! impl_op_forward_ref_reversed_all_primitives {
     ($op:tt |$lhs_i:ident : $lhs:ty, $rhs_i:ident : f32| -> $out:ty $body:block) => {
         $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: f32| -> $lhs $body );
-        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: i8| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: u8| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: i16| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: u16| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: i32| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: u32| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: i64| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: u64| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: i128| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: u128| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: isize| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: usize| -> $lhs { $lhs_i * $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: i8| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: u8| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: i16| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: u16| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: i32| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: u32| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: i64| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: u64| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: i128| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: u128| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: isize| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: usize| -> $lhs { $lhs_i $op $rhs_i as f32 });
     }
 }
 pub(crate) use impl_op_forward_ref_reversed_all_primitives;
@@ -188,18 +188,18 @@ pub(crate) use impl_op_forward_ref_reversed_all_primitives;
 macro_rules! impl_op_forward_ref_all_primitives {
     ($op:tt |$lhs_i:ident : $lhs:ty, $rhs_i:ident : f32| -> $out:ty $body:block) => {
         $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: f32| -> $lhs $body );
-        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: i8| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: u8| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: i16| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: u16| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: i32| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: u32| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: i64| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: u64| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: i128| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: u128| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: isize| -> $lhs { $lhs_i * $rhs_i as f32 });
-        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: usize| -> $lhs { $lhs_i * $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: i8| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: u8| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: i16| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: u16| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: i32| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: u32| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: i64| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: u64| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: i128| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: u128| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: isize| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: usize| -> $lhs { $lhs_i $op $rhs_i as f32 });
     }
 }
 pub(crate) use impl_op_forward_ref_all_primitives;
