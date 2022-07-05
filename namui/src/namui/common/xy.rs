@@ -10,6 +10,18 @@ pub struct Xy<T> {
     pub y: T,
 }
 
+impl<T: Clone> Xy<T> {
+    pub fn into_type<U>(&self) -> Xy<U>
+    where
+        T: Into<U>,
+    {
+        Xy {
+            x: self.x.clone().into(),
+            y: self.y.clone().into(),
+        }
+    }
+}
+
 macro_rules! overload_operator {
     ($ops_trait: tt, $fn_name: ident) => {
         impl<T> $ops_trait for Xy<T>

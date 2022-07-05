@@ -130,17 +130,20 @@ impl Canvas {
                             )
                         } else if namui::keyboard::any_code_press([namui::Code::ShiftLeft]) {
                             scroll(
-                                Xy {
-                                    x: event.delta_xy.y,
-                                    y: event.delta_xy.x,
-                                },
+                                event.delta_xy.into_type(),
                                 offset,
                                 canvas_wh,
                                 image_size,
                                 scale,
                             )
                         } else {
-                            scroll(event.delta_xy, offset, canvas_wh, image_size, scale)
+                            scroll(
+                                event.delta_xy.into_type(),
+                                offset,
+                                canvas_wh,
+                                image_size,
+                                scale,
+                            )
                         }
                     })
                     .on_mouse_down(move |event| {
@@ -310,8 +313,8 @@ fn handle_zoom_tool_drag(
 ) {
     const DRAG_ZOOM_MULTIPLIER: f32 = 5.0;
     let multiplied_reverse_delta_xy = Xy {
-        x: (initial_mouse_xy.x - last_mouse_xy.x) * DRAG_ZOOM_MULTIPLIER,
-        y: (initial_mouse_xy.y - last_mouse_xy.y) * DRAG_ZOOM_MULTIPLIER,
+        x: (initial_mouse_xy.x - last_mouse_xy.x).as_f32() * DRAG_ZOOM_MULTIPLIER,
+        y: (initial_mouse_xy.y - last_mouse_xy.y).as_f32() * DRAG_ZOOM_MULTIPLIER,
     };
     zoom(
         multiplied_reverse_delta_xy,
@@ -333,7 +336,7 @@ fn scroll(delta_xy: Xy<Px>, offset: Xy<Px>, canvas_wh: Wh<Px>, image_size: Wh<Px
 }
 
 fn zoom(
-    delta_xy: Xy<Px>,
+    delta_xy: Xy<f32>,
     offset: Xy<Px>,
     canvas_anchor_point: Xy<Px>,
     canvas_wh: Wh<Px>,
@@ -341,7 +344,7 @@ fn zoom(
     scale: f32,
 ) {
     const ZOOM_MULTIPLIER: f32 = 1.0 / 1000.0;
-    let delta_scale = -(delta_xy.x + delta_xy.y).as_f32() * scale * ZOOM_MULTIPLIER;
+    let delta_scale = -(delta_xy.x + delta_xy.y) * scale * ZOOM_MULTIPLIER;
     let new_scale = clamp_scale(scale + delta_scale, canvas_wh, image_size);
     let scale_factor = (new_scale - scale) / (new_scale * scale);
     let diff_offset = Xy {

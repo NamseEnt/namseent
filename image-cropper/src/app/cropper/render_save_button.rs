@@ -30,7 +30,7 @@ pub fn render_save_button(wh: Wh<Px>) -> RenderingTree {
             baseline: TextBaseline::Middle,
             font_type: FontType {
                 serif: false,
-                size: int_px(wh.height / 3.0 * 2.0),
+                size: (wh.height / 3.0 * 2.0).into(),
                 language: Language::Ko,
                 font_weight: FontWeight::REGULAR,
             },

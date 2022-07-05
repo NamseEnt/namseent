@@ -120,7 +120,7 @@ impl ScrollView {
                 }
 
                 let next_scroll_y = namui::math::num::clamp(
-                    scroll_y + event.delta_xy.y,
+                    scroll_y + px(event.delta_xy.y),
                     px(0.0),
                     (px(0.0)).max(content_bounding_box.height() - height),
                 );
