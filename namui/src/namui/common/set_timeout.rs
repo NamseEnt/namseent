@@ -102,35 +102,37 @@ mod tests {
     #[test]
     #[wasm_bindgen_test::wasm_bindgen_test]
     fn pull_timeout_should_sort_callback_by_time() {
-        let vec: Arc<Mutex<Vec<i32>>> = Arc::new(Mutex::new(vec![]));
+        for _ in 0..1000 {
+            let vec: Arc<Mutex<Vec<i32>>> = Arc::new(Mutex::new(vec![]));
 
-        let vec1 = vec.clone();
-        let vec2 = vec.clone();
-        let vec3 = vec.clone();
+            let vec1 = vec.clone();
+            let vec2 = vec.clone();
+            let vec3 = vec.clone();
 
-        set_timeout(
-            move || {
-                vec2.lock().unwrap().push(2);
-            },
-            Duration::from_millis(2),
-        );
-        set_timeout(
-            move || {
-                vec1.lock().unwrap().push(1);
-            },
-            Duration::from_millis(1),
-        );
-        set_timeout(
-            move || {
-                vec3.lock().unwrap().push(3);
-            },
-            Duration::from_millis(3),
-        );
+            set_timeout(
+                move || {
+                    vec2.lock().unwrap().push(2);
+                },
+                Duration::from_millis(2),
+            );
+            set_timeout(
+                move || {
+                    vec1.lock().unwrap().push(1);
+                },
+                Duration::from_millis(1),
+            );
+            set_timeout(
+                move || {
+                    vec3.lock().unwrap().push(3);
+                },
+                Duration::from_millis(3),
+            );
 
-        while let Some(callback) = pull_timeout(crate::now() + Duration::from_millis(4)) {
-            callback();
+            while let Some(callback) = pull_timeout(crate::now() + Duration::from_millis(4)) {
+                callback();
+            }
+
+            assert_eq!(vec.lock().unwrap().as_slice(), &[1, 2, 3]);
         }
-
-        assert_eq!(vec.lock().unwrap().as_slice(), &[1, 2, 3]);
     }
 }
