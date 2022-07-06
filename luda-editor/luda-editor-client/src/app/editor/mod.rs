@@ -316,7 +316,7 @@ impl namui::Entity for Editor {
                             self.execute_job().unwrap();
                         } else {
                             self.job.take();
-                            if let Some(clip_id) = self.clip_id_to_check_as_click.clone() {
+                            if let Some(clip_id) = &self.clip_id_to_check_as_click {
                                 self.select_only_this_clip(&clip_id.clone());
                             }
                         }
@@ -410,6 +410,7 @@ impl namui::Entity for Editor {
                         self.select_only_this_clip(&new_clip_id);
                     }
                 }
+                _ => {}
             }
         }
         self.timeline.update(event);

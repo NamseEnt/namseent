@@ -6,10 +6,8 @@ pub struct Resizer {
 }
 
 impl Resizer {
-    pub fn new() -> Self {
-        Self {
-            id: namui::nanoid(),
-        }
+    pub fn new(id: &str) -> Self {
+        Self { id: id.to_string() }
     }
 }
 

@@ -26,6 +26,7 @@ impl ClipEditor {
         match clip {
             Clip::Camera(clip) => ClipEditor::Camera(CameraClipEditor::new(&clip)),
             Clip::Subtitle(_) => ClipEditor::Subtitle,
+            _ => todo!(),
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
