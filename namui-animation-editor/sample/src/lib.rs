@@ -6,14 +6,7 @@ use wasm_bindgen::prelude::*;
 pub async fn start() {
     let namui_context = namui::init().await;
 
-    let wh = namui::screen::size();
-
-    namui::start(
-        namui_context,
-        &mut AnimationEditorExample::new(),
-        &Props { wh },
-    )
-    .await
+    namui::start(namui_context, &mut AnimationEditorExample::new(), &Props {}).await
 }
 
 struct AnimationEditorExample {
@@ -58,19 +51,14 @@ impl AnimationEditorExample {
     }
 }
 
-struct Props {
-    wh: Wh<Px>,
-}
+struct Props {}
 impl Entity for AnimationEditorExample {
     type Props = Props;
 
-    fn render(&self, props: &Self::Props) -> RenderingTree {
-        self.animation_editor.render(namui_animation_editor::Props {
-            wh: Wh {
-                width: props.wh.width.into(),
-                height: props.wh.height.into(),
-            },
-        })
+    fn render(&self, _props: &Self::Props) -> RenderingTree {
+        let wh = namui::screen::size();
+        self.animation_editor
+            .render(namui_animation_editor::Props { wh })
     }
 
     fn update(&mut self, event: &dyn std::any::Any) {
