@@ -118,7 +118,7 @@ impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
     pub fn get_last_point(&self) -> Option<&KeyframePoint<TValue>> {
         self.points_with_lines.last().map(|(point, _)| point)
     }
-    pub fn get_points_with_lines(&self) -> &[(KeyframePoint<TValue>, TKeyframeLine)] {
+    pub fn get_point_line_tuples(&self) -> &[(KeyframePoint<TValue>, TKeyframeLine)] {
         &self.points_with_lines
     }
     pub fn get_point(&self, id: &str) -> Option<&KeyframePoint<TValue>> {
@@ -300,7 +300,7 @@ mod tests {
         graph.delete(second_point.id);
 
         assert_eq!(graph.get_last_point(), Some(&first_point.clone()));
-        assert_eq!(graph.get_points_with_lines().len(), 1);
+        assert_eq!(graph.get_point_line_tuples().len(), 1);
     }
 
     #[test]
@@ -320,16 +320,16 @@ mod tests {
         graph.delete_by_time(second_time);
 
         assert_eq!(graph.get_last_point(), Some(&third_point));
-        assert_eq!(graph.get_points_with_lines().len(), 2);
+        assert_eq!(graph.get_point_line_tuples().len(), 2);
 
         graph.delete_by_time(third_time);
 
         assert_eq!(graph.get_last_point(), Some(&first_point));
-        assert_eq!(graph.get_points_with_lines().len(), 1);
+        assert_eq!(graph.get_point_line_tuples().len(), 1);
 
         graph.delete_by_time(first_time);
 
         assert_eq!(graph.get_last_point(), None);
-        assert_eq!(graph.get_points_with_lines().len(), 0);
+        assert_eq!(graph.get_point_line_tuples().len(), 0);
     }
 }

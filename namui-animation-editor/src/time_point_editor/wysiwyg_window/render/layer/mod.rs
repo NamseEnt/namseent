@@ -21,7 +21,7 @@ impl WysiwygWindow {
             let is_playback_time_on_keyframe = layer
                 .image
                 .image_keyframe_graph
-                .get_points_with_lines()
+                .get_point_line_tuples()
                 .iter()
                 .map(|(point, _)| point.time)
                 .any(|time| time == playback_time);

@@ -10,7 +10,7 @@ impl WysiwygWindow {
             let times = layer
                 .image
                 .image_keyframe_graph
-                .get_points_with_lines()
+                .get_point_line_tuples()
                 .iter()
                 .map(|(point, _)| point.time)
                 .collect::<BTreeSet<_>>();

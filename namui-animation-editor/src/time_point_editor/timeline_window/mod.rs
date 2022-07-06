@@ -84,7 +84,7 @@ fn get_time_and_ids<TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
     graph: &KeyframeGraph<TValue, TKeyframeLine>,
 ) -> Vec<(Time, String)> {
     graph
-        .get_points_with_lines()
+        .get_point_line_tuples()
         .iter()
         .map(|(point, _)| (point.time, point.id().to_string()))
         .collect()
