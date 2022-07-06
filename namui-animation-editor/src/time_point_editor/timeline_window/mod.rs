@@ -1,6 +1,6 @@
 use crate::types::{Act, ActionTicket, AnimationHistory};
 use namui::{
-    animation::{Animation, KeyframeGraph, KeyframeValue, Layer},
+    animation::{Animation, Layer},
     prelude::*,
 };
 use namui_prebuilt::{table::*, *};
@@ -62,7 +62,7 @@ pub(super) enum Event {
         mouse_local_xy: Xy<Px>,
     },
     KeyframeMouseDown {
-        point_ids: Vec<String>,
+        point_id: String,
         anchor_xy: Xy<Px>,
         keyframe_time: Time,
         mouse_local_xy: Xy<Px>,
@@ -78,14 +78,4 @@ pub(super) enum Event {
 enum Dragging {
     Background { last_mouse_local_xy: Xy<Px> },
     Keyframe { action_ticket: ActionTicket },
-}
-
-fn get_time_and_ids<TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>(
-    graph: &KeyframeGraph<TValue, TKeyframeLine>,
-) -> Vec<(Time, String)> {
-    graph
-        .get_point_line_tuples()
-        .iter()
-        .map(|(point, _)| (point.time, point.id().to_string()))
-        .collect()
 }

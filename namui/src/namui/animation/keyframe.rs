@@ -27,7 +27,7 @@ pub trait KeyframeValue<TKeyframeLine> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyframeGraph<TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine> {
-    points_with_lines: Vec<(KeyframePoint<TValue>, TKeyframeLine)>,
+    point_line_tuples: Vec<(KeyframePoint<TValue>, TKeyframeLine)>,
 }
 
 impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
@@ -35,7 +35,7 @@ impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
 {
     pub fn new() -> Self {
         Self {
-            points_with_lines: Vec::new(),
+            point_line_tuples: Vec::new(),
         }
     }
     pub fn update_point(
@@ -44,7 +44,7 @@ impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
         update: impl FnOnce(&mut KeyframePoint<TValue>),
     ) -> Result<(), Box<dyn std::error::Error>> {
         let point = self
-            .points_with_lines
+            .point_line_tuples
             .iter_mut()
             .find(|(point, _)| point.id == point_id)
             .map(|(point, _)| point)
@@ -55,7 +55,7 @@ impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
     }
     pub fn put(&mut self, point: KeyframePoint<TValue>, line: TKeyframeLine) {
         let same_id_point = self
-            .points_with_lines
+            .point_line_tuples
             .iter_mut()
             .find(|(p, _)| p.id.eq(&point.id));
         match same_id_point {
@@ -65,7 +65,7 @@ impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
             }
             None => {
                 let same_time_point = self
-                    .points_with_lines
+                    .point_line_tuples
                     .iter_mut()
                     .find(|(p, _)| p.time.eq(&point.time));
 
@@ -75,16 +75,16 @@ impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
                         *l = line;
                     }
                     None => {
-                        self.points_with_lines.push((point, line));
+                        self.point_line_tuples.push((point, line));
                     }
                 }
             }
         }
 
-        self.points_with_lines.sort_by_key(|(point, _)| point.time);
+        self.point_line_tuples.sort_by_key(|(point, _)| point.time);
     }
     pub fn get_value(&'a self, time: Time) -> Option<TValue> {
-        let mut iter = self.points_with_lines.iter().peekable();
+        let mut iter = self.point_line_tuples.iter().peekable();
 
         loop {
             let (current_point, line) = iter.next()?;
@@ -105,42 +105,44 @@ impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
         }
     }
     pub fn delete(&mut self, id: impl AsRef<str>) {
-        self.points_with_lines
+        self.point_line_tuples
             .retain(|(point, _)| point.id.ne(id.as_ref()));
     }
     pub fn delete_by_time(&mut self, time: Time) {
-        self.points_with_lines
+        self.point_line_tuples
             .retain(|(point, _)| point.time != time);
     }
     pub fn get_first_point(&self) -> Option<&KeyframePoint<TValue>> {
-        self.points_with_lines.first().map(|(point, _)| point)
+        self.point_line_tuples.first().map(|(point, _)| point)
     }
     pub fn get_last_point(&self) -> Option<&KeyframePoint<TValue>> {
-        self.points_with_lines.last().map(|(point, _)| point)
+        self.point_line_tuples.last().map(|(point, _)| point)
     }
-    pub fn get_point_line_tuples(&self) -> &[(KeyframePoint<TValue>, TKeyframeLine)] {
-        &self.points_with_lines
+    pub fn get_point_line_tuples(
+        &self,
+    ) -> impl Iterator<Item = &(KeyframePoint<TValue>, TKeyframeLine)> {
+        self.point_line_tuples.iter()
     }
     pub fn get_point(&self, id: &str) -> Option<&KeyframePoint<TValue>> {
-        self.points_with_lines
+        self.point_line_tuples
             .iter()
             .find(|(point, _)| point.id.eq(id))
             .map(|(point, _)| point)
     }
     pub fn get_point_by_time(&self, time: Time) -> Option<&KeyframePoint<TValue>> {
-        self.points_with_lines
+        self.point_line_tuples
             .iter()
             .find(|(point, _)| point.time.eq(&time))
             .map(|(point, _)| point)
     }
     pub fn get_point_mut(&mut self, id: &str) -> Option<&mut KeyframePoint<TValue>> {
-        self.points_with_lines
+        self.point_line_tuples
             .iter_mut()
             .find(|(point, _)| point.id.eq(id))
             .map(|(point, _)| point)
     }
     pub fn get_point_mut_by_time(&mut self, time: Time) -> Option<&mut KeyframePoint<TValue>> {
-        self.points_with_lines
+        self.point_line_tuples
             .iter_mut()
             .find(|(point, _)| point.time.eq(&time))
             .map(|(point, _)| point)
@@ -320,16 +322,16 @@ mod tests {
         graph.delete_by_time(second_time);
 
         assert_eq!(graph.get_last_point(), Some(&third_point));
-        assert_eq!(graph.get_point_line_tuples().len(), 2);
+        assert_eq!(graph.get_point_line_tuples().count(), 2);
 
         graph.delete_by_time(third_time);
 
         assert_eq!(graph.get_last_point(), Some(&first_point));
-        assert_eq!(graph.get_point_line_tuples().len(), 1);
+        assert_eq!(graph.get_point_line_tuples().count(), 1);
 
         graph.delete_by_time(first_time);
 
         assert_eq!(graph.get_last_point(), None);
-        assert_eq!(graph.get_point_line_tuples().len(), 0);
+        assert_eq!(graph.get_point_line_tuples().count(), 0);
     }
 }

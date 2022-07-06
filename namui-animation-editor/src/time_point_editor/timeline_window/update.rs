@@ -35,7 +35,7 @@ impl TimelineWindow {
                     self.handle_timeline_dragging(mouse_local_xy);
                 }
                 &Event::KeyframeMouseDown {
-                    ref point_ids,
+                    ref point_id,
                     anchor_xy,
                     mouse_local_xy,
                     keyframe_time,
@@ -47,7 +47,7 @@ impl TimelineWindow {
                             self.animation_history
                                 .try_set_action(DraggingKeyframeAction {
                                     layer_id: layer_id.clone(),
-                                    point_ids: point_ids.clone(),
+                                    point_id: point_id.clone(),
                                     drag_end_x: mouse_local_xy.x.into(),
                                     anchor_x: Px::from(anchor_xy.x),
                                     time_per_px: self.time_per_px,
@@ -237,7 +237,7 @@ fn delete_point(layer: &mut Layer, time: Time) {
 
 struct DraggingKeyframeAction {
     layer_id: String,
-    point_ids: Vec<String>,
+    point_id: String,
     drag_end_x: Px,
     anchor_x: Px,
     start_at: Time,
@@ -253,9 +253,7 @@ impl Act<Animation> for DraggingKeyframeAction {
         {
             let to_time = self.start_at + (self.drag_end_x - self.anchor_x) * self.time_per_px;
 
-            for point_id in &self.point_ids {
-                move_point(layer, &point_id, to_time)?;
-            }
+            move_point(layer, &self.point_id, to_time)?;
 
             Ok(animation)
         } else {

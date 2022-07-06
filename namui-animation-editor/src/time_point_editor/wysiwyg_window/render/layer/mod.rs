@@ -22,7 +22,6 @@ impl WysiwygWindow {
                 .image
                 .image_keyframe_graph
                 .get_point_line_tuples()
-                .iter()
                 .map(|(point, _)| point.time)
                 .any(|time| time == playback_time);
 
