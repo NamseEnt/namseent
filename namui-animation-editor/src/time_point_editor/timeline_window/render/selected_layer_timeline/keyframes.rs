@@ -31,20 +31,30 @@ impl TimelineWindow {
             namui::path(path_builder.clone(), selected_fill_paint_builder.clone()),
         ]);
 
-        let keyframes = layer
+        let points = layer
             .image
             .image_keyframe_graph
             .get_point_line_tuples()
             .map(|(point, _)| point);
 
-        let signs = keyframes
-            .filter(|keyframe| {
-                self.start_at <= keyframe.time
-                    && keyframe.time <= self.start_at + (self.time_per_px * Px::from(wh.width))
+        let signs = points
+            .filter(|point| {
+                self.start_at <= point.time
+                    && point.time <= self.start_at + (self.time_per_px * Px::from(wh.width))
             })
-            .map(|keyframe| {
-                let x = (keyframe.time - self.start_at) / self.time_per_px;
-                let is_selected = keyframe.time == self.get_playback_time();
+            .map(|point| {
+                let x = (point.time - self.start_at) / self.time_per_px;
+                let is_selected = {
+                    if let Some(selection) = &self.selection {
+                        if let Selection::Keyframe { point_id, layer_id } = selection {
+                            layer.id.eq(layer_id) && point.id() == point_id
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                };
 
                 let sign = match is_selected {
                     true => selected_sign.clone(),
@@ -55,8 +65,8 @@ impl TimelineWindow {
                     px(0.0),
                     sign.attach_event(move |builder| {
                         let window_id = self.window_id.clone();
-                        let point_id = keyframe.id().to_string();
-                        let keyframe_time = keyframe.time;
+                        let point_id = point.id().to_string();
+                        let keyframe_time = point.time;
                         let layer_id = layer.id.clone();
 
                         builder.on_mouse_down(move |event| {

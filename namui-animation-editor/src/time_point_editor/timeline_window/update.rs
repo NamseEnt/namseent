@@ -41,6 +41,11 @@ impl TimelineWindow {
                     keyframe_time,
                     ref layer_id,
                 } => {
+                    namui::log!("KeyframeMouseDown");
+                    self.selection = Some(Selection::Keyframe {
+                        point_id: point_id.clone(),
+                        layer_id: layer_id.clone(),
+                    });
                     self.set_playback_time(keyframe_time);
                     if self.dragging.is_none() {
                         if let Some(action_ticket) =
@@ -110,6 +115,13 @@ impl TimelineWindow {
                 }
                 Event::TimelineSpaceKeyDown => {
                     self.playing_status.toggle_play();
+                }
+                Event::LineMouseDown { point_id, layer_id } => {
+                    namui::log!("line mouse down");
+                    self.selection = Some(Selection::Line {
+                        point_id: point_id.clone(),
+                        layer_id: layer_id.clone(),
+                    });
                 }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {

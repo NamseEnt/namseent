@@ -16,6 +16,7 @@ pub struct TimelineWindow {
     time_per_px: TimePerPx,
     dragging: Option<Dragging>,
     playing_status: PlayingStatus,
+    selection: Option<Selection>,
 }
 
 impl TimelineWindow {
@@ -27,6 +28,7 @@ impl TimelineWindow {
             time_per_px: Time::Ms(10.0) / Px::from(1.0_f32),
             dragging: None,
             playing_status: PlayingStatus::new(),
+            selection: None,
         }
     }
     pub fn get_playback_time(&self) -> Time {
@@ -73,9 +75,18 @@ pub(super) enum Event {
         playback_time: Time,
     },
     TimelineSpaceKeyDown,
+    LineMouseDown {
+        point_id: String,
+        layer_id: String,
+    },
 }
 
 enum Dragging {
     Background { last_mouse_local_xy: Xy<Px> },
     Keyframe { action_ticket: ActionTicket },
+}
+
+enum Selection {
+    Keyframe { point_id: String, layer_id: String },
+    Line { point_id: String, layer_id: String },
 }

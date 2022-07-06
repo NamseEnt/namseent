@@ -1,4 +1,5 @@
 use super::*;
+use namui::animation::{ImageKeyframe, KeyframePoint};
 
 impl TimelineWindow {
     pub(super) fn render_lines(&self, wh: Wh<Px>, layer: &Layer) -> RenderingTree {
@@ -28,26 +29,58 @@ impl TimelineWindow {
             let left_x = (left_point.time - self.start_at) / self.time_per_px;
             let right_x = (right_point.time - self.start_at) / self.time_per_px;
 
-            lines.push(render_line(left_x, right_x, wh));
+            lines.push(self.render_line(layer, left_point, left_x, right_x, wh));
         }
 
         render(lines)
     }
-}
+    fn render_line(
+        &self,
+        layer: &Layer,
+        left_point: &KeyframePoint<ImageKeyframe>,
+        left_x: Px,
+        right_x: Px,
+        wh: Wh<Px>,
+    ) -> RenderingTree {
+        let is_selected = {
+            if let Some(selection) = &self.selection {
+                if let Selection::Line { point_id, layer_id } = selection {
+                    layer.id.eq(layer_id) && left_point.id() == point_id
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        };
 
-fn render_line(left_x: Px, right_x: Px, wh: Wh<Px>) -> RenderingTree {
-    let line_height = wh.height / 3.0;
-    translate(
-        left_x,
-        (wh.height - line_height) / 2.0,
-        simple_rect(
-            Wh {
-                width: right_x - left_x,
-                height: line_height,
-            },
-            Color::BLACK,
-            2.px(),
-            Color::GREEN,
-        ),
-    )
+        let line_height = wh.height / 3.0;
+        translate(
+            left_x,
+            (wh.height - line_height) / 2.0,
+            simple_rect(
+                Wh {
+                    width: right_x - left_x,
+                    height: line_height,
+                },
+                Color::BLACK,
+                2.px(),
+                if is_selected {
+                    Color::RED
+                } else {
+                    Color::grayscale_f01(0.5)
+                },
+            ),
+        )
+        .attach_event(|builder| {
+            let point_id = left_point.id().to_string();
+            let layer_id = layer.id.clone();
+            builder.on_mouse_down(move |_| {
+                namui::event::send(Event::LineMouseDown {
+                    point_id: point_id.clone(),
+                    layer_id: layer_id.clone(),
+                })
+            });
+        })
+    }
 }
