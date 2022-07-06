@@ -8,7 +8,11 @@ use crate::app::types::*;
 use namui::prelude::*;
 use std::sync::Arc;
 
-pub struct CharacterWysiwygEditor {}
+pub struct CharacterWysiwygEditor {
+    id: String,
+    resizer: Resizer,
+    cropper: Cropper,
+}
 
 pub struct CharacterWysiwygEditorProps<'a> {
     pub rect: Rect<Px>,
@@ -17,9 +21,16 @@ pub struct CharacterWysiwygEditorProps<'a> {
 
 impl CharacterWysiwygEditor {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            id: namui::nanoid(),
+            resizer: Resizer::new(),
+            cropper: Cropper::new(),
+        }
     }
-    pub fn update(&mut self, _event: &dyn std::any::Any) {}
+    pub fn update(&mut self, event: &dyn std::any::Any) {
+        self.resizer.update(event);
+        self.cropper.update(event);
+    }
     pub fn render(&self, props: &CharacterWysiwygEditorProps) -> RenderingTree {
         let container_size = Wh {
             width: props.rect.width(),
@@ -84,21 +95,21 @@ impl CharacterWysiwygEditor {
                     source_rect,
                     dest_rect,
                     container_size,
-                    self.get_id(),
+                    &self.id,
                 ),
-                Resizer::new(self.get_id()).render(&ResizerProps {
+                self.resizer.render(&ResizerProps {
                     source_rect,
                     container_size,
                 }),
-                Cropper::new().render(&CropperProps {
+                self.cropper.render(&CropperProps {
                     dest_rect,
                     container_size,
                 }),
             ]),
         )
     }
-    pub fn get_id(&self) -> &'static str {
-        "character"
+    pub fn get_id(&self) -> &str {
+        &self.id
     }
 }
 
@@ -159,7 +170,7 @@ fn render_inner_image(
     source_rect: Rect<Px>,
     dest_rect: Rect<Px>,
     container_size: Wh<Px>,
-    id: &'static str,
+    id: &str,
 ) -> RenderingTree {
     let container_size = container_size.clone();
 
