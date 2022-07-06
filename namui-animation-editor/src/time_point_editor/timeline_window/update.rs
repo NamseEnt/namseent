@@ -173,18 +173,37 @@ impl TimelineWindow {
                 {
                     let time = self.time;
 
-                    add_new_point(
-                        &mut layer.image.image_keyframe_graph,
-                        time,
-                        ImageKeyframe {
+                    let new_keyframe = {
+                        let mut most_nearest_left_keyframe = None;
+
+                        let mut iter = layer
+                            .image
+                            .image_keyframe_graph
+                            .get_point_line_tuples()
+                            .peekable();
+
+                        while let Some((point, _)) = iter.next() {
+                            if let Some((next_point, _)) = iter.peek() {
+                                if next_point.time > time {
+                                    most_nearest_left_keyframe = Some(point.value.clone());
+                                    break;
+                                }
+                            } else {
+                                most_nearest_left_keyframe = Some(point.value.clone());
+                            }
+                        }
+
+                        most_nearest_left_keyframe.unwrap_or(ImageKeyframe {
                             x: 0.0.px(),
                             y: 0.0.px(),
                             width_percent: 100.0.percent(),
                             height_percent: 100.0.percent(),
                             opacity: 1.0.into(),
                             rotation_angle: Angle::Degree(0.0),
-                        },
-                    );
+                        })
+                    };
+
+                    add_new_point(&mut layer.image.image_keyframe_graph, time, new_keyframe);
 
                     Ok(animation)
                 } else {
