@@ -44,7 +44,6 @@ impl SheetSequenceSyncer {
                         self.status = SheetSequenceSyncerStatus::Failed(error.to_string());
                     }
                 },
-                _ => {}
             }
         }
     }

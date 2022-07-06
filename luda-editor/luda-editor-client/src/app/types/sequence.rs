@@ -169,6 +169,7 @@ fn is_false(value: impl std::borrow::Borrow<bool>) -> bool {
 }
 
 impl SubtitleClip {
+    #[allow(dead_code)]
     pub fn is_at_time(
         &self,
         time: Time,

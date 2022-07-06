@@ -1,12 +1,12 @@
-use crate::app::editor::TimelineRenderContext;
 use namui::prelude::*;
 
 const SASH_WIDTH: Px = px(15.0);
-pub(super) struct SashBodyProps<'a> {
-    pub context: &'a TimelineRenderContext<'a>,
+
+pub(super) struct SashBodyProps {
     pub direction: SashDirection,
     pub clip_rect: Rect<Px>,
 }
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 pub enum SashDirection {
     Left,
