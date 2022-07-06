@@ -19,7 +19,7 @@ pub fn render_back_button(wh: Wh<Px>) -> RenderingTree {
             },
         })
         .attach_event(|builder| {
-            builder.on_mouse_down(|_| {
+            builder.on_mouse_down_in(|_| {
                 namui::event::send(RouterEvent::PageChangeRequestedToFileSelectorEvent(
                     Box::new(|| FileSelector::new()),
                 ));

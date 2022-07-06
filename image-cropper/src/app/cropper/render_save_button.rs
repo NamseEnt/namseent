@@ -19,7 +19,7 @@ pub fn render_save_button(wh: Wh<Px>) -> RenderingTree {
             },
         })
         .attach_event(|builder| {
-            builder.on_mouse_down(|_| namui::event::send(CropperEvent::SaveButtonClicked));
+            builder.on_mouse_down_in(|_| namui::event::send(CropperEvent::SaveButtonClicked));
         })
         .with_mouse_cursor(namui::MouseCursor::Pointer),
         namui::text(TextParam {

@@ -20,7 +20,7 @@ pub fn render_open_button(
                 let sequence = sequence.clone();
                 let path = path.clone();
                 let title = title.clone();
-                builder.on_mouse_down(move |_| {
+                builder.on_mouse_down_in(move |_| {
                     let sequence = sequence.clone();
                     let path = path.clone();
                     let title = title.clone();

@@ -79,7 +79,7 @@ impl TimelineWindow {
                         let keyframe_time = keyframe.time;
                         let window_id = self.window_id.clone();
                         let layer_id = selected_layer.id.clone();
-                        builder.on_mouse_down(move |event| {
+                        builder.on_mouse_down_in(move |event| {
                             let window_global_xy = event
                                 .namui_context
                                 .get_rendering_tree_xy_by_id(&window_id)

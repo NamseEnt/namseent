@@ -179,7 +179,7 @@ fn render_inner_image(
         render_source_image(image, None, source_rect)
             .attach_event(|builder| {
                 let target_id = id.to_string();
-                builder.on_mouse_down(move |event| {
+                builder.on_mouse_down_in(move |event| {
                     namui::event::send(WysiwygEvent::InnerImageMouseDownEvent {
                         target_id: target_id.clone(),
                         mouse_xy: event.global_xy,

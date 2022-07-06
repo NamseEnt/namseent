@@ -81,7 +81,7 @@ impl WysiwygWindow {
             let window_id = self.window_id.clone();
             let layer_id = selected_layer_id.clone();
             let real_px_per_screen_px = self.real_px_per_screen_px;
-            builder.on_mouse_down(move |event| {
+            builder.on_mouse_down_in(move |event| {
                 let window_global_xy = event
                     .namui_context
                     .get_rendering_tree_xy_by_id(&window_id)

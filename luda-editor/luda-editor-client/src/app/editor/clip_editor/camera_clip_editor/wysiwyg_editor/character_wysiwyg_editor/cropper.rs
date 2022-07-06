@@ -60,7 +60,7 @@ fn render_handles(dest_rect: Rect<Px>, container_size: Wh<Px>) -> RenderingTree 
                 .attach_event(move |builder| {
                     let handle = handle.clone();
                     let container_size = container_size.clone();
-                    builder.on_mouse_down(move |mouse_event| {
+                    builder.on_mouse_down_in(move |mouse_event| {
                         namui::event::send(CharacterWysiwygEditorCropperHandleMouseDownEvent {
                             handle: handle.clone(),
                             mouse_xy: mouse_event.global_xy,
