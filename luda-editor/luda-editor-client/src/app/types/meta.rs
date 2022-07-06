@@ -14,7 +14,7 @@ pub struct Meta {
     pub subtitle_specific_text_token_play_duration_map: LinkedHashMap<String, Time>,
     pub subtitle_character_color_map: HashMap<String, Color>,
 }
-#[allow(dead_code)]
+
 pub async fn save_meta(meta: &Meta, socket: &Socket) -> Result<(), String> {
     let result = socket
         .write_file(luda_editor_rpc::write_file::Request {

@@ -19,7 +19,6 @@ pub struct CameraClipEditor {
     background_image_browser: ImageBrowser,
     character_wysiwyg_editor: CharacterWysiwygEditor,
     background_wysiwyg_editor: BackgroundWysiwygEditor,
-    preview: Preview,
     selected_tab: Tab,
     clip_id: String,
 }
@@ -61,7 +60,6 @@ impl CameraClipEditor {
             background_wysiwyg_editor: BackgroundWysiwygEditor::new(),
             selected_tab: Tab::CharacterImage,
             clip_id: clip.id.clone(),
-            preview: Preview::new(),
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -147,12 +145,9 @@ impl CameraClipEditor {
                         mouse_xy: mouse_xy.clone(),
                     });
                 }
+                _ => {}
             }
         }
-        self.background_image_browser.update(event);
-        self.background_wysiwyg_editor.update(event);
-        self.character_wysiwyg_editor.update(event);
-        self.preview.update(event);
     }
     pub fn render(&self, props: &CameraClipEditorProps) -> RenderingTree {
         let left_box_wh = Wh {
@@ -247,7 +242,7 @@ impl CameraClipEditor {
             height: wh.width / (1920.0 / 1080.0),
         };
 
-        let preview = self.preview.render(&PreviewProps {
+        let preview = Preview::new().render(&PreviewProps {
             camera_angle: &camera_angle,
             rect: preview_rect,
             camera_angle_image_loader,
