@@ -71,7 +71,7 @@ pub(super) fn render_sheet_sequence_syncer_bar(
         SheetSequenceSyncerStatus::Syncing => namui::MouseCursor::Default,
     })
     .attach_event(|builder| {
-        builder.on_mouse_up(|_| {
+        builder.on_mouse_up_in(|_| {
             namui::event::send(SheetSequenceSyncerEvent::RequestSyncStart);
         });
     });

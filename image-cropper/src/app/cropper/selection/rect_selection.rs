@@ -31,7 +31,7 @@ impl SelectionTrait for RectSelection {
             })
             .attach_event(|builder| {
                 let id = self.id.clone();
-                builder.on_mouse_down(move |event| {
+                builder.on_mouse_down_in(move |event| {
                     if event.pressing_buttons.contains(&namui::MouseButton::Right) {
                         namui::event::send(SelectionEvent::SelectionRightClicked {
                             target_id: id.clone(),
@@ -98,7 +98,7 @@ fn render_handles(rect: Rect<Px>, selection_id: String) -> RenderingTree {
         .attach_event(move |builder| {
             let selection_id = selection_id.clone();
             let direction = direction.clone();
-            builder.on_mouse_down(move |_| {
+            builder.on_mouse_down_in(move |_| {
                 let selection_id = selection_id.clone();
                 let direction = direction.clone();
                 namui::event::send(SelectionEvent::RectSelectionResizeHandleClicked {

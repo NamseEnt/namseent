@@ -40,7 +40,7 @@ pub fn render_browser_item(props: &BrowserItemProps) -> RenderingTree {
         .attach_event(move |builder| {
             let item = props.item.clone();
             let browser_id = props.browser_id.clone();
-            builder.on_mouse_down(move |_| {
+            builder.on_mouse_down_in(move |_| {
                 namui::event::send(ImageBrowserEvent::Select {
                     browser_id: browser_id.clone(),
                     item: item.clone(),

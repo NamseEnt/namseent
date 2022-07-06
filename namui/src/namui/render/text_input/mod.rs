@@ -5,7 +5,7 @@ use crate::{
 use std::ops::Range;
 mod draw_caret;
 mod draw_texts_divided_by_selection;
-mod get_selection_on_mouse_down;
+mod get_selection_on_mouse_down_in;
 
 pub type Selection = Option<Range<usize>>;
 

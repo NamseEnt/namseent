@@ -95,7 +95,7 @@ impl ResizableClipBody {
         })
         .attach_event(move |builder| {
             let clip_id = props.clip.id();
-            builder.on_mouse_down(move |event| {
+            builder.on_mouse_down_in(move |event| {
                 let clicked_part = if is_sashes_showing {
                     AVAILABLE_SASH_DIRECTIONS
                         .iter()

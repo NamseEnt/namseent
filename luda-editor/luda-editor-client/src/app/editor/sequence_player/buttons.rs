@@ -58,7 +58,7 @@ pub(super) fn render_buttons(props: &ButtonsProps) -> RenderingTree {
             },
         })
         .attach_event(|event_builder| {
-            event_builder.on_mouse_down(move |_| {
+            event_builder.on_mouse_down_in(move |_| {
                 namui::event::send(match is_toggle_button_play_button {
                     true => ButtonsEvent::PlayButtonClicked,
                     false => ButtonsEvent::PauseButtonClicked,

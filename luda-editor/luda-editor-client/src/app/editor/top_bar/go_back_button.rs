@@ -20,7 +20,7 @@ pub fn render_go_back_button(wh: Wh<Px>) -> RenderingTree {
         })
         .with_mouse_cursor(namui::MouseCursor::Pointer)
         .attach_event(move |builder| {
-            builder.on_mouse_down(move |_| namui::event::send(TopBarEvent::GoBackButtonClicked));
+            builder.on_mouse_down_in(move |_| namui::event::send(TopBarEvent::GoBackButtonClicked));
         }),
         namui::text(namui::TextParam {
             text: "Go back".to_string(),

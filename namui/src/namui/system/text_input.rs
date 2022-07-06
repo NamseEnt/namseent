@@ -79,7 +79,7 @@ fn get_input_element() -> HtmlInputElement {
     let element = document.get_element_by_id(TEXT_INPUT_ELEMENT_ID).unwrap();
     wasm_bindgen::JsCast::dyn_into::<HtmlInputElement>(element).unwrap()
 }
-pub(crate) fn on_mouse_down(namui_context: &NamuiContext, raw_mouse_event: &RawMouseEvent) {
+pub(crate) fn on_mouse_down_in(namui_context: &NamuiContext, raw_mouse_event: &RawMouseEvent) {
     let input_element = get_input_element();
     let mut last_focused_text_input_id =
         TEXT_INPUT_SYSTEM.last_focused_text_input_id.lock().unwrap();
@@ -147,7 +147,7 @@ pub(crate) fn on_mouse_move(namui_context: &NamuiContext, raw_mouse_event: &RawM
         true,
     );
 }
-pub(crate) fn on_mouse_up() {
+pub(crate) fn on_mouse_up_in() {
     *TEXT_INPUT_SYSTEM.dragging_text_input_id.lock().unwrap() = None;
 }
 pub fn is_focused(text_input_id: &str) -> bool {

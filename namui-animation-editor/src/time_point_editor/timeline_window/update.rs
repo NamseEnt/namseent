@@ -41,11 +41,12 @@ impl TimelineWindow {
                     keyframe_time,
                     ref layer_id,
                 } => {
-                    namui::log!("KeyframeMouseDown");
-                    self.selection = Some(Selection::Keyframe {
-                        point_id: point_id.clone(),
-                        layer_id: layer_id.clone(),
-                    });
+                    namui::event::send(crate::time_point_editor::Event::ChangEditingTarget(Some(
+                        EditingTarget::Keyframe {
+                            point_id: point_id.clone(),
+                            layer_id: layer_id.clone(),
+                        },
+                    )));
                     self.set_playback_time(keyframe_time);
                     if self.dragging.is_none() {
                         if let Some(action_ticket) =
@@ -113,15 +114,34 @@ impl TimelineWindow {
                         }
                     }
                 }
-                Event::TimelineSpaceKeyDown => {
+                Event::TimelineSpaceKeyDown {
+                    selected_layer_id,
+                    editing_target,
+                } => {
+                    let was_playing = self.playing_status.is_playing();
+
                     self.playing_status.toggle_play();
+
+                    if was_playing {
+                        if let Some(EditingTarget::Keyframe { point_id, layer_id }) = editing_target
+                        {
+                            if selected_layer_id.as_ref().eq(&Some(layer_id)) {
+                                self.move_playback_time_to_point(layer_id, point_id);
+                            }
+                        }
+                    }
                 }
                 Event::LineMouseDown { point_id, layer_id } => {
-                    namui::log!("line mouse down");
-                    self.selection = Some(Selection::Line {
-                        point_id: point_id.clone(),
-                        layer_id: layer_id.clone(),
-                    });
+                    namui::event::send(crate::time_point_editor::Event::ChangEditingTarget(Some(
+                        EditingTarget::Line {
+                            point_id: point_id.clone(),
+                            layer_id: layer_id.clone(),
+                        },
+                    )));
+                }
+                Event::MouseLeftDownOutOfEditingTargetButInWindow => {
+                    namui::log!("MouseDownOutOfKeyframeButInWindow");
+                    namui::event::send(crate::time_point_editor::Event::ChangEditingTarget(None));
                 }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
@@ -135,6 +155,25 @@ impl TimelineWindow {
                 _ => {}
             }
         }
+    }
+    fn move_playback_time_to_point(&mut self, layer_id: &str, point_id: &str) {
+        let animation = self.animation_history.get_preview();
+
+        let selected_layer = animation
+            .layers
+            .iter()
+            .find(|layer| layer.id.eq(layer_id))
+            .unwrap();
+
+        let point = selected_layer
+            .image
+            .image_keyframe_graph
+            .get_point(point_id)
+            .unwrap();
+
+        let time = point.time;
+
+        self.playing_status.set_playback_time(time);
     }
     fn handle_timeline_dragging(&mut self, mouse_local_xy: Xy<Px>) {
         if self.dragging.is_none() {

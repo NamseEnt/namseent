@@ -135,7 +135,7 @@ impl TimelineBody {
                         mouse_position_in_time: get_mouse_position_in_time(event.local_xy.x),
                     })
                 })
-                .on_mouse_down(move |event| {
+                .on_mouse_down_in(move |event| {
                     if event.button == Some(MouseButton::Left) {
                         namui::event::send(TimelineBodyLeftClickEvent {
                             mouse_event_id: event.id.clone(),

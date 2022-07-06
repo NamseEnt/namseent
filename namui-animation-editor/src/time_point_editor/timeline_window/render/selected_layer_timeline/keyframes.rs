@@ -1,7 +1,12 @@
 use super::*;
 
 impl TimelineWindow {
-    pub(super) fn render_keyframes(&self, wh: Wh<Px>, layer: &Layer) -> RenderingTree {
+    pub(super) fn render_keyframes(
+        &self,
+        props: &Props,
+        wh: Wh<Px>,
+        layer: &Layer,
+    ) -> RenderingTree {
         let path_builder = PathBuilder::new()
             .move_to(0.px(), 0.px())
             .line_to(20.px(), 0.px())
@@ -45,8 +50,8 @@ impl TimelineWindow {
             .map(|point| {
                 let x = (point.time - self.start_at) / self.time_per_px;
                 let is_selected = {
-                    if let Some(selection) = &self.selection {
-                        if let Selection::Keyframe { point_id, layer_id } = selection {
+                    if let Some(editing_target) = &props.editing_target {
+                        if let EditingTarget::Keyframe { point_id, layer_id } = editing_target {
                             layer.id.eq(layer_id) && point.id() == point_id
                         } else {
                             false
@@ -69,7 +74,7 @@ impl TimelineWindow {
                         let keyframe_time = point.time;
                         let layer_id = layer.id.clone();
 
-                        builder.on_mouse_down(move |event| {
+                        builder.on_mouse_down_in(move |event| {
                             let window_global_xy = event
                                 .namui_context
                                 .get_rendering_tree_xy_by_id(&window_id)

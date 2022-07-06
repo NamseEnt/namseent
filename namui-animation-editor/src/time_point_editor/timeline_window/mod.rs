@@ -1,11 +1,13 @@
+use super::EditingTarget;
 use crate::types::{Act, ActionTicket, AnimationHistory};
 use namui::{
     animation::{Animation, Layer},
     prelude::*,
 };
 use namui_prebuilt::{table::*, *};
-mod playing_status;
 use playing_status::*;
+
+mod playing_status;
 mod render;
 mod update;
 
@@ -16,7 +18,6 @@ pub struct TimelineWindow {
     time_per_px: TimePerPx,
     dragging: Option<Dragging>,
     playing_status: PlayingStatus,
-    selection: Option<Selection>,
 }
 
 impl TimelineWindow {
@@ -28,7 +29,6 @@ impl TimelineWindow {
             time_per_px: Time::Ms(10.0) / Px::from(1.0_f32),
             dragging: None,
             playing_status: PlayingStatus::new(),
-            selection: None,
         }
     }
     pub fn get_playback_time(&self) -> Time {
@@ -43,6 +43,7 @@ pub(crate) struct Props<'a> {
     pub layers: &'a [Layer],
     pub wh: Wh<Px>,
     pub selected_layer_id: Option<String>,
+    pub editing_target: Option<EditingTarget>,
 }
 
 pub(super) enum Event {
@@ -70,11 +71,15 @@ pub(super) enum Event {
         mouse_local_xy: Xy<Px>,
         layer_id: String,
     },
+    MouseLeftDownOutOfEditingTargetButInWindow,
     TimelineDeleteKeyDown {
         selected_layer_id: Option<String>,
         playback_time: Time,
     },
-    TimelineSpaceKeyDown,
+    TimelineSpaceKeyDown {
+        selected_layer_id: Option<String>,
+        editing_target: Option<EditingTarget>,
+    },
     LineMouseDown {
         point_id: String,
         layer_id: String,
@@ -84,9 +89,4 @@ pub(super) enum Event {
 enum Dragging {
     Background { last_mouse_local_xy: Xy<Px> },
     Keyframe { action_ticket: ActionTicket },
-}
-
-enum Selection {
-    Keyframe { point_id: String, layer_id: String },
-    Line { point_id: String, layer_id: String },
 }

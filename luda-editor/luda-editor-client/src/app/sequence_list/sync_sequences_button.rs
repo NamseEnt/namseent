@@ -8,7 +8,7 @@ pub fn render_sync_sequences_button(wh: Wh<Px>) -> RenderingTree {
     render([
         render_rounded_rectangle(wh, RoundedRectangleColor::Blue)
             .attach_event(move |builder| {
-                builder.on_mouse_down(move |_| {
+                builder.on_mouse_down_in(move |_| {
                     namui::event::send(SequenceListEvent::SyncSequencesButtonClickedEvent {});
                 });
             })

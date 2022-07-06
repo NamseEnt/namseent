@@ -24,7 +24,7 @@ pub fn render_meta_update_button(props: &MetaUpdateButtonProps) -> RenderingTree
         })
         .with_mouse_cursor(namui::MouseCursor::Pointer)
         .attach_event(move |builder| {
-            builder.on_mouse_down(move |_| {
+            builder.on_mouse_down_in(move |_| {
                 namui::event::send(MetaContainerEvent::MetaReloadRequested)
             });
         }),

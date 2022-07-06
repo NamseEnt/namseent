@@ -2,7 +2,7 @@ use super::*;
 use namui::animation::{ImageKeyframe, KeyframePoint};
 
 impl TimelineWindow {
-    pub(super) fn render_lines(&self, wh: Wh<Px>, layer: &Layer) -> RenderingTree {
+    pub(super) fn render_lines(&self, props: &Props, wh: Wh<Px>, layer: &Layer) -> RenderingTree {
         let mut point_line_tuples = layer
             .image
             .image_keyframe_graph
@@ -29,13 +29,14 @@ impl TimelineWindow {
             let left_x = (left_point.time - self.start_at) / self.time_per_px;
             let right_x = (right_point.time - self.start_at) / self.time_per_px;
 
-            lines.push(self.render_line(layer, left_point, left_x, right_x, wh));
+            lines.push(self.render_line(props, layer, left_point, left_x, right_x, wh));
         }
 
         render(lines)
     }
     fn render_line(
         &self,
+        props: &Props,
         layer: &Layer,
         left_point: &KeyframePoint<ImageKeyframe>,
         left_x: Px,
@@ -43,8 +44,8 @@ impl TimelineWindow {
         wh: Wh<Px>,
     ) -> RenderingTree {
         let is_selected = {
-            if let Some(selection) = &self.selection {
-                if let Selection::Line { point_id, layer_id } = selection {
+            if let Some(editing_target) = &props.editing_target {
+                if let EditingTarget::Line { point_id, layer_id } = editing_target {
                     layer.id.eq(layer_id) && left_point.id() == point_id
                 } else {
                     false
@@ -75,7 +76,7 @@ impl TimelineWindow {
         .attach_event(|builder| {
             let point_id = left_point.id().to_string();
             let layer_id = layer.id.clone();
-            builder.on_mouse_down(move |_| {
+            builder.on_mouse_down_in(move |_| {
                 namui::event::send(Event::LineMouseDown {
                     point_id: point_id.clone(),
                     layer_id: layer_id.clone(),

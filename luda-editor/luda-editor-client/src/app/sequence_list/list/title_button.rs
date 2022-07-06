@@ -18,7 +18,7 @@ pub fn render_title_button(width: Px, title: &String) -> RenderingTreeRow {
                 .with_mouse_cursor(namui::MouseCursor::Pointer)
                 .attach_event(move |builder| {
                     let title = title.clone();
-                    builder.on_mouse_down(move |_| {
+                    builder.on_mouse_down_in(move |_| {
                         let title = title.clone();
                         namui::event::send(SequenceListEvent::SequenceTitleButtonClickedEvent {
                             title,

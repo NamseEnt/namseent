@@ -12,15 +12,16 @@ impl WysiwygWindow {
             return RenderingTree::Empty;
         }
 
-        let layers = animation.layers.iter().map(|layer| {
-            self.render_layer(layer, props.playback_time, props.selected_layer_id.clone())
-        });
+        let layers = animation
+            .layers
+            .iter()
+            .map(|layer| self.render_layer(&props, layer));
 
         let background = simple_rect(props.wh, Color::BLACK, px(1.0), Color::TRANSPARENT)
             .with_id(&self.window_id)
             .attach_event(|builder| {
                 builder
-                    .on_mouse_down(|event| {
+                    .on_mouse_down_in(|event| {
                         namui::event::send(super::Event::BackgroundClicked {
                             mouse_xy: event.local_xy,
                         });

@@ -1,9 +1,11 @@
+use super::EditingTarget;
 use crate::types::{ActionTicket, AnimationHistory};
 use namui::{
     prelude::*,
     types::{Angle, Px, Time},
 };
 use namui_prebuilt::*;
+
 mod render;
 mod update;
 
@@ -34,6 +36,7 @@ pub struct Props<'a> {
     pub playback_time: Time,
     pub animation: &'a animation::Animation,
     pub selected_layer_id: Option<String>,
+    pub editing_target: Option<EditingTarget>,
 }
 
 #[derive(Clone, Copy, Debug)]

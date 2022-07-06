@@ -30,7 +30,7 @@ impl WysiwygWindow {
             let window_id = self.window_id.clone();
             let keyframe_point_id = keyframe_point_id.clone();
 
-            builder.on_mouse_down(move |event| {
+            builder.on_mouse_down_in(move |event| {
                 let window_global_xy = event
                     .namui_context
                     .get_rendering_tree_xy_by_id(&window_id)

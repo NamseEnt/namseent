@@ -49,7 +49,7 @@ impl Header {
             })
         ]
         .attach_event(|builder| {
-            builder.on_mouse_up(|_event| {
+            builder.on_mouse_up_in(|_event| {
                 namui::event::send(super::Event::AddLayerButtonClicked);
             });
         });

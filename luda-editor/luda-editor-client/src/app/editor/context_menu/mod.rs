@@ -74,7 +74,7 @@ impl ContextMenu {
                 .attach_event(move |builder| {
                     let time_to_create_clip = self.mouse_position_in_time;
                     let id = self.id.clone();
-                    builder.on_mouse_up(move |event| {
+                    builder.on_mouse_up_in(move |event| {
                         if event.button == Some(MouseButton::Left) {
                             namui::event::send(ContextMenuEvent::CloseContextMenu(id.clone()));
                             namui::event::send(ContextMenuEvent::CreateCameraClip(
