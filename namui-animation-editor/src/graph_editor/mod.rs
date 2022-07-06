@@ -1,4 +1,4 @@
-use namui::{prelude::*, types::*};
+use namui::prelude::*;
 use namui_prebuilt::table::*;
 mod graph_window;
 use crate::*;
@@ -12,7 +12,7 @@ pub struct GraphEditor {
 }
 
 pub struct Props<'a> {
-    pub wh: Wh<f32>,
+    pub wh: Wh<Px>,
     pub layer_list_window: &'a layer_list_window::LayerListWindow,
     pub animation: &'a Animation,
 }

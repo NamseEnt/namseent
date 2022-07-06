@@ -1,7 +1,21 @@
-use num::{FromPrimitive, ToPrimitive};
+use num::{cast::AsPrimitive, FromPrimitive, ToPrimitive};
 use std::fmt::Display;
 
 super::common_for_f32_type!(Px);
+
+pub const fn px(value: f32) -> Px {
+    Px(value)
+}
+
+pub trait PxExt {
+    fn px(self) -> Px;
+}
+
+impl PxExt for f32 {
+    fn px(self) -> Px {
+        Px(self)
+    }
+}
 
 impl Display for Px {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -37,32 +51,8 @@ impl ToPrimitive for Px {
     }
 }
 
-auto_ops::impl_op!(/|lhs: Px, rhs: i8| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: u8| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: i16| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: u16| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: i32| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: u32| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: i64| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: u64| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: i128| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: u128| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: isize| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: usize| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: f32| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: Px, rhs: f64| -> Px { Px(lhs.0 / rhs as f32) });
-
-auto_ops::impl_op!(/|lhs: &Px, rhs: i8| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: u8| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: i16| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: u16| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: i32| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: u32| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: i64| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: u64| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: i128| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: u128| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: isize| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: usize| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: f32| -> Px { Px(lhs.0 / rhs as f32) });
-auto_ops::impl_op!(/|lhs: &Px, rhs: f64| -> Px { Px(lhs.0 / rhs as f32) });
+impl AsPrimitive<i32> for Px {
+    fn as_(self) -> i32 {
+        self.0 as i32
+    }
+}

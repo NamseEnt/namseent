@@ -1,4 +1,4 @@
-use crate::{event::EventReceiver, Entity, RenderingTree, Wh, Xy};
+use crate::{event::EventReceiver, *};
 use std::time::Duration;
 mod main_loop;
 
@@ -42,10 +42,10 @@ impl NamuiContext {
         crate::graphics::request_animation_frame(on_frame);
         self.run_main_loop(state, props).await;
     }
-    pub fn get_rendering_tree_xy_by_id(&self, id: &str) -> Option<Xy<f32>> {
+    pub fn get_rendering_tree_xy_by_id(&self, id: &str) -> Option<Xy<Px>> {
         self.rendering_tree.get_xy_by_id(id)
     }
-    pub fn get_rendering_tree_xy(&self, rendering_tree: &RenderingTree) -> Option<Xy<f32>> {
+    pub fn get_rendering_tree_xy(&self, rendering_tree: &RenderingTree) -> Option<Xy<Px>> {
         self.rendering_tree.get_xy_of_child(rendering_tree)
     }
 }

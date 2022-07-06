@@ -83,8 +83,8 @@ impl RenderingTree {
                     let back_up_matrix = crate::graphics::surface().canvas().get_matrix();
 
                     crate::graphics::surface().canvas().set_matrix(&[
-                        [1.0, 0.0, absolute.x],
-                        [0.0, 1.0, absolute.y],
+                        [1.0, 0.0, absolute.x.as_f32()],
+                        [0.0, 1.0, absolute.y.as_f32()],
                         [0.0, 0.0, 1.0],
                     ]);
 
@@ -95,11 +95,11 @@ impl RenderingTree {
                         .set_matrix(&back_up_matrix);
                 }
                 SpecialRenderingNode::Rotate(rotate) => {
-                    crate::graphics::surface().canvas().rotate(rotate.radian);
+                    crate::graphics::surface().canvas().rotate(rotate.angle);
 
                     rotate.rendering_tree.draw();
 
-                    crate::graphics::surface().canvas().rotate(-rotate.radian);
+                    crate::graphics::surface().canvas().rotate(-rotate.angle);
                 }
                 SpecialRenderingNode::Scale(scale) => {
                     crate::graphics::surface().canvas().scale(scale.x, scale.y);
@@ -166,7 +166,7 @@ impl RenderingTree {
             ControlFlow::Continue(())
         });
     }
-    pub(crate) fn get_mouse_cursor(&self, xy: Xy<f32>) -> Option<MouseCursor> {
+    pub(crate) fn get_mouse_cursor(&self, xy: Xy<Px>) -> Option<MouseCursor> {
         let mut result = None;
         self.visit_rln(|node, utils| {
             match node {
@@ -235,7 +235,7 @@ impl RenderingTree {
             ControlFlow::Continue(())
         });
     }
-    pub(crate) fn get_xy_by_id(&self, id: &str) -> Option<Xy<f32>> {
+    pub(crate) fn get_xy_by_id(&self, id: &str) -> Option<Xy<Px>> {
         let mut result = None;
         self.visit_rln(|node, utils| {
             match node {
@@ -254,7 +254,7 @@ impl RenderingTree {
         });
         result
     }
-    pub(crate) fn get_xy_of_child(&self, child: &RenderingTree) -> Option<Xy<f32>> {
+    pub(crate) fn get_xy_of_child(&self, child: &RenderingTree) -> Option<Xy<Px>> {
         let mut result = None;
         self.visit_rln(|node, utils| {
             if std::ptr::eq(node, child) {
@@ -265,21 +265,21 @@ impl RenderingTree {
         });
         result
     }
-    pub fn get_bounding_box(&self) -> Option<XywhRect<f32>> {
+    pub fn get_bounding_box(&self) -> Option<Rect<Px>> {
         fn get_bounding_box_with_matrix(
             rendering_tree: &RenderingTree,
             matrix: &Matrix3x3,
-        ) -> Option<LtrbRect> {
+        ) -> Option<Rect<Px>> {
             fn get_bounding_box_with_matrix_of_rendering_trees<'a>(
                 rendering_trees: impl IntoIterator<Item = impl Borrow<RenderingTree>>,
                 matrix: &Matrix3x3,
-            ) -> Option<LtrbRect> {
+            ) -> Option<Rect<Px>> {
                 rendering_trees
                     .into_iter()
                     .map(|child| get_bounding_box_with_matrix(child.borrow(), &matrix))
                     .filter_map(|bounding_box| bounding_box)
                     .reduce(|acc, bounding_box| {
-                        LtrbRect::get_minimum_rectangle_containing(&acc, &bounding_box)
+                        Rect::get_minimum_rectangle_containing(&acc, bounding_box)
                     })
             }
 
@@ -289,12 +289,12 @@ impl RenderingTree {
                 }
                 RenderingTree::Node(rendering_data) => rendering_data
                     .get_bounding_box()
-                    .map(|bounding_box| matrix.transform_rect(&bounding_box)),
+                    .map(|bounding_box| matrix.transform_rect(bounding_box)),
                 RenderingTree::Special(special) => match special {
                     SpecialRenderingNode::Translate(translate) => {
                         let translation_matrix = Matrix3x3::from_slice(&[
-                            [1.0, 0.0, translate.x],
-                            [0.0, 1.0, translate.y],
+                            [1.0, 0.0, translate.x.as_f32()],
+                            [0.0, 1.0, translate.y.as_f32()],
                             [0.0, 0.0, 1.0],
                         ]);
                         let matrix = translation_matrix * matrix;
@@ -326,16 +326,16 @@ impl RenderingTree {
                                         }
 
                                         let xs = [
-                                            bounding_box.left,
-                                            bounding_box.right,
-                                            clip_bounding_box.left,
-                                            clip_bounding_box.right,
+                                            bounding_box.left(),
+                                            bounding_box.right(),
+                                            clip_bounding_box.left(),
+                                            clip_bounding_box.right(),
                                         ];
                                         let ys = [
-                                            bounding_box.top,
-                                            bounding_box.bottom,
-                                            clip_bounding_box.top,
-                                            clip_bounding_box.bottom,
+                                            bounding_box.top(),
+                                            bounding_box.bottom(),
+                                            clip_bounding_box.top(),
+                                            clip_bounding_box.bottom(),
                                         ];
 
                                         let sixteen_xys = xs
@@ -350,13 +350,13 @@ impl RenderingTree {
                                         });
 
                                         difference_area_xys.fold(None, |acc, xy| match acc {
-                                            Some(rect) => Some(LtrbRect {
-                                                left: rect.left.min(xy.x),
-                                                top: rect.top.min(xy.y),
-                                                right: rect.right.max(xy.x),
-                                                bottom: rect.bottom.max(xy.y),
+                                            Some(rect) => Some(Rect::Ltrb {
+                                                left: rect.left().min(xy.x),
+                                                top: rect.top().min(xy.y),
+                                                right: rect.right().max(xy.x),
+                                                bottom: rect.bottom().max(xy.y),
                                             }),
-                                            None => Some(LtrbRect {
+                                            None => Some(Rect::Ltrb {
                                                 left: xy.x,
                                                 top: xy.y,
                                                 right: xy.x,
@@ -371,8 +371,8 @@ impl RenderingTree {
                     }
                     SpecialRenderingNode::Absolute(absolute) => {
                         let matrix = Matrix3x3::from_slice(&[
-                            [1.0, 0.0, absolute.x],
-                            [0.0, 1.0, absolute.y],
+                            [1.0, 0.0, absolute.x.as_f32()],
+                            [0.0, 1.0, absolute.y.as_f32()],
                             [0.0, 0.0, 1.0],
                         ]);
                         get_bounding_box_with_matrix_of_rendering_trees(
@@ -405,28 +405,19 @@ impl RenderingTree {
             }
         }
 
-        get_bounding_box_with_matrix(&self, &Matrix3x3::identity()).and_then(|bounding_box| {
-            Some(XywhRect {
-                x: bounding_box.left,
-                y: bounding_box.top,
-                width: bounding_box.right - bounding_box.left,
-                height: bounding_box.bottom - bounding_box.top,
-            })
-        })
+        get_bounding_box_with_matrix(&self, &Matrix3x3::identity())
     }
 }
 
 impl RenderingData {
-    fn get_bounding_box(&self) -> Option<LtrbRect> {
+    fn get_bounding_box(&self) -> Option<Rect<Px>> {
         self.draw_calls
             .iter()
             .map(|draw_call| draw_call.get_bounding_box())
             .filter_map(|bounding_box| bounding_box)
-            .reduce(|acc, bounding_box| {
-                LtrbRect::get_minimum_rectangle_containing(&acc, &bounding_box)
-            })
+            .reduce(|acc, bounding_box| Rect::get_minimum_rectangle_containing(&acc, bounding_box))
     }
-    fn is_xy_in(&self, xy: Xy<f32>) -> bool {
+    fn is_xy_in(&self, xy: Xy<Px>) -> bool {
         self.draw_calls
             .iter()
             .any(|draw_call| draw_call.is_xy_in(xy))

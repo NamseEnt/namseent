@@ -1,0 +1,16 @@
+{
+  "tracks": [
+    {
+      "Camera": {
+        "id": "camera-track",
+        "clips": []
+      }
+    },
+    {
+      "Subtitle": {
+        "id": "subtitle-track",
+        "clips": []
+      }
+    }
+  ]
+}

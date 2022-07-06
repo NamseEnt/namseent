@@ -4,37 +4,42 @@ impl ImageBrowser {
     pub fn render_back_button(
         &self,
         browser_id: &str,
-        item_size: Wh<f32>,
-        thumbnail_rect: XywhRect<f32>,
+        item_size: Wh<Px>,
+        thumbnail_rect: Rect<Px>,
     ) -> RenderingTree {
         let arrow_path = namui::PathBuilder::new()
-            .move_to(0.0, 0.5)
-            .line_to(0.5, 0.0)
-            .line_to(0.5, 0.25)
-            .line_to(1.0, 0.25)
-            .line_to(1.0, 0.75)
-            .line_to(0.5, 0.75)
-            .line_to(0.5, 1.0)
-            .line_to(0.0, 0.5)
-            .scale(thumbnail_rect.width, thumbnail_rect.height)
-            .translate(thumbnail_rect.x, thumbnail_rect.y);
+            .move_to(px(0.0), px(0.5))
+            .line_to(px(0.5), px(0.0))
+            .line_to(px(0.5), px(0.25))
+            .line_to(px(1.0), px(0.25))
+            .line_to(px(1.0), px(0.75))
+            .line_to(px(0.5), px(0.75))
+            .line_to(px(0.5), px(1.0))
+            .line_to(px(0.0), px(0.5))
+            .scale(
+                thumbnail_rect.width().as_f32(),
+                thumbnail_rect.height().as_f32(),
+            )
+            .translate(thumbnail_rect.x(), thumbnail_rect.y());
 
         let arrow_paint = namui::PaintBuilder::new()
             .set_color(namui::Color::BLACK)
             .set_style(namui::PaintStyle::Stroke)
-            .set_stroke_width(2.0);
+            .set_stroke_width(px(2.0));
 
         let is_selected = self.selected_item == Some(ImageBrowserItem::Back);
 
-        render![
+        render([
             rect(RectParam {
-                x: 0.0,
-                y: 0.0,
-                width: item_size.width,
-                height: item_size.height,
+                rect: Rect::Xywh {
+                    x: px(0.0),
+                    y: px(0.0),
+                    width: item_size.width,
+                    height: item_size.height,
+                },
                 style: RectStyle {
                     stroke: Some(RectStroke {
-                        width: if is_selected { 3.0 } else { 1.0 },
+                        width: if is_selected { px(3.0) } else { px(1.0) },
                         border_position: BorderPosition::Inside,
                         color: if is_selected {
                             namui::Color::RED
@@ -42,7 +47,7 @@ impl ImageBrowser {
                             namui::Color::BLACK
                         },
                     }),
-                    round: Some(RectRound { radius: 5.0 }),
+                    round: Some(RectRound { radius: px(5.0) }),
                     fill: Some(RectFill {
                         color: namui::Color::WHITE,
                     }),
@@ -61,7 +66,7 @@ impl ImageBrowser {
             }),
             text(TextParam {
                 x: item_size.width / 2.0,
-                y: item_size.height - 20.0,
+                y: item_size.height - px(20.0),
                 text: "Back".to_string(),
                 align: TextAlign::Center,
                 baseline: TextBaseline::Top,
@@ -69,7 +74,7 @@ impl ImageBrowser {
                     font_weight: FontWeight::REGULAR,
                     language: Language::Ko,
                     serif: false,
-                    size: 16,
+                    size: int_px(16),
                 },
                 style: TextStyle {
                     color: namui::Color::BLACK,
@@ -77,6 +82,6 @@ impl ImageBrowser {
                 },
             }),
             path(arrow_path, arrow_paint),
-        ]
+        ])
     }
 }

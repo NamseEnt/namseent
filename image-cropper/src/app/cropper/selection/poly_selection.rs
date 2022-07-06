@@ -1,18 +1,15 @@
 use super::SelectionTrait;
 use crate::app::cropper::selection::SelectionEvent;
-use namui::{
-    nanoid, rect, render, Color, PaintBuilder, PaintStyle, PathBuilder, RectFill, RectParam,
-    RectStroke, RectStyle, Xy,
-};
+use namui::prelude::*;
 
 #[derive(Clone)]
 pub struct PolySelection {
-    pub point_list: Vec<Xy<f32>>,
+    pub point_list: Vec<Xy<Px>>,
     id: String,
     creation_state: PolySelectionCreationState,
 }
 impl PolySelection {
-    pub fn new(point_list: Vec<Xy<f32>>, creation_state: PolySelectionCreationState) -> Self {
+    pub fn new(point_list: Vec<Xy<Px>>, creation_state: PolySelectionCreationState) -> Self {
         let id = nanoid();
         Self {
             point_list,
@@ -25,16 +22,18 @@ impl PolySelection {
         match self.creation_state {
             PolySelectionCreationState::Creating => match self.point_list.first() {
                 Some(first_point) => {
-                    const BUTTON_SIZE: f32 = 10.0;
+                    const BUTTON_SIZE: Px = px(10.0);
                     rect(RectParam {
-                        x: first_point.x * scale - BUTTON_SIZE / 2.0,
-                        y: first_point.y * scale - BUTTON_SIZE / 2.0,
-                        width: BUTTON_SIZE,
-                        height: BUTTON_SIZE,
+                        rect: Rect::Xywh {
+                            x: first_point.x * scale - BUTTON_SIZE / 2.0,
+                            y: first_point.y * scale - BUTTON_SIZE / 2.0,
+                            width: BUTTON_SIZE,
+                            height: BUTTON_SIZE,
+                        },
                         style: RectStyle {
                             stroke: Some(RectStroke {
                                 color: Color::grayscale_f01(0.5),
-                                width: 1.0,
+                                width: px(1.0),
                                 border_position: namui::BorderPosition::Inside,
                             }),
                             fill: Some(RectFill {
@@ -76,7 +75,7 @@ impl SelectionTrait for PolySelection {
                 let paint = PaintBuilder::new()
                     .set_style(PaintStyle::Stroke)
                     .set_color(Color::grayscale_f01(0.5))
-                    .set_stroke_width(1.0);
+                    .set_stroke_width(px(1.0));
                 render([
                     namui::path(path, paint).attach_event(|builder| {
                         let id = self.id.clone();
@@ -95,7 +94,7 @@ impl SelectionTrait for PolySelection {
         }
     }
 
-    fn get_polygon(&self) -> Vec<namui::Xy<f32>> {
+    fn get_polygon(&self) -> Vec<namui::Xy<Px>> {
         self.point_list.clone()
     }
 

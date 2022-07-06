@@ -2,18 +2,18 @@ use namui::prelude::*;
 
 pub struct TableCell<'a> {
     unit: Unit,
-    render: Box<dyn FnOnce(Wh<f32>) -> RenderingTree + 'a>,
+    render: Box<dyn FnOnce(Wh<Px>) -> RenderingTree + 'a>,
 }
 
 pub enum Unit {
     Ratio(f32),
-    Fixed(f32),
-    Calculative(Box<dyn FnOnce(Wh<f32>) -> f32>),
+    Fixed(Px),
+    Calculative(Box<dyn FnOnce(Wh<Px>) -> Px>),
 }
 
 pub fn ratio<'a>(
     ratio: f32,
-    cell_render_closure: impl FnOnce(Wh<f32>) -> RenderingTree + 'a,
+    cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
 ) -> TableCell<'a> {
     TableCell {
         unit: Unit::Ratio(ratio),
@@ -22,8 +22,8 @@ pub fn ratio<'a>(
 }
 
 pub fn fixed<'a>(
-    pixel: f32,
-    cell_render_closure: impl FnOnce(Wh<f32>) -> RenderingTree + 'a,
+    pixel: Px,
+    cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
 ) -> TableCell<'a> {
     TableCell {
         unit: Unit::Fixed(pixel),
@@ -32,8 +32,8 @@ pub fn fixed<'a>(
 }
 
 pub fn calculative<'a>(
-    from_parent_wh: impl FnOnce(Wh<f32>) -> f32 + 'static,
-    cell_render_closure: impl FnOnce(Wh<f32>) -> RenderingTree + 'a,
+    from_parent_wh: impl FnOnce(Wh<Px>) -> Px + 'static,
+    cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
 ) -> TableCell<'a> {
     TableCell {
         unit: Unit::Calculative(Box::new(from_parent_wh)),
@@ -43,13 +43,13 @@ pub fn calculative<'a>(
 
 pub fn vertical<'a>(
     items: impl IntoIterator<Item = TableCell<'a>> + 'a,
-) -> impl FnOnce(Wh<f32>) -> RenderingTree + 'a {
+) -> impl FnOnce(Wh<Px>) -> RenderingTree + 'a {
     slice_internal(Direction::Vertical, items)
 }
 
 pub fn horizontal<'a>(
     items: impl IntoIterator<Item = TableCell<'a>> + 'a,
-) -> impl FnOnce(Wh<f32>) -> RenderingTree + 'a {
+) -> impl FnOnce(Wh<Px>) -> RenderingTree + 'a {
     slice_internal(Direction::Horizontal, items)
 }
 
@@ -60,7 +60,7 @@ enum Direction {
 fn slice_internal<'a>(
     direction: Direction,
     items: impl IntoIterator<Item = TableCell<'a>> + 'a,
-) -> impl FnOnce(Wh<f32>) -> RenderingTree + 'a {
+) -> impl FnOnce(Wh<Px>) -> RenderingTree + 'a {
     let mut units = Vec::new();
     let mut render_fns = std::collections::VecDeque::new();
 
@@ -69,7 +69,7 @@ fn slice_internal<'a>(
         render_fns.push_back(item.render);
     }
 
-    move |wh: Wh<f32>| {
+    move |wh: Wh<Px>| {
         let direction_pixel_size = match direction {
             Direction::Vertical => wh.height,
             Direction::Horizontal => wh.width,
@@ -94,10 +94,10 @@ fn slice_internal<'a>(
             })
             .collect::<Vec<_>>();
 
-        let non_ratio_pixel_size_sum = pixel_size_or_ratio_list
+        let non_ratio_pixel_size_sum: Px = pixel_size_or_ratio_list
             .iter()
             .filter_map(|(pixel_size, _ratio)| *pixel_size)
-            .fold(0.0, |sum, pixel_size| sum + pixel_size);
+            .sum();
 
         let pixel_sizes = pixel_size_or_ratio_list.iter().map(|(pixel_size, ratio)| {
             if let Some(pixel_size) = pixel_size {
@@ -107,33 +107,33 @@ fn slice_internal<'a>(
             }
         });
 
-        let mut advanced_pixel_size = 0.0;
+        let mut advanced_pixel_size = px(0.0);
 
         for pixel_size in pixel_sizes {
             let render_fn = render_fns.pop_front().unwrap();
             let xywh = match direction {
-                Direction::Vertical => XywhRect {
-                    x: 0.0,
+                Direction::Vertical => Rect::Xywh {
+                    x: px(0.0),
                     y: advanced_pixel_size,
                     width: wh.width,
                     height: pixel_size,
                 },
-                Direction::Horizontal => XywhRect {
+                Direction::Horizontal => Rect::Xywh {
                     x: advanced_pixel_size,
-                    y: 0.0,
+                    y: px(0.0),
                     width: pixel_size,
                     height: wh.height,
                 },
             };
             let rendering_tree = namui::translate(
-                xywh.x,
-                xywh.y,
+                xywh.x(),
+                xywh.y(),
                 namui::clip(
-                    PathBuilder::new().add_rect(&LtrbRect {
-                        left: 0.0,
-                        top: 0.0,
-                        right: xywh.width,
-                        bottom: xywh.height,
+                    PathBuilder::new().add_rect(Rect::Xywh {
+                        x: px(0.0),
+                        y: px(0.0),
+                        width: xywh.width(),
+                        height: xywh.height(),
                     }),
                     ClipOp::Intersect,
                     render_fn(xywh.wh()),
@@ -164,31 +164,31 @@ mod tests {
             |parent_wh| parent_wh.height,
             |wh| {
                 button_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
-                assert_eq!(20.0, wh.width);
-                assert_eq!(20.0, wh.height);
+                assert_eq!(px(20.0), wh.width);
+                assert_eq!(px(20.0), wh.height);
                 RenderingTree::Empty
             },
         );
 
         let label = ratio(1.0, |wh| {
             label_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
-            assert_eq!(280.0, wh.width);
-            assert_eq!(20.0, wh.height);
+            assert_eq!(px(280.0), wh.width);
+            assert_eq!(px(20.0), wh.height);
             RenderingTree::Empty
         });
 
-        let header = fixed(20.0, horizontal([button, label]));
+        let header = fixed(px(20.0), horizontal([button, label]));
 
         let body = ratio(1.0, |wh| {
             body_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
-            assert_eq!(300.0, wh.width);
-            assert_eq!(480.0, wh.height);
+            assert_eq!(px(300.0), wh.width);
+            assert_eq!(px(480.0), wh.height);
             RenderingTree::Empty
         });
 
         vertical([header, body])(Wh {
-            width: 300.0,
-            height: 500.0,
+            width: px(300.0),
+            height: px(500.0),
         });
 
         assert_eq!(

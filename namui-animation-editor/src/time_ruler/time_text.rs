@@ -1,14 +1,14 @@
 use super::*;
 
 pub struct TimeTextsProps<'a> {
-    pub height: f32,
+    pub height: Px,
     pub time_per_px: TimePerPx,
     pub gradations: &'a Vec<Gradation>,
 }
 
 pub fn render_time_texts(props: &TimeTextsProps) -> RenderingTree {
     let left_margin_px: Px = Px::from(5.0);
-    const TEXT_SIZE: i16 = 10;
+    const TEXT_SIZE: IntPx = int_px(10);
     RenderingTree::Children(
         props
             .gradations

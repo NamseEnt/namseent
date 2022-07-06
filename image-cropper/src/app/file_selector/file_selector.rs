@@ -1,13 +1,13 @@
 use super::{render_file_select_dialog_open_button, FileSelectorEvent};
 use crate::app::{cropper::Cropper, router::RouterEvent, util::alert};
 use js_sys::Uint8Array;
-use namui::{render, translate, Color, RectFill, RectParam, RectStyle, RenderingTree, Wh};
+use namui::prelude::*;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use wasm_bindgen_futures::{spawn_local, JsFuture};
 use web_sys::{window, FileList, HtmlInputElement, InputEvent, Url};
 
 pub struct FileSelectorProps {
-    pub screen_wh: Wh<f32>,
+    pub screen_wh: Wh<Px>,
 }
 
 pub struct FileSelector {
@@ -61,14 +61,14 @@ impl FileSelector {
     }
 
     pub fn render(&self, props: &FileSelectorProps) -> RenderingTree {
-        const MARGIN: f32 = 16.0;
-        const BUTTON_HEIGHT: f32 = 36.0;
+        const MARGIN: Px = px(16.0);
+        const BUTTON_HEIGHT: Px = px(36.0);
         let button_wh = Wh {
             width: props.screen_wh.width - (2.0 * MARGIN),
             height: BUTTON_HEIGHT,
         };
         render([
-            render_background(&props.screen_wh),
+            render_background(props.screen_wh),
             translate(
                 MARGIN,
                 (props.screen_wh.height - BUTTON_HEIGHT) / 2.0,
@@ -78,12 +78,14 @@ impl FileSelector {
     }
 }
 
-fn render_background(wh: &Wh<f32>) -> RenderingTree {
+fn render_background(wh: Wh<Px>) -> RenderingTree {
     namui::rect(RectParam {
-        x: 0.0,
-        y: 0.0,
-        width: wh.width,
-        height: wh.height,
+        rect: Rect::Xywh {
+            x: px(0.0),
+            y: px(0.0),
+            width: wh.width,
+            height: wh.height,
+        },
         style: RectStyle {
             stroke: None,
             fill: Some(RectFill {

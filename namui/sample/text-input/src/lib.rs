@@ -38,22 +38,24 @@ impl Entity for TextInputExample {
     fn render(&self, props: &Self::Props) -> RenderingTree {
         let left = self.left_text_input.render(namui::text_input::Props {
             rect_param: namui::RectParam {
-                x: 200.0,
-                y: 200.0,
-                width: 200.0,
-                height: 200.0,
+                rect: Rect::Xywh {
+                    x: 200.0.px(),
+                    y: px(200.0),
+                    width: px(200.0),
+                    height: px(200.0),
+                },
                 style: RectStyle {
                     stroke: Some(RectStroke {
                         border_position: BorderPosition::Inside,
                         color: Color::BLACK,
-                        width: 1.0,
+                        width: px(1.0),
                     }),
                     ..Default::default()
                 },
             },
             text_param: namui::TextParam {
-                x: 200.0,
-                y: 200.0,
+                x: px(200.0),
+                y: px(200.0),
                 align: TextAlign::Left,
                 baseline: TextBaseline::Top,
                 text: self.left_text.clone(),
@@ -61,7 +63,7 @@ impl Entity for TextInputExample {
                     font_weight: namui::FontWeight::REGULAR,
                     language: namui::Language::Ko,
                     serif: false,
-                    size: 20,
+                    size: int_px(20),
                 },
                 style: namui::TextStyle {
                     color: namui::Color::BLACK,
@@ -72,22 +74,24 @@ impl Entity for TextInputExample {
 
         let center = self.center_text_input.render(namui::text_input::Props {
             rect_param: namui::RectParam {
-                x: 500.0,
-                y: 200.0,
-                width: 200.0,
-                height: 200.0,
+                rect: Rect::Xywh {
+                    x: px(500.0),
+                    y: px(200.0),
+                    width: px(200.0),
+                    height: px(200.0),
+                },
                 style: RectStyle {
                     stroke: Some(RectStroke {
                         border_position: BorderPosition::Inside,
                         color: Color::BLACK,
-                        width: 1.0,
+                        width: px(1.0),
                     }),
                     ..Default::default()
                 },
             },
             text_param: namui::TextParam {
-                x: 500.0 + 100.0,
-                y: 200.0,
+                x: px(500.0 + 100.0),
+                y: px(200.0),
                 align: TextAlign::Center,
                 baseline: TextBaseline::Top,
                 text: self.center_text.clone(),
@@ -95,7 +99,7 @@ impl Entity for TextInputExample {
                     font_weight: namui::FontWeight::REGULAR,
                     language: namui::Language::Ko,
                     serif: false,
-                    size: 20,
+                    size: int_px(20),
                 },
                 style: namui::TextStyle {
                     color: namui::Color::BLACK,
@@ -106,22 +110,24 @@ impl Entity for TextInputExample {
 
         let right = self.right_text_input.render(namui::text_input::Props {
             rect_param: namui::RectParam {
-                x: 800.0,
-                y: 200.0,
-                width: 200.0,
-                height: 200.0,
+                rect: Rect::Xywh {
+                    x: px(800.0),
+                    y: px(200.0),
+                    width: px(200.0),
+                    height: px(200.0),
+                },
                 style: RectStyle {
                     stroke: Some(RectStroke {
                         border_position: BorderPosition::Inside,
                         color: Color::BLACK,
-                        width: 1.0,
+                        width: px(1.0),
                     }),
                     ..Default::default()
                 },
             },
             text_param: namui::TextParam {
-                x: 800.0 + 200.0,
-                y: 200.0,
+                x: px(800.0 + 200.0),
+                y: px(200.0),
                 align: TextAlign::Right,
                 baseline: TextBaseline::Top,
                 text: self.right_text.clone(),
@@ -129,7 +135,7 @@ impl Entity for TextInputExample {
                     font_weight: namui::FontWeight::REGULAR,
                     language: namui::Language::Ko,
                     serif: false,
-                    size: 20,
+                    size: int_px(20),
                 },
                 style: namui::TextStyle {
                     color: namui::Color::BLACK,
@@ -139,8 +145,8 @@ impl Entity for TextInputExample {
         });
 
         let left_value_text = namui::text(TextParam {
-            x: 200.0,
-            y: 500.0,
+            x: px(200.0),
+            y: px(500.0),
             align: TextAlign::Left,
             baseline: TextBaseline::Top,
             text: self
@@ -151,7 +157,7 @@ impl Entity for TextInputExample {
                 font_weight: namui::FontWeight::REGULAR,
                 language: namui::Language::Ko,
                 serif: false,
-                size: 20,
+                size: int_px(20),
             },
             style: namui::TextStyle {
                 color: namui::Color::BLACK,

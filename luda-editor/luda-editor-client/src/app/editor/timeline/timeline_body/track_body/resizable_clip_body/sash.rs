@@ -1,14 +1,11 @@
-use crate::app::{
-    editor::{events::EditorEvent, TimelineRenderContext},
-    types::*,
-};
+use crate::app::editor::TimelineRenderContext;
 use namui::prelude::*;
 
-const SASH_WIDTH: f32 = 15.0;
+const SASH_WIDTH: Px = px(15.0);
 pub(super) struct SashBodyProps<'a> {
     pub context: &'a TimelineRenderContext<'a>,
     pub direction: SashDirection,
-    pub clip_rect: &'a XywhRect<f32>,
+    pub clip_rect: Rect<Px>,
 }
 #[derive(Debug, Clone, Copy)]
 pub enum SashDirection {
@@ -16,8 +13,8 @@ pub enum SashDirection {
     Right,
 }
 pub(super) fn render_sash(props: &SashBodyProps) -> RenderingTree {
-    let sash_rect = get_sash_rect(&props.clip_rect, props.direction);
-    let path = PathBuilder::new().add_rect(&sash_rect.into_ltrb());
+    let sash_rect = get_sash_rect(props.clip_rect, props.direction);
+    let path = PathBuilder::new().add_rect(sash_rect);
 
     let paint = PaintBuilder::new()
         .set_color(Color::from_u8(255, 127, 39, 255))
@@ -27,19 +24,19 @@ pub(super) fn render_sash(props: &SashBodyProps) -> RenderingTree {
     namui::path(path, paint)
 }
 
-pub(super) fn get_sash_rect(clip_rect: &XywhRect<f32>, direction: SashDirection) -> XywhRect<f32> {
+pub(super) fn get_sash_rect(clip_rect: Rect<Px>, direction: SashDirection) -> Rect<Px> {
     match direction {
-        SashDirection::Left => XywhRect {
-            x: clip_rect.x,
-            y: clip_rect.y,
+        SashDirection::Left => Rect::Xywh {
+            x: clip_rect.x(),
+            y: clip_rect.y(),
             width: SASH_WIDTH,
-            height: clip_rect.height,
+            height: clip_rect.height(),
         },
-        SashDirection::Right => XywhRect {
-            x: clip_rect.x + clip_rect.width - SASH_WIDTH,
-            y: clip_rect.y,
+        SashDirection::Right => Rect::Xywh {
+            x: clip_rect.x() + clip_rect.width() - SASH_WIDTH,
+            y: clip_rect.y(),
             width: SASH_WIDTH,
-            height: clip_rect.height,
+            height: clip_rect.height(),
         },
     }
 }

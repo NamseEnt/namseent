@@ -1,4 +1,5 @@
 use super::{platform_utils::web::window, InitResult};
+use crate::*;
 use std::sync::{Arc, RwLock};
 use wasm_bindgen::{prelude::Closure, JsCast};
 
@@ -31,10 +32,10 @@ pub(super) async fn init() -> InitResult {
     Ok(())
 }
 
-pub fn size() -> crate::Wh<i16> {
+pub fn size() -> crate::Wh<Px> {
     let window = window();
     crate::Wh {
-        width: window.inner_width().unwrap().as_f64().unwrap() as i16,
-        height: window.inner_height().unwrap().as_f64().unwrap() as i16,
+        width: px(window.inner_width().unwrap().as_f64().unwrap() as f32),
+        height: px(window.inner_height().unwrap().as_f64().unwrap() as f32),
     }
 }

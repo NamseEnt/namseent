@@ -10,11 +10,11 @@ use crate::app::{
     },
     types::Sequence,
 };
-use namui::{render, Wh};
+use namui::prelude::*;
 use std::sync::Arc;
 
 pub fn render_list_item(
-    width: f32,
+    width: Px,
     title: &String,
     path: &String,
     sequence: &Arc<Sequence>,
@@ -43,16 +43,16 @@ pub fn render_list_item(
     let total_height = elements.height(SPACING) + 2.0 * MARGIN;
 
     RenderingTreeRow::new(
-        render![
+        render([
             render_rounded_rectangle(
                 Wh {
                     width,
-                    height: total_height
+                    height: total_height,
                 },
-                RoundedRectangleColor::DarkGray
+                RoundedRectangleColor::DarkGray,
             ),
             namui::translate(MARGIN, MARGIN, elements.render(SPACING)),
-        ],
+        ]),
         total_height,
     )
 }

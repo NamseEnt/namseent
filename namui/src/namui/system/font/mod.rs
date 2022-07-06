@@ -58,7 +58,7 @@ fn create_font_from_font_type(font_type: FontType) -> Result<Arc<Font>, String> 
     };
     let typeface = crate::typeface::get_typeface(typeface_type);
     match typeface {
-        Some(typeface) => Ok(crate_font(&typeface, font_type.size)),
+        Some(typeface) => Ok(crate_font(&typeface, font_type.size.0.try_into().unwrap())),
         None => Err(format!("Could not find typeface for {:?}", font_type)),
     }
 }

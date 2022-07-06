@@ -8,7 +8,7 @@ use super::{
 };
 use async_trait::async_trait;
 use luda_editor_rpc::Socket;
-use namui::Wh;
+use namui::prelude::*;
 use std::sync::Arc;
 use wasm_bindgen_futures::spawn_local;
 
@@ -25,8 +25,8 @@ impl namui::Entity for App {
                 let screen_size = namui::screen::size();
                 self.router.render(&RouterProps {
                     screen_wh: Wh {
-                        width: screen_size.width as f32,
-                        height: screen_size.height as f32,
+                        width: screen_size.width,
+                        height: screen_size.height,
                     },
                     meta: &meta,
                 })

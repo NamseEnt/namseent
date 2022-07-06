@@ -1,5 +1,6 @@
 use super::JobExecute;
 use crate::app::types::*;
+use namui::prelude::*;
 use std::collections::BTreeSet;
 
 #[derive(Debug, Clone)]
@@ -21,9 +22,7 @@ impl JobExecute for MoveClipJob {
             Some(track) => track.get_id().to_string(),
             None => return Err(format!("cannot find track of clip id {}", first_clip_id)),
         };
-        match sequence.replace_track(&track_id, |mut track: Track| {
-            Ok(self.move_clip_in_track(track))
-        }) {
+        match sequence.replace_track(&track_id, |track: Track| Ok(self.move_clip_in_track(track))) {
             UpdateResult::Updated(replacer) => Ok(replacer),
             UpdateResult::NotUpdated => Err("track not found".to_string()),
             UpdateResult::Err(error) => Err(error),
@@ -52,8 +51,6 @@ impl MoveClipJob {
 mod tests {
     use super::super::*;
     use super::*;
-    use namui::prelude::*;
-    use std::sync::Arc;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
@@ -66,8 +63,8 @@ mod tests {
         let sequence = mock_sequence(&["0", "1", "2", "3", "4"], &[]);
         let job = MoveClipJob {
             clip_ids: vec!["1".to_string()].into_iter().collect(),
-            click_anchor_in_time: Time::from_ms(1.0),
-            last_mouse_position_in_time: Time::from_ms(3.5),
+            click_anchor_in_time: Time::Ms(1.0),
+            last_mouse_position_in_time: Time::Ms(3.5),
             is_moved: true,
         };
 
@@ -87,8 +84,8 @@ mod tests {
         let sequence = mock_sequence(&["0", "1", "2", "3", "4"], &[]);
         let job = MoveClipJob {
             clip_ids: vec!["3".to_string()].into_iter().collect(),
-            click_anchor_in_time: Time::from_ms(3.0),
-            last_mouse_position_in_time: Time::from_ms(0.5),
+            click_anchor_in_time: Time::Ms(3.0),
+            last_mouse_position_in_time: Time::Ms(0.5),
             is_moved: true,
         };
 
@@ -110,8 +107,8 @@ mod tests {
             clip_ids: vec!["1".to_string(), "3".to_string(), "4".to_string()]
                 .into_iter()
                 .collect(),
-            click_anchor_in_time: Time::from_ms(0.0),
-            last_mouse_position_in_time: Time::from_ms(2.25),
+            click_anchor_in_time: Time::Ms(0.0),
+            last_mouse_position_in_time: Time::Ms(2.25),
             is_moved: true,
         };
 
@@ -133,8 +130,8 @@ mod tests {
             clip_ids: vec!["1".to_string(), "2".to_string(), "5".to_string()]
                 .into_iter()
                 .collect(),
-            click_anchor_in_time: Time::from_ms(0.0),
-            last_mouse_position_in_time: Time::from_ms(-1.75),
+            click_anchor_in_time: Time::Ms(0.0),
+            last_mouse_position_in_time: Time::Ms(-1.75),
             is_moved: true,
         };
 

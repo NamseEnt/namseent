@@ -5,7 +5,7 @@ pub struct Body {
     list_view: list_view::ListView,
 }
 pub struct Props<'a> {
-    pub wh: Wh<f32>,
+    pub wh: Wh<Px>,
     pub layers: &'a [namui::animation::Layer],
     pub selected_layer_id: Option<String>,
 }
@@ -21,14 +21,13 @@ impl Body {
     pub fn render(&self, props: Props) -> RenderingTree {
         let now = Time::now();
         self.list_view.render(list_view::Props {
-            x: 0.0,
-            y: 0.0,
+            xy: Xy::single(px(0.0)),
             height: props.wh.height,
             item_wh: Wh {
                 width: props.wh.width,
-                height: 48.0,
+                height: px(48.0),
             },
-            scroll_bar_width: 10.0,
+            scroll_bar_width: px(10.0),
             items: props.layers,
             item_render: |wh, layer| {
                 let selected = props.selected_layer_id == Some(layer.id.clone());
@@ -38,18 +37,20 @@ impl Body {
     }
 }
 
-const MARGIN: f32 = 10.0;
+const MARGIN: Px = px(10.0);
 
-fn render_shadowing_toggle_button_cell(wh: Wh<f32>) -> RenderingTree {
+fn render_shadowing_toggle_button_cell(wh: Wh<Px>) -> RenderingTree {
     namui::rect(RectParam {
-        x: MARGIN,
-        y: MARGIN,
-        width: wh.width - MARGIN * 2.0,
-        height: wh.height - MARGIN * 2.0,
+        rect: Rect::Xywh {
+            x: MARGIN,
+            y: MARGIN,
+            width: wh.width - MARGIN * 2.0,
+            height: wh.height - MARGIN * 2.0,
+        },
         style: RectStyle {
             stroke: Some(RectStroke {
                 color: Color::BLACK,
-                width: 1.0,
+                width: px(1.0),
                 border_position: BorderPosition::Inside,
             }),
             fill: Some(RectFill {
@@ -61,7 +62,7 @@ fn render_shadowing_toggle_button_cell(wh: Wh<f32>) -> RenderingTree {
     })
 }
 
-fn render_label_cell(wh: Wh<f32>, layer: &namui::animation::Layer) -> RenderingTree {
+fn render_label_cell(wh: Wh<Px>, layer: &namui::animation::Layer) -> RenderingTree {
     render![namui::text(TextParam {
         x: MARGIN,
         y: wh.height / 2.0,
@@ -81,15 +82,10 @@ fn render_label_cell(wh: Wh<f32>, layer: &namui::animation::Layer) -> RenderingT
     }),]
 }
 
-fn render_row(
-    wh: Wh<f32>,
-    layer: &animation::Layer,
-    is_selected: bool,
-    now: Time,
-) -> RenderingTree {
+fn render_row(wh: Wh<Px>, layer: &animation::Layer, is_selected: bool, now: Time) -> RenderingTree {
     let border = match is_selected {
-        true => simple_rect(wh, Color::RED, 2.0, Color::TRANSPARENT),
-        false => simple_rect(wh, Color::BLACK, 1.0, Color::TRANSPARENT),
+        true => simple_rect(wh, Color::RED, px(2.0), Color::TRANSPARENT),
+        false => simple_rect(wh, Color::BLACK, px(1.0), Color::TRANSPARENT),
     };
     render([
         horizontal([
@@ -113,8 +109,8 @@ fn render_row(
     })
 }
 
-fn render_preview_cell(wh: Wh<f32>, layer: &namui::animation::Layer, now: Time) -> RenderingTree {
-    let border = simple_rect(wh, Color::BLACK, 1.0, Color::WHITE);
+fn render_preview_cell(wh: Wh<Px>, layer: &namui::animation::Layer, now: Time) -> RenderingTree {
+    let border = simple_rect(wh, Color::BLACK, px(1.0), Color::WHITE);
     let preview = {
         let time_range = layer.image.get_visible_time_range();
         match time_range {
@@ -129,8 +125,8 @@ fn render_preview_cell(wh: Wh<f32>, layer: &namui::animation::Layer, now: Time) 
                 };
 
                 namui::scale(
-                    wh.width / 1920.0,
-                    wh.height / 1080.0,
+                    wh.width / px(1920.0),
+                    wh.height / px(1080.0),
                     layer.image.render(playback_time),
                 )
             }

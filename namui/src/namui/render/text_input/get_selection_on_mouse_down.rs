@@ -1,12 +1,15 @@
 use super::Props;
-use crate::namui::{self, get_text_width_internal, TextInput};
+use crate::{
+    namui::{self, get_text_width_internal, TextInput},
+    *,
+};
 use std::ops::Range;
 
 impl TextInput {
     pub(crate) fn get_selection_on_mouse_movement(
         &self,
         props: &Props,
-        click_local_x: f32,
+        click_local_x: Px,
         is_dragging_by_mouse: bool,
     ) -> Option<Range<usize>> {
         let (font, is_shift_key_pressed) = {
@@ -58,7 +61,7 @@ impl TextInput {
 fn get_one_click_selection(
     text: &str,
     font: &namui::Font,
-    local_x: f32,
+    local_x: Px,
     is_dragging: bool,
     last_selection: &Option<Range<usize>>,
 ) -> Range<usize> {
@@ -78,17 +81,17 @@ fn get_one_click_selection(
     start..selection_index_of_x
 }
 
-fn get_selection_index_of_x(font: &namui::Font, text: &str, local_x: f32) -> usize {
+fn get_selection_index_of_x(font: &namui::Font, text: &str, local_x: Px) -> usize {
     let glyph_ids = font.get_glyph_ids(text);
     let glyph_widths = font.get_glyph_widths(glyph_ids, None);
 
-    let mut left = 0.0;
+    let mut left = px(0.0);
     let index = glyph_widths.iter().position(|width| {
         let center = left + width / 2.0;
         if local_x < center {
             return true;
         }
-        left += width;
+        left += *width;
         return false;
     });
 

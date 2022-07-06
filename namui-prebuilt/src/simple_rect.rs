@@ -1,16 +1,18 @@
 use namui::prelude::*;
 
 pub fn simple_rect(
-    wh: Wh<f32>,
+    wh: Wh<Px>,
     stroke_color: Color,
-    stroke_width: f32,
+    stroke_width: Px,
     fill_color: Color,
 ) -> RenderingTree {
     namui::rect(RectParam {
-        x: 0.0,
-        y: 0.0,
-        width: wh.width,
-        height: wh.height,
+        rect: Rect::Xywh {
+            x: px(0.0),
+            y: px(0.0),
+            width: wh.width,
+            height: wh.height,
+        },
         style: RectStyle {
             stroke: Some(RectStroke {
                 color: stroke_color,

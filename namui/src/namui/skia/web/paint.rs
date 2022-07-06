@@ -1,4 +1,5 @@
 use super::*;
+use crate::*;
 pub use base::*;
 
 unsafe impl Sync for CanvasKitPaint {}
@@ -13,7 +14,7 @@ impl Paint {
         color: Option<Color>,
         style: Option<&PaintStyle>,
         anti_alias: Option<bool>,
-        stroke_width: Option<f32>,
+        stroke_width: Option<Px>,
         stroke_cap: Option<&StrokeCap>,
         stroke_join: Option<&StrokeJoin>,
         color_filter: Option<impl AsRef<ColorFilter>>,
@@ -29,7 +30,7 @@ impl Paint {
             canvas_kit_paint.setAntiAlias(anti_alias);
         }
         if let Some(stroke_width) = stroke_width {
-            canvas_kit_paint.setStrokeWidth(stroke_width);
+            canvas_kit_paint.setStrokeWidth(stroke_width.as_f32());
         }
         if let Some(stroke_cap) = stroke_cap {
             canvas_kit_paint.setStrokeCap(stroke_cap.into_canvas_kit());
@@ -66,11 +67,11 @@ impl Paint {
             value => panic!("Unknown stroke_join value: {}", value),
         }
     }
-    pub fn get_stroke_width(&self) -> f32 {
-        self.canvas_kit_paint.getStrokeWidth()
+    pub fn get_stroke_width(&self) -> Px {
+        px(self.canvas_kit_paint.getStrokeWidth())
     }
-    pub fn get_stroke_miter(&self) -> f32 {
-        self.canvas_kit_paint.getStrokeMiter()
+    pub fn get_stroke_miter(&self) -> Px {
+        px(self.canvas_kit_paint.getStrokeMiter())
     }
 }
 

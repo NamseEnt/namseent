@@ -11,45 +11,47 @@ impl Resizer {
     }
 }
 
-pub struct ResizerProps<'a> {
-    pub source_rect: &'a XywhRect<f32>,
-    pub container_size: &'a Wh<f32>,
+pub struct ResizerProps {
+    pub source_rect: Rect<Px>,
+    pub container_size: Wh<Px>,
 }
 
 impl Resizer {
-    pub fn update(&mut self, event: &dyn std::any::Any) {}
+    pub fn update(&mut self, _event: &dyn std::any::Any) {}
 
     pub fn render(&self, props: &ResizerProps) -> RenderingTree {
-        render![
+        render([
             rect(RectParam {
-                x: props.source_rect.x,
-                y: props.source_rect.y,
-                width: props.source_rect.width,
-                height: props.source_rect.height,
+                rect: Rect::Xywh {
+                    x: props.source_rect.x(),
+                    y: props.source_rect.y(),
+                    width: props.source_rect.width(),
+                    height: props.source_rect.height(),
+                },
                 style: RectStyle {
                     stroke: Some(RectStroke {
                         color: Color::grayscale_f01(0.2),
-                        width: 1.0,
+                        width: px(1.0),
                         border_position: BorderPosition::Inside,
                     }),
                     ..Default::default()
                 },
             }),
             self.render_resize_handles(props.source_rect, props.container_size),
-        ]
+        ])
     }
 
     fn render_resize_handles(
         &self,
-        source_rect: &XywhRect<f32>,
-        container_size: &Wh<f32>,
+        source_rect: Rect<Px>,
+        container_size: Wh<Px>,
     ) -> RenderingTree {
-        const HANDLE_RADIUS: f32 = 5.0;
+        const HANDLE_RADIUS: Px = px(5.0);
         RenderingTree::Children(
-            get_handles(&source_rect)
+            get_handles(source_rect)
                 .iter()
                 .map(|handle| {
-                    let path = namui::PathBuilder::new().add_oval(&LtrbRect {
+                    let path = namui::PathBuilder::new().add_oval(Rect::Ltrb {
                         left: handle.xy.x - HANDLE_RADIUS,
                         top: handle.xy.y - HANDLE_RADIUS,
                         right: handle.xy.x + HANDLE_RADIUS,
@@ -63,15 +65,15 @@ impl Resizer {
                     let stroke_paint = namui::PaintBuilder::new()
                         .set_style(namui::PaintStyle::Stroke)
                         .set_color(Color::grayscale_f01(0.5))
-                        .set_stroke_width(2.0)
+                        .set_stroke_width(px(2.0))
                         .set_anti_alias(true);
 
                     let resizer_id = self.id.clone();
 
-                    render![
+                    render([
                         namui::path(path.clone(), fill_paint),
                         namui::path(path, stroke_paint),
-                    ]
+                    ])
                     .with_mouse_cursor(handle.cursor())
                     .attach_event(move |builder| {
                         let resizer_id = resizer_id.clone();
@@ -86,8 +88,8 @@ impl Resizer {
                                 mouse_xy: mouse_event.global_xy,
                                 container_size,
                                 image_size_ratio: Wh {
-                                    width: source_rect.width,
-                                    height: source_rect.height,
+                                    width: source_rect.width(),
+                                    height: source_rect.height(),
                                 },
                             })
                         });
@@ -98,7 +100,7 @@ impl Resizer {
     }
 }
 
-fn get_opposite_handle(handle: &ResizerHandle, source_rect: &XywhRect<f32>) -> ResizerHandle {
+fn get_opposite_handle(handle: ResizerHandle, source_rect: Rect<Px>) -> ResizerHandle {
     let center_xy = source_rect.center();
     ResizerHandle {
         handle_direction: handle.handle_direction.opposite(),
@@ -120,41 +122,41 @@ pub enum ResizerHandleDirection {
 #[derive(Debug, Clone, Copy)]
 pub struct ResizerHandle {
     pub handle_direction: ResizerHandleDirection,
-    pub xy: Xy<f32>,
+    pub xy: Xy<Px>,
 }
 impl ResizerHandle {
     pub fn cursor(&self) -> namui::MouseCursor {
         self.handle_direction.cursor()
     }
 }
-fn get_handles(source_rect: &XywhRect<f32>) -> Vec<ResizerHandle> {
+fn get_handles(source_rect: Rect<Px>) -> Vec<ResizerHandle> {
     let top_left = ResizerHandle {
         handle_direction: ResizerHandleDirection::TopLeft,
         xy: Xy {
-            x: source_rect.x,
-            y: source_rect.y,
+            x: source_rect.x(),
+            y: source_rect.y(),
         },
     };
 
     let top = ResizerHandle {
         handle_direction: ResizerHandleDirection::Top,
         xy: Xy {
-            x: source_rect.x + source_rect.width / 2.0,
-            y: source_rect.y,
+            x: source_rect.x() + source_rect.width() / 2.0,
+            y: source_rect.y(),
         },
     };
     let top_right = ResizerHandle {
         handle_direction: ResizerHandleDirection::TopRight,
         xy: Xy {
-            x: source_rect.x + source_rect.width,
-            y: source_rect.y,
+            x: source_rect.x() + source_rect.width(),
+            y: source_rect.y(),
         },
     };
     let left = ResizerHandle {
         handle_direction: ResizerHandleDirection::Left,
         xy: Xy {
-            x: source_rect.x,
-            y: source_rect.y + source_rect.height / 2.0,
+            x: source_rect.x(),
+            y: source_rect.y() + source_rect.height() / 2.0,
         },
     };
     vec![
@@ -162,10 +164,10 @@ fn get_handles(source_rect: &XywhRect<f32>) -> Vec<ResizerHandle> {
         top,
         top_right,
         left,
-        get_opposite_handle(&left, &source_rect),
-        get_opposite_handle(&top_right, &source_rect),
-        get_opposite_handle(&top, &source_rect),
-        get_opposite_handle(&top_left, &source_rect),
+        get_opposite_handle(left, source_rect),
+        get_opposite_handle(top_right, source_rect),
+        get_opposite_handle(top, source_rect),
+        get_opposite_handle(top_left, source_rect),
     ]
 }
 impl ResizerHandleDirection {

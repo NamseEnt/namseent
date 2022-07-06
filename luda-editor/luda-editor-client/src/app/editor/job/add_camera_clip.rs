@@ -1,5 +1,6 @@
 use super::JobExecute;
 use crate::app::types::*;
+use namui::prelude::*;
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
@@ -37,7 +38,6 @@ pub(crate) fn get_camera_track_id(sequence: &Sequence) -> String {
 mod tests {
     use super::super::*;
     use super::*;
-    use namui::prelude::*;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
@@ -45,8 +45,8 @@ mod tests {
     fn insert_camera_clip_for_empty_track_should_works() {
         let sequence = mock_sequence(&[], &[]);
         let job = AddCameraClipJob {
-            camera_clip: mock_camera_clip("0", Time::from_ms(0.0), Time::from_ms(1.0)),
-            time_to_insert: Time::from_ms(1.0),
+            camera_clip: mock_camera_clip("0", Time::Ms(0.0), Time::Ms(1.0)),
+            time_to_insert: Time::Ms(1.0),
         };
 
         let result = job.execute(&sequence).unwrap();
@@ -64,8 +64,8 @@ mod tests {
 
         let sequence = mock_sequence(&["0", "1", "2", "3"], &[]);
         let job = AddCameraClipJob {
-            camera_clip: mock_camera_clip("4", Time::from_ms(0.0), Time::from_ms(1.0)),
-            time_to_insert: Time::from_ms(1.75),
+            camera_clip: mock_camera_clip("4", Time::Ms(0.0), Time::Ms(1.0)),
+            time_to_insert: Time::Ms(1.75),
         };
 
         let result = job.execute(&sequence).unwrap();
@@ -83,8 +83,8 @@ mod tests {
 
         let sequence = mock_sequence(&["0", "1", "2", "3"], &[]);
         let job = AddCameraClipJob {
-            camera_clip: mock_camera_clip("4", Time::from_ms(0.0), Time::from_ms(1.0)),
-            time_to_insert: Time::from_ms(0.0),
+            camera_clip: mock_camera_clip("4", Time::Ms(0.0), Time::Ms(1.0)),
+            time_to_insert: Time::Ms(0.0),
         };
 
         let result = job.execute(&sequence).unwrap();
@@ -102,8 +102,8 @@ mod tests {
 
         let sequence = mock_sequence(&["0", "1", "2", "3"], &[]);
         let job = AddCameraClipJob {
-            camera_clip: mock_camera_clip("4", Time::from_ms(0.0), Time::from_ms(1.0)),
-            time_to_insert: Time::from_ms(4.0),
+            camera_clip: mock_camera_clip("4", Time::Ms(0.0), Time::Ms(1.0)),
+            time_to_insert: Time::Ms(4.0),
         };
 
         let result = job.execute(&sequence).unwrap();

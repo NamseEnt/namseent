@@ -1,11 +1,14 @@
 use super::*;
-use crate::namui::{self, render::MouseCursor, Xy};
+use crate::{
+    namui::{self, render::MouseCursor, Xy},
+    *,
+};
 use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 use wasm_bindgen::{prelude::Closure, JsCast};
 
 struct MouseSystem {
-    mouse_position: Arc<RwLock<Xy<i16>>>,
+    mouse_position: Arc<RwLock<Xy<Px>>>,
 }
 
 lazy_static::lazy_static! {
@@ -23,7 +26,10 @@ impl MouseSystem {
 
         let canvas_element = canvas_element();
 
-        let mouse_position = Arc::new(RwLock::new(Xy::<i16> { x: 0, y: 0 }));
+        let mouse_position = Arc::new(RwLock::new(Xy::<Px> {
+            x: px(0.0),
+            y: px(0.0),
+        }));
         let mouse = Self {
             mouse_position: mouse_position.clone(),
         };
@@ -37,8 +43,8 @@ impl MouseSystem {
                         event.prevent_default(); // NOTE: Text input needs this to prevent selection updates.
                         let mut mouse_position = mouse_position.write().unwrap();
 
-                        mouse_position.x = event.client_x() as i16;
-                        mouse_position.y = event.client_y() as i16;
+                        mouse_position.x = px(event.client_x() as f32);
+                        mouse_position.y = px(event.client_y() as f32);
 
                         let button = get_button(&event);
                         namui::event::send(namui::NamuiEvent::MouseDown(crate::RawMouseEvent {
@@ -48,10 +54,7 @@ impl MouseSystem {
                                 crate::now(),
                                 crate::nanoid()
                             ),
-                            xy: Xy {
-                                x: mouse_position.x as f32,
-                                y: mouse_position.y as f32,
-                            },
+                            xy: mouse_position.clone(),
                             pressing_buttons: get_pressing_buttons(&event),
                             button: Some(button),
                         }));
@@ -70,8 +73,8 @@ impl MouseSystem {
                     Box::new(move |event: web_sys::MouseEvent| {
                         let mut mouse_position = mouse_position.write().unwrap();
 
-                        mouse_position.x = event.client_x() as i16;
-                        mouse_position.y = event.client_y() as i16;
+                        mouse_position.x = px(event.client_x() as f32);
+                        mouse_position.y = px(event.client_y() as f32);
 
                         let button = get_button(&event);
                         namui::event::send(namui::NamuiEvent::MouseUp(crate::RawMouseEvent {
@@ -81,10 +84,7 @@ impl MouseSystem {
                                 crate::now(),
                                 crate::nanoid()
                             ),
-                            xy: Xy {
-                                x: mouse_position.x as f32,
-                                y: mouse_position.y as f32,
-                            },
+                            xy: mouse_position.clone(),
                             pressing_buttons: get_pressing_buttons(&event),
                             button: Some(button),
                         }));
@@ -103,15 +103,12 @@ impl MouseSystem {
                     Box::new(move |event: web_sys::MouseEvent| {
                         let mut mouse_position = mouse_position.write().unwrap();
 
-                        mouse_position.x = event.client_x() as i16;
-                        mouse_position.y = event.client_y() as i16;
+                        mouse_position.x = px(event.client_x() as f32);
+                        mouse_position.y = px(event.client_y() as f32);
 
                         namui::event::send(namui::NamuiEvent::MouseMove(crate::RawMouseEvent {
                             id: format!("mousemove-{:?}-{}", crate::now(), crate::nanoid()),
-                            xy: Xy {
-                                x: mouse_position.x as f32,
-                                y: mouse_position.y as f32,
-                            },
+                            xy: mouse_position.clone(),
                             pressing_buttons: get_pressing_buttons(&event),
                             button: None,
                         }));
@@ -134,7 +131,7 @@ pub fn set_mouse_cursor(cursor: &MouseCursor) {
         .unwrap();
 }
 
-pub fn position() -> Xy<i16> {
+pub fn position() -> Xy<Px> {
     MOUSE_SYSTEM.mouse_position.read().unwrap().clone()
 }
 

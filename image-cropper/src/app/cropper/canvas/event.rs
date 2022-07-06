@@ -1,18 +1,18 @@
 use super::{CanvasDragState, ToolType};
-use namui::Xy;
+use namui::prelude::*;
 
 pub enum CanvasEvent {
     Scrolled {
-        offset: Xy<f32>,
+        offset: Xy<Px>,
     },
     Zoomed {
-        offset: Xy<f32>,
+        offset: Xy<Px>,
         scale: f32,
     },
     LeftMouseDownInCanvas {
-        position: Xy<f32>,
+        position: Xy<Px>,
         tool_type: ToolType,
     },
-    MouseMoveInCanvas(Xy<f32>),
+    MouseMoveInCanvas(Xy<Px>),
     DragStarted(CanvasDragState),
 }
