@@ -51,29 +51,29 @@ impl TimePointEditor {
             .as_ref()
             .and_then(|layer_id| animation.layers.iter().find(|layer| layer.id.eq(layer_id)));
 
-        vertical([
+        horizontal([
+            ratio(
+                2.0,
+                vertical([
+                    ratio(1.0, |wh| {
+                        props.layer_list_window.render(layer_list_window::Props {
+                            wh,
+                            layers: &animation.layers,
+                        })
+                    }),
+                    ratio(1.0, |wh| {
+                        self.image_select_window.render(image_select_window::Props {
+                            wh,
+                            selected_layer_image_url: selected_layer
+                                .and_then(|layer| layer.image.image_source_url.clone()),
+                            selected_layer_id: selected_layer_id.clone(),
+                        })
+                    }),
+                ]),
+            ),
             ratio(
                 8.0,
-                horizontal([
-                    ratio(
-                        2.0,
-                        vertical([
-                            ratio(1.0, |wh| {
-                                props.layer_list_window.render(layer_list_window::Props {
-                                    wh,
-                                    layers: &animation.layers,
-                                })
-                            }),
-                            ratio(1.0, |wh| {
-                                self.image_select_window.render(image_select_window::Props {
-                                    wh,
-                                    selected_layer_image_url: selected_layer
-                                        .and_then(|layer| layer.image.image_source_url.clone()),
-                                    selected_layer_id: selected_layer_id.clone(),
-                                })
-                            }),
-                        ]),
-                    ),
+                vertical([
                     ratio(8.0, |wh| {
                         self.wysiwyg_window.render(wysiwyg_window::Props {
                             wh,
@@ -82,15 +82,15 @@ impl TimePointEditor {
                             selected_layer_id: selected_layer_id.clone(),
                         })
                     }),
+                    ratio(2.0, |wh| {
+                        self.timeline_window.render(timeline_window::Props {
+                            wh,
+                            layers: &animation.layers,
+                            selected_layer_id: selected_layer_id.clone(),
+                        })
+                    }),
                 ]),
             ),
-            ratio(2.0, |wh| {
-                self.timeline_window.render(timeline_window::Props {
-                    wh,
-                    layers: &animation.layers,
-                    selected_layer_id: selected_layer_id.clone(),
-                })
-            }),
         ])(Wh {
             width: props.wh.width.into(),
             height: props.wh.height.into(),

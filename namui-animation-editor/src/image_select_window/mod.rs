@@ -73,66 +73,71 @@ impl ImageSelectWindow {
         self.list_view.update(event);
     }
     pub fn render(&self, props: Props) -> RenderingTree {
-        if props.selected_layer_id.is_none() {
-            return RenderingTree::Empty;
-        }
-        let selected_layer_id = props.selected_layer_id.unwrap();
-        let selected_layer_image_url = props.selected_layer_image_url.clone();
-        let dir = namui::file::bundle::read_dir("img").unwrap();
-        const COLUMN_COUNT: usize = 2;
-        let grouped_entries = dir
-            .into_iter()
-            .fold(vec![], |mut acc: Vec<Vec<Dirent>>, entry| {
-                match acc.last_mut() {
-                    Some(vec) => {
-                        if vec.len() == COLUMN_COUNT {
-                            acc.push(vec![entry]);
-                        } else {
-                            vec.push(entry);
+        let border = simple_rect(props.wh, Color::BLACK, 1.px(), Color::WHITE);
+
+        let content = if props.selected_layer_id.is_none() {
+            RenderingTree::Empty
+        } else {
+            let selected_layer_id = props.selected_layer_id.unwrap();
+            let selected_layer_image_url = props.selected_layer_image_url.clone();
+            let dir = namui::file::bundle::read_dir("img").unwrap();
+            const COLUMN_COUNT: usize = 2;
+            let grouped_entries =
+                dir.into_iter()
+                    .fold(vec![], |mut acc: Vec<Vec<Dirent>>, entry| {
+                        match acc.last_mut() {
+                            Some(vec) => {
+                                if vec.len() == COLUMN_COUNT {
+                                    acc.push(vec![entry]);
+                                } else {
+                                    vec.push(entry);
+                                }
+                            }
+                            None => acc.push(vec![entry]),
                         }
+                        acc
+                    });
+
+            self.list_view.render(list_view::Props {
+                xy: Xy::single(px(0.0)),
+                height: props.wh.height,
+                item_wh: Wh {
+                    width: props.wh.width,
+                    height: props.wh.width / 2.0,
+                },
+                scroll_bar_width: px(1.0),
+                items: grouped_entries,
+                item_render: move |wh, entries| {
+                    let mut column_entries: Vec<Option<Dirent>> =
+                        entries.into_iter().map(|vec| Some(vec)).collect();
+
+                    while column_entries.len() < COLUMN_COUNT {
+                        column_entries.push(None);
                     }
-                    None => acc.push(vec![entry]),
-                }
-                acc
-            });
 
-        self.list_view.render(list_view::Props {
-            xy: Xy::single(px(0.0)),
-            height: props.wh.height,
-            item_wh: Wh {
-                width: props.wh.width,
-                height: props.wh.width / 2.0,
-            },
-            scroll_bar_width: px(1.0),
-            items: grouped_entries,
-            item_render: move |wh, entries| {
-                let mut column_entries: Vec<Option<Dirent>> =
-                    entries.into_iter().map(|vec| Some(vec)).collect();
-
-                while column_entries.len() < COLUMN_COUNT {
-                    column_entries.push(None);
-                }
-
-                let selected_layer_id = selected_layer_id.clone();
-                let selected_layer_image_url = selected_layer_image_url.clone();
-
-                horizontal(column_entries.into_iter().map(move |entry| {
                     let selected_layer_id = selected_layer_id.clone();
                     let selected_layer_image_url = selected_layer_image_url.clone();
 
-                    ratio(1.0, move |wh| match entry {
-                        Some(entry) => {
-                            let selected_layer_id = selected_layer_id.clone();
-                            let selected_layer_image_url = selected_layer_image_url.clone();
+                    horizontal(column_entries.into_iter().map(move |entry| {
+                        let selected_layer_id = selected_layer_id.clone();
+                        let selected_layer_image_url = selected_layer_image_url.clone();
 
-                            let is_selected = selected_layer_image_url == Some(entry.url().clone());
-                            render_entry(wh, &entry, is_selected, selected_layer_id)
-                        }
-                        None => RenderingTree::Empty,
-                    })
-                }))(wh)
-            },
-        })
+                        ratio(1.0, move |wh| match entry {
+                            Some(entry) => {
+                                let selected_layer_id = selected_layer_id.clone();
+                                let selected_layer_image_url = selected_layer_image_url.clone();
+
+                                let is_selected =
+                                    selected_layer_image_url == Some(entry.url().clone());
+                                render_entry(wh, &entry, is_selected, selected_layer_id)
+                            }
+                            None => RenderingTree::Empty,
+                        })
+                    }))(wh)
+                },
+            })
+        };
+        render([border, content])
     }
 }
 
