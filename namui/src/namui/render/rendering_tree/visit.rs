@@ -5,13 +5,13 @@ pub struct VisitUtils<'a> {
     pub ancestors: &'a [&'a RenderingTree],
 }
 impl VisitUtils<'_> {
-    pub fn is_xy_in(&self, xy: Xy<f32>) -> bool {
+    pub fn is_xy_in(&self, xy: Xy<Px>) -> bool {
         self.rendering_tree.is_xy_in(xy, self.ancestors)
     }
-    pub fn to_local_xy(&self, xy: Xy<f32>) -> Xy<f32> {
+    pub fn to_local_xy(&self, xy: Xy<Px>) -> Xy<Px> {
         self.rendering_tree.to_local_xy(xy, self.ancestors)
     }
-    pub fn get_xy(&self) -> Xy<f32> {
+    pub fn get_xy(&self) -> Xy<Px> {
         self.rendering_tree.get_xy(self.ancestors)
     }
     pub fn with_ancestors(&self, mut func: impl FnMut(&[&RenderingTree])) {
@@ -64,7 +64,7 @@ impl RenderingTree {
         };
         callback(self, utils)
     }
-    fn to_local_xy(&self, xy: Xy<f32>, ancestors: &[&Self]) -> Xy<f32> {
+    fn to_local_xy(&self, xy: Xy<Px>, ancestors: &[&Self]) -> Xy<Px> {
         let mut result_xy = xy;
         for ancestor in ancestors.iter() {
             match ancestor {
@@ -92,7 +92,7 @@ impl RenderingTree {
         }
         result_xy
     }
-    fn is_xy_in(&self, xy: Xy<f32>, ancestors: &[&Self]) -> bool {
+    fn is_xy_in(&self, xy: Xy<Px>, ancestors: &[&Self]) -> bool {
         let mut result = false;
         self.try_visit_rln(
             &mut |node, utils| match node {
@@ -112,8 +112,11 @@ impl RenderingTree {
 
         result
     }
-    fn get_xy(&self, ancestors: &[&RenderingTree]) -> Xy<f32> {
-        let mut xy = Xy { x: 0.0, y: 0.0 };
+    fn get_xy(&self, ancestors: &[&RenderingTree]) -> Xy<Px> {
+        let mut xy = Xy {
+            x: px(0.0),
+            y: px(0.0),
+        };
         for ancestor in ancestors.iter().rev() {
             if let RenderingTree::Special(special) = ancestor {
                 match special {
@@ -142,7 +145,7 @@ impl RenderingTree {
     }
 }
 
-fn is_xy_clip_in_by_ancestors(xy: Xy<f32>, ancestors: &[&RenderingTree]) -> bool {
+fn is_xy_clip_in_by_ancestors(xy: Xy<Px>, ancestors: &[&RenderingTree]) -> bool {
     let mut ancestors = ancestors.to_vec();
     while let Some(closest_ancestor) = ancestors.pop() {
         if let RenderingTree::Special(special) = closest_ancestor {
@@ -224,79 +227,85 @@ mod tests {
             |
             10
         */
-        let node_10 = crate::translate(20.0, 20.0, RenderingTree::Empty.with_id("10"));
+        let node_10 = crate::translate(px(20.0), px(20.0), RenderingTree::Empty.with_id("10"));
         let node_9 = crate::scale(2.0, 2.0, render([node_10]).with_id("9"));
-        let node_8 = crate::translate(20.0, 20.0, RenderingTree::Empty.with_id("8"));
-        let node_7 = crate::translate(10.0, 20.0, RenderingTree::Empty.with_id("7"));
-        let node_6 = crate::absolute(100.0, 100.0, render([node_8]).with_id("6"));
-        let node_5 = crate::rotate(std::f32::consts::PI / 2.0, render([node_7]).with_id("5"));
-        let node_4 = crate::translate(20.0, 30.0, RenderingTree::Empty.with_id("4"));
+        let node_8 = crate::translate(px(20.0), px(20.0), RenderingTree::Empty.with_id("8"));
+        let node_7 = crate::translate(px(10.0), px(20.0), RenderingTree::Empty.with_id("7"));
+        let node_6 = crate::absolute(px(100.0), px(100.0), render([node_8]).with_id("6"));
+        let node_5 = crate::rotate(
+            Angle::Radian(std::f32::consts::PI / 2.0),
+            render([node_7]).with_id("5"),
+        );
+        let node_4 = crate::translate(px(20.0), px(30.0), RenderingTree::Empty.with_id("4"));
         let node_3 = render([node_9]).with_id("3");
-        let node_2 = crate::translate(50.0, 100.0, render([node_5, node_6]).with_id("2"));
-        let node_1 = crate::translate(100.0, 200.0, render([node_3, node_4]).with_id("1"));
+        let node_2 = crate::translate(px(50.0), px(100.0), render([node_5, node_6]).with_id("2"));
+        let node_1 = crate::translate(px(100.0), px(200.0), render([node_3, node_4]).with_id("1"));
         let node_0 = render([node_1, node_2]).with_id("0");
 
         let mut call_count = 0;
 
         node_0.visit_rln(|rendering_tree, utils| {
-            let xy = Xy { x: 10.0, y: 10.0 };
+            let xy = Xy {
+                x: px(10.0),
+                y: px(10.0),
+            };
             if let RenderingTree::Special(rendering_tree) = rendering_tree {
                 if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
                     let local_xy = utils.to_local_xy(xy);
                     match with_id.id.as_str() {
                         "0" => {
-                            assert_approx_eq!(f32, local_xy.x, 10.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y, 10.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), 10.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), 10.0, ulps = 2);
                             call_count += 1;
                         }
                         "1" => {
-                            assert_approx_eq!(f32, local_xy.x, -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y, -190.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
                             call_count += 1;
                         }
                         "2" => {
-                            assert_approx_eq!(f32, local_xy.x, -40.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y, -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -40.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
                             call_count += 1;
                         }
                         "3" => {
-                            assert_approx_eq!(f32, local_xy.x, -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y, -190.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
                             call_count += 1;
                         }
                         "4" => {
-                            assert_approx_eq!(f32, local_xy.x, -110.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y, -220.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -220.0, ulps = 2);
                             call_count += 1;
                         }
                         "5" => {
-                            assert_approx_eq!(f32, local_xy.x, -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y, 40.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), 40.0, ulps = 2);
                             call_count += 1;
                         }
                         "6" => {
-                            assert_approx_eq!(f32, local_xy.x, -90.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y, -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
                             call_count += 1;
                         }
                         "7" => {
-                            assert_approx_eq!(f32, local_xy.x, -100.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y, 20.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -100.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), 20.0, ulps = 2);
                             call_count += 1;
                         }
                         "8" => {
-                            assert_approx_eq!(f32, local_xy.x, -110.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y, -110.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -110.0, ulps = 2);
                             call_count += 1;
                         }
                         "9" => {
-                            assert_approx_eq!(f32, local_xy.x, -45.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y, -95.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -45.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -95.0, ulps = 2);
                             call_count += 1;
                         }
                         "10" => {
-                            assert_approx_eq!(f32, local_xy.x, -65.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy.y, -115.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -65.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -115.0, ulps = 2);
                             call_count += 1;
                         }
                         _ => {}
@@ -311,39 +320,45 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn to_local_xy_translate_scale_translate_test() {
-        let node_2 = crate::translate(2.0, 2.0, render([]).with_id("2"));
+        let node_2 = crate::translate(px(2.0), px(2.0), render([]).with_id("2"));
         let node_1 = crate::scale(2.0, 2.0, render([node_2]).with_id("1"));
-        let node_0 = crate::translate(2.0, 2.0, render([node_1]).with_id("0"));
+        let node_0 = crate::translate(px(2.0), px(2.0), render([node_1]).with_id("0"));
 
         let mut call_count = 0;
 
         node_0.visit_rln(|rendering_tree, utils| {
-            let xy_0_0 = Xy { x: 0.0, y: 0.0 };
-            let xy_10_10 = Xy { x: 10.0, y: 10.0 };
+            let xy_0_0 = Xy {
+                x: px(0.0),
+                y: px(0.0),
+            };
+            let xy_10_10 = Xy {
+                x: px(10.0),
+                y: px(10.0),
+            };
             if let RenderingTree::Special(rendering_tree) = rendering_tree {
                 if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
                     let local_xy_0_0 = utils.to_local_xy(xy_0_0);
                     let local_xy_10_10 = utils.to_local_xy(xy_10_10);
                     match with_id.id.as_str() {
                         "0" => {
-                            assert_approx_eq!(f32, local_xy_0_0.x, -2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y, -2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x, 8.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y, 8.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -2.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -2.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 8.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 8.0, ulps = 2);
                             call_count += 1;
                         }
                         "1" => {
-                            assert_approx_eq!(f32, local_xy_0_0.x, -1.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y, -1.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x, 4.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y, 4.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -1.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -1.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 4.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 4.0, ulps = 2);
                             call_count += 1;
                         }
                         "2" => {
-                            assert_approx_eq!(f32, local_xy_0_0.x, -3.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y, -3.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x, 2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y, 2.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -3.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -3.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 2.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 2.0, ulps = 2);
                             call_count += 1;
                         }
                         _ => {}
@@ -358,31 +373,37 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn to_local_xy_translate_after_scale_test() {
-        let node_1 = crate::translate(2.0, 2.0, render([]).with_id("1"));
+        let node_1 = crate::translate(px(2.0), px(2.0), render([]).with_id("1"));
         let node_0 = crate::scale(2.0, 2.0, render([node_1]).with_id("0"));
 
         let mut call_count = 0;
 
         node_0.visit_rln(|rendering_tree, utils| {
-            let xy_0_0 = Xy { x: 0.0, y: 0.0 };
-            let xy_10_10 = Xy { x: 10.0, y: 10.0 };
+            let xy_0_0 = Xy {
+                x: px(0.0),
+                y: px(0.0),
+            };
+            let xy_10_10 = Xy {
+                x: px(10.0),
+                y: px(10.0),
+            };
             if let RenderingTree::Special(rendering_tree) = rendering_tree {
                 if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
                     let local_xy_0_0 = utils.to_local_xy(xy_0_0);
                     let local_xy_10_10 = utils.to_local_xy(xy_10_10);
                     match with_id.id.as_str() {
                         "0" => {
-                            assert_approx_eq!(f32, local_xy_0_0.x, 0.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y, 0.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x, 5.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y, 5.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), 0.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), 0.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 5.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 5.0, ulps = 2);
                             call_count += 1;
                         }
                         "1" => {
-                            assert_approx_eq!(f32, local_xy_0_0.x, -2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_0_0.y, -2.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.x, 3.0, ulps = 2);
-                            assert_approx_eq!(f32, local_xy_10_10.y, 3.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -2.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -2.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 3.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 3.0, ulps = 2);
                             call_count += 1;
                         }
                         _ => {}

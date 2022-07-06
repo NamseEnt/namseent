@@ -1,5 +1,3 @@
-use num::FromPrimitive;
-
 use super::*;
 use crate::*;
 
@@ -80,8 +78,8 @@ impl AnimatableImage {
             .and_then(|image| {
                 let size = image.size();
                 Some(Wh {
-                    width: Px::from_f32(size.width).unwrap() * width_percent,
-                    height: Px::from_f32(size.height).unwrap() * height_percent,
+                    width: size.width * width_percent,
+                    height: size.height * height_percent,
                 })
             })
     }
@@ -158,11 +156,11 @@ impl<T: num::ToPrimitive + num::FromPrimitive> KeyframeValue for T {
 impl Animate for AnimatableImage {
     fn render(&self, time: Time) -> RenderingTree {
         try_render(|| {
-            let opacity: f32 = self.opacity.get_value(time)?.into();
+            let opacity = self.opacity.get_value(time)?.as_f32();
             if opacity <= 0.0 {
                 return None;
             }
-            let radian = self.rotation_angle.get_value(time)?.as_radians();
+            let angle = self.rotation_angle.get_value(time)?;
             let x = self.x.get_value(time)?;
             let y = self.y.get_value(time)?;
             let source_url = self.image_source_url.as_ref()?.clone();
@@ -173,12 +171,7 @@ impl Animate for AnimatableImage {
             let anchor_xy = self.get_anchor_px_wh(time)?;
 
             let image_rendering_tree = namui::image(ImageParam {
-                xywh: XywhRect {
-                    x: 0.0,
-                    y: 0.0,
-                    width: image_wh.width.into(),
-                    height: image_wh.height.into(),
-                },
+                rect: Rect::from_xy_wh(Xy::single(px(0.0)), image_wh),
                 style: ImageStyle {
                     fit: ImageFit::Fill,
                     paint_builder: None,
@@ -186,15 +179,11 @@ impl Animate for AnimatableImage {
                 source: ImageSource::Image(image),
             });
             let transformed_image = namui::translate(
-                x.into(),
-                y.into(),
+                x,
+                y,
                 namui::rotate(
-                    radian.into(),
-                    namui::translate(
-                        (-anchor_xy.x).into(),
-                        (-anchor_xy.y).into(),
-                        image_rendering_tree,
-                    ),
+                    angle,
+                    namui::translate(-anchor_xy.x, -anchor_xy.y, image_rendering_tree),
                 ),
             );
 

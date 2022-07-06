@@ -10,7 +10,7 @@ pub enum BorderPosition {
 #[derive(Clone, Debug)]
 pub struct RectStroke {
     pub color: Color,
-    pub width: f32,
+    pub width: Px,
     pub border_position: BorderPosition,
 }
 #[derive(Clone, Debug)]
@@ -19,7 +19,7 @@ pub struct RectFill {
 }
 #[derive(Clone, Debug)]
 pub struct RectRound {
-    pub radius: f32,
+    pub radius: Px,
 }
 #[derive(Default, Clone, Debug)]
 pub struct RectStyle {
@@ -29,19 +29,13 @@ pub struct RectStyle {
 }
 #[derive(Default, Clone, Debug)]
 pub struct RectParam {
-    pub x: f32,
-    pub y: f32,
-    pub width: f32,
-    pub height: f32,
+    pub rect: Rect<Px>,
     pub style: RectStyle,
 }
 
 pub fn rect(
     RectParam {
-        x,
-        y,
-        width,
-        height,
+        rect,
         style: RectStyle {
             stroke,
             fill,
@@ -51,6 +45,12 @@ pub fn rect(
     }: RectParam,
 ) -> RenderingTree {
     let mut rendering_tree: Vec<RenderingTree> = vec![];
+    let Xywh {
+        x,
+        y,
+        width,
+        height,
+    } = rect.as_xywh();
     let (x, y, rect) = match stroke {
         None
         | Some(RectStroke {
@@ -59,9 +59,9 @@ pub fn rect(
         }) => (
             x,
             y,
-            XywhRect {
-                x: 0.0,
-                y: 0.0,
+            Rect::Xywh {
+                x: px(0.0),
+                y: px(0.0),
                 width,
                 height,
             },
@@ -73,9 +73,9 @@ pub fn rect(
         }) => (
             x + stroke_width,
             y + stroke_width,
-            XywhRect {
-                x: 0.0,
-                y: 0.0,
+            Rect::Xywh {
+                x: px(0.0),
+                y: px(0.0),
                 width: width - 2.0 * stroke_width,
                 height: height - 2.0 * stroke_width,
             },
@@ -87,9 +87,9 @@ pub fn rect(
         }) => (
             x + stroke_width / 2.0,
             y + stroke_width / 2.0,
-            XywhRect {
-                x: 0.0,
-                y: 0.0,
+            Rect::Xywh {
+                x: px(0.0),
+                y: px(0.0),
                 width: width - stroke_width,
                 height: height - stroke_width,
             },
@@ -139,11 +139,9 @@ pub fn rect(
     translate(x, y, RenderingTree::Children(rendering_tree))
 }
 
-fn get_rect_path(rect: XywhRect<f32>, round: Option<RectRound>) -> namui::PathBuilder {
+fn get_rect_path(rect: Rect<Px>, round: Option<RectRound>) -> namui::PathBuilder {
     match round {
-        Some(round) => {
-            namui::PathBuilder::new().add_rrect(&rect.into_ltrb(), round.radius, round.radius)
-        }
-        None => namui::PathBuilder::new().add_rect(&rect.into_ltrb()),
+        Some(round) => namui::PathBuilder::new().add_rrect(rect, round.radius, round.radius),
+        None => namui::PathBuilder::new().add_rect(rect),
     }
 }

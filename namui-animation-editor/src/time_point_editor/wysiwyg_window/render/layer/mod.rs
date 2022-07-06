@@ -57,20 +57,17 @@ impl WysiwygWindow {
         let rotation_angle = layer.image.rotation_angle.get_value(playback_time).unwrap();
 
         translate(
-            x.into(),
-            y.into(),
+            x,
+            y,
             rotate(
-                rotation_angle.as_radians(),
+                rotation_angle,
                 translate(
-                    (-anchor_xy.x).into(),
-                    (-anchor_xy.y).into(),
+                    -anchor_xy.x,
+                    -anchor_xy.y,
                     simple_rect(
-                        Wh {
-                            width: wh.width.into(),
-                            height: wh.height.into(),
-                        },
+                        wh,
                         Color::grayscale_f01(0.5),
-                        1.0 * self.real_px_per_screen_px,
+                        px(self.real_px_per_screen_px),
                         Color::TRANSPARENT,
                     ),
                 ),

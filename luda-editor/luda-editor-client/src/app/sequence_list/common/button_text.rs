@@ -1,8 +1,6 @@
-use namui::{
-    Color, FontType, FontWeight, Language, RenderingTree, TextAlign, TextBaseline, TextStyle, Wh,
-};
+use namui::prelude::*;
 
-pub fn render_button_text(wh: Wh<f32>, text: String) -> RenderingTree {
+pub fn render_button_text(wh: Wh<Px>, text: String) -> RenderingTree {
     namui::text(namui::TextParam {
         text,
         x: wh.width / 2.0,
@@ -11,7 +9,7 @@ pub fn render_button_text(wh: Wh<f32>, text: String) -> RenderingTree {
         baseline: TextBaseline::Middle,
         font_type: FontType {
             serif: false,
-            size: (wh.height / 3.0 * 2.0) as i16,
+            size: (wh.height / 3.0 * 2.0).into(),
             language: Language::Ko,
             font_weight: FontWeight::REGULAR,
         },

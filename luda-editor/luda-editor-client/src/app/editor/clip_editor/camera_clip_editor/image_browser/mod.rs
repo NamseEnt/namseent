@@ -18,8 +18,8 @@ pub struct ImageBrowser {
     thumbnail_url_prefix: String,
 }
 pub struct ImageBrowserProps<'a> {
-    pub width: f32,
-    pub height: f32,
+    pub width: Px,
+    pub height: Px,
     pub files: &'a BTreeSet<ImageBrowserFile>,
 }
 
@@ -72,25 +72,25 @@ impl ImageBrowser {
     }
 
     pub fn render(&self, props: &ImageBrowserProps) -> RenderingTree {
-        let current_directory_label_layout = XywhRect {
-            x: 20.0,
-            y: 20.0,
-            width: 160.0,
-            height: 40.0,
+        let current_directory_label_layout = Rect::Xywh {
+            x: px(20.0),
+            y: px(20.0),
+            width: px(160.0),
+            height: px(40.0),
         };
         let is_root = self.directory.is_root();
-        let item_margin = 10.0;
+        let item_margin = px(10.0);
         let item_width = props.width / 2.0 - item_margin;
         let item_size = namui::Wh {
             width: item_width,
             height: item_width,
         };
 
-        let thumbnail_rect = namui::XywhRect {
-            x: 10.0,
-            y: 5.0,
-            width: item_size.width - 20.0,
-            height: item_size.height - 20.0,
+        let thumbnail_rect = namui::Rect::Xywh {
+            x: px(10.0),
+            y: px(5.0),
+            width: item_size.width - px(20.0),
+            height: item_size.height - px(20.0),
         };
 
         let get_browser_item_y =
@@ -112,7 +112,7 @@ impl ImageBrowser {
             .enumerate()
             .map(|(index, browser_item)| {
                 namui::translate(
-                    (index % 2) as f32 * (item_size.width + item_margin),
+                    (index % 2) * (item_size.width + item_margin),
                     get_browser_item_y(index),
                     browser_item,
                 )
@@ -122,40 +122,40 @@ impl ImageBrowser {
         let browser_item_scroll_height =
             get_browser_item_y(browser_items.len() - 1) + item_size.height + item_margin;
 
-        let scroll_bar_width = 10.0;
+        let scroll_bar_width = px(10.0);
 
-        namui::render![
-            self.render_current_directory_label(&current_directory_label_layout),
+        namui::render([
+            self.render_current_directory_label(current_directory_label_layout),
             namui::translate(
-                0.0,
-                current_directory_label_layout.y,
+                px(0.0),
+                current_directory_label_layout.y(),
                 self.scroll.render(ScrollProps {
-                    x: 0.0,
-                    y: 0.0,
+                    x: px(0.0),
+                    y: px(0.0),
                     inner_width: props.width - scroll_bar_width,
                     inner_height: browser_item_scroll_height,
                     scroll_bar_width,
                     height: props.height
-                        - (current_directory_label_layout.y
-                            + current_directory_label_layout.height),
+                        - (current_directory_label_layout.y()
+                            + current_directory_label_layout.height()),
                     inner_rendering_tree: RenderingTree::Children(browser_items),
                 }),
-            )
-        ]
+            ),
+        ])
     }
 
     fn render_current_directory_label(
         &self,
-        current_directory_label_layout: &XywhRect<f32>,
+        current_directory_label_layout: Rect<Px>,
     ) -> RenderingTree {
         namui::text(namui::TextParam {
             text: self.directory.to_string(),
-            x: current_directory_label_layout.x,
-            y: current_directory_label_layout.y,
+            x: current_directory_label_layout.x(),
+            y: current_directory_label_layout.y(),
             align: namui::TextAlign::Left,
             baseline: namui::TextBaseline::Bottom,
             font_type: namui::FontType {
-                size: 16,
+                size: int_px(16),
                 serif: false,
                 language: namui::Language::Ko,
                 font_weight: namui::FontWeight::REGULAR,
@@ -169,8 +169,8 @@ impl ImageBrowser {
 
     fn get_directory_files_browser_item_props(
         &self,
-        item_size: Wh<f32>,
-        thumbnail_rect: XywhRect<f32>,
+        item_size: Wh<Px>,
+        thumbnail_rect: Rect<Px>,
         files: &BTreeSet<ImageBrowserFile>,
     ) -> Vec<BrowserItemProps> {
         let under_directory_files = files

@@ -124,7 +124,7 @@ impl TimelineWindow {
             }
         }
     }
-    fn handle_timeline_dragging(&mut self, mouse_local_xy: Xy<f32>) {
+    fn handle_timeline_dragging(&mut self, mouse_local_xy: Xy<Px>) {
         if self.dragging.is_none() {
             return;
         }
@@ -157,7 +157,7 @@ impl TimelineWindow {
             }
         }
     }
-    fn crate_new_keyframe(&mut self, mouse_local_xy: Xy<f32>, layer_id: &str) {
+    fn crate_new_keyframe(&mut self, mouse_local_xy: Xy<Px>, layer_id: &str) {
         struct CreateNewKeyframeAction {
             layer_id: String,
             time: Time,

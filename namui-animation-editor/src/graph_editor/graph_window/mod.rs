@@ -1,10 +1,3 @@
-mod render;
-mod update;
-
-use crate::{
-    time_ruler,
-    types::{ActionTicket, AnimationHistory},
-};
 use namui::{
     animation::{KeyframeGraph, Layer},
     math::num::{FromPrimitive, ToPrimitive},
@@ -20,6 +13,12 @@ use std::{
     ops::{Div, Range},
     sync::Arc,
 };
+mod render;
+use crate::{
+    time_ruler,
+    types::{ActionTicket, AnimationHistory},
+};
+mod update;
 
 pub(crate) struct GraphWindow {
     context: GraphWindowContext,
@@ -36,7 +35,7 @@ pub(crate) struct GraphWindow {
 }
 
 pub(crate) struct Props<'a> {
-    pub wh: Wh<f32>,
+    pub wh: Wh<Px>,
     pub layer: Option<&'a namui::animation::Layer>,
     pub playback_time: Time,
 }
@@ -48,21 +47,21 @@ enum Dragging {
     },
     Background {
         property_name: PropertyName,
-        last_mouse_local_xy: Xy<f32>,
+        last_mouse_local_xy: Xy<Px>,
     },
 }
 
 #[derive(Debug, Clone)]
 struct MouseOverRow {
     property_name: PropertyName,
-    mouse_xy_in_row: Xy<f32>,
+    mouse_xy_in_row: Xy<Px>,
 }
 
 #[derive(Debug, Clone)]
 enum Event {
     GraphMouseMoveIn {
         property_name: PropertyName,
-        mouse_xy_in_row: Xy<f32>,
+        mouse_xy_in_row: Xy<Px>,
     },
     GraphMouseMoveOut,
     GraphShiftMouseWheel {
@@ -70,13 +69,13 @@ enum Event {
     },
     GraphAltMouseWheel {
         delta: Px,
-        mouse_local_xy: Xy<f32>,
+        mouse_local_xy: Xy<Px>,
     },
     GraphCtrlMouseWheel {
         delta: Px,
         property_name: PropertyName,
-        mouse_local_xy: Xy<f32>,
-        row_wh: Wh<f32>,
+        mouse_local_xy: Xy<Px>,
+        row_wh: Wh<Px>,
     },
     GraphMouseWheel {
         delta: Px,
@@ -89,11 +88,11 @@ enum Event {
     },
     GraphMouseLeftDown {
         property_name: PropertyName,
-        mouse_local_xy: Xy<f32>,
+        mouse_local_xy: Xy<Px>,
     },
     KeyboardKeyDown {
         code: Code,
-        row_height: f32,
+        row_height: Px,
     },
 }
 
@@ -268,7 +267,7 @@ struct Context<'a, TValue> {
     start_at: Time,
     time_per_px: TimePerPx,
     property_context: &'a PropertyContext<TValue>,
-    mouse_local_xy: Option<Xy<f32>>,
+    mouse_local_xy: Option<Xy<Px>>,
     property_name: PropertyName,
     selected_point_id: Option<String>,
     layer: &'a Layer,

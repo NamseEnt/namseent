@@ -4,16 +4,17 @@ use crate::app::{
     sequence_list::common::{render_button_text, render_rounded_rectangle, RoundedRectangleColor},
     types::Sequence,
 };
-use namui::{render, RenderingTree, Wh};
+use namui::prelude::*;
+
 use std::sync::Arc;
 
 pub fn render_open_button(
-    wh: Wh<f32>,
+    wh: Wh<Px>,
     path: &String,
     sequence: &Arc<Sequence>,
     title: &String,
 ) -> RenderingTree {
-    render![
+    render([
         render_rounded_rectangle(wh, RoundedRectangleColor::Blue)
             .attach_event(move |builder| {
                 let sequence = sequence.clone();
@@ -37,6 +38,6 @@ pub fn render_open_button(
                 });
             })
             .with_mouse_cursor(namui::MouseCursor::Pointer),
-        render_button_text(wh, "Open".to_string())
-    ]
+        render_button_text(wh, "Open".to_string()),
+    ])
 }

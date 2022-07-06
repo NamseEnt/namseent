@@ -1,13 +1,14 @@
 use super::JobExecute;
 use crate::app::{editor::clip_editor::camera_clip_editor::WysiwygTarget, types::*};
+use namui::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct WysiwygMoveImageJob {
     pub target: WysiwygTarget,
     pub clip_id: String,
-    pub start_global_mouse_xy: namui::Xy<f32>,
-    pub last_global_mouse_xy: namui::Xy<f32>,
-    pub container_size: namui::Wh<f32>,
+    pub start_global_mouse_xy: namui::Xy<Px>,
+    pub last_global_mouse_xy: namui::Xy<Px>,
+    pub container_size: namui::Wh<Px>,
 }
 
 impl JobExecute for WysiwygMoveImageJob {

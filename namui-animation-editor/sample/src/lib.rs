@@ -1,4 +1,4 @@
-use namui::{animation::KeyframePoint, prelude::*, types::*};
+use namui::{animation::KeyframePoint, prelude::*};
 use namui_animation_editor::{self, *};
 use wasm_bindgen::prelude::*;
 
@@ -6,13 +6,7 @@ use wasm_bindgen::prelude::*;
 pub async fn start() {
     let namui_context = namui::init().await;
 
-    let wh = {
-        let screen_size = namui::screen::size();
-        Wh {
-            width: screen_size.width as f32,
-            height: screen_size.height as f32,
-        }
-    };
+    let wh = namui::screen::size();
 
     namui::start(
         namui_context,
@@ -77,7 +71,7 @@ impl AnimationEditorExample {
 }
 
 struct Props {
-    wh: Wh<f32>,
+    wh: Wh<Px>,
 }
 impl Entity for AnimationEditorExample {
     type Props = Props;

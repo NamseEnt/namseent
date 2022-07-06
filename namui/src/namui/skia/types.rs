@@ -1,4 +1,4 @@
-use crate::Xy;
+use crate::{Px, Rect};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::hash_map::DefaultHasher,
@@ -7,70 +7,16 @@ use std::{
 
 pub type GlyphIds = [u16];
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, Default, PartialEq)]
-#[repr(C)]
-pub struct LtrbRect {
-    pub left: f32,
-    pub top: f32,
-    pub right: f32,
-    pub bottom: f32,
-}
-impl LtrbRect {
-    pub fn center(&self) -> Xy<f32> {
-        Xy {
-            x: (self.left + self.right) / 2.0,
-            y: (self.top + self.bottom) / 2.0,
-        }
-    }
-
-    pub fn intersect(&self, other: LtrbRect) -> Option<LtrbRect> {
-        let is_intersect = self.left <= other.right
-            && self.right >= other.left
-            && self.top <= other.bottom
-            && self.bottom >= other.top;
-
-        is_intersect.then(|| LtrbRect {
-            left: self.left.max(other.left),
-            top: self.top.max(other.top),
-            right: self.right.min(other.right),
-            bottom: self.bottom.min(other.bottom),
-        })
-    }
-
-    pub fn is_xy_outside(&self, xy: Xy<f32>) -> bool {
-        xy.x < self.left || xy.x > self.right || xy.y < self.top || xy.y > self.bottom
-    }
-
-    pub fn is_xy_on_border(&self, xy: Xy<f32>) -> bool {
-        ((xy.x == self.left || xy.x == self.right) && (self.top <= xy.y && xy.y <= self.bottom))
-            || ((xy.y == self.top || xy.y == self.bottom)
-                && (self.left <= xy.x && xy.x <= self.right))
-    }
-
-    pub fn is_xy_inside(&self, xy: Xy<f32>) -> bool {
-        self.left <= xy.x && xy.x <= self.right && self.top <= xy.y && xy.y <= self.bottom
-    }
-
-    pub fn get_minimum_rectangle_containing(a: &LtrbRect, b: &LtrbRect) -> LtrbRect {
-        LtrbRect {
-            left: a.left.min(b.left),
-            top: a.top.min(b.top),
-            right: a.right.max(b.right),
-            bottom: a.bottom.max(b.bottom),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub struct FontMetrics {
     /// suggested space above the baseline. < 0
-    pub ascent: f32,
+    pub ascent: Px,
     /// suggested space below the baseline. > 0
-    pub descent: f32,
+    pub descent: Px,
     /// suggested spacing between descent of previous line and ascent of next line.
-    pub leading: f32,
+    pub leading: Px,
     /// smallest rect containing all glyphs (relative to 0,0)
-    pub bounds: Option<LtrbRect>,
+    pub bounds: Option<Rect<Px>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, Default, Hash, Eq, PartialEq)]
@@ -242,23 +188,27 @@ pub enum PaintStyle {
     Stroke,
 }
 
-#[derive(Debug, Serialize, Clone, PartialEq, Hash)]
+#[derive(Debug, Serialize, Clone, Copy, PartialEq, Hash)]
 pub enum StrokeCap {
     Butt,
     Round,
     Square,
 }
 
-#[derive(Debug, Serialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Clone, Copy, PartialEq)]
 pub enum StrokeJoin {
     Bevel,
     Miter,
     Round,
 }
-#[derive(Debug, Serialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Clone, Copy, PartialEq)]
 pub struct StrokeOptions {
-    pub width: Option<f32>,
-    pub miter_limit: Option<f32>,
+    pub width: Option<Px>,
+    pub miter_limit: Option<Px>,
+    ///
+    /// if > 1, increase precision, else if (0 < resScale < 1) reduce precision to
+    /// favor speed and size
+    ///
     pub precision: Option<f32>,
     pub join: Option<StrokeJoin>,
     pub cap: Option<StrokeCap>,
@@ -291,8 +241,8 @@ pub enum ColorType {
 pub struct PartialImageInfo {
     pub alpha_type: AlphaType,
     pub color_type: ColorType,
-    pub height: f32,
-    pub width: f32,
+    pub height: Px,
+    pub width: Px,
 }
 #[allow(dead_code)]
 pub enum FilterMode {

@@ -1,3 +1,5 @@
+use crate::*;
+
 #[derive(Clone, Copy, Debug)]
 pub struct Matrix3x3 {
     pub values: [[f32; 3]; 3],
@@ -61,23 +63,33 @@ impl Matrix3x3 {
         }
     }
 
-    pub fn transform_xy(&self, xy: crate::Xy<f32>) -> crate::Xy<f32> {
+    pub fn transform_xy(&self, xy: crate::Xy<Px>) -> crate::Xy<Px> {
         crate::Xy {
-            x: self.values[0][0] * xy.x + self.values[0][1] * xy.y + self.values[0][2],
-            y: self.values[1][0] * xy.x + self.values[1][1] * xy.y + self.values[1][2],
+            x: self.values[0][0] * xy.x + self.values[0][1] * xy.y + px(self.values[0][2]),
+            y: self.values[1][0] * xy.x + self.values[1][1] * xy.y + px(self.values[1][2]),
         }
     }
 
-    pub fn transform_rect(&self, rect: &crate::LtrbRect) -> crate::LtrbRect {
-        crate::LtrbRect {
-            left: self.values[0][0] * rect.left + self.values[0][1] * rect.top + self.values[0][2],
-            top: self.values[1][0] * rect.left + self.values[1][1] * rect.top + self.values[1][2],
-            right: self.values[0][0] * rect.right
-                + self.values[0][1] * rect.bottom
-                + self.values[0][2],
-            bottom: self.values[1][0] * rect.right
-                + self.values[1][1] * rect.bottom
-                + self.values[1][2],
+    pub fn transform_rect<T>(&self, rect: Rect<T>) -> Rect<T>
+    where
+        f32: std::ops::Mul<T, Output = T> + Into<T>,
+        T: std::ops::Add<Output = T> + Copy,
+    {
+        let Ltrb {
+            left,
+            top,
+            right,
+            bottom,
+        } = rect.as_ltrb();
+        Rect::Ltrb {
+            left: self.values[0][0] * left + self.values[0][1] * top + self.values[0][2].into(),
+            top: self.values[1][0] * left + self.values[1][1] * top + self.values[1][2].into(),
+            right: self.values[0][0] * right
+                + self.values[0][1] * bottom
+                + self.values[0][2].into(),
+            bottom: self.values[1][0] * right
+                + self.values[1][1] * bottom
+                + self.values[1][2].into(),
         }
     }
 }

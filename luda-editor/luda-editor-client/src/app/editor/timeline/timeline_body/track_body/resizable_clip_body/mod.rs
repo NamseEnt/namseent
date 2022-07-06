@@ -1,24 +1,21 @@
-use crate::app::{
-    editor::{events::EditorEvent, TimelineRenderContext},
-    types::*,
-};
+use crate::app::editor::{events::EditorEvent, TimelineRenderContext};
 use namui::prelude::*;
 mod sash;
 pub use sash::*;
 
 pub struct ResizableClipBody {}
 pub struct ResizableClipBodyProps<'a> {
-    pub track_body_wh: &'a Wh<f32>,
+    pub track_body_wh: Wh<Px>,
     pub clip: &'a dyn ResizableClip,
     pub context: &'a TimelineRenderContext<'a>,
 }
-const RESIZABLE_CLIP_ROUND_RADIUS: f32 = 5.0;
+const RESIZABLE_CLIP_ROUND_RADIUS: Px = px(5.0);
 
 pub trait ResizableClip {
     fn id(&self) -> String;
     fn start_at(&self) -> Time;
     fn end_at(&self) -> Time;
-    fn render(&self, wh: &Wh<f32>) -> RenderingTree;
+    fn render(&self, wh: Wh<Px>) -> RenderingTree;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -34,27 +31,24 @@ impl ResizableClipBody {
     pub fn render(props: &ResizableClipBodyProps) -> RenderingTree {
         let clip_id = props.clip.id();
         let timeline_start_at = props.context.start_at;
-        let time_per_pixel = props.context.time_per_pixel;
+        let time_per_px = props.context.time_per_px;
 
-        let x = ((props.clip.start_at() - timeline_start_at) / time_per_pixel).0;
+        let x = (props.clip.start_at() - timeline_start_at) / time_per_px;
         let duration = props.clip.end_at() - props.clip.start_at();
-        let width = (duration / time_per_pixel).0;
+        let width = duration / time_per_px;
 
-        let clip_rect = namui::XywhRect {
-            x: x + 1.0,
-            y: 1.0,
-            width: width - 2.0,
-            height: props.track_body_wh.height - 2.0,
+        let clip_rect = namui::Rect::Xywh {
+            x: x + px(1.0),
+            y: px(1.0),
+            width: width - px(2.0),
+            height: props.track_body_wh.height - px(2.0),
         };
         let is_selected = props.context.selected_clip_ids.contains(&&clip_id);
         let is_highlight = is_selected;
         let is_sashes_showing = is_selected && props.context.selected_clip_ids.len() == 1;
 
         let background = namui::rect(namui::RectParam {
-            x: clip_rect.x,
-            y: clip_rect.y,
-            width: clip_rect.width,
-            height: clip_rect.height,
+            rect: clip_rect,
             style: namui::RectStyle {
                 fill: Some(namui::RectFill {
                     color: if is_highlight {
@@ -72,21 +66,23 @@ impl ResizableClipBody {
         });
 
         let border = namui::rect(namui::RectParam {
-            x: clip_rect.x,
-            y: clip_rect.y,
-            width: clip_rect.width,
-            height: clip_rect.height,
+            rect: Rect::Xywh {
+                x: clip_rect.x(),
+                y: clip_rect.y(),
+                width: clip_rect.width(),
+                height: clip_rect.height(),
+            },
             style: namui::RectStyle {
                 stroke: Some(if is_highlight {
                     namui::RectStroke {
                         color: namui::Color::RED,
-                        width: 3.0,
+                        width: px(3.0),
                         border_position: namui::BorderPosition::Inside,
                     }
                 } else {
                     namui::RectStroke {
                         color: namui::Color::BLACK,
-                        width: 1.0,
+                        width: px(1.0),
                         border_position: namui::BorderPosition::Inside,
                     }
                 }),
@@ -104,8 +100,8 @@ impl ResizableClipBody {
                     AVAILABLE_SASH_DIRECTIONS
                         .iter()
                         .find_map(|direction| {
-                            let sash_rect = get_sash_rect(&clip_rect, *direction);
-                            if sash_rect.is_xy_in(&event.local_xy) {
+                            let sash_rect = get_sash_rect(clip_rect, *direction);
+                            if sash_rect.is_xy_inside(event.local_xy) {
                                 Some(ResizableClipBodyPart::Sash(*direction))
                             } else {
                                 None
@@ -119,7 +115,7 @@ impl ResizableClipBody {
                 namui::event::send(EditorEvent::ResizableClipBodyMouseDownEvent {
                     mouse_event_id: event.id.clone(),
                     clip_id: clip_id.clone(),
-                    click_in_time: timeline_start_at + PixelSize(event.local_xy.x) * time_per_pixel,
+                    click_in_time: timeline_start_at + event.local_xy.x * time_per_px,
                     clicked_part,
                 });
             });
@@ -133,7 +129,7 @@ impl ResizableClipBody {
                         render_sash(&SashBodyProps {
                             context: props.context,
                             direction: *direction,
-                            clip_rect: &clip_rect,
+                            clip_rect,
                         })
                     })
                     .collect::<Vec<_>>(),
@@ -142,34 +138,35 @@ impl ResizableClipBody {
             RenderingTree::Empty
         };
 
-        namui::render![
+        namui::render([
             background,
-            render_resizable_clip_preview(&clip_rect, props.track_body_wh.width, props.clip),
+            render_resizable_clip_preview(clip_rect, props.track_body_wh.width, props.clip),
             border,
             sashes,
-        ]
+        ])
     }
 }
 
 fn render_resizable_clip_preview(
-    resizable_clip_rect: &XywhRect<f32>,
-    track_body_width: f32,
+    resizable_clip_rect: Rect<Px>,
+    track_body_width: Px,
     clip: &dyn ResizableClip,
 ) -> RenderingTree {
-    let xywh: XywhRect<f32> =
-        get_resizable_clip_preview_xywh(resizable_clip_rect, track_body_width);
+    let rect: Rect<Px> = get_resizable_clip_preview_rect(resizable_clip_rect, track_body_width);
 
-    if xywh.width <= 8.0 {
+    if rect.width() <= px(8.0) {
         return RenderingTree::Empty;
     }
-    let width_by_fixed_height = xywh.height * 16.0 / 9.0;
+    let width_by_fixed_height = rect.height() * 16.0 / 9.0;
 
-    let letter_box_half_width = (width_by_fixed_height - xywh.width) / 2.0;
-    let background = rect(RectParam {
-        x: 0.0,
-        y: 0.0,
-        width: width_by_fixed_height,
-        height: xywh.height,
+    let letter_box_half_width = (width_by_fixed_height - rect.width()) / 2.0;
+    let background = namui::rect(RectParam {
+        rect: Rect::Xywh {
+            x: px(0.0),
+            y: px(0.0),
+            width: width_by_fixed_height,
+            height: rect.height(),
+        },
         style: RectStyle {
             fill: Some(RectFill {
                 color: Color::WHITE,
@@ -181,44 +178,44 @@ fn render_resizable_clip_preview(
     });
 
     translate(
-        xywh.x - letter_box_half_width,
-        xywh.y,
+        rect.x() - letter_box_half_width,
+        rect.y(),
         namui::clip(
             PathBuilder::new().add_rrect(
-                &LtrbRect {
+                Rect::Ltrb {
                     left: letter_box_half_width,
-                    top: 0.0,
-                    right: xywh.width + letter_box_half_width,
-                    bottom: xywh.height,
+                    top: px(0.0),
+                    right: rect.width() + letter_box_half_width,
+                    bottom: rect.height(),
                 },
                 RESIZABLE_CLIP_ROUND_RADIUS,
                 RESIZABLE_CLIP_ROUND_RADIUS,
             ),
             ClipOp::Intersect,
-            render![
+            render([
                 background,
-                clip.render(&Wh {
+                clip.render(Wh {
                     width: width_by_fixed_height,
-                    height: xywh.height,
-                },),
-            ],
+                    height: rect.height(),
+                }),
+            ]),
         ),
     )
 }
 
-fn get_resizable_clip_preview_xywh(
-    resizable_clip_rect: &XywhRect<f32>,
-    track_body_width: f32,
-) -> XywhRect<f32> {
+fn get_resizable_clip_preview_rect(
+    resizable_clip_rect: Rect<Px>,
+    track_body_width: Px,
+) -> Rect<Px> {
     // NOTE : The coordinate is based on the timeline.start_at as a zero point.
-    let resizable_clip_right = resizable_clip_rect.x + resizable_clip_rect.width;
+    let resizable_clip_right = resizable_clip_rect.x() + resizable_clip_rect.width();
     let preview_right = resizable_clip_right.min(track_body_width);
-    let preview_x = resizable_clip_rect.x.max(0.0);
+    let preview_x = resizable_clip_rect.x().max(px(0.0));
     let preview_width = preview_right - preview_x;
-    XywhRect {
+    Rect::Xywh {
         x: preview_x,
-        y: resizable_clip_rect.y,
+        y: resizable_clip_rect.y(),
         width: preview_width,
-        height: resizable_clip_rect.height,
+        height: resizable_clip_rect.height(),
     }
 }

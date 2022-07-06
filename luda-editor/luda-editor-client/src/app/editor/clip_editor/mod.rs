@@ -15,7 +15,7 @@ pub enum ClipEditor {
 
 pub struct ClipEditorProps<'a> {
     pub clip: Clip,
-    pub xywh: XywhRect<f32>,
+    pub rect: Rect<Px>,
     pub character_image_files: &'a BTreeSet<ImageBrowserFile>,
     pub background_image_files: &'a BTreeSet<ImageBrowserFile>,
     pub job: &'a Option<Job>,
@@ -43,7 +43,7 @@ impl ClipEditor {
             ClipEditor::Camera(camera_clip_editor) => match &props.clip {
                 Clip::Camera(camera_clip) => camera_clip_editor.render(&CameraClipEditorProps {
                     camera_clip: &camera_clip,
-                    xywh: props.xywh,
+                    rect: props.rect,
                     character_image_files: &props.character_image_files,
                     background_image_files: &props.background_image_files,
                     job: &props.job,

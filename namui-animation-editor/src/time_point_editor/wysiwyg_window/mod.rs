@@ -10,9 +10,9 @@ mod update;
 pub struct WysiwygWindow {
     window_id: String,
     animation_history: AnimationHistory,
-    real_left_top_xy: Xy<f32>,
+    real_left_top_xy: Xy<Px>,
     real_px_per_screen_px: f32,
-    last_wh: Option<Wh<f32>>,
+    last_wh: Option<Wh<Px>>,
     dragging: Option<Dragging>,
 }
 
@@ -21,7 +21,7 @@ impl WysiwygWindow {
         Self {
             window_id: namui::nanoid(),
             animation_history,
-            real_left_top_xy: Xy { x: -5.0, y: -5.0 },
+            real_left_top_xy: Xy::single(px(-50.0)),
             real_px_per_screen_px: 2.0,
             last_wh: None,
             dragging: None,
@@ -30,7 +30,7 @@ impl WysiwygWindow {
 }
 
 pub struct Props<'a> {
-    pub wh: Wh<f32>,
+    pub wh: Wh<Px>,
     pub playback_time: Time,
     pub animation: &'a animation::Animation,
     pub selected_layer_id: Option<String>,
@@ -49,7 +49,7 @@ pub(crate) enum ResizeCircleLocation {
 }
 
 enum Dragging {
-    Background { anchor_xy: Xy<f32> },
+    Background { anchor_xy: Xy<Px> },
     ResizeCircle { ticket: ActionTicket },
     ImageBody { ticket: ActionTicket },
     Rotation { ticket: ActionTicket },
@@ -57,10 +57,10 @@ enum Dragging {
 
 enum Event {
     BackgroundClicked {
-        mouse_xy: Xy<f32>,
+        mouse_xy: Xy<Px>,
     },
     MouseMoveIn {
-        mouse_local_xy: Xy<f32>,
+        mouse_local_xy: Xy<Px>,
     },
     ShiftWheel {
         delta: f32,
@@ -70,26 +70,26 @@ enum Event {
     },
     AltWheel {
         delta: f32,
-        mouse_local_xy: Xy<f32>,
+        mouse_local_xy: Xy<Px>,
     },
     UpdateWh {
-        wh: Wh<f32>,
+        wh: Wh<Px>,
     },
     SelectedLayerMouseDown {
         layer_id: String,
-        anchor_xy: Xy<f32>,
+        anchor_xy: Xy<Px>,
         playback_time: Time,
     },
     ResizeCircleMouseDown {
         layer_id: String,
         location: ResizeCircleLocation,
-        anchor_xy: Xy<f32>,
+        anchor_xy: Xy<Px>,
         playback_time: Time,
         rotation_angle: Angle,
     },
     RotationToolMouseDown {
-        image_center_real_xy: Xy<f32>,
-        mouse_local_xy: Xy<f32>,
+        image_center_real_xy: Xy<Px>,
+        mouse_local_xy: Xy<Px>,
         playback_time: Time,
         layer_id: String,
     },

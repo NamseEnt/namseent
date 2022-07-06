@@ -33,7 +33,7 @@ impl WysiwygWindow {
             .set_anti_alias(true)
             .set_style(PaintStyle::Stroke)
             .set_color(Color::grayscale_f01(0.0))
-            .set_stroke_width(1.0);
+            .set_stroke_width(px(1.0));
 
         if let Some((_, xy)) = time_and_xys.first() {
             path_builder = path_builder.move_to(xy.x.into(), xy.y.into());

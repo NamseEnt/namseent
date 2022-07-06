@@ -12,7 +12,7 @@ pub(crate) struct TimePointEditor {
 }
 
 pub(crate) struct Props<'a> {
-    pub wh: Wh<f32>,
+    pub wh: Wh<Px>,
     pub animation: &'a Animation,
     pub layer_list_window: &'a layer_list_window::LayerListWindow,
 }

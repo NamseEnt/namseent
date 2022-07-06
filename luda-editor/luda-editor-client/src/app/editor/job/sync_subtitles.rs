@@ -36,6 +36,7 @@ pub(crate) fn get_subtitle_track_id(sequence: &Sequence) -> String {
 mod tests {
     use super::super::*;
     use super::*;
+    use namui::prelude::*;
     use namui::Language;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -86,7 +87,7 @@ mod tests {
         let clip_ids = clips.iter().map(|clip| clip.id.clone()).collect::<Vec<_>>();
         assert_eq!(clip_ids, expected_clip_ids);
 
-        assert_eq!(clips[0].start_at, Time::from_ms(0.0));
+        assert_eq!(clips[0].start_at, Time::Ms(0.0));
         assert_eq!(clips[0].is_needed_to_update_position, true);
     }
 
@@ -105,10 +106,10 @@ mod tests {
         let clip_ids = clips.iter().map(|clip| clip.id.clone()).collect::<Vec<_>>();
         assert_eq!(clip_ids, expected_clip_ids);
 
-        assert_eq!(clips[0].start_at, Time::from_ms(0.0));
+        assert_eq!(clips[0].start_at, Time::Ms(0.0));
         assert_eq!(
             clips[1].start_at,
-            Time::from_ms(DEFAULT_SUBTITLE_INSERT_INTERVAL_MS)
+            Time::Ms(DEFAULT_SUBTITLE_INSERT_INTERVAL_MS)
         );
         assert_eq!(clips[0].is_needed_to_update_position, true);
         assert_eq!(clips[1].is_needed_to_update_position, true);
@@ -133,10 +134,10 @@ mod tests {
         let clip_ids = clips.iter().map(|clip| clip.id.clone()).collect::<Vec<_>>();
         assert_eq!(clip_ids, expected_clip_ids);
 
-        assert_eq!(clips[0].start_at, Time::from_ms(0.0));
-        assert_eq!(clips[1].start_at, Time::from_ms(0.0));
-        assert_eq!(clips[2].start_at, Time::from_ms(0.0));
-        assert_eq!(clips[3].start_at, Time::from_ms(1.0));
+        assert_eq!(clips[0].start_at, Time::Ms(0.0));
+        assert_eq!(clips[1].start_at, Time::Ms(0.0));
+        assert_eq!(clips[2].start_at, Time::Ms(0.0));
+        assert_eq!(clips[3].start_at, Time::Ms(1.0));
 
         assert_eq!(clips[0].is_needed_to_update_position, true);
         assert_eq!(clips[1].is_needed_to_update_position, true);
@@ -164,15 +165,15 @@ mod tests {
         let clip_ids = clips.iter().map(|clip| clip.id.clone()).collect::<Vec<_>>();
         assert_eq!(clip_ids, expected_clip_ids);
 
-        assert_eq!(clips[0].start_at, Time::from_ms(0.0));
-        assert_eq!(clips[1].start_at, Time::from_ms(1.0));
+        assert_eq!(clips[0].start_at, Time::Ms(0.0));
+        assert_eq!(clips[1].start_at, Time::Ms(1.0));
         assert_eq!(
             clips[2].start_at,
-            Time::from_ms(1.0 + DEFAULT_SUBTITLE_INSERT_INTERVAL_MS)
+            Time::Ms(1.0 + DEFAULT_SUBTITLE_INSERT_INTERVAL_MS)
         );
         assert_eq!(
             clips[3].start_at,
-            Time::from_ms(1.0 + DEFAULT_SUBTITLE_INSERT_INTERVAL_MS * 2.0)
+            Time::Ms(1.0 + DEFAULT_SUBTITLE_INSERT_INTERVAL_MS * 2.0)
         );
 
         assert_eq!(clips[0].is_needed_to_update_position, false);
@@ -201,10 +202,10 @@ mod tests {
         let clip_ids = clips.iter().map(|clip| clip.id.clone()).collect::<Vec<_>>();
         assert_eq!(clip_ids, expected_clip_ids);
 
-        assert_eq!(clips[0].start_at, Time::from_ms(0.0));
-        assert_eq!(clips[1].start_at, Time::from_ms(1.0 / 3.0));
-        assert_eq!(clips[2].start_at, Time::from_ms(2.0 / 3.0));
-        assert_eq!(clips[3].start_at, Time::from_ms(1.0));
+        assert_eq!(clips[0].start_at, Time::Ms(0.0));
+        assert_eq!(clips[1].start_at, Time::Ms(1.0 / 3.0));
+        assert_eq!(clips[2].start_at, Time::Ms(2.0 / 3.0));
+        assert_eq!(clips[3].start_at, Time::Ms(1.0));
 
         assert_eq!(clips[0].is_needed_to_update_position, false);
         assert_eq!(clips[1].is_needed_to_update_position, true);

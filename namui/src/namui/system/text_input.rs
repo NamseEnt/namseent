@@ -161,7 +161,7 @@ fn update_focus_with_mouse_movement(
     custom_data: &TextInputCustomData,
     namui_context: &NamuiContext,
     input_element: HtmlInputElement,
-    mouse_x: f32,
+    mouse_x: Px,
     is_mouse_move: bool,
 ) {
     let local_x = get_text_input_xy(&namui_context.rendering_tree, &custom_data.text_input.id)
@@ -229,7 +229,7 @@ fn find_text_input_by_id(rendering_tree: &RenderingTree, id: &str) -> Option<Tex
 
     return_value
 }
-fn get_text_input_xy(rendering_tree: &RenderingTree, id: &str) -> Option<Xy<f32>> {
+fn get_text_input_xy(rendering_tree: &RenderingTree, id: &str) -> Option<Xy<Px>> {
     let mut return_value = None;
 
     rendering_tree.visit_rln(|rendering_tree, util| {

@@ -64,7 +64,7 @@ impl Editor {
 
         selected_clip_track.get_id() == clip_track.get_id()
     }
-    pub(super) fn select_all_to_time(&mut self, time: &Time) {
+    pub(super) fn select_all_to_time(&mut self, time: Time) {
         if self.selected_clip_ids.len() == 0 {
             return;
         }
@@ -211,7 +211,7 @@ mod tests {
     use super::*;
     use linked_hash_map::LinkedHashMap;
     use luda_editor_rpc::response_waiter::ResponseWaiter;
-    use namui::prelude::*;
+
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
@@ -220,9 +220,9 @@ mod tests {
         // make clip 1, 2, 3
         // clip 2 and 3 is crossed.
         let clips = vec![
-            mock_camera_clip("1", Time::from_ms(1000.0), Time::from_ms(2000.0)),
-            mock_camera_clip("2", Time::from_ms(2000.0), Time::from_ms(3000.0)),
-            mock_camera_clip("3", Time::from_ms(2500.0), Time::from_ms(3500.0)),
+            mock_camera_clip("1", Time::Ms(1000.0), Time::Ms(2000.0)),
+            mock_camera_clip("2", Time::Ms(2000.0), Time::Ms(3000.0)),
+            mock_camera_clip("3", Time::Ms(2500.0), Time::Ms(3500.0)),
         ];
         let sequence = mock_sequence(clips);
         let mut editor = mock_editor(sequence);
@@ -230,7 +230,7 @@ mod tests {
         editor.select_only_this_clip("1");
 
         // shift click 2 front
-        editor.select_all_to_time(&Time::from_ms(2250.0));
+        editor.select_all_to_time(Time::Ms(2250.0));
 
         // result should be 1 and 2.
         assert_eq!(
@@ -244,16 +244,16 @@ mod tests {
         // make clip 1, 2, 3
         // clip 1 and 2 is crossed.
         let clips = vec![
-            mock_camera_clip("1", Time::from_ms(1000.0), Time::from_ms(2000.0)),
-            mock_camera_clip("2", Time::from_ms(1500.0), Time::from_ms(2500.0)),
-            mock_camera_clip("3", Time::from_ms(3000.0), Time::from_ms(4000.0)),
+            mock_camera_clip("1", Time::Ms(1000.0), Time::Ms(2000.0)),
+            mock_camera_clip("2", Time::Ms(1500.0), Time::Ms(2500.0)),
+            mock_camera_clip("3", Time::Ms(3000.0), Time::Ms(4000.0)),
         ];
         let sequence = mock_sequence(clips);
         let mut editor = mock_editor(sequence);
         // select 3 clip
         editor.select_only_this_clip("3");
         // shift click 2 back
-        editor.select_all_to_time(&Time::from_ms(2250.0));
+        editor.select_all_to_time(Time::Ms(2250.0));
         // result should be 2 and 3.
         assert_eq!(
             editor.get_selected_clip_ids().iter().collect::<Vec<_>>(),
@@ -266,16 +266,16 @@ mod tests {
         // make clip 1, 2, 3
         // clip 1 and 2 is crossed.
         let clips = vec![
-            mock_camera_clip("1", Time::from_ms(1000.0), Time::from_ms(2000.0)),
-            mock_camera_clip("2", Time::from_ms(1500.0), Time::from_ms(2500.0)),
-            mock_camera_clip("3", Time::from_ms(3000.0), Time::from_ms(4000.0)),
+            mock_camera_clip("1", Time::Ms(1000.0), Time::Ms(2000.0)),
+            mock_camera_clip("2", Time::Ms(1500.0), Time::Ms(2500.0)),
+            mock_camera_clip("3", Time::Ms(3000.0), Time::Ms(4000.0)),
         ];
         let sequence = mock_sequence(clips);
         let mut editor = mock_editor(sequence);
         // select 1 clip
         editor.select_only_this_clip("1");
         // shift click 3
-        editor.select_all_to_time(&Time::from_ms(3500.0));
+        editor.select_all_to_time(Time::Ms(3500.0));
         // result should be 1, 2 and 3.
         assert_eq!(
             editor.get_selected_clip_ids().iter().collect::<Vec<_>>(),
@@ -288,16 +288,16 @@ mod tests {
         // make clip 1, 2, 3
         // clip 2 and 3 is crossed.
         let clips = vec![
-            mock_camera_clip("1", Time::from_ms(1000.0), Time::from_ms(2000.0)),
-            mock_camera_clip("2", Time::from_ms(2000.0), Time::from_ms(3000.0)),
-            mock_camera_clip("3", Time::from_ms(2500.0), Time::from_ms(3500.0)),
+            mock_camera_clip("1", Time::Ms(1000.0), Time::Ms(2000.0)),
+            mock_camera_clip("2", Time::Ms(2000.0), Time::Ms(3000.0)),
+            mock_camera_clip("3", Time::Ms(2500.0), Time::Ms(3500.0)),
         ];
         let sequence = mock_sequence(clips);
         let mut editor = mock_editor(sequence);
         // select 3 clip
         editor.select_only_this_clip("3");
         // shift click 1
-        editor.select_all_to_time(&Time::from_ms(1500.0));
+        editor.select_all_to_time(Time::Ms(1500.0));
         // result should be 1, 2 and 3.
         assert_eq!(
             editor.get_selected_clip_ids().iter().collect::<Vec<_>>(),
@@ -310,16 +310,16 @@ mod tests {
         // make clip 1, 2, 3
         // clip 2 shallow clip 3.
         let clips = vec![
-            mock_camera_clip("1", Time::from_ms(1000.0), Time::from_ms(2000.0)),
-            mock_camera_clip("2", Time::from_ms(2000.0), Time::from_ms(4000.0)),
-            mock_camera_clip("3", Time::from_ms(3000.0), Time::from_ms(3500.0)),
+            mock_camera_clip("1", Time::Ms(1000.0), Time::Ms(2000.0)),
+            mock_camera_clip("2", Time::Ms(2000.0), Time::Ms(4000.0)),
+            mock_camera_clip("3", Time::Ms(3000.0), Time::Ms(3500.0)),
         ];
         let sequence = mock_sequence(clips);
         let mut editor = mock_editor(sequence);
         // select 1 clip
         editor.select_only_this_clip("1");
         // shift click the parts on 2, not on 3
-        editor.select_all_to_time(&Time::from_ms(2500.0));
+        editor.select_all_to_time(Time::Ms(2500.0));
         // result should be 1 and 2.
         assert_eq!(
             editor.get_selected_clip_ids().iter().collect::<Vec<_>>(),
@@ -332,16 +332,16 @@ mod tests {
         // make clip 1, 2, 3
         // clip 2 shallow clip 3.
         let clips = vec![
-            mock_camera_clip("1", Time::from_ms(1000.0), Time::from_ms(2000.0)),
-            mock_camera_clip("2", Time::from_ms(2000.0), Time::from_ms(4000.0)),
-            mock_camera_clip("3", Time::from_ms(3000.0), Time::from_ms(3500.0)),
+            mock_camera_clip("1", Time::Ms(1000.0), Time::Ms(2000.0)),
+            mock_camera_clip("2", Time::Ms(2000.0), Time::Ms(4000.0)),
+            mock_camera_clip("3", Time::Ms(3000.0), Time::Ms(3500.0)),
         ];
         let sequence = mock_sequence(clips);
         let mut editor = mock_editor(sequence);
         // select 1 clip
         editor.select_only_this_clip("1");
         // shift click the parts on 2 and 3
-        editor.select_all_to_time(&Time::from_ms(3250.0));
+        editor.select_all_to_time(Time::Ms(3250.0));
         // result should be 1, 2 and 3.
         assert_eq!(
             editor.get_selected_clip_ids().iter().collect::<Vec<_>>(),
@@ -350,7 +350,7 @@ mod tests {
     }
 
     fn mock_socket() -> Socket {
-        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
+        let (sender, _receiver) = tokio::sync::mpsc::unbounded_channel();
         let response_waiter = ResponseWaiter::new();
         Socket::new(sender.clone(), response_waiter.clone())
     }
@@ -390,13 +390,13 @@ mod tests {
             meta_container: Arc::new(MetaContainer::new(
                 Some(Meta {
                     subtitle_language_minimum_play_duration_map: HashMap::<_, _>::from_iter(
-                        IntoIter::new([(Language::Ko, Time::from_ms(1000.0))]),
+                        IntoIter::new([(Language::Ko, Time::Ms(1000.0))]),
                     ),
                     subtitle_language_play_duration_per_character_map: HashMap::<_, _>::from_iter(
-                        IntoIter::new([(Language::Ko, Time::from_ms(100.0))]),
+                        IntoIter::new([(Language::Ko, Time::Ms(100.0))]),
                     ),
                     subtitle_specific_text_token_play_duration_map: LinkedHashMap::from_iter(
-                        IntoIter::new([(format!("..."), Time::from_ms(100.0))]),
+                        IntoIter::new([(format!("..."), Time::Ms(100.0))]),
                     ),
                     subtitle_character_color_map: HashMap::<_, _>::from_iter(IntoIter::new([(
                         "하연".to_string(),

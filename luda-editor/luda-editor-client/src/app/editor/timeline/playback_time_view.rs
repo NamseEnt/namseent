@@ -1,13 +1,12 @@
-use crate::app::types::Time;
 use namui::prelude::*;
 
-pub struct PlaybackTimeViewProps<'a> {
-    pub playback_time: &'a Time,
-    pub xywh: namui::XywhRect<f32>,
+pub struct PlaybackTimeViewProps {
+    pub playback_time: Time,
+    pub rect: namui::Rect<Px>,
 }
 
 pub(super) fn render_playback_time_view(props: &PlaybackTimeViewProps) -> namui::RenderingTree {
-    let total_milliseconds = props.playback_time.get_total_milliseconds() as u32;
+    let total_milliseconds = props.playback_time.as_millis() as u32;
     let total_seconds = total_milliseconds / 1000;
 
     let seconds = total_seconds % 60;
@@ -16,38 +15,40 @@ pub(super) fn render_playback_time_view(props: &PlaybackTimeViewProps) -> namui:
 
     let text = format!("{:02}:{:02}.{:03}", minutes, seconds, milliseconds);
 
-    render![
+    render([
         namui::rect(namui::RectParam {
-            x: props.xywh.x,
-            y: props.xywh.y,
-            width: props.xywh.width,
-            height: props.xywh.height,
+            rect: Rect::Xywh {
+                x: props.rect.x(),
+                y: props.rect.y(),
+                width: props.rect.width(),
+                height: props.rect.height(),
+            },
             style: namui::RectStyle {
                 stroke: Some(namui::RectStroke {
                     border_position: namui::BorderPosition::Inside,
                     color: namui::Color::BLACK,
-                    width: 1.0,
+                    width: px(1.0),
                 }),
                 ..Default::default()
             },
             ..Default::default()
         }),
         namui::text(namui::TextParam {
-            x: props.xywh.x + props.xywh.width / 2.0,
-            y: props.xywh.y + props.xywh.height / 2.0,
+            x: props.rect.x() + props.rect.width() / 2.0,
+            y: props.rect.y() + props.rect.height() / 2.0,
             align: namui::TextAlign::Center,
             baseline: namui::TextBaseline::Middle,
             font_type: namui::FontType {
                 font_weight: namui::FontWeight::REGULAR,
                 language: namui::Language::Ko,
                 serif: false,
-                size: 20,
+                size: int_px(20),
             },
             style: namui::TextStyle {
                 color: namui::Color::BLACK,
                 ..Default::default()
             },
-            text: text,
-        })
-    ]
+            text,
+        }),
+    ])
 }

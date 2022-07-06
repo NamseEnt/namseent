@@ -43,11 +43,11 @@ mod tests {
         assert_eq!(result_clip_ids, expected_clip_ids);
 
         let clips = extract_camera_clips(&result);
-        assert_eq!(clips[0].start_at, Time::from_ms(0.0));
-        assert_eq!(clips[0].end_at, Time::from_ms(1.0));
-        assert_eq!(clips[1].start_at, Time::from_ms(1.0));
-        assert_eq!(clips[1].end_at, Time::from_ms(2.0));
-        assert_eq!(clips[2].start_at, Time::from_ms(2.0));
-        assert_eq!(clips[2].end_at, Time::from_ms(3.0));
+        assert_eq!(clips[0].start_at, Time::Ms(0.0));
+        assert_eq!(clips[0].end_at, Time::Ms(1.0));
+        assert_eq!(clips[1].start_at, Time::Ms(1.0));
+        assert_eq!(clips[1].end_at, Time::Ms(2.0));
+        assert_eq!(clips[2].start_at, Time::Ms(2.0));
+        assert_eq!(clips[2].end_at, Time::Ms(3.0));
     }
 }

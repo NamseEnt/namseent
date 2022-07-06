@@ -4,8 +4,8 @@ use std::{collections::HashMap, sync::Arc};
 
 pub(super) fn render_subtitle_track_in_player_screen(
     track: &SubtitleTrack,
-    screen_wh: &Wh<f32>,
-    playback_time: &Time,
+    screen_wh: Wh<Px>,
+    playback_time: Time,
     language: Language,
     subtitle_play_duration_measurer: &dyn SubtitlePlayDurationMeasure,
     subtitle_character_color_map: &HashMap<String, Color>,
@@ -47,7 +47,7 @@ pub(super) fn render_subtitle_track_in_player_screen(
 /// https://docs.google.com/document/d/1MBLlg_g72LxW5TTknX-AX3CVlLwKjYsH-Yj0UBO9VVk/edit#
 fn get_line_index_pushing_up(
     clips: &[Arc<SubtitleClip>],
-    playback_time: &Time,
+    playback_time: Time,
     target_clip: &SubtitleClip,
     language: Language,
     subtitle_play_duration_measurer: &dyn SubtitlePlayDurationMeasure,
@@ -61,7 +61,7 @@ fn get_line_index_pushing_up(
     let mut line_index = 0;
 
     for clip in clips_come_after_target.iter() {
-        if playback_time < &clip.start_at {
+        if playback_time < clip.start_at {
             break;
         }
         let number_of_clips_at_start = clips_come_after_target
@@ -79,20 +79,20 @@ fn get_line_index_pushing_up(
 
 fn render_subtitle(
     subtitle: &Subtitle,
-    screen_wh: &Wh<f32>,
+    screen_wh: Wh<Px>,
     line_index: usize,
     language: Language,
     subtitle_character_color_map: &HashMap<String, Color>,
 ) -> RenderingTree {
-    let screen_size_relative_ratio = screen_wh.width / 1080.0;
-    const FONT_SIZE_AT_WIDTH_1080: i16 = 36;
-    let font_size = (FONT_SIZE_AT_WIDTH_1080 as f32 * screen_size_relative_ratio) as i16;
+    let screen_size_relative_ratio = screen_wh.width / px(1080.0);
+    const FONT_SIZE_AT_WIDTH_1080: f32 = 36.0;
+    let font_size = int_px((FONT_SIZE_AT_WIDTH_1080 * screen_size_relative_ratio) as i32);
 
-    const BACKGROUND_MARGIN: LtrbRect = LtrbRect {
-        left: 15.0,
-        top: 2.0,
-        right: 15.0,
-        bottom: 2.0,
+    const BACKGROUND_MARGIN: Ltrb<Px> = Ltrb {
+        left: px(15.0),
+        top: px(2.0),
+        right: px(15.0),
+        bottom: px(2.0),
     };
 
     let last_subtitle_center_xy = Xy {
@@ -104,10 +104,10 @@ fn render_subtitle(
 
     let subtitle_center_xy = last_subtitle_center_xy
         + Xy {
-            x: 0.0,
-            y: -((font_size as f32 + BACKGROUND_MARGIN.top + BACKGROUND_MARGIN.bottom)
+            x: px(0.0),
+            y: -(font_size + BACKGROUND_MARGIN.top + BACKGROUND_MARGIN.bottom)
                 * LINE_HEIGHT_RATE
-                * line_index as f32),
+                * (line_index as f32),
         };
 
     let text_box_font_type = namui::FontType {
@@ -123,7 +123,7 @@ fn render_subtitle(
     let name = subtitle.speaker.clone();
     let is_no_name = name.is_empty();
     let name_box_width = if is_no_name {
-        Some(0.0)
+        Some(px(0.0))
     } else {
         get_text_width(&name, text_box_font_type, None)
     };
@@ -134,7 +134,7 @@ fn render_subtitle(
 
     let text_box_width = text_box_width.unwrap() + BACKGROUND_MARGIN.left + BACKGROUND_MARGIN.right;
     let name_box_width = if is_no_name {
-        0.0
+        px(0.0)
     } else {
         name_box_width.unwrap() + BACKGROUND_MARGIN.left + BACKGROUND_MARGIN.right
     };
@@ -143,7 +143,7 @@ fn render_subtitle(
     let name_box = if is_no_name {
         RenderingTree::Empty
     } else {
-        let name_box_center_x = subtitle_center_xy.x - text_box_width / 2.0 + 1.0; // NOTE : 1.0 is for floating point error.
+        let name_box_center_x = subtitle_center_xy.x - text_box_width / 2.0 + px(1.0); // NOTE : 1.0 is for floating point error.
 
         let name_background_color = subtitle_character_color_map
             .get(&name)
@@ -199,13 +199,13 @@ fn render_subtitle(
     });
 
     namui::clip(
-        namui::PathBuilder::new().add_rect(&namui::LtrbRect {
-            left: 0.0,
-            top: 0.0,
+        namui::PathBuilder::new().add_rect(namui::Rect::Ltrb {
+            left: px(0.0),
+            top: px(0.0),
             right: screen_wh.width,
             bottom: screen_wh.height,
         }),
         namui::ClipOp::Intersect,
-        render![name_box, text_box],
+        render([name_box, text_box]),
     )
 }

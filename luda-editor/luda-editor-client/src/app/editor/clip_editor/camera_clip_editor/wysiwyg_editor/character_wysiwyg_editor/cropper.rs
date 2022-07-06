@@ -9,25 +9,22 @@ impl Cropper {
     }
 }
 
-pub struct CropperProps<'a> {
-    pub dest_rect: &'a LtrbRect,
-    pub container_size: &'a Wh<f32>,
+pub struct CropperProps {
+    pub dest_rect: Rect<Px>,
+    pub container_size: Wh<Px>,
 }
 
 impl Cropper {
-    pub fn update(&mut self, event: &dyn std::any::Any) {}
+    pub fn update(&mut self, _event: &dyn std::any::Any) {}
 
     pub fn render(&self, props: &CropperProps) -> RenderingTree {
-        render![
+        render([
             rect(RectParam {
-                x: props.dest_rect.left,
-                y: props.dest_rect.top,
-                width: props.dest_rect.right - props.dest_rect.left,
-                height: props.dest_rect.bottom - props.dest_rect.top,
+                rect: props.dest_rect,
                 style: RectStyle {
                     stroke: Some(RectStroke {
                         color: Color::grayscale_f01(0.5),
-                        width: 1.0,
+                        width: px(1.0),
                         border_position: BorderPosition::Inside,
                     }),
                     ..Default::default()
@@ -35,30 +32,30 @@ impl Cropper {
                 ..Default::default()
             }),
             render_handles(props.dest_rect, props.container_size),
-        ]
+        ])
     }
 }
 
-fn render_handles(dest_rect: &LtrbRect, container_size: &Wh<f32>) -> RenderingTree {
+fn render_handles(dest_rect: Rect<Px>, container_size: Wh<Px>) -> RenderingTree {
     RenderingTree::Children(
-        get_handles(&dest_rect)
+        get_handles(dest_rect)
             .iter()
             .map(|handle| {
                 let path = PathBuilder::new().add_poly(&handle.polygon_xy, true);
 
                 let stroke_paint = PaintBuilder::new()
                     .set_style(PaintStyle::Stroke)
-                    .set_stroke_width(1.0)
+                    .set_stroke_width(px(1.0))
                     .set_color(Color::WHITE);
 
                 let fill_paint = PaintBuilder::new()
                     .set_style(PaintStyle::Fill)
                     .set_color(Color::BLACK);
 
-                render![
+                render([
                     namui::path(path.clone(), fill_paint),
                     namui::path(path, stroke_paint),
-                ]
+                ])
                 .with_mouse_cursor(handle.cursor.clone())
                 .attach_event(move |builder| {
                     let handle = handle.clone();
@@ -67,7 +64,7 @@ fn render_handles(dest_rect: &LtrbRect, container_size: &Wh<f32>) -> RenderingTr
                         namui::event::send(CharacterWysiwygEditorCropperHandleMouseDownEvent {
                             handle: handle.clone(),
                             mouse_xy: mouse_event.global_xy,
-                            container_size: container_size,
+                            container_size,
                         })
                     });
                 })
@@ -91,18 +88,18 @@ pub enum CropperHandleDirection {
 #[derive(Debug, Clone)]
 pub struct CropperHandle {
     pub handle_direction: CropperHandleDirection,
-    pub polygon_xy: Vec<Xy<f32>>,
+    pub polygon_xy: Vec<Xy<Px>>,
     pub cursor: MouseCursor,
 }
 
-fn get_handles(dest_rect: &LtrbRect) -> Vec<CropperHandle> {
+fn get_handles(dest_rect: Rect<Px>) -> Vec<CropperHandle> {
     let center = dest_rect.center();
-    const HANDLE_SIZE: f32 = 24.0;
-    const HANDLE_THICKNESS: f32 = 6.0;
-    let left = dest_rect.left;
-    let top = dest_rect.top;
-    let right = dest_rect.right;
-    let bottom = dest_rect.bottom;
+    const HANDLE_SIZE: Px = px(24.0);
+    const HANDLE_THICKNESS: Px = px(6.0);
+    let left = dest_rect.left();
+    let top = dest_rect.top();
+    let right = dest_rect.right();
+    let bottom = dest_rect.bottom();
     vec![
         CropperHandle {
             handle_direction: CropperHandleDirection::Top,

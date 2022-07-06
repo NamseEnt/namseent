@@ -1,11 +1,11 @@
 use super::*;
 
 impl GraphWindow {
-    pub(super) fn handle_key_down(&mut self, code: Code, row_height: f32) {
+    pub(super) fn handle_key_down(&mut self, code: Code, row_height: Px) {
         self.handle_arrow_key_down(code, row_height);
     }
 
-    fn handle_arrow_key_down(&mut self, code: Code, row_height: f32) {
+    fn handle_arrow_key_down(&mut self, code: Code, row_height: Px) {
         let arrow = match code {
             Code::ArrowLeft => Arrow::Left,
             Code::ArrowRight => Arrow::Right,
@@ -37,7 +37,7 @@ impl GraphWindow {
         }
     }
 
-    fn handle_graph_move_and_zoom(&mut self, arrow: Arrow, row_height: f32) {
+    fn handle_graph_move_and_zoom(&mut self, arrow: Arrow, row_height: Px) {
         if self.mouse_over_row.is_none() {
             return;
         }
@@ -91,8 +91,8 @@ impl GraphWindow {
                     self.move_property_context_by(
                         mouse_over_row.property_name,
                         match arrow {
-                            Arrow::Up => 10.0,
-                            Arrow::Down => -10.0,
+                            Arrow::Up => px(10.0),
+                            Arrow::Down => px(-10.0),
                             _ => unreachable!(),
                         },
                     );

@@ -1,16 +1,19 @@
+mod codes;
+mod request_animation_frame;
+mod set_timeout;
+pub mod types;
+mod xy;
+
 use super::render::{RenderingData, RenderingTree};
+use crate::*;
+pub use codes::*;
+use num::{FromPrimitive, ToPrimitive};
+pub use request_animation_frame::*;
 use serde::{Deserialize, Serialize};
 use serde_repr::*;
-use std::collections::HashSet;
-mod xy;
-pub use xy::*;
-mod set_timeout;
 pub use set_timeout::*;
-mod request_animation_frame;
-pub use request_animation_frame::*;
-mod codes;
-pub use codes::*;
-pub mod types;
+use std::collections::HashSet;
+pub use xy::*;
 
 impl std::convert::From<RenderingData> for RenderingTree {
     fn from(data: RenderingData) -> Self {
@@ -79,14 +82,20 @@ impl<T> Wh<T> {
         Self { width, height }
     }
 }
-impl Wh<f32> {
-    pub fn length(&self) -> f32 {
-        (self.width * self.width + self.height * self.height).sqrt()
+impl<T: Clone> Wh<T> {
+    pub fn as_xy(&self) -> Xy<T> {
+        Xy {
+            x: self.width.clone(),
+            y: self.height.clone(),
+        }
     }
 }
-impl Wh<f64> {
-    pub fn length(&self) -> f64 {
-        (self.width * self.width + self.height * self.height).sqrt()
+impl<T: FromPrimitive + ToPrimitive> Wh<T> {
+    pub fn length(&self) -> T {
+        let width = self.width.to_f32().unwrap();
+        let height = self.height.to_f32().unwrap();
+
+        T::from_f32((width * width + height * height).sqrt()).unwrap()
     }
 }
 
@@ -135,7 +144,7 @@ impl FontWeight {
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Copy, Serialize)]
 pub struct FontType {
     pub serif: bool,
-    pub size: i16,
+    pub size: IntPx,
     pub language: Language,
     pub font_weight: FontWeight,
 }
@@ -157,7 +166,7 @@ pub enum MouseButton {
 #[derive(Debug)]
 pub struct RawMouseEvent {
     pub id: String,
-    pub xy: Xy<f32>,
+    pub xy: Xy<Px>,
     pub pressing_buttons: HashSet<MouseButton>,
     pub button: Option<MouseButton>,
 }
@@ -165,6 +174,7 @@ pub struct RawMouseEvent {
 #[derive(Debug)]
 pub struct RawWheelEvent {
     pub id: String,
+    /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
     pub delta_xy: Xy<f32>,
 }
 

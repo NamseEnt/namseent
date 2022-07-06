@@ -32,7 +32,7 @@ impl GraphWindow {
                     delta,
                     property_name,
                 } => {
-                    self.move_property_context_by(*property_name, delta.to_f32().unwrap());
+                    self.move_property_context_by(*property_name, *delta);
                 }
                 Event::GraphAltMouseWheel {
                     delta,
@@ -116,7 +116,7 @@ impl GraphWindow {
         }
     }
 
-    fn handle_dragging_move(&mut self, property_name: PropertyName, mouse_xy_in_row: Xy<f32>) {
+    fn handle_dragging_move(&mut self, property_name: PropertyName, mouse_xy_in_row: Xy<Px>) {
         if self.dragging.is_none() {
             return;
         }
@@ -127,7 +127,7 @@ impl GraphWindow {
             Dragging::Point { ticket, .. } => self
                 .animation_history
                 .update_action(ticket, |action: &mut MovePointToAction| {
-                    action.y_in_row = Px::from_f32(mouse_xy_in_row.y).unwrap();
+                    action.y_in_row = mouse_xy_in_row.y;
                 })
                 .unwrap(),
             Dragging::Background {
@@ -145,8 +145,8 @@ impl GraphWindow {
     fn handle_background_dragging(
         &mut self,
         property_name: PropertyName,
-        last_mouse_local_xy: Xy<f32>,
-        mouse_local_xy: Xy<f32>,
+        last_mouse_local_xy: Xy<Px>,
+        mouse_local_xy: Xy<Px>,
     ) {
         let mouse_delta_xy = mouse_local_xy - last_mouse_local_xy;
 

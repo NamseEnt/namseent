@@ -1,17 +1,25 @@
 mod angle;
+mod int_px;
+mod ltrb;
 mod macros;
 mod one_zero;
 mod percent;
 mod px;
+mod px_per_time;
 mod ratio;
+mod rect;
 mod time;
 mod time_per_px;
 
 pub use angle::*;
+pub use int_px::*;
+pub use ltrb::*;
 use macros::*;
 pub use one_zero::*;
 pub use percent::*;
 pub use px::*;
+pub use px_per_time::*;
 pub use ratio::*;
+pub use rect::*;
 pub use time::*;
 pub use time_per_px::*;

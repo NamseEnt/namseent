@@ -1,24 +1,24 @@
 use super::JobExecution;
 use crate::app::cropper::selection::{PolySelection, PolySelectionCreationState, Selection};
-use namui::Xy;
+use namui::prelude::*;
 
 pub struct PolySelectionCreate {
-    last_mouse_hover_position: Xy<f32>,
-    point_list: Vec<Xy<f32>>,
+    last_mouse_hover_position: Xy<Px>,
+    point_list: Vec<Xy<Px>>,
     create_state: PolySelectionCreationState,
 }
 impl PolySelectionCreate {
-    pub fn new(initial_point: Xy<f32>) -> Self {
+    pub fn new(initial_point: Xy<Px>) -> Self {
         Self {
             last_mouse_hover_position: initial_point.clone(),
             point_list: vec![initial_point],
             create_state: PolySelectionCreationState::Creating,
         }
     }
-    pub fn update_position(&mut self, position: Xy<f32>) {
+    pub fn update_position(&mut self, position: Xy<Px>) {
         self.last_mouse_hover_position = position;
     }
-    pub fn add_point(&mut self, position: Xy<f32>) {
+    pub fn add_point(&mut self, position: Xy<Px>) {
         self.point_list.push(position);
     }
     pub fn done(&mut self) {

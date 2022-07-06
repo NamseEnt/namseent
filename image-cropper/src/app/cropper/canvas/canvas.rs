@@ -1,19 +1,16 @@
 use super::{CanvasEvent, Tool, ToolType};
 use crate::app::cropper::selection::Selection;
-use namui::{
-    clip, image, render, translate, Code, Color, Image, ImageFit, ImageParam, ImageStyle,
-    NamuiEvent, RectFill, RectParam, RectStyle, RenderingTree, Wh, Xy,
-};
+use namui::prelude::*;
 use std::sync::Arc;
 
 pub struct CanvasProps<'a> {
-    pub wh: Wh<f32>,
+    pub wh: Wh<Px>,
     pub selection_list: &'a Vec<Selection>,
 }
 
 pub struct Canvas {
     scale: f32,
-    offset: Xy<f32>,
+    offset: Xy<Px>,
     image: Arc<Image>,
     tool: Tool,
     canvas_drag_state: CanvasDragState,
@@ -22,7 +19,10 @@ impl Canvas {
     pub fn new(image: Arc<Image>) -> Self {
         Self {
             scale: 1.0,
-            offset: Xy { x: 0.0, y: 0.0 },
+            offset: Xy {
+                x: px(0.0),
+                y: px(0.0),
+            },
             image,
             tool: Tool::new(),
             canvas_drag_state: CanvasDragState::None,
@@ -101,7 +101,7 @@ impl Canvas {
             y: offset.y * self.scale,
         };
         render([
-            render_background(&props.wh).attach_event(|builder| {
+            render_background(props.wh).attach_event(|builder| {
                 builder
                     .on_wheel(move |event| {
                         let mouse_position = namui::mouse::position();
@@ -109,13 +109,10 @@ impl Canvas {
                             .namui_context
                             .get_rendering_tree_xy(event.target)
                             .expect("failed to get canvas xy");
-                        let local_mouse_position = Xy {
-                            x: mouse_position.x as f32 - canvas_xy.x,
-                            y: mouse_position.y as f32 - canvas_xy.y,
-                        };
-                        let is_mouse_in_canvas = !(local_mouse_position.x < 0.0
+                        let local_mouse_position = mouse_position - canvas_xy;
+                        let is_mouse_in_canvas = !(local_mouse_position.x < px(0.0)
                             || local_mouse_position.x > canvas_wh.width
-                            || local_mouse_position.y < 0.0
+                            || local_mouse_position.y < px(0.0)
                             || local_mouse_position.y > canvas_wh.height);
 
                         if !is_mouse_in_canvas {
@@ -133,17 +130,20 @@ impl Canvas {
                             )
                         } else if namui::keyboard::any_code_press([namui::Code::ShiftLeft]) {
                             scroll(
-                                Xy {
-                                    x: event.delta_xy.y,
-                                    y: event.delta_xy.x,
-                                },
+                                event.delta_xy.into_type(),
                                 offset,
                                 canvas_wh,
                                 image_size,
                                 scale,
                             )
                         } else {
-                            scroll(event.delta_xy, offset, canvas_wh, image_size, scale)
+                            scroll(
+                                event.delta_xy.into_type(),
+                                offset,
+                                canvas_wh,
+                                image_size,
+                                scale,
+                            )
                         }
                     })
                     .on_mouse_down(move |event| {
@@ -212,9 +212,9 @@ impl Canvas {
                     });
             }),
             clip(
-                namui::PathBuilder::new().add_rect(&namui::LtrbRect {
-                    left: 0.0,
-                    top: 0.0,
+                namui::PathBuilder::new().add_rect(Rect::Ltrb {
+                    left: px(0.0),
+                    top: px(0.0),
                     right: props.wh.width,
                     bottom: props.wh.height,
                 }),
@@ -224,9 +224,9 @@ impl Canvas {
                     scaled_offset.y,
                     render([
                         image(ImageParam {
-                            xywh: namui::XywhRect {
-                                x: 0.0,
-                                y: 0.0,
+                            rect: Rect::Xywh {
+                                x: px(0.0),
+                                y: px(0.0),
                                 width: scaled_image_size.width,
                                 height: scaled_image_size.height,
                             },
@@ -259,22 +259,24 @@ impl Canvas {
 pub enum CanvasDragState {
     None,
     DraggingHand {
-        image_anchor_point: Xy<f32>,
+        image_anchor_point: Xy<Px>,
     },
     DraggingZoom {
-        canvas_anchor_point: Xy<f32>,
-        initial_offset: Xy<f32>,
+        canvas_anchor_point: Xy<Px>,
+        initial_offset: Xy<Px>,
         initial_scale: f32,
-        initial_mouse_xy: Xy<f32>,
+        initial_mouse_xy: Xy<Px>,
     },
 }
 
-fn render_background(wh: &Wh<f32>) -> RenderingTree {
+fn render_background(wh: Wh<Px>) -> RenderingTree {
     namui::rect(RectParam {
-        x: 0.0,
-        y: 0.0,
-        width: wh.width,
-        height: wh.height,
+        rect: Rect::Xywh {
+            x: px(0.0),
+            y: px(0.0),
+            width: wh.width,
+            height: wh.height,
+        },
         style: RectStyle {
             stroke: None,
             fill: Some(RectFill {
@@ -286,11 +288,11 @@ fn render_background(wh: &Wh<f32>) -> RenderingTree {
 }
 
 fn handle_hand_tool_drag(
-    image_anchor_point: Xy<f32>,
-    moved_to: Xy<f32>,
-    offset: Xy<f32>,
-    canvas_wh: Wh<f32>,
-    image_size: Wh<f32>,
+    image_anchor_point: Xy<Px>,
+    moved_to: Xy<Px>,
+    offset: Xy<Px>,
+    canvas_wh: Wh<Px>,
+    image_size: Wh<Px>,
     scale: f32,
 ) {
     let scaled_delta_xy = Xy {
@@ -301,18 +303,18 @@ fn handle_hand_tool_drag(
 }
 
 fn handle_zoom_tool_drag(
-    canvas_anchor_point: Xy<f32>,
-    initial_offset: Xy<f32>,
+    canvas_anchor_point: Xy<Px>,
+    initial_offset: Xy<Px>,
     initial_scale: f32,
-    initial_mouse_xy: Xy<f32>,
-    last_mouse_xy: Xy<f32>,
-    canvas_wh: Wh<f32>,
-    image_size: Wh<f32>,
+    initial_mouse_xy: Xy<Px>,
+    last_mouse_xy: Xy<Px>,
+    canvas_wh: Wh<Px>,
+    image_size: Wh<Px>,
 ) {
     const DRAG_ZOOM_MULTIPLIER: f32 = 5.0;
     let multiplied_reverse_delta_xy = Xy {
-        x: (initial_mouse_xy.x - last_mouse_xy.x) * DRAG_ZOOM_MULTIPLIER,
-        y: (initial_mouse_xy.y - last_mouse_xy.y) * DRAG_ZOOM_MULTIPLIER,
+        x: (initial_mouse_xy.x - last_mouse_xy.x).as_f32() * DRAG_ZOOM_MULTIPLIER,
+        y: (initial_mouse_xy.y - last_mouse_xy.y).as_f32() * DRAG_ZOOM_MULTIPLIER,
     };
     zoom(
         multiplied_reverse_delta_xy,
@@ -324,7 +326,7 @@ fn handle_zoom_tool_drag(
     )
 }
 
-fn scroll(delta_xy: Xy<f32>, offset: Xy<f32>, canvas_wh: Wh<f32>, image_size: Wh<f32>, scale: f32) {
+fn scroll(delta_xy: Xy<Px>, offset: Xy<Px>, canvas_wh: Wh<Px>, image_size: Wh<Px>, scale: f32) {
     let scaled_delta_xy = Xy {
         x: delta_xy.x / scale,
         y: delta_xy.y / scale,
@@ -335,10 +337,10 @@ fn scroll(delta_xy: Xy<f32>, offset: Xy<f32>, canvas_wh: Wh<f32>, image_size: Wh
 
 fn zoom(
     delta_xy: Xy<f32>,
-    offset: Xy<f32>,
-    canvas_anchor_point: Xy<f32>,
-    canvas_wh: Wh<f32>,
-    image_size: Wh<f32>,
+    offset: Xy<Px>,
+    canvas_anchor_point: Xy<Px>,
+    canvas_wh: Wh<Px>,
+    image_size: Wh<Px>,
     scale: f32,
 ) {
     const ZOOM_MULTIPLIER: f32 = 1.0 / 1000.0;
@@ -356,12 +358,7 @@ fn zoom(
     })
 }
 
-fn clamp_offset_xy(
-    offset_xy: Xy<f32>,
-    canvas_wh: Wh<f32>,
-    image_wh: Wh<f32>,
-    scale: f32,
-) -> Xy<f32> {
+fn clamp_offset_xy(offset_xy: Xy<Px>, canvas_wh: Wh<Px>, image_wh: Wh<Px>, scale: f32) -> Xy<Px> {
     let max_diff = Wh {
         width: canvas_wh.width / scale / 2.0,
         height: canvas_wh.height / scale / 2.0,
@@ -376,7 +373,7 @@ fn clamp_offset_xy(
     }
 }
 
-fn clamp_scale(scale: f32, canvas_wh: Wh<f32>, image_wh: Wh<f32>) -> f32 {
+fn clamp_scale(scale: f32, canvas_wh: Wh<Px>, image_wh: Wh<Px>) -> f32 {
     let ratio = Xy {
         x: image_wh.width / canvas_wh.width,
         y: image_wh.height / canvas_wh.height,

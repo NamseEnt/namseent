@@ -5,19 +5,19 @@ use crate::{
 
 #[derive(Clone, Copy, Debug)]
 pub struct TextStyleBorder {
-    pub width: f32,
+    pub width: Px,
     pub color: Color,
 }
 #[derive(Clone, Copy, Debug)]
 pub struct TextStyleDropShadow {
-    pub x: f32,
-    pub y: f32,
+    pub x: Px,
+    pub y: Px,
     pub color: Option<Color>,
 }
 #[derive(Clone, Copy, Debug, Default)]
 pub struct TextStyleBackground {
     pub color: Color,
-    pub margin: Option<LtrbRect>,
+    pub margin: Option<Ltrb<Px>>,
 }
 #[derive(Clone, Copy, Debug, Default)]
 pub struct TextStyle {
@@ -30,8 +30,8 @@ pub struct TextStyle {
 #[derive(Clone, Debug)]
 pub struct TextParam {
     pub text: String,
-    pub x: f32,
-    pub y: f32,
+    pub x: Px,
+    pub y: Px,
     pub align: TextAlign,
     pub baseline: TextBaseline,
     pub font_type: FontType,
@@ -173,7 +173,7 @@ fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
     let bottom_of_baseline = get_bottom_of_baseline(&param.baseline, &font_metrics);
     let top = param.y + bottom_of_baseline + font_metrics.ascent;
 
-    let margin = background.margin.unwrap_or(LtrbRect::default());
+    let margin = background.margin.unwrap_or(Ltrb::default());
 
     let final_x = -margin.left + get_left_in_align(param.x, param.align, width);
     let final_y = -margin.top + top;
@@ -181,10 +181,12 @@ fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
     let final_height = height + margin.top + margin.bottom;
 
     rect(RectParam {
-        x: final_x,
-        y: final_y,
-        width: final_width,
-        height: final_height,
+        rect: Rect::Xywh {
+            x: final_x,
+            y: final_y,
+            width: final_width,
+            height: final_height,
+        },
         style: RectStyle {
             fill: Some(RectFill {
                 color: background.color,
@@ -195,17 +197,17 @@ fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
     })
 }
 
-pub(crate) fn get_text_width_internal(font: &Font, text: &str, drop_shadow_x: Option<f32>) -> f32 {
+pub(crate) fn get_text_width_internal(font: &Font, text: &str, drop_shadow_x: Option<Px>) -> Px {
     let glyph_ids = font.get_glyph_ids(text);
     let glyph_widths = font.get_glyph_widths(glyph_ids, Option::None);
-    glyph_widths.iter().fold(0.0, |acc, cur| acc + cur) + drop_shadow_x.unwrap_or(0.0)
+    glyph_widths.iter().fold(px(0.0), |acc, cur| acc + cur) + drop_shadow_x.unwrap_or(px(0.0))
 }
 
-pub fn get_text_width(text: &str, font_type: FontType, drop_shadow_x: Option<f32>) -> Option<f32> {
+pub fn get_text_width(text: &str, font_type: FontType, drop_shadow_x: Option<Px>) -> Option<Px> {
     let font = namui::font::get_font(font_type);
     font.map(|font| {
         let glyph_ids = font.get_glyph_ids(text);
         let glyph_widths = font.get_glyph_widths(glyph_ids, Option::None);
-        glyph_widths.iter().fold(0.0, |acc, cur| acc + cur) + drop_shadow_x.unwrap_or(0.0)
+        glyph_widths.iter().fold(px(0.0), |acc, cur| acc + cur) + drop_shadow_x.unwrap_or(px(0.0))
     })
 }
