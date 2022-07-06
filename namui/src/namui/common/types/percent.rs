@@ -20,6 +20,12 @@ impl PercentExt for f32 {
     }
 }
 
+impl PercentExt for i32 {
+    fn percent(self) -> Percent {
+        Percent(self as f32)
+    }
+}
+
 impl AsPrimitive<f32> for Percent {
     fn as_(self) -> f32 {
         self.to_f32().unwrap()
@@ -89,6 +95,17 @@ mod tests {
         let b_a = b * a;
 
         assert_eq!(c, b_a);
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn percent_addition_should_work() {
+        let a = 50.percent();
+        let b = 25.percent();
+        let c = a + b;
+
+        assert_eq!(c, 75.percent());
+        assert_eq!(format!("{}", c), "75.0%");
     }
 
     #[test]
