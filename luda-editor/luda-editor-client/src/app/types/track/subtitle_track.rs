@@ -11,7 +11,6 @@ pub struct SubtitleTrack {
 pub const DEFAULT_SUBTITLE_INSERT_INTERVAL_MS: f32 = 1000.0;
 
 impl SubtitleTrack {
-    #[allow(dead_code)]
     pub(crate) fn get_clip_at_time(
         &self,
         time: Time,

@@ -111,6 +111,7 @@ impl From<ResizableTrack> for CameraTrack {
     fn from(track: ResizableTrack) -> Self {
         match track {
             ResizableTrack::Camera(track) => track,
+            _ => panic!("Track is not a camera track"),
         }
     }
 }
