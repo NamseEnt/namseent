@@ -62,7 +62,7 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), Box<dyn Error>> {
         "{}",
         [
             format!(
-                "wasm-pack test --headless --chrome {}",
+                "RUSTFLAGS=\"-D warnings\" wasm-pack test --headless --chrome {}",
                 directory.to_str().unwrap()
             ),
             "exit_code=$?".to_string(),
@@ -80,8 +80,6 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), Box<dyn Error>> {
         .chain(bind_args.iter().map(|s| s.as_ref()))
         .chain([
             "ghcr.io/namseent/namui-test-host:latest",
-            "-e",
-            "RUSTFLAGS='-D warnings'",
             "sh",
             "-c",
             &command_to_pass_to_docker,
