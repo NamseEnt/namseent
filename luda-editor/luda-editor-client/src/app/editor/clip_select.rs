@@ -202,16 +202,11 @@ impl Editor {
 
 #[cfg(test)]
 mod tests {
-    use std::array::IntoIter;
-    use std::collections::HashMap;
-
-    use crate::app::editor::sequence_player::MockSequencePlay;
-
     use super::super::*;
     use super::*;
+    use crate::app::editor::sequence_player::MockSequencePlay;
     use linked_hash_map::LinkedHashMap;
     use luda_editor_rpc::response_waiter::ResponseWaiter;
-
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
@@ -389,19 +384,18 @@ mod tests {
             sheet_sequence_syncer: SheetSequenceSyncer::new(""),
             meta_container: Arc::new(MetaContainer::new(
                 Some(Meta {
-                    subtitle_language_minimum_play_duration_map: HashMap::<_, _>::from_iter(
-                        IntoIter::new([(Language::Ko, Time::Ms(1000.0))]),
-                    ),
-                    subtitle_language_play_duration_per_character_map: HashMap::<_, _>::from_iter(
-                        IntoIter::new([(Language::Ko, Time::Ms(100.0))]),
-                    ),
-                    subtitle_specific_text_token_play_duration_map: LinkedHashMap::from_iter(
-                        IntoIter::new([(format!("..."), Time::Ms(100.0))]),
-                    ),
-                    subtitle_character_color_map: HashMap::<_, _>::from_iter(IntoIter::new([(
-                        "하연".to_string(),
-                        Color::WHITE,
-                    )])),
+                    subtitle_language_minimum_play_duration_map: [(Language::Ko, Time::Ms(1000.0))]
+                        .into(),
+                    subtitle_language_play_duration_per_character_map: [(
+                        Language::Ko,
+                        Time::Ms(100.0),
+                    )]
+                    .into(),
+                    subtitle_specific_text_token_play_duration_map: LinkedHashMap::from_iter([(
+                        format!("..."),
+                        Time::Ms(100.0),
+                    )]),
+                    subtitle_character_color_map: [("하연".to_string(), Color::WHITE)].into(),
                 }),
                 Arc::new(MockMetaLoad::new()),
             )),
