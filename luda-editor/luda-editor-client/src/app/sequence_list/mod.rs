@@ -19,7 +19,7 @@ use crate::app::{
 };
 use luda_editor_rpc::Socket;
 use namui::prelude::*;
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc};
 
 const LIST_WIDTH: Px = px(800.0);
 const BUTTON_HEIGHT: Px = px(36.0);
@@ -47,7 +47,7 @@ impl SequenceList {
     pub fn new(socket: Socket) -> Self {
         let mut sequence_list = Self {
             sequences_sync_state: SequenceSyncState {
-                started_at: Duration::from_millis(0),
+                started_at: Time::Ms(0.0),
                 detail: types::SequencesSyncStateDetail::Loading,
             },
             socket,

@@ -1,6 +1,7 @@
 use crate::app::types::Sequence;
 use linked_hash_map::LinkedHashMap;
-use std::{sync::Arc, time::Duration};
+use namui::prelude::*;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub enum SequencesSyncStateDetail {
@@ -15,6 +16,6 @@ pub enum SequencesSyncStateDetail {
 
 #[derive(Clone)]
 pub struct SequenceSyncState {
-    pub started_at: Duration,
+    pub started_at: Time,
     pub detail: SequencesSyncStateDetail,
 }
