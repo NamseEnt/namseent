@@ -17,4 +17,4 @@ RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
 RUN rustup target add wasm32-unknown-unknown
 
-RUN echo rustup show
+RUN rustup show
