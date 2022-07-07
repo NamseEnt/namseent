@@ -196,7 +196,7 @@ fn render_graph_row(
                     mouse_xy_in_row: event.local_xy,
                 })
             })
-            .on_mouse_down(move |event| match event.button {
+            .on_mouse_down_in(move |event| match event.button {
                 Some(MouseButton::Left) => namui::event::send(Event::GraphMouseLeftDown {
                     property_name,
                     mouse_local_xy: event.local_xy,

@@ -9,9 +9,9 @@ pub fn text_button(
     stroke_color: Color,
     stroke_width: Px,
     fill_color: Color,
-    on_mouse_down: impl Fn() + 'static,
+    on_mouse_down_in: impl Fn() + 'static,
 ) -> namui::RenderingTree {
-    let on_mouse_down = Arc::new(on_mouse_down);
+    let on_mouse_down_in = Arc::new(on_mouse_down_in);
     translate(
         rect.x(),
         rect.y(),
@@ -21,9 +21,9 @@ pub fn text_button(
         ]),
     )
     .attach_event(|builder| {
-        let on_mouse_down = on_mouse_down.clone();
-        builder.on_mouse_down(move |_| {
-            on_mouse_down();
+        let on_mouse_down_in = on_mouse_down_in.clone();
+        builder.on_mouse_down_in(move |_| {
+            on_mouse_down_in();
         });
     })
 }

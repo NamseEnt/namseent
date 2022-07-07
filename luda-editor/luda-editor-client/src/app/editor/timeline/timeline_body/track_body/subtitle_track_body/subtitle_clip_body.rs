@@ -135,7 +135,7 @@ impl SubtitleClipBody {
                     .with_mouse_cursor(MouseCursor::Grab)
                     .attach_event(move |builder| {
                         let clip_id = props.clip.id.clone();
-                        builder.on_mouse_down(move |event| {
+                        builder.on_mouse_down_in(move |event| {
                             namui::event::send(EditorEvent::SubtitleClipHeadMouseDownEvent {
                                 mouse_event_id: event.id.clone(),
                                 clip_id: clip_id.clone(),

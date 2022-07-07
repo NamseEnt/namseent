@@ -146,7 +146,7 @@ impl Canvas {
                             )
                         }
                     })
-                    .on_mouse_down(move |event| {
+                    .on_mouse_down_in(move |event| {
                         if event.pressing_buttons.contains(&namui::MouseButton::Left) {
                             let local_xy_on_image = Xy {
                                 x: -offset.x + event.local_xy.x / scale,

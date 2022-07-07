@@ -41,7 +41,7 @@ pub fn render_button(
     })
     .attach_event(|builder| {
         let on_click = on_click.clone();
-        builder.on_mouse_up(move |event| {
+        builder.on_mouse_up_in(move |event| {
             if event.button == Some(MouseButton::Left) {
                 on_click();
             }

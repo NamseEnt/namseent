@@ -14,9 +14,13 @@ pub struct AttachEventNode {
     // onClickOut: Option<MouseEventCallback>,
     // onMouseIn?: () => void;
     #[serde(skip_serializing)]
-    pub on_mouse_down: Option<MouseEventCallback>,
+    pub on_mouse_down_in: Option<MouseEventCallback>,
     #[serde(skip_serializing)]
-    pub on_mouse_up: Option<MouseEventCallback>,
+    pub on_mouse_down_out: Option<MouseEventCallback>,
+    #[serde(skip_serializing)]
+    pub on_mouse_up_in: Option<MouseEventCallback>,
+    #[serde(skip_serializing)]
+    pub on_mouse_up_out: Option<MouseEventCallback>,
     #[serde(skip_serializing)]
     pub on_wheel: Option<WheelEventCallback>,
     #[serde(skip_serializing)]
@@ -60,7 +64,7 @@ pub type KeyboardEventCallback = Arc<dyn Fn(&KeyboardEvent)>;
 
 impl std::fmt::Debug for AttachEventNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "rendering_tree: {:?}, on_mouse_move_in: {:?}, on_mouse_move_out: {:?}, on_mouse_down: {:?}, on_mouse_up: {:?}, on_wheel: {:?}", self.rendering_tree, self.on_mouse_move_in.is_some(), self.on_mouse_move_out.is_some(), self.on_mouse_down.is_some(), self.on_mouse_up.is_some(), self.on_wheel.is_some())
+        write!(f, "rendering_tree: {:?}, on_mouse_move_in: {:?}, on_mouse_move_out: {:?}, on_mouse_down_in: {:?}, on_mouse_up_in: {:?}, on_wheel: {:?}", self.rendering_tree, self.on_mouse_move_in.is_some(), self.on_mouse_move_out.is_some(), self.on_mouse_down_in.is_some(), self.on_mouse_up_in.is_some(), self.on_wheel.is_some())
     }
 }
 
@@ -70,8 +74,10 @@ pub struct AttachEventBuilder {
     pub(crate) on_mouse_move_out: Option<MouseEventCallback>,
     // onClickOut: Option<MouseEventCallback>,
     // onMouseIn?: () => void;
-    pub(crate) on_mouse_down: Option<MouseEventCallback>,
-    pub(crate) on_mouse_up: Option<MouseEventCallback>,
+    pub(crate) on_mouse_down_in: Option<MouseEventCallback>,
+    pub(crate) on_mouse_down_out: Option<MouseEventCallback>,
+    pub(crate) on_mouse_up_in: Option<MouseEventCallback>,
+    pub(crate) on_mouse_up_out: Option<MouseEventCallback>,
     pub(crate) on_wheel: Option<WheelEventCallback>,
     pub(crate) on_key_down: Option<KeyboardEventCallback>,
     pub(crate) on_key_up: Option<KeyboardEventCallback>,
@@ -90,8 +96,10 @@ impl RenderingTree {
             rendering_tree: Box::new(self),
             on_mouse_move_in: builder.on_mouse_move_in,
             on_mouse_move_out: builder.on_mouse_move_out,
-            on_mouse_down: builder.on_mouse_down,
-            on_mouse_up: builder.on_mouse_up,
+            on_mouse_down_in: builder.on_mouse_down_in,
+            on_mouse_down_out: builder.on_mouse_down_out,
+            on_mouse_up_in: builder.on_mouse_up_in,
+            on_mouse_up_out: builder.on_mouse_up_out,
             on_wheel: builder.on_wheel,
             on_key_down: builder.on_key_down,
             on_key_up: builder.on_key_up,
@@ -116,13 +124,30 @@ impl AttachEventBuilder {
         self
     }
 
-    pub fn on_mouse_down(&mut self, on_mouse_down: impl Fn(&MouseEvent) + 'static) -> &mut Self {
-        self.on_mouse_down = Some(Arc::new(on_mouse_down));
+    pub fn on_mouse_down_in(
+        &mut self,
+        on_mouse_down_in: impl Fn(&MouseEvent) + 'static,
+    ) -> &mut Self {
+        self.on_mouse_down_in = Some(Arc::new(on_mouse_down_in));
+        self
+    }
+    pub fn on_mouse_down_out(
+        &mut self,
+        on_mouse_down_out: impl Fn(&MouseEvent) + 'static,
+    ) -> &mut Self {
+        self.on_mouse_down_out = Some(Arc::new(on_mouse_down_out));
         self
     }
 
-    pub fn on_mouse_up(&mut self, on_mouse_up: impl Fn(&MouseEvent) + 'static) -> &mut Self {
-        self.on_mouse_up = Some(Arc::new(on_mouse_up));
+    pub fn on_mouse_up_in(&mut self, on_mouse_up_in: impl Fn(&MouseEvent) + 'static) -> &mut Self {
+        self.on_mouse_up_in = Some(Arc::new(on_mouse_up_in));
+        self
+    }
+    pub fn on_mouse_up_out(
+        &mut self,
+        on_mouse_up_out: impl Fn(&MouseEvent) + 'static,
+    ) -> &mut Self {
+        self.on_mouse_up_out = Some(Arc::new(on_mouse_up_out));
         self
     }
 

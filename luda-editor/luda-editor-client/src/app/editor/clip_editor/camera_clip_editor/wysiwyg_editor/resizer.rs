@@ -82,7 +82,7 @@ impl Resizer {
                         let handle = handle.clone();
                         let container_size = container_size.clone();
                         let source_rect = source_rect.clone();
-                        builder.on_mouse_down(move |mouse_event| {
+                        builder.on_mouse_down_in(move |mouse_event| {
                             namui::event::send(WysiwygEvent::ResizerHandleMouseDownEvent {
                                 target_id: resizer_id.clone(),
                                 handle,
