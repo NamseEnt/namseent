@@ -3,7 +3,10 @@ use crate::app::types::*;
 use namui::prelude::*;
 use std::sync::Arc;
 
-pub struct BackgroundWysiwygEditor {}
+pub struct BackgroundWysiwygEditor {
+    id: String,
+    resizer: Resizer,
+}
 
 pub struct BackgroundWysiwygEditorProps<'a> {
     pub rect: Rect<Px>,
@@ -12,7 +15,10 @@ pub struct BackgroundWysiwygEditorProps<'a> {
 
 impl BackgroundWysiwygEditor {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            id: namui::nanoid(),
+            resizer: Resizer::new(),
+        }
     }
     pub fn update(&mut self, _event: &dyn std::any::Any) {}
     pub fn render(&self, props: &BackgroundWysiwygEditorProps) -> RenderingTree {
@@ -85,15 +91,15 @@ impl BackgroundWysiwygEditor {
                     },
                     ..Default::default()
                 }),
-                Resizer::new(self.get_id()).render(&ResizerProps {
+                self.resizer.render(&ResizerProps {
                     source_rect: inner_rect,
                     container_size: drawn_image_wh,
                 }),
             ]),
         )
     }
-    pub fn get_id(&self) -> &'static str {
-        "background"
+    pub fn get_id(&self) -> &str {
+        &self.id
     }
 }
 
@@ -169,7 +175,7 @@ fn render_inner_image(
     source_rect: Rect<Px>,
     dest_rect: Rect<Px>,
     container_size: Wh<Px>,
-    id: &'static str,
+    id: &str,
 ) -> RenderingTree {
     let container_size = container_size.clone();
 

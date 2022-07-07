@@ -127,7 +127,6 @@ impl ResizableClipBody {
                     .iter()
                     .map(|direction| {
                         render_sash(&SashBodyProps {
-                            context: props.context,
                             direction: *direction,
                             clip_rect,
                         })

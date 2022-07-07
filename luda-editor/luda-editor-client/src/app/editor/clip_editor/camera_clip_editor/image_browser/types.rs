@@ -89,12 +89,14 @@ impl ImageBrowserDirectory {
         let path = Path::new(&self.url);
         path.file_name().unwrap().to_str().unwrap().to_string()
     }
+    #[allow(dead_code)]
     pub(crate) fn is_just_under_directory(&self, directory: &ImageBrowserDirectory) -> bool {
         let path = Path::new(&self.url);
         let parent = path.parent().unwrap();
         let parent_path = parent.to_str().unwrap().to_string();
         parent_path == directory.url
     }
+    #[allow(dead_code)]
     pub(crate) fn is_recursively_under_directory(&self, directory: &ImageBrowserDirectory) -> bool {
         self.url.starts_with(format!("{}/", directory.url).as_str())
     }
