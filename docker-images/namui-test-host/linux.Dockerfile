@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM rust:1.58-alpine
+FROM rust:1-alpine
 
 ENV CARGO_HOME=/usr/local/cargo
 
