@@ -1,7 +1,6 @@
-use std::sync::Arc;
-
 use crate::{list_view, simple_rect, typography};
 use namui::prelude::*;
+use std::sync::Arc;
 
 pub struct Dropdown {
     id: String,
