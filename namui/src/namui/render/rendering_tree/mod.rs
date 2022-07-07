@@ -200,8 +200,13 @@ impl RenderingTree {
                                 &attach_event.on_mouse_move_in,
                                 &attach_event.on_mouse_move_out,
                             ),
-                            MouseEventType::Down => (&attach_event.on_mouse_down, &None),
-                            MouseEventType::Up => (&attach_event.on_mouse_up, &None),
+                            MouseEventType::Down => (
+                                &attach_event.on_mouse_down_in,
+                                &attach_event.on_mouse_down_out,
+                            ),
+                            MouseEventType::Up => {
+                                (&attach_event.on_mouse_up_in, &attach_event.on_mouse_up_out)
+                            }
                         };
                         if in_func.is_some() || out_func.is_some() {
                             let is_mouse_in = utils.is_xy_in(raw_mouse_event.xy);
@@ -475,7 +480,7 @@ pub(crate) enum DownUp {
 //                     stroke: None,
 //                     round: None,
 //                 },
-//                 on_mouse_down: Some(Box::new(move |xy| unsafe {
+//                 on_mouse_down_in: Some(Box::new(move |xy| unsafe {
 //                     ON_MOUSE_DOWN_CALLED_ID_LIST.push("0".to_string());
 //                 })),
 //                 ..Default::default()
@@ -491,7 +496,7 @@ pub(crate) enum DownUp {
 //                     stroke: None,
 //                     round: None,
 //                 },
-//                 on_mouse_down: Some(Box::new(move |xy| unsafe {
+//                 on_mouse_down_in: Some(Box::new(move |xy| unsafe {
 //                     ON_MOUSE_DOWN_CALLED_ID_LIST.push("1".to_string());
 //                 })),
 //                 ..Default::default()
@@ -507,7 +512,7 @@ pub(crate) enum DownUp {
 //                     stroke: None,
 //                     round: None,
 //                 },
-//                 on_mouse_down: Some(Box::new(move |xy| unsafe {
+//                 on_mouse_down_in: Some(Box::new(move |xy| unsafe {
 //                     ON_MOUSE_DOWN_CALLED_ID_LIST.push("2".to_string());
 //                 })),
 //                 ..Default::default()

@@ -91,7 +91,7 @@ impl WysiwygWindow {
                         .attach_event(|builder| {
                             let window_id = self.window_id.clone();
                             let layer_id = layer_id.to_string();
-                            builder.on_mouse_down(move |event| {
+                            builder.on_mouse_down_in(move |event| {
                                 let window_global_xy = event
                                     .namui_context
                                     .get_rendering_tree_xy_by_id(&window_id)

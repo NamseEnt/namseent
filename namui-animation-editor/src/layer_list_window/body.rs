@@ -103,7 +103,7 @@ fn render_row(wh: Wh<Px>, layer: &animation::Layer, is_selected: bool, now: Time
     ])
     .attach_event(move |builder| {
         let layer = layer.clone();
-        builder.on_mouse_up(move |_| {
+        builder.on_mouse_up_in(move |_| {
             namui::event::send(super::Event::LayerSelected(layer.id.clone()))
         });
     })

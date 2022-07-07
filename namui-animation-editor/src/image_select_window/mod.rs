@@ -166,7 +166,7 @@ fn render_entry(
         .attach_event(move |builder| {
             let url = entry.url().clone();
             let selected_layer_id = selected_layer_id.clone();
-            builder.on_mouse_down(move |_| {
+            builder.on_mouse_down_in(move |_| {
                 namui::event::send(Event::ImageSelected {
                     url: url.clone(),
                     selected_layer_id: selected_layer_id.clone(),

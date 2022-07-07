@@ -282,7 +282,7 @@ fn render_point_xy(
     )
     .attach_event(|builder| {
         let point_address = point_address.clone();
-        builder.on_mouse_down(move |event| {
+        builder.on_mouse_down_in(move |event| {
             namui::event::send(Event::GraphPointMouseDown {
                 point_address: point_address.clone(),
                 y_in_row: event.local_xy.y,

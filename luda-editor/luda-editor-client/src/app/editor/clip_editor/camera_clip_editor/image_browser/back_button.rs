@@ -57,7 +57,7 @@ impl ImageBrowser {
             })
             .attach_event(|builder| {
                 let browser_id = browser_id.to_string();
-                builder.on_mouse_down(move |_| {
+                builder.on_mouse_down_in(move |_| {
                     namui::event::send(ImageBrowserEvent::Select {
                         browser_id: browser_id.clone(),
                         item: ImageBrowserItem::Back,

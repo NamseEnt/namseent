@@ -41,7 +41,7 @@ impl TimelineWindow {
                                 });
                             }
                         })
-                        .on_mouse_down(move |event| {
+                        .on_mouse_down_in(move |event| {
                             if event.button.is_none() {
                                 return;
                             }

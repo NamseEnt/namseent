@@ -20,7 +20,7 @@ impl WysiwygWindow {
             .with_id(&self.window_id)
             .attach_event(|builder| {
                 builder
-                    .on_mouse_down(|event| {
+                    .on_mouse_down_in(|event| {
                         namui::event::send(super::Event::BackgroundClicked {
                             mouse_xy: event.local_xy,
                         });

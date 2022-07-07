@@ -99,7 +99,7 @@ impl CameraTrackBody {
         .attach_event(move |builder| {
             let timeline_start_at = props.context.start_at;
             let time_per_px = props.context.time_per_px;
-            builder.on_mouse_up(move |event| {
+            builder.on_mouse_up_in(move |event| {
                 if event.button == Some(MouseButton::Right) {
                     namui::event::send(EditorEvent::CameraTrackBodyRightClickEvent {
                         mouse_global_xy: event.global_xy,

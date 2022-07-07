@@ -19,7 +19,7 @@ pub fn render_file_select_dialog_open_button(wh: Wh<Px>) -> RenderingTree {
             },
         })
         .attach_event(|builder| {
-            builder.on_mouse_down(|_| {
+            builder.on_mouse_down_in(|_| {
                 namui::event::send(FileSelectorEvent::FileSelectDialogOpenButtonClicked);
             });
         })
