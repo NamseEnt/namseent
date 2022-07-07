@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use super::*;
 
 impl NamuiContext {
@@ -33,9 +31,9 @@ impl NamuiContext {
         let now = crate::now();
         let duration = now - self.fps_info.last_60_frame_time;
 
-        if duration > Duration::from_secs(1) {
+        if duration > Time::Sec(1.0) {
             self.fps_info.last_60_frame_time = crate::now();
-            self.fps_info.fps = (self.fps_info.frame_count as f32 / duration.as_secs_f32()) as u16;
+            self.fps_info.fps = (self.fps_info.frame_count as f32 / duration.as_seconds()) as u16;
             self.fps_info.frame_count = 0;
 
             crate::log!("FPS: {}", self.fps_info.fps);

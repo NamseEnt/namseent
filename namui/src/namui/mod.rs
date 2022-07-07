@@ -25,7 +25,7 @@ pub use skia::{
     BlendMode, Font, Image, PaintBuilder, PathBuilder, StrokeCap, Typeface,
 };
 pub(crate) use skia::{ColorFilter, Paint, Path};
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 pub use system::*;
 pub use url::Url;
 
@@ -63,6 +63,6 @@ macro_rules! log {
 }
 
 // /// `now()` is not ISO 8601. It's time since the program started.
-pub fn now() -> Duration {
+pub fn now() -> Time {
     system::time::now()
 }

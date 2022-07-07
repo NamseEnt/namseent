@@ -1,11 +1,12 @@
+use crate::Time;
 use once_cell::sync::OnceCell;
-use std::{cmp::Reverse, collections::BinaryHeap, sync::Mutex, time::Duration};
+use std::{cmp::Reverse, collections::BinaryHeap, sync::Mutex};
 
 type Callback = Box<dyn FnOnce()>;
 unsafe impl Send for TimeoutCallback {}
 struct TimeoutCallback {
     callback: Callback,
-    call_at: Duration,
+    call_at: Time,
 }
 
 impl PartialEq for TimeoutCallback {
@@ -37,7 +38,7 @@ fn get_heap() -> std::sync::MutexGuard<'static, BinaryHeap<Reverse<TimeoutCallba
         .unwrap()
 }
 
-pub fn set_timeout(callback: impl FnOnce() + 'static, after: Duration) {
+pub fn set_timeout(callback: impl FnOnce() + 'static, after: Time) {
     let mut heap = get_heap();
     let now = crate::now();
     let call_at = now + after;
@@ -47,7 +48,7 @@ pub fn set_timeout(callback: impl FnOnce() + 'static, after: Duration) {
     }));
 }
 
-pub(crate) fn pull_timeout(before_time: Duration) -> Option<Callback> {
+pub(crate) fn pull_timeout(before_time: Time) -> Option<Callback> {
     let mut heap = get_heap();
     let timeout = heap.peek();
     if timeout.is_none() {
@@ -65,22 +66,21 @@ mod tests {
     use super::*;
     use std::{
         sync::{atomic::AtomicBool, Arc},
-        time::Duration,
     };
 
     #[test]
     #[wasm_bindgen_test::wasm_bindgen_test]
     fn pull_timeout_should_be_fail_if_nothing_pushed() {
-        let callback = pull_timeout(crate::now() + Duration::from_millis(2));
+        let callback = pull_timeout(crate::now() + Time::Ms(2.0));
         assert!(callback.is_none());
     }
 
     #[test]
     #[wasm_bindgen_test::wasm_bindgen_test]
     fn pull_timeout_should_pop() {
-        set_timeout(move || {}, Duration::from_millis(1));
-        assert!(pull_timeout(crate::now() + Duration::from_millis(2)).is_some());
-        assert!(pull_timeout(crate::now() + Duration::from_millis(2)).is_none());
+        set_timeout(move || {}, Time::Ms(1.0));
+        assert!(pull_timeout(crate::now() + Time::Ms(2.0)).is_some());
+        assert!(pull_timeout(crate::now() + Time::Ms(2.0)).is_none());
     }
 
     #[test]
@@ -92,9 +92,9 @@ mod tests {
             move || {
                 called_clone.store(true, std::sync::atomic::Ordering::Relaxed);
             },
-            Duration::from_millis(1),
+            Time::Ms(1.0),
         );
-        let callback = pull_timeout(crate::now() + Duration::from_millis(2)).unwrap();
+        let callback = pull_timeout(crate::now() + Time::Ms(2.0)).unwrap();
         callback();
         assert!(called.load(std::sync::atomic::Ordering::Relaxed));
     }
@@ -113,22 +113,22 @@ mod tests {
                 move || {
                     vec2.lock().unwrap().push(2);
                 },
-                Duration::from_millis(2),
+                Time::Ms(2.0),
             );
             set_timeout(
                 move || {
                     vec1.lock().unwrap().push(1);
                 },
-                Duration::from_millis(1),
+                Time::Ms(1.0),
             );
             set_timeout(
                 move || {
                     vec3.lock().unwrap().push(3);
                 },
-                Duration::from_millis(3),
+                Time::Ms(3.0),
             );
 
-            while let Some(callback) = pull_timeout(crate::now() + Duration::from_millis(4)) {
+            while let Some(callback) = pull_timeout(crate::now() + Time::Ms(4.0)) {
                 callback();
             }
 
