@@ -140,7 +140,6 @@ where
     }
 }
 
-
 impl<T> Xy<T>
 where
     T: FromPrimitive,
