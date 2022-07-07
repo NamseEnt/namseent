@@ -212,7 +212,7 @@ jobs:
       #     tag: ${{ env.INNER_IMAGE_TAG }}
 
   post-test:
-    if: always() && contains(join(needs.*.result, ','), 'success')
+    if: always() && !contains(join(needs.*.result, ','), 'failure')
     runs-on: ubuntu-latest
     permissions:
       packages: write
