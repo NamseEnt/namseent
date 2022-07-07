@@ -37,28 +37,35 @@ jobs:
               - .github/**
               - namui-cli/**
               - namui/**
+              - docker-images/namui-test-host/linux.Dockerfile
             luda-editor-client:
               - .github/**
               - luda-editor/luda-editor-client/**
               - luda-editor/luda-editor-rpc/**
               - namui/**
+              - docker-images/namui-test-host/linux.Dockerfile
             namui-prebuilt:
               - .github/**
               - namui/**
               - namui-prebuilt/**
+              - docker-images/namui-test-host/linux.Dockerfile
             nrpc:
               - .github/**
               - nrpc/**
+              - docker-images/namui-test-host/linux.Dockerfile
             namui-sample:
               - .github/**
               - namui/**
+              - docker-images/namui-test-host/linux.Dockerfile
             image-cropper:
               - .github/**
               - image-cropper/**
               - namui/**
+              - docker-images/namui-test-host/linux.Dockerfile
             namui-animation-editor:
               - .github/**
               - namui-animation-editor/**
+              - docker-images/namui-test-host/linux.Dockerfile
 
   set-up:
     needs: check-rebuild
@@ -205,7 +212,7 @@ jobs:
       #     tag: ${{ env.INNER_IMAGE_TAG }}
 
   post-test:
-    if: always() && contains(join(needs.*.result, ','), 'success')
+    if: always() && !contains(join(needs.*.result, ','), 'failure')
     runs-on: ubuntu-latest
     permissions:
       packages: write

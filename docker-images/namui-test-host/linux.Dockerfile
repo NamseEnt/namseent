@@ -1,8 +1,9 @@
 # syntax=docker/dockerfile:1
 
-FROM rust:1.58-alpine
+FROM rust:1-alpine
 
 ENV CARGO_HOME=/usr/local/cargo
+ENV RUSTFLAGS="-D warnings"
 
 RUN apk upgrade -U -a \
     && apk add --no-cache \
@@ -16,4 +17,4 @@ RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
 RUN rustup target add wasm32-unknown-unknown
 
-ENV RUSTFLAGS="-D warnings"
+RUN rustup show
