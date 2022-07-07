@@ -139,6 +139,26 @@ where
         )
     }
 }
+
+impl<T> Xy<T>
+where
+    T: FromPrimitive,
+{
+    pub fn zero() -> Xy<T> {
+        Xy {
+            x: FromPrimitive::from_f32(0.0).unwrap(),
+            y: FromPrimitive::from_f32(0.0).unwrap(),
+        }
+    }
+
+    pub fn one() -> Xy<T> {
+        Xy {
+            x: FromPrimitive::from_f32(1.0).unwrap(),
+            y: FromPrimitive::from_f32(1.0).unwrap(),
+        }
+    }
+}
+
 impl<T> Xy<T>
 where
     T: Mul<Output = T> + Add<Output = T> + Clone,

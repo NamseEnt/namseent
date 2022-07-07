@@ -17,6 +17,12 @@ impl PxExt for f32 {
     }
 }
 
+impl PxExt for i32 {
+    fn px(self) -> Px {
+        Px(self as f32)
+    }
+}
+
 impl Display for Px {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:.*?}px", f.precision().unwrap_or(0), self.0)
