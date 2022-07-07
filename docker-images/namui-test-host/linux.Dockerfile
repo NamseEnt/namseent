@@ -3,6 +3,7 @@
 FROM rust:1-alpine
 
 ENV CARGO_HOME=/usr/local/cargo
+ENV RUSTFLAGS="-D warnings"
 
 RUN apk upgrade -U -a \
     && apk add --no-cache \

@@ -33,7 +33,6 @@ impl TopBar {
         if let Some(event) = event.downcast_ref::<TopBarEvent>() {
             match event {
                 TopBarEvent::GoBackButtonClicked => change_page_to_sequence_list(),
-                _ => {}
             }
         }
     }

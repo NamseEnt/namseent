@@ -62,7 +62,7 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), Box<dyn Error>> {
         "{}",
         [
             format!(
-                "wasm-pack test --headless --chrome {}",
+                "RUSTFLAGS=\"-D warnings\" wasm-pack test --headless --chrome {}",
                 directory.to_str().unwrap()
             ),
             "exit_code=$?".to_string(),
