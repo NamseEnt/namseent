@@ -1,8 +1,9 @@
 use super::EditingTarget;
-use crate::types::{ActionTicket, AnimationHistory};
+use crate::types::AnimationHistory;
 use namui::{
+    animation::{Animation, ImageInterpolation, Layer},
     prelude::*,
-    types::{Angle, Px, Time},
+    types::Px,
 };
 use namui_prebuilt::*;
 
@@ -11,17 +12,28 @@ mod update;
 
 pub struct LineEditWindow {
     animation_history: AnimationHistory,
+    dropdown: namui_prebuilt::dropdown::Dropdown,
 }
 
 impl LineEditWindow {
     pub fn new(animation_history: AnimationHistory) -> Self {
-        Self { animation_history }
+        Self {
+            animation_history,
+            dropdown: namui_prebuilt::dropdown::Dropdown::new(),
+        }
     }
 }
 
-pub struct Props {
+pub struct Props<'a> {
     pub wh: Wh<Px>,
     pub editing_target: Option<EditingTarget>,
+    pub selected_layer: Option<&'a Layer>,
 }
 
-enum Event {}
+enum Event {
+    SelectItem {
+        line: ImageInterpolation,
+        layer_id: String,
+        point_id: String,
+    },
+}

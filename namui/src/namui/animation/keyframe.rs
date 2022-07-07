@@ -147,6 +147,19 @@ impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
             .find(|(point, _)| point.time.eq(&time))
             .map(|(point, _)| point)
     }
+    pub fn get_point_and_line(&self, id: &str) -> Option<&(KeyframePoint<TValue>, TKeyframeLine)> {
+        self.point_line_tuples
+            .iter()
+            .find(|(point, _)| point.id.eq(id))
+    }
+    pub fn get_point_and_line_mut(
+        &mut self,
+        id: &str,
+    ) -> Option<&mut (KeyframePoint<TValue>, TKeyframeLine)> {
+        self.point_line_tuples
+            .iter_mut()
+            .find(|(point, _)| point.id.eq(id))
+    }
 }
 
 #[cfg(test)]

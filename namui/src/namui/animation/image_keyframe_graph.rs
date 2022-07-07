@@ -13,13 +13,34 @@ pub struct ImageKeyframe {
     pub opacity: OneZero,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    serde::Serialize,
+    serde::Deserialize,
+    strum_macros::EnumIter,
+    strum_macros::AsRefStr,
+    strum_macros::EnumString,
+)]
 pub enum ImageInterpolation {
     AllLinear,
     /// velocity ratio * L / T = v0
     SquashAndStretch {
         velocity_ratio: f32,
     },
+}
+
+impl ImageInterpolation {
+    pub fn iter() -> impl Iterator<Item = ImageInterpolation> {
+        fn generic_iter<E>() -> impl Iterator<Item = E>
+        where
+            E: strum::IntoEnumIterator,
+        {
+            E::iter()
+        }
+        generic_iter::<ImageInterpolation>()
+    }
 }
 
 impl KeyframeValue<ImageInterpolation> for ImageKeyframe {

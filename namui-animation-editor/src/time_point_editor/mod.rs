@@ -56,6 +56,7 @@ impl TimePointEditor {
         self.wysiwyg_window.update(event);
         self.timeline_window.update(event);
         self.image_select_window.update(event);
+        self.line_edit_window.update(event);
     }
     pub fn render(&self, props: Props) -> namui::RenderingTree {
         let animation = props.animation;
@@ -110,6 +111,7 @@ impl TimePointEditor {
                 self.line_edit_window.render(line_edit_window::Props {
                     wh,
                     editing_target: self.editing_target.clone(),
+                    selected_layer: selected_layer,
                 })
             }),
         ])(Wh {
