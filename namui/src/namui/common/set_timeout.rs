@@ -64,9 +64,7 @@ pub(crate) fn pull_timeout(before_time: Time) -> Option<Callback> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{
-        sync::{atomic::AtomicBool, Arc},
-    };
+    use std::sync::{atomic::AtomicBool, Arc};
 
     #[test]
     #[wasm_bindgen_test::wasm_bindgen_test]
