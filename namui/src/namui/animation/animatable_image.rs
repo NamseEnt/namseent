@@ -160,17 +160,14 @@ impl Animate for AnimatableImage {
 mod tests {
     use super::*;
     use float_cmp::approx_eq;
-    use num::{FromPrimitive, ToPrimitive};
     use wasm_bindgen_test::wasm_bindgen_test;
 
     struct LinearKeyframeLine {}
 
     impl KeyframeValue<LinearKeyframeLine> for OneZero {
         fn interpolate(&self, next: &Self, time_ratio: f32, _line: &LinearKeyframeLine) -> Self {
-            let one_zero = OneZero::from_f32(
-                self.to_f32().unwrap() * (1.0 - time_ratio) + next.to_f32().unwrap() * time_ratio,
-            )
-            .unwrap();
+            let one_zero =
+                OneZero::from(self.as_f32() * (1.0 - time_ratio) + next.as_f32() * time_ratio);
             one_zero
         }
     }

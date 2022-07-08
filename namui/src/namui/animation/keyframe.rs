@@ -315,7 +315,7 @@ mod tests {
         graph.delete(second_point.id);
 
         assert_eq!(graph.get_last_point(), Some(&first_point.clone()));
-        assert_eq!(graph.get_point_line_tuples().len(), 1);
+        assert_eq!(graph.get_point_line_tuples().count(), 1);
     }
 
     #[test]

@@ -7,7 +7,6 @@ mod xy;
 use super::render::{RenderingData, RenderingTree};
 use crate::*;
 pub use codes::*;
-use num::{FromPrimitive, ToPrimitive};
 pub use request_animation_frame::*;
 use serde::{Deserialize, Serialize};
 use serde_repr::*;
@@ -90,12 +89,12 @@ impl<T: Clone> Wh<T> {
         }
     }
 }
-impl<T: FromPrimitive + ToPrimitive> Wh<T> {
+impl<T: From<f32> + Into<f32> + Copy> Wh<T> {
     pub fn length(&self) -> T {
-        let width = self.width.to_f32().unwrap();
-        let height = self.height.to_f32().unwrap();
+        let width: f32 = self.width.into();
+        let height: f32 = self.height.into();
 
-        T::from_f32((width * width + height * height).sqrt()).unwrap()
+        T::from((width * width + height * height).sqrt())
     }
 }
 

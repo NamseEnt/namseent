@@ -1,4 +1,3 @@
-use num::{FromPrimitive, ToPrimitive};
 use serde::{Deserialize, Serialize};
 use std::ops::*;
 
@@ -109,52 +108,40 @@ impl<T: Div<f32, Output = T>> Div<Xy<T>> for f32 {
 
 impl<T> Xy<T>
 where
-    T: ToPrimitive + FromPrimitive + Copy,
+    T: Into<f32> + From<f32> + Copy,
 {
     pub fn length(&self) -> T {
-        let x = self.x.to_f32().unwrap();
-        let y = self.y.to_f32().unwrap();
-        FromPrimitive::from_f32((x * x + y * y).sqrt()).unwrap()
+        let x: f32 = self.x.into();
+        let y: f32 = self.y.into();
+        T::from((x * x + y * y).sqrt())
     }
     pub fn angle_to(&self, rhs: Xy<T>) -> Angle {
-        let x = self.x.to_f32().unwrap();
-        let y = self.y.to_f32().unwrap();
-        let rhs_x = rhs.x.to_f32().unwrap();
-        let rhs_y = rhs.y.to_f32().unwrap();
-        Angle::Radian(
-            (x * rhs_y - y * rhs_x)
-                .atan2(x * rhs_x + y * rhs_y)
-                .to_f32()
-                .unwrap(),
-        )
+        let x: f32 = self.x.into();
+        let y: f32 = self.y.into();
+        let rhs_x: f32 = rhs.x.into();
+        let rhs_y: f32 = rhs.y.into();
+        Angle::Radian((x * rhs_y - y * rhs_x).atan2(x * rhs_x + y * rhs_y))
     }
     pub fn atan2(&self) -> Angle {
-        Angle::Radian(
-            self.y
-                .to_f32()
-                .unwrap()
-                .atan2(self.x.to_f32().unwrap())
-                .to_f32()
-                .unwrap(),
-        )
+        Angle::Radian(self.y.into().atan2(self.x.into()))
     }
 }
 
 impl<T> Xy<T>
 where
-    T: FromPrimitive,
+    T: From<f32>,
 {
     pub fn zero() -> Xy<T> {
         Xy {
-            x: FromPrimitive::from_f32(0.0).unwrap(),
-            y: FromPrimitive::from_f32(0.0).unwrap(),
+            x: 0.0.into(),
+            y: 0.0.into(),
         }
     }
 
     pub fn one() -> Xy<T> {
         Xy {
-            x: FromPrimitive::from_f32(1.0).unwrap(),
-            y: FromPrimitive::from_f32(1.0).unwrap(),
+            x: 1.0.into(),
+            y: 1.0.into(),
         }
     }
 }
