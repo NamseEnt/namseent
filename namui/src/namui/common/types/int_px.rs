@@ -1,5 +1,4 @@
 use super::Px;
-use num::{FromPrimitive, ToPrimitive};
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Copy, serde::Serialize)]
 pub struct IntPx(pub(crate) i32);
@@ -10,13 +9,13 @@ pub const fn int_px(value: i32) -> IntPx {
 
 impl From<Px> for IntPx {
     fn from(px: Px) -> Self {
-        IntPx(px.to_i32().unwrap())
+        IntPx(f32::from(px) as i32)
     }
 }
 
 impl Into<Px> for IntPx {
     fn into(self) -> Px {
-        Px::from_i32(self.0).unwrap()
+        Px::from(self.0 as f32)
     }
 }
 

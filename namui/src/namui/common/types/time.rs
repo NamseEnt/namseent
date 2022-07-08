@@ -83,8 +83,8 @@ impl Time {
     }
 }
 
-crate::types::macros::impl_op_forward_ref_reversed_all_primitives!(*|lhs: Time,
-                                                                     rhs: f32|
+crate::types::macros::impl_op_forward_ref_reversed_for_f32_and_i32!(*|lhs: Time,
+                                                                      rhs: f32|
  -> Time {
     match lhs {
         Time::Ms(x) => Time::Ms(x * rhs),

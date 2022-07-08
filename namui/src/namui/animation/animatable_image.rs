@@ -144,12 +144,12 @@ fn get_keyframe_info<T: KeyframeValue + Clone>(
         .collect()
 }
 
-impl<T: num::ToPrimitive + num::FromPrimitive> KeyframeValue for T {
+impl<T> KeyframeValue for T
+where
+    T: std::ops::Add<Output = T> + std::ops::Mul<f32, Output = T> + Copy,
+{
     fn interpolate(&self, next: &Self, ratio: f32) -> Self {
-        num::FromPrimitive::from_f32(
-            self.to_f32().unwrap() * (1.0 - ratio) + next.to_f32().unwrap() * ratio,
-        )
-        .unwrap()
+        *self * (1.0 - ratio) + *next * ratio
     }
 }
 

@@ -1,4 +1,4 @@
-use num::{cast::AsPrimitive, FromPrimitive, ToPrimitive};
+use num::cast::AsPrimitive;
 use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
@@ -89,43 +89,6 @@ impl PartialOrd for Angle {
             (Angle::Radian(a), Angle::Degree(b)) => a.partial_cmp(&b.to_radians()),
             (Angle::Degree(a), Angle::Radian(b)) => a.partial_cmp(&b.to_degrees()),
         }
-    }
-}
-
-impl ToPrimitive for Angle {
-    fn to_i64(&self) -> Option<i64> {
-        match self {
-            Angle::Radian(angle) => angle.to_i64(),
-            Angle::Degree(degree) => degree.to_i64(),
-        }
-    }
-
-    fn to_u64(&self) -> Option<u64> {
-        match self {
-            Angle::Radian(angle) => angle.to_u64(),
-            Angle::Degree(degree) => degree.to_u64(),
-        }
-    }
-
-    fn to_f64(&self) -> Option<f64> {
-        match self {
-            Angle::Radian(angle) => angle.to_f64(),
-            Angle::Degree(degree) => degree.to_f64(),
-        }
-    }
-}
-
-impl FromPrimitive for Angle {
-    fn from_i64(n: i64) -> Option<Self> {
-        Some(Angle::Radian(n as f32))
-    }
-
-    fn from_u64(n: u64) -> Option<Self> {
-        Some(Angle::Radian(n as f32))
-    }
-
-    fn from_f64(n: f64) -> Option<Self> {
-        Some(Angle::Radian(n as f32))
     }
 }
 

@@ -1,8 +1,11 @@
 use super::{ratio::Ratio, *};
-use num::{cast::AsPrimitive, ToPrimitive};
 use std::fmt::Display;
 
-common_for_f32_type!(Percent);
+common_for_f32_type!(
+    Percent,
+    |lhs: Percent| -> f32 { lhs.0 / 100.0 },
+    |lhs: f32| -> Percent { Percent(lhs * 100.0) }
+);
 
 impl Ratio for Percent {
     fn as_f32(&self) -> f32 {
@@ -26,12 +29,6 @@ impl PercentExt for i32 {
     }
 }
 
-impl AsPrimitive<f32> for Percent {
-    fn as_(self) -> f32 {
-        self.to_f32().unwrap()
-    }
-}
-
 impl Percent {
     pub fn from<T>(decimal: T) -> Percent
     where
@@ -44,34 +41,6 @@ impl Percent {
         T: num::cast::AsPrimitive<f32>,
     {
         Percent(percent.as_())
-    }
-}
-
-impl num::FromPrimitive for Percent {
-    fn from_i64(n: i64) -> Option<Self> {
-        Some(Percent((n * 100) as f32))
-    }
-
-    fn from_u64(n: u64) -> Option<Self> {
-        Some(Percent((n * 100) as f32))
-    }
-
-    fn from_f64(n: f64) -> Option<Self> {
-        Some(Percent((n * 100.0) as f32))
-    }
-}
-
-impl num::ToPrimitive for Percent {
-    fn to_i64(&self) -> Option<i64> {
-        Some((self.0 / 100.0) as i64)
-    }
-
-    fn to_u64(&self) -> Option<u64> {
-        Some((self.0 / 100.0) as u64)
-    }
-
-    fn to_f64(&self) -> Option<f64> {
-        Some((self.0 / 100.0) as f64)
     }
 }
 
