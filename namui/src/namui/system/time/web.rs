@@ -1,10 +1,12 @@
-use crate::system::{platform_utils::web::window, InitResult};
-use std::time::Duration;
+use crate::{
+    system::{platform_utils::web::window, InitResult},
+    Time,
+};
 
 pub(crate) async fn init() -> InitResult {
     Ok(())
 }
 
-pub fn now() -> Duration {
-    Duration::from_millis(window().performance().unwrap().now() as u64)
+pub fn now() -> Time {
+    Time::Ms(window().performance().unwrap().now() as f32)
 }

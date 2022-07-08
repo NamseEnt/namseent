@@ -1,5 +1,4 @@
 use crate::{event::EventReceiver, *};
-use std::time::Duration;
 mod main_loop;
 
 pub struct NamuiContext {
@@ -13,7 +12,7 @@ pub struct NamuiContext {
 struct FpsInfo {
     pub fps: u16,
     pub frame_count: u16,
-    pub last_60_frame_time: Duration,
+    pub last_60_frame_time: Time,
 }
 
 impl NamuiContext {

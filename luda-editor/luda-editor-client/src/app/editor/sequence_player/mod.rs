@@ -7,7 +7,7 @@ use crate::app::types::*;
 use buttons::*;
 use namui::prelude::*;
 use player_screen::*;
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc};
 
 pub struct SequencePlayer {
     id: String,
@@ -88,7 +88,7 @@ impl SequencePlayer {
         let id = self.id.clone();
         namui::set_timeout(
             move || namui::event::send(SequencePlayerEvent::CheckLoading(id)),
-            Duration::from_secs(1),
+            Time::Sec(1.0),
         );
     }
     fn get_playback_status(&self) -> PlaybackStatus {
