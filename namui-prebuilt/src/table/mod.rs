@@ -3,6 +3,7 @@ use namui::prelude::*;
 pub struct TableCell<'a> {
     unit: Unit,
     render: Box<dyn FnOnce(Wh<Px>) -> RenderingTree + 'a>,
+    need_clip: bool,
 }
 
 pub enum Unit {
@@ -18,6 +19,18 @@ pub fn ratio<'a>(
     TableCell {
         unit: Unit::Ratio(ratio),
         render: Box::new(cell_render_closure),
+        need_clip: true,
+    }
+}
+
+pub fn ratio_no_clip<'a>(
+    ratio: f32,
+    cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
+) -> TableCell<'a> {
+    TableCell {
+        unit: Unit::Ratio(ratio),
+        render: Box::new(cell_render_closure),
+        need_clip: false,
     }
 }
 
@@ -28,6 +41,18 @@ pub fn fixed<'a>(
     TableCell {
         unit: Unit::Fixed(pixel),
         render: Box::new(cell_render_closure),
+        need_clip: true,
+    }
+}
+
+pub fn fixed_no_clip<'a>(
+    pixel: Px,
+    cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
+) -> TableCell<'a> {
+    TableCell {
+        unit: Unit::Fixed(pixel),
+        render: Box::new(cell_render_closure),
+        need_clip: false,
     }
 }
 
@@ -38,6 +63,18 @@ pub fn calculative<'a>(
     TableCell {
         unit: Unit::Calculative(Box::new(from_parent_wh)),
         render: Box::new(cell_render_closure),
+        need_clip: true,
+    }
+}
+
+pub fn calculative_no_clip<'a>(
+    from_parent_wh: impl FnOnce(Wh<Px>) -> Px + 'static,
+    cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
+) -> TableCell<'a> {
+    TableCell {
+        unit: Unit::Calculative(Box::new(from_parent_wh)),
+        render: Box::new(cell_render_closure),
+        need_clip: false,
     }
 }
 
@@ -62,11 +99,11 @@ fn slice_internal<'a>(
     items: impl IntoIterator<Item = TableCell<'a>> + 'a,
 ) -> impl FnOnce(Wh<Px>) -> RenderingTree + 'a {
     let mut units = Vec::new();
-    let mut render_fns = std::collections::VecDeque::new();
+    let mut for_renders = std::collections::VecDeque::new();
 
     for item in items {
         units.push(item.unit);
-        render_fns.push_back(item.render);
+        for_renders.push_back((item.render, item.need_clip));
     }
 
     move |wh: Wh<Px>| {
@@ -110,7 +147,7 @@ fn slice_internal<'a>(
         let mut advanced_pixel_size = px(0.0);
 
         for pixel_size in pixel_sizes {
-            let render_fn = render_fns.pop_front().unwrap();
+            let (render_fn, need_clip) = for_renders.pop_front().unwrap();
             let xywh = match direction {
                 Direction::Vertical => Rect::Xywh {
                     x: px(0.0),
@@ -128,16 +165,20 @@ fn slice_internal<'a>(
             let rendering_tree = namui::translate(
                 xywh.x(),
                 xywh.y(),
-                namui::clip(
-                    PathBuilder::new().add_rect(Rect::Xywh {
-                        x: px(0.0),
-                        y: px(0.0),
-                        width: xywh.width(),
-                        height: xywh.height(),
-                    }),
-                    ClipOp::Intersect,
-                    render_fn(xywh.wh()),
-                ),
+                if need_clip {
+                    namui::clip(
+                        PathBuilder::new().add_rect(Rect::Xywh {
+                            x: px(0.0),
+                            y: px(0.0),
+                            width: xywh.width(),
+                            height: xywh.height(),
+                        }),
+                        ClipOp::Intersect,
+                        render_fn(xywh.wh()),
+                    )
+                } else {
+                    render_fn(xywh.wh())
+                },
             );
 
             rendering_tree_list.push(rendering_tree);
