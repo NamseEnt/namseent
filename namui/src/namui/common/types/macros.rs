@@ -15,6 +15,7 @@ macro_rules! common_for_f32_type {
         $crate::types::macros::impl_single_trait!(from|lhs: &$your_type| -> f32 { f32::from(*lhs) });
         $crate::types::macros::impl_single_trait!(from|lhs: f32| -> $your_type { $from(lhs) });
         $crate::types::macros::impl_single_trait!(from|lhs: i32| -> $your_type { From::from(lhs as f32) });
+        $crate::types::macros::impl_single_trait!(from|lhs: usize| -> $your_type { From::from(lhs as f32) });
 
         impl $your_type {
             pub fn max(&self, other: $your_type) -> $your_type {
@@ -86,15 +87,15 @@ macro_rules! common_for_f32_type {
             }
         }
 
-        $crate::types::macros::impl_op_forward_ref_reversed_for_f32_and_i32!(*|lhs: $your_type, rhs: f32| -> $your_type {
+        $crate::types::macros::impl_op_forward_ref_reversed_for_f32_i32_usize!(*|lhs: $your_type, rhs: f32| -> $your_type {
             (lhs.as_f32() * rhs).into()
         });
 
-        $crate::types::macros::impl_op_forward_ref_for_f32_and_i32!(/|lhs: $your_type, rhs: f32| -> $your_type {
+        $crate::types::macros::impl_op_forward_ref_for_f32_i32_usize!(/|lhs: $your_type, rhs: f32| -> $your_type {
             (lhs.as_f32() / rhs).into()
         });
 
-        $crate::types::macros::impl_op_forward_ref_for_f32_and_i32!(%|lhs: $your_type, rhs: f32| -> $your_type {
+        $crate::types::macros::impl_op_forward_ref_for_f32_i32_usize!(%|lhs: $your_type, rhs: f32| -> $your_type {
             (lhs.as_f32() % rhs).into()
         });
 
@@ -103,11 +104,13 @@ macro_rules! common_for_f32_type {
             lhs.0 = (*lhs * rhs).0;
         });
         auto_ops::impl_op!(*=|lhs: &mut $your_type, rhs: i32| { *lhs *= (rhs as f32) });
+        auto_ops::impl_op!(*=|lhs: &mut $your_type, rhs: usize| { *lhs *= (rhs as f32) });
 
         auto_ops::impl_op!(/=|lhs: &mut $your_type, rhs: f32| {
             lhs.0 = (*lhs / rhs).0;
         });
         auto_ops::impl_op!(/=|lhs: &mut $your_type, rhs: i32| { *lhs /= (rhs as f32) });
+        auto_ops::impl_op!(/=|lhs: &mut $your_type, rhs: usize| { *lhs /= (rhs as f32) });
     };
 }
 pub(crate) use common_for_f32_type;
@@ -141,18 +144,20 @@ macro_rules! impl_single_trait {
 }
 pub(crate) use impl_single_trait;
 
-macro_rules! impl_op_forward_ref_reversed_for_f32_and_i32 {
+macro_rules! impl_op_forward_ref_reversed_for_f32_i32_usize {
     ($op:tt |$lhs_i:ident : $lhs:ty, $rhs_i:ident : f32| -> $out:ty $body:block) => {
         $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: f32| -> $lhs $body );
         $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: i32| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref_reversed!($op|$lhs_i: $lhs, $rhs_i: usize| -> $lhs { $lhs_i $op $rhs_i as f32 });
     }
 }
-pub(crate) use impl_op_forward_ref_reversed_for_f32_and_i32;
+pub(crate) use impl_op_forward_ref_reversed_for_f32_i32_usize;
 
-macro_rules! impl_op_forward_ref_for_f32_and_i32 {
+macro_rules! impl_op_forward_ref_for_f32_i32_usize {
     ($op:tt |$lhs_i:ident : $lhs:ty, $rhs_i:ident : f32| -> $out:ty $body:block) => {
         $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: f32| -> $lhs $body );
         $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: i32| -> $lhs { $lhs_i $op $rhs_i as f32 });
+        $crate::types::macros::impl_op_forward_ref!($op|$lhs_i: $lhs, $rhs_i: usize| -> $lhs { $lhs_i $op $rhs_i as f32 });
     }
 }
-pub(crate) use impl_op_forward_ref_for_f32_and_i32;
+pub(crate) use impl_op_forward_ref_for_f32_i32_usize;
