@@ -71,47 +71,6 @@ impl AnimatableImage {
     // }
 }
 
-// #[derive(Debug, Clone)]
-// pub struct KeyframeInfo {
-//     pub keyframe_type: KeyframeType,
-//     pub id: String,
-//     pub time: Time,
-// }
-
-// #[derive(Debug, Clone, Copy)]
-// pub enum KeyframeType {
-//     X,
-//     Y,
-//     WidthPercent,
-//     HeightPercent,
-//     RotationAngle,
-//     Opacity,
-// }
-
-// fn get_keyframe_info<T: KeyframeValue + Clone>(
-//     graph: &KeyframeGraph<T>,
-//     keyframe_type: KeyframeType,
-// ) -> Vec<KeyframeInfo> {
-//     graph
-//         .get_points_with_lines()
-//         .into_iter()
-//         .map(|(point, _)| KeyframeInfo {
-//             keyframe_type,
-//             id: point.id().to_string(),
-//             time: point.time,
-//         })
-//         .collect()
-// }
-
-// impl<T: num::ToPrimitive + num::FromPrimitive> KeyframeValue for T {
-//     fn interpolate(&self, next: &Self, ratio: f32) -> Self {
-//         num::FromPrimitive::from_f32(
-//             self.to_f32().unwrap() * (1.0 - ratio) + next.to_f32().unwrap() * ratio,
-//         )
-//         .unwrap()
-//     }
-// }
-
 impl Animate for AnimatableImage {
     fn render(&self, time: Time) -> RenderingTree {
         try_render(|| {
