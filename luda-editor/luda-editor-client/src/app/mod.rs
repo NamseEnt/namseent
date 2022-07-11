@@ -1,4 +1,5 @@
 mod app;
+mod authentication;
 mod editor;
 mod events;
 mod main;

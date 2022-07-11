@@ -1,7 +1,8 @@
 use super::{
+    authentication::{Authentication, AuthenticationProps},
     editor::EditorProps,
     events::RouterEvent,
-    sequence_list::{SequenceList, SequenceListProps},
+    sequence_list::SequenceListProps,
     types::{meta::Meta, AppContext, Page},
 };
 use namui::prelude::*;
@@ -31,6 +32,7 @@ impl Router {
         match &mut self.page {
             Page::Editor(editor) => editor.update(event),
             Page::SequenceList(sequence_list) => sequence_list.update(event),
+            Page::Authentication(authentication) => authentication.update(event),
         }
     }
 
@@ -44,11 +46,14 @@ impl Router {
                 subtitle_play_duration_measurer: &props.meta.clone(),
                 subtitle_character_color_map: &props.meta.subtitle_character_color_map,
             }),
+            Page::Authentication(authentication) => authentication.render(&AuthenticationProps {
+                wh: props.screen_wh,
+            }),
         }
     }
     pub fn new(context: AppContext) -> Self {
         Self {
-            page: Page::SequenceList(SequenceList::new(context.socket.clone())),
+            page: Page::Authentication(Authentication::new()),
             context,
         }
     }
