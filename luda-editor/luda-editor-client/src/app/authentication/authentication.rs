@@ -1,0 +1,199 @@
+use namui::prelude::*;
+
+pub struct AuthenticationProps {
+    pub wh: Wh<Px>,
+}
+
+pub struct Authentication {
+    access_code_input: TextInput,
+    access_code: String,
+}
+
+impl Authentication {
+    pub fn new() -> Self {
+        Self {
+            access_code_input: TextInput::new(),
+            access_code: String::new(),
+        }
+    }
+}
+
+impl Authentication {
+    pub fn update(&mut self, event: &dyn std::any::Any) {
+        if let Some(event) = event.downcast_ref::<text_input::Event>() {
+            match event {
+                text_input::Event::TextUpdated(update) => {
+                    if update.id == self.access_code_input.get_id() {
+                        self.access_code = update.text.clone();
+                    }
+                }
+                _ => {}
+            }
+        } else if let Some(event) = event.downcast_ref::<Event>() {
+            match event {
+                Event::LoginButtonClicked => {
+                    todo!("Move to sequence list page")
+                }
+            }
+        }
+        self.access_code_input.update(event);
+    }
+
+    pub fn render(&self, props: &AuthenticationProps) -> RenderingTree {
+        let window_center = Rect::from_xy_wh(Xy::zero(), props.wh).center();
+        let access_code_input_width = props.wh.width;
+        render([
+            render_background(props.wh),
+            render_instruction_text(&window_center),
+            render_access_code_input(
+                &self.access_code,
+                &self.access_code_input,
+                window_center,
+                access_code_input_width,
+            ),
+        ])
+    }
+}
+
+fn render_background(wh: Wh<Px>) -> RenderingTree {
+    rect(RectParam {
+        rect: Rect::from_xy_wh(Xy::zero(), wh),
+        style: RectStyle {
+            stroke: None,
+            fill: Some(RectFill {
+                color: Color::grayscale_f01(0.3),
+            }),
+            round: None,
+        },
+    })
+}
+
+fn render_instruction_text(center: &Xy<Px>) -> RenderingTree {
+    const INSTRUCTION_TEXT_HEIGHT: Px = px(48.0);
+    namui::text(TextParam {
+        text: "Enter your access code".to_string(),
+        x: center.x,
+        y: center.y,
+        align: TextAlign::Center,
+        baseline: TextBaseline::Bottom,
+        font_type: FontType {
+            serif: false,
+            size: INSTRUCTION_TEXT_HEIGHT.into(),
+            language: Language::Ko,
+            font_weight: FontWeight::REGULAR,
+        },
+        style: TextStyle {
+            border: None,
+            drop_shadow: None,
+            color: Color::WHITE,
+            background: None,
+        },
+    })
+}
+
+fn render_access_code_input(
+    access_code: &String,
+    access_code_input: &TextInput,
+    center: Xy<Px>,
+    width: Px,
+) -> RenderingTree {
+    const HEIGHT: Px = px(36.0);
+    const FONT_SIZE: IntPx = int_px(24);
+    const STROKE_WIDTH: Px = px(4.0);
+    const BUTTON_WIDTH: Px = px(128.0);
+    const MARGIN: Px = px(8.0);
+    let access_code_input_rect = Rect::Xywh {
+        x: px(0.0),
+        y: center.y,
+        width: width - MARGIN - BUTTON_WIDTH,
+        height: HEIGHT,
+    };
+    let login_button_rect = Rect::Xywh {
+        x: access_code_input_rect.x() + access_code_input_rect.width() + MARGIN,
+        y: center.y,
+        width: BUTTON_WIDTH,
+        height: HEIGHT,
+    };
+    let login_button_rect_center = login_button_rect.center();
+    let access_code_input_rect_center = access_code_input_rect.center();
+    render([
+        access_code_input
+            .render(text_input::Props {
+                rect_param: RectParam {
+                    rect: access_code_input_rect,
+                    style: RectStyle {
+                        stroke: Some(RectStroke {
+                            color: Color::grayscale_f01(0.6),
+                            width: STROKE_WIDTH,
+                            border_position: BorderPosition::Middle,
+                        }),
+                        fill: None,
+                        round: None,
+                    },
+                },
+                text_param: TextParam {
+                    text: access_code.clone(),
+                    x: access_code_input_rect_center.x,
+                    y: access_code_input_rect_center.y,
+                    align: TextAlign::Center,
+                    baseline: TextBaseline::Middle,
+                    font_type: FontType {
+                        serif: false,
+                        size: FONT_SIZE,
+                        language: Language::Ko,
+                        font_weight: FontWeight::REGULAR,
+                    },
+                    style: TextStyle {
+                        border: None,
+                        drop_shadow: None,
+                        color: Color::WHITE,
+                        background: None,
+                    },
+                },
+            })
+            .with_mouse_cursor(MouseCursor::Text),
+        rect(RectParam {
+            rect: login_button_rect,
+            style: RectStyle {
+                stroke: Some(RectStroke {
+                    color: Color::grayscale_f01(0.6),
+                    width: STROKE_WIDTH,
+                    border_position: BorderPosition::Middle,
+                }),
+                fill: Some(RectFill {
+                    color: Color::grayscale_f01(0.6),
+                }),
+                round: None,
+            },
+        })
+        .attach_event(|builder| {
+            builder.on_mouse_down_in(|_event| {
+                event::send(Event::LoginButtonClicked);
+            });
+        })
+        .with_mouse_cursor(MouseCursor::Pointer),
+        namui::text(TextParam {
+            text: "Login".to_string(),
+            x: login_button_rect_center.x,
+            y: login_button_rect_center.y,
+            align: TextAlign::Center,
+            baseline: TextBaseline::Middle,
+            font_type: FontType {
+                serif: false,
+                size: FONT_SIZE,
+                language: Language::Ko,
+                font_weight: FontWeight::REGULAR,
+            },
+            style: TextStyle {
+                border: None,
+                drop_shadow: None,
+                color: Color::WHITE,
+                background: None,
+            },
+        }),
+    ])
+}
+
+enum Event {
+    LoginButtonClicked,
+}
