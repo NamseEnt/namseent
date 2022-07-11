@@ -1,7 +1,6 @@
 use crate::{
     namui::skia::StrokeJoin, BlendMode, Color, ColorFilter, Paint, PaintStyle, Px, StrokeCap,
 };
-use num::ToPrimitive;
 use once_cell::sync::OnceCell;
 use ordered_float::OrderedFloat;
 use serde::Serialize;
@@ -137,7 +136,7 @@ impl Hash for PaintBuilder {
         self.paint_style.hash(state);
         self.anti_alias.hash(state);
         self.stroke_width
-            .map(|value| OrderedFloat(value.to_f32().unwrap()))
+            .map(|value| OrderedFloat(value.as_f32()))
             .hash(state);
         self.stroke_cap.hash(state);
         self.color_filter.hash(state);
