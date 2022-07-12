@@ -2,6 +2,7 @@ mod app;
 mod authentication;
 mod editor;
 mod events;
+mod github_api;
 mod main;
 mod router;
 mod sequence_list;
