@@ -21,7 +21,12 @@ impl GithubAPiClient {
             .await;
 
         if !response.ok() {
-            return Err(ReadFileError::ResponseNotOk(response.status()));
+            let status = response.status();
+            let error = match status {
+                404 => ReadFileError::FileNotFound,
+                _ => ReadFileError::ResponseNotOk(status),
+            };
+            return Err(error);
         }
 
         let response_body: ReadFileResponse = parse_response_as_json(response).await?;
@@ -34,6 +39,7 @@ impl GithubAPiClient {
 pub enum ReadFileError {
     ResponseNotOk(u16),
     ResponseParseError(ResponseParseError),
+    FileNotFound,
 }
 
 impl From<ResponseParseError> for ReadFileError {
