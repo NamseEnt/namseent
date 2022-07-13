@@ -6,6 +6,7 @@ mod github_api;
 mod main;
 mod router;
 mod sequence_list;
+mod storage;
 mod types;
 pub use main::main;
 use router::Router;
