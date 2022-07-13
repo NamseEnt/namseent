@@ -1,19 +1,23 @@
+use crate::app::github_api::GithubAPiClient;
 use namui::prelude::*;
+use wasm_bindgen_futures::spawn_local;
 
 pub struct AuthenticationProps {
     pub wh: Wh<Px>,
 }
 
 pub struct Authentication {
-    access_code_input: TextInput,
-    access_code: String,
+    access_token_input: TextInput,
+    access_token: String,
+    authentication_state: AuthenticationState,
 }
 
 impl Authentication {
     pub fn new() -> Self {
         Self {
-            access_code_input: TextInput::new(),
-            access_code: String::new(),
+            access_token_input: TextInput::new(),
+            access_token: String::new(),
+            authentication_state: AuthenticationState::Idle,
         }
     }
 }
@@ -23,8 +27,8 @@ impl Authentication {
         if let Some(event) = event.downcast_ref::<text_input::Event>() {
             match event {
                 text_input::Event::TextUpdated(update) => {
-                    if update.id == self.access_code_input.get_id() {
-                        self.access_code = update.text.clone();
+                    if update.id == self.access_token_input.get_id() {
+                        self.access_token = update.text.clone();
                     }
                 }
                 _ => {}
@@ -32,27 +36,67 @@ impl Authentication {
         } else if let Some(event) = event.downcast_ref::<Event>() {
             match event {
                 Event::LoginButtonClicked => {
-                    todo!("Move to sequence list page")
+                    self.login();
+                }
+                Event::LoginFailed => {
+                    self.authentication_state = AuthenticationState::LoginFailed;
                 }
             }
         }
-        self.access_code_input.update(event);
+        self.access_token_input.update(event);
     }
 
     pub fn render(&self, props: &AuthenticationProps) -> RenderingTree {
         let window_center = Rect::from_xy_wh(Xy::zero(), props.wh).center();
         let access_code_input_width = props.wh.width;
+        let instruction_text = self.get_instruction_text();
         render([
             render_background(props.wh),
-            render_instruction_text(&window_center),
+            render_instruction_text(&window_center, instruction_text),
             render_access_code_input(
-                &self.access_code,
-                &self.access_code_input,
+                &self.access_token,
+                &self.access_token_input,
                 window_center,
                 access_code_input_width,
             ),
         ])
     }
+
+    fn get_instruction_text(&self) -> String {
+        match self.authentication_state {
+            AuthenticationState::Idle => "Enter your GitHub access token".to_string(),
+            AuthenticationState::LoginInProgress => "Logging in...".to_string(),
+            AuthenticationState::LoginFailed => "Login failed. Check your token".to_string(),
+        }
+    }
+
+    fn login(&mut self) {
+        self.authentication_state = AuthenticationState::LoginInProgress;
+        let token = self.access_token.clone();
+        spawn_local(async move {
+            let client = create_github_api_client(token);
+            match client.validate_token().await {
+                Ok(_) => {
+                    todo!("Move to sequence list page")
+                }
+                Err(_) => {
+                    namui::event::send(Event::LoginFailed);
+                }
+            }
+        })
+    }
+}
+
+fn create_github_api_client(access_token: String) -> GithubAPiClient {
+    const BASE_URL: &str = "https://api.github.com";
+    const OWNER: &str = "bigfoodK";
+    const REPO: &str = "api-test";
+    GithubAPiClient::new(
+        access_token,
+        BASE_URL.to_string(),
+        OWNER.to_string(),
+        REPO.to_string(),
+    )
 }
 
 fn render_background(wh: Wh<Px>) -> RenderingTree {
@@ -68,10 +112,10 @@ fn render_background(wh: Wh<Px>) -> RenderingTree {
     })
 }
 
-fn render_instruction_text(center: &Xy<Px>) -> RenderingTree {
+fn render_instruction_text(center: &Xy<Px>, instruction_text: String) -> RenderingTree {
     const INSTRUCTION_TEXT_HEIGHT: Px = px(48.0);
     namui::text(TextParam {
-        text: "Enter your access code".to_string(),
+        text: instruction_text,
         x: center.x,
         y: center.y,
         align: TextAlign::Center,
@@ -196,4 +240,11 @@ fn render_access_code_input(
 
 enum Event {
     LoginButtonClicked,
+    LoginFailed,
+}
+
+enum AuthenticationState {
+    Idle,
+    LoginInProgress,
+    LoginFailed,
 }
