@@ -1,4 +1,5 @@
 mod delete_sequence;
+mod get_background_image_urls;
 mod get_meta;
 mod get_sequence;
 mod get_sequence_list;
@@ -7,5 +8,6 @@ mod lock_sequence;
 mod put_sequence;
 mod storage;
 mod types;
+mod get_character_image_urls;
 mod unlock_sequence;
 pub use storage::*;

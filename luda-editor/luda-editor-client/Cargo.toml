@@ -28,6 +28,7 @@ auto_ops = "0.3"
 ordered-float = "2.10"
 linked-hash-map = { version = "0.5.4", features = ["serde_impl"] }
 base64 = "0.13.0"
+async-recursion = "1.0.0"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"
