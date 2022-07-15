@@ -26,6 +26,21 @@ impl Matrix3x3 {
             ),
         }
     }
+    pub fn from_translate(x: f32, y: f32) -> Self {
+        Self::new(1.0, 0.0, x, 0.0, 1.0, y, 0.0, 0.0, 1.0)
+    }
+    pub fn from_scale(sx: f32, sy: f32) -> Self {
+        Self::new(sx, 0.0, 0.0, 0.0, sy, 0.0, 0.0, 0.0, 1.0)
+    }
+    pub fn from_rotate(angle: Angle) -> Self {
+        let s = angle.sin();
+        let c = angle.cos();
+        Self::new(c, -s, 0.0, s, c, 0.0, 0.0, 0.0, 1.0)
+    }
+    pub fn identity() -> Self {
+        Self::from_slice([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+    }
+
     pub fn into_slice(self) -> [[f32; 3]; 3] {
         [
             [
@@ -57,9 +72,6 @@ impl Matrix3x3 {
             *self.values.index((2, 1)),
             *self.values.index((2, 2)),
         ]
-    }
-    pub fn identity() -> Self {
-        Self::from_slice([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
     }
 
     pub fn transform_xy(&self, xy: crate::Xy<Px>) -> crate::Xy<Px> {
@@ -110,25 +122,10 @@ impl Matrix3x3 {
     pub fn sy(&self) -> f32 {
         *self.values.index((1, 1))
     }
-
     pub fn inverse(&self) -> Option<Self> {
         Some(Matrix3x3 {
             values: self.values.try_inverse()?,
         })
-    }
-
-    pub fn translate(x: f32, y: f32) -> Self {
-        Self::new(1.0, 0.0, x, 0.0, 1.0, y, 0.0, 0.0, 1.0)
-    }
-
-    pub fn scale(sx: f32, sy: f32) -> Self {
-        Self::new(sx, 0.0, 0.0, 0.0, sy, 0.0, 0.0, 0.0, 1.0)
-    }
-
-    pub fn rotate(angle: Angle) -> Self {
-        let s = angle.sin();
-        let c = angle.cos();
-        Self::new(c, -s, 0.0, s, c, 0.0, 0.0, 0.0, 1.0)
     }
     pub fn index_0_0(&self) -> f32 {
         *self.values.index((0, 0))
@@ -183,6 +180,18 @@ impl Matrix3x3 {
     }
     pub fn set_index_2_2(&mut self, value: f32) {
         *self.values.index_mut((2, 2)) = value
+    }
+    pub fn translate(&mut self, x: f32, y: f32) {
+        let matrix = Self::from_translate(x, y);
+        self.values = matrix.values * self.values;
+    }
+    pub fn scale(&mut self, x: f32, y: f32) {
+        let matrix = Self::from_scale(x, y);
+        self.values = matrix.values * self.values;
+    }
+    pub fn rotate(&mut self, angle: Angle) {
+        let matrix = Self::from_rotate(angle);
+        self.values = matrix.values * self.values;
     }
 }
 
