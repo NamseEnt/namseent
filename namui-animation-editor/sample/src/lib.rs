@@ -25,11 +25,7 @@ impl AnimationEditorExample {
             KeyframePoint::new(
                 0.0.ms(),
                 ImageKeyframe {
-                    x: 500.0.px(),
-                    y: 000.0.px(),
-                    width_percent: 50.0.percent(),
-                    height_percent: 50.0.percent(),
-                    rotation_angle: 0.0.deg(),
+                    matrix: namui::Matrix3x3::identity(),
                     opacity: 1.0.into(),
                 },
             ),

@@ -18,8 +18,8 @@ impl WysiwygWindow {
                 let keyframe = layer.image.image_keyframe_graph.get_value(time)?;
 
                 Some(Xy {
-                    x: keyframe.x,
-                    y: keyframe.y,
+                    x: keyframe.x(),
+                    y: keyframe.y(),
                 })
             };
             for time in times {

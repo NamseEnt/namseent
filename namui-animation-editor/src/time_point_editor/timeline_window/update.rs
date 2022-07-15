@@ -245,12 +245,8 @@ impl TimelineWindow {
                         }
 
                         most_nearest_left_keyframe.unwrap_or(ImageKeyframe {
-                            x: 0.0.px(),
-                            y: 0.0.px(),
-                            width_percent: 100.0.percent(),
-                            height_percent: 100.0.percent(),
+                            matrix: namui::Matrix3x3::identity(),
                             opacity: 1.0.into(),
-                            rotation_angle: Angle::Degree(0.0),
                         })
                     };
 

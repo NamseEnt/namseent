@@ -24,7 +24,9 @@ impl Act<Animation> for DragRotationAction {
                 .image
                 .image_keyframe_graph
                 .update_point(&self.keyframe_point_id, |point| {
-                    point.value.rotation_angle += angle;
+                    point
+                        .value
+                        .set_rotation_angle(point.value.rotation_angle() + angle);
                 })?;
 
             Ok(animation)

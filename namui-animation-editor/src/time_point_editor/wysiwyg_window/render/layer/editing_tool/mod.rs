@@ -11,12 +11,12 @@ impl WysiwygWindow {
             .image_keyframe_graph
             .get_point_by_time(props.playback_time)
             .unwrap();
-        let x = keyframe_point.value.x;
-        let y = keyframe_point.value.y;
+        let x = keyframe_point.value.x();
+        let y = keyframe_point.value.y();
         let wh = layer.image.get_image_px_wh(props.playback_time).unwrap();
         let anchor_xy = layer.image.get_anchor_px_wh(props.playback_time).unwrap();
 
-        let rotation_angle = keyframe_point.value.rotation_angle;
+        let rotation_angle = keyframe_point.value.rotation_angle();
 
         let image_anchor_local_xy = Xy { x, y } - self.real_left_top_xy;
 

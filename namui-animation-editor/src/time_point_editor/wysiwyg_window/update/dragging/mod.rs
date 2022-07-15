@@ -69,8 +69,8 @@ fn update_xy(
         .image
         .image_keyframe_graph
         .update_point(point_id, |point| match x_y {
-            XY::X => point.value.x += delta,
-            XY::Y => point.value.y += delta,
+            XY::X => point.value.set_x(point.value.x() + delta),
+            XY::Y => point.value.set_y(point.value.y() + delta),
         })
 }
 fn update_size(
@@ -97,16 +97,16 @@ fn update_size(
             };
 
             let current_value = match width_height {
-                WidthHeight::Width => point.value.width_percent,
-                WidthHeight::Height => point.value.height_percent,
+                WidthHeight::Width => point.value.width_percent(),
+                WidthHeight::Height => point.value.height_percent(),
             };
 
             let next_value =
                 Percent::from(((image_axis_length * current_value) + delta) / image_axis_length);
 
             match width_height {
-                WidthHeight::Width => point.value.width_percent = next_value,
-                WidthHeight::Height => point.value.height_percent = next_value,
+                WidthHeight::Width => point.value.set_width_percent(next_value),
+                WidthHeight::Height => point.value.set_height_percent(next_value),
             }
         })
 }

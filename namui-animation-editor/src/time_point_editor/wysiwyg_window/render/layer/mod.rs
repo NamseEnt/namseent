@@ -56,12 +56,12 @@ impl WysiwygWindow {
                 .image_keyframe_graph
                 .get_value(props.playback_time)?;
             let keyframe = keyframe;
-            let x = keyframe.x;
-            let y = keyframe.y;
+            let x = keyframe.x();
+            let y = keyframe.y();
             let wh = layer.image.get_image_px_wh(props.playback_time)?;
             let anchor_xy = layer.image.get_anchor_px_wh(props.playback_time)?;
 
-            let rotation_angle = keyframe.rotation_angle;
+            let rotation_angle = keyframe.rotation_angle();
 
             Some(translate(
                 x,

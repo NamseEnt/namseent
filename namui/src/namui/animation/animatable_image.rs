@@ -37,8 +37,8 @@ impl AnimatableImage {
             .and_then(|image| {
                 let size = image.size();
                 Some(Wh {
-                    width: size.width * image_keyframe.width_percent,
-                    height: size.height * image_keyframe.height_percent,
+                    width: size.width * Percent::from(image_keyframe.matrix.sx()),
+                    height: size.height * Percent::from(image_keyframe.matrix.sy()),
                 })
             })
     }
@@ -50,25 +50,6 @@ impl AnimatableImage {
             })
         })
     }
-    // pub fn get_keyframe_infos(&self) -> Vec<KeyframeInfo> {
-    //     get_keyframe_info(&self.x, KeyframeType::X)
-    //         .into_iter()
-    //         .chain(get_keyframe_info(&self.y, KeyframeType::Y))
-    //         .chain(get_keyframe_info(
-    //             &self.width_percent,
-    //             KeyframeType::WidthPercent,
-    //         ))
-    //         .chain(get_keyframe_info(
-    //             &self.height_percent,
-    //             KeyframeType::HeightPercent,
-    //         ))
-    //         .chain(get_keyframe_info(
-    //             &self.rotation_angle,
-    //             KeyframeType::RotationAngle,
-    //         ))
-    //         .chain(get_keyframe_info(&self.opacity, KeyframeType::Opacity))
-    //         .collect()
-    // }
 }
 
 impl Animate for AnimatableImage {
@@ -79,35 +60,27 @@ impl Animate for AnimatableImage {
             if opacity <= 0.0 {
                 return None;
             }
-            let x = image_keyframe.x;
-            let y = image_keyframe.y;
             let source_url = self.image_source_url.as_ref()?.clone();
 
             let image = crate::system::image::try_load(&source_url)?;
+            let image_size = image.size();
 
-            let image_wh = self.get_image_px_wh(time)?;
-            let anchor_xy = self.get_anchor_px_wh(time)?;
+            let anchor_xy = Xy {
+                x: image_size.width * self.anchor_percent_xy.x,
+                y: image_size.height * self.anchor_percent_xy.y,
+            };
 
             let image_rendering_tree = namui::image(ImageParam {
-                rect: Rect::Xywh {
-                    x: px(0.0),
-                    y: px(0.0),
-                    width: image_wh.width,
-                    height: image_wh.height,
-                },
+                rect: Rect::from_xy_wh(Xy::single(0.px()), image_size),
                 style: ImageStyle {
                     fit: ImageFit::Fill,
                     paint_builder: None,
                 },
                 source: ImageSource::Image(image),
             });
-            let transformed_image = namui::translate(
-                x,
-                y,
-                namui::rotate(
-                    image_keyframe.rotation_angle,
-                    namui::translate(-anchor_xy.x, -anchor_xy.y, image_rendering_tree),
-                ),
+            let transformed_image = namui::transform(
+                image_keyframe.matrix,
+                namui::translate(-anchor_xy.x, -anchor_xy.y, image_rendering_tree),
             );
 
             Some(transformed_image)
