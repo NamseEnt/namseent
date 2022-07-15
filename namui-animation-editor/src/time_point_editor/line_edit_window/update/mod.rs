@@ -1,6 +1,5 @@
-use crate::types::Act;
-
 use super::*;
+use crate::types::Act;
 
 impl LineEditWindow {
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -46,8 +45,56 @@ impl LineEditWindow {
                         self.animation_history.act(ticket).unwrap();
                     }
                 }
+                &Event::SquashAndStretchVelocityRatioUpdated {
+                    ref layer_id,
+                    ref point_id,
+                    velocity_ratio,
+                } => {
+                    if let Some(ticket) = self.animation_history.try_set_action(UpdateLineAction {
+                        layer_id: layer_id.clone(),
+                        point_id: point_id.clone(),
+                        update: move |line| {
+                            if let ImageInterpolation::SquashAndStretch {
+                                velocity_ratio: _velocity_ratio,
+                            } = line
+                            {
+                                *_velocity_ratio = velocity_ratio;
+                            }
+                        },
+                    }) {
+                        self.animation_history.act(ticket).unwrap();
+                    }
+                }
             }
         }
         self.dropdown.update(event);
+    }
+}
+
+struct UpdateLineAction<TUpdate: Fn(&mut ImageInterpolation)> {
+    layer_id: String,
+    point_id: String,
+    update: TUpdate,
+}
+impl<TUpdate> Act<Animation> for UpdateLineAction<TUpdate>
+where
+    TUpdate: Fn(&mut ImageInterpolation) + 'static,
+{
+    fn act(&self, state: &Animation) -> Result<Animation, Box<dyn std::error::Error>> {
+        let mut animation = state.clone();
+        let layer = animation
+            .layers
+            .iter_mut()
+            .find(|layer| layer.id == self.layer_id)
+            .ok_or("layer not found")?;
+
+        let (_, line) = layer
+            .image
+            .image_keyframe_graph
+            .get_point_and_line_mut(&self.point_id)
+            .ok_or("point not found")?;
+
+        (self.update)(line);
+        Ok(animation)
     }
 }

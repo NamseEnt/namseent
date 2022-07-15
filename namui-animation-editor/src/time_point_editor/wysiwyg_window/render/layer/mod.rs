@@ -50,37 +50,36 @@ impl WysiwygWindow {
     }
 
     fn render_hint_bounding_box(&self, props: &Props, layer: &animation::Layer) -> RenderingTree {
-        let keyframe = layer
-            .image
-            .image_keyframe_graph
-            .get_value(props.playback_time);
-        if keyframe.is_none() {
-            return RenderingTree::Empty;
-        }
-        let keyframe = keyframe.unwrap();
-        let x = keyframe.x;
-        let y = keyframe.y;
-        let wh = layer.image.get_image_px_wh(props.playback_time).unwrap();
-        let anchor_xy = layer.image.get_anchor_px_wh(props.playback_time).unwrap();
+        try_render(|| {
+            let keyframe = layer
+                .image
+                .image_keyframe_graph
+                .get_value(props.playback_time)?;
+            let keyframe = keyframe;
+            let x = keyframe.x;
+            let y = keyframe.y;
+            let wh = layer.image.get_image_px_wh(props.playback_time)?;
+            let anchor_xy = layer.image.get_anchor_px_wh(props.playback_time)?;
 
-        let rotation_angle = keyframe.rotation_angle;
+            let rotation_angle = keyframe.rotation_angle;
 
-        translate(
-            x,
-            y,
-            rotate(
-                rotation_angle,
-                translate(
-                    -anchor_xy.x,
-                    -anchor_xy.y,
-                    simple_rect(
-                        wh,
-                        Color::grayscale_f01(0.5),
-                        px(self.real_px_per_screen_px),
-                        Color::TRANSPARENT,
+            Some(translate(
+                x,
+                y,
+                rotate(
+                    rotation_angle,
+                    translate(
+                        -anchor_xy.x,
+                        -anchor_xy.y,
+                        simple_rect(
+                            wh,
+                            Color::grayscale_f01(0.5),
+                            px(self.real_px_per_screen_px),
+                            Color::TRANSPARENT,
+                        ),
                     ),
                 ),
-            ),
-        )
+            ))
+        })
     }
 }

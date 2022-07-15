@@ -70,13 +70,18 @@ impl KeyframeValue<ImageInterpolation> for ImageKeyframe {
                 fn get_position_of_time_ratio(
                     time_ratio: f32,
                     velocity_ratio: f32,
-                    position: Px,
+                    length: Px,
                 ) -> Px {
-                    ((1.0 - velocity_ratio) / time_ratio + velocity_ratio) / time_ratio * position
+                    length
+                        * ((1.0 - velocity_ratio) * time_ratio.powf(2.0)
+                            + velocity_ratio * time_ratio)
                 }
 
-                let x = get_position_of_time_ratio(time_ratio, velocity_ratio, next.x - self.x);
-                let y = get_position_of_time_ratio(time_ratio, velocity_ratio, next.y - self.y);
+                let x = self.x
+                    + get_position_of_time_ratio(time_ratio, velocity_ratio, next.x - self.x);
+
+                let y = self.y
+                    + get_position_of_time_ratio(time_ratio, velocity_ratio, next.y - self.y);
 
                 Self {
                     x,

@@ -22,6 +22,9 @@ pub fn center_text(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> Rendering
 
 pub mod body {
     use super::*;
+
+    const BODY_FONT_SIZE: IntPx = int_px(12);
+
     pub fn left(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> RenderingTree {
         namui::text(TextParam {
             text: String::from(text.as_ref()),
@@ -33,7 +36,7 @@ pub mod body {
                 font_weight: FontWeight::REGULAR,
                 language: Language::Ko,
                 serif: false,
-                size: adjust_font_size(wh.height),
+                size: BODY_FONT_SIZE,
             },
             style: TextStyle {
                 color,
@@ -52,7 +55,7 @@ pub mod body {
                 font_weight: FontWeight::REGULAR,
                 language: Language::Ko,
                 serif: false,
-                size: adjust_font_size(wh.height),
+                size: BODY_FONT_SIZE,
             },
             style: TextStyle {
                 color,
@@ -71,7 +74,7 @@ pub mod body {
                 font_weight: FontWeight::REGULAR,
                 language: Language::Ko,
                 serif: false,
-                size: adjust_font_size(wh.height),
+                size: BODY_FONT_SIZE,
             },
             style: TextStyle {
                 color,

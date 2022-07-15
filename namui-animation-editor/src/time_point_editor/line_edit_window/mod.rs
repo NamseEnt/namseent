@@ -36,4 +36,9 @@ enum Event {
         layer_id: String,
         point_id: String,
     },
+    SquashAndStretchVelocityRatioUpdated {
+        layer_id: String,
+        point_id: String,
+        velocity_ratio: f32,
+    },
 }
