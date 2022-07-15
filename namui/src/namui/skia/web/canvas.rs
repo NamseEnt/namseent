@@ -59,6 +59,7 @@ impl Canvas {
             paint.map(|paint| &paint.canvas_kit_paint),
         );
     }
+    #[allow(dead_code)]
     pub(crate) fn get_matrix(&self) -> Matrix3x3 {
         let total_matrix = self.0.getTotalMatrix();
         return Matrix3x3::from_slice([
@@ -71,6 +72,9 @@ impl Canvas {
         let current_matrix = self.0.getTotalMatrix();
         let inverted = canvas_kit().Matrix().invert(&current_matrix);
         self.0.concat(&inverted);
+        self.0.concat(&matrix.into_linear_slice());
+    }
+    pub(crate) fn transform(&self, matrix: Matrix3x3) {
         self.0.concat(&matrix.into_linear_slice());
     }
     pub(crate) fn rotate(&self, angle: Angle) {

@@ -56,33 +56,27 @@ impl RenderingTree {
             }
             RenderingTree::Special(special) => match special {
                 SpecialRenderingNode::Translate(translate) => {
+                    crate::graphics::surface().canvas().save();
                     crate::graphics::surface()
                         .canvas()
                         .translate(translate.x, translate.y);
 
                     translate.rendering_tree.draw();
-
-                    crate::graphics::surface()
-                        .canvas()
-                        .translate(-translate.x, -translate.y);
+                    crate::graphics::surface().canvas().restore();
                 }
                 SpecialRenderingNode::Clip(clip) => {
                     crate::graphics::surface().canvas().save();
-
                     let path = clip.path_builder.build();
                     crate::graphics::surface().canvas().clip_path(
                         path.as_ref(),
                         &clip.clip_op,
                         true,
                     );
-
                     clip.rendering_tree.draw();
-
                     crate::graphics::surface().canvas().restore();
                 }
                 SpecialRenderingNode::Absolute(absolute) => {
-                    let back_up_matrix = crate::graphics::surface().canvas().get_matrix();
-
+                    crate::graphics::surface().canvas().save();
                     crate::graphics::surface()
                         .canvas()
                         .set_matrix(Matrix3x3::from_slice([
@@ -90,40 +84,28 @@ impl RenderingTree {
                             [0.0, 1.0, absolute.y.as_f32()],
                             [0.0, 0.0, 1.0],
                         ]));
-
                     absolute.rendering_tree.draw();
-
-                    crate::graphics::surface()
-                        .canvas()
-                        .set_matrix(back_up_matrix);
+                    crate::graphics::surface().canvas().restore();
                 }
                 SpecialRenderingNode::Rotate(rotate) => {
+                    crate::graphics::surface().canvas().save();
                     crate::graphics::surface().canvas().rotate(rotate.angle);
-
                     rotate.rendering_tree.draw();
-
-                    crate::graphics::surface().canvas().rotate(-rotate.angle);
+                    crate::graphics::surface().canvas().restore();
                 }
                 SpecialRenderingNode::Scale(scale) => {
+                    crate::graphics::surface().canvas().save();
                     crate::graphics::surface().canvas().scale(scale.x, scale.y);
-
                     scale.rendering_tree.draw();
-
-                    crate::graphics::surface()
-                        .canvas()
-                        .scale(1.0 / scale.x, 1.0 / scale.y);
+                    crate::graphics::surface().canvas().restore();
                 }
                 SpecialRenderingNode::Transform(transform) => {
-                    let back_up_matrix = crate::graphics::surface().canvas().get_matrix();
-
-                    let next_matrix = back_up_matrix * transform.matrix;
-                    crate::graphics::surface().canvas().set_matrix(next_matrix);
-
-                    transform.rendering_tree.draw();
-
+                    crate::graphics::surface().canvas().save();
                     crate::graphics::surface()
                         .canvas()
-                        .set_matrix(back_up_matrix);
+                        .transform(transform.matrix);
+                    transform.rendering_tree.draw();
+                    crate::graphics::surface().canvas().restore();
                 }
                 SpecialRenderingNode::AttachEvent(_)
                 | SpecialRenderingNode::MouseCursor(_)
