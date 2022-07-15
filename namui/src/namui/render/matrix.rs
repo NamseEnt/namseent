@@ -1,72 +1,74 @@
 use crate::*;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct Matrix3x3 {
-    pub values: [[f32; 3]; 3],
+    values: nalgebra::Matrix3<f32>,
 }
 
 impl Matrix3x3 {
     pub fn new(a: f32, b: f32, c: f32, d: f32, e: f32, f: f32, g: f32, h: f32, i: f32) -> Self {
         Matrix3x3 {
-            values: [[a, b, c], [d, e, f], [g, h, i]],
+            values: nalgebra::Matrix3::new(a, b, c, d, e, f, g, h, i),
         }
     }
-    pub fn from_slice(values: &[[f32; 3]; 3]) -> Self {
+    pub fn from_slice(values: [[f32; 3]; 3]) -> Self {
         Matrix3x3 {
-            values: [
-                [values[0][0], values[0][1], values[0][2]],
-                [values[1][0], values[1][1], values[1][2]],
-                [values[2][0], values[2][1], values[2][2]],
-            ],
+            values: nalgebra::Matrix3::new(
+                values[0][0],
+                values[0][1],
+                values[0][2],
+                values[1][0],
+                values[1][1],
+                values[1][2],
+                values[2][0],
+                values[2][1],
+                values[2][2],
+            ),
         }
+    }
+    pub fn into_slice(self) -> [[f32; 3]; 3] {
+        [
+            [
+                *self.values.index((0, 0)),
+                *self.values.index((0, 1)),
+                *self.values.index((0, 2)),
+            ],
+            [
+                *self.values.index((1, 0)),
+                *self.values.index((1, 1)),
+                *self.values.index((1, 2)),
+            ],
+            [
+                *self.values.index((2, 0)),
+                *self.values.index((2, 1)),
+                *self.values.index((2, 2)),
+            ],
+        ]
+    }
+    pub fn into_linear_slice(self) -> [f32; 9] {
+        [
+            *self.values.index((0, 0)),
+            *self.values.index((0, 1)),
+            *self.values.index((0, 2)),
+            *self.values.index((1, 0)),
+            *self.values.index((1, 1)),
+            *self.values.index((1, 2)),
+            *self.values.index((2, 0)),
+            *self.values.index((2, 1)),
+            *self.values.index((2, 2)),
+        ]
     }
     pub fn identity() -> Self {
-        Self::from_slice(&[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
-    }
-    pub fn multiply(&self, other: &Matrix3x3) -> Matrix3x3 {
-        Matrix3x3 {
-            values: [
-                [
-                    self.values[0][0] * other.values[0][0]
-                        + self.values[0][1] * other.values[1][0]
-                        + self.values[0][2] * other.values[2][0],
-                    self.values[0][0] * other.values[0][1]
-                        + self.values[0][1] * other.values[1][1]
-                        + self.values[0][2] * other.values[2][1],
-                    self.values[0][0] * other.values[0][2]
-                        + self.values[0][1] * other.values[1][2]
-                        + self.values[0][2] * other.values[2][2],
-                ],
-                [
-                    self.values[1][0] * other.values[0][0]
-                        + self.values[1][1] * other.values[1][0]
-                        + self.values[1][2] * other.values[2][0],
-                    self.values[1][0] * other.values[0][1]
-                        + self.values[1][1] * other.values[1][1]
-                        + self.values[1][2] * other.values[2][1],
-                    self.values[1][0] * other.values[0][2]
-                        + self.values[1][1] * other.values[1][2]
-                        + self.values[1][2] * other.values[2][2],
-                ],
-                [
-                    self.values[2][0] * other.values[0][0]
-                        + self.values[2][1] * other.values[1][0]
-                        + self.values[2][2] * other.values[2][0],
-                    self.values[2][0] * other.values[0][1]
-                        + self.values[2][1] * other.values[1][1]
-                        + self.values[2][2] * other.values[2][1],
-                    self.values[2][0] * other.values[0][2]
-                        + self.values[2][1] * other.values[1][2]
-                        + self.values[2][2] * other.values[2][2],
-                ],
-            ],
-        }
+        Self::from_slice([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
     }
 
     pub fn transform_xy(&self, xy: crate::Xy<Px>) -> crate::Xy<Px> {
+        let transformed = self
+            .values
+            .transform_point(&nalgebra::point![xy.x.as_f32(), xy.y.as_f32()]);
         crate::Xy {
-            x: self.values[0][0] * xy.x + self.values[0][1] * xy.y + px(self.values[0][2]),
-            y: self.values[1][0] * xy.x + self.values[1][1] * xy.y + px(self.values[1][2]),
+            x: transformed.x.px(),
+            y: transformed.y.px(),
         }
     }
 
@@ -82,46 +84,163 @@ impl Matrix3x3 {
             bottom,
         } = rect.as_ltrb();
         Rect::Ltrb {
-            left: self.values[0][0] * left + self.values[0][1] * top + self.values[0][2].into(),
-            top: self.values[1][0] * left + self.values[1][1] * top + self.values[1][2].into(),
-            right: self.values[0][0] * right
-                + self.values[0][1] * bottom
-                + self.values[0][2].into(),
-            bottom: self.values[1][0] * right
-                + self.values[1][1] * bottom
-                + self.values[1][2].into(),
+            left: *self.values.index((0, 0)) * left
+                + *self.values.index((0, 1)) * top
+                + (*self.values.index((0, 2))).into(),
+            top: *self.values.index((1, 0)) * left
+                + *self.values.index((1, 1)) * top
+                + (*self.values.index((1, 2))).into(),
+            right: *self.values.index((0, 0)) * right
+                + *self.values.index((0, 1)) * bottom
+                + (*self.values.index((0, 2))).into(),
+            bottom: *self.values.index((1, 0)) * right
+                + *self.values.index((1, 1)) * bottom
+                + (*self.values.index((1, 2))).into(),
         }
     }
-}
+    pub fn x(&self) -> f32 {
+        *self.values.index((0, 2))
+    }
+    pub fn y(&self) -> f32 {
+        *self.values.index((1, 2))
+    }
+    pub fn sx(&self) -> f32 {
+        *self.values.index((0, 0))
+    }
+    pub fn sy(&self) -> f32 {
+        *self.values.index((1, 1))
+    }
 
-impl std::ops::Mul for Matrix3x3 {
-    type Output = Matrix3x3;
+    pub fn inverse(&self) -> Option<Self> {
+        Some(Matrix3x3 {
+            values: self.values.try_inverse()?,
+        })
+    }
 
-    fn mul(self, other: Matrix3x3) -> Matrix3x3 {
-        self.multiply(&other)
+    pub fn translate(x: f32, y: f32) -> Self {
+        Self::new(1.0, 0.0, x, 0.0, 1.0, y, 0.0, 0.0, 1.0)
+    }
+
+    pub fn scale(sx: f32, sy: f32) -> Self {
+        Self::new(sx, 0.0, 0.0, 0.0, sy, 0.0, 0.0, 0.0, 1.0)
+    }
+
+    pub fn rotate(angle: Angle) -> Self {
+        let s = angle.sin();
+        let c = angle.cos();
+        Self::new(c, -s, 0.0, s, c, 0.0, 0.0, 0.0, 1.0)
+    }
+    pub fn index_0_0(&self) -> f32 {
+        *self.values.index((0, 0))
+    }
+    pub fn index_0_1(&self) -> f32 {
+        *self.values.index((0, 1))
+    }
+    pub fn index_0_2(&self) -> f32 {
+        *self.values.index((0, 2))
+    }
+    pub fn index_1_0(&self) -> f32 {
+        *self.values.index((1, 0))
+    }
+    pub fn index_1_1(&self) -> f32 {
+        *self.values.index((1, 1))
+    }
+    pub fn index_1_2(&self) -> f32 {
+        *self.values.index((1, 2))
+    }
+    pub fn index_2_0(&self) -> f32 {
+        *self.values.index((2, 0))
+    }
+    pub fn index_2_1(&self) -> f32 {
+        *self.values.index((2, 1))
+    }
+    pub fn index_2_2(&self) -> f32 {
+        *self.values.index((2, 2))
+    }
+    pub fn set_index_0_0(&mut self, value: f32) {
+        *self.values.index_mut((0, 0)) = value
+    }
+    pub fn set_index_0_1(&mut self, value: f32) {
+        *self.values.index_mut((0, 1)) = value
+    }
+    pub fn set_index_0_2(&mut self, value: f32) {
+        *self.values.index_mut((0, 2)) = value
+    }
+    pub fn set_index_1_0(&mut self, value: f32) {
+        *self.values.index_mut((1, 0)) = value
+    }
+    pub fn set_index_1_1(&mut self, value: f32) {
+        *self.values.index_mut((1, 1)) = value
+    }
+    pub fn set_index_1_2(&mut self, value: f32) {
+        *self.values.index_mut((1, 2)) = value
+    }
+    pub fn set_index_2_0(&mut self, value: f32) {
+        *self.values.index_mut((2, 0)) = value
+    }
+    pub fn set_index_2_1(&mut self, value: f32) {
+        *self.values.index_mut((2, 1)) = value
+    }
+    pub fn set_index_2_2(&mut self, value: f32) {
+        *self.values.index_mut((2, 2)) = value
     }
 }
 
-impl<'a> std::ops::Mul<&'a Matrix3x3> for Matrix3x3 {
-    type Output = Matrix3x3;
-
-    fn mul(self, other: &Matrix3x3) -> Matrix3x3 {
-        self.multiply(&other)
+crate::types::macros::impl_op_forward_ref!(*|a: Matrix3x3, b: Matrix3x3| -> Matrix3x3 {
+    Matrix3x3 {
+        values: a.values * b.values,
     }
-}
-
-impl<'b> std::ops::Mul<Matrix3x3> for &'b Matrix3x3 {
-    type Output = Matrix3x3;
-
-    fn mul(self, other: Matrix3x3) -> Matrix3x3 {
-        self.multiply(&other)
+});
+crate::types::macros::impl_op_forward_ref!(+|a: Matrix3x3, b: Matrix3x3| -> Matrix3x3 {
+    Matrix3x3 {
+        values: a.values + b.values,
     }
-}
+});
 
-impl<'a, 'b> std::ops::Mul<&'a Matrix3x3> for &'b Matrix3x3 {
-    type Output = Matrix3x3;
+crate::types::macros::impl_op_forward_ref_reversed!(*|a: Matrix3x3, b: f32| -> Matrix3x3 {
+    Matrix3x3 {
+        values: a.values * b,
+    }
+});
 
-    fn mul(self, other: &Matrix3x3) -> Matrix3x3 {
-        self.multiply(&other)
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use float_cmp::assert_approx_eq;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn inverse_should_work() {
+        let matrix = Matrix3x3::from_slice([[1.0, 2.0, 5.0], [3.0, 4.0, 6.0], [0.0, 0.0, 7.0]]);
+
+        let inverse = matrix.inverse().unwrap();
+
+        assert_approx_eq!(f32, *inverse.values.index((0, 0)), -2.0, ulps = 2);
+        assert_approx_eq!(f32, *inverse.values.index((0, 1)), 1.0, ulps = 2);
+        assert_approx_eq!(
+            f32,
+            *inverse.values.index((0, 2)),
+            0.57142857142857142856,
+            ulps = 2
+        );
+
+        assert_approx_eq!(f32, *inverse.values.index((1, 0)), 1.5, ulps = 2);
+        assert_approx_eq!(f32, *inverse.values.index((1, 1)), -0.5, ulps = 2);
+        assert_approx_eq!(
+            f32,
+            *inverse.values.index((1, 2)),
+            -0.64285714285714285713,
+            ulps = 2
+        );
+
+        assert_approx_eq!(f32, *inverse.values.index((2, 0)), 0.0, ulps = 2);
+        assert_approx_eq!(f32, *inverse.values.index((2, 1)), 0.0, ulps = 2);
+        assert_approx_eq!(
+            f32,
+            *inverse.values.index((2, 2)),
+            0.14285714285714285714,
+            ulps = 2
+        );
     }
 }
