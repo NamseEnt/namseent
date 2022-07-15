@@ -1,7 +1,7 @@
 mod angle;
 mod int_px;
 mod ltrb;
-mod macros;
+pub(crate) mod macros;
 mod one_zero;
 mod per;
 mod percent;
@@ -15,7 +15,7 @@ mod time_per_px;
 pub use angle::*;
 pub use int_px::*;
 pub use ltrb::*;
-use macros::*;
+pub(crate) use macros::*;
 pub use one_zero::*;
 pub use per::*;
 pub use percent::*;

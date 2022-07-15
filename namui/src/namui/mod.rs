@@ -16,9 +16,9 @@ pub use event::NamuiEvent;
 pub use namui_cfg::*;
 pub use namui_context::NamuiContext;
 pub use render::{
-    absolute, clip, image::*, path::*, rect::*, rotate, scale, text::*, text_input, translate,
-    ImageSource, KeyboardEvent, MouseCursor, MouseEvent, MouseEventCallback, MouseEventType,
-    RenderingData, RenderingTree, TextInput, WheelEventCallback,
+    absolute, clip, image::*, path::*, rect::*, rotate, scale, text::*, text_input, transform,
+    translate, ImageSource, KeyboardEvent, Matrix3x3, MouseCursor, MouseEvent, MouseEventCallback,
+    MouseEventType, RenderingData, RenderingTree, TextInput, WheelEventCallback,
 };
 pub use skia::{
     types::{ClipOp, Color, PaintStyle, StrokeJoin},

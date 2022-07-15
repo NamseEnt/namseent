@@ -1,5 +1,5 @@
 use super::*;
-use crate::*;
+use crate::{namui::render::Matrix3x3, *};
 pub use base::*;
 use serde::Serialize;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -125,14 +125,18 @@ impl Path {
         self
     }
     pub(crate) fn scale(self, x: f32, y: f32) -> Self {
-        self.transform(&[x, 0.0, 0.0, 0.0, y, 0.0, 0.0, 0.0, 1.0])
+        self.transform(Matrix3x3::from_slice([
+            [x, 0.0, 0.0],
+            [0.0, y, 0.0],
+            [0.0, 0.0, 1.0],
+        ]))
     }
     pub(crate) fn translate(self, x: Px, y: Px) -> Self {
         self.canvas_kit_path.offset(x.as_f32(), y.as_f32());
         self
     }
-    pub(crate) fn transform(self, matrix_3x3: &[f32; 9]) -> Self {
-        self.canvas_kit_path.transform(matrix_3x3);
+    pub(crate) fn transform(self, matrix: Matrix3x3) -> Self {
+        self.canvas_kit_path.transform(&matrix.into_linear_slice());
         self
     }
     pub(crate) fn add_oval(self, rect: Rect<Px>) -> Self {

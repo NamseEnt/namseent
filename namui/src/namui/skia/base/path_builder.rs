@@ -1,4 +1,7 @@
-use crate::{namui::skia::StrokeOptions, *};
+use crate::{
+    namui::{render::Matrix3x3, skia::StrokeOptions},
+    *,
+};
 use once_cell::sync::OnceCell;
 use serde::Serialize;
 use std::{
@@ -16,7 +19,7 @@ enum PathCommand {
     ArcTo(Rect<Px>, Angle, Angle),
     Scale(Xy<f32>),
     Translate(Xy<Px>),
-    Transform([f32; 9]),
+    Transform(Matrix3x3),
     AddOval(Rect<Px>),
     AddArc(Rect<Px>, Angle, Angle),
     AddPoly(Vec<Xy<Px>>, bool),
@@ -73,8 +76,8 @@ impl PathBuilder {
         self.commands.push(PathCommand::Translate(Xy { x, y }));
         self
     }
-    pub fn transform(mut self, matrix_3x3: &[f32; 9]) -> Self {
-        self.commands.push(PathCommand::Transform(*matrix_3x3));
+    pub fn transform(mut self, matrix: Matrix3x3) -> Self {
+        self.commands.push(PathCommand::Transform(matrix));
         self
     }
     pub fn add_oval(mut self, rect: Rect<Px>) -> Self {
@@ -128,7 +131,7 @@ impl PathBuilder {
                 }
                 &PathCommand::Scale(xy) => path.scale(xy.x, xy.y),
                 &PathCommand::Translate(xy) => path.translate(xy.x, xy.y),
-                &PathCommand::Transform(matrix_3x3) => path.transform(&matrix_3x3),
+                &PathCommand::Transform(matrix) => path.transform(matrix),
                 &PathCommand::AddOval(rect) => path.add_oval(rect),
                 &PathCommand::AddArc(oval, start_angle, delta_angle) => {
                     path.add_arc(oval, start_angle, delta_angle)
