@@ -1,5 +1,5 @@
 use super::*;
-use crate::*;
+use crate::{namui::render::Matrix3x3, *};
 
 pub(crate) struct Canvas(pub CanvasKitCanvas);
 impl Canvas {
@@ -59,29 +59,23 @@ impl Canvas {
             paint.map(|paint| &paint.canvas_kit_paint),
         );
     }
-    pub(crate) fn get_matrix(&self) -> [[f32; 3]; 3] {
+    #[allow(dead_code)]
+    pub(crate) fn get_matrix(&self) -> Matrix3x3 {
         let total_matrix = self.0.getTotalMatrix();
-        return [
+        return Matrix3x3::from_slice([
             [total_matrix[0], total_matrix[1], total_matrix[2]],
             [total_matrix[3], total_matrix[4], total_matrix[5]],
             [total_matrix[6], total_matrix[7], total_matrix[8]],
-        ];
+        ]);
     }
-    pub(crate) fn set_matrix(&self, matrix: &[[f32; 3]; 3]) {
+    pub(crate) fn set_matrix(&self, matrix: Matrix3x3) {
         let current_matrix = self.0.getTotalMatrix();
         let inverted = canvas_kit().Matrix().invert(&current_matrix);
         self.0.concat(&inverted);
-        self.0.concat(&[
-            matrix[0][0],
-            matrix[0][1],
-            matrix[0][2],
-            matrix[1][0],
-            matrix[1][1],
-            matrix[1][2],
-            matrix[2][0],
-            matrix[2][1],
-            matrix[2][2],
-        ]);
+        self.0.concat(&matrix.into_linear_slice());
+    }
+    pub(crate) fn transform(&self, matrix: Matrix3x3) {
+        self.0.concat(&matrix.into_linear_slice());
     }
     pub(crate) fn rotate(&self, angle: Angle) {
         self.0.rotate(angle.as_degrees(), 0.0, 0.0);

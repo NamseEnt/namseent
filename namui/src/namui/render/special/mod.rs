@@ -1,22 +1,25 @@
-pub mod translate;
-pub use translate::*;
-pub mod clip;
-pub use clip::*;
-pub mod attach_event;
-pub use attach_event::*;
-pub mod mouse_cursor;
-pub use mouse_cursor::*;
-pub mod with_id;
-pub use with_id::*;
 pub mod absolute;
-pub use absolute::*;
-pub mod rotate;
-pub use rotate::*;
+pub mod attach_event;
+pub mod clip;
 pub mod custom;
-pub use custom::*;
+pub mod mouse_cursor;
+pub mod rotate;
 pub mod scale;
+pub mod transform;
+pub mod translate;
+pub mod with_id;
+
+pub use absolute::*;
+pub use attach_event::*;
+pub use clip::*;
+pub use custom::*;
+pub use mouse_cursor::*;
+pub use rotate::*;
 pub use scale::*;
 use serde::Serialize;
+pub use transform::*;
+pub use translate::*;
+pub use with_id::*;
 
 #[derive(Serialize, Clone, Debug)]
 pub enum SpecialRenderingNode {
@@ -29,4 +32,5 @@ pub enum SpecialRenderingNode {
     Rotate(RotateNode),
     Custom(CustomNode),
     Scale(ScaleNode),
+    Transform(TransformNode),
 }

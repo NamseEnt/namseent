@@ -36,23 +36,17 @@ impl RenderingTree {
         match self {
             RenderingTree::Children(ref children) => {
                 for child in children.iter().rev() {
-                    match child.try_visit_rln(callback, &next_ancestors) {
-                        ControlFlow::Break(_) => {
-                            return ControlFlow::Break(());
-                        }
-                        _ => {}
+                    if let ControlFlow::Break(_) = child.try_visit_rln(callback, &next_ancestors) {
+                        return ControlFlow::Break(());
                     }
                 }
             }
             RenderingTree::Special(special) => {
-                match special
+                if let ControlFlow::Break(_) = special
                     .get_rendering_tree()
                     .try_visit_rln(callback, &next_ancestors)
                 {
-                    ControlFlow::Break(_) => {
-                        return ControlFlow::Break(());
-                    }
-                    _ => {}
+                    return ControlFlow::Break(());
                 }
             }
             _ => {}
@@ -85,7 +79,14 @@ impl RenderingTree {
                         result_xy.x /= scale.x;
                         result_xy.y /= scale.y;
                     }
-                    _ => {}
+                    SpecialRenderingNode::Transform(transform) => {
+                        result_xy = transform.matrix.inverse().unwrap().transform_xy(result_xy);
+                    }
+                    SpecialRenderingNode::Clip(_)
+                    | SpecialRenderingNode::AttachEvent(_)
+                    | SpecialRenderingNode::MouseCursor(_)
+                    | SpecialRenderingNode::WithId(_)
+                    | SpecialRenderingNode::Custom(_) => {}
                 },
                 _ => {}
             }
@@ -95,8 +96,8 @@ impl RenderingTree {
     fn is_xy_in(&self, xy: Xy<Px>, ancestors: &[&Self]) -> bool {
         let mut result = false;
         self.try_visit_rln(
-            &mut |node, utils| match node {
-                RenderingTree::Node(node) => {
+            &mut |node, utils| {
+                if let RenderingTree::Node(node) = node {
                     let local_xy = utils.to_local_xy(xy);
                     if node.is_xy_in(local_xy) && is_xy_clip_in_by_ancestors(xy, utils.ancestors) {
                         result = true;
@@ -104,8 +105,9 @@ impl RenderingTree {
                     } else {
                         ControlFlow::Continue(())
                     }
+                } else {
+                    ControlFlow::Continue(())
                 }
-                _ => ControlFlow::Continue(()),
             },
             ancestors,
         );
@@ -137,7 +139,14 @@ impl RenderingTree {
                         xy.x *= scale.x;
                         xy.y *= scale.y;
                     }
-                    _ => {}
+                    SpecialRenderingNode::Transform(transform) => {
+                        xy = transform.matrix.transform_xy(xy);
+                    }
+                    SpecialRenderingNode::Clip(_)
+                    | SpecialRenderingNode::AttachEvent(_)
+                    | SpecialRenderingNode::MouseCursor(_)
+                    | SpecialRenderingNode::WithId(_)
+                    | SpecialRenderingNode::Custom(_) => {}
                 }
             }
         }
@@ -240,6 +249,131 @@ mod tests {
         let node_3 = render([node_9]).with_id("3");
         let node_2 = crate::translate(px(50.0), px(100.0), render([node_5, node_6]).with_id("2"));
         let node_1 = crate::translate(px(100.0), px(200.0), render([node_3, node_4]).with_id("1"));
+        let node_0 = render([node_1, node_2]).with_id("0");
+
+        let mut call_count = 0;
+
+        node_0.visit_rln(|rendering_tree, utils| {
+            let xy = Xy {
+                x: px(10.0),
+                y: px(10.0),
+            };
+            if let RenderingTree::Special(rendering_tree) = rendering_tree {
+                if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
+                    let local_xy = utils.to_local_xy(xy);
+                    match with_id.id.as_str() {
+                        "0" => {
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), 10.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), 10.0, ulps = 2);
+                            call_count += 1;
+                        }
+                        "1" => {
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
+                            call_count += 1;
+                        }
+                        "2" => {
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -40.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
+                            call_count += 1;
+                        }
+                        "3" => {
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
+                            call_count += 1;
+                        }
+                        "4" => {
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -220.0, ulps = 2);
+                            call_count += 1;
+                        }
+                        "5" => {
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), 40.0, ulps = 2);
+                            call_count += 1;
+                        }
+                        "6" => {
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
+                            call_count += 1;
+                        }
+                        "7" => {
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -100.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), 20.0, ulps = 2);
+                            call_count += 1;
+                        }
+                        "8" => {
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -110.0, ulps = 2);
+                            call_count += 1;
+                        }
+                        "9" => {
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -45.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -95.0, ulps = 2);
+                            call_count += 1;
+                        }
+                        "10" => {
+                            assert_approx_eq!(f32, local_xy.x.as_f32(), -65.0, ulps = 2);
+                            assert_approx_eq!(f32, local_xy.y.as_f32(), -115.0, ulps = 2);
+                            call_count += 1;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            ControlFlow::Continue(())
+        });
+        assert_eq!(call_count, 11);
+    }
+    #[test]
+    #[wasm_bindgen_test]
+    fn to_local_xy_should_work_with_matrix_transform() {
+        /*
+            tree:
+                   0
+                 /   \
+                1     2
+               / \   / \
+              3   4 5   6
+             /       \   \
+            9         7   8
+            |
+            10
+        */
+        let node_10 = crate::transform(
+            Matrix3x3::from_translate(20.0, 20.0),
+            RenderingTree::Empty.with_id("10"),
+        );
+        let node_9 = crate::transform(
+            Matrix3x3::from_scale(2.0, 2.0),
+            render([node_10]).with_id("9"),
+        );
+        let node_8 = crate::transform(
+            Matrix3x3::from_translate(20.0, 20.0),
+            RenderingTree::Empty.with_id("8"),
+        );
+        let node_7 = crate::transform(
+            Matrix3x3::from_translate(10.0, 20.0),
+            RenderingTree::Empty.with_id("7"),
+        );
+        let node_6 = crate::absolute(px(100.0), px(100.0), render([node_8]).with_id("6"));
+        let node_5 = crate::transform(
+            Matrix3x3::from_rotate(Angle::Radian(std::f32::consts::PI / 2.0)),
+            render([node_7]).with_id("5"),
+        );
+        let node_4 = crate::transform(
+            Matrix3x3::from_translate(20.0, 30.0),
+            RenderingTree::Empty.with_id("4"),
+        );
+        let node_3 = render([node_9]).with_id("3");
+        let node_2 = crate::transform(
+            Matrix3x3::from_translate(50.0, 100.0),
+            render([node_5, node_6]).with_id("2"),
+        );
+        let node_1 = crate::transform(
+            Matrix3x3::from_translate(100.0, 200.0),
+            render([node_3, node_4]).with_id("1"),
+        );
         let node_0 = render([node_1, node_2]).with_id("0");
 
         let mut call_count = 0;
