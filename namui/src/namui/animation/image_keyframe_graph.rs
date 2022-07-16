@@ -1,6 +1,9 @@
 use super::*;
 use crate::namui::render::Matrix3x3;
-use std::ops::{Add, Mul};
+use std::{
+    f32::consts::PI,
+    ops::{Add, Mul},
+};
 
 pub type ImageKeyframeGraph = KeyframeGraph<ImageKeyframe, ImageInterpolation>;
 
@@ -88,36 +91,43 @@ impl KeyframeValue<ImageInterpolation> for ImageKeyframe {
             &ImageInterpolation::SquashAndStretch { velocity_ratio } => {
                 fn get_position_of_time_ratio(
                     time_ratio: f32,
-                    velocity_ratio: f32,
+                    _velocity_ratio: f32,
                     length: Px,
                 ) -> Px {
-                    length
-                        * ((1.0 - velocity_ratio) * time_ratio.powf(2.0)
-                            + velocity_ratio * time_ratio)
+                    length / 2.0 * (1.0 - (PI * time_ratio).cos())
                 }
+                let vector = crate::Xy {
+                    x: next.x() - self.x(),
+                    y: next.y() - self.y(),
+                };
 
-                let x = self.x()
-                    + get_position_of_time_ratio(time_ratio, velocity_ratio, next.x() - self.x());
+                let x = self.x() + get_position_of_time_ratio(time_ratio, velocity_ratio, vector.x);
 
-                let y = self.y()
-                    + get_position_of_time_ratio(time_ratio, velocity_ratio, next.y() - self.y());
+                let y = self.y() + get_position_of_time_ratio(time_ratio, velocity_ratio, vector.y);
 
-                // let velocity = {
-                //     let length = crate::Xy {
-                //         x: next.x() - self.x(),
-                //         y: next.y() - self.y(),
-                //     }
-                //     .length();
+                let angle = vector.atan2();
+                crate::log!("angle: {:?}", angle.as_degrees());
 
-                //     let v0 = velocity_ratio * length;
-                //     let accel = 2.0 * length * (1.0 - velocity_ratio);
+                let mut matrix = Matrix3x3::identity();
 
-                //     let vt = v0 + accel * time_ratio;
-                //     vt
-                // };
+                matrix.rotate(-angle);
+
+                let velocity = {
+                    let length = vector.length();
+
+                    let vt = (PI / 2.0) * length * (PI * time_ratio).sin();
+                    vt
+                };
+                let sx = (velocity.as_f32() / 1000.0).min(1.25).max(1.0);
+                let sy = 1.0 / sx;
+                matrix.scale(sx, sy);
+
+                matrix.rotate(angle);
+
+                matrix.translate(x.as_f32(), y.as_f32());
 
                 Self {
-                    matrix: Matrix3x3::translate(x.as_f32(), y.as_f32()),
+                    matrix,
                     opacity: linear_interpolate(&self.opacity, &next.opacity, time_ratio),
                 }
             }
