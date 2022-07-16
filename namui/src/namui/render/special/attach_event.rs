@@ -1,7 +1,7 @@
 use super::SpecialRenderingNode;
 use crate::*;
 use serde::Serialize;
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::HashSet, ops::ControlFlow, sync::Arc};
 
 #[derive(Serialize, Clone)]
 pub struct AttachEventNode {
@@ -164,5 +164,21 @@ impl AttachEventBuilder {
     pub fn on_key_up(&mut self, on_key_up: impl Fn(&KeyboardEvent) + 'static) -> &mut Self {
         self.on_key_up = Some(Arc::new(on_key_up));
         self
+    }
+}
+
+impl WheelEvent<'_> {
+    pub fn is_mouse_in(&self) -> bool {
+        let mut result = false;
+        self.namui_context.rendering_tree.visit_rln(|node, utils| {
+            if std::ptr::eq(node, self.target) {
+                result = utils.is_xy_in(system::mouse::position());
+                ControlFlow::Break(())
+            } else {
+                ControlFlow::Continue(())
+            }
+        });
+
+        result
     }
 }
