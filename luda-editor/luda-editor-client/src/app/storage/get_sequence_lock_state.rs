@@ -35,6 +35,7 @@ pub enum SequenceLockState {
 }
 type ClientId = String;
 
+#[derive(Debug)]
 pub enum GetSequenceLockStateError {
     ReadFileError(ReadFileError),
     DownloadError(DownloadError),

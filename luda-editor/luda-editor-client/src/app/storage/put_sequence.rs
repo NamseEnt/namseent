@@ -16,6 +16,7 @@ impl Storage {
     }
 }
 
+#[derive(Debug)]
 pub enum PutSequenceError {
     LockSequenceError(LockSequenceError),
     JsonParseError(serde_json::Error),

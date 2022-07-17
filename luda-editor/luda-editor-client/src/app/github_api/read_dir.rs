@@ -21,7 +21,12 @@ impl GithubAPiClient {
             .await;
 
         if !response.ok() {
-            return Err(ReadDirError::ResponseNotOk(response.status()));
+            let status = response.status();
+            let error = match status {
+                404 => ReadDirError::DirNotFound,
+                _ => ReadDirError::ResponseNotOk(status),
+            };
+            return Err(error);
         }
 
         let response_body: ReadDirResponse = parse_response_as_json(response).await?;
@@ -39,6 +44,7 @@ impl GithubAPiClient {
 pub enum ReadDirError {
     ResponseNotOk(u16),
     ResponseParseError(ResponseParseError),
+    DirNotFound,
 }
 
 impl From<ResponseParseError> for ReadDirError {

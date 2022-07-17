@@ -1,9 +1,10 @@
 use super::*;
 use crate::app::{
     editor::{events::EditorEvent, job::Job, TimelineRenderContext},
+    storage::Storage,
     types::*,
 };
-use std::collections::LinkedList;
+use std::{collections::LinkedList, sync::Arc};
 
 pub struct CameraTrackBody {}
 pub struct CameraTrackBodyProps<'a> {
@@ -11,6 +12,7 @@ pub struct CameraTrackBodyProps<'a> {
     pub height: Px,
     pub track: &'a CameraTrack,
     pub context: &'a TimelineRenderContext<'a>,
+    pub storage: Arc<Storage>,
 }
 
 fn move_clip_at_last(track: &mut CameraTrack, clip_ids: Vec<&String>) {
@@ -121,6 +123,7 @@ impl CameraTrackBody {
                             },
                             clip: clip.as_ref(),
                             context: props.context,
+                            storage: props.storage.clone(),
                         })
                     })
                     .collect::<Vec<_>>(),
@@ -142,8 +145,8 @@ impl ResizableClip for CameraClip {
         self.end_at
     }
 
-    fn render(&self, wh: Wh<Px>) -> RenderingTree {
+    fn render(&self, wh: Wh<Px>, storage: Arc<Storage>) -> RenderingTree {
         self.camera_angle
-            .render(wh, &LudaEditorServerCameraAngleImageLoader {})
+            .render(wh, &LudaEditorServerCameraAngleImageLoader { storage })
     }
 }

@@ -193,6 +193,7 @@ impl Editor {
             let clip_id = self.selected_clip_ids.iter().next().unwrap();
             self.clip_editor = Some(ClipEditor::new(
                 &self.get_sequence().get_clip(clip_id).unwrap(),
+                self.storage.clone(),
             ));
         } else {
             self.clip_editor = None;
@@ -206,7 +207,6 @@ mod tests {
     use super::*;
     use crate::app::editor::sequence_player::MockSequencePlay;
     use linked_hash_map::LinkedHashMap;
-    use luda_editor_rpc::response_waiter::ResponseWaiter;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]

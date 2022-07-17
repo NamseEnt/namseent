@@ -1,5 +1,6 @@
 use crate::app::github_api::GithubAPiClient;
 use namui::prelude::*;
+use std::sync::Arc;
 use wasm_bindgen_futures::spawn_local;
 
 pub struct AuthenticationProps {
@@ -33,14 +34,15 @@ impl Authentication {
                 }
                 _ => {}
             }
-        } else if let Some(event) = event.downcast_ref::<Event>() {
+        } else if let Some(event) = event.downcast_ref::<AuthenticationEvent>() {
             match event {
-                Event::LoginButtonClicked => {
+                AuthenticationEvent::LoginButtonClicked => {
                     self.login();
                 }
-                Event::LoginFailed => {
+                AuthenticationEvent::LoginFailed => {
                     self.authentication_state = AuthenticationState::LoginFailed;
                 }
+                _ => {}
             }
         }
         self.access_token_input.update(event);
@@ -77,10 +79,12 @@ impl Authentication {
             let client = create_github_api_client(token);
             match client.validate_token().await {
                 Ok(_) => {
-                    todo!("Move to sequence list page")
+                    namui::event::send(AuthenticationEvent::LoginSucceeded {
+                        github_api_client: Arc::new(client),
+                    });
                 }
                 Err(_) => {
-                    namui::event::send(Event::LoginFailed);
+                    namui::event::send(AuthenticationEvent::LoginFailed);
                 }
             }
         })
@@ -212,7 +216,7 @@ fn render_access_code_input(
         })
         .attach_event(|builder| {
             builder.on_mouse_down_in(|_event| {
-                event::send(Event::LoginButtonClicked);
+                event::send(AuthenticationEvent::LoginButtonClicked);
             });
         })
         .with_mouse_cursor(MouseCursor::Pointer),
@@ -238,9 +242,12 @@ fn render_access_code_input(
     ])
 }
 
-enum Event {
+pub enum AuthenticationEvent {
     LoginButtonClicked,
     LoginFailed,
+    LoginSucceeded {
+        github_api_client: Arc<GithubAPiClient>,
+    },
 }
 
 enum AuthenticationState {

@@ -5,7 +5,6 @@ use crate::app::{
     types::Sequence,
 };
 use namui::prelude::*;
-
 use std::sync::Arc;
 
 pub fn render_open_button(
@@ -27,9 +26,8 @@ pub fn render_open_button(
                     namui::event::send(RouterEvent::PageChangeToEditorEvent(Box::new(
                         move |context| -> Editor {
                             Editor::new(
-                                context.socket.clone(),
+                                context.storage.clone(),
                                 sequence.clone(),
-                                &path,
                                 &title,
                                 context.meta_container.clone(),
                             )

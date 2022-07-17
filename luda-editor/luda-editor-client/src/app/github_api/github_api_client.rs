@@ -1,5 +1,6 @@
 use dashmap::DashMap;
 
+#[derive(Debug)]
 pub struct GithubAPiClient {
     access_token: String,
     base_url: String,

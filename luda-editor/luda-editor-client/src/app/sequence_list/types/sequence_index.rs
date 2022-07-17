@@ -1,7 +1,7 @@
+use crate::app::storage::Storage;
+use futures::TryFutureExt;
 use linked_hash_map::LinkedHashMap;
-use luda_editor_rpc::Socket;
-
-const SEQUENCE_INDEX_PATH: &str = "sequence_index.json";
+use std::sync::Arc;
 
 pub struct SequenceIndex {
     sequence_titles: Vec<String>,
@@ -28,31 +28,20 @@ impl SequenceIndex {
         sorted_title_sequence_map
     }
 
-    pub async fn save(&self, socket: &Socket) -> Result<(), String> {
-        socket
-            .write_file(luda_editor_rpc::write_file::Request {
-                dest_path: SEQUENCE_INDEX_PATH.to_string(),
-                file: serde_json::to_vec(&self.sequence_titles).unwrap(),
-            })
-            .await
-            .and_then(|_| Ok(()))
+    pub async fn save(&self, storage: &Arc<Storage>) -> Result<(), String> {
+        storage
+            .put_sequence_titles(&self.sequence_titles)
+            .map_err(|error| format!("failed to save sequence index: {:#?}", error))
+            .await?;
+        Ok(())
     }
 
-    pub async fn load(socket: &Socket) -> Result<Self, String> {
-        socket
-            .read_file(luda_editor_rpc::read_file::Request {
-                dest_path: SEQUENCE_INDEX_PATH.to_string(),
-            })
-            .await
-            .and_then(|response| {
-                let sequence_titles: Result<Vec<String>, serde_json::Error> =
-                    serde_json::from_slice(&response.file);
-                match sequence_titles {
-                    Ok(sequence_titles) => Ok(sequence_titles),
-                    Err(error) => Err(error.to_string()),
-                }
-            })
-            .and_then(|sequence_titles| Ok(Self { sequence_titles }))
+    pub async fn load(storage: &Arc<Storage>) -> Result<Self, String> {
+        let sequence_titles = storage
+            .get_sequence_titles()
+            .map_err(|error| format!("failed to load sequence index: {:#?}", error))
+            .await?;
+        Ok(Self { sequence_titles })
     }
 }
 

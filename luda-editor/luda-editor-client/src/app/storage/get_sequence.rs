@@ -13,6 +13,7 @@ impl Storage {
     }
 }
 
+#[derive(Debug)]
 pub enum GetSequenceError {
     ReadFileError(ReadFileError),
     DownloadError(DownloadError),

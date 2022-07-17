@@ -1,8 +1,9 @@
 use super::Storage;
 use crate::app::{
     github_api::{DownloadError, ReadFileError},
-    types::Meta,
+    types::{Meta, MetaLoad},
 };
+use async_trait::async_trait;
 
 impl Storage {
     pub async fn get_meta(&self) -> Result<Meta, GetMetaError> {
@@ -13,6 +14,7 @@ impl Storage {
     }
 }
 
+#[derive(Debug)]
 pub enum GetMetaError {
     ReadFileError(ReadFileError),
     DownloadError(DownloadError),
@@ -31,5 +33,14 @@ impl From<DownloadError> for GetMetaError {
 impl From<serde_json::Error> for GetMetaError {
     fn from(error: serde_json::Error) -> Self {
         Self::JsonParseError(error)
+    }
+}
+
+#[async_trait(?Send)]
+impl MetaLoad for Storage {
+    async fn load_meta(&self) -> Result<Meta, String> {
+        self.get_meta()
+            .await
+            .map_err(|error| format!("fail to load meta {:#?}", error))
     }
 }

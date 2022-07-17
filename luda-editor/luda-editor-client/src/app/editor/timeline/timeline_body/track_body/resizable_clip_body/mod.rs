@@ -1,13 +1,18 @@
-use crate::app::editor::{events::EditorEvent, TimelineRenderContext};
-use namui::prelude::*;
 mod sash;
+use crate::app::{
+    editor::{events::EditorEvent, TimelineRenderContext},
+    storage::Storage,
+};
+use namui::prelude::*;
 pub use sash::*;
+use std::sync::Arc;
 
 pub struct ResizableClipBody {}
 pub struct ResizableClipBodyProps<'a> {
     pub track_body_wh: Wh<Px>,
     pub clip: &'a dyn ResizableClip,
     pub context: &'a TimelineRenderContext<'a>,
+    pub storage: Arc<Storage>,
 }
 const RESIZABLE_CLIP_ROUND_RADIUS: Px = px(5.0);
 
@@ -15,7 +20,7 @@ pub trait ResizableClip {
     fn id(&self) -> String;
     fn start_at(&self) -> Time;
     fn end_at(&self) -> Time;
-    fn render(&self, wh: Wh<Px>) -> RenderingTree;
+    fn render(&self, wh: Wh<Px>, storage: Arc<Storage>) -> RenderingTree;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -139,7 +144,12 @@ impl ResizableClipBody {
 
         namui::render([
             background,
-            render_resizable_clip_preview(clip_rect, props.track_body_wh.width, props.clip),
+            render_resizable_clip_preview(
+                clip_rect,
+                props.track_body_wh.width,
+                props.clip,
+                props.storage.clone(),
+            ),
             border,
             sashes,
         ])
@@ -150,6 +160,7 @@ fn render_resizable_clip_preview(
     resizable_clip_rect: Rect<Px>,
     track_body_width: Px,
     clip: &dyn ResizableClip,
+    storage: Arc<Storage>,
 ) -> RenderingTree {
     let rect: Rect<Px> = get_resizable_clip_preview_rect(resizable_clip_rect, track_body_width);
 
@@ -193,10 +204,13 @@ fn render_resizable_clip_preview(
             ClipOp::Intersect,
             render([
                 background,
-                clip.render(Wh {
-                    width: width_by_fixed_height,
-                    height: rect.height(),
-                }),
+                clip.render(
+                    Wh {
+                        width: width_by_fixed_height,
+                        height: rect.height(),
+                    },
+                    storage,
+                ),
             ]),
         ),
     )

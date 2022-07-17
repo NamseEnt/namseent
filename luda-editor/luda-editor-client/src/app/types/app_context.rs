@@ -1,8 +1,8 @@
 use super::MetaContainer;
-use luda_editor_rpc::Socket;
+use crate::app::storage::Storage;
 use std::sync::Arc;
 
 pub struct AppContext {
-    pub socket: Socket,
+    pub storage: Arc<Storage>,
     pub meta_container: Arc<MetaContainer>,
 }

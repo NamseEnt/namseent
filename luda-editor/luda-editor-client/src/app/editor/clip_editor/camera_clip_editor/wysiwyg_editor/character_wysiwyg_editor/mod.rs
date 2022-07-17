@@ -4,7 +4,7 @@ use self::{
     super::*,
     cropper::{Cropper, CropperProps},
 };
-use crate::app::types::*;
+use crate::app::{storage::Storage, types::*};
 use namui::prelude::*;
 use std::sync::Arc;
 
@@ -17,6 +17,7 @@ pub struct CharacterWysiwygEditor {
 pub struct CharacterWysiwygEditorProps<'a> {
     pub rect: Rect<Px>,
     pub camera_angle: &'a CameraAngle,
+    pub storage: Arc<Storage>,
 }
 
 impl CharacterWysiwygEditor {
@@ -37,7 +38,9 @@ impl CharacterWysiwygEditor {
             height: props.rect.height(),
         };
 
-        let image_loader = LudaEditorServerCameraAngleImageLoader {};
+        let image_loader = LudaEditorServerCameraAngleImageLoader {
+            storage: props.storage.clone(),
+        };
 
         let character = props.camera_angle.character.as_ref();
         if character.is_none() {

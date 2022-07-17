@@ -1,13 +1,12 @@
-use crate::app::types::*;
-use luda_editor_rpc::{write_file, Socket};
+use crate::app::{storage::Storage, types::*};
 use std::sync::Arc;
 use wasm_bindgen_futures::spawn_local;
 
 pub(super) struct SequenceSaver {
-    file_path: String,
+    sequence_title: String,
     last_changed_sequence: Arc<Sequence>,
     last_saved_sequence: Arc<Sequence>,
-    socket: Socket,
+    storage: Arc<Storage>,
     status: SequenceSaverStatus,
 }
 
@@ -24,12 +23,16 @@ pub(super) enum SequenceSaverEvent {
 }
 
 impl SequenceSaver {
-    pub(super) fn new(file_path: &str, sequence: Arc<Sequence>, socket: Socket) -> Self {
+    pub(super) fn new(
+        sequence_title: &str,
+        sequence: Arc<Sequence>,
+        storage: Arc<Storage>,
+    ) -> Self {
         Self {
-            file_path: file_path.to_string(),
+            sequence_title: sequence_title.to_string(),
             last_changed_sequence: sequence.clone(),
             last_saved_sequence: sequence.clone(),
-            socket,
+            storage,
             status: SequenceSaverStatus::Idle,
         }
     }
@@ -66,33 +69,15 @@ impl SequenceSaver {
         self.status = SequenceSaverStatus::Saving;
 
         let sequence = self.last_changed_sequence.clone();
-        let serialize_result = serde_json::to_vec_pretty(sequence.as_ref());
-        if serialize_result.is_err() {
-            let error = serialize_result.err().unwrap();
-            namui::event::send(SequenceSaverEvent::SavingDone(Err(error.to_string())));
-            return;
-        }
-
-        let buffer = serialize_result.unwrap();
-        spawn_local({
-            let socket = self.socket.clone();
-            let file_path = self.file_path.clone();
-            async move {
-                match socket
-                    .write_file(write_file::Request {
-                        dest_path: file_path,
-                        file: buffer,
-                    })
-                    .await
-                {
-                    Ok(_) => {
-                        namui::event::send(SequenceSaverEvent::SavingDone(Ok(sequence)));
-                    }
-                    Err(error) => {
-                        namui::event::send(SequenceSaverEvent::SavingDone(Err(error.to_string())));
-                    }
-                }
-            }
+        let storage = self.storage.clone();
+        let sequence_title = self.sequence_title.clone();
+        spawn_local(async move {
+            let save_result = storage
+                .put_sequence(sequence_title.as_str(), &sequence)
+                .await
+                .map(|_| sequence)
+                .map_err(|error| format!("Failed to save sequence: {:#?}", error));
+            namui::event::send(SequenceSaverEvent::SavingDone(save_result));
         });
     }
     pub(super) fn get_status(&self) -> SequenceSaverStatus {
