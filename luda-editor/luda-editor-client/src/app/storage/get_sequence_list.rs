@@ -18,6 +18,7 @@ impl Storage {
 
 type SequenceName = String;
 
+#[derive(Debug)]
 pub enum GetSequenceListError {
     ReadDirError(ReadDirError),
 }

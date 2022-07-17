@@ -1,4 +1,5 @@
 use super::*;
+use crate::app::storage::Storage;
 use namui::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -156,23 +157,22 @@ pub trait CameraAngleImageLoader {
     fn get_background_image_source(&self, background: &CameraAngleBackground) -> ImageSource;
 }
 
-pub struct LudaEditorServerCameraAngleImageLoader;
+pub struct LudaEditorServerCameraAngleImageLoader {
+    pub storage: Arc<Storage>,
+}
 impl CameraAngleImageLoader for LudaEditorServerCameraAngleImageLoader {
     fn get_character_image_source(&self, character: &CameraAngleCharacter) -> ImageSource {
-        let url = namui::Url::parse(&format!(
-            "http://localhost:3030/resources/characterImages{}",
-            character.character_pose_emotion.to_url()
-        ))
-        .unwrap();
+        let path = character.character_pose_emotion.to_path();
+        let url = self.storage.get_character_image_url(path.as_str()).unwrap();
         ImageSource::Url(url)
     }
 
     fn get_background_image_source(&self, background: &CameraAngleBackground) -> ImageSource {
-        let url = namui::Url::parse(&format!(
-            "http://localhost:3030/resources/backgrounds/{}.jpeg",
-            background.name
-        ))
-        .unwrap();
+        let path = format!("{}.jpeg", background.name);
+        let url = self
+            .storage
+            .get_background_image_url(path.as_str())
+            .unwrap();
         ImageSource::Url(url)
     }
 }

@@ -24,6 +24,7 @@ impl Storage {
 
 type ExpiredAt = DateTime<FixedOffset>;
 
+#[derive(Debug)]
 pub enum LockSequenceError {
     LockedByOther,
     GetSequenceLockStateError(GetSequenceLockStateError),

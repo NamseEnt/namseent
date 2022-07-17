@@ -1,5 +1,5 @@
 use super::*;
-use crate::app::types::*;
+use crate::app::{storage::Storage, types::*};
 use namui::prelude::*;
 use std::sync::Arc;
 
@@ -11,6 +11,7 @@ pub struct BackgroundWysiwygEditor {
 pub struct BackgroundWysiwygEditorProps<'a> {
     pub rect: Rect<Px>,
     pub camera_angle: &'a CameraAngle,
+    pub storage: Arc<Storage>,
 }
 
 impl BackgroundWysiwygEditor {
@@ -27,7 +28,9 @@ impl BackgroundWysiwygEditor {
             height: props.rect.height(),
         };
 
-        let image_loader = LudaEditorServerCameraAngleImageLoader {};
+        let image_loader = LudaEditorServerCameraAngleImageLoader {
+            storage: props.storage.clone(),
+        };
 
         let background = props.camera_angle.background.as_ref();
         if background.is_none() {

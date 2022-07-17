@@ -1,17 +1,19 @@
-use self::{image_browser::*, wysiwyg_editor::*};
-use crate::app::{
-    editor::{events::EditorEvent, job::Job},
-    types::*,
-};
-use namui::prelude::*;
-use preview::*;
-use std::{collections::BTreeSet, sync::Arc};
 mod button;
 pub mod image_browser;
 pub mod preview;
-pub mod wysiwyg_editor;
-use button::*;
 mod tab;
+pub mod wysiwyg_editor;
+
+use self::{image_browser::*, wysiwyg_editor::*};
+use crate::app::{
+    editor::{events::EditorEvent, job::Job},
+    storage::Storage,
+    types::*,
+};
+use button::*;
+use namui::prelude::*;
+use preview::*;
+use std::{collections::BTreeSet, sync::Arc};
 use tab::*;
 
 pub struct CameraClipEditor {
@@ -22,6 +24,7 @@ pub struct CameraClipEditor {
     preview: Preview,
     selected_tab: Tab,
     clip_id: String,
+    storage: Arc<Storage>,
 }
 
 #[derive(Debug, Clone)]
@@ -39,7 +42,7 @@ pub struct CameraClipEditorProps<'a> {
 }
 
 impl CameraClipEditor {
-    pub fn new(clip: &CameraClip) -> Self {
+    pub fn new(clip: &CameraClip, storage: Arc<Storage>) -> Self {
         let character_image_directory = get_character_image_directory(clip);
         let character_image_item = get_character_image_item(clip);
         let background_image_directory = get_background_image_directory(clip);
@@ -49,19 +52,22 @@ impl CameraClipEditor {
                 "character",
                 character_image_directory,
                 character_image_item,
-                "http://localhost:3030/resources/characterImages",
+                storage.clone(),
+                ImageType::Character,
             ),
             background_image_browser: ImageBrowser::new(
                 "background",
                 background_image_directory,
                 background_image_item,
-                "http://localhost:3030/resources/backgrounds",
+                storage.clone(),
+                ImageType::Background,
             ),
             character_wysiwyg_editor: CharacterWysiwygEditor::new(),
             background_wysiwyg_editor: BackgroundWysiwygEditor::new(),
             selected_tab: Tab::CharacterImage,
             clip_id: clip.id.clone(),
             preview: Preview::new(),
+            storage,
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -198,7 +204,9 @@ impl CameraClipEditor {
                     self.render_left_box(
                         left_box_wh,
                         &camera_angle,
-                        &LudaEditorServerCameraAngleImageLoader {},
+                        &LudaEditorServerCameraAngleImageLoader {
+                            storage: self.storage.clone(),
+                        },
                     ),
                     namui::translate(
                         left_box_wh.width,
@@ -303,6 +311,7 @@ impl CameraClipEditor {
                             height: wh.width / (1920.0 / 1080.0),
                         },
                         camera_angle,
+                        storage: self.storage.clone(),
                     })
             }
             Tab::BackgroundImage => self.background_image_browser.render(&ImageBrowserProps {
@@ -320,6 +329,7 @@ impl CameraClipEditor {
                             height: wh.height,
                         },
                         camera_angle,
+                        storage: self.storage.clone(),
                     })
             }
         };
@@ -346,7 +356,7 @@ impl CameraClipEditor {
     }
 }
 fn convert_file_to_character_pose_emotion(file: &ImageBrowserFile) -> CharacterPoseEmotion {
-    let url = file.get_url();
+    let url = file.get_path();
     // remove only extension but keep dot in middle of name.
     let last_dot_index = url.rfind('.').unwrap();
 
@@ -360,7 +370,7 @@ fn convert_file_to_character_pose_emotion(file: &ImageBrowserFile) -> CharacterP
     CharacterPoseEmotion(character.to_string(), pose.to_string(), emotion.to_string())
 }
 fn convert_file_to_background(file: &ImageBrowserFile) -> String {
-    let url = file.get_url();
+    let url = file.get_path();
     // remove only extension but keep dot in middle of name.
     let last_dot_index = url.rfind('.').unwrap();
 
@@ -369,7 +379,7 @@ fn convert_file_to_background(file: &ImageBrowserFile) -> String {
 fn get_character_image_item(clip: &CameraClip) -> Option<ImageBrowserItem> {
     match clip.camera_angle.character.as_ref() {
         Some(character) => Some(ImageBrowserItem::File(ImageBrowserFile::new(
-            character.character_pose_emotion.to_url(),
+            character.character_pose_emotion.to_path(),
         ))),
         None => Some(ImageBrowserItem::Empty),
     }
@@ -377,7 +387,7 @@ fn get_character_image_item(clip: &CameraClip) -> Option<ImageBrowserItem> {
 fn get_character_image_directory(clip: &CameraClip) -> ImageBrowserDirectory {
     match clip.camera_angle.character.as_ref() {
         Some(character) => {
-            ImageBrowserFile::new(character.character_pose_emotion.to_url()).get_directory()
+            ImageBrowserFile::new(character.character_pose_emotion.to_path()).get_directory()
         }
         None => ImageBrowserDirectory::root(),
     }

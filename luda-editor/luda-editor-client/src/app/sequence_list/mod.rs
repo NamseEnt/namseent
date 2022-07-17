@@ -11,13 +11,13 @@ use self::{
 };
 use super::{
     editor::SequencePlayer,
+    storage::Storage,
     types::{LudaEditorServerCameraAngleImageLoader, Sequence, SubtitlePlayDurationMeasure, Track},
 };
 use crate::app::{
     editor::{SequencePlay, SequencePlayerProps},
     sequence_list::{list::render_list, sync_sequences_button::render_sync_sequences_button},
 };
-use luda_editor_rpc::Socket;
 use namui::prelude::*;
 use std::{collections::HashMap, sync::Arc};
 
@@ -35,7 +35,7 @@ pub struct SequenceListProps<'a> {
 
 pub struct SequenceList {
     sequences_sync_state: SequenceSyncState,
-    socket: Socket,
+    storage: Arc<Storage>,
     scroll_y: Px,
     sequence_player: SequencePlayer,
     sequence_preview_progress_map: SequencePreviewProgressMap,
@@ -44,17 +44,19 @@ pub struct SequenceList {
 }
 
 impl SequenceList {
-    pub fn new(socket: Socket) -> Self {
+    pub fn new(storage: Arc<Storage>) -> Self {
         let mut sequence_list = Self {
             sequences_sync_state: SequenceSyncState {
                 started_at: Time::Ms(0.0),
                 detail: types::SequencesSyncStateDetail::Loading,
             },
-            socket,
+            storage: storage.clone(),
             scroll_y: px(0.0),
             sequence_player: SequencePlayer::new(
                 Arc::new(Sequence::default()),
-                Box::new(LudaEditorServerCameraAngleImageLoader {}),
+                Box::new(LudaEditorServerCameraAngleImageLoader {
+                    storage: storage.clone(),
+                }),
             ),
             sequence_preview_progress_map: HashMap::new(),
             opened_sequence_title: None,

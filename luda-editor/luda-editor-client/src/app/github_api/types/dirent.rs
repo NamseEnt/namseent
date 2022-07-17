@@ -79,6 +79,7 @@ impl Dirent {
     }
 }
 
+#[derive(Debug)]
 pub enum DownloadError {
     ResponseNotOk(u16),
     NotFile,

@@ -1,12 +1,13 @@
-use namui::prelude::*;
-use std::collections::BTreeSet;
-mod browser_item;
-use browser_item::*;
 mod back_button;
+mod browser_item;
 mod empty_button;
 mod scroll;
-use scroll::*;
 mod types;
+use crate::app::storage::Storage;
+use browser_item::*;
+use namui::prelude::*;
+use scroll::*;
+use std::{collections::BTreeSet, sync::Arc};
 pub use types::*;
 
 #[derive(Debug)]
@@ -15,7 +16,8 @@ pub struct ImageBrowser {
     directory: ImageBrowserDirectory,
     selected_item: Option<ImageBrowserItem>,
     scroll: Scroll,
-    thumbnail_url_prefix: String,
+    storage: Arc<Storage>,
+    image_type: ImageType,
 }
 pub struct ImageBrowserProps<'a> {
     pub width: Px,
@@ -28,14 +30,16 @@ impl ImageBrowser {
         id: &str,
         directory: ImageBrowserDirectory,
         selected_item: Option<ImageBrowserItem>,
-        thumbnail_url_prefix: &str,
+        storage: Arc<Storage>,
+        image_type: ImageType,
     ) -> Self {
         Self {
             id: id.to_string(),
             directory,
             selected_item,
             scroll: Scroll::new(),
-            thumbnail_url_prefix: thumbnail_url_prefix.to_string(),
+            storage,
+            image_type,
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -234,10 +238,16 @@ impl ImageBrowser {
             ImageBrowserItem::Directory(directory) => files
                 .iter()
                 .find(|file| file.is_recursively_under_directory(directory))
-                .and_then(|file| Some(file.get_url())),
-            ImageBrowserItem::File(file) => Some(file.get_url()),
+                .and_then(|file| Some(file.get_path())),
+            ImageBrowserItem::File(file) => Some(file.get_path()),
         }
-        .map(|url| Url::parse(&format!("{}{}", self.thumbnail_url_prefix, url)).unwrap())
+        .map(|path| match self.image_type {
+            ImageType::Character => self.storage.get_character_image_url(path.as_str()).unwrap(),
+            ImageType::Background => self
+                .storage
+                .get_background_image_url(path.as_str())
+                .unwrap(),
+        })
     }
 
     pub(crate) fn select(&mut self, item: Option<ImageBrowserItem>) {

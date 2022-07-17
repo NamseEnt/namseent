@@ -1,9 +1,8 @@
 use super::{
-    authentication::{Authentication, AuthenticationProps},
     editor::EditorProps,
     events::RouterEvent,
-    sequence_list::SequenceListProps,
-    types::{meta::Meta, AppContext, Page},
+    sequence_list::{SequenceList, SequenceListProps},
+    types::{AppContext, Meta, Page},
 };
 use namui::prelude::*;
 
@@ -20,7 +19,7 @@ pub struct Router {
 impl Router {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<RouterEvent>() {
-            match &event {
+            match event {
                 RouterEvent::PageChangeToEditorEvent(initializer) => {
                     self.page = Page::Editor(initializer(&self.context));
                 }
@@ -32,7 +31,6 @@ impl Router {
         match &mut self.page {
             Page::Editor(editor) => editor.update(event),
             Page::SequenceList(sequence_list) => sequence_list.update(event),
-            Page::Authentication(authentication) => authentication.update(event),
         }
     }
 
@@ -46,14 +44,12 @@ impl Router {
                 subtitle_play_duration_measurer: &props.meta.clone(),
                 subtitle_character_color_map: &props.meta.subtitle_character_color_map,
             }),
-            Page::Authentication(authentication) => authentication.render(&AuthenticationProps {
-                wh: props.screen_wh,
-            }),
         }
     }
+
     pub fn new(context: AppContext) -> Self {
         Self {
-            page: Page::Authentication(Authentication::new()),
+            page: Page::SequenceList(SequenceList::new(context.storage.clone())),
             context,
         }
     }

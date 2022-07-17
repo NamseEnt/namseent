@@ -1,10 +1,11 @@
 use crate::app::{
     sequence_list::{events::SequenceListEvent, types::*, SequenceList},
+    storage::Storage,
     types::*,
 };
+use futures::{future::join_all, TryFutureExt};
 use linked_hash_map::LinkedHashMap;
-use luda_editor_rpc::Socket;
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 use wasm_bindgen_futures::spawn_local;
 
 impl SequenceList {
@@ -18,9 +19,9 @@ impl SequenceList {
         });
 
         spawn_local({
-            let socket = self.socket.clone();
+            let storage = self.storage.clone();
             async move {
-                let result = get_sequences_with_title(&socket).await;
+                let result = get_sequences_with_title(&storage).await;
                 match result {
                     Ok(title_sequence_map) => {
                         namui::event::send(SequenceListEvent::SequencesSyncStateUpdateEvent {
@@ -45,28 +46,55 @@ impl SequenceList {
 }
 
 pub async fn get_sequences_with_title(
-    socket: &Socket,
+    storage: &Arc<Storage>,
 ) -> Result<LinkedHashMap<String, Arc<Sequence>>, String> {
-    let sequence_index = SequenceIndex::load(socket).await?;
-    socket
-        .get_sequences(luda_editor_rpc::get_sequences::Request {})
-        .await
-        .and_then(|response| {
-            let mut sequences = vec![];
+    let sequence_index = SequenceIndex::load(storage).await?;
+    let sequence_download_futures = storage
+        .get_sequence_list()
+        .map_err(|error| format!("failed to load sequence list: {:#?}", error))
+        .await?
+        .into_iter()
+        .map(|sequence_title| async move {
+            (
+                sequence_title.clone(),
+                storage.get_sequence(sequence_title.as_str()).await,
+            )
+        });
+    let title_sequence_download_result_pair_list = join_all(sequence_download_futures).await;
+    throw_error_if_sequence_download_failed(&title_sequence_download_result_pair_list)?;
+    let unsorted_title_sequence_map: LinkedHashMap<String, Arc<Sequence>> =
+        title_sequence_download_result_pair_list
+            .into_iter()
+            .map(|(title, sequence_download_result)| {
+                (title, Arc::new(sequence_download_result.unwrap()))
+            })
+            .collect();
 
-            for (title, sequence_json) in response.title_sequence_json_tuples {
-                match Sequence::try_from(sequence_json.as_ref()) {
-                    Ok(sequence) => {
-                        sequences.push((title, Arc::new(sequence)));
-                    }
-                    Err(error) => {
-                        return Err(error);
-                    }
-                }
+    Ok(sequence_index.sort_title_sequence_map(&unsorted_title_sequence_map))
+}
+
+fn throw_error_if_sequence_download_failed<E>(
+    title_sequence_download_result_pair_list: &Vec<(String, Result<Sequence, E>)>,
+) -> Result<(), String>
+where
+    E: Debug + Sized,
+{
+    let sequence_download_error_list: Vec<_> = title_sequence_download_result_pair_list
+        .iter()
+        .filter_map(|(title, result)| {
+            if let Err(error) = result {
+                return Some((title, error));
             }
-
-            let unsorted_title_sequence_map: LinkedHashMap<String, Arc<Sequence>> =
-                sequences.into_iter().collect();
-            Ok(sequence_index.sort_title_sequence_map(&unsorted_title_sequence_map))
+            None
         })
+        .collect();
+
+    if sequence_download_error_list.len() > 0 {
+        return Err(format!(
+            "failed to download some sequence: {:#?}",
+            sequence_download_error_list
+        ));
+    }
+
+    Ok(())
 }

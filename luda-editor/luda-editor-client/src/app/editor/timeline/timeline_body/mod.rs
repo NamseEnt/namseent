@@ -1,8 +1,8 @@
-use namui::prelude::*;
-use std::sync::Arc;
 pub mod track_body;
 use super::TimelineRenderContext;
-use crate::app::{editor::events::EditorEvent, types::Track};
+use crate::app::{editor::events::EditorEvent, storage::Storage, types::Track};
+use namui::prelude::*;
+use std::sync::Arc;
 use track_body::*;
 
 pub struct TimelineBody {
@@ -13,6 +13,7 @@ pub struct TimelineBodyProps<'a> {
     pub height: Px,
     pub tracks: &'a [Arc<Track>],
     pub context: &'a TimelineRenderContext<'a>,
+    pub storage: Arc<Storage>,
 }
 
 struct TimelineBodyLeftClickEvent {
@@ -64,6 +65,7 @@ impl TimelineBody {
                         height: track_body_height,
                         track,
                         context: props.context,
+                        storage: props.storage.clone(),
                     }),
                 )
             })

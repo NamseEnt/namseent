@@ -1,12 +1,11 @@
-use std::collections::BTreeSet;
-
+pub mod camera_clip_editor;
 use self::camera_clip_editor::{
     image_browser::ImageBrowserFile, CameraClipEditor, CameraClipEditorProps,
 };
 use super::job::Job;
-use crate::app::types::*;
-pub mod camera_clip_editor;
+use crate::app::{storage::Storage, types::*};
 use namui::prelude::*;
+use std::{collections::BTreeSet, sync::Arc};
 
 pub enum ClipEditor {
     Camera(CameraClipEditor),
@@ -22,9 +21,9 @@ pub struct ClipEditorProps<'a> {
 }
 
 impl ClipEditor {
-    pub fn new(clip: &Clip) -> Self {
+    pub fn new(clip: &Clip, storage: Arc<Storage>) -> Self {
         match clip {
-            Clip::Camera(clip) => ClipEditor::Camera(CameraClipEditor::new(&clip)),
+            Clip::Camera(clip) => ClipEditor::Camera(CameraClipEditor::new(&clip, storage)),
             Clip::Subtitle(_) => ClipEditor::Subtitle,
         }
     }
