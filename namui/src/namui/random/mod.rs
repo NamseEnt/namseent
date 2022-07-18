@@ -37,3 +37,30 @@ pub fn nanoid() -> String {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Id {
+    values: [u8; 64],
+}
+impl<'a> PartialEq<Id> for &'a Id {
+    fn eq(&self, other: &Id) -> bool {
+        self.values == other.values
+    }
+}
+impl std::fmt::Display for Id {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // print in hexadecimal
+        for i in 0..self.values.len() {
+            write!(f, "{:02x}", self.values[i])?;
+        }
+        Ok(())
+    }
+}
+
+pub fn random_id() -> Id {
+    let mut array = [0u8; 64];
+    let window = web_sys::window().unwrap();
+    let crypto = window.crypto().unwrap();
+    crypto.get_random_values_with_u8_array(&mut array).unwrap();
+    Id { values: array }
+}
