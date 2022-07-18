@@ -16,7 +16,6 @@ use std::sync::Arc;
 pub fn render_list_item(
     width: Px,
     title: &String,
-    path: &String,
     sequence: &Arc<Sequence>,
     sequence_preview_progress_map: &SequencePreviewProgressMap,
     is_item_opened: bool,
@@ -36,7 +35,7 @@ pub fn render_list_item(
             button_wh.height,
         ));
         elements.push(RenderingTreeRow::new(
-            render_open_button(button_wh, path, &sequence, title),
+            render_open_button(button_wh, &sequence, title),
             button_wh.height,
         ));
     }

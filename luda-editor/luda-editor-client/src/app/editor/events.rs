@@ -1,11 +1,9 @@
-use super::clip_editor::camera_clip_editor::image_browser::ImageBrowserFile;
 use super::clip_editor::camera_clip_editor::wysiwyg_editor::cropper::CropperHandle;
 use super::clip_editor::camera_clip_editor::wysiwyg_editor::ResizerHandle;
 use super::clip_editor::camera_clip_editor::WysiwygTarget;
 use crate::app::editor::timeline::timeline_body::track_body::ResizableClipBodyPart;
 use crate::app::types::*;
 use namui::prelude::*;
-use std::collections::BTreeSet;
 use std::sync::Arc;
 
 pub enum EditorEvent {
@@ -19,12 +17,6 @@ pub enum EditorEvent {
         mouse_event_id: String,
         clip_id: String,
         click_in_time: Time,
-    },
-    CharacterImageFilesUpdatedEvent {
-        character_image_files: BTreeSet<ImageBrowserFile>,
-    },
-    BackgroundImageFilesUpdatedEvent {
-        background_image_files: BTreeSet<ImageBrowserFile>,
     },
     CharacterImageBrowserSelectEvent {
         character_pose_emotion: Option<CharacterPoseEmotion>,

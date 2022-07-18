@@ -38,7 +38,6 @@ pub fn render_list(
         SequencesSyncStateDetail::Loaded { title_sequence_map } => title_sequence_map
             .iter()
             .map(|(title, sequence)| {
-                let path = format!("sequence/{}.json", title);
                 let is_item_opened = opened_sequence_title
                     .as_ref()
                     .map(|opened_title| title == opened_title)
@@ -47,7 +46,6 @@ pub fn render_list(
                 render_list_item(
                     inner_wh.width,
                     title,
-                    &path,
                     sequence,
                     &sequence_preview_progress_map,
                     is_item_opened,

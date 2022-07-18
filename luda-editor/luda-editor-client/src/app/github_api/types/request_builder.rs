@@ -30,10 +30,6 @@ impl RequestBuilder {
         self.method = RequestMethod::Put;
         self
     }
-    pub fn post(&mut self) -> &mut Self {
-        self.method = RequestMethod::Post;
-        self
-    }
     pub fn delete(&mut self) -> &mut Self {
         self.method = RequestMethod::Delete;
         self
@@ -55,16 +51,8 @@ impl RequestBuilder {
         self
     }
 
-    pub fn accept_none(&mut self) -> &mut Self {
-        self.response_content_type = ResponseContentType::None;
-        self
-    }
     pub fn accept_json(&mut self) -> &mut Self {
         self.response_content_type = ResponseContentType::Json;
-        self
-    }
-    pub fn accept_raw(&mut self) -> &mut Self {
-        self.response_content_type = ResponseContentType::Raw;
         self
     }
 
@@ -73,7 +61,6 @@ impl RequestBuilder {
         opts.method(match self.method {
             RequestMethod::Get => "GET",
             RequestMethod::Put => "PUT",
-            RequestMethod::Post => "POST",
             RequestMethod::Delete => "DELETE",
         });
         if self.body.is_some() && self.method != RequestMethod::Get {
@@ -92,10 +79,6 @@ impl RequestBuilder {
             ResponseContentType::Json => request
                 .headers()
                 .set("Accept", "application/vnd.github.v3+json")
-                .unwrap(),
-            ResponseContentType::Raw => request
-                .headers()
-                .set("Accept", "application/vnd.github.v3+raw")
                 .unwrap(),
             _ => {}
         }
@@ -118,7 +101,6 @@ impl RequestBuilder {
 enum RequestMethod {
     Get,
     Put,
-    Post,
     Delete,
 }
 
@@ -130,5 +112,4 @@ enum RequestContentType {
 enum ResponseContentType {
     None,
     Json,
-    Raw,
 }

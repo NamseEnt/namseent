@@ -51,30 +51,12 @@ impl Dirent {
         }
     }
 
-    pub fn path(&self) -> &String {
-        match self {
-            Dirent::File { path, .. } => path,
-            Dirent::Dir { path, .. } => path,
-            Dirent::Symlink { path, .. } => path,
-            Dirent::Submodule { path, .. } => path,
-        }
-    }
-
     pub fn name(&self) -> &String {
         match self {
             Dirent::File { name, .. } => name,
             Dirent::Dir { name, .. } => name,
             Dirent::Symlink { name, .. } => name,
             Dirent::Submodule { name, .. } => name,
-        }
-    }
-
-    pub fn sha(&self) -> &String {
-        match self {
-            Dirent::File { sha, .. } => sha,
-            Dirent::Dir { sha, .. } => sha,
-            Dirent::Symlink { sha, .. } => sha,
-            Dirent::Submodule { sha, .. } => sha,
         }
     }
 }

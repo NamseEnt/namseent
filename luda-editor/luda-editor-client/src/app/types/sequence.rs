@@ -43,9 +43,6 @@ impl Sequence {
             Track::Subtitle(track) => track.clips.iter().any(|clip| clip.id.eq(clip_id)),
         })
     }
-    pub fn into_json(&self) -> String {
-        serde_json::to_string_pretty(&self).unwrap()
-    }
 }
 
 impl<'a> TryFrom<&'a str> for Sequence {
