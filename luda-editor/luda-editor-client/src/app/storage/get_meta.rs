@@ -5,8 +5,14 @@ use crate::app::{
 };
 use async_trait::async_trait;
 
-impl Storage {
-    pub async fn get_meta(&self) -> Result<Meta, GetMetaError> {
+#[async_trait(?Send)]
+pub trait GithubStorageMetaGet {
+    async fn get_meta(&self) -> Result<Meta, GetMetaError>;
+}
+
+#[async_trait(?Send)]
+impl GithubStorageMetaGet for Storage {
+    async fn get_meta(&self) -> Result<Meta, GetMetaError> {
         const PATH: &str = "meta.json";
         let dirent = self.get_github_api_client().read_file(PATH).await?;
         let meta: Meta = serde_json::from_slice(&dirent.download().await?)?;

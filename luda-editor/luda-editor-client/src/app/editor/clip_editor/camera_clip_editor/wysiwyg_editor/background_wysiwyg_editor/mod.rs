@@ -1,5 +1,5 @@
 use super::*;
-use crate::app::{storage::Storage, types::*};
+use crate::app::{storage::GithubStorage, types::*};
 use namui::prelude::*;
 use std::sync::Arc;
 
@@ -11,7 +11,7 @@ pub struct BackgroundWysiwygEditor {
 pub struct BackgroundWysiwygEditorProps<'a> {
     pub rect: Rect<Px>,
     pub camera_angle: &'a CameraAngle,
-    pub storage: Arc<Storage>,
+    pub storage: Arc<dyn GithubStorage>,
 }
 
 impl BackgroundWysiwygEditor {

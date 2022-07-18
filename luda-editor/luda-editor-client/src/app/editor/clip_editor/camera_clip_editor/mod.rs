@@ -7,7 +7,7 @@ pub mod wysiwyg_editor;
 use self::{image_browser::*, wysiwyg_editor::*};
 use crate::app::{
     editor::{events::EditorEvent, job::Job},
-    storage::Storage,
+    storage::GithubStorage,
     types::*,
 };
 use button::*;
@@ -24,7 +24,7 @@ pub struct CameraClipEditor {
     preview: Preview,
     selected_tab: Tab,
     clip_id: String,
-    storage: Arc<Storage>,
+    storage: Arc<dyn GithubStorage>,
 }
 
 #[derive(Debug, Clone)]
@@ -42,7 +42,7 @@ pub struct CameraClipEditorProps<'a> {
 }
 
 impl CameraClipEditor {
-    pub fn new(clip: &CameraClip, storage: Arc<Storage>) -> Self {
+    pub fn new(clip: &CameraClip, storage: Arc<dyn GithubStorage>) -> Self {
         let character_image_directory = get_character_image_directory(clip);
         let character_image_item = get_character_image_item(clip);
         let background_image_directory = get_background_image_directory(clip);

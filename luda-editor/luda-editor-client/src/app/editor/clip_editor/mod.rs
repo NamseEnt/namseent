@@ -3,7 +3,7 @@ use self::camera_clip_editor::{
     image_browser::ImageBrowserFile, CameraClipEditor, CameraClipEditorProps,
 };
 use super::job::Job;
-use crate::app::{storage::Storage, types::*};
+use crate::app::{storage::GithubStorage, types::*};
 use namui::prelude::*;
 use std::{collections::BTreeSet, sync::Arc};
 
@@ -21,7 +21,7 @@ pub struct ClipEditorProps<'a> {
 }
 
 impl ClipEditor {
-    pub fn new(clip: &Clip, storage: Arc<Storage>) -> Self {
+    pub fn new(clip: &Clip, storage: Arc<dyn GithubStorage>) -> Self {
         match clip {
             Clip::Camera(clip) => ClipEditor::Camera(CameraClipEditor::new(&clip, storage)),
             Clip::Subtitle(_) => ClipEditor::Subtitle,

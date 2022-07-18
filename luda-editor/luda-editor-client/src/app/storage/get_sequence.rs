@@ -3,9 +3,16 @@ use crate::app::{
     github_api::{DownloadError, ReadFileError},
     types::Sequence,
 };
+use async_trait::async_trait;
 
-impl Storage {
-    pub async fn get_sequence(&self, sequence_name: &str) -> Result<Sequence, GetSequenceError> {
+#[async_trait(?Send)]
+pub trait GithubStorageSequenceGet {
+    async fn get_sequence(&self, sequence_name: &str) -> Result<Sequence, GetSequenceError>;
+}
+
+#[async_trait(?Send)]
+impl GithubStorageSequenceGet for Storage {
+    async fn get_sequence(&self, sequence_name: &str) -> Result<Sequence, GetSequenceError> {
         let path = format!("sequence/{}.json", sequence_name);
         let dirent = self.get_github_api_client().read_file(&path).await?;
         let sequence: Sequence = serde_json::from_slice(&dirent.download().await?)?;

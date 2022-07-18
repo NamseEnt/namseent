@@ -1,8 +1,15 @@
 use super::Storage;
 use namui::Url;
 
-impl Storage {
-    pub fn get_character_image_url(
+pub trait GithubStorageCharacterImageUrlGet {
+    fn get_character_image_url(
+        &self,
+        character_image_path: &str,
+    ) -> Result<Url, GetCharacterImageUrlError>;
+}
+
+impl GithubStorageCharacterImageUrlGet for Storage {
+    fn get_character_image_url(
         &self,
         character_image_path: &str,
     ) -> Result<Url, GetCharacterImageUrlError> {

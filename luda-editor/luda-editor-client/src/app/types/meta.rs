@@ -1,5 +1,5 @@
 use super::*;
-use crate::app::storage::Storage;
+use crate::app::storage::GithubStorage;
 use async_trait::async_trait;
 use linked_hash_map::LinkedHashMap;
 use serde::{Deserialize, Serialize};
@@ -14,11 +14,11 @@ pub struct Meta {
     pub subtitle_character_color_map: HashMap<String, Color>,
 }
 #[allow(dead_code)]
-pub async fn save_meta(meta: &Meta, storage: &Storage) -> Result<(), String> {
+pub async fn save_meta(meta: &Meta, storage: &dyn GithubStorage) -> Result<(), String> {
     unimplemented!()
 }
 
-pub async fn get_meta(storage: &Storage) -> Result<Meta, String> {
+pub async fn get_meta(storage: &dyn GithubStorage) -> Result<Meta, String> {
     let meta = storage
         .get_meta()
         .await

@@ -206,6 +206,7 @@ mod tests {
     use super::super::*;
     use super::*;
     use crate::app::editor::sequence_player::MockSequencePlay;
+    use crate::app::storage::MockStorage;
     use linked_hash_map::LinkedHashMap;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -344,11 +345,6 @@ mod tests {
         );
     }
 
-    fn mock_socket() -> Socket {
-        let (sender, _receiver) = tokio::sync::mpsc::unbounded_channel();
-        let response_waiter = ResponseWaiter::new();
-        Socket::new(sender.clone(), response_waiter.clone())
-    }
     fn mock_sequence(camera_clips: Vec<Arc<CameraClip>>) -> Arc<Sequence> {
         Arc::new(Sequence {
             tracks: vec![
@@ -365,7 +361,7 @@ mod tests {
         })
     }
     fn mock_editor(sequence: Arc<Sequence>) -> Editor {
-        let socket = mock_socket();
+        let storage = Arc::new(MockStorage::new());
         Editor {
             timeline: Timeline::new(),
             character_image_files: BTreeSet::new(),
@@ -380,7 +376,7 @@ mod tests {
             language: namui::Language::Ko,
             clip_id_to_check_as_click: None,
             context_menu: None,
-            sequence_saver: SequenceSaver::new("", sequence.clone(), socket.clone()),
+            sequence_saver: SequenceSaver::new("", sequence.clone(), storage.clone()),
             sheet_sequence_syncer: SheetSequenceSyncer::new(""),
             meta_container: Arc::new(MetaContainer::new(
                 Some(Meta {
@@ -399,6 +395,7 @@ mod tests {
                 }),
                 Arc::new(MockMetaLoad::new()),
             )),
+            storage,
         }
     }
 }

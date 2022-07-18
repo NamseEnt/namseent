@@ -1,4 +1,4 @@
-use crate::app::{storage::Storage, types::*};
+use crate::app::{storage::GithubStorage, types::*};
 use std::sync::Arc;
 use wasm_bindgen_futures::spawn_local;
 
@@ -6,7 +6,7 @@ pub(super) struct SequenceSaver {
     sequence_title: String,
     last_changed_sequence: Arc<Sequence>,
     last_saved_sequence: Arc<Sequence>,
-    storage: Arc<Storage>,
+    storage: Arc<dyn GithubStorage>,
     status: SequenceSaverStatus,
 }
 
@@ -26,7 +26,7 @@ impl SequenceSaver {
     pub(super) fn new(
         sequence_title: &str,
         sequence: Arc<Sequence>,
-        storage: Arc<Storage>,
+        storage: Arc<dyn GithubStorage>,
     ) -> Self {
         Self {
             sequence_title: sequence_title.to_string(),

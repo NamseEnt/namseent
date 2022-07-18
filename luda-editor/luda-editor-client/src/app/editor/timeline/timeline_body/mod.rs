@@ -1,6 +1,6 @@
 pub mod track_body;
 use super::TimelineRenderContext;
-use crate::app::{editor::events::EditorEvent, storage::Storage, types::Track};
+use crate::app::{editor::events::EditorEvent, storage::GithubStorage, types::Track};
 use namui::prelude::*;
 use std::sync::Arc;
 use track_body::*;
@@ -13,7 +13,7 @@ pub struct TimelineBodyProps<'a> {
     pub height: Px,
     pub tracks: &'a [Arc<Track>],
     pub context: &'a TimelineRenderContext<'a>,
-    pub storage: Arc<Storage>,
+    pub storage: Arc<dyn GithubStorage>,
 }
 
 struct TimelineBodyLeftClickEvent {

@@ -1,8 +1,22 @@
-use super::{lock_sequence::LockSequenceError, Storage};
+use super::{
+    lock_sequence::{GithubStorageSequenceLock, LockSequenceError},
+    Storage,
+};
 use crate::app::{github_api::WriteFileError, types::Sequence};
+use async_trait::async_trait;
 
-impl Storage {
-    pub async fn put_sequence(
+#[async_trait(?Send)]
+pub trait GithubStorageSequencePut: GithubStorageSequenceLock {
+    async fn put_sequence(
+        &self,
+        sequence_name: &str,
+        sequence: &Sequence,
+    ) -> Result<(), PutSequenceError>;
+}
+
+#[async_trait(?Send)]
+impl GithubStorageSequencePut for Storage {
+    async fn put_sequence(
         &self,
         sequence_name: &str,
         sequence: &Sequence,

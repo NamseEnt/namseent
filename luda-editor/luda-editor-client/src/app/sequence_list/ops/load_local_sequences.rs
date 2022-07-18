@@ -1,6 +1,6 @@
 use crate::app::{
     sequence_list::{events::SequenceListEvent, types::*, SequenceList},
-    storage::Storage,
+    storage::GithubStorage,
     types::*,
 };
 use futures::{future::join_all, TryFutureExt};
@@ -46,7 +46,7 @@ impl SequenceList {
 }
 
 pub async fn get_sequences_with_title(
-    storage: &Arc<Storage>,
+    storage: &Arc<dyn GithubStorage>,
 ) -> Result<LinkedHashMap<String, Arc<Sequence>>, String> {
     let sequence_index = SequenceIndex::load(storage).await?;
     let sequence_download_futures = storage

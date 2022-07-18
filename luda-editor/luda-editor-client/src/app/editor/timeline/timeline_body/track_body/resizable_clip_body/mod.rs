@@ -1,7 +1,7 @@
 mod sash;
 use crate::app::{
     editor::{events::EditorEvent, TimelineRenderContext},
-    storage::Storage,
+    storage::GithubStorage,
 };
 use namui::prelude::*;
 pub use sash::*;
@@ -12,7 +12,7 @@ pub struct ResizableClipBodyProps<'a> {
     pub track_body_wh: Wh<Px>,
     pub clip: &'a dyn ResizableClip,
     pub context: &'a TimelineRenderContext<'a>,
-    pub storage: Arc<Storage>,
+    pub storage: Arc<dyn GithubStorage>,
 }
 const RESIZABLE_CLIP_ROUND_RADIUS: Px = px(5.0);
 
@@ -20,7 +20,7 @@ pub trait ResizableClip {
     fn id(&self) -> String;
     fn start_at(&self) -> Time;
     fn end_at(&self) -> Time;
-    fn render(&self, wh: Wh<Px>, storage: Arc<Storage>) -> RenderingTree;
+    fn render(&self, wh: Wh<Px>, storage: Arc<dyn GithubStorage>) -> RenderingTree;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -160,7 +160,7 @@ fn render_resizable_clip_preview(
     resizable_clip_rect: Rect<Px>,
     track_body_width: Px,
     clip: &dyn ResizableClip,
-    storage: Arc<Storage>,
+    storage: Arc<dyn GithubStorage>,
 ) -> RenderingTree {
     let rect: Rect<Px> = get_resizable_clip_preview_rect(resizable_clip_rect, track_body_width);
 

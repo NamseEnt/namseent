@@ -1,13 +1,21 @@
 use super::{
-    get_sequence_lock_state::{GetSequenceLockStateError, SequenceLockState},
+    get_sequence_lock_state::{
+        GetSequenceLockStateError, SequenceLockState, StorageSequenceLockStateGet,
+    },
     types::LockInfo,
-    Storage,
+    ExpiredAt, Storage,
 };
 use crate::app::github_api::WriteFileError;
-use chrono::{DateTime, FixedOffset};
+use async_trait::async_trait;
 
-impl Storage {
-    pub async fn lock_sequence(&self, sequence_name: &str) -> Result<ExpiredAt, LockSequenceError> {
+#[async_trait(?Send)]
+pub trait GithubStorageSequenceLock: StorageSequenceLockStateGet {
+    async fn lock_sequence(&self, sequence_name: &str) -> Result<ExpiredAt, LockSequenceError>;
+}
+
+#[async_trait(?Send)]
+impl GithubStorageSequenceLock for Storage {
+    async fn lock_sequence(&self, sequence_name: &str) -> Result<ExpiredAt, LockSequenceError> {
         let lock_state = self.get_sequence_lock_state(sequence_name).await?;
         if let SequenceLockState::LockedByOther = lock_state {
             return Err(LockSequenceError::LockedByOther);
@@ -21,8 +29,6 @@ impl Storage {
         Ok(new_lock_info.get_expired_at().clone())
     }
 }
-
-type ExpiredAt = DateTime<FixedOffset>;
 
 #[derive(Debug)]
 pub enum LockSequenceError {

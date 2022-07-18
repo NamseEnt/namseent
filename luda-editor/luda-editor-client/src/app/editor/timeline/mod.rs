@@ -15,7 +15,7 @@ use crate::app::{
             timeline_header::{TimelineHeader, TimelineHeaderProps},
         },
     },
-    storage::Storage,
+    storage::GithubStorage,
     types::{Sequence, SubtitlePlayDurationMeasure},
 };
 use namui::prelude::*;
@@ -48,7 +48,7 @@ pub struct TimelineProps<'a> {
     pub selected_clip_ids: &'a [&'a String],
     pub sequence: &'a Sequence,
     pub subtitle_play_duration_measurer: &'a dyn SubtitlePlayDurationMeasure,
-    pub storage: Arc<Storage>,
+    pub storage: Arc<dyn GithubStorage>,
 }
 pub struct TimelineRenderContext<'a> {
     pub time_per_px: TimePerPx,

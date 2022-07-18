@@ -1,8 +1,15 @@
 use super::Storage;
 use crate::app::github_api::{DownloadError, ReadFileError};
+use async_trait::async_trait;
 
-impl Storage {
-    pub async fn get_sequence_titles(&self) -> Result<Vec<SequenceName>, GetSequenceIndexError> {
+#[async_trait(?Send)]
+pub trait GithubStorageSequenceTitlesGet {
+    async fn get_sequence_titles(&self) -> Result<Vec<SequenceName>, GetSequenceIndexError>;
+}
+
+#[async_trait(?Send)]
+impl GithubStorageSequenceTitlesGet for Storage {
+    async fn get_sequence_titles(&self) -> Result<Vec<SequenceName>, GetSequenceIndexError> {
         const PATH: &str = "sequence_index.json";
         let dirent = self.get_github_api_client().read_file(PATH).await?;
         let sequence_titles = serde_json::from_slice(&dirent.download().await?)?;

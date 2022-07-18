@@ -6,7 +6,7 @@ use crate::app::{
         types::{self, SequenceIndex, SequenceSyncState},
         SequenceList,
     },
-    storage::Storage,
+    storage::GithubStorage,
     types::*,
 };
 use futures::future::join_all;
@@ -54,7 +54,7 @@ impl SequenceList {
 }
 
 async fn sync_sequences_with_sheets(
-    storage: &Arc<Storage>,
+    storage: &Arc<dyn GithubStorage>,
 ) -> Result<LinkedHashMap<String, Arc<Sequence>>, String> {
     let sheets = google_spreadsheet::get_sheets().await?;
 
@@ -74,7 +74,7 @@ async fn sync_sequences_with_sheets(
 }
 
 async fn save_sequences(
-    storage: &Arc<Storage>,
+    storage: &Arc<dyn GithubStorage>,
     title_sequence_map: &LinkedHashMap<String, Arc<Sequence>>,
 ) -> Result<(), String> {
     let sequence_save_futures = title_sequence_map
@@ -159,7 +159,7 @@ fn create_new_sequences_if_not_exist_in_sequences_but_in_sheets(
 }
 
 async fn save_order_of_spreadsheet_to_local(
-    storage: &Arc<Storage>,
+    storage: &Arc<dyn GithubStorage>,
     sheets: &Vec<Sheet>,
 ) -> Result<(), String> {
     let sheet_titles: Vec<String> = sheets.iter().map(|sheet| sheet.title.clone()).collect();

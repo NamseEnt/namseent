@@ -1,7 +1,6 @@
 use super::*;
 use crate::app::{
     editor::{events::EditorEvent, job::Job, TimelineRenderContext},
-    storage::Storage,
     types::*,
 };
 use std::{collections::LinkedList, sync::Arc};
@@ -12,7 +11,7 @@ pub struct CameraTrackBodyProps<'a> {
     pub height: Px,
     pub track: &'a CameraTrack,
     pub context: &'a TimelineRenderContext<'a>,
-    pub storage: Arc<Storage>,
+    pub storage: Arc<dyn GithubStorage>,
 }
 
 fn move_clip_at_last(track: &mut CameraTrack, clip_ids: Vec<&String>) {
@@ -145,7 +144,7 @@ impl ResizableClip for CameraClip {
         self.end_at
     }
 
-    fn render(&self, wh: Wh<Px>, storage: Arc<Storage>) -> RenderingTree {
+    fn render(&self, wh: Wh<Px>, storage: Arc<dyn GithubStorage>) -> RenderingTree {
         self.camera_angle
             .render(wh, &LudaEditorServerCameraAngleImageLoader { storage })
     }

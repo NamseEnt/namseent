@@ -1,5 +1,5 @@
 use super::*;
-use crate::app::storage::Storage;
+use crate::app::storage::GithubStorage;
 use namui::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -158,7 +158,7 @@ pub trait CameraAngleImageLoader {
 }
 
 pub struct LudaEditorServerCameraAngleImageLoader {
-    pub storage: Arc<Storage>,
+    pub storage: Arc<dyn GithubStorage>,
 }
 impl CameraAngleImageLoader for LudaEditorServerCameraAngleImageLoader {
     fn get_character_image_source(&self, character: &CameraAngleCharacter) -> ImageSource {

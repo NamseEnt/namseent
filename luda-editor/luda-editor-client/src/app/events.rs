@@ -1,7 +1,7 @@
 use super::{
     editor::Editor,
     sequence_list::SequenceList,
-    storage::Storage,
+    storage::GithubStorage,
     types::{AppContext, MetaContainer},
 };
 use std::sync::Arc;
@@ -15,7 +15,7 @@ pub enum RouterEvent {
 
 pub enum AppEvent {
     Initialized {
-        storage: Arc<Storage>,
+        storage: Arc<dyn GithubStorage>,
         meta_container: Arc<MetaContainer>,
     },
 }

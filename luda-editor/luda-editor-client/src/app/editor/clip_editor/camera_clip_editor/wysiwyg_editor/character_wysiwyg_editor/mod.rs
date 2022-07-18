@@ -4,7 +4,7 @@ use self::{
     super::*,
     cropper::{Cropper, CropperProps},
 };
-use crate::app::{storage::Storage, types::*};
+use crate::app::{storage::GithubStorage, types::*};
 use namui::prelude::*;
 use std::sync::Arc;
 
@@ -17,7 +17,7 @@ pub struct CharacterWysiwygEditor {
 pub struct CharacterWysiwygEditorProps<'a> {
     pub rect: Rect<Px>,
     pub camera_angle: &'a CameraAngle,
-    pub storage: Arc<Storage>,
+    pub storage: Arc<dyn GithubStorage>,
 }
 
 impl CharacterWysiwygEditor {
