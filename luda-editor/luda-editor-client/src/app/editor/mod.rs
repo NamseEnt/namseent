@@ -120,16 +120,6 @@ impl namui::Entity for Editor {
                         }));
                     }
                 }
-                EditorEvent::CharacterImageFilesUpdatedEvent {
-                    character_image_files,
-                } => {
-                    self.character_image_files = character_image_files.clone();
-                }
-                EditorEvent::BackgroundImageFilesUpdatedEvent {
-                    background_image_files,
-                } => {
-                    self.background_image_files = background_image_files.clone();
-                }
                 EditorEvent::WysiwygEditorInnerImageMouseDownEvent {
                     target,
                     mouse_xy,
