@@ -1,7 +1,14 @@
 use super::SpecialRenderingNode;
 use crate::*;
 use serde::Serialize;
-use std::{collections::HashSet, ops::ControlFlow, sync::Arc};
+use std::{
+    collections::HashSet,
+    ops::ControlFlow,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+};
 
 #[derive(Serialize, Clone)]
 pub struct AttachEventNode {
@@ -29,7 +36,6 @@ pub struct AttachEventNode {
     pub on_key_up: Option<KeyboardEventCallback>,
 }
 
-#[derive(Clone)]
 pub struct MouseEvent<'a> {
     pub id: String,
     pub namui_context: &'a NamuiContext,
@@ -38,6 +44,12 @@ pub struct MouseEvent<'a> {
     pub global_xy: Xy<Px>,
     pub pressing_buttons: HashSet<MouseButton>,
     pub button: Option<MouseButton>,
+    pub(crate) is_stop_propagation: Arc<AtomicBool>,
+}
+impl MouseEvent<'_> {
+    pub fn stop_propagation(&self) {
+        self.is_stop_propagation.store(true, Ordering::Relaxed);
+    }
 }
 pub enum MouseEventType {
     Down,
