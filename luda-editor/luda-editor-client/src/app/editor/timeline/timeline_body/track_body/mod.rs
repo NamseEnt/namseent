@@ -4,7 +4,8 @@ mod subtitle_track_body;
 
 use self::camera_track_body::{CameraTrackBody, CameraTrackBodyProps};
 use self::subtitle_track_body::{SubtitleTrackBody, SubtitleTrackBodyProps};
-use crate::app::{editor::TimelineRenderContext, storage::Storage, types::Track};
+use crate::app::storage::GithubStorage;
+use crate::app::{editor::TimelineRenderContext, types::Track};
 use namui::prelude::*;
 pub use resizable_clip_body::*;
 use std::sync::Arc;
@@ -15,7 +16,7 @@ pub struct TrackBodyProps<'a> {
     pub height: Px,
     pub track: &'a Track,
     pub context: &'a TimelineRenderContext<'a>,
-    pub storage: Arc<Storage>,
+    pub storage: Arc<dyn GithubStorage>,
 }
 impl TrackBody {
     pub fn render(props: &TrackBodyProps) -> RenderingTree {

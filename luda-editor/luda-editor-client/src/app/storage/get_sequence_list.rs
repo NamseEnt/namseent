@@ -1,8 +1,15 @@
-use super::Storage;
+use super::{SequenceName, Storage};
 use crate::app::github_api::ReadDirError;
+use async_trait::async_trait;
 
-impl Storage {
-    pub async fn get_sequence_list(&self) -> Result<Vec<SequenceName>, GetSequenceListError> {
+#[async_trait(?Send)]
+pub trait GithubStorageSequenceListGet {
+    async fn get_sequence_list(&self) -> Result<Vec<SequenceName>, GetSequenceListError>;
+}
+
+#[async_trait(?Send)]
+impl GithubStorageSequenceListGet for Storage {
+    async fn get_sequence_list(&self) -> Result<Vec<SequenceName>, GetSequenceListError> {
         const PATH: &str = "sequence";
         let dirent_list = self.get_github_api_client().read_dir(PATH).await?;
         Ok(dirent_list
@@ -15,8 +22,6 @@ impl Storage {
             .collect())
     }
 }
-
-type SequenceName = String;
 
 #[derive(Debug)]
 pub enum GetSequenceListError {

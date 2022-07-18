@@ -1,7 +1,11 @@
 use super::Storage;
 
-impl Storage {
-    pub fn get_background_image_paths(&self) -> Vec<String> {
+pub trait GithubStorageBackgroundImagePathsGet {
+    fn get_background_image_paths(&self) -> Vec<String>;
+}
+
+impl GithubStorageBackgroundImagePathsGet for Storage {
+    fn get_background_image_paths(&self) -> Vec<String> {
         let paths = self
             .get_background_image_path_url_map()
             .iter()

@@ -3,7 +3,7 @@ mod browser_item;
 mod empty_button;
 mod scroll;
 mod types;
-use crate::app::storage::Storage;
+use crate::app::storage::GithubStorage;
 use browser_item::*;
 use namui::prelude::*;
 use scroll::*;
@@ -16,7 +16,7 @@ pub struct ImageBrowser {
     directory: ImageBrowserDirectory,
     selected_item: Option<ImageBrowserItem>,
     scroll: Scroll,
-    storage: Arc<Storage>,
+    storage: Arc<dyn GithubStorage>,
     image_type: ImageType,
 }
 pub struct ImageBrowserProps<'a> {
@@ -30,7 +30,7 @@ impl ImageBrowser {
         id: &str,
         directory: ImageBrowserDirectory,
         selected_item: Option<ImageBrowserItem>,
-        storage: Arc<Storage>,
+        storage: Arc<dyn GithubStorage>,
         image_type: ImageType,
     ) -> Self {
         Self {

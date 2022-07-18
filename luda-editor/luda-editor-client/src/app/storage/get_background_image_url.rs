@@ -1,8 +1,15 @@
 use super::Storage;
 use namui::Url;
 
-impl Storage {
-    pub fn get_background_image_url(
+pub trait GithubStorageBackgroundImageUrlGet {
+    fn get_background_image_url(
+        &self,
+        background_image_path: &str,
+    ) -> Result<Url, GetBackgroundImageUrlError>;
+}
+
+impl GithubStorageBackgroundImageUrlGet for Storage {
+    fn get_background_image_url(
         &self,
         background_image_path: &str,
     ) -> Result<Url, GetBackgroundImageUrlError> {

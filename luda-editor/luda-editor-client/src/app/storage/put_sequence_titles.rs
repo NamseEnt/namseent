@@ -1,13 +1,23 @@
 use super::Storage;
 use crate::app::github_api::WriteFileError;
+use async_trait::async_trait;
 
-impl Storage {
-    pub async fn put_sequence_titles(
+#[async_trait(?Send)]
+pub trait GithubStorageSequenceTitlesPut {
+    async fn put_sequence_titles(
+        &self,
+        sequence_titles: &Vec<SequenceName>,
+    ) -> Result<(), PutSequenceIndexError>;
+}
+
+#[async_trait(?Send)]
+impl GithubStorageSequenceTitlesPut for Storage {
+    async fn put_sequence_titles(
         &self,
         sequence_titles: &Vec<SequenceName>,
     ) -> Result<(), PutSequenceIndexError> {
         const PATH: &str = "sequence_index.json";
-        let dirent = self
+        let _ = self
             .get_github_api_client()
             .write_file(PATH, serde_json::to_string(sequence_titles)?)
             .await?;

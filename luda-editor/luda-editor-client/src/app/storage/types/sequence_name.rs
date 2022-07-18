@@ -1,0 +1,1 @@
+pub type SequenceName = String;

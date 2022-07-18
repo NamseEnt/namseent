@@ -1,4 +1,4 @@
-use crate::app::storage::Storage;
+use crate::app::storage::GithubStorage;
 use futures::TryFutureExt;
 use linked_hash_map::LinkedHashMap;
 use std::sync::Arc;
@@ -28,7 +28,7 @@ impl SequenceIndex {
         sorted_title_sequence_map
     }
 
-    pub async fn save(&self, storage: &Arc<Storage>) -> Result<(), String> {
+    pub async fn save(&self, storage: &Arc<dyn GithubStorage>) -> Result<(), String> {
         storage
             .put_sequence_titles(&self.sequence_titles)
             .map_err(|error| format!("failed to save sequence index: {:#?}", error))
@@ -36,7 +36,7 @@ impl SequenceIndex {
         Ok(())
     }
 
-    pub async fn load(storage: &Arc<Storage>) -> Result<Self, String> {
+    pub async fn load(storage: &Arc<dyn GithubStorage>) -> Result<Self, String> {
         let sequence_titles = storage
             .get_sequence_titles()
             .map_err(|error| format!("failed to load sequence index: {:#?}", error))

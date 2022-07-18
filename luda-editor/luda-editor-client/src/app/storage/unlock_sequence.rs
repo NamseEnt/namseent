@@ -1,11 +1,20 @@
 use super::{
-    get_sequence_lock_state::{GetSequenceLockStateError, SequenceLockState},
+    get_sequence_lock_state::{
+        GetSequenceLockStateError, SequenceLockState, StorageSequenceLockStateGet,
+    },
     Storage,
 };
 use crate::app::github_api::DeleteFileError;
+use async_trait::async_trait;
 
-impl Storage {
-    pub async fn unlock_sequence(&self, sequence_name: &str) -> Result<(), UnlockSequenceError> {
+#[async_trait(?Send)]
+pub trait GithubStorageSequenceUnlock: StorageSequenceLockStateGet {
+    async fn unlock_sequence(&self, sequence_name: &str) -> Result<(), UnlockSequenceError>;
+}
+
+#[async_trait(?Send)]
+impl GithubStorageSequenceUnlock for Storage {
+    async fn unlock_sequence(&self, sequence_name: &str) -> Result<(), UnlockSequenceError> {
         let lock_state = self.get_sequence_lock_state(sequence_name).await?;
         match lock_state {
             SequenceLockState::LockedByOther => return Err(UnlockSequenceError::LockedByOther),

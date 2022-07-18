@@ -16,7 +16,7 @@ use self::{
     events::*,
 };
 use super::{
-    storage::Storage,
+    storage::GithubStorage,
     types::{
         meta::{Meta, MetaContainer},
         *,
@@ -46,7 +46,7 @@ pub struct Editor {
     clip_editor: Option<ClipEditor>,
     character_image_files: BTreeSet<ImageBrowserFile>,
     background_image_files: BTreeSet<ImageBrowserFile>,
-    storage: Arc<Storage>,
+    storage: Arc<dyn GithubStorage>,
     selected_clip_ids: Arc<BTreeSet<String>>,
     sequence_player: Box<dyn SequencePlay>,
     history: History<Arc<Sequence>>,
@@ -497,7 +497,7 @@ impl namui::Entity for Editor {
 
 impl Editor {
     pub fn new(
-        storage: Arc<Storage>,
+        storage: Arc<dyn GithubStorage>,
         sequence: Arc<Sequence>,
         sequence_title: &str,
         meta_container: Arc<MetaContainer>,

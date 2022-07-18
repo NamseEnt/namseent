@@ -1,8 +1,18 @@
 use super::{types::LockInfo, Storage};
 use crate::app::github_api::{DownloadError, ReadFileError};
+use async_trait::async_trait;
 
-impl Storage {
-    pub async fn get_sequence_lock_state(
+#[async_trait(?Send)]
+pub trait StorageSequenceLockStateGet {
+    async fn get_sequence_lock_state(
+        &self,
+        sequence_name: &str,
+    ) -> Result<SequenceLockState, GetSequenceLockStateError>;
+}
+
+#[async_trait(?Send)]
+impl StorageSequenceLockStateGet for Storage {
+    async fn get_sequence_lock_state(
         &self,
         sequence_name: &str,
     ) -> Result<SequenceLockState, GetSequenceLockStateError> {
@@ -33,7 +43,6 @@ pub enum SequenceLockState {
     LockedByMe,
     Unlocked,
 }
-type ClientId = String;
 
 #[derive(Debug)]
 pub enum GetSequenceLockStateError {

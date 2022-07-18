@@ -3,7 +3,7 @@ use super::{
     events::AppEvent,
     github_api::GithubAPiClient,
     router::RouterProps,
-    storage::Storage,
+    storage::{GithubStorage, Storage},
     types::{AppContext, MetaContainer},
     Router,
 };
