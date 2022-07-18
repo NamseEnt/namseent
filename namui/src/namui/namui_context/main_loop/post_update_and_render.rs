@@ -1,6 +1,5 @@
 use super::*;
 use crate::namui::render::DownUp;
-use std::time::Duration;
 
 impl NamuiContext {
     pub(super) fn post_update_and_render(&mut self, event: &Event) {
