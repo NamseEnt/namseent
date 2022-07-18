@@ -1,7 +1,11 @@
 use super::*;
 use crate::namui::{ClipOp, DrawCall, NamuiContext, Xy, *};
 use serde::Serialize;
-use std::{borrow::Borrow, ops::ControlFlow};
+use std::{
+    borrow::Borrow,
+    ops::ControlFlow,
+    sync::atomic::{AtomicBool, Ordering},
+};
 mod visit;
 
 #[derive(Serialize, Default, Clone, Debug)]
@@ -213,50 +217,87 @@ impl RenderingTree {
         raw_mouse_event: &RawMouseEvent,
         namui_context: &NamuiContext,
     ) {
-        self.visit_rln(|node, utils| {
-            if let RenderingTree::Special(special) = node {
-                if let SpecialRenderingNode::AttachEvent(attach_event) = special {
-                    let (in_func, out_func) = match mouse_event_type {
-                        MouseEventType::Move => (
-                            &attach_event.on_mouse_move_in,
-                            &attach_event.on_mouse_move_out,
-                        ),
-                        MouseEventType::Down => (
-                            &attach_event.on_mouse_down_in,
-                            &attach_event.on_mouse_down_out,
-                        ),
-                        MouseEventType::Up => {
-                            (&attach_event.on_mouse_up_in, &attach_event.on_mouse_up_out)
-                        }
-                    };
-                    if in_func.is_some() || out_func.is_some() {
-                        let is_mouse_in = utils.is_xy_in(raw_mouse_event.xy);
-                        let mouse_event = MouseEvent {
-                            id: raw_mouse_event.id.clone(),
-                            global_xy: raw_mouse_event.xy,
-                            local_xy: utils.to_local_xy(raw_mouse_event.xy),
-                            pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
-                            button: raw_mouse_event.button,
-                            target: node,
-                            namui_context,
+        let mut is_stop_propagation = false;
+
+        enum Layer {
+            Top,
+            Down,
+        }
+        for layer in [Layer::Top, Layer::Down] {
+            if is_stop_propagation {
+                break;
+            }
+
+            self.visit_rln(|node, utils| {
+                if let RenderingTree::Special(special) = node {
+                    if let SpecialRenderingNode::AttachEvent(attach_event) = special {
+                        let is_on_right_layer = {
+                            let has_top_ancestor = utils.ancestors.iter().any(|ancestor| {
+                                if let RenderingTree::Special(SpecialRenderingNode::OnTop(_)) =
+                                    ancestor
+                                {
+                                    return true;
+                                }
+                                false
+                            });
+
+                            match layer {
+                                Layer::Top => has_top_ancestor,
+                                Layer::Down => !has_top_ancestor,
+                            }
                         };
-                        match is_mouse_in {
-                            true => {
-                                if let Some(in_func) = in_func {
-                                    in_func(&mouse_event);
+                        if !is_on_right_layer {
+                            return ControlFlow::Continue(());
+                        }
+
+                        let (in_func, out_func) = match mouse_event_type {
+                            MouseEventType::Move => (
+                                &attach_event.on_mouse_move_in,
+                                &attach_event.on_mouse_move_out,
+                            ),
+                            MouseEventType::Down => (
+                                &attach_event.on_mouse_down_in,
+                                &attach_event.on_mouse_down_out,
+                            ),
+                            MouseEventType::Up => {
+                                (&attach_event.on_mouse_up_in, &attach_event.on_mouse_up_out)
+                            }
+                        };
+                        if in_func.is_some() || out_func.is_some() {
+                            let is_mouse_in = utils.is_xy_in(raw_mouse_event.xy);
+                            let mouse_event = MouseEvent {
+                                id: raw_mouse_event.id.clone(),
+                                global_xy: raw_mouse_event.xy,
+                                local_xy: utils.to_local_xy(raw_mouse_event.xy),
+                                pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
+                                button: raw_mouse_event.button,
+                                target: node,
+                                namui_context,
+                                is_stop_propagation: Arc::new(AtomicBool::new(false)),
+                            };
+                            match is_mouse_in {
+                                true => {
+                                    if let Some(in_func) = in_func {
+                                        in_func(&mouse_event);
+                                    }
+                                }
+                                false => {
+                                    if let Some(out_func) = out_func {
+                                        out_func(&mouse_event);
+                                    }
                                 }
                             }
-                            false => {
-                                if let Some(out_func) = out_func {
-                                    out_func(&mouse_event);
-                                }
+
+                            if mouse_event.is_stop_propagation.load(Ordering::Relaxed) {
+                                is_stop_propagation = true;
+                                return ControlFlow::Break(());
                             }
                         }
                     }
                 }
-            }
-            ControlFlow::Continue(())
-        });
+                ControlFlow::Continue(())
+            });
+        }
     }
     pub(crate) fn get_xy_by_id(&self, id: &str) -> Option<Xy<Px>> {
         let mut result = None;
