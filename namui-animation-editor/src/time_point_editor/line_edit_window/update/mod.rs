@@ -45,20 +45,22 @@ impl LineEditWindow {
                         self.animation_history.act(ticket).unwrap();
                     }
                 }
-                &Event::SquashAndStretchVelocityRatioUpdated {
-                    ref layer_id,
-                    ref point_id,
-                    velocity_ratio,
+                Event::UpdateLine {
+                    layer_id,
+                    point_id,
+                    func,
                 } => {
+                    let func = func.clone();
                     if let Some(ticket) = self.animation_history.try_set_action(UpdateLineAction {
                         layer_id: layer_id.clone(),
                         point_id: point_id.clone(),
                         update: move |line| {
                             if let ImageInterpolation::SquashAndStretch {
                                 velocity_ratio: _velocity_ratio,
+                                ..
                             } = line
                             {
-                                *_velocity_ratio = velocity_ratio;
+                                func(line);
                             }
                         },
                     }) {
@@ -67,7 +69,6 @@ impl LineEditWindow {
                 }
             }
         }
-        self.dropdown.update(event);
     }
 }
 

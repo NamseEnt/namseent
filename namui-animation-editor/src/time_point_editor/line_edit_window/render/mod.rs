@@ -20,10 +20,10 @@ impl LineEditWindow {
 
                 vertical([
                     fixed_no_clip(36.px(), |wh| {
-                        self.render_line_select_dropdown(&props, wh, layer, *line, point_id)
+                        self.render_line_select_dropdown(wh, layer, *line, point_id)
                     }),
                     ratio(1.0, |wh| {
-                        self.render_line_editor(&props, wh, layer, *line, point_id)
+                        self.render_line_editor(wh, layer, *line, point_id)
                     }),
                 ])(props.wh)
             }
@@ -34,7 +34,6 @@ impl LineEditWindow {
     }
     fn render_line_select_dropdown(
         &self,
-        props: &Props,
         wh: Wh<Px>,
         layer: &Layer,
         line: ImageInterpolation,
@@ -42,7 +41,7 @@ impl LineEditWindow {
     ) -> RenderingTree {
         let layer_id = layer.id.clone();
         let point_id = point_id.to_string();
-        self.dropdown.render(dropdown::Props {
+        dropdown::render(dropdown::Props {
             rect: Rect::from_xy_wh(Xy::zero(), wh),
             items: ImageInterpolation::iter().map(|interpolation| dropdown::Item {
                 id: interpolation.as_ref().to_string(),
@@ -52,7 +51,15 @@ impl LineEditWindow {
             visible_item_count: 0,
             on_select_item: move |item_id| {
                 namui::event::send(Event::SelectItem {
-                    line: ImageInterpolation::from_str(&item_id).unwrap(),
+                    line: match ImageInterpolation::from_str(&item_id).unwrap() {
+                        ImageInterpolation::AllLinear => ImageInterpolation::AllLinear,
+                        ImageInterpolation::SquashAndStretch { .. } => {
+                            ImageInterpolation::SquashAndStretch {
+                                velocity_ratio: 0.0,
+                                frame_per_second: 60.0,
+                            }
+                        }
+                    },
                     layer_id: layer_id.clone(),
                     point_id: point_id.clone(),
                 });
@@ -62,7 +69,6 @@ impl LineEditWindow {
 
     fn render_line_editor(
         &self,
-        props: &Props,
         wh: Wh<Px>,
         layer: &Layer,
         line: ImageInterpolation,
@@ -70,8 +76,12 @@ impl LineEditWindow {
     ) -> RenderingTree {
         match line {
             ImageInterpolation::AllLinear => RenderingTree::Empty,
-            ImageInterpolation::SquashAndStretch { velocity_ratio } => {
-                vertical([fixed(36.px(), |wh| {
+            ImageInterpolation::SquashAndStretch {
+                velocity_ratio,
+                frame_per_second,
+            } => vertical([
+                fixed(
+                    36.px(),
                     horizontal([
                         ratio(1.0, |wh| {
                             typography::body::left(wh, "  Velocity: ", Color::BLACK)
@@ -87,20 +97,63 @@ impl LineEditWindow {
                                     small_gradation_value_interval: 0.2,
                                     big_gradation_per_small_gradation: 5,
                                     on_value_changed: move |next_value| {
-                                        namui::event::send(
-                                            Event::SquashAndStretchVelocityRatioUpdated {
-                                                layer_id: layer_id.clone(),
-                                                point_id: point_id.clone(),
-                                                velocity_ratio: next_value,
-                                            },
-                                        );
+                                        namui::event::send(Event::UpdateLine {
+                                            layer_id: layer_id.clone(),
+                                            point_id: point_id.clone(),
+                                            func: Arc::new(move |line| {
+                                                if let ImageInterpolation::SquashAndStretch {
+                                                    ref mut velocity_ratio,
+                                                    ..
+                                                } = line
+                                                {
+                                                    *velocity_ratio = next_value;
+                                                }
+                                            }),
+                                        });
                                     },
                                 },
                             )
                         }),
-                    ])(wh)
-                })])(wh)
-            }
+                    ]),
+                ),
+                fixed_no_clip(
+                    36.px(),
+                    horizontal([
+                        ratio(1.0, |wh| {
+                            typography::body::left(wh, "  Fps: ", Color::BLACK)
+                        }),
+                        ratio_no_clip(4.0, |wh| {
+                            let layer_id = layer.id.clone();
+                            let point_id = point_id.to_string();
+                            dropdown::render(dropdown::Props {
+                                rect: Rect::from_xy_wh(Xy::zero(), wh),
+                                items: [60, 30, 24].iter().map(|fps| dropdown::Item {
+                                    id: fps.to_string(),
+                                    text: fps.to_string(),
+                                    is_selected: *fps == (frame_per_second as i32),
+                                }),
+                                visible_item_count: 0,
+                                on_select_item: move |next_value| {
+                                    namui::event::send(Event::UpdateLine {
+                                        layer_id: layer_id.clone(),
+                                        point_id: point_id.clone(),
+                                        func: Arc::new(move |line| {
+                                            if let ImageInterpolation::SquashAndStretch {
+                                                ref mut frame_per_second,
+                                                ..
+                                            } = line
+                                            {
+                                                *frame_per_second =
+                                                    f32::from_str(&next_value).unwrap();
+                                            }
+                                        }),
+                                    });
+                                },
+                            })
+                        }),
+                    ]),
+                ),
+            ])(wh),
         }
     }
 }

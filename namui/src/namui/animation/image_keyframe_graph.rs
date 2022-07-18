@@ -63,9 +63,9 @@ impl ImageKeyframe {
 )]
 pub enum ImageInterpolation {
     AllLinear,
-    /// velocity ratio * L / T = v0
     SquashAndStretch {
         velocity_ratio: f32,
+        frame_per_second: f32,
     },
 }
 
@@ -82,13 +82,17 @@ impl ImageInterpolation {
 }
 
 impl KeyframeValue<ImageInterpolation> for ImageKeyframe {
-    fn interpolate(&self, next: &Self, time_ratio: f32, line: &ImageInterpolation) -> Self {
-        match line {
+    fn interpolate(&self, next: &Self, context: &InterpolationContext<ImageInterpolation>) -> Self {
+        match context.line {
             ImageInterpolation::AllLinear => Self {
-                matrix: linear_interpolate(&self.matrix, &next.matrix, time_ratio),
-                opacity: linear_interpolate(&self.opacity, &next.opacity, time_ratio),
+                matrix: linear_interpolate(&self.matrix, &next.matrix, context.time_ratio),
+                opacity: linear_interpolate(&self.opacity, &next.opacity, context.time_ratio),
             },
-            &ImageInterpolation::SquashAndStretch { velocity_ratio } => {
+            &ImageInterpolation::SquashAndStretch {
+                velocity_ratio,
+                frame_per_second,
+            } => {
+                let time_ratio = get_time_ratio_in_fps(&context, frame_per_second);
                 fn get_position_of_time_ratio(
                     time_ratio: f32,
                     _velocity_ratio: f32,
@@ -106,7 +110,6 @@ impl KeyframeValue<ImageInterpolation> for ImageKeyframe {
                 let y = self.y() + get_position_of_time_ratio(time_ratio, velocity_ratio, vector.y);
 
                 let angle = vector.atan2();
-                crate::log!("angle: {:?}", angle.as_degrees());
 
                 let mut matrix = Matrix3x3::identity();
 
@@ -133,6 +136,13 @@ impl KeyframeValue<ImageInterpolation> for ImageKeyframe {
             }
         }
     }
+}
+
+fn get_time_ratio_in_fps(context: &InterpolationContext<ImageInterpolation>, fps: f32) -> f32 {
+    let time_ratio_per_frame = 1.0 / (context.duration.as_seconds() * fps);
+    let rest = context.time_ratio % time_ratio_per_frame;
+    let time_ratio = context.time_ratio - rest;
+    time_ratio
 }
 
 fn linear_interpolate<'a, TValue>(a: &'a TValue, b: &'a TValue, time_ratio: f32) -> TValue

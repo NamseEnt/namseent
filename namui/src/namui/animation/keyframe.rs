@@ -22,7 +22,13 @@ impl<T: Clone> KeyframePoint<T> {
 }
 
 pub trait KeyframeValue<TKeyframeLine> {
-    fn interpolate(&self, next: &Self, time_ratio: f32, line: &TKeyframeLine) -> Self;
+    fn interpolate(&self, next: &Self, context: &InterpolationContext<TKeyframeLine>) -> Self;
+}
+
+pub struct InterpolationContext<'a, TKeyframeLine> {
+    pub line: &'a TKeyframeLine,
+    pub time_ratio: f32,
+    pub duration: Time,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,11 +102,14 @@ impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
             if current_point.time <= time && time < next_point.time {
                 let time_ratio =
                     (time - current_point.time) / (next_point.time - current_point.time);
-                return Some(
-                    current_point
-                        .value
-                        .interpolate(&next_point.value, time_ratio, line),
-                );
+                return Some(current_point.value.interpolate(
+                    &next_point.value,
+                    &InterpolationContext {
+                        line,
+                        time_ratio,
+                        duration: next_point.time - current_point.time,
+                    },
+                ));
             }
         }
     }
@@ -170,8 +179,12 @@ mod tests {
     struct LinearKeyframeLine {}
 
     impl KeyframeValue<LinearKeyframeLine> for f32 {
-        fn interpolate(&self, next: &Self, time_ratio: f32, _line: &LinearKeyframeLine) -> Self {
-            self + (next - self) * time_ratio
+        fn interpolate(
+            &self,
+            next: &Self,
+            context: &InterpolationContext<LinearKeyframeLine>,
+        ) -> Self {
+            self + (next - self) * context.time_ratio
         }
     }
 

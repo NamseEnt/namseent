@@ -97,9 +97,14 @@ mod tests {
     struct LinearKeyframeLine {}
 
     impl KeyframeValue<LinearKeyframeLine> for OneZero {
-        fn interpolate(&self, next: &Self, time_ratio: f32, _line: &LinearKeyframeLine) -> Self {
-            let one_zero =
-                OneZero::from(self.as_f32() * (1.0 - time_ratio) + next.as_f32() * time_ratio);
+        fn interpolate(
+            &self,
+            next: &Self,
+            context: &InterpolationContext<LinearKeyframeLine>,
+        ) -> Self {
+            let one_zero = OneZero::from(
+                self.as_f32() * (1.0 - context.time_ratio) + next.as_f32() * context.time_ratio,
+            );
             one_zero
         }
     }

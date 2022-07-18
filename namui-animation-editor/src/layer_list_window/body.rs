@@ -114,23 +114,24 @@ fn render_preview_cell(wh: Wh<Px>, layer: &namui::animation::Layer, now: Time) -
     let preview = {
         let time_range = layer.image.get_visible_time_range();
         match time_range {
-            Some((start_time, end_time)) => {
-                let duration = end_time - start_time;
+            // Some((start_time, end_time)) => {
+            //     let duration = end_time - start_time;
 
-                const PLAY_SPEED: f32 = 3.0;
-                let playback_time = if duration == Time::Ms(0.0) {
-                    start_time
-                } else {
-                    (now % (duration / PLAY_SPEED)) * PLAY_SPEED
-                };
+            //     const PLAY_SPEED: f32 = 3.0;
+            //     let playback_time = if duration == Time::Ms(0.0) {
+            //         start_time
+            //     } else {
+            //         (now % (duration / PLAY_SPEED)) * PLAY_SPEED
+            //     };
 
-                namui::scale(
-                    wh.width / px(1920.0),
-                    wh.height / px(1080.0),
-                    layer.image.render(playback_time),
-                )
-            }
-            None => RenderingTree::Empty,
+            //     namui::scale(
+            //         wh.width / px(1920.0),
+            //         wh.height / px(1080.0),
+            //         layer.image.render(playback_time),
+            //     )
+            // }
+            // None => RenderingTree::Empty,
+            _ => RenderingTree::Empty,
         }
     };
     render([border, preview])

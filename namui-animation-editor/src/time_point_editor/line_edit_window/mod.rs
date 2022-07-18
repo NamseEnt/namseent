@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::EditingTarget;
 use crate::types::AnimationHistory;
 use namui::{
@@ -12,15 +14,11 @@ mod update;
 
 pub struct LineEditWindow {
     animation_history: AnimationHistory,
-    dropdown: namui_prebuilt::dropdown::Dropdown,
 }
 
 impl LineEditWindow {
     pub fn new(animation_history: AnimationHistory) -> Self {
-        Self {
-            animation_history,
-            dropdown: namui_prebuilt::dropdown::Dropdown::new(),
-        }
+        Self { animation_history }
     }
 }
 
@@ -36,9 +34,9 @@ enum Event {
         layer_id: String,
         point_id: String,
     },
-    SquashAndStretchVelocityRatioUpdated {
+    UpdateLine {
         layer_id: String,
         point_id: String,
-        velocity_ratio: f32,
+        func: Arc<dyn Fn(&mut ImageInterpolation) + Send + Sync>,
     },
 }
