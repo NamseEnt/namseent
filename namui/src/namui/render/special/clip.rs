@@ -6,7 +6,7 @@ use serde::Serialize;
 pub struct ClipNode {
     pub(crate) path_builder: PathBuilder,
     pub(crate) clip_op: ClipOp,
-    pub(crate) rendering_tree: Box<RenderingTree>,
+    pub(crate) rendering_tree: std::sync::Arc<RenderingTree>,
 }
 
 pub fn clip(
@@ -17,7 +17,7 @@ pub fn clip(
     RenderingTree::Special(SpecialRenderingNode::Clip(ClipNode {
         path_builder,
         clip_op,
-        rendering_tree: Box::new(rendering_tree),
+        rendering_tree: std::sync::Arc::new(rendering_tree),
     }))
 }
 

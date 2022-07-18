@@ -32,6 +32,7 @@ impl NamuiContext {
     }
     pub async fn start<TProps>(mut self, state: &mut dyn Entity<Props = TProps>, props: &TProps) {
         self.rendering_tree = state.render(props);
+        react::reconciliate(&RenderingTree::Empty, &self.rendering_tree, None);
 
         fn on_frame() {
             crate::event::send(crate::NamuiEvent::AnimationFrame);

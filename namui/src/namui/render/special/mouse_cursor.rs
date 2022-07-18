@@ -18,14 +18,14 @@ pub enum MouseCursor {
 
 #[derive(Serialize, Clone, Debug)]
 pub struct MouseCursorNode {
-    pub(crate) rendering_tree: Box<RenderingTree>,
+    pub(crate) rendering_tree: std::sync::Arc<RenderingTree>,
     pub cursor: Box<MouseCursor>,
 }
 
 impl RenderingTree {
     pub fn with_mouse_cursor(self, cursor: MouseCursor) -> RenderingTree {
         RenderingTree::Special(SpecialRenderingNode::MouseCursor(MouseCursorNode {
-            rendering_tree: Box::new(self),
+            rendering_tree: std::sync::Arc::new(self),
             cursor: Box::new(cursor),
         }))
     }

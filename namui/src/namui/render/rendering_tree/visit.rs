@@ -86,7 +86,8 @@ impl RenderingTree {
                     | SpecialRenderingNode::AttachEvent(_)
                     | SpecialRenderingNode::MouseCursor(_)
                     | SpecialRenderingNode::WithId(_)
-                    | SpecialRenderingNode::Custom(_) => {}
+                    | SpecialRenderingNode::Custom(_)
+                    | SpecialRenderingNode::React(_) => {}
                 },
                 _ => {}
             }
@@ -146,7 +147,8 @@ impl RenderingTree {
                     | SpecialRenderingNode::AttachEvent(_)
                     | SpecialRenderingNode::MouseCursor(_)
                     | SpecialRenderingNode::WithId(_)
-                    | SpecialRenderingNode::Custom(_) => {}
+                    | SpecialRenderingNode::Custom(_)
+                    | SpecialRenderingNode::React(_) => {}
                 }
             }
         }

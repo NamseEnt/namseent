@@ -6,13 +6,13 @@ use serde::Serialize;
 pub struct TranslateNode {
     pub(crate) x: Px,
     pub(crate) y: Px,
-    pub(crate) rendering_tree: Box<RenderingTree>,
+    pub(crate) rendering_tree: std::sync::Arc<RenderingTree>,
 }
 
 pub fn translate(x: Px, y: Px, rendering_tree: RenderingTree) -> RenderingTree {
     RenderingTree::Special(SpecialRenderingNode::Translate(TranslateNode {
         x,
         y,
-        rendering_tree: Box::new(rendering_tree),
+        rendering_tree: std::sync::Arc::new(rendering_tree),
     }))
 }
