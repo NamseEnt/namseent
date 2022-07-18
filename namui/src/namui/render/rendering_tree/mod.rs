@@ -34,6 +34,7 @@ impl SpecialRenderingNode {
             SpecialRenderingNode::Scale(node) => node.rendering_tree.clone(),
             SpecialRenderingNode::Transform(node) => node.rendering_tree.clone(),
             SpecialRenderingNode::React(node) => node.render(),
+            SpecialRenderingNode::OnTop(node) => node.rendering_tree.clone(),
         }
     }
 }
@@ -44,79 +45,102 @@ impl SpecialRenderingNode {
 /// reference: https://en.wikipedia.org/wiki/Tree_traversal
 impl RenderingTree {
     pub(crate) fn draw(&self) {
-        match self {
-            RenderingTree::Children(ref children) => {
-                for child in children {
-                    child.draw();
+        struct DrawContext {
+            on_top_node_matrix_tuples: Vec<(OnTopNode, Matrix3x3)>,
+        }
+        fn draw_internal(rendering_tree: &RenderingTree, draw_context: &mut DrawContext) {
+            match rendering_tree {
+                RenderingTree::Children(ref children) => {
+                    for child in children.iter() {
+                        draw_internal(child, draw_context);
+                    }
                 }
-            }
-            RenderingTree::Node(rendering_data) => {
-                rendering_data.draw_calls.iter().for_each(|draw_call| {
-                    draw_call.draw();
-                });
-            }
-            RenderingTree::Special(special) => match special {
-                SpecialRenderingNode::Translate(translate) => {
-                    crate::graphics::surface().canvas().save();
-                    crate::graphics::surface()
-                        .canvas()
-                        .translate(translate.x, translate.y);
+                RenderingTree::Node(rendering_data) => {
+                    rendering_data.draw_calls.iter().for_each(|draw_call| {
+                        draw_call.draw();
+                    });
+                }
+                RenderingTree::Special(special) => match special {
+                    SpecialRenderingNode::Translate(translate) => {
+                        crate::graphics::surface().canvas().save();
+                        crate::graphics::surface()
+                            .canvas()
+                            .translate(translate.x, translate.y);
 
-                    translate.rendering_tree.draw();
-                    crate::graphics::surface().canvas().restore();
-                }
-                SpecialRenderingNode::Clip(clip) => {
-                    crate::graphics::surface().canvas().save();
-                    let path = clip.path_builder.build();
-                    crate::graphics::surface().canvas().clip_path(
-                        path.as_ref(),
-                        &clip.clip_op,
-                        true,
-                    );
-                    clip.rendering_tree.draw();
-                    crate::graphics::surface().canvas().restore();
-                }
-                SpecialRenderingNode::Absolute(absolute) => {
-                    crate::graphics::surface().canvas().save();
-                    crate::graphics::surface()
-                        .canvas()
-                        .set_matrix(Matrix3x3::from_slice([
-                            [1.0, 0.0, absolute.x.as_f32()],
-                            [0.0, 1.0, absolute.y.as_f32()],
-                            [0.0, 0.0, 1.0],
-                        ]));
-                    absolute.rendering_tree.draw();
-                    crate::graphics::surface().canvas().restore();
-                }
-                SpecialRenderingNode::Rotate(rotate) => {
-                    crate::graphics::surface().canvas().save();
-                    crate::graphics::surface().canvas().rotate(rotate.angle);
-                    rotate.rendering_tree.draw();
-                    crate::graphics::surface().canvas().restore();
-                }
-                SpecialRenderingNode::Scale(scale) => {
-                    crate::graphics::surface().canvas().save();
-                    crate::graphics::surface().canvas().scale(scale.x, scale.y);
-                    scale.rendering_tree.draw();
-                    crate::graphics::surface().canvas().restore();
-                }
-                SpecialRenderingNode::Transform(transform) => {
-                    crate::graphics::surface().canvas().save();
-                    crate::graphics::surface()
-                        .canvas()
-                        .transform(transform.matrix);
-                    transform.rendering_tree.draw();
-                    crate::graphics::surface().canvas().restore();
-                }
-                SpecialRenderingNode::AttachEvent(_)
-                | SpecialRenderingNode::MouseCursor(_)
-                | SpecialRenderingNode::WithId(_)
-                | SpecialRenderingNode::Custom(_)
-                | SpecialRenderingNode::React(_) => {
-                    special.get_rendering_tree().draw();
-                }
-            },
-            RenderingTree::Empty => {}
+                        draw_internal(&translate.rendering_tree, draw_context);
+                        crate::graphics::surface().canvas().restore();
+                    }
+                    SpecialRenderingNode::Clip(clip) => {
+                        crate::graphics::surface().canvas().save();
+                        let path = clip.path_builder.build();
+                        crate::graphics::surface().canvas().clip_path(
+                            path.as_ref(),
+                            &clip.clip_op,
+                            true,
+                        );
+                        draw_internal(&clip.rendering_tree, draw_context);
+                        crate::graphics::surface().canvas().restore();
+                    }
+                    SpecialRenderingNode::Absolute(absolute) => {
+                        crate::graphics::surface().canvas().save();
+                        crate::graphics::surface()
+                            .canvas()
+                            .set_matrix(Matrix3x3::from_slice([
+                                [1.0, 0.0, absolute.x.as_f32()],
+                                [0.0, 1.0, absolute.y.as_f32()],
+                                [0.0, 0.0, 1.0],
+                            ]));
+                        draw_internal(&absolute.rendering_tree, draw_context);
+                        crate::graphics::surface().canvas().restore();
+                    }
+                    SpecialRenderingNode::Rotate(rotate) => {
+                        crate::graphics::surface().canvas().save();
+                        crate::graphics::surface().canvas().rotate(rotate.angle);
+                        draw_internal(&rotate.rendering_tree, draw_context);
+                        crate::graphics::surface().canvas().restore();
+                    }
+                    SpecialRenderingNode::Scale(scale) => {
+                        crate::graphics::surface().canvas().save();
+                        crate::graphics::surface().canvas().scale(scale.x, scale.y);
+                        draw_internal(&scale.rendering_tree, draw_context);
+                        crate::graphics::surface().canvas().restore();
+                    }
+                    SpecialRenderingNode::Transform(transform) => {
+                        crate::graphics::surface().canvas().save();
+                        crate::graphics::surface()
+                            .canvas()
+                            .transform(transform.matrix);
+                        draw_internal(&transform.rendering_tree, draw_context);
+                        crate::graphics::surface().canvas().restore();
+                    }
+                    SpecialRenderingNode::OnTop(on_top) => {
+                        let matrix = crate::graphics::surface().canvas().get_matrix();
+                        draw_context
+                            .on_top_node_matrix_tuples
+                            .push((on_top.clone(), matrix));
+                    }
+                    SpecialRenderingNode::AttachEvent(_)
+                    | SpecialRenderingNode::MouseCursor(_)
+                    | SpecialRenderingNode::WithId(_)
+                    | SpecialRenderingNode::Custom(_)
+                    | SpecialRenderingNode::React(_) => {
+                        draw_internal(&special.get_rendering_tree(), draw_context);
+                    }
+                },
+                RenderingTree::Empty => {}
+            }
+        }
+
+        let mut draw_context = DrawContext {
+            on_top_node_matrix_tuples: Vec::new(),
+        };
+        draw_internal(self, &mut draw_context);
+
+        for (node, matrix) in draw_context.on_top_node_matrix_tuples {
+            crate::graphics::surface().canvas().save();
+            crate::graphics::surface().canvas().set_matrix(matrix);
+            node.rendering_tree.draw();
+            crate::graphics::surface().canvas().restore();
         }
     }
     pub(crate) fn call_wheel_event(
@@ -261,17 +285,24 @@ impl RenderingTree {
         result
     }
     pub fn get_bounding_box(&self) -> Option<Rect<Px>> {
+        struct BoundingBoxContext {
+            bounding_boxes_on_top: Vec<Option<Rect<Px>>>,
+        }
         fn get_bounding_box_with_matrix(
             rendering_tree: &RenderingTree,
             matrix: &Matrix3x3,
+            bounding_box_context: &mut BoundingBoxContext,
         ) -> Option<Rect<Px>> {
             fn get_bounding_box_with_matrix_of_rendering_trees<'a>(
                 rendering_trees: impl IntoIterator<Item = impl Borrow<RenderingTree>>,
                 matrix: &Matrix3x3,
+                bounding_box_context: &mut BoundingBoxContext,
             ) -> Option<Rect<Px>> {
                 rendering_trees
                     .into_iter()
-                    .map(|child| get_bounding_box_with_matrix(child.borrow(), &matrix))
+                    .map(|child| {
+                        get_bounding_box_with_matrix(child.borrow(), &matrix, bounding_box_context)
+                    })
                     .filter_map(|bounding_box| bounding_box)
                     .reduce(|acc, bounding_box| {
                         Rect::get_minimum_rectangle_containing(&acc, bounding_box)
@@ -280,7 +311,11 @@ impl RenderingTree {
 
             match rendering_tree {
                 RenderingTree::Children(ref children) => {
-                    get_bounding_box_with_matrix_of_rendering_trees(children, matrix)
+                    get_bounding_box_with_matrix_of_rendering_trees(
+                        children,
+                        matrix,
+                        bounding_box_context,
+                    )
                 }
                 RenderingTree::Node(rendering_data) => rendering_data
                     .get_bounding_box()
@@ -296,12 +331,14 @@ impl RenderingTree {
                         get_bounding_box_with_matrix_of_rendering_trees(
                             [translate.rendering_tree.borrow()],
                             &matrix,
+                            bounding_box_context,
                         )
                     }
                     SpecialRenderingNode::Clip(clip) => {
                         get_bounding_box_with_matrix_of_rendering_trees(
                             [clip.rendering_tree.borrow()],
                             &matrix,
+                            bounding_box_context,
                         )
                         .and_then(|bounding_box| {
                             let path = clip.path_builder.build();
@@ -373,6 +410,7 @@ impl RenderingTree {
                         get_bounding_box_with_matrix_of_rendering_trees(
                             [absolute.rendering_tree.borrow()],
                             &matrix,
+                            bounding_box_context,
                         )
                     }
                     SpecialRenderingNode::Rotate(rotate) => {
@@ -381,6 +419,7 @@ impl RenderingTree {
                         get_bounding_box_with_matrix_of_rendering_trees(
                             [rotate.rendering_tree.borrow()],
                             &matrix,
+                            bounding_box_context,
                         )
                     }
                     SpecialRenderingNode::Scale(scale) => {
@@ -389,6 +428,7 @@ impl RenderingTree {
                         get_bounding_box_with_matrix_of_rendering_trees(
                             [scale.rendering_tree.borrow()],
                             &matrix,
+                            bounding_box_context,
                         )
                     }
                     SpecialRenderingNode::Transform(transform) => {
@@ -397,7 +437,19 @@ impl RenderingTree {
                         get_bounding_box_with_matrix_of_rendering_trees(
                             [transform.rendering_tree.borrow()],
                             &matrix,
+                            bounding_box_context,
                         )
+                    }
+                    SpecialRenderingNode::OnTop(on_top) => {
+                        let bounding_box = get_bounding_box_with_matrix_of_rendering_trees(
+                            [on_top.rendering_tree.borrow()],
+                            &matrix,
+                            bounding_box_context,
+                        );
+                        bounding_box_context
+                            .bounding_boxes_on_top
+                            .push(bounding_box);
+                        bounding_box
                     }
                     SpecialRenderingNode::AttachEvent(_)
                     | SpecialRenderingNode::MouseCursor(_)
@@ -407,6 +459,7 @@ impl RenderingTree {
                         get_bounding_box_with_matrix_of_rendering_trees(
                             [special.get_rendering_tree()],
                             &matrix,
+                            bounding_box_context,
                         )
                     }
                 },
@@ -414,7 +467,19 @@ impl RenderingTree {
             }
         }
 
-        get_bounding_box_with_matrix(&self, &Matrix3x3::identity())
+        let mut bounding_box_context = BoundingBoxContext {
+            bounding_boxes_on_top: vec![],
+        };
+        let bounding_box =
+            get_bounding_box_with_matrix(&self, &Matrix3x3::identity(), &mut bounding_box_context);
+
+        bounding_box_context
+            .bounding_boxes_on_top
+            .into_iter()
+            .filter_map(|x| x)
+            .fold(bounding_box, |acc, bounding_box| {
+                acc.and_then(|acc| Some(Rect::get_minimum_rectangle_containing(&acc, bounding_box)))
+            })
     }
 }
 
