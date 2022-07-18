@@ -5,7 +5,7 @@ use std::{collections::HashSet, ops::ControlFlow, sync::Arc};
 
 #[derive(Serialize, Clone)]
 pub struct AttachEventNode {
-    pub(crate) rendering_tree: Box<RenderingTree>,
+    pub(crate) rendering_tree: std::sync::Arc<RenderingTree>,
     #[serde(skip_serializing)]
     pub on_mouse_move_in: Option<MouseEventCallback>,
     #[serde(skip_serializing)]
@@ -93,7 +93,7 @@ impl RenderingTree {
         };
         attach_event_build(&mut builder);
         RenderingTree::Special(SpecialRenderingNode::AttachEvent(AttachEventNode {
-            rendering_tree: Box::new(self),
+            rendering_tree: std::sync::Arc::new(self),
             on_mouse_move_in: builder.on_mouse_move_in,
             on_mouse_move_out: builder.on_mouse_move_out,
             on_mouse_down_in: builder.on_mouse_down_in,

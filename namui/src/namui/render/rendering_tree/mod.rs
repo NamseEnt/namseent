@@ -21,18 +21,19 @@ unsafe impl Send for RenderingTree {}
 unsafe impl Sync for RenderingTree {}
 
 impl SpecialRenderingNode {
-    fn get_rendering_tree(&self) -> &RenderingTree {
+    pub(crate) fn get_rendering_tree(&self) -> Arc<RenderingTree> {
         match self {
-            SpecialRenderingNode::Translate(node) => &node.rendering_tree,
-            SpecialRenderingNode::Clip(node) => &node.rendering_tree,
-            SpecialRenderingNode::AttachEvent(node) => &node.rendering_tree,
-            SpecialRenderingNode::MouseCursor(node) => &node.rendering_tree,
-            SpecialRenderingNode::WithId(node) => &node.rendering_tree,
-            SpecialRenderingNode::Absolute(node) => &node.rendering_tree,
-            SpecialRenderingNode::Rotate(node) => &node.rendering_tree,
-            SpecialRenderingNode::Custom(node) => &node.rendering_tree,
-            SpecialRenderingNode::Scale(node) => &node.rendering_tree,
-            SpecialRenderingNode::Transform(node) => &node.rendering_tree,
+            SpecialRenderingNode::Translate(node) => node.rendering_tree.clone(),
+            SpecialRenderingNode::Clip(node) => node.rendering_tree.clone(),
+            SpecialRenderingNode::AttachEvent(node) => node.rendering_tree.clone(),
+            SpecialRenderingNode::MouseCursor(node) => node.rendering_tree.clone(),
+            SpecialRenderingNode::WithId(node) => node.rendering_tree.clone(),
+            SpecialRenderingNode::Absolute(node) => node.rendering_tree.clone(),
+            SpecialRenderingNode::Rotate(node) => node.rendering_tree.clone(),
+            SpecialRenderingNode::Custom(node) => node.rendering_tree.clone(),
+            SpecialRenderingNode::Scale(node) => node.rendering_tree.clone(),
+            SpecialRenderingNode::Transform(node) => node.rendering_tree.clone(),
+            SpecialRenderingNode::React(node) => node.render(),
         }
     }
 }
@@ -110,7 +111,8 @@ impl RenderingTree {
                 SpecialRenderingNode::AttachEvent(_)
                 | SpecialRenderingNode::MouseCursor(_)
                 | SpecialRenderingNode::WithId(_)
-                | SpecialRenderingNode::Custom(_) => {
+                | SpecialRenderingNode::Custom(_)
+                | SpecialRenderingNode::React(_) => {
                     special.get_rendering_tree().draw();
                 }
             },
@@ -400,7 +402,8 @@ impl RenderingTree {
                     SpecialRenderingNode::AttachEvent(_)
                     | SpecialRenderingNode::MouseCursor(_)
                     | SpecialRenderingNode::WithId(_)
-                    | SpecialRenderingNode::Custom(_) => {
+                    | SpecialRenderingNode::Custom(_)
+                    | SpecialRenderingNode::React(_) => {
                         get_bounding_box_with_matrix_of_rendering_trees(
                             [special.get_rendering_tree()],
                             &matrix,
