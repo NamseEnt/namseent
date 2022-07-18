@@ -2,7 +2,7 @@ use super::*;
 use crate::dial_counter::Abs;
 use namui::animation::ImageInterpolation;
 use namui_prebuilt::table::*;
-use std::str::FromStr;
+use std::{mem::discriminant, str::FromStr};
 
 impl LineEditWindow {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
@@ -46,23 +46,26 @@ impl LineEditWindow {
             items: ImageInterpolation::iter().map(|interpolation| dropdown::Item {
                 id: interpolation.as_ref().to_string(),
                 text: interpolation.as_ref().to_string(),
-                is_selected: interpolation.as_ref().eq(line.as_ref()),
+                is_selected: discriminant(&interpolation) == discriminant(&line),
             }),
             visible_item_count: 0,
             on_select_item: move |item_id| {
-                namui::event::send(Event::SelectItem {
-                    line: match ImageInterpolation::from_str(&item_id).unwrap() {
-                        ImageInterpolation::AllLinear => ImageInterpolation::AllLinear,
-                        ImageInterpolation::SquashAndStretch { .. } => {
-                            ImageInterpolation::SquashAndStretch {
-                                velocity_ratio: 0.0,
-                                frame_per_second: 60.0,
-                            }
+                let selected_line = match ImageInterpolation::from_str(&item_id).unwrap() {
+                    ImageInterpolation::AllLinear => ImageInterpolation::AllLinear,
+                    ImageInterpolation::SquashAndStretch { .. } => {
+                        ImageInterpolation::SquashAndStretch {
+                            velocity_ratio: 0.0,
+                            frame_per_second: 60.0,
                         }
-                    },
-                    layer_id: layer_id.clone(),
-                    point_id: point_id.clone(),
-                });
+                    }
+                };
+                if discriminant(&selected_line) != discriminant(&line) {
+                    namui::event::send(Event::SelectItem {
+                        line: selected_line,
+                        layer_id: layer_id.clone(),
+                        point_id: point_id.clone(),
+                    });
+                }
             },
         })
     }

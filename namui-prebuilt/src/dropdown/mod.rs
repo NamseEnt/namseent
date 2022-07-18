@@ -98,9 +98,14 @@ impl React for Dropdown {
             typography::body::right(props.rect.wh(), "▼", Color::BLACK),
         ])
         .attach_event(move |builder| {
-            builder.on_mouse_down_in(move |_| {
-                namui::event::send(InternalEvent::ToggleDropdown { id })
-            });
+            builder
+                .on_mouse_down_in(move |event| {
+                    event.stop_propagation();
+                    namui::event::send(InternalEvent::ToggleDropdown { id })
+                })
+                .on_mouse_down_out(move |_| {
+                    namui::event::send(InternalEvent::CloseDropdown { id })
+                });
         });
 
         let body = if self.is_opened {
@@ -110,7 +115,7 @@ impl React for Dropdown {
                 } else {
                     props.visible_item_count
                 });
-            translate(
+            on_top(translate(
                 0.px(),
                 props.rect.height(),
                 namui::render([
@@ -122,12 +127,15 @@ impl React for Dropdown {
                         items: &props.items,
                         item_render: move |wh, item| {
                             let is_mouse_over = self.mouse_over_item_id.as_ref() == Some(&item.id);
+                            let is_selected = item.is_selected;
                             let background = simple_rect(
                                 props.rect.wh(),
                                 Color::WHITE,
                                 0.px(),
-                                if is_mouse_over {
+                                if is_selected {
                                     Color::BLUE
+                                } else if is_mouse_over {
+                                    Color::from_u8(0x5C, 0x5C, 255, 255)
                                 } else {
                                     Color::WHITE
                                 },
@@ -138,7 +146,7 @@ impl React for Dropdown {
                                 typography::body::left(
                                     wh,
                                     &item.text,
-                                    if is_mouse_over {
+                                    if is_mouse_over || is_selected {
                                         Color::WHITE
                                     } else {
                                         Color::BLACK
@@ -154,10 +162,14 @@ impl React for Dropdown {
                                         item_id: item_id.clone(),
                                     });
                                 });
+
                                 let item_id = item.id.clone();
                                 let on_select_item = on_select_item.clone();
-                                builder.on_mouse_down_in(move |_| {
-                                    (on_select_item)(item_id.clone());
+                                builder.on_mouse_down_in(move |event| {
+                                    event.stop_propagation();
+                                    if !is_selected {
+                                        (on_select_item)(item_id.clone());
+                                    }
                                     namui::event::send(InternalEvent::CloseDropdown { id });
                                 });
                             })
@@ -173,7 +185,7 @@ impl React for Dropdown {
                         Color::TRANSPARENT,
                     ),
                 ]),
-            )
+            ))
         } else {
             RenderingTree::Empty
         };
