@@ -199,6 +199,11 @@ fn is_same_special_variant(a: &SpecialRenderingNode, b: &SpecialRenderingNode) -
                 return true;
             }
         }
+        SpecialRenderingNode::OnTop(_) => {
+            if let SpecialRenderingNode::OnTop(_) = b {
+                return true;
+            }
+        }
     };
     false
 }

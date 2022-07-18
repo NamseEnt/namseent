@@ -87,7 +87,8 @@ impl RenderingTree {
                     | SpecialRenderingNode::MouseCursor(_)
                     | SpecialRenderingNode::WithId(_)
                     | SpecialRenderingNode::Custom(_)
-                    | SpecialRenderingNode::React(_) => {}
+                    | SpecialRenderingNode::React(_)
+                    | SpecialRenderingNode::OnTop(_) => {}
                 },
                 _ => {}
             }
@@ -148,7 +149,8 @@ impl RenderingTree {
                     | SpecialRenderingNode::MouseCursor(_)
                     | SpecialRenderingNode::WithId(_)
                     | SpecialRenderingNode::Custom(_)
-                    | SpecialRenderingNode::React(_) => {}
+                    | SpecialRenderingNode::React(_)
+                    | SpecialRenderingNode::OnTop(_) => {}
                 }
             }
         }
@@ -169,6 +171,8 @@ fn is_xy_clip_in_by_ancestors(xy: Xy<Px>, ancestors: &[&RenderingTree]) -> bool 
                 if !clip.is_clip_in(local_xy) {
                     return false;
                 }
+            } else if let SpecialRenderingNode::OnTop(_) = special {
+                return true;
             }
         }
     }
@@ -184,7 +188,7 @@ mod tests {
 
     #[test]
     #[wasm_bindgen_test]
-    fn visiting_order_should_be_rln() {
+    fn rln_visiting_order_should_be_rln() {
         /*
             tree:
                  0

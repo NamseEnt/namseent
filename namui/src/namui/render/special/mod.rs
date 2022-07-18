@@ -3,6 +3,7 @@ pub mod attach_event;
 pub mod clip;
 pub mod custom;
 pub mod mouse_cursor;
+pub mod on_top;
 pub mod react;
 pub mod rotate;
 pub mod scale;
@@ -15,6 +16,7 @@ pub use attach_event::*;
 pub use clip::*;
 pub use custom::*;
 pub use mouse_cursor::*;
+pub use on_top::*;
 pub use react::*;
 pub use rotate::*;
 pub use scale::*;
@@ -36,4 +38,5 @@ pub enum SpecialRenderingNode {
     Scale(ScaleNode),
     Transform(TransformNode),
     React(ReactNode),
+    OnTop(OnTopNode),
 }
