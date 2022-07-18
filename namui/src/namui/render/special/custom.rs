@@ -7,7 +7,7 @@ type CustomData = Arc<dyn std::any::Any>;
 
 #[derive(Serialize, Clone, Debug)]
 pub struct CustomNode {
-    pub(crate) rendering_tree: Box<RenderingTree>,
+    pub(crate) rendering_tree: std::sync::Arc<RenderingTree>,
     #[serde(skip_serializing)]
     pub data: CustomData,
 }
@@ -15,7 +15,7 @@ pub struct CustomNode {
 impl RenderingTree {
     pub fn with_custom(self, data: impl std::any::Any) -> RenderingTree {
         RenderingTree::Special(SpecialRenderingNode::Custom(CustomNode {
-            rendering_tree: Box::new(self),
+            rendering_tree: std::sync::Arc::new(self),
             data: Arc::new(data),
         }))
     }

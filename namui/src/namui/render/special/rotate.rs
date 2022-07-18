@@ -5,14 +5,14 @@ use serde::Serialize;
 #[derive(Serialize, Clone, Debug)]
 pub struct RotateNode {
     pub(crate) angle: Angle,
-    pub(crate) rendering_tree: Box<RenderingTree>,
+    pub(crate) rendering_tree: std::sync::Arc<RenderingTree>,
 }
 
 /// angle is in **cw** direction.
 pub fn rotate(angle: Angle, rendering_tree: RenderingTree) -> RenderingTree {
     RenderingTree::Special(SpecialRenderingNode::Rotate(RotateNode {
         angle,
-        rendering_tree: Box::new(rendering_tree),
+        rendering_tree: std::sync::Arc::new(rendering_tree),
     }))
 }
 
