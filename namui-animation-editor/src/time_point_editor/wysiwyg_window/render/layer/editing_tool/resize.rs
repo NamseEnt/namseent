@@ -4,7 +4,7 @@ impl WysiwygWindow {
     pub(super) fn render_resize_circles(
         &self,
         wh: Wh<Px>,
-        playback_time: Time,
+        keyframe_point_id: &str,
         layer_id: &str,
         rotation_angle: Angle,
     ) -> RenderingTree {
@@ -28,6 +28,8 @@ impl WysiwygWindow {
             path(circle_path.clone(), circle_fill_paint),
             path(circle_path, circle_stroke_paint),
         ]);
+
+        let keyframe_point_id = keyframe_point_id.to_string();
 
         render(
             [
@@ -91,6 +93,7 @@ impl WysiwygWindow {
                         .attach_event(|builder| {
                             let window_id = self.window_id.clone();
                             let layer_id = layer_id.to_string();
+                            let keyframe_point_id = keyframe_point_id.clone();
                             builder.on_mouse_down_in(move |event| {
                                 let window_global_xy = event
                                     .namui_context
@@ -101,7 +104,7 @@ impl WysiwygWindow {
                                 namui::event::send(Event::ResizeCircleMouseDown {
                                     location,
                                     anchor_xy,
-                                    playback_time,
+                                    keyframe_point_id: keyframe_point_id.clone(),
                                     layer_id: layer_id.clone(),
                                     rotation_angle,
                                 });

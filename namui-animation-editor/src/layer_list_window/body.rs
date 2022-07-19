@@ -63,7 +63,7 @@ fn render_shadowing_toggle_button_cell(wh: Wh<Px>) -> RenderingTree {
 }
 
 fn render_label_cell(wh: Wh<Px>, layer: &namui::animation::Layer) -> RenderingTree {
-    render![namui::text(TextParam {
+    namui::text(TextParam {
         x: MARGIN,
         y: wh.height / 2.0,
         text: layer.name.clone(),
@@ -78,8 +78,8 @@ fn render_label_cell(wh: Wh<Px>, layer: &namui::animation::Layer) -> RenderingTr
             language: Language::Ko,
             serif: false,
             size: crate::adjust_font_size(wh.height - MARGIN * 2.0),
-        }
-    }),]
+        },
+    })
 }
 
 fn render_row(wh: Wh<Px>, layer: &animation::Layer, is_selected: bool, now: Time) -> RenderingTree {
@@ -131,6 +131,7 @@ fn render_preview_cell(wh: Wh<Px>, layer: &namui::animation::Layer, now: Time) -
                 )
             }
             None => RenderingTree::Empty,
+            _ => RenderingTree::Empty,
         }
     };
     render([border, preview])

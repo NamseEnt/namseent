@@ -1,12 +1,12 @@
-use std::f32::consts::PI;
-
 use super::*;
+use crate::time_point_editor::wysiwyg_window::update::dragging;
+use std::f32::consts::PI;
 
 impl WysiwygWindow {
     pub(super) fn render_rotation_tool(
         &self,
         wh: Wh<Px>,
-        playback_time: Time,
+        keyframe_point_id: &str,
         selected_layer_id: String,
         image_anchor_local_xy: Xy<Px>,
     ) -> RenderingTree {
@@ -72,6 +72,8 @@ impl WysiwygWindow {
             ]),
         );
 
+        let keyframe_point_id = keyframe_point_id.to_string();
+
         let cursor_and_event_handler = path(
             PathBuilder::new().add_rect(tool_rendering_tree.get_bounding_box().unwrap()),
             PaintBuilder::new().set_color(Color::TRANSPARENT),
@@ -81,6 +83,7 @@ impl WysiwygWindow {
             let window_id = self.window_id.clone();
             let layer_id = selected_layer_id.clone();
             let real_px_per_screen_px = self.real_px_per_screen_px;
+            let keyframe_point_id = keyframe_point_id.clone();
             builder.on_mouse_down_in(move |event| {
                 let window_global_xy = event
                     .namui_context
@@ -90,7 +93,7 @@ impl WysiwygWindow {
 
                 namui::event::send(Event::RotationToolMouseDown {
                     layer_id: layer_id.clone(),
-                    playback_time,
+                    keyframe_point_id: keyframe_point_id.to_string(),
                     mouse_local_xy,
                     image_center_real_xy: image_anchor_local_xy,
                 });
@@ -103,10 +106,31 @@ impl WysiwygWindow {
             render([path(guide_line_path, stroke_paint)]),
         );
 
+        let is_dragging_rotation_tool = self
+            .animation_history
+            .check_action(|_: &dragging::DragRotationAction| true);
+
+        let cursor_on_drag = if is_dragging_rotation_tool {
+            absolute(
+                0.px(),
+                0.px(),
+                simple_rect(
+                    namui::screen::size(),
+                    Color::TRANSPARENT,
+                    0.px(),
+                    Color::TRANSPARENT,
+                ),
+            )
+            .with_mouse_cursor(MouseCursor::Custom(get_mouse_cursor()))
+        } else {
+            RenderingTree::Empty
+        };
+
         render([
             guide_line_rendering_tree,
             tool_rendering_tree,
             cursor_and_event_handler,
+            cursor_on_drag,
         ])
     }
 }

@@ -35,7 +35,7 @@ impl TextInputExample {
 impl Entity for TextInputExample {
     type Props = ();
 
-    fn render(&self, _props: &Self::Props) -> RenderingTree {
+    fn render(&self, props: &Self::Props) -> RenderingTree {
         let left = self.left_text_input.render(namui::text_input::Props {
             rect_param: namui::RectParam {
                 rect: Rect::Xywh {

@@ -32,6 +32,8 @@ parking_lot = "0.12"
 auto_ops = "0.3"
 url = { version = "2", features = ["serde"] }
 percent-encoding = "2"
+strum = "0.24"
+strum_macros = "0.24"
 nalgebra = { version = "0.31", features = ["serde-serialize"] }
 
 [dev-dependencies]

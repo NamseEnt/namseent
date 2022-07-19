@@ -57,4 +57,10 @@ impl PlayingStatus {
             }
         }
     }
+    pub fn is_playing(&self) -> bool {
+        match self {
+            PlayingStatus::Playing { .. } => true,
+            PlayingStatus::Paused { .. } => false,
+        }
+    }
 }

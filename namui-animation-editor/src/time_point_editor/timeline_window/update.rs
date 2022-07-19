@@ -1,6 +1,6 @@
 use super::*;
 use crate::zoom::zoom_time_per_px;
-use namui::animation::{KeyframeGraph, KeyframePoint, KeyframeValue};
+use namui::animation::*;
 
 impl TimelineWindow {
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -35,19 +35,25 @@ impl TimelineWindow {
                     self.handle_timeline_dragging(mouse_local_xy);
                 }
                 &Event::KeyframeMouseDown {
-                    ref point_ids,
+                    ref point_id,
                     anchor_xy,
                     mouse_local_xy,
                     keyframe_time,
                     ref layer_id,
                 } => {
+                    namui::event::send(crate::time_point_editor::Event::ChangEditingTarget(Some(
+                        EditingTarget::Keyframe {
+                            point_id: point_id.clone(),
+                            layer_id: layer_id.clone(),
+                        },
+                    )));
                     self.set_playback_time(keyframe_time);
                     if self.dragging.is_none() {
                         if let Some(action_ticket) =
                             self.animation_history
                                 .try_set_action(DraggingKeyframeAction {
                                     layer_id: layer_id.clone(),
-                                    point_ids: point_ids.clone(),
+                                    point_id: point_id.clone(),
                                     drag_end_x: mouse_local_xy.x.into(),
                                     anchor_x: Px::from(anchor_xy.x),
                                     time_per_px: self.time_per_px,
@@ -108,8 +114,34 @@ impl TimelineWindow {
                         }
                     }
                 }
-                Event::TimelineSpaceKeyDown => {
+                Event::TimelineSpaceKeyDown {
+                    selected_layer_id,
+                    editing_target,
+                } => {
+                    let was_playing = self.playing_status.is_playing();
+
                     self.playing_status.toggle_play();
+
+                    if was_playing {
+                        if let Some(EditingTarget::Keyframe { point_id, layer_id }) = editing_target
+                        {
+                            if selected_layer_id.as_ref().eq(&Some(layer_id)) {
+                                self.move_playback_time_to_point(layer_id, point_id);
+                            }
+                        }
+                    }
+                }
+                Event::LineMouseDown { point_id, layer_id } => {
+                    namui::event::send(crate::time_point_editor::Event::ChangEditingTarget(Some(
+                        EditingTarget::Line {
+                            point_id: point_id.clone(),
+                            layer_id: layer_id.clone(),
+                        },
+                    )));
+                }
+                Event::MouseLeftDownOutOfEditingTargetButInWindow => {
+                    namui::log!("MouseDownOutOfKeyframeButInWindow");
+                    namui::event::send(crate::time_point_editor::Event::ChangEditingTarget(None));
                 }
             }
         } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
@@ -123,6 +155,25 @@ impl TimelineWindow {
                 _ => {}
             }
         }
+    }
+    fn move_playback_time_to_point(&mut self, layer_id: &str, point_id: &str) {
+        let animation = self.animation_history.get_preview();
+
+        let selected_layer = animation
+            .layers
+            .iter()
+            .find(|layer| layer.id.eq(layer_id))
+            .unwrap();
+
+        let point = selected_layer
+            .image
+            .image_keyframe_graph
+            .get_point(point_id)
+            .unwrap();
+
+        let time = point.time;
+
+        self.playing_status.set_playback_time(time);
     }
     fn handle_timeline_dragging(&mut self, mouse_local_xy: Xy<Px>) {
         if self.dragging.is_none() {
@@ -173,20 +224,34 @@ impl TimelineWindow {
                 {
                     let time = self.time;
 
-                    add_new_point(&mut layer.image.x, time, Px::from(0.0));
-                    add_new_point(&mut layer.image.y, time, Px::from(0.0));
-                    add_new_point(
-                        &mut layer.image.width_percent,
-                        time,
-                        Percent::from_percent(100.0f32),
-                    );
-                    add_new_point(
-                        &mut layer.image.height_percent,
-                        time,
-                        Percent::from_percent(100.0f32),
-                    );
-                    add_new_point(&mut layer.image.rotation_angle, time, Angle::Degree(0.0));
-                    add_new_point(&mut layer.image.opacity, time, OneZero::from(1.0));
+                    let new_keyframe = {
+                        let mut most_nearest_left_keyframe = None;
+
+                        let mut iter = layer
+                            .image
+                            .image_keyframe_graph
+                            .get_point_line_tuples()
+                            .peekable();
+
+                        while let Some((point, _)) = iter.next() {
+                            if let Some((next_point, _)) = iter.peek() {
+                                if next_point.time > time {
+                                    most_nearest_left_keyframe = Some(point.value.clone());
+                                    break;
+                                }
+                            } else {
+                                most_nearest_left_keyframe = Some(point.value.clone());
+                            }
+                        }
+
+                        most_nearest_left_keyframe.unwrap_or(ImageKeyframe {
+                            matrix: namui::Matrix3x3::identity(),
+                            opacity: 1.0.into(),
+                        })
+                    };
+
+                    add_new_point(&mut layer.image.image_keyframe_graph, time, new_keyframe);
+
                     Ok(animation)
                 } else {
                     Err("layer not found".into())
@@ -209,55 +274,36 @@ impl TimelineWindow {
     }
 }
 
-fn move_point(layer: &mut Layer, point_id: &str, to_time: Time) {
-    move_point_in_graph(&mut layer.image.x, point_id, to_time);
-    move_point_in_graph(&mut layer.image.y, point_id, to_time);
-    move_point_in_graph(&mut layer.image.width_percent, point_id, to_time);
-    move_point_in_graph(&mut layer.image.height_percent, point_id, to_time);
-    move_point_in_graph(&mut layer.image.opacity, point_id, to_time);
-    move_point_in_graph(&mut layer.image.rotation_angle, point_id, to_time);
-}
-
-fn move_point_in_graph<T: KeyframeValue + Clone>(
-    graph: &mut KeyframeGraph<T>,
+fn move_point(
+    layer: &mut Layer,
     point_id: &str,
     to_time: Time,
-) {
-    if let Some(point) = graph.get_point(point_id) {
-        let mut point = point.clone();
-        point.time = to_time;
-        graph.put(point, animation::KeyframeLine::Linear);
-    }
+) -> Result<(), Box<dyn std::error::Error>> {
+    let point = layer
+        .image
+        .image_keyframe_graph
+        .get_point_mut(point_id)
+        .ok_or(format!("point nod fount {}", point_id))?;
+
+    point.time = to_time;
+
+    Ok(())
 }
 
-fn add_new_point<T: KeyframeValue + Clone>(
-    graph: &mut KeyframeGraph<T>,
-    time: Time,
-    default_value: T,
-) {
-    let value_x = graph
-        .get_value(time)
-        .or_else(|| graph.get_last_point().map(|point| point.value.clone()))
-        .unwrap_or(default_value);
-
+fn add_new_point(graph: &mut ImageKeyframeGraph, time: Time, default_value: ImageKeyframe) {
     graph.put(
-        KeyframePoint::new(time, value_x),
-        animation::KeyframeLine::Linear,
+        KeyframePoint::new(time, default_value),
+        animation::ImageInterpolation::AllLinear,
     );
 }
 
 fn delete_point(layer: &mut Layer, time: Time) {
-    layer.image.x.delete_by_time(time);
-    layer.image.y.delete_by_time(time);
-    layer.image.width_percent.delete_by_time(time);
-    layer.image.height_percent.delete_by_time(time);
-    layer.image.opacity.delete_by_time(time);
-    layer.image.rotation_angle.delete_by_time(time);
+    layer.image.image_keyframe_graph.delete_by_time(time)
 }
 
 struct DraggingKeyframeAction {
     layer_id: String,
-    point_ids: Vec<String>,
+    point_id: String,
     drag_end_x: Px,
     anchor_x: Px,
     start_at: Time,
@@ -273,9 +319,7 @@ impl Act<Animation> for DraggingKeyframeAction {
         {
             let to_time = self.start_at + (self.drag_end_x - self.anchor_x) * self.time_per_px;
 
-            for point_id in &self.point_ids {
-                move_point(layer, &point_id, to_time)
-            }
+            move_point(layer, &self.point_id, to_time)?;
 
             Ok(animation)
         } else {

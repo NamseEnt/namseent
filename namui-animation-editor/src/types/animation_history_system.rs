@@ -81,6 +81,18 @@ impl AnimationHistory {
             }),
         }
     }
+
+    pub(crate) fn check_action<TAction: Act<Animation>>(
+        &self,
+        check: impl FnOnce(&TAction) -> bool,
+    ) -> bool {
+        let mut history = self.history_system.lock().unwrap();
+        let mut result = false;
+        match history.update_action(|action| result = check(action)) {
+            Ok(_) => result,
+            Err(_) => false,
+        }
+    }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ActionTicket {
