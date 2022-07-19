@@ -21,9 +21,11 @@ pub use render::{
     MouseEventCallback, MouseEventType, React, RenderingData, RenderingTree, TextInput,
     WheelEventCallback,
 };
+pub use shader_macro::shader;
 pub use skia::{
     types::{ClipOp, Color, PaintStyle, StrokeJoin},
-    BlendMode, Font, Image, PaintBuilder, PathBuilder, Shader, StrokeCap, Typeface,
+    BlendMode, Font, Image, IntermediateShader, MakeShader, PaintBuilder, PathBuilder, StrokeCap,
+    Typeface,
 };
 pub(crate) use skia::{ColorFilter, Paint, Path};
 use std::sync::Arc;

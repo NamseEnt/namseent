@@ -6,7 +6,7 @@ extern "C" {
     pub type CanvasKitPath;
 
     #[wasm_bindgen(constructor, js_class="Path", js_namespace = ["globalThis", "CanvasKit"])]
-    pub fn new() -> CanvasKitPath;
+    pub(crate) fn new() -> CanvasKitPath;
 
     ///
     /// Appends arc to Path, as the start of new contour. Arc added is part of ellipse
@@ -19,7 +19,7 @@ extern "C" {
     /// @param sweepAngle
     ///
     #[wasm_bindgen(method)]
-    pub fn addArc(
+    pub(crate) fn addArc(
         this: &CanvasKitPath,
         oval: &[f32],
         startAngleInDegrees: f32,
@@ -36,7 +36,7 @@ extern "C" {
     /// @param startIndex - index of initial point of ellipse
     ///
     #[wasm_bindgen(method)]
-    pub fn addOval(
+    pub(crate) fn addOval(
         this: &CanvasKitPath,
         oval: &[f32],
         isCCW: Option<bool>,
@@ -54,7 +54,7 @@ extern "C" {
     // /// @param args
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn addPath(this: &CanvasKitPath, (...args: any[]) -> CanvasKitPath | null;
+    // pub(crate) fn addPath(this: &CanvasKitPath, (...args: any[]) -> CanvasKitPath | null;
 
     ///
     /// Adds contour created from array of n points, adding (count - 1) line segments.
@@ -66,7 +66,7 @@ extern "C" {
     /// @param close - if true, will add a line connecting last point to the first point.
     ///
     #[wasm_bindgen(method)]
-    pub fn addPoly(this: &CanvasKitPath, points: &[f32], close: bool) -> CanvasKitPath;
+    pub(crate) fn addPoly(this: &CanvasKitPath, points: &[f32], close: bool) -> CanvasKitPath;
 
     ///
     /// Adds Rect to Path, appending kMove_Verb, three kLine_Verb, and kClose_Verb,
@@ -78,7 +78,8 @@ extern "C" {
     /// @param isCCW
     ///
     #[wasm_bindgen(method)]
-    pub fn addRect(this: &CanvasKitPath, rect: &[f32], isCCW: Option<bool>) -> CanvasKitPath;
+    pub(crate) fn addRect(this: &CanvasKitPath, rect: &[f32], isCCW: Option<bool>)
+        -> CanvasKitPath;
 
     ///
     /// Adds rrect to Path, creating a new closed contour.
@@ -87,7 +88,7 @@ extern "C" {
     /// @param isCCW
     ///
     #[wasm_bindgen(method)]
-    pub fn addRRect(
+    pub(crate) fn addRRect(
         this: &CanvasKitPath,
         rrect: js_sys::Float32Array,
         isCCW: Option<bool>,
@@ -104,7 +105,7 @@ extern "C" {
     // /// @param weights - used if any of the verbs are conics, can be omitted otherwise.
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn addVerbsPointsWeights(this: &CanvasKitPath, verbs: VerbList, points: InputFlattenedPointArray,
+    // pub(crate) fn addVerbsPointsWeights(this: &CanvasKitPath, verbs: VerbList, points: InputFlattenedPointArray,
     //                       weights: Option<WeightList) -> CanvasKitPath;
 
     // ///
@@ -118,7 +119,7 @@ extern "C" {
     // /// @param isCCW
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn arc(this: &CanvasKitPath, x: number, y: number, radius: number, startAngle: AngleInRadians, endAngle: AngleInRadians,
+    // pub(crate) fn arc(this: &CanvasKitPath, x: number, y: number, radius: number, startAngle: AngleInRadians, endAngle: AngleInRadians,
     //     isCCW: Option<bool) -> CanvasKitPath;
 
     ///
@@ -133,7 +134,7 @@ extern "C" {
     /// @param forceMoveTo
     ///
     #[wasm_bindgen(method)]
-    pub fn arcToOval(
+    pub(crate) fn arcToOval(
         this: &CanvasKitPath,
         oval: &[f32],
         startAngle: f32,
@@ -156,7 +157,7 @@ extern "C" {
     // /// @param y
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn arcToRotated(this: &CanvasKitPath, rx: number, ry: number, xAxisRotate: AngleInDegrees, useSmallArc: bool,
+    // pub(crate) fn arcToRotated(this: &CanvasKitPath, rx: number, ry: number, xAxisRotate: AngleInDegrees, useSmallArc: bool,
     //              isCCW: bool, x: number, y: number) -> CanvasKitPath;
 
     // ///
@@ -172,7 +173,7 @@ extern "C" {
     // /// @param radius
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn arcToTangent(this: &CanvasKitPath, x1: number, y1: number, x2: number, y2: number, radius: number) -> CanvasKitPath;
+    // pub(crate) fn arcToTangent(this: &CanvasKitPath, x1: number, y1: number, x2: number, y2: number, radius: number) -> CanvasKitPath;
 
     ///
     /// Appends CLOSE_VERB to Path. A closed contour connects the first and last point
@@ -180,7 +181,7 @@ extern "C" {
     /// Returns the modified path for easier chaining.
     ///
     #[wasm_bindgen(method)]
-    pub fn close(this: &CanvasKitPath) -> CanvasKitPath;
+    pub(crate) fn close(this: &CanvasKitPath) -> CanvasKitPath;
 
     // ///
     // /// Returns minimum and maximum axes values of the lines and curves in Path.
@@ -196,7 +197,7 @@ extern "C" {
     // ///                      allocating a new one.
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn computeTightBounds(this: &CanvasKitPath, outputArray: Option<Rect) -> Rect;
+    // pub(crate) fn computeTightBounds(this: &CanvasKitPath, outputArray: Option<Rect) -> Rect;
 
     // ///
     // /// Adds conic from last point towards (x1, y1), to (x2, y2), weighted by w.
@@ -210,7 +211,7 @@ extern "C" {
     // /// @param w
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn conicTo(this: &CanvasKitPath, x1: number, y1: number, x2: number, y2: number, w: number) -> CanvasKitPath;
+    // pub(crate) fn conicTo(this: &CanvasKitPath, x1: number, y1: number, x2: number, y2: number, w: number) -> CanvasKitPath;
 
     ///
     /// Returns true if the point (x, y) is contained by Path, taking into
@@ -219,19 +220,19 @@ extern "C" {
     /// @param y
     ///
     #[wasm_bindgen(method)]
-    pub fn contains(this: &CanvasKitPath, x: f32, y: f32) -> bool;
+    pub(crate) fn contains(this: &CanvasKitPath, x: f32, y: f32) -> bool;
 
     ///
     /// Returns a copy of this Path.
     ///
     #[wasm_bindgen(method)]
-    pub fn copy(this: &CanvasKitPath) -> CanvasKitPath;
+    pub(crate) fn copy(this: &CanvasKitPath) -> CanvasKitPath;
 
     // ///
     // /// Returns the number of points in this path. Initially zero.
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn countPoints(this: &CanvasKitPath) -> number;
+    // pub(crate) fn countPoints(this: &CanvasKitPath) -> number;
 
     // ///
     // ///  Adds cubic from last point towards (x1, y1), then towards (x2, y2), ending at
@@ -245,7 +246,7 @@ extern "C" {
     // /// @param y
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn cubicTo(this: &CanvasKitPath, cpx1: number, cpy1: number, cpx2: number, cpy2: number, x: number, y: number) -> CanvasKitPath;
+    // pub(crate) fn cubicTo(this: &CanvasKitPath, cpx1: number, cpy1: number, cpx2: number, cpy2: number, x: number, y: number) -> CanvasKitPath;
 
     // ///
     // /// Changes this path to be the dashed version of itself. This is the same effect as creating
@@ -255,14 +256,14 @@ extern "C" {
     // /// @param phase
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn dash(this: &CanvasKitPath, on: number, off: number, phase: number) -> bool;
+    // pub(crate) fn dash(this: &CanvasKitPath, on: number, off: number, phase: number) -> bool;
 
     // ///
     // /// Returns true if other path is equal to this path.
     // /// @param other
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn equals(this: &CanvasKitPath, other: Path) -> bool;
+    // pub(crate) fn equals(this: &CanvasKitPath, other: Path) -> bool;
 
     ///
     /// Returns minimum and maximum axes values of Point array.
@@ -272,13 +273,13 @@ extern "C" {
     ///                      allocating a new one.
     ///
     #[wasm_bindgen(method)]
-    pub fn getBounds(this: &CanvasKitPath) -> Box<[f32]>;
+    pub(crate) fn getBounds(this: &CanvasKitPath) -> Box<[f32]>;
 
     // ///
     // /// Return the FillType for this path.
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn getFillType(this: &CanvasKitPath) -> FillType;
+    // pub(crate) fn getFillType(this: &CanvasKitPath) -> FillType;
 
     // ///
     // /// Returns the Point at index in Point array. Valid range for index is
@@ -288,13 +289,13 @@ extern "C" {
     // ///                      allocating a new one.
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn getPoint(this: &CanvasKitPath, index: number, outputArray: Option<Point) -> Point;
+    // pub(crate) fn getPoint(this: &CanvasKitPath, index: number, outputArray: Option<Point) -> Point;
 
     // ///
     // /// Returns true if there are no verbs in the path.
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn isEmpty(this: &CanvasKitPath) -> bool;
+    // pub(crate) fn isEmpty(this: &CanvasKitPath) -> bool;
 
     // ///
     // /// Returns true if the path is volatile; it will not be altered or discarded
@@ -303,7 +304,7 @@ extern "C" {
     // /// may not speed repeated drawing.
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn isVolatile(this: &CanvasKitPath) -> bool;
+    // pub(crate) fn isVolatile(this: &CanvasKitPath) -> bool;
 
     ///
     /// Adds line from last point to (x, y). If Path is empty, or last path is closed,
@@ -313,7 +314,7 @@ extern "C" {
     /// @param y
     ///
     #[wasm_bindgen(method)]
-    pub fn lineTo(this: &CanvasKitPath, x: f32, y: f32) -> CanvasKitPath;
+    pub(crate) fn lineTo(this: &CanvasKitPath, x: f32, y: f32) -> CanvasKitPath;
 
     // ///
     // /// Returns a new path that covers the same area as the original path, but with the
@@ -322,7 +323,7 @@ extern "C" {
     // /// be done, null is returned.
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn makeAsWinding(this: &CanvasKitPath) -> CanvasKitPath | null;
+    // pub(crate) fn makeAsWinding(this: &CanvasKitPath) -> CanvasKitPath | null;
 
     ///
     /// Adds beginning of contour at the given point.
@@ -331,7 +332,7 @@ extern "C" {
     /// @param y
     ///
     #[wasm_bindgen(method)]
-    pub fn moveTo(this: &CanvasKitPath, x: f32, y: f32) -> CanvasKitPath;
+    pub(crate) fn moveTo(this: &CanvasKitPath, x: f32, y: f32) -> CanvasKitPath;
 
     ///
     /// Translates all the points in the path by dx, dy.
@@ -340,7 +341,7 @@ extern "C" {
     /// @param dy
     ///
     #[wasm_bindgen(method)]
-    pub fn offset(this: &CanvasKitPath, dx: f32, dy: f32) -> CanvasKitPath;
+    pub(crate) fn offset(this: &CanvasKitPath, dx: f32, dy: f32) -> CanvasKitPath;
 
     // ///
     // /// Combines this path with the other path using the given PathOp. Returns false if the operation
@@ -349,7 +350,7 @@ extern "C" {
     // /// @param op
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn op(this: &CanvasKitPath, other: Path, op: PathOp) -> bool;
+    // pub(crate) fn op(this: &CanvasKitPath, other: Path, op: PathOp) -> bool;
 
     // ///
     // /// Adds quad from last point towards (x1, y1), to (x2, y2).
@@ -361,7 +362,7 @@ extern "C" {
     // /// @param y2
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn quadTo(this: &CanvasKitPath, x1: number, y1: number, x2: number, y2: number) -> CanvasKitPath;
+    // pub(crate) fn quadTo(this: &CanvasKitPath, x1: number, y1: number, x2: number, y2: number) -> CanvasKitPath;
 
     // ///
     // /// Relative version of arcToRotated.
@@ -374,7 +375,7 @@ extern "C" {
     // /// @param dy
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn rArcTo(this: &CanvasKitPath, rx: number, ry: number, xAxisRotate: AngleInDegrees, useSmallArc: bool,
+    // pub(crate) fn rArcTo(this: &CanvasKitPath, rx: number, ry: number, xAxisRotate: AngleInDegrees, useSmallArc: bool,
     //        isCCW: bool, dx: number, dy: number) -> CanvasKitPath;
 
     // ///
@@ -386,7 +387,7 @@ extern "C" {
     // /// @param w
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn rConicTo(this: &CanvasKitPath, dx1: number, dy1: number, dx2: number, dy2: number, w: number) -> CanvasKitPath;
+    // pub(crate) fn rConicTo(this: &CanvasKitPath, dx1: number, dy1: number, dx2: number, dy2: number, w: number) -> CanvasKitPath;
 
     // ///
     // /// Relative version of cubicTo.
@@ -398,7 +399,7 @@ extern "C" {
     // /// @param y
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn rCubicTo(this: &CanvasKitPath, cpx1: number, cpy1: number, cpx2: number, cpy2: number, x: number, y: number) -> CanvasKitPath;
+    // pub(crate) fn rCubicTo(this: &CanvasKitPath, cpx1: number, cpy1: number, cpx2: number, cpy2: number, x: number, y: number) -> CanvasKitPath;
 
     // ///
     // /// Sets Path to its initial state.
@@ -406,7 +407,7 @@ extern "C" {
     // /// Internal storage associated with Path is released
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn reset(this: &CanvasKitPath) -> void;
+    // pub(crate) fn reset(this: &CanvasKitPath) -> void;
 
     // ///
     // /// Sets Path to its initial state.
@@ -416,7 +417,7 @@ extern "C" {
     // /// is critical.
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn rewind(this: &CanvasKitPath) -> void;
+    // pub(crate) fn rewind(this: &CanvasKitPath) -> void;
 
     // ///
     // /// Relative version of lineTo.
@@ -424,7 +425,7 @@ extern "C" {
     // /// @param y
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn rLineTo(this: &CanvasKitPath, x: number, y: number) -> CanvasKitPath;
+    // pub(crate) fn rLineTo(this: &CanvasKitPath, x: number, y: number) -> CanvasKitPath;
 
     // ///
     // /// Relative version of moveTo.
@@ -432,7 +433,7 @@ extern "C" {
     // /// @param y
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn rMoveTo(this: &CanvasKitPath, x: number, y: number) -> CanvasKitPath;
+    // pub(crate) fn rMoveTo(this: &CanvasKitPath, x: number, y: number) -> CanvasKitPath;
 
     // ///
     // /// Relative version of quadTo.
@@ -442,14 +443,14 @@ extern "C" {
     // /// @param y2
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn rQuadTo(this: &CanvasKitPath, x1: number, y1: number, x2: number, y2: number) -> CanvasKitPath;
+    // pub(crate) fn rQuadTo(this: &CanvasKitPath, x1: number, y1: number, x2: number, y2: number) -> CanvasKitPath;
 
     // ///
     // /// Sets FillType, the rule used to fill Path.
     // /// @param fill
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn setFillType(this: &CanvasKitPath, fill: FillType) -> void;
+    // pub(crate) fn setFillType(this: &CanvasKitPath, fill: FillType) -> void;
 
     // ///
     // /// Specifies whether Path is volatile; whether it will be altered or discarded
@@ -460,7 +461,7 @@ extern "C" {
     // /// @param volatile
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn setIsVolatile(this: &CanvasKitPath, volatile: bool) -> void;
+    // pub(crate) fn setIsVolatile(this: &CanvasKitPath, volatile: bool) -> void;
 
     // ///
     // /// Set this path to a set of non-overlapping contours that describe the
@@ -471,7 +472,7 @@ extern "C" {
     // /// Returns true if operation was able to produce a result.
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn simplify(this: &CanvasKitPath) -> bool;
+    // pub(crate) fn simplify(this: &CanvasKitPath) -> bool;
 
     ///
     /// Turns this path into the filled equivalent of the stroked path. Returns null if the operation
@@ -479,7 +480,7 @@ extern "C" {
     /// @param opts - describe how stroked path should look.
     ///
     #[wasm_bindgen(method)]
-    pub fn stroke(this: &CanvasKitPath, opts: JsValue) -> JsValue;
+    pub(crate) fn stroke(this: &CanvasKitPath, opts: JsValue) -> JsValue;
 
     // ///
     // /// Serializes the contents of this path as a series of commands.
@@ -487,20 +488,20 @@ extern "C" {
     // /// be followed by another verb, more arguments and so on.
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn toCmds(this: &CanvasKitPath) -> Float32Array;
+    // pub(crate) fn toCmds(this: &CanvasKitPath) -> Float32Array;
 
     // ///
     // /// Returns this path as an SVG string.
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn toSVGString(this: &CanvasKitPath) -> string;
+    // pub(crate) fn toSVGString(this: &CanvasKitPath) -> string;
 
     ///
     /// Takes a 3x3 matrix as either an array or as 9 individual params.
     /// @param args
     ///
     #[wasm_bindgen(method)]
-    pub fn transform(this: &CanvasKitPath, matrix_3x3: &[f32]) -> CanvasKitPath;
+    pub(crate) fn transform(this: &CanvasKitPath, matrix_3x3: &[f32]) -> CanvasKitPath;
 
     // ///
     // /// Take start and stop "t" values (values between 0...1), and modify this path such that
@@ -513,5 +514,5 @@ extern "C" {
     // /// @param isComplement
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn trim(this: &CanvasKitPath, startT: number, stopT: number, isComplement: bool) -> CanvasKitPath | null;
+    // pub(crate) fn trim(this: &CanvasKitPath, startT: number, stopT: number, isComplement: bool) -> CanvasKitPath | null;
 }

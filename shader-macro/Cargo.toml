@@ -1,9 +1,0 @@
-[package]
-edition = "2021"
-name = "shader-macro"
-version = "0.1.0"
-
-[lib]
-proc-macro = true
-
-[dependencies]
