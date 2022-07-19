@@ -1,8 +1,10 @@
+use std::sync::Arc;
+
 use super::{
+    get_background_image::{GetBackgroundImageError, GithubStorageBackgroundImageGet},
     get_background_image_paths::GithubStorageBackgroundImagePathsGet,
-    get_background_image_url::{GetBackgroundImageUrlError, GithubStorageBackgroundImageUrlGet},
+    get_character_image::{GetCharacterImageError, GithubStorageCharacterImageGet},
     get_character_image_paths::GithubStorageCharacterImagePathsGet,
-    get_character_image_url::{GetCharacterImageUrlError, GithubStorageCharacterImageUrlGet},
     get_meta::{GetMetaError, GithubStorageMetaGet},
     get_sequence::{GetSequenceError, GithubStorageSequenceGet},
     get_sequence_list::{GetSequenceListError, GithubStorageSequenceListGet},
@@ -19,7 +21,7 @@ use super::{
 use crate::app::types::{Meta, Sequence};
 use async_trait::async_trait;
 use mockall::mock;
-use namui::Url;
+use namui::Image;
 
 #[cfg(test)]
 mock! {
@@ -90,18 +92,20 @@ mock! {
         fn get_background_image_paths(&self) -> Vec<String>;
     }
 
-    impl GithubStorageBackgroundImageUrlGet for Storage {
-        fn get_background_image_url(
+    #[async_trait(?Send)]
+    impl GithubStorageBackgroundImageGet for Storage {
+        async fn get_background_image(
             &self,
             background_image_path: &str,
-        ) -> Result<Url, GetBackgroundImageUrlError>;
+        ) -> Result<Arc<Image>, GetBackgroundImageError>;
     }
 
-    impl GithubStorageCharacterImageUrlGet for Storage {
-        fn get_character_image_url(
+    #[async_trait(?Send)]
+    impl GithubStorageCharacterImageGet for Storage {
+        async fn get_character_image(
             &self,
             character_image_path: &str,
-        ) -> Result<Url, GetCharacterImageUrlError>;
+        ) -> Result<Arc<Image>, GetCharacterImageError>;
     }
 
     impl GithubStorageCharacterImagePathsGet for Storage {

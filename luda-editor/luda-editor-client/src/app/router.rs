@@ -49,7 +49,10 @@ impl Router {
 
     pub fn new(context: AppContext) -> Self {
         Self {
-            page: Page::SequenceList(SequenceList::new(context.storage.clone())),
+            page: Page::SequenceList(SequenceList::new(
+                context.storage.clone(),
+                context.camera_angle_image_loader.clone(),
+            )),
             context,
         }
     }

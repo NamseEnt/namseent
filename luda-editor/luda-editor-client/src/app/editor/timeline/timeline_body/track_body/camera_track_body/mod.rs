@@ -11,7 +11,7 @@ pub struct CameraTrackBodyProps<'a> {
     pub height: Px,
     pub track: &'a CameraTrack,
     pub context: &'a TimelineRenderContext<'a>,
-    pub storage: Arc<dyn GithubStorage>,
+    pub camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
 }
 
 fn move_clip_at_last(track: &mut CameraTrack, clip_ids: Vec<&String>) {
@@ -122,7 +122,7 @@ impl CameraTrackBody {
                             },
                             clip: clip.as_ref(),
                             context: props.context,
-                            storage: props.storage.clone(),
+                            camera_angle_image_loader: props.camera_angle_image_loader.clone(),
                         })
                     })
                     .collect::<Vec<_>>(),
@@ -144,8 +144,11 @@ impl ResizableClip for CameraClip {
         self.end_at
     }
 
-    fn render(&self, wh: Wh<Px>, storage: Arc<dyn GithubStorage>) -> RenderingTree {
-        self.camera_angle
-            .render(wh, &LudaEditorServerCameraAngleImageLoader { storage })
+    fn render(
+        &self,
+        wh: Wh<Px>,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
+    ) -> RenderingTree {
+        self.camera_angle.render(wh, camera_angle_image_loader)
     }
 }

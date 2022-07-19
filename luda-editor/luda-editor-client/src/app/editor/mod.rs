@@ -58,6 +58,7 @@ pub struct Editor {
     sequence_saver: SequenceSaver,
     sheet_sequence_syncer: SheetSequenceSyncer,
     meta_container: Arc<MetaContainer>,
+    camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
 }
 
 impl namui::Entity for Editor {
@@ -449,6 +450,7 @@ impl namui::Entity for Editor {
                 sequence: self.get_sequence(),
                 subtitle_play_duration_measurer: &self.get_meta(),
                 storage: self.storage.clone(),
+                camera_angle_image_loader: self.camera_angle_image_loader.clone(),
             }),
             match &self.clip_editor {
                 None => RenderingTree::Empty,
@@ -463,6 +465,7 @@ impl namui::Entity for Editor {
                     character_image_files: &self.character_image_files,
                     background_image_files: &self.background_image_files,
                     job: &self.job,
+                    camera_angle_image_loader: self.camera_angle_image_loader.clone(),
                 }),
             },
             self.sequence_player.render(&SequencePlayerProps {
@@ -491,6 +494,7 @@ impl Editor {
         sequence: Arc<Sequence>,
         sequence_title: &str,
         meta_container: Arc<MetaContainer>,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
     ) -> Self {
         let character_image_paths = storage.get_character_image_paths();
         let character_image_files =
@@ -508,9 +512,7 @@ impl Editor {
             selected_clip_ids: Arc::new(BTreeSet::new()),
             sequence_player: Box::new(SequencePlayer::new(
                 sequence.clone(),
-                Box::new(LudaEditorServerCameraAngleImageLoader {
-                    storage: storage.clone(),
-                }),
+                camera_angle_image_loader.clone(),
             )),
             history: History::new(sequence.clone()),
             top_bar: TopBar::new(),
@@ -526,6 +528,7 @@ impl Editor {
             sheet_sequence_syncer: SheetSequenceSyncer::new(sequence_title),
             meta_container,
             storage,
+            camera_angle_image_loader,
         }
     }
     fn calculate_timeline_rect(&self, screen_wh: &namui::Wh<Px>) -> Rect<Px> {

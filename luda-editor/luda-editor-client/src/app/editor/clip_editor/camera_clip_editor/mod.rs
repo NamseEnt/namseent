@@ -7,7 +7,6 @@ pub mod wysiwyg_editor;
 use self::{image_browser::*, wysiwyg_editor::*};
 use crate::app::{
     editor::{events::EditorEvent, job::Job},
-    storage::GithubStorage,
     types::*,
 };
 use button::*;
@@ -24,7 +23,7 @@ pub struct CameraClipEditor {
     preview: Preview,
     selected_tab: Tab,
     clip_id: String,
-    storage: Arc<dyn GithubStorage>,
+    camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
 }
 
 #[derive(Debug, Clone)]
@@ -42,7 +41,10 @@ pub struct CameraClipEditorProps<'a> {
 }
 
 impl CameraClipEditor {
-    pub fn new(clip: &CameraClip, storage: Arc<dyn GithubStorage>) -> Self {
+    pub fn new(
+        clip: &CameraClip,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
+    ) -> Self {
         let character_image_directory = get_character_image_directory(clip);
         let character_image_item = get_character_image_item(clip);
         let background_image_directory = get_background_image_directory(clip);
@@ -52,14 +54,14 @@ impl CameraClipEditor {
                 "character",
                 character_image_directory,
                 character_image_item,
-                storage.clone(),
+                camera_angle_image_loader.clone(),
                 ImageType::Character,
             ),
             background_image_browser: ImageBrowser::new(
                 "background",
                 background_image_directory,
                 background_image_item,
-                storage.clone(),
+                camera_angle_image_loader.clone(),
                 ImageType::Background,
             ),
             character_wysiwyg_editor: CharacterWysiwygEditor::new(),
@@ -67,7 +69,7 @@ impl CameraClipEditor {
             selected_tab: Tab::CharacterImage,
             clip_id: clip.id.clone(),
             preview: Preview::new(),
-            storage,
+            camera_angle_image_loader,
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -204,9 +206,7 @@ impl CameraClipEditor {
                     self.render_left_box(
                         left_box_wh,
                         &camera_angle,
-                        &LudaEditorServerCameraAngleImageLoader {
-                            storage: self.storage.clone(),
-                        },
+                        self.camera_angle_image_loader.clone(),
                     ),
                     namui::translate(
                         left_box_wh.width,
@@ -222,7 +222,7 @@ impl CameraClipEditor {
         &self,
         wh: Wh<Px>,
         camera_angle: &CameraAngle,
-        camera_angle_image_loader: &dyn CameraAngleImageLoader,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
     ) -> RenderingTree {
         let tab_button_wh = Wh {
             width: wh.width,
@@ -311,7 +311,7 @@ impl CameraClipEditor {
                             height: wh.width / (1920.0 / 1080.0),
                         },
                         camera_angle,
-                        storage: self.storage.clone(),
+                        camera_angle_image_loader: self.camera_angle_image_loader.clone(),
                     })
             }
             Tab::BackgroundImage => self.background_image_browser.render(&ImageBrowserProps {
@@ -329,7 +329,7 @@ impl CameraClipEditor {
                             height: wh.height,
                         },
                         camera_angle,
-                        storage: self.storage.clone(),
+                        camera_angle_image_loader: self.camera_angle_image_loader.clone(),
                     })
             }
         };

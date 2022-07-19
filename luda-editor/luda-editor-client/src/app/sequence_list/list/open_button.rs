@@ -23,6 +23,7 @@ pub fn render_open_button(wh: Wh<Px>, sequence: &Arc<Sequence>, title: &String) 
                                 sequence.clone(),
                                 &title,
                                 context.meta_container.clone(),
+                                context.camera_angle_image_loader.clone(),
                             )
                         },
                     )));

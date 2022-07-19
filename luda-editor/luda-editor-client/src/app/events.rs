@@ -2,7 +2,7 @@ use super::{
     editor::Editor,
     sequence_list::SequenceList,
     storage::GithubStorage,
-    types::{AppContext, MetaContainer},
+    types::{AppContext, CameraAngleImageLoader, MetaContainer},
 };
 use std::sync::Arc;
 
@@ -17,5 +17,6 @@ pub enum AppEvent {
     Initialized {
         storage: Arc<dyn GithubStorage>,
         meta_container: Arc<MetaContainer>,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
     },
 }

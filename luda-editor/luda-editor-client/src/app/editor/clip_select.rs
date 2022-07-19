@@ -193,7 +193,7 @@ impl Editor {
             let clip_id = self.selected_clip_ids.iter().next().unwrap();
             self.clip_editor = Some(ClipEditor::new(
                 &self.get_sequence().get_clip(clip_id).unwrap(),
-                self.storage.clone(),
+                self.camera_angle_image_loader.clone(),
             ));
         } else {
             self.clip_editor = None;
@@ -221,7 +221,8 @@ mod tests {
             mock_camera_clip("3", Time::Ms(2500.0), Time::Ms(3500.0)),
         ];
         let sequence = mock_sequence(clips);
-        let mut editor = mock_editor(sequence);
+        let camera_angle_image_loader = Arc::new(MockCameraAngleImageLoader::new());
+        let mut editor = mock_editor(sequence, camera_angle_image_loader);
         // select 1 clip
         editor.select_only_this_clip("1");
 
@@ -245,7 +246,8 @@ mod tests {
             mock_camera_clip("3", Time::Ms(3000.0), Time::Ms(4000.0)),
         ];
         let sequence = mock_sequence(clips);
-        let mut editor = mock_editor(sequence);
+        let camera_angle_image_loader = Arc::new(MockCameraAngleImageLoader::new());
+        let mut editor = mock_editor(sequence, camera_angle_image_loader);
         // select 3 clip
         editor.select_only_this_clip("3");
         // shift click 2 back
@@ -267,7 +269,8 @@ mod tests {
             mock_camera_clip("3", Time::Ms(3000.0), Time::Ms(4000.0)),
         ];
         let sequence = mock_sequence(clips);
-        let mut editor = mock_editor(sequence);
+        let camera_angle_image_loader = Arc::new(MockCameraAngleImageLoader::new());
+        let mut editor = mock_editor(sequence, camera_angle_image_loader);
         // select 1 clip
         editor.select_only_this_clip("1");
         // shift click 3
@@ -289,7 +292,8 @@ mod tests {
             mock_camera_clip("3", Time::Ms(2500.0), Time::Ms(3500.0)),
         ];
         let sequence = mock_sequence(clips);
-        let mut editor = mock_editor(sequence);
+        let camera_angle_image_loader = Arc::new(MockCameraAngleImageLoader::new());
+        let mut editor = mock_editor(sequence, camera_angle_image_loader);
         // select 3 clip
         editor.select_only_this_clip("3");
         // shift click 1
@@ -311,7 +315,8 @@ mod tests {
             mock_camera_clip("3", Time::Ms(3000.0), Time::Ms(3500.0)),
         ];
         let sequence = mock_sequence(clips);
-        let mut editor = mock_editor(sequence);
+        let camera_angle_image_loader = Arc::new(MockCameraAngleImageLoader::new());
+        let mut editor = mock_editor(sequence, camera_angle_image_loader);
         // select 1 clip
         editor.select_only_this_clip("1");
         // shift click the parts on 2, not on 3
@@ -333,7 +338,8 @@ mod tests {
             mock_camera_clip("3", Time::Ms(3000.0), Time::Ms(3500.0)),
         ];
         let sequence = mock_sequence(clips);
-        let mut editor = mock_editor(sequence);
+        let camera_angle_image_loader = Arc::new(MockCameraAngleImageLoader::new());
+        let mut editor = mock_editor(sequence, camera_angle_image_loader);
         // select 1 clip
         editor.select_only_this_clip("1");
         // shift click the parts on 2 and 3
@@ -360,7 +366,10 @@ mod tests {
             .into(),
         })
     }
-    fn mock_editor(sequence: Arc<Sequence>) -> Editor {
+    fn mock_editor(
+        sequence: Arc<Sequence>,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
+    ) -> Editor {
         let storage = Arc::new(MockStorage::new());
         Editor {
             timeline: Timeline::new(),
@@ -396,6 +405,7 @@ mod tests {
                 Arc::new(MockMetaLoad::new()),
             )),
             storage,
+            camera_angle_image_loader,
         }
     }
 }

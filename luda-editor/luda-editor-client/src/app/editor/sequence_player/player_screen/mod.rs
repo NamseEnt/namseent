@@ -1,6 +1,6 @@
 use crate::app::types::*;
 use namui::prelude::*;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 mod subtitle_track;
 use super::PlaybackStatus;
 use subtitle_track::*;
@@ -9,7 +9,7 @@ pub(super) struct PlayerScreenProps<'a> {
     pub playback_status: &'a PlaybackStatus,
     pub rect: Rect<Px>,
     pub sequence: &'a Sequence,
-    pub camera_angle_image_loader: &'a dyn CameraAngleImageLoader,
+    pub camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
     pub language: Language,
     pub subtitle_play_duration_measurer: &'a dyn SubtitlePlayDurationMeasure,
     pub subtitle_character_color_map: &'a HashMap<String, Color>,
@@ -78,7 +78,7 @@ pub(super) fn render_player_screen(props: &PlayerScreenProps) -> RenderingTree {
                         props.sequence,
                         screen_wh,
                         *playback_time,
-                        props.camera_angle_image_loader,
+                        props.camera_angle_image_loader.clone(),
                         props.language,
                         props.subtitle_play_duration_measurer,
                         props.subtitle_character_color_map,
@@ -93,7 +93,7 @@ fn render_sequence_in_player_screen(
     sequence: &Sequence,
     screen_wh: Wh<Px>,
     playback_time: Time,
-    camera_angle_image_loader: &dyn CameraAngleImageLoader,
+    camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
     language: Language,
     subtitle_play_duration_measurer: &dyn SubtitlePlayDurationMeasure,
     subtitle_character_color_map: &HashMap<String, Color>,
@@ -109,7 +109,7 @@ fn render_sequence_in_player_screen(
                         render_camera_clip_in_player_screen(
                             clip,
                             screen_wh,
-                            camera_angle_image_loader,
+                            camera_angle_image_loader.clone(),
                         )
                     })
                     .unwrap_or_else(|| RenderingTree::Empty),
@@ -129,7 +129,7 @@ fn render_sequence_in_player_screen(
 fn render_camera_clip_in_player_screen(
     clip: &CameraClip,
     screen_wh: Wh<Px>,
-    camera_angle_image_loader: &dyn CameraAngleImageLoader,
+    camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
 ) -> RenderingTree {
     clip.camera_angle
         .render(screen_wh, camera_angle_image_loader)

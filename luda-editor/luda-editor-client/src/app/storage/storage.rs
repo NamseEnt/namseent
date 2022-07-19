@@ -1,10 +1,10 @@
 use super::{
     fetch_background_images::FetchBackgroundImagesError,
     fetch_character_images::FetchCharacterImagesError,
+    get_background_image::GithubStorageBackgroundImageGet,
     get_background_image_paths::GithubStorageBackgroundImagePathsGet,
-    get_background_image_url::GithubStorageBackgroundImageUrlGet,
-    get_character_image_paths::GithubStorageCharacterImagePathsGet,
-    get_character_image_url::GithubStorageCharacterImageUrlGet, get_meta::GithubStorageMetaGet,
+    get_character_image::GithubStorageCharacterImageGet,
+    get_character_image_paths::GithubStorageCharacterImagePathsGet, get_meta::GithubStorageMetaGet,
     get_sequence::GithubStorageSequenceGet, get_sequence_list::GithubStorageSequenceListGet,
     get_sequence_lock_state::StorageSequenceLockStateGet,
     get_sequence_titles::GithubStorageSequenceTitlesGet, lock_sequence::GithubStorageSequenceLock,
@@ -13,7 +13,7 @@ use super::{
 };
 use crate::app::github_api::GithubAPiClient;
 use async_trait::async_trait;
-use dashmap::DashMap;
+use dashmap::DashSet;
 use namui::prelude::*;
 use std::{fmt::Debug, sync::Arc};
 
@@ -32,8 +32,8 @@ pub trait GithubStorage:
     + GithubStorageSequenceTitlesGet
     + GithubStorageSequenceTitlesPut
     + GithubStorageBackgroundImagePathsGet
-    + GithubStorageBackgroundImageUrlGet
-    + GithubStorageCharacterImageUrlGet
+    + GithubStorageBackgroundImageGet
+    + GithubStorageCharacterImageGet
     + GithubStorageCharacterImagePathsGet
 {
     async fn init(&self) -> Result<(), StorageInitError>;
@@ -43,8 +43,8 @@ pub trait GithubStorage:
 pub struct Storage {
     github_api_client: Arc<GithubAPiClient>,
     client_id: String,
-    background_image_path_url_map: DashMap<String, Url>,
-    character_image_path_url_map: DashMap<String, Url>,
+    background_image_path_set: DashSet<String>,
+    character_image_path_set: DashSet<String>,
 }
 impl Storage {
     pub fn new(github_api_client: Arc<GithubAPiClient>) -> Self {
@@ -52,8 +52,8 @@ impl Storage {
         Self {
             github_api_client,
             client_id,
-            background_image_path_url_map: DashMap::new(),
-            character_image_path_url_map: DashMap::new(),
+            background_image_path_set: DashSet::new(),
+            character_image_path_set: DashSet::new(),
         }
     }
 
@@ -65,12 +65,12 @@ impl Storage {
         &self.client_id
     }
 
-    pub(super) fn get_background_image_path_url_map(&self) -> &DashMap<String, Url> {
-        &self.background_image_path_url_map
+    pub(super) fn get_background_image_path_set(&self) -> &DashSet<String> {
+        &self.background_image_path_set
     }
 
-    pub(super) fn get_character_image_path_url_map(&self) -> &DashMap<String, Url> {
-        &self.character_image_path_url_map
+    pub(super) fn get_character_image_path_set(&self) -> &DashSet<String> {
+        &self.character_image_path_set
     }
 }
 

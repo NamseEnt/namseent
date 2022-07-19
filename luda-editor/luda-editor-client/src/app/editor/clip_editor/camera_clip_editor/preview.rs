@@ -1,5 +1,6 @@
 use crate::app::types::*;
 use namui::prelude::*;
+use std::sync::Arc;
 
 pub struct Preview {}
 
@@ -12,7 +13,7 @@ impl Preview {
 pub struct PreviewProps<'a> {
     pub rect: Rect<Px>,
     pub camera_angle: &'a CameraAngle,
-    pub camera_angle_image_loader: &'a dyn CameraAngleImageLoader,
+    pub camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
 }
 
 impl Preview {
@@ -42,7 +43,7 @@ impl Preview {
                 }),
                 props
                     .camera_angle
-                    .render(props.rect.wh(), props.camera_angle_image_loader),
+                    .render(props.rect.wh(), props.camera_angle_image_loader.clone()),
             ]),
         )
     }
