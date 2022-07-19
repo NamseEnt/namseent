@@ -6,6 +6,7 @@ use std::{
     sync::Arc,
 };
 
+#[allow(dead_code)]
 pub struct DialCounter {
     id: String,
     // zoom: f32, // TODO
@@ -25,12 +26,15 @@ pub trait Abs {
 }
 
 impl DialCounter {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self { id: nanoid() }
     }
 
-    pub fn update(&mut self, event: &dyn std::any::Any) {}
+    #[allow(dead_code)]
+    pub fn update(&mut self, _event: &dyn std::any::Any) {}
 
+    #[allow(dead_code)]
     pub fn render<TValue, TValueChanged>(
         &self,
         props: Props<TValue, TValueChanged>,

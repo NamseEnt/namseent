@@ -131,7 +131,6 @@ fn render_preview_cell(wh: Wh<Px>, layer: &namui::animation::Layer, now: Time) -
                 )
             }
             None => RenderingTree::Empty,
-            _ => RenderingTree::Empty,
         }
     };
     render([border, preview])

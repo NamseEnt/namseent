@@ -1,6 +1,6 @@
 use super::*;
 
-pub(in super::super) struct DragImageBodyAction {
+pub struct DragImageBodyAction {
     pub layer_id: String,
     pub anchor_xy: Xy<Px>,
     pub last_mouse_local_xy: Xy<Px>,
