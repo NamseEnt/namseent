@@ -1,5 +1,5 @@
 use super::*;
-use crate::app::{storage::GithubStorage, types::*};
+use crate::app::types::*;
 use namui::prelude::*;
 use std::sync::Arc;
 
@@ -11,7 +11,7 @@ pub struct BackgroundWysiwygEditor {
 pub struct BackgroundWysiwygEditorProps<'a> {
     pub rect: Rect<Px>,
     pub camera_angle: &'a CameraAngle,
-    pub storage: Arc<dyn GithubStorage>,
+    pub camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
 }
 
 impl BackgroundWysiwygEditor {
@@ -28,9 +28,7 @@ impl BackgroundWysiwygEditor {
             height: props.rect.height(),
         };
 
-        let image_loader = LudaEditorServerCameraAngleImageLoader {
-            storage: props.storage.clone(),
-        };
+        let image_loader = props.camera_angle_image_loader.clone();
 
         let background = props.camera_angle.background.as_ref();
         if background.is_none() {
@@ -38,11 +36,8 @@ impl BackgroundWysiwygEditor {
         }
         let background = background.unwrap();
 
-        let image_source = image_loader.get_background_image_source(background);
-        let image = match image_source {
-            ImageSource::Url(url) => namui::image::try_load(&url),
-            ImageSource::Image(image) => Some(image),
-        };
+        let path = background.to_path();
+        let image = image_loader.try_load_background_image(&path);
         if image.is_none() {
             return RenderingTree::Empty;
         }

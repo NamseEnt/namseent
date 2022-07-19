@@ -16,7 +16,7 @@ pub struct SequencePlayer {
     content_loader: ContentLoader,
     started_at: Option<Time>,
     last_paused_playback_time: Time,
-    camera_angle_image_loader: Box<dyn CameraAngleImageLoader>,
+    camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
 }
 
 enum SequencePlayerEvent {
@@ -55,17 +55,14 @@ pub trait SequencePlay {
 impl SequencePlayer {
     pub fn new(
         sequence: Arc<Sequence>,
-        camera_angle_image_loader: Box<dyn CameraAngleImageLoader>,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
     ) -> Self {
         let id = namui::nanoid();
         let this = Self {
             id: id.clone(),
             is_paused: true,
             sequence: sequence.clone(),
-            content_loader: ContentLoader::new(
-                sequence.clone(),
-                camera_angle_image_loader.as_ref(),
-            ),
+            content_loader: ContentLoader::new(sequence.clone(), camera_angle_image_loader.clone()),
             started_at: None,
             camera_angle_image_loader,
             last_paused_playback_time: Time::Ms(0.0),
@@ -131,7 +128,7 @@ impl SequencePlay for SequencePlayer {
     }
     fn update_sequence(&mut self, sequence: Arc<Sequence>) {
         self.sequence = sequence.clone();
-        self.content_loader = ContentLoader::new(sequence, self.camera_angle_image_loader.as_ref());
+        self.content_loader = ContentLoader::new(sequence, self.camera_angle_image_loader.clone());
     }
     fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<SequencePlayerEvent>() {
@@ -215,7 +212,7 @@ impl SequencePlay for SequencePlayer {
                     rect: player_screen_rect,
                     sequence: &self.sequence,
                     playback_status: &playback_status,
-                    camera_angle_image_loader: self.camera_angle_image_loader.as_ref(),
+                    camera_angle_image_loader: self.camera_angle_image_loader.clone(),
                     language: props.language,
                     subtitle_play_duration_measurer: props.subtitle_play_duration_measurer,
                     subtitle_character_color_map: props.subtitle_character_color_map,

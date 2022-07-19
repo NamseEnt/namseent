@@ -1,16 +1,15 @@
 use super::Storage;
 use crate::app::github_api::{Dirent, ReadDirError};
 use async_recursion::async_recursion;
-use dashmap::DashMap;
-use namui::Url;
+use dashmap::DashSet;
 
-const PATH: &str = "characterImages";
+pub const CHARACTER_IMAGE_PATH_PREFIX: &str = "characterImages";
 
 impl Storage {
     pub async fn fetch_character_images(&self) -> Result<(), FetchCharacterImagesError> {
-        let path_url_map = self.get_character_image_path_url_map();
+        let path_set = self.get_character_image_path_set();
         match self
-            .collect_character_image_url_recursively(PATH, path_url_map)
+            .collect_character_image_url_recursively(CHARACTER_IMAGE_PATH_PREFIX, path_set)
             .await
         {
             Ok(_) => Ok(()),
@@ -25,20 +24,19 @@ impl Storage {
     async fn collect_character_image_url_recursively(
         &self,
         path: &str,
-        path_url_map: &DashMap<String, Url>,
+        path_set: &DashSet<String>,
     ) -> Result<(), ReadDirError> {
         let dirent_list = self.get_github_api_client().read_dir(path).await?;
         for dirent in dirent_list {
             match dirent {
-                Dirent::File {
-                    download_url, path, ..
-                } => {
-                    let path = path.trim_start_matches(PATH).to_string();
-                    let url = Url::parse(download_url.as_str()).unwrap();
-                    path_url_map.insert(path, url);
+                Dirent::File { path, .. } => {
+                    let path = path
+                        .trim_start_matches(CHARACTER_IMAGE_PATH_PREFIX)
+                        .to_string();
+                    path_set.insert(path);
                 }
                 Dirent::Dir { path, .. } => {
-                    self.collect_character_image_url_recursively(path.as_str(), path_url_map)
+                    self.collect_character_image_url_recursively(path.as_str(), path_set)
                         .await?
                 }
                 _ => unimplemented!(),

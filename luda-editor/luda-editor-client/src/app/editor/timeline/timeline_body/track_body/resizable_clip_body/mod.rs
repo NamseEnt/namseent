@@ -1,7 +1,7 @@
 mod sash;
 use crate::app::{
     editor::{events::EditorEvent, TimelineRenderContext},
-    storage::GithubStorage,
+    types::CameraAngleImageLoader,
 };
 use namui::prelude::*;
 pub use sash::*;
@@ -12,7 +12,7 @@ pub struct ResizableClipBodyProps<'a> {
     pub track_body_wh: Wh<Px>,
     pub clip: &'a dyn ResizableClip,
     pub context: &'a TimelineRenderContext<'a>,
-    pub storage: Arc<dyn GithubStorage>,
+    pub camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
 }
 const RESIZABLE_CLIP_ROUND_RADIUS: Px = px(5.0);
 
@@ -20,7 +20,11 @@ pub trait ResizableClip {
     fn id(&self) -> String;
     fn start_at(&self) -> Time;
     fn end_at(&self) -> Time;
-    fn render(&self, wh: Wh<Px>, storage: Arc<dyn GithubStorage>) -> RenderingTree;
+    fn render(
+        &self,
+        wh: Wh<Px>,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
+    ) -> RenderingTree;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -148,7 +152,7 @@ impl ResizableClipBody {
                 clip_rect,
                 props.track_body_wh.width,
                 props.clip,
-                props.storage.clone(),
+                props.camera_angle_image_loader.clone(),
             ),
             border,
             sashes,
@@ -160,7 +164,7 @@ fn render_resizable_clip_preview(
     resizable_clip_rect: Rect<Px>,
     track_body_width: Px,
     clip: &dyn ResizableClip,
-    storage: Arc<dyn GithubStorage>,
+    camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
 ) -> RenderingTree {
     let rect: Rect<Px> = get_resizable_clip_preview_rect(resizable_clip_rect, track_body_width);
 
@@ -209,7 +213,7 @@ fn render_resizable_clip_preview(
                         width: width_by_fixed_height,
                         height: rect.height(),
                     },
-                    storage,
+                    camera_angle_image_loader,
                 ),
             ]),
         ),

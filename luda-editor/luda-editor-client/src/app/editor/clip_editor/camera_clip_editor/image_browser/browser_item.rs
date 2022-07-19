@@ -2,7 +2,7 @@ use super::*;
 
 pub struct BrowserItemProps {
     pub name: String,
-    pub thumbnail_url: Option<Url>,
+    pub thumbnail: Option<Arc<Image>>,
     pub item: ImageBrowserItem,
     pub is_selected: bool,
     pub item_size: Wh<Px>,
@@ -64,18 +64,18 @@ pub fn render_browser_item(props: &BrowserItemProps) -> RenderingTree {
                 ..Default::default()
             },
         }),
-        props.thumbnail_url.as_ref().map_or_else(
-            || RenderingTree::Empty,
-            |thumbnail_url| {
+        props
+            .thumbnail
+            .as_ref()
+            .map_or(RenderingTree::Empty, |thumbnail| {
                 image(ImageParam {
                     rect: props.thumbnail_rect,
-                    source: namui::ImageSource::Url(thumbnail_url.clone()),
+                    source: namui::ImageSource::Image(thumbnail.clone()),
                     style: ImageStyle {
                         fit: ImageFit::Contain,
                         paint_builder: None,
                     },
                 })
-            },
-        ),
+            }),
     ])
 }

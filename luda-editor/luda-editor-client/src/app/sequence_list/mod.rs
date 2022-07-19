@@ -12,7 +12,7 @@ use self::{
 use super::{
     editor::SequencePlayer,
     storage::GithubStorage,
-    types::{LudaEditorServerCameraAngleImageLoader, Sequence, SubtitlePlayDurationMeasure, Track},
+    types::{CameraAngleImageLoader, Sequence, SubtitlePlayDurationMeasure, Track},
 };
 use crate::app::{
     editor::{SequencePlay, SequencePlayerProps},
@@ -44,7 +44,10 @@ pub struct SequenceList {
 }
 
 impl SequenceList {
-    pub fn new(storage: Arc<dyn GithubStorage>) -> Self {
+    pub fn new(
+        storage: Arc<dyn GithubStorage>,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
+    ) -> Self {
         let mut sequence_list = Self {
             sequences_sync_state: SequenceSyncState {
                 started_at: Time::Ms(0.0),
@@ -54,9 +57,7 @@ impl SequenceList {
             scroll_y: px(0.0),
             sequence_player: SequencePlayer::new(
                 Arc::new(Sequence::default()),
-                Box::new(LudaEditorServerCameraAngleImageLoader {
-                    storage: storage.clone(),
-                }),
+                camera_angle_image_loader,
             ),
             sequence_preview_progress_map: HashMap::new(),
             opened_sequence_title: None,

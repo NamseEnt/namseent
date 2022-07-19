@@ -101,6 +101,11 @@ impl TopBar {
 
 fn change_page_to_sequence_list() {
     namui::event::send(RouterEvent::PageChangeToSequenceListEvent(Box::new(
-        move |context| SequenceList::new(context.storage.clone()),
+        move |context| {
+            SequenceList::new(
+                context.storage.clone(),
+                context.camera_angle_image_loader.clone(),
+            )
+        },
     )))
 }

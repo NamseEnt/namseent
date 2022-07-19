@@ -3,7 +3,7 @@ mod browser_item;
 mod empty_button;
 mod scroll;
 mod types;
-use crate::app::storage::GithubStorage;
+use crate::app::types::CameraAngleImageLoader;
 use browser_item::*;
 use namui::prelude::*;
 use scroll::*;
@@ -16,7 +16,7 @@ pub struct ImageBrowser {
     directory: ImageBrowserDirectory,
     selected_item: Option<ImageBrowserItem>,
     scroll: Scroll,
-    storage: Arc<dyn GithubStorage>,
+    camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
     image_type: ImageType,
 }
 pub struct ImageBrowserProps<'a> {
@@ -30,7 +30,7 @@ impl ImageBrowser {
         id: &str,
         directory: ImageBrowserDirectory,
         selected_item: Option<ImageBrowserItem>,
-        storage: Arc<dyn GithubStorage>,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
         image_type: ImageType,
     ) -> Self {
         Self {
@@ -38,7 +38,7 @@ impl ImageBrowser {
             directory,
             selected_item,
             scroll: Scroll::new(),
-            storage,
+            camera_angle_image_loader,
             image_type,
         }
     }
@@ -214,7 +214,7 @@ impl ImageBrowser {
             .chain(just_under_files)
             .map(|item| BrowserItemProps {
                 name: item.get_display_name().to_string(),
-                thumbnail_url: self.get_thumbnail_url(&item, files),
+                thumbnail: self.get_thumbnail(&item, files),
                 is_selected: self
                     .selected_item
                     .as_ref()
@@ -227,11 +227,11 @@ impl ImageBrowser {
             .collect()
     }
 
-    fn get_thumbnail_url(
+    fn get_thumbnail(
         &self,
         item: &ImageBrowserItem,
         files: &BTreeSet<ImageBrowserFile>,
-    ) -> Option<Url> {
+    ) -> Option<Arc<Image>> {
         match item {
             ImageBrowserItem::Back => unreachable!(),
             ImageBrowserItem::Empty => unreachable!(),
@@ -241,12 +241,13 @@ impl ImageBrowser {
                 .and_then(|file| Some(file.get_path())),
             ImageBrowserItem::File(file) => Some(file.get_path()),
         }
-        .map(|path| match self.image_type {
-            ImageType::Character => self.storage.get_character_image_url(path.as_str()).unwrap(),
+        .and_then(|path| match self.image_type {
+            ImageType::Character => self
+                .camera_angle_image_loader
+                .try_load_character_image(&path),
             ImageType::Background => self
-                .storage
-                .get_background_image_url(path.as_str())
-                .unwrap(),
+                .camera_angle_image_loader
+                .try_load_background_image(&path),
         })
     }
 

@@ -1,6 +1,9 @@
 use super::*;
 use crate::app::storage::GithubStorage;
+use dashmap::{DashMap, DashSet};
 use namui::prelude::*;
+use std::fmt::Debug;
+use wasm_bindgen_futures::spawn_local;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CameraAngle {
@@ -32,13 +35,10 @@ impl CameraAngleCharacter {
     pub fn render(
         &self,
         wh: Wh<Px>,
-        camera_angle_image_loader: &dyn CameraAngleImageLoader,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
     ) -> RenderingTree {
-        let image_source = camera_angle_image_loader.get_character_image_source(self);
-        let image = match image_source {
-            ImageSource::Url(url) => namui::image::try_load(&url),
-            ImageSource::Image(image) => Some(image),
-        };
+        let path = self.character_pose_emotion.to_path();
+        let image = camera_angle_image_loader.try_load_character_image(&path);
         if image.is_none() {
             return RenderingTree::Empty;
         }
@@ -102,13 +102,10 @@ impl CameraAngleBackground {
     pub fn render(
         &self,
         wh: Wh<Px>,
-        camera_angle_image_loader: &dyn CameraAngleImageLoader,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
     ) -> RenderingTree {
-        let image_source = camera_angle_image_loader.get_background_image_source(self);
-        let image = match image_source {
-            ImageSource::Url(url) => namui::image::try_load(&url),
-            ImageSource::Image(image) => Some(image),
-        };
+        let path = format!("{}.png", self.name);
+        let image = camera_angle_image_loader.try_load_background_image(&path);
         if image.is_none() {
             return RenderingTree::Empty;
         }
@@ -150,30 +147,93 @@ impl CameraAngleBackground {
             }),
         )
     }
+    pub fn to_path(&self) -> String {
+        format!("{}.jpg", self.name)
+    }
 }
 
-pub trait CameraAngleImageLoader {
-    fn get_character_image_source(&self, character: &CameraAngleCharacter) -> ImageSource;
-    fn get_background_image_source(&self, background: &CameraAngleBackground) -> ImageSource;
+#[cfg(test)]
+use mockall::automock;
+#[cfg_attr(test, automock)]
+pub trait CameraAngleImageLoader: Debug + Send + Sync {
+    fn try_load_character_image(&self, character: &String) -> Option<Arc<Image>>;
+    fn try_load_background_image(&self, background: &String) -> Option<Arc<Image>>;
 }
 
-pub struct LudaEditorServerCameraAngleImageLoader {
-    pub storage: Arc<dyn GithubStorage>,
+#[derive(Debug)]
+pub struct LudaEditorCameraAngleImageLoader {
+    storage: Arc<dyn GithubStorage>,
+    loading_character_images: Arc<DashSet<String>>,
+    loading_background_images: Arc<DashSet<String>>,
+    character_images: Arc<DashMap<String, Arc<Image>>>,
+    background_images: Arc<DashMap<String, Arc<Image>>>,
 }
-impl CameraAngleImageLoader for LudaEditorServerCameraAngleImageLoader {
-    fn get_character_image_source(&self, character: &CameraAngleCharacter) -> ImageSource {
-        let path = character.character_pose_emotion.to_path();
-        let url = self.storage.get_character_image_url(path.as_str()).unwrap();
-        ImageSource::Url(url)
+impl LudaEditorCameraAngleImageLoader {
+    pub fn new(storage: Arc<dyn GithubStorage>) -> Self {
+        Self {
+            storage,
+            loading_character_images: Arc::new(DashSet::new()),
+            loading_background_images: Arc::new(DashSet::new()),
+            character_images: Arc::new(DashMap::new()),
+            background_images: Arc::new(DashMap::new()),
+        }
+    }
+}
+impl CameraAngleImageLoader for LudaEditorCameraAngleImageLoader {
+    fn try_load_character_image(&self, character_path: &String) -> Option<Arc<Image>> {
+        if let Some(image) = self.character_images.get(character_path) {
+            return Some(image.clone());
+        }
+        if self.loading_character_images.contains(character_path) {
+            return None;
+        }
+        self.loading_character_images.insert(character_path.clone());
+
+        let character_path = character_path.clone();
+        let loading_character_images = self.loading_character_images.clone();
+        let character_images = self.character_images.clone();
+        let storage = self.storage.clone();
+        spawn_local(async move {
+            match storage.get_character_image(character_path.as_str()).await {
+                Ok(image) => {
+                    character_images.insert(character_path.clone(), image);
+                    loading_character_images.remove(&character_path);
+                }
+                Err(error) => {
+                    namui::log!("fail to load character image: {:#?}", error);
+                }
+            }
+        });
+
+        None
     }
 
-    fn get_background_image_source(&self, background: &CameraAngleBackground) -> ImageSource {
-        let path = format!("{}.jpeg", background.name);
-        let url = self
-            .storage
-            .get_background_image_url(path.as_str())
-            .unwrap();
-        ImageSource::Url(url)
+    fn try_load_background_image(&self, background_path: &String) -> Option<Arc<Image>> {
+        if let Some(image) = self.background_images.get(background_path) {
+            return Some(image.clone());
+        }
+        if self.loading_background_images.contains(background_path) {
+            return None;
+        }
+        self.loading_background_images
+            .insert(background_path.clone());
+
+        let background_path = background_path.clone();
+        let loading_background_images = self.loading_background_images.clone();
+        let background_images = self.background_images.clone();
+        let storage = self.storage.clone();
+        spawn_local(async move {
+            match storage.get_character_image(background_path.as_str()).await {
+                Ok(image) => {
+                    background_images.insert(background_path.clone(), image);
+                    loading_background_images.remove(&background_path);
+                }
+                Err(error) => {
+                    namui::log!("fail to load background image: {:#?}", error);
+                }
+            }
+        });
+        None
     }
 }
 
@@ -181,13 +241,13 @@ impl CameraAngle {
     pub fn render(
         &self,
         wh: Wh<Px>,
-        camera_angle_image_loader: &dyn CameraAngleImageLoader,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
     ) -> RenderingTree {
         render([
             self.background
                 .as_ref()
                 .map_or(RenderingTree::Empty, |background| {
-                    background.render(wh, camera_angle_image_loader)
+                    background.render(wh, camera_angle_image_loader.clone())
                 }),
             self.character
                 .as_ref()

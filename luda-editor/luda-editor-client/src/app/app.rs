@@ -4,7 +4,7 @@ use super::{
     github_api::GithubAPiClient,
     router::RouterProps,
     storage::{GithubStorage, Storage},
-    types::{AppContext, MetaContainer},
+    types::{AppContext, LudaEditorCameraAngleImageLoader, MetaContainer},
     Router,
 };
 use namui::prelude::*;
@@ -44,10 +44,12 @@ impl namui::Entity for App {
                 AppEvent::Initialized {
                     storage,
                     meta_container,
+                    camera_angle_image_loader,
                 } => {
                     let context = AppContext {
                         storage: storage.clone(),
                         meta_container: meta_container.clone(),
+                        camera_angle_image_loader: camera_angle_image_loader.clone(),
                     };
                     self.stage = AppStage::Ready {
                         router: Router::new(context),
@@ -101,10 +103,13 @@ fn initialize_app(github_api_client: Arc<GithubAPiClient>) {
     spawn_local(async move {
         let storage = Arc::new(Storage::new(github_api_client.clone()));
         let meta_container = Arc::new(MetaContainer::new(None, storage.clone()));
+        let camera_angle_image_loader =
+            Arc::new(LudaEditorCameraAngleImageLoader::new(storage.clone()));
         storage.init().await.unwrap();
         namui::event::send(AppEvent::Initialized {
             storage,
             meta_container,
+            camera_angle_image_loader,
         });
     });
 }

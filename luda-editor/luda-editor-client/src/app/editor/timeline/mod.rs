@@ -16,7 +16,7 @@ use crate::app::{
         },
     },
     storage::GithubStorage,
-    types::{Sequence, SubtitlePlayDurationMeasure},
+    types::{CameraAngleImageLoader, Sequence, SubtitlePlayDurationMeasure},
 };
 use namui::prelude::*;
 use playback_time_view::*;
@@ -49,6 +49,7 @@ pub struct TimelineProps<'a> {
     pub sequence: &'a Sequence,
     pub subtitle_play_duration_measurer: &'a dyn SubtitlePlayDurationMeasure,
     pub storage: Arc<dyn GithubStorage>,
+    pub camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
 }
 pub struct TimelineRenderContext<'a> {
     pub time_per_px: TimePerPx,
@@ -170,7 +171,7 @@ impl Timeline {
                                     height: track_body_height,
                                     tracks: &props.sequence.tracks,
                                     context: &context,
-                                    storage: props.storage,
+                                    camera_angle_image_loader: props.camera_angle_image_loader,
                                 }),
                             ),
                         ]),
