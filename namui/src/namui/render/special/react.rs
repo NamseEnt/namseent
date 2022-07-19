@@ -143,64 +143,7 @@ pub fn reconciliate(prev_tree: &RenderingTree, next_tree: &RenderingTree, event:
 }
 
 fn is_same_special_variant(a: &SpecialRenderingNode, b: &SpecialRenderingNode) -> bool {
-    match a {
-        SpecialRenderingNode::Translate(_) => {
-            if let SpecialRenderingNode::Translate(_) = b {
-                return true;
-            }
-        }
-        SpecialRenderingNode::Clip(_) => {
-            if let SpecialRenderingNode::Clip(_) = b {
-                return true;
-            }
-        }
-        SpecialRenderingNode::AttachEvent(_) => {
-            if let SpecialRenderingNode::AttachEvent(_) = b {
-                return true;
-            }
-        }
-        SpecialRenderingNode::MouseCursor(_) => {
-            if let SpecialRenderingNode::MouseCursor(_) = b {
-                return true;
-            }
-        }
-        SpecialRenderingNode::WithId(_) => {
-            if let SpecialRenderingNode::WithId(_) = b {
-                return true;
-            }
-        }
-        SpecialRenderingNode::Absolute(_) => {
-            if let SpecialRenderingNode::Absolute(_) = b {
-                return true;
-            }
-        }
-        SpecialRenderingNode::Rotate(_) => {
-            if let SpecialRenderingNode::Rotate(_) = b {
-                return true;
-            }
-        }
-        SpecialRenderingNode::Custom(_) => {
-            if let SpecialRenderingNode::Custom(_) = b {
-                return true;
-            }
-        }
-        SpecialRenderingNode::Scale(_) => {
-            if let SpecialRenderingNode::Scale(_) = b {
-                return true;
-            }
-        }
-        SpecialRenderingNode::Transform(_) => {
-            if let SpecialRenderingNode::Transform(_) = b {
-                return true;
-            }
-        }
-        SpecialRenderingNode::React(_) => {
-            if let SpecialRenderingNode::React(_) = b {
-                return true;
-            }
-        }
-    };
-    false
+    std::mem::discriminant(a) == std::mem::discriminant(b)
 }
 
 fn renew_react(tree: &RenderingTree, event: Option<&dyn Any>) {
