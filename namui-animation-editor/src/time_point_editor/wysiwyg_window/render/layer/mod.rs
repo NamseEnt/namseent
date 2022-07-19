@@ -42,7 +42,7 @@ impl WysiwygWindow {
             if can_draw_editing_tool {
                 rendering_tree.push(self.render_editing_tool(props, layer));
             } else if can_draw_hint_bounding_box {
-                // rendering_tree.push(self.render_hint_bounding_box(props, layer));
+                rendering_tree.push(self.render_hint_bounding_box(props, layer));
             }
         }
 
