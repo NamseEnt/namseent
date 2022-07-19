@@ -63,10 +63,7 @@ impl ImageKeyframe {
 )]
 pub enum ImageInterpolation {
     AllLinear,
-    SquashAndStretch {
-        velocity_ratio: f32,
-        frame_per_second: f32,
-    },
+    SquashAndStretch { frame_per_second: f32 },
 }
 
 impl ImageInterpolation {
@@ -88,16 +85,9 @@ impl KeyframeValue<ImageInterpolation> for ImageKeyframe {
                 matrix: linear_interpolate(&self.matrix, &next.matrix, context.time_ratio),
                 opacity: linear_interpolate(&self.opacity, &next.opacity, context.time_ratio),
             },
-            &ImageInterpolation::SquashAndStretch {
-                velocity_ratio,
-                frame_per_second,
-            } => {
+            &ImageInterpolation::SquashAndStretch { frame_per_second } => {
                 let time_ratio = get_time_ratio_in_fps(&context, frame_per_second);
-                fn get_position_of_time_ratio(
-                    time_ratio: f32,
-                    _velocity_ratio: f32,
-                    length: Px,
-                ) -> Px {
+                fn get_position_of_time_ratio(time_ratio: f32, length: Px) -> Px {
                     length / 2.0 * (1.0 - (PI * time_ratio).cos())
                 }
                 let vector = crate::Xy {
@@ -105,9 +95,9 @@ impl KeyframeValue<ImageInterpolation> for ImageKeyframe {
                     y: next.y() - self.y(),
                 };
 
-                let x = self.x() + get_position_of_time_ratio(time_ratio, velocity_ratio, vector.x);
+                let x = self.x() + get_position_of_time_ratio(time_ratio, vector.x);
 
-                let y = self.y() + get_position_of_time_ratio(time_ratio, velocity_ratio, vector.y);
+                let y = self.y() + get_position_of_time_ratio(time_ratio, vector.y);
 
                 let angle = vector.atan2();
 

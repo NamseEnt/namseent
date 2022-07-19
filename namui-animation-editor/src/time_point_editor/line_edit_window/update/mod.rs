@@ -55,11 +55,7 @@ impl LineEditWindow {
                         layer_id: layer_id.clone(),
                         point_id: point_id.clone(),
                         update: move |line| {
-                            if let ImageInterpolation::SquashAndStretch {
-                                velocity_ratio: _velocity_ratio,
-                                ..
-                            } = line
-                            {
+                            if let ImageInterpolation::SquashAndStretch { .. } = line {
                                 func(line);
                             }
                         },
