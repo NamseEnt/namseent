@@ -14,6 +14,7 @@ use super::{
 use crate::app::github_api::GithubAPiClient;
 use async_trait::async_trait;
 use dashmap::DashSet;
+use futures::join;
 use namui::prelude::*;
 use std::{fmt::Debug, sync::Arc};
 
@@ -77,8 +78,16 @@ impl Storage {
 #[async_trait(?Send)]
 impl GithubStorage for Storage {
     async fn init(&self) -> Result<(), StorageInitError> {
-        self.fetch_background_images().await?;
-        self.fetch_character_images().await?;
+        let (fetch_background_images_result, fetch_character_images_result) = join!(
+            self.fetch_background_images(),
+            self.fetch_character_images()
+        );
+        if let Err(error) = fetch_background_images_result {
+            return Err(StorageInitError::FetchBackgroundImagesError(error));
+        }
+        if let Err(error) = fetch_character_images_result {
+            return Err(StorageInitError::FetchCharacterImagesError(error));
+        }
         Ok(())
     }
 }
