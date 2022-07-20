@@ -23,7 +23,7 @@ struct ShaderExample {
 
 impl ShaderExample {
     fn new() -> Self {
-        Self { tab: Tab::Scroll }
+        Self { tab: Tab::Shake }
     }
 }
 
@@ -79,7 +79,7 @@ impl Entity for ShaderExample {
                     visible_item_count: 0,
                 })
             }),
-            ratio(1.0, |_wh| match self.tab {
+            ratio(1.0, |wh| match self.tab {
                 Tab::Spiral => {
                     namui::shader!(SpiralShader, {
                         uniform float rad_scale;
@@ -87,8 +87,8 @@ impl Entity for ShaderExample {
                         uniform float4 in_colors0;
                         uniform float4 in_colors1;
 
-                        half4 main(float2 p) {
-                            float2 pp = p - in_center;
+                        half4 main(float2 xy) {
+                            float2 pp = xy - in_center;
                             float radius = sqrt(dot(pp, pp));
                             radius = sqrt(radius);
                             float angle = atan(pp.y / pp.x);
@@ -132,54 +132,99 @@ impl Entity for ShaderExample {
                 }
                 Tab::Shake => {
                     namui::shader!(ShakeShader, {
-                        uniform float2 xy;
                         uniform float2 wh;
                         uniform float delta_x_center;
+                        uniform float2 image_size;
+                        uniform float2 image_left_top;
+                        uniform shader image;
 
-                        half4 value(float2 p) {
-                            return half4((p.x - xy.x) / wh.x, (p.y - xy.y) / wh.y, 0.0, 1.0);
+
+                        half4 main(float2 xy) {
+                            float pi = 3.1415926;
+                            float2 image_local_xy = xy - image_left_top;
+
+
+                            float2 result_xy = image_local_xy + float2(
+                                sin(image_local_xy.y / (image_size.y / 2.0) * pi / 2) * delta_x_center,
+                                0.0
+                            );
+
+                            return image.eval(result_xy).rgba;
                         }
-                        half4 main(float2 p) {
-                            float y_center = xy.y + wh.y / 2.0;
-                            float value_x = p.x + sin((p.y - xy.y) / (y_center - xy.y) * 3.1415926 / 2) * delta_x_center;
-                            if (value_x < xy.x) {
-                                return half4(1.0, 0.0, 0.0, 1.0);
-                            } else if (value_x > xy.x + wh.x) {
-                                return half4(0.0, 1.0, 0.0, 1.0);
+                    });
+                    let image_source_url = Url::parse("bundle:resources/test.jpg").unwrap();
+
+                    let image = namui::image::try_load(&image_source_url);
+                    if image.is_none() {
+                        return RenderingTree::Empty;
+                    }
+                    let image = image.unwrap();
+                    let image_size = image.size().into_slice();
+                    let start_x = 50.0;
+                    let end_x = 500.0;
+                    let rest_secs = 1.0;
+                    let working_secs = 0.5;
+                    let total_secs = working_secs + rest_secs;
+                    let seconds = namui::now().as_seconds() % total_secs;
+                    let time_ratio = seconds / working_secs;
+
+                    let image_left_top = Xy {
+                        x: {
+                            if seconds > working_secs {
+                                end_x
+                            } else {
+                                fn ease_curve(x: f32, alpha: f32) -> f32 {
+                                    x.powf(alpha) / (x.powf(alpha) + (1.0 - x).powf(alpha))
+                                }
+                                let curved_time_ratio = ease_curve(time_ratio, 6.0);
+
+                                start_x + (end_x - start_x) * curved_time_ratio
                             }
-                            return half4(value_x / wh.x, value_x / wh.x, value_x / wh.x, 1.0);
+                        },
+                        y: 50.0,
+                    }
+                    .as_slice();
+
+                    let display_rect =
+                        Rect::from_xy_wh(Xy::single(100.px()), wh - Wh::single(200.px()));
+
+                    let wh = display_rect.wh().into_slice();
+                    let delta_x_center = {
+                        if seconds < working_secs {
+                            (time_ratio / 0.5 * PI).sin() * image.size().width.as_f32() / 2.0
+                        } else {
+                            ((time_ratio - 1.0) / 0.5 * 2.0 * PI).sin()
+                                * image.size().width.as_f32()
+                                / (2.0 * time_ratio.powi(4))
                         }
-                    });
+                    };
 
-                    let xy = [100.0, 100.0];
-                    let wh = [200.0, 200.0];
-                    let delta_x_center = (namui::now().as_seconds() * 2.0 * PI).sin() * 100.0;
+                    let image_shader = image.make_shader(
+                        TileMode::Decal,
+                        TileMode::Decal,
+                        FilterMode::Linear,
+                        MipmapMode::Linear,
+                    );
 
-                    let shader = ShakeShader::new(xy, wh, delta_x_center);
+                    let shader = ShakeShader::new(
+                        wh,
+                        delta_x_center,
+                        image_size,
+                        image_left_top,
+                        image_shader,
+                    );
                     let paint = PaintBuilder::new().set_shader(shader.make());
-                    let rect = PathBuilder::new().add_rect(Rect::Xywh {
-                        x: 100.px(),
-                        y: 100.px(),
-                        width: 200.px(),
-                        height: 200.px(),
-                    });
+                    let rect = PathBuilder::new()
+                        .add_rect(Rect::from_xy_wh(Xy::zero().into(), display_rect.wh()));
 
-                    render([
-                        path(rect, paint),
-                        translate(
-                            100.px(),
-                            100.px(),
-                            simple_rect(
-                                Wh {
-                                    width: 200.px(),
-                                    height: 200.px(),
-                                },
-                                Color::RED,
-                                1.px(),
-                                Color::TRANSPARENT,
-                            ),
-                        ),
-                    ])
+                    translate(
+                        display_rect.x(),
+                        display_rect.y(),
+                        render([
+                            path(rect, paint),
+                            simple_rect(display_rect.wh(), Color::RED, 1.px(), Color::TRANSPARENT),
+                        ]),
+                    )
                 }
                 Tab::Scroll => {
                     namui::shader!(ScrollShader, {
@@ -189,14 +234,14 @@ impl Entity for ShaderExample {
                         uniform float2 image_wh;
                         uniform shader image;
 
-                        float2 local_xy(float2 p) {
+                        float2 local_xy(float2 xy) {
                             return float2(
-                                (p.x - xy.x) / (wh.x / image_wh.x),
-                                (p.y - xy.y) / (wh.y / image_wh.y)
+                                (xy.x - xy.x) / (wh.x / image_wh.x),
+                                (xy.y - xy.y) / (wh.y / image_wh.y)
                             );
                         }
-                        half4 main(float2 p) {
-                            return image.eval(local_xy(p - float2(0.0, delta_y))).rgba;
+                        half4 main(float2 xy) {
+                            return image.eval(local_xy(xy - float2(0.0, delta_y))).rgba;
                         }
                     });
 
