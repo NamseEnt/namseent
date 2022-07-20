@@ -194,3 +194,9 @@ canvas_kit_enum!(
         Luminosity: BLEND_MODE_LUMINOSITY_VALUE,
     }
 );
+canvas_kit_enum!(TileMode, CanvasKitTileModeEnumValues, CanvasKitTileMode, {
+    Clamp: TILE_MODE_CLAMP_VALUE,
+    Decal: TILE_MODE_DECAL_VALUE,
+    Mirror: TILE_MODE_MIRROR_VALUE,
+    Repeat: TILE_MODE_REPEAT_VALUE,
+});

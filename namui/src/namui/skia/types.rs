@@ -182,7 +182,7 @@ struct Hsl01 {
     alpha: f32,
 }
 
-#[derive(Debug, Serialize, Clone, PartialEq, Hash)]
+#[derive(Debug, Serialize, Clone, Copy, PartialEq, Hash)]
 pub enum PaintStyle {
     Fill,
     Stroke,
@@ -255,7 +255,7 @@ pub enum MipmapMode {
     Nearest,
     Linear,
 }
-#[derive(Debug, Serialize, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Serialize, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum BlendMode {
     Clear,
     Src,
@@ -286,4 +286,10 @@ pub enum BlendMode {
     Saturation,
     Color,
     Luminosity,
+}
+pub enum TileMode {
+    Clamp,
+    Decal,
+    Mirror,
+    Repeat,
 }

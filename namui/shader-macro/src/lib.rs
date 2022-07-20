@@ -1,6 +1,7 @@
 mod token_consume;
 
 use core::panic;
+use std::mem::discriminant;
 
 use proc_macro::*;
 use token_consume::*;
@@ -50,18 +51,21 @@ use token_consume::*;
 ///     }
 ///     fn uniforms(&self) -> [f32; 11] {
 ///         [
-///             rad_scale,
-///             in_center[0],
-///             in_center[1],
-///             in_colors0[0],
-///             in_colors0[1],
-///             in_colors0[2],
-///             in_colors0[3],
-///             in_colors1[0],
-///             in_colors1[1],
-///             in_colors1[2],
-///             in_colors1[3]
+///             self.rad_scale,
+///             self.in_center[0],
+///             self.in_center[1],
+///             self.in_colors0[0],
+///             self.in_colors0[1],
+///             self.in_colors0[2],
+///             self.in_colors0[3],
+///             self.in_colors1[0],
+///             self.in_colors1[1],
+///             self.in_colors1[2],
+///             self.in_colors1[3]
 ///         ]
+///     }
+///     fn children(&self) -> [std::sync::Arc<namui::Shader>; 0] {
+///        []
 ///     }
 ///     fn code(&self) -> &'static str {
 ///         "
@@ -82,15 +86,13 @@ use token_consume::*;
 ///             }
 ///        "
 ///     }
-/// }
-/// impl namui::MakeShader for MyShader {
-///     fn make(&self) -> namui::IntermediateShader {
-///         namui::IntermediateShader::new(&self.uniforms(), self.code())
-///     }
+///     fn make(&self) -> std::sync::Arc<namui::Shader> {{
+///         namui::make_runtime_effect_shader(&self.uniforms(), Self::code(), Box::new(self.children()))
+///     }}
 /// }
 ///
 /// // example
-/// let shader = MyShader::make(1.0, [0.0, 0.0], [1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0]);
+/// let shader = MyShader::new(1.0, [0.0, 0.0], [1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0]);
 /// ```
 ///
 #[proc_macro]
@@ -144,6 +146,10 @@ pub fn shader(item: TokenStream) -> TokenStream {
         panic!("Shader must have one main function");
     }
     let uniform_f32_size: usize = uniforms.iter().map(|uniform| uniform.ty.f32_size()).sum();
+    let uniform_shader_count = uniforms
+        .iter()
+        .filter(|uniform| discriminant(&uniform.ty) == discriminant(&UniformType::Shader))
+        .count();
 
     let struct_fields = uniforms
         .iter()
@@ -167,17 +173,30 @@ pub fn shader(item: TokenStream) -> TokenStream {
 
     let uniforms_body = uniforms
         .iter()
-        .map(|uniform| match uniform.ty {
-            UniformType::Float => format!("self.{}", uniform.ident),
-            UniformType::Float2 => format!("self.{}[0], self.{}[1]", uniform.ident, uniform.ident),
-            UniformType::Float3 => format!(
+        .filter_map(|uniform| match uniform.ty {
+            UniformType::Float => Some(format!("self.{}", uniform.ident)),
+            UniformType::Float2 => Some(format!(
+                "self.{}[0], self.{}[1]",
+                uniform.ident, uniform.ident
+            )),
+            UniformType::Float3 => Some(format!(
                 "self.{}[0], self.{}[1], self.{}[2]",
                 uniform.ident, uniform.ident, uniform.ident
-            ),
-            UniformType::Float4 => format!(
+            )),
+            UniformType::Float4 => Some(format!(
                 "self.{}[0], self.{}[1], self.{}[2], self.{}[3]",
                 uniform.ident, uniform.ident, uniform.ident, uniform.ident
-            ),
+            )),
+            UniformType::Shader => None,
+        })
+        .collect::<Vec<_>>()
+        .join(",\n");
+
+    let children_body = uniforms
+        .iter()
+        .filter_map(|uniform| match uniform.ty {
+            UniformType::Shader => Some(format!("self.{}.clone()", uniform.ident)),
+            _ => None,
         })
         .collect::<Vec<_>>()
         .join(",\n");
@@ -199,13 +218,16 @@ impl {shader_ident} {{
             {uniforms_body}
         ]
     }}
+    fn children(&self) -> [std::sync::Arc<namui::Shader>; {uniform_shader_count}] {{
+        [
+            {children_body}
+        ]
+    }}
     fn code() -> &'static str {{
         \"{sksl_code}\"
     }}
-}}
-impl namui::MakeShader for {shader_ident} {{
-    fn make(&self) -> namui::IntermediateShader {{
-        namui::IntermediateShader::new(&self.uniforms(), Self::code())
+    fn make(&self) -> std::sync::Arc<namui::Shader> {{
+        namui::make_runtime_effect_shader(&self.uniforms(), Self::code(), Box::new(self.children()))
     }}
 }}
 "
@@ -219,14 +241,16 @@ enum UniformType {
     Float2,
     Float3,
     Float4,
+    Shader,
 }
 impl UniformType {
-    fn to_rust_type(&self) -> String {
+    fn to_rust_type(&self) -> &'static str {
         match self {
-            UniformType::Float => "f32".to_string(),
-            UniformType::Float2 => "[f32; 2]".to_string(),
-            UniformType::Float3 => "[f32; 3]".to_string(),
-            UniformType::Float4 => "[f32; 4]".to_string(),
+            UniformType::Float => "f32",
+            UniformType::Float2 => "[f32; 2]",
+            UniformType::Float3 => "[f32; 3]",
+            UniformType::Float4 => "[f32; 4]",
+            UniformType::Shader => "std::sync::Arc<namui::Shader>",
         }
     }
     fn f32_size(&self) -> usize {
@@ -235,6 +259,7 @@ impl UniformType {
             UniformType::Float2 => 2,
             UniformType::Float3 => 3,
             UniformType::Float4 => 4,
+            UniformType::Shader => 0,
         }
     }
 }

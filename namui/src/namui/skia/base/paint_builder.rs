@@ -1,16 +1,15 @@
 use crate::{
-    namui::skia::{IntermediateShader, StrokeJoin},
-    BlendMode, Color, ColorFilter, MakeShader, Paint, PaintStyle, Px, StrokeCap,
+    namui::skia::{Shader, StrokeJoin},
+    BlendMode, Color, ColorFilter, Paint, PaintStyle, Px, StrokeCap,
 };
 use once_cell::sync::OnceCell;
 use ordered_float::OrderedFloat;
-use serde::Serialize;
 use std::{
     hash::Hash,
     sync::{Arc, Mutex},
 };
 
-#[derive(Debug, Serialize, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PaintBuilder {
     color: Option<Color>,
     paint_style: Option<PaintStyle>,
@@ -19,10 +18,22 @@ pub struct PaintBuilder {
     stroke_cap: Option<StrokeCap>,
     stroke_join: Option<StrokeJoin>,
     color_filter: Option<(Color, BlendMode)>,
-    shader: Option<IntermediateShader>,
+    shader: Option<Arc<Shader>>,
 }
 
-static PAINT_CACHE: OnceCell<Mutex<lru::LruCache<PaintBuilder, Arc<Paint>>>> = OnceCell::new();
+#[derive(Clone, PartialEq)]
+pub struct PaintBuilderWithoutShader {
+    color: Option<Color>,
+    paint_style: Option<PaintStyle>,
+    anti_alias: Option<bool>,
+    stroke_width: Option<Px>,
+    stroke_cap: Option<StrokeCap>,
+    stroke_join: Option<StrokeJoin>,
+    color_filter: Option<(Color, BlendMode)>,
+}
+
+static PAINT_CACHE: OnceCell<Mutex<lru::LruCache<PaintBuilderWithoutShader, Arc<Paint>>>> =
+    OnceCell::new();
 static COLOR_FILTER_CACHE: OnceCell<Mutex<lru::LruCache<(Color, BlendMode), Arc<ColorFilter>>>> =
     OnceCell::new();
 
@@ -70,24 +81,36 @@ impl PaintBuilder {
         self.color_filter = Some((color.clone(), blend_mode.clone()));
         self
     }
-    pub fn set_shader(mut self, make_shader: impl MakeShader) -> Self {
-        self.shader = Some(make_shader.make());
+    pub fn set_shader(mut self, make_shader: Arc<Shader>) -> Self {
+        self.shader = Some(make_shader);
         self
     }
 
     fn get_or_create_paint(&self) -> Arc<Paint> {
+        let paint_builder_without_shader = PaintBuilderWithoutShader {
+            color: self.color,
+            paint_style: self.paint_style,
+            anti_alias: self.anti_alias,
+            stroke_width: self.stroke_width,
+            stroke_cap: self.stroke_cap,
+            stroke_join: self.stroke_join,
+            color_filter: self.color_filter,
+        };
         let mut cache = PAINT_CACHE
             .get_or_init(|| Mutex::new(lru::LruCache::new(1024)))
             .lock()
             .unwrap();
-        match cache.get(self) {
+        let paint = match cache.get(&paint_builder_without_shader) {
             Some(paint) => paint.clone(),
             None => {
                 let paint = self.create_paint();
-                cache.put(self.clone(), paint.clone());
+                cache.put(paint_builder_without_shader, paint.clone());
                 paint
             }
-        }
+        };
+
+        paint.set_shader(self.shader.as_ref());
+        paint
     }
 
     fn create_paint(&self) -> Arc<Paint> {
@@ -103,7 +126,6 @@ impl PaintBuilder {
             self.color_filter
                 .as_ref()
                 .map(|(color, blend_mode)| Self::get_or_create_color_filter(&color, &blend_mode)),
-            self.shader.as_ref(),
         );
 
         Arc::new(paint)
@@ -138,7 +160,7 @@ impl PaintBuilder {
     }
 }
 
-impl Hash for PaintBuilder {
+impl Hash for PaintBuilderWithoutShader {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.color.hash(state);
         self.paint_style.hash(state);
@@ -151,7 +173,7 @@ impl Hash for PaintBuilder {
     }
 }
 
-impl std::cmp::Eq for PaintBuilder {}
+impl std::cmp::Eq for PaintBuilderWithoutShader {}
 
 #[cfg(test)]
 mod tests {

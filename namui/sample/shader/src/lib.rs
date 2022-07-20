@@ -1,7 +1,6 @@
-use std::{f32::consts::PI, mem::discriminant};
-
 use namui::prelude::*;
 use namui_prebuilt::{table::*, *};
+use std::{f32::consts::PI, mem::discriminant};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -97,7 +96,7 @@ impl Entity for ShaderExample {
                     let in_colors1 = [0.0, 1.0, 0.0, 1.0];
 
                     let shader = SpiralShader::new(red_scale, in_center, in_colors0, in_colors1);
-                    let paint = PaintBuilder::new().set_shader(shader);
+                    let paint = PaintBuilder::new().set_shader(shader.make());
                     let rect = PathBuilder::new().add_rect(Rect::Xywh {
                         x: 100.px(),
                         y: 100.px(),
@@ -148,7 +147,7 @@ impl Entity for ShaderExample {
                     let delta_x_center = (namui::now().as_seconds() * 2.0 * PI).sin() * 100.0;
 
                     let shader = ShakeShader::new(xy, wh, delta_x_center);
-                    let paint = PaintBuilder::new().set_shader(shader);
+                    let paint = PaintBuilder::new().set_shader(shader.make());
                     let rect = PathBuilder::new().add_rect(Rect::Xywh {
                         x: 100.px(),
                         y: 100.px(),

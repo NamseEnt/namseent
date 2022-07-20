@@ -63,6 +63,22 @@ impl Image {
             height: canvas_kit_image_info.height,
         }
     }
+    pub fn make_shader(
+        &self,
+        tile_x: TileMode,
+        tile_y: TileMode,
+        filter: FilterMode,
+        mipmap: MipmapMode,
+    ) -> Shader {
+        let shader = self.canvas_kit_image.makeShaderOptions(
+            tile_x.into_canvas_kit(),
+            tile_y.into_canvas_kit(),
+            filter.into_canvas_kit(),
+            mipmap.into_canvas_kit(),
+        );
+
+        Shader::new(shader)
+    }
 }
 
 impl Drop for Image {
