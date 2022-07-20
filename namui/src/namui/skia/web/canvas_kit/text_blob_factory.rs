@@ -14,7 +14,7 @@ extern "C" {
     /// @param font
     ///
     #[wasm_bindgen(structural, method)]
-    pub fn MakeFromGlyphs(
+    pub(crate) fn MakeFromGlyphs(
         this: &TextBlobFactory,
         glyphs: &GlyphIds,
         font: &CanvasKitFont,
@@ -29,7 +29,7 @@ extern "C" {
     // /// @param font
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn MakeFromRSXform(this: &TextBlobFactory, str: string, rsxforms: InputFlattenedRSXFormArray, font: Font) -> CanvasKitTextBlob;
+    // pub(crate) fn MakeFromRSXform(this: &TextBlobFactory, str: string, rsxforms: InputFlattenedRSXFormArray, font: Font) -> CanvasKitTextBlob;
 
     // ///
     // /// Returns a TextBlob built from a single run of text with rotation, scale, and translations.
@@ -39,7 +39,7 @@ extern "C" {
     // /// @param font
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn MakeFromRSXformGlyphs(this: &TextBlobFactory, glyphs: InputGlyphIDArray, rsxforms: InputFlattenedRSXFormArray,
+    // pub(crate) fn MakeFromRSXformGlyphs(this: &TextBlobFactory, glyphs: InputGlyphIDArray, rsxforms: InputFlattenedRSXFormArray,
     //                       font: Font) -> CanvasKitTextBlob;
 
     ///
@@ -53,7 +53,7 @@ extern "C" {
     /// @param font
     ///
     #[wasm_bindgen(structural, method)]
-    pub fn MakeFromText(
+    pub(crate) fn MakeFromText(
         this: &TextBlobFactory,
         str: &str,
         font: &CanvasKitFont,
@@ -69,5 +69,5 @@ extern "C" {
     // /// @param initialOffset - the length in pixels to start along the path.
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn MakeOnPath(this: &TextBlobFactory, str: string, path: Path, font: Font, initialOffset?: number) -> CanvasKitTextBlob;
+    // pub(crate) fn MakeOnPath(this: &TextBlobFactory, str: string, path: Path, font: Font, initialOffset?: number) -> CanvasKitTextBlob;
 }

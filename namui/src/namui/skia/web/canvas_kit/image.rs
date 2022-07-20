@@ -12,44 +12,44 @@ extern "C" {
     // /// @param fmt - PNG is the default value.
     // /// @param quality - a value from 0 to 100; 100 is the least lossy. May be ignored.
     // #[wasm_bindgen(method)]
-    // pub fn encodeToBytes(this: &CanvasKitImage, fmt?: EncodedImageFormat, quality?: number) -> Uint8Array | null;
+    // pub(crate) fn encodeToBytes(this: &CanvasKitImage, fmt?: EncodedImageFormat, quality?: number) -> Uint8Array | null;
 
     // ///
     // /// Returns the color space associated with this object.
     // /// It is the user's responsibility to call delete() on this after it has been used.
     // #[wasm_bindgen(method)]
-    // pub fn getColorSpace(this: &CanvasKitImage, ) -> ColorSpace;
+    // pub(crate) fn getColorSpace(this: &CanvasKitImage, ) -> ColorSpace;
 
     ///
     /// Returns the width, height, colorType and alphaType associated with this image.
     /// Colorspace is separate so as to not accidentally leak that memory.
     #[wasm_bindgen(method)]
-    pub fn getImageInfo(this: &CanvasKitImage) -> CanvasKitPartialImageInfo;
+    pub(crate) fn getImageInfo(this: &CanvasKitImage) -> CanvasKitPartialImageInfo;
 
     #[wasm_bindgen(js_name = "PartialImageInfo")]
     pub type CanvasKitPartialImageInfo;
 
     #[wasm_bindgen(method, getter)]
-    pub fn alphaType(this: &CanvasKitPartialImageInfo) -> CanvasKitAlphaType;
+    pub(crate) fn alphaType(this: &CanvasKitPartialImageInfo) -> CanvasKitAlphaType;
 
     #[wasm_bindgen(method, getter)]
-    pub fn colorType(this: &CanvasKitPartialImageInfo) -> CanvasKitColorType;
+    pub(crate) fn colorType(this: &CanvasKitPartialImageInfo) -> CanvasKitColorType;
 
     #[wasm_bindgen(method, getter)]
-    pub fn height(this: &CanvasKitPartialImageInfo) -> f32;
+    pub(crate) fn height(this: &CanvasKitPartialImageInfo) -> f32;
 
     #[wasm_bindgen(method, getter)]
-    pub fn width(this: &CanvasKitPartialImageInfo) -> f32;
+    pub(crate) fn width(this: &CanvasKitPartialImageInfo) -> f32;
 
     // /// Return the height in pixels of the image.
     // #[wasm_bindgen(method)]
-    // pub fn height(this: &CanvasKitImage, ) -> number;
+    // pub(crate) fn height(this: &CanvasKitImage, ) -> number;
 
     // ///
     // /// Returns an Image with the same "base" pixels as the this image, but with mipmap levels
     // /// automatically generated and attached.
     // #[wasm_bindgen(method)]
-    // pub fn makeCopyWithDefaultMipmaps(this: &CanvasKitImage, ) -> Image;
+    // pub(crate) fn makeCopyWithDefaultMipmaps(this: &CanvasKitImage, ) -> Image;
 
     // ///
     // /// Returns this image as a shader with the specified tiling. It will use cubic sampling.
@@ -59,7 +59,7 @@ extern "C" {
     // /// @param C - See CubicResampler in SkSamplingOptions.h for more information
     // /// @param localMatrix
     // #[wasm_bindgen(method)]
-    // pub fn makeShaderCubic(this: &CanvasKitImage, tx: TileMode, ty: TileMode, B: number, C: number,
+    // pub(crate) fn makeShaderCubic(this: &CanvasKitImage, tx: TileMode, ty: TileMode, B: number, C: number,
     //                 localMatrix?: InputMatrix) -> Shader;
 
     // ///
@@ -71,7 +71,7 @@ extern "C" {
     // ///             calculated with makeCopyWithDefaultMipmaps;
     // /// @param localMatrix
     // #[wasm_bindgen(method)]
-    // pub fn makeShaderOptions(this: &CanvasKitImage, tx: TileMode, ty: TileMode, fm: FilterMode, mm: MipmapMode,
+    // pub(crate) fn makeShaderOptions(this: &CanvasKitImage, tx: TileMode, ty: TileMode, fm: FilterMode, mm: MipmapMode,
     //                 localMatrix?: InputMatrix) -> Shader;
 
     // ///
@@ -92,11 +92,11 @@ extern "C" {
     // /// @returns a TypedArray appropriate for the specified ColorType. Note that 16 bit floats are
     // ///          not supported in JS, so that colorType corresponds to raw bytes Uint8Array.
     // #[wasm_bindgen(method)]
-    // pub fn readPixels(this: &CanvasKitImage, srcX: number, srcY: number, imageInfo: ImageInfo, dest?: MallocObj,
+    // pub(crate) fn readPixels(this: &CanvasKitImage, srcX: number, srcY: number, imageInfo: ImageInfo, dest?: MallocObj,
     //             bytesPerRow?: number) -> Uint8Array | Float32Array | null;
 
     // ///
     // /// Return the width in pixels of the image.
     // #[wasm_bindgen(method)]
-    // pub fn width(this: &CanvasKitImage, ) -> number;
+    // pub(crate) fn width(this: &CanvasKitImage, ) -> number;
 }

@@ -10,5 +10,5 @@ extern "C" {
     ///
 
     #[wasm_bindgen(structural, method)]
-    pub fn RefDefault(this: &FontMgrFactory) -> FontMgr;
+    pub(crate) fn RefDefault(this: &FontMgrFactory) -> FontMgr;
 }

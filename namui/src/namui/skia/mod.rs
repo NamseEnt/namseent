@@ -1,6 +1,9 @@
 pub mod base;
-pub use base::*;
+pub mod shader;
 pub mod types;
+
+pub use base::*;
+pub use shader::*;
 pub use types::*;
 
 #[cfg(target_family = "wasm")]

@@ -1,5 +1,6 @@
 use crate::{
-    namui::skia::StrokeJoin, BlendMode, Color, ColorFilter, Paint, PaintStyle, Px, StrokeCap,
+    namui::skia::{IntermediateShader, StrokeJoin},
+    BlendMode, Color, ColorFilter, MakeShader, Paint, PaintStyle, Px, StrokeCap,
 };
 use once_cell::sync::OnceCell;
 use ordered_float::OrderedFloat;
@@ -18,6 +19,7 @@ pub struct PaintBuilder {
     stroke_cap: Option<StrokeCap>,
     stroke_join: Option<StrokeJoin>,
     color_filter: Option<(Color, BlendMode)>,
+    shader: Option<IntermediateShader>,
 }
 
 static PAINT_CACHE: OnceCell<Mutex<lru::LruCache<PaintBuilder, Arc<Paint>>>> = OnceCell::new();
@@ -37,6 +39,7 @@ impl PaintBuilder {
             stroke_cap: None,
             stroke_join: None,
             color_filter: None,
+            shader: None,
         }
     }
     pub fn set_color(mut self, color: Color) -> Self {
@@ -65,6 +68,10 @@ impl PaintBuilder {
     }
     pub fn set_color_filter(mut self, color: &Color, blend_mode: &BlendMode) -> Self {
         self.color_filter = Some((color.clone(), blend_mode.clone()));
+        self
+    }
+    pub fn set_shader(mut self, make_shader: impl MakeShader) -> Self {
+        self.shader = Some(make_shader.make());
         self
     }
 
@@ -96,6 +103,7 @@ impl PaintBuilder {
             self.color_filter
                 .as_ref()
                 .map(|(color, blend_mode)| Self::get_or_create_color_filter(&color, &blend_mode)),
+            self.shader.as_ref(),
         );
 
         Arc::new(paint)

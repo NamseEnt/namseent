@@ -9,6 +9,8 @@ extern "C" {
     /// @param fontData
     ///
     #[wasm_bindgen(method)]
-    pub fn MakeTypefaceFromData(this: &FontMgr, fontData: js_sys::ArrayBuffer)
-        -> CanvasKitTypeface;
+    pub(crate) fn MakeTypefaceFromData(
+        this: &FontMgr,
+        fontData: js_sys::ArrayBuffer,
+    ) -> CanvasKitTypeface;
 }
