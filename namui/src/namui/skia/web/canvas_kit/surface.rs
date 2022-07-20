@@ -8,7 +8,7 @@ extern "C" {
     /// Make sure any queued draws are sent to the screen or the GPU.
     ///
     #[wasm_bindgen(structural, method)]
-    pub fn flush(this: &CanvasKitSurface);
+    pub(crate) fn flush(this: &CanvasKitSurface);
 
     ///
     /// Return a canvas that is backed by this surface. Any draws to the canvas will (eventually)
@@ -16,7 +16,7 @@ extern "C" {
     /// be cleaned up by the client.
     ///
     #[wasm_bindgen(structural, method)]
-    pub fn getCanvas(this: &CanvasKitSurface) -> CanvasKitCanvas;
+    pub(crate) fn getCanvas(this: &CanvasKitSurface) -> CanvasKitCanvas;
 
     // ///
     // /// Returns the height of this surface in pixels.

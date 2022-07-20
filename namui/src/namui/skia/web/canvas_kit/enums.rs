@@ -8,7 +8,7 @@ extern "C" {
     pub type EmbindEnumEntity;
 
     #[wasm_bindgen(method, getter)]
-    pub fn value(this: &EmbindEnumEntity) -> f32;
+    pub(crate) fn value(this: &EmbindEnumEntity) -> f32;
 }
 
 macro_rules! canvas_kit_enum {
@@ -44,12 +44,12 @@ macro_rules! canvas_kit_enum {
             pub type $canvas_enum_name;
 
             #[wasm_bindgen(method, getter)]
-            pub fn $enum_name(this: &CanvasKit) -> $canvas_enum_values_name;
+            pub(crate) fn $enum_name(this: &CanvasKit) -> $canvas_enum_values_name;
 
 
             $(
                 #[wasm_bindgen(method, getter)]
-                pub fn $canvas_kit_enum_item(this: &$canvas_enum_values_name) -> $canvas_enum_name;
+                pub(crate) fn $canvas_kit_enum_item(this: &$canvas_enum_values_name) -> $canvas_enum_name;
             )*
         }
 

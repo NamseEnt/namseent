@@ -423,6 +423,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_repr",
+ "shader-macro",
  "tokio",
  "url",
  "wasm-bindgen",
@@ -736,6 +737,10 @@ dependencies = [
  "quote 1.0.18",
  "syn",
 ]
+
+[[package]]
+name = "shader-macro"
+version = "0.1.0"
 
 [[package]]
 name = "simba"
