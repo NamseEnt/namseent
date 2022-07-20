@@ -186,6 +186,7 @@ jobs:
           target: wasm-unknown-web
           path: namui-animation-editor/sample
 
+  # NOTE: This is for status check of pull request.
   post-test:
     if: always()
     runs-on: ubuntu-latest
@@ -203,13 +204,13 @@ jobs:
       - test-namui-sample
       - test-image-cropper
       - test-namui-animation-editor
-    # NOTE: This is for status check of pull request.
     steps:
-      - run: echo ${{!contains(join(needs.*.result, ','), 'failure')}}
+      - run: ANY_TEST_FAILED = ${{!contains(join(needs.*.result, ','), 'failure')}}
+      - run: echo $ANY_TEST_FAILED
       - run: |
-        if [[ ${{!contains(join(needs.*.result, ','), 'failure')}} == "true" ]]; then
-            echo "::error::There are failed job"
-            exit 1
-        else
-            echo "Good. No test failed"
-        fi
+          if [[ $ANY_TEST_FAILED == "true" ]]; then
+              echo "::error::There are failed job"
+              exit 1
+          else
+              echo "Good. No test failed"
+          fi
