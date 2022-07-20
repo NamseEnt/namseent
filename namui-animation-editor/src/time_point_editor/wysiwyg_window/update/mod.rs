@@ -1,7 +1,6 @@
 use super::*;
 use crate::types::Act;
-use namui::animation::Animation;
-mod dragging;
+pub(crate) mod dragging;
 
 impl WysiwygWindow {
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -10,7 +9,7 @@ impl WysiwygWindow {
                 Event::BackgroundClicked { mouse_xy } => {
                     if self.dragging.is_none() {
                         self.dragging = Some(Dragging::Background {
-                            anchor_xy: mouse_xy.clone(),
+                            anchor_xy: *mouse_xy,
                         });
                     }
                 }
@@ -39,14 +38,14 @@ impl WysiwygWindow {
 
                     self.real_px_per_screen_px = next_real_px_per_screen_px;
                 }
-                Event::UpdateWh { wh } => {
-                    self.last_wh = Some(*wh);
-                    self.center_viewport(*wh);
+                &Event::UpdateWh { wh } => {
+                    self.last_wh = Some(wh);
+                    self.center_viewport(wh);
                 }
                 &Event::SelectedLayerMouseDown {
                     ref layer_id,
                     anchor_xy,
-                    playback_time,
+                    ref keyframe_point_id,
                 } => {
                     if self.dragging.is_none() {
                         if let Some(ticket) =
@@ -55,7 +54,7 @@ impl WysiwygWindow {
                                     anchor_xy,
                                     last_mouse_local_xy: anchor_xy,
                                     layer_id: layer_id.clone(),
-                                    playback_time,
+                                    keyframe_point_id: keyframe_point_id.clone(),
                                     real_px_per_screen_px: self.real_px_per_screen_px,
                                 })
                         {
@@ -67,7 +66,7 @@ impl WysiwygWindow {
                     ref layer_id,
                     location,
                     anchor_xy,
-                    playback_time,
+                    ref keyframe_point_id,
                     rotation_angle,
                 } => {
                     if self.dragging.is_none() {
@@ -76,7 +75,7 @@ impl WysiwygWindow {
                                 anchor_xy,
                                 last_mouse_local_xy: anchor_xy,
                                 layer_id: layer_id.clone(),
-                                playback_time,
+                                keyframe_point_id: keyframe_point_id.clone(),
                                 real_px_per_screen_px: self.real_px_per_screen_px,
                                 location,
                                 rotation_angle,
@@ -89,7 +88,7 @@ impl WysiwygWindow {
                 &Event::RotationToolMouseDown {
                     image_center_real_xy,
                     mouse_local_xy: mouse_real_xy,
-                    playback_time,
+                    ref keyframe_point_id,
                     ref layer_id,
                 } => {
                     if self.dragging.is_none() {
@@ -99,7 +98,7 @@ impl WysiwygWindow {
                                     image_center_real_xy,
                                     start_mouse_real_xy: mouse_real_xy,
                                     end_mouse_real_xy: mouse_real_xy,
-                                    playback_time,
+                                    keyframe_point_id: keyframe_point_id.clone(),
                                     layer_id: layer_id.clone(),
                                 })
                         {

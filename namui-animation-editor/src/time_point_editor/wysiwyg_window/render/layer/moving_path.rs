@@ -9,15 +9,18 @@ impl WysiwygWindow {
 
             let times = layer
                 .image
-                .get_keyframe_infos()
-                .iter()
-                .map(|info| info.time)
+                .image_keyframe_graph
+                .get_point_line_tuples()
+                .map(|(point, _)| point.time)
                 .collect::<BTreeSet<_>>();
 
             let get_xy = |time: Time| -> Option<Xy<Px>> {
-                let x = layer.image.x.get_value(time)?;
-                let y = layer.image.y.get_value(time)?;
-                Some(Xy { x, y })
+                let keyframe = layer.image.image_keyframe_graph.get_value(time)?;
+
+                Some(Xy {
+                    x: keyframe.x(),
+                    y: keyframe.y(),
+                })
             };
             for time in times {
                 if let Some(xy) = get_xy(time) {

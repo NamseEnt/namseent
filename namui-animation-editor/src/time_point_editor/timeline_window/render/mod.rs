@@ -68,6 +68,7 @@ impl TimelineWindow {
                         });
 
                     let selected_layer_id = props.selected_layer_id.clone();
+                    let editing_target = props.editing_target.clone();
                     builder.on_key_down(move |event| {
                         if event.code == Code::Delete {
                             namui::event::send(Event::TimelineDeleteKeyDown {
@@ -75,7 +76,10 @@ impl TimelineWindow {
                                 playback_time,
                             });
                         } else if event.code == Code::Space {
-                            namui::event::send(Event::TimelineSpaceKeyDown);
+                            namui::event::send(Event::TimelineSpaceKeyDown {
+                                selected_layer_id: selected_layer_id.clone(),
+                                editing_target: editing_target.clone(),
+                            });
                         }
                     });
                 });
