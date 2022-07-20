@@ -40,6 +40,7 @@ impl SequenceList {
                         })
                     }
                     Err(error) => {
+                        namui::log!("{:#?}", error);
                         namui::event::send(SequenceListEvent::SequencesSyncStateUpdateEvent {
                             state: SequenceSyncState {
                                 started_at,
