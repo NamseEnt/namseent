@@ -11,7 +11,7 @@ extern "C" {
     /// @param mode
     ///
     #[wasm_bindgen(method)]
-    pub fn MakeBlend(
+    pub(crate) fn MakeBlend(
         this: &ColorFilterFactory,
         color: &js_sys::Float32Array,
         mode: &CanvasKitBlendMode,
@@ -23,7 +23,7 @@ extern "C" {
     // /// @param inner
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn MakeCompose(
+    // pub(crate) fn MakeCompose(
     //     this: &ColorFilterFactory,
     //     outer: ColorFilter,
     //     inner: ColorFilter,
@@ -36,7 +36,7 @@ extern "C" {
     // /// @param src
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn MakeLerp(
+    // pub(crate) fn MakeLerp(
     //     this: &ColorFilterFactory,
     //     t: number,
     //     dst: ColorFilter,
@@ -47,19 +47,19 @@ extern "C" {
     // /// Makes a color filter that converts between linear colors and sRGB colors.
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn MakeLinearToSRGBGamma(this: &ColorFilterFactory) -> CanvasKitColorFilter;
+    // pub(crate) fn MakeLinearToSRGBGamma(this: &ColorFilterFactory) -> CanvasKitColorFilter;
 
     // ///
     // /// Creates a color filter using the provided color matrix.
     // /// @param cMatrix
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn MakeMatrix(this: &ColorFilterFactory, cMatrix: InputColorMatrix)
+    // pub(crate) fn MakeMatrix(this: &ColorFilterFactory, cMatrix: InputColorMatrix)
     //     -> CanvasKitColorFilter;
 
     // ///
     // /// Makes a color filter that converts between sRGB colors and linear colors.
     // ///
     // #[wasm_bindgen(method)]
-    // pub fn MakeSRGBToLinearGamma(this: &ColorFilterFactory) -> CanvasKitColorFilter;
+    // pub(crate) fn MakeSRGBToLinearGamma(this: &ColorFilterFactory) -> CanvasKitColorFilter;
 }

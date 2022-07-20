@@ -18,6 +18,7 @@ impl Paint {
         stroke_cap: Option<&StrokeCap>,
         stroke_join: Option<&StrokeJoin>,
         color_filter: Option<impl AsRef<ColorFilter>>,
+        shader: Option<&IntermediateShader>,
     ) -> Self {
         let canvas_kit_paint = CanvasKitPaint::new();
         if let Some(color) = color {
@@ -40,6 +41,9 @@ impl Paint {
         }
         if let Some(color_filter) = color_filter {
             canvas_kit_paint.setColorFilter(&color_filter.as_ref().0);
+        }
+        if let Some(shader) = shader {
+            canvas_kit_paint.setShader(&shader.into_shader().canvas_kit_shader);
         }
 
         Paint {

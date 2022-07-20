@@ -7,28 +7,28 @@ extern "C" {
     pub type CanvasKitFont;
 
     #[wasm_bindgen(constructor, js_class="Font", js_namespace = ["globalThis", "CanvasKit"])]
-    pub fn new(face: &CanvasKitTypeface, size: i16) -> CanvasKitFont;
+    pub(crate) fn new(face: &CanvasKitTypeface, size: i16) -> CanvasKitFont;
 
     ///
     /// Returns the FontMetrics for this font.
     ///
     #[wasm_bindgen(structural, method)]
-    pub fn getMetrics(this: &CanvasKitFont) -> CanvasKitFontMetrics;
+    pub(crate) fn getMetrics(this: &CanvasKitFont) -> CanvasKitFontMetrics;
 
     #[wasm_bindgen(js_name = "FontMetrics")]
     pub type CanvasKitFontMetrics;
 
     #[wasm_bindgen(method, getter)]
-    pub fn ascent(this: &CanvasKitFontMetrics) -> f32;
+    pub(crate) fn ascent(this: &CanvasKitFontMetrics) -> f32;
 
     #[wasm_bindgen(method, getter)]
-    pub fn descent(this: &CanvasKitFontMetrics) -> f32;
+    pub(crate) fn descent(this: &CanvasKitFontMetrics) -> f32;
 
     #[wasm_bindgen(method, getter)]
-    pub fn leading(this: &CanvasKitFontMetrics) -> f32;
+    pub(crate) fn leading(this: &CanvasKitFontMetrics) -> f32;
 
     #[wasm_bindgen(method, getter)]
-    pub fn bounds(this: &CanvasKitFontMetrics) -> Option<Box<[f32]>>;
+    pub(crate) fn bounds(this: &CanvasKitFontMetrics) -> Option<Box<[f32]>>;
 
     ///
     /// Retrieves the bounds for each glyph in glyphs.
@@ -40,7 +40,7 @@ extern "C" {
     /// @param output - if provided, the results will be copied into this array.
     ///
     #[wasm_bindgen(structural, method)]
-    pub fn getGlyphBounds(
+    pub(crate) fn getGlyphBounds(
         this: &CanvasKitFont,
         glyphs: &GlyphIds,
         paint: Option<&CanvasKitPaint>,
@@ -55,7 +55,7 @@ extern "C" {
     /// @param output - if provided, the results will be copied into this array.
     ///
     #[wasm_bindgen(structural, method)]
-    pub fn getGlyphIDs(this: &CanvasKitFont, str: &str) -> Box<GlyphIds>;
+    pub(crate) fn getGlyphIDs(this: &CanvasKitFont, str: &str) -> Box<GlyphIds>;
 
     ///
     /// Retrieves the advanceX measurements for each glyph.
@@ -66,7 +66,7 @@ extern "C" {
     /// @param output - if provided, the results will be copied into this array.
     ///
     #[wasm_bindgen(structural, method)]
-    pub fn getGlyphWidths(
+    pub(crate) fn getGlyphWidths(
         this: &CanvasKitFont,
         glyphs: &GlyphIds,
         paint: Option<&CanvasKitPaint>,
@@ -88,59 +88,59 @@ extern "C" {
     // /// @return              array of [start, end] x-coordinate pairs. Maybe be empty.
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn getGlyphIntercepts(this: &CanvasKitFont, glyphs: InputGlyphIDArray, positions: Float32Array | number[],
+    // pub(crate) fn getGlyphIntercepts(this: &CanvasKitFont, glyphs: InputGlyphIDArray, positions: Float32Array | number[],
     //                    top: number, bottom: number)-> js_sys::Float32Array;
 
     // ///
     // /// Returns text scale on x-axis. Default value is 1.
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn getScaleX(this: &CanvasKitFont, )-> number;
+    // pub(crate) fn getScaleX(this: &CanvasKitFont, )-> number;
 
     // ///
     // /// Returns text size in points.
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn getSize(this: &CanvasKitFont, )-> number;
+    // pub(crate) fn getSize(this: &CanvasKitFont, )-> number;
 
     // ///
     // /// Returns text skew on x-axis. Default value is zero.
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn getSkewX(this: &CanvasKitFont, )-> number;
+    // pub(crate) fn getSkewX(this: &CanvasKitFont, )-> number;
 
     // ///
     // /// Returns embolden effect for this font. Default value is false.
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn isEmbolden(this: &CanvasKitFont, )-> boolean;
+    // pub(crate) fn isEmbolden(this: &CanvasKitFont, )-> boolean;
 
     // ///
     // /// Returns the Typeface set for this font.
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn getTypeface(this: &CanvasKitFont, )-> Typeface | null;
+    // pub(crate) fn getTypeface(this: &CanvasKitFont, )-> Typeface | null;
 
     // ///
     // /// Requests, but does not require, that edge pixels draw opaque or with partial transparency.
     // /// @param edging
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn setEdging(this: &CanvasKitFont, edging: FontEdging)-> void;
+    // pub(crate) fn setEdging(this: &CanvasKitFont, edging: FontEdging)-> void;
 
     // ///
     // /// Requests, but does not require, to use bitmaps in fonts instead of outlines.
     // /// @param embeddedBitmaps
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn setEmbeddedBitmaps(this: &CanvasKitFont, embeddedBitmaps: boolean)-> void;
+    // pub(crate) fn setEmbeddedBitmaps(this: &CanvasKitFont, embeddedBitmaps: boolean)-> void;
 
     // ///
     // /// Sets level of glyph outline adjustment.
     // /// @param hinting
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn setHinting(this: &CanvasKitFont, hinting: FontHinting)-> void;
+    // pub(crate) fn setHinting(this: &CanvasKitFont, hinting: FontHinting)-> void;
 
     // ///
     // /// Requests, but does not require, linearly scalable font and glyph metrics.
@@ -150,42 +150,42 @@ extern "C" {
     // /// @param linearMetrics
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn setLinearMetrics(this: &CanvasKitFont, linearMetrics: boolean)-> void;
+    // pub(crate) fn setLinearMetrics(this: &CanvasKitFont, linearMetrics: boolean)-> void;
 
     // ///
     // /// Sets the text scale on the x-axis.
     // /// @param sx
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn setScaleX(this: &CanvasKitFont, sx: number)-> void;
+    // pub(crate) fn setScaleX(this: &CanvasKitFont, sx: number)-> void;
 
     // ///
     // /// Sets the text size in points on this font.
     // /// @param points
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn setSize(this: &CanvasKitFont, points: number)-> void;
+    // pub(crate) fn setSize(this: &CanvasKitFont, points: number)-> void;
 
     // ///
     // /// Sets the text-skew on the x axis for this font.
     // /// @param sx
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn setSkewX(this: &CanvasKitFont, sx: number)-> void;
+    // pub(crate) fn setSkewX(this: &CanvasKitFont, sx: number)-> void;
 
     // ///
     // /// Set embolden effect for this font.
     // /// @param embolden
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn setEmbolden(this: &CanvasKitFont, embolden: boolean)-> void;
+    // pub(crate) fn setEmbolden(this: &CanvasKitFont, embolden: boolean)-> void;
 
     // ///
     // /// Requests, but does not require, that glyphs respect sub-pixel positioning.
     // /// @param subpixel
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn setSubpixel(this: &CanvasKitFont, subpixel: boolean)-> void;
+    // pub(crate) fn setSubpixel(this: &CanvasKitFont, subpixel: boolean)-> void;
 
     // ///
     // /// Sets the typeface to use with this font. null means to clear the typeface and use the
@@ -193,5 +193,5 @@ extern "C" {
     // /// @param face
     // ///
     // #[wasm_bindgen(structural, method)]
-    // pub fn setTypeface(this: &CanvasKitFont, face: Typeface | null)-> void;
+    // pub(crate) fn setTypeface(this: &CanvasKitFont, face: Typeface | null)-> void;
 }

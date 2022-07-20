@@ -153,6 +153,10 @@ jobs:
         with:
           target: wasm-unknown-web
           path: namui/sample/text-input
+      - uses: ./.github/actions/namui-test
+        with:
+          target: wasm-unknown-web
+          path: namui/sample/shader
 
   test-image-cropper:
     needs: [check-rebuild, set-up]
