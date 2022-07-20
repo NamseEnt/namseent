@@ -134,18 +134,19 @@ impl Entity for ShaderExample {
                     namui::shader!(ShakeShader, {
                         uniform float2 wh;
                         uniform float delta_x_center;
-                        uniform float2 image_size;
+                        uniform float2 source_image_size;
+                        uniform float2 dest_image_size;
                         uniform float2 image_left_top;
                         uniform shader image;
 
 
                         half4 main(float2 xy) {
                             float pi = 3.1415926;
-                            float2 image_local_xy = xy - image_left_top;
+                            float2 image_local_xy = (xy - image_left_top) * source_image_size / dest_image_size;
 
 
                             float2 result_xy = image_local_xy + float2(
-                                sin(image_local_xy.y / (image_size.y / 2.0) * pi / 2) * delta_x_center,
+                                sin(image_local_xy.y / (source_image_size.y / 2.0) * pi / 2) * delta_x_center,
                                 0.0
                             );
 
@@ -159,11 +160,12 @@ impl Entity for ShaderExample {
                         return RenderingTree::Empty;
                     }
                     let image = image.unwrap();
-                    let image_size = image.size().into_slice();
+                    let source_image_size = image.size().into_slice();
+                    let dest_image_size = (image.size() / 2.0).into_slice();
                     let start_x = 50.0;
-                    let end_x = 500.0;
-                    let rest_secs = 1.0;
-                    let working_secs = 0.5;
+                    let end_x = 800.0;
+                    let rest_secs = 0.6;
+                    let working_secs = 0.4;
                     let total_secs = working_secs + rest_secs;
                     let seconds = namui::now().as_seconds() % total_secs;
                     let time_ratio = seconds / working_secs;
@@ -209,7 +211,8 @@ impl Entity for ShaderExample {
                     let shader = ShakeShader::new(
                         wh,
                         delta_x_center,
-                        image_size,
+                        source_image_size,
+                        dest_image_size,
                         image_left_top,
                         image_shader,
                     );
