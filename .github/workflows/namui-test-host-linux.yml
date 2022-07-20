@@ -205,7 +205,7 @@ jobs:
       - test-image-cropper
       - test-namui-animation-editor
     steps:
-      - run: ANY_TEST_FAILED = ${{!contains(join(needs.*.result, ','), 'failure')}}
+      - run: ANY_TEST_FAILED=${{!contains(join(needs.*.result, ','), 'failure')}}
       - run: echo $ANY_TEST_FAILED
       - run: |
           if [[ $ANY_TEST_FAILED == "true" ]]; then
