@@ -429,6 +429,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_repr",
+ "shader-macro",
  "strum",
  "strum_macros",
  "tokio",
