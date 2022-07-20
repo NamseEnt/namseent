@@ -65,6 +65,7 @@ jobs:
             namui-animation-editor:
               - .github/**
               - namui-animation-editor/**
+              - namui/**
               - docker-images/namui-test-host/linux.Dockerfile
 
   set-up:
@@ -182,7 +183,7 @@ jobs:
           target: wasm-unknown-web
           path: namui-animation-editor/sample
 
-  clean-up:
+  post-test:
     if: always()
     runs-on: ubuntu-latest
     permissions:
@@ -199,34 +200,13 @@ jobs:
       - test-namui-sample
       - test-image-cropper
       - test-namui-animation-editor
-    steps:
-      - uses: actions/checkout@v3
-
-      # TODO: 'Delete inner image' doesn't work for now.
-      # - name: Delete inner image
-      #   uses: bots-house/ghcr-delete-image-action@v1.0.1
-      #   with:
-      #     owner: ${{ github.repository_owner }}
-      #     name: namui-test-host
-      #     token: ${{ github.token }}
-      #     tag: ${{ env.INNER_IMAGE_TAG }}
-
-  post-test:
-    if: always() && !contains(join(needs.*.result, ','), 'failure')
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
-    needs:
-      - set-up
-      - update-namui-test-host-image
-      # PLEASE ADD ALL TEST HERE!
-      - test-namui-cli
-      - test-namui
-      - test-luda-editor-client
-      - test-namui-prebuilt
-      - test-nrpc
-      - test-namui-sample
-      - test-image-cropper
     # NOTE: This is for status check of pull request.
     steps:
-      - run: ""
+      - run: echo ${{!contains(join(needs.*.result, ','), 'failure')}}
+      - run: |
+        if [[ ${{!contains(join(needs.*.result, ','), 'failure')}} == "true" ]]; then
+            echo "::error::There are failed job"
+            exit 1
+        else
+            echo "Good. No test failed"
+        fi
