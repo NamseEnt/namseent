@@ -244,12 +244,10 @@ pub struct PartialImageInfo {
     pub height: Px,
     pub width: Px,
 }
-#[allow(dead_code)]
 pub enum FilterMode {
     Linear,
     Nearest,
 }
-#[allow(dead_code)]
 pub enum MipmapMode {
     None,
     Nearest,

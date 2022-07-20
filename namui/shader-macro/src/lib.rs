@@ -122,6 +122,7 @@ pub fn shader(item: TokenStream) -> TokenStream {
                             "float2" => UniformType::Float2,
                             "float3" => UniformType::Float3,
                             "float4" => UniformType::Float4,
+                            "shader" => UniformType::Shader,
                             _ => panic!("Unsupported uniform type: {}", uniform_type.to_string()),
                         },
                     });

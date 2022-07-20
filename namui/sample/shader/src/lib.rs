@@ -14,6 +14,7 @@ pub async fn start() {
 enum Tab {
     Spiral,
     Shake,
+    Scroll,
 }
 
 struct ShaderExample {
@@ -22,7 +23,7 @@ struct ShaderExample {
 
 impl ShaderExample {
     fn new() -> Self {
-        Self { tab: Tab::Shake }
+        Self { tab: Tab::Scroll }
     }
 }
 
@@ -50,6 +51,11 @@ impl Entity for ShaderExample {
                             is_selected: discriminant(&self.tab) == discriminant(&Tab::Shake),
                             text: "Shake".to_string(),
                         },
+                        dropdown::Item {
+                            id: "Scroll".to_string(),
+                            is_selected: discriminant(&self.tab) == discriminant(&Tab::Scroll),
+                            text: "Scroll".to_string(),
+                        },
                     ],
                     rect: Rect::from_xy_wh(
                         Xy::single(0.px()),
@@ -64,6 +70,9 @@ impl Entity for ShaderExample {
                         }
                         "Shake" => {
                             namui::event::send(Event::SelectTab { tab: Tab::Shake });
+                        }
+                        "Scroll" => {
+                            namui::event::send(Event::SelectTab { tab: Tab::Scroll });
                         }
                         _ => unreachable!(),
                     },
@@ -147,6 +156,72 @@ impl Entity for ShaderExample {
                     let delta_x_center = (namui::now().as_seconds() * 2.0 * PI).sin() * 100.0;
 
                     let shader = ShakeShader::new(xy, wh, delta_x_center);
+                    let paint = PaintBuilder::new().set_shader(shader.make());
+                    let rect = PathBuilder::new().add_rect(Rect::Xywh {
+                        x: 100.px(),
+                        y: 100.px(),
+                        width: 200.px(),
+                        height: 200.px(),
+                    });
+
+                    render([
+                        path(rect, paint),
+                        translate(
+                            100.px(),
+                            100.px(),
+                            simple_rect(
+                                Wh {
+                                    width: 200.px(),
+                                    height: 200.px(),
+                                },
+                                Color::RED,
+                                1.px(),
+                                Color::TRANSPARENT,
+                            ),
+                        ),
+                    ])
+                }
+                Tab::Scroll => {
+                    namui::shader!(ScrollShader, {
+                        uniform float2 xy;
+                        uniform float2 wh;
+                        uniform float delta_y;
+                        uniform float2 image_wh;
+                        uniform shader image;
+
+                        float2 local_xy(float2 p) {
+                            return float2(
+                                (p.x - xy.x) / (wh.x / image_wh.x),
+                                (p.y - xy.y) / (wh.y / image_wh.y)
+                            );
+                        }
+                        half4 main(float2 p) {
+                            return image.eval(local_xy(p - float2(0.0, delta_y))).rgba;
+                        }
+                    });
+
+                    let image_source_url = Url::parse("bundle:resources/sweat.png").unwrap();
+
+                    let image = namui::image::try_load(&image_source_url);
+                    if image.is_none() {
+                        return RenderingTree::Empty;
+                    }
+                    let image = image.unwrap();
+
+                    let image_shader = image.make_shader(
+                        namui::TileMode::Repeat,
+                        namui::TileMode::Repeat,
+                        namui::FilterMode::Linear,
+                        namui::MipmapMode::Linear,
+                    );
+
+                    let xy = [100.0, 100.0];
+                    let wh = [200.0, 200.0];
+                    let image_wh = image.size();
+                    let image_wh = [image_wh.width.as_f32(), image_wh.height.as_f32()];
+                    let delta_y = -(namui::now().as_seconds() * wh[1] * 3.0);
+
+                    let shader = ScrollShader::new(xy, wh, delta_y, image_wh, image_shader);
                     let paint = PaintBuilder::new().set_shader(shader.make());
                     let rect = PathBuilder::new().add_rect(Rect::Xywh {
                         x: 100.px(),
