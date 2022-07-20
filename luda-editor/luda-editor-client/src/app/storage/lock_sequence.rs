@@ -2,6 +2,7 @@ use super::{
     get_sequence_lock_state::{
         GetSequenceLockStateError, SequenceLockState, StorageSequenceLockStateGet,
     },
+    sequence_name_into_lock_file_path,
     types::LockInfo,
     ExpiredAt, Storage,
 };
@@ -21,10 +22,10 @@ impl GithubStorageSequenceLock for Storage {
             return Err(LockSequenceError::LockedByOther);
         }
 
-        let path = format!("sequence/{}.json", sequence_name);
+        let lock_path = sequence_name_into_lock_file_path(sequence_name);
         let new_lock_info = LockInfo::lock_now(self.get_client_id().clone());
         self.get_github_api_client()
-            .write_file(path.as_str(), serde_json::to_string(&new_lock_info)?)
+            .write_file(lock_path.as_str(), serde_json::to_string(&new_lock_info)?)
             .await?;
         Ok(new_lock_info.get_expired_at().clone())
     }

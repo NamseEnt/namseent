@@ -1,4 +1,4 @@
-use super::{types::LockInfo, Storage};
+use super::{sequence_name_into_lock_file_path, types::LockInfo, Storage};
 use crate::app::github_api::{DownloadError, ReadFileError};
 use async_trait::async_trait;
 
@@ -16,8 +16,12 @@ impl StorageSequenceLockStateGet for Storage {
         &self,
         sequence_name: &str,
     ) -> Result<SequenceLockState, GetSequenceLockStateError> {
-        let path = format!("lock/{}.lock.json", sequence_name);
-        match self.get_github_api_client().read_file(path.as_str()).await {
+        let lock_file_path = sequence_name_into_lock_file_path(sequence_name);
+        match self
+            .get_github_api_client()
+            .read_file(lock_file_path.as_str())
+            .await
+        {
             Ok(dirent) => {
                 let lock_info: LockInfo = serde_json::from_slice(&dirent.download().await?)?;
                 if lock_info.is_expired() {
