@@ -9,7 +9,7 @@ extern "C" {
     pub type CanvasKit;
 
     #[wasm_bindgen(js_namespace = globalThis, js_name = getCanvasKit)]
-    pub fn canvas_kit() -> CanvasKit;
+    pub(crate) fn canvas_kit() -> CanvasKit;
 
     /// Surface related functions
     ///
@@ -19,7 +19,7 @@ extern "C" {
     /// @param canvas - either the canvas element itself or a string with the DOM id of it.
     ///
     #[wasm_bindgen(structural, method)]
-    pub fn MakeCanvasSurface(
+    pub(crate) fn MakeCanvasSurface(
         this: &CanvasKit,
         canvas: &HtmlCanvasElement,
     ) -> Option<CanvasKitSurface>;
@@ -54,7 +54,7 @@ extern "C" {
     /// @param bytes
     ///
     #[wasm_bindgen(method)]
-    pub fn MakeImageFromEncoded(this: &CanvasKit, bytes: &[u8]) -> Option<CanvasKitImage>;
+    pub(crate) fn MakeImageFromEncoded(this: &CanvasKit, bytes: &[u8]) -> Option<CanvasKitImage>;
 
     // ///
     // /// Returns an SkPicture which has been serialized previously to the given bytes.
@@ -79,17 +79,20 @@ extern "C" {
     /// @param ry - The radius of the corners in the y direction.
     ///
     #[wasm_bindgen(method)]
-    pub fn RRectXY(this: &CanvasKit, rect: Float32Array, rx: f32, ry: f32) -> Float32Array;
+    pub(crate) fn RRectXY(this: &CanvasKit, rect: Float32Array, rx: f32, ry: f32) -> Float32Array;
 
     #[wasm_bindgen(method, getter)]
-    pub fn FontMgr(this: &CanvasKit) -> FontMgrFactory;
+    pub(crate) fn FontMgr(this: &CanvasKit) -> FontMgrFactory;
 
     #[wasm_bindgen(method, getter)]
-    pub fn TextBlob(this: &CanvasKit) -> TextBlobFactory;
+    pub(crate) fn TextBlob(this: &CanvasKit) -> TextBlobFactory;
 
     #[wasm_bindgen(method, getter)]
-    pub fn ColorFilter(this: &CanvasKit) -> ColorFilterFactory;
+    pub(crate) fn ColorFilter(this: &CanvasKit) -> ColorFilterFactory;
 
     #[wasm_bindgen(method, getter)]
-    pub fn Matrix(this: &CanvasKit) -> Matrix3x3Helpers;
+    pub(crate) fn Matrix(this: &CanvasKit) -> Matrix3x3Helpers;
+
+    #[wasm_bindgen(method, getter)]
+    pub(crate) fn RuntimeEffect(this: &CanvasKit) -> RuntimeEffectFactory;
 }
