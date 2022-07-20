@@ -1,14 +1,12 @@
-use super::*;
-use namui::{
-    animation::{KeyframePoint, Layer},
-    types::Percent,
-};
-mod resize;
-pub(super) use resize::*;
-mod rotate;
-pub(super) use rotate::*;
 mod moving;
-pub(super) use moving::*;
+mod resize;
+mod rotate;
+
+use super::*;
+pub(crate) use moving::*;
+use namui::animation::*;
+pub(crate) use resize::*;
+pub(crate) use rotate::*;
 
 impl WysiwygWindow {
     pub fn handle_dragging(&mut self, mouse_local_xy: Xy<Px>) {
@@ -61,37 +59,54 @@ enum XY {
     Y,
 }
 
-fn update_xy(layer: &mut Layer, playback_time: Time, delta: Px, x_y: XY) {
-    let graph = match x_y {
-        XY::X => &mut layer.image.x,
-        XY::Y => &mut layer.image.y,
-    };
-    let value = graph.get_value(playback_time).unwrap();
-    let next = value + delta;
-    graph.put(
-        KeyframePoint::new(playback_time, next),
-        animation::KeyframeLine::Linear,
-    );
+fn update_xy(
+    layer: &mut Layer,
+    point_id: &str,
+    delta: Px,
+    x_y: XY,
+) -> Result<(), Box<dyn std::error::Error>> {
+    layer
+        .image
+        .image_keyframe_graph
+        .update_point(point_id, |point| match x_y {
+            XY::X => point.value.set_x(point.value.x() + delta),
+            XY::Y => point.value.set_y(point.value.y() + delta),
+        })
 }
-fn update_size(layer: &mut Layer, playback_time: Time, delta: Px, width_height: WidthHeight) {
-    let image_url = layer.image.image_source_url.clone().unwrap();
-    let image = namui::image::try_load(&image_url).unwrap();
+fn update_size(
+    layer: &mut Layer,
+    point_id: &str,
+    delta: Px,
+    width_height: WidthHeight,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let image_url = layer
+        .image
+        .image_source_url
+        .clone()
+        .ok_or(format!("layer {} has no image source url", layer.id))?;
+    let image =
+        namui::image::try_load(&image_url).ok_or(format!("failed to load image {}", image_url))?;
     let image_wh = image.size();
+    layer
+        .image
+        .image_keyframe_graph
+        .update_point(point_id, |point| {
+            let image_axis_length = match width_height {
+                WidthHeight::Width => Px::from(image_wh.width),
+                WidthHeight::Height => Px::from(image_wh.height),
+            };
 
-    let graph = match width_height {
-        WidthHeight::Width => &mut layer.image.width_percent,
-        WidthHeight::Height => &mut layer.image.height_percent,
-    };
-    let value = graph.get_value(playback_time).unwrap();
-    let image_value = match width_height {
-        WidthHeight::Width => image_wh.width,
-        WidthHeight::Height => image_wh.height,
-    };
-    let current = image_value * value;
-    let next = current + delta;
-    let next_value = Percent::from(next / image_value);
-    graph.put(
-        KeyframePoint::new(playback_time, next_value),
-        animation::KeyframeLine::Linear,
-    );
+            let current_value = match width_height {
+                WidthHeight::Width => point.value.width_percent(),
+                WidthHeight::Height => point.value.height_percent(),
+            };
+
+            let next_value =
+                Percent::from(((image_axis_length * current_value) + delta) / image_axis_length);
+
+            match width_height {
+                WidthHeight::Width => point.value.set_width_percent(next_value),
+                WidthHeight::Height => point.value.set_height_percent(next_value),
+            }
+        })
 }

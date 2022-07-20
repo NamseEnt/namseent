@@ -17,8 +17,6 @@ pub struct AttachEventNode {
     pub on_mouse_move_in: Option<MouseEventCallback>,
     #[serde(skip_serializing)]
     pub on_mouse_move_out: Option<MouseEventCallback>,
-    // #[serde(skip_serializing)]
-    // onClickOut: Option<MouseEventCallback>,
     // onMouseIn?: () => void;
     #[serde(skip_serializing)]
     pub on_mouse_down_in: Option<MouseEventCallback>,
@@ -84,7 +82,6 @@ impl std::fmt::Debug for AttachEventNode {
 pub struct AttachEventBuilder {
     pub(crate) on_mouse_move_in: Option<MouseEventCallback>,
     pub(crate) on_mouse_move_out: Option<MouseEventCallback>,
-    // onClickOut: Option<MouseEventCallback>,
     // onMouseIn?: () => void;
     pub(crate) on_mouse_down_in: Option<MouseEventCallback>,
     pub(crate) on_mouse_down_out: Option<MouseEventCallback>,
@@ -143,6 +140,7 @@ impl AttachEventBuilder {
         self.on_mouse_down_in = Some(Arc::new(on_mouse_down_in));
         self
     }
+
     pub fn on_mouse_down_out(
         &mut self,
         on_mouse_down_out: impl Fn(&MouseEvent) + 'static,
@@ -155,6 +153,7 @@ impl AttachEventBuilder {
         self.on_mouse_up_in = Some(Arc::new(on_mouse_up_in));
         self
     }
+
     pub fn on_mouse_up_out(
         &mut self,
         on_mouse_up_out: impl Fn(&MouseEvent) + 'static,

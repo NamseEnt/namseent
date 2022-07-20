@@ -4,9 +4,10 @@ impl WysiwygWindow {
     pub(super) fn render_border_with_move_handling(
         &self,
         wh: Wh<Px>,
-        playback_time: Time,
+        keyframe_point_id: &str,
         layer_id: &str,
     ) -> RenderingTree {
+        let keyframe_point_id = keyframe_point_id.to_string();
         simple_rect(
             Wh {
                 width: wh.width.into(),
@@ -24,9 +25,10 @@ impl WysiwygWindow {
                 namui::MouseCursor::Pointer
             }
         })
-        .attach_event(|builder| {
+        .attach_event(move |builder| {
             let layer_id = layer_id.to_string();
             let window_id = self.window_id.clone();
+            let keyframe_point_id = keyframe_point_id.clone();
 
             builder.on_mouse_down_in(move |event| {
                 let window_global_xy = event
@@ -38,7 +40,7 @@ impl WysiwygWindow {
                 namui::event::send(super::Event::SelectedLayerMouseDown {
                     layer_id: layer_id.clone(),
                     anchor_xy,
-                    playback_time,
+                    keyframe_point_id: keyframe_point_id.clone(),
                 });
             });
         })

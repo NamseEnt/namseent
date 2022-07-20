@@ -4,7 +4,7 @@ pub(crate) struct DragResizeCircleAction {
     pub layer_id: String,
     pub anchor_xy: Xy<Px>,
     pub last_mouse_local_xy: Xy<Px>,
-    pub playback_time: Time,
+    pub keyframe_point_id: String,
     pub real_px_per_screen_px: f32,
     pub location: ResizeCircleLocation,
     pub rotation_angle: Angle,
@@ -68,46 +68,46 @@ impl Act<Animation> for DragResizeCircleAction {
             if x.is_some() {
                 update_xy(
                     layer,
-                    self.playback_time,
-                    self.rotation_angle.cos() * reversed_rotated_delta_in_real.x / 2.0,
+                    &self.keyframe_point_id,
+                    self.rotation_angle.cos() * reversed_rotated_delta_in_real.x / 2.0f32,
                     XY::X,
-                );
+                )?;
                 update_xy(
                     layer,
-                    self.playback_time,
-                    self.rotation_angle.sin() * reversed_rotated_delta_in_real.x / 2.0,
+                    &self.keyframe_point_id,
+                    self.rotation_angle.sin() * reversed_rotated_delta_in_real.x / 2.0f32,
                     XY::Y,
-                );
+                )?;
             }
             if y.is_some() {
                 update_xy(
                     layer,
-                    self.playback_time,
-                    -self.rotation_angle.sin() * reversed_rotated_delta_in_real.y / 2.0,
+                    &self.keyframe_point_id,
+                    -self.rotation_angle.sin() * reversed_rotated_delta_in_real.y / 2.0f32,
                     XY::X,
-                );
+                )?;
                 update_xy(
                     layer,
-                    self.playback_time,
-                    self.rotation_angle.cos() * reversed_rotated_delta_in_real.y / 2.0,
+                    &self.keyframe_point_id,
+                    self.rotation_angle.cos() * reversed_rotated_delta_in_real.y / 2.0f32,
                     XY::Y,
-                );
+                )?;
             }
             if let Some(ratio) = width {
                 update_size(
                     layer,
-                    self.playback_time,
+                    &self.keyframe_point_id,
                     reversed_rotated_delta_in_real.x * ratio,
                     WidthHeight::Width,
-                );
+                )?;
             }
             if let Some(ratio) = height {
                 update_size(
                     layer,
-                    self.playback_time,
+                    &self.keyframe_point_id,
                     reversed_rotated_delta_in_real.y * ratio,
                     WidthHeight::Height,
-                );
+                )?;
             }
 
             Ok(animation)
