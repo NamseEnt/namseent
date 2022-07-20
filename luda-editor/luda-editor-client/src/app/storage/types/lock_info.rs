@@ -27,7 +27,7 @@ impl LockInfo {
 
     pub fn now() -> DateTime<FixedOffset> {
         let ms_elapsed_since_unix_epoch = Duration::milliseconds(Date::now() as i64);
-        let unix_epoch = DateTime::parse_from_rfc3339("1970-1-1T00:00:00Z").unwrap();
+        let unix_epoch = DateTime::parse_from_rfc3339("1970-01-01T00:00:00Z").unwrap();
         unix_epoch + ms_elapsed_since_unix_epoch
     }
 
@@ -161,4 +161,8 @@ impl<'de> Deserialize<'de> for LockInfo {
         const FIELDS: &'static [&'static str] = &["client_id", "expired_at"];
         deserializer.deserialize_struct("LockInfo", FIELDS, LockInfoVisitor)
     }
+}
+
+pub fn sequence_name_into_lock_file_path(sequence_name: &str) -> String {
+    format!("lock/{sequence_name}.lock.json")
 }
