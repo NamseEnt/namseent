@@ -65,6 +65,7 @@ jobs:
             namui-animation-editor:
               - .github/**
               - namui-animation-editor/**
+              - namui/**
               - docker-images/namui-test-host/linux.Dockerfile
 
   set-up:
