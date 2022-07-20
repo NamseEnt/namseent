@@ -1,4 +1,4 @@
-use namui::{animation::KeyframePoint, prelude::*};
+use namui::{animation::*, prelude::*};
 use namui_animation_editor::{self, *};
 use wasm_bindgen::prelude::*;
 
@@ -6,14 +6,7 @@ use wasm_bindgen::prelude::*;
 pub async fn start() {
     let namui_context = namui::init().await;
 
-    let wh = namui::screen::size();
-
-    namui::start(
-        namui_context,
-        &mut AnimationEditorExample::new(),
-        &Props { wh },
-    )
-    .await
+    namui::start(namui_context, &mut AnimationEditorExample::new(), &Props {}).await
 }
 
 struct AnimationEditorExample {
@@ -27,32 +20,16 @@ impl AnimationEditorExample {
 
         image.image_source_url =
             Some(Url::parse("bundle:img/%EB%86%80%EB%9E%8C%EB%8C%80.png").unwrap());
-        image.x.put(
-            // KeyframePoint::<Px>::new(Time::Ms(0.0), Px::from(0.0)),
-            KeyframePoint::<Px>::new(Time::Ms(0.0), Px::from(500.0)),
-            animation::KeyframeLine::Linear,
-        );
-        image.y.put(
-            // KeyframePoint::<Px>::new(Time::Ms(0.0), Px::from(0.0)),
-            KeyframePoint::<Px>::new(Time::Ms(0.0), Px::from(0.0)),
-            animation::KeyframeLine::Linear,
-        );
-        image.width_percent.put(
-            KeyframePoint::<Percent>::new(Time::Ms(0.0), Percent::from_percent(50.0_f32)),
-            animation::KeyframeLine::Linear,
-        );
-        image.height_percent.put(
-            KeyframePoint::<Percent>::new(Time::Ms(0.0), Percent::from_percent(50.0_f32)),
-            animation::KeyframeLine::Linear,
-        );
-        image.rotation_angle.put(
-            // KeyframePoint::<Angle>::new(Time::Ms(0.0), Angle::from(30.0)),
-            KeyframePoint::<Angle>::new(Time::Ms(0.0), Angle::Degree(0.0)),
-            animation::KeyframeLine::Linear,
-        );
-        image.opacity.put(
-            KeyframePoint::<OneZero>::new(Time::Ms(0.0), 1.0.into()),
-            animation::KeyframeLine::Linear,
+
+        image.image_keyframe_graph.put(
+            KeyframePoint::new(
+                0.0.ms(),
+                ImageKeyframe {
+                    matrix: namui::Matrix3x3::identity(),
+                    opacity: 1.0.into(),
+                },
+            ),
+            animation::ImageInterpolation::AllLinear,
         );
 
         let animation = animation::Animation {
@@ -70,19 +47,14 @@ impl AnimationEditorExample {
     }
 }
 
-struct Props {
-    wh: Wh<Px>,
-}
+struct Props {}
 impl Entity for AnimationEditorExample {
     type Props = Props;
 
-    fn render(&self, props: &Self::Props) -> RenderingTree {
-        self.animation_editor.render(namui_animation_editor::Props {
-            wh: Wh {
-                width: props.wh.width.into(),
-                height: props.wh.height.into(),
-            },
-        })
+    fn render(&self, _props: &Self::Props) -> RenderingTree {
+        let wh = namui::screen::size();
+        self.animation_editor
+            .render(namui_animation_editor::Props { wh })
     }
 
     fn update(&mut self, event: &dyn std::any::Any) {

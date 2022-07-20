@@ -7,6 +7,22 @@ pub const fn int_px(value: i32) -> IntPx {
     IntPx(value)
 }
 
+pub trait IntPxExt {
+    fn int_px(self) -> IntPx;
+}
+
+impl IntPxExt for i32 {
+    fn int_px(self) -> IntPx {
+        IntPx(self)
+    }
+}
+
+impl std::fmt::Display for IntPx {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}px", self.0)
+    }
+}
+
 impl From<Px> for IntPx {
     fn from(px: Px) -> Self {
         IntPx(f32::from(px) as i32)
