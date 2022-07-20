@@ -1,6 +1,6 @@
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, RequestInit, Response};
+use web_sys::{Request, RequestCache, RequestInit, Response};
 
 pub struct RequestBuilder {
     url: String,
@@ -58,6 +58,7 @@ impl RequestBuilder {
 
     pub async fn send(&self) -> Response {
         let mut opts = RequestInit::new();
+        opts.cache(RequestCache::NoCache);
         opts.method(match self.method {
             RequestMethod::Get => "GET",
             RequestMethod::Put => "PUT",
