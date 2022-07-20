@@ -85,11 +85,19 @@ macro_rules! vector_types {
                 }
             }
         }
-        impl<T: std::ops::Div<f32, Output = T>> std::ops::Div<$type_name<T>> for f32 {
+        impl<T: std::ops::Mul<f32, Output = T>> std::ops::Mul<f32> for $type_name<T> {
             type Output = $type_name<T>;
-            fn div(self, rhs: $type_name<T>) -> Self::Output {
+            fn mul(self, rhs: f32) -> Self::Output {
                 $type_name {
-                    $( $field_ident: rhs.$field_ident.div(self) ),*
+                    $( $field_ident: self.$field_ident.mul(rhs) ),*
+                }
+            }
+        }
+        impl<T: std::ops::Div<f32, Output = T>> std::ops::Div<f32> for $type_name<T> {
+            type Output = $type_name<T>;
+            fn div(self, rhs: f32) -> Self::Output {
+                $type_name {
+                    $( $field_ident: self.$field_ident.div(rhs) ),*
                 }
             }
         }
