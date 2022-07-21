@@ -112,28 +112,28 @@ extern "C" {
     // /// @param filter
     // ///
     // #[wasm_bindgen(method)]
-    // pub(crate) fn setImageFilter(this: &CanvasKitPaint, filter: ImageFilter);
+    // pub(crate) fn setImageFilter(this: &CanvasKitPaint, filter: Option<ImageFilter>);
 
     // ///
     // /// Sets the current mask filter, replacing the existing one if there was one.
     // /// @param filter
     // ///
     // #[wasm_bindgen(method)]
-    // pub(crate) fn setMaskFilter(this: &CanvasKitPaint, filter: MaskFilter);
+    // pub(crate) fn setMaskFilter(this: &CanvasKitPaint, filter: Option<MaskFilter>);
 
     // ///
     // /// Sets the current path effect, replacing the existing one if there was one.
     // /// @param effect
     // ///
     // #[wasm_bindgen(method)]
-    // pub(crate) fn setPathEffect(this: &CanvasKitPaint, effect: PathEffect);
+    // pub(crate) fn setPathEffect(this: &CanvasKitPaint, effect: Option<PathEffect>);
 
     ///
     /// Sets the current shader, replacing the existing one if there was one.
     /// @param shader
     ///
     #[wasm_bindgen(method)]
-    pub(crate) fn setShader(this: &CanvasKitPaint, shader: &CanvasKitShader);
+    pub(crate) fn setShader(this: &CanvasKitPaint, shader: Option<&CanvasKitShader>);
 
     ///
     /// Sets the geometry drawn at the beginning and end of strokes.

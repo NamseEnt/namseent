@@ -12,6 +12,7 @@ pub struct TextDrawCommand {
     pub font: Arc<Font>,
     pub x: Px,
     pub y: Px,
+    #[serde(skip_serializing)]
     pub paint_builder: PaintBuilder,
     pub align: TextAlign,
     pub baseline: TextBaseline,

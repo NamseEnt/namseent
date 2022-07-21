@@ -1,11 +1,13 @@
 use super::*;
 use crate::*;
 pub use base::*;
+use std::sync::{Arc, Mutex};
 
 unsafe impl Sync for CanvasKitPaint {}
 unsafe impl Send for CanvasKitPaint {}
 pub(crate) struct Paint {
     id: Box<[u8]>,
+    last_set_shader: Arc<Mutex<Option<Arc<Shader>>>>,
     pub(crate) canvas_kit_paint: CanvasKitPaint,
 }
 impl Paint {
@@ -18,7 +20,6 @@ impl Paint {
         stroke_cap: Option<&StrokeCap>,
         stroke_join: Option<&StrokeJoin>,
         color_filter: Option<impl AsRef<ColorFilter>>,
-        shader: Option<&IntermediateShader>,
     ) -> Self {
         let canvas_kit_paint = CanvasKitPaint::new();
         if let Some(color) = color {
@@ -42,14 +43,19 @@ impl Paint {
         if let Some(color_filter) = color_filter {
             canvas_kit_paint.setColorFilter(&color_filter.as_ref().0);
         }
-        if let Some(shader) = shader {
-            canvas_kit_paint.setShader(&shader.into_shader().canvas_kit_shader);
-        }
 
         Paint {
             id,
+            last_set_shader: Arc::new(Mutex::new(None)),
             canvas_kit_paint,
         }
+    }
+    pub(crate) fn set_shader(&self, shader: Option<&Arc<Shader>>) {
+        if self.last_set_shader.lock().unwrap().as_ref() == shader {
+            return;
+        }
+        self.canvas_kit_paint
+            .setShader(shader.map(|shader| &shader.canvas_kit_shader));
     }
     pub fn get_stroke_cap(&self) -> StrokeCap {
         let stroke_cap = self.canvas_kit_paint.getStrokeCap();
@@ -95,6 +101,7 @@ impl Clone for Paint {
     fn clone(&self) -> Self {
         Paint {
             id: self.id.clone(),
+            last_set_shader: self.last_set_shader.clone(),
             canvas_kit_paint: self.canvas_kit_paint.copy(),
         }
     }
