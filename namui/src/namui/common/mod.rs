@@ -2,7 +2,6 @@ mod codes;
 mod request_animation_frame;
 mod set_timeout;
 pub mod types;
-mod xy;
 
 use super::render::{RenderingData, RenderingTree};
 use crate::*;
@@ -12,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use serde_repr::*;
 pub use set_timeout::*;
 use std::collections::HashSet;
-pub use xy::*;
+pub use types::*;
 
 impl std::convert::From<RenderingData> for RenderingTree {
     fn from(data: RenderingData) -> Self {
@@ -70,33 +69,6 @@ pub fn try_render(func: impl FnOnce() -> Option<RenderingTree>) -> RenderingTree
 }
 
 pub type Rendering = RenderingTree;
-
-#[derive(Debug, Clone, Copy, Serialize, PartialEq)]
-pub struct Wh<T> {
-    pub width: T,
-    pub height: T,
-}
-impl<T> Wh<T> {
-    pub fn new(width: T, height: T) -> Self {
-        Self { width, height }
-    }
-}
-impl<T: Clone> Wh<T> {
-    pub fn as_xy(&self) -> Xy<T> {
-        Xy {
-            x: self.width.clone(),
-            y: self.height.clone(),
-        }
-    }
-}
-impl<T: From<f32> + Into<f32> + Copy> Wh<T> {
-    pub fn length(&self) -> T {
-        let width: f32 = self.width.into();
-        let height: f32 = self.height.into();
-
-        T::from((width * width + height * height).sqrt())
-    }
-}
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub enum Language {

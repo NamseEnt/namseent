@@ -11,6 +11,7 @@ mod ratio;
 mod rect;
 mod time;
 mod time_per_px;
+mod vector_types;
 
 pub use angle::*;
 pub use int_px::*;
@@ -25,3 +26,4 @@ pub use ratio::*;
 pub use rect::*;
 pub use time::*;
 pub use time_per_px::*;
+pub use vector_types::*;
