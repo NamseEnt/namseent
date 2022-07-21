@@ -62,17 +62,23 @@ extern "C" {
     // pub(crate) fn makeShaderCubic(this: &CanvasKitImage, tx: TileMode, ty: TileMode, B: number, C: number,
     //                 localMatrix?: InputMatrix) -> Shader;
 
-    // ///
-    // /// Returns this image as a shader with the specified tiling. It will use cubic sampling.
-    // /// @param tx - tile mode in the x direction.
-    // /// @param ty - tile mode in the y direction.
-    // /// @param fm - The filter mode.
-    // /// @param mm - The mipmap mode. Note: for settings other than None, the image must have mipmaps
-    // ///             calculated with makeCopyWithDefaultMipmaps;
-    // /// @param localMatrix
-    // #[wasm_bindgen(method)]
-    // pub(crate) fn makeShaderOptions(this: &CanvasKitImage, tx: TileMode, ty: TileMode, fm: FilterMode, mm: MipmapMode,
-    //                 localMatrix?: InputMatrix) -> Shader;
+    ///
+    /// Returns this image as a shader with the specified tiling. It will use cubic sampling.
+    /// @param tx - tile mode in the x direction.
+    /// @param ty - tile mode in the y direction.
+    /// @param fm - The filter mode.
+    /// @param mm - The mipmap mode. Note: for settings other than None, the image must have mipmaps
+    ///             calculated with makeCopyWithDefaultMipmaps;
+    /// @param localMatrix
+    #[wasm_bindgen(method)]
+    pub(crate) fn makeShaderOptions(
+        this: &CanvasKitImage,
+        tx: CanvasKitTileMode,
+        ty: CanvasKitTileMode,
+        fm: CanvasKitFilterMode,
+        mm: CanvasKitMipmapMode,
+        // localMatrix?: InputMatrix
+    ) -> CanvasKitShader;
 
     // ///
     // /// Returns a TypedArray containing the pixels reading starting at (srcX, srcY) and does not

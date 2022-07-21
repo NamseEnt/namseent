@@ -2,7 +2,10 @@ use super::*;
 use crate::*;
 pub use base::*;
 use serde::Serialize;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
 
 unsafe impl Sync for CanvasKitImage {}
 unsafe impl Send for CanvasKitImage {}
@@ -62,6 +65,22 @@ impl Image {
             width: canvas_kit_image_info.width,
             height: canvas_kit_image_info.height,
         }
+    }
+    pub fn make_shader(
+        &self,
+        tile_x: TileMode,
+        tile_y: TileMode,
+        filter: FilterMode,
+        mipmap: MipmapMode,
+    ) -> Arc<Shader> {
+        let shader = self.canvas_kit_image.makeShaderOptions(
+            tile_x.into_canvas_kit(),
+            tile_y.into_canvas_kit(),
+            filter.into_canvas_kit(),
+            mipmap.into_canvas_kit(),
+        );
+
+        Arc::new(Shader::new(shader))
     }
 }
 

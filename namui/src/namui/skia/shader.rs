@@ -7,18 +7,16 @@ use std::{
 };
 
 /// Please use shader_macro::shader to make shader.
-pub trait MakeShader {
-    fn make(&self) -> IntermediateShader;
-}
 
 /// This is namui internal shader.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct IntermediateShader {
+#[derive(Clone, PartialEq)]
+struct ShaderCacheKey {
     uniforms: Box<[f32]>,
     code: &'static str,
+    children: Box<[Arc<Shader>]>,
 }
 
-impl Hash for IntermediateShader {
+impl Hash for ShaderCacheKey {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         for uniform in self.uniforms.iter() {
             OrderedFloat(*uniform).hash(state);
@@ -26,40 +24,42 @@ impl Hash for IntermediateShader {
         self.code.hash(state);
     }
 }
-impl Eq for IntermediateShader {}
+impl Eq for ShaderCacheKey {}
 
 static RUNTIME_EFFECT_CACHE: OnceCell<Mutex<lru::LruCache<&str, Arc<RuntimeEffect>>>> =
     OnceCell::new();
-static SHADER_CACHE: OnceCell<Mutex<lru::LruCache<IntermediateShader, Arc<Shader>>>> =
-    OnceCell::new();
+static SHADER_CACHE: OnceCell<Mutex<lru::LruCache<ShaderCacheKey, Arc<Shader>>>> = OnceCell::new();
 
-impl IntermediateShader {
-    pub fn new(uniforms: &[f32], code: &'static str) -> Self {
-        IntermediateShader {
-            uniforms: uniforms.into(),
-            code,
-        }
+pub fn make_runtime_effect_shader(
+    uniforms: &[f32],
+    code: &'static str,
+    children: Box<[Arc<Shader>]>,
+) -> Arc<Shader> {
+    let cache_key = ShaderCacheKey {
+        uniforms: Box::from(uniforms),
+        code,
+        children,
+    };
+    if let Some(shader) = cache_key.try_get_shader_cache() {
+        return shader;
     }
 
-    pub(crate) fn into_shader(&self) -> Arc<Shader> {
-        if let Some(shader) = self.try_get_shader_cache() {
-            return shader;
+    let runtime_effect = match cache_key.try_get_runtime_effect_cache() {
+        Some(runtime_effect) => runtime_effect,
+        None => {
+            let runtime_effect = Arc::new(RuntimeEffect::new(cache_key.code));
+            cache_key.put_runtime_effect_cache(runtime_effect.clone());
+            runtime_effect
         }
+    };
 
-        let runtime_effect = match self.try_get_runtime_effect_cache() {
-            Some(runtime_effect) => runtime_effect,
-            None => {
-                let runtime_effect = Arc::new(RuntimeEffect::new(self.code));
-                self.put_runtime_effect_cache(runtime_effect.clone());
-                runtime_effect
-            }
-        };
+    let shader =
+        Arc::new(runtime_effect.make_shader(&cache_key.uniforms, cache_key.children.iter()));
+    cache_key.put_shader_cache(shader.clone());
+    shader
+}
 
-        let shader = Arc::new(runtime_effect.make_shader(&self.uniforms));
-        self.put_shader_cache(shader.clone());
-        shader
-    }
-
+impl ShaderCacheKey {
     fn try_get_shader_cache(&self) -> Option<Arc<Shader>> {
         SHADER_CACHE
             .get_or_init(|| Mutex::new(lru::LruCache::new(1024)))

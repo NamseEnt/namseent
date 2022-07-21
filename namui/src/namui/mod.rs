@@ -23,9 +23,8 @@ pub use render::{
 };
 pub use shader_macro::shader;
 pub use skia::{
-    types::{ClipOp, Color, PaintStyle, StrokeJoin},
-    BlendMode, Font, Image, IntermediateShader, MakeShader, PaintBuilder, PathBuilder, StrokeCap,
-    Typeface,
+    make_runtime_effect_shader, BlendMode, ClipOp, Color, FilterMode, Font, Image, MipmapMode,
+    PaintBuilder, PaintStyle, PathBuilder, Shader, StrokeCap, StrokeJoin, TileMode, Typeface,
 };
 pub(crate) use skia::{ColorFilter, Paint, Path};
 use std::sync::Arc;

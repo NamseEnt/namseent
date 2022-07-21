@@ -11,8 +11,20 @@ impl RuntimeEffect {
             canvas_kit_runtime_effect: canvas_kit().RuntimeEffect().Make(code).unwrap(),
         }
     }
-    pub fn make_shader(&self, uniforms: &[f32]) -> Shader {
-        Shader::new(self.canvas_kit_runtime_effect.makeShader(uniforms))
+    pub fn make_shader(
+        &self,
+        uniforms: &[f32],
+        children: impl IntoIterator<Item = impl AsRef<Shader>>,
+    ) -> Shader {
+        let children = children
+            .into_iter()
+            .map(|child| child.as_ref().canvas_kit_shader.clone())
+            .collect();
+        Shader::new(self.canvas_kit_runtime_effect.makeShaderWithChildren(
+            uniforms,
+            Option::None,
+            Some(children),
+        ))
     }
 }
 
