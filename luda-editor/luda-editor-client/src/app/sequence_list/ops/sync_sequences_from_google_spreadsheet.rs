@@ -9,9 +9,8 @@ use crate::app::{
     storage::GithubStorage,
     types::*,
 };
-use futures::future::join_all;
 use linked_hash_map::LinkedHashMap;
-use std::{fmt::Debug, sync::Arc};
+use std::sync::Arc;
 use wasm_bindgen_futures::spawn_local;
 
 impl SequenceList {
@@ -78,39 +77,12 @@ async fn save_sequences(
     storage: &Arc<dyn GithubStorage>,
     title_sequence_map: &LinkedHashMap<String, Arc<Sequence>>,
 ) -> Result<(), String> {
-    let sequence_save_futures = title_sequence_map
-        .iter()
-        .map(|(title, sequence)| async move {
-            (title, storage.put_sequence(title.as_str(), sequence).await)
-        });
-    let title_sequence_save_result_pair_list = join_all(sequence_save_futures).await;
-    throw_error_if_sequence_download_failed(&title_sequence_save_result_pair_list)?;
-    Ok(())
-}
-
-fn throw_error_if_sequence_download_failed<E>(
-    title_sequence_save_result_pair_list: &Vec<(&String, Result<(), E>)>,
-) -> Result<(), String>
-where
-    E: Debug + Sized,
-{
-    let sequence_save_error_list: Vec<_> = title_sequence_save_result_pair_list
-        .iter()
-        .filter_map(|(title, result)| {
-            if let Err(error) = result {
-                return Some((title, error));
-            }
-            None
-        })
-        .collect();
-
-    if sequence_save_error_list.len() > 0 {
-        return Err(format!(
-            "failed to download some sequence: {:#?}",
-            sequence_save_error_list
-        ));
+    for (title, sequence) in title_sequence_map {
+        storage
+            .put_sequence(title.as_str(), sequence)
+            .await
+            .map_err(|error| format!("failed to save sequence: {:#?}", error))?;
     }
-
     Ok(())
 }
 
