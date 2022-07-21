@@ -23,7 +23,7 @@ struct ShaderExample {
 
 impl ShaderExample {
     fn new() -> Self {
-        Self { tab: Tab::Shake }
+        Self { tab: Tab::Scroll }
     }
 }
 
