@@ -6,7 +6,7 @@ use super::{
     get_character_image::GithubStorageCharacterImageGet,
     get_character_image_paths::GithubStorageCharacterImagePathsGet, get_meta::GithubStorageMetaGet,
     get_sequence::GithubStorageSequenceGet, get_sequence_list::GithubStorageSequenceListGet,
-    get_sequence_lock_state::StorageSequenceLockStateGet,
+    get_sequence_lock_state::GithubStorageSequenceLockStateGet,
     get_sequence_titles::GithubStorageSequenceTitlesGet, lock_sequence::GithubStorageSequenceLock,
     put_sequence::GithubStorageSequencePut, put_sequence_titles::GithubStorageSequenceTitlesPut,
     unlock_sequence::GithubStorageSequenceUnlock,
@@ -24,7 +24,7 @@ pub trait GithubStorage:
     + Send
     + Sync
     + GithubStorageMetaGet
-    + StorageSequenceLockStateGet
+    + GithubStorageSequenceLockStateGet
     + GithubStorageSequenceLock
     + GithubStorageSequenceUnlock
     + GithubStorageSequenceGet
