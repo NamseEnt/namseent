@@ -1,5 +1,7 @@
-use super::types::SequenceSyncState;
+use super::types::{SequenceOpenState, SequenceSyncState};
+use crate::app::types::Sequence;
 use namui::prelude::*;
+use std::sync::Arc;
 
 pub enum SequenceListEvent {
     SequenceTitleButtonClickedEvent {
@@ -16,5 +18,13 @@ pub enum SequenceListEvent {
     PreviewSliderMovedEvent {
         title: String,
         progress: f32,
+    },
+    SequenceOpenButtonClickedEvent {
+        title: String,
+        sequence: Arc<Sequence>,
+    },
+    SequenceOpenStateChangedEvent {
+        title: String,
+        state: SequenceOpenState,
     },
 }

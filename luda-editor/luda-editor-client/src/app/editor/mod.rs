@@ -16,7 +16,7 @@ use self::{
     events::*,
 };
 use super::{
-    storage::GithubStorage,
+    storage::{ExpiredAt, GithubStorage},
     types::{
         meta::{Meta, MetaContainer},
         *,
@@ -495,6 +495,7 @@ impl Editor {
         sequence_title: &str,
         meta_container: Arc<MetaContainer>,
         camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
+        _expired_at: ExpiredAt,
     ) -> Self {
         let character_image_paths = storage.get_character_image_paths();
         let character_image_files =

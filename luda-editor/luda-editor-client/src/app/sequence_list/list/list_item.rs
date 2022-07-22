@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::{
     open_button::render_open_button, preview_slider::render_preview_slider,
     title_button::render_title_button,
@@ -5,13 +7,14 @@ use super::{
 use crate::app::{
     sequence_list::{
         common::{render_rounded_rectangle, RoundedRectangleColor},
-        types::{RenderingTreeRow, RenderingTreeRows, SequencePreviewProgressMap},
+        types::{
+            RenderingTreeRow, RenderingTreeRows, SequenceOpenState, SequencePreviewProgressMap,
+        },
         BUTTON_HEIGHT, MARGIN, SPACING,
     },
     types::Sequence,
 };
 use namui::prelude::*;
-use std::sync::Arc;
 
 pub fn render_list_item(
     width: Px,
@@ -19,6 +22,7 @@ pub fn render_list_item(
     sequence: &Arc<Sequence>,
     sequence_preview_progress_map: &SequencePreviewProgressMap,
     is_item_opened: bool,
+    sequence_open_state: &SequenceOpenState,
 ) -> RenderingTreeRow {
     let element_width = width - 2.0 * MARGIN;
     let button_wh = Wh {
@@ -35,7 +39,7 @@ pub fn render_list_item(
             button_wh.height,
         ));
         elements.push(RenderingTreeRow::new(
-            render_open_button(button_wh, &sequence, title),
+            render_open_button(button_wh, title, sequence, sequence_open_state),
             button_wh.height,
         ));
     }
