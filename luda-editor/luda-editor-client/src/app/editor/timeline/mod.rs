@@ -1,5 +1,10 @@
-use namui::prelude::*;
+mod play_head;
 mod playback_time_view;
+mod time_ruler;
+pub mod timeline_body;
+mod timeline_header;
+mod track_header;
+
 use super::job::Job;
 use crate::app::{
     editor::{
@@ -10,15 +15,13 @@ use crate::app::{
             timeline_header::{TimelineHeader, TimelineHeaderProps},
         },
     },
-    types::{Sequence, SubtitlePlayDurationMeasure},
+    storage::GithubStorage,
+    types::{CameraAngleImageLoader, Sequence, SubtitlePlayDurationMeasure},
 };
+use namui::prelude::*;
 use playback_time_view::*;
-mod time_ruler;
+use std::sync::Arc;
 use time_ruler::*;
-mod play_head;
-pub mod timeline_body;
-mod timeline_header;
-mod track_header;
 
 pub struct Timeline {
     header_width: Px,
@@ -45,6 +48,8 @@ pub struct TimelineProps<'a> {
     pub selected_clip_ids: &'a [&'a String],
     pub sequence: &'a Sequence,
     pub subtitle_play_duration_measurer: &'a dyn SubtitlePlayDurationMeasure,
+    pub storage: Arc<dyn GithubStorage>,
+    pub camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
 }
 pub struct TimelineRenderContext<'a> {
     pub time_per_px: TimePerPx,
@@ -166,6 +171,7 @@ impl Timeline {
                                     height: track_body_height,
                                     tracks: &props.sequence.tracks,
                                     context: &context,
+                                    camera_angle_image_loader: props.camera_angle_image_loader,
                                 }),
                             ),
                         ]),

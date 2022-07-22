@@ -1,39 +1,42 @@
+mod clip_editor;
+mod clip_select;
+mod clipboard;
+mod context_menu;
+mod events;
+mod history;
+mod job;
+mod sequence_lock_extender;
+mod sequence_player;
+mod sequence_saver;
+mod sheet_sequence_syncer;
 mod timeline;
+mod top_bar;
+
 use self::{
     clip_editor::{camera_clip_editor::image_browser::ImageBrowserFile, ClipEditor},
     events::*,
+    sequence_lock_extender::SequenceLockExtender,
 };
-use super::types::{
-    meta::{Meta, MetaContainer},
-    *,
+use super::{
+    storage::{GithubStorage, LockInfo},
+    types::{
+        meta::{Meta, MetaContainer},
+        *,
+    },
 };
 use crate::app::editor::{clip_editor::ClipEditorProps, top_bar::TopBarProps};
-use futures::{join, FutureExt};
+use clipboard::Clipboard;
+use context_menu::*;
+use history::History;
 pub use job::*;
-use luda_editor_rpc::Socket;
 use namui::prelude::*;
+pub use sequence_player::{SequencePlay, SequencePlayer, SequencePlayerProps};
+use sequence_saver::SequenceSaver;
+use sheet_sequence_syncer::*;
 use std::{cmp::Ordering, collections::BTreeSet, sync::Arc};
 use timeline::timeline_body::track_body::*;
 pub use timeline::*;
-use wasm_bindgen_futures::spawn_local;
-mod clip_editor;
-mod events;
-mod job;
-mod sequence_player;
-pub use sequence_player::{SequencePlay, SequencePlayer, SequencePlayerProps};
-mod history;
-use history::History;
-mod top_bar;
 use top_bar::TopBar;
-mod clipboard;
-use clipboard::Clipboard;
-mod context_menu;
-use context_menu::*;
-mod sequence_saver;
-use sequence_saver::SequenceSaver;
-mod sheet_sequence_syncer;
-use sheet_sequence_syncer::*;
-mod clip_select;
 
 pub struct EditorProps {
     pub screen_wh: namui::Wh<Px>,
@@ -45,6 +48,7 @@ pub struct Editor {
     clip_editor: Option<ClipEditor>,
     character_image_files: BTreeSet<ImageBrowserFile>,
     background_image_files: BTreeSet<ImageBrowserFile>,
+    storage: Arc<dyn GithubStorage>,
     selected_clip_ids: Arc<BTreeSet<String>>,
     sequence_player: Box<dyn SequencePlay>,
     history: History<Arc<Sequence>>,
@@ -56,6 +60,8 @@ pub struct Editor {
     sequence_saver: SequenceSaver,
     sheet_sequence_syncer: SheetSequenceSyncer,
     meta_container: Arc<MetaContainer>,
+    camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
+    sequence_lock_extender: SequenceLockExtender,
 }
 
 impl namui::Entity for Editor {
@@ -117,16 +123,6 @@ impl namui::Entity for Editor {
                             is_moved: false,
                         }));
                     }
-                }
-                EditorEvent::CharacterImageFilesUpdatedEvent {
-                    character_image_files,
-                } => {
-                    self.character_image_files = character_image_files.clone();
-                }
-                EditorEvent::BackgroundImageFilesUpdatedEvent {
-                    background_image_files,
-                } => {
-                    self.background_image_files = background_image_files.clone();
                 }
                 EditorEvent::WysiwygEditorInnerImageMouseDownEvent {
                     target,
@@ -424,6 +420,7 @@ impl namui::Entity for Editor {
             .map(move |context_menu| context_menu.update(event));
         self.sequence_saver.update(event);
         self.sheet_sequence_syncer.update(event);
+        self.sequence_lock_extender.update(event);
     }
 
     fn render(&self, props: &Self::Props) -> namui::RenderingTree {
@@ -456,6 +453,8 @@ impl namui::Entity for Editor {
                 selected_clip_ids: self.selected_clip_ids.iter().collect::<Vec<_>>().as_slice(),
                 sequence: self.get_sequence(),
                 subtitle_play_duration_measurer: &self.get_meta(),
+                storage: self.storage.clone(),
+                camera_angle_image_loader: self.camera_angle_image_loader.clone(),
             }),
             match &self.clip_editor {
                 None => RenderingTree::Empty,
@@ -470,6 +469,7 @@ impl namui::Entity for Editor {
                     character_image_files: &self.character_image_files,
                     background_image_files: &self.background_image_files,
                     job: &self.job,
+                    camera_angle_image_loader: self.camera_angle_image_loader.clone(),
                 }),
             },
             self.sequence_player.render(&SequencePlayerProps {
@@ -494,66 +494,32 @@ impl namui::Entity for Editor {
 
 impl Editor {
     pub fn new(
-        socket: Socket,
+        storage: Arc<dyn GithubStorage>,
         sequence: Arc<Sequence>,
-        sequence_file_path: &str,
         sequence_title: &str,
         meta_container: Arc<MetaContainer>,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
+        lock_info: LockInfo,
     ) -> Self {
-        spawn_local({
-            let socket = socket.clone();
-            async move {
-                let character_image_urls_future = socket
-                    .get_character_image_urls(luda_editor_rpc::get_character_image_urls::Request {})
-                    .map(|result| match result {
-                        Ok(response) => {
-                            let character_image_files =
-                                convert_character_image_urls_to_character_image_files(
-                                    &response.character_image_urls,
-                                );
+        let character_image_paths = storage.get_character_image_paths();
+        let character_image_files =
+            convert_character_image_urls_to_character_image_files(&character_image_paths);
 
-                            namui::event::send(EditorEvent::CharacterImageFilesUpdatedEvent {
-                                character_image_files,
-                            })
-                        }
-                        Err(error) => {
-                            namui::log!("error on get_character_image_urls: {:?}", error)
-                        }
-                    });
-
-                let background_image_urls_future = socket
-                    .get_background_image_urls(
-                        luda_editor_rpc::get_background_image_urls::Request {},
-                    )
-                    .map(|result| match result {
-                        Ok(response) => {
-                            let background_image_files =
-                                convert_background_image_urls_to_background_image_files(
-                                    &response.background_image_urls,
-                                );
-
-                            namui::event::send(EditorEvent::BackgroundImageFilesUpdatedEvent {
-                                background_image_files,
-                            })
-                        }
-                        Err(error) => {
-                            namui::log!("error on get_background_image_urls: {:?}", error)
-                        }
-                    });
-
-                join!(character_image_urls_future, background_image_urls_future);
-            }
-        });
+        let background_image_paths = storage.get_background_image_paths();
+        let background_image_files =
+            convert_background_image_urls_to_background_image_files(&background_image_paths);
+        let sequence_lock_extender =
+            SequenceLockExtender::new(storage.clone(), sequence_title.to_string(), lock_info);
         Self {
             timeline: Timeline::new(),
-            character_image_files: BTreeSet::new(),
-            background_image_files: BTreeSet::new(),
+            character_image_files,
+            background_image_files,
             job: None,
             clip_editor: None,
             selected_clip_ids: Arc::new(BTreeSet::new()),
             sequence_player: Box::new(SequencePlayer::new(
                 sequence.clone(),
-                Box::new(LudaEditorServerCameraAngleImageLoader {}),
+                camera_angle_image_loader.clone(),
             )),
             history: History::new(sequence.clone()),
             top_bar: TopBar::new(),
@@ -562,12 +528,15 @@ impl Editor {
             clip_id_to_check_as_click: None,
             context_menu: None,
             sequence_saver: SequenceSaver::new(
-                sequence_file_path.clone(),
+                sequence_title.clone(),
                 sequence.clone(),
-                socket.clone(),
+                storage.clone(),
             ),
             sheet_sequence_syncer: SheetSequenceSyncer::new(sequence_title),
             meta_container,
+            storage,
+            camera_angle_image_loader,
+            sequence_lock_extender,
         }
     }
     fn calculate_timeline_rect(&self, screen_wh: &namui::Wh<Px>) -> Rect<Px> {
@@ -707,20 +676,20 @@ impl Editor {
 }
 
 fn convert_character_image_urls_to_character_image_files(
-    character_image_urls: &[String],
+    character_image_urls: &Vec<String>,
 ) -> BTreeSet<ImageBrowserFile> {
     character_image_urls
         .iter()
-        .map(|url| ImageBrowserFile::new(url.clone()))
+        .map(|path| ImageBrowserFile::new(path.clone()))
         .collect()
 }
 
 fn convert_background_image_urls_to_background_image_files(
-    background_image_urls: &[String],
+    background_image_urls: &Vec<String>,
 ) -> BTreeSet<ImageBrowserFile> {
     background_image_urls
         .iter()
-        .map(|url| ImageBrowserFile::new(url.clone()))
+        .map(|path| ImageBrowserFile::new(path.clone()))
         .collect()
 }
 

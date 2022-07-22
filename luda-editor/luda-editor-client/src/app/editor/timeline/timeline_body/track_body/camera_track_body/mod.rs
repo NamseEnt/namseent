@@ -3,7 +3,7 @@ use crate::app::{
     editor::{events::EditorEvent, job::Job, TimelineRenderContext},
     types::*,
 };
-use std::collections::LinkedList;
+use std::{collections::LinkedList, sync::Arc};
 
 pub struct CameraTrackBody {}
 pub struct CameraTrackBodyProps<'a> {
@@ -11,6 +11,7 @@ pub struct CameraTrackBodyProps<'a> {
     pub height: Px,
     pub track: &'a CameraTrack,
     pub context: &'a TimelineRenderContext<'a>,
+    pub camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
 }
 
 fn move_clip_at_last(track: &mut CameraTrack, clip_ids: Vec<&String>) {
@@ -121,6 +122,7 @@ impl CameraTrackBody {
                             },
                             clip: clip.as_ref(),
                             context: props.context,
+                            camera_angle_image_loader: props.camera_angle_image_loader.clone(),
                         })
                     })
                     .collect::<Vec<_>>(),
@@ -142,8 +144,11 @@ impl ResizableClip for CameraClip {
         self.end_at
     }
 
-    fn render(&self, wh: Wh<Px>) -> RenderingTree {
-        self.camera_angle
-            .render(wh, &LudaEditorServerCameraAngleImageLoader {})
+    fn render(
+        &self,
+        wh: Wh<Px>,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
+    ) -> RenderingTree {
+        self.camera_angle.render(wh, camera_angle_image_loader)
     }
 }

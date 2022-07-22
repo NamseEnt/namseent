@@ -1,10 +1,8 @@
-use std::sync::Mutex;
-
 use super::*;
 use async_trait::async_trait;
 use linked_hash_map::LinkedHashMap;
-use luda_editor_rpc::Socket;
 use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
 use wasm_bindgen_futures::spawn_local;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -14,34 +12,6 @@ pub struct Meta {
     pub subtitle_specific_text_token_play_duration_map: LinkedHashMap<String, Time>,
     pub subtitle_character_color_map: HashMap<String, Color>,
 }
-#[allow(dead_code)]
-pub async fn save_meta(meta: &Meta, socket: &Socket) -> Result<(), String> {
-    let result = socket
-        .write_file(luda_editor_rpc::write_file::Request {
-            dest_path: "meta.json".to_string(),
-            file: serde_json::to_vec(meta).unwrap(),
-        })
-        .await;
-    match result {
-        Ok(_) => Ok(()),
-        Err(err) => Err(err.to_string()),
-    }
-}
-
-pub async fn get_meta(socket: &Socket) -> Result<Meta, String> {
-    let result = socket
-        .read_file(luda_editor_rpc::read_file::Request {
-            dest_path: "meta.json".to_string(),
-        })
-        .await;
-    match result {
-        Ok(file) => {
-            let meta: Meta = serde_json::from_slice(&file.file).unwrap();
-            Ok(meta)
-        }
-        Err(err) => Err(err.to_string()),
-    }
-}
 
 enum MetaLoaderEvent {
     MetaLoaded(Meta),
@@ -50,7 +20,7 @@ enum MetaLoaderEvent {
 #[cfg(test)]
 use mockall::{automock, predicate::*};
 #[cfg_attr(test, automock)]
-#[async_trait]
+#[async_trait(?Send)]
 pub trait MetaLoad {
     async fn load_meta(&self) -> Result<Meta, String>;
 }
@@ -60,11 +30,11 @@ pub enum MetaContainerEvent {
 }
 pub struct MetaContainer {
     meta: Mutex<Option<Meta>>,
-    loader: Arc<dyn MetaLoad>,
+    loader: Arc<dyn MetaLoad + Sync + Send>,
 }
 
 impl MetaContainer {
-    pub fn new(last_meta: Option<Meta>, loader: Arc<dyn MetaLoad>) -> Self {
+    pub fn new(last_meta: Option<Meta>, loader: Arc<dyn MetaLoad + Sync + Send>) -> Self {
         Self {
             meta: Mutex::new(last_meta),
             loader,

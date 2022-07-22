@@ -1,19 +1,19 @@
+mod app_context;
 mod camera_angle;
 pub mod google_spreadsheet;
 pub mod meta;
 mod page;
-mod router_context;
 mod sequence;
 mod subtitle_play_duration_measure;
 mod track;
 
+pub use app_context::*;
 pub use camera_angle::*;
 pub use clip::*;
 pub use google_spreadsheet::Sheet;
 pub use meta::*;
 use namui::prelude::*;
 pub use page::*;
-pub use router_context::*;
 pub use sequence::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
@@ -37,7 +37,7 @@ pub struct Circumscribed {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CharacterPoseEmotion(pub String, pub String, pub String);
 impl CharacterPoseEmotion {
-    pub(crate) fn to_url(&self) -> String {
+    pub(crate) fn to_path(&self) -> String {
         format!("/{}/{}/{}.png", self.0, self.1, self.2)
     }
 }

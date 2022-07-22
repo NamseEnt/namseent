@@ -4,11 +4,12 @@ mod meta_update_button;
 mod saving_status_text;
 mod sheet_sequence_syncer_bar;
 
-use self::{events::TopBarEvent, go_back_button::render_go_back_button};
+use self::go_back_button::render_go_back_button;
 use super::{
     sequence_saver::SequenceSaverStatus, sheet_sequence_syncer::SheetSequenceSyncerStatus,
 };
 use crate::app::{events::RouterEvent, sequence_list::SequenceList};
+pub use events::*;
 use meta_update_button::*;
 use namui::prelude::*;
 use saving_status_text::*;
@@ -101,6 +102,11 @@ impl TopBar {
 
 fn change_page_to_sequence_list() {
     namui::event::send(RouterEvent::PageChangeToSequenceListEvent(Box::new(
-        move |app_context| SequenceList::new(app_context.socket.clone()),
+        move |context| {
+            SequenceList::new(
+                context.storage.clone(),
+                context.camera_angle_image_loader.clone(),
+            )
+        },
     )))
 }

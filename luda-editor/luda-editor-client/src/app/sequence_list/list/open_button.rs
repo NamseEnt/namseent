@@ -1,43 +1,43 @@
 use crate::app::{
-    editor::Editor,
-    events::RouterEvent,
-    sequence_list::common::{render_button_text, render_rounded_rectangle, RoundedRectangleColor},
+    sequence_list::{
+        common::{render_button_text, render_rounded_rectangle, RoundedRectangleColor},
+        events::SequenceListEvent,
+        types::SequenceOpenState,
+    },
     types::Sequence,
 };
 use namui::prelude::*;
-
 use std::sync::Arc;
 
 pub fn render_open_button(
     wh: Wh<Px>,
-    path: &String,
-    sequence: &Arc<Sequence>,
     title: &String,
+    sequence: &Arc<Sequence>,
+    open_state: &SequenceOpenState,
 ) -> RenderingTree {
     render([
         render_rounded_rectangle(wh, RoundedRectangleColor::Blue)
             .attach_event(move |builder| {
-                let sequence = sequence.clone();
-                let path = path.clone();
                 let title = title.clone();
+                let sequence = sequence.clone();
                 builder.on_mouse_down_in(move |_| {
-                    let sequence = sequence.clone();
-                    let path = path.clone();
                     let title = title.clone();
-                    namui::event::send(RouterEvent::PageChangeToEditorEvent(Box::new(
-                        move |context| -> Editor {
-                            Editor::new(
-                                context.socket.clone(),
-                                sequence.clone(),
-                                &path,
-                                &title,
-                                context.meta_container.clone(),
-                            )
-                        },
-                    )));
+                    let sequence = sequence.clone();
+                    namui::event::send(SequenceListEvent::SequenceOpenButtonClickedEvent {
+                        title,
+                        sequence,
+                    });
                 });
             })
             .with_mouse_cursor(namui::MouseCursor::Pointer),
-        render_button_text(wh, "Open".to_string()),
+        render_button_text(wh, button_text(open_state)),
     ])
+}
+
+fn button_text(open_state: &SequenceOpenState) -> String {
+    match open_state {
+        SequenceOpenState::Idle => "Open".to_string(),
+        SequenceOpenState::Opening => "Opening...".to_string(),
+        SequenceOpenState::Failed { message } => format!("{}", message),
+    }
 }

@@ -41,7 +41,6 @@ jobs:
             luda-editor-client:
               - .github/**
               - luda-editor/luda-editor-client/**
-              - luda-editor/luda-editor-rpc/**
               - namui/**
               - docker-images/namui-test-host/linux.Dockerfile
             namui-prebuilt:

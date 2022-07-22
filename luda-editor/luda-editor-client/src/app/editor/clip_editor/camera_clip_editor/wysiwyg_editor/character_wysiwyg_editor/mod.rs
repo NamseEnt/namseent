@@ -17,6 +17,7 @@ pub struct CharacterWysiwygEditor {
 pub struct CharacterWysiwygEditorProps<'a> {
     pub rect: Rect<Px>,
     pub camera_angle: &'a CameraAngle,
+    pub camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
 }
 
 impl CharacterWysiwygEditor {
@@ -37,7 +38,7 @@ impl CharacterWysiwygEditor {
             height: props.rect.height(),
         };
 
-        let image_loader = LudaEditorServerCameraAngleImageLoader {};
+        let image_loader = props.camera_angle_image_loader.clone();
 
         let character = props.camera_angle.character.as_ref();
         if character.is_none() {
@@ -45,11 +46,8 @@ impl CharacterWysiwygEditor {
         }
         let character = character.unwrap();
 
-        let image_source = image_loader.get_character_image_source(character);
-        let image = match image_source {
-            ImageSource::Url(url) => namui::image::try_load(&url),
-            ImageSource::Image(image) => Some(image),
-        };
+        let path = character.character_pose_emotion.to_path();
+        let image = image_loader.try_load_character_image(&path);
         if image.is_none() {
             return RenderingTree::Empty;
         }

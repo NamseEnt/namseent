@@ -1,12 +1,13 @@
-use namui::prelude::*;
-use std::collections::BTreeSet;
-mod browser_item;
-use browser_item::*;
 mod back_button;
+mod browser_item;
 mod empty_button;
 mod scroll;
-use scroll::*;
 mod types;
+use crate::app::types::CameraAngleImageLoader;
+use browser_item::*;
+use namui::prelude::*;
+use scroll::*;
+use std::{collections::BTreeSet, sync::Arc};
 pub use types::*;
 
 #[derive(Debug)]
@@ -15,7 +16,8 @@ pub struct ImageBrowser {
     directory: ImageBrowserDirectory,
     selected_item: Option<ImageBrowserItem>,
     scroll: Scroll,
-    thumbnail_url_prefix: String,
+    camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
+    image_type: ImageType,
 }
 pub struct ImageBrowserProps<'a> {
     pub width: Px,
@@ -28,14 +30,16 @@ impl ImageBrowser {
         id: &str,
         directory: ImageBrowserDirectory,
         selected_item: Option<ImageBrowserItem>,
-        thumbnail_url_prefix: &str,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
+        image_type: ImageType,
     ) -> Self {
         Self {
             id: id.to_string(),
             directory,
             selected_item,
             scroll: Scroll::new(),
-            thumbnail_url_prefix: thumbnail_url_prefix.to_string(),
+            camera_angle_image_loader,
+            image_type,
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -210,7 +214,7 @@ impl ImageBrowser {
             .chain(just_under_files)
             .map(|item| BrowserItemProps {
                 name: item.get_display_name().to_string(),
-                thumbnail_url: self.get_thumbnail_url(&item, files),
+                thumbnail: self.get_thumbnail(&item, files),
                 is_selected: self
                     .selected_item
                     .as_ref()
@@ -223,21 +227,28 @@ impl ImageBrowser {
             .collect()
     }
 
-    fn get_thumbnail_url(
+    fn get_thumbnail(
         &self,
         item: &ImageBrowserItem,
         files: &BTreeSet<ImageBrowserFile>,
-    ) -> Option<Url> {
+    ) -> Option<Arc<Image>> {
         match item {
             ImageBrowserItem::Back => unreachable!(),
             ImageBrowserItem::Empty => unreachable!(),
             ImageBrowserItem::Directory(directory) => files
                 .iter()
                 .find(|file| file.is_recursively_under_directory(directory))
-                .and_then(|file| Some(file.get_url())),
-            ImageBrowserItem::File(file) => Some(file.get_url()),
+                .and_then(|file| Some(file.get_path())),
+            ImageBrowserItem::File(file) => Some(file.get_path()),
         }
-        .map(|url| Url::parse(&format!("{}{}", self.thumbnail_url_prefix, url)).unwrap())
+        .and_then(|path| match self.image_type {
+            ImageType::Character => self
+                .camera_angle_image_loader
+                .try_load_character_image(&path),
+            ImageType::Background => self
+                .camera_angle_image_loader
+                .try_load_background_image(&path),
+        })
     }
 
     pub(crate) fn select(&mut self, item: Option<ImageBrowserItem>) {

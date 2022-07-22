@@ -6,10 +6,10 @@ use crate::app::{
         types::{self, SequenceIndex, SequenceSyncState},
         SequenceList,
     },
+    storage::GithubStorage,
     types::*,
 };
 use linked_hash_map::LinkedHashMap;
-use luda_editor_rpc::Socket;
 use std::sync::Arc;
 use wasm_bindgen_futures::spawn_local;
 
@@ -24,9 +24,9 @@ impl SequenceList {
         });
 
         spawn_local({
-            let socket = self.socket.clone();
+            let storage = self.storage.clone();
             async move {
-                let result = sync_sequences_with_sheets(&socket).await;
+                let result = sync_sequences_with_sheets(&storage).await;
                 match result {
                     Ok(title_sequence_map) => {
                         namui::event::send(SequenceListEvent::SequencesSyncStateUpdateEvent {
@@ -39,6 +39,7 @@ impl SequenceList {
                         })
                     }
                     Err(error) => {
+                        namui::log!("{:#?}", error);
                         namui::event::send(SequenceListEvent::SequencesSyncStateUpdateEvent {
                             state: SequenceSyncState {
                                 started_at,
@@ -53,13 +54,13 @@ impl SequenceList {
 }
 
 async fn sync_sequences_with_sheets(
-    socket: &Socket,
+    storage: &Arc<dyn GithubStorage>,
 ) -> Result<LinkedHashMap<String, Arc<Sequence>>, String> {
     let sheets = google_spreadsheet::get_sheets().await?;
 
-    save_order_of_spreadsheet_to_local(&socket, &sheets).await?;
+    save_order_of_spreadsheet_to_local(&storage, &sheets).await?;
 
-    let mut title_sequence_map = get_sequences_with_title(&socket).await?;
+    let mut title_sequence_map = get_sequences_with_title(&storage).await?;
 
     create_new_sequences_if_not_exist_in_sequences_but_in_sheets(&mut title_sequence_map, &sheets);
 
@@ -67,23 +68,21 @@ async fn sync_sequences_with_sheets(
 
     sync_sequences_subtitles_from_sheets(&sheets, &mut title_sequence_map)?;
 
-    save_sequences(&socket, &title_sequence_map).await?;
+    save_sequences(&storage, &title_sequence_map).await?;
 
     Ok(title_sequence_map)
 }
 
 async fn save_sequences(
-    socket: &Socket,
+    storage: &Arc<dyn GithubStorage>,
     title_sequence_map: &LinkedHashMap<String, Arc<Sequence>>,
 ) -> Result<(), String> {
-    socket
-        .put_sequences(luda_editor_rpc::put_sequences::Request {
-            title_sequence_json_tuples: title_sequence_map
-                .iter()
-                .map(|(title, sequence)| (title.clone(), sequence.into_json()))
-                .collect(),
-        })
-        .await?;
+    for (title, sequence) in title_sequence_map {
+        storage
+            .put_sequence(title.as_str(), sequence)
+            .await
+            .map_err(|error| format!("failed to save sequence: {:#?}", error))?;
+    }
     Ok(())
 }
 
@@ -133,9 +132,9 @@ fn create_new_sequences_if_not_exist_in_sequences_but_in_sheets(
 }
 
 async fn save_order_of_spreadsheet_to_local(
-    socket: &Socket,
+    storage: &Arc<dyn GithubStorage>,
     sheets: &Vec<Sheet>,
 ) -> Result<(), String> {
     let sheet_titles: Vec<String> = sheets.iter().map(|sheet| sheet.title.clone()).collect();
-    SequenceIndex::new(sheet_titles).save(socket).await
+    SequenceIndex::new(sheet_titles).save(storage).await
 }

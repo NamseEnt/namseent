@@ -193,6 +193,7 @@ impl Editor {
             let clip_id = self.selected_clip_ids.iter().next().unwrap();
             self.clip_editor = Some(ClipEditor::new(
                 &self.get_sequence().get_clip(clip_id).unwrap(),
+                self.camera_angle_image_loader.clone(),
             ));
         } else {
             self.clip_editor = None;
@@ -205,8 +206,8 @@ mod tests {
     use super::super::*;
     use super::*;
     use crate::app::editor::sequence_player::MockSequencePlay;
+    use crate::app::storage::MockStorage;
     use linked_hash_map::LinkedHashMap;
-    use luda_editor_rpc::response_waiter::ResponseWaiter;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
@@ -220,7 +221,8 @@ mod tests {
             mock_camera_clip("3", Time::Ms(2500.0), Time::Ms(3500.0)),
         ];
         let sequence = mock_sequence(clips);
-        let mut editor = mock_editor(sequence);
+        let camera_angle_image_loader = Arc::new(MockCameraAngleImageLoader::new());
+        let mut editor = mock_editor(sequence, camera_angle_image_loader);
         // select 1 clip
         editor.select_only_this_clip("1");
 
@@ -244,7 +246,8 @@ mod tests {
             mock_camera_clip("3", Time::Ms(3000.0), Time::Ms(4000.0)),
         ];
         let sequence = mock_sequence(clips);
-        let mut editor = mock_editor(sequence);
+        let camera_angle_image_loader = Arc::new(MockCameraAngleImageLoader::new());
+        let mut editor = mock_editor(sequence, camera_angle_image_loader);
         // select 3 clip
         editor.select_only_this_clip("3");
         // shift click 2 back
@@ -266,7 +269,8 @@ mod tests {
             mock_camera_clip("3", Time::Ms(3000.0), Time::Ms(4000.0)),
         ];
         let sequence = mock_sequence(clips);
-        let mut editor = mock_editor(sequence);
+        let camera_angle_image_loader = Arc::new(MockCameraAngleImageLoader::new());
+        let mut editor = mock_editor(sequence, camera_angle_image_loader);
         // select 1 clip
         editor.select_only_this_clip("1");
         // shift click 3
@@ -288,7 +292,8 @@ mod tests {
             mock_camera_clip("3", Time::Ms(2500.0), Time::Ms(3500.0)),
         ];
         let sequence = mock_sequence(clips);
-        let mut editor = mock_editor(sequence);
+        let camera_angle_image_loader = Arc::new(MockCameraAngleImageLoader::new());
+        let mut editor = mock_editor(sequence, camera_angle_image_loader);
         // select 3 clip
         editor.select_only_this_clip("3");
         // shift click 1
@@ -310,7 +315,8 @@ mod tests {
             mock_camera_clip("3", Time::Ms(3000.0), Time::Ms(3500.0)),
         ];
         let sequence = mock_sequence(clips);
-        let mut editor = mock_editor(sequence);
+        let camera_angle_image_loader = Arc::new(MockCameraAngleImageLoader::new());
+        let mut editor = mock_editor(sequence, camera_angle_image_loader);
         // select 1 clip
         editor.select_only_this_clip("1");
         // shift click the parts on 2, not on 3
@@ -332,7 +338,8 @@ mod tests {
             mock_camera_clip("3", Time::Ms(3000.0), Time::Ms(3500.0)),
         ];
         let sequence = mock_sequence(clips);
-        let mut editor = mock_editor(sequence);
+        let camera_angle_image_loader = Arc::new(MockCameraAngleImageLoader::new());
+        let mut editor = mock_editor(sequence, camera_angle_image_loader);
         // select 1 clip
         editor.select_only_this_clip("1");
         // shift click the parts on 2 and 3
@@ -344,11 +351,6 @@ mod tests {
         );
     }
 
-    fn mock_socket() -> Socket {
-        let (sender, _receiver) = tokio::sync::mpsc::unbounded_channel();
-        let response_waiter = ResponseWaiter::new();
-        Socket::new(sender.clone(), response_waiter.clone())
-    }
     fn mock_sequence(camera_clips: Vec<Arc<CameraClip>>) -> Arc<Sequence> {
         Arc::new(Sequence {
             tracks: vec![
@@ -364,8 +366,11 @@ mod tests {
             .into(),
         })
     }
-    fn mock_editor(sequence: Arc<Sequence>) -> Editor {
-        let socket = mock_socket();
+    fn mock_editor(
+        sequence: Arc<Sequence>,
+        camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
+    ) -> Editor {
+        let storage = Arc::new(MockStorage::new());
         Editor {
             timeline: Timeline::new(),
             character_image_files: BTreeSet::new(),
@@ -380,7 +385,7 @@ mod tests {
             language: namui::Language::Ko,
             clip_id_to_check_as_click: None,
             context_menu: None,
-            sequence_saver: SequenceSaver::new("", sequence.clone(), socket.clone()),
+            sequence_saver: SequenceSaver::new("", sequence.clone(), storage.clone()),
             sheet_sequence_syncer: SheetSequenceSyncer::new(""),
             meta_container: Arc::new(MetaContainer::new(
                 Some(Meta {
@@ -399,6 +404,13 @@ mod tests {
                 }),
                 Arc::new(MockMetaLoad::new()),
             )),
+            storage: storage.clone(),
+            camera_angle_image_loader,
+            sequence_lock_extender: SequenceLockExtender::new(
+                storage.clone(),
+                "mock_sequence_title".to_string(),
+                LockInfo::lock_now("mock_client_id".to_string()),
+            ),
         }
     }
 }

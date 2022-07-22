@@ -2,7 +2,7 @@ use super::{
     editor::EditorProps,
     events::RouterEvent,
     sequence_list::{SequenceList, SequenceListProps},
-    types::{meta::Meta, AppContext, Page},
+    types::{AppContext, Meta, Page},
 };
 use namui::prelude::*;
 
@@ -19,7 +19,7 @@ pub struct Router {
 impl Router {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<RouterEvent>() {
-            match &event {
+            match event {
                 RouterEvent::PageChangeToEditorEvent(initializer) => {
                     self.page = Page::Editor(initializer(&self.context));
                 }
@@ -46,9 +46,13 @@ impl Router {
             }),
         }
     }
+
     pub fn new(context: AppContext) -> Self {
         Self {
-            page: Page::SequenceList(SequenceList::new(context.socket.clone())),
+            page: Page::SequenceList(SequenceList::new(
+                context.storage.clone(),
+                context.camera_angle_image_loader.clone(),
+            )),
             context,
         }
     }
