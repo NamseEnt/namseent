@@ -14,7 +14,7 @@ use super::{
     put_sequence::{GithubStorageSequencePut, PutSequenceError},
     put_sequence_titles::{GithubStorageSequenceTitlesPut, PutSequenceIndexError},
     unlock_sequence::{GithubStorageSequenceUnlock, UnlockSequenceError},
-    GithubStorage, LockInfo, SequenceName, StorageInitError,
+    GithubStorage, LockInfo, SequenceTitle, StorageInitError,
 };
 use crate::app::types::{Meta, Sequence};
 use async_trait::async_trait;
@@ -41,49 +41,49 @@ mock! {
     impl StorageSequenceLockStateGet for Storage {
         async fn get_sequence_lock_state(
             &self,
-            sequence_name: &str,
+            sequence_title: &str,
         ) -> Result<SequenceLockState, GetSequenceLockStateError>;
     }
 
     #[async_trait(?Send)]
     impl GithubStorageSequenceLock for Storage {
-        async fn lock_sequence(&self, sequence_name: &str) -> Result<LockInfo, LockSequenceError>;
+        async fn lock_sequence(&self, sequence_title: &str) -> Result<LockInfo, LockSequenceError>;
     }
 
     #[async_trait(?Send)]
     impl GithubStorageSequenceUnlock for Storage {
-        async fn unlock_sequence(&self, sequence_name: &str) -> Result<(), UnlockSequenceError>;
+        async fn unlock_sequence(&self, sequence_title: &str) -> Result<(), UnlockSequenceError>;
     }
 
     #[async_trait(?Send)]
     impl GithubStorageSequenceGet for Storage {
-        async fn get_sequence(&self, sequence_name: &str) -> Result<Sequence, GetSequenceError>;
+        async fn get_sequence(&self, sequence_title: &str) -> Result<Sequence, GetSequenceError>;
     }
 
     #[async_trait(?Send)]
     impl GithubStorageSequencePut for Storage {
         async fn put_sequence(
             &self,
-            sequence_name: &str,
+            sequence_title: &str,
             sequence: &Sequence,
         ) -> Result<(), PutSequenceError>;
     }
 
     #[async_trait(?Send)]
     impl GithubStorageSequenceListGet for Storage {
-        async fn get_sequence_list(&self) -> Result<Vec<SequenceName>, GetSequenceListError>;
+        async fn get_sequence_list(&self) -> Result<Vec<SequenceTitle>, GetSequenceListError>;
     }
 
     #[async_trait(?Send)]
     impl GithubStorageSequenceTitlesGet for Storage {
-        async fn get_sequence_titles(&self) -> Result<Vec<SequenceName>, GetSequenceIndexError>;
+        async fn get_sequence_titles(&self) -> Result<Vec<SequenceTitle>, GetSequenceIndexError>;
     }
 
     #[async_trait(?Send)]
     impl GithubStorageSequenceTitlesPut for Storage {
         async fn put_sequence_titles(
             &self,
-            sequence_titles: &Vec<SequenceName>,
+            sequence_titles: &Vec<SequenceTitle>,
         ) -> Result<(), PutSequenceIndexError>;
     }
 

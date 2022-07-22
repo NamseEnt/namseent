@@ -7,13 +7,13 @@ use async_trait::async_trait;
 
 #[async_trait(?Send)]
 pub trait GithubStorageSequenceGet {
-    async fn get_sequence(&self, sequence_name: &str) -> Result<Sequence, GetSequenceError>;
+    async fn get_sequence(&self, sequence_title: &str) -> Result<Sequence, GetSequenceError>;
 }
 
 #[async_trait(?Send)]
 impl GithubStorageSequenceGet for Storage {
-    async fn get_sequence(&self, sequence_name: &str) -> Result<Sequence, GetSequenceError> {
-        let path = format!("sequence/{}.json", sequence_name);
+    async fn get_sequence(&self, sequence_title: &str) -> Result<Sequence, GetSequenceError> {
+        let path = format!("sequence/{}.json", sequence_title);
         let dirent = self.get_github_api_client().read_file(&path).await?;
         let sequence: Sequence = serde_json::from_slice(&dirent.download().await?)?;
         Ok(sequence)

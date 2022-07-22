@@ -167,6 +167,6 @@ impl<'de> Deserialize<'de> for LockInfo {
     }
 }
 
-pub fn sequence_name_into_lock_file_path(sequence_name: &str) -> String {
-    format!("lock/{sequence_name}.lock.json")
+pub fn sequence_title_into_lock_file_path(sequence_title: &str) -> String {
+    format!("lock/{sequence_title}.lock.json")
 }

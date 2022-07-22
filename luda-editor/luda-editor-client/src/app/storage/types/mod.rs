@@ -1,4 +1,4 @@
 mod lock_info;
-mod sequence_name;
+mod sequence_title;
 pub use lock_info::*;
-pub use sequence_name::*;
+pub use sequence_title::*;

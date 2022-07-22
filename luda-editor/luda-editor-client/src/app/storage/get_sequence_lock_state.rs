@@ -1,4 +1,4 @@
-use super::{sequence_name_into_lock_file_path, types::LockInfo, Storage};
+use super::{sequence_title_into_lock_file_path, types::LockInfo, Storage};
 use crate::app::github_api::{DownloadError, ReadFileError};
 use async_trait::async_trait;
 
@@ -6,7 +6,7 @@ use async_trait::async_trait;
 pub trait StorageSequenceLockStateGet {
     async fn get_sequence_lock_state(
         &self,
-        sequence_name: &str,
+        sequence_title: &str,
     ) -> Result<SequenceLockState, GetSequenceLockStateError>;
 }
 
@@ -14,9 +14,9 @@ pub trait StorageSequenceLockStateGet {
 impl StorageSequenceLockStateGet for Storage {
     async fn get_sequence_lock_state(
         &self,
-        sequence_name: &str,
+        sequence_title: &str,
     ) -> Result<SequenceLockState, GetSequenceLockStateError> {
-        let lock_file_path = sequence_name_into_lock_file_path(sequence_name);
+        let lock_file_path = sequence_title_into_lock_file_path(sequence_title);
         match self
             .get_github_api_client()
             .read_file(lock_file_path.as_str())

@@ -2,7 +2,7 @@ use super::{
     get_sequence_lock_state::{
         GetSequenceLockStateError, SequenceLockState, StorageSequenceLockStateGet,
     },
-    sequence_name_into_lock_file_path,
+    sequence_title_into_lock_file_path,
     types::LockInfo,
     Storage,
 };
@@ -11,18 +11,18 @@ use async_trait::async_trait;
 
 #[async_trait(?Send)]
 pub trait GithubStorageSequenceLock: StorageSequenceLockStateGet {
-    async fn lock_sequence(&self, sequence_name: &str) -> Result<LockInfo, LockSequenceError>;
+    async fn lock_sequence(&self, sequence_title: &str) -> Result<LockInfo, LockSequenceError>;
 }
 
 #[async_trait(?Send)]
 impl GithubStorageSequenceLock for Storage {
-    async fn lock_sequence(&self, sequence_name: &str) -> Result<LockInfo, LockSequenceError> {
-        let lock_state = self.get_sequence_lock_state(sequence_name).await?;
+    async fn lock_sequence(&self, sequence_title: &str) -> Result<LockInfo, LockSequenceError> {
+        let lock_state = self.get_sequence_lock_state(sequence_title).await?;
         if let SequenceLockState::LockedByOther = lock_state {
             return Err(LockSequenceError::LockedByOther);
         }
 
-        let lock_path = sequence_name_into_lock_file_path(sequence_name);
+        let lock_path = sequence_title_into_lock_file_path(sequence_title);
         let new_lock_info = LockInfo::lock_now(self.get_client_id().clone());
         self.get_github_api_client()
             .write_file(lock_path.as_str(), serde_json::to_string(&new_lock_info)?)
