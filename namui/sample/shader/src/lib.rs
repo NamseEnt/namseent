@@ -23,7 +23,7 @@ struct ShaderExample {
 
 impl ShaderExample {
     fn new() -> Self {
-        Self { tab: Tab::Scroll }
+        Self { tab: Tab::Shake }
     }
 }
 
@@ -132,28 +132,67 @@ impl Entity for ShaderExample {
                 }
                 Tab::Shake => {
                     namui::shader!(ShakeShader, {
-                        uniform float2 wh;
-                        uniform float delta_x_center;
+                        uniform float delta_center;
                         uniform float2 source_image_size;
                         uniform float2 dest_image_size;
                         uniform float2 image_left_top;
                         uniform shader image;
+                        uniform float moving_radian;
 
+                        float get_c_p_prime_distance(float2 center_xy, float2 p_xy) {
+                            if (cos(moving_radian) == 0.0) {
+                                return abs(p_xy.x - center_xy.x);
+                            } else if (sin(moving_radian) == 0.0) {
+                                return abs(p_xy.y - center_xy.y);
+                            } else {
+                                float degree_90 = 3.1415926 / 2.0;
+                                float p_prime_x = (
+                                    (p_xy.y - tan(moving_radian) * p_xy.x)
+                                    - (center_xy.y - tan(degree_90 + moving_radian) * center_xy.x)
+                                ) / (tan(degree_90 + moving_radian) - tan(moving_radian));
+                                float p_prime_y = tan(degree_90 + moving_radian) * p_prime_x
+                                    + center_xy.y
+                                    - tan(degree_90 + moving_radian) * center_xy.x;
+                                return distance(center_xy, float2(p_prime_x, p_prime_y));
+                            }
+                        }
+
+                        float2 moving_unit_vector() {
+                            return float2(cos(moving_radian), sin(moving_radian));
+                        }
+
+                        float f(float c_p_prime_distance, float max_distance) {
+                            float pi = 3.1415926;
+                            float ratio = (max_distance - c_p_prime_distance) / max_distance;
+
+                            return sin(ratio * pi / 2.0) * delta_center;
+                        }
 
                         half4 main(float2 xy) {
                             float pi = 3.1415926;
+
                             float2 image_local_xy = (xy - image_left_top) * source_image_size / dest_image_size;
+                            float2 image_local_wh = source_image_size;
+
+                            float2 image_local_center_xy = image_local_wh / 2.0;
+
+                            float2 image_local_left_top_xy = float2(0.0, 0.0);
+                            float2 image_local_right_top_xy = float2(source_image_size.x, 0.0);
 
 
-                            float2 result_xy = image_local_xy + float2(
-                                sin(image_local_xy.y / (source_image_size.y / 2.0) * pi / 2) * delta_x_center,
-                                0.0
+                            float max_distance = max(
+                                get_c_p_prime_distance(image_local_center_xy, image_local_left_top_xy),
+                                get_c_p_prime_distance(image_local_center_xy, image_local_right_top_xy)
                             );
+
+                            float2 result_xy = image_local_xy
+                                + f(get_c_p_prime_distance(image_local_center_xy, image_local_xy), max_distance)
+                                    * moving_unit_vector();
 
                             return image.eval(result_xy).rgba;
                         }
                     });
-                    let image_source_url = Url::parse("bundle:resources/test.jpg").unwrap();
+                    let image_source_url = Url::parse("bundle:resources/test.png").unwrap();
 
                     let image = namui::image::try_load(&image_source_url);
                     if image.is_none() {
@@ -161,37 +200,36 @@ impl Entity for ShaderExample {
                     }
                     let image = image.unwrap();
                     let source_image_size = image.size().into_slice();
-                    let dest_image_size = (image.size() / 2.0).into_slice();
-                    let start_x = 50.0;
-                    let end_x = 800.0;
+
                     let rest_secs = 0.6;
                     let working_secs = 0.4;
                     let total_secs = working_secs + rest_secs;
                     let seconds = namui::now().as_seconds() % total_secs;
                     let time_ratio = seconds / working_secs;
 
-                    let image_left_top = Xy {
-                        x: {
-                            if seconds > working_secs {
-                                end_x
-                            } else {
-                                fn ease_curve(x: f32, alpha: f32) -> f32 {
-                                    x.powf(alpha) / (x.powf(alpha) + (1.0 - x).powf(alpha))
-                                }
-                                let curved_time_ratio = ease_curve(time_ratio, 6.0);
+                    let dest_image_size = [128.0, 128.0];
+                    let start_xy = Xy::new(300.0, 300.0);
+                    let end_xy = start_xy + {
+                        let seconds = namui::now().as_seconds();
+                        let radian = 2.0 * PI * seconds / 4.0;
+                        Xy::new(radian.cos() * 300.0, radian.sin() * 300.0)
+                    };
 
-                                start_x + (end_x - start_x) * curved_time_ratio
-                            }
-                        },
-                        y: 50.0,
+                    let image_left_top = if seconds > working_secs {
+                        end_xy
+                    } else {
+                        fn ease_curve(x: f32, alpha: f32) -> f32 {
+                            x.powf(alpha) / (x.powf(alpha) + (1.0 - x).powf(alpha))
+                        }
+                        let curved_time_ratio = ease_curve(time_ratio, 6.0);
+                        start_xy + (end_xy - start_xy) * curved_time_ratio
                     }
                     .as_slice();
 
                     let display_rect =
                         Rect::from_xy_wh(Xy::single(100.px()), wh - Wh::single(200.px()));
 
-                    let wh = display_rect.wh().into_slice();
-                    let delta_x_center = {
+                    let delta_center = {
                         if seconds < working_secs {
                             (time_ratio / 0.5 * PI).sin() * image.size().width.as_f32() / 2.0
                         } else {
@@ -208,13 +246,15 @@ impl Entity for ShaderExample {
                         MipmapMode::Linear,
                     );
 
+                    let moving_radian = (end_xy - start_xy).atan2().as_radians();
+
                     let shader = ShakeShader::new(
-                        wh,
-                        delta_x_center,
+                        delta_center,
                         source_image_size,
                         dest_image_size,
                         image_left_top,
                         image_shader,
+                        moving_radian,
                     );
                     let paint = PaintBuilder::new().set_shader(shader.make());
                     let rect = PathBuilder::new()
