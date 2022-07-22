@@ -4,11 +4,12 @@ mod meta_update_button;
 mod saving_status_text;
 mod sheet_sequence_syncer_bar;
 
-use self::{events::TopBarEvent, go_back_button::render_go_back_button};
+use self::go_back_button::render_go_back_button;
 use super::{
     sequence_saver::SequenceSaverStatus, sheet_sequence_syncer::SheetSequenceSyncerStatus,
 };
 use crate::app::{events::RouterEvent, sequence_list::SequenceList};
+pub use events::*;
 use meta_update_button::*;
 use namui::prelude::*;
 use saving_status_text::*;

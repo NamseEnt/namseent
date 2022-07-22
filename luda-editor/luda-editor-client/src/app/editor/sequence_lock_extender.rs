@@ -1,4 +1,7 @@
-use crate::app::storage::{GithubStorage, LockInfo};
+use crate::app::{
+    editor::top_bar::TopBarEvent,
+    storage::{GithubStorage, LockInfo},
+};
 use namui::prelude::*;
 use std::sync::Arc;
 use wasm_bindgen_futures::spawn_local;
@@ -70,6 +73,16 @@ impl SequenceLockExtender {
                     self.retry_count = 0;
                     self.extend_state = ExtendState::Idle;
                     self.lock_info = lock_info.clone();
+                }
+            }
+        } else if let Some(event) = event.downcast_ref::<TopBarEvent>() {
+            match event {
+                TopBarEvent::GoBackButtonClicked => {
+                    let storage = self.storage.clone();
+                    let sequence_title = self.sequence_title.clone();
+                    spawn_local(async move {
+                        let _ = storage.unlock_sequence(sequence_title.as_str()).await;
+                    })
                 }
             }
         }
