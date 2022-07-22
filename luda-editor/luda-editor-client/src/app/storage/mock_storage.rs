@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use super::{
     get_background_image::{GetBackgroundImageError, GithubStorageBackgroundImageGet},
     get_background_image_paths::GithubStorageBackgroundImagePathsGet,
@@ -16,12 +14,13 @@ use super::{
     put_sequence::{GithubStorageSequencePut, PutSequenceError},
     put_sequence_titles::{GithubStorageSequenceTitlesPut, PutSequenceIndexError},
     unlock_sequence::{GithubStorageSequenceUnlock, UnlockSequenceError},
-    ExpiredAt, GithubStorage, SequenceName, StorageInitError,
+    GithubStorage, LockInfo, SequenceName, StorageInitError,
 };
 use crate::app::types::{Meta, Sequence};
 use async_trait::async_trait;
 use mockall::mock;
 use namui::Image;
+use std::sync::Arc;
 
 #[cfg(test)]
 mock! {
@@ -48,7 +47,7 @@ mock! {
 
     #[async_trait(?Send)]
     impl GithubStorageSequenceLock for Storage {
-        async fn lock_sequence(&self, sequence_name: &str) -> Result<ExpiredAt, LockSequenceError>;
+        async fn lock_sequence(&self, sequence_name: &str) -> Result<LockInfo, LockSequenceError>;
     }
 
     #[async_trait(?Send)]

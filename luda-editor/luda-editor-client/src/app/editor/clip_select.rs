@@ -404,8 +404,13 @@ mod tests {
                 }),
                 Arc::new(MockMetaLoad::new()),
             )),
-            storage,
+            storage: storage.clone(),
             camera_angle_image_loader,
+            sequence_lock_extender: SequenceLockExtender::new(
+                storage.clone(),
+                "mock_sequence_title".to_string(),
+                LockInfo::lock_now("mock_client_id".to_string()),
+            ),
         }
     }
 }

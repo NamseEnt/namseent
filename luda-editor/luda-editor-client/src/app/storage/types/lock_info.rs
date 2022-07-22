@@ -1,5 +1,6 @@
 use chrono::{DateTime, Duration, FixedOffset};
 use js_sys::Date;
+use namui::Time;
 use serde::{
     de::{MapAccess, SeqAccess, Visitor},
     ser::SerializeStruct,
@@ -7,6 +8,7 @@ use serde::{
 };
 use std::fmt;
 
+#[derive(Clone)]
 pub struct LockInfo {
     client_id: String,
     expired_at: DateTime<FixedOffset>,
@@ -35,12 +37,14 @@ impl LockInfo {
         &self.client_id
     }
 
-    pub fn get_expired_at(&self) -> &DateTime<FixedOffset> {
-        &self.expired_at
-    }
-
     pub fn is_expired(&self) -> bool {
         self.expired_at < Self::now()
+    }
+
+    pub fn get_remaining_time(&self) -> Time {
+        let now = Self::now();
+        let remaining_time = self.expired_at - now;
+        Time::Ms(remaining_time.num_milliseconds() as f32)
     }
 }
 impl Serialize for LockInfo {
