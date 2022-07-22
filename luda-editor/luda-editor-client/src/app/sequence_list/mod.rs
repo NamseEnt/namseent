@@ -204,13 +204,14 @@ fn open_sequence(
     });
     spawn_local(async move {
         match storage.lock_sequence(title.as_str()).await {
-            Ok(expired_at) => {
+            Ok(lock_info) => {
                 namui::event::send(SequenceListEvent::SequenceOpenStateChangedEvent {
                     title: title.clone(),
                     state: SequenceOpenState::Opening,
                 });
                 namui::event::send(RouterEvent::PageChangeToEditorEvent(Box::new(
                     move |context| {
+                        let lock_info = lock_info.clone();
                         let sequence = sequence.clone();
                         Editor::new(
                             context.storage.clone(),
@@ -218,7 +219,7 @@ fn open_sequence(
                             title.as_str(),
                             context.meta_container.clone(),
                             context.camera_angle_image_loader.clone(),
-                            expired_at,
+                            lock_info,
                         )
                     },
                 )));

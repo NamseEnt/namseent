@@ -5,6 +5,7 @@ mod context_menu;
 mod events;
 mod history;
 mod job;
+mod sequence_lock_extender;
 mod sequence_player;
 mod sequence_saver;
 mod sheet_sequence_syncer;
@@ -14,9 +15,10 @@ mod top_bar;
 use self::{
     clip_editor::{camera_clip_editor::image_browser::ImageBrowserFile, ClipEditor},
     events::*,
+    sequence_lock_extender::SequenceLockExtender,
 };
 use super::{
-    storage::{ExpiredAt, GithubStorage},
+    storage::{GithubStorage, LockInfo},
     types::{
         meta::{Meta, MetaContainer},
         *,
@@ -59,6 +61,7 @@ pub struct Editor {
     sheet_sequence_syncer: SheetSequenceSyncer,
     meta_container: Arc<MetaContainer>,
     camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
+    sequence_lock_extender: SequenceLockExtender,
 }
 
 impl namui::Entity for Editor {
@@ -417,6 +420,7 @@ impl namui::Entity for Editor {
             .map(move |context_menu| context_menu.update(event));
         self.sequence_saver.update(event);
         self.sheet_sequence_syncer.update(event);
+        self.sequence_lock_extender.update(event);
     }
 
     fn render(&self, props: &Self::Props) -> namui::RenderingTree {
@@ -495,7 +499,7 @@ impl Editor {
         sequence_title: &str,
         meta_container: Arc<MetaContainer>,
         camera_angle_image_loader: Arc<dyn CameraAngleImageLoader>,
-        _expired_at: ExpiredAt,
+        lock_info: LockInfo,
     ) -> Self {
         let character_image_paths = storage.get_character_image_paths();
         let character_image_files =
@@ -504,6 +508,8 @@ impl Editor {
         let background_image_paths = storage.get_background_image_paths();
         let background_image_files =
             convert_background_image_urls_to_background_image_files(&background_image_paths);
+        let sequence_lock_extender =
+            SequenceLockExtender::new(storage.clone(), sequence_title.to_string(), lock_info);
         Self {
             timeline: Timeline::new(),
             character_image_files,
@@ -530,6 +536,7 @@ impl Editor {
             meta_container,
             storage,
             camera_angle_image_loader,
+            sequence_lock_extender,
         }
     }
     fn calculate_timeline_rect(&self, screen_wh: &namui::Wh<Px>) -> Rect<Px> {

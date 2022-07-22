@@ -4,19 +4,19 @@ use super::{
     },
     sequence_name_into_lock_file_path,
     types::LockInfo,
-    ExpiredAt, Storage,
+    Storage,
 };
 use crate::app::github_api::WriteFileError;
 use async_trait::async_trait;
 
 #[async_trait(?Send)]
 pub trait GithubStorageSequenceLock: StorageSequenceLockStateGet {
-    async fn lock_sequence(&self, sequence_name: &str) -> Result<ExpiredAt, LockSequenceError>;
+    async fn lock_sequence(&self, sequence_name: &str) -> Result<LockInfo, LockSequenceError>;
 }
 
 #[async_trait(?Send)]
 impl GithubStorageSequenceLock for Storage {
-    async fn lock_sequence(&self, sequence_name: &str) -> Result<ExpiredAt, LockSequenceError> {
+    async fn lock_sequence(&self, sequence_name: &str) -> Result<LockInfo, LockSequenceError> {
         let lock_state = self.get_sequence_lock_state(sequence_name).await?;
         if let SequenceLockState::LockedByOther = lock_state {
             return Err(LockSequenceError::LockedByOther);
@@ -27,7 +27,7 @@ impl GithubStorageSequenceLock for Storage {
         self.get_github_api_client()
             .write_file(lock_path.as_str(), serde_json::to_string(&new_lock_info)?)
             .await?;
-        Ok(new_lock_info.get_expired_at().clone())
+        Ok(new_lock_info)
     }
 }
 
