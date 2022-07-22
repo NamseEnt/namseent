@@ -9,7 +9,7 @@ use async_trait::async_trait;
 pub trait GithubStorageSequencePut: GithubStorageSequenceLock {
     async fn put_sequence(
         &self,
-        sequence_name: &str,
+        sequence_title: &str,
         sequence: &Sequence,
     ) -> Result<(), PutSequenceError>;
 }
@@ -18,11 +18,11 @@ pub trait GithubStorageSequencePut: GithubStorageSequenceLock {
 impl GithubStorageSequencePut for Storage {
     async fn put_sequence(
         &self,
-        sequence_name: &str,
+        sequence_title: &str,
         sequence: &Sequence,
     ) -> Result<(), PutSequenceError> {
-        self.lock_sequence(sequence_name).await?;
-        let path = format!("sequence/{}.json", sequence_name);
+        self.lock_sequence(sequence_title).await?;
+        let path = format!("sequence/{}.json", sequence_title);
         self.get_github_api_client()
             .write_file(path.as_str(), serde_json::to_string(sequence)?)
             .await?;
