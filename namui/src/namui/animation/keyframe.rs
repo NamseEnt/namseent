@@ -21,8 +21,12 @@ impl<T: Clone> KeyframePoint<T> {
     }
 }
 
-pub trait KeyframeValue<TKeyframeLine> {
-    fn interpolate(&self, next: &Self, context: &InterpolationContext<TKeyframeLine>) -> Self;
+pub trait KeyframeValue<TKeyframeLine, TInterpolated> {
+    fn interpolate(
+        &self,
+        next: &Self,
+        context: &InterpolationContext<TKeyframeLine>,
+    ) -> TInterpolated;
 }
 
 pub struct InterpolationContext<'a, TKeyframeLine> {
@@ -32,16 +36,26 @@ pub struct InterpolationContext<'a, TKeyframeLine> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct KeyframeGraph<TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine> {
+pub struct KeyframeGraph<
+    TValue: KeyframeValue<TKeyframeLine, TInterpolated> + Clone,
+    TKeyframeLine,
+    TInterpolated,
+> {
     point_line_tuples: Vec<(KeyframePoint<TValue>, TKeyframeLine)>,
+    _interpolated: std::marker::PhantomData<TInterpolated>,
 }
 
-impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
-    KeyframeGraph<TValue, TKeyframeLine>
+impl<
+        'a,
+        TValue: KeyframeValue<TKeyframeLine, TInterpolated> + Clone + Into<TInterpolated>,
+        TKeyframeLine,
+        TInterpolated,
+    > KeyframeGraph<TValue, TKeyframeLine, TInterpolated>
 {
     pub fn new() -> Self {
         Self {
             point_line_tuples: Vec::new(),
+            _interpolated: std::marker::PhantomData,
         }
     }
     pub fn update_point(
@@ -89,13 +103,13 @@ impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
 
         self.point_line_tuples.sort_by_key(|(point, _)| point.time);
     }
-    pub fn get_value(&'a self, time: Time) -> Option<TValue> {
+    pub fn get_value(&'a self, time: Time) -> Option<TInterpolated> {
         let mut iter = self.point_line_tuples.iter().peekable();
 
         loop {
             let (current_point, line) = iter.next()?;
             if current_point.time == time {
-                return Some(current_point.value.clone());
+                return Some(current_point.value.clone().into());
             }
 
             let (next_point, _) = iter.peek()?;
@@ -178,7 +192,7 @@ mod tests {
 
     struct LinearKeyframeLine {}
 
-    impl KeyframeValue<LinearKeyframeLine> for f32 {
+    impl KeyframeValue<LinearKeyframeLine, f32> for f32 {
         fn interpolate(
             &self,
             next: &Self,

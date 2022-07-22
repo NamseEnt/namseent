@@ -1,11 +1,16 @@
+mod image_interpolation;
+mod image_renderable;
+
 use super::*;
 use crate::namui::render::Matrix3x3;
+pub use image_interpolation::ImageInterpolation;
+pub use image_renderable::ImageRenderable;
 use std::{
     f32::consts::PI,
     ops::{Add, Mul},
 };
 
-pub type ImageKeyframeGraph = KeyframeGraph<ImageKeyframe, ImageInterpolation>;
+pub type ImageKeyframeGraph = KeyframeGraph<ImageKeyframe, ImageInterpolation, ImageRenderable>;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ImageKeyframe {
@@ -51,37 +56,14 @@ impl ImageKeyframe {
     }
 }
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    serde::Serialize,
-    serde::Deserialize,
-    strum_macros::EnumIter,
-    strum_macros::AsRefStr,
-    strum_macros::EnumString,
-)]
-pub enum ImageInterpolation {
-    AllLinear,
-    SquashAndStretch { frame_per_second: f32 },
-}
-
-impl ImageInterpolation {
-    pub fn iter() -> impl Iterator<Item = ImageInterpolation> {
-        fn generic_iter<E>() -> impl Iterator<Item = E>
-        where
-            E: strum::IntoEnumIterator,
-        {
-            E::iter()
-        }
-        generic_iter::<ImageInterpolation>()
-    }
-}
-
-impl KeyframeValue<ImageInterpolation> for ImageKeyframe {
-    fn interpolate(&self, next: &Self, context: &InterpolationContext<ImageInterpolation>) -> Self {
+impl KeyframeValue<ImageInterpolation, ImageRenderable> for ImageKeyframe {
+    fn interpolate(
+        &self,
+        next: &Self,
+        context: &InterpolationContext<ImageInterpolation>,
+    ) -> ImageRenderable {
         match context.line {
-            ImageInterpolation::AllLinear => Self {
+            ImageInterpolation::AllLinear => ImageRenderable::Matrix {
                 matrix: linear_interpolate(&self.matrix, &next.matrix, context.time_ratio),
                 opacity: linear_interpolate(&self.opacity, &next.opacity, context.time_ratio),
             },
@@ -119,11 +101,20 @@ impl KeyframeValue<ImageInterpolation> for ImageKeyframe {
 
                 matrix.translate(x.as_f32(), y.as_f32());
 
-                Self {
+                ImageRenderable::Matrix {
                     matrix,
                     opacity: linear_interpolate(&self.opacity, &next.opacity, time_ratio),
                 }
             }
+        }
+    }
+}
+
+impl Into<ImageRenderable> for ImageKeyframe {
+    fn into(self) -> ImageRenderable {
+        ImageRenderable::Matrix {
+            matrix: self.matrix,
+            opacity: self.opacity,
         }
     }
 }
