@@ -18,6 +18,7 @@ mod put_sequence_titles;
 mod storage;
 mod types;
 mod unlock_sequence;
+pub use lock_sequence::LockSequenceError;
 #[cfg(test)]
 pub use mock_storage::*;
 pub use storage::*;

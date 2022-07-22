@@ -3,8 +3,8 @@ use crate::app::sequence_list::{
     events::SequenceListEvent,
     list::list_item::render_list_item,
     types::{
-        RenderingTreeRow, RenderingTreeRows, SequencePreviewProgressMap, SequenceSyncState,
-        SequencesSyncStateDetail,
+        RenderingTreeRow, RenderingTreeRows, SequenceOpenStateMap, SequencePreviewProgressMap,
+        SequenceSyncState, SequencesSyncStateDetail,
     },
     BUTTON_HEIGHT, MARGIN, SPACING,
 };
@@ -17,6 +17,7 @@ pub fn render_list(
     sequence_preview_progress_map: &SequencePreviewProgressMap,
     scroll_y: Px,
     opened_sequence_title: &Option<String>,
+    sequence_open_state_map: &SequenceOpenStateMap,
 ) -> RenderingTree {
     let scroll_bar_width = MARGIN * 2.0;
 
@@ -42,6 +43,7 @@ pub fn render_list(
                     .as_ref()
                     .map(|opened_title| title == opened_title)
                     .unwrap_or(false);
+                let sequence_open_state = sequence_open_state_map.get(title);
 
                 render_list_item(
                     inner_wh.width,
@@ -49,6 +51,7 @@ pub fn render_list(
                     sequence,
                     &sequence_preview_progress_map,
                     is_item_opened,
+                    sequence_open_state,
                 )
             })
             .collect(),

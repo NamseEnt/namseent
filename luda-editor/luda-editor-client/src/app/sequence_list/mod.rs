@@ -7,10 +7,14 @@ mod types;
 
 use self::{
     events::SequenceListEvent,
-    types::{SequencePreviewProgressMap, SequenceSyncState, SequencesSyncStateDetail},
+    types::{
+        SequenceOpenState, SequenceOpenStateMap, SequencePreviewProgressMap, SequenceSyncState,
+        SequencesSyncStateDetail,
+    },
 };
 use super::{
-    editor::SequencePlayer,
+    editor::{Editor, SequencePlayer},
+    events::RouterEvent,
     storage::GithubStorage,
     types::{CameraAngleImageLoader, Sequence, SubtitlePlayDurationMeasure, Track},
 };
@@ -20,6 +24,7 @@ use crate::app::{
 };
 use namui::prelude::*;
 use std::{collections::HashMap, sync::Arc};
+use wasm_bindgen_futures::spawn_local;
 
 const LIST_WIDTH: Px = px(800.0);
 const BUTTON_HEIGHT: Px = px(36.0);
@@ -39,6 +44,7 @@ pub struct SequenceList {
     scroll_y: Px,
     sequence_player: SequencePlayer,
     sequence_preview_progress_map: SequencePreviewProgressMap,
+    sequence_open_state_map: SequenceOpenStateMap,
     opened_sequence_title: Option<String>,
     error_message: Option<String>,
 }
@@ -60,6 +66,7 @@ impl SequenceList {
                 camera_angle_image_loader,
             ),
             sequence_preview_progress_map: HashMap::new(),
+            sequence_open_state_map: SequenceOpenStateMap::new(),
             opened_sequence_title: None,
             error_message: None,
         };
@@ -108,6 +115,18 @@ impl SequenceList {
                             .insert(title.clone(), *progress);
                     }
                 }
+                SequenceListEvent::SequenceOpenButtonClickedEvent { title, sequence } => {
+                    open_sequence(
+                        title.clone(),
+                        sequence.clone(),
+                        self.storage.clone(),
+                        self.sequence_open_state_map.get(title),
+                    )
+                }
+                SequenceListEvent::SequenceOpenStateChangedEvent { title, state } => {
+                    self.sequence_open_state_map
+                        .set(title.clone(), state.clone());
+                }
             }
         }
         self.sequence_player.update(event);
@@ -143,6 +162,7 @@ impl SequenceList {
                     &self.sequence_preview_progress_map,
                     self.scroll_y,
                     &self.opened_sequence_title,
+                    &self.sequence_open_state_map,
                 ),
             ),
             self.sequence_player.render(&SequencePlayerProps {
@@ -167,4 +187,48 @@ fn calculate_sequence_duration(sequence: &Arc<Sequence>) -> Time {
                 .fold(duration, |duration, clip| duration.max(clip.end_at)),
             Track::Subtitle(_) => duration,
         })
+}
+
+fn open_sequence(
+    title: String,
+    sequence: Arc<Sequence>,
+    storage: Arc<dyn GithubStorage>,
+    open_state: &SequenceOpenState,
+) {
+    if let SequenceOpenState::Opening = open_state {
+        return;
+    }
+    namui::event::send(SequenceListEvent::SequenceOpenStateChangedEvent {
+        title: title.clone(),
+        state: SequenceOpenState::Opening,
+    });
+    spawn_local(async move {
+        match storage.lock_sequence(title.as_str()).await {
+            Ok(expired_at) => {
+                namui::event::send(SequenceListEvent::SequenceOpenStateChangedEvent {
+                    title: title.clone(),
+                    state: SequenceOpenState::Opening,
+                });
+                namui::event::send(RouterEvent::PageChangeToEditorEvent(Box::new(
+                    move |context| {
+                        let sequence = sequence.clone();
+                        Editor::new(
+                            context.storage.clone(),
+                            sequence,
+                            title.as_str(),
+                            context.meta_container.clone(),
+                            context.camera_angle_image_loader.clone(),
+                            expired_at,
+                        )
+                    },
+                )));
+            }
+            Err(error) => namui::event::send(SequenceListEvent::SequenceOpenStateChangedEvent {
+                title: title.clone(),
+                state: SequenceOpenState::Failed {
+                    message: format!("{:#?}", error),
+                },
+            }),
+        }
+    });
 }
