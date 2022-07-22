@@ -1,6 +1,6 @@
 use super::{
     get_sequence_lock_state::{
-        GetSequenceLockStateError, SequenceLockState, StorageSequenceLockStateGet,
+        GetSequenceLockStateError, GithubStorageSequenceLockStateGet, SequenceLockState,
     },
     sequence_title_into_lock_file_path,
     types::LockInfo,
@@ -10,7 +10,7 @@ use crate::app::github_api::WriteFileError;
 use async_trait::async_trait;
 
 #[async_trait(?Send)]
-pub trait GithubStorageSequenceLock: StorageSequenceLockStateGet {
+pub trait GithubStorageSequenceLock: GithubStorageSequenceLockStateGet {
     async fn lock_sequence(&self, sequence_title: &str) -> Result<LockInfo, LockSequenceError>;
 }
 

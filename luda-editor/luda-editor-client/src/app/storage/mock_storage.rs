@@ -7,7 +7,7 @@ use super::{
     get_sequence::{GetSequenceError, GithubStorageSequenceGet},
     get_sequence_list::{GetSequenceListError, GithubStorageSequenceListGet},
     get_sequence_lock_state::{
-        GetSequenceLockStateError, SequenceLockState, StorageSequenceLockStateGet,
+        GetSequenceLockStateError, GithubStorageSequenceLockStateGet, SequenceLockState,
     },
     get_sequence_titles::{GetSequenceIndexError, GithubStorageSequenceTitlesGet},
     lock_sequence::{GithubStorageSequenceLock, LockSequenceError},
@@ -38,7 +38,7 @@ mock! {
     }
 
     #[async_trait(?Send)]
-    impl StorageSequenceLockStateGet for Storage {
+    impl GithubStorageSequenceLockStateGet for Storage {
         async fn get_sequence_lock_state(
             &self,
             sequence_title: &str,

@@ -3,7 +3,7 @@ use crate::app::github_api::{DownloadError, ReadFileError};
 use async_trait::async_trait;
 
 #[async_trait(?Send)]
-pub trait StorageSequenceLockStateGet {
+pub trait GithubStorageSequenceLockStateGet {
     async fn get_sequence_lock_state(
         &self,
         sequence_title: &str,
@@ -11,7 +11,7 @@ pub trait StorageSequenceLockStateGet {
 }
 
 #[async_trait(?Send)]
-impl StorageSequenceLockStateGet for Storage {
+impl GithubStorageSequenceLockStateGet for Storage {
     async fn get_sequence_lock_state(
         &self,
         sequence_title: &str,
