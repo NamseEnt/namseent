@@ -1,6 +1,6 @@
-use super::{types::RequestBuilder, GithubAPiClient};
+use super::{types::RequestBuilder, GithubApiClient};
 
-impl GithubAPiClient {
+impl GithubApiClient {
     pub async fn validate_token(&self) -> Result<(), ValidateTokenError> {
         let url = format!("{}/", self.get_base_url(),);
 

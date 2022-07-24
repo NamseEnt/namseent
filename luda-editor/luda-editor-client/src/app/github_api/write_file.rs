@@ -1,12 +1,12 @@
 use super::{
     parse_response_as_json::{parse_response_as_json, ResponseParseError},
     types::{Content, Dirent, RequestBuilder},
-    GithubAPiClient,
+    GithubApiClient,
 };
 use base64::encode;
 use serde::{Deserialize, Serialize};
 
-impl GithubAPiClient {
+impl GithubApiClient {
     pub async fn write_file(
         &self,
         path: &str,

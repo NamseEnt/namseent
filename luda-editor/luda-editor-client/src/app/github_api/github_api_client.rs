@@ -1,7 +1,7 @@
 use dashmap::DashMap;
 
 #[derive(Debug)]
-pub struct GithubAPiClient {
+pub struct GithubApiClient {
     access_token: String,
     base_url: String,
     owner: String,
@@ -9,7 +9,7 @@ pub struct GithubAPiClient {
     path_sha_map: DashMap<String, String>,
 }
 
-impl GithubAPiClient {
+impl GithubApiClient {
     pub fn new(access_token: String, base_url: String, owner: String, repo: String) -> Self {
         Self {
             access_token,

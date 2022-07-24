@@ -1,7 +1,7 @@
 use super::{
     authentication::{Authentication, AuthenticationEvent, AuthenticationProps},
     events::AppEvent,
-    github_api::GithubAPiClient,
+    github_api::GithubApiClient,
     router::RouterProps,
     storage::{GithubStorage, Storage},
     types::{AppContext, LudaEditorCameraAngleImageLoader, MetaContainer},
@@ -99,7 +99,7 @@ enum AppStage {
     },
 }
 
-fn initialize_app(github_api_client: Arc<GithubAPiClient>) {
+fn initialize_app(github_api_client: Arc<GithubApiClient>) {
     spawn_local(async move {
         let storage = Arc::new(Storage::new(github_api_client.clone()));
         let meta_container = Arc::new(MetaContainer::new(None, storage.clone()));

@@ -1,7 +1,7 @@
-use super::{parse_response_as_json::ResponseParseError, types::RequestBuilder, GithubAPiClient};
+use super::{parse_response_as_json::ResponseParseError, types::RequestBuilder, GithubApiClient};
 use serde::Serialize;
 
-impl GithubAPiClient {
+impl GithubApiClient {
     pub async fn delete_file(&self, path: &str) -> Result<(), DeleteFileError> {
         let url = format!(
             "{}/repos/{}/{}/contents/{}",

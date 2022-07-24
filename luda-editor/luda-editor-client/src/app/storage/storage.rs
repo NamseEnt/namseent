@@ -11,7 +11,7 @@ use super::{
     put_sequence::GithubStorageSequencePut, put_sequence_titles::GithubStorageSequenceTitlesPut,
     unlock_sequence::GithubStorageSequenceUnlock,
 };
-use crate::app::github_api::GithubAPiClient;
+use crate::app::github_api::GithubApiClient;
 use async_trait::async_trait;
 use dashmap::DashSet;
 use futures::join;
@@ -42,13 +42,13 @@ pub trait GithubStorage:
 
 #[derive(Debug)]
 pub struct Storage {
-    github_api_client: Arc<GithubAPiClient>,
+    github_api_client: Arc<GithubApiClient>,
     client_id: String,
     background_image_path_set: DashSet<String>,
     character_image_path_set: DashSet<String>,
 }
 impl Storage {
-    pub fn new(github_api_client: Arc<GithubAPiClient>) -> Self {
+    pub fn new(github_api_client: Arc<GithubApiClient>) -> Self {
         let client_id = nanoid();
         Self {
             github_api_client,
@@ -58,7 +58,7 @@ impl Storage {
         }
     }
 
-    pub(super) fn get_github_api_client(&self) -> &Arc<GithubAPiClient> {
+    pub(super) fn get_github_api_client(&self) -> &Arc<GithubApiClient> {
         &&self.github_api_client
     }
 

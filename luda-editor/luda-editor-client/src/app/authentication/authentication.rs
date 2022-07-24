@@ -1,4 +1,4 @@
-use crate::app::github_api::GithubAPiClient;
+use crate::app::github_api::GithubApiClient;
 use namui::prelude::*;
 use std::sync::Arc;
 use wasm_bindgen_futures::spawn_local;
@@ -91,11 +91,11 @@ impl Authentication {
     }
 }
 
-fn create_github_api_client(access_token: String) -> GithubAPiClient {
+fn create_github_api_client(access_token: String) -> GithubApiClient {
     const BASE_URL: &str = "https://api.github.com";
     const OWNER: &str = "bigfoodK";
     const REPO: &str = "api-test";
-    GithubAPiClient::new(
+    GithubApiClient::new(
         access_token,
         BASE_URL.to_string(),
         OWNER.to_string(),
@@ -246,7 +246,7 @@ pub enum AuthenticationEvent {
     LoginButtonClicked,
     LoginFailed,
     LoginSucceeded {
-        github_api_client: Arc<GithubAPiClient>,
+        github_api_client: Arc<GithubApiClient>,
     },
 }
 

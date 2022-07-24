@@ -1,10 +1,10 @@
 use super::{
     parse_response_as_json::{parse_response_as_json, ResponseParseError},
     types::{Content, Dirent, RequestBuilder},
-    GithubAPiClient,
+    GithubApiClient,
 };
 
-impl GithubAPiClient {
+impl GithubApiClient {
     pub async fn read_dir(&self, path: &str) -> Result<Vec<Dirent>, ReadDirError> {
         let url = format!(
             "{}/repos/{}/{}/contents/{}",
