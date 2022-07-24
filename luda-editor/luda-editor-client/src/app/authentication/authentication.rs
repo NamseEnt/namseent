@@ -1,5 +1,6 @@
 use crate::app::github_api::GithubApiClient;
 use namui::prelude::*;
+use namui_prebuilt::simple_rect;
 use std::sync::Arc;
 use wasm_bindgen_futures::spawn_local;
 
@@ -104,16 +105,7 @@ fn create_github_api_client(access_token: String) -> GithubApiClient {
 }
 
 fn render_background(wh: Wh<Px>) -> RenderingTree {
-    rect(RectParam {
-        rect: Rect::from_xy_wh(Xy::zero(), wh),
-        style: RectStyle {
-            stroke: None,
-            fill: Some(RectFill {
-                color: Color::grayscale_f01(0.3),
-            }),
-            round: None,
-        },
-    })
+    simple_rect(wh, Color::TRANSPARENT, 0.0.px(), Color::grayscale_f01(0.3))
 }
 
 fn render_instruction_text(center: &Xy<Px>, instruction_text: String) -> RenderingTree {
@@ -200,20 +192,12 @@ fn render_access_code_input(
                 },
             })
             .with_mouse_cursor(MouseCursor::Text),
-        rect(RectParam {
-            rect: login_button_rect,
-            style: RectStyle {
-                stroke: Some(RectStroke {
-                    color: Color::grayscale_f01(0.6),
-                    width: STROKE_WIDTH,
-                    border_position: BorderPosition::Middle,
-                }),
-                fill: Some(RectFill {
-                    color: Color::grayscale_f01(0.6),
-                }),
-                round: None,
-            },
-        })
+        simple_rect(
+            login_button_rect.wh(),
+            Color::grayscale_f01(0.6),
+            STROKE_WIDTH,
+            Color::grayscale_f01(0.6),
+        )
         .attach_event(|builder| {
             builder.on_mouse_down_in(|_event| {
                 event::send(AuthenticationEvent::LoginButtonClicked);

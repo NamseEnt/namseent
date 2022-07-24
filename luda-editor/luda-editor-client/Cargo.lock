@@ -425,6 +425,7 @@ dependencies = [
  "linked-hash-map",
  "mockall",
  "namui",
+ "namui-prebuilt",
  "num",
  "once_cell",
  "ordered-float",
@@ -553,6 +554,13 @@ dependencies = [
  "lazy_static",
  "namui-user-config",
  "rust_cfg_parser",
+]
+
+[[package]]
+name = "namui-prebuilt"
+version = "0.1.0"
+dependencies = [
+ "namui",
 ]
 
 [[package]]
