@@ -88,6 +88,7 @@ async fn build(
         }
         BuildResult::Failed(err) => {
             eprintln!("failed to build: {}", err);
+            std::process::exit(1);
         }
     }
 }
