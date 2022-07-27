@@ -1,3 +1,4 @@
+pub mod cache;
 pub mod file;
 pub mod font;
 pub(crate) mod graphics;
@@ -21,6 +22,7 @@ type InitResult = Result<(), Box<dyn Error>>;
 
 pub(crate) async fn init() -> InitResult {
     try_join!(
+        cache::init(),
         file::init(),
         font::init(),
         graphics::init(),
