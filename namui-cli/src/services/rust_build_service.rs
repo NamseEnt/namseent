@@ -123,7 +123,7 @@ impl CancelableBuilder {
 
                     match spawned_process.try_wait()? {
                         None => {}
-                        Some(_) => {
+                        Some(exit_status) => {
                             match parse_cargo_build_result(
                                 stdout_reading_thread
                                     .join()
@@ -131,6 +131,12 @@ impl CancelableBuilder {
                                     .as_bytes(),
                             ) {
                                 Ok(result) => {
+                                    if result.is_successful && !exit_status.success() {
+                                        return Err(format!(
+                                            "build process exited with code {exit_status}\nstderr: {stderr}",
+                                            stderr = stderr_reading_thread.join().unwrap()
+                                        ).into());
+                                    }
                                     return Ok(BuildResult::Successful(result));
                                 }
                                 Err(_) => {
