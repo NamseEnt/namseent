@@ -1,0 +1,73 @@
+use super::*;
+
+impl SequenceEditPage {
+    pub fn update(&mut self, event: &dyn std::any::Any) {
+        if let Some(event) = event.downcast_ref::<Event>() {
+            match event {
+                Event::AddCutClicked => {
+                    self.editor_history_system.mutate_sequence(
+                        &self.selected_sequence_id,
+                        |sequence| {
+                            let new_cut = crate::storage::Cut::new();
+
+                            self.line_text_inputs
+                                .insert(new_cut.id().to_string(), text_input::TextInput::new());
+
+                            sequence.cuts.push(new_cut);
+                        },
+                    );
+                }
+            }
+        } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
+            match event {
+                text_input::Event::Focus(_)
+                | text_input::Event::Blur(_)
+                | text_input::Event::SelectionUpdated(_) => {}
+                text_input::Event::TextUpdated(updated) => {
+                    let selected_cut_id =
+                        self.line_text_inputs
+                            .iter()
+                            .find_map(|(cut_id, text_input)| {
+                                if text_input.is_focused() {
+                                    Some(cut_id.clone())
+                                } else {
+                                    None
+                                }
+                            });
+                    self.editor_history_system.mutate_cut(
+                        &self.selected_sequence_id,
+                        selected_cut_id.as_ref().unwrap(),
+                        |cut| {
+                            cut.line = updated.text.clone();
+                        },
+                    );
+                }
+            }
+        } else if let Some(event) = event.downcast_ref::<crate::storage::Event>() {
+            match event {
+                crate::storage::Event::Mutated { encoded_update: _ } => {
+                    self.editor_history_system.with_sequence(
+                        &self.selected_sequence_id,
+                        |sequence| {
+                            self.line_text_inputs.retain(|cut_id, _| {
+                                sequence.cuts.iter().any(|cut| cut.id() == cut_id)
+                            });
+
+                            for cut in sequence.cuts.iter() {
+                                if !self.line_text_inputs.contains_key(cut.id()) {
+                                    self.line_text_inputs
+                                        .insert(cut.id().to_string(), text_input::TextInput::new());
+                                }
+                            }
+                        },
+                    );
+                }
+            }
+        }
+
+        self.cut_list_view.update(event);
+        self.line_text_inputs
+            .values_mut()
+            .for_each(|text_input| text_input.update(event));
+    }
+}

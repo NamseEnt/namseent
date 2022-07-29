@@ -1,15 +1,6 @@
 {
   "folders": [
     {
-      "path": "luda-editor/luda-editor-client"
-    },
-    {
-      "path": "luda-editor/luda-editor-server"
-    },
-    {
-      "path": "luda-editor/luda-editor-rpc"
-    },
-    {
       "path": "namui-animation-editor"
     },
     {
@@ -32,6 +23,18 @@
     },
     {
       "path": "image-cropper"
+    },
+    {
+      "name": "luda-editor/client",
+      "path": "luda-editor/client"
+    },
+    {
+      "name": "luda-editor/core",
+      "path": "luda-editor/core"
+    },
+    {
+      "name": "luda-editor/crdt",
+      "path": "luda-editor/crdt"
     }
   ],
   "settings": {
@@ -42,6 +45,7 @@
       "resizer",
       "Resizer",
       "rfind"
-    ]
+    ],
+    "rust-analyzer.imports.group.enable": false
   }
 }
