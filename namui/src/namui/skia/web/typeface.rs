@@ -9,7 +9,8 @@ pub struct Typeface {
     pub canvas_kit_typeface: Arc<CanvasKitTypeface>,
 }
 impl Typeface {
-    pub fn new(bytes: &Vec<u8>) -> Typeface {
+    pub fn new(bytes: &impl AsRef<[u8]>) -> Typeface {
+        let bytes = bytes.as_ref();
         let id = bytes.iter().fold(0, |acc, x| acc + *x as u64);
 
         let array_buffer = js_sys::ArrayBuffer::new(bytes.len() as u32);
