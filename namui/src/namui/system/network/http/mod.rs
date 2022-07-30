@@ -1,47 +1,38 @@
 mod into_url;
+mod response;
 mod simple;
 
 use crate::simple_error_impl;
 pub use into_url::*;
-use reqwest::{Method, Response};
+pub use reqwest::Method;
+pub use response::*;
 pub use simple::*;
 use url::*;
 
 pub async fn fetch(
     url: impl IntoUrl,
     method: Method,
-    build: impl FnOnce(&mut reqwest::RequestBuilder),
+    build: impl FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
 ) -> Result<Response, HttpError> {
     let url = resolve_relative_url(url)?;
 
-    let mut builder = reqwest::Client::new().request(method, url);
-    build(&mut builder);
-    Ok(builder.send().await?)
+    let builder = reqwest::Client::new().request(method, url);
+    Ok(Response::new(build(builder).send().await?))
 }
 
 pub async fn fetch_bytes(
     url: impl IntoUrl,
     method: Method,
-    build: impl FnOnce(&mut reqwest::RequestBuilder),
+    build: impl FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
 ) -> Result<impl AsRef<[u8]>, HttpError> {
     let response = fetch(url, method, build).await?;
-    if !response.status().is_success() {
-        Err(HttpError::Status {
-            status: response.status().as_u16(),
-            message: response
-                .text()
-                .await
-                .unwrap_or("Fail to get response text".to_string()),
-        })
-    } else {
-        Ok(response.bytes().await?)
-    }
+    Ok(response.error_for_400599().await?.bytes().await?)
 }
 
 pub async fn fetch_serde<T, TDeserializeError, TDeserialize>(
     url: impl IntoUrl,
     method: Method,
-    build: impl FnOnce(&mut reqwest::RequestBuilder),
+    build: impl FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
     deserialize: TDeserialize,
 ) -> Result<T, HttpError>
 where
@@ -61,7 +52,7 @@ where
 pub async fn fetch_json<T: serde::de::DeserializeOwned>(
     url: impl IntoUrl,
     method: Method,
-    build: impl FnOnce(&mut reqwest::RequestBuilder),
+    build: impl FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
 ) -> Result<T, HttpError> {
     fetch_serde(url, method, build, |slice| serde_json::from_slice(slice)).await
 }
@@ -103,6 +94,8 @@ pub enum HttpError {
     Unknown(Box<dyn std::error::Error>),
     Deserialize { message: String },
     UrlParseError(url::ParseError),
+    JsonParseError(serde_json::Error),
+    TextParseError { message: String },
 }
 simple_error_impl!(HttpError);
 
