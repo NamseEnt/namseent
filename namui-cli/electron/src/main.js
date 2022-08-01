@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const isDev = require("electron-is-dev");
 const { existsSync, readFileSync } = require("fs");
 const path = require("path");
@@ -13,6 +13,7 @@ if (!gotTheLock) {
 
     app.whenReady().then(() => {
         ipcMain.handle("config", () => config);
+        ipcMain.on("open-external", (event, url) => shell.openExternal(url));
         createWindow();
     });
 

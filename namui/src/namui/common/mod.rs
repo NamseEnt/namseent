@@ -1,4 +1,5 @@
 mod codes;
+mod open_external;
 mod request_animation_frame;
 mod set_timeout;
 pub mod types;
@@ -6,6 +7,7 @@ pub mod types;
 use super::render::{RenderingData, RenderingTree};
 use crate::*;
 pub use codes::*;
+pub use open_external::*;
 pub use request_animation_frame::*;
 use serde::{Deserialize, Serialize};
 use serde_repr::*;
