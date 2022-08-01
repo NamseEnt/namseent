@@ -33,6 +33,7 @@ function createWindow() {
         webPreferences: {
             preload: path.join(__dirname, "preload.js"),
             webSecurity: false,
+            allowRunningInsecureContent: false,
         },
     });
     setOpenUrlEventHandler(app, mainWindow);
