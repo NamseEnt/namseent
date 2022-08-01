@@ -8,7 +8,7 @@ use crate::{
         rust_project_watch_service::RustProjectWatchService,
         wasm_bundle_web_server::WasmBundleWebServer,
     },
-    util::print_build_result,
+    util::{print_build_result, NamuiDeepLinkManifest},
 };
 use std::{
     path::{Path, PathBuf},
@@ -26,7 +26,16 @@ pub fn start(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let build_dist_path = manifest_path.parent().unwrap().join("pkg");
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
 
-    start_electron_dev_service(&PORT, CrossPlatform::WslToWindows, &project_root_path)?;
+    let deep_link_schemes = match NamuiDeepLinkManifest::try_load(&project_root_path)? {
+        Some(namui_deep_link_manifest) => namui_deep_link_manifest.deep_link_schemes().clone(),
+        None => Vec::new(),
+    };
+    start_electron_dev_service(
+        &PORT,
+        CrossPlatform::WslToWindows,
+        &project_root_path,
+        &deep_link_schemes,
+    )?;
     let bundle_metadata_service = Arc::new(BundleMetadataService::new());
     let rust_project_watch_service = Arc::new(RustProjectWatchService::new());
     let wasm_bundle_web_server =

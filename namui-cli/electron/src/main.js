@@ -1,8 +1,29 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const isDev = require("electron-is-dev");
+const { existsSync, readFileSync } = require("fs");
 const path = require("path");
 
 const config = getConfig();
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+    app.quit();
+} else {
+    setAppAsDefaultProtocolClient(app, config.deepLinkSchemes);
+
+    app.whenReady().then(() => {
+        ipcMain.handle("config", () => config);
+        createWindow();
+    });
+
+    app.on("activate", function () {
+        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+
+    app.on("window-all-closed", function () {
+        if (process.platform !== "darwin") app.quit();
+    });
+}
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -12,6 +33,7 @@ function createWindow() {
             preload: path.join(__dirname, "preload.js"),
         },
     });
+    setOpenUrlEventHandler(app, mainWindow);
 
     if (config.test) {
         mainWindow.loadFile("../test.html");
@@ -46,6 +68,7 @@ function getConfig() {
         test: false,
         port: 8000,
         resourceRoot: path.join(__dirname, "../.."),
+        deepLinkSchemes: [],
     };
     const argv = [...process.argv];
     while (argv.length) {
@@ -58,7 +81,65 @@ function getConfig() {
         } else if (arg.startsWith("resourceRoot=")) {
             const resourceRoot = arg.slice("resourceRoot=".length);
             config.resourceRoot = resourceRoot;
+        } else if (arg.startsWith("deepLink=")) {
+            const deepLinkScheme = arg.slice("deepLink=".length);
+            const schemeNotExist =
+                config.deepLinkSchemes.findIndex(
+                    (value) => value === deepLinkScheme,
+                ) < 0;
+            if (schemeNotExist) {
+                config.deepLinkSchemes.push(deepLinkScheme);
+            }
         }
     }
+    config.deepLinkSchemes.push(...loadDeepLinkManifest(config.resourceRoot));
     return config;
+}
+
+function loadDeepLinkManifest(resourceRootPath) {
+    const deepLinkManifestPath = path.join(resourceRootPath, ".namuideeplink");
+    const deepLinkSchemes = [];
+    if (existsSync(deepLinkManifestPath)) {
+        const deepLinkManifestString = readFileSync(
+            deepLinkManifestPath,
+            "utf-8",
+        );
+        deepLinkManifestString.split("\n").forEach((line) => {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) {
+                return;
+            }
+            if (trimmedLine.startsWith("#")) {
+                return;
+            }
+            deepLinkSchemes.push(trimmedLine);
+        });
+    }
+    return deepLinkSchemes;
+}
+
+function setOpenUrlEventHandler(app, mainWindow) {
+    let sendUrl = (url) => mainWindow.webContents.send("deep-link-opened", url);
+    app.on("open-url", (event, url) => {
+        sendUrl(url);
+    });
+
+    app.on("second-instance", (event, argv, workingDirectory) => {
+        const url = argv[argv.length - 1];
+        sendUrl(url);
+        if (mainWindow) {
+            if (mainWindow.isMinimized()) {
+                mainWindow.restore();
+            }
+            mainWindow.focus();
+        }
+    });
+}
+
+function setAppAsDefaultProtocolClient(app, deepLinkSchemes) {
+    let execPath = process.argv[0];
+    let argv = [path.join(__dirname, ".."), ...process.argv.slice(2)];
+    deepLinkSchemes.forEach((deepLinkScheme) => {
+        app.setAsDefaultProtocolClient(deepLinkScheme, execPath, argv);
+    });
 }

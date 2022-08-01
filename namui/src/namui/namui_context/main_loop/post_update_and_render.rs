@@ -60,7 +60,7 @@ impl NamuiContext {
                     self.rendering_tree
                         .call_keyboard_event(raw_keyboard_event, &self, DownUp::Up);
                 }
-                NamuiEvent::ScreenResize(_) => {}
+                NamuiEvent::ScreenResize(_) | NamuiEvent::DeepLinkOpened(_) => {}
             }
         }
         let now = crate::now();

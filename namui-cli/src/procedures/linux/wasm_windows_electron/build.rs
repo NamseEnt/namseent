@@ -9,7 +9,7 @@ use crate::{
     },
     util::{
         get_cli_root_path, get_namui_bundle_manifest, overwrite_hot_reload_script_with_empty_file,
-        print_build_result,
+        print_build_result, NamuiDeepLinkManifest,
     },
 };
 use std::{
@@ -62,6 +62,12 @@ pub fn build(manifest_path: &Path, arch: Option<Arch>) -> Result<(), Box<dyn std
         &PathBuf::from(&package_result.output_path),
         &PathBuf::from(""),
     ));
+    if let Some(namui_deep_link_manifest) = NamuiDeepLinkManifest::try_load(&project_root_path)? {
+        ops.push(CollectOperation::new(
+            namui_deep_link_manifest.path(),
+            &PathBuf::from("resources"),
+        ));
+    }
     resource_collect_service.collect_resources(ops)?;
 
     let bundle_metadata_service = BundleMetadataService::new();
