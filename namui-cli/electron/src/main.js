@@ -6,8 +6,6 @@ const path = require("path");
 const config = getConfig();
 const gotTheLock = app.requestSingleInstanceLock();
 
-let mainWindow;
-
 if (!gotTheLock) {
     app.quit();
 } else {
@@ -28,7 +26,7 @@ if (!gotTheLock) {
 }
 
 function createWindow() {
-    mainWindow = new BrowserWindow({
+    const mainWindow = new BrowserWindow({
         width: 1280,
         height: 720,
         webPreferences: {
