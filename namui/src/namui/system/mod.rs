@@ -1,4 +1,5 @@
 pub mod cache;
+pub mod deep_link;
 pub mod file;
 pub mod font;
 pub(crate) mod graphics;
@@ -36,6 +37,7 @@ pub(crate) async fn init() -> InitResult {
         time::init(),
         typeface::init(),
         wheel::init(),
+        deep_link::init(),
     )?;
 
     Ok(())

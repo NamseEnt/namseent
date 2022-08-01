@@ -155,3 +155,8 @@ pub struct RawKeyboardEvent {
     pub code: Code,
     pub pressing_codes: HashSet<Code>,
 }
+
+#[derive(Debug)]
+pub struct DeepLinkOpenedEvent {
+    pub url: String,
+}

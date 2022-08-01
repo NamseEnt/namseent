@@ -18,7 +18,8 @@ impl NamuiContext {
                 | NamuiEvent::MouseMove(_)
                 | NamuiEvent::KeyDown(_)
                 | NamuiEvent::KeyUp(_)
-                | NamuiEvent::Wheel(_) => {}
+                | NamuiEvent::Wheel(_)
+                | NamuiEvent::DeepLinkOpened(_) => {}
             }
         }
     }
