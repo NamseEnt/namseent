@@ -177,7 +177,7 @@ impl CancelableBuilder {
             .args([
                 "build",
                 "--target",
-                "no-modules",
+                "web",
                 "--out-name",
                 "bundle",
                 "--dev",
