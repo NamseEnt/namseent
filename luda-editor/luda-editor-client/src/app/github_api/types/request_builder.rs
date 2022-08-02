@@ -30,6 +30,10 @@ impl RequestBuilder {
         self.method = RequestMethod::Put;
         self
     }
+    pub fn post(&mut self) -> &mut Self {
+        self.method = RequestMethod::Post;
+        self
+    }
     pub fn delete(&mut self) -> &mut Self {
         self.method = RequestMethod::Delete;
         self
@@ -62,6 +66,7 @@ impl RequestBuilder {
         opts.method(match self.method {
             RequestMethod::Get => "GET",
             RequestMethod::Put => "PUT",
+            RequestMethod::Post => "POST",
             RequestMethod::Delete => "DELETE",
         });
         if self.body.is_some() && self.method != RequestMethod::Get {
@@ -102,6 +107,7 @@ impl RequestBuilder {
 enum RequestMethod {
     Get,
     Put,
+    Post,
     Delete,
 }
 

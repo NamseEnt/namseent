@@ -4,21 +4,20 @@ use namui_prebuilt::simple_rect;
 use std::sync::Arc;
 use wasm_bindgen_futures::spawn_local;
 
+const CLIENT_ID: &str = "Iv1.7b68d8d6f7b401df";
+const CLIENT_SECRET: &str = "350c026f799464cc1f0cb080325ba666d758e06d";
+
 pub struct AuthenticationProps {
     pub wh: Wh<Px>,
 }
 
 pub struct Authentication {
-    access_token_input: TextInput,
-    access_token: String,
     authentication_state: AuthenticationState,
 }
 
 impl Authentication {
     pub fn new() -> Self {
         Self {
-            access_token_input: TextInput::new(),
-            access_token: String::new(),
             authentication_state: AuthenticationState::Idle,
         }
     }
@@ -26,27 +25,36 @@ impl Authentication {
 
 impl Authentication {
     pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<text_input::Event>() {
-            match event {
-                text_input::Event::TextUpdated(update) => {
-                    if update.id == self.access_token_input.get_id() {
-                        self.access_token = update.text.clone();
-                    }
-                }
-                _ => {}
-            }
-        } else if let Some(event) = event.downcast_ref::<AuthenticationEvent>() {
+        if let Some(event) = event.downcast_ref::<AuthenticationEvent>() {
             match event {
                 AuthenticationEvent::LoginButtonClicked => {
-                    self.login();
+                    self.authentication_state = AuthenticationState::WaitForOauthCallback;
+                    open_oauth_page();
                 }
                 AuthenticationEvent::LoginFailed => {
                     self.authentication_state = AuthenticationState::LoginFailed;
                 }
                 _ => {}
             }
+        } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
+            match event {
+                NamuiEvent::AnimationFrame
+                | NamuiEvent::MouseDown(_)
+                | NamuiEvent::MouseUp(_)
+                | NamuiEvent::MouseMove(_)
+                | NamuiEvent::KeyDown(_)
+                | NamuiEvent::KeyUp(_)
+                | NamuiEvent::ScreenResize(_)
+                | NamuiEvent::Wheel(_) => {}
+                NamuiEvent::DeepLinkOpened(DeepLinkOpenedEvent { url }) => {
+                    let url = Url::parse(url).unwrap();
+                    let code = url.query_pairs().find(|(key, _)| key == "code");
+                    if let Some((_, code)) = code {
+                        self.login_with_oauth_code(code.to_string());
+                    }
+                }
+            }
         }
-        self.access_token_input.update(event);
     }
 
     pub fn render(&self, props: &AuthenticationProps) -> RenderingTree {
@@ -56,38 +64,49 @@ impl Authentication {
         render([
             render_background(props.wh),
             render_instruction_text(&window_center, instruction_text),
-            render_access_code_input(
-                &self.access_token,
-                &self.access_token_input,
-                window_center,
-                access_code_input_width,
-            ),
+            render_login_button(window_center, access_code_input_width),
         ])
     }
 
     fn get_instruction_text(&self) -> String {
         match self.authentication_state {
-            AuthenticationState::Idle => "Enter your GitHub access token".to_string(),
+            AuthenticationState::Idle => "Click button to login with github".to_string(),
+            AuthenticationState::WaitForOauthCallback => "Login from newly opened page".to_string(),
             AuthenticationState::LoginInProgress => "Logging in...".to_string(),
-            AuthenticationState::LoginFailed => "Login failed. Check your token".to_string(),
+            AuthenticationState::LoginFailed => "Login failed.".to_string(),
         }
     }
 
-    fn login(&mut self) {
+    fn login_with_oauth_code(&mut self, code: String) {
         self.authentication_state = AuthenticationState::LoginInProgress;
-        let token = self.access_token.clone();
         spawn_local(async move {
-            let client = create_github_api_client(token);
-            match client.validate_token().await {
-                Ok(_) => {
-                    namui::event::send(AuthenticationEvent::LoginSucceeded {
-                        github_api_client: Arc::new(client),
-                    });
+            match GithubApiClient::get_access_token_with_oauth_code(
+                CLIENT_ID,
+                CLIENT_SECRET,
+                code.as_str(),
+            )
+            .await
+            {
+                Ok(token) => {
+                    let client = create_github_api_client(token);
+                    match client.get_user_id().await {
+                        Ok(user_id) => {
+                            namui::event::send(AuthenticationEvent::LoginSucceeded {
+                                user_id,
+                                github_api_client: Arc::new(client),
+                            });
+                        }
+                        Err(error) => {
+                            namui::log!("fail to get user id: {error:#?}");
+                            namui::event::send(AuthenticationEvent::LoginFailed);
+                        }
+                    }
                 }
-                Err(_) => {
-                    namui::event::send(AuthenticationEvent::LoginFailed);
+                Err(error) => {
+                    namui::log!("fail to get user id: {error:#?}");
+                    namui::event::send(AuthenticationEvent::LoginFailed)
                 }
-            }
+            };
         })
     }
 }
@@ -131,72 +150,28 @@ fn render_instruction_text(center: &Xy<Px>, instruction_text: String) -> Renderi
     })
 }
 
-fn render_access_code_input(
-    access_code: &String,
-    access_code_input: &TextInput,
-    center: Xy<Px>,
-    width: Px,
-) -> RenderingTree {
+fn render_login_button(center: Xy<Px>, width: Px) -> RenderingTree {
     const HEIGHT: Px = px(36.0);
-    const FONT_SIZE: IntPx = int_px(24);
     const STROKE_WIDTH: Px = px(4.0);
-    const BUTTON_WIDTH: Px = px(128.0);
+    const FONT_SIZE: IntPx = int_px(24);
     const MARGIN: Px = px(8.0);
-    let access_code_input_rect = Rect::Xywh {
-        x: px(0.0),
-        y: center.y,
-        width: width - MARGIN - BUTTON_WIDTH,
-        height: HEIGHT,
-    };
     let login_button_rect = Rect::Xywh {
-        x: access_code_input_rect.x() + access_code_input_rect.width() + MARGIN,
+        x: MARGIN,
         y: center.y,
-        width: BUTTON_WIDTH,
+        width: width - 2 * MARGIN,
         height: HEIGHT,
     };
     let login_button_rect_center = login_button_rect.center();
-    let access_code_input_rect_center = access_code_input_rect.center();
     render([
-        access_code_input
-            .render(text_input::Props {
-                rect_param: RectParam {
-                    rect: access_code_input_rect,
-                    style: RectStyle {
-                        stroke: Some(RectStroke {
-                            color: Color::grayscale_f01(0.6),
-                            width: STROKE_WIDTH,
-                            border_position: BorderPosition::Middle,
-                        }),
-                        fill: None,
-                        round: None,
-                    },
-                },
-                text_param: TextParam {
-                    text: access_code.clone(),
-                    x: access_code_input_rect_center.x,
-                    y: access_code_input_rect_center.y,
-                    align: TextAlign::Center,
-                    baseline: TextBaseline::Middle,
-                    font_type: FontType {
-                        serif: false,
-                        size: FONT_SIZE,
-                        language: Language::Ko,
-                        font_weight: FontWeight::REGULAR,
-                    },
-                    style: TextStyle {
-                        border: None,
-                        drop_shadow: None,
-                        color: Color::WHITE,
-                        background: None,
-                    },
-                },
-            })
-            .with_mouse_cursor(MouseCursor::Text),
-        simple_rect(
-            login_button_rect.wh(),
-            Color::grayscale_f01(0.6),
-            STROKE_WIDTH,
-            Color::grayscale_f01(0.6),
+        translate(
+            login_button_rect.x(),
+            login_button_rect.y(),
+            simple_rect(
+                login_button_rect.wh(),
+                Color::grayscale_f01(0.6),
+                STROKE_WIDTH,
+                Color::grayscale_f01(0.6),
+            ),
         )
         .attach_event(|builder| {
             builder.on_mouse_down_in(|_event| {
@@ -230,12 +205,19 @@ pub enum AuthenticationEvent {
     LoginButtonClicked,
     LoginFailed,
     LoginSucceeded {
+        user_id: u32,
         github_api_client: Arc<GithubApiClient>,
     },
 }
 
 enum AuthenticationState {
     Idle,
+    WaitForOauthCallback,
     LoginInProgress,
     LoginFailed,
+}
+
+fn open_oauth_page() {
+    let url = format!("https://github.com/login/oauth/authorize?client_id={CLIENT_ID}");
+    open_external(url.as_str());
 }
