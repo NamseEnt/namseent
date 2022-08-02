@@ -62,8 +62,12 @@ impl namui::Entity for App {
         match &mut self.stage {
             AppStage::Initialize { authentication } => {
                 if let Some(event) = event.downcast_ref::<AuthenticationEvent>() {
-                    if let AuthenticationEvent::LoginSucceeded { github_api_client } = event {
-                        initialize_app(github_api_client.clone());
+                    if let AuthenticationEvent::LoginSucceeded {
+                        user_id,
+                        github_api_client,
+                    } = event
+                    {
+                        initialize_app(*user_id, github_api_client.clone());
                     }
                 }
                 authentication.update(event);
@@ -99,7 +103,8 @@ enum AppStage {
     },
 }
 
-fn initialize_app(github_api_client: Arc<GithubApiClient>) {
+fn initialize_app(_user_id: u32, github_api_client: Arc<GithubApiClient>) {
+    // TODO: use user_id
     spawn_local(async move {
         let storage = Arc::new(Storage::new(github_api_client.clone()));
         let meta_container = Arc::new(MetaContainer::new(None, storage.clone()));

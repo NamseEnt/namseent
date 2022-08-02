@@ -1,12 +1,14 @@
 mod delete_file;
+mod get_access_token_with_oauth_code;
+mod get_user_id;
 mod github_api_client;
 mod parse_response_as_json;
 mod read_dir;
 mod read_file;
 mod types;
-mod validate_token;
 mod write_file;
 pub use delete_file::*;
+pub use get_access_token_with_oauth_code::*;
 pub use github_api_client::*;
 pub use read_dir::*;
 pub use read_file::*;
