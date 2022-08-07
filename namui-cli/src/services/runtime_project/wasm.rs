@@ -64,6 +64,7 @@ fn get_project_name(project_path: PathBuf) -> String {
         .next()
         .unwrap()
         .trim()
+        .replace('"', "")
         .to_string()
 }
 
