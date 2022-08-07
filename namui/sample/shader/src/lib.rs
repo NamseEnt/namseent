@@ -1,10 +1,8 @@
 use namui::prelude::*;
 use namui_prebuilt::{table::*, *};
 use std::{f32::consts::PI, mem::discriminant};
-use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-pub async fn start() {
+pub async fn main() {
     let namui_context = namui::init().await;
 
     namui::start(namui_context, &mut ShaderExample::new(), &()).await

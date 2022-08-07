@@ -22,7 +22,7 @@ pub enum BuildResult {
     Failed(String), // It's not failed if cargo build result has error messages.
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BuildOption {
     pub dist_path: PathBuf,
     pub project_root_path: PathBuf,
@@ -124,12 +124,18 @@ impl CancelableBuilder {
                     match spawned_process.try_wait()? {
                         None => {}
                         Some(exit_status) => {
-                            match parse_cargo_build_result(
-                                stdout_reading_thread
-                                    .join()
-                                    .expect("fail to get stdout from thread")
-                                    .as_bytes(),
-                            ) {
+                            let cargo_outputs = stdout_reading_thread
+                                .join()
+                                .expect("fail to get stdout from thread");
+
+                            if cargo_outputs.is_empty() {
+                                return Err(format!(
+                                    "cargo build failed {stderr}",
+                                    stderr = stderr_reading_thread.join().unwrap()
+                                )
+                                .into());
+                            }
+                            match parse_cargo_build_result(cargo_outputs.as_bytes()) {
                                 Ok(result) => {
                                     if result.is_successful && !exit_status.success() {
                                         return Err(format!(
@@ -181,6 +187,8 @@ impl CancelableBuilder {
                 "--out-name",
                 "bundle",
                 "--dev",
+                "--out-dir",
+                build_option.dist_path.to_str().unwrap(),
                 build_option.project_root_path.to_str().unwrap(),
                 "--",
                 "--message-format",

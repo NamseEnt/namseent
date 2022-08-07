@@ -1,9 +1,7 @@
 use namui::{animation::*, prelude::*};
 use namui_animation_editor::{self, *};
-use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-pub async fn start() {
+pub async fn main() {
     let namui_context = namui::init().await;
 
     namui::start(namui_context, &mut AnimationEditorExample::new(), &Props {}).await

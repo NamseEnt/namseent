@@ -38,8 +38,6 @@ pub trait Entity {
 }
 
 pub async fn init() -> NamuiContext {
-    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-
     let event_receiver = event::init();
 
     system::init()
