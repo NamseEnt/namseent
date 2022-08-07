@@ -34,7 +34,6 @@ opt-level = 2
     );
     std::fs::write(args.target_dir.join("Cargo.toml"), cargo_toml)?;
 
-    // create src/lib.rs
     let lib_rs = format!(
         r#"use wasm_bindgen::prelude::*;
 
