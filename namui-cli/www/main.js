@@ -1,4 +1,4 @@
-import init, { start } from './bundle.js';
+import init, { main } from './bundle.js';
 
 async function run() {
     await init();
@@ -7,7 +7,7 @@ async function run() {
     });
     globalThis.CanvasKit = CanvasKit;
     globalThis.getCanvasKit = () => CanvasKit;
-    start();
+    main();
 }
 
 run();

@@ -13,6 +13,7 @@ pub use self::random::*;
 pub use common::{types::*, *};
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
 pub use event::NamuiEvent;
+pub use misc_macros::main;
 pub use namui_cfg::*;
 pub use namui_context::NamuiContext;
 pub use render::{
