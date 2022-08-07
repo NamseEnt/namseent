@@ -5,10 +5,8 @@ pub fn generate_runtime_project(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let project_name = args.project_path.file_name().unwrap().to_str().unwrap();
 
-    // make directory first
     std::fs::create_dir_all(&args.target_dir.join("src"))?;
 
-    // create Cargo.toml
     let cargo_toml = format!(
         r#"[package]
 name = "namui-runtime-wasm"
