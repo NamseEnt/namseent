@@ -6,3 +6,4 @@ pub mod runtime_project;
 pub mod rust_build_service;
 pub mod rust_project_watch_service;
 pub mod wasm_bundle_web_server;
+pub mod wasm_watch_build_service;
