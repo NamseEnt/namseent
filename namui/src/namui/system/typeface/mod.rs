@@ -28,7 +28,7 @@ pub fn get_typeface(option: TypefaceType) -> Option<Arc<Typeface>> {
         .map(|typeface| typeface.clone())
 }
 
-pub(crate) fn load_typeface(option: &TypefaceType, bytes: &Vec<u8>) {
+pub(crate) fn load_typeface(option: &TypefaceType, bytes: &impl AsRef<[u8]>) {
     let typeface = Typeface::new(bytes);
     crate::log!("Loaded typeface: {:?}", option);
 
