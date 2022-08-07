@@ -38,14 +38,14 @@ pub async fn get_subtitles_by_title(sheet_title: &str) -> Result<Vec<Subtitle>, 
         SPREADSHEET_ID, range, API_KEY
     );
 
-    let result = namui::network::fetch_get_json::<SpreadsheetValuesGet>(&url).await;
+    let result = namui::network::http::get_json(&url).await;
 
     if result.is_err() {
         let error = result.err().unwrap();
         return Err(error.to_string());
     }
 
-    let spreadsheet_values_get = result.unwrap();
+    let spreadsheet_values_get: SpreadsheetValuesGet = result.unwrap();
 
     Ok(spreadsheet_values_get.into_subtitles())
 }
@@ -76,14 +76,14 @@ pub async fn get_sheets() -> Result<Vec<Sheet>, String> {
         SPREADSHEET_ID, API_KEY
     );
 
-    let result = namui::network::fetch_get_json::<SpreadsheetGet>(&url).await;
+    let result = namui::network::http::get_json(&url).await;
 
     if result.is_err() {
         let error = result.err().unwrap();
         return Err(error.to_string());
     }
 
-    let spreadsheet_get = result.unwrap();
+    let spreadsheet_get: SpreadsheetGet = result.unwrap();
 
     let sheets = spreadsheet_get.into_sheets().await;
     Ok(sheets)
