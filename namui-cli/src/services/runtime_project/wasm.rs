@@ -1,9 +1,11 @@
+use std::path::PathBuf;
+
 use super::GenerateRuntimeProjectArgs;
 
 pub fn generate_runtime_project(
     args: GenerateRuntimeProjectArgs,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let project_name = args.project_path.file_name().unwrap().to_str().unwrap();
+    let project_name = get_project_name(args.project_path.clone());
 
     std::fs::create_dir_all(&args.target_dir.join("src"))?;
 
@@ -49,6 +51,20 @@ pub async fn start() {{
     std::fs::write(args.target_dir.join("src/lib.rs"), lib_rs)?;
 
     Ok(())
+}
+
+fn get_project_name(project_path: PathBuf) -> String {
+    let manifest_path = project_path.join("Cargo.toml");
+    let manifest_contents = std::fs::read_to_string(&manifest_path).unwrap();
+    manifest_contents
+        .split("name = ")
+        .nth(1)
+        .unwrap()
+        .split("\n")
+        .next()
+        .unwrap()
+        .trim()
+        .to_string()
 }
 
 #[cfg(test)]
