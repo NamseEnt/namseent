@@ -90,8 +90,6 @@ async fn get_typeface_files<'a>(
     Ok(HashMap::from_iter(iter))
 }
 
-// .map_err(|error| format!("Could not fetch {font_file_url} - {error}").into())?;
-// (*typeface_type, bytes)
 #[cfg(test)]
 mod tests {
     use super::*;
