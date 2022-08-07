@@ -1,8 +1,6 @@
 use namui::prelude::*;
-use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-pub async fn start() {
+pub async fn main() {
     let namui_context = namui::init().await;
 
     namui::start(namui_context, &mut TextInputExample::new(), &()).await

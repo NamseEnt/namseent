@@ -13,7 +13,6 @@ pub use self::random::*;
 pub use common::{types::*, *};
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
 pub use event::NamuiEvent;
-pub use misc_macros::main;
 pub use namui_cfg::*;
 pub use namui_context::NamuiContext;
 pub use render::{
@@ -39,8 +38,6 @@ pub trait Entity {
 }
 
 pub async fn init() -> NamuiContext {
-    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-
     let event_receiver = event::init();
 
     system::init()

@@ -42,7 +42,7 @@ pub enum Commands {
     },
 }
 
-#[derive(Clone, ArgEnum, Serialize, Deserialize)]
+#[derive(Clone, Debug, ArgEnum, Serialize, Deserialize)]
 pub enum Target {
     #[clap(rename_all = "kebab-case")]
     WasmUnknownWeb,

@@ -3,6 +3,7 @@ use crate::{
     debug_println,
     services::{
         bundle_metadata_service::BundleMetadataService,
+        runtime_project::{self, GenerateRuntimeProjectArgs},
         rust_build_service::{BuildOption, BuildResult, RustBuildService},
         rust_project_watch_service::RustProjectWatchService,
         wasm_bundle_web_server::WasmBundleWebServer,
@@ -18,11 +19,24 @@ pub fn start(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     const PORT: u16 = 8080;
     let wasm_bundle_web_server_url = format!("http://localhost:{}", PORT);
 
-    let _ = webbrowser::open(&wasm_bundle_web_server_url);
-    println!("server is running on {}", wasm_bundle_web_server_url);
-
     let build_dist_path = manifest_path.parent().unwrap().join("pkg");
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
+
+    let runtime_target_dir = manifest_path
+        .parent()
+        .expect(&format!(
+            "{} is not a valid path because it doesn't have parent",
+            manifest_path.display()
+        ))
+        .join("target/namui");
+
+    runtime_project::wasm::generate_runtime_project(GenerateRuntimeProjectArgs {
+        target_dir: runtime_target_dir.clone(),
+        project_path: project_root_path.clone(),
+    })?;
+
+    let _ = webbrowser::open(&wasm_bundle_web_server_url);
+    println!("server is running on {}", wasm_bundle_web_server_url);
 
     let bundle_metadata_service = Arc::new(BundleMetadataService::new());
     let rust_project_watch_service = Arc::new(RustProjectWatchService::new());
@@ -35,6 +49,7 @@ pub fn start(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         rust_build_service.clone(),
         build_dist_path.clone(),
         project_root_path.clone(),
+        runtime_target_dir.clone(),
         bundle_metadata_service.clone(),
     ));
     rust_project_watch_service.watch(manifest_path, {
@@ -48,6 +63,7 @@ pub fn start(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
                 rust_build_service.clone(),
                 build_dist_path.clone(),
                 project_root_path.clone(),
+                runtime_target_dir.clone(),
                 bundle_metadata_service.clone(),
             ));
         }
@@ -61,13 +77,14 @@ async fn build(
     rust_build_service: Arc<RustBuildService>,
     build_dist_path: PathBuf,
     project_root_path: PathBuf,
+    runtime_project_root_path: PathBuf,
     bundle_metadata_service: Arc<BundleMetadataService>,
 ) {
     debug_println!("build fn run");
     match rust_build_service.cancel_and_start_build(&BuildOption {
         target: Target::WasmUnknownWeb,
-        dist_path: build_dist_path.to_path_buf(),
-        project_root_path: project_root_path.to_path_buf(),
+        dist_path: build_dist_path,
+        project_root_path: runtime_project_root_path,
         watch: true,
     }) {
         BuildResult::Canceled => {

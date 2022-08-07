@@ -380,13 +380,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
-name = "misc-macros"
-version = "0.1.0"
-dependencies = [
- "wasm-bindgen",
-]
-
-[[package]]
 name = "nalgebra"
 version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -420,13 +413,11 @@ version = "0.1.0"
 dependencies = [
  "auto_ops",
  "bincode",
- "console_error_panic_hook",
  "dashmap",
  "futures 0.3.21",
  "js-sys",
  "lazy_static",
  "lru",
- "misc-macros",
  "nalgebra",
  "namui-cfg",
  "num",
