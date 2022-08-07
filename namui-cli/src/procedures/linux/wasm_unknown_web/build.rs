@@ -1,20 +1,14 @@
 use crate::{
-    cli::Target,
-    debug_println,
     services::{
         bundle_metadata_service::BundleMetadataService,
         resource_collect_service::{CollectOperation, ResourceCollectService},
-        rust_build_service::{BuildOption, BuildResult, RustBuildService},
+        wasm_watch_build_service::WasmWatchBuildService,
     },
     util::{
         get_cli_root_path, get_namui_bundle_manifest, overwrite_hot_reload_script_with_empty_file,
-        print_build_result,
     },
 };
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::path::{Path, PathBuf};
 
 pub fn build(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let build_dist_path = manifest_path.parent().unwrap().join("pkg");
@@ -25,14 +19,9 @@ pub fn build(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         .join("namui")
         .join("wasm_unknown_web");
 
-    let rust_build_service = Arc::new(RustBuildService::new());
     let resource_collect_service = ResourceCollectService::new(&project_root_path, &release_path);
 
-    build_(
-        rust_build_service.clone(),
-        build_dist_path.clone(),
-        project_root_path.clone(),
-    )?;
+    WasmWatchBuildService::just_build(project_root_path.clone())?;
 
     let namui_bundle_manifest = get_namui_bundle_manifest(&project_root_path)?;
     let mut ops: Vec<CollectOperation> = namui_bundle_manifest
@@ -61,25 +50,4 @@ pub fn build(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     overwrite_hot_reload_script_with_empty_file(&release_path)?;
 
     Ok(())
-}
-
-fn build_(
-    rust_build_service: Arc<RustBuildService>,
-    build_dist_path: PathBuf,
-    project_root_path: PathBuf,
-) -> Result<(), String> {
-    debug_println!("build fn run");
-    match rust_build_service.cancel_and_start_build(&BuildOption {
-        target: Target::WasmUnknownWeb,
-        dist_path: build_dist_path.to_path_buf(),
-        project_root_path: project_root_path.to_path_buf(),
-        watch: false,
-    }) {
-        BuildResult::Successful(cargo_build_result) => {
-            print_build_result(&cargo_build_result.error_messages, &vec![]);
-            Ok(())
-        }
-        BuildResult::Canceled => unreachable!(),
-        BuildResult::Failed(error) => Err(error),
-    }
 }

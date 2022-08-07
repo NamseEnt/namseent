@@ -1,4 +1,4 @@
-use crate::services::wasm_watch_build_service::{StartArgs, WasmWatchBuildService};
+use crate::services::wasm_watch_build_service::{WasmWatchBuildService, WatchAndBuildArgs};
 use crate::{
     services::electron_dev_service::{start_electron_dev_service, CrossPlatform},
     util::NamuiDeepLinkManifest,
@@ -24,7 +24,7 @@ pub fn start(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         &project_root_path,
         &deep_link_schemes,
     )?;
-    WasmWatchBuildService::start(StartArgs {
+    WasmWatchBuildService::watch_and_build(WatchAndBuildArgs {
         project_root_path,
         port: PORT,
     })

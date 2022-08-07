@@ -1,4 +1,4 @@
-use crate::services::wasm_watch_build_service::{StartArgs, WasmWatchBuildService};
+use crate::services::wasm_watch_build_service::{WasmWatchBuildService, WatchAndBuildArgs};
 use std::path::Path;
 
 pub fn start(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
@@ -9,7 +9,7 @@ pub fn start(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let _ = webbrowser::open(&wasm_bundle_web_server_url);
     println!("server is running on {}", wasm_bundle_web_server_url);
 
-    WasmWatchBuildService::start(StartArgs {
+    WasmWatchBuildService::watch_and_build(WatchAndBuildArgs {
         project_root_path,
         port: PORT,
     })
