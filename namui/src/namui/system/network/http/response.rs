@@ -73,8 +73,6 @@ impl Response {
     pub async fn error_for_400599(self) -> Result<Self, HttpError> {
         let status_code = self.status().as_u16();
         if 400 <= status_code && status_code <= 599 {
-            Ok(self)
-        } else {
             Err(HttpError::Status {
                 status: status_code,
                 message: self
@@ -82,6 +80,8 @@ impl Response {
                     .await
                     .unwrap_or("Fail to get response text".to_string()),
             })
+        } else {
+            Ok(self)
         }
     }
 }
