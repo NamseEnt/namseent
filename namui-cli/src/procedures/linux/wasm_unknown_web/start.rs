@@ -1,4 +1,7 @@
-use crate::services::wasm_watch_build_service::{WasmWatchBuildService, WatchAndBuildArgs};
+use crate::{
+    cli::Target,
+    services::wasm_watch_build_service::{WasmWatchBuildService, WatchAndBuildArgs},
+};
 use std::path::Path;
 
 pub fn start(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
@@ -12,5 +15,6 @@ pub fn start(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     WasmWatchBuildService::watch_and_build(WatchAndBuildArgs {
         project_root_path,
         port: PORT,
+        target: Target::WasmUnknownWeb,
     })
 }

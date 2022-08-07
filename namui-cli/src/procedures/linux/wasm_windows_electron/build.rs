@@ -1,4 +1,5 @@
 use crate::{
+    cli::Target,
     services::{
         bundle_metadata_service::BundleMetadataService,
         electron_package_service::{Arch, ElectronPackageService, Platform},
@@ -28,7 +29,7 @@ pub fn build(manifest_path: &Path, arch: Option<Arch>) -> Result<(), Box<dyn std
 
     let resource_collect_service = ResourceCollectService::new(&project_root_path, &release_path);
 
-    WasmWatchBuildService::just_build(project_root_path.clone())?;
+    WasmWatchBuildService::just_build(project_root_path.clone(), Target::WasmWindowsElectron)?;
 
     let namui_bundle_manifest = get_namui_bundle_manifest(&project_root_path)?;
     let mut ops: Vec<CollectOperation> = namui_bundle_manifest
