@@ -50,14 +50,16 @@ pub fn try_load(url: &Url) -> Option<Arc<Image>> {
 fn start_load(url: &Url) {
     let url = url.clone();
     spawn_local(async move {
-        let read_url_result = match url.scheme() {
-            "http" | "https" => crate::network::fetch_get_vec_u8(url.as_str())
+        let read_url_result: Result<_, Box<dyn std::error::Error>> = match url.scheme() {
+            "http" | "https" => crate::network::http::get_bytes(url.as_str())
                 .await
-                .map_err(|e| format!("{}", e)),
+                .map_err(|error| error.into())
+                .map(|bytes| bytes.as_ref().to_vec()),
             "bundle" => crate::file::bundle::read(url.clone())
                 .await
-                .map_err(|e| format!("{:?}", e)),
-            _ => Err(format!("unknown scheme: {}", url.scheme())),
+                .map_err(|error| error.into())
+                .map(|bytes| bytes.as_ref().to_vec()),
+            _ => Err(format!("unknown scheme: {}", url.scheme()).into()),
         };
 
         match read_url_result {
