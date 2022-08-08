@@ -1,3 +1,4 @@
+use crate::cli::Target;
 use crate::services::wasm_watch_build_service::{WasmWatchBuildService, WatchAndBuildArgs};
 use crate::{
     services::electron_dev_service::{start_electron_dev_service, CrossPlatform},
@@ -22,5 +23,6 @@ pub fn start(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     WasmWatchBuildService::watch_and_build(WatchAndBuildArgs {
         project_root_path,
         port: PORT,
+        target: Target::WasmLinuxElectron,
     })
 }

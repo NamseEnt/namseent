@@ -13,6 +13,7 @@ pub struct WasmWatchBuildService {}
 pub struct WatchAndBuildArgs {
     pub project_root_path: PathBuf,
     pub port: u16,
+    pub target: Target,
 }
 impl WasmWatchBuildService {
     pub fn watch_and_build(args: WatchAndBuildArgs) -> Result<(), Box<dyn Error>> {
@@ -40,10 +41,11 @@ impl WasmWatchBuildService {
             project_root_path: PathBuf,
             runtime_target_dir: PathBuf,
             bundle_metadata_service: Arc<BundleMetadataService>,
+            target: Target,
         ) {
             debug_println!("build fn run");
             match rust_build_service.cancel_and_start_build(&BuildOption {
-                target: Target::WasmUnknownWeb,
+                target,
                 dist_path: build_dist_path,
                 project_root_path: runtime_target_dir,
                 watch: true,
@@ -80,6 +82,7 @@ impl WasmWatchBuildService {
             args.project_root_path.clone(),
             runtime_target_dir.clone(),
             bundle_metadata_service.clone(),
+            args.target,
         ));
         rust_project_watch_service.watch(&args.project_root_path.join("Cargo.toml"), {
             let wasm_bundle_web_server = wasm_bundle_web_server.clone();
@@ -93,18 +96,19 @@ impl WasmWatchBuildService {
                     args.project_root_path.clone(),
                     runtime_target_dir.clone(),
                     bundle_metadata_service.clone(),
+                    args.target,
                 ));
             }
         })
     }
 
-    pub fn just_build(project_root_path: PathBuf) -> Result<(), Box<dyn Error>> {
+    pub fn just_build(project_root_path: PathBuf, target: Target) -> Result<(), Box<dyn Error>> {
         let build_dist_path = project_root_path.join("pkg");
         let runtime_target_dir = project_root_path.join("target/namui");
         let rust_build_service = RustBuildService::new();
 
         match rust_build_service.cancel_and_start_build(&BuildOption {
-            target: Target::WasmUnknownWeb,
+            target,
             dist_path: build_dist_path,
             project_root_path: runtime_target_dir,
             watch: false,
