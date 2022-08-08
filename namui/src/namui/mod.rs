@@ -8,6 +8,7 @@ mod random;
 mod render;
 mod skia;
 pub(crate) mod system;
+pub mod utils;
 
 pub use self::random::*;
 pub use common::{types::*, *};

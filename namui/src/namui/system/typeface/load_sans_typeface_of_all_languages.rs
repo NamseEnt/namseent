@@ -1,10 +1,9 @@
 use crate::{
     namui::{FontWeight, Language, TypefaceType},
-    network::*,
     Typeface,
 };
-use futures::{future::join_all, try_join};
-use std::{collections::HashMap, iter::FromIterator};
+use futures::{future::try_join_all, try_join};
+use std::collections::HashMap;
 
 type TypefaceFileUrls = HashMap<TypefaceType, String>;
 type TypefaceFileUrlsFile = HashMap<Language, HashMap<FontWeight, String>>;
@@ -27,7 +26,7 @@ async fn load_fallback_font_typefaces() -> Result<(), Box<dyn std::error::Error>
 
 async fn get_noto_color_emoji_typeface() -> Result<Typeface, Box<dyn std::error::Error>> {
     let url = "resources/font/NotoColorEmoji.woff2";
-    let bytes = fetch_get_vec_u8(url)
+    let bytes = crate::network::http::get_bytes(url)
         .await
         .expect(format!("Could not fetch {}", url).as_str());
 
@@ -37,8 +36,7 @@ async fn get_noto_color_emoji_typeface() -> Result<Typeface, Box<dyn std::error:
 pub async fn load_sans_typeface_of_all_languages() -> Result<(), Box<dyn std::error::Error>> {
     let typeface_file_urls: TypefaceFileUrls = get_typeface_file_urls().await?;
 
-    let typeface_files: HashMap<TypefaceType, Vec<u8>> =
-        get_typeface_files(&typeface_file_urls).await?;
+    let typeface_files = get_typeface_files(&typeface_file_urls).await?;
     typeface_files
         .iter()
         .for_each(|(typeface_type, bytes)| crate::typeface::load_typeface(&typeface_type, bytes));
@@ -49,7 +47,7 @@ pub async fn load_sans_typeface_of_all_languages() -> Result<(), Box<dyn std::er
 async fn load_typeface_file_urls_file() -> Result<TypefaceFileUrlsFile, Box<dyn std::error::Error>>
 {
     let url = "resources/font/map.json";
-    Ok(fetch_get_json(url).await?)
+    Ok(crate::network::http::get_json(url).await?)
 }
 
 async fn get_typeface_file_urls() -> Result<TypefaceFileUrls, Box<dyn std::error::Error>> {
@@ -74,18 +72,20 @@ async fn get_typeface_file_urls() -> Result<TypefaceFileUrls, Box<dyn std::error
         .collect())
 }
 
-async fn get_typeface_files(
-    typeface_file_urls: &TypefaceFileUrls,
-) -> Result<HashMap<TypefaceType, Vec<u8>>, Box<dyn std::error::Error>> {
-    let iter = join_all(typeface_file_urls.into_iter().map(
+async fn get_typeface_files<'a>(
+    typeface_file_urls: &'a TypefaceFileUrls,
+) -> Result<HashMap<TypefaceType, impl AsRef<[u8]> + 'a>, Box<dyn std::error::Error>> {
+    let iter = try_join_all(typeface_file_urls.iter().map(
         |(typeface_type, font_file_url)| async move {
-            let bytes = fetch_get_vec_u8(font_file_url)
-                .await
-                .expect(format!("Could not fetch {}", font_file_url).as_str());
-            (*typeface_type, bytes)
+            let result: Result<_, Box<dyn std::error::Error>> =
+                match crate::network::http::get_bytes(font_file_url).await {
+                    Ok(bytes) => Ok((*typeface_type, bytes)),
+                    Err(error) => Err(format!("Could not fetch {font_file_url} - {error}").into()),
+                };
+            result
         },
     ))
-    .await;
+    .await?;
 
     Ok(HashMap::from_iter(iter))
 }
