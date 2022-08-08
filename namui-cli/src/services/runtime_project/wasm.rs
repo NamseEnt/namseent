@@ -1,6 +1,5 @@
-use std::path::PathBuf;
-
 use super::GenerateRuntimeProjectArgs;
+use std::path::PathBuf;
 
 pub fn generate_runtime_project(
     args: GenerateRuntimeProjectArgs,
