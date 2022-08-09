@@ -19,15 +19,18 @@ pub fn start(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         Some(namui_deep_link_manifest) => namui_deep_link_manifest.deep_link_schemes().clone(),
         None => Vec::new(),
     };
-    start_electron_dev_service(
-        &PORT,
-        CrossPlatform::WslToWindows,
-        &project_root_path,
-        &deep_link_schemes,
-    )?;
     WasmWatchBuildService::watch_and_build(WatchAndBuildArgs {
-        project_root_path,
+        project_root_path: project_root_path.clone(),
         port: PORT,
         target: Target::WasmWindowsElectron,
+        after_first_build: Some(move || {
+            start_electron_dev_service(
+                &PORT,
+                CrossPlatform::WslToWindows,
+                &project_root_path,
+                &deep_link_schemes,
+            )
+            .unwrap();
+        }),
     })
 }
