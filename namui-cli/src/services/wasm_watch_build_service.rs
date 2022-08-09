@@ -10,19 +10,29 @@ use std::{error::Error, path::PathBuf, sync::Arc};
 
 pub struct WasmWatchBuildService {}
 
-pub struct WatchAndBuildArgs {
+pub struct WatchAndBuildArgs<AfterFirstBuild>
+where
+    AfterFirstBuild: FnOnce() + Send + 'static,
+{
     pub project_root_path: PathBuf,
     pub port: u16,
     pub target: Target,
+    pub after_first_build: Option<AfterFirstBuild>,
 }
 impl WasmWatchBuildService {
-    pub fn watch_and_build(args: WatchAndBuildArgs) -> Result<(), Box<dyn Error>> {
-        let build_dist_path = args.project_root_path.join("pkg");
-        let runtime_target_dir = args.project_root_path.join("target/namui");
+    pub fn watch_and_build<AfterFirstBuild>(
+        args: WatchAndBuildArgs<AfterFirstBuild>,
+    ) -> Result<(), Box<dyn Error>>
+    where
+        AfterFirstBuild: FnOnce() + Send + 'static,
+    {
+        let project_root_path = args.project_root_path;
+        let build_dist_path = project_root_path.join("pkg");
+        let runtime_target_dir = project_root_path.join("target/namui");
 
         runtime_project::wasm::generate_runtime_project(GenerateRuntimeProjectArgs {
             target_dir: runtime_target_dir.clone(),
-            project_path: args.project_root_path.clone(),
+            project_path: project_root_path.clone(),
         })?;
 
         let bundle_metadata_service = Arc::new(BundleMetadataService::new());
@@ -75,16 +85,31 @@ impl WasmWatchBuildService {
             }
         }
 
-        tokio::spawn(cancel_and_start_build(
-            wasm_bundle_web_server.clone(),
-            rust_build_service.clone(),
-            build_dist_path.clone(),
-            args.project_root_path.clone(),
-            runtime_target_dir.clone(),
-            bundle_metadata_service.clone(),
-            args.target,
-        ));
-        rust_project_watch_service.watch(&args.project_root_path.join("Cargo.toml"), {
+        tokio::spawn({
+            let wasm_bundle_web_server = wasm_bundle_web_server.clone();
+            let rust_build_service = rust_build_service.clone();
+            let build_dist_path = build_dist_path.clone();
+            let project_root_path = project_root_path.clone();
+            let bundle_metadata_service = bundle_metadata_service.clone();
+            let runtime_target_dir = runtime_target_dir.clone();
+            async move {
+                cancel_and_start_build(
+                    wasm_bundle_web_server.clone(),
+                    rust_build_service.clone(),
+                    build_dist_path.clone(),
+                    project_root_path.clone(),
+                    runtime_target_dir.clone(),
+                    bundle_metadata_service.clone(),
+                    args.target,
+                )
+                .await;
+                if let Some(after_first_build) = args.after_first_build {
+                    (after_first_build)();
+                }
+            }
+        });
+
+        rust_project_watch_service.watch(&project_root_path.join("Cargo.toml"), {
             let wasm_bundle_web_server = wasm_bundle_web_server.clone();
             let rust_build_service = rust_build_service.clone();
             let build_dist_path = build_dist_path.clone();
@@ -93,7 +118,7 @@ impl WasmWatchBuildService {
                     wasm_bundle_web_server.clone(),
                     rust_build_service.clone(),
                     build_dist_path.clone(),
-                    args.project_root_path.clone(),
+                    project_root_path.clone(),
                     runtime_target_dir.clone(),
                     bundle_metadata_service.clone(),
                     args.target,
