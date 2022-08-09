@@ -46,6 +46,32 @@ impl TimeExt for f32 {
     }
 }
 
+impl TimeExt for i32 {
+    fn ms(self) -> Time {
+        Time::Ms(self as f32)
+    }
+
+    fn sec(self) -> Time {
+        Time::Sec(self as f32)
+    }
+
+    fn minute(self) -> Time {
+        Time::Minute(self as f32)
+    }
+
+    fn hour(self) -> Time {
+        Time::Hour(self as f32)
+    }
+
+    fn day(self) -> Time {
+        Time::Day(self as f32)
+    }
+
+    fn week(self) -> Time {
+        Time::Week(self as f32)
+    }
+}
+
 impl Time {
     pub fn as_millis(&self) -> f32 {
         match self {
@@ -115,6 +141,17 @@ impl Time {
 
     pub fn now() -> Self {
         Time::Ms(crate::now().as_millis() as f32)
+    }
+
+    pub(crate) fn as_duration(&self) -> std::time::Duration {
+        match self {
+            Time::Ms(ms) => std::time::Duration::from_millis(*ms as u64),
+            Time::Sec(s) => std::time::Duration::from_secs(*s as u64),
+            Time::Minute(m) => std::time::Duration::from_secs(*m as u64 * 60),
+            Time::Hour(h) => std::time::Duration::from_secs(*h as u64 * 60 * 60),
+            Time::Day(d) => std::time::Duration::from_secs(*d as u64 * 60 * 60 * 24),
+            Time::Week(w) => std::time::Duration::from_secs(*w as u64 * 60 * 60 * 24 * 7),
+        }
     }
 }
 
