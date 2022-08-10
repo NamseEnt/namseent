@@ -323,3 +323,18 @@ impl Ord for Time {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn relative_time_format_works() {
+        assert_eq!("a few seconds ago", 1.5.sec().relative_time_format());
+        assert_eq!("47 seconds ago", 46.7.sec().relative_time_format());
+        assert_eq!("72 seconds ago", 72.2.sec().relative_time_format());
+        assert_eq!("2 minutes ago", 1.7.minute().relative_time_format());
+    }
+}
