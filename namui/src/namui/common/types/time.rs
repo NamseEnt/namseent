@@ -153,6 +153,20 @@ impl Time {
             Time::Week(w) => std::time::Duration::from_secs(*w as u64 * 60 * 60 * 24 * 7),
         }
     }
+
+    pub fn relative_time_format(&self) -> String {
+        if self.as_seconds() < 44.0 {
+            "a few seconds ago".to_string()
+        } else if self.as_seconds() < 90.0 {
+            format!("{:.0} seconds ago", self.as_seconds())
+        } else if self.as_minutes() < 44.0 {
+            format!("{:.0} minutes ago", self.as_minutes())
+        } else if self.as_minutes() < 90.0 {
+            format!("{:.0} hours ago", self.as_minutes())
+        } else {
+            format!("{:.0} days ago", self.as_days())
+        }
+    }
 }
 
 crate::types::macros::impl_op_forward_ref_reversed_for_f32_i32_usize!(*|lhs: Time,
