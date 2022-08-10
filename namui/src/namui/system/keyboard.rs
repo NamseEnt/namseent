@@ -45,17 +45,8 @@ impl KeyboardSystem {
                         let mut pressing_code_set = pressing_code_set.write().unwrap();
                         pressing_code_set.insert(code);
 
-                        match code {
-                            Code::Space
-                            | Code::ArrowLeft
-                            | Code::ArrowRight
-                            | Code::ArrowUp
-                            | Code::ArrowDown
-                            | Code::AltLeft
-                            | Code::AltRight => {
-                                event.prevent_default();
-                            }
-                            _ => {}
+                        if event.alt_key() {
+                            event.prevent_default();
                         }
 
                         crate::event::send(crate::NamuiEvent::KeyDown(crate::RawKeyboardEvent {
