@@ -8,6 +8,10 @@ impl NamuiContext {
                 NamuiEvent::AnimationFrame => {
                     self.update_fps_info();
 
+                    crate::graphics::surface()
+                        .canvas()
+                        .clear(Color::TRANSPARENT);
+
                     self.rendering_tree.draw();
 
                     self.set_mouse_cursor();

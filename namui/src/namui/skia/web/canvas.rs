@@ -3,6 +3,9 @@ use crate::{namui::render::Matrix3x3, *};
 
 pub(crate) struct Canvas(pub CanvasKitCanvas);
 impl Canvas {
+    pub fn clear(&self, color: Color) {
+        self.0.clear(&color.into_float32_array());
+    }
     pub fn draw_text_blob(&self, text_blob: &TextBlob, x: Px, y: Px, paint: &Paint) {
         self.0
             .drawTextBlob(&text_blob.0, x.into(), y.into(), &paint.canvas_kit_paint);
