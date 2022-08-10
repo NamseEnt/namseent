@@ -3,13 +3,13 @@ use super::*;
 #[wasm_bindgen]
 extern "C" {
     pub type CanvasKitCanvas;
-    // /**
-    //     /// Fills the current clip with the given color using Src BlendMode.
-    //     /// This has the effect of replacing all pixels contained by clip with color.
-    //     /// @param color
-    //     ///
-    // #[wasm_bindgen(method)]
-    // pub(crate) fn clear(this: &CanvasKitCanvas, color: InputColor);
+
+    /// Fills the current clip with the given color using Src BlendMode.
+    /// This has the effect of replacing all pixels contained by clip with color.
+    /// @param color
+    ///
+    #[wasm_bindgen(method)]
+    pub(crate) fn clear(this: &CanvasKitCanvas, color: &js_sys::Float32Array);
 
     ///
     /// Replaces clip with the intersection or difference of the current clip and path,
