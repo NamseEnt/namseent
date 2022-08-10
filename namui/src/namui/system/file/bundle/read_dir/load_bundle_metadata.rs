@@ -14,8 +14,8 @@ pub enum LoadBundleMetadataError {
 #[namui_cfg(all(target_env = "electron", not(watch_reload)))]
 pub async fn load_bundle_metadata() -> Result<Vec<PathBuf>, LoadBundleMetadataError> {
     let file: Vec<u8> = electron::read_vec_u8("/bundle_metadata.json")
-        .map_err(|error| error.into())
-        .await?;
+        .await
+        .map_err(|error| error.into())?;
     serde_json::from_slice(&file)
         .map_err(|error| LoadBundleMetadataError::ParseError(error.to_string()))
 }
