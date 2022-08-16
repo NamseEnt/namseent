@@ -62,4 +62,5 @@ features = [
     "HtmlInputElement",
     "InputEvent",
     "AddEventListenerOptions",
+    "FileList",
 ]

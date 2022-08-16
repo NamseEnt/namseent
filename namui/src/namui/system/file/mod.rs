@@ -1,4 +1,5 @@
 pub mod bundle;
+pub mod dialog;
 mod electron;
 mod init;
 pub mod system_drive;
