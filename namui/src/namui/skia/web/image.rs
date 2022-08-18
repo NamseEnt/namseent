@@ -21,7 +21,7 @@ pub struct Image {
 static IMAGE_ID: AtomicUsize = AtomicUsize::new(0);
 
 impl Image {
-    pub fn new(canvas_kit_image: CanvasKitImage) -> Self {
+    pub(crate) fn new(canvas_kit_image: CanvasKitImage) -> Self {
         let id = format!("image-{}", IMAGE_ID.fetch_add(1, Ordering::Relaxed));
         let image_info = {
             let canvas_kit_image_info = canvas_kit_image.getImageInfo();
