@@ -58,6 +58,7 @@ pub struct ImageClip {
     pub images: List<Image>,
 }
 
+#[allow(dead_code)]
 impl ImageClip {
     pub fn new(duration: Time) -> Self {
         Self {
@@ -80,6 +81,7 @@ pub struct Image {
     pub circumscribed: Circumscribed,
 }
 
+#[allow(dead_code)]
 impl Image {
     pub fn new(image_path: Option<String>, circumscribed: Circumscribed) -> Self {
         Self {

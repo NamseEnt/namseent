@@ -3,7 +3,9 @@ mod system_tree_0;
 mod system_tree_1;
 mod system_tree_2;
 mod system_tree_3;
+#[allow(dead_code)]
 mod system_tree_4;
+#[allow(dead_code)]
 mod system_tree_5;
 pub mod system_tree_6;
 
@@ -44,6 +46,7 @@ impl Storage {
         self.0.start_sync(update_queue, update_sync_status)
     }
 
+    #[allow(dead_code)]
     pub fn upload_resource<'a>(
         &'a self,
         path: impl AsRef<str>,
@@ -57,6 +60,7 @@ impl Storage {
         self.0.upload_resource(path.as_ref().to_string(), data)
     }
 
+    #[allow(dead_code)]
     pub fn list_resources<'a>(
         &'a self,
     ) -> std::pin::Pin<
@@ -70,6 +74,7 @@ impl Storage {
         self.0.list_resources()
     }
 
+    #[allow(dead_code)]
     pub fn get_resource<'a>(
         &'a self,
         path: impl AsRef<str>,

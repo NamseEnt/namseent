@@ -20,7 +20,6 @@ impl EditorHistorySystem {
     where
         F: FnOnce(&mut super::system_tree::SystemTree),
     {
-        let now = namui::now();
         let encoded_update = self.history_system.lock().unwrap().mutate(f);
         namui::event::send(Event::Mutated { encoded_update });
     }
@@ -33,9 +32,6 @@ impl EditorHistorySystem {
     }
     pub fn encode(&self) -> Box<[u8]> {
         self.history_system.lock().unwrap().encode()
-    }
-    pub fn export_doc(&self) -> crdt::yrs::Doc {
-        self.history_system.lock().unwrap().export_doc()
     }
 }
 impl std::fmt::Debug for EditorHistorySystem {
@@ -70,6 +66,7 @@ impl EditorHistorySystem {
             sequence.cuts.update(cut_index, mutate);
         });
     }
+    #[allow(dead_code)]
     pub fn mutate_image_clip(
         &mut self,
         image_clip_address: &ImageClipAddress,
@@ -97,12 +94,14 @@ impl EditorHistorySystem {
             .unwrap();
         f(sequence);
     }
+    #[allow(dead_code)]
     pub fn with_cut(&self, sequence_id: &str, cut_id: &str, f: impl FnOnce(&Cut)) {
         self.with_sequence(sequence_id, |sequence| {
             let cut = sequence.cuts.iter().find(|cut| cut.id() == cut_id).unwrap();
             f(cut);
         });
     }
+    #[allow(dead_code)]
     pub(crate) fn get_image_layer_image_path(
         &self,
         image_clip_address: &ImageClipAddress,

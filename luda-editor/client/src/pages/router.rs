@@ -1,5 +1,4 @@
 use super::*;
-use crate::sync;
 use editor_core::storage::SyncStatus;
 use namui::prelude::*;
 use std::sync::Arc;

@@ -82,11 +82,7 @@ impl namui::Entity for App {
                     App::LoggingIn | App::Initializing => {
                         unreachable!()
                     }
-                    App::Initialized {
-                        editor_history_system,
-                        syncer,
-                        ..
-                    } => syncer.send(encoded_update),
+                    App::Initialized { syncer, .. } => syncer.send(encoded_update),
                 },
             }
         }

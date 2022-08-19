@@ -5,18 +5,12 @@ use namui::prelude::*;
 use std::sync::{Arc, Mutex};
 
 pub struct Syncer {
-    storage: Storage,
     update_queue: Arc<Mutex<Vec<crdt::yrs::Update>>>,
     update_sync_status: Arc<Mutex<SyncStatus>>,
 }
 
 pub enum Event {
     NewHistorySystem { encoded: Box<[u8]> },
-}
-
-struct SendQueue {
-    is_sending: bool,
-    queued: Option<Vec<Box<[u8]>>>,
 }
 
 impl Syncer {
@@ -34,7 +28,6 @@ impl Syncer {
         );
 
         Self {
-            storage,
             update_queue,
             update_sync_status,
         }

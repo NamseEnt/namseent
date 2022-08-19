@@ -27,14 +27,6 @@ impl<State: History + Clone> HistorySystem<State> {
             }
         }
     }
-    pub fn export_doc(&self) -> Doc {
-        let encoded = self.encode();
-
-        let doc = Doc::new();
-        let mut transact = doc.transact();
-        transact.apply_update(yrs::Update::decode_v2(encoded.as_ref()).unwrap());
-        doc
-    }
     pub fn encode(&self) -> Box<[u8]> {
         self.doc
             .encode_state_as_update_v2(&StateVector::default())
