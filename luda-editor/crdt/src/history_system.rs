@@ -103,7 +103,6 @@ impl<State: History + Clone> HistorySystem<State> {
         *self = decoded;
         self.state = Some(State::from_map(&transact.get_map("root")));
     }
-    pub fn merge_update(&mut self, encoded_update: impl AsRef<[u8]>) {}
 }
 
 fn write_state_to_doc(doc: &mut Doc, state: impl History) {

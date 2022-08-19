@@ -49,9 +49,7 @@ fn list_update_works() {
 
         history_system.mutate(|state: &mut B| {
             state.a_list.update(0, |a| {
-                let mut next_a = a.clone();
-                next_a.a += 1;
-                next_a
+                a.a += 1;
             });
         });
 
