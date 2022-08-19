@@ -116,10 +116,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/init-test-job
+      - run: cargo test --manifest-path luda-editor/crdt/Cargo.toml
       - uses: ./.github/actions/namui-test
         with:
           target: wasm-unknown-web
-          path: luda-editor/luda-editor/client
+          path: luda-editor/core
+      - uses: ./.github/actions/namui-test
+        with:
+          target: wasm-unknown-web
+          path: luda-editor/client
 
   test-namui-prebuilt:
     needs: [check-rebuild, set-up]
