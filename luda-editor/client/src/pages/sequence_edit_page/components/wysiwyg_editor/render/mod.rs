@@ -12,10 +12,6 @@ impl WysiwygEditor {
         ])
     }
     fn render_image_clip(&self, props: &Props) -> RenderingTree {
-        /*
-            레이어별로 렌더링 시작.
-            만약 해당 레이어가 선택되었으면 그거 수정하는 도구가 뜨도록 함.
-        */
         render(props.image_clip.images.iter().enumerate().map(|(layer_index, image)| {
             let is_selected_layer = props.selected_layer_index == Some(layer_index);
 
