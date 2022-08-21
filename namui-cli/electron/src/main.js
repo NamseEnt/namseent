@@ -40,7 +40,7 @@ function createWindow() {
     setOpenUrlEventHandler(app, mainWindow);
 
     if (config.test) {
-        mainWindow.loadFile("../ test.html");
+        mainWindow.loadFile("../test.html");
     } else if (isDev) {
         const port = config.port;
         if (typeof port !== "number" || isNaN(port)) {
