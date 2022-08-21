@@ -1,10 +1,10 @@
-use std::{error::Error, fs, path::PathBuf};
+use std::{fs, path::PathBuf};
 
-pub struct NamuiDeepLinkManifest {
+pub struct DeepLinkManifest {
     path: PathBuf,
     deep_link_schemes: Vec<String>,
 }
-impl NamuiDeepLinkManifest {
+impl DeepLinkManifest {
     pub fn path(&self) -> &PathBuf {
         &self.path
     }
@@ -13,7 +13,7 @@ impl NamuiDeepLinkManifest {
         &self.deep_link_schemes
     }
 
-    pub fn try_load(project_root_path: &PathBuf) -> Result<Option<Self>, Box<dyn Error>> {
+    pub fn try_load(project_root_path: &PathBuf) -> Result<Option<Self>, crate::Error> {
         let namui_deep_link_manifest_path = project_root_path.join(".namuideeplink");
         match namui_deep_link_manifest_path.exists() {
             true => {
@@ -23,7 +23,7 @@ impl NamuiDeepLinkManifest {
                 let deep_link_schemes =
                     parse_namui_deep_link_manifest(namui_deep_link_manifest_string.as_str());
 
-                Ok(Some(NamuiDeepLinkManifest {
+                Ok(Some(DeepLinkManifest {
                     path: namui_deep_link_manifest_path.clone(),
                     deep_link_schemes,
                 }))

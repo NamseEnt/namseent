@@ -1,9 +1,7 @@
 use super::GenerateRuntimeProjectArgs;
 use std::path::PathBuf;
 
-pub fn generate_runtime_project(
-    args: GenerateRuntimeProjectArgs,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<(), crate::Error> {
     let project_name = get_project_name(args.project_path.clone());
 
     std::fs::create_dir_all(&args.target_dir.join("src"))?;

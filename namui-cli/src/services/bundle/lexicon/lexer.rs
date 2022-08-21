@@ -1,13 +1,19 @@
+use super::super::token::*;
 use super::{
     path::{Path, PathElement},
-    ExcludeOperation, IncludeOperation, NamuiBundleManifest,
+    ExcludeOperation, IncludeOperation,
 };
-use crate::util::namui_bundle_manifest::token::{Token, Tokenizer};
 use regex::Regex;
 
 pub struct Lexer {
     tokenizer: Tokenizer,
     last_token: Token,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ParseResult {
+    pub include: Vec<IncludeOperation>,
+    pub exclude: Vec<ExcludeOperation>,
 }
 impl Lexer {
     pub fn new(tokenizer: Tokenizer) -> Self {
@@ -17,7 +23,7 @@ impl Lexer {
         }
     }
 
-    pub fn parse(self: &mut Self) -> Result<NamuiBundleManifest, String> {
+    pub fn parse(self: &mut Self) -> Result<ParseResult, crate::Error> {
         let mut include: Vec<IncludeOperation> = Vec::new();
         let mut exclude: Vec<ExcludeOperation> = Vec::new();
 
@@ -25,7 +31,7 @@ impl Lexer {
             match self.last_token {
                 Token::Exclude => exclude.push(self.parse_exclude_operation()?),
                 Token::Comment(_) | Token::EndOfLine => self.next_token(),
-                Token::EndOfFile => break Ok(NamuiBundleManifest::new(include, exclude)),
+                Token::EndOfFile => break Ok(ParseResult { include, exclude }),
                 _ => include.push(self.parse_include_operation()?),
             }
         }
@@ -39,7 +45,7 @@ impl Lexer {
         self.last_token = self.tokenizer.next();
     }
 
-    fn parse_exclude_operation(self: &mut Self) -> Result<ExcludeOperation, String> {
+    fn parse_exclude_operation(self: &mut Self) -> Result<ExcludeOperation, crate::Error> {
         self.next_token();
         match self.last_token {
             Token::Word(_)
@@ -52,12 +58,13 @@ impl Lexer {
                 return Err(format!(
                     "parse_exclude_operation: Unexpected token {:?}",
                     &self.last_token
-                ))
+                )
+                .into())
             }
         }
     }
 
-    fn parse_include_operation(self: &mut Self) -> Result<IncludeOperation, String> {
+    fn parse_include_operation(self: &mut Self) -> Result<IncludeOperation, crate::Error> {
         let src_path = match self.last_token {
             Token::Word(_)
             | Token::Asterisk
@@ -70,7 +77,8 @@ impl Lexer {
                 return Err(format!(
                     "parse_include_operation: Unexpected token {:?}",
                     &self.last_token
-                ))
+                )
+                .into())
             }
         };
 
@@ -88,7 +96,8 @@ impl Lexer {
                 return Err(format!(
                     "parse_include_operation: Unexpected token {:?}",
                     &self.last_token
-                ))
+                )
+                .into())
             }
         }
 
@@ -103,14 +112,15 @@ impl Lexer {
                 return Err(format!(
                     "parse_include_operation: Unexpected token {:?}",
                     &self.last_token
-                ))
+                )
+                .into())
             }
         };
 
         Ok(IncludeOperation::new(src_path, dest_path))
     }
 
-    fn parse_path(self: &mut Self, allow_wildcard: bool) -> Result<Path, String> {
+    fn parse_path(self: &mut Self, allow_wildcard: bool) -> Result<Path, crate::Error> {
         let mut elements = Vec::new();
         loop {
             match &self.last_token {
@@ -124,10 +134,9 @@ impl Lexer {
                     continue;
                 }
                 Token::Exclude | Token::Comment(_) => {
-                    return Err(format!(
-                        "parse_dest_path: Unexpected token {:?}",
-                        &self.last_token
-                    ))
+                    return Err(
+                        format!("parse_dest_path: Unexpected token {:?}", &self.last_token).into(),
+                    )
                 }
                 Token::SrcDestSeparator | Token::EndOfLine | Token::EndOfFile => {
                     return Ok(Path { elements })
@@ -136,14 +145,17 @@ impl Lexer {
         }
     }
 
-    fn parse_path_element(self: &mut Self, allow_wildcard: bool) -> Result<PathElement, String> {
+    fn parse_path_element(
+        self: &mut Self,
+        allow_wildcard: bool,
+    ) -> Result<PathElement, crate::Error> {
         let mut element_name_regex = String::new();
         let mut element_name_raw_string = String::new();
         loop {
             match self.last_token() {
                 Token::DoubleAsterisk => {
                     if !allow_wildcard {
-                        return Err(format!("parse_path_element: Wildcard not allowed"));
+                        return Err(format!("parse_path_element: Wildcard not allowed").into());
                     }
                     self.next_token();
                     return Ok(PathElement::DoubleAsterisk);
@@ -155,7 +167,7 @@ impl Lexer {
                 }
                 Token::Asterisk => {
                     if !allow_wildcard {
-                        return Err(format!("parse_path_element: Wildcard not allowed"));
+                        return Err(format!("parse_path_element: Wildcard not allowed").into());
                     }
                     self.next_token();
                     element_name_regex.push('*');
@@ -183,7 +195,8 @@ impl Lexer {
                     return Err(format!(
                         "parse_path_element: Unexpected token {:?}",
                         &self.last_token
-                    ))
+                    )
+                    .into())
                 }
             }
         }
@@ -207,7 +220,7 @@ mod test {
 
         let tokenizer = Tokenizer::new(input);
         let mut lexer = Lexer::new(tokenizer);
-        let namui_bundle_manifest = lexer.parse().unwrap();
+        let result = lexer.parse().unwrap();
 
         let include_src_path = Path {
             elements: vec![
@@ -254,10 +267,10 @@ mod test {
             ],
         };
 
-        let expected_namui_bundle_manifest = NamuiBundleManifest::new(
-            vec![IncludeOperation::new(include_src_path, include_dest_path)],
-            vec![ExcludeOperation::new(exclude_path)],
-        );
-        assert_eq!(namui_bundle_manifest, expected_namui_bundle_manifest);
+        let expected = ParseResult {
+            include: vec![IncludeOperation::new(include_src_path, include_dest_path)],
+            exclude: vec![ExcludeOperation::new(exclude_path)],
+        };
+        assert_eq!(expected, result);
     }
 }

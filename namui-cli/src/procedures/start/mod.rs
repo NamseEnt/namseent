@@ -1,7 +1,7 @@
 use crate::cli::Target;
-use std::{error::Error, path::PathBuf};
+use std::path::PathBuf;
 
-pub fn start(target: &Target, manifest_path: &PathBuf) -> Result<(), Box<dyn Error>> {
+pub fn start(target: &Target, manifest_path: &PathBuf) -> Result<(), crate::Error> {
     let manifest_path = std::fs::canonicalize(manifest_path)?;
 
     if cfg!(target_os = "linux") {

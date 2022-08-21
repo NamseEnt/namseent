@@ -23,3 +23,5 @@ pub enum WebsocketMessage {
         error_messages: Vec<ErrorMessage>,
     },
 }
+
+pub type Error = Box<dyn std::error::Error>;
