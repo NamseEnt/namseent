@@ -1,10 +1,7 @@
 use super::*;
 
 #[derive(serde::Deserialize, Debug)]
-pub struct PutRepositoryContentResponseBody {
-    // pub content: Content,
-    // pub commit: Commit,
-}
+pub struct PutRepositoryContentResponseBody;
 
 impl GithubClient {
     #![cfg_attr(test, allow(dead_code))]
@@ -53,106 +50,3 @@ impl GithubClient {
         )
     }
 }
-
-// #[derive(serde::Deserialize, Debug)]
-// pub struct Content {
-//     pub name: String,
-//     pub path: String,
-//     pub sha: String,
-//     pub size: u32,
-//     pub r#type: String,
-//     // pub url: String,
-//     // pub html_url: String,
-//     // pub git_url: String,
-//     // pub download_url: String,
-// }
-
-// #[derive(serde::Deserialize, Debug)]
-// pub struct Commit {
-//     pub sha: String,
-//     pub node_id: String,
-//     pub url: String,
-//     pub html_url: String,
-// "author": {
-//   "type": "object",
-//   "properties": {
-//     "date": {
-//       "type": "string"
-//     },
-//     "name": {
-//       "type": "string"
-//     },
-//     "email": {
-//       "type": "string"
-//     }
-//   }
-// },
-// "committer": {
-//   "type": "object",
-//   "properties": {
-//     "date": {
-//       "type": "string"
-//     },
-//     "name": {
-//       "type": "string"
-//     },
-//     "email": {
-//       "type": "string"
-//     }
-//   }
-// },
-// "message": {
-//   "type": "string"
-// },
-// "tree": {
-//   "type": "object",
-//   "properties": {
-//     "url": {
-//       "type": "string"
-//     },
-//     "sha": {
-//       "type": "string"
-//     }
-//   }
-// },
-// "parents": {
-//   "type": "array",
-//   "items": {
-//     "type": "object",
-//     "properties": {
-//       "url": {
-//         "type": "string"
-//       },
-//       "html_url": {
-//         "type": "string"
-//       },
-//       "sha": {
-//         "type": "string"
-//       }
-//     }
-//   }
-// },
-// "verification": {
-//   "type": "object",
-//   "properties": {
-//     "verified": {
-//       "type": "boolean"
-//     },
-//     "reason": {
-//       "type": "string"
-//     },
-//     "signature": {
-//       "type": [
-//         "string",
-//         "null"
-//       ]
-//     },
-//     "payload": {
-//       "type": [
-//         "string",
-//         "null"
-//       ]
-//     }
-//   }
-// }
-// }
