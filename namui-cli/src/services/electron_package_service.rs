@@ -2,18 +2,13 @@ use crate::util::get_electron_root_path;
 use serde::Deserialize;
 use std::process::{Command, Output};
 
-pub struct ElectronPackageService {}
+pub struct ElectronPackageService;
 
 impl ElectronPackageService {
-    pub fn new() -> Self {
-        Self {}
-    }
-
     pub fn package_electron_app(
-        self: &Self,
         arch: Option<Arch>,
         platform: Platform,
-    ) -> Result<PackageResult, String> {
+    ) -> Result<PackageResult, crate::Error> {
         println!("start package electron app");
         let mut args = vec!["run".to_string(), "package".to_string(), "--".to_string()];
 
@@ -32,7 +27,7 @@ impl ElectronPackageService {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub enum Arch {
     X64,
@@ -49,7 +44,7 @@ impl std::fmt::Display for Arch {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub enum Platform {
     Win32,
@@ -75,7 +70,7 @@ pub struct PackageResult {
     pub output_path: String,
 }
 
-fn parse_package_output(output: &Output) -> Result<PackageResult, String> {
+fn parse_package_output(output: &Output) -> Result<PackageResult, crate::Error> {
     let output_string = String::from_utf8(output.stdout.clone())
         .map_err(|error| format!("npm package command result read fail: {}", error,))?;
     let output_string = trim_json_string(&output_string)?;
@@ -84,11 +79,11 @@ fn parse_package_output(output: &Output) -> Result<PackageResult, String> {
     Ok(package_result)
 }
 
-fn trim_json_string(json_string: &String) -> Result<String, String> {
+fn trim_json_string(json_string: &String) -> Result<String, crate::Error> {
     let json_start_position = json_string.find("{");
     let json_end_position = json_string.rfind("}");
     if json_start_position.is_none() || json_end_position.is_none() {
-        return Err("Invalid json string".to_string());
+        return Err("Invalid json string".into());
     }
     Ok(json_string[json_start_position.unwrap()..json_end_position.unwrap() + 1].to_string())
 }

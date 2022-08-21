@@ -32,6 +32,9 @@ use std::sync::Arc;
 pub use system::*;
 pub use url::Url;
 
+#[cfg(target_family = "wasm")]
+pub use wasm_bindgen_futures::spawn_local;
+
 pub trait Entity {
     type Props;
     fn update(&mut self, event: &dyn std::any::Any);

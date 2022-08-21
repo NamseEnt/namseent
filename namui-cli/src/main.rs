@@ -5,10 +5,12 @@ mod services;
 mod test;
 mod types;
 mod util;
+
 use clap::StructOpt;
 use cli::{Cli, Commands};
 use namui_user_config::set_user_config;
 use std::env::current_dir;
+use types::Error;
 use util::{get_current_target, print_namui_cfg, print_namui_target};
 
 #[tokio::main]
