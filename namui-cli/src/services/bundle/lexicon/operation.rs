@@ -16,7 +16,7 @@ impl IncludeOperation {
     pub fn join_dest_path_under_dest_root_path(
         self: &Self,
         dest_root_path: &PathBuf,
-    ) -> Result<PathBuf, String> {
+    ) -> Result<PathBuf, crate::Error> {
         let mut target_dest_path = dest_root_path.clone();
         for element in &self.dest_path.elements {
             match element {
@@ -27,7 +27,8 @@ impl IncludeOperation {
                 PathElement::DoubleAsterisk => {
                     return Err(format!(
                         "join_dest_path_under_dest_root_path: No wildcard allowed to dest_path"
-                    ))
+                    )
+                    .into())
                 }
                 PathElement::CurrentDirectory => continue,
                 PathElement::ParentDirectory => {
@@ -45,7 +46,7 @@ impl IncludeOperation {
         src_path_depth: usize,
         keep_directory_structure: bool,
         op: &mut F,
-    ) -> Result<(), String>
+    ) -> Result<(), crate::Error>
     where
         F: FnMut(PathBuf, PathBuf),
     {
@@ -147,7 +148,7 @@ impl ExcludeOperation {
         target_src_path: &PathBuf,
         src_path_depth: usize,
         op: &mut F,
-    ) -> Result<(), String>
+    ) -> Result<(), crate::Error>
     where
         F: FnMut(PathBuf),
     {
@@ -195,9 +196,9 @@ impl ExcludeOperation {
     }
 }
 
-fn visit_just_under_directory<F>(directory: &PathBuf, op: &mut F) -> Result<(), String>
+fn visit_just_under_directory<F>(directory: &PathBuf, op: &mut F) -> Result<(), crate::Error>
 where
-    F: FnMut(DirEntry) -> Result<(), String>,
+    F: FnMut(DirEntry) -> Result<(), crate::Error>,
 {
     if !directory.is_dir() {
         return Ok(());

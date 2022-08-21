@@ -21,15 +21,20 @@ impl PathLike for &str {
         PathBuf::from(self)
     }
 }
-impl PathLike for Url {
+impl PathLike for &Url {
     fn path(&self) -> PathBuf {
         assert!(self.cannot_be_a_base());
-        let path = self.path();
+        let path = (*self).path();
         PathBuf::from(
             percent_decode_str(path)
                 .decode_utf8()
                 .expect(&format!("invalid url path: {}", path))
                 .into_owned(),
         )
+    }
+}
+impl PathLike for Url {
+    fn path(&self) -> PathBuf {
+        (&self).path()
     }
 }

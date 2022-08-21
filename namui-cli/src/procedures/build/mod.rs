@@ -1,11 +1,11 @@
 use crate::{cli::Target, services::electron_package_service};
-use std::{error::Error, path::PathBuf};
+use std::path::PathBuf;
 
 pub fn build(
     target: &Target,
     manifest_path: &PathBuf,
     arch: Option<electron_package_service::Arch>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), crate::Error> {
     let manifest_path = std::fs::canonicalize(manifest_path)?;
 
     if cfg!(target_os = "linux") {

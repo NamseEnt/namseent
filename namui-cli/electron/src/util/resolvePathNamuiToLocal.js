@@ -2,19 +2,19 @@ const { convertPathNamuiToLocal } = require("./convertPathNamuiToLocal");
 const path = require("path");
 const { ipcRenderer } = require("electron");
 
-let resourceRoot = "";
+let applicationRoot = "";
 
 async function resolvePathNamuiToLocal(namuiPath) {
-    if (!resourceRoot) {
-        await initResourceRoot();
+    if (!applicationRoot) {
+        await initapplicationRoot();
     }
     const definiteLocalPath = convertPathNamuiToLocal(namuiPath);
-    return path.resolve(resourceRoot, definiteLocalPath);
+    return path.resolve(applicationRoot, definiteLocalPath);
 }
 
-async function initResourceRoot() {
+async function initapplicationRoot() {
     const config = await ipcRenderer.invoke("config");
-    resourceRoot = config.resourceRoot;
+    applicationRoot = config.applicationRoot;
 }
 
 exports.resolvePathNamuiToLocal = resolvePathNamuiToLocal;

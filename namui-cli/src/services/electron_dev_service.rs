@@ -14,7 +14,7 @@ pub fn start_electron_dev_service(
     cross_platform: CrossPlatform,
     project_root_path: &PathBuf,
     deep_link_schemes: &Vec<String>,
-) -> Result<Child, String> {
+) -> Result<Child, crate::Error> {
     let mut args = Vec::new();
     args.push("run".to_string());
     args.push(match cross_platform {
@@ -23,7 +23,7 @@ pub fn start_electron_dev_service(
     });
     args.push(format!("port={}", port.to_string()));
     args.push(format!(
-        "resourceRoot={}",
+        "applicationRoot={}",
         project_root_path.to_str().unwrap_or("")
     ));
     for deep_link_scheme in deep_link_schemes {
@@ -36,5 +36,5 @@ pub fn start_electron_dev_service(
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.into())
 }

@@ -96,7 +96,7 @@ impl CancelableBuilder {
         let build_option = build_option.clone();
 
         let builder_thread_fn = {
-            move |builder: Arc<Self>| -> Result<BuildResult, Box<dyn std::error::Error>> {
+            move |builder: Arc<Self>| -> Result<BuildResult, crate::Error> {
                 let mut spawned_process = Self::spawn_build_process(&build_option)?;
 
                 let mut stdout = spawned_process.stdout.take().unwrap();
@@ -176,9 +176,7 @@ impl CancelableBuilder {
         (builder, result_receiver)
     }
 
-    fn spawn_build_process(
-        build_option: &BuildOption,
-    ) -> Result<Child, Box<dyn std::error::Error>> {
+    fn spawn_build_process(build_option: &BuildOption) -> Result<Child, crate::Error> {
         Ok(Command::new("wasm-pack")
             .args([
                 "build",
@@ -234,7 +232,7 @@ pub struct CargoBuildResult {
     pub is_successful: bool,
 }
 
-fn parse_cargo_build_result(stdout: &[u8]) -> Result<CargoBuildResult, Box<dyn std::error::Error>> {
+fn parse_cargo_build_result(stdout: &[u8]) -> Result<CargoBuildResult, crate::Error> {
     let mut warning_messages: Vec<ErrorMessage> = Vec::new();
     let mut error_messages: Vec<ErrorMessage> = Vec::new();
     let mut other_messages: Vec<ErrorMessage> = Vec::new();
