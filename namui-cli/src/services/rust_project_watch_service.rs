@@ -23,7 +23,7 @@ impl RustProjectWatchService {
         &self,
         manifest_path: &Path,
         callback: impl Fn(),
-    ) -> Result<(), crate::Error> {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let mut watching_paths = HashSet::new();
 
         let (watcher_sender, watcher_receiver) = std::sync::mpsc::channel::<_>();
@@ -65,7 +65,7 @@ impl RustProjectWatchService {
         manifest_path: &Path,
         watching_paths: &mut HashSet<PathBuf>,
         watcher: &mut impl Watcher,
-    ) -> Result<(), crate::Error> {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let local_path_in_repr = Regex::new(r"\(path\+file://([^\)]+)\)$").unwrap();
         let project_root_path = manifest_path.parent().unwrap();
         let mut local_dependencies_root_paths = HashSet::new();

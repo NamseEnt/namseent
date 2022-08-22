@@ -40,7 +40,7 @@ function createWindow() {
     setOpenUrlEventHandler(app, mainWindow);
 
     if (config.test) {
-        mainWindow.loadFile("../ test.html");
+        mainWindow.loadFile("../test.html");
     } else if (isDev) {
         const port = config.port;
         if (typeof port !== "number" || isNaN(port)) {
@@ -51,7 +51,7 @@ function createWindow() {
         mainWindow.webContents.openDevTools();
         mainWindow.loadURL(`http://localhost:${port}`);
     } else {
-        mainWindow.loadFile("../../index.html");
+        mainWindow.loadFile("../index.html");
     }
 }
 
@@ -71,7 +71,7 @@ function getConfig() {
     const config = {
         test: false,
         port: 8000,
-        applicationRoot: path.join(__dirname, "../../.."),
+        resourceRoot: path.join(__dirname, "../.."),
         deepLinkSchemes: [],
     };
     const argv = [...process.argv];
@@ -82,9 +82,9 @@ function getConfig() {
         } else if (arg.startsWith("port=")) {
             const port = parseInt(arg.slice("port=".length));
             config.port = port;
-        } else if (arg.startsWith("applicationRoot=")) {
-            const applicationRoot = arg.slice("applicationRoot=".length);
-            config.applicationRoot = applicationRoot;
+        } else if (arg.startsWith("resourceRoot=")) {
+            const resourceRoot = arg.slice("resourceRoot=".length);
+            config.resourceRoot = resourceRoot;
         } else if (arg.startsWith("deepLink=")) {
             const deepLinkScheme = arg.slice("deepLink=".length);
             const schemeNotExist =
@@ -96,12 +96,12 @@ function getConfig() {
             }
         }
     }
-    config.deepLinkSchemes.push(...loadDeepLinkManifest(config.applicationRoot));
+    config.deepLinkSchemes.push(...loadDeepLinkManifest(config.resourceRoot));
     return config;
 }
 
-function loadDeepLinkManifest(applicationRootPath) {
-    const deepLinkManifestPath = path.join(applicationRootPath, ".namuideeplink");
+function loadDeepLinkManifest(resourceRootPath) {
+    const deepLinkManifestPath = path.join(resourceRootPath, ".namuideeplink");
     const deepLinkSchemes = [];
     if (existsSync(deepLinkManifestPath)) {
         const deepLinkManifestString = readFileSync(

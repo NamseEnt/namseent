@@ -40,7 +40,8 @@ jobs:
               - docker-images/namui-test-host/linux.Dockerfile
             luda-editor-client:
               - .github/**
-              - luda-editor/luda-editor/**
+              - luda-editor/luda-editor-client/**
+              - luda-editor/luda-editor-rpc/**
               - namui/**
               - docker-images/namui-test-host/linux.Dockerfile
             namui-prebuilt:
@@ -116,15 +117,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/init-test-job
-      - run: cargo test --manifest-path luda-editor/crdt/Cargo.toml
       - uses: ./.github/actions/namui-test
         with:
           target: wasm-unknown-web
-          path: luda-editor/core
-      - uses: ./.github/actions/namui-test
-        with:
-          target: wasm-unknown-web
-          path: luda-editor/client
+          path: luda-editor/luda-editor-client
 
   test-namui-prebuilt:
     needs: [check-rebuild, set-up]

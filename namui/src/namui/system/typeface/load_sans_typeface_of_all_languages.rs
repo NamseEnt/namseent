@@ -25,8 +25,8 @@ async fn load_fallback_font_typefaces() -> Result<(), Box<dyn std::error::Error>
 }
 
 async fn get_noto_color_emoji_typeface() -> Result<Typeface, Box<dyn std::error::Error>> {
-    let url = crate::Url::parse("bundle:__system__/font/NotoColorEmoji.woff2")?;
-    let bytes = crate::file::bundle::read(&url)
+    let url = "resources/font/NotoColorEmoji.woff2";
+    let bytes = crate::network::http::get_bytes(url)
         .await
         .expect(format!("Could not fetch {}", url).as_str());
 
@@ -46,10 +46,8 @@ pub async fn load_sans_typeface_of_all_languages() -> Result<(), Box<dyn std::er
 
 async fn load_typeface_file_urls_file() -> Result<TypefaceFileUrlsFile, Box<dyn std::error::Error>>
 {
-    let url = crate::Url::parse("bundle:__system__/font/map.json")?;
-    let typeface_file_urls_file = crate::file::bundle::read_json(url).await?;
-
-    Ok(typeface_file_urls_file)
+    let url = "resources/font/map.json";
+    Ok(crate::network::http::get_json(url).await?)
 }
 
 async fn get_typeface_file_urls() -> Result<TypefaceFileUrls, Box<dyn std::error::Error>> {
@@ -79,10 +77,8 @@ async fn get_typeface_files<'a>(
 ) -> Result<HashMap<TypefaceType, impl AsRef<[u8]> + 'a>, Box<dyn std::error::Error>> {
     let iter = try_join_all(typeface_file_urls.iter().map(
         |(typeface_type, font_file_url)| async move {
-            let url = crate::Url::parse(font_file_url)?;
-
             let result: Result<_, Box<dyn std::error::Error>> =
-                match crate::file::bundle::read(url).await {
+                match crate::network::http::get_bytes(font_file_url).await {
                     Ok(bytes) => Ok((*typeface_type, bytes)),
                     Err(error) => Err(format!("Could not fetch {font_file_url} - {error}").into()),
                 };

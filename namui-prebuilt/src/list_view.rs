@@ -2,7 +2,7 @@ use crate::scroll_view;
 use namui::prelude::*;
 
 /// ListView is a vertical list view with fixed height items.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ListView {
     scroll_view: scroll_view::ScrollView,
 }

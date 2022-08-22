@@ -17,19 +17,6 @@ function main() {
 
     install_electron $electron_root_path
     if [ $(is_os_wsl) -eq 1 ]; then
-        export WSL_INTEROP=
-        for socket in /run/WSL/*; do
-            if ss -elx | grep -q "$socket"; then
-                export WSL_INTEROP=$socket
-            else
-                rm $socket 
-            fi
-        done
-
-        if [[ -z $WSL_INTEROP ]]; then
-            echo -e "\033[31mNo working WSL_INTEROP socket found !\033[0m" 
-        fi
-
         window_electron_root_path="$(wslpath $(wslvar APPDATA))/namui/electron"
         window_electron_exe_path="$window_electron_root_path/node_modules/electron/dist/electron.exe"
 

@@ -1,11 +1,12 @@
 use super::{
+    bundle_metadata_service::BundleMetadataService,
     runtime_project::{self, GenerateRuntimeProjectArgs},
     rust_build_service::{BuildOption, BuildResult, RustBuildService},
     rust_project_watch_service::RustProjectWatchService,
     wasm_bundle_web_server::WasmBundleWebServer,
 };
 use crate::{cli::Target, debug_println, util::print_build_result};
-use std::{path::PathBuf, sync::Arc};
+use std::{error::Error, path::PathBuf, sync::Arc};
 
 pub struct WasmWatchBuildService {}
 
@@ -21,7 +22,7 @@ where
 impl WasmWatchBuildService {
     pub fn watch_and_build<AfterFirstBuild>(
         args: WatchAndBuildArgs<AfterFirstBuild>,
-    ) -> Result<(), crate::Error>
+    ) -> Result<(), Box<dyn Error>>
     where
         AfterFirstBuild: FnOnce() + Send + 'static,
     {
@@ -34,8 +35,13 @@ impl WasmWatchBuildService {
             project_path: project_root_path.clone(),
         })?;
 
+        let bundle_metadata_service = Arc::new(BundleMetadataService::new());
         let rust_project_watch_service = Arc::new(RustProjectWatchService::new());
-        let wasm_bundle_web_server = WasmBundleWebServer::start(args.port, &build_dist_path);
+        let wasm_bundle_web_server = WasmBundleWebServer::start(
+            args.port,
+            &build_dist_path,
+            bundle_metadata_service.clone(),
+        );
         let rust_build_service = Arc::new(RustBuildService::new());
 
         pub async fn cancel_and_start_build(
@@ -44,6 +50,7 @@ impl WasmWatchBuildService {
             build_dist_path: PathBuf,
             project_root_path: PathBuf,
             runtime_target_dir: PathBuf,
+            bundle_metadata_service: Arc<BundleMetadataService>,
             target: Target,
         ) {
             debug_println!("build fn run");
@@ -58,18 +65,17 @@ impl WasmWatchBuildService {
                 }
                 BuildResult::Successful(cargo_build_result) => {
                     let mut cli_error_messages = Vec::new();
-                    let bundle_manifest = crate::services::bundle::NamuiBundleManifest::parse(
-                        project_root_path.clone(),
-                    )
-                    .map_err(|error| error.to_string());
-
-                    if let Err(error) = bundle_manifest.as_ref() {
-                        cli_error_messages.push(format!("fail to get bundle_manifest: {}", error));
+                    if let Err(error) =
+                        bundle_metadata_service.load_bundle_manifest(&project_root_path)
+                    {
+                        cli_error_messages.push(format!(
+                            "could not load bundle manifest for bundle metadata service: {}",
+                            error
+                        ));
                     }
                     print_build_result(&cargo_build_result.error_messages, &cli_error_messages);
-
                     wasm_bundle_web_server
-                        .on_build_done(&cargo_build_result, bundle_manifest.ok())
+                        .on_build_done(&cargo_build_result)
                         .await;
                 }
                 BuildResult::Failed(err) => {
@@ -84,6 +90,7 @@ impl WasmWatchBuildService {
             let rust_build_service = rust_build_service.clone();
             let build_dist_path = build_dist_path.clone();
             let project_root_path = project_root_path.clone();
+            let bundle_metadata_service = bundle_metadata_service.clone();
             let runtime_target_dir = runtime_target_dir.clone();
             async move {
                 cancel_and_start_build(
@@ -92,6 +99,7 @@ impl WasmWatchBuildService {
                     build_dist_path.clone(),
                     project_root_path.clone(),
                     runtime_target_dir.clone(),
+                    bundle_metadata_service.clone(),
                     args.target,
                 )
                 .await;
@@ -112,13 +120,14 @@ impl WasmWatchBuildService {
                     build_dist_path.clone(),
                     project_root_path.clone(),
                     runtime_target_dir.clone(),
+                    bundle_metadata_service.clone(),
                     args.target,
                 ));
             }
         })
     }
 
-    pub fn just_build(project_root_path: PathBuf, target: Target) -> Result<(), crate::Error> {
+    pub fn just_build(project_root_path: PathBuf, target: Target) -> Result<(), Box<dyn Error>> {
         let build_dist_path = project_root_path.join("pkg");
         let runtime_target_dir = project_root_path.join("target/namui");
         let rust_build_service = RustBuildService::new();
