@@ -12,7 +12,7 @@ async function resolvePathNamuiToLocal(namuiPath) {
     return path.resolve(applicationRoot, definiteLocalPath);
 }
 
-async function initapplicationRoot() {
+async function initApplicationRoot() {
     const config = await ipcRenderer.invoke("config");
     applicationRoot = config.applicationRoot;
 }
