@@ -6,7 +6,7 @@ let applicationRoot = "";
 
 async function resolvePathNamuiToLocal(namuiPath) {
     if (!applicationRoot) {
-        await initapplicationRoot();
+        await initApplicationRoot();
     }
     const definiteLocalPath = convertPathNamuiToLocal(namuiPath);
     return path.resolve(applicationRoot, definiteLocalPath);
