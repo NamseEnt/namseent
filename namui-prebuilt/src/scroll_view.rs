@@ -1,6 +1,6 @@
 use namui::prelude::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ScrollView {
     pub id: String,
     pub scroll_y: Px,
