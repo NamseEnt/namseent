@@ -1,6 +1,4 @@
-pub mod bundle;
-pub mod deep_link_manifest_service;
-pub mod electron_build_service;
+pub mod bundle_metadata_service;
 pub mod electron_dev_service;
 pub mod electron_package_service;
 pub mod resource_collect_service;

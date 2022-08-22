@@ -1,4 +1,4 @@
-use super::{bundle::NamuiBundleManifest, rust_build_service::CargoBuildResult};
+use super::{bundle_metadata_service::BundleMetadataService, rust_build_service::CargoBuildResult};
 use crate::{
     debug_println,
     types::{ErrorMessage, WebsocketMessage},
@@ -7,6 +7,7 @@ use crate::{
 use futures::{
     channel::mpsc::{unbounded, UnboundedSender},
     future::join_all,
+    lock::Mutex,
     SinkExt, StreamExt,
 };
 use nanoid::nanoid;
@@ -14,7 +15,7 @@ use std::{
     collections::HashMap,
     io,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
 use tokio::{spawn, sync::RwLock};
 use tokio_util::codec::{BytesCodec, FramedRead};
@@ -31,15 +32,17 @@ use warp::{path::Tail, ws};
 pub struct WasmBundleWebServer {
     sockets: Arc<Mutex<HashMap<String, UnboundedSender<Message>>>>,
     cached_error_messages: RwLock<Vec<ErrorMessage>>,
-    namui_bundle_manifest: Arc<Mutex<Option<NamuiBundleManifest>>>,
 }
 
 impl WasmBundleWebServer {
-    pub(crate) fn start(port: u16, wasm_bundle_dir_path: &Path) -> Arc<Self> {
+    pub(crate) fn start(
+        port: u16,
+        wasm_bundle_dir_path: &Path,
+        bundle_metadata_service: Arc<BundleMetadataService>,
+    ) -> Arc<Self> {
         let web_server = Arc::new(WasmBundleWebServer {
             sockets: Arc::new(Mutex::new(HashMap::new())),
             cached_error_messages: RwLock::new(Vec::new()),
-            namui_bundle_manifest: Arc::new(Mutex::new(None)),
         });
 
         let redirect_to_index_html =
@@ -52,18 +55,18 @@ impl WasmBundleWebServer {
                 let web_server = web_server_clone.clone();
                 ws.on_upgrade(|websocket| async move {
                     let id = nanoid!();
-                    let (mut sender, mut receiver) = unbounded::<Message>();
+                    let (sender, mut receiver) = unbounded::<Message>();
                     {
                         debug_println!("handle_websocket(open): locking web_server.sockets...");
-                        let mut sockets = web_server.sockets.lock().unwrap();
+                        let mut sockets = web_server.sockets.lock().await;
                         debug_println!("handle_websocket(open): web_server.sockets locked");
-                        (*sockets).insert(id.clone(), sender.clone());
+                        (*sockets).insert(id.clone(), sender);
                         debug_println!(
                             "handle_websocket(open): {} added to web_server.sockets",
                             id
                         );
                     }
-                    web_server.send_cached_error_messages(&mut sender).await;
+                    web_server.send_cached_error_messages(&id).await;
 
                     let (mut tx, mut rx) = websocket.split();
                     spawn(async move {
@@ -89,24 +92,21 @@ impl WasmBundleWebServer {
                         }
                     }
 
-                    {
-                        debug_println!("handle_websocket(close): locking web_server.sockets...");
-                        let mut sockets = web_server.sockets.lock().unwrap();
-                        debug_println!("handle_websocket(close): web_server.sockets locked");
-                        (*sockets).remove(&id);
-                        debug_println!(
-                            "handle_websocket(close): {} removed from web_server.sockets",
-                            id
-                        );
-                    }
+                    debug_println!("handle_websocket(close): locking web_server.sockets...");
+                    let mut sockets = web_server.sockets.lock().await;
+                    debug_println!("handle_websocket(close): web_server.sockets locked");
+                    (*sockets).remove(&id);
+                    debug_println!(
+                        "handle_websocket(close): {} removed from web_server.sockets",
+                        id
+                    );
                 })
             });
 
         let wasm_bundle_static = warp::get().and(warp::fs::dir(wasm_bundle_dir_path.to_path_buf()));
         let serve_static = warp::get().and(warp::fs::dir(PathBuf::from(get_static_dir())));
-        let bundle_metadata_static =
-            create_bundle_metadata_static(web_server.namui_bundle_manifest.clone());
-        let bundle_static = create_bundle_static(web_server.namui_bundle_manifest.clone());
+        let bundle_metadata_static = create_bundle_metadata_static(bundle_metadata_service.clone());
+        let bundle_static = create_bundle_static(bundle_metadata_service.clone());
 
         let routes = redirect_to_index_html
             .or(wasm_bundle_static)
@@ -121,14 +121,7 @@ impl WasmBundleWebServer {
         web_server
     }
 
-    pub async fn on_build_done(
-        &self,
-        result: &CargoBuildResult,
-        bundle_manifest: Option<NamuiBundleManifest>,
-    ) {
-        {
-            *self.namui_bundle_manifest.lock().unwrap() = bundle_manifest;
-        }
+    pub async fn on_build_done(&self, result: &CargoBuildResult) {
         {
             debug_println!("on_build_done: locking web_server.cached_error_messages...");
             let mut cached_error_messages = self.cached_error_messages.write().await;
@@ -150,7 +143,7 @@ impl WasmBundleWebServer {
         };
 
         debug_println!("on_build_done: locking web_server.sockets...");
-        let mut sockets = { self.sockets.lock().unwrap().clone() };
+        let mut sockets = self.sockets.lock().await;
         debug_println!("on_build_done: web_server.sockets locked");
 
         join_all(sockets.iter_mut().map(|(id, socket)| {
@@ -169,21 +162,29 @@ impl WasmBundleWebServer {
         .await;
     }
 
-    pub async fn send_cached_error_messages(&self, socket: &mut UnboundedSender<Message>) {
+    pub async fn send_cached_error_messages(&self, id: &String) {
+        debug_println!("send_cached_error_messages: locking web_server.sockets...");
+        let mut sockets = self.sockets.lock().await;
+        debug_println!("send_cached_error_messages: web_server.sockets locked");
+
         debug_println!("send_cached_error_messages: locking web_server.cached_error_messages...");
         let error_messages = self.cached_error_messages.read().await;
         debug_println!("send_cached_error_messages: web_server.cached_error_messages locked");
-        let result = socket
-            .send(Message::text(
-                serde_json::to_string(&WebsocketMessage::Error {
-                    error_messages: error_messages.clone(),
-                })
-                .unwrap(),
-            ))
-            .await;
-        if let Err(error) = result {
-            eprintln!("send_cached_error_messages fail.\n  {:?}", error);
+        match sockets.get_mut(id) {
+            Some(socket) => {
+                debug_println!("send_cached_error_messages: sending to {}...", id);
+                let _ = socket
+                    .send(Message::text(
+                        serde_json::to_string(&WebsocketMessage::Error {
+                            error_messages: error_messages.clone(),
+                        })
+                        .unwrap(),
+                    ))
+                    .await;
+            }
+            None => eprintln!("socket id {} not found", id),
         }
+        debug_println!("send_cached_error_messages: sended to {}", id);
     }
 }
 
@@ -192,67 +193,43 @@ fn get_static_dir() -> PathBuf {
 }
 
 fn create_bundle_metadata_static(
-    namui_bundle_manifest: Arc<Mutex<Option<NamuiBundleManifest>>>,
+    bundle_metadata_service: Arc<BundleMetadataService>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     let bundle_metadata_static = warp::get()
         .and(warp::path("bundle_metadata.json"))
         .and_then(move || {
-            let namui_bundle_manifest = namui_bundle_manifest.clone();
-            let result = {
-                let namui_bundle_manifest = namui_bundle_manifest.lock().unwrap();
-                match namui_bundle_manifest.as_ref() {
-                    Some(namui_bundle_manifest) => {
-                        json_response(namui_bundle_manifest.metadata_json().to_string())
-                    }
-                    None => Err(reject::reject()),
+            let bundle_metadata_service = bundle_metadata_service.clone();
+            async move {
+                match bundle_metadata_service.bundle_metadata() {
+                    Ok(bundle_metadata_json) => json_response(bundle_metadata_json),
+                    Err(_) => Err(reject::reject()),
                 }
-            };
-            async move { result }
+            }
         });
     bundle_metadata_static
 }
 
 fn create_bundle_static(
-    namui_bundle_manifest: Arc<Mutex<Option<NamuiBundleManifest>>>,
+    bundle_metadata_service: Arc<BundleMetadataService>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     let bundle_static = warp::get()
         .and(warp::path("bundle"))
         .and(warp::path::tail())
         .and_then(move |tail: Tail| {
-            let namui_bundle_manifest = namui_bundle_manifest.clone();
-            let src_path = (|| {
-                let url = {
-                    let tail = decode(tail.as_str());
-                    if tail.is_err() {
-                        return Err(reject::reject());
-                    } else {
-                        let tail = tail.unwrap().into_owned();
-                        PathBuf::from(&tail)
-                    }
-                };
-
-                let namui_bundle_manifest = namui_bundle_manifest.lock().unwrap();
-                match namui_bundle_manifest.as_ref() {
-                    Some(namui_bundle_manifest) => {
-                        match namui_bundle_manifest
-                            .get_src_path(&url)
-                            .map_err(|_| reject::reject())
-                        {
-                            Ok(src_path) => match src_path {
-                                Some(src_path) => Ok(src_path),
-                                None => Err(reject::not_found()),
-                            },
-                            Err(_) => Err(reject::reject()),
-                        }
-                    }
-                    None => Err(reject::reject()),
-                }
-            })();
-
+            let bundle_metadata_service = bundle_metadata_service.clone();
             async move {
-                match src_path {
-                    Ok(src_path) => file_response(&src_path).await,
-                    Err(err) => Err(err),
+                let tail = decode(tail.as_str());
+                if tail.is_err() {
+                    return Err(reject::reject());
+                }
+                let tail = tail.unwrap().into_owned();
+                let url = PathBuf::from(&tail);
+                match bundle_metadata_service.get_src_path(&url) {
+                    Ok(src_path) => match src_path {
+                        Some(src_path) => file_response(&src_path).await,
+                        None => Err(reject::not_found()),
+                    },
+                    Err(_) => Err(reject::reject()),
                 }
             }
         });

@@ -1,0 +1,882 @@
+{
+  "tracks": [
+    {
+      "Camera": {
+        "id": "camera-track",
+        "clips": [
+          {
+            "id": "CameraClip-t1mjkFMMHHkEd3GIlnTkz",
+            "start_at": {
+              "Ms": 0.0
+            },
+            "end_at": {
+              "Ms": 1399.9999
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "활짝웃음"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.50138885,
+                    "y": 0.8407408
+                  },
+                  "radius": 0.5
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-cwz34CEmZlFPfODVQwODS",
+            "start_at": {
+              "Ms": 1399.9999
+            },
+            "end_at": {
+              "Ms": 4320.0
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "어깨축",
+                  "땀삐질"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5083334,
+                    "y": 0.6827161
+                  },
+                  "radius": 0.36183313
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-6l_Eoy1oLkAvDHXODaVSp",
+            "start_at": {
+              "Ms": 4320.0
+            },
+            "end_at": {
+              "Ms": 5770.0
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "어깨축",
+                  "(-~-)"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5083334,
+                    "y": 0.6827161
+                  },
+                  "radius": 0.36183313
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip--UtxD1PZr4FKyKsP4WJ6N",
+            "start_at": {
+              "Ms": 5770.0
+            },
+            "end_at": {
+              "Ms": 7020.0
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "어깨축",
+                  "("
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5083334,
+                    "y": 0.6827161
+                  },
+                  "radius": 0.38235897
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-XIER_ZcsozaU3a0pBHg5C",
+            "start_at": {
+              "Ms": 7020.0
+            },
+            "end_at": {
+              "Ms": 8550.0
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "당황웃음"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.50138885,
+                    "y": 0.8407408
+                  },
+                  "radius": 0.5
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-Q0sY0J7w2H6o1SOsrM64i",
+            "start_at": {
+              "Ms": 8550.0
+            },
+            "end_at": {
+              "Ms": 10590.0
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "어깨축",
+                  "땀삐질"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5083334,
+                    "y": 0.6827161
+                  },
+                  "radius": 0.36183313
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-u3G0TSUeDanXacdMMMpqu",
+            "start_at": {
+              "Ms": 10590.0
+            },
+            "end_at": {
+              "Ms": 12280.0
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "어깨축",
+                  "하품"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5083334,
+                    "y": 0.6827161
+                  },
+                  "radius": 0.36183313
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-BX6qBaX2ceBF5ywc9-UQg",
+            "start_at": {
+              "Ms": 12280.0
+            },
+            "end_at": {
+              "Ms": 16000.0
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "당황"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.50138885,
+                    "y": 0.8407408
+                  },
+                  "radius": 0.5
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-wdtqnQx8oh8hQURTbkrQt",
+            "start_at": {
+              "Ms": 16000.0
+            },
+            "end_at": {
+              "Ms": 18200.0
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "궁금"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5138889,
+                    "y": 0.8432099
+                  },
+                  "radius": 0.4947568
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-kLj3yPwiB9TMCHvP4OeJ8",
+            "start_at": {
+              "Ms": 18200.0
+            },
+            "end_at": {
+              "Ms": 20090.0
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "의심"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5277778,
+                    "y": 0.8333334
+                  },
+                  "radius": 0.4947568
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-nkL76oD6kJNuI3YZVMBYW",
+            "start_at": {
+              "Ms": 20090.0
+            },
+            "end_at": {
+              "Ms": 22350.0
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "어깨축",
+                  "궁금"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5083334,
+                    "y": 0.6827161
+                  },
+                  "radius": 0.36183313
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-4LyhjuIEtGO3ZrMRJ6c64",
+            "start_at": {
+              "Ms": 22350.0
+            },
+            "end_at": {
+              "Ms": 26620.0
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "어깨축",
+                  "("
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5083334,
+                    "y": 0.6827161
+                  },
+                  "radius": 0.36183313
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-LaxVR3rMxIOYbyovZcTxA",
+            "start_at": {
+              "Ms": 26620.0
+            },
+            "end_at": {
+              "Ms": 27900.002
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "미소"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5277778,
+                    "y": 0.8333334
+                  },
+                  "radius": 0.4947568
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-zBjOMtqWJ9vn6EX_fHLTX",
+            "start_at": {
+              "Ms": 27900.002
+            },
+            "end_at": {
+              "Ms": 29350.004
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "의심"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5277778,
+                    "y": 0.8333334
+                  },
+                  "radius": 0.4947568
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-GoE3YS1M5n1ZvMmG8oKoH",
+            "start_at": {
+              "Ms": 29350.004
+            },
+            "end_at": {
+              "Ms": 31730.008
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "궁금"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5277778,
+                    "y": 0.8333334
+                  },
+                  "radius": 0.4947568
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-ZAbAr6Jj7fpTj0kHhExxT",
+            "start_at": {
+              "Ms": 31730.008
+            },
+            "end_at": {
+              "Ms": 34580.01
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "피디",
+                  "기본",
+                  "미소"
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.5277778,
+                    "y": 0.8333334
+                  },
+                  "radius": 0.4947568
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          },
+          {
+            "id": "CameraClip-7roLAJiXDUHeOmcd1vvLY",
+            "start_at": {
+              "Ms": 34580.01
+            },
+            "end_at": {
+              "Ms": 37200.01
+            },
+            "camera_angle": {
+              "character": {
+                "character_pose_emotion": [
+                  "하연",
+                  "어깨축",
+                  "("
+                ],
+                "source_01_circumscribed": {
+                  "center": {
+                    "x": 0.48333338,
+                    "y": 0.5765432
+                  },
+                  "radius": 0.36183313
+                },
+                "crop_screen_01_rect": {
+                  "Ltrb": {
+                    "left": 0.0,
+                    "top": 0.0,
+                    "right": 1.0,
+                    "bottom": 1.0
+                  }
+                }
+              },
+              "background": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "Subtitle": {
+        "id": "subtitle-track",
+        "clips": [
+          {
+            "id": "2022-03-08-22-38-0001",
+            "start_at": {
+              "Ms": 20.000061
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0001",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "고생했어요 하연씨~"
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0002",
+            "start_at": {
+              "Ms": 1659.9998
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0002",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "버추얼 유튜버인줄 알았는데…"
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0003",
+            "start_at": {
+              "Ms": 3569.9998
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0003",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "할만해요?"
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0004",
+            "start_at": {
+              "Ms": 4330.0
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0004",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "아뇨..."
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0005",
+            "start_at": {
+              "Ms": 5779.999
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0005",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "버튜버는 할만했을지도..."
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0006",
+            "start_at": {
+              "Ms": 7289.999
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0006",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "에이, 할만하잖아요"
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0007",
+            "start_at": {
+              "Ms": 8560.0
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0007",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "아뇨… 저 죽을 것 같아요… "
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0008",
+            "start_at": {
+              "Ms": 10560.0
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0008",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "고생하셨슴다… 저 갈게요…"
+              }
+            }
+          },
+          {
+            "id": "2022-03-14-03-16-0001",
+            "start_at": {
+              "Ms": 12320.0
+            },
+            "subtitle": {
+              "id": "2022-03-14-03-16-0001",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "아니, 그"
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0009",
+            "start_at": {
+              "Ms": 13220.0
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0009",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "트레이닝하는건 버튜버랑 다르지 않아요!"
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0010",
+            "start_at": {
+              "Ms": 16000.0
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0010",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "노래 연습하고, 춤 연습하고"
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0011",
+            "start_at": {
+              "Ms": 18180.002
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0011",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "우린 거기에 카메라! 표정 더 신경쓰는거죠."
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0012",
+            "start_at": {
+              "Ms": 21080.002
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0012",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "그렇긴 한데…"
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0013",
+            "start_at": {
+              "Ms": 22490.002
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0013",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "음..."
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0014",
+            "start_at": {
+              "Ms": 23860.002
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0014",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "그렇게 생각하면 괜찮은 것 같기도…"
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0015",
+            "start_at": {
+              "Ms": 26030.002
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0015",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "응! 하다보면 적응 될거에요!"
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0016",
+            "start_at": {
+              "Ms": 27900.002
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0016",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "너무 걱정하지 말고,"
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0017",
+            "start_at": {
+              "Ms": 29370.002
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0017",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "오늘 무리했으면 근육 땡길 수 있으니까"
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0018",
+            "start_at": {
+              "Ms": 31790.002
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0018",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "자기전에 마사지 하고, 내일 또 봐요. 알겠죠?"
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0019",
+            "start_at": {
+              "Ms": 34580.0
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0019",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "네에…"
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0020",
+            "start_at": {
+              "Ms": 35580.0
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0020",
+              "speaker": "피디",
+              "language_text_map": {
+                "Ko": "들어가요"
+              }
+            }
+          },
+          {
+            "id": "2022-03-08-22-38-0021",
+            "start_at": {
+              "Ms": 36580.0
+            },
+            "subtitle": {
+              "id": "2022-03-08-22-38-0021",
+              "speaker": "하연",
+              "language_text_map": {
+                "Ko": "네..."
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

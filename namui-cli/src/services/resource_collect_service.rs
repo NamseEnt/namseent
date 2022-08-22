@@ -1,113 +1,31 @@
-use super::{bundle::NamuiBundleManifest, deep_link_manifest_service::DeepLinkManifest};
-use crate::{cli::Target, debug_println, util::get_cli_root_path};
+use crate::debug_println;
 use std::{
     fs::{create_dir_all, remove_dir_all},
     path::PathBuf,
 };
 
-pub fn collect_all(
-    project_path: &PathBuf,
-    dest_path: &PathBuf,
-    target: Target,
-    bundle_manifest: NamuiBundleManifest,
-    additional_runtime_path: Option<&PathBuf>,
-) -> Result<(), crate::Error> {
-    let mut ops: Vec<CollectOperation> = vec![];
-    collect_runtime(&mut ops, additional_runtime_path, target)?;
-    collect_rust_build(&mut ops, project_path, target)?;
-    collect_bundle(&mut ops, &bundle_manifest)?;
-    collect_deep_link_manifest(&mut ops, project_path, target)?;
-
-    collect_resources(&project_path, &dest_path, ops)?;
-
-    bundle_manifest.create_bundle_metadata_file(&dest_path)?;
-    Ok(())
+pub struct ResourceCollectService {
+    project_root_path: PathBuf,
+    release_path: PathBuf,
 }
 
-fn collect_resources(
-    project_root_path: &PathBuf,
-    dest_path: &PathBuf,
-    ops: Vec<CollectOperation>,
-) -> Result<(), crate::Error> {
-    println!("start collecting resources");
-    remove_dir(&dest_path)?;
-    ensure_dir(&dest_path)?;
-    for op in ops {
-        op.execute(&project_root_path, &dest_path)?
-    }
-    Ok(())
-}
-
-fn collect_runtime(
-    ops: &mut Vec<CollectOperation>,
-    additional_runtime_path: Option<&PathBuf>,
-    target: Target,
-) -> Result<(), crate::Error> {
-    let namui_browser_runtime_path = get_cli_root_path().join("www");
-    match target {
-        Target::WasmUnknownWeb | Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
-            ops.push(CollectOperation::new(
-                &namui_browser_runtime_path,
-                &PathBuf::from(""),
-            ));
+impl ResourceCollectService {
+    pub fn new(project_root_path: &PathBuf, release_path: &PathBuf) -> Self {
+        Self {
+            project_root_path: project_root_path.clone(),
+            release_path: release_path.clone(),
         }
     }
-    if let Some(additional_runtime_path) = additional_runtime_path {
-        ops.push(CollectOperation::new(
-            &additional_runtime_path,
-            &PathBuf::from(""),
-        ));
-    }
-    Ok(())
-}
 
-fn collect_rust_build(
-    ops: &mut Vec<CollectOperation>,
-    project_path: &PathBuf,
-    target: Target,
-) -> Result<(), crate::Error> {
-    let build_dist_path = project_path.join("pkg");
-    match target {
-        Target::WasmUnknownWeb | Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
-            ops.push(CollectOperation::new(
-                &build_dist_path.join("bundle.js"),
-                &PathBuf::from(""),
-            ));
-            ops.push(CollectOperation::new(
-                &build_dist_path.join("bundle_bg.wasm"),
-                &PathBuf::from(""),
-            ));
+    pub fn collect_resources(self: &Self, ops: Vec<CollectOperation>) -> Result<(), String> {
+        println!("start collecting resources");
+        remove_dir(&self.release_path)?;
+        ensure_dir(&self.release_path)?;
+        for op in ops {
+            op.execute(&self.project_root_path, &self.release_path)?
         }
+        Ok(())
     }
-    Ok(())
-}
-
-fn collect_bundle(
-    ops: &mut Vec<CollectOperation>,
-    bundle_manifest: &NamuiBundleManifest,
-) -> Result<(), crate::Error> {
-    let mut bundle_ops = bundle_manifest.get_collect_operations(&PathBuf::from("bundle"))?;
-    ops.append(&mut bundle_ops);
-    Ok(())
-}
-
-fn collect_deep_link_manifest(
-    ops: &mut Vec<CollectOperation>,
-    project_path: &PathBuf,
-    target: Target,
-) -> Result<(), crate::Error> {
-    match target {
-        Target::WasmUnknownWeb => {}
-        Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
-            if let Some(namui_deep_link_manifest) = DeepLinkManifest::try_load(&project_path)? {
-                ops.push(CollectOperation::new(
-                    namui_deep_link_manifest.path(),
-                    &PathBuf::from(""),
-                ));
-            }
-        }
-    }
-    Ok(())
 }
 
 pub struct CollectOperation {
@@ -127,14 +45,14 @@ impl CollectOperation {
         self: &Self,
         project_root_path: &PathBuf,
         release_path: &PathBuf,
-    ) -> Result<(), crate::Error> {
+    ) -> Result<(), String> {
         let src_path = project_root_path.join(&self.src_path);
         let dest_path = release_path.join(&self.dest_path);
         copy_resource(&src_path, &dest_path)
     }
 }
 
-fn copy_resource(from: &PathBuf, to: &PathBuf) -> Result<(), crate::Error> {
+fn copy_resource(from: &PathBuf, to: &PathBuf) -> Result<(), String> {
     debug_println!("resource_collect_service: copy {:?} -> {:?}", &from, &to);
     ensure_dir(&to)?;
     match from.is_dir() {
@@ -143,7 +61,7 @@ fn copy_resource(from: &PathBuf, to: &PathBuf) -> Result<(), crate::Error> {
     }
 }
 
-fn copy_file(from: &PathBuf, to: &PathBuf) -> Result<(), crate::Error> {
+fn copy_file(from: &PathBuf, to: &PathBuf) -> Result<(), String> {
     const COPY_OPTION: fs_extra::file::CopyOptions = fs_extra::file::CopyOptions {
         overwrite: true,
         skip_exist: false,
@@ -160,7 +78,7 @@ fn copy_file(from: &PathBuf, to: &PathBuf) -> Result<(), crate::Error> {
     Ok(())
 }
 
-fn copy_dir(from: &PathBuf, to: &PathBuf) -> Result<(), crate::Error> {
+fn copy_dir(from: &PathBuf, to: &PathBuf) -> Result<(), String> {
     const COPY_OPTION: fs_extra::dir::CopyOptions = fs_extra::dir::CopyOptions {
         overwrite: true,
         skip_exist: false,
@@ -178,15 +96,15 @@ fn copy_dir(from: &PathBuf, to: &PathBuf) -> Result<(), crate::Error> {
     Ok(())
 }
 
-fn remove_dir(path: &PathBuf) -> Result<(), crate::Error> {
+fn remove_dir(path: &PathBuf) -> Result<(), String> {
     if !path.exists() {
         return Ok(());
     }
     remove_dir_all(path)
-        .map_err(|error| format!("resource_collect_service: remove dir failed\n\t{}", error).into())
+        .map_err(|error| format!("resource_collect_service: remove dir failed\n\t{}", error))
 }
 
-fn ensure_dir(path: &PathBuf) -> Result<(), crate::Error> {
+fn ensure_dir(path: &PathBuf) -> Result<(), String> {
     create_dir_all(path)
-        .map_err(|error| format!("resource_collect_service: ensure dir failed\n\t{}", error).into())
+        .map_err(|error| format!("resource_collect_service: ensure dir failed\n\t{}", error))
 }

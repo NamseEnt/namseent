@@ -4,7 +4,7 @@ use crate::{
 };
 use std::path::Path;
 
-pub fn start(manifest_path: &Path) -> Result<(), crate::Error> {
+pub fn start(manifest_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     const PORT: u16 = 8080;
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
 

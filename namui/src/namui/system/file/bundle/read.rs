@@ -29,13 +29,6 @@ pub async fn read(path_like: impl PathLike) -> Result<impl AsRef<[u8]>, ReadErro
         .map_err(|fetch_error| ReadError::NetworkError(fetch_error.to_string()))
 }
 
-pub async fn read_json<T: serde::de::DeserializeOwned>(
-    path_like: impl PathLike,
-) -> Result<T, ReadError> {
-    let bytes = read(path_like).await?;
-    serde_json::from_slice(bytes.as_ref()).map_err(|error| ReadError::Other(error.to_string()))
-}
-
 impl Into<ReadError> for electron::ReadVecU8Error {
     fn into(self) -> ReadError {
         match self {

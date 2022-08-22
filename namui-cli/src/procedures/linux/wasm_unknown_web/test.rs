@@ -1,5 +1,6 @@
 use std::{
     collections::HashSet,
+    error::Error,
     path::{Path, PathBuf},
     process::Command,
     str::FromStr,
@@ -8,7 +9,7 @@ use std::{
 use cargo_metadata::MetadataCommand;
 use regex::Regex;
 
-pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
+pub fn test(manifest_path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let source_root_directory_to_bind =
         find_source_root_directory_to_bind_to_docker(manifest_path)?;
     let source_bind_path = PathBuf::from_str("/namui-test")?;
@@ -154,7 +155,7 @@ mod tests {
 
 fn find_source_root_directory_to_bind_to_docker(
     manifest_path: &PathBuf,
-) -> Result<PathBuf, crate::Error> {
+) -> Result<PathBuf, Box<dyn Error>> {
     let manifest_paths = get_all_path_dependencies_recursively(manifest_path)?;
 
     let source_root_directory = get_common_path(manifest_paths.iter());
@@ -174,7 +175,7 @@ fn find_source_root_directory_to_bind_to_docker(
 
 fn get_all_path_dependencies_recursively(
     manifest_path: &PathBuf,
-) -> Result<HashSet<PathBuf>, crate::Error> {
+) -> Result<HashSet<PathBuf>, Box<dyn Error>> {
     let mut searching_manifest_paths = vec![manifest_path.clone()];
 
     let mut manifest_paths: HashSet<PathBuf> = HashSet::new();
@@ -226,7 +227,7 @@ fn get_common_path_of_two(path_a: &Path, path_b: &Path) -> Option<PathBuf> {
 
 fn get_path_dependency_manifest_paths(
     manifest_path: &PathBuf,
-) -> Result<Vec<PathBuf>, crate::Error> {
+) -> Result<Vec<PathBuf>, Box<dyn Error>> {
     let path_dependency_regex = Regex::new(r"\(path\+file://([^\)]+)\)$").unwrap();
 
     let metadata = MetadataCommand::new()
