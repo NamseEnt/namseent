@@ -55,7 +55,7 @@ fn start_load(url: &Url) {
                 .await
                 .map_err(|error| error.into())
                 .map(|bytes| bytes.as_ref().to_vec()),
-            "bundle" => crate::file::bundle::read(url.clone())
+            "bundle" => crate::file::bundle::read(&url)
                 .await
                 .map_err(|error| error.into())
                 .map(|bytes| bytes.as_ref().to_vec()),
