@@ -2,18 +2,20 @@ mod context_menu;
 mod rename_modal;
 
 use super::{router, sequence_edit_page::SequenceEditPage};
-use crate::storage::{EditorHistorySystem, Sequence, Storage};
 use namui::prelude::*;
 use namui_prebuilt::*;
+use rpc::list_project_sequences::SequenceNameAndId;
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct SequenceListPage {
+    project_id: String,
     list_view: list_view::ListView,
-    editor_history_system: EditorHistorySystem,
     context_menu: Option<context_menu::ContextMenu>,
     rename_modal: Option<rename_modal::RenameModal>,
-    storage: Storage,
+    is_loading: bool,
+    sequence_list: Vec<SequenceNameAndId>,
+    error_message: Option<String>,
 }
 
 pub struct Props {
@@ -27,26 +29,50 @@ enum Event {
         sequence_id: String,
     },
     ContextMenuOutsideClicked,
+    SequenceListLoaded(Vec<SequenceNameAndId>),
+    Error(String),
 }
 
 impl SequenceListPage {
-    pub fn new(editor_history_system: EditorHistorySystem, storage: Storage) -> Self {
+    pub fn new(project_id: String) -> Self {
+        start_fetch_list(&project_id);
         Self {
+            project_id,
             list_view: list_view::ListView::new(),
-            editor_history_system,
             context_menu: None,
             rename_modal: None,
-            storage,
+            is_loading: true,
+            sequence_list: vec![],
+            error_message: None,
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<Event>() {
             match event {
-                Event::AddButtonClicked => self.editor_history_system.mutate(|system_tree| {
-                    system_tree
-                        .sequence_list
-                        .push(Sequence::new("new sequence".to_string()));
-                }),
+                Event::AddButtonClicked => {
+                    let project_id = self.project_id.clone();
+                    spawn_local(async move {
+                        let result = crate::RPC
+                            .create_sequence(rpc::create_sequence::Request {
+                                name: "new sequence".to_string(),
+                                project_id: project_id.clone(),
+                            })
+                            .await;
+                        match result {
+                            Ok(_) => {
+                                start_fetch_list(&project_id);
+                            }
+                            Err(error) => {
+                                namui::event::send(Event::Error(error.to_string()));
+                            }
+                        }
+                    })
+                    // self.editor_history_system.mutate(|system_tree| {
+                    //   system_tree
+                    //         .sequence_list
+                    //         .push(Sequence::new("new sequence".to_string()));
+                    // })
+                }
                 Event::CellRightClick {
                     click_global_xy,
                     sequence_id,
@@ -59,41 +85,50 @@ impl SequenceListPage {
                 Event::ContextMenuOutsideClicked => {
                     self.context_menu = None;
                 }
+                Event::SequenceListLoaded(sequence_list) => {
+                    self.sequence_list = sequence_list.clone();
+                    self.is_loading = false;
+                }
+                Event::Error(error_message) => {
+                    self.error_message = Some(error_message.clone());
+                }
             }
         } else if let Some(event) = event.downcast_ref::<context_menu::Event>() {
             match event {
                 context_menu::Event::DeleteButtonClicked { sequence_id } => {
-                    self.editor_history_system.mutate(|system_tree| {
-                        let index = system_tree
-                            .sequence_list
-                            .iter()
-                            .position(|sequence| sequence.id() == *sequence_id)
-                            .unwrap();
-                        system_tree.sequence_list.remove(index);
-                    });
+                    todo!();
+                    // self.editor_history_system.mutate(|system_tree| {
+                    //     let index = system_tree
+                    //         .sequence_list
+                    //         .iter()
+                    //         .position(|sequence| sequence.id() == *sequence_id)
+                    //         .unwrap();
+                    //     system_tree.sequence_list.remove(index);
+                    // });
                     self.context_menu = None;
                 }
                 context_menu::Event::RenameButtonClicked { sequence_id } => {
-                    self.context_menu = None;
-                    let sequence_name = self
-                        .editor_history_system
-                        .get_state()
-                        .sequence_list
-                        .iter()
-                        .find(|sequence| sequence.id() == *sequence_id)
-                        .map(|sequence| sequence.name.clone());
+                    todo!()
+                    // self.context_menu = None;
+                    // let sequence_name = self
+                    //     .editor_history_system
+                    //     .get_state()
+                    //     .sequence_list
+                    //     .iter()
+                    //     .find(|sequence| sequence.id() == *sequence_id)
+                    //     .map(|sequence| sequence.name.clone());
 
-                    match sequence_name {
-                        Some(sequence_name) => {
-                            self.rename_modal = Some(rename_modal::RenameModal::new(
-                                sequence_id.clone(),
-                                sequence_name,
-                            ))
-                        }
-                        None => {
-                            namui::log!("sequence not found for id {sequence_id}");
-                        }
-                    }
+                    // match sequence_name {
+                    //     Some(sequence_name) => {
+                    //         self.rename_modal = Some(rename_modal::RenameModal::new(
+                    //             sequence_id.clone(),
+                    //             sequence_name,
+                    //         ))
+                    //     }
+                    //     None => {
+                    //         namui::log!("sequence not found for id {sequence_id}");
+                    //     }
+                    // }
                 }
             }
         } else if let Some(event) = event.downcast_ref::<rename_modal::Event>() {
@@ -103,16 +138,17 @@ impl SequenceListPage {
                     sequence_name,
                 } => {
                     self.rename_modal = None;
-                    self.editor_history_system.mutate(|system_tree| {
-                        let index = system_tree
-                            .sequence_list
-                            .iter()
-                            .position(|sequence| sequence.id() == *sequence_id)
-                            .unwrap();
-                        system_tree.sequence_list.update(index, |sequence| {
-                            sequence.name = sequence_name.clone();
-                        });
-                    });
+                    todo!()
+                    // self.editor_history_system.mutate(|system_tree| {
+                    //     let index = system_tree
+                    //         .sequence_list
+                    //         .iter()
+                    //         .position(|sequence| sequence.id() == *sequence_id)
+                    //         .unwrap();
+                    //     system_tree.sequence_list.update(index, |sequence| {
+                    //         sequence.name = sequence_name.clone();
+                    //     });
+                    // });
                 }
             }
         }
@@ -125,6 +161,13 @@ impl SequenceListPage {
             .map(|rename_modal| rename_modal.update(event));
     }
     pub fn render(&self, props: Props) -> namui::RenderingTree {
+        if let Some(error_message) = &self.error_message {
+            return typography::body::center(props.wh, error_message, Color::RED);
+        }
+        if self.is_loading {
+            return typography::body::center(props.wh, "loading...", Color::WHITE);
+        }
+
         render([
             table::horizontal([
                 table::ratio(1.0, |_wh| RenderingTree::Empty),
@@ -148,7 +191,7 @@ impl SequenceListPage {
                                 height: wh.height,
                                 scroll_bar_width: 10.px(),
                                 item_wh: Wh::new(wh.width, 40.px()),
-                                items: self.editor_history_system.get_state().sequence_list.iter(),
+                                items: self.sequence_list.iter(),
                                 item_render: |wh, sequence| self.render_sequence_cell(wh, sequence),
                             })
                         }),
@@ -187,7 +230,11 @@ impl SequenceListPage {
         ])
     }
 
-    fn render_sequence_cell(&self, wh: Wh<Px>, sequence: &Sequence) -> namui::RenderingTree {
+    fn render_sequence_cell(
+        &self,
+        wh: Wh<Px>,
+        sequence: &SequenceNameAndId,
+    ) -> namui::RenderingTree {
         namui_prebuilt::button::text_button(
             Rect::from_xy_wh(Xy::single(0.px()), wh),
             sequence.name.as_str(),
@@ -198,19 +245,19 @@ impl SequenceListPage {
             || {},
         )
         .attach_event(|builder| {
-            let sequence_id = sequence.id().to_string();
-            let editor_history_system = self.editor_history_system.clone();
-            let storage = self.storage.clone();
+            let project_id = self.project_id.clone();
+            let sequence_id = sequence.id.clone();
+            let sequence_name = sequence.name.clone();
             builder.on_mouse_up_in(move |event| {
                 if event.button == Some(MouseButton::Left) {
+                    let project_id = project_id.clone();
                     let sequence_id = sequence_id.clone();
-                    let editor_history_system = editor_history_system.clone();
-                    let storage = storage.clone();
+                    let sequence_name = sequence_name.clone();
                     namui::event::send(router::Event::Route(Arc::new(move || {
                         router::Route::SequenceEditPage(SequenceEditPage::new(
-                            editor_history_system.clone(),
+                            project_id.clone(),
                             sequence_id.clone(),
-                            storage.clone(),
+                            sequence_name.clone(),
                         ))
                     })));
                 } else if event.button == Some(MouseButton::Right) {
@@ -222,4 +269,23 @@ impl SequenceListPage {
             });
         })
     }
+}
+
+fn start_fetch_list(project_id: &str) {
+    let project_id = project_id.to_string();
+    spawn_local(async move {
+        match crate::RPC
+            .list_project_sequences(rpc::list_project_sequences::Request {
+                project_id: project_id.clone(),
+            })
+            .await
+        {
+            Ok(response) => {
+                namui::event::send(Event::SequenceListLoaded(response.sequence_name_and_ids));
+            }
+            Err(error) => {
+                namui::event::send(Event::Error(error.to_string()));
+            }
+        }
+    })
 }

@@ -4,14 +4,14 @@ use crdt::{history, History, HistorySystem, List, Map};
 #[test]
 fn derive_macro_works() {
     #[history]
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(PartialEq)]
     struct A {
         a: i32,
         b: String,
     }
 
     #[history(version = 0)]
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(PartialEq)]
     struct B {
         i32: i32,
         string: String,
@@ -159,7 +159,7 @@ fn derive_macro_works() {
         );
         history_system.encode()
     };
-    println!("encode_2: {:?}", encoded_2);
+    println!("encode_2: {:?}", encoded_2.as_ref());
 
     let history_system: HistorySystem<B> = HistorySystem::decode(&encoded_1);
 

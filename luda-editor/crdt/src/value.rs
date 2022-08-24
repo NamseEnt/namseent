@@ -26,10 +26,12 @@ impl Value {
             unreachable!("Expected Any, got {:?}", self.yvalue);
         }
     }
-    pub fn deserialize<T: serde::de::DeserializeOwned>(self) -> T {
+    pub fn deserialize<T: serde::de::DeserializeOwned + std::fmt::Debug>(self) -> T {
         let mut buf = "".to_string();
         self.yvalue.to_json().to_json(&mut buf);
-        serde_json::from_str(&buf).unwrap()
+
+        let result = serde_json::from_str(&buf);
+        result.unwrap()
     }
 }
 impl Into<i32> for Value {
@@ -88,6 +90,11 @@ impl<T: History> Into<Map<T>> for Value {
         } else {
             panic!("Expected YMap, got {:?}", self.yvalue);
         }
+    }
+}
+impl<T: History> Into<Single<T>> for Value {
+    fn into(self) -> Single<T> {
+        Single::new(T::from_value(Value::from_yrs_value(self.yvalue)))
     }
 }
 impl<T: serde::Serialize> From<T> for Value {

@@ -1,0 +1,105 @@
+name: deploy-luda-editor
+on:
+  push:
+    branches: "**__le"
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: ap-northeast-2
+jobs:
+  deploy-luda-editor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: set BRANCH_NAME, STACK_NAME
+        run: |
+          BRANCH_NAME=$(echo ${GITHUB_REF##*/} | tr "[:upper:]" "[:lower:]" | sed -e 's/\//-/g' -e 's/|/-/g')
+          echo $BRANCH_NAME
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+          STACK_NAME=$(echo ${GITHUB_REF##*/} | tr "[:upper:]" "[:lower:]" | tr -cd '[:alnum:]')
+          echo $STACK_NAME
+          echo "STACK_NAME=$STACK_NAME" >> $GITHUB_ENV
+
+      - run: echo ${{ env.BRANCH_NAME }};
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: wasm-pack install
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: rustup wasm32-unknown-unknown
+        run: rustup target add wasm32-unknown-unknown
+
+      - uses: actions/cache@v3
+        id: namui-cli-rust-cache
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            namui-cli/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('namui-cli/Cargo.lock') }}
+
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        run: echo "::set-output name=dir::$(npm config get cache)"
+
+      - uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: install cargo-lambda
+        run: pip3 install cargo-lambda
+
+      - name: install namui-cli
+        run: bash namui-cli/scripts/install.sh
+
+      - name: build client
+        working-directory: luda-editor/client
+        run: namui build wasm-unknown-web
+
+      - name: build server as lambda
+        working-directory: luda-editor/server
+        run: cargo lambda build --release --target x86_64-unknown-linux-gnu --output-format zip
+
+      - name: npm install in cdk
+        working-directory: luda-editor/cdk
+        run: npm ci
+
+      - name: bootstrap cdk
+        working-directory: luda-editor/cdk
+        run: npx cdk bootstrap
+
+        # Github client id and secret is not for production. please put it in github secrets on production branch.
+      - name: deploy cdk
+        working-directory: luda-editor/cdk
+        run: |
+          CDK_STACK_NAME=${{ env.STACK_NAME }} npx cdk deploy CdkStack --require-approval never \
+            --parameters lambdaFunctionName=${{ env.BRANCH_NAME }} \
+            --parameters serveStaticS3Bucket=luda-editor \
+            --parameters serveStaticS3KeyPrefix=${{ env.BRANCH_NAME }}/www \
+            --parameters githubClientId=abd04a6aeba3e99f5b4b \
+            --parameters githubClientSecret=501a915ca627e24d2088cf01416fe836db470dba \
+            --parameters s3BucketName=luda-editor \
+            --parameters s3KeyPrefix=${{ env.BRANCH_NAME }}
+
+      - name: inject client setting
+        working-directory: luda-editor/client
+        run: |
+          echo '{ \
+            "endpoint": "$(aws cloudformation describe-stacks \
+              --stack-name ${{ env.STACK_NAME }}
+              --query "Stacks[0].Outputs[?OutputKey=='FunctionUrl'].OutputValue" \
+              --output text)" \
+          }' > target/namui/wasm_unknown_web/bundle/setting.json
+
+      - name: deploy client to s3
+        working-directory: luda-editor/client
+        run: aws s3 cp target/namui/wasm_unknown_web s3://luda-editor/${{ env.BRANCH_NAME }}/www --recursive

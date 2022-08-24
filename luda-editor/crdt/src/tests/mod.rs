@@ -1,3 +1,4 @@
+mod cases;
 mod list_update;
 mod manual_impl;
 mod serde;

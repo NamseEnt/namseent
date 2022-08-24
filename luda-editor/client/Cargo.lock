@@ -217,6 +217,7 @@ dependencies = [
  "namui",
  "namui-prebuilt",
  "once_cell",
+ "rpc",
  "serde",
  "serde_json",
  "yrs",
@@ -663,8 +664,12 @@ dependencies = [
  "mockall",
  "namui",
  "namui-prebuilt",
+ "once_cell",
+ "rpc",
  "serde",
+ "serde_json",
  "wasm-bindgen-test",
+ "web-sys",
 ]
 
 [[package]]
@@ -1262,6 +1267,16 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "winreg",
+]
+
+[[package]]
+name = "rpc"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "namui",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

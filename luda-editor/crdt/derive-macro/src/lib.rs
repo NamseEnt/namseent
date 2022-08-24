@@ -40,6 +40,7 @@ pub fn history(args: TokenStream, item: TokenStream) -> TokenStream {
                         FieldType::Primitive(Primitive::NonString)
                     }
                     x if x.starts_with("Map <") => FieldType::Map,
+                    x if x.starts_with("Single <") => FieldType::Single,
                     _ => FieldType::Any,
                 },
             }
@@ -48,10 +49,10 @@ pub fn history(args: TokenStream, item: TokenStream) -> TokenStream {
     let inserting_to_map = fields
         .iter()
         .map(|Field { ident, ty }| match ty {
-            FieldType::Primitive(_) | FieldType::List | FieldType::Map => {
+            FieldType::List | FieldType::Map | FieldType::Single => {
                 format!("self.{ident}.insert_to_map(txn, &head, \"{ident}\");")
             }
-            FieldType::Any => format!(
+            FieldType::Primitive(_) | FieldType::Any => format!(
                 "head.insert(txn, \"{ident}\", crdt::Value::from(self.{ident}).into_any());"
             ),
         })
@@ -60,10 +61,10 @@ pub fn history(args: TokenStream, item: TokenStream) -> TokenStream {
     let value_from = fields
         .iter()
         .map(|Field { ident, ty }| match ty {
-            FieldType::Primitive(_) | FieldType::List | FieldType::Map => format!(
+            FieldType::List | FieldType::Map | FieldType::Single => format!(
                 "{ident}: crdt::Value::from_yrs_value(root.get(\"{ident}\").unwrap()).into(),"
             ),
-            FieldType::Any => {
+            FieldType::Primitive(_) | FieldType::Any => {
                 format!(
                     "{ident}: crdt::Value::from_yrs_value(root.get(\"{ident}\").unwrap()).deserialize(),"
                 )
@@ -74,22 +75,14 @@ pub fn history(args: TokenStream, item: TokenStream) -> TokenStream {
     let update_to_map_body = fields
         .iter()
         .map(|Field { ident, ty }| match ty {
-            FieldType::Primitive(primitive) =>
-            match primitive {
-                Primitive::String => format!(
-                        "if self.{ident} != crdt::Value::from_yrs_value(head.get(\"{ident}\").unwrap()).into_string() {{
-                            head.insert(txn, \"{ident}\", self.{ident});
-                        }}"
-                    ),
-                Primitive::NonString => format!(
-                        "if crdt::Value::from(self.{ident}) != crdt::Value::from_yrs_value(head.get(\"{ident}\").unwrap()) {{
-                            head.insert(txn, \"{ident}\", self.{ident});
-                        }}"
-                    ),
-            },
+            FieldType::Primitive(Primitive::String) =>format!(
+                "if self.{ident} != crdt::Value::from_yrs_value(head.get(\"{ident}\").unwrap()).into_string() {{
+                    head.insert(txn, \"{ident}\", self.{ident});
+                }}"
+            ),
             FieldType::List => format!("self.{ident}.update_to_array(txn, &head.get(\"{ident}\").unwrap().to_yarray().unwrap());"),
-            FieldType::Map => format!("self.{ident}.update_to_map(txn, &head.get(\"{ident}\").unwrap().to_ymap().unwrap());"),
-            FieldType::Any => format!(
+            FieldType::Map | FieldType::Single => format!("self.{ident}.update_to_map(txn, &head.get(\"{ident}\").unwrap().to_ymap().unwrap());"),
+            FieldType::Primitive(Primitive::NonString) | FieldType::Any => format!(
                 "let value_{ident} = crdt::Value::from(self.{ident});
                 if value_{ident} != crdt::Value::from_yrs_value(head.get(\"{ident}\").unwrap()) {{
                     head.insert(txn, \"{ident}\", value_{ident}.into_any());
@@ -197,7 +190,12 @@ impl History for {struct_name} {{
         {migrate_body}
     }}
 }}");
-    let mut output: TokenStream = item.into_token_stream().into();
+
+    let derive = "#[derive(Debug, Clone)]".parse::<TokenStream>().unwrap();
+
+    let mut output = TokenStream::new();
+    output.extend(derive);
+    output.extend(TokenStream::from(item.into_token_stream()));
     output.extend(result.parse::<TokenStream>().unwrap());
     output
 }
@@ -207,6 +205,7 @@ enum FieldType {
     Primitive(Primitive),
     List,
     Map,
+    Single,
     Any,
 }
 

@@ -123,6 +123,11 @@ impl WasmWatchBuildService {
         let runtime_target_dir = project_root_path.join("target/namui");
         let rust_build_service = RustBuildService::new();
 
+        runtime_project::wasm::generate_runtime_project(GenerateRuntimeProjectArgs {
+            target_dir: runtime_target_dir.clone(),
+            project_path: project_root_path.clone(),
+        })?;
+
         match rust_build_service.cancel_and_start_build(&BuildOption {
             target,
             dist_path: build_dist_path,

@@ -1,6 +1,8 @@
 mod github_storage;
+mod server_storage;
 
 pub use github_storage::*;
+pub use server_storage::*;
 use std::{
     future::Future,
     pin::Pin,

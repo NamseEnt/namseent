@@ -6,7 +6,7 @@ pub mod system_tree_0 {
     use crdt::{history, History};
 
     #[history(version = 0)]
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(PartialEq)]
     pub struct SystemTree {
         pub a: i32,
     }
@@ -16,7 +16,7 @@ pub mod system_tree_1 {
     use crdt::{history, History};
 
     #[history(version = 1)]
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(PartialEq)]
     pub struct SystemTree {
         pub a: i32,
         pub b: i32,
