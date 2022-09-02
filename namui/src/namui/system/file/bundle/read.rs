@@ -7,7 +7,6 @@ use namui_cfg::namui_cfg;
 
 #[derive(Debug)]
 pub enum ReadError {
-    NetworkError(String),
     FileNotFound(String),
     Other(String),
 }
@@ -26,7 +25,14 @@ pub async fn read(path_like: impl PathLike) -> Result<impl AsRef<[u8]>, ReadErro
     let url = create_bundle_url(path_like);
     crate::network::http::get_bytes(url)
         .await
-        .map_err(|fetch_error| ReadError::NetworkError(fetch_error.to_string()))
+        .map_err(|fetch_error| {
+            if let crate::network::http::HttpError::Status { status, message } = &fetch_error {
+                if status.eq(&404) {
+                    return ReadError::FileNotFound(message.to_string());
+                }
+            }
+            ReadError::Other(fetch_error.to_string())
+        })
 }
 
 pub async fn read_json<T: serde::de::DeserializeOwned>(
