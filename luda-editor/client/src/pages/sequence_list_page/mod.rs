@@ -67,11 +67,6 @@ impl SequenceListPage {
                             }
                         }
                     })
-                    // self.editor_history_system.mutate(|system_tree| {
-                    //   system_tree
-                    //         .sequence_list
-                    //         .push(Sequence::new("new sequence".to_string()));
-                    // })
                 }
                 Event::CellRightClick {
                     click_global_xy,
