@@ -95,12 +95,17 @@ jobs:
       - name: inject client setting
         working-directory: luda-editor/client
         run: |
-          echo '{ \
-            "endpoint": "$(aws cloudformation describe-stacks \
-              --stack-name ${{ env.STACK_NAME }}
+          ENDPOINT=$(aws cloudformation describe-stacks \
+              --stack-name ${{ env.STACK_NAME }} \
               --query "Stacks[0].Outputs[?OutputKey=='FunctionUrl'].OutputValue" \
-              --output text)" \
-          }' > target/namui/wasm_unknown_web/bundle/setting.json
+              --output text)
+          JSON=$(cat << EOF
+          {
+            "apiEndpoint": "$ENDPOINT"
+          }
+          EOF
+          )
+          echo $JSON > target/namui/wasm_unknown_web/bundle/setting.json
 
       - name: deploy client to s3
         working-directory: luda-editor/client
