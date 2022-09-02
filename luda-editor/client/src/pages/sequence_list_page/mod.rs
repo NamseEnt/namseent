@@ -90,7 +90,7 @@ impl SequenceListPage {
             }
         } else if let Some(event) = event.downcast_ref::<context_menu::Event>() {
             match event {
-                context_menu::Event::DeleteButtonClicked { sequence_id } => {
+                context_menu::Event::DeleteButtonClicked { sequence_id: _ } => {
                     todo!();
                     // self.editor_history_system.mutate(|system_tree| {
                     //     let index = system_tree
@@ -100,9 +100,9 @@ impl SequenceListPage {
                     //         .unwrap();
                     //     system_tree.sequence_list.remove(index);
                     // });
-                    self.context_menu = None;
+                    // self.context_menu = None;
                 }
-                context_menu::Event::RenameButtonClicked { sequence_id } => {
+                context_menu::Event::RenameButtonClicked { sequence_id: _ } => {
                     todo!()
                     // self.context_menu = None;
                     // let sequence_name = self
@@ -129,8 +129,8 @@ impl SequenceListPage {
         } else if let Some(event) = event.downcast_ref::<rename_modal::Event>() {
             match event {
                 rename_modal::Event::RenameDone {
-                    sequence_id,
-                    sequence_name,
+                    sequence_id: _,
+                    sequence_name: _,
                 } => {
                     self.rename_modal = None;
                     todo!()

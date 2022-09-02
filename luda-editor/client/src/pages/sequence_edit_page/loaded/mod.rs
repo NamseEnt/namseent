@@ -13,6 +13,7 @@ use std::{collections::HashMap, sync::Arc};
 
 pub struct LoadedSequenceEditorPage {
     project_id: String,
+    #[allow(dead_code)]
     sequence_id: String,
     cut_list_view: list_view::ListView,
     line_text_inputs: HashMap<String, text_input::TextInput>,
@@ -23,6 +24,7 @@ pub struct LoadedSequenceEditorPage {
 enum Event {
     AddCutClicked,
     EditorHistorySystemUpdated,
+    #[allow(dead_code)]
     Error(String),
 }
 

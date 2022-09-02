@@ -14,6 +14,7 @@ pub enum Event {
     },
 }
 impl RenameModal {
+    #[allow(dead_code)]
     pub fn new(sequence_id: String, sequence_name: String) -> Self {
         Self {
             sequence_id,

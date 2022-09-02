@@ -13,7 +13,7 @@ impl ResourceService {
 impl rpc::ResourceService<SessionDocument> for ResourceService {
     fn get_resource<'a>(
         &'a self,
-        session: Option<SessionDocument>,
+        _session: Option<SessionDocument>,
         req: rpc::get_resource::Request,
     ) -> std::pin::Pin<Box<dyn 'a + std::future::Future<Output = rpc::get_resource::Result> + Send>>
     {
@@ -34,7 +34,7 @@ impl rpc::ResourceService<SessionDocument> for ResourceService {
 
     fn list_resources<'a>(
         &'a self,
-        session: Option<SessionDocument>,
+        _session: Option<SessionDocument>,
         req: rpc::list_resources::Request,
     ) -> std::pin::Pin<Box<dyn 'a + std::future::Future<Output = rpc::list_resources::Result> + Send>>
     {
@@ -55,7 +55,7 @@ impl rpc::ResourceService<SessionDocument> for ResourceService {
 
     fn put_resource<'a>(
         &'a self,
-        session: Option<SessionDocument>,
+        _session: Option<SessionDocument>,
         req: rpc::put_resource::Request,
     ) -> std::pin::Pin<
         Box<
