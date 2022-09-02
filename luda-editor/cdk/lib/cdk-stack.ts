@@ -91,6 +91,16 @@ export class CdkStack extends cdk.Stack {
                     ],
                     actions: ["s3:GetObject"],
                 }),
+                new cdk.aws_iam.PolicyStatement({
+                    resources: [dynamoDb.tableArn],
+                    actions: [
+                        "dynamodb:PutItem",
+                        "dynamodb:GetItem",
+                        "dynamodb:DeleteItem",
+                        "dynamodb:Query",
+                        "dynamodb:ConditionCheck",
+                    ],
+                }),
             ],
         });
 
