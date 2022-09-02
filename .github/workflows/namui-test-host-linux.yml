@@ -47,10 +47,6 @@ jobs:
               - namui/**
               - namui-prebuilt/**
               - docker-images/namui-test-host/linux.Dockerfile
-            nrpc:
-              - .github/**
-              - nrpc/**
-              - docker-images/namui-test-host/linux.Dockerfile
             namui-sample:
               - .github/**
               - namui/**
@@ -135,15 +131,6 @@ jobs:
           target: wasm-unknown-web
           path: namui-prebuilt
 
-  test-nrpc:
-    needs: [check-rebuild, set-up]
-    if: needs.check-rebuild.outputs.nrpc == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/init-test-job
-      - run: cargo test --manifest-path nrpc/Cargo.toml
-
   test-namui-sample:
     needs: [check-rebuild, set-up]
     if: needs.check-rebuild.outputs.namui-sample == 'true'
@@ -202,7 +189,6 @@ jobs:
       - test-namui
       - test-luda-editor
       - test-namui-prebuilt
-      - test-nrpc
       - test-namui-sample
       - test-image-cropper
       - test-namui-animation-editor
