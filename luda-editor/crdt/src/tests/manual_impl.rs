@@ -106,6 +106,7 @@ fn manual_impl_works() {
         }
         fn insert_to_root(self, txn: &mut yrs::Transaction) {
             let mut root = txn.get_map("root");
+            root.insert(txn, "__version__", 0);
             self.i32.insert_to_map(txn, &mut root, "i32");
             self.string.insert_to_map(txn, &mut root, "string");
             self.a_list.insert_to_map(txn, &mut root, "a_list");
@@ -164,7 +165,7 @@ fn manual_impl_works() {
             unreachable!()
         }
         fn get_version() -> Option<u32> {
-            None
+            Some(0)
         }
         fn migrate(_version_of_doc: u32, _doc: yrs::Doc) -> Self {
             unreachable!()
@@ -197,7 +198,7 @@ fn manual_impl_works() {
     );
 
     let encoded = history_system.encode();
-    println!("encoded: {:?}", encoded);
+    println!("encoded: {:?}", encoded.as_ref());
     {
         let history_system = HistorySystem::decode(&encoded);
         assert_eq!(
@@ -260,7 +261,7 @@ fn manual_impl_works() {
         );
         history_system.encode()
     };
-    println!("encoded_1: {:?}", encoded_1);
+    println!("encoded_1: {:?}", encoded_1.as_ref());
 
     let encoded_2 = {
         let mut history_system = HistorySystem::decode(&encoded);
@@ -307,7 +308,7 @@ fn manual_impl_works() {
         );
         history_system.encode()
     };
-    println!("encode_2: {:?}", encoded_2);
+    println!("encode_2: {:?}", encoded_2.as_ref());
 
     let history_system: HistorySystem<B> = HistorySystem::decode(&encoded_1);
 

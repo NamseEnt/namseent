@@ -1,13 +1,15 @@
 use crate::*;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 pub struct Map<T: History> {
+    #[serde(flatten)]
     items: HashMap<String, T>,
+    #[serde(skip, default = "Vec::new")]
     commands: Vec<Command<T>>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 enum Command<T: History> {
     Insert(String, T),
 }
