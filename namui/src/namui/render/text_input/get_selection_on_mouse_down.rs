@@ -1,6 +1,7 @@
 use super::Props;
 use crate::{
-    namui::{self, get_text_width_internal, TextInput},
+    draw::text::get_line_height,
+    namui::{self, TextInput},
     *,
 };
 use std::ops::Range;
@@ -9,7 +10,7 @@ impl TextInput {
     pub(crate) fn get_selection_on_mouse_movement(
         &self,
         props: &Props,
-        click_local_x: Px,
+        click_local_xy: Xy<Px>,
         is_dragging_by_mouse: bool,
     ) -> Option<Range<usize>> {
         let (font, is_shift_key_pressed) = {
@@ -34,24 +35,12 @@ impl TextInput {
         //   return getDoubleClickSelection({ text, font, x: localX });
         // }
 
-        let text_width = get_text_width_internal(
-            &font,
-            &props.text_param.text,
-            props.text_param.style.drop_shadow.map(|shadow| shadow.x),
-        );
-
-        let aligned_x = match props.text_param.align {
-            namui::TextAlign::Left => click_local_x - props.text_param.x,
-            namui::TextAlign::Center => click_local_x - props.text_param.x + text_width / 2.0,
-            namui::TextAlign::Right => click_local_x - props.text_param.x + text_width,
-        };
-
         let is_dragging = is_shift_key_pressed || is_dragging_by_mouse;
 
         Some(get_one_click_selection(
-            &props.text_param.text,
+            &props.text_param,
             &font,
-            aligned_x,
+            click_local_xy,
             is_dragging,
             &self.selection,
         ))
@@ -59,41 +48,80 @@ impl TextInput {
 }
 
 fn get_one_click_selection(
-    text: &str,
+    text_param: &TextParam,
     font: &namui::Font,
-    local_x: Px,
+    click_local_xy: Xy<Px>,
     is_dragging: bool,
     last_selection: &Option<Range<usize>>,
 ) -> Range<usize> {
-    let selection_index_of_x = get_selection_index_of_x(font, text, local_x);
+    let selection_index_of_xy = get_selection_index_of_x(font, text_param, click_local_xy);
 
     let start = match last_selection {
         Some(last_selection) => {
             if !is_dragging {
-                selection_index_of_x
+                selection_index_of_xy
             } else {
                 last_selection.start
             }
         }
-        None => selection_index_of_x,
+        None => selection_index_of_xy,
     };
 
-    start..selection_index_of_x
+    start..selection_index_of_xy
 }
 
-fn get_selection_index_of_x(font: &namui::Font, text: &str, local_x: Px) -> usize {
-    let glyph_ids = font.get_glyph_ids(text);
+/// TODO: Calculate Baseline
+fn get_selection_index_of_x(
+    font: &namui::Font,
+    text_param: &TextParam,
+    click_local_xy: Xy<Px>,
+) -> usize {
+    let text = &text_param.text;
+    if click_local_xy.y <= 0.px() {
+        return 0;
+    }
+
+    let line_height = get_line_height(font.size);
+    let line_index = (click_local_xy.y / line_height).floor() as usize;
+    let line_max_index = text.lines().count() - 1;
+
+    if line_index > line_max_index {
+        return text.chars().count();
+    }
+
+    let index_before_line = {
+        let mut index = 0;
+        for line_with_newline in text.split_inclusive("\n").take(line_index) {
+            index += line_with_newline.chars().count();
+        }
+        index
+    };
+
+    let line_text = text.lines().nth(line_index).unwrap();
+
+    let glyph_ids = font.get_glyph_ids(line_text);
     let glyph_widths = font.get_glyph_widths(glyph_ids, None);
 
-    let mut left = px(0.0);
-    let index = glyph_widths.iter().position(|width| {
-        let center = left + width / 2.0;
-        if local_x < center {
-            return true;
-        }
-        left += *width;
-        return false;
-    });
+    let line_width = glyph_widths.iter().sum::<Px>();
 
-    return index.unwrap_or(text.len());
+    let aligned_x = match text_param.align {
+        namui::TextAlign::Left => click_local_xy.x,
+        namui::TextAlign::Center => click_local_xy.x + line_width / 2.0,
+        namui::TextAlign::Right => click_local_xy.x + line_width,
+    };
+
+    let mut left = px(0.0);
+    let index = glyph_widths
+        .iter()
+        .position(|width| {
+            let center = left + width / 2.0;
+            if aligned_x < center {
+                return true;
+            }
+            left += *width;
+            return false;
+        })
+        .unwrap_or(line_text.chars().count());
+
+    index_before_line + index
 }

@@ -1,4 +1,4 @@
-use crate::{Px, Rect};
+use crate::Px;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::hash_map::DefaultHasher,
@@ -15,8 +15,6 @@ pub struct FontMetrics {
     pub descent: Px,
     /// suggested spacing between descent of previous line and ascent of next line.
     pub leading: Px,
-    /// smallest rect containing all glyphs (relative to 0,0)
-    pub bounds: Option<Rect<Px>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, Default, Hash, Eq, PartialEq)]

@@ -3,7 +3,7 @@ use crate::namui::*;
 use crate::namui::{namui_context::NamuiContext, render::text_input::*};
 use std::{ops::ControlFlow, sync::Mutex};
 use wasm_bindgen::{prelude::Closure, JsCast};
-use web_sys::{Event, HtmlInputElement};
+use web_sys::{Event, HtmlTextAreaElement};
 
 struct TextInputSystem {
     last_focused_text_input_id: Mutex<Option<String>>,
@@ -24,20 +24,20 @@ impl TextInputSystem {
     fn new() -> Self {
         let document = web_sys::window().unwrap().document().unwrap();
 
-        let element = document.create_element("input").unwrap();
+        let element = document.create_element("textarea").unwrap();
         document.body().unwrap().append_child(&element).unwrap();
 
-        let input_element = wasm_bindgen::JsCast::dyn_into::<HtmlInputElement>(element).unwrap();
-        input_element.set_type("text");
+        let input_element = wasm_bindgen::JsCast::dyn_into::<HtmlTextAreaElement>(element).unwrap();
         input_element.set_id(TEXT_INPUT_ELEMENT_ID);
 
         input_element
             .add_event_listener_with_callback(
                 "input",
                 Closure::wrap(Box::new(move |event: web_sys::InputEvent| {
-                    let target =
-                        wasm_bindgen::JsCast::dyn_into::<HtmlInputElement>(event.target().unwrap())
-                            .unwrap();
+                    let target = wasm_bindgen::JsCast::dyn_into::<HtmlTextAreaElement>(
+                        event.target().unwrap(),
+                    )
+                    .unwrap();
                     system::text_input::on_text_element_input(&target);
                 }) as Box<dyn FnMut(_)>)
                 .into_js_value()
@@ -74,10 +74,10 @@ impl TextInputSystem {
         }
     }
 }
-fn get_input_element() -> HtmlInputElement {
+fn get_input_element() -> HtmlTextAreaElement {
     let document = web_sys::window().unwrap().document().unwrap();
     let element = document.get_element_by_id(TEXT_INPUT_ELEMENT_ID).unwrap();
-    wasm_bindgen::JsCast::dyn_into::<HtmlInputElement>(element).unwrap()
+    wasm_bindgen::JsCast::dyn_into::<HtmlTextAreaElement>(element).unwrap()
 }
 pub(crate) fn on_mouse_down_in(namui_context: &NamuiContext, raw_mouse_event: &RawMouseEvent) {
     let input_element = get_input_element();
@@ -122,7 +122,7 @@ pub(crate) fn on_mouse_down_in(namui_context: &NamuiContext, raw_mouse_event: &R
         &custom_data,
         namui_context,
         input_element,
-        raw_mouse_event.xy.x,
+        raw_mouse_event.xy,
         false,
     );
 }
@@ -143,7 +143,7 @@ pub(crate) fn on_mouse_move(namui_context: &NamuiContext, raw_mouse_event: &RawM
         &custom_data,
         namui_context,
         get_input_element(),
-        raw_mouse_event.xy.x,
+        raw_mouse_event.xy,
         true,
     );
 }
@@ -160,18 +160,21 @@ pub fn is_focused(text_input_id: &str) -> bool {
 fn update_focus_with_mouse_movement(
     custom_data: &TextInputCustomData,
     namui_context: &NamuiContext,
-    input_element: HtmlInputElement,
-    mouse_x: Px,
+    input_element: HtmlTextAreaElement,
+    mouse_xy: Xy<Px>,
     is_mouse_move: bool,
 ) {
-    let local_x = get_text_input_xy(&namui_context.rendering_tree, &custom_data.text_input.id)
+    let local_xy = get_text_input_xy(&namui_context.rendering_tree, &custom_data.text_input.id)
         .unwrap()
-        .x;
-    let mouse_local_x = mouse_x - local_x;
+        + Xy::new(
+            custom_data.props.text_param.x,
+            custom_data.props.text_param.y,
+        );
+    let mouse_local_xy = mouse_xy - local_xy;
 
     let selection = custom_data.text_input.get_selection_on_mouse_movement(
         &custom_data.props,
-        mouse_local_x,
+        mouse_local_xy,
         is_mouse_move,
     );
     let selection_direction = match &selection {
@@ -280,7 +283,7 @@ fn find_front_text_input_on_mouse(
 
     return_value
 }
-fn on_text_element_input(input_element: &HtmlInputElement) {
+fn on_text_element_input(input_element: &HtmlTextAreaElement) {
     let text = input_element.value();
     let last_focused_text_input_id = TEXT_INPUT_SYSTEM.last_focused_text_input_id.lock().unwrap();
     if last_focused_text_input_id.is_none() {
@@ -295,7 +298,7 @@ fn on_text_element_input(input_element: &HtmlInputElement) {
         selection,
     }))
 }
-fn get_selection(input_element: &HtmlInputElement) -> text_input::Selection {
+fn get_selection(input_element: &HtmlTextAreaElement) -> text_input::Selection {
     let selection_start = input_element.selection_start().unwrap();
     if selection_start.is_none() {
         None

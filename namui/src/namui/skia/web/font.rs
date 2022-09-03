@@ -8,7 +8,7 @@ unsafe impl Send for CanvasKitFont {}
 pub struct Font {
     pub(crate) id: String,
     pub(crate) canvas_kit_font: CanvasKitFont,
-    pub(crate) size: i16,
+    pub(crate) size: IntPx,
     pub(crate) metrics: FontMetrics,
     glyph_ids_caches: Mutex<lru::LruCache<String, Arc<GlyphIds>>>,
     glyph_widths_caches: Mutex<lru::LruCache<(Arc<GlyphIds>, Option<Paint>), Vec<Px>>>,
@@ -16,28 +16,21 @@ pub struct Font {
 }
 
 impl Font {
-    pub fn generate_id(typeface: &Typeface, size: i16) -> String {
+    pub fn generate_id(typeface: &Typeface, size: IntPx) -> String {
         format!("{}-{}", typeface.id, size)
     }
-    pub fn new(typeface: &Typeface, size: i16) -> Self {
-        let canvas_kit_font = CanvasKitFont::new(&typeface.canvas_kit_typeface, size);
+    pub fn new(typeface: &Typeface, size: IntPx) -> Self {
+        let canvas_kit_font = CanvasKitFont::new(&typeface.canvas_kit_typeface, size.0 as i16);
         Font {
             id: Self::generate_id(typeface, size),
             size,
             metrics: {
                 let canvas_kit_font_metrics = &canvas_kit_font.getMetrics();
-                let bounds = canvas_kit_font_metrics.bounds().map(|numbers| Rect::Ltrb {
-                    left: numbers[0].into(),
-                    top: numbers[1].into(),
-                    right: numbers[2].into(),
-                    bottom: numbers[3].into(),
-                });
 
                 FontMetrics {
                     ascent: canvas_kit_font_metrics.ascent().into(),
                     descent: canvas_kit_font_metrics.descent().into(),
                     leading: canvas_kit_font_metrics.leading().into(),
-                    bounds,
                 }
             },
             canvas_kit_font,

@@ -22,10 +22,10 @@ impl Entity for MultilineTextExample {
         let mut trees = vec![];
         for horizontal in 0..3 {
             for vertical in 0..3 {
-                let x = wh.width / 2.0 - 400.px() + 400.px() * horizontal;
+                let x = wh.width / 2.0 - 500.px() + 500.px() * horizontal;
                 let y = wh.height / 2.0 - 400.px() + 400.px() * vertical;
                 let text_rendering_tree = namui::text(TextParam {
-                    text: "Hello\nWorld!\nMyFriend~".to_string(),
+                    text: "Helloy\nWorlg!\nMyFriend~".to_string(), /// y and g is for descend test
                     x,
                     y,
                     align: match horizontal {
@@ -41,7 +41,7 @@ impl Entity for MultilineTextExample {
                         _ => unreachable!(),
                     },
                     font_type: FontType {
-                        size: 12.int_px(),
+                        size: 64.int_px(),
                         serif: false,
                         language: Language::Ko,
                         font_weight: FontWeight::REGULAR,
@@ -90,7 +90,7 @@ impl Entity for MultilineTextExample {
                     _ => unreachable!(),
                 },
                 font_type: FontType {
-                    size: 12.int_px(),
+                    size: 100.int_px(),
                     serif: false,
                     language: Language::Ko,
                     font_weight: FontWeight::REGULAR,

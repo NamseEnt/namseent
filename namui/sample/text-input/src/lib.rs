@@ -22,9 +22,9 @@ impl TextInputExample {
             left_text_input: namui::TextInput::new(),
             center_text_input: namui::TextInput::new(),
             right_text_input: namui::TextInput::new(),
-            left_text: "Left".to_string(),
-            center_text: "Center".to_string(),
-            right_text: "Right".to_string(),
+            left_text: "Left\nHelloy\n    SameText".to_string(),
+            center_text: "Center\nworldy\nSameText".to_string(),
+            right_text: "Right\n안녕하세요.\nSameText    ".to_string(),
             left_value: None,
         }
     }
