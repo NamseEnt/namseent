@@ -21,14 +21,14 @@ pub struct TextDrawCommand {
 #[derive(Debug, Serialize, Copy, Clone)]
 pub enum TextAlign {
     Left,
-    Right,
     Center,
+    Right,
 }
 #[derive(Debug, Serialize, Copy, Clone)]
 pub enum TextBaseline {
     Top,
-    Bottom,
     Middle,
+    Bottom,
 }
 
 impl TextDrawCommand {
@@ -37,77 +37,136 @@ impl TextDrawCommand {
             return;
         }
 
+        let line_texts = self.text.split("\n").collect::<Vec<_>>();
+
+        let line_height = (self.font.size as f32).px() * 110.percent();
+
         let paint = self.paint_builder.build();
 
         let fonts = std::iter::once(self.font.clone())
-            .chain(std::iter::once_with(|| get_fallback_fonts(self.font.size)).flatten());
-
-        let glyph_groups = get_glyph_groups(&self.text, fonts, &paint);
-
-        let total_width = glyph_groups.iter().map(|group| group.width).sum();
-
-        let left = get_left_in_align(self.x, self.align, total_width);
+            .chain(std::iter::once_with(|| get_fallback_fonts(self.font.size)).flatten())
+            .collect::<Vec<_>>();
 
         let mut bottom_of_fonts: HashMap<String, Px> = HashMap::new();
 
-        let mut x = left;
+        let multiline_y_baseline_offset = match self.baseline {
+            TextBaseline::Top => 0.px(),
+            TextBaseline::Middle => -line_height * 0.5 * (line_texts.len() - 1),
+            TextBaseline::Bottom => -line_height * (line_texts.len() - 1),
+        };
 
-        for GlyphGroup {
-            glyph_ids,
-            width,
-            end_index: _,
-            font,
-        } in glyph_groups
-        {
-            let bottom = bottom_of_fonts
-                .get(&font.id)
-                .map(|bottom| *bottom + px(font.size as f32))
-                .unwrap_or_else(|| {
-                    let metrics = font.metrics;
-                    let bottom = self.y + get_bottom_of_baseline(&self.baseline, &metrics);
-                    bottom_of_fonts.insert(font.id.clone(), bottom);
-                    bottom
-                });
+        line_texts
+            .iter()
+            .enumerate()
+            .map(|(index, line_text)| {
+                (
+                    self.y + multiline_y_baseline_offset + line_height * index,
+                    line_text,
+                )
+            })
+            .for_each(|(y, line_text)| {
+                let glyph_groups = get_glyph_groups(&line_text, &fonts, &paint);
 
-            let text_blob = TextBlob::from_glyph_ids(&glyph_ids, &font);
+                let total_width = glyph_groups.iter().map(|group| group.width).sum();
 
-            graphics::surface()
-                .canvas()
-                .draw_text_blob(&text_blob, x, bottom, &paint);
+                let left = get_left_in_align(self.x, self.align, total_width);
 
-            x += width;
-        }
+                let mut x = left;
+
+                for GlyphGroup {
+                    glyph_ids,
+                    width,
+                    end_index: _,
+                    font,
+                } in glyph_groups
+                {
+                    let bottom = y + bottom_of_fonts
+                        .get(&font.id)
+                        .map(|bottom| *bottom)
+                        .unwrap_or_else(|| {
+                            let metrics = font.metrics;
+                            let bottom = get_bottom_of_baseline(self.baseline, metrics);
+                            bottom_of_fonts.insert(font.id.clone(), bottom);
+                            bottom
+                        });
+
+                    let text_blob = TextBlob::from_glyph_ids(&glyph_ids, &font);
+
+                    graphics::surface()
+                        .canvas()
+                        .draw_text_blob(&text_blob, x, bottom, &paint);
+
+                    x += width;
+                }
+            });
     }
     pub fn get_bounding_box(&self) -> Option<Rect<Px>> {
         if self.text.len() == 0 {
             return None;
         }
 
+        let line_texts = self.text.split("\n").collect::<Vec<_>>();
+
+        let line_height = (self.font.size as f32).px() * 110.percent();
+
+        let multiline_y_baseline_offset = match self.baseline {
+            TextBaseline::Top => 0.px(),
+            TextBaseline::Middle => -line_height * 0.5 * (line_texts.len() - 1),
+            TextBaseline::Bottom => -line_height * (line_texts.len() - 1),
+        };
+
         let font = &self.font;
 
-        let glyph_ids = font.get_glyph_ids(&self.text);
-
-        let paint = self.paint_builder.build();
-        let glyph_bounds = font.get_glyph_bounds(glyph_ids.clone(), Some(&paint));
-
-        glyph_bounds
+        line_texts
             .iter()
-            .map(|bound| (bound.top(), bound.bottom()))
-            .reduce(|acc, (top, bottom)| (acc.0.min(top), acc.1.max(bottom)))
-            .and_then(|(top, bottom)| {
-                let widths = font.get_glyph_widths(glyph_ids, Option::Some(&paint));
-                let width = widths.iter().fold(px(0.0), |prev, curr| prev + curr);
-                let x_axis_anchor = get_left_in_align(self.x, self.align, width);
+            .enumerate()
+            .map(|(index, line_text)| {
+                (
+                    self.y + multiline_y_baseline_offset + line_height * index,
+                    line_text,
+                )
+            })
+            .map(|(y, line_text)| {
+                let glyph_ids = font.get_glyph_ids(line_text);
 
-                let metrics = font.metrics;
-                let y_axis_anchor = self.y + get_bottom_of_baseline(&self.baseline, &metrics);
+                let paint = self.paint_builder.build();
+                let glyph_bounds = font.get_glyph_bounds(glyph_ids.clone(), Some(&paint));
 
-                Some(Rect::Ltrb {
-                    left: x_axis_anchor,
-                    top: top + y_axis_anchor,
-                    right: x_axis_anchor + width,
-                    bottom: bottom + y_axis_anchor,
-                })
+                glyph_bounds
+                    .iter()
+                    .map(|bound| (bound.top(), bound.bottom()))
+                    .reduce(|acc, (top, bottom)| (acc.0.min(top), acc.1.max(bottom)))
+                    .and_then(|(top, bottom)| {
+                        let widths = font.get_glyph_widths(glyph_ids, Option::Some(&paint));
+                        let width = widths.iter().fold(px(0.0), |prev, curr| prev + curr);
+                        let x_axis_anchor = get_left_in_align(self.x, self.align, width);
+
+                        let metrics = font.metrics;
+                        let y_axis_anchor = y + get_bottom_of_baseline(self.baseline, metrics);
+
+                        Some(Rect::Ltrb {
+                            left: x_axis_anchor,
+                            top: top + y_axis_anchor,
+                            right: x_axis_anchor + width,
+                            bottom: bottom + y_axis_anchor,
+                        })
+                    })
+            })
+            .fold(None, |acc, rect| {
+                if let Some(rect) = rect {
+                    if let Some(acc) = acc {
+                        Some(Rect::Ltrb {
+                            left: acc.left().min(rect.left()),
+                            top: acc.top().min(rect.top()),
+                            right: acc.right().max(rect.right()),
+                            bottom: acc.bottom().max(rect.bottom()),
+                        })
+                    } else {
+                        Some(rect)
+                    }
+                } else {
+                    acc
+                }
             })
     }
 
@@ -125,18 +184,14 @@ struct GlyphGroup {
     width: Px,
     font: Arc<Font>,
 }
-fn get_glyph_groups(
-    text: &str,
-    fonts: impl Iterator<Item = Arc<Font>>,
-    paint: &Arc<Paint>,
-) -> Vec<GlyphGroup> {
+fn get_glyph_groups(text: &str, fonts: &Vec<Arc<Font>>, paint: &Arc<Paint>) -> Vec<GlyphGroup> {
     let mut groups: Vec<GlyphGroup> = vec![];
     let mut non_calculated_char_and_indexes: Vec<(char, usize)> = text
         .chars()
         .enumerate()
         .map(|(index, char)| (char, index))
         .collect();
-    let mut fonts = fonts.peekable();
+    let mut fonts = fonts.iter().peekable();
 
     while !non_calculated_char_and_indexes.is_empty() && fonts.peek().is_some() {
         let font = fonts.next().unwrap();
@@ -202,7 +257,7 @@ pub fn get_left_in_align(x: Px, align: TextAlign, width: Px) -> Px {
         TextAlign::Center => x - width / 2.0,
     }
 }
-pub fn get_bottom_of_baseline(baseline: &TextBaseline, font_metrics: &FontMetrics) -> Px {
+pub fn get_bottom_of_baseline(baseline: TextBaseline, font_metrics: FontMetrics) -> Px {
     match baseline {
         TextBaseline::Top => -font_metrics.ascent,
         TextBaseline::Bottom => -font_metrics.descent,

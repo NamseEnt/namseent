@@ -41,7 +41,7 @@ impl TextInput {
 
         let font_metrics = font.metrics;
         let font_height = -font_metrics.ascent + font_metrics.descent;
-        let top = get_bottom_of_baseline(&text_param.baseline, &font_metrics)
+        let top = get_bottom_of_baseline(text_param.baseline, font_metrics)
             + font_metrics.ascent
             + text_param.y;
 
