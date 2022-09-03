@@ -10,9 +10,12 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 namui = { path = "../../namui" }
 namui-prebuilt = { path = "../../namui-prebuilt" }
-editor-core = { path = "../core" }
+rpc = { path = "../rpc", features = ["client"] }
 crdt = { path = "../crdt" }
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+web-sys = { version = "0.3", features = ["Location"] }
+once_cell = "1.13"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"

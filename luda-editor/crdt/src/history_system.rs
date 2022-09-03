@@ -1,9 +1,12 @@
 use crate::History;
-use yrs::{updates::decoder::Decode, Doc, StateVector};
+use yrs::{
+    updates::{decoder::Decode, encoder::Encode},
+    Doc, StateVector,
+};
 
 pub struct HistorySystem<State> {
     phantom: std::marker::PhantomData<State>,
-    doc: Doc,
+    pub doc: Doc,
     state: Option<State>,
 }
 impl<State: History + Clone> HistorySystem<State> {
@@ -27,10 +30,12 @@ impl<State: History + Clone> HistorySystem<State> {
             }
         }
     }
-    pub fn encode(&self) -> Box<[u8]> {
+    pub fn encode(&self) -> impl AsRef<[u8]> {
+        self.doc.encode_state_as_update_v2(&StateVector::default())
+    }
+    pub fn encode_against_state_vector(&self, state_vector: impl AsRef<[u8]>) -> impl AsRef<[u8]> {
         self.doc
-            .encode_state_as_update_v2(&StateVector::default())
-            .into_boxed_slice()
+            .encode_state_as_update_v2(&StateVector::decode_v2(state_vector.as_ref()).unwrap())
     }
     pub fn decode(encoded: impl AsRef<[u8]>) -> Self {
         let doc = Doc::new();
@@ -86,14 +91,41 @@ impl<State: History + Clone> HistorySystem<State> {
 
         encoded_update.into_boxed_slice()
     }
+
+    /// NOTE: This code is unstable so would make bug.
     pub fn merge(&mut self, encoded: impl AsRef<[u8]>) {
-        let decoded = Self::decode(encoded);
+        let version_before_merge = self.get_version();
 
-        let mut transact = decoded.doc.transact();
-        transact.apply_update(yrs::Update::decode_v2(self.encode().as_ref()).unwrap());
+        let mut transact = self.doc.transact();
+        transact.apply_update(yrs::Update::decode_v2(encoded.as_ref()).unwrap());
 
-        *self = decoded;
-        self.state = Some(State::from_map(&transact.get_map("root")));
+        let version_after_merge = self.get_version();
+
+        if version_before_merge < version_after_merge {
+            let doc = std::mem::take(&mut self.doc);
+            *self = Self::new(State::migrate(version_before_merge, doc));
+            self.merge(encoded);
+        } else if version_before_merge > version_after_merge {
+            panic!("The version before merge is higher than the version after merge. Please update the code.")
+        } else {
+            self.state = Some(State::from_map(&transact.get_map("root")));
+        }
+    }
+    pub fn state_vector(&self) -> Vec<u8> {
+        self.doc.transact().state_vector().encode_v2()
+    }
+    pub fn default_state_vector() -> Vec<u8> {
+        StateVector::default().encode_v2()
+    }
+    fn get_version(&self) -> u32 {
+        let root = self.doc.transact().get_map("root");
+        let version_of_doc: u32 = root
+            .get("__version__")
+            .unwrap()
+            .to_string()
+            .parse()
+            .unwrap();
+        version_of_doc
     }
 }
 

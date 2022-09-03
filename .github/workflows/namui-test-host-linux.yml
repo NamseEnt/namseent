@@ -14,9 +14,8 @@ jobs:
       namui-test-host: ${{ steps.filter.outputs.namui-test-host }}
       namui-cli: ${{ steps.filter.outputs.namui-cli }}
       namui: ${{ steps.filter.outputs.namui }}
-      luda-editor-client: ${{ steps.filter.outputs.luda-editor-client }}
+      luda-editor: ${{ steps.filter.outputs.luda-editor }}
       namui-prebuilt: ${{ steps.filter.outputs.namui-prebuilt }}
-      nrpc: ${{ steps.filter.outputs.nrpc }}
       namui-sample: ${{ steps.filter.outputs.namui-sample }}
       image-cropper: ${{ steps.filter.outputs.image-cropper }}
       namui-animation-editor: ${{ steps.filter.outputs.namui-animation-editor }}
@@ -38,19 +37,15 @@ jobs:
               - namui-cli/**
               - namui/**
               - docker-images/namui-test-host/linux.Dockerfile
-            luda-editor-client:
+            luda-editor:
               - .github/**
-              - luda-editor/luda-editor/**
+              - luda-editor/**
               - namui/**
               - docker-images/namui-test-host/linux.Dockerfile
             namui-prebuilt:
               - .github/**
               - namui/**
               - namui-prebuilt/**
-              - docker-images/namui-test-host/linux.Dockerfile
-            nrpc:
-              - .github/**
-              - nrpc/**
               - docker-images/namui-test-host/linux.Dockerfile
             namui-sample:
               - .github/**
@@ -109,18 +104,16 @@ jobs:
           target: wasm-unknown-web
           path: namui
 
-  test-luda-editor-client:
+  test-luda-editor:
     needs: [check-rebuild, set-up]
-    if: needs.check-rebuild.outputs.luda-editor-client == 'true'
+    if: needs.check-rebuild.outputs.luda-editor == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/init-test-job
       - run: cargo test --manifest-path luda-editor/crdt/Cargo.toml
-      - uses: ./.github/actions/namui-test
-        with:
-          target: wasm-unknown-web
-          path: luda-editor/core
+      - run: cargo test --manifest-path luda-editor/rpc/Cargo.toml
+      - run: cargo test --manifest-path luda-editor/server/Cargo.toml
       - uses: ./.github/actions/namui-test
         with:
           target: wasm-unknown-web
@@ -137,15 +130,6 @@ jobs:
         with:
           target: wasm-unknown-web
           path: namui-prebuilt
-
-  test-nrpc:
-    needs: [check-rebuild, set-up]
-    if: needs.check-rebuild.outputs.nrpc == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/init-test-job
-      - run: cargo test --manifest-path nrpc/Cargo.toml
 
   test-namui-sample:
     needs: [check-rebuild, set-up]
@@ -203,9 +187,8 @@ jobs:
       # PLEASE ADD ALL TEST HERE!
       - test-namui-cli
       - test-namui
-      - test-luda-editor-client
+      - test-luda-editor
       - test-namui-prebuilt
-      - test-nrpc
       - test-namui-sample
       - test-image-cropper
       - test-namui-animation-editor

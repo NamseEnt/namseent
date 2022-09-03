@@ -4,14 +4,14 @@ use crdt::{history, History, HistorySystem, List};
 #[test]
 fn list_update_works() {
     #[history]
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(PartialEq)]
     struct A {
         a: i32,
         b: String,
     }
 
     #[history(version = 0)]
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(PartialEq)]
     struct B {
         a_list: List<A>,
     }

@@ -1,14 +1,11 @@
 use super::App;
-use crate::storage::Storage;
-use editor_core::{github_client::GithubClient, storage::GithubStorage};
 use namui::prelude::*;
-use std::sync::Arc;
 
-const CLIENT_ID: &str = "abd04a6aeba3e99f5b4b";
-const CLIENT_SECRET: &str = "501a915ca627e24d2088cf01416fe836db470dba";
+const DEV_CLIENT_ID: &str = "abd04a6aeba3e99f5b4b";
+const CLIENT_ID: Option<&str> = option_env!("GITHUB_CLIENT_ID");
 
 pub enum Event {
-    AccessToken(String),
+    SessionId(String),
     Error(String),
 }
 
@@ -30,18 +27,9 @@ impl App {
             }
         } else if let Some(event) = event.downcast_ref::<Event>() {
             match event {
-                Event::AccessToken(access_token) => {
-                    let github_client = GithubClient::new(
-                        access_token.clone(),
-                        "https://api.github.com".to_string(),
-                        "namseent".to_string(),
-                        "luda-editor-storage".to_string(),
-                    );
-                    let storage = Storage::new(Arc::new(GithubStorage::new(
-                        github_client,
-                        "master".to_string(),
-                    )));
-                    namui::event::send(super::Event::LoggedIn(storage));
+                Event::SessionId(session_id) => {
+                    crate::RPC.set_session_id(session_id.clone());
+                    namui::event::send(super::Event::LoggedIn);
                 }
                 Event::Error(error) => namui::log!("error: {}", error),
             }
@@ -51,35 +39,61 @@ impl App {
 
 pub fn check_token() {
     namui::spawn_local(async {
-        match namui::cache::get("AccessToken").await.unwrap() {
+        match namui::cache::get("SessionId").await.unwrap() {
             Some(token) => {
-                namui::event::send(Event::AccessToken(String::from_utf8(token.into()).unwrap()));
+                namui::event::send(Event::SessionId(String::from_utf8(token.into()).unwrap()));
             }
-            None => {
-                let url = format!("https://github.com/login/oauth/authorize?client_id={CLIENT_ID}&scope=public_repo");
-                namui::open_external(url.as_str());
-            }
+            None => match request_github_auth_code().await {
+                Ok(code) => login_with_oauth_code(code),
+                Err(error) => {
+                    namui::event::send(Event::Error(error.to_string()));
+                }
+            },
         }
     });
 }
+
+async fn request_github_auth_code() -> Result<String, Box<dyn std::error::Error>> {
+    let client_id = CLIENT_ID.unwrap_or(DEV_CLIENT_ID);
+    let redirect_uri = web_sys::window().unwrap().location().href().unwrap();
+    let url = format!("https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri=https://sslwiheugl5ojmqlecerzhng740cekqc.lambda-url.ap-northeast-2.on.aws/{redirect_uri}");
+
+    let auth_code_window = web_sys::window()
+        .unwrap()
+        .open_with_url(&url)
+        .unwrap()
+        .unwrap();
+
+    loop {
+        namui::time::delay(100.ms()).await;
+        match auth_code_window.location().search() {
+            Ok(query) => {
+                if query.starts_with("?code=") {
+                    auth_code_window.close().unwrap();
+                    return Ok(query[6..].to_string());
+                }
+            }
+            Err(_) => continue,
+        }
+    }
+}
 fn login_with_oauth_code(code: String) {
     spawn_local(async move {
-        match editor_core::github_client::get_access_token_with_oauth_code(
-            CLIENT_ID,
-            CLIENT_SECRET,
-            &code,
-        )
-        .await
-        {
-            Ok(access_token) => {
-                namui::event::send(Event::AccessToken(access_token.clone()));
-                namui::cache::set("AccessToken", access_token.as_bytes())
+        let result = crate::RPC
+            .log_in_with_github_oauth_code(rpc::log_in_with_github_oauth_code::Request { code })
+            .await;
+
+        match result {
+            Ok(response) => {
+                let session_id = response.session_id;
+                namui::event::send(Event::SessionId(session_id.clone()));
+                namui::cache::set("SessionId", session_id.as_bytes())
                     .await
                     .unwrap();
             }
             Err(error) => {
                 namui::event::send(Event::Error(error.to_string()));
             }
-        };
+        }
     })
 }
