@@ -25,7 +25,8 @@ impl Entity for MultilineTextExample {
                 let x = wh.width / 2.0 - 500.px() + 500.px() * horizontal;
                 let y = wh.height / 2.0 - 400.px() + 400.px() * vertical;
                 let text_rendering_tree = namui::text(TextParam {
-                    text: "Helloy\nWorlg!\nMyFriend~".to_string(), /// y and g is for descend test
+                    text: "Helloy\nWorlg!\nMyFriend~".to_string(),
+                    /// y and g is for descend test
                     x,
                     y,
                     align: match horizontal {
