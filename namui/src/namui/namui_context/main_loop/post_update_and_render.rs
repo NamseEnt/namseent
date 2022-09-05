@@ -54,6 +54,8 @@ impl NamuiContext {
                     self.rendering_tree.call_wheel_event(raw_wheel_event, &self);
                 }
                 NamuiEvent::KeyDown(raw_keyboard_event) => {
+                    crate::system::text_input::on_key_down(&self, &raw_keyboard_event);
+
                     self.rendering_tree.call_keyboard_event(
                         raw_keyboard_event,
                         &self,

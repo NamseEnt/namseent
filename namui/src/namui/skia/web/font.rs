@@ -1,7 +1,7 @@
 pub use super::base::*;
 use super::*;
 use crate::*;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 unsafe impl Sync for CanvasKitFont {}
 unsafe impl Send for CanvasKitFont {}
@@ -10,9 +10,9 @@ pub struct Font {
     pub(crate) canvas_kit_font: CanvasKitFont,
     pub(crate) size: IntPx,
     pub(crate) metrics: FontMetrics,
-    glyph_ids_caches: Mutex<lru::LruCache<String, Arc<GlyphIds>>>,
-    glyph_widths_caches: Mutex<lru::LruCache<(Arc<GlyphIds>, Option<Paint>), Vec<Px>>>,
-    glyph_bounds_caches: Mutex<lru::LruCache<(Arc<GlyphIds>, Option<Paint>), Vec<Rect<Px>>>>,
+    glyph_ids_caches: Mutex<lru::LruCache<String, GlyphIds>>,
+    glyph_widths_caches: Mutex<lru::LruCache<(GlyphIds, Option<Paint>), Vec<Px>>>,
+    glyph_bounds_caches: Mutex<lru::LruCache<(GlyphIds, Option<Paint>), Vec<Rect<Px>>>>,
 }
 
 impl Font {
@@ -39,24 +39,19 @@ impl Font {
             glyph_bounds_caches: Mutex::new(lru::LruCache::new(1024)),
         }
     }
-    pub fn get_glyph_ids(&self, text: impl AsRef<str>) -> Arc<GlyphIds> {
+    pub fn get_glyph_ids(&self, text: impl AsRef<str>) -> GlyphIds {
         let mut caches = self.glyph_ids_caches.lock().unwrap();
 
         match caches.get(text.as_ref()) {
             Some(glyph_ids) => glyph_ids.clone(),
             None => {
-                let glyph_ids: Arc<GlyphIds> =
-                    self.canvas_kit_font.getGlyphIDs(text.as_ref()).into();
+                let glyph_ids = self.canvas_kit_font.getGlyphIDs(text.as_ref());
                 caches.put(text.as_ref().to_string(), glyph_ids.clone());
                 glyph_ids
             }
         }
     }
-    pub(crate) fn get_glyph_widths(
-        &self,
-        glyph_ids: Arc<GlyphIds>,
-        paint: Option<&Paint>,
-    ) -> Vec<Px> {
+    pub(crate) fn get_glyph_widths(&self, glyph_ids: GlyphIds, paint: Option<&Paint>) -> Vec<Px> {
         let mut caches = self.glyph_widths_caches.lock().unwrap();
 
         let key = (glyph_ids.clone(), paint.cloned());
@@ -65,7 +60,7 @@ impl Font {
             None => {
                 let glyph_widths: Vec<Px> = self
                     .canvas_kit_font
-                    .getGlyphWidths(&glyph_ids, paint.map(|paint| &paint.canvas_kit_paint))
+                    .getGlyphWidths(glyph_ids, paint.map(|paint| &paint.canvas_kit_paint))
                     .to_vec()
                     .into_iter()
                     .map(|n| n.into())
@@ -77,7 +72,7 @@ impl Font {
     }
     pub(crate) fn get_glyph_bounds(
         &self,
-        glyph_ids: Arc<GlyphIds>,
+        glyph_ids: GlyphIds,
         paint: Option<&Paint>,
     ) -> Vec<Rect<Px>> {
         let mut caches = self.glyph_bounds_caches.lock().unwrap();
@@ -88,10 +83,7 @@ impl Font {
             None => {
                 let bound_items = self
                     .canvas_kit_font
-                    .getGlyphBounds(
-                        glyph_ids.as_ref(),
-                        paint.map(|paint| &paint.canvas_kit_paint),
-                    )
+                    .getGlyphBounds(glyph_ids, paint.map(|paint| &paint.canvas_kit_paint))
                     .to_vec();
 
                 let mut iter = bound_items.iter().peekable();

@@ -13,10 +13,11 @@ extern "C" {
     /// @param glyphs - if using Malloc'd array, be sure to use CanvasKit.MallocGlyphIDs().
     /// @param font
     ///
+    ///
     #[wasm_bindgen(structural, method)]
     pub(crate) fn MakeFromGlyphs(
         this: &TextBlobFactory,
-        glyphs: &GlyphIds,
+        glyphs: GlyphIds,
         font: &CanvasKitFont,
     ) -> CanvasKitTextBlob;
 

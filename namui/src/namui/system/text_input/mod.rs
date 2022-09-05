@@ -1,6 +1,14 @@
+mod find;
+mod key_down;
+mod mouse_event;
+
 use super::InitResult;
 use crate::namui::*;
 use crate::namui::{namui_context::NamuiContext, render::text_input::*};
+pub(crate) use find::*;
+pub(crate) use key_down::*;
+pub(crate) use mouse_event::*;
+use std::str::FromStr;
 use std::{ops::ControlFlow, sync::Mutex};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{Event, HtmlTextAreaElement};
@@ -45,6 +53,30 @@ impl TextInputSystem {
             )
             .unwrap();
 
+        input_element
+            .add_event_listener_with_callback(
+                "keydown",
+                Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
+                    let code = Code::from_str(&event.code()).unwrap();
+                    // NOTE: Not support page up/down yet.
+                    if [
+                        Code::ArrowUp,
+                        Code::ArrowDown,
+                        Code::Home,
+                        Code::End,
+                        Code::PageUp,
+                        Code::PageDown,
+                    ]
+                    .contains(&code)
+                    {
+                        event.prevent_default();
+                    }
+                }) as Box<dyn FnMut(_)>)
+                .into_js_value()
+                .unchecked_ref(),
+            )
+            .unwrap();
+
         {
             // NOTE: Below codes from https://github.com/goldfire/CanvasInput/blob/5adbaf00bd42665f3c691796881c7a7a9cf7036c/CanvasInput.js#L126
             let style = input_element.style();
@@ -79,158 +111,12 @@ fn get_input_element() -> HtmlTextAreaElement {
     let element = document.get_element_by_id(TEXT_INPUT_ELEMENT_ID).unwrap();
     wasm_bindgen::JsCast::dyn_into::<HtmlTextAreaElement>(element).unwrap()
 }
-pub(crate) fn on_mouse_down_in(namui_context: &NamuiContext, raw_mouse_event: &RawMouseEvent) {
-    let input_element = get_input_element();
-    let mut last_focused_text_input_id =
-        TEXT_INPUT_SYSTEM.last_focused_text_input_id.lock().unwrap();
-
-    let custom_data =
-        find_front_text_input_on_mouse(&namui_context.rendering_tree, raw_mouse_event);
-
-    *TEXT_INPUT_SYSTEM.dragging_text_input_id.lock().unwrap() = custom_data
-        .as_ref()
-        .map(|custom_data| custom_data.text_input.id.clone())
-        .clone();
-
-    if let Some(last_focused_text_input_id) = &*last_focused_text_input_id {
-        let is_last_focused_text_input_not_clicked = custom_data
-            .as_ref()
-            .and_then(|custom_data| {
-                last_focused_text_input_id
-                    .eq(&custom_data.text_input.id)
-                    .then(|| ())
-            })
-            .is_none();
-        if is_last_focused_text_input_not_clicked {
-            crate::event::send(text_input::Event::Blur(text_input::Blur {
-                id: last_focused_text_input_id.clone(),
-            }));
-        }
-    }
-
-    *last_focused_text_input_id = custom_data
-        .as_ref()
-        .map(|custom_data| custom_data.text_input.id.clone());
-
-    if custom_data.is_none() {
-        input_element.blur().unwrap();
-        return;
-    }
-    let custom_data = custom_data.unwrap();
-
-    update_focus_with_mouse_movement(
-        &custom_data,
-        namui_context,
-        input_element,
-        raw_mouse_event.xy,
-        false,
-    );
-}
-pub(crate) fn on_mouse_move(namui_context: &NamuiContext, raw_mouse_event: &RawMouseEvent) {
-    let dragging_text_input_id = TEXT_INPUT_SYSTEM.dragging_text_input_id.lock().unwrap();
-    if dragging_text_input_id.is_none() {
-        return;
-    }
-    let dragging_text_input_id = dragging_text_input_id.as_ref().unwrap();
-
-    let custom_data = find_text_input_by_id(&namui_context.rendering_tree, dragging_text_input_id);
-    if custom_data.is_none() {
-        return;
-    }
-    let custom_data = custom_data.unwrap();
-
-    update_focus_with_mouse_movement(
-        &custom_data,
-        namui_context,
-        get_input_element(),
-        raw_mouse_event.xy,
-        true,
-    );
-}
-pub(crate) fn on_mouse_up_in() {
-    *TEXT_INPUT_SYSTEM.dragging_text_input_id.lock().unwrap() = None;
-}
 pub fn is_focused(text_input_id: &str) -> bool {
     let last_focused_text_input_id = TEXT_INPUT_SYSTEM.last_focused_text_input_id.lock().unwrap();
     last_focused_text_input_id
         .as_ref()
         .map(|id| id.eq(text_input_id))
         .unwrap_or(false)
-}
-fn update_focus_with_mouse_movement(
-    custom_data: &TextInputCustomData,
-    namui_context: &NamuiContext,
-    input_element: HtmlTextAreaElement,
-    mouse_xy: Xy<Px>,
-    is_mouse_move: bool,
-) {
-    let local_xy = get_text_input_xy(&namui_context.rendering_tree, &custom_data.text_input.id)
-        .unwrap()
-        + Xy::new(
-            custom_data.props.text_param.x,
-            custom_data.props.text_param.y,
-        );
-    let mouse_local_xy = mouse_xy - local_xy;
-
-    let selection = custom_data.text_input.get_selection_on_mouse_movement(
-        &custom_data.props,
-        mouse_local_xy,
-        is_mouse_move,
-    );
-    let selection_direction = match &selection {
-        Some(selection) => {
-            if selection.start <= selection.end {
-                "forward"
-            } else {
-                "backward"
-            }
-        }
-        None => "none",
-    };
-
-    input_element.set_value(&custom_data.props.text_param.text);
-    input_element
-        .set_selection_range_with_direction(
-            selection
-                .as_ref()
-                .map_or(0, |selection| selection.start.min(selection.end) as u32),
-            selection
-                .as_ref()
-                .map_or(0, |selection| selection.start.max(selection.end) as u32),
-            selection_direction,
-        )
-        .unwrap();
-
-    input_element.focus().unwrap();
-
-    let event = text_input::Event::Focus(Focus {
-        id: custom_data.text_input.id.clone(),
-        selection,
-    });
-    crate::event::send(event);
-}
-fn find_text_input_by_id(rendering_tree: &RenderingTree, id: &str) -> Option<TextInputCustomData> {
-    let mut return_value: Option<TextInputCustomData> = None;
-
-    rendering_tree.visit_rln(|rendering_tree, _| {
-        match rendering_tree {
-            RenderingTree::Special(special) => match special {
-                render::SpecialRenderingNode::Custom(custom) => {
-                    if let Some(custom_data) = custom.data.downcast_ref::<TextInputCustomData>() {
-                        if custom_data.text_input.id == id {
-                            return_value = Some(custom_data.clone());
-                            return ControlFlow::Break(());
-                        }
-                    }
-                }
-                _ => {}
-            },
-            _ => {}
-        };
-        ControlFlow::Continue(())
-    });
-
-    return_value
 }
 fn get_text_input_xy(rendering_tree: &RenderingTree, id: &str) -> Option<Xy<Px>> {
     let mut return_value = None;
@@ -242,34 +128,6 @@ fn get_text_input_xy(rendering_tree: &RenderingTree, id: &str) -> Option<Xy<Px>>
                     if let Some(custom_data) = custom.data.downcast_ref::<TextInputCustomData>() {
                         if custom_data.text_input.id == id {
                             return_value = Some(util.get_xy());
-                            return ControlFlow::Break(());
-                        }
-                    }
-                }
-                _ => {}
-            },
-            _ => {}
-        };
-        ControlFlow::Continue(())
-    });
-
-    return_value
-}
-fn find_front_text_input_on_mouse(
-    rendering_tree: &RenderingTree,
-    raw_mouse_event: &RawMouseEvent,
-) -> Option<TextInputCustomData> {
-    let mut return_value: Option<TextInputCustomData> = None;
-
-    rendering_tree.visit_rln(|rendering_tree, utils| {
-        match rendering_tree {
-            RenderingTree::Special(special) => match special {
-                render::SpecialRenderingNode::Custom(custom) => {
-                    if let Some(custom_data) = custom.data.downcast_ref::<TextInputCustomData>() {
-                        let is_custom_in_mouse = utils.is_xy_in(raw_mouse_event.xy);
-
-                        if is_custom_in_mouse {
-                            return_value = Some(custom_data.clone());
                             return ControlFlow::Break(());
                         }
                     }

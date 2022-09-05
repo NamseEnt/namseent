@@ -35,113 +35,92 @@ impl Entity for TextInputExample {
 
     fn render(&self, _props: &Self::Props) -> RenderingTree {
         let left = self.left_text_input.render(namui::text_input::Props {
-            rect_param: namui::RectParam {
-                rect: Rect::Xywh {
-                    x: 200.0.px(),
-                    y: px(200.0),
-                    width: px(200.0),
-                    height: px(200.0),
-                },
-                style: RectStyle {
-                    stroke: Some(RectStroke {
-                        border_position: BorderPosition::Inside,
-                        color: Color::BLACK,
-                        width: px(1.0),
-                    }),
-                    ..Default::default()
-                },
-            },
-            text_param: namui::TextParam {
-                x: px(200.0),
+            rect: Rect::Xywh {
+                x: 200.0.px(),
                 y: px(200.0),
-                align: TextAlign::Left,
-                baseline: TextBaseline::Top,
-                text: self.left_text.clone(),
-                font_type: namui::FontType {
-                    font_weight: namui::FontWeight::REGULAR,
-                    language: namui::Language::Ko,
-                    serif: false,
-                    size: int_px(20),
-                },
-                style: namui::TextStyle {
-                    color: namui::Color::BLACK,
-                    ..Default::default()
-                },
-                max_width: None,
+                width: px(200.0),
+                height: px(200.0),
+            },
+            rect_style: RectStyle {
+                stroke: Some(RectStroke {
+                    border_position: BorderPosition::Inside,
+                    color: Color::BLACK,
+                    width: px(1.0),
+                }),
+                ..Default::default()
+            },
+            text_align: TextAlign::Left,
+            text_baseline: TextBaseline::Top,
+            text: self.left_text.clone(),
+            font_type: namui::FontType {
+                font_weight: namui::FontWeight::REGULAR,
+                language: namui::Language::Ko,
+                serif: false,
+                size: int_px(20),
+            },
+            text_style: namui::TextStyle {
+                color: namui::Color::BLACK,
+                ..Default::default()
             },
         });
 
         let center = self.center_text_input.render(namui::text_input::Props {
-            rect_param: namui::RectParam {
-                rect: Rect::Xywh {
-                    x: px(500.0),
-                    y: px(200.0),
-                    width: px(200.0),
-                    height: px(200.0),
-                },
-                style: RectStyle {
-                    stroke: Some(RectStroke {
-                        border_position: BorderPosition::Inside,
-                        color: Color::BLACK,
-                        width: px(1.0),
-                    }),
-                    ..Default::default()
-                },
-            },
-            text_param: namui::TextParam {
-                x: px(500.0 + 100.0),
+            rect: Rect::Xywh {
+                x: px(500.0),
                 y: px(200.0),
-                align: TextAlign::Center,
-                baseline: TextBaseline::Top,
-                text: self.center_text.clone(),
-                font_type: namui::FontType {
-                    font_weight: namui::FontWeight::REGULAR,
-                    language: namui::Language::Ko,
-                    serif: false,
-                    size: int_px(20),
-                },
-                style: namui::TextStyle {
-                    color: namui::Color::BLACK,
-                    ..Default::default()
-                },
-                max_width: None,
+                width: px(200.0),
+                height: px(200.0),
+            },
+            rect_style: RectStyle {
+                stroke: Some(RectStroke {
+                    border_position: BorderPosition::Inside,
+                    color: Color::BLACK,
+                    width: px(1.0),
+                }),
+                ..Default::default()
+            },
+            text_align: TextAlign::Center,
+            text_baseline: TextBaseline::Top,
+            text: self.center_text.clone(),
+            font_type: namui::FontType {
+                font_weight: namui::FontWeight::REGULAR,
+                language: namui::Language::Ko,
+                serif: false,
+                size: int_px(20),
+            },
+            text_style: namui::TextStyle {
+                color: namui::Color::BLACK,
+                ..Default::default()
             },
         });
 
         let right = self.right_text_input.render(namui::text_input::Props {
-            rect_param: namui::RectParam {
-                rect: Rect::Xywh {
-                    x: px(800.0),
-                    y: px(200.0),
-                    width: px(200.0),
-                    height: px(200.0),
-                },
-                style: RectStyle {
-                    stroke: Some(RectStroke {
-                        border_position: BorderPosition::Inside,
-                        color: Color::BLACK,
-                        width: px(1.0),
-                    }),
-                    ..Default::default()
-                },
-            },
-            text_param: namui::TextParam {
-                x: px(800.0 + 200.0),
+            rect: Rect::Xywh {
+                x: px(800.0),
                 y: px(200.0),
-                align: TextAlign::Right,
-                baseline: TextBaseline::Top,
-                text: self.right_text.clone(),
-                font_type: namui::FontType {
-                    font_weight: namui::FontWeight::REGULAR,
-                    language: namui::Language::Ko,
-                    serif: false,
-                    size: int_px(20),
-                },
-                style: namui::TextStyle {
-                    color: namui::Color::BLACK,
-                    ..Default::default()
-                },
-                max_width: None,
+                width: px(200.0),
+                height: px(200.0),
+            },
+            rect_style: RectStyle {
+                stroke: Some(RectStroke {
+                    border_position: BorderPosition::Inside,
+                    color: Color::BLACK,
+                    width: px(1.0),
+                }),
+                ..Default::default()
+            },
+            text_align: TextAlign::Right,
+            text_baseline: TextBaseline::Top,
+            text: self.right_text.clone(),
+            font_type: namui::FontType {
+                font_weight: namui::FontWeight::REGULAR,
+                language: namui::Language::Ko,
+                serif: false,
+                size: int_px(20),
+            },
+            text_style: namui::TextStyle {
+                color: namui::Color::BLACK,
+                ..Default::default()
             },
         });
 

@@ -42,7 +42,7 @@ extern "C" {
     #[wasm_bindgen(structural, method)]
     pub(crate) fn getGlyphBounds(
         this: &CanvasKitFont,
-        glyphs: &GlyphIds,
+        glyphs: GlyphIds,
         paint: Option<&CanvasKitPaint>,
     ) -> js_sys::Float32Array;
 
@@ -55,7 +55,7 @@ extern "C" {
     /// @param output - if provided, the results will be copied into this array.
     ///
     #[wasm_bindgen(structural, method)]
-    pub(crate) fn getGlyphIDs(this: &CanvasKitFont, str: &str) -> Box<GlyphIds>;
+    pub(crate) fn getGlyphIDs(this: &CanvasKitFont, str: &str) -> GlyphIds;
 
     ///
     /// Retrieves the advanceX measurements for each glyph.
@@ -68,7 +68,7 @@ extern "C" {
     #[wasm_bindgen(structural, method)]
     pub(crate) fn getGlyphWidths(
         this: &CanvasKitFont,
-        glyphs: &GlyphIds,
+        glyphs: GlyphIds,
         paint: Option<&CanvasKitPaint>,
     ) -> js_sys::Float32Array;
 

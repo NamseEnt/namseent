@@ -11,6 +11,6 @@ extern "C" {
     #[wasm_bindgen(method)]
     pub(crate) fn MakeTypefaceFromData(
         this: &FontMgr,
-        fontData: js_sys::ArrayBuffer,
+        fontData: &js_sys::ArrayBuffer,
     ) -> CanvasKitTypeface;
 }
