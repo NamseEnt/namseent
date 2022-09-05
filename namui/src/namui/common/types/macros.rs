@@ -87,6 +87,12 @@ macro_rules! common_for_f32_type {
             }
         }
 
+        impl<'a> std::iter::Sum<&'a $your_type> for $your_type {
+            fn sum<I: Iterator<Item = &'a $your_type>>(iter: I) -> Self {
+                iter.fold(Self::default(), |acc, x| acc + x)
+            }
+        }
+
         $crate::types::macros::impl_op_forward_ref_reversed_for_f32_i32_usize!(*|lhs: $your_type, rhs: f32| -> $your_type {
             (lhs.as_f32() * rhs).into()
         });

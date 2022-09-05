@@ -37,9 +37,9 @@ impl TextDrawCommand {
             return;
         }
 
-        let line_texts = self.text.split("\n").collect::<Vec<_>>();
+        let line_texts = self.text.lines().collect::<Vec<_>>();
 
-        let line_height = (self.font.size as f32).px() * 110.percent();
+        let line_height = get_line_height(self.font.size);
 
         let paint = self.paint_builder.build();
 
@@ -49,11 +49,8 @@ impl TextDrawCommand {
 
         let mut bottom_of_fonts: HashMap<String, Px> = HashMap::new();
 
-        let multiline_y_baseline_offset = match self.baseline {
-            TextBaseline::Top => 0.px(),
-            TextBaseline::Middle => -line_height * 0.5 * (line_texts.len() - 1),
-            TextBaseline::Bottom => -line_height * (line_texts.len() - 1),
-        };
+        let multiline_y_baseline_offset =
+            get_multiline_y_baseline_offset(self.baseline, line_height, line_texts.len());
 
         line_texts
             .iter()
@@ -105,15 +102,12 @@ impl TextDrawCommand {
             return None;
         }
 
-        let line_texts = self.text.split("\n").collect::<Vec<_>>();
+        let line_texts = self.text.lines().collect::<Vec<_>>();
 
-        let line_height = (self.font.size as f32).px() * 110.percent();
+        let line_height = get_line_height(self.font.size);
 
-        let multiline_y_baseline_offset = match self.baseline {
-            TextBaseline::Top => 0.px(),
-            TextBaseline::Middle => -line_height * 0.5 * (line_texts.len() - 1),
-            TextBaseline::Bottom => -line_height * (line_texts.len() - 1),
-        };
+        let multiline_y_baseline_offset =
+            get_multiline_y_baseline_offset(self.baseline, line_height, line_texts.len());
 
         let font = &self.font;
 
@@ -253,19 +247,33 @@ fn get_glyph_groups(text: &str, fonts: &Vec<Arc<Font>>, paint: &Arc<Paint>) -> V
 pub fn get_left_in_align(x: Px, align: TextAlign, width: Px) -> Px {
     match align {
         TextAlign::Left => x,
-        TextAlign::Right => x - width,
         TextAlign::Center => x - width / 2.0,
+        TextAlign::Right => x - width,
     }
 }
 pub fn get_bottom_of_baseline(baseline: TextBaseline, font_metrics: FontMetrics) -> Px {
     match baseline {
-        TextBaseline::Top => -font_metrics.ascent,
-        TextBaseline::Bottom => -font_metrics.descent,
+        TextBaseline::Top => -font_metrics.ascent - font_metrics.descent,
         TextBaseline::Middle => (-font_metrics.ascent - font_metrics.descent) / 2.0,
+        TextBaseline::Bottom => -font_metrics.descent,
     }
 }
-fn get_fallback_fonts(font_size: i16) -> VecDeque<Arc<Font>> {
+fn get_fallback_fonts(font_size: IntPx) -> VecDeque<Arc<Font>> {
     crate::typeface::get_fallback_font_typefaces()
         .map(|typeface| crate::font::get_font_of_typeface(typeface.clone(), font_size))
         .collect()
+}
+pub fn get_line_height(font_size: IntPx) -> Px {
+    font_size.into_px() * 110.percent()
+}
+pub fn get_multiline_y_baseline_offset(
+    baseline: TextBaseline,
+    line_height: Px,
+    line_texts_len: usize,
+) -> Px {
+    match baseline {
+        TextBaseline::Top => 0.px(),
+        TextBaseline::Middle => -line_height * 0.5 * (line_texts_len - 1),
+        TextBaseline::Bottom => -line_height * (line_texts_len - 1),
+    }
 }

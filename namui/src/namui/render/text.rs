@@ -1,5 +1,5 @@
 use crate::{
-    draw::text::{get_bottom_of_baseline, get_left_in_align},
+    draw::text::{get_bottom_of_baseline, get_left_in_align, get_line_height},
     namui::{self, *},
 };
 
@@ -169,9 +169,9 @@ fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
 
     let font_metrics = font.metrics;
 
-    let height = -font_metrics.ascent + font_metrics.descent;
+    let height = get_line_height(param.font_type.size);
     let bottom_of_baseline = get_bottom_of_baseline(param.baseline, font_metrics);
-    let top = param.y + bottom_of_baseline + font_metrics.ascent;
+    let top = param.y + bottom_of_baseline + font_metrics.descent + font_metrics.ascent;
 
     let margin = background.margin.unwrap_or(Ltrb::default());
 

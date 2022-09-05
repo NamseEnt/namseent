@@ -1,4 +1,5 @@
 use super::Px;
+use crate::PxExt;
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Copy, serde::Serialize)]
 pub struct IntPx(pub(crate) i32);
@@ -14,6 +15,12 @@ pub trait IntPxExt {
 impl IntPxExt for i32 {
     fn int_px(self) -> IntPx {
         IntPx(self)
+    }
+}
+
+impl IntPx {
+    pub fn into_px(self) -> Px {
+        (self.0 as f32).px()
     }
 }
 

@@ -1,7 +1,7 @@
 use super::InitResult;
 use crate::{
     namui::{skia::Font, FontType, TypefaceType},
-    Typeface,
+    IntPx, Typeface,
 };
 use dashmap::DashMap;
 use std::sync::Arc;
@@ -38,7 +38,7 @@ pub fn get_font(font_type: FontType) -> Option<Arc<Font>> {
         },
     }
 }
-pub fn get_font_of_typeface(typeface: Arc<Typeface>, font_size: i16) -> Arc<Font> {
+pub fn get_font_of_typeface(typeface: Arc<Typeface>, font_size: IntPx) -> Arc<Font> {
     let key = Font::generate_id(&typeface, font_size);
     let font = FONT_SYSTEM.typeface_fonts.get(&key);
     match font {
@@ -58,10 +58,10 @@ fn create_font_from_font_type(font_type: FontType) -> Result<Arc<Font>, String> 
     };
     let typeface = crate::typeface::get_typeface(typeface_type);
     match typeface {
-        Some(typeface) => Ok(crate_font(&typeface, font_type.size.0.try_into().unwrap())),
+        Some(typeface) => Ok(crate_font(&typeface, font_type.size)),
         None => Err(format!("Could not find typeface for {:?}", font_type)),
     }
 }
-fn crate_font(typeface: &Typeface, font_size: i16) -> Arc<Font> {
+fn crate_font(typeface: &Typeface, font_size: IntPx) -> Arc<Font> {
     Arc::new(Font::new(typeface, font_size))
 }
