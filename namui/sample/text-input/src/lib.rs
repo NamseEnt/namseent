@@ -67,6 +67,7 @@ impl Entity for TextInputExample {
                     color: namui::Color::BLACK,
                     ..Default::default()
                 },
+                max_width: None,
             },
         });
 
@@ -103,6 +104,7 @@ impl Entity for TextInputExample {
                     color: namui::Color::BLACK,
                     ..Default::default()
                 },
+                max_width: None,
             },
         });
 
@@ -139,6 +141,7 @@ impl Entity for TextInputExample {
                     color: namui::Color::BLACK,
                     ..Default::default()
                 },
+                max_width: None,
             },
         });
 
