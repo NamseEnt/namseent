@@ -80,7 +80,7 @@ impl Header {
                 style: TextStyle {
                     color: Color::WHITE,
                     ..Default::default()
-                }
+                },
                 max_width: None,
             })
         ];
