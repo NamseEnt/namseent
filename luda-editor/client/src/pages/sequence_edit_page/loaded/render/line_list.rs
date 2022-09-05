@@ -77,6 +77,7 @@ impl LoadedSequenceEditorPage {
                                     },
                                     background: None,
                                 },
+                                max_width: None,
                             },
                         })
                     }

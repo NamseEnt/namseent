@@ -38,7 +38,8 @@ pub fn render_time_texts(props: TimeTextsProps) -> RenderingTree {
                         color: namui::Color::grayscale_f01(0.8),
                         ..Default::default()
                     },
-                    text: text,
+                    text,
+                    max_width: None,
                 })
             })
             .collect::<Vec<_>>(),

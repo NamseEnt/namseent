@@ -17,6 +17,7 @@ pub fn center_text(wh: Wh<Px>, text: &str, color: Color) -> RenderingTree {
             color,
             ..Default::default()
         },
+        max_width: None,
     })
 }
 

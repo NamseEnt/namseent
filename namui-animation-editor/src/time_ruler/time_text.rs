@@ -38,6 +38,7 @@ pub fn render_time_texts(props: &TimeTextsProps) -> RenderingTree {
                         ..Default::default()
                     },
                     text,
+                    max_width: None,
                 })
             })
             .collect::<Vec<_>>(),

@@ -126,6 +126,7 @@ impl DialCounter {
                             color: Color::BLACK,
                             ..Default::default()
                         },
+                        max_width: None,
                     }),
                 ]),
             )

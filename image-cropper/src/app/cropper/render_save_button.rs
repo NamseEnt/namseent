@@ -38,6 +38,7 @@ pub fn render_save_button(wh: Wh<Px>) -> RenderingTree {
                 color: Color::from_u8(255, 255, 255, 255),
                 ..Default::default()
             },
+            max_width: None,
         }),
     ])
 }
