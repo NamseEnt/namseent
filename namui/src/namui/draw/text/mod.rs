@@ -1,3 +1,5 @@
+mod text_wrap;
+
 use super::*;
 use crate::{namui::skia::*, system::graphics, *};
 use std::{
@@ -16,6 +18,7 @@ pub struct TextDrawCommand {
     pub paint_builder: PaintBuilder,
     pub align: TextAlign,
     pub baseline: TextBaseline,
+    pub max_width: Option<Px>,
 }
 
 #[derive(Debug, Serialize, Copy, Clone)]
@@ -37,15 +40,15 @@ impl TextDrawCommand {
             return;
         }
 
-        let line_texts = self.text.lines().collect::<Vec<_>>();
-
-        let line_height = get_line_height(self.font.size);
-
-        let paint = self.paint_builder.build();
-
         let fonts = std::iter::once(self.font.clone())
             .chain(std::iter::once_with(|| get_fallback_fonts(self.font.size)).flatten())
             .collect::<Vec<_>>();
+
+        let paint = self.paint_builder.build();
+
+        let line_texts = self.get_line_texts(&fonts, &paint);
+
+        let line_height = get_line_height(self.font.size);
 
         let mut bottom_of_fonts: HashMap<String, Px> = HashMap::new();
 
@@ -102,7 +105,13 @@ impl TextDrawCommand {
             return None;
         }
 
-        let line_texts = self.text.lines().collect::<Vec<_>>();
+        let fonts = std::iter::once(self.font.clone())
+            .chain(std::iter::once_with(|| get_fallback_fonts(self.font.size)).flatten())
+            .collect::<Vec<_>>();
+
+        let paint = self.paint_builder.build();
+
+        let line_texts = self.get_line_texts(&fonts, &paint);
 
         let line_height = get_line_height(self.font.size);
 
@@ -276,4 +285,12 @@ pub fn get_multiline_y_baseline_offset(
         TextBaseline::Middle => -line_height * 0.5 * (line_texts_len - 1),
         TextBaseline::Bottom => -line_height * (line_texts_len - 1),
     }
+}
+pub(crate) fn get_text_width_with_fonts(
+    fonts: &Vec<Arc<Font>>,
+    text: &str,
+    paint: &Arc<Paint>,
+) -> Px {
+    let groups = get_glyph_groups(text, fonts, paint);
+    groups.iter().map(|group| group.width).sum()
 }

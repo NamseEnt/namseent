@@ -161,6 +161,7 @@ impl Entity for TextInputExample {
                 color: namui::Color::BLACK,
                 ..Default::default()
             },
+            max_width: Some(100.px()),
         });
 
         render![left, center, right, left_value_text]

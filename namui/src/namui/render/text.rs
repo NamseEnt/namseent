@@ -36,6 +36,7 @@ pub struct TextParam {
     pub baseline: TextBaseline,
     pub font_type: FontType,
     pub style: TextStyle,
+    pub max_width: Option<Px>,
 }
 
 pub fn text(param: TextParam) -> RenderingTree {
@@ -129,6 +130,7 @@ fn draw_text(param: &TextParam, font: Arc<Font>) -> DrawCommand {
         paint_builder: text_paint,
         align: param.align,
         baseline: param.baseline,
+        max_width: param.max_width,
     })
 }
 fn draw_border(param: &TextParam, font: Arc<Font>) -> Option<DrawCommand> {
@@ -149,6 +151,7 @@ fn draw_border(param: &TextParam, font: Arc<Font>) -> Option<DrawCommand> {
         paint_builder: border_paint,
         align: param.align,
         baseline: param.baseline,
+        max_width: param.max_width,
     }))
 }
 
