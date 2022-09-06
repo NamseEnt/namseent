@@ -8,8 +8,6 @@ pub struct Typeface {
     pub id: u64,
     pub canvas_kit_typeface: Arc<CanvasKitTypeface>,
 }
-unsafe impl Sync for Typeface {}
-unsafe impl Send for Typeface {}
 impl Typeface {
     pub fn new(bytes: &impl AsRef<[u8]>) -> Typeface {
         let bytes = bytes.as_ref();
@@ -23,7 +21,7 @@ impl Typeface {
         let typeface = canvas_kit()
             .FontMgr()
             .RefDefault()
-            .MakeTypefaceFromData(&array_buffer);
+            .MakeTypefaceFromData(array_buffer);
 
         Typeface {
             id,
