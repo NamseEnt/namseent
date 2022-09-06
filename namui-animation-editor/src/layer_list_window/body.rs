@@ -79,6 +79,7 @@ fn render_label_cell(wh: Wh<Px>, layer: &namui::animation::Layer) -> RenderingTr
             serif: false,
             size: crate::adjust_font_size(wh.height - MARGIN * 2.0),
         },
+        max_width: None,
     })
 }
 

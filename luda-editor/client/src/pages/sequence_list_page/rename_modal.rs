@@ -106,6 +106,7 @@ impl RenameModal {
                                     color: Color::BLACK,
                                     background: None,
                                 },
+                                max_width: None,
                             },
                         }),
                         namui_prebuilt::button::text_button(

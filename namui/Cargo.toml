@@ -34,6 +34,8 @@ strum_macros = "0.24"
 nalgebra = { version = "0.31", features = ["serde-serialize"] }
 reqwest = "0.11"
 fluvio-wasm-timer = "0.2"
+textwrap = "0.15"
+unicode-segmentation = "1.9"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"

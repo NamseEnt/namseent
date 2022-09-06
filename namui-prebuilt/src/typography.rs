@@ -17,6 +17,7 @@ pub fn center_text(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> Rendering
             color,
             ..Default::default()
         },
+        max_width: None,
     })
 }
 
@@ -42,6 +43,7 @@ pub mod body {
                 color,
                 ..Default::default()
             },
+            max_width: None,
         })
     }
     pub fn center(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> RenderingTree {
@@ -61,6 +63,7 @@ pub mod body {
                 color,
                 ..Default::default()
             },
+            max_width: None,
         })
     }
     pub fn right(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> RenderingTree {
@@ -80,6 +83,7 @@ pub mod body {
                 color,
                 ..Default::default()
             },
+            max_width: None,
         })
     }
 }

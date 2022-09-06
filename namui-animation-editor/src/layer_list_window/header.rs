@@ -46,6 +46,7 @@ impl Header {
                     color: Color::BLACK,
                     ..Default::default()
                 },
+                max_width: None,
             })
         ]
         .attach_event(|builder| {
@@ -79,7 +80,8 @@ impl Header {
                 style: TextStyle {
                     color: Color::WHITE,
                     ..Default::default()
-                }
+                },
+                max_width: None,
             })
         ];
 
