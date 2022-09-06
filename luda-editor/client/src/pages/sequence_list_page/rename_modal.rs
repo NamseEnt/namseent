@@ -74,39 +74,32 @@ impl RenameModal {
                             Color::WHITE,
                         ),
                         self.text_input.render(text_input::Props {
-                            rect_param: RectParam {
-                                rect: text_input_rect_in_modal,
-                                style: RectStyle {
-                                    stroke: Some(RectStroke {
-                                        color: Color::BLACK,
-                                        width: 1.px(),
-                                        border_position: BorderPosition::Outside,
-                                    }),
-                                    fill: Some(RectFill {
-                                        color: Color::WHITE,
-                                    }),
-                                    round: None,
-                                },
-                            },
-                            text_param: TextParam {
-                                text: self.sequence_name.clone(),
-                                x: text_input_rect_in_modal.x() + 10.px(),
-                                y: text_input_rect_in_modal.y(),
-                                align: TextAlign::Left,
-                                baseline: TextBaseline::Top,
-                                font_type: FontType {
-                                    serif: false,
-                                    size: 12.int_px(),
-                                    language: Language::Ko,
-                                    font_weight: FontWeight::REGULAR,
-                                },
-                                style: TextStyle {
-                                    border: None,
-                                    drop_shadow: None,
+                            rect: text_input_rect_in_modal,
+                            rect_style: RectStyle {
+                                stroke: Some(RectStroke {
                                     color: Color::BLACK,
-                                    background: None,
-                                },
-                                max_width: None,
+                                    width: 1.px(),
+                                    border_position: BorderPosition::Outside,
+                                }),
+                                fill: Some(RectFill {
+                                    color: Color::WHITE,
+                                }),
+                                round: None,
+                            },
+                            text: self.sequence_name.clone(),
+                            text_align: TextAlign::Left,
+                            text_baseline: TextBaseline::Top,
+                            font_type: FontType {
+                                serif: false,
+                                size: 12.int_px(),
+                                language: Language::Ko,
+                                font_weight: FontWeight::REGULAR,
+                            },
+                            text_style: TextStyle {
+                                border: None,
+                                drop_shadow: None,
+                                color: Color::BLACK,
+                                background: None,
                             },
                         }),
                         namui_prebuilt::button::text_button(
