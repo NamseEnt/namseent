@@ -1,11 +1,6 @@
-mod text_wrap;
-
 use super::*;
-use crate::{namui::skia::*, system::graphics, *};
-use std::{
-    collections::{HashMap, VecDeque},
-    sync::Arc,
-};
+use crate::{namui::skia::*, system::graphics, text::*, *};
+use std::{collections::HashMap, sync::Arc};
 
 #[derive(Serialize, Clone, Debug)]
 pub struct TextDrawCommand {
@@ -46,17 +41,17 @@ impl TextDrawCommand {
 
         let paint = self.paint_builder.build();
 
-        let line_texts = self.get_line_texts(&fonts, &paint);
+        let line_texts = LineTexts::new(&self.text, &fonts, &paint, self.max_width);
 
         let line_height = get_line_height(self.font.size);
 
         let mut bottom_of_fonts: HashMap<String, Px> = HashMap::new();
 
         let multiline_y_baseline_offset =
-            get_multiline_y_baseline_offset(self.baseline, line_height, line_texts.len());
+            get_multiline_y_baseline_offset(self.baseline, line_height, line_texts.line_len());
 
         line_texts
-            .iter()
+            .iter_str()
             .enumerate()
             .map(|(index, line_text)| {
                 (
@@ -90,7 +85,7 @@ impl TextDrawCommand {
                             bottom
                         });
 
-                    let text_blob = TextBlob::from_glyph_ids(&glyph_ids, &font);
+                    let text_blob = TextBlob::from_glyph_ids(glyph_ids.into_boxed_slice(), &font);
 
                     graphics::surface()
                         .canvas()
@@ -111,17 +106,17 @@ impl TextDrawCommand {
 
         let paint = self.paint_builder.build();
 
-        let line_texts = self.get_line_texts(&fonts, &paint);
+        let line_texts = LineTexts::new(&self.text, &fonts, &paint, self.max_width);
 
         let line_height = get_line_height(self.font.size);
 
         let multiline_y_baseline_offset =
-            get_multiline_y_baseline_offset(self.baseline, line_height, line_texts.len());
+            get_multiline_y_baseline_offset(self.baseline, line_height, line_texts.line_len());
 
         let font = &self.font;
 
         line_texts
-            .iter()
+            .iter_str()
             .enumerate()
             .map(|(index, line_text)| {
                 (
@@ -178,119 +173,4 @@ impl TextDrawCommand {
             .map(|bound| bound.is_xy_inside(xy))
             .unwrap_or(false)
     }
-}
-
-#[derive(Debug)]
-struct GlyphGroup {
-    glyph_ids: Vec<u16>,
-    end_index: usize,
-    width: Px,
-    font: Arc<Font>,
-}
-fn get_glyph_groups(text: &str, fonts: &Vec<Arc<Font>>, paint: &Arc<Paint>) -> Vec<GlyphGroup> {
-    let mut groups: Vec<GlyphGroup> = vec![];
-    let mut non_calculated_char_and_indexes: Vec<(char, usize)> = text
-        .chars()
-        .enumerate()
-        .map(|(index, char)| (char, index))
-        .collect();
-    let mut fonts = fonts.iter().peekable();
-
-    while !non_calculated_char_and_indexes.is_empty() && fonts.peek().is_some() {
-        let font = fonts.next().unwrap();
-
-        let text = non_calculated_char_and_indexes
-            .iter()
-            .map(|(char, _)| char)
-            .collect::<String>();
-
-        let glyph_ids = font.get_glyph_ids(&text);
-
-        let mut available_glyph_id_and_indexes = vec![];
-        for (index, glyph_id) in glyph_ids.iter().enumerate() {
-            if *glyph_id != 0 {
-                available_glyph_id_and_indexes.push((*glyph_id, index));
-                non_calculated_char_and_indexes.retain(|(_, index2)| index != *index2);
-            }
-        }
-
-        if available_glyph_id_and_indexes.is_empty() {
-            continue;
-        }
-
-        let available_glyph_id_and_index_and_width: Vec<(u16, usize, Px)> = {
-            let available_glyph_ids: Vec<_> = available_glyph_id_and_indexes
-                .iter()
-                .map(|(glyph_id, _)| *glyph_id)
-                .collect();
-
-            let widths = font.get_glyph_widths(available_glyph_ids.into(), Option::Some(paint));
-
-            widths
-                .into_iter()
-                .zip(available_glyph_id_and_indexes.into_iter())
-                .map(|(width, (glyph_id, index))| (glyph_id, index, width))
-                .collect()
-        };
-
-        for (glyph_id, index, width) in available_glyph_id_and_index_and_width {
-            if let Some(last_group) = groups.last_mut() {
-                if last_group.end_index + 1 == index {
-                    last_group.glyph_ids.push(glyph_id);
-                    last_group.width += width;
-                    last_group.end_index = index;
-                    continue;
-                }
-            }
-            groups.push(GlyphGroup {
-                glyph_ids: vec![glyph_id],
-                end_index: index,
-                width,
-                font: font.clone(),
-            });
-        }
-    }
-    groups.sort_by(|a, b| a.end_index.cmp(&b.end_index));
-    groups
-}
-pub fn get_left_in_align(x: Px, align: TextAlign, width: Px) -> Px {
-    match align {
-        TextAlign::Left => x,
-        TextAlign::Center => x - width / 2.0,
-        TextAlign::Right => x - width,
-    }
-}
-pub fn get_bottom_of_baseline(baseline: TextBaseline, font_metrics: FontMetrics) -> Px {
-    match baseline {
-        TextBaseline::Top => -font_metrics.ascent - font_metrics.descent,
-        TextBaseline::Middle => (-font_metrics.ascent - font_metrics.descent) / 2.0,
-        TextBaseline::Bottom => -font_metrics.descent,
-    }
-}
-fn get_fallback_fonts(font_size: IntPx) -> VecDeque<Arc<Font>> {
-    crate::typeface::get_fallback_font_typefaces()
-        .map(|typeface| crate::font::get_font_of_typeface(typeface.clone(), font_size))
-        .collect()
-}
-pub fn get_line_height(font_size: IntPx) -> Px {
-    font_size.into_px() * 110.percent()
-}
-pub fn get_multiline_y_baseline_offset(
-    baseline: TextBaseline,
-    line_height: Px,
-    line_texts_len: usize,
-) -> Px {
-    match baseline {
-        TextBaseline::Top => 0.px(),
-        TextBaseline::Middle => -line_height * 0.5 * (line_texts_len - 1),
-        TextBaseline::Bottom => -line_height * (line_texts_len - 1),
-    }
-}
-pub(crate) fn get_text_width_with_fonts(
-    fonts: &Vec<Arc<Font>>,
-    text: &str,
-    paint: &Arc<Paint>,
-) -> Px {
-    let groups = get_glyph_groups(text, fonts, paint);
-    groups.iter().map(|group| group.width).sum()
 }

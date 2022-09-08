@@ -5,7 +5,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-pub type GlyphIds = [u16];
+pub type GlyphIds = Box<[u16]>;
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub struct FontMetrics {

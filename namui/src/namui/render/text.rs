@@ -1,7 +1,5 @@
-use crate::{
-    draw::text::{get_bottom_of_baseline, get_left_in_align, get_line_height},
-    namui::{self, *},
-};
+use crate::{text::*, *};
+use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug)]
 pub struct TextStyleBorder {
@@ -116,11 +114,14 @@ pub fn text(param: TextParam) -> RenderingTree {
 //     baseline,
 //   });
 // }
-fn draw_text(param: &TextParam, font: Arc<Font>) -> DrawCommand {
-    let text_paint = namui::PaintBuilder::new()
-        .set_color(param.style.color)
+pub(crate) fn get_text_paint(color: Color) -> PaintBuilder {
+    namui::PaintBuilder::new()
+        .set_color(color)
         .set_style(namui::PaintStyle::Fill)
-        .set_anti_alias(true);
+        .set_anti_alias(true)
+}
+fn draw_text(param: &TextParam, font: Arc<Font>) -> DrawCommand {
+    let text_paint = get_text_paint(param.style.color);
 
     DrawCommand::Text(TextDrawCommand {
         text: param.text.clone(),

@@ -32,52 +32,45 @@ impl LoadedSequenceEditorPage {
                         let is_selected = line_text_input.is_focused();
 
                         line_text_input.render(text_input::Props {
-                            rect_param: RectParam {
-                                rect: Rect::from_xy_wh(Xy::zero(), wh),
-                                style: RectStyle {
-                                    stroke: Some(match is_selected {
-                                        true => RectStroke {
-                                            color: Color::BLUE,
-                                            width: 2.px(),
-                                            border_position: BorderPosition::Inside,
-                                        },
-                                        false => RectStroke {
-                                            color: Color::WHITE,
-                                            width: 1.px(),
-                                            border_position: BorderPosition::Inside,
-                                        },
-                                    }),
-                                    fill: Some(RectFill {
-                                        color: match is_selected {
-                                            true => Color::WHITE,
-                                            false => Color::BLACK,
-                                        },
-                                    }),
-                                    round: None,
-                                },
-                            },
-                            text_param: TextParam {
-                                text: cut.line.clone(),
-                                x: 10.px(),
-                                y: wh.height / 2.0,
-                                align: TextAlign::Left,
-                                baseline: TextBaseline::Middle,
-                                font_type: FontType {
-                                    serif: false,
-                                    size: 14.int_px(),
-                                    language: Language::Ko,
-                                    font_weight: FontWeight::REGULAR,
-                                },
-                                style: TextStyle {
-                                    border: None,
-                                    drop_shadow: None,
-                                    color: match is_selected {
-                                        true => Color::BLUE,
-                                        false => Color::WHITE,
+                            rect: Rect::from_xy_wh(Xy::zero(), wh),
+                            rect_style: RectStyle {
+                                stroke: Some(match is_selected {
+                                    true => RectStroke {
+                                        color: Color::BLUE,
+                                        width: 2.px(),
+                                        border_position: BorderPosition::Inside,
                                     },
-                                    background: None,
+                                    false => RectStroke {
+                                        color: Color::WHITE,
+                                        width: 1.px(),
+                                        border_position: BorderPosition::Inside,
+                                    },
+                                }),
+                                fill: Some(RectFill {
+                                    color: match is_selected {
+                                        true => Color::WHITE,
+                                        false => Color::BLACK,
+                                    },
+                                }),
+                                round: None,
+                            },
+                            text: cut.line.clone(),
+                            text_align: TextAlign::Left,
+                            text_baseline: TextBaseline::Middle,
+                            font_type: FontType {
+                                serif: false,
+                                size: 14.int_px(),
+                                language: Language::Ko,
+                                font_weight: FontWeight::REGULAR,
+                            },
+                            text_style: TextStyle {
+                                border: None,
+                                drop_shadow: None,
+                                color: match is_selected {
+                                    true => Color::BLUE,
+                                    false => Color::WHITE,
                                 },
-                                max_width: None,
+                                background: None,
                             },
                         })
                     }

@@ -12,7 +12,7 @@ impl TextBlob {
                 .MakeFromText(string, &font.canvas_kit_font),
         )
     }
-    pub fn from_glyph_ids(glyph_ids: &GlyphIds, font: &Font) -> Self {
+    pub fn from_glyph_ids(glyph_ids: GlyphIds, font: &Font) -> Self {
         TextBlob(
             canvas_kit()
                 .TextBlob()

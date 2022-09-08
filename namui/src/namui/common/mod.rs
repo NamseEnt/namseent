@@ -2,6 +2,7 @@ mod codes;
 mod open_external;
 mod request_animation_frame;
 mod set_timeout;
+pub(crate) mod text;
 pub mod types;
 
 use super::render::{RenderingData, RenderingTree};

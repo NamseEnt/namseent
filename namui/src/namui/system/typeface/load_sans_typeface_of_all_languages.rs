@@ -1,7 +1,4 @@
-use crate::{
-    namui::{FontWeight, Language, TypefaceType},
-    Typeface,
-};
+use crate::*;
 use futures::{future::try_join_all, try_join};
 use std::collections::HashMap;
 
@@ -20,7 +17,7 @@ pub async fn load_all_typefaces() -> Result<(), Box<dyn std::error::Error>> {
 async fn load_fallback_font_typefaces() -> Result<(), Box<dyn std::error::Error>> {
     let typeface = get_noto_color_emoji_typeface().await?;
 
-    crate::typeface::load_fallback_font_typeface(typeface);
+    crate::typeface::load_fallback_font_typeface("emoji".to_string(), typeface);
     Ok(())
 }
 
