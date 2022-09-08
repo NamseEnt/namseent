@@ -21,7 +21,9 @@ impl PropertyEditor {
                 table::fixed(
                     20.px(),
                     table::horizontal([
-                        table::ratio(1.0, |wh| typography::body::left(wh, "Layers", Color::WHITE)),
+                        table::ratio(1.0, |wh| {
+                            typography::body::left(wh.height, "Layers", Color::WHITE)
+                        }),
                         table::calculative(
                             |wh| wh.height,
                             |wh| {
@@ -76,7 +78,7 @@ impl PropertyEditor {
                                 render([
                                     simple_rect(wh, stroke_color, 1.px(), fill_color),
                                     typography::body::left(
-                                        wh,
+                                        wh.height,
                                         format!("layer {index}"),
                                         stroke_color,
                                     ),

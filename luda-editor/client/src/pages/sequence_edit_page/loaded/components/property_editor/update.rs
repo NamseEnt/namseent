@@ -9,7 +9,7 @@ impl PropertyEditor {
                 Event::LayerListPlusButtonClicked { image_clip_address } => {
                     self.editor_history_system
                         .mutate_image_clip(image_clip_address, |clip| {
-                            clip.images.push(crate::storage::system_tree::Image::new(
+                            clip.images.push(rpc::data::system_tree::Image::new(
                                 None,
                                 Circumscribed {
                                     center: Xy::single(50.percent()),
@@ -26,7 +26,6 @@ impl PropertyEditor {
                     self.editor_history_system
                         .mutate_image_clip(image_clip_address, |clip| {
                             clip.images.update(*layer_index, |layer| {
-                                namui::log!("{:?}", image);
                                 layer.image_path = Some(image.clone());
                             })
                         });

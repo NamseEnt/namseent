@@ -1,10 +1,9 @@
 mod documents;
 
+use super::project::documents::ProjectDocument;
 use crate::session::SessionDocument;
 use documents::*;
 use futures::future::try_join_all;
-use rpc::base64;
-use yrs::updates::{decoder::Decode, encoder::Encode};
 
 #[derive(Debug)]
 pub struct SequenceService {}
@@ -94,7 +93,11 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                     id: sequence_id.clone(),
                     project_id: req.project_id.clone(),
                     name: req.name,
-                    yrs_update_v2_base64: None,
+                    json: serde_json::to_string(&rpc::data::Sequence::new(
+                        nanoid::nanoid!(),
+                        "New Sequence".to_string(),
+                    ))
+                    .unwrap(),
                     last_modified: None,
                 })
                 .create_item(ProjectSequenceDocument {
@@ -106,48 +109,6 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                 .map_err(|error| rpc::create_sequence::Error::Unknown(error.to_string()))?;
 
             Ok(rpc::create_sequence::Response {})
-        })
-    }
-
-    fn update_client_sequence<'a>(
-        &'a self,
-        _session: Option<SessionDocument>,
-        req: rpc::update_client_sequence::Request,
-    ) -> std::pin::Pin<
-        Box<dyn 'a + std::future::Future<Output = rpc::update_client_sequence::Result> + Send>,
-    > {
-        Box::pin(async move {
-            let sequence = crate::dynamo_db()
-                .get_item::<SequenceDocument>(req.sequence_id, None)
-                .await
-                .map_err(|error| rpc::update_client_sequence::Error::Unknown(error.to_string()))?;
-            if sequence.yrs_update_v2_base64.is_none() {
-                return Err(rpc::update_client_sequence::Error::ServerSequenceNotExists);
-            }
-            if sequence.last_modified == req.e_tag.map(|e_tag| e_tag.parse::<i64>().unwrap()) {
-                return Ok(rpc::update_client_sequence::Response::NotModified);
-            }
-            let yrs_update_v2_base64 = sequence.yrs_update_v2_base64.as_ref().unwrap();
-
-            let client_state_vector = yrs::StateVector::decode_v2(
-                &base64::decode(req.client_state_vector_base64).unwrap(),
-            )
-            .unwrap();
-            let yrs_doc = yrs::Doc::with_client_id(0);
-            let mut txn = yrs_doc.transact();
-
-            txn.apply_update(
-                yrs::Update::decode_v2(&base64::decode(yrs_update_v2_base64).unwrap()).unwrap(),
-            );
-
-            let server_state_vector = txn.state_vector().encode_v2();
-            let update_for_client = yrs_doc.encode_state_as_update_v2(&client_state_vector);
-
-            Ok(rpc::update_client_sequence::Response::Modified {
-                yrs_update_v2_for_client_base64: base64::encode(update_for_client),
-                e_tag: sequence.e_tag().unwrap(),
-                server_state_vector_base64: base64::encode(&server_state_vector),
-            })
         })
     }
 
@@ -173,10 +134,6 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             }
             let session = session.unwrap();
 
-            let mut update_v2_for_client = None;
-            let mut server_state_vector = None;
-            let mut e_tag = None;
-
             crate::dynamo_db()
                 .update_item(
                     req.sequence_id.clone(),
@@ -194,40 +151,19 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                             return Err(rpc::update_server_sequence::Error::Unauthorized);
                         }
 
-                        let yrs_doc = yrs::Doc::with_client_id(0);
-                        let mut txn = yrs_doc.transact();
+                        let mut sequence_json =
+                            serde_json::from_str::<serde_json::Value>(&sequence.json).map_err(
+                                |err| rpc::update_server_sequence::Error::Unknown(err.to_string()),
+                            )?;
+                        rpc::json_patch::patch(&mut sequence_json, &req.patch).map_err(|err| {
+                            rpc::update_server_sequence::Error::Unknown(err.to_string())
+                        })?;
 
-                        if let Some(yrs_update_v2_base64) = &sequence.yrs_update_v2_base64 {
-                            txn.apply_update(
-                                yrs::Update::decode_v2(
-                                    &base64::decode(yrs_update_v2_base64).unwrap(),
-                                )
-                                .unwrap(),
-                            );
-                        }
-                        txn.apply_update(
-                            yrs::Update::decode_v2(
-                                &base64::decode(req.yrs_update_v2_for_server_base64).unwrap(),
-                            )
-                            .unwrap(),
-                        );
-
-                        let client_state_vector = yrs::StateVector::decode_v2(
-                            &base64::decode(&req.client_state_vector_base64).unwrap(),
-                        )
-                        .unwrap();
-
-                        update_v2_for_client = Some(base64::encode(
-                            yrs_doc.encode_state_as_update_v2(&client_state_vector),
-                        ));
-                        server_state_vector = Some(base64::encode(txn.state_vector().encode_v2()));
-
-                        sequence.yrs_update_v2_base64 = Some(base64::encode(
-                            yrs_doc.encode_state_as_update_v2(&yrs::StateVector::default()),
-                        ));
+                        sequence.json = serde_json::to_string(&sequence_json).map_err(|err| {
+                            rpc::update_server_sequence::Error::Unknown(err.to_string())
+                        })?;
 
                         sequence.last_modified = Some(chrono::Utc::now().timestamp_nanos());
-                        e_tag = Some(sequence.e_tag().unwrap());
                         Ok(sequence)
                     },
                 )
@@ -242,10 +178,60 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                     }
                 })?;
 
-            Ok(rpc::update_server_sequence::Response {
-                yrs_update_v2_for_client_base64: update_v2_for_client.unwrap(),
-                e_tag: e_tag.unwrap(),
-                server_state_vector_base64: server_state_vector.unwrap(),
+            Ok(rpc::update_server_sequence::Response {})
+        })
+    }
+
+    fn update_client_sequence<'a>(
+        &'a self,
+        _session: Option<SessionDocument>,
+        req: rpc::update_client_sequence::Request,
+    ) -> std::pin::Pin<
+        Box<dyn 'a + std::future::Future<Output = rpc::update_client_sequence::Result> + Send>,
+    > {
+        Box::pin(async move {
+            let sequence = crate::dynamo_db()
+                .get_item::<SequenceDocument>(req.sequence_id, None)
+                .await
+                .map_err(|error| rpc::update_client_sequence::Error::Unknown(error.to_string()))?;
+
+            let sequence_json = serde_json::from_str::<serde_json::Value>(&sequence.json)
+                .map_err(|err| rpc::update_client_sequence::Error::Unknown(err.to_string()))?;
+            let patch = rpc::json_patch::diff(&req.sequence_json, &sequence_json);
+
+            Ok(rpc::update_client_sequence::Response { patch })
+        })
+    }
+
+    fn get_sequence_and_project_shared_data<'a>(
+        &'a self,
+        _session: Option<SessionDocument>,
+        req: rpc::get_sequence_and_project_shared_data::Request,
+    ) -> std::pin::Pin<
+        Box<
+            dyn 'a
+                + std::future::Future<Output = rpc::get_sequence_and_project_shared_data::Result>
+                + Send,
+        >,
+    > {
+        Box::pin(async move {
+            let sequence = crate::dynamo_db()
+                .get_item::<SequenceDocument>(req.sequence_id, None)
+                .await
+                .map_err(|error| {
+                    rpc::get_sequence_and_project_shared_data::Error::Unknown(error.to_string())
+                })?;
+
+            let project = crate::dynamo_db()
+                .get_item::<ProjectDocument>(sequence.project_id, None)
+                .await
+                .map_err(|error| {
+                    rpc::get_sequence_and_project_shared_data::Error::Unknown(error.to_string())
+                })?;
+
+            Ok(rpc::get_sequence_and_project_shared_data::Response {
+                sequence_json: sequence.json,
+                project_shared_data_json: project.shared_data_json,
             })
         })
     }

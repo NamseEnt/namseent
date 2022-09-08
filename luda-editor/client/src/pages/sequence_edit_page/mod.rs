@@ -1,10 +1,9 @@
 mod loaded;
 
-use crate::storage::{HistorySystem, SendableHistorySystem};
 use loaded::LoadedSequenceEditorPage;
 use namui::prelude::*;
 use namui_prebuilt::*;
-use std::sync::{Arc, Mutex};
+use rpc::data::{ProjectSharedData, Sequence};
 
 pub enum SequenceEditPage {
     Loading {
@@ -16,20 +15,19 @@ pub enum SequenceEditPage {
 }
 
 enum Event {
-    HistorySystemLoaded {
-        history_system: SendableHistorySystem,
-        server_state_vector: Box<[u8]>,
-        e_tag: String,
-    },
     ErrorOnLoading(String),
+    DataLoaded {
+        sequence: Sequence,
+        project_shared_data: ProjectSharedData,
+    },
 }
 pub struct Props {
     pub wh: Wh<Px>,
 }
 
 impl SequenceEditPage {
-    pub fn new(project_id: String, sequence_id: String, sequence_name: String) -> Self {
-        load_sequence(sequence_id.clone(), sequence_name);
+    pub fn new(project_id: String, sequence_id: String) -> Self {
+        load_data(sequence_id.clone());
         Self::Loading {
             project_id,
             sequence_id,
@@ -39,10 +37,9 @@ impl SequenceEditPage {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<Event>() {
             match event {
-                Event::HistorySystemLoaded {
-                    history_system,
-                    server_state_vector,
-                    e_tag,
+                Event::DataLoaded {
+                    project_shared_data,
+                    sequence,
                 } => match self {
                     SequenceEditPage::Loading {
                         project_id,
@@ -52,9 +49,8 @@ impl SequenceEditPage {
                         *self = SequenceEditPage::Loaded(LoadedSequenceEditorPage::new(
                             project_id.clone(),
                             sequence_id.clone(),
-                            history_system.clone(),
-                            server_state_vector.clone(),
-                            e_tag.clone(),
+                            project_shared_data.clone(),
+                            sequence.clone(),
                         ));
                     }
                     SequenceEditPage::Loaded(_) => unreachable!(),
@@ -80,9 +76,10 @@ impl SequenceEditPage {
     }
     pub fn render(&self, props: Props) -> RenderingTree {
         match self {
-            SequenceEditPage::Loading { .. } => {
-                typography::body::center(props.wh, "loading...", Color::WHITE)
-            }
+            SequenceEditPage::Loading { error, .. } => match error {
+                Some(error) => typography::body::center(props.wh, error, Color::RED),
+                None => typography::body::center(props.wh, "loading...", Color::WHITE),
+            },
             SequenceEditPage::Loaded(loaded_sequence_editor_page) => {
                 loaded_sequence_editor_page.render(loaded::Props { wh: props.wh })
             }
@@ -97,109 +94,31 @@ struct SequenceLocalCache {
     server_state_vector: Vec<u8>,
 }
 
-fn load_sequence(sequence_id: String, sequence_name: String) {
+fn load_data(sequence_id: String) {
+    async fn inner(
+        sequence_id: String,
+    ) -> Result<(Sequence, ProjectSharedData), Box<dyn std::error::Error>> {
+        let response = crate::RPC
+            .get_sequence_and_project_shared_data(
+                rpc::get_sequence_and_project_shared_data::Request { sequence_id },
+            )
+            .await?;
+        let sequence = serde_json::from_str(&response.sequence_json)?;
+        let project_shared_data = serde_json::from_str(&response.project_shared_data_json)?;
+        Ok((sequence, project_shared_data))
+    }
     spawn_local(async move {
-        let cache = namui::cache::get_serde::<SequenceLocalCache>("SequenceLocalCache").await;
-        if let Err(error) = cache {
-            return namui::event::send(Event::ErrorOnLoading(error.to_string()));
-        }
-        let cache = cache.unwrap();
-
-        let (client_state_vector, history_system) = match &cache {
-            Some(cache) => {
-                let history_system = HistorySystem::decode(&cache.update_v2);
-                (history_system.state_vector(), Some(history_system))
+        let result = inner(sequence_id).await;
+        match result {
+            Ok(tuple) => {
+                namui::event::send(Event::DataLoaded {
+                    sequence: tuple.0,
+                    project_shared_data: tuple.1,
+                });
             }
-            None => (HistorySystem::default_state_vector(), None),
-        };
-
-        let (history_system, server_state_vector, e_tag) = match crate::RPC
-            .update_client_sequence(rpc::update_client_sequence::Request {
-                sequence_id: sequence_id.clone(),
-                client_state_vector_base64: rpc::base64::encode(client_state_vector),
-                e_tag: cache.as_ref().map(|cache| cache.e_tag.clone()),
-            })
-            .await
-        {
-            Ok(response) => match response {
-                rpc::update_client_sequence::Response::Modified {
-                    server_state_vector_base64,
-                    yrs_update_v2_for_client_base64,
-                    e_tag,
-                } => {
-                    let update_for_client =
-                        rpc::base64::decode(yrs_update_v2_for_client_base64).unwrap();
-
-                    let history_system = match history_system {
-                        Some(mut history_system) => {
-                            history_system.merge(update_for_client);
-                            history_system
-                        }
-                        None => {
-                            let history_system = HistorySystem::decode(update_for_client);
-                            history_system
-                        }
-                    };
-
-                    (
-                        history_system,
-                        rpc::base64::decode(server_state_vector_base64).unwrap(),
-                        e_tag,
-                    )
-                }
-                rpc::update_client_sequence::Response::NotModified => {
-                    let cached = cache.unwrap();
-                    (
-                        history_system.expect("history_system must be Some"),
-                        cached.server_state_vector,
-                        cached.e_tag,
-                    )
-                }
-            },
             Err(error) => {
-                if let rpc::update_client_sequence::Error::ServerSequenceNotExists = error {
-                    let mut history_system = HistorySystem::new(crate::storage::SystemTree::new(
-                        sequence_id.clone(),
-                        sequence_name.clone(),
-                    ));
-                    match crate::RPC
-                        .update_server_sequence(rpc::update_server_sequence::Request {
-                            sequence_id: sequence_id.clone(),
-                            client_state_vector_base64: rpc::base64::encode(
-                                history_system.state_vector(),
-                            ),
-                            yrs_update_v2_for_server_base64: rpc::base64::encode(
-                                history_system.encode(),
-                            ),
-                        })
-                        .await
-                    {
-                        Ok(response) => {
-                            history_system.merge(
-                                rpc::base64::decode(response.yrs_update_v2_for_client_base64)
-                                    .unwrap(),
-                            );
-
-                            (
-                                history_system,
-                                rpc::base64::decode(response.server_state_vector_base64).unwrap(),
-                                response.e_tag,
-                            )
-                        }
-                        Err(error) => {
-                            return namui::event::send(Event::ErrorOnLoading(error.to_string()));
-                        }
-                    }
-                } else {
-                    return namui::event::send(Event::ErrorOnLoading(error.to_string()));
-                }
+                namui::event::send(Event::ErrorOnLoading(error.to_string()));
             }
-        };
-
-        namui::event::send(Event::HistorySystemLoaded {
-            history_system: Arc::new(Mutex::new(history_system)),
-            server_state_vector: server_state_vector.into_boxed_slice(),
-            e_tag,
-        });
+        }
     })
 }

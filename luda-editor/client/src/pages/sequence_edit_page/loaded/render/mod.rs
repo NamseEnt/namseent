@@ -10,17 +10,37 @@ pub struct Props {
 
 impl LoadedSequenceEditorPage {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
-        let system_tree = self.editor_history_system.get_state();
-        let sequence = system_tree.sequence;
+        let sequence = &self.sequence;
+        let characters = &self.project_shared_data.characters;
 
-        table::vertical([
-            table::fixed(20.px(), |wh| {
-                self.render_top_bar(wh, &sequence, self.syncer.get_sync_status())
-            }),
-            table::ratio(
-                1.0,
-                table::horizontal([table::ratio(1.0, |wh| self.render_line_list(wh, &sequence))]),
-            ),
-        ])(props.wh)
+        let modal = render([match &self.character_edit_modal {
+            Some(character_edit_modal) => {
+                let character_cell_right = 40.px() * 2.0 / 3.0;
+                translate(
+                    character_cell_right,
+                    0.px(),
+                    character_edit_modal.render(character_edit_modal::Props {
+                        wh: props.wh,
+                        characters: &characters,
+                    }),
+                )
+            }
+            None => RenderingTree::Empty,
+        }]);
+
+        render([
+            table::vertical([
+                table::fixed(20.px(), |wh| {
+                    self.render_top_bar(wh, &sequence, self.sequence_syncer.get_sync_status())
+                }),
+                table::ratio(
+                    1.0,
+                    table::horizontal([table::ratio(1.0, |wh| {
+                        self.render_line_list(wh, &sequence, &characters)
+                    })]),
+                ),
+            ])(props.wh),
+            modal,
+        ])
     }
 }

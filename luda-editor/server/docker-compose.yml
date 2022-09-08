@@ -2,7 +2,7 @@ version: '3.8'
 services:
   dynamodb:
     command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
-    image: "amazon/dynamodb-local:latest" 
+    image: "amazon/dynamodb-local:latest"
     # image: "wernerwws/dynamodb-local-with-logging:latest" # For Debug
     container_name: dynamodb-local
     ports:
@@ -10,6 +10,7 @@ services:
     volumes:
       - "./dynamodblocal:/home/dynamodblocal/data"
     working_dir: /home/dynamodblocal
+    restart: unless-stopped
   s3:
     command: "server /data --console-address :9001"
     image: minio/minio:latest
@@ -22,3 +23,4 @@ services:
     environment:
       - MINIO_ACCESS_KEY=minio
       - MINIO_SECRET_KEY=minio123
+    restart: unless-stopped

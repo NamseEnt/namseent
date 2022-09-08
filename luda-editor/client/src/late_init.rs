@@ -10,7 +10,7 @@ impl<T> LateInit<T> {
         assert!(self.cell.set(value).is_ok())
     }
 
-    pub const fn new() -> LateInit<rpc::Rpc> {
+    pub const fn new() -> LateInit<T> {
         LateInit {
             cell: OnceCell::new(),
         }

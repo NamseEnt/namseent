@@ -30,15 +30,11 @@ impl WysiwygEditor {
                     self.dragging.as_ref()
                 {
                     if is_selected_layer {
-                        namui::log!("image_size_on_screen: {:?}", image_size_on_screen);
-                        namui::log!("circumscribed: {:?}", image.circumscribed);
                         let circumscribed = context.resize(image_size_on_screen, props.wh);
                         image_size_on_screen = Wh::new(
                             image_size.width * circumscribed.radius / 1920.px() * props.wh.width,
                             image_size.height * circumscribed.radius / 1080.px() * props.wh.height,
                         );
-                        namui::log!("after image_size_on_screen: {:?}", image_size_on_screen);
-                        namui::log!("after circumscribed: {:?}", circumscribed);
                     }
                 }
 
@@ -92,7 +88,6 @@ impl WysiwygEditor {
                 on_resize: {
                     let image_clip_address = props.image_clip_address.clone();
                     Box::new(move |circumscribed| {
-                        namui::log!("circumscribed: {:?}", circumscribed);
                         namui::event::send(Event::Resize {
                             circumscribed,
                             image_clip_address: image_clip_address.clone(),

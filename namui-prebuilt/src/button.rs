@@ -27,3 +27,36 @@ pub fn text_button(
         });
     })
 }
+
+pub fn body_text_button(
+    rect: Rect<Px>,
+    text: &str,
+    text_color: Color,
+    stroke_color: Color,
+    stroke_width: Px,
+    fill_color: Color,
+    text_align: TextAlign,
+    on_mouse_down_in: impl Fn() + 'static,
+) -> namui::RenderingTree {
+    let on_mouse_down_in = Arc::new(on_mouse_down_in);
+    translate(
+        rect.x(),
+        rect.y(),
+        render([
+            simple_rect(rect.wh(), stroke_color, stroke_width, fill_color),
+            match text_align {
+                TextAlign::Left => {
+                    crate::typography::body::left(rect.wh().height, text, text_color)
+                }
+                TextAlign::Center => crate::typography::body::center(rect.wh(), text, text_color),
+                TextAlign::Right => crate::typography::body::right(rect.wh(), text, text_color),
+            },
+        ]),
+    )
+    .attach_event(|builder| {
+        let on_mouse_down_in = on_mouse_down_in.clone();
+        builder.on_mouse_down_in(move |_| {
+            on_mouse_down_in();
+        });
+    })
+}

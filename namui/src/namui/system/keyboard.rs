@@ -37,7 +37,7 @@ impl KeyboardSystem {
                         if code.is_err() {
                             crate::log!(
                                 "[DEBUG] Fail to get code from key_down callback {}",
-                                code_string
+                                code_string,
                             );
                             return;
                         }

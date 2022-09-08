@@ -5,6 +5,7 @@ pub struct ProjectDocument {
     pub id: String,
     pub owner_id: String,
     pub name: String,
+    pub shared_data_json: String,
 }
 
 impl Document for ProjectDocument {

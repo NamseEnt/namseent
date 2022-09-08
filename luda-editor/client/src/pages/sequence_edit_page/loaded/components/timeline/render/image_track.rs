@@ -1,6 +1,6 @@
 use super::*;
-use crate::storage::Cut;
 use namui_prebuilt::{table::TableCell, *};
+use rpc::data::Cut;
 
 impl Timeline {
     pub fn render_image_track<'a>(&'a self, cut: &'a Cut) -> TableCell<'a> {

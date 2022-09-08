@@ -1,5 +1,5 @@
 use super::*;
-use crate::storage::{ImageClip, ImageClipAddress};
+use rpc::data::{ImageClip, ImageClipAddress};
 
 impl Timeline {
     pub fn update(&mut self, event: &dyn std::any::Any) {

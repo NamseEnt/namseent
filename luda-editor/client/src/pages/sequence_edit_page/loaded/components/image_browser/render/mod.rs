@@ -14,7 +14,9 @@ impl ImageBrowser {
         table::fixed(
             20.px(),
             table::horizontal([
-                table::ratio(1.0, |wh| typography::body::left(wh, "Title", Color::WHITE)),
+                table::ratio(1.0, |wh| {
+                    typography::body::left(wh.height, "Title", Color::WHITE)
+                }),
                 table::calculative(
                     |wh| wh.height,
                     |wh| {
@@ -57,7 +59,7 @@ impl ImageBrowser {
                     };
                     render([
                         simple_rect(wh, stroke_color, 1.px(), fill_color),
-                        typography::body::left(wh, resource, stroke_color),
+                        typography::body::left(wh.height, resource, stroke_color),
                     ])
                     .attach_event(|builder| {
                         let resource = resource.clone();

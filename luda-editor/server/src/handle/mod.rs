@@ -50,7 +50,7 @@ async fn handle(request: Request<Body>) -> Result<Response<Body>, LambdaError> {
         response_builder,
         &services.auth_service,
         &services.sequence_service,
-        &services.resource_service,
+        &services.image_service,
         &services.project_service,
         session,
     )
