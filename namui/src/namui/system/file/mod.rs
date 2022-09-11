@@ -1,7 +1,7 @@
 pub mod bundle;
-pub mod dialog;
 mod electron;
 mod init;
+pub mod picker;
 pub mod system_drive;
 pub mod types;
 

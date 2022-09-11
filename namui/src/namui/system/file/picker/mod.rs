@@ -7,7 +7,7 @@ pub struct File {
     inner: web_sys::File,
 }
 
-/// NOTE: This would not emit any events if user cancels the file selection and closes the dialog.
+/// NOTE: This would not emit any events if user cancels the file selection and closes the picker.
 pub async fn open() -> Box<[File]> {
     let input = document()
         .create_element("input")
