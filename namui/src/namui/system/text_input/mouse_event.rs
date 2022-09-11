@@ -1,51 +1,50 @@
 use super::*;
 
-pub(crate) fn on_mouse_down_in(namui_context: &NamuiContext, raw_mouse_event: &RawMouseEvent) {
+pub(crate) fn on_mouse_down_in_before_attach_event_calls() {
+    *TEXT_INPUT_SYSTEM.dragging_text_input_id.lock().unwrap() = None;
+}
+
+pub(crate) fn on_mouse_down_in_after_attach_event_calls() {
+    if TEXT_INPUT_SYSTEM
+        .dragging_text_input_id
+        .lock()
+        .unwrap()
+        .is_none()
+    {
+        let input_element = get_input_element();
+        input_element.blur().unwrap();
+
+        let mut last_focused_text_input_id =
+            TEXT_INPUT_SYSTEM.last_focused_text_input_id.lock().unwrap();
+        if let Some(id) = last_focused_text_input_id.as_ref() {
+            crate::event::send(text_input::Event::Blur(text_input::Blur { id: id.clone() }));
+        }
+        *last_focused_text_input_id = None;
+    }
+}
+
+pub(crate) fn on_mouse_down_in_at_attach_event_calls(
+    local_xy: Xy<Px>,
+    custom_data: &TextInputCustomData,
+) {
     let input_element = get_input_element();
     let mut last_focused_text_input_id =
         TEXT_INPUT_SYSTEM.last_focused_text_input_id.lock().unwrap();
 
-    let custom_data =
-        find_front_text_input_on_mouse(&namui_context.rendering_tree, raw_mouse_event);
-
-    *TEXT_INPUT_SYSTEM.dragging_text_input_id.lock().unwrap() = custom_data
-        .as_ref()
-        .map(|custom_data| custom_data.text_input.id.clone())
-        .clone();
+    *TEXT_INPUT_SYSTEM.dragging_text_input_id.lock().unwrap() =
+        Some(custom_data.text_input.id.clone());
 
     if let Some(last_focused_text_input_id) = &*last_focused_text_input_id {
-        let is_last_focused_text_input_not_clicked = custom_data
-            .as_ref()
-            .and_then(|custom_data| {
-                last_focused_text_input_id
-                    .eq(&custom_data.text_input.id)
-                    .then(|| ())
-            })
-            .is_none();
-        if is_last_focused_text_input_not_clicked {
+        if last_focused_text_input_id.ne(&custom_data.text_input.id) {
             crate::event::send(text_input::Event::Blur(text_input::Blur {
                 id: last_focused_text_input_id.clone(),
             }));
         }
     }
 
-    *last_focused_text_input_id = custom_data
-        .as_ref()
-        .map(|custom_data| custom_data.text_input.id.clone());
+    *last_focused_text_input_id = Some(custom_data.text_input.id.clone());
 
-    if custom_data.is_none() {
-        input_element.blur().unwrap();
-        return;
-    }
-    let custom_data = custom_data.unwrap();
-
-    update_focus_with_mouse_movement(
-        &custom_data,
-        namui_context,
-        input_element,
-        raw_mouse_event.xy,
-        false,
-    );
+    update_focus_with_mouse_movement(&custom_data, input_element, local_xy, false);
 }
 pub(crate) fn on_mouse_move(namui_context: &NamuiContext, raw_mouse_event: &RawMouseEvent) {
     let dragging_text_input_id = TEXT_INPUT_SYSTEM.dragging_text_input_id.lock().unwrap();
@@ -60,13 +59,11 @@ pub(crate) fn on_mouse_move(namui_context: &NamuiContext, raw_mouse_event: &RawM
     }
     let custom_data = custom_data.unwrap();
 
-    update_focus_with_mouse_movement(
-        &custom_data,
-        namui_context,
-        get_input_element(),
-        raw_mouse_event.xy,
-        true,
-    );
+    let local_xy =
+        get_text_input_xy(&namui_context.rendering_tree, &custom_data.text_input.id).unwrap();
+    let mouse_local_xy = raw_mouse_event.xy - local_xy;
+
+    update_focus_with_mouse_movement(&custom_data, get_input_element(), mouse_local_xy, true);
 }
 pub(crate) fn on_mouse_up_in() {
     *TEXT_INPUT_SYSTEM.dragging_text_input_id.lock().unwrap() = None;
@@ -74,21 +71,19 @@ pub(crate) fn on_mouse_up_in() {
 
 fn update_focus_with_mouse_movement(
     custom_data: &TextInputCustomData,
-    namui_context: &NamuiContext,
     input_element: HtmlTextAreaElement,
-    mouse_xy: Xy<Px>,
+    local_mouse_xy: Xy<Px>,
     is_mouse_move: bool,
 ) {
-    let local_xy = get_text_input_xy(&namui_context.rendering_tree, &custom_data.text_input.id)
-        .unwrap()
-        + Xy::new(custom_data.props.text_x(), custom_data.props.text_y());
-    let mouse_local_xy = mouse_xy - local_xy;
+    let local_text_xy =
+        local_mouse_xy - Xy::new(custom_data.props.text_x(), custom_data.props.text_y());
 
     let selection = custom_data.text_input.get_selection_on_mouse_movement(
         &custom_data.props,
-        mouse_local_xy,
+        local_text_xy,
         is_mouse_move,
     );
+
     let selection_direction = match &selection {
         Some(selection) => {
             if selection.start <= selection.end {
