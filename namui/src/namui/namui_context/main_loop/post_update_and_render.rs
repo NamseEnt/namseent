@@ -24,13 +24,15 @@ impl NamuiContext {
                     }
                 }
                 NamuiEvent::MouseDown(raw_mouse_event) => {
-                    crate::system::text_input::on_mouse_down_in(&self, &raw_mouse_event);
+                    crate::system::text_input::on_mouse_down_in_before_attach_event_calls();
 
                     self.rendering_tree.call_mouse_event(
                         MouseEventType::Down,
                         raw_mouse_event,
                         &self,
                     );
+
+                    crate::system::text_input::on_mouse_down_in_after_attach_event_calls();
                 }
                 NamuiEvent::MouseUp(raw_mouse_event) => {
                     crate::system::text_input::on_mouse_up_in();
