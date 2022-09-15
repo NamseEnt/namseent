@@ -84,8 +84,11 @@ impl TextInput {
 
         let line_texts = LineTexts::new(&props.text, &fonts, &paint, Some(props.rect.width()));
 
-        let custom_props = props.clone();
-        (render![
+        let custom_data = TextInputCustomData {
+            text_input: self.clone(),
+            props: props.clone(),
+        };
+        render([
             namui::rect(RectParam {
                 rect: props.rect,
                 style: props.rect_style,
@@ -93,9 +96,15 @@ impl TextInput {
             self.draw_texts_divided_by_selection(&props, &fonts, &paint, &line_texts),
             self.draw_caret(&props, &line_texts),
         ])
-        .with_custom(TextInputCustomData {
-            text_input: self.clone(),
-            props: custom_props,
+        .with_custom(custom_data.clone())
+        .attach_event(|builder| {
+            let custom_data = custom_data.clone();
+            builder.on_mouse_down_in(move |event| {
+                system::text_input::on_mouse_down_in_at_attach_event_calls(
+                    event.local_xy,
+                    &custom_data,
+                )
+            });
         })
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
