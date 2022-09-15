@@ -16,14 +16,6 @@ pub enum KeyInInterest {
 }
 
 pub(crate) fn on_key_down(namui_context: &NamuiContext, raw_keyboard_event: &RawKeyboardEvent) {
-    let key_in_interest = match raw_keyboard_event.code {
-        Code::ArrowUp => KeyInInterest::ArrowUpDown(ArrowUpDown::Up),
-        Code::ArrowDown => KeyInInterest::ArrowUpDown(ArrowUpDown::Down),
-        Code::Home => KeyInInterest::HomeEnd(HomeEnd::Home),
-        Code::End => KeyInInterest::HomeEnd(HomeEnd::End),
-        _ => return,
-    };
-
     let input_element = get_input_element();
     let last_focused_text_input_id = TEXT_INPUT_SYSTEM.last_focused_text_input_id.lock().unwrap();
 
@@ -39,6 +31,27 @@ pub(crate) fn on_key_down(namui_context: &NamuiContext, raw_keyboard_event: &Raw
         return;
     }
     let custom_data = custom_data.unwrap();
+
+    crate::event::send(text_input::Event::KeyDown {
+        id: last_focused_text_input_id.clone(),
+        code: raw_keyboard_event.code,
+    });
+
+    handle_selection_change(&custom_data, input_element, raw_keyboard_event);
+}
+
+fn handle_selection_change(
+    custom_data: &TextInputCustomData,
+    input_element: HtmlTextAreaElement,
+    raw_keyboard_event: &RawKeyboardEvent,
+) {
+    let key_in_interest = match raw_keyboard_event.code {
+        Code::ArrowUp => KeyInInterest::ArrowUpDown(ArrowUpDown::Up),
+        Code::ArrowDown => KeyInInterest::ArrowUpDown(ArrowUpDown::Down),
+        Code::Home => KeyInInterest::HomeEnd(HomeEnd::Home),
+        Code::End => KeyInInterest::HomeEnd(HomeEnd::End),
+        _ => return,
+    };
 
     let selection = custom_data
         .text_input

@@ -152,18 +152,18 @@ impl Entity for TextInputExample {
     fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<text_input::Event>() {
             match event {
-                text_input::Event::TextUpdated(text_updated) => {
-                    if self.left_text_input.get_id().eq(&text_updated.id) {
-                        self.left_text = text_updated.text.clone();
+                text_input::Event::TextUpdated { id, text, .. } => {
+                    if self.left_text_input.get_id().eq(id) {
+                        self.left_text = text.clone();
                         self.left_value = self.left_text.parse().ok(); // NOTE: You don't have to check value in here, it's would be better UX checking it on blur.
-                    } else if self.center_text_input.get_id().eq(&text_updated.id) {
-                        self.center_text = text_updated.text.clone();
-                    } else if self.right_text_input.get_id().eq(&text_updated.id) {
-                        self.right_text = text_updated.text.clone();
+                    } else if self.center_text_input.get_id().eq(id) {
+                        self.center_text = text.clone();
+                    } else if self.right_text_input.get_id().eq(id) {
+                        self.right_text = text.clone();
                     }
                 }
-                text_input::Event::Blur(blur) => {
-                    if self.left_text_input.get_id().eq(&blur.id) {
+                text_input::Event::Blur { id } => {
+                    if self.left_text_input.get_id().eq(id) {
                         self.left_value = self.left_text.parse().ok();
                     }
                 }

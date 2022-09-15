@@ -31,26 +31,21 @@ impl LoadedSequenceEditorPage {
                 }
             }
         } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
-            match event {
-                text_input::Event::Focus(_)
-                | text_input::Event::Blur(_)
-                | text_input::Event::SelectionUpdated(_) => {}
-                text_input::Event::TextUpdated(updated) => {
-                    let selected_cut_id =
-                        self.line_text_inputs
-                            .iter()
-                            .find_map(|(cut_id, text_input)| {
-                                if text_input.is_focused() {
-                                    Some(cut_id)
-                                } else {
-                                    None
-                                }
-                            });
-                    self.editor_history_system
-                        .mutate_cut(selected_cut_id.unwrap(), |cut| {
-                            cut.line = updated.text.clone();
+            if let text_input::Event::TextUpdated { text, .. } = event {
+                let selected_cut_id =
+                    self.line_text_inputs
+                        .iter()
+                        .find_map(|(cut_id, text_input)| {
+                            if text_input.is_focused() {
+                                Some(cut_id)
+                            } else {
+                                None
+                            }
                         });
-                }
+                self.editor_history_system
+                    .mutate_cut(selected_cut_id.unwrap(), |cut| {
+                        cut.line = text.clone();
+                    });
             }
         }
         //         else if let Some(event) = event.downcast_ref::<crate::storage::Event>() {

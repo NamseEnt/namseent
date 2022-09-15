@@ -150,11 +150,11 @@ fn on_text_element_input(input_element: &HtmlTextAreaElement) {
     let last_focused_text_input_id = last_focused_text_input_id.as_ref().unwrap();
     let selection = get_selection(&input_element);
 
-    crate::event::send(text_input::Event::TextUpdated(TextUpdated {
+    crate::event::send(text_input::Event::TextUpdated {
         id: last_focused_text_input_id.clone(),
         text: text.to_string(),
         selection,
-    }))
+    })
 }
 fn get_selection(input_element: &HtmlTextAreaElement) -> text_input::Selection {
     let selection_start = input_element.selection_start().unwrap();
@@ -188,10 +188,18 @@ fn on_selection_change() {
 
     let selection = get_selection(&input_element);
 
-    crate::event::send(text_input::Event::SelectionUpdated(
-        text_input::SelectionUpdated {
-            id: text_input_id,
-            selection,
-        },
-    ));
+    crate::event::send(text_input::Event::SelectionUpdated {
+        id: text_input_id,
+        selection,
+    });
+}
+
+pub fn focus(text_input_id: &str) {
+    let input_element = get_input_element();
+    input_element.focus().unwrap();
+    TEXT_INPUT_SYSTEM
+        .last_focused_text_input_id
+        .lock()
+        .unwrap()
+        .replace(text_input_id.to_string());
 }
