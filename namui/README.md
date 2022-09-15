@@ -2,21 +2,4 @@
 
 ## Ubuntu
 
-### Dependency
-- firefox
-- geckodriver
-```sh
-sudo apt update
-sudo apt install firefox firefox-geckodriver -y
-```
-
-### Run Unit Tests
-```sh
-wasm-pack test --headless --firefox
-```
-
-## Docker
-
-```
-docker build --target test .
-```
+Install namui-cli using [script](https://github.com/NamseEnt/namseent/blob/master/namui-cli/scripts/install.sh) and run `namui test`.
