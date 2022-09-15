@@ -195,7 +195,6 @@ fn on_selection_change() {
 }
 
 pub fn focus(text_input_id: &str) {
-    crate::log!("Focus");
     let input_element = get_input_element();
     input_element.focus().unwrap();
     TEXT_INPUT_SYSTEM
