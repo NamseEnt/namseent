@@ -17,7 +17,7 @@ pub(crate) fn on_mouse_down_in_after_attach_event_calls() {
         let mut last_focused_text_input_id =
             TEXT_INPUT_SYSTEM.last_focused_text_input_id.lock().unwrap();
         if let Some(id) = last_focused_text_input_id.as_ref() {
-            crate::event::send(text_input::Event::Blur(text_input::Blur { id: id.clone() }));
+            crate::event::send(text_input::Event::Blur { id: id.clone() });
         }
         *last_focused_text_input_id = None;
     }
@@ -36,9 +36,9 @@ pub(crate) fn on_mouse_down_in_at_attach_event_calls(
 
     if let Some(last_focused_text_input_id) = &*last_focused_text_input_id {
         if last_focused_text_input_id.ne(&custom_data.text_input.id) {
-            crate::event::send(text_input::Event::Blur(text_input::Blur {
+            crate::event::send(text_input::Event::Blur {
                 id: last_focused_text_input_id.clone(),
-            }));
+            });
         }
     }
 
@@ -116,9 +116,9 @@ fn update_focus_with_mouse_movement(
 
     input_element.focus().unwrap();
 
-    let event = text_input::Event::Focus(Focus {
+    let event = text_input::Event::Focus {
         id: custom_data.text_input.id.clone(),
         selection,
-    });
+    };
     crate::event::send(event);
 }

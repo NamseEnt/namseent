@@ -34,28 +34,28 @@ pub struct TextInputCustomData {
     pub props: Props,
 }
 pub enum Event {
-    Focus(Focus),
-    Blur(Blur),
-    TextUpdated(TextUpdated),
-    SelectionUpdated(SelectionUpdated),
+    Focus {
+        id: String,
+        selection: Selection,
+    },
+    Blur {
+        id: String,
+    },
+    TextUpdated {
+        id: String,
+        text: String,
+        selection: Selection,
+    },
+    SelectionUpdated {
+        id: String,
+        selection: Selection,
+    },
+    KeyDown {
+        id: String,
+        code: Code,
+    },
 }
 
-pub struct Blur {
-    pub id: String,
-}
-pub struct Focus {
-    pub id: String,
-    pub selection: Selection,
-}
-pub struct TextUpdated {
-    pub id: String,
-    pub text: String,
-    pub selection: Selection,
-}
-pub struct SelectionUpdated {
-    pub id: String,
-    pub selection: Selection,
-}
 impl TextInput {
     pub fn new() -> TextInput {
         TextInput {
@@ -110,33 +110,37 @@ impl TextInput {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<Event>() {
             match event {
-                Event::Focus(focus) => {
-                    if focus.id == self.id {
-                        self.selection = focus.selection.clone();
+                Event::Focus { id, selection } => {
+                    if self.id.eq(id) {
+                        self.selection = selection.clone();
                     } else {
                         self.selection = None; // TODO: Remove this and draw unfocus caret in different way
                     }
                 }
-                Event::Blur(blur) => {
-                    if blur.id == self.id {
+                Event::Blur { id } => {
+                    if self.id.eq(id) {
                         self.selection = None; // TODO: Remove this and draw unfocus caret in different way
                     }
                 }
-                Event::SelectionUpdated(selection_updated) => {
-                    if selection_updated.id == self.id {
-                        self.selection = selection_updated.selection.clone();
+                Event::SelectionUpdated { id, selection } => {
+                    if self.id.eq(id) {
+                        self.selection = selection.clone();
                     }
                 }
-                Event::TextUpdated(text_updated) => {
-                    if text_updated.id == self.id {
-                        self.selection = text_updated.selection.clone();
+                Event::TextUpdated { id, selection, .. } => {
+                    if self.id.eq(id) {
+                        self.selection = selection.clone();
                     }
                 }
+                Event::KeyDown { .. } => {}
             }
         }
     }
     pub fn is_focused(&self) -> bool {
         crate::system::text_input::is_focused(&self.id)
+    }
+    pub fn focus(&self) {
+        crate::system::text_input::focus(&self.id)
     }
 }
 
