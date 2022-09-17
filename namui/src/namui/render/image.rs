@@ -1,4 +1,4 @@
-use crate::{draw::ImageDrawCommand, *};
+use crate::{draw::ImageDrawCommand, file::picker::File, *};
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -21,6 +21,8 @@ pub enum ImageSource {
     Url(Url),
     #[serde(skip_serializing)]
     Image(Arc<Image>),
+    #[serde(skip_serializing)]
+    File(File),
 }
 
 pub struct ImageParam {
