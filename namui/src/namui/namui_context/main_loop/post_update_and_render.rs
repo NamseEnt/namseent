@@ -3,6 +3,8 @@ use crate::namui::render::DownUp;
 
 impl NamuiContext {
     pub(super) fn post_update_and_render(&mut self, event: &Event) {
+        system::text_input::post_render(&self.rendering_tree);
+
         if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
                 NamuiEvent::AnimationFrame => {
@@ -56,8 +58,6 @@ impl NamuiContext {
                     self.rendering_tree.call_wheel_event(raw_wheel_event, &self);
                 }
                 NamuiEvent::KeyDown(raw_keyboard_event) => {
-                    crate::system::text_input::on_key_down(&self, &raw_keyboard_event);
-
                     self.rendering_tree.call_keyboard_event(
                         raw_keyboard_event,
                         &self,

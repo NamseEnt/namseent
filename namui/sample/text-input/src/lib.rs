@@ -62,6 +62,7 @@ impl Entity for TextInputExample {
                 color: namui::Color::BLACK,
                 ..Default::default()
             },
+            event_handler: None,
         });
 
         let center = self.center_text_input.render(namui::text_input::Props {
@@ -92,6 +93,7 @@ impl Entity for TextInputExample {
                 color: namui::Color::BLACK,
                 ..Default::default()
             },
+            event_handler: None,
         });
 
         let right = self.right_text_input.render(namui::text_input::Props {
@@ -122,6 +124,12 @@ impl Entity for TextInputExample {
                 color: namui::Color::BLACK,
                 ..Default::default()
             },
+            event_handler: Some(text_input::EventHandler::new().on_key_down(|event| {
+                if event.code == namui::Code::Digit7 {
+                    namui::log!("7 key is pressed, prevent default");
+                    event.prevent_default();
+                }
+            })),
         });
 
         let left_value_text = namui::text(TextParam {
@@ -170,8 +178,5 @@ impl Entity for TextInputExample {
                 _ => {}
             }
         }
-        self.left_text_input.update(event);
-        self.center_text_input.update(event);
-        self.right_text_input.update(event);
     }
 }
