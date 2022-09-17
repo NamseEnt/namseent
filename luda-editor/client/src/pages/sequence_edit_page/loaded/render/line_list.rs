@@ -72,6 +72,7 @@ impl LoadedSequenceEditorPage {
                                 },
                                 background: None,
                             },
+                            event_handler: None,
                         })
                     }
                     Item::AddButton => text_button(

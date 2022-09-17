@@ -69,8 +69,5 @@ impl LoadedSequenceEditorPage {
         // }
 
         self.cut_list_view.update(event);
-        self.line_text_inputs
-            .values_mut()
-            .for_each(|text_input| text_input.update(event));
     }
 }

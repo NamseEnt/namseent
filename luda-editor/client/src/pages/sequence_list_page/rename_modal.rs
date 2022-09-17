@@ -34,7 +34,6 @@ impl RenameModal {
                 });
             }
         }
-        self.text_input.update(event);
     }
     pub fn render(&self) -> namui::RenderingTree {
         let screen_wh = namui::screen::size();
@@ -101,6 +100,7 @@ impl RenameModal {
                                 color: Color::BLACK,
                                 background: None,
                             },
+                            event_handler: None,
                         }),
                         namui_prebuilt::button::text_button(
                             enter_button_rect_in_modal,
