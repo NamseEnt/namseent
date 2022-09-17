@@ -3,8 +3,12 @@ use crate::{namui::*, text::*};
 
 impl TextInput {
     /// Caret is drawn at the end of the text.
-    pub(crate) fn draw_caret(&self, props: &Props, line_texts: &LineTexts) -> RenderingTree {
-        let selection = &self.selection;
+    pub(crate) fn draw_caret(
+        &self,
+        props: &Props,
+        line_texts: &LineTexts,
+        selection: &Selection,
+    ) -> RenderingTree {
         if selection.is_none() {
             return RenderingTree::Empty;
         };
