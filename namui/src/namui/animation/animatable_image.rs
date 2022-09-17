@@ -33,7 +33,7 @@ impl AnimatableImage {
 
         self.image_source_url
             .as_ref()
-            .and_then(|image_source_url| crate::system::image::try_load(image_source_url))
+            .and_then(|image_source_url| crate::system::image::try_load_url(image_source_url))
             .and_then(|image| {
                 let size = image.size();
                 Some(Wh {
@@ -62,7 +62,7 @@ impl Animate for AnimatableImage {
             }
             let source_url = self.image_source_url.as_ref()?.clone();
 
-            let image = crate::system::image::try_load(&source_url)?;
+            let image = crate::system::image::try_load_url(&source_url)?;
             let image_size = image.size();
 
             let anchor_xy = Xy {

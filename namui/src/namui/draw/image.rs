@@ -19,8 +19,9 @@ pub struct ImageDrawCommand {
 impl ImageDrawCommand {
     pub fn draw(&self) {
         let image = match &self.source {
-            ImageSource::Url(url) => crate::image::try_load(&url),
+            ImageSource::Url(url) => crate::image::try_load_url(url),
             ImageSource::Image(image) => Some(image.clone()),
+            ImageSource::File(file) => crate::image::try_load_file(file),
         };
 
         if image.is_none() {
