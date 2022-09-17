@@ -15,6 +15,7 @@ pub type Selection = Option<Range<usize>>;
 
 #[derive(Clone, Debug)]
 pub struct TextInput {
+    /// Do not use this directly in render.
     pub(crate) selection: Selection,
     pub(crate) id: String,
 }
@@ -84,6 +85,11 @@ impl TextInput {
 
         let line_texts = LineTexts::new(&props.text, &fonts, &paint, Some(props.rect.width()));
 
+        let selection = self.selection.as_ref().map(|selection| {
+            let chars_length = props.text.chars().count();
+            selection.start.min(chars_length)..selection.end.min(chars_length)
+        });
+
         let custom_data = TextInputCustomData {
             text_input: self.clone(),
             props: props.clone(),
@@ -93,8 +99,8 @@ impl TextInput {
                 rect: props.rect,
                 style: props.rect_style,
             }),
-            self.draw_texts_divided_by_selection(&props, &fonts, &paint, &line_texts),
-            self.draw_caret(&props, &line_texts),
+            self.draw_texts_divided_by_selection(&props, &fonts, &paint, &line_texts, &selection),
+            self.draw_caret(&props, &line_texts, &selection),
         ])
         .with_custom(custom_data.clone())
         .attach_event(|builder| {
