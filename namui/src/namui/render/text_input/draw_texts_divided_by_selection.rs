@@ -1,4 +1,4 @@
-use super::Props;
+use super::{Props, Selection};
 use crate::{
     namui::{self, RenderingTree, TextInput},
     render,
@@ -14,9 +14,9 @@ impl TextInput {
         fonts: &Vec<Arc<Font>>,
         paint: &Arc<Paint>,
         line_texts: &LineTexts,
+        selection: &Selection,
     ) -> RenderingTree {
-        let is_not_divided_by_selection = self
-            .selection
+        let is_not_divided_by_selection = selection
             .as_ref()
             .map_or(true, |selection| selection.start == selection.end);
 
@@ -24,7 +24,7 @@ impl TextInput {
             return namui::text(props.text_param());
         };
 
-        let selection = self.selection.as_ref().unwrap();
+        let selection = selection.as_ref().unwrap();
 
         let (left_selection_index, right_selection_index) = if selection.start < selection.end {
             (selection.start, selection.end)
