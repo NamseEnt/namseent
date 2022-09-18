@@ -84,8 +84,8 @@ fn update_size(
         .image_source_url
         .clone()
         .ok_or(format!("layer {} has no image source url", layer.id))?;
-    let image =
-        namui::image::try_load(&image_url).ok_or(format!("failed to load image {}", image_url))?;
+    let image = namui::image::try_load_url(&image_url)
+        .ok_or(format!("failed to load image {}", image_url))?;
     let image_wh = image.size();
     layer
         .image
