@@ -1,5 +1,5 @@
 use super::*;
-use crate::{namui::skia::canvas_kit, Image};
+use crate::{file::picker::File, namui::skia::canvas_kit, Image};
 use dashmap::DashMap;
 use std::{
     collections::HashSet,
@@ -9,7 +9,8 @@ use url::Url;
 use wasm_bindgen_futures::spawn_local;
 
 struct ImageSystem {
-    image_map: DashMap<Url, Arc<Image>>,
+    image_url_map: DashMap<Url, Arc<Image>>,
+    image_file_map: DashMap<File, Arc<Image>>,
     image_requested_set: Mutex<HashSet<Url>>,
 }
 
@@ -25,13 +26,14 @@ pub(super) async fn init() -> InitResult {
 impl ImageSystem {
     fn new() -> Self {
         Self {
-            image_map: DashMap::new(),
+            image_url_map: DashMap::new(),
+            image_file_map: DashMap::new(),
             image_requested_set: Mutex::new(HashSet::new()),
         }
     }
 }
-pub fn try_load(url: &Url) -> Option<Arc<Image>> {
-    if let Some(image) = IMAGE_SYSTEM.image_map.get(url) {
+pub fn try_load_url(url: &Url) -> Option<Arc<Image>> {
+    if let Some(image) = IMAGE_SYSTEM.image_url_map.get(url) {
         return Some(image.clone());
     };
 
@@ -44,10 +46,10 @@ pub fn try_load(url: &Url) -> Option<Arc<Image>> {
         image_requested_set.insert(url.clone());
     }
 
-    start_load(url);
+    start_load_url(url);
     None
 }
-fn start_load(url: &Url) {
+fn start_load_url(url: &Url) {
     let url = url.clone();
     spawn_local(async move {
         let read_url_result: Result<_, Box<dyn std::error::Error>> = match url.scheme() {
@@ -65,7 +67,7 @@ fn start_load(url: &Url) {
         match read_url_result {
             Ok(data) => match new_image_from_u8(&data) {
                 Some(image) => {
-                    IMAGE_SYSTEM.image_map.insert(url, image);
+                    IMAGE_SYSTEM.image_url_map.insert(url, image);
                 }
                 None => {
                     crate::log!("failed to MakeImageFromEncoded: {}, {:?}", url, data);
@@ -86,4 +88,31 @@ pub fn new_image_from_u8(data: &[u8]) -> Option<Arc<Image>> {
         Some(canvas_kit_image) => Some(Arc::new(Image::new(canvas_kit_image))),
         None => None,
     }
+}
+
+pub(crate) fn try_load_file(file: &file::picker::File) -> Option<Arc<Image>> {
+    if let Some(image) = IMAGE_SYSTEM.image_file_map.get(file) {
+        return Some(image.clone());
+    };
+
+    start_load_file(file.clone());
+    None
+}
+
+fn start_load_file(file: File) {
+    spawn_local(async move {
+        let content = file.content().await;
+        match new_image_from_u8(&content) {
+            Some(image) => {
+                IMAGE_SYSTEM.image_file_map.insert(file, image);
+            }
+            None => {
+                crate::log!(
+                    "failed to new_image_from_u8 for file: {:?}, {:?}",
+                    file,
+                    content
+                );
+            }
+        };
+    });
 }
