@@ -27,6 +27,7 @@ pub(crate) fn on_key_down(code: Code, event: web_sys::KeyboardEvent) {
     if last_focused_text_input.is_none() {
         return;
     }
+    let is_composing = event.is_composing();
     let last_focused_text_input = last_focused_text_input.as_ref().unwrap();
 
     last_focused_text_input
@@ -39,6 +40,7 @@ pub(crate) fn on_key_down(code: Code, event: web_sys::KeyboardEvent) {
                 let key_down_event = KeyDownEvent {
                     code,
                     is_prevented_default: is_prevented_default.clone(),
+                    is_composing,
                 };
                 on_key_down(key_down_event);
 

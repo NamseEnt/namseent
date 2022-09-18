@@ -55,6 +55,7 @@ impl std::fmt::Debug for EventHandler {
 pub struct KeyDownEvent {
     pub code: Code,
     pub(crate) is_prevented_default: Arc<AtomicBool>,
+    pub is_composing: bool,
 }
 
 impl KeyDownEvent {
