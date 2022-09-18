@@ -1,6 +1,7 @@
 mod find;
 mod key_down;
 mod mouse_event;
+mod post_render;
 
 use super::InitResult;
 use crate::namui::*;
@@ -8,6 +9,7 @@ use crate::namui::{namui_context::NamuiContext, render::text_input::*};
 pub(crate) use find::*;
 pub(crate) use key_down::*;
 pub(crate) use mouse_event::*;
+pub(crate) use post_render::*;
 use std::str::FromStr;
 use std::{ops::ControlFlow, sync::Mutex};
 use wasm_bindgen::{prelude::Closure, JsCast};
@@ -226,23 +228,4 @@ pub(crate) fn get_selection(id: &str, text: &str) -> text_input::Selection {
         let chars_count = text.chars().count();
         selection.start.min(chars_count)..selection.end.min(chars_count)
     })
-}
-
-pub(crate) fn post_render(root_rendering_tree: &RenderingTree) {
-    let focus_requested_text_input_id = {
-        TEXT_INPUT_SYSTEM
-            .focus_requested_text_input_id
-            .lock()
-            .unwrap()
-            .take()
-    };
-
-    if focus_requested_text_input_id.is_none() {
-        return;
-    }
-    let focus_requested_text_input_id = focus_requested_text_input_id.unwrap();
-
-    let custom_data = find_text_input_by_id(root_rendering_tree, &focus_requested_text_input_id);
-
-    *TEXT_INPUT_SYSTEM.last_focused_text_input.lock().unwrap() = custom_data;
 }
