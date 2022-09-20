@@ -82,7 +82,7 @@ impl LineEditWindow {
                 36.px(),
                 horizontal([
                     ratio(1.0, |wh| {
-                        typography::body::left(wh, "  Fps: ", Color::BLACK)
+                        typography::body::left(wh.height, "  Fps: ", Color::BLACK)
                     }),
                     ratio(4.0, |wh| {
                         let layer_id = layer.id.clone();

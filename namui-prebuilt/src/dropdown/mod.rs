@@ -90,7 +90,7 @@ impl React for Dropdown {
                 LEFT_PADDING,
                 0.px(),
                 typography::body::left(
-                    props.rect.wh(),
+                    props.rect.wh().height,
                     selected_text.unwrap_or_default(),
                     Color::BLACK,
                 ),
@@ -144,7 +144,7 @@ impl React for Dropdown {
                                 LEFT_PADDING,
                                 0.px(),
                                 typography::body::left(
-                                    wh,
+                                    wh.height,
                                     &item.text,
                                     if is_mouse_over || is_selected {
                                         Color::WHITE
