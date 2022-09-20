@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn get_project_name_should_work() {
-        let project_path = std::env::temp_dir().join("namui-cli/test/wasm");
+        let project_path = std::env::temp_dir().join("namui-cli/test/wasm2");
         let manifest_path = project_path.join("Cargo.toml");
 
         std::fs::create_dir_all(&project_path).unwrap();
