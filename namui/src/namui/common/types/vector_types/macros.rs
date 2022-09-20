@@ -85,6 +85,14 @@ macro_rules! vector_types {
                 }
             }
         }
+        impl<T: std::ops::Mul<f32, Output = T>> std::ops::Mul<$type_name<T>> for i32 {
+            type Output = $type_name<T>;
+            fn mul(self, rhs: $type_name<T>) -> Self::Output {
+                $type_name {
+                    $( $field_ident: rhs.$field_ident.mul(self as f32) ),*
+                }
+            }
+        }
         impl<T: std::ops::Mul<f32, Output = T>> std::ops::Mul<f32> for $type_name<T> {
             type Output = $type_name<T>;
             fn mul(self, rhs: f32) -> Self::Output {
@@ -93,11 +101,27 @@ macro_rules! vector_types {
                 }
             }
         }
+        impl<T: std::ops::Mul<f32, Output = T>> std::ops::Mul<i32> for $type_name<T> {
+            type Output = $type_name<T>;
+            fn mul(self, rhs: i32) -> Self::Output {
+                $type_name {
+                    $( $field_ident: self.$field_ident.mul(rhs as f32) ),*
+                }
+            }
+        }
         impl<T: std::ops::Div<f32, Output = T>> std::ops::Div<f32> for $type_name<T> {
             type Output = $type_name<T>;
             fn div(self, rhs: f32) -> Self::Output {
                 $type_name {
                     $( $field_ident: self.$field_ident.div(rhs) ),*
+                }
+            }
+        }
+        impl<T: std::ops::Div<f32, Output = T>> std::ops::Div<i32> for $type_name<T> {
+            type Output = $type_name<T>;
+            fn div(self, rhs: i32) -> Self::Output {
+                $type_name {
+                    $( $field_ident: self.$field_ident.div(rhs as f32) ),*
                 }
             }
         }
