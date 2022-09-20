@@ -12,23 +12,39 @@ pub enum Unit {
     Calculative(Box<dyn FnOnce(Wh<Px>) -> Px>),
 }
 
+pub trait F32OrI32 {
+    fn as_f32(self) -> f32;
+}
+
+impl F32OrI32 for i32 {
+    fn as_f32(self) -> f32 {
+        self as f32
+    }
+}
+
+impl F32OrI32 for f32 {
+    fn as_f32(self) -> f32 {
+        self
+    }
+}
+
 pub fn ratio<'a>(
-    ratio: f32,
+    ratio: impl F32OrI32,
     cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
 ) -> TableCell<'a> {
     TableCell {
-        unit: Unit::Ratio(ratio),
+        unit: Unit::Ratio(ratio.as_f32()),
         render: Box::new(cell_render_closure),
         need_clip: true,
     }
 }
 
 pub fn ratio_no_clip<'a>(
-    ratio: f32,
+    ratio: impl F32OrI32,
     cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
 ) -> TableCell<'a> {
     TableCell {
-        unit: Unit::Ratio(ratio),
+        unit: Unit::Ratio(ratio.as_f32()),
         render: Box::new(cell_render_closure),
         need_clip: false,
     }
@@ -211,7 +227,7 @@ mod tests {
             },
         );
 
-        let label = ratio(1.0, |wh| {
+        let label = ratio(1, |wh| {
             label_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
             assert_eq!(px(280.0), wh.width);
             assert_eq!(px(20.0), wh.height);

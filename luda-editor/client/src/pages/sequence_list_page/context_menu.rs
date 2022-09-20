@@ -47,7 +47,7 @@ impl ContextMenu {
                     };
                     render([
                         simple_rect(wh, Color::WHITE, 1.px(), Color::grayscale_f01(0.5)),
-                        namui_prebuilt::typography::body::left(wh, text, Color::WHITE),
+                        namui_prebuilt::typography::body::left(wh.height, text, Color::WHITE),
                     ])
                     .attach_event(|builder| {
                         let sequence_id = self.sequence_id.clone();
