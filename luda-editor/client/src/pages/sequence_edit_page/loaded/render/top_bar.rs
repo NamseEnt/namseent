@@ -37,7 +37,7 @@ impl LoadedSequenceEditorPage {
             )
         });
         let sequence_name_label = table::fixed(200.px(), |wh| {
-            typography::body::left(wh, format!("Title: {}", sequence.name), Color::WHITE)
+            typography::body::left(wh.height, format!("Title: {}", sequence.name), Color::WHITE)
         });
         let sync_status = table::ratio(1.0, |wh| {
             let text = match sync_send_status {
@@ -55,7 +55,7 @@ impl LoadedSequenceEditorPage {
                     format!("Error: {}", message)
                 }
             };
-            typography::body::left(wh, text, Color::WHITE)
+            typography::body::left(wh.height, text, Color::WHITE)
         });
         fn margin() -> table::TableCell<'static> {
             table::fixed(10.px(), |_wh| RenderingTree::Empty)
