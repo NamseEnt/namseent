@@ -44,6 +44,7 @@ impl S3 {
             unreachable!()
         }
     }
+    #[allow(dead_code)]
     pub async fn get_object(&self, key: String) -> Result<Vec<u8>, GetObjectError> {
         let result = self
             .client
@@ -113,6 +114,7 @@ impl S3 {
     // TODO: Change it with presigned url.
     // TODO: Tag the user to determine who uploaded too much data.
     // 이미지 public 읽기 가능하도록 해야할 것 같아. 해줘.
+    #[allow(dead_code)]
     pub async fn put_object(&self, key: String, bytes: Vec<u8>) -> Result<(), PutObjectError> {
         let result = self
             .client
@@ -181,6 +183,7 @@ pub struct ListedObject {
 
 #[derive(Debug)]
 pub enum PresignedMethod {
+    #[allow(dead_code)]
     Get,
     Put,
 }
@@ -200,6 +203,7 @@ crate::simple_error_impl!(ListObjectsError);
 
 #[derive(Debug)]
 pub enum PutObjectError {
+    #[allow(dead_code)]
     Unknown(String),
 }
 crate::simple_error_impl!(PutObjectError);
