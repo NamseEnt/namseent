@@ -1,22 +1,20 @@
 mod draw_caret;
 mod draw_texts_divided_by_selection;
-mod get_selection_on_keyboard_down;
-mod get_selection_on_mouse_down;
-mod selection_index;
 
 use crate::{
     namui::{self, *},
     text::{get_fallback_fonts, LineTexts},
     RectParam,
 };
-use std::ops::Range;
+use std::{
+    ops::Range,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 pub type Selection = Option<Range<usize>>;
 
 #[derive(Clone, Debug)]
 pub struct TextInput {
-    /// Do not use this directly in render.
-    pub(crate) selection: Selection,
     pub(crate) id: String,
 }
 #[derive(Clone, Debug)]
@@ -28,39 +26,60 @@ pub struct Props {
     pub text_baseline: TextBaseline,
     pub font_type: FontType,
     pub text_style: TextStyle,
+    pub event_handler: Option<EventHandler>,
 }
+#[derive(Clone, Default)]
+pub struct EventHandler {
+    pub(crate) on_key_down: Option<Arc<dyn Fn(KeyDownEvent) + 'static>>,
+}
+unsafe impl Send for EventHandler {}
+unsafe impl Sync for EventHandler {}
+
+impl EventHandler {
+    pub fn new() -> Self {
+        Self { on_key_down: None }
+    }
+    pub fn on_key_down(mut self, on_key_down: impl Fn(KeyDownEvent) + 'static) -> Self {
+        self.on_key_down = Some(Arc::new(on_key_down));
+        self
+    }
+}
+impl std::fmt::Debug for EventHandler {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EventHandler")
+            .field("on_key_down", &self.on_key_down.is_some())
+            .finish()
+    }
+}
+
+pub struct KeyDownEvent {
+    pub code: Code,
+    pub(crate) is_prevented_default: Arc<AtomicBool>,
+    pub is_composing: bool,
+}
+
+impl KeyDownEvent {
+    pub fn prevent_default(&self) {
+        self.is_prevented_default.store(true, Ordering::Relaxed);
+    }
+}
+
 #[derive(Clone)]
 pub struct TextInputCustomData {
-    pub text_input: TextInput,
+    pub id: String,
     pub props: Props,
 }
 pub enum Event {
-    Focus {
-        id: String,
-        selection: Selection,
-    },
-    Blur {
-        id: String,
-    },
-    TextUpdated {
-        id: String,
-        text: String,
-        selection: Selection,
-    },
-    SelectionUpdated {
-        id: String,
-        selection: Selection,
-    },
-    KeyDown {
-        id: String,
-        code: Code,
-    },
+    Focus { id: String, selection: Selection },
+    Blur { id: String },
+    TextUpdated { id: String, text: String },
+    SelectionUpdated { id: String, selection: Selection },
+    KeyDown { id: String, code: Code },
 }
 
 impl TextInput {
     pub fn new() -> TextInput {
         TextInput {
-            selection: None,
             id: crate::nanoid(),
         }
     }
@@ -85,13 +104,10 @@ impl TextInput {
 
         let line_texts = LineTexts::new(&props.text, &fonts, &paint, Some(props.rect.width()));
 
-        let selection = self.selection.as_ref().map(|selection| {
-            let chars_length = props.text.chars().count();
-            selection.start.min(chars_length)..selection.end.min(chars_length)
-        });
+        let selection = crate::system::text_input::get_selection(&self.id, &props.text);
 
         let custom_data = TextInputCustomData {
-            text_input: self.clone(),
+            id: self.id.clone(),
             props: props.clone(),
         };
         render([
@@ -112,35 +128,6 @@ impl TextInput {
                 )
             });
         })
-    }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
-            match event {
-                Event::Focus { id, selection } => {
-                    if self.id.eq(id) {
-                        self.selection = selection.clone();
-                    } else {
-                        self.selection = None; // TODO: Remove this and draw unfocus caret in different way
-                    }
-                }
-                Event::Blur { id } => {
-                    if self.id.eq(id) {
-                        self.selection = None; // TODO: Remove this and draw unfocus caret in different way
-                    }
-                }
-                Event::SelectionUpdated { id, selection } => {
-                    if self.id.eq(id) {
-                        self.selection = selection.clone();
-                    }
-                }
-                Event::TextUpdated { id, selection, .. } => {
-                    if self.id.eq(id) {
-                        self.selection = selection.clone();
-                    }
-                }
-                Event::KeyDown { .. } => {}
-            }
-        }
     }
     pub fn is_focused(&self) -> bool {
         crate::system::text_input::is_focused(&self.id)

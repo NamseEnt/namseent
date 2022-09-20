@@ -11,7 +11,7 @@ pub fn find_text_input_by_id(
             RenderingTree::Special(special) => match special {
                 render::SpecialRenderingNode::Custom(custom) => {
                     if let Some(custom_data) = custom.data.downcast_ref::<TextInputCustomData>() {
-                        if custom_data.text_input.id == id {
+                        if custom_data.id == id {
                             return_value = Some(custom_data.clone());
                             return ControlFlow::Break(());
                         }
