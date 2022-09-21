@@ -19,6 +19,7 @@ pub struct LoadedSequenceEditorPage {
     sequence_syncer: Arc<Syncer<Sequence>>,
     project_shared_data_syncer: Arc<Syncer<ProjectSharedData>>,
     character_edit_modal: Option<character_edit_modal::CharacterEditModal>,
+    image_select_modal: Option<image_select_modal::ImageSelectModal>,
     project_shared_data: ProjectSharedData,
     sequence: Sequence,
 }
@@ -51,13 +52,16 @@ impl LoadedSequenceEditorPage {
             line_text_inputs
         };
         Self {
-            project_id,
+            project_id: project_id.clone(),
             sequence_id,
             cut_list_view: list_view::ListView::new(),
             line_text_inputs,
             sequence_syncer,
             project_shared_data_syncer,
             character_edit_modal: None,
+            image_select_modal: Some(image_select_modal::ImageSelectModal::new(
+                project_id.clone(),
+            )),
             project_shared_data,
             sequence,
         }

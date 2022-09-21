@@ -3,5 +3,6 @@
 // pub mod timeline;
 // pub mod wysiwyg_editor;
 // pub mod character_image_select_modal;
-// pub mod image_edit_modal;
 pub mod character_edit_modal;
+pub mod image_edit_modal;
+pub mod image_select_modal;

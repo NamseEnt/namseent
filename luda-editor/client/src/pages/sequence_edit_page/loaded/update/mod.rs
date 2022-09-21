@@ -95,6 +95,10 @@ impl LoadedSequenceEditorPage {
                     self.character_edit_modal = None;
                 }
             }
+        } else if let Some(event) = event.downcast_ref::<image_select_modal::Event>() {
+            match event {
+                image_select_modal::Event::Close => self.image_select_modal = None,
+            }
         } else if let Some(event) = event.downcast_ref::<crate::sync::Event>() {
             match event {
                 crate::sync::Event::UpdateReceived { patch, id } => {
@@ -134,6 +138,9 @@ impl LoadedSequenceEditorPage {
         self.character_edit_modal
             .as_mut()
             .map(|character_edit_modal| character_edit_modal.update(event));
+        self.image_select_modal
+            .as_mut()
+            .map(|image_select_modal| image_select_modal.update(event));
     }
     fn on_sequence_updated_by_server(&mut self) {
         self.renew_line_text_inputs();

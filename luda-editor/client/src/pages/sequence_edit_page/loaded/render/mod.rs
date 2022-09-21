@@ -13,20 +13,34 @@ impl LoadedSequenceEditorPage {
         let sequence = &self.sequence;
         let characters = &self.project_shared_data.characters;
 
-        let modal = render([match &self.character_edit_modal {
-            Some(character_edit_modal) => {
-                let character_cell_right = 40.px() * 2.0 / 3.0;
-                translate(
-                    character_cell_right,
-                    0.px(),
-                    character_edit_modal.render(character_edit_modal::Props {
-                        wh: props.wh,
-                        characters: &characters,
-                    }),
-                )
-            }
-            None => RenderingTree::Empty,
-        }]);
+        let modal = render([
+            match &self.character_edit_modal {
+                Some(character_edit_modal) => {
+                    let character_cell_right = 40.px() * 2.0 / 3.0;
+                    translate(
+                        character_cell_right,
+                        0.px(),
+                        character_edit_modal.render(character_edit_modal::Props {
+                            wh: props.wh,
+                            characters: &characters,
+                        }),
+                    )
+                }
+                None => RenderingTree::Empty,
+            },
+            match &self.image_select_modal {
+                Some(image_select_modal) => {
+                    let modal_wh = props.wh * 2.0 / 3.0;
+                    let xy = ((props.wh - modal_wh) / 2.0).as_xy();
+                    translate(
+                        xy.x,
+                        xy.y,
+                        image_select_modal.render(image_select_modal::Props { wh: modal_wh }),
+                    )
+                }
+                None => RenderingTree::Empty,
+            },
+        ]);
 
         render([
             table::vertical([
