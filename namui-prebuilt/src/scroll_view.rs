@@ -51,11 +51,11 @@ impl ScrollView {
         );
 
         let inner = namui::clip(
-            namui::PathBuilder::new().add_rect(Rect::Ltrb {
-                left: px(0.0),
-                top: px(0.0),
-                right: content_bounding_box.width(),
-                bottom: props.height,
+            namui::PathBuilder::new().add_rect(Rect::Xywh {
+                x: content_bounding_box.x(),
+                y: content_bounding_box.y(),
+                width: content_bounding_box.width(),
+                height: props.height,
             }),
             namui::ClipOp::Intersect,
             namui::translate(px(0.0), -scroll_y, props.content.clone()),
