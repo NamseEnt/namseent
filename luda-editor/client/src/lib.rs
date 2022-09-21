@@ -1,4 +1,5 @@
 mod app;
+mod components;
 mod late_init;
 mod pages;
 mod setting;
@@ -38,9 +39,12 @@ pub async fn main() {
         }
     };
 
-    RPC.init(rpc::Rpc::new(setting.endpoint));
+    SETTING.init(setting);
+    RPC.init(rpc::Rpc::new(SETTING.rpc_endpoint.clone()));
 
     namui::start(namui_context, &mut app::App::new(), &()).await
 }
 
+static SETTING: late_init::LateInit<setting::Setting> =
+    late_init::LateInit::<setting::Setting>::new();
 static RPC: late_init::LateInit<rpc::Rpc> = late_init::LateInit::<rpc::Rpc>::new();

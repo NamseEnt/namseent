@@ -1,8 +1,8 @@
 mod render;
 mod update;
 
-use crate::storage::*;
 use namui::prelude::*;
+use rpc::data::*;
 
 pub struct WysiwygEditor {
     editor_history_system: EditorHistorySystem,

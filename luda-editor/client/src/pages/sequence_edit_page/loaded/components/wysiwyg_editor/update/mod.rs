@@ -20,7 +20,6 @@ impl WysiwygEditor {
         } else if let Some(event) = event.downcast_ref::<resizer::Event>() {
             match event {
                 resizer::Event::UpdateDraggingContext(context) => {
-                    namui::log!("UpdateDraggingContext: {:?}", context);
                     self.dragging = context.and_then(|context| Some(Dragging::Resizer { context }));
                 }
             }

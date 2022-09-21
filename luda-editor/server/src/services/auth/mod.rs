@@ -179,6 +179,21 @@ impl rpc::AuthService<SessionDocument> for AuthService {
             })
         })
     }
+
+    fn validate_session<'a>(
+        &'a self,
+        session: Option<SessionDocument>,
+        _req: rpc::validate_session::Request,
+    ) -> std::pin::Pin<
+        Box<dyn 'a + std::future::Future<Output = rpc::validate_session::Result> + Send>,
+    > {
+        Box::pin(async move {
+            match session {
+                Some(_) => Ok(rpc::validate_session::Response {}),
+                None => Err(rpc::validate_session::Error::InvalidSession),
+            }
+        })
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

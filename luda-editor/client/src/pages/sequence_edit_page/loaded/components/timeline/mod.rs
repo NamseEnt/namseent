@@ -2,8 +2,8 @@ mod render;
 mod resizable_clip;
 mod update;
 
-use crate::storage::{Cut, EditorHistorySystem};
 use namui::prelude::*;
+use rpc::data::{Cut, EditorHistorySystem};
 use std::collections::HashSet;
 
 #[derive(Debug, Clone)]

@@ -5,7 +5,7 @@ pub struct SequenceDocument {
     pub id: String,
     pub project_id: String,
     pub name: String,
-    pub yrs_update_v2_base64: Option<String>,
+    pub json: String,
     /// Timestamp in nano seconds.
     pub last_modified: Option<i64>,
 }
@@ -21,13 +21,6 @@ impl Document for SequenceDocument {
 
     fn sort_key(&self) -> Option<&str> {
         None
-    }
-}
-
-impl SequenceDocument {
-    pub fn e_tag(&self) -> Option<String> {
-        self.last_modified
-            .map(|last_modified| last_modified.to_string())
     }
 }
 

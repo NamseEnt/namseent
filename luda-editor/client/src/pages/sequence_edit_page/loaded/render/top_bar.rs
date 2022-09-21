@@ -1,7 +1,6 @@
 use super::*;
 use crate::{
     pages::{router, sequence_list_page::SequenceListPage},
-    storage::Sequence,
     sync::SyncStatus,
 };
 use namui_prebuilt::{button::text_button, *};
@@ -44,12 +43,12 @@ impl LoadedSequenceEditorPage {
                 SyncStatus::Idle => return RenderingTree::Empty,
                 SyncStatus::Syncing(time) => {
                     format!(
-                        "Saving... ({})",
+                        "Syncing... ({})",
                         (namui::now() - time).relative_time_format()
                     )
                 }
                 SyncStatus::Synced(time) => {
-                    format!("Saved ({})", (namui::now() - time).relative_time_format())
+                    format!("Synced ({})", (namui::now() - time).relative_time_format())
                 }
                 SyncStatus::Error(message) => {
                     format!("Error: {}", message)

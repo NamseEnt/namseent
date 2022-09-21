@@ -1,5 +1,5 @@
-use crate::storage::Circumscribed;
 use namui::prelude::*;
+use rpc::data::Circumscribed;
 use std::sync::Arc;
 
 /*
@@ -88,7 +88,6 @@ fn render_resize_handles<OnResize: Fn(Circumscribed) + 'static>(
                 .with_mouse_cursor(handle.cursor())
                 .attach_event(move |builder| match props.dragging_context {
                     Some(context) => {
-                        namui::log!("{:?}", context);
                         if context.handle != handle {
                             return;
                         }
@@ -123,7 +122,6 @@ fn render_resize_handles<OnResize: Fn(Circumscribed) + 'static>(
                     }
                     None => {
                         builder.on_mouse_down_in(move |mouse_event| {
-                            namui::log!("on_mouse_down_in");
                             namui::event::send(Event::UpdateDraggingContext(Some(
                                 ResizerDraggingContext {
                                     handle,

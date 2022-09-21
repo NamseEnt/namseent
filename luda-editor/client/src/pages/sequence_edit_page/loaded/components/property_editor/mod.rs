@@ -2,9 +2,9 @@ mod render;
 mod update;
 
 use super::*;
-use crate::storage::{Cut, EditorHistorySystem, ImageClipAddress, Storage};
 use namui::prelude::*;
 use namui_prebuilt::list_view;
+use rpc::data::{Cut, EditorHistorySystem, ImageClipAddress, Storage};
 
 #[derive(Debug, Clone)]
 pub struct PropertyEditor {

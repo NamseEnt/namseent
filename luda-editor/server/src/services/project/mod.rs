@@ -1,4 +1,4 @@
-mod documents;
+pub mod documents;
 mod impls;
 
 use crate::session::SessionDocument;
@@ -42,6 +42,10 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
                 id: project_id.clone(),
                 owner_id: owner_id.clone(),
                 name: req.name,
+                shared_data_json: serde_json::to_string(&rpc::data::ProjectSharedData::new(
+                    nanoid::nanoid!(),
+                ))
+                .unwrap(),
             };
 
             let owner_project_document = OwnerProjectDocument {
@@ -198,6 +202,108 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
                     .map(|_| rpc::edit_user_acl::Response {})
                     .map_err(|error| rpc::edit_user_acl::Error::Unknown(error.to_string())),
             }
+        })
+    }
+
+    fn update_server_project_shared_data<'a>(
+        &'a self,
+        session: Option<SessionDocument>,
+        req: rpc::update_server_project_shared_data::Request,
+    ) -> std::pin::Pin<
+        Box<
+            dyn 'a
+                + std::future::Future<Output = rpc::update_server_project_shared_data::Result>
+                + Send,
+        >,
+    > {
+        Box::pin(async move {
+            if session.is_none() {
+                return Err(rpc::update_server_project_shared_data::Error::Unauthorized);
+            }
+            let session = session.unwrap();
+
+            let is_project_editor = self
+                .is_project_editor(&session.user_id, &req.project_id)
+                .await
+                .map_err(|error| {
+                    rpc::update_server_project_shared_data::Error::Unknown(error.to_string())
+                })?;
+
+            if !is_project_editor {
+                return Err(rpc::update_server_project_shared_data::Error::Unauthorized);
+            }
+
+            crate::dynamo_db()
+                .update_item::<_, rpc::update_server_project_shared_data::Error, _>(
+                    &req.project_id,
+                    None,
+                    |mut project: ProjectDocument| async {
+                        let mut project_shared_data_json =
+                            serde_json::from_str::<serde_json::Value>(&project.shared_data_json)
+                                .map_err(|err| {
+                                    rpc::update_server_project_shared_data::Error::Unknown(
+                                        err.to_string(),
+                                    )
+                                })?;
+                        rpc::json_patch::patch(&mut project_shared_data_json, &req.patch).map_err(
+                            |err| {
+                                rpc::update_server_project_shared_data::Error::Unknown(
+                                    err.to_string(),
+                                )
+                            },
+                        )?;
+
+                        project.shared_data_json = serde_json::to_string(&project_shared_data_json)
+                            .map_err(|err| {
+                                rpc::update_server_project_shared_data::Error::Unknown(
+                                    err.to_string(),
+                                )
+                            })?;
+                        Ok(project)
+                    },
+                )
+                .await
+                .map_err(|error| match error {
+                    crate::storage::dynamo_db::UpdateItemError::Canceled(error) => error,
+                    crate::storage::dynamo_db::UpdateItemError::NotFound
+                    | crate::storage::dynamo_db::UpdateItemError::SerializationFailed(_)
+                    | crate::storage::dynamo_db::UpdateItemError::Conflict
+                    | crate::storage::dynamo_db::UpdateItemError::Unknown(_) => {
+                        rpc::update_server_project_shared_data::Error::Unknown(error.to_string())
+                    }
+                })?;
+
+            Ok(rpc::update_server_project_shared_data::Response {})
+        })
+    }
+
+    fn update_client_project_shared_data<'a>(
+        &'a self,
+        _session: Option<SessionDocument>,
+        req: rpc::update_client_project_shared_data::Request,
+    ) -> std::pin::Pin<
+        Box<
+            dyn 'a
+                + std::future::Future<Output = rpc::update_client_project_shared_data::Result>
+                + Send,
+        >,
+    > {
+        Box::pin(async move {
+            let project = crate::dynamo_db()
+                .get_item::<ProjectDocument>(req.project_id, None)
+                .await
+                .map_err(|error| {
+                    rpc::update_client_project_shared_data::Error::Unknown(error.to_string())
+                })?;
+
+            let project_shared_data_json =
+                serde_json::from_str::<serde_json::Value>(&project.shared_data_json).map_err(
+                    |err| rpc::update_client_project_shared_data::Error::Unknown(err.to_string()),
+                )?;
+            let patch =
+                rpc::json_patch::diff(&req.project_shared_data_json, &project_shared_data_json);
+
+            Ok(rpc::update_client_project_shared_data::Response { patch })
         })
     }
 }

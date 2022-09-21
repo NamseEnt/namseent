@@ -1,6 +1,8 @@
+pub mod data;
 mod define_rpc;
 
 pub use base64;
+pub use json_patch;
 
 #[macro_export]
 macro_rules! simple_error_impl {
@@ -44,6 +46,14 @@ define_rpc::define_rpc! {
                 Unknown(String),
             }
         },
+        validate_session: {
+            pub struct Request {}
+            pub struct Response {}
+            Error {
+                InvalidSession,
+                Unknown(String),
+            }
+        },
     },
     SequenceService: {
         list_project_sequences: {
@@ -73,72 +83,66 @@ define_rpc::define_rpc! {
                 Unknown(String),
             }
         },
-        update_client_sequence: {
-            pub struct Request {
-                pub sequence_id: String,
-                pub client_state_vector_base64: String,
-                pub e_tag: Option<String>,
-            }
-            pub enum Response {
-                Modified {
-                    server_state_vector_base64: String,
-                    yrs_update_v2_for_client_base64: String,
-                    e_tag: String,
-                },
-                NotModified,
-            }
-            Error {
-                ServerSequenceNotExists,
-                Unknown(String),
-            }
-        },
         update_server_sequence: {
             pub struct Request {
                 pub sequence_id: String,
-                pub client_state_vector_base64: String,
-                pub yrs_update_v2_for_server_base64: String,
+                pub patch: json_patch::Patch,
             }
             pub struct Response {
-                pub server_state_vector_base64: String,
-                pub yrs_update_v2_for_client_base64: String,
-                pub e_tag: String,
             }
             Error {
                 Unauthorized,
                 Unknown(String),
             }
         },
+        update_client_sequence: {
+            pub struct Request {
+                pub sequence_id: String,
+                pub sequence_json: serde_json::Value,
+            }
+            pub struct Response {
+                pub patch: json_patch::Patch,
+            }
+            Error {
+                Unknown(String),
+            }
+        },
+        get_sequence_and_project_shared_data: {
+            pub struct Request {
+                pub sequence_id: String,
+            }
+            pub struct Response {
+                pub sequence_json: String,
+                pub project_shared_data_json: String,
+            }
+            Error {
+                Unknown(String),
+            }
+        },
     },
-    ResourceService: {
-        get_resource: {
+    ImageService: {
+        prepare_upload_image: {
             pub struct Request {
-                pub resource_id: String,
+                pub project_id: String,
+                pub label_list: Vec<crate::data::Label>,
             }
             pub struct Response {
-                pub base64: String,
+                pub upload_url: String,
             }
             Error {
-                NotFound,
+                Unauthorized,
+                InvalidCharacter(String),
+                TooLong,
                 Unknown(String),
             }
         },
-        list_resources: {
+        list_images: {
             pub struct Request {
-                pub start_after: Option<String>,
+                pub project_id: String,
             }
             pub struct Response {
-                pub resource_keys: Vec<String>,
+                pub images: Vec<crate::data::UrlWithLabels>
             }
-            Error {
-                Unknown(String),
-            }
-        },
-        put_resource: {
-            pub struct Request {
-                pub resource_id: String,
-                pub base64: String,
-            }
-            pub struct Response {}
             Error {
                 Unknown(String),
             }
@@ -182,6 +186,30 @@ define_rpc::define_rpc! {
             Error {
                 Unauthorized,
                 CannotSetOwnerPermission,
+                Unknown(String),
+            }
+        },
+        update_server_project_shared_data: {
+            pub struct Request {
+                pub project_id: String,
+                pub patch: json_patch::Patch,
+            }
+            pub struct Response {
+            }
+            Error {
+                Unauthorized,
+                Unknown(String),
+            }
+        },
+        update_client_project_shared_data: {
+            pub struct Request {
+                pub project_id: String,
+                pub project_shared_data_json: serde_json::Value,
+            }
+            pub struct Response {
+                pub patch: json_patch::Patch,
+            }
+            Error {
                 Unknown(String),
             }
         },

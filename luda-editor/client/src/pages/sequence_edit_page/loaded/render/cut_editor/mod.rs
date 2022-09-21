@@ -1,6 +1,6 @@
 use super::*;
-use crate::storage::*;
 use namui_prebuilt::*;
+use rpc::data::*;
 
 impl SequenceEditPage {
     pub fn render_cut_editor(&self, wh: Wh<Px>, cut: &Cut) -> namui::RenderingTree {

@@ -1,9 +1,9 @@
 mod render;
 mod update;
 
-use crate::storage::Storage;
 use namui::prelude::*;
 use namui_prebuilt::*;
+use rpc::data::Storage;
 use std::sync::Arc;
 
 #[derive(Clone)]

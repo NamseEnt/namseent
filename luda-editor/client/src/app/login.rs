@@ -38,19 +38,41 @@ impl App {
 }
 
 pub fn check_token() {
-    namui::spawn_local(async {
-        match namui::cache::get("SessionId").await.unwrap() {
-            Some(token) => {
-                namui::event::send(Event::SessionId(String::from_utf8(token.into()).unwrap()));
-            }
-            None => match request_github_auth_code().await {
-                Ok(code) => login_with_oauth_code(code),
-                Err(error) => {
-                    namui::event::send(Event::Error(error.to_string()));
+    async fn run() -> Result<(), Box<dyn std::error::Error>> {
+        let token = namui::cache::get_serde::<String>("SessionId").await;
+        if let Ok(token) = token {
+            if let Some(token) = token {
+                if is_token_valid(&token).await? {
+                    namui::event::send(Event::SessionId(token));
+                    return Ok(());
                 }
-            },
+            }
+        }
+
+        let code = request_github_auth_code().await?;
+        login_with_oauth_code(code);
+        Ok(())
+    }
+
+    namui::spawn_local(async {
+        if let Err(error) = run().await {
+            namui::event::send(Event::Error(error.to_string()));
         }
     });
+}
+
+async fn is_token_valid(token: &str) -> Result<bool, Box<dyn std::error::Error>> {
+    crate::RPC.set_session_id(token.to_string());
+    match crate::RPC
+        .validate_session(rpc::validate_session::Request {})
+        .await
+    {
+        Ok(_) => Ok(true),
+        Err(error) => match error {
+            rpc::validate_session::Error::InvalidSession => Ok(false),
+            rpc::validate_session::Error::Unknown(error) => Err(error.into()),
+        },
+    }
 }
 
 async fn request_github_auth_code() -> Result<String, Box<dyn std::error::Error>> {
@@ -87,7 +109,7 @@ fn login_with_oauth_code(code: String) {
             Ok(response) => {
                 let session_id = response.session_id;
                 namui::event::send(Event::SessionId(session_id.clone()));
-                namui::cache::set("SessionId", session_id.as_bytes())
+                namui::cache::set_serde("SessionId", &session_id)
                     .await
                     .unwrap();
             }

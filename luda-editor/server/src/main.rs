@@ -17,8 +17,8 @@ use storage::{dynamo_db::DynamoDb, s3::S3};
 #[derive(Debug)]
 struct Services {
     auth_service: services::auth::AuthService,
+    image_service: services::image::ImageService,
     sequence_service: services::sequence::SequenceService,
-    resource_service: services::resource::ResourceService,
     project_service: services::project::ProjectService,
 }
 
@@ -49,15 +49,21 @@ async fn main() -> Result<(), LambdaError> {
         .set(Services {
             auth_service: services::auth::AuthService::new(),
             sequence_service: services::sequence::SequenceService::new(),
-            resource_service: services::resource::ResourceService::new(),
             project_service: services::project::ProjectService::new(),
+            image_service: services::image::ImageService::new(),
         })
         .unwrap();
 
     if is_running_on_lambda() {
         let config = aws_config::load_from_env().await;
         let dynamo_db = DynamoDb::new(&config);
-        let s3 = S3::new(&config);
+        let s3 = S3::new(
+            &config,
+            format!(
+                "https://s3.{region}.amazonaws.com",
+                region = config.region().unwrap()
+            ),
+        );
 
         STORAGES.set(Storage { dynamo_db, s3 }).unwrap();
 
@@ -85,6 +91,7 @@ async fn main() -> Result<(), LambdaError> {
                     aws_types::Credentials::new("minio", "minio123", None, None, "local"),
                 ))
                 .build(),
+            "http://localhost:9000".to_string(),
         );
 
         STORAGES.set(Storage { dynamo_db, s3 }).unwrap();

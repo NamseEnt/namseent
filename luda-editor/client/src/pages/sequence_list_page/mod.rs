@@ -242,17 +242,14 @@ impl SequenceListPage {
         .attach_event(|builder| {
             let project_id = self.project_id.clone();
             let sequence_id = sequence.id.clone();
-            let sequence_name = sequence.name.clone();
             builder.on_mouse_up_in(move |event| {
                 if event.button == Some(MouseButton::Left) {
                     let project_id = project_id.clone();
                     let sequence_id = sequence_id.clone();
-                    let sequence_name = sequence_name.clone();
                     namui::event::send(router::Event::Route(Arc::new(move || {
                         router::Route::SequenceEditPage(SequenceEditPage::new(
                             project_id.clone(),
                             sequence_id.clone(),
-                            sequence_name.clone(),
                         ))
                     })));
                 } else if event.button == Some(MouseButton::Right) {

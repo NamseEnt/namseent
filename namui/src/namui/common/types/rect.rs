@@ -35,6 +35,17 @@ impl<T: Clone> Rect<T> {
             height: wh.height,
         }
     }
+    pub fn zero_wh(wh: Wh<T>) -> Self
+    where
+        T: From<f32>,
+    {
+        Rect::Xywh {
+            x: Xy::zero().x,
+            y: Xy::zero().y,
+            width: wh.width,
+            height: wh.height,
+        }
+    }
     #[inline(always)]
     pub fn x(&self) -> T {
         match self {

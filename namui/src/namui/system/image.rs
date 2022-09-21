@@ -77,7 +77,7 @@ fn start_load_url(url: &Url) {
                 crate::log!(
                     "ImageSystem::start_load: failed to load image: {}, {}",
                     url,
-                    error
+                    error,
                 );
             }
         }
