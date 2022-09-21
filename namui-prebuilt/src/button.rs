@@ -28,6 +28,41 @@ pub fn text_button(
     })
 }
 
+pub fn text_button_fit(
+    height: Px,
+    text: &str,
+    text_color: Color,
+    stroke_color: Color,
+    stroke_width: Px,
+    fill_color: Color,
+    side_padding: Px,
+    on_mouse_down_in: impl Fn() + 'static,
+) -> namui::RenderingTree {
+    let center_text = center_text(Wh::new(0.px(), height), text, text_color);
+    let width = match center_text.get_bounding_box() {
+        Some(bounding_box) => bounding_box.width(),
+        None => return RenderingTree::Empty,
+    };
+
+    let on_mouse_down_in = Arc::new(on_mouse_down_in);
+
+    render([
+        simple_rect(
+            Wh::new(width + 2 * side_padding, height),
+            stroke_color,
+            stroke_width,
+            fill_color,
+        ),
+        translate(width / 2 + side_padding, 0.px(), center_text),
+    ])
+    .attach_event(|builder| {
+        let on_mouse_down_in = on_mouse_down_in.clone();
+        builder.on_mouse_down_in(move |_| {
+            on_mouse_down_in();
+        });
+    })
+}
+
 pub fn body_text_button(
     rect: Rect<Px>,
     text: &str,
