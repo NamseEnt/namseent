@@ -80,7 +80,7 @@ impl LoadedSequenceEditorPage {
                             .iter_mut()
                             .find(|character| character.id().eq(character_id));
 
-                        match { character } {
+                        match character {
                             Some(character) => {
                                 character.name = name.clone();
                             }
