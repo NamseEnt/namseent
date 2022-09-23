@@ -1,4 +1,5 @@
 use crate::simple_error_impl;
+use base64::decode_config;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Id {
@@ -21,24 +22,23 @@ impl std::fmt::Display for Id {
 #[derive(Debug, PartialEq, Eq)]
 pub enum IdTryFromStrError {
     InvalidLength,
-    InvalidCharacter,
+    Base64DecodeError(base64::DecodeError),
 }
 simple_error_impl!(IdTryFromStrError);
 impl TryFrom<&str> for Id {
     type Error = IdTryFromStrError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        if value.len() != 128 {
-            return Err(IdTryFromStrError::InvalidLength);
+        let bytes = decode_config(value, base64::STANDARD_NO_PAD)
+            .map_err(|error| IdTryFromStrError::Base64DecodeError(error))?;
+        match bytes.len() {
+            64 => {
+                let mut values = [0; 64];
+                values.copy_from_slice(&bytes);
+                Ok(Id { values })
+            }
+            _ => Err(IdTryFromStrError::InvalidLength),
         }
-        let mut decimal_value = [0u8; 64];
-        for index in 0..64 {
-            decimal_value[index] = u8::from_str_radix(&value[index * 2..(index * 2 + 2)], 16)
-                .map_err(|_| IdTryFromStrError::InvalidCharacter)?;
-        }
-        Ok(Id {
-            values: decimal_value,
-        })
     }
 }
 
@@ -57,8 +57,8 @@ mod tests {
 
     #[test]
     #[wasm_bindgen_test]
-    fn try_from_hexadecimal_str() {
-        let hexadecimal = "65d340236a988c8299ff4df401b4b11b2d3d337cdbf446b4ac1e8f32f773cd07ca14805e1aba707efc55dde1c723eb7298870bb2567c14c7940ea039382b2b13";
+    fn try_from_base64_str() {
+        let base64_str = "ZdNAI2qYjIKZ/030AbSxGy09M3zb9Ea0rB6PMvdzzQfKFIBeGrpwfvxV3eHHI+tymIcLslZ8FMeUDqA5OCsrEw";
         let expected = Id {
             values: [
                 101, 211, 64, 35, 106, 152, 140, 130, 153, 255, 77, 244, 1, 180, 177, 27, 45, 61,
@@ -67,47 +67,29 @@ mod tests {
                 124, 20, 199, 148, 14, 160, 57, 56, 43, 43, 19,
             ],
         };
-        let actual = Id::try_from(hexadecimal).unwrap();
+        let actual = Id::try_from(base64_str).unwrap();
         assert_eq!(expected, actual);
     }
 
     #[test]
     #[wasm_bindgen_test]
-    fn try_from_hexadecimal_str_should_fail() {
-        // length is 127
-        let short_hexadecimal = "65d340236a988c8299ff4df401b4b11b2d3d337cdbf446b4ac1e8f32f773cd07ca14805e1aba707efc55dde1c723eb7298870bb2567c14c7940ea039382b2b1";
-        // length is 129
-        let long_hexadecimal = "65d340236a988c8299ff4df401b4b11b2d3d337cdbf446b4ac1e8f32f773cd07ca14805e1aba707efc55dde1c723eb7298870bb2567c14c7940ea039382b2b133";
-        // last 'g' is invalid
-        let invalid_character_hexadecimal = "65d340236a988c8299ff4df401b4b11b2d3d337cdbf446b4ac1e8f32f773cd07ca14805e1aba707efc55dde1c723eb7298870bb2567c14c7940ea039382b2b1g";
+    fn try_from_base64_str_should_fail() {
+        let short_base64_str =
+            "ZdNAI2qYjIKZ/030AbSxGy09M3zb9Ea0rB6PMvdzzQfKFIBeGrpwfvxV3eHHI+tymIcLslZ8FMeUDqA5OCsr";
+        let long_base64_str = "ZdNAI2qYjIKZ/030AbSxGy09M3zb9Ea0rB6PMvdzzQfKFIBeGrpwfvxV3eHHI+tymIcLslZ8FMeUDqA5OCsrEwE";
+        let invalid_character_base64_str = "ZdNAI2qYjIKZ/030AbSxGy09M3zb9Ea0rB6PMvdzzQfKFIBeGrpwfvxV3eHHI+tymIcLslZ8FMeUDqA5OCsrEw_";
 
         assert_eq!(
-            Id::try_from(short_hexadecimal),
+            Id::try_from(short_base64_str),
             Err(IdTryFromStrError::InvalidLength)
         );
         assert_eq!(
-            Id::try_from(long_hexadecimal),
+            Id::try_from(long_base64_str),
             Err(IdTryFromStrError::InvalidLength)
         );
-        assert_eq!(
-            Id::try_from(invalid_character_hexadecimal),
-            Err(IdTryFromStrError::InvalidCharacter)
-        );
-    }
-
-    #[test]
-    #[wasm_bindgen_test]
-    fn convert_to_str_and_revert() {
-        let original = Id {
-            values: [
-                101, 211, 64, 35, 106, 152, 140, 130, 153, 255, 77, 244, 1, 180, 177, 27, 45, 61,
-                51, 124, 219, 244, 70, 180, 172, 30, 143, 50, 247, 115, 205, 7, 202, 20, 128, 94,
-                26, 186, 112, 126, 252, 85, 221, 225, 199, 35, 235, 114, 152, 135, 11, 178, 86,
-                124, 20, 199, 148, 14, 160, 57, 56, 43, 43, 19,
-            ],
-        };
-        let hexadecimal = format!("{}", original);
-        let reverted = Id::try_from(hexadecimal.as_ref()).unwrap();
-        assert_eq!(original, reverted);
+        assert!(match Id::try_from(invalid_character_base64_str) {
+            Err(IdTryFromStrError::Base64DecodeError(_)) => true,
+            _ => false,
+        });
     }
 }
