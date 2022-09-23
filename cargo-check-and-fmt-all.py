@@ -16,7 +16,7 @@ def run():
             f"cd {dir_path} && cargo check")
         if exit != 0:
             print(f"\n\n-- fail cargo check on {dir_path}\n\n")
-            exit(1)
+            return
 
         print(f"cd {dir_path} && cargo fmt")
         dir_path = os.path.dirname(menifast_path)
@@ -24,7 +24,7 @@ def run():
             f"cd {dir_path} && cargo fmt")
         if exit != 0:
             print(f"\n\n-- fail cargo fmt on {dir_path}\n\n")
-            exit(1)
+            return
 
 
 run()
