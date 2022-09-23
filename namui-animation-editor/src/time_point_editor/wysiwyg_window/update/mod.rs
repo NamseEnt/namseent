@@ -43,9 +43,9 @@ impl WysiwygWindow {
                     self.center_viewport(wh);
                 }
                 &Event::SelectedLayerMouseDown {
-                    ref layer_id,
+                    layer_id,
                     anchor_xy,
-                    ref keyframe_point_id,
+                    keyframe_point_id,
                 } => {
                     if self.dragging.is_none() {
                         if let Some(ticket) =
@@ -53,8 +53,8 @@ impl WysiwygWindow {
                                 .try_set_action(dragging::DragImageBodyAction {
                                     anchor_xy,
                                     last_mouse_local_xy: anchor_xy,
-                                    layer_id: layer_id.clone(),
-                                    keyframe_point_id: keyframe_point_id.clone(),
+                                    layer_id,
+                                    keyframe_point_id,
                                     real_px_per_screen_px: self.real_px_per_screen_px,
                                 })
                         {
@@ -63,10 +63,10 @@ impl WysiwygWindow {
                     }
                 }
                 &Event::ResizeCircleMouseDown {
-                    ref layer_id,
+                    layer_id,
                     location,
                     anchor_xy,
-                    ref keyframe_point_id,
+                    keyframe_point_id,
                     rotation_angle,
                 } => {
                     if self.dragging.is_none() {
@@ -74,8 +74,8 @@ impl WysiwygWindow {
                             dragging::DragResizeCircleAction {
                                 anchor_xy,
                                 last_mouse_local_xy: anchor_xy,
-                                layer_id: layer_id.clone(),
-                                keyframe_point_id: keyframe_point_id.clone(),
+                                layer_id,
+                                keyframe_point_id,
                                 real_px_per_screen_px: self.real_px_per_screen_px,
                                 location,
                                 rotation_angle,
@@ -88,8 +88,8 @@ impl WysiwygWindow {
                 &Event::RotationToolMouseDown {
                     image_center_real_xy,
                     mouse_local_xy: mouse_real_xy,
-                    ref keyframe_point_id,
-                    ref layer_id,
+                    keyframe_point_id,
+                    layer_id,
                 } => {
                     if self.dragging.is_none() {
                         if let Some(ticket) =
@@ -98,8 +98,8 @@ impl WysiwygWindow {
                                     image_center_real_xy,
                                     start_mouse_real_xy: mouse_real_xy,
                                     end_mouse_real_xy: mouse_real_xy,
-                                    keyframe_point_id: keyframe_point_id.clone(),
-                                    layer_id: layer_id.clone(),
+                                    keyframe_point_id,
+                                    layer_id,
                                 })
                         {
                             self.dragging = Some(Dragging::Rotation { ticket });

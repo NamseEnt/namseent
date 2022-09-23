@@ -10,7 +10,7 @@ pub enum App {
 }
 impl App {
     pub fn new() -> Self {
-        login::check_token();
+        login::check_session_id();
         App::LoggingIn
     }
 }

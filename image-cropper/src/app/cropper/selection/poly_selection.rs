@@ -5,12 +5,12 @@ use namui::prelude::*;
 #[derive(Clone)]
 pub struct PolySelection {
     pub point_list: Vec<Xy<Px>>,
-    id: String,
+    id: namui::Uuid,
     creation_state: PolySelectionCreationState,
 }
 impl PolySelection {
     pub fn new(point_list: Vec<Xy<Px>>, creation_state: PolySelectionCreationState) -> Self {
-        let id = nanoid();
+        let id = uuid();
         Self {
             point_list,
             id,
@@ -98,8 +98,8 @@ impl SelectionTrait for PolySelection {
         self.point_list.clone()
     }
 
-    fn get_id(&self) -> &String {
-        &self.id
+    fn get_id(&self) -> Uuid {
+        self.id
     }
 }
 

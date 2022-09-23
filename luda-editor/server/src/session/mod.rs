@@ -3,16 +3,16 @@ use rpc::hyper::{Body, Request};
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct SessionDocument {
-    pub id: String,
-    pub user_id: String,
+    pub id: rpc::Uuid,
+    pub user_id: rpc::Uuid,
 }
 
 impl Document for SessionDocument {
     fn partition_key_without_prefix(&self) -> String {
-        self.id.clone()
+        self.id.to_string()
     }
 
-    fn sort_key(&self) -> Option<&str> {
+    fn sort_key(&self) -> Option<String> {
         None
     }
 
@@ -40,7 +40,7 @@ pub async fn get_session(req: &Request<Body>) -> Result<Option<SessionDocument>,
     let session_id = header_value.to_str().unwrap();
 
     let result = crate::dynamo_db()
-        .get_item::<SessionDocument>(session_id, None)
+        .get_item::<SessionDocument>(session_id, Option::<String>::None)
         .await;
 
     match result {
@@ -58,9 +58,9 @@ pub async fn get_session(req: &Request<Body>) -> Result<Option<SessionDocument>,
     }
 }
 
-pub async fn create_session(user_id: String) -> Result<SessionDocument, CreateSessionError> {
+pub async fn create_session(user_id: rpc::Uuid) -> Result<SessionDocument, CreateSessionError> {
     let session = SessionDocument {
-        id: nanoid::nanoid!(),
+        id: rpc::Uuid::new_v4(),
         user_id,
     };
 

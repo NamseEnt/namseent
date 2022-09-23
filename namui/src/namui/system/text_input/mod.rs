@@ -18,7 +18,7 @@ use web_sys::{Event, HtmlTextAreaElement};
 struct TextInputSystem {
     last_focused_text_input: Mutex<Option<TextInputCustomData>>,
     dragging_text_input: Mutex<Option<TextInputCustomData>>,
-    focus_requested_text_input_id: Mutex<Option<String>>,
+    focus_requested_text_input_id: Mutex<Option<Uuid>>,
 }
 const TEXT_INPUT_ELEMENT_ID: &str = "text-input";
 
@@ -116,14 +116,14 @@ fn get_input_element() -> HtmlTextAreaElement {
     let element = document.get_element_by_id(TEXT_INPUT_ELEMENT_ID).unwrap();
     wasm_bindgen::JsCast::dyn_into::<HtmlTextAreaElement>(element).unwrap()
 }
-pub fn is_focused(text_input_id: &str) -> bool {
+pub fn is_focused(text_input_id: crate::Uuid) -> bool {
     let last_focused_text_input = TEXT_INPUT_SYSTEM.last_focused_text_input.lock().unwrap();
     last_focused_text_input
         .as_ref()
-        .map(|text_input| text_input.id.eq(text_input_id))
+        .map(|text_input| text_input.id == (text_input_id))
         .unwrap_or(false)
 }
-fn get_text_input_xy(rendering_tree: &RenderingTree, id: &str) -> Option<Xy<Px>> {
+fn get_text_input_xy(rendering_tree: &RenderingTree, id: crate::Uuid) -> Option<Xy<Px>> {
     let mut return_value = None;
 
     rendering_tree.visit_rln(|rendering_tree, util| {
@@ -178,14 +178,14 @@ fn on_selection_change() {
     });
 }
 
-pub fn focus(text_input_id: &str) {
+pub fn focus(text_input_id: crate::Uuid) {
     let input_element = get_input_element();
     input_element.focus().unwrap();
     TEXT_INPUT_SYSTEM
         .focus_requested_text_input_id
         .lock()
         .unwrap()
-        .replace(text_input_id.to_string());
+        .replace(text_input_id);
 }
 
 fn get_input_element_selection(input_element: &HtmlTextAreaElement) -> text_input::Selection {
@@ -205,7 +205,7 @@ fn get_input_element_selection(input_element: &HtmlTextAreaElement) -> text_inpu
     }
 }
 
-pub(crate) fn get_selection(id: &str, text: &str) -> text_input::Selection {
+pub(crate) fn get_selection(id: crate::Uuid, text: &str) -> text_input::Selection {
     let input_element = get_input_element();
     let selection = get_input_element_selection(&input_element);
     if selection.is_none() {
@@ -219,7 +219,7 @@ pub(crate) fn get_selection(id: &str, text: &str) -> text_input::Selection {
         }
         let last_focused_text_input = last_focused_text_input.as_ref().unwrap();
 
-        if last_focused_text_input.id.ne(id) {
+        if last_focused_text_input.id != id {
             return None;
         }
     }

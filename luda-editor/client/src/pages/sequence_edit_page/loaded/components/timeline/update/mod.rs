@@ -113,7 +113,7 @@ impl Timeline {
             }
         }
     }
-    fn select_only_this_clip(&mut self, clip_id: &str) {
+    fn select_only_this_clip(&mut self, clip_id: Uuid) {
         self.selected_clip_ids.clear();
         self.selected_clip_ids.insert(clip_id.to_string());
     }
@@ -125,7 +125,7 @@ impl Timeline {
             self.selected_clip_ids.remove(clip_id.as_ref());
         }
     }
-    fn multi_select_clip(&mut self, clip_id: &str) {
+    fn multi_select_clip(&mut self, clip_id: Uuid) {
         if self.selected_clip_ids.is_empty() {
             self.selected_clip_ids.insert(clip_id.to_string());
         } else if !self.selected_clip_ids.contains(clip_id) {

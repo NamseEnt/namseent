@@ -15,7 +15,7 @@ pub type Selection = Option<Range<usize>>;
 
 #[derive(Clone, Debug)]
 pub struct TextInput {
-    pub(crate) id: String,
+    pub(crate) id: Uuid,
 }
 #[derive(Clone, Debug)]
 pub struct Props {
@@ -66,24 +66,36 @@ impl KeyDownEvent {
 
 #[derive(Clone)]
 pub struct TextInputCustomData {
-    pub id: String,
+    pub id: Uuid,
     pub props: Props,
 }
 pub enum Event {
-    Focus { id: String, selection: Selection },
-    Blur { id: String },
-    TextUpdated { id: String, text: String },
-    SelectionUpdated { id: String, selection: Selection },
-    KeyDown { id: String, code: Code },
+    Focus {
+        id: crate::Uuid,
+        selection: Selection,
+    },
+    Blur {
+        id: crate::Uuid,
+    },
+    TextUpdated {
+        id: crate::Uuid,
+        text: String,
+    },
+    SelectionUpdated {
+        id: crate::Uuid,
+        selection: Selection,
+    },
+    KeyDown {
+        id: crate::Uuid,
+        code: Code,
+    },
 }
 
 impl TextInput {
     pub fn new() -> TextInput {
-        TextInput {
-            id: crate::nanoid(),
-        }
+        TextInput { id: crate::uuid() }
     }
-    pub fn get_id(&self) -> &str {
+    pub fn get_id(&self) -> &crate::Uuid {
         &self.id
     }
 }
@@ -104,7 +116,7 @@ impl TextInput {
 
         let line_texts = LineTexts::new(&props.text, &fonts, &paint, Some(props.rect.width()));
 
-        let selection = crate::system::text_input::get_selection(&self.id, &props.text);
+        let selection = crate::system::text_input::get_selection(self.id, &props.text);
 
         let custom_data = TextInputCustomData {
             id: self.id.clone(),
@@ -130,10 +142,10 @@ impl TextInput {
         })
     }
     pub fn is_focused(&self) -> bool {
-        crate::system::text_input::is_focused(&self.id)
+        crate::system::text_input::is_focused(self.id)
     }
     pub fn focus(&self) {
-        crate::system::text_input::focus(&self.id)
+        crate::system::text_input::focus(self.id)
     }
 }
 

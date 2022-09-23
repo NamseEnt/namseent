@@ -141,12 +141,11 @@ impl ProjectListPage {
             || {},
         )
         .attach_event(|builder| {
-            let project_id = project.id.to_string();
+            let project_id = project.id;
             builder.on_mouse_up_in(move |event| {
                 if event.button == Some(MouseButton::Left) {
-                    let project_id = project_id.clone();
                     namui::event::send(router::Event::Route(Arc::new(move || {
-                        router::Route::SequenceListPage(SequenceListPage::new(project_id.clone()))
+                        router::Route::SequenceListPage(SequenceListPage::new(project_id))
                     })));
                 } else if event.button == Some(MouseButton::Right) {
                     // TODO

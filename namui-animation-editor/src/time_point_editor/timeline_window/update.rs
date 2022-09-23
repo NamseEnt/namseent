@@ -39,12 +39,12 @@ impl TimelineWindow {
                     anchor_xy,
                     mouse_local_xy,
                     keyframe_time,
-                    ref layer_id,
+                    layer_id,
                 } => {
                     namui::event::send(crate::time_point_editor::Event::ChangEditingTarget(Some(
                         EditingTarget::Keyframe {
                             point_id: point_id.clone(),
-                            layer_id: layer_id.clone(),
+                            layer_id,
                         },
                     )));
                     self.set_playback_time(keyframe_time);
@@ -52,7 +52,7 @@ impl TimelineWindow {
                         if let Some(action_ticket) =
                             self.animation_history
                                 .try_set_action(DraggingKeyframeAction {
-                                    layer_id: layer_id.clone(),
+                                    layer_id,
                                     point_id: point_id.clone(),
                                     drag_end_x: mouse_local_xy.x.into(),
                                     anchor_x: Px::from(anchor_xy.x),
@@ -71,7 +71,7 @@ impl TimelineWindow {
                     if self.dragging.is_none() {
                         self.dragging = None;
                         if let Some(layer_id) = selected_layer_id {
-                            self.crate_new_keyframe(mouse_local_xy, &layer_id);
+                            self.crate_new_keyframe(mouse_local_xy, *layer_id);
                         }
                     }
                 }
@@ -81,7 +81,7 @@ impl TimelineWindow {
                 } => {
                     if let Some(selected_layer_id) = selected_layer_id {
                         struct DeleteKeyframeAction {
-                            layer_id: String,
+                            layer_id: namui::Uuid,
                             time: Time,
                         }
                         impl Act<Animation> for DeleteKeyframeAction {
@@ -126,17 +126,14 @@ impl TimelineWindow {
                         if let Some(EditingTarget::Keyframe { point_id, layer_id }) = editing_target
                         {
                             if selected_layer_id.as_ref().eq(&Some(layer_id)) {
-                                self.move_playback_time_to_point(layer_id, point_id);
+                                self.move_playback_time_to_point(*layer_id, *point_id);
                             }
                         }
                     }
                 }
-                Event::LineMouseDown { point_id, layer_id } => {
+                &Event::LineMouseDown { point_id, layer_id } => {
                     namui::event::send(crate::time_point_editor::Event::ChangEditingTarget(Some(
-                        EditingTarget::Line {
-                            point_id: point_id.clone(),
-                            layer_id: layer_id.clone(),
-                        },
+                        EditingTarget::Line { point_id, layer_id },
                     )));
                 }
                 Event::MouseLeftDownOutOfEditingTargetButInWindow => {
@@ -156,13 +153,13 @@ impl TimelineWindow {
             }
         }
     }
-    fn move_playback_time_to_point(&mut self, layer_id: &str, point_id: &str) {
+    fn move_playback_time_to_point(&mut self, layer_id: Uuid, point_id: Uuid) {
         let animation = self.animation_history.get_preview();
 
         let selected_layer = animation
             .layers
             .iter()
-            .find(|layer| layer.id.eq(layer_id))
+            .find(|layer| layer.id.eq(&layer_id))
             .unwrap();
 
         let point = selected_layer
@@ -208,9 +205,9 @@ impl TimelineWindow {
             }
         }
     }
-    fn crate_new_keyframe(&mut self, mouse_local_xy: Xy<Px>, layer_id: &str) {
+    fn crate_new_keyframe(&mut self, mouse_local_xy: Xy<Px>, layer_id: Uuid) {
         struct CreateNewKeyframeAction {
-            layer_id: String,
+            layer_id: namui::Uuid,
             time: Time,
         }
         impl Act<Animation> for CreateNewKeyframeAction {
@@ -260,12 +257,9 @@ impl TimelineWindow {
         }
 
         let time = self.start_at + Px::from(mouse_local_xy.x) * self.time_per_px;
-        if let Some(action_ticket) =
-            self.animation_history
-                .try_set_action(CreateNewKeyframeAction {
-                    layer_id: layer_id.to_string(),
-                    time,
-                })
+        if let Some(action_ticket) = self
+            .animation_history
+            .try_set_action(CreateNewKeyframeAction { layer_id, time })
         {
             self.animation_history.act(action_ticket).unwrap();
 
@@ -276,7 +270,7 @@ impl TimelineWindow {
 
 fn move_point(
     layer: &mut Layer,
-    point_id: &str,
+    point_id: Uuid,
     to_time: Time,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let point = layer
@@ -302,8 +296,8 @@ fn delete_point(layer: &mut Layer, time: Time) {
 }
 
 struct DraggingKeyframeAction {
-    layer_id: String,
-    point_id: String,
+    layer_id: namui::Uuid,
+    point_id: namui::Uuid,
     drag_end_x: Px,
     anchor_x: Px,
     start_at: Time,
@@ -319,7 +313,7 @@ impl Act<Animation> for DraggingKeyframeAction {
         {
             let to_time = self.start_at + (self.drag_end_x - self.anchor_x) * self.time_per_px;
 
-            move_point(layer, &self.point_id, to_time)?;
+            move_point(layer, self.point_id, to_time)?;
 
             Ok(animation)
         } else {

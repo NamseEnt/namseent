@@ -24,13 +24,13 @@ impl CharacterEditModal {
 
                 let content = match item {
                     WithAddButton::Item(character) => {
-                        let is_selected = self.character_id.as_deref() == Some(character.id());
+                        let is_selected = self.character_id == Some(character.id());
 
                         let (is_character_cell_in_editing_text_mode, editing_text) =
                             if let Some(EditingTextMode::CharacterName { character_id, text }) =
                                 &self.editing_text_mode
                             {
-                                (character_id == character.id(), Some(text))
+                                (*character_id == character.id(), Some(text))
                             } else {
                                 (false, None)
                             };
@@ -114,17 +114,17 @@ impl CharacterEditModal {
                                 return;
                             }
                             let cut_id = self.cut_id.clone();
-                            let character_id = character.id().to_string();
+                            let character_id = character.id();
                             let character_name = character.name.clone();
                             builder.on_mouse_down_in(move |event| {
                                 if let Some(MouseButton::Left) = event.button {
                                     namui::event::send(Event::CharacterSelected {
                                         cut_id: cut_id.clone(),
-                                        character_id: character_id.clone(),
+                                        character_id,
                                     });
                                 } else if let Some(MouseButton::Right) = event.button {
                                     namui::event::send(InternalEvent::CharacterRightClicked {
-                                        character_id: character_id.clone(),
+                                        character_id,
                                         mouse_global_xy: event.global_xy,
                                         name: character_name.clone(),
                                     });

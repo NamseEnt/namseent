@@ -5,11 +5,11 @@ use namui::prelude::*;
 #[derive(Clone)]
 pub struct RectSelection {
     pub rect: Rect<Px>,
-    id: String,
+    id: namui::Uuid,
 }
 impl RectSelection {
     pub fn new(rect: Rect<Px>) -> Self {
-        let id = nanoid();
+        let id = uuid();
         Self { rect, id }
     }
 }
@@ -64,8 +64,8 @@ impl SelectionTrait for RectSelection {
         ]
     }
 
-    fn get_id(&self) -> &String {
-        &self.id
+    fn get_id(&self) -> Uuid {
+        self.id
     }
 }
 
@@ -75,7 +75,7 @@ struct RectSelectionResizeHandle {
     pub polygon_xy: Vec<Xy<Px>>,
     pub cursor: MouseCursor,
 }
-fn render_handles(rect: Rect<Px>, selection_id: String) -> RenderingTree {
+fn render_handles(rect: Rect<Px>, selection_id: namui::Uuid) -> RenderingTree {
     render(get_handles(rect).iter().map(|handle| {
         let selection_id = selection_id.clone();
         let direction = handle.handle_direction.clone();

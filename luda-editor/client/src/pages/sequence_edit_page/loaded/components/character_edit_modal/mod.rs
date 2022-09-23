@@ -7,9 +7,9 @@ use namui_prebuilt::*;
 use rpc::data::*;
 
 pub struct CharacterEditModal {
-    cut_id: String,
+    cut_id: namui::Uuid,
     character_list_view: list_view::ListView,
-    character_id: Option<String>,
+    character_id: Option<Uuid>,
     context_menu: Option<context_menu::ContextMenu>,
     editing_text_mode: Option<EditingTextMode>,
     text_input: TextInput,
@@ -22,12 +22,12 @@ pub struct Props<'a> {
 
 pub enum Event {
     CharacterSelected {
-        cut_id: String,
-        character_id: String,
+        cut_id: namui::Uuid,
+        character_id: namui::Uuid,
     },
     AddCharacterClicked,
     CharacterNameChanged {
-        character_id: String,
+        character_id: namui::Uuid,
         name: String,
     },
     Close,
@@ -35,22 +35,25 @@ pub enum Event {
 
 enum InternalEvent {
     CharacterRightClicked {
-        character_id: String,
+        character_id: namui::Uuid,
         mouse_global_xy: Xy<Px>,
         name: String,
     },
     CharacterNameEditClicked {
-        character_id: String,
+        character_id: namui::Uuid,
         name: String,
     },
 }
 
 enum EditingTextMode {
-    CharacterName { character_id: String, text: String },
+    CharacterName {
+        character_id: namui::Uuid,
+        text: String,
+    },
 }
 
 impl CharacterEditModal {
-    pub fn new(cut_id: String, character_id: Option<String>) -> CharacterEditModal {
+    pub fn new(cut_id: namui::Uuid, character_id: Option<Uuid>) -> CharacterEditModal {
         CharacterEditModal {
             cut_id,
             character_list_view: list_view::ListView::new(),

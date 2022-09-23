@@ -54,13 +54,13 @@ pub(crate) fn on_mouse_move(namui_context: &NamuiContext, raw_mouse_event: &RawM
     }
     let dragging_text_input = dragging_text_input.as_ref().unwrap();
 
-    let custom_data = find_text_input_by_id(&namui_context.rendering_tree, &dragging_text_input.id);
+    let custom_data = find_text_input_by_id(&namui_context.rendering_tree, dragging_text_input.id);
     if custom_data.is_none() {
         return;
     }
     let custom_data = custom_data.unwrap();
 
-    let local_xy = get_text_input_xy(&namui_context.rendering_tree, &custom_data.id).unwrap();
+    let local_xy = get_text_input_xy(&namui_context.rendering_tree, custom_data.id).unwrap();
     let mouse_local_xy = raw_mouse_event.xy - local_xy;
 
     update_focus_with_mouse_movement(&custom_data, get_input_element(), mouse_local_xy, true);

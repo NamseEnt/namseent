@@ -40,17 +40,17 @@ impl Entity for ShaderExample {
                 dropdown::render(dropdown::Props {
                     items: vec![
                         dropdown::Item {
-                            id: "Spiral".to_string(),
+                            id: uuid_from_hash("Spiral"),
                             is_selected: discriminant(&self.tab) == discriminant(&Tab::Spiral),
                             text: "Spiral".to_string(),
                         },
                         dropdown::Item {
-                            id: "Shake".to_string(),
+                            id: uuid_from_hash("Shake"),
                             is_selected: discriminant(&self.tab) == discriminant(&Tab::Shake),
                             text: "Shake".to_string(),
                         },
                         dropdown::Item {
-                            id: "Scroll".to_string(),
+                            id: uuid_from_hash("Scroll"),
                             is_selected: discriminant(&self.tab) == discriminant(&Tab::Scroll),
                             text: "Scroll".to_string(),
                         },
@@ -62,14 +62,14 @@ impl Entity for ShaderExample {
                             height: wh.height.min(40.px()),
                         },
                     ),
-                    on_select_item: |id| match id.as_str() {
-                        "Spiral" => {
+                    on_select_item: |id| match id {
+                        id if id == uuid_from_hash("Spiral") => {
                             namui::event::send(Event::SelectTab { tab: Tab::Spiral });
                         }
-                        "Shake" => {
+                        id if id == uuid_from_hash("Shake") => {
                             namui::event::send(Event::SelectTab { tab: Tab::Shake });
                         }
-                        "Scroll" => {
+                        id if id == uuid_from_hash("Scroll") => {
                             namui::event::send(Event::SelectTab { tab: Tab::Scroll });
                         }
                         _ => unreachable!(),

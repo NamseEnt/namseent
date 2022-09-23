@@ -201,15 +201,32 @@ mod tests {
 
             rln order: 8, 6, 5, 2, 7, 4, 3, 1, 0
         */
-        let node_8 = RenderingTree::Empty.with_id("8");
-        let node_7 = RenderingTree::Empty.with_id("7");
-        let node_6 = render([node_8]).with_id("6");
-        let node_5 = RenderingTree::Empty.with_id("5");
-        let node_4 = render([node_7]).with_id("4");
-        let node_3 = RenderingTree::Empty.with_id("3");
-        let node_2 = render([node_5, node_6]).with_id("2");
-        let node_1 = render([node_3, node_4]).with_id("1");
-        let node_0 = render([node_1, node_2]).with_id("0");
+        let id_8 = uuid();
+        let node_8 = RenderingTree::Empty.with_id(id_8);
+
+        let id_7 = uuid();
+        let node_7 = RenderingTree::Empty.with_id(id_7);
+
+        let id_6 = uuid();
+        let node_6 = render([node_8]).with_id(id_6);
+
+        let id_5 = uuid();
+        let node_5 = RenderingTree::Empty.with_id(id_5);
+
+        let id_4 = uuid();
+        let node_4 = render([node_7]).with_id(id_4);
+
+        let id_3 = uuid();
+        let node_3 = RenderingTree::Empty.with_id(id_3);
+
+        let id_2 = uuid();
+        let node_2 = render([node_5, node_6]).with_id(id_2);
+
+        let id_1 = uuid();
+        let node_1 = render([node_3, node_4]).with_id(id_1);
+
+        let id_0 = uuid();
+        let node_0 = render([node_1, node_2]).with_id(id_0);
 
         let mut called_ids = vec![];
         node_0.visit_rln(|rendering_tree, _| {
@@ -223,7 +240,7 @@ mod tests {
 
         assert_eq!(
             called_ids,
-            vec!["8", "6", "5", "2", "7", "4", "3", "1", "0"]
+            vec![id_8, id_6, id_5, id_2, id_7, id_4, id_3, id_1, id_0,]
         );
     }
 
@@ -242,20 +259,32 @@ mod tests {
             |
             10
         */
-        let node_10 = crate::translate(px(20.0), px(20.0), RenderingTree::Empty.with_id("10"));
-        let node_9 = crate::scale(2.0, 2.0, render([node_10]).with_id("9"));
-        let node_8 = crate::translate(px(20.0), px(20.0), RenderingTree::Empty.with_id("8"));
-        let node_7 = crate::translate(px(10.0), px(20.0), RenderingTree::Empty.with_id("7"));
-        let node_6 = crate::absolute(px(100.0), px(100.0), render([node_8]).with_id("6"));
+        let id_10 = uuid();
+        let id_9 = uuid();
+        let id_8 = uuid();
+        let id_7 = uuid();
+        let id_6 = uuid();
+        let id_5 = uuid();
+        let id_4 = uuid();
+        let id_3 = uuid();
+        let id_2 = uuid();
+        let id_1 = uuid();
+        let id_0 = uuid();
+
+        let node_10 = crate::translate(px(20.0), px(20.0), RenderingTree::Empty.with_id(id_10));
+        let node_9 = crate::scale(2.0, 2.0, render([node_10]).with_id(id_9));
+        let node_8 = crate::translate(px(20.0), px(20.0), RenderingTree::Empty.with_id(id_8));
+        let node_7 = crate::translate(px(10.0), px(20.0), RenderingTree::Empty.with_id(id_7));
+        let node_6 = crate::absolute(px(100.0), px(100.0), render([node_8]).with_id(id_6));
         let node_5 = crate::rotate(
             Angle::Radian(std::f32::consts::PI / 2.0),
-            render([node_7]).with_id("5"),
+            render([node_7]).with_id(id_5),
         );
-        let node_4 = crate::translate(px(20.0), px(30.0), RenderingTree::Empty.with_id("4"));
-        let node_3 = render([node_9]).with_id("3");
-        let node_2 = crate::translate(px(50.0), px(100.0), render([node_5, node_6]).with_id("2"));
-        let node_1 = crate::translate(px(100.0), px(200.0), render([node_3, node_4]).with_id("1"));
-        let node_0 = render([node_1, node_2]).with_id("0");
+        let node_4 = crate::translate(px(20.0), px(30.0), RenderingTree::Empty.with_id(id_4));
+        let node_3 = render([node_9]).with_id(id_3);
+        let node_2 = crate::translate(px(50.0), px(100.0), render([node_5, node_6]).with_id(id_2));
+        let node_1 = crate::translate(px(100.0), px(200.0), render([node_3, node_4]).with_id(id_1));
+        let node_0 = render([node_1, node_2]).with_id(id_0);
 
         let mut call_count = 0;
 
@@ -267,58 +296,58 @@ mod tests {
             if let RenderingTree::Special(rendering_tree) = rendering_tree {
                 if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
                     let local_xy = utils.to_local_xy(xy);
-                    match with_id.id.as_str() {
-                        "0" => {
+                    match with_id.id {
+                        id if id == id_0 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), 10.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), 10.0, ulps = 2);
                             call_count += 1;
                         }
-                        "1" => {
+                        id if id == id_1 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
                             call_count += 1;
                         }
-                        "2" => {
+                        id if id == id_2 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -40.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
                             call_count += 1;
                         }
-                        "3" => {
+                        id if id == id_3 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
                             call_count += 1;
                         }
-                        "4" => {
+                        id if id == id_4 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), -220.0, ulps = 2);
                             call_count += 1;
                         }
-                        "5" => {
+                        id if id == id_5 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), 40.0, ulps = 2);
                             call_count += 1;
                         }
-                        "6" => {
+                        id if id == id_6 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
                             call_count += 1;
                         }
-                        "7" => {
+                        id if id == id_7 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -100.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), 20.0, ulps = 2);
                             call_count += 1;
                         }
-                        "8" => {
+                        id if id == id_8 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), -110.0, ulps = 2);
                             call_count += 1;
                         }
-                        "9" => {
+                        id if id == id_9 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -45.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), -95.0, ulps = 2);
                             call_count += 1;
                         }
-                        "10" => {
+                        id if id == id_10 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -65.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), -115.0, ulps = 2);
                             call_count += 1;
@@ -346,41 +375,53 @@ mod tests {
             |
             10
         */
+        let id_10 = uuid();
+        let id_9 = uuid();
+        let id_8 = uuid();
+        let id_7 = uuid();
+        let id_6 = uuid();
+        let id_5 = uuid();
+        let id_4 = uuid();
+        let id_3 = uuid();
+        let id_2 = uuid();
+        let id_1 = uuid();
+        let id_0 = uuid();
+
         let node_10 = crate::transform(
             Matrix3x3::from_translate(20.0, 20.0),
-            RenderingTree::Empty.with_id("10"),
+            RenderingTree::Empty.with_id(id_10),
         );
         let node_9 = crate::transform(
             Matrix3x3::from_scale(2.0, 2.0),
-            render([node_10]).with_id("9"),
+            render([node_10]).with_id(id_9),
         );
         let node_8 = crate::transform(
             Matrix3x3::from_translate(20.0, 20.0),
-            RenderingTree::Empty.with_id("8"),
+            RenderingTree::Empty.with_id(id_8),
         );
         let node_7 = crate::transform(
             Matrix3x3::from_translate(10.0, 20.0),
-            RenderingTree::Empty.with_id("7"),
+            RenderingTree::Empty.with_id(id_7),
         );
-        let node_6 = crate::absolute(px(100.0), px(100.0), render([node_8]).with_id("6"));
+        let node_6 = crate::absolute(px(100.0), px(100.0), render([node_8]).with_id(id_6));
         let node_5 = crate::transform(
             Matrix3x3::from_rotate(Angle::Radian(std::f32::consts::PI / 2.0)),
-            render([node_7]).with_id("5"),
+            render([node_7]).with_id(id_5),
         );
         let node_4 = crate::transform(
             Matrix3x3::from_translate(20.0, 30.0),
-            RenderingTree::Empty.with_id("4"),
+            RenderingTree::Empty.with_id(id_4),
         );
-        let node_3 = render([node_9]).with_id("3");
+        let node_3 = render([node_9]).with_id(id_3);
         let node_2 = crate::transform(
             Matrix3x3::from_translate(50.0, 100.0),
-            render([node_5, node_6]).with_id("2"),
+            render([node_5, node_6]).with_id(id_2),
         );
         let node_1 = crate::transform(
             Matrix3x3::from_translate(100.0, 200.0),
-            render([node_3, node_4]).with_id("1"),
+            render([node_3, node_4]).with_id(id_1),
         );
-        let node_0 = render([node_1, node_2]).with_id("0");
+        let node_0 = render([node_1, node_2]).with_id(id_0);
 
         let mut call_count = 0;
 
@@ -392,58 +433,58 @@ mod tests {
             if let RenderingTree::Special(rendering_tree) = rendering_tree {
                 if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
                     let local_xy = utils.to_local_xy(xy);
-                    match with_id.id.as_str() {
-                        "0" => {
+                    match with_id.id {
+                        id if id == id_0 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), 10.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), 10.0, ulps = 2);
                             call_count += 1;
                         }
-                        "1" => {
+                        id if id == id_1 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
                             call_count += 1;
                         }
-                        "2" => {
+                        id if id == id_2 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -40.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
                             call_count += 1;
                         }
-                        "3" => {
+                        id if id == id_3 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), -190.0, ulps = 2);
                             call_count += 1;
                         }
-                        "4" => {
+                        id if id == id_4 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), -220.0, ulps = 2);
                             call_count += 1;
                         }
-                        "5" => {
+                        id if id == id_5 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), 40.0, ulps = 2);
                             call_count += 1;
                         }
-                        "6" => {
+                        id if id == id_6 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -90.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), -90.0, ulps = 2);
                             call_count += 1;
                         }
-                        "7" => {
+                        id if id == id_7 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -100.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), 20.0, ulps = 2);
                             call_count += 1;
                         }
-                        "8" => {
+                        id if id == id_8 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -110.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), -110.0, ulps = 2);
                             call_count += 1;
                         }
-                        "9" => {
+                        id if id == id_9 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -45.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), -95.0, ulps = 2);
                             call_count += 1;
                         }
-                        "10" => {
+                        id if id == id_10 => {
                             assert_approx_eq!(f32, local_xy.x.as_f32(), -65.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy.y.as_f32(), -115.0, ulps = 2);
                             call_count += 1;
@@ -460,9 +501,13 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn to_local_xy_translate_scale_translate_test() {
-        let node_2 = crate::translate(px(2.0), px(2.0), render([]).with_id("2"));
-        let node_1 = crate::scale(2.0, 2.0, render([node_2]).with_id("1"));
-        let node_0 = crate::translate(px(2.0), px(2.0), render([node_1]).with_id("0"));
+        let id_2 = uuid();
+        let id_1 = uuid();
+        let id_0 = uuid();
+
+        let node_2 = crate::translate(px(2.0), px(2.0), render([]).with_id(id_2));
+        let node_1 = crate::scale(2.0, 2.0, render([node_2]).with_id(id_1));
+        let node_0 = crate::translate(px(2.0), px(2.0), render([node_1]).with_id(id_0));
 
         let mut call_count = 0;
 
@@ -479,22 +524,22 @@ mod tests {
                 if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
                     let local_xy_0_0 = utils.to_local_xy(xy_0_0);
                     let local_xy_10_10 = utils.to_local_xy(xy_10_10);
-                    match with_id.id.as_str() {
-                        "0" => {
+                    match with_id.id {
+                        id if id == id_0 => {
                             assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -2.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -2.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 8.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 8.0, ulps = 2);
                             call_count += 1;
                         }
-                        "1" => {
+                        id if id == id_1 => {
                             assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -1.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -1.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 4.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 4.0, ulps = 2);
                             call_count += 1;
                         }
-                        "2" => {
+                        id if id == id_2 => {
                             assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -3.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -3.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 2.0, ulps = 2);
@@ -513,8 +558,10 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn to_local_xy_translate_after_scale_test() {
-        let node_1 = crate::translate(px(2.0), px(2.0), render([]).with_id("1"));
-        let node_0 = crate::scale(2.0, 2.0, render([node_1]).with_id("0"));
+        let id_1 = uuid();
+        let id_0 = uuid();
+        let node_1 = crate::translate(px(2.0), px(2.0), render([]).with_id(id_1));
+        let node_0 = crate::scale(2.0, 2.0, render([node_1]).with_id(id_0));
 
         let mut call_count = 0;
 
@@ -531,15 +578,15 @@ mod tests {
                 if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
                     let local_xy_0_0 = utils.to_local_xy(xy_0_0);
                     let local_xy_10_10 = utils.to_local_xy(xy_10_10);
-                    match with_id.id.as_str() {
-                        "0" => {
+                    match with_id.id {
+                        id if id == id_0 => {
                             assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), 0.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), 0.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 5.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy_10_10.y.as_f32(), 5.0, ulps = 2);
                             call_count += 1;
                         }
-                        "1" => {
+                        id if id == id_1 => {
                             assert_approx_eq!(f32, local_xy_0_0.x.as_f32(), -2.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy_0_0.y.as_f32(), -2.0, ulps = 2);
                             assert_approx_eq!(f32, local_xy_10_10.x.as_f32(), 3.0, ulps = 2);
@@ -568,22 +615,28 @@ mod tests {
 
             rln order: 5, 2, 4, 3, 1, 0
         */
-        let node_5 = RenderingTree::Empty.with_id("5");
-        let node_4 = RenderingTree::Empty.with_id("4");
-        let node_3 = RenderingTree::Empty.with_id("3");
-        let node_2 = render([node_5]).with_id("2");
-        let node_1 = render([node_3, node_4]).with_id("1");
-        let node_0 = render([node_1, node_2]).with_id("0");
+        let id_5 = uuid();
+        let id_4 = uuid();
+        let id_3 = uuid();
+        let id_2 = uuid();
+        let id_1 = uuid();
+        let id_0 = uuid();
+        let node_5 = RenderingTree::Empty.with_id(id_5);
+        let node_4 = RenderingTree::Empty.with_id(id_4);
+        let node_3 = RenderingTree::Empty.with_id(id_3);
+        let node_2 = render([node_5]).with_id(id_2);
+        let node_1 = render([node_3, node_4]).with_id(id_1);
+        let node_0 = render([node_1, node_2]).with_id(id_0);
 
         let mut with_ancestors_call_count = 0;
 
-        fn get_ancestor_ids(ancestors: &[&RenderingTree]) -> Vec<String> {
+        fn get_ancestor_ids(ancestors: &[&RenderingTree]) -> Vec<Uuid> {
             ancestors
                 .iter()
                 .filter_map(|node| {
                     if let RenderingTree::Special(rendering_tree) = node {
                         if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
-                            return Some(with_id.id.clone());
+                            return Some(with_id.id);
                         }
                     }
                     None
@@ -594,38 +647,38 @@ mod tests {
         node_0.visit_rln(|rendering_tree, utils| {
             if let RenderingTree::Special(rendering_tree) = rendering_tree {
                 if let SpecialRenderingNode::WithId(with_id) = rendering_tree {
-                    match with_id.id.as_str() {
-                        "0" => {
+                    match with_id.id {
+                        id if id == id_0 => {
                             utils.with_ancestors(|ancestors| {
                                 let ancestors_ids = get_ancestor_ids(ancestors);
                                 with_ancestors_call_count += 1;
-                                assert_eq!(ancestors_ids, Vec::<String>::new());
+                                assert_eq!(ancestors_ids, Vec::<Uuid>::new());
                             });
                         }
-                        "1" => utils.with_ancestors(|ancestors| {
+                        id if id == id_1 => utils.with_ancestors(|ancestors| {
                             let ancestors_ids = get_ancestor_ids(ancestors);
                             with_ancestors_call_count += 1;
-                            assert_eq!(ancestors_ids, vec!["0"]);
+                            assert_eq!(ancestors_ids, vec![id_0]);
                         }),
-                        "2" => utils.with_ancestors(|ancestors| {
+                        id if id == id_2 => utils.with_ancestors(|ancestors| {
                             let ancestors_ids = get_ancestor_ids(ancestors);
                             with_ancestors_call_count += 1;
-                            assert_eq!(ancestors_ids, vec!["0"]);
+                            assert_eq!(ancestors_ids, vec![id_0]);
                         }),
-                        "3" => utils.with_ancestors(|ancestors| {
+                        id if id == id_3 => utils.with_ancestors(|ancestors| {
                             let ancestors_ids = get_ancestor_ids(ancestors);
                             with_ancestors_call_count += 1;
-                            assert_eq!(ancestors_ids, vec!["0", "1"]);
+                            assert_eq!(ancestors_ids, vec![id_0, id_1]);
                         }),
-                        "4" => utils.with_ancestors(|ancestors| {
+                        id if id == id_4 => utils.with_ancestors(|ancestors| {
                             let ancestors_ids = get_ancestor_ids(ancestors);
                             with_ancestors_call_count += 1;
-                            assert_eq!(ancestors_ids, vec!["0", "1"]);
+                            assert_eq!(ancestors_ids, vec![id_0, id_1]);
                         }),
-                        "5" => utils.with_ancestors(|ancestors| {
+                        id if id == id_5 => utils.with_ancestors(|ancestors| {
                             let ancestors_ids = get_ancestor_ids(ancestors);
                             with_ancestors_call_count += 1;
-                            assert_eq!(ancestors_ids, vec!["0", "2"]);
+                            assert_eq!(ancestors_ids, vec![id_0, id_2]);
                         }),
                         _ => {}
                     }

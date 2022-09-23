@@ -10,7 +10,7 @@ mod render;
 mod update;
 
 pub struct WysiwygWindow {
-    window_id: String,
+    window_id: namui::Uuid,
     animation_history: AnimationHistory,
     real_left_top_xy: Xy<Px>,
     real_px_per_screen_px: f32,
@@ -21,7 +21,7 @@ pub struct WysiwygWindow {
 impl WysiwygWindow {
     pub fn new(animation_history: AnimationHistory) -> Self {
         Self {
-            window_id: namui::nanoid(),
+            window_id: namui::uuid(),
             animation_history,
             real_left_top_xy: Xy::single(px(-50.0)),
             real_px_per_screen_px: 2.0,
@@ -35,7 +35,7 @@ pub struct Props<'a> {
     pub wh: Wh<Px>,
     pub playback_time: Time,
     pub animation: &'a animation::Animation,
-    pub selected_layer_id: Option<String>,
+    pub selected_layer_id: Option<Uuid>,
     pub editing_target: Option<EditingTarget>,
 }
 
@@ -79,21 +79,21 @@ enum Event {
         wh: Wh<Px>,
     },
     SelectedLayerMouseDown {
-        layer_id: String,
+        layer_id: namui::Uuid,
         anchor_xy: Xy<Px>,
-        keyframe_point_id: String,
+        keyframe_point_id: namui::Uuid,
     },
     ResizeCircleMouseDown {
-        layer_id: String,
+        layer_id: namui::Uuid,
         location: ResizeCircleLocation,
         anchor_xy: Xy<Px>,
-        keyframe_point_id: String,
+        keyframe_point_id: namui::Uuid,
         rotation_angle: Angle,
     },
     RotationToolMouseDown {
         image_center_real_xy: Xy<Px>,
         mouse_local_xy: Xy<Px>,
-        keyframe_point_id: String,
-        layer_id: String,
+        keyframe_point_id: namui::Uuid,
+        layer_id: namui::Uuid,
     },
 }

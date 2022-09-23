@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct SequenceListPage {
-    project_id: String,
+    project_id: namui::Uuid,
     list_view: list_view::ListView,
     context_menu: Option<context_menu::ContextMenu>,
     rename_modal: Option<rename_modal::RenameModal>,
@@ -26,7 +26,7 @@ enum Event {
     AddButtonClicked,
     CellRightClick {
         click_global_xy: Xy<Px>,
-        sequence_id: String,
+        sequence_id: namui::Uuid,
     },
     ContextMenuOutsideClicked,
     SequenceListLoaded(Vec<SequenceNameAndId>),
@@ -34,8 +34,8 @@ enum Event {
 }
 
 impl SequenceListPage {
-    pub fn new(project_id: String) -> Self {
-        start_fetch_list(&project_id);
+    pub fn new(project_id: namui::Uuid) -> Self {
+        start_fetch_list(project_id);
         Self {
             project_id,
             list_view: list_view::ListView::new(),
@@ -60,7 +60,7 @@ impl SequenceListPage {
                             .await;
                         match result {
                             Ok(_) => {
-                                start_fetch_list(&project_id);
+                                start_fetch_list(project_id);
                             }
                             Err(error) => {
                                 namui::event::send(Event::Error(error.to_string()));
@@ -263,13 +263,10 @@ impl SequenceListPage {
     }
 }
 
-fn start_fetch_list(project_id: &str) {
-    let project_id = project_id.to_string();
+fn start_fetch_list(project_id: Uuid) {
     spawn_local(async move {
         match crate::RPC
-            .list_project_sequences(rpc::list_project_sequences::Request {
-                project_id: project_id.clone(),
-            })
+            .list_project_sequences(rpc::list_project_sequences::Request { project_id })
             .await
         {
             Ok(response) => {

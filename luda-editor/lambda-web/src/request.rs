@@ -267,16 +267,16 @@ struct ApiGatewayV2RequestContext {
     /// The HTTP method used.
     http: Http,
     // The API owner's AWS account ID.
-    // pub account_id: String,
+    // pub account_id: namui::Uuid,
     // The identifier API Gateway assigns to your API.
-    // pub api_id: String,
+    // pub api_id: namui::Uuid,
     // The stringified value of the specified key-value pair of the context map returned from an API Gateway Lambda authorizer function.
     // #[serde(default)]
     // pub authorizer: HashMap<String, serde_json::Value>,
     // The first label of the $context.domainName. This is often used as a caller/customer identifier.
     // pub domain_prefix: String,
     // The ID that API Gateway assigns to the API request.
-    // pub request_id: String,
+    // pub request_id: namui::Uuid,
     // Undocumented, could be resourcePath
     // pub route_key: String,
     // The deployment stage of the API request (for example, Beta or Prod).
@@ -345,16 +345,16 @@ struct ApiGatewayRestRequestContext {
     identity: ApiGatewayRestIdentity,
     // Path with stage
     path: String,
-    // account_id: String,
-    // api_id: String,
+    // account_id: namui::Uuid,
+    // api_id: namui::Uuid,
     // authorizer: HashMap<String, Value>,
     // domain_prefix: String,
     // http_method: String,
     // protocol: String,
-    // request_id: String,
+    // request_id: namui::Uuid,
     // request_time: String,
     // request_time_epoch: i64,
-    // resource_id: String,
+    // resource_id: namui::Uuid,
     // resource_path: String,
     // stage: String,
 }

@@ -16,7 +16,8 @@ impl WysiwygWindow {
             let is_playback_time_on_editing_target_keyframe = match &props.editing_target {
                 Some(EditingTarget::Keyframe { point_id, layer_id }) => {
                     layer.id.eq(layer_id)
-                        && if let Some(point) = layer.image.image_keyframe_graph.get_point(point_id)
+                        && if let Some(point) =
+                            layer.image.image_keyframe_graph.get_point(*point_id)
                         {
                             point.time == props.playback_time
                         } else {

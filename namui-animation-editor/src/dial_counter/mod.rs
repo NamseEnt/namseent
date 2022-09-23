@@ -8,7 +8,7 @@ use std::{
 
 #[allow(dead_code)]
 pub struct DialCounter {
-    id: String,
+    id: namui::Uuid,
     // zoom: f32, // TODO
 }
 
@@ -28,7 +28,7 @@ pub trait Abs {
 impl DialCounter {
     #[allow(dead_code)]
     pub fn new() -> Self {
-        Self { id: nanoid() }
+        Self { id: uuid() }
     }
 
     #[allow(dead_code)]

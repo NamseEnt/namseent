@@ -3,24 +3,24 @@ use namui::prelude::*;
 use std::{any::Any, sync::Arc};
 
 pub struct Dropdown {
-    id: Id,
+    id: Uuid,
     is_opened: bool,
     list_view: list_view::ListView,
-    mouse_over_item_id: Option<String>,
+    mouse_over_item_id: Option<Uuid>,
 }
 
 pub enum Event {}
 
 enum InternalEvent {
-    ToggleDropdown { id: Id },
-    MoveOverItem { id: Id, item_id: String },
-    CloseDropdown { id: Id },
+    ToggleDropdown { id: Uuid },
+    MoveOverItem { id: Uuid, item_id: namui::Uuid },
+    CloseDropdown { id: Uuid },
 }
 
 #[derive(Debug, Clone)]
 pub struct Item {
     /// Should be unique.
-    pub id: String,
+    pub id: namui::Uuid,
     pub text: String,
     pub is_selected: bool,
 }
@@ -28,7 +28,7 @@ pub struct Item {
 pub struct Props<TItems, TOnSelectItem>
 where
     TItems: IntoIterator<Item = Item>,
-    TOnSelectItem: Fn(String) + 'static,
+    TOnSelectItem: Fn(Uuid) + 'static,
 {
     pub rect: Rect<Px>,
     /// Only first `is_selected = true` item will be displayed.
@@ -44,13 +44,13 @@ struct InternalProps {
     pub items: Vec<Item>,
     /// if `visible_item_count = 0`, all items will be displayed.
     pub visible_item_count: usize,
-    pub on_select_item: Arc<dyn Fn(String)>,
+    pub on_select_item: Arc<dyn Fn(Uuid)>,
 }
 
 pub fn render<TItems, TOnSelectItem>(props: Props<TItems, TOnSelectItem>) -> RenderingTree
 where
     TItems: IntoIterator<Item = Item>,
-    TOnSelectItem: Fn(String) + 'static,
+    TOnSelectItem: Fn(Uuid) + 'static,
 {
     let internal_props = InternalProps {
         rect: props.rect,
@@ -61,7 +61,7 @@ where
     react::<Dropdown, _, _>(
         || {
             Box::new(Dropdown {
-                id: namui::random_id(),
+                id: namui::uuid(),
                 is_opened: false,
                 list_view: list_view::ListView::new(),
                 mouse_over_item_id: None,
@@ -168,7 +168,7 @@ impl React for Dropdown {
                                 builder.on_mouse_down_in(move |event| {
                                     event.stop_propagation();
                                     if !is_selected {
-                                        (on_select_item)(item_id.clone());
+                                        (on_select_item)(item_id);
                                     }
                                     namui::event::send(InternalEvent::CloseDropdown { id });
                                 });
@@ -194,7 +194,7 @@ impl React for Dropdown {
 
     fn update(&mut self, event: &dyn Any) {
         if let Some(event) = event.downcast_ref::<InternalEvent>() {
-            match event {
+            match *event {
                 InternalEvent::ToggleDropdown { id } => {
                     if id == self.id {
                         self.is_opened = !self.is_opened;
@@ -203,7 +203,7 @@ impl React for Dropdown {
                 }
                 InternalEvent::MoveOverItem { id, item_id } => {
                     if id == self.id {
-                        self.mouse_over_item_id = Some(item_id.clone());
+                        self.mouse_over_item_id = Some(item_id);
                     }
                 }
                 InternalEvent::CloseDropdown { id } => {

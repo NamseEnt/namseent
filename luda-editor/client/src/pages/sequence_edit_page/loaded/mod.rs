@@ -11,11 +11,11 @@ use rpc::data::*;
 use std::{collections::HashMap, sync::Arc};
 
 pub struct LoadedSequenceEditorPage {
-    project_id: String,
+    project_id: namui::Uuid,
     #[allow(dead_code)]
-    sequence_id: String,
+    sequence_id: namui::Uuid,
     cut_list_view: list_view::ListView,
-    line_text_inputs: HashMap<String, text_input::TextInput>,
+    line_text_inputs: HashMap<Uuid, text_input::TextInput>,
     sequence_syncer: Arc<Syncer<Sequence>>,
     project_shared_data_syncer: Arc<Syncer<ProjectSharedData>>,
     character_edit_modal: Option<character_edit_modal::CharacterEditModal>,
@@ -28,14 +28,14 @@ enum Event {
     #[allow(dead_code)]
     Error(String),
     CharacterCellClicked {
-        cut_id: String,
+        cut_id: namui::Uuid,
     },
 }
 
 impl LoadedSequenceEditorPage {
     pub fn new(
-        project_id: String,
-        sequence_id: String,
+        project_id: namui::Uuid,
+        sequence_id: namui::Uuid,
         project_shared_data: ProjectSharedData,
         sequence: Sequence,
     ) -> Self {
@@ -46,7 +46,7 @@ impl LoadedSequenceEditorPage {
         let line_text_inputs = {
             let mut line_text_inputs = HashMap::new();
             sequence.cuts.iter().for_each(|cut| {
-                line_text_inputs.insert(cut.id().to_string(), text_input::TextInput::new());
+                line_text_inputs.insert(cut.id(), text_input::TextInput::new());
             });
             line_text_inputs
         };
@@ -64,7 +64,7 @@ impl LoadedSequenceEditorPage {
     }
 }
 
-fn new_sequence_syncer(sequence: Sequence, sequence_id: String) -> Arc<Syncer<Sequence>> {
+fn new_sequence_syncer(sequence: Sequence, sequence_id: namui::Uuid) -> Arc<Syncer<Sequence>> {
     Arc::new(Syncer::new(
         sequence,
         {
@@ -108,7 +108,7 @@ fn new_sequence_syncer(sequence: Sequence, sequence_id: String) -> Arc<Syncer<Se
 
 fn new_project_shared_data_syncer_syncer(
     project_shared_data: ProjectSharedData,
-    project_id: String,
+    project_id: namui::Uuid,
 ) -> Arc<Syncer<ProjectSharedData>> {
     Arc::new(Syncer::new(
         project_shared_data,

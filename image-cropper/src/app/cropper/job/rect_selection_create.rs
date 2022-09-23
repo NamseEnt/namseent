@@ -7,7 +7,7 @@ pub struct RectSelectionCreate {
     last_position: Xy<Px>,
 }
 impl RectSelectionCreate {
-    pub fn new(initial_position: &Xy<Px>) -> Self {
+    pub fn new(initial_position: Xy<Px>) -> Self {
         Self {
             initial_position: initial_position.clone(),
             last_position: initial_position.clone(),

@@ -11,7 +11,7 @@ pub struct LayerListWindow {
     header: header::Header,
     body: body::Body,
     animation_history: AnimationHistory,
-    pub selected_layer_id: Option<String>,
+    pub selected_layer_id: Option<Uuid>,
 }
 
 pub struct Props<'a> {
@@ -20,7 +20,7 @@ pub struct Props<'a> {
 }
 
 pub enum Event {
-    LayerSelected(String),
+    LayerSelected(Uuid),
     AddLayerButtonClicked,
 }
 
@@ -45,7 +45,7 @@ impl LayerListWindow {
                         ) -> Result<Animation, Box<dyn std::error::Error>> {
                             let mut animation = state.clone();
                             animation.layers.push(animation::Layer {
-                                id: namui::nanoid(),
+                                id: namui::uuid(),
                                 name: "New Layer".to_string(),
                                 image: namui::animation::AnimatableImage::new(),
                             });

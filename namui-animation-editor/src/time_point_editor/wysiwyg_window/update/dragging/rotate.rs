@@ -5,8 +5,8 @@ pub(crate) struct DragRotationAction {
     pub image_center_real_xy: Xy<Px>,
     pub start_mouse_real_xy: Xy<Px>,
     pub end_mouse_real_xy: Xy<Px>,
-    pub keyframe_point_id: String,
-    pub layer_id: String,
+    pub keyframe_point_id: namui::Uuid,
+    pub layer_id: namui::Uuid,
 }
 impl Act<Animation> for DragRotationAction {
     fn act(&self, state: &Animation) -> Result<Animation, Box<dyn std::error::Error>> {
@@ -23,7 +23,7 @@ impl Act<Animation> for DragRotationAction {
             layer
                 .image
                 .image_keyframe_graph
-                .update_point(&self.keyframe_point_id, |point| {
+                .update_point(self.keyframe_point_id, |point| {
                     point
                         .value
                         .set_rotation_angle(point.value.rotation_angle() + angle);

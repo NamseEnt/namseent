@@ -29,11 +29,11 @@ impl WysiwygWindow {
                     -anchor_xy.x,
                     -anchor_xy.y,
                     render([
-                        self.render_border_with_move_handling(wh, keyframe_point.id(), &layer.id),
+                        self.render_border_with_move_handling(wh, keyframe_point.id(), layer.id),
                         self.render_resize_circles(
                             wh,
                             keyframe_point.id(),
-                            &layer.id,
+                            layer.id,
                             rotation_angle,
                         ),
                         self.render_rotation_tool(

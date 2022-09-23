@@ -11,7 +11,7 @@ pub struct ImageEditModal {
     label_text: String,
     label_list: Vec<Label>,
     purpose: ModalPurpose,
-    project_id: String,
+    project_id: namui::Uuid,
 }
 
 pub struct Props {
@@ -36,7 +36,7 @@ pub enum ModalPurpose {
 }
 
 impl ImageEditModal {
-    pub fn new(purpose: ModalPurpose, project_id: String) -> ImageEditModal {
+    pub fn new(purpose: ModalPurpose, project_id: namui::Uuid) -> ImageEditModal {
         ImageEditModal {
             image: None,
             label_text_input: TextInput::new(),

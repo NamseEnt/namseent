@@ -50,12 +50,7 @@ impl KeyboardSystem {
                         }
 
                         crate::event::send(crate::NamuiEvent::KeyDown(crate::RawKeyboardEvent {
-                            id: format!(
-                                "keydown-{:?}-{:?}-{}",
-                                code,
-                                crate::now(),
-                                crate::nanoid()
-                            ),
+                            id: crate::uuid(),
                             code,
                             pressing_codes: pressing_code_set.clone(),
                         }));
@@ -86,7 +81,7 @@ impl KeyboardSystem {
                         pressing_code_set.remove(&code);
 
                         crate::event::send(crate::NamuiEvent::KeyUp(crate::RawKeyboardEvent {
-                            id: format!("keyup-{:?}-{:?}-{}", code, crate::now(), crate::nanoid()),
+                            id: crate::uuid(),
                             code,
                             pressing_codes: pressing_code_set.clone(),
                         }));

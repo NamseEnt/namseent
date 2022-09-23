@@ -46,7 +46,7 @@ impl Cropper {
             }
         }
         if let Some(event) = event.downcast_ref::<CanvasEvent>() {
-            match &event {
+            match *event {
                 CanvasEvent::LeftMouseDownInCanvas {
                     position,
                     tool_type,
@@ -75,7 +75,7 @@ impl Cropper {
             }
         }
         if let Some(event) = event.downcast_ref::<SelectionEvent>() {
-            match &event {
+            match *event {
                 SelectionEvent::RectSelectionResizeHandleClicked {
                     selection_id,
                     direction,
@@ -143,7 +143,7 @@ impl Cropper {
         ])
     }
 
-    fn create_rect_selection_create_job(&mut self, position: &Xy<Px>) {
+    fn create_rect_selection_create_job(&mut self, position: Xy<Px>) {
         if self.job.is_none() {
             self.job = Some(Job::RectSelectionCreate(RectSelectionCreate::new(position)))
         }
@@ -151,26 +151,24 @@ impl Cropper {
 
     fn create_rect_selection_resize_job(
         &mut self,
-        selection_id: &String,
-        direction: &RectSelectionResizeDirection,
+        selection_id: Uuid,
+        direction: RectSelectionResizeDirection,
     ) {
         if self.job.is_none() {
             self.job = Some(Job::RectSelectionResize(RectSelectionResize::new(
-                selection_id.clone(),
-                direction.clone(),
+                selection_id,
+                direction,
             )))
         }
     }
 
-    fn create_poly_selection_create_job(&mut self, position: &Xy<Px>) {
+    fn create_poly_selection_create_job(&mut self, position: Xy<Px>) {
         if self.job.is_none() {
-            self.job = Some(Job::PolySelectionCreate(PolySelectionCreate::new(
-                position.clone(),
-            )))
+            self.job = Some(Job::PolySelectionCreate(PolySelectionCreate::new(position)))
         }
     }
 
-    fn remove_selection(&mut self, target_id: &String) {
+    fn remove_selection(&mut self, target_id: Uuid) {
         self.selection_list
             .retain(|selection| selection.get_id() != target_id)
     }

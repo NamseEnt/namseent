@@ -18,7 +18,7 @@ impl WysiwygWindow {
             .map(|layer| self.render_layer(&props, layer));
 
         let background = simple_rect(props.wh, Color::BLACK, px(1.0), Color::TRANSPARENT)
-            .with_id(&self.window_id)
+            .with_id(self.window_id)
             .attach_event(|builder| {
                 builder
                     .on_mouse_down_in(|event| {

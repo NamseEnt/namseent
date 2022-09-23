@@ -3,7 +3,7 @@ use namui_prebuilt::*;
 use std::sync::Arc;
 
 pub struct Item {
-    id: String,
+    id: namui::Uuid,
     text: String,
     on_click: Arc<dyn Fn()>,
 }
@@ -11,7 +11,7 @@ pub struct Item {
 impl Item {
     pub fn new(text: impl AsRef<str>, on_click: impl Fn() + 'static) -> Self {
         Self {
-            id: nanoid(),
+            id: uuid(),
             text: text.as_ref().to_string(),
             on_click: Arc::new(on_click),
         }
@@ -20,7 +20,7 @@ impl Item {
 
 pub struct ContextMenu {
     global_xy: Xy<Px>,
-    mouse_over_item_id: Option<String>,
+    mouse_over_item_id: Option<Uuid>,
     items: Vec<Item>,
 }
 
@@ -29,7 +29,7 @@ pub enum Event {
 }
 
 enum InternalEvent {
-    MouseOver { item_id: String },
+    MouseOver { item_id: namui::Uuid },
     MouseOverClear,
 }
 

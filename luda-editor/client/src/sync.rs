@@ -13,7 +13,7 @@ pub enum SyncStatus {
     Error(String),
 }
 pub struct Syncer<State: std::fmt::Debug + serde::Serialize + serde::de::DeserializeOwned + Clone> {
-    id: String,
+    id: namui::Uuid,
     is_dropped: Arc<Mutex<bool>>,
     update_sync_status: Arc<Mutex<SyncStatus>>,
     patch_state: Arc<Mutex<Option<PatchState<Patch, State>>>>,
@@ -26,7 +26,7 @@ struct PatchState<Patch: Clone, State: Clone> {
 }
 
 pub enum Event {
-    UpdateReceived { patch: Patch, id: String },
+    UpdateReceived { patch: Patch, id: namui::Uuid },
 }
 
 impl<State: std::fmt::Debug + serde::Serialize + serde::de::DeserializeOwned + 'static + Clone>
@@ -44,7 +44,7 @@ impl<State: std::fmt::Debug + serde::Serialize + serde::de::DeserializeOwned + '
         UpdateClientReturn: Future<Output = Result<Patch, Box<dyn std::error::Error>>>,
     {
         let syncer = Self {
-            id: nanoid(),
+            id: uuid(),
             is_dropped: Arc::new(Mutex::new(false)),
             update_sync_status: Arc::new(Mutex::new(SyncStatus::Idle)),
             patch_state: Arc::new(Mutex::new(None)),
@@ -57,8 +57,8 @@ impl<State: std::fmt::Debug + serde::Serialize + serde::de::DeserializeOwned + '
     pub fn get_sync_status(&self) -> SyncStatus {
         self.update_sync_status.lock().unwrap().clone()
     }
-    pub fn id(&self) -> &str {
-        self.id.as_str()
+    pub fn id(&self) -> Uuid {
+        self.id
     }
     fn run_sync_loop<UpdateServer, UpdateServerReturn, UpdateClient, UpdateClientReturn>(
         &self,

@@ -22,12 +22,9 @@ impl LoadedSequenceEditorPage {
 
         self.send_patch(patch, PatchType::Sequence);
     }
-    pub fn update_cut(&mut self, cut_id: impl AsRef<str>, f: impl FnOnce(&mut Cut)) {
+    pub fn update_cut(&mut self, cut_id: Uuid, f: impl FnOnce(&mut Cut)) {
         self.update_sequence(|sequence| {
-            let cut = sequence
-                .cuts
-                .iter_mut()
-                .find(|cut| cut_id.as_ref().eq(cut.id()));
+            let cut = sequence.cuts.iter_mut().find(|cut| cut_id == cut.id());
             if let Some(cut) = cut {
                 f(cut);
             }

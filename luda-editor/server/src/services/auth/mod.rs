@@ -1,8 +1,9 @@
+mod documents;
 mod get_or_create_user;
 mod impls;
 mod user_identity;
 
-use crate::{session::SessionDocument, storage::dynamo_db::Document};
+use crate::session::SessionDocument;
 use get_or_create_user::*;
 use lambda_web::is_running_on_lambda;
 use user_identity::*;
@@ -193,45 +194,5 @@ impl rpc::AuthService<SessionDocument> for AuthService {
                 None => Err(rpc::validate_session::Error::InvalidSession),
             }
         })
-    }
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-struct IdentityDocument {
-    pub id: String,
-    pub user_id: String,
-}
-
-impl Document for IdentityDocument {
-    fn partition_key_prefix() -> &'static str {
-        "identity"
-    }
-
-    fn partition_key_without_prefix(&self) -> String {
-        self.id.clone()
-    }
-
-    fn sort_key(&self) -> Option<&str> {
-        None
-    }
-}
-
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
-pub struct UserDocument {
-    pub id: String,
-    // TODO: Add User Name
-}
-
-impl Document for UserDocument {
-    fn partition_key_prefix() -> &'static str {
-        "user"
-    }
-
-    fn partition_key_without_prefix(&self) -> String {
-        self.id.clone()
-    }
-
-    fn sort_key(&self) -> Option<&str> {
-        None
     }
 }

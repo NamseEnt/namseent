@@ -1,8 +1,8 @@
 pub mod data;
 mod define_rpc;
 
-pub use base64;
 pub use json_patch;
+pub use uuid::{uuid, Uuid};
 
 #[macro_export]
 macro_rules! simple_error_impl {
@@ -39,7 +39,7 @@ define_rpc::define_rpc! {
                 pub code: String,
             }
             pub struct Response {
-                pub session_id: String,
+                pub session_id: uuid::Uuid,
             }
             Error {
                 AlreadyLoggedIn,
@@ -58,14 +58,14 @@ define_rpc::define_rpc! {
     SequenceService: {
         list_project_sequences: {
             pub struct Request {
-                pub project_id: String,
+                pub project_id: uuid::Uuid,
             }
             pub struct Response {
                 pub sequence_name_and_ids: Vec<SequenceNameAndId>,
             }
             pub struct SequenceNameAndId {
                 pub name: String,
-                pub id: String,
+                pub id: uuid::Uuid,
             }
             Error {
                 Unknown(String),
@@ -73,7 +73,7 @@ define_rpc::define_rpc! {
         },
         create_sequence: {
             pub struct Request {
-                pub project_id: String,
+                pub project_id: uuid::Uuid,
                 pub name: String,
             }
             pub struct Response {
@@ -85,7 +85,7 @@ define_rpc::define_rpc! {
         },
         update_server_sequence: {
             pub struct Request {
-                pub sequence_id: String,
+                pub sequence_id: uuid::Uuid,
                 pub patch: json_patch::Patch,
             }
             pub struct Response {
@@ -97,7 +97,7 @@ define_rpc::define_rpc! {
         },
         update_client_sequence: {
             pub struct Request {
-                pub sequence_id: String,
+                pub sequence_id: uuid::Uuid,
                 pub sequence_json: serde_json::Value,
             }
             pub struct Response {
@@ -109,7 +109,7 @@ define_rpc::define_rpc! {
         },
         get_sequence_and_project_shared_data: {
             pub struct Request {
-                pub sequence_id: String,
+                pub sequence_id: uuid::Uuid,
             }
             pub struct Response {
                 pub sequence_json: String,
@@ -123,7 +123,7 @@ define_rpc::define_rpc! {
     ImageService: {
         prepare_upload_image: {
             pub struct Request {
-                pub project_id: String,
+                pub project_id: uuid::Uuid,
                 pub label_list: Vec<crate::data::Label>,
             }
             pub struct Response {
@@ -138,7 +138,7 @@ define_rpc::define_rpc! {
         },
         list_images: {
             pub struct Request {
-                pub project_id: String,
+                pub project_id: uuid::Uuid,
             }
             pub struct Response {
                 pub images: Vec<crate::data::UrlWithLabels>
@@ -162,7 +162,7 @@ define_rpc::define_rpc! {
         },
         list_editable_projects: {
             pub struct EditableProject {
-                pub id: String,
+                pub id: uuid::Uuid,
                 pub name: String,
             }
             pub struct Request {
@@ -178,8 +178,8 @@ define_rpc::define_rpc! {
         },
         edit_user_acl: {
             pub struct Request {
-                pub project_id: String,
-                pub user_id: String,
+                pub project_id: uuid::Uuid,
+                pub user_id: uuid::Uuid,
                 pub permission: Option<crate::types::ProjectAclUserPermission>,
             }
             pub struct Response {}
@@ -191,7 +191,7 @@ define_rpc::define_rpc! {
         },
         update_server_project_shared_data: {
             pub struct Request {
-                pub project_id: String,
+                pub project_id: uuid::Uuid,
                 pub patch: json_patch::Patch,
             }
             pub struct Response {
@@ -203,7 +203,7 @@ define_rpc::define_rpc! {
         },
         update_client_project_shared_data: {
             pub struct Request {
-                pub project_id: String,
+                pub project_id: uuid::Uuid,
                 pub project_shared_data_json: serde_json::Value,
             }
             pub struct Response {

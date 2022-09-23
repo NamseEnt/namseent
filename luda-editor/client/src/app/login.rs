@@ -5,7 +5,7 @@ const DEV_CLIENT_ID: &str = "abd04a6aeba3e99f5b4b";
 const CLIENT_ID: Option<&str> = option_env!("GITHUB_CLIENT_ID");
 
 pub enum Event {
-    SessionId(String),
+    SessionId(Uuid),
     Error(String),
 }
 
@@ -37,13 +37,13 @@ impl App {
     }
 }
 
-pub fn check_token() {
+pub fn check_session_id() {
     async fn run() -> Result<(), Box<dyn std::error::Error>> {
-        let token = namui::cache::get_serde::<String>("SessionId").await;
-        if let Ok(token) = token {
-            if let Some(token) = token {
-                if is_token_valid(&token).await? {
-                    namui::event::send(Event::SessionId(token));
+        let session_id = namui::cache::get_serde::<Uuid>("SessionId").await;
+        if let Ok(session_id) = session_id {
+            if let Some(session_id) = session_id {
+                if is_session_id_valid(session_id).await? {
+                    namui::event::send(Event::SessionId(session_id));
                     return Ok(());
                 }
             }
@@ -61,13 +61,15 @@ pub fn check_token() {
     });
 }
 
-async fn is_token_valid(token: &str) -> Result<bool, Box<dyn std::error::Error>> {
-    crate::RPC.set_session_id(token.to_string());
+async fn is_session_id_valid(session_id: Uuid) -> Result<bool, Box<dyn std::error::Error>> {
     match crate::RPC
         .validate_session(rpc::validate_session::Request {})
         .await
     {
-        Ok(_) => Ok(true),
+        Ok(_) => {
+            crate::RPC.set_session_id(session_id);
+            Ok(true)
+        }
         Err(error) => match error {
             rpc::validate_session::Error::InvalidSession => Ok(false),
             rpc::validate_session::Error::Unknown(error) => Err(error.into()),

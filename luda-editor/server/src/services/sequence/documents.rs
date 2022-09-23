@@ -2,8 +2,8 @@ use crate::storage::dynamo_db::Document;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct SequenceDocument {
-    pub id: String,
-    pub project_id: String,
+    pub id: rpc::Uuid,
+    pub project_id: rpc::Uuid,
     pub name: String,
     pub json: String,
     /// Timestamp in nano seconds.
@@ -16,18 +16,18 @@ impl Document for SequenceDocument {
     }
 
     fn partition_key_without_prefix(&self) -> String {
-        self.id.clone()
+        self.id.to_string()
     }
 
-    fn sort_key(&self) -> Option<&str> {
+    fn sort_key(&self) -> Option<String> {
         None
     }
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct ProjectSequenceDocument {
-    pub project_id: String,
-    pub sequence_id: String,
+    pub project_id: rpc::Uuid,
+    pub sequence_id: rpc::Uuid,
 }
 
 impl Document for ProjectSequenceDocument {
@@ -36,10 +36,10 @@ impl Document for ProjectSequenceDocument {
     }
 
     fn partition_key_without_prefix(&self) -> String {
-        self.project_id.clone()
+        self.project_id.to_string()
     }
 
-    fn sort_key(&self) -> Option<&str> {
-        Some(&self.sequence_id)
+    fn sort_key(&self) -> Option<String> {
+        Some(self.sequence_id.to_string())
     }
 }

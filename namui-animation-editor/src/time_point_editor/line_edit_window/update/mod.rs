@@ -4,7 +4,7 @@ use crate::types::Act;
 impl LineEditWindow {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<Event>() {
-            match event {
+            match *event {
                 Event::SelectItem {
                     line,
                     layer_id,
@@ -12,8 +12,8 @@ impl LineEditWindow {
                 } => {
                     struct SetLineAction {
                         line: ImageInterpolation,
-                        layer_id: String,
-                        point_id: String,
+                        layer_id: namui::Uuid,
+                        point_id: namui::Uuid,
                     }
                     impl Act<Animation> for SetLineAction {
                         fn act(
@@ -30,7 +30,7 @@ impl LineEditWindow {
                             let (_, line) = layer
                                 .image
                                 .image_keyframe_graph
-                                .get_point_and_line_mut(&self.point_id)
+                                .get_point_and_line_mut(self.point_id)
                                 .ok_or("point not found")?;
 
                             *line = self.line;
@@ -38,9 +38,9 @@ impl LineEditWindow {
                         }
                     }
                     if let Some(ticket) = self.animation_history.try_set_action(SetLineAction {
-                        layer_id: layer_id.clone(),
-                        point_id: point_id.clone(),
-                        line: *line,
+                        layer_id,
+                        point_id,
+                        line,
                     }) {
                         self.animation_history.act(ticket).unwrap();
                     }
@@ -48,12 +48,12 @@ impl LineEditWindow {
                 Event::UpdateLine {
                     layer_id,
                     point_id,
-                    func,
+                    ref func,
                 } => {
                     let func = func.clone();
                     if let Some(ticket) = self.animation_history.try_set_action(UpdateLineAction {
-                        layer_id: layer_id.clone(),
-                        point_id: point_id.clone(),
+                        layer_id,
+                        point_id,
                         update: move |line| {
                             if let ImageInterpolation::SquashAndStretch { .. } = line {
                                 func(line);
@@ -69,8 +69,8 @@ impl LineEditWindow {
 }
 
 struct UpdateLineAction<TUpdate: Fn(&mut ImageInterpolation)> {
-    layer_id: String,
-    point_id: String,
+    layer_id: namui::Uuid,
+    point_id: namui::Uuid,
     update: TUpdate,
 }
 impl<TUpdate> Act<Animation> for UpdateLineAction<TUpdate>
@@ -88,7 +88,7 @@ where
         let (_, line) = layer
             .image
             .image_keyframe_graph
-            .get_point_and_line_mut(&self.point_id)
+            .get_point_and_line_mut(self.point_id)
             .ok_or("point not found")?;
 
         (self.update)(line);

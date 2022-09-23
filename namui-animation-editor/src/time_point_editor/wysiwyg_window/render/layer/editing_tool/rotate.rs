@@ -6,8 +6,8 @@ impl WysiwygWindow {
     pub(super) fn render_rotation_tool(
         &self,
         wh: Wh<Px>,
-        keyframe_point_id: &str,
-        selected_layer_id: String,
+        keyframe_point_id: Uuid,
+        selected_layer_id: namui::Uuid,
         image_anchor_local_xy: Xy<Px>,
     ) -> RenderingTree {
         let arrow_height = px(8.0) * self.real_px_per_screen_px;
@@ -72,8 +72,6 @@ impl WysiwygWindow {
             ]),
         );
 
-        let keyframe_point_id = keyframe_point_id.to_string();
-
         let cursor_and_event_handler = path(
             PathBuilder::new().add_rect(tool_rendering_tree.get_bounding_box().unwrap()),
             PaintBuilder::new().set_color(Color::TRANSPARENT),
@@ -81,19 +79,17 @@ impl WysiwygWindow {
         .with_mouse_cursor(MouseCursor::Custom(get_mouse_cursor()))
         .attach_event(|builder| {
             let window_id = self.window_id.clone();
-            let layer_id = selected_layer_id.clone();
             let real_px_per_screen_px = self.real_px_per_screen_px;
-            let keyframe_point_id = keyframe_point_id.clone();
             builder.on_mouse_down_in(move |event| {
                 let window_global_xy = event
                     .namui_context
-                    .get_rendering_tree_xy_by_id(&window_id)
+                    .get_rendering_tree_xy_by_id(window_id)
                     .unwrap();
                 let mouse_local_xy = real_px_per_screen_px * (event.global_xy - window_global_xy);
 
                 namui::event::send(Event::RotationToolMouseDown {
-                    layer_id: layer_id.clone(),
-                    keyframe_point_id: keyframe_point_id.to_string(),
+                    layer_id: selected_layer_id,
+                    keyframe_point_id,
                     mouse_local_xy,
                     image_center_real_xy: image_anchor_local_xy,
                 });

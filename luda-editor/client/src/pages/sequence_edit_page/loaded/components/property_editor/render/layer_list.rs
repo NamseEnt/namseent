@@ -6,7 +6,7 @@ impl PropertyEditor {
         &self,
         props: &Props,
         wh: Wh<Px>,
-        image_clip_id: &str,
+        image_clip_id: Uuid,
         layer_list_view: &list_view::ListView,
     ) -> RenderingTree {
         let image_clip = props
