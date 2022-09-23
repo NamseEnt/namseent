@@ -1,4 +1,4 @@
-#![allow(unused_doc_comments)]
+#![allow(unused_doc_comments, dead_code)]
 
 mod canvas;
 mod canvas_kit;
