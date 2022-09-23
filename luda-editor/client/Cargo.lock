@@ -695,6 +695,7 @@ name = "namui"
 version = "0.1.0"
 dependencies = [
  "auto_ops",
+ "base64",
  "bincode",
  "dashmap",
  "fluvio-wasm-timer",
