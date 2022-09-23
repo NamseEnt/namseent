@@ -1,9 +1,11 @@
 use crate::simple_error_impl;
-use base64::decode_config;
+use base64::{decode_config, encode_config};
+use serde::{Deserialize, Serialize};
 
 const ID_BYTE_LENGTH: usize = 16;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(try_from = "&str", into = "String")]
 pub struct Id {
     values: [u8; ID_BYTE_LENGTH],
 }
@@ -41,6 +43,11 @@ impl TryFrom<&str> for Id {
             }
             _ => Err(IdTryFromStrError::InvalidLength),
         }
+    }
+}
+impl Into<String> for Id {
+    fn into(self) -> String {
+        encode_config(self.values, base64::STANDARD_NO_PAD)
     }
 }
 
@@ -89,5 +96,18 @@ mod tests {
             Err(IdTryFromStrError::Base64DecodeError(_)) => true,
             _ => false,
         });
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn serde_should_work() {
+        let original = Id {
+            values: [
+                101, 211, 64, 35, 106, 152, 140, 130, 153, 255, 77, 244, 1, 180, 177, 27,
+            ],
+        };
+        let serialized = serde_json::to_string(&original).unwrap();
+        let deserialized = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(original, deserialized);
     }
 }
