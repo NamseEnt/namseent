@@ -92,11 +92,17 @@ pub enum FontWeight {
     _900 = 900,
 }
 impl FontWeight {
+    /// 100
     pub const THIN: FontWeight = FontWeight::_100;
+    /// 300
     pub const LIGHT: FontWeight = FontWeight::_300;
+    /// 400
     pub const REGULAR: FontWeight = FontWeight::_400;
+    /// 500
     pub const MEDIUM: FontWeight = FontWeight::_500;
+    /// 700
     pub const BOLD: FontWeight = FontWeight::_700;
+    /// 900
     pub const BLACK: FontWeight = FontWeight::_900;
 
     pub fn iter() -> impl Iterator<Item = FontWeight> {
