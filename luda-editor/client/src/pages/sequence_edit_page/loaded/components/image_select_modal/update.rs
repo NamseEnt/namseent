@@ -23,6 +23,9 @@ impl ImageSelectModal {
                 InternalEvent::ImageSelected(image) => {
                     self.selected_image = Some(image.clone());
                 }
+                &InternalEvent::Done { image_id } => {
+                    (self.on_done)(image_id);
+                }
             }
         } else if let Some(event) = event.downcast_ref::<context_menu::Event>() {
             match event {

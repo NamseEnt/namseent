@@ -70,7 +70,6 @@ impl AuthService {
                 if response.status().is_success() {
                     let body = response.text().await.unwrap();
                     let response: ResponseBody = serde_json::from_str(&body).unwrap();
-                    println!("github_user_id: {}", response.id);
                     Ok(response.id.to_string())
                 } else {
                     Err(format!(

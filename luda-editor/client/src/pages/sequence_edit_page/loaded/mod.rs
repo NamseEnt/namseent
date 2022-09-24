@@ -31,6 +31,15 @@ enum Event {
     CharacterCellClicked {
         cut_id: namui::Uuid,
     },
+    ScreenEditorCellClicked {
+        index: usize,
+        cut_id: Uuid,
+    },
+    ScreenEditorConfirmClicked {
+        index: usize,
+        cut_id: Uuid,
+        image_id: Uuid,
+    },
 }
 
 impl LoadedSequenceEditorPage {
@@ -59,9 +68,7 @@ impl LoadedSequenceEditorPage {
             sequence_syncer,
             project_shared_data_syncer,
             character_edit_modal: None,
-            image_select_modal: Some(image_select_modal::ImageSelectModal::new(
-                project_id.clone(),
-            )),
+            image_select_modal: None,
             project_shared_data,
             sequence,
         }

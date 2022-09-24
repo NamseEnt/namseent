@@ -121,18 +121,29 @@ define_rpc::define_rpc! {
         },
     },
     ImageService: {
+        put_image_meta_data: {
+            pub struct Request {
+                pub project_id: uuid::Uuid,
+                pub image_id: uuid::Uuid,
+                pub labels: Vec<crate::data::Label>,
+            }
+            pub struct Response {
+            }
+            Error {
+                Unauthorized,
+                Unknown(String),
+            }
+        },
         prepare_upload_image: {
             pub struct Request {
                 pub project_id: uuid::Uuid,
-                pub label_list: Vec<crate::data::Label>,
+                pub image_id: uuid::Uuid,
             }
             pub struct Response {
                 pub upload_url: String,
             }
             Error {
                 Unauthorized,
-                InvalidCharacter(String),
-                TooLong,
                 Unknown(String),
             }
         },
@@ -141,7 +152,7 @@ define_rpc::define_rpc! {
                 pub project_id: uuid::Uuid,
             }
             pub struct Response {
-                pub images: Vec<crate::data::UrlWithLabels>
+                pub images: Vec<crate::data::ImageWithLabels>
             }
             Error {
                 Unknown(String),

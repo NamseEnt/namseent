@@ -1,4 +1,5 @@
 mod character_cell;
+mod screen_editor;
 
 use super::*;
 use namui_prebuilt::{button::text_button, *};
@@ -88,6 +89,10 @@ impl LoadedSequenceEditorPage {
                                     event_handler: None,
                                 })
                             }),
+                            table::calculative(
+                                |wh| wh.height * 3,
+                                |wh| self.screen_editor(wh, cut),
+                            ),
                         ])(wh)
                     }
                     Item::AddButton => text_button(

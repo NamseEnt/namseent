@@ -18,7 +18,7 @@ impl ImageEditModal {
                             >,
                         > = match self.purpose {
                             ModalPurpose::Add => Box::pin(create_image(
-                                self.project_id.clone(),
+                                self.project_id,
                                 self.label_list.clone(),
                                 self.image.clone(),
                             )),
@@ -71,13 +71,23 @@ impl ImageEditModal {
 
 async fn create_image(
     project_id: namui::Uuid,
-    label_list: Vec<Label>,
+    labels: Vec<Label>,
     image: Option<File>,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let image_id = namui::uuid();
+
+    crate::RPC
+        .put_image_meta_data(rpc::put_image_meta_data::Request {
+            project_id,
+            image_id,
+            labels,
+        })
+        .await?;
+
     let response = crate::RPC
         .prepare_upload_image(rpc::prepare_upload_image::Request {
             project_id,
-            label_list,
+            image_id,
         })
         .await?;
 

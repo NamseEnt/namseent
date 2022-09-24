@@ -53,6 +53,29 @@ impl DynamoDb {
             .map_err(|error| GetItemError::DeserializeFailed(error.to_string()))
     }
 
+    pub async fn put_item(&self, item: impl Document) -> Result<(), PutItemError> {
+        let partition_key = item.partition_key();
+        let sort_key = item.sort_key().unwrap_or(DEFAULT_SORT_KEY.to_string());
+
+        let mut item: Item = serde_dynamo::to_item(item)?;
+        item.insert(VERSION_KEY.to_string(), AttributeValue::N("0".to_string()));
+        item.insert(PARTITION_KEY.to_string(), AttributeValue::S(partition_key));
+        item.insert(SORT_KEY.to_string(), AttributeValue::S(sort_key));
+
+        let result = self
+            .client
+            .put_item()
+            .table_name(&self.table_name)
+            .set_item(Some(item))
+            .send()
+            .await;
+
+        match result {
+            Ok(_) => Ok(()),
+            Err(error) => Err(PutItemError::Unknown(error.to_string())),
+        }
+    }
+
     pub async fn create_item(&self, item: impl Document) -> Result<(), CreateItemError> {
         let partition_key = item.partition_key();
         let sort_key = item.sort_key().unwrap_or(DEFAULT_SORT_KEY.to_string());
@@ -253,3 +276,17 @@ pub enum QueryError {
     Unknown(String),
 }
 crate::simple_error_impl!(QueryError);
+
+#[derive(Debug)]
+pub enum PutItemError {
+    SerializeFailed(String),
+    #[allow(dead_code)]
+    Unknown(String),
+}
+crate::simple_error_impl!(PutItemError);
+
+impl From<serde_dynamo::Error> for PutItemError {
+    fn from(error: serde_dynamo::Error) -> Self {
+        PutItemError::SerializeFailed(error.to_string())
+    }
+}

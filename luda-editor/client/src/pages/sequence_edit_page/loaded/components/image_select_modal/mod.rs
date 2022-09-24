@@ -14,9 +14,10 @@ pub struct ImageSelectModal {
     label_scroll_view: scroll_view::ScrollView,
     image_list_scroll_view: scroll_view::ScrollView,
     image_edit_modal: Option<image_edit_modal::ImageEditModal>,
-    images: Vec<UrlWithLabels>,
+    images: Vec<ImageWithLabels>,
     selected_labels: BTreeSet<Label>,
-    selected_image: Option<UrlWithLabels>,
+    selected_image: Option<ImageWithLabels>,
+    on_done: Box<dyn Fn(Uuid)>,
 }
 
 pub struct Props {
@@ -29,14 +30,15 @@ pub enum Event {
 }
 
 enum InternalEvent {
-    LoadImages(Vec<UrlWithLabels>),
+    LoadImages(Vec<ImageWithLabels>),
     AddImageButtonClicked,
     ToggleLabel(Label),
-    ImageSelected(UrlWithLabels),
+    ImageSelected(ImageWithLabels),
+    Done { image_id: Uuid },
 }
 
 impl ImageSelectModal {
-    pub fn new(project_id: Uuid) -> ImageSelectModal {
+    pub fn new(project_id: Uuid, on_done: impl Fn(Uuid) + 'static) -> ImageSelectModal {
         spawn_local({
             async move {
                 let result = crate::RPC
@@ -63,6 +65,7 @@ impl ImageSelectModal {
             images: vec![],
             selected_labels: BTreeSet::new(),
             selected_image: None,
+            on_done: Box::new(on_done),
         }
     }
 }

@@ -75,6 +75,7 @@ impl S3 {
             }
         }
     }
+    #[allow(dead_code)]
     pub async fn list_objects(
         &self,
         prefix: impl AsRef<str>,
@@ -172,6 +173,16 @@ impl S3 {
             "{endpoint}/{bucket}/{prefixed_key}",
             endpoint = self.rest_api_endpoint,
             bucket = self.bucket_name
+        )
+    }
+
+    pub fn get_url(&self, key: impl AsRef<str>) -> String {
+        format!(
+            "{endpoint}/{bucket}/{prefix}{key}",
+            endpoint = self.rest_api_endpoint,
+            bucket = self.bucket_name,
+            prefix = self.key_prefix,
+            key = key.as_ref(),
         )
     }
 }

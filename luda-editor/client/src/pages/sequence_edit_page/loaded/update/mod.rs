@@ -35,6 +35,26 @@ impl LoadedSequenceEditorPage {
                         }
                     }
                 }
+                &Event::ScreenEditorCellClicked { index, cut_id } => {
+                    self.image_select_modal = Some(image_select_modal::ImageSelectModal::new(
+                        self.project_id,
+                        move |image_id| {
+                            namui::event::send(Event::ScreenEditorConfirmClicked {
+                                index,
+                                cut_id,
+                                image_id,
+                            });
+                        },
+                    ));
+                }
+                &Event::ScreenEditorConfirmClicked {
+                    index,
+                    cut_id,
+                    image_id,
+                } => {
+                    self.image_select_modal = None;
+                    self.update_cut(cut_id, |cut| cut.screen_image_ids[index] = Some(image_id))
+                }
             }
         } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
             if let text_input::Event::TextUpdated { id, text } = event {
