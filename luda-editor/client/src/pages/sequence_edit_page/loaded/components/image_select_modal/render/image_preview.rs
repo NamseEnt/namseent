@@ -1,4 +1,5 @@
 use super::*;
+use std::str::FromStr;
 
 pub struct Props {
     pub wh: Wh<Px>,
@@ -12,32 +13,23 @@ impl ImageSelectModal {
             typography::title::left_top("Preview", Color::WHITE),
         );
 
-        // TODO
-        struct SelectedImage {
-            labels: Vec<Label>,
-        }
-        let selected_image = Some(SelectedImage {
-            labels: vec![
-                Label {
-                    key: "캐릭터".to_string(),
-                    value: "오하연".to_string(),
-                },
-                Label {
-                    key: "의상".to_string(),
-                    value: "트레이닝복".to_string(),
-                },
-            ],
-        });
-
         render([
             simple_rect(props.wh, Color::WHITE, 1.px(), Color::BLACK),
             title,
-            match selected_image {
+            match &self.selected_image {
                 Some(selected_image) => {
                     table::vertical([
                         table::ratio(1, |wh| {
-                            // image
-                            RenderingTree::Empty
+                            namui::image(ImageParam {
+                                rect: Rect::from_xy_wh(Xy::zero(), wh),
+                                source: ImageSource::Url(
+                                    namui::Url::from_str(&selected_image.url).unwrap(),
+                                ),
+                                style: ImageStyle {
+                                    fit: ImageFit::Contain,
+                                    paint_builder: None,
+                                },
+                            })
                         }),
                         table::ratio(1, |wh| {
                             let label_title =

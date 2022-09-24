@@ -111,5 +111,18 @@ export class CdkStack extends cdk.Stack {
         new cdk.CfnOutput(this, "FunctionUrl", {
             value: fnUrl.url,
         });
+
+        const bucket = cdk.aws_s3.Bucket.fromBucketName(this, 'bucket', s3BucketName.valueAsString);
+
+        bucket.addToResourcePolicy(
+            new cdk.aws_iam.PolicyStatement({
+                effect: cdk.aws_iam.Effect.ALLOW,
+                principals: [new cdk.aws_iam.AnyPrincipal()],
+                actions: ["s3:GetObject"],
+                resources: [
+                    `arn:aws:s3:::${s3BucketName.valueAsString}/${s3KeyPrefix.valueAsString}*`,
+                ],
+            }),
+        );
     }
 }

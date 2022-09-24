@@ -80,13 +80,17 @@ impl Character {
     }
 }
 
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, Default, serde::Serialize, serde::Deserialize, PartialEq, PartialOrd, Eq, Ord,
+)]
 pub struct Label {
     pub key: String,
     pub value: String,
 }
 
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, Default, serde::Serialize, serde::Deserialize, PartialEq, PartialOrd, Eq, Ord,
+)]
 pub struct UrlWithLabels {
     pub url: String,
     pub labels: Vec<Label>,

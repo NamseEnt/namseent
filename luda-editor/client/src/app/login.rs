@@ -62,14 +62,12 @@ pub fn check_session_id() {
 }
 
 async fn is_session_id_valid(session_id: Uuid) -> Result<bool, Box<dyn std::error::Error>> {
+    crate::RPC.set_session_id(session_id);
     match crate::RPC
         .validate_session(rpc::validate_session::Request {})
         .await
     {
-        Ok(_) => {
-            crate::RPC.set_session_id(session_id);
-            Ok(true)
-        }
+        Ok(_) => Ok(true),
         Err(error) => match error {
             rpc::validate_session::Error::InvalidSession => Ok(false),
             rpc::validate_session::Error::Unknown(error) => Err(error.into()),

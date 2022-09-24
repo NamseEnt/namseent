@@ -6,6 +6,7 @@ use crate::components::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::*;
+use std::collections::BTreeSet;
 
 pub struct ImageSelectModal {
     project_id: Uuid,
@@ -14,6 +15,8 @@ pub struct ImageSelectModal {
     image_list_scroll_view: scroll_view::ScrollView,
     image_edit_modal: Option<image_edit_modal::ImageEditModal>,
     images: Vec<UrlWithLabels>,
+    selected_labels: BTreeSet<Label>,
+    selected_image: Option<UrlWithLabels>,
 }
 
 pub struct Props {
@@ -28,6 +31,8 @@ pub enum Event {
 enum InternalEvent {
     LoadImages(Vec<UrlWithLabels>),
     AddImageButtonClicked,
+    ToggleLabel(Label),
+    ImageSelected(UrlWithLabels),
 }
 
 impl ImageSelectModal {
@@ -56,6 +61,8 @@ impl ImageSelectModal {
             image_list_scroll_view: scroll_view::ScrollView::new(),
             image_edit_modal: None,
             images: vec![],
+            selected_labels: BTreeSet::new(),
+            selected_image: None,
         }
     }
 }

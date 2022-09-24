@@ -13,6 +13,16 @@ impl ImageSelectModal {
                 InternalEvent::LoadImages(images) => {
                     self.images = images.clone();
                 }
+                InternalEvent::ToggleLabel(label) => {
+                    if self.selected_labels.contains(label) {
+                        self.selected_labels.remove(label);
+                    } else {
+                        self.selected_labels.insert(label.clone());
+                    }
+                }
+                InternalEvent::ImageSelected(image) => {
+                    self.selected_image = Some(image.clone());
+                }
             }
         } else if let Some(event) = event.downcast_ref::<context_menu::Event>() {
             match event {

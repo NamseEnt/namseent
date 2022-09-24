@@ -13,53 +13,41 @@ impl ImageSelectModal {
             typography::title::left_top("Select Labels", Color::WHITE),
         );
 
-        let labels: Vec<Label> = vec![
-            // TODO
-            Label {
-                key: "캐릭터".to_string(),
-                value: "오하연".to_string(),
-            },
-            Label {
-                key: "캐릭터".to_string(),
-                value: "김혜찐".to_string(),
-            },
-            Label {
-                key: "캐릭터".to_string(),
-                value: "선임피디".to_string(),
-            },
-            Label {
-                key: "의상".to_string(),
-                value: "트레이닝복".to_string(),
-            },
-            Label {
-                key: "의상".to_string(),
-                value: "사복".to_string(),
-            },
-            Label {
-                key: "의상".to_string(),
-                value: "무대의상".to_string(),
-            },
-        ];
+        let labels = self.images.iter().map(|image| &image.labels).flatten();
 
-        let label_key_and_values: BTreeMap<String, Vec<String>> = {
+        let label_key_and_values = {
             let mut map = BTreeMap::new();
             for label in labels {
-                map.entry(label.key)
+                map.entry(&label.key)
                     .or_insert_with(|| vec![])
-                    .push(label.value);
+                    .push((&label.value, label));
             }
             map
         };
 
         let mut label_key_top = 0.px();
 
-        let scroll_content = label_key_and_values.iter().map(|(key, values)| {
+        let scroll_content = label_key_and_values.into_iter().map(|(key, values)| {
             let key_title = typography::body::left_top_bold(key, Color::WHITE);
             let mut value_horizontal_list = vec![];
 
-            let value_buttons_with_bounding_box = values.iter().map(|value| {
+            let value_buttons_with_bounding_box = values.into_iter().map(|(value, label)| {
+                let is_selected = self.selected_labels.contains(label);
+
+                let stroke_color = if is_selected {
+                    Color::BLACK
+                } else {
+                    Color::WHITE
+                };
+
+                let fill_color = if is_selected {
+                    Color::WHITE
+                } else {
+                    Color::BLACK
+                };
+
                 let text = namui::text(TextParam {
-                    text: value.clone(),
+                    text: value.to_string(),
                     x: 0.px(),
                     y: 0.px(),
                     align: TextAlign::Left,
@@ -73,7 +61,7 @@ impl ImageSelectModal {
                     style: TextStyle {
                         border: None,
                         drop_shadow: None,
-                        color: Color::WHITE,
+                        color: stroke_color,
                         background: None,
                     },
                     max_width: None,
@@ -83,12 +71,18 @@ impl ImageSelectModal {
                     render([
                         simple_rect(
                             bounding_box.wh() + Wh::single(8.px()),
-                            Color::WHITE,
+                            stroke_color,
                             1.px(),
-                            Color::BLACK,
+                            fill_color,
                         ),
                         translate(4.px(), 4.px(), text),
-                    ]),
+                    ])
+                    .attach_event(move |builder| {
+                        let label = label.clone();
+                        builder.on_mouse_down_in(move |_| {
+                            namui::event::send(InternalEvent::ToggleLabel(label.clone()));
+                        });
+                    }),
                     bounding_box,
                 )
             });
