@@ -17,7 +17,7 @@ mod tests {
 
     #[test]
     #[wasm_bindgen_test]
-    fn try_from_base64_str() {
+    fn serde_should_work_with_uuid() {
         use uuid::uuid;
 
         assert_eq!(
