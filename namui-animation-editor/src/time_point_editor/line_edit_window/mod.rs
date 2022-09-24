@@ -31,12 +31,12 @@ pub struct Props<'a> {
 enum Event {
     SelectItem {
         line: ImageInterpolation,
-        layer_id: String,
-        point_id: String,
+        layer_id: namui::Uuid,
+        point_id: namui::Uuid,
     },
     UpdateLine {
-        layer_id: String,
-        point_id: String,
+        layer_id: namui::Uuid,
+        point_id: namui::Uuid,
         func: Arc<dyn Fn(&mut ImageInterpolation) + Send + Sync>,
     },
 }

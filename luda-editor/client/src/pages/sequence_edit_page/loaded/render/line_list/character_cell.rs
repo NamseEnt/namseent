@@ -22,10 +22,7 @@ impl LoadedSequenceEditorPage {
                         cut.face_expression_id
                             .as_ref()
                             .and_then(|face_expression_id| {
-                                match get_character_image_url(
-                                    character.id(),
-                                    face_expression_id.as_ref(),
-                                ) {
+                                match get_character_image_url(character.id(), *face_expression_id) {
                                     Ok(url) => Some(ImageSource::Url(url)),
                                     Err(error) => {
                                         namui::log!(
@@ -62,7 +59,7 @@ face_expression_id: {}",
             ])(wh),
         ])
         .attach_event(move |builder| {
-            let cut_id = cut.id().to_string();
+            let cut_id = cut.id();
             builder.on_mouse_down_in(move |_event| {
                 namui::event::send(Event::CharacterCellClicked {
                     cut_id: cut_id.clone(),

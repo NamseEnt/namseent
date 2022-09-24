@@ -52,7 +52,7 @@ impl TimelineWindow {
                 let is_selected = {
                     if let Some(editing_target) = &props.editing_target {
                         if let EditingTarget::Keyframe { point_id, layer_id } = editing_target {
-                            layer.id.eq(layer_id) && point.id() == point_id
+                            layer.id.eq(layer_id) && point.id() == *point_id
                         } else {
                             false
                         }
@@ -70,18 +70,18 @@ impl TimelineWindow {
                     px(0.0),
                     sign.attach_event(move |builder| {
                         let window_id = self.window_id.clone();
-                        let point_id = point.id().to_string();
+                        let point_id = point.id();
                         let keyframe_time = point.time;
                         let layer_id = layer.id.clone();
 
                         builder.on_mouse_down_in(move |event| {
                             let window_global_xy = event
                                 .namui_context
-                                .get_rendering_tree_xy_by_id(&window_id)
+                                .get_rendering_tree_xy_by_id(window_id)
                                 .unwrap();
 
                             namui::event::send(Event::KeyframeMouseDown {
-                                layer_id: layer_id.clone(),
+                                layer_id,
                                 point_id: point_id.clone(),
                                 anchor_xy: event.local_xy,
                                 keyframe_time,

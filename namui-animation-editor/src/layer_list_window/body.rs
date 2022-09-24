@@ -7,7 +7,7 @@ pub struct Body {
 pub struct Props<'a> {
     pub wh: Wh<Px>,
     pub layers: &'a [namui::animation::Layer],
-    pub selected_layer_id: Option<String>,
+    pub selected_layer_id: Option<Uuid>,
 }
 impl Body {
     pub fn new() -> Self {

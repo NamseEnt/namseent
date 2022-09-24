@@ -13,8 +13,8 @@ pub struct Timeline {
     time_per_px: TimePerPx,
     context_menu: Option<ContextMenu>,
     editor_history_system: EditorHistorySystem,
-    selected_sequence_id: String,
-    selected_cut_id: String,
+    selected_sequence_id: namui::Uuid,
+    selected_cut_id: namui::Uuid,
     clip_sash_dragging: Option<ClipSashDragging>,
 }
 
@@ -28,8 +28,8 @@ pub enum Event {
     CloseContextMenu,
     NewImageClip,
     SelectImageClip {
-        sequence_id: String,
-        cut_id: String,
+        sequence_id: namui::Uuid,
+        cut_id: namui::Uuid,
         image_clip_ids: HashSet<String>,
     },
     DeselectImageClip,
@@ -42,7 +42,7 @@ pub enum ContextMenu {
 
 #[derive(Debug, Clone)]
 struct ClipSashDragging {
-    pub clip_id: String,
+    pub clip_id: namui::Uuid,
     pub start_global_mouse_x: Px,
     pub global_mouse_x: Px,
 }
@@ -50,8 +50,8 @@ struct ClipSashDragging {
 impl Timeline {
     pub fn new(
         editor_history_system: EditorHistorySystem,
-        selected_sequence_id: String,
-        selected_cut_id: String,
+        selected_sequence_id: namui::Uuid,
+        selected_cut_id: namui::Uuid,
     ) -> Self {
         Self {
             selected_clip_ids: HashSet::new(),

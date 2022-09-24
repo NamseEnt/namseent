@@ -25,7 +25,7 @@ impl rpc::ImageService<SessionDocument> for ImageService {
             let session = session.unwrap();
             let is_project_editor = crate::services()
                 .project_service
-                .is_project_editor(&session.user_id, &req.project_id)
+                .is_project_editor(session.user_id, req.project_id)
                 .await
                 .map_err(|error| rpc::prepare_upload_image::Error::Unknown(error.to_string()))?;
 
@@ -34,7 +34,7 @@ impl rpc::ImageService<SessionDocument> for ImageService {
             }
 
             let key =
-                label_list_to_s3_key(&req.project_id, &req.label_list).map_err(
+                label_list_to_s3_key(req.project_id, &req.label_list).map_err(
                     |error| match error {
                         LabelError::InvalidCharacter(string) => {
                             rpc::prepare_upload_image::Error::InvalidCharacter(string)
@@ -59,10 +59,10 @@ impl rpc::ImageService<SessionDocument> for ImageService {
     ) -> std::pin::Pin<Box<dyn 'a + std::future::Future<Output = rpc::list_images::Result> + Send>>
     {
         Box::pin(async move {
-            let prefix = images_prefix(&req.project_id);
+            let prefix = images_prefix(req.project_id);
 
             let objects = crate::s3()
-                .list_objects(&prefix, None)
+                .list_objects(&prefix, Option::<String>::None)
                 .await
                 .map_err(|error| rpc::list_images::Error::Unknown(error.to_string()))?;
 
@@ -93,12 +93,12 @@ fn s3_key_to_label_list(key: &str, prefix: &str) -> Vec<Label> {
         .collect()
 }
 
-fn images_prefix(project_id: &str) -> String {
+fn images_prefix(project_id: rpc::Uuid) -> String {
     format!("projects/{}/images/", project_id)
 }
 
 fn label_list_to_s3_key(
-    project_id: &String,
+    project_id: rpc::Uuid,
     label_list: &Vec<Label>,
 ) -> Result<String, LabelError> {
     for label in label_list {

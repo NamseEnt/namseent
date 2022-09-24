@@ -70,7 +70,7 @@ impl ImageEditModal {
 }
 
 async fn create_image(
-    project_id: String,
+    project_id: namui::Uuid,
     label_list: Vec<Label>,
     image: Option<File>,
 ) -> Result<(), Box<dyn std::error::Error>> {

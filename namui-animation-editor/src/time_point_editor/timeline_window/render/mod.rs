@@ -5,7 +5,7 @@ impl TimelineWindow {
     pub(crate) fn render(&self, props: Props) -> RenderingTree {
         let background_for_event =
             simple_rect(props.wh, Color::TRANSPARENT, px(0.0), Color::TRANSPARENT)
-                .with_id(&self.window_id)
+                .with_id(self.window_id)
                 .attach_event(|builder| {
                     let playback_time = self.get_playback_time();
                     let selected_layer_id = props.selected_layer_id.clone();

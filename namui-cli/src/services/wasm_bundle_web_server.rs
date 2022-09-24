@@ -9,12 +9,14 @@ use futures::{
     future::join_all,
     SinkExt, StreamExt,
 };
-use nanoid::nanoid;
 use std::{
     collections::HashMap,
     io,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc, Mutex,
+    },
 };
 use tokio::{spawn, sync::RwLock};
 use tokio_util::codec::{BytesCodec, FramedRead};
@@ -29,10 +31,12 @@ use warp::{
 use warp::{path::Tail, ws};
 
 pub struct WasmBundleWebServer {
-    sockets: Arc<Mutex<HashMap<String, UnboundedSender<Message>>>>,
+    sockets: Arc<Mutex<HashMap<u64, UnboundedSender<Message>>>>,
     cached_error_messages: RwLock<Vec<ErrorMessage>>,
     namui_bundle_manifest: Arc<Mutex<Option<NamuiBundleManifest>>>,
 }
+
+static SOCKET_ID: AtomicU64 = AtomicU64::new(0);
 
 impl WasmBundleWebServer {
     pub(crate) fn start(port: u16, wasm_bundle_dir_path: &Path) -> Arc<Self> {
@@ -51,7 +55,7 @@ impl WasmBundleWebServer {
             .map(move |ws: ws::Ws| {
                 let web_server = web_server_clone.clone();
                 ws.on_upgrade(|websocket| async move {
-                    let id = nanoid!();
+                    let id = SOCKET_ID.fetch_add(1, Ordering::SeqCst);
                     let (mut sender, mut receiver) = unbounded::<Message>();
                     {
                         debug_println!("handle_websocket(open): locking web_server.sockets...");

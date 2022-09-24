@@ -2,7 +2,7 @@ use super::*;
 
 pub fn find_text_input_by_id(
     rendering_tree: &RenderingTree,
-    id: &str,
+    id: crate::Uuid,
 ) -> Option<TextInputCustomData> {
     let mut return_value: Option<TextInputCustomData> = None;
 

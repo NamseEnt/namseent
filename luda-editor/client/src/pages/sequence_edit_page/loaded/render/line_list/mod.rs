@@ -34,7 +34,7 @@ impl LoadedSequenceEditorPage {
                 items,
                 item_render: |wh, item| match item {
                     Item::Cut(cut) => {
-                        let line_text_input = self.line_text_inputs.get(cut.id()).unwrap();
+                        let line_text_input = self.line_text_inputs.get(&cut.id()).unwrap();
 
                         let is_selected = line_text_input.is_focused();
 

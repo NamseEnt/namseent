@@ -299,7 +299,7 @@ impl RenderingTree {
             });
         }
     }
-    pub(crate) fn get_xy_by_id(&self, id: &str) -> Option<Xy<Px>> {
+    pub(crate) fn get_xy_by_id(&self, id: crate::Uuid) -> Option<Xy<Px>> {
         let mut result = None;
         self.visit_rln(|node, utils| {
             if let RenderingTree::Special(special) = node {

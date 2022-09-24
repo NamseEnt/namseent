@@ -5,14 +5,14 @@ use namui_prebuilt::*;
 pub struct ContextMenu {
     global_xy: Xy<Px>,
     list_view: list_view::ListView,
-    sequence_id: String,
+    sequence_id: namui::Uuid,
 }
 pub enum Event {
-    DeleteButtonClicked { sequence_id: String },
-    RenameButtonClicked { sequence_id: String },
+    DeleteButtonClicked { sequence_id: namui::Uuid },
+    RenameButtonClicked { sequence_id: namui::Uuid },
 }
 impl ContextMenu {
-    pub fn new(global_xy: Xy<Px>, sequence_id: String) -> Self {
+    pub fn new(global_xy: Xy<Px>, sequence_id: namui::Uuid) -> Self {
         Self {
             global_xy,
             list_view: list_view::ListView::new(),

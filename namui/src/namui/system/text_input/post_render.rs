@@ -27,7 +27,7 @@ fn update_focused_text_input(root_rendering_tree: &RenderingTree) {
     }
     let next_focused_text_input_id = next_focused_text_input_id.unwrap();
 
-    let custom_data = find_text_input_by_id(root_rendering_tree, &next_focused_text_input_id);
+    let custom_data = find_text_input_by_id(root_rendering_tree, next_focused_text_input_id);
 
     *TEXT_INPUT_SYSTEM.last_focused_text_input.lock().unwrap() = custom_data;
 }

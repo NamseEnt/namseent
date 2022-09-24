@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct KeyframePoint<T: Clone> {
-    id: String,
+    id: crate::Uuid,
     pub time: Time,
     pub value: T,
 }
@@ -11,13 +11,13 @@ pub struct KeyframePoint<T: Clone> {
 impl<T: Clone> KeyframePoint<T> {
     pub fn new(time: Time, value: T) -> Self {
         Self {
-            id: crate::nanoid(),
+            id: crate::uuid(),
             time,
             value,
         }
     }
-    pub fn id(&self) -> &str {
-        &self.id
+    pub fn id(&self) -> crate::Uuid {
+        self.id
     }
 }
 
@@ -46,7 +46,7 @@ impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
     }
     pub fn update_point(
         &mut self,
-        point_id: &str,
+        point_id: crate::Uuid,
         update: impl FnOnce(&mut KeyframePoint<TValue>),
     ) -> Result<(), Box<dyn std::error::Error>> {
         let point = self
@@ -63,7 +63,7 @@ impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
         let same_id_point = self
             .point_line_tuples
             .iter_mut()
-            .find(|(p, _)| p.id.eq(&point.id));
+            .find(|(p, _)| p.id == point.id);
         match same_id_point {
             Some((p, l)) => {
                 *p = point;
@@ -113,9 +113,8 @@ impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
             }
         }
     }
-    pub fn delete(&mut self, id: impl AsRef<str>) {
-        self.point_line_tuples
-            .retain(|(point, _)| point.id.ne(id.as_ref()));
+    pub fn delete(&mut self, id: crate::Uuid) {
+        self.point_line_tuples.retain(|(point, _)| point.id != id);
     }
     pub fn delete_by_time(&mut self, time: Time) {
         self.point_line_tuples
@@ -132,10 +131,10 @@ impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
     ) -> impl Iterator<Item = &(KeyframePoint<TValue>, TKeyframeLine)> {
         self.point_line_tuples.iter()
     }
-    pub fn get_point(&self, id: &str) -> Option<&KeyframePoint<TValue>> {
+    pub fn get_point(&self, id: crate::Uuid) -> Option<&KeyframePoint<TValue>> {
         self.point_line_tuples
             .iter()
-            .find(|(point, _)| point.id.eq(id))
+            .find(|(point, _)| point.id == id)
             .map(|(point, _)| point)
     }
     pub fn get_point_by_time(&self, time: Time) -> Option<&KeyframePoint<TValue>> {
@@ -144,10 +143,10 @@ impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
             .find(|(point, _)| point.time.eq(&time))
             .map(|(point, _)| point)
     }
-    pub fn get_point_mut(&mut self, id: &str) -> Option<&mut KeyframePoint<TValue>> {
+    pub fn get_point_mut(&mut self, id: crate::Uuid) -> Option<&mut KeyframePoint<TValue>> {
         self.point_line_tuples
             .iter_mut()
-            .find(|(point, _)| point.id.eq(id))
+            .find(|(point, _)| point.id == id)
             .map(|(point, _)| point)
     }
     pub fn get_point_mut_by_time(&mut self, time: Time) -> Option<&mut KeyframePoint<TValue>> {
@@ -156,18 +155,21 @@ impl<'a, TValue: KeyframeValue<TKeyframeLine> + Clone, TKeyframeLine>
             .find(|(point, _)| point.time.eq(&time))
             .map(|(point, _)| point)
     }
-    pub fn get_point_and_line(&self, id: &str) -> Option<&(KeyframePoint<TValue>, TKeyframeLine)> {
+    pub fn get_point_and_line(
+        &self,
+        id: crate::Uuid,
+    ) -> Option<&(KeyframePoint<TValue>, TKeyframeLine)> {
         self.point_line_tuples
             .iter()
-            .find(|(point, _)| point.id.eq(id))
+            .find(|(point, _)| point.id == id)
     }
     pub fn get_point_and_line_mut(
         &mut self,
-        id: &str,
+        id: crate::Uuid,
     ) -> Option<&mut (KeyframePoint<TValue>, TKeyframeLine)> {
         self.point_line_tuples
             .iter_mut()
-            .find(|(point, _)| point.id.eq(id))
+            .find(|(point, _)| point.id == id)
     }
 }
 

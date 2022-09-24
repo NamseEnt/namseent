@@ -7,8 +7,8 @@ use rpc::data::{ProjectSharedData, Sequence};
 
 pub enum SequenceEditPage {
     Loading {
-        project_id: String,
-        sequence_id: String,
+        project_id: namui::Uuid,
+        sequence_id: namui::Uuid,
         error: Option<String>,
     },
     Loaded(LoadedSequenceEditorPage),
@@ -26,7 +26,7 @@ pub struct Props {
 }
 
 impl SequenceEditPage {
-    pub fn new(project_id: String, sequence_id: String) -> Self {
+    pub fn new(project_id: namui::Uuid, sequence_id: namui::Uuid) -> Self {
         load_data(sequence_id.clone());
         Self::Loading {
             project_id,
@@ -94,9 +94,9 @@ struct SequenceLocalCache {
     server_state_vector: Vec<u8>,
 }
 
-fn load_data(sequence_id: String) {
+fn load_data(sequence_id: namui::Uuid) {
     async fn inner(
-        sequence_id: String,
+        sequence_id: namui::Uuid,
     ) -> Result<(Sequence, ProjectSharedData), Box<dyn std::error::Error>> {
         let response = crate::RPC
             .get_sequence_and_project_shared_data(

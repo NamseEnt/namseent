@@ -8,8 +8,8 @@ impl LoadedSequenceEditorPage {
         if let Some(event) = event.downcast_ref::<Event>() {
             match event {
                 Event::AddCutClicked => {
-                    let new_cut = Cut::new(nanoid());
-                    let cut_id = new_cut.id().to_string();
+                    let new_cut = Cut::new(uuid());
+                    let cut_id = new_cut.id();
 
                     self.update_sequence(|sequence| {
                         sequence.cuts.push(new_cut);
@@ -42,22 +42,22 @@ impl LoadedSequenceEditorPage {
                     self.line_text_inputs
                         .iter()
                         .find_map(|(cut_id, text_input)| {
-                            if text_input.get_id().eq(id) {
-                                Some(cut_id.clone())
+                            if text_input.get_id() == id {
+                                Some(cut_id)
                             } else {
                                 None
                             }
                         });
 
                 if let Some(selected_cut_id) = selected_cut_id {
-                    self.update_cut(selected_cut_id, |cut| {
+                    self.update_cut(*selected_cut_id, |cut| {
                         cut.line = text.clone();
                     });
                 }
             }
         } else if let Some(event) = event.downcast_ref::<character_edit_modal::Event>() {
             match event {
-                character_edit_modal::Event::CharacterSelected {
+                &character_edit_modal::Event::CharacterSelected {
                     cut_id,
                     character_id,
                 } => {
@@ -68,7 +68,7 @@ impl LoadedSequenceEditorPage {
                 }
                 character_edit_modal::Event::AddCharacterClicked => {
                     self.update_project_shared_data(|project_shared_data| {
-                        let mut new_character = Character::new(nanoid());
+                        let mut new_character = Character::new(uuid());
                         new_character.name = "New Character".to_string();
                         project_shared_data.characters.push(new_character)
                     });
@@ -140,12 +140,12 @@ impl LoadedSequenceEditorPage {
     }
     fn renew_line_text_inputs(&mut self) {
         self.line_text_inputs
-            .retain(|cut_id, _| self.sequence.cuts.iter().any(|cut| cut.id() == cut_id));
+            .retain(|cut_id, _| self.sequence.cuts.iter().any(|cut| cut.id() == *cut_id));
 
         for cut in self.sequence.cuts.iter() {
-            if !self.line_text_inputs.contains_key(cut.id()) {
+            if !self.line_text_inputs.contains_key(&cut.id()) {
                 self.line_text_inputs
-                    .insert(cut.id().to_string(), text_input::TextInput::new());
+                    .insert(cut.id(), text_input::TextInput::new());
             }
         }
     }

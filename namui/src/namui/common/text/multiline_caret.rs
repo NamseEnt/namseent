@@ -162,7 +162,7 @@ impl MultilineCaret<'_> {
                 .get_glyph_widths(glyph_ids, Some(self.line_texts.paint));
 
             for glyph_width in glyph_widths.into_iter() {
-                let last = caret_positions.last().unwrap();
+                let last = caret_positions.last().unwrap().clone();
                 caret_positions.push((last.0 + glyph_width, last.1 + 1));
             }
         }

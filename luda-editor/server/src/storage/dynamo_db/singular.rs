@@ -6,8 +6,8 @@ use std::{error::Error, fmt::Debug};
 impl DynamoDb {
     pub(super) async fn get_item_internal(
         &self,
-        partition_key: impl Into<String>,
-        sort_key: impl Into<Option<String>>,
+        partition_key: impl ToString,
+        sort_key: Option<impl ToString>,
     ) -> Result<Item, GetItemInternalError> {
         let result = self
             .client
@@ -15,12 +15,14 @@ impl DynamoDb {
             .table_name(&self.table_name)
             .key(
                 PARTITION_KEY,
-                aws_sdk_dynamodb::model::AttributeValue::S(partition_key.into()),
+                aws_sdk_dynamodb::model::AttributeValue::S(partition_key.to_string()),
             )
             .key(
                 SORT_KEY,
                 aws_sdk_dynamodb::model::AttributeValue::S(
-                    sort_key.into().unwrap_or(DEFAULT_SORT_KEY.to_string()),
+                    sort_key
+                        .map(|sort_key| sort_key.to_string())
+                        .unwrap_or(DEFAULT_SORT_KEY.to_string()),
                 ),
             )
             .send()
@@ -41,8 +43,8 @@ impl DynamoDb {
 
     pub async fn get_item<'a, TDocument: Document>(
         &self,
-        partition_key_without_prefix: impl Into<String>,
-        sort_key: impl Into<Option<String>>,
+        partition_key_without_prefix: impl ToString,
+        sort_key: Option<impl ToString>,
     ) -> Result<TDocument, GetItemError> {
         let partition_key = get_partition_key::<TDocument>(partition_key_without_prefix);
         let item = self.get_item_internal(partition_key, sort_key).await?;
@@ -53,7 +55,7 @@ impl DynamoDb {
 
     pub async fn create_item(&self, item: impl Document) -> Result<(), CreateItemError> {
         let partition_key = item.partition_key();
-        let sort_key = item.sort_key().unwrap_or(DEFAULT_SORT_KEY).to_string();
+        let sort_key = item.sort_key().unwrap_or(DEFAULT_SORT_KEY.to_string());
 
         let mut item: Item = serde_dynamo::to_item(item)?;
         item.insert(VERSION_KEY.to_string(), AttributeValue::N("0".to_string()));
@@ -89,15 +91,14 @@ impl DynamoDb {
         TUpdateFuture: Future<Output = Result<TDocument, TCancelError>>,
     >(
         &self,
-        partition_key_without_prefix: impl Into<String>,
-        sort_key: impl Into<Option<String>>,
+        partition_key_without_prefix: impl ToString,
+        sort_key: Option<impl ToString>,
         update: impl FnOnce(TDocument) -> TUpdateFuture,
     ) -> Result<(), UpdateItemError<TCancelError>> {
         let partition_key = get_partition_key::<TDocument>(partition_key_without_prefix);
         let sort_key = sort_key
-            .into()
-            .unwrap_or(DEFAULT_SORT_KEY.to_string())
-            .to_string();
+            .map(|sort_key| sort_key.to_string())
+            .unwrap_or(DEFAULT_SORT_KEY.to_string());
         let item = self
             .get_item_internal(partition_key.clone(), Some(sort_key.clone()))
             .await?;
@@ -150,7 +151,7 @@ impl DynamoDb {
 
     pub async fn query<TDocument: Document>(
         &self,
-        partition_key_without_prefix: impl Into<String>,
+        partition_key_without_prefix: impl ToString,
     ) -> Result<Vec<TDocument>, QueryError> {
         let partition_key = get_partition_key::<TDocument>(partition_key_without_prefix);
         let query_result = self

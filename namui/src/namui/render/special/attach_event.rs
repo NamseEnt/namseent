@@ -35,7 +35,7 @@ pub struct AttachEventNode {
 }
 
 pub struct MouseEvent<'a> {
-    pub id: String,
+    pub id: crate::Uuid,
     pub namui_context: &'a NamuiContext,
     pub target: &'a RenderingTree,
     pub local_xy: Xy<Px>,
@@ -55,14 +55,14 @@ pub enum MouseEventType {
     Move,
 }
 pub struct WheelEvent<'a> {
-    pub id: String,
+    pub id: crate::Uuid,
     pub namui_context: &'a NamuiContext,
     pub target: &'a RenderingTree,
     /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
     pub delta_xy: Xy<f32>,
 }
 pub struct KeyboardEvent<'a> {
-    pub id: String,
+    pub id: crate::Uuid,
     pub namui_context: &'a NamuiContext,
     pub target: &'a RenderingTree,
     pub code: Code,

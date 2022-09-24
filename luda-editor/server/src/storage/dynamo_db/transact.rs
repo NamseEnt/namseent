@@ -58,7 +58,7 @@ impl Transact {
     }
     pub fn create_item<TDocument: Document>(mut self, item: TDocument) -> Self {
         let partition_key = item.partition_key();
-        let sort_key = item.sort_key().unwrap_or(DEFAULT_SORT_KEY).to_string();
+        let sort_key = item.sort_key().unwrap_or(DEFAULT_SORT_KEY.to_string());
 
         let mut item: Item = serde_dynamo::to_item(item).unwrap();
         item.insert(VERSION_KEY.to_string(), AttributeValue::N("0".to_string()));
@@ -82,11 +82,13 @@ impl Transact {
     }
     pub fn delete_item<TDocument: Document>(
         mut self,
-        partition_key_without_prefix: impl Into<String>,
-        sort_key: impl Into<Option<String>>,
+        partition_key_without_prefix: impl ToString,
+        sort_key: Option<impl ToString>,
     ) -> Self {
         let partition_key = get_partition_key::<TDocument>(partition_key_without_prefix);
-        let sort_key = sort_key.into().unwrap_or(DEFAULT_SORT_KEY.to_string());
+        let sort_key = sort_key
+            .map(|sort_key| sort_key.to_string())
+            .unwrap_or(DEFAULT_SORT_KEY.to_string());
 
         let item = model::TransactWriteItem::builder()
             .delete(
@@ -107,13 +109,13 @@ impl Transact {
         TUpdateFuture: Future<Output = Result<TDocument, ()>> + Send,
     >(
         mut self,
-        partition_key_without_prefix: impl Into<String>,
-        sort_key: impl Into<Option<String>>,
+        partition_key_without_prefix: impl ToString,
+        sort_key: Option<impl ToString>,
         update: impl FnOnce(TDocument) -> TUpdateFuture + 'static + Send,
     ) -> Self {
         let partition_key = get_partition_key::<TDocument>(partition_key_without_prefix);
         let sort_key = sort_key
-            .into()
+            .map(|sort_key| sort_key.to_string())
             .unwrap_or(DEFAULT_SORT_KEY.to_string())
             .to_string();
         let dynamo_db = self.dynamo_db.clone();

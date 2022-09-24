@@ -2,7 +2,7 @@ use namui::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct ScrollView {
-    pub id: String,
+    pub id: Uuid,
     pub scroll_y: Px,
 }
 
@@ -14,24 +14,24 @@ pub struct Props {
 }
 
 pub enum Event {
-    Scrolled(String, Px),
+    Scrolled(Uuid, Px),
 }
 
 impl ScrollView {
     pub fn new() -> Self {
         Self {
-            id: namui::nanoid(),
+            id: namui::uuid(),
             scroll_y: px(0.0),
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<Event>() {
-            match event {
+            match *event {
                 Event::Scrolled(id, scroll_y) => {
-                    if id != &self.id {
+                    if id != self.id {
                         return;
                     }
-                    self.scroll_y = *scroll_y;
+                    self.scroll_y = scroll_y;
                 }
             }
         }

@@ -22,8 +22,8 @@ impl SequenceEditPage {
                                         Some(image_clip) => {
                                             let image_clip_address = ImageClipAddress {
                                                 sequence_id: self.selected_sequence_id.clone(),
-                                                cut_id: cut.id().to_string(),
-                                                image_clip_id: image_clip.id().to_string(),
+                                                cut_id: cut.id(),
+                                                image_clip_id: image_clip.id(),
                                             };
                                             self.wysiwyg_editor.render(wysiwyg_editor::Props {
                                                 wh,

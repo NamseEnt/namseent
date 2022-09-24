@@ -31,9 +31,9 @@ impl AnimationEditorExample {
         );
 
         let animation = animation::Animation {
-            id: namui::nanoid(),
+            id: namui::uuid(),
             layers: vec![animation::Layer {
-                id: namui::nanoid(),
+                id: namui::uuid(),
                 name: "New Layer".to_string(),
                 image,
             }],

@@ -48,12 +48,7 @@ impl MouseSystem {
 
                         let button = get_button(&event);
                         namui::event::send(namui::NamuiEvent::MouseDown(crate::RawMouseEvent {
-                            id: format!(
-                                "mousedown-{:?}-{:?}-{}",
-                                button,
-                                crate::now(),
-                                crate::nanoid()
-                            ),
+                            id: crate::uuid(),
                             xy: mouse_position.clone(),
                             pressing_buttons: get_pressing_buttons(&event),
                             button: Some(button),
@@ -78,12 +73,7 @@ impl MouseSystem {
 
                         let button = get_button(&event);
                         namui::event::send(namui::NamuiEvent::MouseUp(crate::RawMouseEvent {
-                            id: format!(
-                                "mouseup-{:?}-{:?}-{}",
-                                button,
-                                crate::now(),
-                                crate::nanoid()
-                            ),
+                            id: crate::uuid(),
                             xy: mouse_position.clone(),
                             pressing_buttons: get_pressing_buttons(&event),
                             button: Some(button),
@@ -107,7 +97,7 @@ impl MouseSystem {
                         mouse_position.y = px(event.client_y() as f32);
 
                         namui::event::send(namui::NamuiEvent::MouseMove(crate::RawMouseEvent {
-                            id: format!("mousemove-{:?}-{}", crate::now(), crate::nanoid()),
+                            id: crate::uuid(),
                             xy: mouse_position.clone(),
                             pressing_buttons: get_pressing_buttons(&event),
                             button: None,

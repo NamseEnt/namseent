@@ -1,28 +1,45 @@
-use super::*;
-use crate::storage::dynamo_db::{CreateItemError, GetItemError};
+use super::{
+    documents::{IdentityDocument, UserDocument},
+    *,
+};
+use crate::storage::dynamo_db::{GetItemError, TransactError};
 
 pub async fn get_or_create_user(
     user_identity: UserIdentity,
 ) -> Result<UserDocument, GetOrCreateUserError> {
-    let user_document_id = user_identity.into_document_id();
+    let identity_id = user_identity.into_document_id();
 
     match crate::dynamo_db()
-        .get_item::<UserDocument>(&user_document_id, None)
+        .get_item::<IdentityDocument>(&identity_id, Option::<String>::None)
         .await
     {
-        Ok(user_document) => Ok(user_document),
+        Ok(identity_document) => {
+            let user_document = crate::dynamo_db()
+                .get_item::<UserDocument>(&identity_document.user_id, Option::<String>::None)
+                .await
+                .map_err(|error| GetOrCreateUserError::GetUserError(error))?;
+            Ok(user_document)
+        }
         Err(error) => match error {
             GetItemError::NotFound => {
-                let user_document = UserDocument {
-                    id: user_document_id,
-                };
+                let user_id = rpc::Uuid::new_v4();
+                let user_document = UserDocument { id: user_id };
+
                 crate::dynamo_db()
-                    .create_item(user_document.clone())
-                    .await?;
+                    .transact()
+                    .create_item(UserDocument { id: user_id })
+                    .create_item(IdentityDocument {
+                        id: identity_id,
+                        user_id,
+                    })
+                    .send()
+                    .await
+                    .map_err(|error| GetOrCreateUserError::CreateError(error))?;
+
                 Ok(user_document)
             }
             GetItemError::DeserializeFailed(_) | GetItemError::Unknown(_) => {
-                Err(GetOrCreateUserError::GetUserError(error))
+                Err(GetOrCreateUserError::GetIdentityError(error))
             }
         },
     }
@@ -30,13 +47,8 @@ pub async fn get_or_create_user(
 
 #[derive(Debug)]
 pub enum GetOrCreateUserError {
+    GetIdentityError(GetItemError),
     GetUserError(GetItemError),
-    CreateUserError(CreateItemError),
+    CreateError(TransactError),
 }
 crate::simple_error_impl!(GetOrCreateUserError);
-
-impl From<CreateItemError> for GetOrCreateUserError {
-    fn from(error: CreateItemError) -> Self {
-        GetOrCreateUserError::CreateUserError(error)
-    }
-}

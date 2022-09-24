@@ -10,14 +10,14 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Layer {
-    pub id: String,
+    pub id: crate::Uuid,
     pub name: String,
     pub image: AnimatableImage,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Animation {
-    pub id: String,
+    pub id: crate::Uuid,
     pub layers: Vec<Layer>,
 }
 

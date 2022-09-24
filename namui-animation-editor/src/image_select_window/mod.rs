@@ -13,12 +13,15 @@ pub struct ImageSelectWindow {
 pub struct Props {
     pub wh: Wh<Px>,
     pub selected_layer_image_url: Option<Url>,
-    pub selected_layer_id: Option<String>,
+    pub selected_layer_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone)]
 enum Event {
-    ImageSelected { url: Url, selected_layer_id: String },
+    ImageSelected {
+        url: Url,
+        selected_layer_id: namui::Uuid,
+    },
 }
 
 impl ImageSelectWindow {
@@ -37,7 +40,7 @@ impl ImageSelectWindow {
                 } => {
                     struct SelectImageAction {
                         url: Url,
-                        layer_id: String,
+                        layer_id: namui::Uuid,
                     }
                     impl Act<Animation> for SelectImageAction {
                         fn act(
@@ -145,7 +148,7 @@ fn render_entry(
     wh: Wh<Px>,
     entry: &Dirent,
     is_selected: bool,
-    selected_layer_id: String,
+    selected_layer_id: namui::Uuid,
 ) -> RenderingTree {
     let selection_highlight_box = match is_selected {
         true => simple_rect(wh, Color::RED, px(3.0), Color::TRANSPARENT),

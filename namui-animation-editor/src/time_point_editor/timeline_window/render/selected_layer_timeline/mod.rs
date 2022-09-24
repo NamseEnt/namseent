@@ -30,7 +30,7 @@ impl TimelineWindow {
                 if event.button == Some(MouseButton::Left) {
                     let window_global_xy = event
                         .namui_context
-                        .get_rendering_tree_xy_by_id(&window_id)
+                        .get_rendering_tree_xy_by_id(window_id)
                         .unwrap();
 
                     let window_rect = Rect::from_xy_wh(window_global_xy, window_wh);

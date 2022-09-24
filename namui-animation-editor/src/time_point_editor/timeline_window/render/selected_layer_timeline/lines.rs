@@ -46,7 +46,7 @@ impl TimelineWindow {
         let is_selected = {
             if let Some(editing_target) = &props.editing_target {
                 if let EditingTarget::Line { point_id, layer_id } = editing_target {
-                    layer.id.eq(layer_id) && left_point.id() == point_id
+                    layer.id.eq(layer_id) && left_point.id() == *point_id
                 } else {
                     false
                 }
@@ -74,12 +74,12 @@ impl TimelineWindow {
             ),
         )
         .attach_event(|builder| {
-            let point_id = left_point.id().to_string();
+            let point_id = left_point.id();
             let layer_id = layer.id.clone();
             builder.on_mouse_down_in(move |_| {
                 namui::event::send(Event::LineMouseDown {
                     point_id: point_id.clone(),
-                    layer_id: layer_id.clone(),
+                    layer_id,
                 })
             });
         })

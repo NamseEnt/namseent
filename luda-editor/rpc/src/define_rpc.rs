@@ -110,7 +110,7 @@ macro_rules! define_rpc {
 
             pub struct RpcSetting {
                 endpoint: String,
-                session_id: Option<String>,
+                session_id: Option<uuid::Uuid>,
             }
 
             pub struct Rpc {
@@ -126,13 +126,13 @@ macro_rules! define_rpc {
                         }),
                     }
                 }
-                pub fn set_session_id(&self, session_id: String) {
+                pub fn set_session_id(&self, session_id: uuid::Uuid) {
                     let mut setting = self.setting.lock().unwrap();
                     setting.session_id.replace(session_id);
                 }
-                pub fn session_id(&self) -> Option<String> {
+                pub fn session_id(&self) -> Option<uuid::Uuid> {
                     let setting = self.setting.lock().unwrap();
-                    setting.session_id.clone()
+                    setting.session_id
                 }
                 pub fn set_endpoint(&self, endpoint: String) {
                     let mut setting = self.setting.lock().unwrap();
@@ -164,7 +164,7 @@ macro_rules! define_rpc {
                                 .header("Content-Type", "application/json")
                                 .header("Accept", "application/json");
                             (if let Some(session_id) = self.session_id() {
-                                builder.header("session", session_id)
+                                builder.header("session", session_id.to_string())
                             } else {
                                 builder
                             })

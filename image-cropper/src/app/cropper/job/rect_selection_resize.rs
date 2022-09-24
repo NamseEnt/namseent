@@ -2,7 +2,7 @@ use super::JobExecution;
 use crate::app::cropper::selection::{RectSelection, Selection, SelectionListModify};
 use namui::prelude::*;
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum RectSelectionResizeDirection {
     TopLeft,
     TopRight,
@@ -15,15 +15,15 @@ pub enum RectSelectionResizeDirection {
 }
 
 pub struct RectSelectionResize {
-    target_id: String,
+    target_id: namui::Uuid,
     direction: RectSelectionResizeDirection,
     initial_position: Option<Xy<Px>>,
     last_position: Option<Xy<Px>>,
 }
 impl RectSelectionResize {
-    pub fn new(target_id: impl AsRef<str>, direction: RectSelectionResizeDirection) -> Self {
+    pub fn new(target_id: Uuid, direction: RectSelectionResizeDirection) -> Self {
         Self {
-            target_id: String::from(target_id.as_ref()),
+            target_id,
             direction,
             initial_position: None,
             last_position: None,
@@ -52,19 +52,19 @@ impl JobExecution for RectSelectionResize {
         &self,
         selection_list: Vec<crate::app::cropper::selection::Selection>,
     ) -> Vec<crate::app::cropper::selection::Selection> {
-        selection_list.modify_selection(&self.target_id, move |selection| match selection {
+        selection_list.modify_selection(self.target_id, move |selection| match selection {
             Selection::RectSelection(mut rect_selection) => {
                 let delta_position: Xy<Px> = self.get_delta_position();
                 match self.direction {
                     RectSelectionResizeDirection::Top
                     | RectSelectionResizeDirection::TopLeft
                     | RectSelectionResizeDirection::TopRight => {
-                        resize_height_bottom_fixed(&mut rect_selection, &delta_position)
+                        resize_height_bottom_fixed(&mut rect_selection, delta_position)
                     }
                     RectSelectionResizeDirection::Bottom
                     | RectSelectionResizeDirection::BottomLeft
                     | RectSelectionResizeDirection::BottomRight => {
-                        resize_height_top_fixed(&mut rect_selection, &delta_position)
+                        resize_height_top_fixed(&mut rect_selection, delta_position)
                     }
                     _ => {}
                 };
@@ -73,12 +73,12 @@ impl JobExecution for RectSelectionResize {
                     RectSelectionResizeDirection::Left
                     | RectSelectionResizeDirection::TopLeft
                     | RectSelectionResizeDirection::BottomLeft => {
-                        resize_width_right_fixed(&mut rect_selection, &delta_position)
+                        resize_width_right_fixed(&mut rect_selection, delta_position)
                     }
                     RectSelectionResizeDirection::Right
                     | RectSelectionResizeDirection::TopRight
                     | RectSelectionResizeDirection::BottomRight => {
-                        resize_width_left_fixed(&mut rect_selection, &delta_position)
+                        resize_width_left_fixed(&mut rect_selection, delta_position)
                     }
                     _ => {}
                 };
@@ -90,23 +90,23 @@ impl JobExecution for RectSelectionResize {
     }
 }
 
-fn resize_height_top_fixed(selection: &mut RectSelection, delta_position: &Xy<Px>) {
+fn resize_height_top_fixed(selection: &mut RectSelection, delta_position: Xy<Px>) {
     let delta_y = delta_position.y;
     selection.rect.update_height(|height| *height += delta_y);
 }
 
-fn resize_height_bottom_fixed(selection: &mut RectSelection, delta_position: &Xy<Px>) {
+fn resize_height_bottom_fixed(selection: &mut RectSelection, delta_position: Xy<Px>) {
     let delta_y = delta_position.y;
     selection.rect.update_y(|y| *y += delta_y);
     selection.rect.update_height(|height| *height -= delta_y);
 }
 
-fn resize_width_left_fixed(selection: &mut RectSelection, delta_position: &Xy<Px>) {
+fn resize_width_left_fixed(selection: &mut RectSelection, delta_position: Xy<Px>) {
     let delta_x = delta_position.x;
     selection.rect.update_width(|width| *width += delta_x);
 }
 
-fn resize_width_right_fixed(selection: &mut RectSelection, delta_position: &Xy<Px>) {
+fn resize_width_right_fixed(selection: &mut RectSelection, delta_position: Xy<Px>) {
     let delta_x = delta_position.x;
     selection.rect.update_x(|x| *x += delta_x);
     selection.rect.update_width(|width| *width -= delta_x);

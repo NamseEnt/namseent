@@ -3,19 +3,19 @@ use namui_prebuilt::*;
 
 #[derive(Debug, Clone)]
 pub struct RenameModal {
-    sequence_id: String,
+    sequence_id: namui::Uuid,
     sequence_name: String,
     text_input: TextInput,
 }
 pub enum Event {
     RenameDone {
-        sequence_id: String,
+        sequence_id: namui::Uuid,
         sequence_name: String,
     },
 }
 impl RenameModal {
     #[allow(dead_code)]
-    pub fn new(sequence_id: String, sequence_name: String) -> Self {
+    pub fn new(sequence_id: namui::Uuid, sequence_name: String) -> Self {
         Self {
             sequence_id,
             text_input: TextInput::new(),

@@ -11,7 +11,7 @@ pub(crate) struct TimePointEditor {
     image_select_window: image_select_window::ImageSelectWindow,
     line_edit_window: line_edit_window::LineEditWindow,
     editing_target: Option<EditingTarget>,
-    selected_layer_id: Option<String>,
+    selected_layer_id: Option<Uuid>,
 }
 
 enum Event {
@@ -40,14 +40,14 @@ impl TimePointEditor {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<Event>() {
             match event {
-                Event::ChangEditingTarget(editing_target) => {
-                    self.editing_target = editing_target.clone();
+                &Event::ChangEditingTarget(editing_target) => {
+                    self.editing_target = editing_target;
                 }
             }
         } else if let Some(event) = event.downcast_ref::<layer_list_window::Event>() {
-            match event {
+            match *event {
                 layer_list_window::Event::LayerSelected(layer_id) => {
-                    self.selected_layer_id = Some(layer_id.clone());
+                    self.selected_layer_id = Some(layer_id);
                 }
                 _ => {}
             }
@@ -121,8 +121,14 @@ impl TimePointEditor {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum EditingTarget {
-    Keyframe { point_id: String, layer_id: String },
-    Line { point_id: String, layer_id: String },
+    Keyframe {
+        point_id: namui::Uuid,
+        layer_id: namui::Uuid,
+    },
+    Line {
+        point_id: namui::Uuid,
+        layer_id: namui::Uuid,
+    },
 }

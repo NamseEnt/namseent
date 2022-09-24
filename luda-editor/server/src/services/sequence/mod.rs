@@ -36,7 +36,10 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             let sequence_name_and_ids = try_join_all(project_sequence_documents.into_iter().map(
                 |project_sequence_document| async move {
                     match crate::dynamo_db()
-                        .get_item::<SequenceDocument>(&project_sequence_document.sequence_id, None)
+                        .get_item::<SequenceDocument>(
+                            &project_sequence_document.sequence_id,
+                            Option::<String>::None,
+                        )
                         .await
                     {
                         Ok(sequence) => Ok(rpc::list_project_sequences::SequenceNameAndId {
@@ -77,7 +80,7 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             let session = session.unwrap();
             let is_project_editor = crate::services()
                 .project_service
-                .is_project_editor(&session.user_id, &req.project_id)
+                .is_project_editor(session.user_id, req.project_id)
                 .await
                 .map_err(|error| rpc::create_sequence::Error::Unknown(error.to_string()))?;
 
@@ -85,7 +88,7 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                 return Err(rpc::create_sequence::Error::Unauthorized);
             }
 
-            let sequence_id = nanoid::nanoid!();
+            let sequence_id = rpc::Uuid::new_v4();
 
             crate::dynamo_db()
                 .transact()
@@ -94,7 +97,7 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                     project_id: req.project_id.clone(),
                     name: req.name,
                     json: serde_json::to_string(&rpc::data::Sequence::new(
-                        nanoid::nanoid!(),
+                        rpc::Uuid::new_v4(),
                         "New Sequence".to_string(),
                     ))
                     .unwrap(),
@@ -137,11 +140,11 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             crate::dynamo_db()
                 .update_item(
                     req.sequence_id.clone(),
-                    None,
+                    Option::<String>::None,
                     |mut sequence: SequenceDocument| async {
                         let is_project_editor = crate::services()
                             .project_service
-                            .is_project_editor(&session.user_id, &sequence.project_id)
+                            .is_project_editor(session.user_id, sequence.project_id)
                             .await
                             .map_err(|error| {
                                 rpc::update_server_sequence::Error::Unknown(error.to_string())
@@ -191,7 +194,7 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
     > {
         Box::pin(async move {
             let sequence = crate::dynamo_db()
-                .get_item::<SequenceDocument>(req.sequence_id, None)
+                .get_item::<SequenceDocument>(req.sequence_id, Option::<String>::None)
                 .await
                 .map_err(|error| rpc::update_client_sequence::Error::Unknown(error.to_string()))?;
 
@@ -216,14 +219,14 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
     > {
         Box::pin(async move {
             let sequence = crate::dynamo_db()
-                .get_item::<SequenceDocument>(req.sequence_id, None)
+                .get_item::<SequenceDocument>(req.sequence_id, Option::<String>::None)
                 .await
                 .map_err(|error| {
                     rpc::get_sequence_and_project_shared_data::Error::Unknown(error.to_string())
                 })?;
 
             let project = crate::dynamo_db()
-                .get_item::<ProjectDocument>(sequence.project_id, None)
+                .get_item::<ProjectDocument>(sequence.project_id, Option::<String>::None)
                 .await
                 .map_err(|error| {
                     rpc::get_sequence_and_project_shared_data::Error::Unknown(error.to_string())

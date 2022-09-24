@@ -21,7 +21,7 @@ impl Selection {
         }
     }
 
-    pub fn get_id(&self) -> &String {
+    pub fn get_id(&self) -> Uuid {
         match self {
             Selection::RectSelection(selection) => selection.get_id(),
             Selection::PolySelection(selection) => selection.get_id(),
@@ -31,24 +31,24 @@ impl Selection {
 pub trait SelectionTrait {
     fn render(&self, scale: f32) -> RenderingTree;
     fn get_polygon(&self) -> Vec<Xy<Px>>;
-    fn get_id(&self) -> &String;
+    fn get_id(&self) -> Uuid;
 }
 
 pub trait SelectionListModify<M>
 where
     M: FnMut(Selection) -> Selection,
 {
-    fn modify_selection(&self, id: impl AsRef<str>, modifier: M) -> Self;
+    fn modify_selection(&self, id: Uuid, modifier: M) -> Self;
 }
 impl<M> SelectionListModify<M> for Vec<Selection>
 where
     M: FnMut(Selection) -> Selection,
 {
-    fn modify_selection(&self, id: impl AsRef<str>, mut modifier: M) -> Self {
+    fn modify_selection(&self, id: Uuid, mut modifier: M) -> Self {
         let new_selection_list = self.clone();
         new_selection_list
             .into_iter()
-            .map(|selection| match selection.get_id() == id.as_ref() {
+            .map(|selection| match selection.get_id() == id {
                 true => modifier(selection),
                 false => selection,
             })

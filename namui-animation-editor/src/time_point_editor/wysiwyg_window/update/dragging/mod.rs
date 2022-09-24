@@ -61,7 +61,7 @@ enum XY {
 
 fn update_xy(
     layer: &mut Layer,
-    point_id: &str,
+    point_id: Uuid,
     delta: Px,
     x_y: XY,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -75,7 +75,7 @@ fn update_xy(
 }
 fn update_size(
     layer: &mut Layer,
-    point_id: &str,
+    point_id: Uuid,
     delta: Px,
     width_height: WidthHeight,
 ) -> Result<(), Box<dyn std::error::Error>> {

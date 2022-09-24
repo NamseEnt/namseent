@@ -35,7 +35,7 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
             }
             let session = session.unwrap();
 
-            let project_id = nanoid::nanoid!();
+            let project_id = rpc::Uuid::new_v4();
             let owner_id = session.user_id;
 
             let project_document = ProjectDocument {
@@ -43,7 +43,7 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
                 owner_id: owner_id.clone(),
                 name: req.name,
                 shared_data_json: serde_json::to_string(&rpc::data::ProjectSharedData::new(
-                    nanoid::nanoid!(),
+                    rpc::Uuid::new_v4(),
                 ))
                 .unwrap(),
             };
@@ -100,7 +100,10 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
             let editable_projects = try_join_all(owner_project_documents.into_iter().map(
                 |owner_project_document| async move {
                     match crate::dynamo_db()
-                        .get_item::<ProjectDocument>(&owner_project_document.project_id, None)
+                        .get_item::<ProjectDocument>(
+                            &owner_project_document.project_id,
+                            Option::<String>::None,
+                        )
                         .await
                     {
                         Ok(project) => Ok(rpc::list_editable_projects::EditableProject {
@@ -147,7 +150,7 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
             let session = session.unwrap();
 
             let project = crate::dynamo_db()
-                .get_item::<ProjectDocument>(&req.project_id, None)
+                .get_item::<ProjectDocument>(&req.project_id, Option::<String>::None)
                 .await;
             if let Err(error) = project {
                 return Err(rpc::edit_user_acl::Error::Unknown(error.to_string()));
@@ -223,7 +226,7 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
             let session = session.unwrap();
 
             let is_project_editor = self
-                .is_project_editor(&session.user_id, &req.project_id)
+                .is_project_editor(session.user_id, req.project_id)
                 .await
                 .map_err(|error| {
                     rpc::update_server_project_shared_data::Error::Unknown(error.to_string())
@@ -236,7 +239,7 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
             crate::dynamo_db()
                 .update_item::<_, rpc::update_server_project_shared_data::Error, _>(
                     &req.project_id,
-                    None,
+                    Option::<String>::None,
                     |mut project: ProjectDocument| async {
                         let mut project_shared_data_json =
                             serde_json::from_str::<serde_json::Value>(&project.shared_data_json)
@@ -290,7 +293,7 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
     > {
         Box::pin(async move {
             let project = crate::dynamo_db()
-                .get_item::<ProjectDocument>(req.project_id, None)
+                .get_item::<ProjectDocument>(req.project_id, Option::<String>::None)
                 .await
                 .map_err(|error| {
                     rpc::update_client_project_shared_data::Error::Unknown(error.to_string())

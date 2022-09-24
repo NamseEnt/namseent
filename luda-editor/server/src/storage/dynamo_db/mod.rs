@@ -22,7 +22,7 @@ type Item = std::collections::HashMap<std::string::String, AttributeValue>;
 pub trait Document: serde::Serialize + serde::de::DeserializeOwned {
     fn partition_key_prefix() -> &'static str;
     fn partition_key_without_prefix(&self) -> String;
-    fn sort_key(&self) -> Option<&str>;
+    fn sort_key(&self) -> Option<String>;
     fn partition_key(&self) -> String {
         get_partition_key::<Self>(self.partition_key_without_prefix())
     }
@@ -45,13 +45,11 @@ impl DynamoDb {
     }
 }
 
-fn get_partition_key<TDocument: Document>(
-    partition_key_without_prefix: impl Into<String>,
-) -> String {
+fn get_partition_key<TDocument: Document>(partition_key_without_prefix: impl ToString) -> String {
     format!(
         "{}.{}",
         TDocument::partition_key_prefix(),
-        partition_key_without_prefix.into()
+        partition_key_without_prefix.to_string()
     )
 }
 

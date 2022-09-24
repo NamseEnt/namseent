@@ -21,7 +21,7 @@ pub enum ResizableClipBodyPart {
 
 pub enum Event {
     MouseDown {
-        clip_id: String,
+        clip_id: namui::Uuid,
         // click_in_time: Time,
         clicked_part: ResizableClipBodyPart,
         ctrl_key_pressed: bool,
