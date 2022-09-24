@@ -8,7 +8,7 @@ use namui_prebuilt::*;
 use rpc::data::*;
 
 pub struct ImageSelectModal {
-    project_id: String,
+    project_id: Uuid,
     context_menu: Option<context_menu::ContextMenu>,
     label_scroll_view: scroll_view::ScrollView,
     image_list_scroll_view: scroll_view::ScrollView,
@@ -31,9 +31,8 @@ enum InternalEvent {
 }
 
 impl ImageSelectModal {
-    pub fn new(project_id: String) -> ImageSelectModal {
+    pub fn new(project_id: Uuid) -> ImageSelectModal {
         spawn_local({
-            let project_id = project_id.clone();
             async move {
                 let result = crate::RPC
                     .list_images(rpc::list_images::Request { project_id })

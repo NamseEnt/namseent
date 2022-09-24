@@ -98,6 +98,7 @@ impl LoadedSequenceEditorPage {
         } else if let Some(event) = event.downcast_ref::<image_select_modal::Event>() {
             match event {
                 image_select_modal::Event::Close => self.image_select_modal = None,
+                image_select_modal::Event::Error(_) => todo!(),
             }
         } else if let Some(event) = event.downcast_ref::<crate::sync::Event>() {
             match event {

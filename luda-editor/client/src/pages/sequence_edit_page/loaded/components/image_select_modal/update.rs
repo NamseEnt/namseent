@@ -7,7 +7,7 @@ impl ImageSelectModal {
                 InternalEvent::AddImageButtonClicked => {
                     self.image_edit_modal = Some(image_edit_modal::ImageEditModal::new(
                         image_edit_modal::ModalPurpose::Add,
-                        self.project_id.clone(),
+                        self.project_id,
                     ));
                 }
                 InternalEvent::LoadImages(images) => {
