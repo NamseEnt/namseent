@@ -20,7 +20,7 @@ impl ImageEditModal {
                             table::ratio(1.0, |wh| {
                                 self.render_label_input(label_input::Props { wh })
                             }),
-                            table::ratio(2.0, |wh| {
+                            table::ratio(4.0, |wh| {
                                 self.render_label_list(label_list::Props { wh })
                             }),
                             table::ratio(1.0, |wh| {
