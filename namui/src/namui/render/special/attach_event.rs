@@ -74,7 +74,17 @@ pub type KeyboardEventCallback = Arc<dyn Fn(&KeyboardEvent)>;
 
 impl std::fmt::Debug for AttachEventNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "rendering_tree: {:?}, on_mouse_move_in: {:?}, on_mouse_move_out: {:?}, on_mouse_down_in: {:?}, on_mouse_up_in: {:?}, on_wheel: {:?}", self.rendering_tree, self.on_mouse_move_in.is_some(), self.on_mouse_move_out.is_some(), self.on_mouse_down_in.is_some(), self.on_mouse_up_in.is_some(), self.on_wheel.is_some())
+        f.debug_struct("AttachEventNode")
+            .field("on_mouse_move_in", &self.on_mouse_move_in.is_some())
+            .field("on_mouse_move_out", &self.on_mouse_move_out.is_some())
+            .field("on_mouse_down_in", &self.on_mouse_down_in.is_some())
+            .field("on_mouse_down_out", &self.on_mouse_down_out.is_some())
+            .field("on_mouse_up_in", &self.on_mouse_up_in.is_some())
+            .field("on_mouse_up_out", &self.on_mouse_up_out.is_some())
+            .field("on_wheel", &self.on_wheel.is_some())
+            .field("on_key_down", &self.on_key_down.is_some())
+            .field("on_key_up", &self.on_key_up.is_some())
+            .finish()
     }
 }
 
