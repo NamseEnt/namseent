@@ -28,7 +28,7 @@ pub fn left_top(text: impl AsRef<str>, color: Color) -> RenderingTree {
         x: 0.px(),
         y: 0.px(),
         align: TextAlign::Left,
-        baseline: TextBaseline::Middle,
+        baseline: TextBaseline::Top,
         font_type: FontType {
             font_weight: FontWeight::REGULAR,
             language: Language::Ko,
