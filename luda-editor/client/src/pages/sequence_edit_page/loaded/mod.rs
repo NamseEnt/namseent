@@ -38,7 +38,7 @@ enum Event {
     ScreenEditorConfirmClicked {
         index: usize,
         cut_id: Uuid,
-        image_id: Uuid,
+        image_id: Option<Uuid>,
     },
 }
 

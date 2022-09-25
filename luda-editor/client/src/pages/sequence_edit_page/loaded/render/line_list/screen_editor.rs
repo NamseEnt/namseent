@@ -5,7 +5,6 @@ use rpc::data::*;
 
 impl LoadedSequenceEditorPage {
     pub fn screen_editor(&self, wh: Wh<Px>, cut: &Cut) -> RenderingTree {
-        namui::log!("cut.screen_image_ids: {:#?}", cut.screen_image_ids);
         render([
             simple_rect(wh, Color::WHITE, 1.px(), Color::BLACK),
             table::horizontal(

@@ -17,7 +17,7 @@ pub struct ImageSelectModal {
     images: Vec<ImageWithLabels>,
     selected_labels: BTreeSet<Label>,
     selected_image: Option<ImageWithLabels>,
-    on_done: Box<dyn Fn(Uuid)>,
+    on_done: Box<dyn Fn(Option<Uuid>)>,
 }
 
 pub struct Props {
@@ -34,11 +34,11 @@ enum InternalEvent {
     AddImageButtonClicked,
     ToggleLabel(Label),
     ImageSelected(ImageWithLabels),
-    Done { image_id: Uuid },
+    Done { image_id: Option<Uuid> },
 }
 
 impl ImageSelectModal {
-    pub fn new(project_id: Uuid, on_done: impl Fn(Uuid) + 'static) -> ImageSelectModal {
+    pub fn new(project_id: Uuid, on_done: impl Fn(Option<Uuid>) + 'static) -> ImageSelectModal {
         spawn_local({
             async move {
                 let result = crate::RPC

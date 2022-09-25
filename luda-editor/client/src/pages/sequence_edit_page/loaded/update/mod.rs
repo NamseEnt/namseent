@@ -53,7 +53,7 @@ impl LoadedSequenceEditorPage {
                     image_id,
                 } => {
                     self.image_select_modal = None;
-                    self.update_cut(cut_id, |cut| cut.screen_image_ids[index] = Some(image_id))
+                    self.update_cut(cut_id, |cut| cut.screen_image_ids[index] = image_id)
                 }
             }
         } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
