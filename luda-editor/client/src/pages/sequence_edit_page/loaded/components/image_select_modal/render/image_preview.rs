@@ -72,52 +72,38 @@ impl ImageSelectModal {
                 table::fixed(64.px(), |wh| {
                     let padding = 12.px();
                     let button_height = wh.height - padding * 2;
-                    let cancel_button = button::text_button_fit(
-                        button_height,
-                        "Cancel",
-                        Color::WHITE,
-                        Color::WHITE,
-                        1.px(),
-                        Color::BLACK,
-                        padding,
-                        || namui::event::send(Event::Close),
-                    );
                     let image_id = self.selected_image.as_ref().map(|image| image.id);
-                    let confirm_button = button::text_button_fit(
-                        button_height,
-                        "Confirm",
-                        Color::WHITE,
-                        Color::WHITE,
-                        1.px(),
-                        Color::BLACK,
-                        padding,
-                        move || namui::event::send(InternalEvent::Done { image_id }),
-                    );
-                    let cancel_button_width = match cancel_button.get_bounding_box() {
-                        Some(bounding_box) => bounding_box.width(),
-                        None => return RenderingTree::Empty,
-                    };
-                    let confirm_button_width = match confirm_button.get_bounding_box() {
-                        Some(bounding_box) => bounding_box.width(),
-                        None => return RenderingTree::Empty,
-                    };
-
-                    render([
-                        translate(
-                            wh.width
-                                - padding
-                                - confirm_button_width
-                                - padding
-                                - cancel_button_width,
-                            padding,
-                            cancel_button,
+                    table::horizontal([
+                        table::ratio(1, |_wh| RenderingTree::Empty),
+                        table::fit(
+                            table::FitAlign::CenterMiddle,
+                            button::text_button_fit(
+                                button_height,
+                                "Cancel",
+                                Color::WHITE,
+                                Color::WHITE,
+                                2.px(),
+                                Color::BLACK,
+                                padding,
+                                || namui::event::send(Event::Close),
+                            )
+                            .padding(12.px()),
                         ),
-                        translate(
-                            wh.width - padding - confirm_button_width,
-                            padding,
-                            confirm_button,
+                        table::fit(
+                            table::FitAlign::CenterMiddle,
+                            button::text_button_fit(
+                                button_height,
+                                "Confirm",
+                                Color::BLACK,
+                                Color::BLACK,
+                                2.px(),
+                                Color::WHITE,
+                                padding,
+                                move || namui::event::send(InternalEvent::Done { image_id }),
+                            )
+                            .padding(12.px()),
                         ),
-                    ])
+                    ])(wh)
                 }),
             ])(props.wh),
         ])
