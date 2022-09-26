@@ -44,9 +44,7 @@ impl LoadedSequenceEditorPage {
         .attach_event(move |builder| {
             let cut_id = cut.id();
             builder.on_mouse_down_in(move |_event| {
-                namui::event::send(Event::CharacterCellClicked {
-                    cut_id: cut_id.clone(),
-                });
+                namui::event::send(Event::CharacterCellClicked { cut_id: cut_id });
             });
         })
     }

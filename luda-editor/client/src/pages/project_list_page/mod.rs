@@ -151,7 +151,7 @@ impl ProjectListPage {
                     // TODO
                     // namui::event::send(Event::CellRightClick {
                     //     click_global_xy: event.global_xy,
-                    //     project_id: project_id.clone(),
+                    //     project_id,
                     // });
                 }
             });

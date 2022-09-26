@@ -8,7 +8,7 @@ impl CharacterEditModal {
                 cut_id: _,
             } = event
             {
-                self.character_id = Some(character_id.clone());
+                self.character_id = Some(character_id);
             }
         } else if let Some(event) = event.downcast_ref::<InternalEvent>() {
             match event {
@@ -20,11 +20,11 @@ impl CharacterEditModal {
                     self.context_menu = Some(context_menu::ContextMenu::new(
                         *mouse_global_xy,
                         [context_menu::Item::new("Edit Name", {
-                            let character_id = character_id.clone();
+                            let character_id = *character_id;
                             let name = name.clone();
                             move || {
                                 namui::event::send(InternalEvent::CharacterNameEditClicked {
-                                    character_id: character_id.clone(),
+                                    character_id,
                                     name: name.clone(),
                                 });
                             }
@@ -33,7 +33,7 @@ impl CharacterEditModal {
                 }
                 InternalEvent::CharacterNameEditClicked { character_id, name } => {
                     self.editing_text_mode = Some(EditingTextMode::CharacterName {
-                        character_id: character_id.clone(),
+                        character_id: *character_id,
                         text: name.clone(),
                     });
                     self.text_input.focus();
@@ -71,7 +71,7 @@ impl CharacterEditModal {
                             match editing_text_mode {
                                 EditingTextMode::CharacterName { character_id, text } => {
                                     namui::event::send(Event::CharacterNameChanged {
-                                        character_id: character_id.clone(),
+                                        character_id: *character_id,
                                         name: text.clone(),
                                     })
                                 }

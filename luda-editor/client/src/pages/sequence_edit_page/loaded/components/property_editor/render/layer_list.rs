@@ -42,9 +42,9 @@ impl PropertyEditor {
                                         move || {
                                             namui::event::send(Event::LayerListPlusButtonClicked {
                                                 image_clip_address: ImageClipAddress {
-                                                    sequence_id: selected_sequence_id.clone(),
-                                                    cut_id: selected_cut_id.clone(),
-                                                    image_clip_id: selected_image_clip_id.clone(),
+                                                    sequence_id: selected_sequence_id,
+                                                    cut_id: selected_cut_id,
+                                                    image_clip_id: selected_image_clip_id,
                                                 },
                                             })
                                         }

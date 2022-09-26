@@ -35,7 +35,7 @@ impl Timeline {
                     match clicked_part {
                         resizable_clip::ResizableClipBodyPart::Sash(_direction) => {
                             self.clip_sash_dragging = Some(ClipSashDragging {
-                                clip_id: clip_id.clone(),
+                                clip_id,
                                 global_mouse_x: *global_mouse_x,
                                 start_global_mouse_x: *global_mouse_x,
                             });
@@ -63,8 +63,8 @@ impl Timeline {
 
                             if self.selected_clip_ids.len() > 0 {
                                 namui::event::send(Event::SelectImageClip {
-                                    sequence_id: self.selected_sequence_id.clone(),
-                                    cut_id: self.selected_cut_id.clone(),
+                                    sequence_id: self.selected_sequence_id,
+                                    cut_id: self.selected_cut_id,
                                     image_clip_ids: self.selected_clip_ids.clone(),
                                 })
                             } else {
@@ -92,8 +92,8 @@ impl Timeline {
                             self.selected_clip_ids.iter().next().unwrap().clone();
 
                         let image_clip_address = ImageClipAddress {
-                            sequence_id: self.selected_sequence_id.clone(),
-                            cut_id: self.selected_cut_id.clone(),
+                            sequence_id: self.selected_sequence_id,
+                            cut_id: self.selected_cut_id,
                             image_clip_id: selected_clip_id,
                         };
 

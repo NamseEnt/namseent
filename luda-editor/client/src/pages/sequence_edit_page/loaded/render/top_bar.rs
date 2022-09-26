@@ -22,14 +22,12 @@ impl LoadedSequenceEditorPage {
                 1.px(),
                 Color::BLACK,
                 {
-                    let project_id = self.project_id.clone();
+                    let project_id = self.project_id;
                     move || {
-                        let project_id = project_id.clone();
+                        let project_id = project_id;
                         // TODO: Check saving finished
                         namui::event::send(router::Event::Route(Arc::new(move || {
-                            router::Route::SequenceListPage(SequenceListPage::new(
-                                project_id.clone(),
-                            ))
+                            router::Route::SequenceListPage(SequenceListPage::new(project_id))
                         })));
                     }
                 },

@@ -104,9 +104,9 @@ fn new_sequence_syncer(sequence: Sequence, sequence_id: namui::Uuid) -> Arc<Sync
     Arc::new(Syncer::new(
         sequence,
         {
-            let sequence_id = sequence_id.clone();
+            let sequence_id = sequence_id;
             move |patch| {
-                let sequence_id = sequence_id.clone();
+                let sequence_id = sequence_id;
                 Box::pin(async move {
                     let response = crate::RPC
                         .update_server_sequence(rpc::update_server_sequence::Request {
@@ -122,9 +122,9 @@ fn new_sequence_syncer(sequence: Sequence, sequence_id: namui::Uuid) -> Arc<Sync
             }
         },
         {
-            let sequence_id = sequence_id.clone();
+            let sequence_id = sequence_id;
             move |sequence_json| {
-                let sequence_id = sequence_id.clone();
+                let sequence_id = sequence_id;
                 Box::pin(async move {
                     let response = crate::RPC
                         .update_client_sequence(rpc::update_client_sequence::Request {
@@ -149,9 +149,9 @@ fn new_project_shared_data_syncer_syncer(
     Arc::new(Syncer::new(
         project_shared_data,
         {
-            let project_id = project_id.clone();
+            let project_id = project_id;
             move |patch| {
-                let project_id = project_id.clone();
+                let project_id = project_id;
                 Box::pin(async move {
                     let response = crate::RPC
                         .update_server_project_shared_data(
@@ -166,9 +166,9 @@ fn new_project_shared_data_syncer_syncer(
             }
         },
         {
-            let project_id = project_id.clone();
+            let project_id = project_id;
             move |project_shared_data_json| {
-                let project_id = project_id.clone();
+                let project_id = project_id;
                 Box::pin(async move {
                     let response = crate::RPC
                         .update_client_project_shared_data(

@@ -21,13 +21,13 @@ impl LoadedSequenceEditorPage {
                 Event::Error(error) => {
                     todo!("error: {error}")
                 }
-                Event::CharacterCellClicked { cut_id } => {
-                    match self.sequence.cuts.iter().find(|cut| cut.id().eq(cut_id)) {
+                &Event::CharacterCellClicked { cut_id } => {
+                    match self.sequence.cuts.iter().find(|cut| cut.id() == cut_id) {
                         Some(cut) => {
                             self.character_edit_modal =
                                 Some(character_edit_modal::CharacterEditModal::new(
-                                    cut_id.clone(),
-                                    cut.character_id.clone(),
+                                    cut_id,
+                                    cut.character_id,
                                 ));
                         }
                         None => {
@@ -109,7 +109,7 @@ impl LoadedSequenceEditorPage {
                     character_id,
                 } => {
                     self.update_cut(cut_id, move |cut| {
-                        cut.character_id = Some(character_id.clone());
+                        cut.character_id = Some(character_id);
                     });
                     self.character_edit_modal = None;
                 }

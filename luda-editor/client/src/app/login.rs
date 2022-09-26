@@ -28,7 +28,7 @@ impl App {
         } else if let Some(event) = event.downcast_ref::<Event>() {
             match event {
                 Event::SessionId(session_id) => {
-                    crate::RPC.set_session_id(session_id.clone());
+                    crate::RPC.set_session_id(*session_id);
                     namui::event::send(super::Event::LoggedIn);
                 }
                 Event::Error(error) => namui::log!("error: {}", error),
@@ -108,7 +108,7 @@ fn login_with_oauth_code(code: String) {
         match result {
             Ok(response) => {
                 let session_id = response.session_id;
-                namui::event::send(Event::SessionId(session_id.clone()));
+                namui::event::send(Event::SessionId(response.session_id));
                 namui::cache::set_serde("SessionId", &session_id)
                     .await
                     .unwrap();

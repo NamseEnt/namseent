@@ -50,17 +50,13 @@ impl ContextMenu {
                         namui_prebuilt::typography::body::left(wh.height, text, Color::WHITE),
                     ])
                     .attach_event(|builder| {
-                        let sequence_id = self.sequence_id.clone();
+                        let sequence_id = self.sequence_id;
                         builder.on_mouse_up_in(move |_event| match item {
                             ContextMenuItem::Delete => {
-                                namui::event::send(Event::DeleteButtonClicked {
-                                    sequence_id: sequence_id.clone(),
-                                });
+                                namui::event::send(Event::DeleteButtonClicked { sequence_id });
                             }
                             ContextMenuItem::Rename => {
-                                namui::event::send(Event::RenameButtonClicked {
-                                    sequence_id: sequence_id.clone(),
-                                });
+                                namui::event::send(Event::RenameButtonClicked { sequence_id });
                             }
                         });
                     })

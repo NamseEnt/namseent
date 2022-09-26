@@ -113,13 +113,13 @@ impl CharacterEditModal {
                             if is_character_cell_in_editing_text_mode {
                                 return;
                             }
-                            let cut_id = self.cut_id.clone();
+                            let cut_id = self.cut_id;
                             let character_id = character.id();
                             let character_name = character.name.clone();
                             builder.on_mouse_down_in(move |event| {
                                 if let Some(MouseButton::Left) = event.button {
                                     namui::event::send(Event::CharacterSelected {
-                                        cut_id: cut_id.clone(),
+                                        cut_id,
                                         character_id,
                                     });
                                 } else if let Some(MouseButton::Right) = event.button {
