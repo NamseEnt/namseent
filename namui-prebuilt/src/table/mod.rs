@@ -2,14 +2,15 @@ use namui::prelude::*;
 
 pub struct TableCell<'a> {
     unit: Unit,
-    render: Box<dyn FnOnce(Wh<Px>) -> RenderingTree + 'a>,
+    render: Box<dyn FnOnce(Direction, Wh<Px>) -> RenderingTree + 'a>,
     need_clip: bool,
 }
 
-pub enum Unit {
+enum Unit {
     Ratio(f32),
     Fixed(Px),
     Calculative(Box<dyn FnOnce(Wh<Px>) -> Px>),
+    Responsive(Box<dyn FnOnce(Direction) -> Px>),
 }
 
 pub trait F32OrI32 {
@@ -34,7 +35,7 @@ pub fn ratio<'a>(
 ) -> TableCell<'a> {
     TableCell {
         unit: Unit::Ratio(ratio.as_f32()),
-        render: Box::new(cell_render_closure),
+        render: Box::new(|_direction, wh| cell_render_closure(wh)),
         need_clip: true,
     }
 }
@@ -45,7 +46,7 @@ pub fn ratio_no_clip<'a>(
 ) -> TableCell<'a> {
     TableCell {
         unit: Unit::Ratio(ratio.as_f32()),
-        render: Box::new(cell_render_closure),
+        render: Box::new(|_direction, wh| cell_render_closure(wh)),
         need_clip: false,
     }
 }
@@ -56,7 +57,7 @@ pub fn fixed<'a>(
 ) -> TableCell<'a> {
     TableCell {
         unit: Unit::Fixed(pixel),
-        render: Box::new(cell_render_closure),
+        render: Box::new(|_direction, wh| cell_render_closure(wh)),
         need_clip: true,
     }
 }
@@ -67,7 +68,7 @@ pub fn fixed_no_clip<'a>(
 ) -> TableCell<'a> {
     TableCell {
         unit: Unit::Fixed(pixel),
-        render: Box::new(cell_render_closure),
+        render: Box::new(|_direction, wh| cell_render_closure(wh)),
         need_clip: false,
     }
 }
@@ -78,7 +79,7 @@ pub fn calculative<'a>(
 ) -> TableCell<'a> {
     TableCell {
         unit: Unit::Calculative(Box::new(from_parent_wh)),
-        render: Box::new(cell_render_closure),
+        render: Box::new(|_direction, wh| cell_render_closure(wh)),
         need_clip: true,
     }
 }
@@ -89,7 +90,7 @@ pub fn calculative_no_clip<'a>(
 ) -> TableCell<'a> {
     TableCell {
         unit: Unit::Calculative(Box::new(from_parent_wh)),
-        render: Box::new(cell_render_closure),
+        render: Box::new(|_direction, wh| cell_render_closure(wh)),
         need_clip: false,
     }
 }
@@ -106,6 +107,7 @@ pub fn horizontal<'a>(
     slice_internal(Direction::Horizontal, items)
 }
 
+#[derive(Copy, Clone)]
 enum Direction {
     Vertical,
     Horizontal,
@@ -142,6 +144,7 @@ fn slice_internal<'a>(
                     Unit::Ratio(ratio) => (None, Some(ratio)),
                     Unit::Fixed(pixel_size) => (Some(pixel_size), None),
                     Unit::Calculative(calculative_fn) => (Some(calculative_fn(wh)), None),
+                    Unit::Responsive(responsive_fn) => (Some(responsive_fn(direction)), None),
                 };
                 (pixel_size, ratio)
             })
@@ -190,10 +193,10 @@ fn slice_internal<'a>(
                             height: xywh.height(),
                         }),
                         ClipOp::Intersect,
-                        render_fn(xywh.wh()),
+                        render_fn(direction, xywh.wh()),
                     )
                 } else {
-                    render_fn(xywh.wh())
+                    render_fn(direction, xywh.wh())
                 },
             );
 
@@ -201,6 +204,61 @@ fn slice_internal<'a>(
             advanced_pixel_size += pixel_size;
         }
         RenderingTree::Children(rendering_tree_list)
+    }
+}
+
+pub fn padding<'a>(
+    padding: Px,
+    cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
+) -> impl FnOnce(Wh<Px>) -> RenderingTree + 'a {
+    horizontal([
+        fixed(padding, |_| RenderingTree::Empty),
+        ratio(
+            1,
+            vertical([
+                fixed(padding, |_| RenderingTree::Empty),
+                ratio(1, cell_render_closure),
+                fixed(padding, |_| RenderingTree::Empty),
+            ]),
+        ),
+        fixed(padding, |_| RenderingTree::Empty),
+    ])
+}
+
+pub enum FitAlign {
+    LeftTop,
+    CenterMiddle,
+    RightBottom,
+}
+pub fn fit<'a>(align: FitAlign, rendering_tree: RenderingTree) -> TableCell<'a> {
+    match rendering_tree.get_bounding_box() {
+        Some(bounding_box) => TableCell {
+            unit: Unit::Responsive(Box::new(move |direction| match direction {
+                Direction::Vertical => bounding_box.height(),
+                Direction::Horizontal => bounding_box.width(),
+            })),
+            render: Box::new(move |direction, wh| {
+                let x = match direction {
+                    Direction::Vertical => match align {
+                        FitAlign::LeftTop => 0.px(),
+                        FitAlign::CenterMiddle => (wh.width - bounding_box.width()) / 2.0,
+                        FitAlign::RightBottom => wh.width - bounding_box.width(),
+                    },
+                    Direction::Horizontal => 0.px(),
+                };
+                let y = match direction {
+                    Direction::Vertical => 0.px(),
+                    Direction::Horizontal => match align {
+                        FitAlign::LeftTop => 0.px(),
+                        FitAlign::CenterMiddle => (wh.height - bounding_box.height()) / 2.0,
+                        FitAlign::RightBottom => wh.height - bounding_box.height(),
+                    },
+                };
+                translate(x, y, rendering_tree)
+            }),
+            need_clip: true,
+        },
+        None => ratio(0, |_| rendering_tree),
     }
 }
 
@@ -216,6 +274,7 @@ mod tests {
         let button_render_called = AtomicBool::new(false);
         let label_render_called = AtomicBool::new(false);
         let body_render_called = AtomicBool::new(false);
+        let body_inner_render_called = AtomicBool::new(false);
 
         let button = calculative(
             |parent_wh| parent_wh.height,
@@ -240,7 +299,19 @@ mod tests {
             body_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
             assert_eq!(px(300.0), wh.width);
             assert_eq!(px(480.0), wh.height);
-            RenderingTree::Empty
+            vertical([
+                ratio(
+                    1,
+                    padding(5.px(), |wh| {
+                        body_inner_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
+                        assert_eq!(px(290.0), wh.width);
+                        assert_eq!(px(470.0), wh.height);
+                        RenderingTree::Empty
+                    }),
+                ),
+                // Note: RenderingTree is not testable yet, So you cannot test fit well now.
+                fit(FitAlign::LeftTop, RenderingTree::Empty),
+            ])(wh)
         });
 
         vertical([header, body])(Wh {
@@ -259,6 +330,10 @@ mod tests {
         assert_eq!(
             true,
             body_render_called.load(std::sync::atomic::Ordering::Relaxed)
+        );
+        assert_eq!(
+            true,
+            body_inner_render_called.load(std::sync::atomic::Ordering::Relaxed)
         );
     }
 }
