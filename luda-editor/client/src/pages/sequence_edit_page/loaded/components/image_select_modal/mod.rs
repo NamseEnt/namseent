@@ -39,6 +39,22 @@ enum InternalEvent {
 
 impl ImageSelectModal {
     pub fn new(project_id: Uuid, on_done: impl Fn(Option<Uuid>) + 'static) -> ImageSelectModal {
+        let modal = ImageSelectModal {
+            project_id,
+            context_menu: None,
+            label_scroll_view: scroll_view::ScrollView::new(),
+            image_list_scroll_view: scroll_view::ScrollView::new(),
+            image_edit_modal: None,
+            images: vec![],
+            selected_labels: BTreeSet::new(),
+            selected_image: None,
+            on_done: Box::new(on_done),
+        };
+        modal.request_reload_images();
+        modal
+    }
+    pub fn request_reload_images(&self) {
+        let project_id = self.project_id;
         spawn_local({
             async move {
                 let result = crate::RPC
@@ -55,17 +71,5 @@ impl ImageSelectModal {
                 }
             }
         });
-
-        ImageSelectModal {
-            project_id,
-            context_menu: None,
-            label_scroll_view: scroll_view::ScrollView::new(),
-            image_list_scroll_view: scroll_view::ScrollView::new(),
-            image_edit_modal: None,
-            images: vec![],
-            selected_labels: BTreeSet::new(),
-            selected_image: None,
-            on_done: Box::new(on_done),
-        }
     }
 }

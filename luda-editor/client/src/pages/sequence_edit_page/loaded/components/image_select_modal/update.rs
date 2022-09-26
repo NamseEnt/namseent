@@ -37,6 +37,7 @@ impl ImageSelectModal {
             match event {
                 image_edit_modal::Event::Close => {
                     self.image_edit_modal = None;
+                    self.request_reload_images();
                 }
                 image_edit_modal::Event::Error(error) => {
                     namui::log!("image_edit_modal error: {}", error);
