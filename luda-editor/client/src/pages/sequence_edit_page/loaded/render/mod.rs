@@ -35,7 +35,10 @@ impl LoadedSequenceEditorPage {
                     translate(
                         xy.x,
                         xy.y,
-                        image_select_modal.render(image_select_modal::Props { wh: modal_wh }),
+                        image_select_modal.render(image_select_modal::Props {
+                            wh: modal_wh,
+                            recent_selected_image_ids: &self.recent_selected_image_ids,
+                        }),
                     )
                 }
                 None => RenderingTree::Empty,

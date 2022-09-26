@@ -18,7 +18,10 @@ impl ImageSelectModal {
                         1.0,
                         table::vertical([
                             table::ratio(1.0, |wh| {
-                                self.render_recent_images(recent_images::Props { wh })
+                                self.render_recent_images(recent_images::Props {
+                                    wh,
+                                    recent_selected_image_ids: props.recent_selected_image_ids,
+                                })
                             }),
                             table::ratio(2.0, |wh| {
                                 self.render_label_list(label_list::Props { wh })

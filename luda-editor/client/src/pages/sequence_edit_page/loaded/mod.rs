@@ -8,7 +8,10 @@ use namui::prelude::*;
 use namui_prebuilt::*;
 pub use render::Props;
 use rpc::data::*;
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::Arc,
+};
 
 pub struct LoadedSequenceEditorPage {
     project_id: namui::Uuid,
@@ -22,6 +25,7 @@ pub struct LoadedSequenceEditorPage {
     image_select_modal: Option<image_select_modal::ImageSelectModal>,
     project_shared_data: ProjectSharedData,
     sequence: Sequence,
+    recent_selected_image_ids: VecDeque<Uuid>,
 }
 
 enum Event {
@@ -39,6 +43,9 @@ enum Event {
         index: usize,
         cut_id: Uuid,
         image_id: Option<Uuid>,
+    },
+    UpdateRecentSelectedImageIds {
+        image_ids: VecDeque<Uuid>,
     },
 }
 
@@ -60,6 +67,7 @@ impl LoadedSequenceEditorPage {
             });
             line_text_inputs
         };
+        start_load_recent_selected_image_ids();
         Self {
             project_id: project_id.clone(),
             sequence_id,
@@ -71,8 +79,25 @@ impl LoadedSequenceEditorPage {
             image_select_modal: None,
             project_shared_data,
             sequence,
+            recent_selected_image_ids: VecDeque::new(),
         }
     }
+}
+
+fn start_load_recent_selected_image_ids() {
+    spawn_local(async move {
+        let result = namui::cache::get_serde::<VecDeque<Uuid>>("recent_selected_image_ids").await;
+        match result {
+            Ok(image_ids) => {
+                if let Some(image_ids) = image_ids {
+                    namui::event::send(Event::UpdateRecentSelectedImageIds { image_ids });
+                }
+            }
+            Err(error) => {
+                namui::event::send(Event::Error(error.to_string()));
+            }
+        }
+    })
 }
 
 fn new_sequence_syncer(sequence: Sequence, sequence_id: namui::Uuid) -> Arc<Syncer<Sequence>> {

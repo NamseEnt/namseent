@@ -22,8 +22,14 @@ impl ImageSelectModal {
                         self.selected_labels.insert(label.clone());
                     }
                 }
-                InternalEvent::ImageSelected(image) => {
+                InternalEvent::ImageSelected {
+                    image,
+                    update_labels,
+                } => {
                     self.selected_image = Some(image.clone());
+                    if *update_labels {
+                        self.selected_labels = image.labels.clone().into_iter().collect();
+                    }
                 }
                 &InternalEvent::Done { image_id } => {
                     (self.on_done)(image_id);

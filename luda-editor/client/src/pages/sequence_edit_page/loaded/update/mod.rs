@@ -53,7 +53,34 @@ impl LoadedSequenceEditorPage {
                     image_id,
                 } => {
                     self.image_select_modal = None;
-                    self.update_cut(cut_id, |cut| cut.screen_image_ids[index] = image_id)
+                    self.update_cut(cut_id, |cut| cut.screen_image_ids[index] = image_id);
+                    if let Some(image_id) = image_id {
+                        self.recent_selected_image_ids.retain(|id| id.ne(&image_id));
+                        self.recent_selected_image_ids.push_front(image_id);
+                        while self.recent_selected_image_ids.len() > 10 {
+                            self.recent_selected_image_ids.pop_back();
+                        }
+
+                        spawn_local({
+                            let recent_selected_image_ids = self.recent_selected_image_ids.clone();
+                            async move {
+                                let result = namui::cache::set_serde(
+                                    "recent_selected_image_ids",
+                                    &recent_selected_image_ids,
+                                )
+                                .await;
+                                if let Err(error) = result {
+                                    namui::log!(
+                                        "failed to save recent_selected_image_ids: {error}"
+                                    );
+                                    namui::event::send(Event::Error(error.to_string()));
+                                }
+                            }
+                        });
+                    }
+                }
+                Event::UpdateRecentSelectedImageIds { image_ids } => {
+                    self.recent_selected_image_ids = image_ids.clone();
                 }
             }
         } else if let Some(event) = event.downcast_ref::<text_input::Event>() {

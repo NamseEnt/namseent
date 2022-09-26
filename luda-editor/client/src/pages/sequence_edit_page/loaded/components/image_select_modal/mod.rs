@@ -6,7 +6,7 @@ use crate::components::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::*;
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, VecDeque};
 
 pub struct ImageSelectModal {
     project_id: Uuid,
@@ -20,8 +20,9 @@ pub struct ImageSelectModal {
     on_done: Box<dyn Fn(Option<Uuid>)>,
 }
 
-pub struct Props {
+pub struct Props<'a> {
     pub wh: Wh<Px>,
+    pub recent_selected_image_ids: &'a VecDeque<Uuid>,
 }
 
 pub enum Event {
@@ -33,8 +34,13 @@ enum InternalEvent {
     LoadImages(Vec<ImageWithLabels>),
     AddImageButtonClicked,
     ToggleLabel(Label),
-    ImageSelected(ImageWithLabels),
-    Done { image_id: Option<Uuid> },
+    ImageSelected {
+        image: ImageWithLabels,
+        update_labels: bool,
+    },
+    Done {
+        image_id: Option<Uuid>,
+    },
 }
 
 impl ImageSelectModal {
