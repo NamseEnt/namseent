@@ -101,7 +101,8 @@ jobs:
               --output text)
           JSON=$(cat << EOF
           {
-            "endpoint": "$ENDPOINT"
+            "rpc_endpoint": "$ENDPOINT",
+            "resource_base_url": "$ENDPOINT"
           }
           EOF
           )
