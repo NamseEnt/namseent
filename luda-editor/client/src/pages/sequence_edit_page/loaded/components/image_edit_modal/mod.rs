@@ -32,6 +32,7 @@ enum InternalEvent {
 #[derive(Clone, Copy)]
 pub enum ModalPurpose {
     Add,
+    #[allow(dead_code)]
     Edit,
 }
 

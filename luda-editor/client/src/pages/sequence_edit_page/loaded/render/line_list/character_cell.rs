@@ -17,7 +17,7 @@ impl LoadedSequenceEditorPage {
             simple_rect(wh, Color::WHITE, 1.px(), Color::BLACK),
             table::vertical([
                 table::ratio(1.0, move |wh| {
-                    let image_source = character.and_then(|character| {
+                    let image_source = character.and_then(|_character| {
                         // TODO: Get main character image
                         None
                     });

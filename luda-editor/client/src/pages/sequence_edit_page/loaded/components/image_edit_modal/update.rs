@@ -24,6 +24,7 @@ impl ImageEditModal {
                             )),
                             ModalPurpose::Edit => Box::pin(update_image(
                                 todo!(),
+                                #[allow(unreachable_code)]
                                 self.label_list.clone(),
                                 self.image.clone(),
                             )),
@@ -108,14 +109,10 @@ async fn create_image(
     Ok(())
 }
 
-async fn delete_image(label_list: Vec<Label>) {
-    todo!()
-}
-
 async fn update_image(
-    prev_label_list: Vec<Label>,
-    new_label_list: Vec<Label>,
-    image: Option<File>,
+    _prev_label_list: Vec<Label>,
+    _new_label_list: Vec<Label>,
+    _image: Option<File>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     /*
     1) 이미지를 수정할 경우
