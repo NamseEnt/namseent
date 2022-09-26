@@ -1,0 +1,51 @@
+use super::Movement;
+use crate::app::game::Position;
+use namui::prelude::*;
+
+pub struct MovementPlan {
+    pub directed_movement: Movement,
+    pub predicted_movement_list: Vec<Movement>,
+}
+impl MovementPlan {
+    pub fn get_position(&self, current_time: Time) -> Option<Position> {
+        for movement in self.predicted_movement_list.iter() {
+            if let Some(position) = movement.get_position(current_time) {
+                return Some(position);
+            }
+        }
+        None
+    }
+    pub fn stay_forever(position: Position, current_time: Time) -> Self {
+        Self {
+            directed_movement: Movement::stay_forever(position, current_time),
+            predicted_movement_list: vec![Movement::stay_forever(position, current_time)],
+        }
+    }
+    pub fn move_now(
+        position: Position,
+        current_time: Time,
+        duration: namui::Time,
+        velocity: namui::Xy<namui::Per<crate::app::game::Tile, namui::Time>>,
+    ) -> Self {
+        let end_position = Xy {
+            x: velocity.x * duration + position.x,
+            y: velocity.y * duration + position.y,
+        };
+        Self {
+            directed_movement: Movement {
+                start_time: current_time,
+                end_time: current_time + duration,
+                start_position: position,
+                end_position,
+                velocity,
+            },
+            predicted_movement_list: vec![Movement {
+                start_time: current_time,
+                end_time: current_time,
+                start_position: position,
+                end_position: position,
+                velocity,
+            }],
+        }
+    }
+}
