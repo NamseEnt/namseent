@@ -17,6 +17,8 @@ impl ImageSelectModal {
                     if self.selected_labels.contains(label) {
                         self.selected_labels.remove(label);
                     } else {
+                        self.selected_labels
+                            .retain(|selected_label| selected_label.key.ne(&label.key));
                         self.selected_labels.insert(label.clone());
                     }
                 }
