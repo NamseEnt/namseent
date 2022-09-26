@@ -89,7 +89,11 @@ export class CdkStack extends cdk.Stack {
                     resources: [
                         `arn:aws:s3:::${s3BucketName.valueAsString}/${s3KeyPrefix.valueAsString}*`,
                     ],
-                    actions: ["s3:GetObject"],
+                    actions: [
+                        "s3:GetObject",
+                        "s3:PutObject",
+                        "s3:PutObjectAcl",
+                    ],
                 }),
                 new cdk.aws_iam.PolicyStatement({
                     resources: [dynamoDb.tableArn],
@@ -111,18 +115,5 @@ export class CdkStack extends cdk.Stack {
         new cdk.CfnOutput(this, "FunctionUrl", {
             value: fnUrl.url,
         });
-
-        const bucket = cdk.aws_s3.Bucket.fromBucketName(this, 'bucket', s3BucketName.valueAsString);
-
-        bucket.addToResourcePolicy(
-            new cdk.aws_iam.PolicyStatement({
-                effect: cdk.aws_iam.Effect.ALLOW,
-                principals: [new cdk.aws_iam.AnyPrincipal()],
-                actions: ["s3:GetObject"],
-                resources: [
-                    `arn:aws:s3:::${s3BucketName.valueAsString}/${s3KeyPrefix.valueAsString}*`,
-                ],
-            }),
-        );
     }
 }
