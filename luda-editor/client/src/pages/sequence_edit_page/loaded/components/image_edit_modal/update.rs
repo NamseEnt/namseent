@@ -101,6 +101,8 @@ async fn create_image(
         namui::network::http::Method::PUT,
         |builder| builder.body(body.to_vec()),
     )
+    .await?
+    .error_for_400599()
     .await?;
 
     Ok(())
