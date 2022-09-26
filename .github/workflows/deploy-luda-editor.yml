@@ -102,7 +102,7 @@ jobs:
           JSON=$(cat << EOF
           {
             "rpc_endpoint": "$ENDPOINT",
-            "resource_base_url": "$ENDPOINT"
+            "resource_base_url": "https://luda-editor.s3.ap-northeast-2.amazonaws.com/${{ env.BRANCH_NAME }}"
           }
           EOF
           )

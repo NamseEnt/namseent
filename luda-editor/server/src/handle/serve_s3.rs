@@ -25,7 +25,7 @@ pub async fn serve_s3(
         path = "/index.html";
     }
 
-    let key = format!("{}{}", serve_static_s3_key_prefix, path);
+    let key = crate::append_slash![serve_static_s3_key_prefix, path];
 
     if [".html", ".js"].iter().any(|ext| key.ends_with(ext)) {
         let response = client
