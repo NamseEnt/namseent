@@ -47,8 +47,8 @@ impl SequenceEditPage {
                         ..
                     } => {
                         *self = SequenceEditPage::Loaded(LoadedSequenceEditorPage::new(
-                            project_id,
-                            sequence_id,
+                            *project_id,
+                            *sequence_id,
                             project_shared_data.clone(),
                             sequence.clone(),
                         ));

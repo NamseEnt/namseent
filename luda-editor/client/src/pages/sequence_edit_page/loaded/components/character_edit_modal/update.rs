@@ -8,7 +8,7 @@ impl CharacterEditModal {
                 cut_id: _,
             } = event
             {
-                self.character_id = Some(character_id);
+                self.character_id = Some(*character_id);
             }
         } else if let Some(event) = event.downcast_ref::<InternalEvent>() {
             match event {
