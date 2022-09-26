@@ -56,9 +56,9 @@ impl LoadedSequenceEditorPage {
         project_shared_data: ProjectSharedData,
         sequence: Sequence,
     ) -> Self {
-        let sequence_syncer = new_sequence_syncer(sequence.clone(), sequence_id.clone());
+        let sequence_syncer = new_sequence_syncer(sequence.clone(), sequence_id);
         let project_shared_data_syncer =
-            new_project_shared_data_syncer_syncer(project_shared_data.clone(), project_id.clone());
+            new_project_shared_data_syncer_syncer(project_shared_data.clone(), project_id);
 
         let line_text_inputs = {
             let mut line_text_inputs = HashMap::new();
@@ -69,7 +69,7 @@ impl LoadedSequenceEditorPage {
         };
         start_load_recent_selected_image_ids();
         Self {
-            project_id: project_id.clone(),
+            project_id,
             sequence_id,
             cut_list_view: list_view::ListView::new(),
             line_text_inputs,
