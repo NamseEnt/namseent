@@ -1,19 +1,20 @@
-use super::{known_id, CollisionBox, GameObject};
+use super::{CollisionBox, GameObject};
 use namui::prelude::*;
 
 pub fn get_collision_box_list_without_character_collision_box(
-    object_list: &mut Vec<Box<dyn GameObject>>,
-    current_time: Time,
+    _object_list: &mut Vec<Box<dyn GameObject>>,
+    _current_time: Time,
 ) -> Vec<CollisionBox> {
-    object_list
-        .iter_mut()
-        .filter_map(|game_object| {
-            if game_object.get_id() == known_id::object::PLAYER_CHARACTER_OBJECT {
-                None
-            } else {
-                game_object.get_collider()
-            }
-        })
-        .map(|collider| collider.get_collision_box(current_time))
-        .collect::<Vec<_>>()
+    todo!()
+    // object_list
+    //     .iter_mut()
+    //     .filter_map(|game_object| {
+    //         if game_object.get_id() == known_id::object::PLAYER_CHARACTER_OBJECT {
+    //             None
+    //         } else {
+    //             game_object.get_collider()
+    //         }
+    //     })
+    //     .map(|collider| collider.get_collision_box(current_time))
+    //     .collect::<Vec<_>>()
 }

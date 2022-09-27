@@ -5,12 +5,13 @@ use super::{
 use namui::prelude::*;
 use namui_prebuilt::simple_rect;
 
-pub struct Game {
+pub struct Game<'a> {
     pub object_list: Vec<Box<dyn GameObject>>,
     pub state: GameState,
     pub camera: Camera,
+    ecs_app: crate::ecs::App<'a>,
 }
-impl Game {
+impl Game<'_> {
     pub fn new() -> Self {
         let character = mock_character();
         let quest_object = mock_quest_object();
@@ -29,6 +30,7 @@ impl Game {
             camera: Camera::new(Some(CameraSubject::Object {
                 id: known_id::object::PLAYER_CHARACTER_OBJECT,
             })),
+            ecs_app: crate::ecs::App::new(),
         }
     }
 

@@ -1,7 +1,7 @@
 use super::{Game, RenderingContext};
 use namui::prelude::*;
 
-impl Game {
+impl Game<'_> {
     pub fn render_guide_icon(&self, rendering_context: &RenderingContext) -> RenderingTree {
         const OFFSET_Y: Px = px(-4.0);
         render(

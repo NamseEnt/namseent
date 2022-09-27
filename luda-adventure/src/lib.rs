@@ -1,4 +1,9 @@
+#![allow(dead_code)]
+
 mod app;
+mod ecs;
+
+use ecs::register_component;
 
 #[cfg(test)]
 #[cfg(target_family = "wasm")]

@@ -62,12 +62,4 @@ impl GameObject for Floor {
             height: VISUAL_HEIGHT,
         }
     }
-
-    fn get_mover(&mut self) -> Option<&mut dyn super::Mover> {
-        None
-    }
-
-    fn get_collider(&mut self) -> Option<&mut dyn super::Collider> {
-        None
-    }
 }
