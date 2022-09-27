@@ -60,6 +60,7 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
     let command_to_pass_to_docker = format!(
         "{}",
         [
+            format!("rustc --version"),
             format!(
                 "RUSTFLAGS=\"-D warnings\" wasm-pack test --headless --chrome {}",
                 directory.to_str().unwrap()
