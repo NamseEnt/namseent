@@ -1,4 +1,4 @@
-use super::Collider;
+
 use crate::app::game::{GameObject, Position, Tile};
 use namui::prelude::*;
 use namui_prebuilt::simple_rect;
@@ -69,24 +69,6 @@ impl GameObject for Wall {
             y: position.y + VISUAL_OFFSET_Y,
             width: VISUAL_WIDTH,
             height: VISUAL_HEIGHT,
-        }
-    }
-
-    fn get_mover(&mut self) -> Option<&mut dyn super::Mover> {
-        None
-    }
-
-    fn get_collider(&mut self) -> Option<&mut dyn super::Collider> {
-        Some(self)
-    }
-}
-impl Collider for Wall {
-    fn get_collision_box(&self, _current_time: Time) -> super::CollisionBox {
-        Rect::Xywh {
-            x: self.position.x + COLLISION_OFFSET_X,
-            y: self.position.y + COLLISION_OFFSET_Y,
-            width: COLLISION_WIDTH,
-            height: COLLISION_HEIGHT,
         }
     }
 }

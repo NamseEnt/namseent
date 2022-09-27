@@ -1,4 +1,4 @@
-use super::{Collider, Mover};
+
 use crate::app::game::{GameState, Position, RenderingContext, Tile};
 use namui::prelude::*;
 use std::cmp::Ordering;
@@ -13,8 +13,6 @@ pub trait GameObject {
     fn get_position(&self, current_time: Time) -> Position;
     fn get_z_index(&self) -> i32;
     fn get_visual_area(&self, current_time: Time) -> VisualArea;
-    fn get_mover(&mut self) -> Option<&mut dyn Mover>;
-    fn get_collider(&mut self) -> Option<&mut dyn Collider>;
 }
 
 pub trait RenderGameObjectList {

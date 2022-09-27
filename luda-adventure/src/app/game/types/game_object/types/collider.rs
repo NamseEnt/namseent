@@ -1,8 +1,25 @@
-use crate::app::game::{GameObject, Tile};
-use namui::{Rect, Time};
-
-pub trait Collider: GameObject {
-    fn get_collision_box(&self, current_time: Time) -> CollisionBox;
-}
+use crate::app::game::{Position, Tile};
+use namui::Rect;
 
 pub type CollisionBox = Rect<Tile>;
+
+pub struct Collider {
+    collision_offset_rect: Rect<Tile>,
+}
+crate::register_component!(Collider);
+
+impl Collider {
+    pub fn new(collision_offset_rect: Rect<Tile>) -> Self {
+        Self {
+            collision_offset_rect,
+        }
+    }
+    pub fn get_collision_box(&self, position: Position) -> CollisionBox {
+        Rect::Xywh {
+            x: position.x + self.collision_offset_rect.x(),
+            y: position.y + self.collision_offset_rect.y(),
+            width: self.collision_offset_rect.width(),
+            height: self.collision_offset_rect.height(),
+        }
+    }
+}

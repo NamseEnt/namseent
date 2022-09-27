@@ -1,5 +1,7 @@
-use super::PlayerCharacter;
-use crate::app::game::{Collider, GameObject, Mover, Position, Tile, TileExt, Velocity};
+
+use crate::app::game::{
+    Collider, GameObject, MovementPlan, Mover, Position, Tile, TileExt, Velocity,
+};
 use float_cmp::assert_approx_eq;
 use namui::prelude::*;
 use wasm_bindgen_test::wasm_bindgen_test;
@@ -38,18 +40,23 @@ fn move_to_wall_then_move_along_wall_finally_stop_at_corner() {
     let mut walls = mock_walls();
     let collision_box_list_without_character = walls
         .iter_mut()
-        .filter_map(|wall| wall.get_collider())
-        .map(|wall| wall.get_collision_box(0.sec()))
+        .map(|wall| wall.get_collision_box(Xy::zero()))
         .collect::<Vec<_>>();
 
-    let mut character = PlayerCharacter::new(
+    let mut mover = Mover::new(MovementPlan::stay_forever(
         Position {
             x: 2.tile(),
             y: 4.tile(),
         },
         0.sec(),
-    );
-    character.set_velocity(
+    ));
+    let collider = Collider::new(Rect::Xywh {
+        x: Tile(-1.5),
+        y: Tile(-1.5),
+        width: Tile(3.0),
+        height: Tile(3.0),
+    });
+    mover.set_velocity(
         0.sec(),
         Velocity {
             x: Per::new(1.tile(), 1.sec()),
@@ -57,27 +64,27 @@ fn move_to_wall_then_move_along_wall_finally_stop_at_corner() {
         },
         f32::INFINITY.sec(),
     );
-    while character.get_predicted_movement_end_time() < 20.sec() {
-        character.predict_movement(&collision_box_list_without_character);
+    while mover.get_predicted_movement_end_time() < 20.sec() {
+        mover.predict_movement(&collider, &collision_box_list_without_character);
     }
 
     // Step 1: Move to wall
-    let position_at_step_1 = character.get_position(2.sec());
+    let position_at_step_1 = mover.get_position(2.sec());
     assert_approx_eq!(f32, position_at_step_1.x.0, 4.0);
     assert_approx_eq!(f32, position_at_step_1.y.0, 2.0);
 
     // Step 2: Move along wall
-    let position_at_step_2 = character.get_position(4.sec());
+    let position_at_step_2 = mover.get_position(4.sec());
     assert_approx_eq!(f32, position_at_step_2.x.0, 6.0);
     assert_approx_eq!(f32, position_at_step_2.y.0, 2.0);
 
     // Step 3: Stay corner forever
-    let position_at_step_3 = character.get_position(20.sec());
+    let position_at_step_3 = mover.get_position(20.sec());
     assert_approx_eq!(f32, position_at_step_3.x.0, 7.0);
     assert_approx_eq!(f32, position_at_step_3.y.0, 2.0);
 }
 
-fn mock_walls() -> Vec<Box<impl GameObject>> {
+fn mock_walls() -> Vec<Collider> {
     let mut walls = Vec::new();
     for x in 0..10 {
         match x {
@@ -92,9 +99,12 @@ fn mock_walls() -> Vec<Box<impl GameObject>> {
     walls
 }
 
-fn mock_wall(x: i32, y: i32) -> Box<impl GameObject> {
-    Box::new(MockWall {
-        position: Position::new(x.tile(), y.tile()),
+fn mock_wall(x: i32, y: i32) -> Collider {
+    Collider::new(namui::Rect::Xywh {
+        x: x.tile() - 0.5.tile(),
+        y: y.tile() - 0.5.tile(),
+        width: 1.tile(),
+        height: 1.tile(),
     })
 }
 
@@ -121,20 +131,14 @@ impl GameObject for MockWall {
     fn get_visual_area(&self, _current_time: namui::Time) -> crate::app::game::VisualArea {
         todo!()
     }
-    fn get_mover(&mut self) -> Option<&mut dyn crate::app::game::Mover> {
-        todo!()
-    }
-    fn get_collider(&mut self) -> Option<&mut dyn crate::app::game::Collider> {
-        return Some(self);
-    }
 }
-impl Collider for MockWall {
-    fn get_collision_box(&self, _current_time: namui::Time) -> crate::app::game::CollisionBox {
-        namui::Rect::Xywh {
-            x: self.position.x - 0.5.tile(),
-            y: self.position.y - 0.5.tile(),
-            width: 1.tile(),
-            height: 1.tile(),
-        }
-    }
-}
+// impl Collider for MockWall {
+//     fn get_collision_box(&self, _current_time: namui::Time) -> crate::app::game::CollisionBox {
+//         namui::Rect::Xywh {
+//             x: self.position.x - 0.5.tile(),
+//             y: self.position.y - 0.5.tile(),
+//             width: 1.tile(),
+//             height: 1.tile(),
+//         }
+//     }
+// }
