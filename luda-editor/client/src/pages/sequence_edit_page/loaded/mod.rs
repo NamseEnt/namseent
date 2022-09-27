@@ -8,7 +8,10 @@ use namui::prelude::*;
 use namui_prebuilt::*;
 pub use render::Props;
 use rpc::data::*;
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::Arc,
+};
 
 pub struct LoadedSequenceEditorPage {
     project_id: namui::Uuid,
@@ -19,8 +22,10 @@ pub struct LoadedSequenceEditorPage {
     sequence_syncer: Arc<Syncer<Sequence>>,
     project_shared_data_syncer: Arc<Syncer<ProjectSharedData>>,
     character_edit_modal: Option<character_edit_modal::CharacterEditModal>,
+    image_select_modal: Option<image_select_modal::ImageSelectModal>,
     project_shared_data: ProjectSharedData,
     sequence: Sequence,
+    recent_selected_image_ids: VecDeque<Uuid>,
 }
 
 enum Event {
@@ -29,6 +34,18 @@ enum Event {
     Error(String),
     CharacterCellClicked {
         cut_id: namui::Uuid,
+    },
+    ScreenEditorCellClicked {
+        index: usize,
+        cut_id: Uuid,
+    },
+    ScreenEditorConfirmClicked {
+        index: usize,
+        cut_id: Uuid,
+        image_id: Option<Uuid>,
+    },
+    UpdateRecentSelectedImageIds {
+        image_ids: VecDeque<Uuid>,
     },
 }
 
@@ -39,9 +56,9 @@ impl LoadedSequenceEditorPage {
         project_shared_data: ProjectSharedData,
         sequence: Sequence,
     ) -> Self {
-        let sequence_syncer = new_sequence_syncer(sequence.clone(), sequence_id.clone());
+        let sequence_syncer = new_sequence_syncer(sequence.clone(), sequence_id);
         let project_shared_data_syncer =
-            new_project_shared_data_syncer_syncer(project_shared_data.clone(), project_id.clone());
+            new_project_shared_data_syncer_syncer(project_shared_data.clone(), project_id);
 
         let line_text_inputs = {
             let mut line_text_inputs = HashMap::new();
@@ -50,6 +67,7 @@ impl LoadedSequenceEditorPage {
             });
             line_text_inputs
         };
+        start_load_recent_selected_image_ids();
         Self {
             project_id,
             sequence_id,
@@ -58,19 +76,37 @@ impl LoadedSequenceEditorPage {
             sequence_syncer,
             project_shared_data_syncer,
             character_edit_modal: None,
+            image_select_modal: None,
             project_shared_data,
             sequence,
+            recent_selected_image_ids: VecDeque::new(),
         }
     }
+}
+
+fn start_load_recent_selected_image_ids() {
+    spawn_local(async move {
+        let result = namui::cache::get_serde::<VecDeque<Uuid>>("recent_selected_image_ids").await;
+        match result {
+            Ok(image_ids) => {
+                if let Some(image_ids) = image_ids {
+                    namui::event::send(Event::UpdateRecentSelectedImageIds { image_ids });
+                }
+            }
+            Err(error) => {
+                namui::event::send(Event::Error(error.to_string()));
+            }
+        }
+    })
 }
 
 fn new_sequence_syncer(sequence: Sequence, sequence_id: namui::Uuid) -> Arc<Syncer<Sequence>> {
     Arc::new(Syncer::new(
         sequence,
         {
-            let sequence_id = sequence_id.clone();
+            let sequence_id = sequence_id;
             move |patch| {
-                let sequence_id = sequence_id.clone();
+                let sequence_id = sequence_id;
                 Box::pin(async move {
                     let response = crate::RPC
                         .update_server_sequence(rpc::update_server_sequence::Request {
@@ -86,9 +122,9 @@ fn new_sequence_syncer(sequence: Sequence, sequence_id: namui::Uuid) -> Arc<Sync
             }
         },
         {
-            let sequence_id = sequence_id.clone();
+            let sequence_id = sequence_id;
             move |sequence_json| {
-                let sequence_id = sequence_id.clone();
+                let sequence_id = sequence_id;
                 Box::pin(async move {
                     let response = crate::RPC
                         .update_client_sequence(rpc::update_client_sequence::Request {
@@ -113,9 +149,9 @@ fn new_project_shared_data_syncer_syncer(
     Arc::new(Syncer::new(
         project_shared_data,
         {
-            let project_id = project_id.clone();
+            let project_id = project_id;
             move |patch| {
-                let project_id = project_id.clone();
+                let project_id = project_id;
                 Box::pin(async move {
                     let response = crate::RPC
                         .update_server_project_shared_data(
@@ -130,9 +166,9 @@ fn new_project_shared_data_syncer_syncer(
             }
         },
         {
-            let project_id = project_id.clone();
+            let project_id = project_id;
             move |project_shared_data_json| {
-                let project_id = project_id.clone();
+                let project_id = project_id;
                 Box::pin(async move {
                     let response = crate::RPC
                         .update_client_project_shared_data(

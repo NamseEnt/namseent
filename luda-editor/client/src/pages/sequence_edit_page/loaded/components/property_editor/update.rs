@@ -43,8 +43,8 @@ impl PropertyEditor {
                 } => {
                     if image_clip_ids.len() == 1 {
                         let image_clip_address = ImageClipAddress {
-                            sequence_id: sequence_id.clone(),
-                            cut_id: cut_id.clone(),
+                            sequence_id,
+                            cut_id,
                             image_clip_id: image_clip_ids.iter().next().unwrap().clone(),
                         };
 

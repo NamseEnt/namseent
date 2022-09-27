@@ -31,7 +31,7 @@ impl RenameModal {
         if let Some(namui::event::NamuiEvent::KeyUp(event)) = event.downcast_ref() {
             if event.code == Code::Enter {
                 namui::event::send(Event::RenameDone {
-                    sequence_id: self.sequence_id.clone(),
+                    sequence_id: self.sequence_id,
                     sequence_name: self.sequence_name.clone(),
                 });
             }
@@ -112,11 +112,11 @@ impl RenameModal {
                             1.px(),
                             Color::BLACK,
                             {
-                                let sequence_id = self.sequence_id.clone();
+                                let sequence_id = self.sequence_id;
                                 let sequence_name = self.sequence_name.clone();
                                 move || {
                                     namui::event::send(Event::RenameDone {
-                                        sequence_id: sequence_id.clone(),
+                                        sequence_id,
                                         sequence_name: sequence_name.clone(),
                                     });
                                 }

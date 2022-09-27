@@ -96,7 +96,7 @@ pub fn render_resizable_clip(props: &Props) -> RenderingTree {
         ..Default::default()
     })
     .attach_event(move |builder| {
-        let clip_id = clip_id.clone();
+        let clip_id = clip_id;
         builder.on_mouse_down_in(move |event| {
             let clicked_part = if is_sashes_showing {
                 AVAILABLE_SASH_DIRECTIONS
@@ -115,7 +115,7 @@ pub fn render_resizable_clip(props: &Props) -> RenderingTree {
             };
 
             namui::event::send(Event::MouseDown {
-                clip_id: clip_id.clone(),
+                clip_id,
                 // click_in_time: timeline_start_at + event.local_xy.x * time_per_px,
                 clicked_part,
                 ctrl_key_pressed: namui::keyboard::any_code_press([

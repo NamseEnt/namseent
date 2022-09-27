@@ -1,6 +1,6 @@
 use super::*;
 
-const FONT_SIZE: IntPx = int_px(20);
+pub const FONT_SIZE: IntPx = int_px(20);
 
 pub fn left(height: Px, text: impl AsRef<str>, color: Color) -> RenderingTree {
     namui::text(TextParam {

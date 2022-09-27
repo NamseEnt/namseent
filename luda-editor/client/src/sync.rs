@@ -75,7 +75,7 @@ impl<State: std::fmt::Debug + serde::Serialize + serde::de::DeserializeOwned + '
             let self_update_sync_status = self.update_sync_status.clone();
             let self_is_dropped = self.is_dropped.clone();
             let self_patch_state = self.patch_state.clone();
-            let id = self.id.clone();
+            let id = self.id;
 
             async move {
                 const DEAFULT_WAIT_DELAY: Time = Time::Ms(1000.0);
@@ -137,10 +137,7 @@ impl<State: std::fmt::Debug + serde::Serialize + serde::de::DeserializeOwned + '
                                         serde_json::from_value::<State>(json).unwrap()
                                     };
 
-                                    namui::event::send(Event::UpdateReceived {
-                                        patch,
-                                        id: id.clone(),
-                                    });
+                                    namui::event::send(Event::UpdateReceived { patch, id });
                                 }
                                 {
                                     if self_patch_state.lock().unwrap().is_none() {

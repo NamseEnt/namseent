@@ -18,12 +18,13 @@ impl ImageEditModal {
                             >,
                         > = match self.purpose {
                             ModalPurpose::Add => Box::pin(create_image(
-                                self.project_id.clone(),
+                                self.project_id,
                                 self.label_list.clone(),
                                 self.image.clone(),
                             )),
                             ModalPurpose::Edit => Box::pin(update_image(
                                 todo!(),
+                                #[allow(unreachable_code)]
                                 self.label_list.clone(),
                                 self.image.clone(),
                             )),
@@ -71,13 +72,23 @@ impl ImageEditModal {
 
 async fn create_image(
     project_id: namui::Uuid,
-    label_list: Vec<Label>,
+    labels: Vec<Label>,
     image: Option<File>,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let image_id = namui::uuid();
+
+    crate::RPC
+        .put_image_meta_data(rpc::put_image_meta_data::Request {
+            project_id,
+            image_id,
+            labels,
+        })
+        .await?;
+
     let response = crate::RPC
         .prepare_upload_image(rpc::prepare_upload_image::Request {
             project_id,
-            label_list,
+            image_id,
         })
         .await?;
 
@@ -91,19 +102,17 @@ async fn create_image(
         namui::network::http::Method::PUT,
         |builder| builder.body(body.to_vec()),
     )
+    .await?
+    .error_for_400599()
     .await?;
 
     Ok(())
 }
 
-async fn delete_image(label_list: Vec<Label>) {
-    todo!()
-}
-
 async fn update_image(
-    prev_label_list: Vec<Label>,
-    new_label_list: Vec<Label>,
-    image: Option<File>,
+    _prev_label_list: Vec<Label>,
+    _new_label_list: Vec<Label>,
+    _image: Option<File>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     /*
     1) 이미지를 수정할 경우

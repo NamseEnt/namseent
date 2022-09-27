@@ -1,5 +1,4 @@
 use super::*;
-use crate::storage::get_character_image_url;
 use namui_prebuilt::*;
 use rpc::data::*;
 
@@ -18,25 +17,9 @@ impl LoadedSequenceEditorPage {
             simple_rect(wh, Color::WHITE, 1.px(), Color::BLACK),
             table::vertical([
                 table::ratio(1.0, move |wh| {
-                    let image_source = character.and_then(|character| {
-                        cut.face_expression_id
-                            .as_ref()
-                            .and_then(|face_expression_id| {
-                                match get_character_image_url(character.id(), *face_expression_id) {
-                                    Ok(url) => Some(ImageSource::Url(url)),
-                                    Err(error) => {
-                                        namui::log!(
-                                            "Failed to get character image url: {:?}
-character_id: {},
-face_expression_id: {}",
-                                            error,
-                                            character.id(),
-                                            face_expression_id
-                                        );
-                                        None
-                                    }
-                                }
-                            })
+                    let image_source = character.and_then(|_character| {
+                        // TODO: Get main character image
+                        None
                     });
                     match image_source {
                         Some(image_source) => namui::image(ImageParam {
@@ -61,9 +44,7 @@ face_expression_id: {}",
         .attach_event(move |builder| {
             let cut_id = cut.id();
             builder.on_mouse_down_in(move |_event| {
-                namui::event::send(Event::CharacterCellClicked {
-                    cut_id: cut_id.clone(),
-                });
+                namui::event::send(Event::CharacterCellClicked { cut_id: cut_id });
             });
         })
     }

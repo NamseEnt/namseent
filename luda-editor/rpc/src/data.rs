@@ -44,7 +44,7 @@ pub struct Cut {
     /// The text that the character speaks in this cut.
     pub line: String,
     pub character_id: Option<Uuid>,
-    pub face_expression_id: Option<Uuid>,
+    pub screen_image_ids: [Option<Uuid>; 5],
 }
 
 impl Cut {
@@ -53,7 +53,7 @@ impl Cut {
             id,
             line: String::new(),
             character_id: None,
-            face_expression_id: None,
+            screen_image_ids: [None; 5],
         }
     }
     pub fn id(&self) -> Uuid {
@@ -80,14 +80,19 @@ impl Character {
     }
 }
 
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, Default, serde::Serialize, serde::Deserialize, PartialEq, PartialOrd, Eq, Ord,
+)]
 pub struct Label {
     pub key: String,
     pub value: String,
 }
 
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct UrlWithLabels {
+#[derive(
+    Debug, Clone, Default, serde::Serialize, serde::Deserialize, PartialEq, PartialOrd, Eq, Ord,
+)]
+pub struct ImageWithLabels {
+    pub id: Uuid,
     pub url: String,
     pub labels: Vec<Label>,
 }

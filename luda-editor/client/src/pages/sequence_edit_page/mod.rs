@@ -27,7 +27,7 @@ pub struct Props {
 
 impl SequenceEditPage {
     pub fn new(project_id: namui::Uuid, sequence_id: namui::Uuid) -> Self {
-        load_data(sequence_id.clone());
+        load_data(sequence_id);
         Self::Loading {
             project_id,
             sequence_id,
@@ -47,8 +47,8 @@ impl SequenceEditPage {
                         ..
                     } => {
                         *self = SequenceEditPage::Loaded(LoadedSequenceEditorPage::new(
-                            project_id.clone(),
-                            sequence_id.clone(),
+                            *project_id,
+                            *sequence_id,
                             project_shared_data.clone(),
                             sequence.clone(),
                         ));

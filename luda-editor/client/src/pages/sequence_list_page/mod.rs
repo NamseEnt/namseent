@@ -50,12 +50,12 @@ impl SequenceListPage {
         if let Some(event) = event.downcast_ref::<Event>() {
             match event {
                 Event::AddButtonClicked => {
-                    let project_id = self.project_id.clone();
+                    let project_id = self.project_id;
                     spawn_local(async move {
                         let result = crate::RPC
                             .create_sequence(rpc::create_sequence::Request {
                                 name: "new sequence".to_string(),
-                                project_id: project_id.clone(),
+                                project_id,
                             })
                             .await;
                         match result {
@@ -68,14 +68,12 @@ impl SequenceListPage {
                         }
                     })
                 }
-                Event::CellRightClick {
+                &Event::CellRightClick {
                     click_global_xy,
                     sequence_id,
                 } => {
-                    self.context_menu = Some(context_menu::ContextMenu::new(
-                        *click_global_xy,
-                        sequence_id.clone(),
-                    ));
+                    self.context_menu =
+                        Some(context_menu::ContextMenu::new(click_global_xy, sequence_id));
                 }
                 Event::ContextMenuOutsideClicked => {
                     self.context_menu = None;
@@ -116,7 +114,7 @@ impl SequenceListPage {
                     // match sequence_name {
                     //     Some(sequence_name) => {
                     //         self.rename_modal = Some(rename_modal::RenameModal::new(
-                    //             sequence_id.clone(),
+                    //             sequence_id,
                     //             sequence_name,
                     //         ))
                     //     }
@@ -240,22 +238,22 @@ impl SequenceListPage {
             || {},
         )
         .attach_event(|builder| {
-            let project_id = self.project_id.clone();
-            let sequence_id = sequence.id.clone();
+            let project_id = self.project_id;
+            let sequence_id = sequence.id;
             builder.on_mouse_up_in(move |event| {
                 if event.button == Some(MouseButton::Left) {
-                    let project_id = project_id.clone();
-                    let sequence_id = sequence_id.clone();
+                    let project_id = project_id;
+                    let sequence_id = sequence_id;
                     namui::event::send(router::Event::Route(Arc::new(move || {
                         router::Route::SequenceEditPage(SequenceEditPage::new(
-                            project_id.clone(),
-                            sequence_id.clone(),
+                            project_id,
+                            sequence_id,
                         ))
                     })));
                 } else if event.button == Some(MouseButton::Right) {
                     namui::event::send(Event::CellRightClick {
                         click_global_xy: event.global_xy,
-                        sequence_id: sequence_id.clone(),
+                        sequence_id,
                     });
                 }
             });

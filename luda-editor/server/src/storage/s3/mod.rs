@@ -34,7 +34,7 @@ impl S3 {
         }
     }
     fn key_with_prefix(&self, key: impl AsRef<str>) -> String {
-        format!("{}{}", self.key_prefix, key.as_ref())
+        crate::append_slash![self.key_prefix, key.as_ref()]
     }
     fn remove_key_prefix(&self, key: impl AsRef<str>) -> String {
         let key = key.as_ref();
@@ -75,6 +75,7 @@ impl S3 {
             }
         }
     }
+    #[allow(dead_code)]
     pub async fn list_objects(
         &self,
         prefix: impl AsRef<str>,
@@ -168,11 +169,16 @@ impl S3 {
     }
 
     fn prefixed_key_to_url(&self, prefixed_key: &str) -> String {
-        format!(
-            "{endpoint}/{bucket}/{prefixed_key}",
-            endpoint = self.rest_api_endpoint,
-            bucket = self.bucket_name
-        )
+        crate::append_slash![self.rest_api_endpoint, self.bucket_name, prefixed_key,]
+    }
+
+    pub fn get_url(&self, key: impl AsRef<str>) -> String {
+        crate::append_slash![
+            self.rest_api_endpoint,
+            self.bucket_name,
+            self.key_prefix,
+            key.as_ref(),
+        ]
     }
 }
 

@@ -28,7 +28,7 @@ impl App {
         } else if let Some(event) = event.downcast_ref::<Event>() {
             match event {
                 Event::SessionId(session_id) => {
-                    crate::RPC.set_session_id(session_id.clone());
+                    crate::RPC.set_session_id(*session_id);
                     namui::event::send(super::Event::LoggedIn);
                 }
                 Event::Error(error) => namui::log!("error: {}", error),
@@ -62,14 +62,12 @@ pub fn check_session_id() {
 }
 
 async fn is_session_id_valid(session_id: Uuid) -> Result<bool, Box<dyn std::error::Error>> {
+    crate::RPC.set_session_id(session_id);
     match crate::RPC
         .validate_session(rpc::validate_session::Request {})
         .await
     {
-        Ok(_) => {
-            crate::RPC.set_session_id(session_id);
-            Ok(true)
-        }
+        Ok(_) => Ok(true),
         Err(error) => match error {
             rpc::validate_session::Error::InvalidSession => Ok(false),
             rpc::validate_session::Error::Unknown(error) => Err(error.into()),
@@ -110,7 +108,7 @@ fn login_with_oauth_code(code: String) {
         match result {
             Ok(response) => {
                 let session_id = response.session_id;
-                namui::event::send(Event::SessionId(session_id.clone()));
+                namui::event::send(Event::SessionId(response.session_id));
                 namui::cache::set_serde("SessionId", &session_id)
                     .await
                     .unwrap();

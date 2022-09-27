@@ -67,13 +67,11 @@ impl ContextMenu {
                 ]),
             )
             .attach_event(move |builder| {
-                let item_id = item.id.clone();
+                let item_id = item.id;
                 let on_click = item.on_click.clone();
                 builder
                     .on_mouse_move_in(move |_| {
-                        namui::event::send(InternalEvent::MouseOver {
-                            item_id: item_id.clone(),
-                        })
+                        namui::event::send(InternalEvent::MouseOver { item_id })
                     })
                     .on_mouse_down_in(move |event| {
                         event.stop_propagation();
@@ -99,8 +97,8 @@ impl ContextMenu {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<InternalEvent>() {
             match event {
-                InternalEvent::MouseOver { item_id } => {
-                    self.mouse_over_item_id = Some(item_id.clone());
+                &InternalEvent::MouseOver { item_id } => {
+                    self.mouse_over_item_id = Some(item_id);
                 }
                 InternalEvent::MouseOverClear => {
                     self.mouse_over_item_id = None;

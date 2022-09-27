@@ -89,7 +89,11 @@ export class CdkStack extends cdk.Stack {
                     resources: [
                         `arn:aws:s3:::${s3BucketName.valueAsString}/${s3KeyPrefix.valueAsString}*`,
                     ],
-                    actions: ["s3:GetObject"],
+                    actions: [
+                        "s3:GetObject",
+                        "s3:PutObject",
+                        "s3:PutObjectAcl",
+                    ],
                 }),
                 new cdk.aws_iam.PolicyStatement({
                     resources: [dynamoDb.tableArn],
