@@ -4,5 +4,5 @@ use namui::prelude::*;
 pub struct RenderingContext {
     pub current_time: Time,
     pub px_per_tile: Per<Px, Tile>,
-    pub screen_size: Wh<Tile>,
+    pub screen_rect: Rect<Tile>,
 }

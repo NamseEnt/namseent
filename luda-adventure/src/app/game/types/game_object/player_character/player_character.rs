@@ -3,10 +3,10 @@ use crate::app::game::*;
 use namui::prelude::*;
 use namui_prebuilt::simple_rect;
 
-const VISUAL_WIDTH: Tile = Tile(3.0);
-const VISUAL_HEIGHT: Tile = Tile(4.0);
-const VISUAL_OFFSET_X: Tile = Tile(-1.5);
-const VISUAL_OFFSET_Y: Tile = Tile(-2.5);
+const VISUAL_WIDTH: Tile = tile(3.0);
+const VISUAL_HEIGHT: Tile = tile(4.0);
+const VISUAL_OFFSET_X: Tile = tile(-1.5);
+const VISUAL_OFFSET_Y: Tile = tile(-2.5);
 
 #[derive(ecs_macro::Component)]
 pub struct PlayerCharacter {}
@@ -15,10 +15,10 @@ pub fn new_player(position: Position) -> crate::ecs::Entity {
     crate::ecs::Entity::new()
         .add_component(Mover::new(MovementPlan::stay_forever(position, 0.sec())))
         .add_component(Collider::new(Rect::Xywh {
-            x: Tile(-1.5),
-            y: Tile(-1.5),
-            width: Tile(3.0),
-            height: Tile(3.0),
+            x: tile(-1.5),
+            y: tile(-1.5),
+            width: tile(3.0),
+            height: tile(3.0),
         }))
         .add_component(PlayerCharacter {})
         .add_component(Renderer::new(

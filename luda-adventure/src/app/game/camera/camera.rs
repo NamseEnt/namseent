@@ -32,7 +32,7 @@ impl Camera {
         }
     }
 
-    fn get_position(&self, esc_app: &ecs::App, rendering_context: &RenderingContext) -> Position {
+    pub fn get_position(&self, esc_app: &ecs::App, time: Time) -> Position {
         match &self.subject {
             CameraSubject::Object { id } => esc_app
                 .entities()
@@ -40,31 +40,21 @@ impl Camera {
                 .expect("failed to find entity")
                 .get_component::<&Mover>()
                 .unwrap()
-                .get_position(rendering_context.current_time),
+                .get_position(time),
             CameraSubject::Position { position } => position.clone(),
         }
     }
 
     pub fn render(
         &self,
-        esc_app: &ecs::App,
         rendering_context: &RenderingContext,
         rendering_tree: RenderingTree,
     ) -> namui::RenderingTree {
-        let position = self.get_position(esc_app, rendering_context);
-        let screen_center = (rendering_context.screen_size * 0.5).as_xy();
-        let offset = (screen_center - position).as_px(rendering_context.px_per_tile);
-        translate(offset.x, offset.y, rendering_tree)
-    }
-
-    pub fn get_screen(
-        &self,
-        esc_app: &ecs::App,
-        rendering_context: &RenderingContext,
-    ) -> Rect<Tile> {
-        let position = self.get_position(esc_app, rendering_context);
-        let screen_center = (rendering_context.screen_size * 0.5).as_xy();
-        Rect::from_xy_wh(position - screen_center, rendering_context.screen_size)
+        translate(
+            -(rendering_context.px_per_tile * rendering_context.screen_rect.x()),
+            -(rendering_context.px_per_tile * rendering_context.screen_rect.y()),
+            rendering_tree,
+        )
     }
 
     pub fn get_in_screen_object_list<'a>(
@@ -72,7 +62,6 @@ impl Camera {
         esc_app: &'a ecs::App,
         rendering_context: &RenderingContext,
     ) -> Vec<(&'a ecs::Entity, (&'a Renderer, &'a Mover))> {
-        let screen = self.get_screen(esc_app, rendering_context);
         esc_app
             .query_entities::<(&Renderer, &Mover)>()
             .into_iter()
@@ -80,7 +69,9 @@ impl Camera {
                 let visual_area =
                     renderer.visual_rect + mover.get_position(rendering_context.current_time);
 
-                visual_area.intersect(screen).is_some()
+                visual_area
+                    .intersect(rendering_context.screen_rect)
+                    .is_some()
             })
             .collect()
     }
