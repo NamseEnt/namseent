@@ -66,5 +66,5 @@ fn check_time_is_finity(time: Time) -> bool {
 }
 
 fn check_position_is_finity(position: Position) -> bool {
-    position.x.0.is_finite() && position.y.0.is_finite()
+    position.x.is_finite() && position.y.is_finite()
 }

@@ -3,14 +3,10 @@ use crate::app::game::*;
 use namui::prelude::*;
 use namui_prebuilt::simple_rect;
 
-const COLLISION_WIDTH: Tile = Tile(1.0);
-const COLLISION_HEIGHT: Tile = Tile(1.0);
-const COLLISION_OFFSET_X: Tile = Tile(-0.5);
-const COLLISION_OFFSET_Y: Tile = Tile(-0.5);
-const VISUAL_WIDTH: Tile = Tile(1.0);
-const VISUAL_HEIGHT: Tile = Tile(1.0);
-const VISUAL_OFFSET_X: Tile = Tile(-0.5);
-const VISUAL_OFFSET_Y: Tile = Tile(-0.5);
+const VISUAL_WIDTH: Tile = tile(1.0);
+const VISUAL_HEIGHT: Tile = tile(1.0);
+const VISUAL_OFFSET_X: Tile = tile(-0.5);
+const VISUAL_OFFSET_Y: Tile = tile(-0.5);
 
 pub fn new_wall(position: Position, current_time: Time) -> crate::ecs::Entity {
     let entity = crate::ecs::Entity::new();

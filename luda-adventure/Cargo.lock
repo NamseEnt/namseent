@@ -585,6 +585,7 @@ dependencies = [
 name = "luda-adventure"
 version = "0.1.0"
 dependencies = [
+ "auto_ops",
  "ecs-macro",
  "export-known-ids-macro",
  "float-cmp",
@@ -593,6 +594,7 @@ dependencies = [
  "namui-prebuilt",
  "once_cell",
  "rustc-hash",
+ "serde",
  "wasm-bindgen-test",
 ]
 

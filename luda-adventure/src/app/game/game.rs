@@ -13,7 +13,7 @@ impl Game {
         let character = mock_character();
         let quest_object = mock_quest_object();
         let walls = mock_walls();
-        let floors = mock_floors();
+        let floors = mock_floor();
         let state = GameState::new();
 
         let player_entity_id = character.id();
@@ -22,7 +22,7 @@ impl Game {
         ecs_app.add_entity(character);
         ecs_app.add_entity(quest_object);
         ecs_app.add_entities(walls);
-        ecs_app.add_entities(floors);
+        ecs_app.add_entity(floors);
 
         Self {
             player_entity_id,
@@ -61,14 +61,12 @@ impl Game {
 
     pub fn render(&self) -> namui::RenderingTree {
         let screen_size = namui::screen::size();
+        let current_time = now();
         let px_per_tile = Per::new(32.px(), 1.tile());
         let rendering_context = RenderingContext {
-            current_time: now(),
+            current_time,
             px_per_tile,
-            screen_size: Wh {
-                width: px_per_tile.invert() * screen_size.width,
-                height: px_per_tile.invert() * screen_size.height,
-            },
+            screen_rect: self.get_screen_rect(current_time, px_per_tile, screen_size),
         };
 
         let in_screen_object_list = self
@@ -78,7 +76,6 @@ impl Game {
         render([
             render_background(screen_size),
             self.camera.render(
-                &self.ecs_app,
                 &rendering_context,
                 render([
                     in_screen_object_list.render(&self.state, &rendering_context),
@@ -86,6 +83,23 @@ impl Game {
                 ]),
             ),
         ])
+    }
+
+    fn get_screen_rect(
+        &self,
+        time: Time,
+        px_per_tile: Per<Px, Tile>,
+        screen_size: Wh<Px>,
+    ) -> Rect<Tile> {
+        let camera_center_position = self.camera.get_position(&self.ecs_app, time);
+
+        let screen_size = Wh {
+            width: px_per_tile.invert() * screen_size.width,
+            height: px_per_tile.invert() * screen_size.height,
+        };
+
+        let screen_center = (screen_size * 0.5).as_xy();
+        Rect::from_xy_wh(camera_center_position - screen_center, screen_size)
     }
 }
 
@@ -142,17 +156,17 @@ fn mock_walls() -> Vec<crate::ecs::Entity> {
     wall
 }
 
-fn mock_floors() -> Vec<crate::ecs::Entity> {
-    let mut floors: Vec<crate::ecs::Entity> = Vec::new();
-    for x in 1..100 {
-        for y in 1..100 {
-            floors.push(new_floor(Xy {
+fn mock_floor() -> crate::ecs::Entity {
+    let positions = (1..100)
+        .into_iter()
+        .flat_map(|x| {
+            (1..100).into_iter().map(move |y| Xy {
                 x: x.tile(),
                 y: y.tile(),
-            }));
-        }
-    }
-    floors
+            })
+        })
+        .collect();
+    new_floor(positions)
 }
 
 fn mock_quest_object() -> crate::ecs::Entity {

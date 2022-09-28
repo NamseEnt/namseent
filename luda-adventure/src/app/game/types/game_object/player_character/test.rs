@@ -84,18 +84,18 @@ fn move_to_wall_then_move_along_wall_finally_stop_at_corner() {
 
     // Step 1: Move to wall
     let position_at_step_1 = mover.get_position(2.sec());
-    assert_approx_eq!(f32, position_at_step_1.x.0, 4.0);
-    assert_approx_eq!(f32, position_at_step_1.y.0, 2.0);
+    assert_approx_eq!(f32, position_at_step_1.x.as_f32(), 4.0);
+    assert_approx_eq!(f32, position_at_step_1.y.as_f32(), 2.0);
 
     // Step 2: Move along wall
     let position_at_step_2 = mover.get_position(4.sec());
-    assert_approx_eq!(f32, position_at_step_2.x.0, 6.0);
-    assert_approx_eq!(f32, position_at_step_2.y.0, 2.0);
+    assert_approx_eq!(f32, position_at_step_2.x.as_f32(), 6.0);
+    assert_approx_eq!(f32, position_at_step_2.y.as_f32(), 2.0);
 
     // Step 3: Stay corner forever
     let position_at_step_3 = mover.get_position(20.sec());
-    assert_approx_eq!(f32, position_at_step_3.x.0, 7.0);
-    assert_approx_eq!(f32, position_at_step_3.y.0, 2.0);
+    assert_approx_eq!(f32, position_at_step_3.x.as_f32(), 7.0);
+    assert_approx_eq!(f32, position_at_step_3.y.as_f32(), 2.0);
 }
 
 fn mock_walls() -> Vec<crate::ecs::Entity> {
