@@ -11,11 +11,11 @@ pub fn component(input: TokenStream) -> TokenStream {
     let set_name = format_ident!("{name}_SET");
 
     let expanded = quote! {
-        static mut #set_name: once_cell::sync::OnceCell<std::collections::HashMap<namui::Uuid, #name>> = once_cell::sync::OnceCell::new();
+        static mut #set_name: once_cell::sync::OnceCell<rustc_hash::FxHashMap<namui::Uuid, #name>> = once_cell::sync::OnceCell::new();
         impl crate::ecs::Component for #name {
             fn insert(self, id: namui::Uuid) {
                 unsafe {
-                    #set_name.get_or_init(|| std::collections::HashMap::new());
+                    #set_name.get_or_init(|| rustc_hash::FxHashMap::default());
                     #set_name.get_mut().unwrap().insert(id, self);
                 }
             }
@@ -31,7 +31,7 @@ pub fn component(input: TokenStream) -> TokenStream {
             fn filter(entity: &crate::ecs::Entity) -> Option<Self> {
                 unsafe {
                     #set_name
-                        .get_or_init(|| std::collections::HashMap::new())
+                        .get_or_init(|| rustc_hash::FxHashMap::default())
                         .get(&entity.id())
                 }
             }
@@ -40,7 +40,7 @@ pub fn component(input: TokenStream) -> TokenStream {
             fn filter(entity: &mut crate::ecs::Entity) -> Option<Self> {
                 unsafe {
                     #set_name
-                        .get_or_init(|| std::collections::HashMap::new())
+                        .get_or_init(|| rustc_hash::FxHashMap::default())
                         .get(&entity.id())
                 }
             }
@@ -48,7 +48,7 @@ pub fn component(input: TokenStream) -> TokenStream {
         impl crate::ecs::ComponentCombinationMut for &mut #name {
             fn filter(entity: &mut crate::ecs::Entity) -> Option<Self> {
                 unsafe {
-                    #set_name.get_or_init(|| std::collections::HashMap::new());
+                    #set_name.get_or_init(|| rustc_hash::FxHashMap::default());
                     #set_name.get_mut().unwrap().get_mut(&entity.id())
                 }
             }
