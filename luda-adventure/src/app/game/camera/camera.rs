@@ -35,11 +35,11 @@ impl Camera {
     fn get_position(&self, esc_app: &ecs::App, rendering_context: &RenderingContext) -> Position {
         match &self.subject {
             CameraSubject::Object { id } => esc_app
-                .query_entities::<&Mover>()
-                .into_iter()
-                .find(|(entity, _)| entity.id() == *id)
+                .entities()
+                .find(|entity| entity.id() == *id)
                 .expect("failed to find entity")
-                .1
+                .get_component::<&Mover>()
+                .unwrap()
                 .get_position(rendering_context.current_time),
             CameraSubject::Position { position } => position.clone(),
         }
@@ -77,9 +77,10 @@ impl Camera {
             .query_entities::<(&Renderer, &Mover)>()
             .into_iter()
             .filter(|(_, (renderer, mover))| {
-                (renderer.visual_rect + mover.get_position(rendering_context.current_time))
-                    .intersect(screen)
-                    .is_some()
+                let visual_area =
+                    renderer.visual_rect + mover.get_position(rendering_context.current_time);
+
+                visual_area.intersect(screen).is_some()
             })
             .collect()
     }
