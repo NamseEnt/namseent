@@ -1,4 +1,4 @@
-use crate::app::game::{GameObject, Position, PositionExt, RenderingContext, Tile, TileExt};
+use crate::{app::game::*, ecs};
 use namui::prelude::*;
 
 pub struct Camera {
@@ -32,16 +32,14 @@ impl Camera {
         }
     }
 
-    fn get_position(
-        &self,
-        object_list: &Vec<Box<dyn GameObject>>,
-        rendering_context: &RenderingContext,
-    ) -> Position {
+    fn get_position(&self, esc_app: &ecs::App, rendering_context: &RenderingContext) -> Position {
         match &self.subject {
-            CameraSubject::Object { id } => object_list
-                .iter()
-                .find(|object| object.get_id() == *id)
-                .expect("failed to find object")
+            CameraSubject::Object { id } => esc_app
+                .query_entities::<&Mover>()
+                .into_iter()
+                .find(|(entity, _)| entity.id() == *id)
+                .expect("failed to find entity")
+                .1
                 .get_position(rendering_context.current_time),
             CameraSubject::Position { position } => position.clone(),
         }
@@ -49,11 +47,11 @@ impl Camera {
 
     pub fn render(
         &self,
-        object_list: &Vec<Box<dyn GameObject>>,
+        esc_app: &ecs::App,
         rendering_context: &RenderingContext,
         rendering_tree: RenderingTree,
     ) -> namui::RenderingTree {
-        let position = self.get_position(object_list, rendering_context);
+        let position = self.get_position(esc_app, rendering_context);
         let screen_center = (rendering_context.screen_size * 0.5).as_xy();
         let offset = (screen_center - position).as_px(rendering_context.px_per_tile);
         translate(offset.x, offset.y, rendering_tree)
@@ -61,25 +59,25 @@ impl Camera {
 
     pub fn get_screen(
         &self,
-        object_list: &Vec<Box<dyn GameObject>>,
+        esc_app: &ecs::App,
         rendering_context: &RenderingContext,
     ) -> Rect<Tile> {
-        let position = self.get_position(object_list, rendering_context);
+        let position = self.get_position(esc_app, rendering_context);
         let screen_center = (rendering_context.screen_size * 0.5).as_xy();
         Rect::from_xy_wh(position - screen_center, rendering_context.screen_size)
     }
 
     pub fn get_in_screen_object_list<'a>(
         &self,
-        object_list: &'a Vec<Box<dyn GameObject>>,
+        esc_app: &'a ecs::App,
         rendering_context: &RenderingContext,
-    ) -> Vec<&'a Box<dyn GameObject>> {
-        let screen = self.get_screen(object_list, rendering_context);
-        object_list
-            .iter()
-            .filter(|object| {
-                object
-                    .get_visual_area(rendering_context.current_time)
+    ) -> Vec<(&'a ecs::Entity, (&'a Renderer, &'a Mover))> {
+        let screen = self.get_screen(esc_app, rendering_context);
+        esc_app
+            .query_entities::<(&Renderer, &Mover)>()
+            .into_iter()
+            .filter(|(_, (renderer, mover))| {
+                (renderer.visual_rect + mover.get_position(rendering_context.current_time))
                     .intersect(screen)
                     .is_some()
             })

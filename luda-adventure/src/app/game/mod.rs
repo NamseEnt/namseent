@@ -7,6 +7,7 @@ pub mod known_id;
 mod predict_character_movement_if_needed;
 mod render_guide_icon;
 mod types;
+
 pub use camera::*;
 pub use game::*;
 pub use get_character_velocity_from_key_state::*;

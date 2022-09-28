@@ -1,15 +1,12 @@
-use super::{
-    known_id, Camera, CameraSubject, Floor, GameObject, GameState, PlayerCharacter,
-    RenderGameObjectList, RenderingContext, TileExt, Wall,
-};
+use super::{player_character::new_player, *};
 use namui::prelude::*;
 use namui_prebuilt::simple_rect;
 
 pub struct Game {
-    pub object_list: Vec<Box<dyn GameObject>>,
+    pub player_entity_id: Uuid,
     pub state: GameState,
     pub camera: Camera,
-    ecs_app: crate::ecs::App,
+    pub ecs_app: crate::ecs::App,
 }
 impl Game {
     pub fn new() -> Self {
@@ -18,19 +15,22 @@ impl Game {
         let walls = mock_walls();
         let floors = mock_floors();
         let state = GameState::new();
-        let mut object_list = Vec::new();
-        object_list.push(character);
-        object_list.push(quest_object);
-        object_list.extend(walls);
-        object_list.extend(floors);
+
+        let player_entity_id = character.id();
+
+        let mut ecs_app = crate::ecs::App::new();
+        ecs_app.add_entity(character);
+        ecs_app.add_entity(quest_object);
+        ecs_app.add_entities(walls);
+        ecs_app.add_entities(floors);
 
         Self {
-            object_list,
+            player_entity_id,
             state,
             camera: Camera::new(Some(CameraSubject::Object {
-                id: known_id::object::PLAYER_CHARACTER_OBJECT,
+                id: player_entity_id,
             })),
-            ecs_app: crate::ecs::App::new(),
+            ecs_app,
         }
     }
 
@@ -73,12 +73,12 @@ impl Game {
 
         let in_screen_object_list = self
             .camera
-            .get_in_screen_object_list(&self.object_list, &rendering_context);
+            .get_in_screen_object_list(&self.ecs_app, &rendering_context);
 
         render([
             render_background(screen_size),
             self.camera.render(
-                &self.object_list,
+                &self.ecs_app,
                 &rendering_context,
                 render([
                     in_screen_object_list.render(&self.state, &rendering_context),
@@ -90,7 +90,7 @@ impl Game {
 }
 
 pub enum GameEvent {
-    // AddObject(Arc<dyn (Fn() -> Box<dyn GameObject>) + Send + Sync>),
+    // AddObject(Arc<dyn (Fn() -> crate::ecs::Entity) + Send + Sync>),
 }
 
 fn render_background(wh: Wh<Px>) -> namui::RenderingTree {
@@ -102,59 +102,66 @@ fn render_background(wh: Wh<Px>) -> namui::RenderingTree {
     )])
 }
 
-fn mock_character() -> Box<dyn GameObject> {
-    Box::new(PlayerCharacter::new(
-        Xy {
-            x: 8.tile(),
-            y: 6.tile(),
-        },
-        0.sec(),
-    ))
+fn mock_character() -> crate::ecs::Entity {
+    new_player(Xy {
+        x: 8.tile(),
+        y: 6.tile(),
+    })
 }
 
-fn mock_walls() -> Vec<Box<dyn GameObject>> {
-    let mut wall: Vec<Box<dyn GameObject>> = Vec::new();
+fn mock_walls() -> Vec<crate::ecs::Entity> {
+    let mut wall = Vec::new();
     for x in 1..10 {
         if x == 5 {
             for y in 1..10 {
-                wall.push(Box::new(Wall::new(Xy {
-                    x: x.tile(),
-                    y: y.tile(),
-                })));
+                wall.push(new_wall(
+                    Xy {
+                        x: x.tile(),
+                        y: y.tile(),
+                    },
+                    0.sec(),
+                ));
             }
         } else {
-            wall.push(Box::new(Wall::new(Xy {
-                x: x.tile(),
-                y: 1.tile(),
-            })));
-            wall.push(Box::new(Wall::new(Xy {
-                x: x.tile(),
-                y: 9.tile(),
-            })));
+            wall.push(new_wall(
+                Xy {
+                    x: x.tile(),
+                    y: 1.tile(),
+                },
+                0.sec(),
+            ));
+            wall.push(new_wall(
+                Xy {
+                    x: x.tile(),
+                    y: 9.tile(),
+                },
+                0.sec(),
+            ));
         }
     }
     wall
 }
 
-fn mock_floors() -> Vec<Box<dyn GameObject>> {
-    let mut floors: Vec<Box<dyn GameObject>> = Vec::new();
+fn mock_floors() -> Vec<crate::ecs::Entity> {
+    let mut floors: Vec<crate::ecs::Entity> = Vec::new();
     for x in 1..100 {
         for y in 1..100 {
-            floors.push(Box::new(Floor::new(Xy {
+            floors.push(new_floor(Xy {
                 x: x.tile(),
                 y: y.tile(),
-            })));
+            }));
         }
     }
     floors
 }
 
-fn mock_quest_object() -> Box<dyn GameObject> {
-    Box::new(Wall::new_with_id(
+fn mock_quest_object() -> crate::ecs::Entity {
+    new_wall_with_id(
+        known_id::object::FIRST_QUEST_OBJECT,
         Xy {
             x: 10.tile(),
             y: 10.tile(),
         },
-        known_id::object::FIRST_QUEST_OBJECT,
-    ))
+        0.sec(),
+    )
 }
