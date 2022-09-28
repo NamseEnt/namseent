@@ -1,4 +1,3 @@
-
 use crate::app::game::{
     Collider, GameObject, MovementPlan, Mover, Position, Tile, TileExt, Velocity,
 };
@@ -37,33 +36,57 @@ fn move_to_wall_then_move_along_wall_finally_stop_at_corner() {
     //                   ║
 
     // Step 0: Init
-    let mut walls = mock_walls();
-    let collision_box_list_without_character = walls
-        .iter_mut()
-        .map(|wall| wall.get_collision_box(Xy::zero()))
+    let mut app = crate::ecs::App::new();
+
+    for wall in mock_walls() {
+        app.add_entity(wall);
+    }
+
+    let mut character = crate::ecs::Entity::new()
+        .add_component(Mover::new(MovementPlan::stay_forever(
+            Position {
+                x: 2.tile(),
+                y: 4.tile(),
+            },
+            0.sec(),
+        )))
+        .add_component(Collider::new(Rect::Xywh {
+            x: Tile(-1.5),
+            y: Tile(-1.5),
+            width: Tile(3.0),
+            height: Tile(3.0),
+        }));
+
+    character
+        .get_component_mut::<&mut Mover>()
+        .unwrap()
+        .set_velocity(
+            0.sec(),
+            Velocity {
+                x: Per::new(1.tile(), 1.sec()),
+                y: Per::new((-1).tile(), 1.sec()),
+            },
+            f32::INFINITY.sec(),
+        );
+    let character_id = character.id();
+
+    let (mover, collider) = character
+        .get_component_mut::<(&mut Mover, &Collider)>()
+        .unwrap();
+
+    let collision_box_list_without_character = app
+        .entities()
+        .filter_map(move |entity| {
+            if entity.id() == character_id {
+                None
+            } else if let Some(collide) = entity.get_component::<&Collider>() {
+                Some(collide.get_collision_box(Xy::zero()))
+            } else {
+                None
+            }
+        })
         .collect::<Vec<_>>();
 
-    let mut mover = Mover::new(MovementPlan::stay_forever(
-        Position {
-            x: 2.tile(),
-            y: 4.tile(),
-        },
-        0.sec(),
-    ));
-    let collider = Collider::new(Rect::Xywh {
-        x: Tile(-1.5),
-        y: Tile(-1.5),
-        width: Tile(3.0),
-        height: Tile(3.0),
-    });
-    mover.set_velocity(
-        0.sec(),
-        Velocity {
-            x: Per::new(1.tile(), 1.sec()),
-            y: Per::new((-1).tile(), 1.sec()),
-        },
-        f32::INFINITY.sec(),
-    );
     while mover.get_predicted_movement_end_time() < 20.sec() {
         mover.predict_movement(&collider, &collision_box_list_without_character);
     }
@@ -84,7 +107,7 @@ fn move_to_wall_then_move_along_wall_finally_stop_at_corner() {
     assert_approx_eq!(f32, position_at_step_3.y.0, 2.0);
 }
 
-fn mock_walls() -> Vec<Collider> {
+fn mock_walls() -> Vec<crate::ecs::Entity> {
     let mut walls = Vec::new();
     for x in 0..10 {
         match x {
@@ -99,13 +122,13 @@ fn mock_walls() -> Vec<Collider> {
     walls
 }
 
-fn mock_wall(x: i32, y: i32) -> Collider {
-    Collider::new(namui::Rect::Xywh {
+fn mock_wall(x: i32, y: i32) -> crate::ecs::Entity {
+    crate::ecs::Entity::new().add_component(Collider::new(namui::Rect::Xywh {
         x: x.tile() - 0.5.tile(),
         y: y.tile() - 0.5.tile(),
         width: 1.tile(),
         height: 1.tile(),
-    })
+    }))
 }
 
 struct MockWall {
@@ -132,13 +155,3 @@ impl GameObject for MockWall {
         todo!()
     }
 }
-// impl Collider for MockWall {
-//     fn get_collision_box(&self, _current_time: namui::Time) -> crate::app::game::CollisionBox {
-//         namui::Rect::Xywh {
-//             x: self.position.x - 0.5.tile(),
-//             y: self.position.y - 0.5.tile(),
-//             width: 1.tile(),
-//             height: 1.tile(),
-//         }
-//     }
-// }

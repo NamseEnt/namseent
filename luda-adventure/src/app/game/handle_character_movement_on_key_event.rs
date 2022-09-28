@@ -1,7 +1,7 @@
-use super::{Game};
+use super::Game;
 use namui::prelude::*;
 
-impl Game<'_> {
+impl Game {
     pub fn handle_character_movement_on_key_event(&mut self, _current_time: Time) {
         todo!()
         // if let Some(character) = self
