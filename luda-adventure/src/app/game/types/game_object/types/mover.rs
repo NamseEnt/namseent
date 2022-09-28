@@ -8,11 +8,11 @@ use crate::app::game::{
 };
 use namui::prelude::*;
 
+#[derive(ecs_macro::Component)]
 pub struct Mover {
     movement_plan: MovementPlan,
     pub heading: Heading,
 }
-crate::register_component!(Mover);
 
 impl Mover {
     pub fn new(movement_plan: MovementPlan) -> Self {

@@ -5,13 +5,13 @@ use super::{
 use namui::prelude::*;
 use namui_prebuilt::simple_rect;
 
-pub struct Game<'a> {
+pub struct Game {
     pub object_list: Vec<Box<dyn GameObject>>,
     pub state: GameState,
     pub camera: Camera,
-    ecs_app: crate::ecs::App<'a>,
+    ecs_app: crate::ecs::App,
 }
-impl Game<'_> {
+impl Game {
     pub fn new() -> Self {
         let character = mock_character();
         let quest_object = mock_quest_object();

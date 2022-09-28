@@ -163,6 +163,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1435fa1053d8b2fbbe9be7e97eca7f33d37b28409959813daefc1446a14247f1"
 
 [[package]]
+name = "ecs-macro"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "either"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -577,11 +585,14 @@ dependencies = [
 name = "luda-adventure"
 version = "0.1.0"
 dependencies = [
+ "ecs-macro",
  "export-known-ids-macro",
  "float-cmp",
  "mockall",
  "namui",
  "namui-prebuilt",
+ "once_cell",
+ "sparseset",
  "wasm-bindgen-test",
 ]
 
@@ -1327,6 +1338,12 @@ dependencies = [
  "libc",
  "winapi",
 ]
+
+[[package]]
+name = "sparseset"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52cdcc78334463b00033480504b70cd1108b6fd6d0ab8b826a289f7ad616af6d"
 
 [[package]]
 name = "strum"

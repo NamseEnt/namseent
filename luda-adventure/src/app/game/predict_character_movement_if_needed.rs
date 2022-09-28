@@ -1,7 +1,7 @@
-use super::{Game};
+use super::Game;
 use namui::prelude::*;
 
-impl Game<'_> {
+impl Game {
     pub fn predict_character_movement_if_needed(&mut self, _current_time: Time) {
         todo!()
         // let collision_box_list = get_collision_box_list_without_character_collision_box(

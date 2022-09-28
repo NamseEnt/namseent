@@ -3,10 +3,10 @@ use namui::Rect;
 
 pub type CollisionBox = Rect<Tile>;
 
+#[derive(ecs_macro::Component)]
 pub struct Collider {
     collision_offset_rect: Rect<Tile>,
 }
-crate::register_component!(Collider);
 
 impl Collider {
     pub fn new(collision_offset_rect: Rect<Tile>) -> Self {

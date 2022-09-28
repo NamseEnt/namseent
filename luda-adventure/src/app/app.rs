@@ -1,15 +1,15 @@
 use super::game::Game;
 
-pub struct App<'a> {
-    game: Game<'a>,
+pub struct App {
+    game: Game,
 }
-impl App<'_> {
+impl App {
     pub fn new() -> Self {
         Self { game: Game::new() }
     }
 }
 
-impl namui::Entity for App<'_> {
+impl namui::Entity for App {
     type Props = ();
 
     fn update(&mut self, event: &dyn std::any::Any) {
