@@ -1,6 +1,6 @@
 use super::*;
 use crate::app::game::{
-    predict_collision::predict_collision,
+    predict_collision,
     types::game_object::player_character::types::{
         get_heading_from_velocity, CollisionDirection, Heading,
     },
@@ -29,15 +29,9 @@ impl Mover {
             self.heading = heading;
         }
     }
-
     pub fn get_predicted_movement_end_time(&self) -> Time {
-        self.movement_plan
-            .predicted_movement_list
-            .last()
-            .map(|last_predicated_movement| last_predicated_movement.end_time)
-            .unwrap_or(self.movement_plan.directed_movement.start_time)
+        self.movement_plan.get_predicted_movement_end_time()
     }
-
     pub fn predict_movement(
         &mut self,
         collider: &Collider,

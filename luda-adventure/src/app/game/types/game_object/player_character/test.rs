@@ -1,5 +1,6 @@
 use crate::app::game::{
-    Collider, GameObject, MovementPlan, Mover, Position, Tile, TileExt, Velocity,
+    new_wall, types::game_object::player_character::player_character::new_player, Collider, Mover,
+    Position, TileExt, Velocity,
 };
 use float_cmp::assert_approx_eq;
 use namui::prelude::*;
@@ -42,20 +43,10 @@ fn move_to_wall_then_move_along_wall_finally_stop_at_corner() {
         app.add_entity(wall);
     }
 
-    let mut character = crate::ecs::Entity::new()
-        .add_component(Mover::new(MovementPlan::stay_forever(
-            Position {
-                x: 2.tile(),
-                y: 4.tile(),
-            },
-            0.sec(),
-        )))
-        .add_component(Collider::new(Rect::Xywh {
-            x: Tile(-1.5),
-            y: Tile(-1.5),
-            width: Tile(3.0),
-            height: Tile(3.0),
-        }));
+    let mut character = new_player(Position {
+        x: 2.tile(),
+        y: 4.tile(),
+    });
 
     character
         .get_component_mut::<&mut Mover>()
@@ -123,35 +114,11 @@ fn mock_walls() -> Vec<crate::ecs::Entity> {
 }
 
 fn mock_wall(x: i32, y: i32) -> crate::ecs::Entity {
-    crate::ecs::Entity::new().add_component(Collider::new(namui::Rect::Xywh {
-        x: x.tile() - 0.5.tile(),
-        y: y.tile() - 0.5.tile(),
-        width: 1.tile(),
-        height: 1.tile(),
-    }))
-}
-
-struct MockWall {
-    position: Xy<Tile>,
-}
-impl GameObject for MockWall {
-    fn get_id(&self) -> namui::Uuid {
-        todo!()
-    }
-    fn render(
-        &self,
-        _game_state: &crate::app::game::GameState,
-        _rendering_context: &crate::app::game::RenderingContext,
-    ) -> namui::RenderingTree {
-        todo!()
-    }
-    fn get_position(&self, _current_time: namui::Time) -> crate::app::game::Position {
-        todo!()
-    }
-    fn get_z_index(&self) -> i32 {
-        todo!()
-    }
-    fn get_visual_area(&self, _current_time: namui::Time) -> crate::app::game::VisualArea {
-        todo!()
-    }
+    new_wall(
+        Position {
+            x: x.tile(),
+            y: y.tile(),
+        },
+        0.sec(),
+    )
 }

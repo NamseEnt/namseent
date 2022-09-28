@@ -48,4 +48,10 @@ impl MovementPlan {
             }],
         }
     }
+    pub fn get_predicted_movement_end_time(&self) -> Time {
+        self.predicted_movement_list
+            .last()
+            .map(|last_predicated_movement| last_predicated_movement.end_time)
+            .unwrap_or(self.directed_movement.start_time)
+    }
 }

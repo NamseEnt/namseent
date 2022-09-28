@@ -1,18 +1,35 @@
-
-use crate::app::game::{GameState, Position, RenderingContext, Tile};
+use crate::app::game::*;
 use namui::prelude::*;
 use std::cmp::Ordering;
 
-pub trait GameObject {
-    fn get_id(&self) -> Uuid;
-    fn render(
+#[derive(ecs_macro::Component)]
+pub struct Renderer {
+    pub z_index: i32,
+    pub visual_rect: Rect<Tile>,
+    render:
+        Box<dyn Fn(&crate::ecs::Entity, &GameState, &RenderingContext) -> RenderingTree + 'static>,
+}
+
+impl Renderer {
+    pub fn new(
+        z_index: i32,
+        visual_rect: Rect<Tile>,
+        render: impl Fn(&crate::ecs::Entity, &GameState, &RenderingContext) -> RenderingTree + 'static,
+    ) -> Self {
+        Self {
+            z_index,
+            visual_rect,
+            render: Box::new(render),
+        }
+    }
+    pub fn render(
         &self,
+        entity: &crate::ecs::Entity,
         game_state: &GameState,
         rendering_context: &RenderingContext,
-    ) -> namui::RenderingTree;
-    fn get_position(&self, current_time: Time) -> Position;
-    fn get_z_index(&self) -> i32;
-    fn get_visual_area(&self, current_time: Time) -> VisualArea;
+    ) -> RenderingTree {
+        (self.render)(entity, game_state, rendering_context)
+    }
 }
 
 pub trait RenderGameObjectList {
@@ -23,19 +40,20 @@ pub trait RenderGameObjectList {
     ) -> namui::RenderingTree;
 }
 
-impl RenderGameObjectList for Vec<&Box<dyn GameObject>> {
+impl RenderGameObjectList for Vec<(&crate::ecs::Entity, (&Renderer, &Mover))> {
     fn render(
         &self,
         game_state: &GameState,
         rendering_context: &RenderingContext,
     ) -> namui::RenderingTree {
         let mut sorted_object_list = Vec::from_iter(self);
-        sorted_object_list.sort_by(|a, b| {
-            let z_index_comparison = a.get_z_index().cmp(&b.get_z_index());
+        sorted_object_list.sort_by(|(_, (a_renderer, a_mover)), (_, (b_renderer, b_mover))| {
+            let z_index_comparison = a_renderer.z_index.cmp(&b_renderer.z_index);
             if z_index_comparison == std::cmp::Ordering::Equal {
-                a.get_position(rendering_context.current_time)
+                a_mover
+                    .get_position(rendering_context.current_time)
                     .y
-                    .partial_cmp(&b.get_position(rendering_context.current_time).y)
+                    .partial_cmp(&b_mover.get_position(rendering_context.current_time).y)
                     .unwrap_or(Ordering::Equal)
             } else {
                 z_index_comparison
@@ -44,9 +62,9 @@ impl RenderGameObjectList for Vec<&Box<dyn GameObject>> {
         render(
             sorted_object_list
                 .into_iter()
-                .map(|object| object.render(game_state, rendering_context)),
+                .map(|(entity, (renderer, _))| {
+                    renderer.render(entity, game_state, rendering_context)
+                }),
         )
     }
 }
-
-pub type VisualArea = Rect<Tile>;

@@ -1,5 +1,5 @@
 use super::Quest;
-use crate::app::game::{known_id, GameObject};
+use crate::app::game::known_id;
 use namui::prelude::*;
 use std::collections::{HashMap, HashSet};
 
@@ -16,8 +16,8 @@ impl QuestState {
 
     pub fn get_quest_object_list<'a>(
         &self,
-        object_list: &'a Vec<Box<dyn GameObject>>,
-    ) -> Vec<&'a Box<dyn GameObject>> {
+        ecs_app: &'a crate::ecs::App,
+    ) -> Vec<&'a crate::ecs::Entity> {
         let quest_object_id_set = self
             .quest_progress_map
             .iter()
@@ -26,10 +26,9 @@ impl QuestState {
                 quest.get_quest_object_list(*action_index)
             })
             .collect::<HashSet<_>>();
-
-        object_list
-            .iter()
-            .filter(|object| quest_object_id_set.contains(&object.get_id()))
+        ecs_app
+            .entities()
+            .filter(|entity| quest_object_id_set.contains(&entity.id()))
             .collect()
     }
 }

@@ -1,4 +1,5 @@
 use super::{Game, RenderingContext};
+use crate::app::game::*;
 use namui::prelude::*;
 
 impl Game {
@@ -7,10 +8,12 @@ impl Game {
         render(
             self.state
                 .quest
-                .get_quest_object_list(&self.object_list)
+                .get_quest_object_list(&self.ecs_app)
                 .iter()
-                .map(|object| {
-                    let visual_area = object.get_visual_area(rendering_context.current_time);
+                .map(|entity| {
+                    let (renderer, mover) = entity.get_component::<(&Renderer, &Mover)>().unwrap();
+                    let visual_area =
+                        renderer.visual_rect + mover.get_position(rendering_context.current_time);
                     render([
                         translate(
                             rendering_context.px_per_tile

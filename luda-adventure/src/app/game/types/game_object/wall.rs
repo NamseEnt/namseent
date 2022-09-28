@@ -1,5 +1,5 @@
-
-use crate::app::game::{GameObject, Position, Tile};
+use super::*;
+use crate::app::game::*;
 use namui::prelude::*;
 use namui_prebuilt::simple_rect;
 
@@ -11,6 +11,60 @@ const VISUAL_WIDTH: Tile = Tile(1.0);
 const VISUAL_HEIGHT: Tile = Tile(1.0);
 const VISUAL_OFFSET_X: Tile = Tile(-0.5);
 const VISUAL_OFFSET_Y: Tile = Tile(-0.5);
+
+pub fn new_wall(position: Position, current_time: Time) -> crate::ecs::Entity {
+    let entity = crate::ecs::Entity::new();
+    append_components(entity, position, current_time)
+}
+
+pub fn new_wall_with_id(id: Uuid, position: Position, current_time: Time) -> crate::ecs::Entity {
+    let entity = crate::ecs::Entity::with_id(id);
+    append_components(entity, position, current_time)
+}
+
+fn append_components(
+    entity: crate::ecs::Entity,
+    position: Position,
+    current_time: Time,
+) -> crate::ecs::Entity {
+    entity
+        .add_component(Collider::new(namui::Rect::Xywh {
+            x: 0.5.tile(),
+            y: 0.5.tile(),
+            width: 1.tile(),
+            height: 1.tile(),
+        }))
+        .add_component(Mover::new(MovementPlan::stay_forever(
+            position,
+            current_time,
+        )))
+        .add_component(Renderer::new(
+            0,
+            Rect::Xywh {
+                x: VISUAL_OFFSET_X,
+                y: VISUAL_OFFSET_Y,
+                width: VISUAL_WIDTH,
+                height: VISUAL_HEIGHT,
+            },
+            |entity, _game_context, rendering_context| {
+                let mover = entity.get_component::<&Mover>().unwrap();
+                let position = mover.get_position(rendering_context.current_time);
+                render([translate(
+                    rendering_context.px_per_tile * (position.x + VISUAL_OFFSET_X),
+                    rendering_context.px_per_tile * (position.y + VISUAL_OFFSET_Y),
+                    simple_rect(
+                        Wh {
+                            width: rendering_context.px_per_tile * VISUAL_WIDTH,
+                            height: rendering_context.px_per_tile * VISUAL_HEIGHT,
+                        },
+                        Color::TRANSPARENT,
+                        0.px(),
+                        Color::from_f01(1.0, 0.5, 0.5, 0.5),
+                    ),
+                )])
+            },
+        ))
+}
 
 pub struct Wall {
     id: Uuid,
@@ -26,49 +80,5 @@ impl Wall {
 
     pub fn new_with_id(position: Position, id: Uuid) -> Wall {
         Wall { id, position }
-    }
-}
-impl GameObject for Wall {
-    fn get_id(&self) -> Uuid {
-        self.id
-    }
-
-    fn render(
-        &self,
-        _game_context: &crate::app::game::GameState,
-        rendering_context: &crate::app::game::RenderingContext,
-    ) -> namui::RenderingTree {
-        let position = self.get_position(rendering_context.current_time);
-        render([translate(
-            rendering_context.px_per_tile * (position.x + VISUAL_OFFSET_X),
-            rendering_context.px_per_tile * (position.y + VISUAL_OFFSET_Y),
-            simple_rect(
-                Wh {
-                    width: rendering_context.px_per_tile * VISUAL_WIDTH,
-                    height: rendering_context.px_per_tile * VISUAL_HEIGHT,
-                },
-                Color::TRANSPARENT,
-                0.px(),
-                Color::from_f01(1.0, 0.5, 0.5, 0.5),
-            ),
-        )])
-    }
-
-    fn get_position(&self, _current_time: namui::Time) -> namui::Xy<crate::app::game::Tile> {
-        self.position
-    }
-
-    fn get_z_index(&self) -> i32 {
-        0
-    }
-
-    fn get_visual_area(&self, current_time: Time) -> super::VisualArea {
-        let position = self.get_position(current_time);
-        Rect::Xywh {
-            x: position.x + VISUAL_OFFSET_X,
-            y: position.y + VISUAL_OFFSET_Y,
-            width: VISUAL_WIDTH,
-            height: VISUAL_HEIGHT,
-        }
     }
 }

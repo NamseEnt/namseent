@@ -1,20 +1,22 @@
 use super::*;
-use std::sync::atomic::AtomicUsize;
+use namui::Uuid;
 
 pub struct Entity {
-    id: usize,
+    id: Uuid,
     drop_functions: Vec<Box<dyn FnOnce()>>,
 }
 
-static mut ID: AtomicUsize = AtomicUsize::new(0);
 impl Entity {
     pub fn new() -> Self {
+        Self::with_id(Uuid::new_v4())
+    }
+    pub fn with_id(id: Uuid) -> Self {
         Self {
-            id: unsafe { ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed) },
+            id,
             drop_functions: Vec::new(),
         }
     }
-    pub fn id(&self) -> usize {
+    pub fn id(&self) -> Uuid {
         self.id
     }
     pub fn add_component<T: Component>(mut self, component: T) -> Self {
@@ -45,3 +47,10 @@ impl PartialEq for Entity {
 }
 
 impl Eq for Entity {}
+
+impl std::fmt::Debug for Entity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // TODO: Add debug component of entity
+        f.debug_struct("Entity").field("id", &self.id).finish()
+    }
+}
