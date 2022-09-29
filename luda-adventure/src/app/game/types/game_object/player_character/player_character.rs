@@ -1,4 +1,3 @@
-use super::Heading;
 use crate::app::game::*;
 use namui::prelude::*;
 use namui_prebuilt::simple_rect;
