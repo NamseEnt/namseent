@@ -66,14 +66,14 @@ fn move_to_wall_then_move_along_wall_finally_stop_at_corner() {
         .unwrap();
 
     let collision_box_list_without_character = app
-        .entities()
-        .filter_map(move |entity| {
+        .query_entities::<(&Collider, &Mover)>()
+        .iter()
+        .filter_map(|(entity, (collider, mover))| {
             if entity.id() == character_id {
                 None
-            } else if let Some(collide) = entity.get_component::<&Collider>() {
-                Some(collide.get_collision_box(Xy::zero()))
             } else {
-                None
+                let position = mover.get_position(0.sec());
+                Some(collider.get_collision_box(position))
             }
         })
         .collect::<Vec<_>>();
