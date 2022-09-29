@@ -8,19 +8,19 @@ const VISUAL_HEIGHT: Tile = tile(1.0);
 const VISUAL_OFFSET_X: Tile = tile(-0.5);
 const VISUAL_OFFSET_Y: Tile = tile(-0.5);
 
-pub fn new_wall(position: Position, current_time: Time) -> crate::ecs::Entity {
+pub fn new_wall(position: Xy<Tile>, current_time: Time) -> crate::ecs::Entity {
     let entity = crate::ecs::Entity::new();
     append_components(entity, position, current_time)
 }
 
-pub fn new_wall_with_id(id: Uuid, position: Position, current_time: Time) -> crate::ecs::Entity {
+pub fn new_wall_with_id(id: Uuid, position: Xy<Tile>, current_time: Time) -> crate::ecs::Entity {
     let entity = crate::ecs::Entity::with_id(id);
     append_components(entity, position, current_time)
 }
 
 fn append_components(
     entity: crate::ecs::Entity,
-    position: Position,
+    position: Xy<Tile>,
     current_time: Time,
 ) -> crate::ecs::Entity {
     entity
@@ -64,17 +64,17 @@ fn append_components(
 
 pub struct Wall {
     id: Uuid,
-    position: Position,
+    position: Xy<Tile>,
 }
 impl Wall {
-    pub fn new(position: Position) -> Wall {
+    pub fn new(position: Xy<Tile>) -> Wall {
         Wall {
             id: Uuid::new_v4(),
             position,
         }
     }
 
-    pub fn new_with_id(position: Position, id: Uuid) -> Wall {
+    pub fn new_with_id(position: Xy<Tile>, id: Uuid) -> Wall {
         Wall { id, position }
     }
 }
