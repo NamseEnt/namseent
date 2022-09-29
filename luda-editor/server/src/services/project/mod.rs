@@ -43,7 +43,7 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
                 owner_id: owner_id.clone(),
                 name: req.name,
                 shared_data_json: serde_json::to_string(&rpc::data::ProjectSharedData::new(
-                    rpc::Uuid::new_v4(),
+                    project_id,
                 ))
                 .unwrap(),
             };
