@@ -25,8 +25,8 @@ fn append_components(
 ) -> crate::ecs::Entity {
     entity
         .add_component(Collider::new(namui::Rect::Xywh {
-            x: 0.5.tile(),
-            y: 0.5.tile(),
+            x: -0.5.tile(),
+            y: -0.5.tile(),
             width: 1.tile(),
             height: 1.tile(),
         }))
