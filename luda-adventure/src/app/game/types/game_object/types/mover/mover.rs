@@ -1,11 +1,8 @@
-use super::*;
-use crate::app::game::{
-    predict_collision,
-    types::game_object::player_character::types::{
-        get_heading_from_velocity, CollisionDirection, Heading,
-    },
-    TileExt, Velocity,
+use super::{
+    get_heading_from_velocity, predict_collision, CollisionDirection, Heading, Movement,
+    MovementPlan, Velocity,
 };
+use crate::app::game::{Collider, TileExt};
 use namui::prelude::*;
 
 #[derive(ecs_macro::Component)]
@@ -46,7 +43,7 @@ impl Mover {
         if directed_movement_ended {
             self.movement_plan
                 .predicted_movement_list
-                .push(Movement::stay_forever(
+                .push(super::Movement::stay_forever(
                     prediction_start_position,
                     prediction_start_time,
                 ));

@@ -1,6 +1,5 @@
-use namui::prelude::*;
-
 use crate::app::game::Position;
+use namui::prelude::*;
 
 #[derive(Debug)]
 pub struct CollisionPrediction {
