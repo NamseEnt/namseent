@@ -10,7 +10,7 @@ const VISUAL_OFFSET_Y: Tile = tile(-2.5);
 #[derive(ecs_macro::Component)]
 pub struct PlayerCharacter {}
 
-pub fn new_player(position: Position) -> crate::ecs::Entity {
+pub fn new_player(position: Xy<Tile>) -> crate::ecs::Entity {
     crate::ecs::Entity::new()
         .add_component(Mover::new(MovementPlan::stay_forever(position, 0.sec())))
         .add_component(Collider::new(Rect::Xywh {

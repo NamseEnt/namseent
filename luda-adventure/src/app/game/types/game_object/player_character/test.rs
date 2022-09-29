@@ -1,6 +1,6 @@
 use crate::app::game::{
     new_wall, types::game_object::player_character::player_character::new_player, Collider, Mover,
-    Position, TileExt, Velocity,
+    TileExt, Velocity,
 };
 use float_cmp::assert_approx_eq;
 use namui::prelude::*;
@@ -43,7 +43,7 @@ fn move_to_wall_then_move_along_wall_finally_stop_at_corner() {
         app.add_entity(wall);
     }
 
-    let mut character = new_player(Position {
+    let mut character = new_player(Xy {
         x: 2.tile(),
         y: 4.tile(),
     });
@@ -115,7 +115,7 @@ fn mock_walls() -> Vec<crate::ecs::Entity> {
 
 fn mock_wall(x: i32, y: i32) -> crate::ecs::Entity {
     new_wall(
-        Position {
+        Xy {
             x: x.tile(),
             y: y.tile(),
         },

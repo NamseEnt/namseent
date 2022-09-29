@@ -1,5 +1,5 @@
-use crate::app::game::{Position, Tile};
-use namui::Rect;
+use crate::app::game::Tile;
+use namui::prelude::*;
 
 pub type CollisionBox = Rect<Tile>;
 
@@ -14,7 +14,7 @@ impl Collider {
             collision_offset_rect,
         }
     }
-    pub fn get_collision_box(&self, position: Position) -> CollisionBox {
+    pub fn get_collision_box(&self, position: Xy<Tile>) -> CollisionBox {
         Rect::Xywh {
             x: position.x + self.collision_offset_rect.x(),
             y: position.y + self.collision_offset_rect.y(),

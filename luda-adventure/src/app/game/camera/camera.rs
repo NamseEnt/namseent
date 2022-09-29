@@ -8,7 +8,7 @@ pub struct Camera {
 #[derive(Clone, Copy)]
 pub enum CameraSubject {
     Object { id: Uuid },
-    Position { position: Position },
+    Position { position: Xy<Tile> },
 }
 
 pub enum Event {
@@ -19,7 +19,7 @@ impl Camera {
     pub fn new(subject: Option<CameraSubject>) -> Self {
         Self {
             subject: subject.unwrap_or(CameraSubject::Position {
-                position: Position::new(0.tile(), 0.tile()),
+                position: Xy::new(0.tile(), 0.tile()),
             }),
         }
     }
@@ -32,7 +32,7 @@ impl Camera {
         }
     }
 
-    pub fn get_position(&self, esc_app: &ecs::App, time: Time) -> Position {
+    pub fn get_position(&self, esc_app: &ecs::App, time: Time) -> Xy<Tile> {
         match &self.subject {
             CameraSubject::Object { id } => esc_app
                 .entities()

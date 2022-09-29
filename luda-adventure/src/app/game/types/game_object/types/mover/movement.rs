@@ -1,16 +1,16 @@
-use crate::app::game::{Position, TileExt, Velocity};
+use crate::app::game::{Tile, TileExt, Velocity};
 use namui::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct Movement {
     pub start_time: Time,
     pub end_time: Time,
-    pub start_position: Position,
-    pub end_position: Position,
+    pub start_position: Xy<Tile>,
+    pub end_position: Xy<Tile>,
     pub velocity: Velocity,
 }
 impl Movement {
-    pub fn get_position(&self, current_time: Time) -> Option<Position> {
+    pub fn get_position(&self, current_time: Time) -> Option<Xy<Tile>> {
         let out_of_range = current_time < self.start_time || current_time > self.end_time;
         if out_of_range {
             return None;
@@ -46,7 +46,7 @@ impl Movement {
             _ => None,
         }
     }
-    pub fn stay_forever(position: Position, current_time: Time) -> Self {
+    pub fn stay_forever(position: Xy<Tile>, current_time: Time) -> Self {
         Self {
             start_time: current_time,
             end_time: f32::INFINITY.ms(),
@@ -65,6 +65,6 @@ fn check_time_is_finity(time: Time) -> bool {
     time.as_millis().is_finite()
 }
 
-fn check_position_is_finity(position: Position) -> bool {
+fn check_position_is_finity(position: Xy<Tile>) -> bool {
     position.x.is_finite() && position.y.is_finite()
 }

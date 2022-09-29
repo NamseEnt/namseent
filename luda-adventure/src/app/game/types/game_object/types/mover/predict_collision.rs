@@ -1,5 +1,5 @@
 use super::{CollisionDirection, CollisionPrediction, IntersectionPrediction};
-use crate::app::game::{CollisionBox, Position, Tile, TileExt, Velocity};
+use crate::app::game::{CollisionBox, Tile, TileExt, Velocity};
 use namui::prelude::*;
 
 pub fn predict_collision(
@@ -8,7 +8,7 @@ pub fn predict_collision(
     target_collision_box_list: &[CollisionBox],
     current_time: Time,
     end_time: Time,
-    start_position: Position,
+    start_position: Xy<Tile>,
 ) -> Option<CollisionPrediction> {
     let mut collision_prediction_list = target_collision_box_list
         .iter()
@@ -34,7 +34,7 @@ fn predict_collision_between_character_collision_box_and_others(
     velocity: Velocity,
     start_time: Time,
     end_time: Time,
-    start_position: Position,
+    start_position: Xy<Tile>,
 ) -> Option<CollisionPrediction> {
     let intersection_prediction_of_x = predict_intersection_on_one_axis(
         velocity.x,
