@@ -77,8 +77,8 @@ impl PaintBuilder {
         self.stroke_join = Some(join);
         self
     }
-    pub fn set_color_filter(mut self, color: &Color, blend_mode: &BlendMode) -> Self {
-        self.color_filter = Some((color.clone(), blend_mode.clone()));
+    pub fn set_color_filter(mut self, color: Color, blend_mode: BlendMode) -> Self {
+        self.color_filter = Some((color, blend_mode));
         self
     }
     pub fn set_shader(mut self, make_shader: Arc<Shader>) -> Self {
@@ -125,12 +125,12 @@ impl PaintBuilder {
             self.stroke_join.as_ref(),
             self.color_filter
                 .as_ref()
-                .map(|(color, blend_mode)| Self::get_or_create_color_filter(&color, &blend_mode)),
+                .map(|(color, blend_mode)| Self::get_or_create_color_filter(*color, *blend_mode)),
         );
 
         Arc::new(paint)
     }
-    fn get_or_create_color_filter(color: &Color, blend_mode: &BlendMode) -> Arc<ColorFilter> {
+    fn get_or_create_color_filter(color: Color, blend_mode: BlendMode) -> Arc<ColorFilter> {
         let mut cache = COLOR_FILTER_CACHE
             .get_or_init(|| Mutex::new(lru::LruCache::new(1024)))
             .lock()

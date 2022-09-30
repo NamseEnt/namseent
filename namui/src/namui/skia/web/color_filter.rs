@@ -9,7 +9,7 @@ impl ColorFilter {
     pub fn from(canvas_kit_color_filter: CanvasKitColorFilter) -> Self {
         ColorFilter(canvas_kit_color_filter)
     }
-    pub fn blend(color: &Color, blend_mode: &BlendMode) -> ColorFilter {
+    pub fn blend(color: Color, blend_mode: BlendMode) -> ColorFilter {
         let color_array = color.into_float32_array();
         let canvas_kit_color_filter = canvas_kit()
             .ColorFilter()
