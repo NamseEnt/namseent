@@ -6,13 +6,13 @@ impl Game {
         let collision_box_list =
             self.get_collision_box_list_without_character_collision_box(current_time);
 
-        if let Some((_entity, (_character, collider, mover))) = self
+        if let Some((_entity, (_character, collider, positioner))) = self
             .ecs_app
-            .query_entities_mut::<(&PlayerCharacter, &Collider, &mut Mover)>()
+            .query_entities_mut::<(&PlayerCharacter, &Collider, &mut Positioner)>()
             .first_mut()
         {
-            while mover.get_predicted_movement_end_time() - current_time < 1.sec() {
-                mover.predict_movement(collider, collision_box_list.as_ref());
+            while positioner.get_predicted_movement_end_time() - current_time < 1.sec() {
+                positioner.predict_movement(collider, collision_box_list.as_ref());
             }
         }
     }

@@ -6,12 +6,12 @@ use crate::app::game::{Collider, TileExt};
 use namui::prelude::*;
 
 #[derive(ecs_macro::Component)]
-pub struct Mover {
+pub struct Positioner {
     movement_plan: MovementPlan,
     pub heading: Heading,
 }
 
-impl Mover {
+impl Positioner {
     pub fn new(movement_plan: MovementPlan) -> Self {
         Self {
             movement_plan,

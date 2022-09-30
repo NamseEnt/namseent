@@ -7,13 +7,13 @@ impl Game {
         current_time: Time,
     ) -> Vec<CollisionBox> {
         self.ecs_app
-            .query_entities::<(&Collider, &Mover)>()
+            .query_entities::<(&Collider, &Positioner)>()
             .iter()
-            .filter_map(|(entity, (collider, mover))| {
+            .filter_map(|(entity, (collider, positioner))| {
                 if entity.id() == self.player_entity_id {
                     None
                 } else {
-                    let position = mover.get_position(current_time);
+                    let position = positioner.get_position(current_time);
                     Some(collider.get_collision_box(position))
                 }
             })

@@ -1,6 +1,6 @@
 use crate::app::game::{
-    new_wall, types::game_object::player_character::player_character::new_player, Collider, Mover,
-    TileExt, Velocity,
+    new_wall, types::game_object::player_character::player_character::new_player, Collider,
+    Positioner, TileExt, Velocity,
 };
 use float_cmp::assert_approx_eq;
 use namui::prelude::*;
@@ -49,7 +49,7 @@ fn move_to_wall_then_move_along_wall_finally_stop_at_corner() {
     });
 
     character
-        .get_component_mut::<&mut Mover>()
+        .get_component_mut::<&mut Positioner>()
         .unwrap()
         .set_velocity(
             0.sec(),
@@ -61,39 +61,39 @@ fn move_to_wall_then_move_along_wall_finally_stop_at_corner() {
         );
     let character_id = character.id();
 
-    let (mover, collider) = character
-        .get_component_mut::<(&mut Mover, &Collider)>()
+    let (positioner, collider) = character
+        .get_component_mut::<(&mut Positioner, &Collider)>()
         .unwrap();
 
     let collision_box_list_without_character = app
-        .query_entities::<(&Collider, &Mover)>()
+        .query_entities::<(&Collider, &Positioner)>()
         .iter()
-        .filter_map(|(entity, (collider, mover))| {
+        .filter_map(|(entity, (collider, positioner))| {
             if entity.id() == character_id {
                 None
             } else {
-                let position = mover.get_position(0.sec());
+                let position = positioner.get_position(0.sec());
                 Some(collider.get_collision_box(position))
             }
         })
         .collect::<Vec<_>>();
 
-    while mover.get_predicted_movement_end_time() < 20.sec() {
-        mover.predict_movement(&collider, &collision_box_list_without_character);
+    while positioner.get_predicted_movement_end_time() < 20.sec() {
+        positioner.predict_movement(&collider, &collision_box_list_without_character);
     }
 
     // Step 1: Move to wall
-    let position_at_step_1 = mover.get_position(2.sec());
+    let position_at_step_1 = positioner.get_position(2.sec());
     assert_approx_eq!(f32, position_at_step_1.x.as_f32(), 4.0);
     assert_approx_eq!(f32, position_at_step_1.y.as_f32(), 2.0);
 
     // Step 2: Move along wall
-    let position_at_step_2 = mover.get_position(4.sec());
+    let position_at_step_2 = positioner.get_position(4.sec());
     assert_approx_eq!(f32, position_at_step_2.x.as_f32(), 6.0);
     assert_approx_eq!(f32, position_at_step_2.y.as_f32(), 2.0);
 
     // Step 3: Stay corner forever
-    let position_at_step_3 = mover.get_position(20.sec());
+    let position_at_step_3 = positioner.get_position(20.sec());
     assert_approx_eq!(f32, position_at_step_3.x.as_f32(), 7.0);
     assert_approx_eq!(f32, position_at_step_3.y.as_f32(), 2.0);
 }

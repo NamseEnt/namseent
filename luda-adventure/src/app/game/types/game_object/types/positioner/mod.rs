@@ -3,7 +3,7 @@ mod heading;
 mod intersection_prediction;
 mod movement;
 mod movement_plan;
-mod mover;
+mod positioner;
 mod predict_collision;
 mod velocity;
 
@@ -12,6 +12,6 @@ pub use heading::*;
 pub use intersection_prediction::*;
 pub use movement::*;
 pub use movement_plan::*;
-pub use mover::*;
+pub use positioner::*;
 pub use predict_collision::*;
 pub use velocity::*;

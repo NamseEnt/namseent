@@ -31,7 +31,7 @@ pub fn new_floor(positions: Vec<Xy<Tile>>) -> crate::ecs::Entity {
         .unwrap();
 
     crate::ecs::Entity::new()
-        .add_component(Mover::new(MovementPlan::stay_forever(
+        .add_component(Positioner::new(MovementPlan::stay_forever(
             Xy {
                 x: 0.tile(),
                 y: 0.tile(),
@@ -47,8 +47,8 @@ pub fn new_floor(positions: Vec<Xy<Tile>>) -> crate::ecs::Entity {
                 height: VISUAL_HEIGHT + max_y - min_y,
             },
             move |entity, _game_context, rendering_context| {
-                let mover = entity.get_component::<&Mover>().unwrap();
-                let main_position = mover.get_position(rendering_context.current_time);
+                let positioner = entity.get_component::<&Positioner>().unwrap();
+                let main_position = positioner.get_position(rendering_context.current_time);
 
                 render(
                     positions
