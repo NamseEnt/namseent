@@ -1,4 +1,3 @@
-use super::{Game, RenderingContext};
 use crate::app::game::*;
 use namui::prelude::*;
 
