@@ -49,6 +49,7 @@ impl SequencePlayer {
                     let cut = self.sequence.cuts.get(cut_index).unwrap();
                     render([
                         self.render_images(inner_content_rect.wh(), cut, 1.0.one_zero()),
+                        self.render_text_box(inner_content_rect.wh()),
                         self.render_text(inner_content_rect.wh(), cut),
                         simple_rect(
                             inner_content_rect.wh(),
@@ -67,11 +68,14 @@ impl SequencePlayer {
                     from_cut_index,
                     transition_progress,
                     start_time: _start_time,
-                } => self.render_transition(
-                    inner_content_rect.wh(),
-                    from_cut_index,
-                    transition_progress,
-                ),
+                } => render([
+                    self.render_transition(
+                        inner_content_rect.wh(),
+                        from_cut_index,
+                        transition_progress,
+                    ),
+                    self.render_text_box(inner_content_rect.wh()),
+                ]),
             },
         )
     }
@@ -105,6 +109,28 @@ impl SequencePlayer {
         }
     }
 
+    fn render_text_box(&self, wh: Wh<Px>) -> RenderingTree {
+        table::vertical([
+            table::ratio(3, |_wh| RenderingTree::Empty),
+            table::ratio(1, |wh| {
+                rect(RectParam {
+                    rect: Rect::from_xy_wh(Xy::zero(), wh),
+                    style: RectStyle {
+                        stroke: Some(RectStroke {
+                            color: Color::BLACK,
+                            width: 1.px(),
+                            border_position: BorderPosition::Inside,
+                        }),
+                        fill: Some(RectFill {
+                            color: Color::from_f01(1.0, 1.0, 1.0, 0.3),
+                        }),
+                        round: Some(RectRound { radius: 8.px() }),
+                    },
+                })
+            }),
+        ])(wh)
+    }
+
     fn render_text(&self, wh: Wh<Px>, cut: &Cut) -> RenderingTree {
         table::vertical([
             table::ratio(3, |_wh| RenderingTree::Empty),
@@ -124,13 +150,67 @@ impl SequencePlayer {
 
                         match character_name {
                             Some(character_name) => {
-                                typography::body::center(wh, character_name, Color::WHITE)
+                                let margin = 32.px();
+                                text(TextParam {
+                                    text: character_name.clone(),
+                                    x: margin,
+                                    y: wh.height / 2,
+                                    align: TextAlign::Left,
+                                    baseline: TextBaseline::Middle,
+                                    font_type: FontType {
+                                        serif: false,
+                                        size: 36.int_px(),
+                                        language: Language::Ko,
+                                        font_weight: FontWeight::BOLD,
+                                    },
+                                    style: TextStyle {
+                                        border: Some(TextStyleBorder {
+                                            width: 4.px(),
+                                            color: Color::BLACK,
+                                        }),
+                                        drop_shadow: Some(TextStyleDropShadow {
+                                            x: 1.px(),
+                                            y: 2.px(),
+                                            color: Some(Color::BLACK),
+                                        }),
+                                        color: Color::WHITE,
+                                        background: None,
+                                    },
+                                    max_width: Some(wh.width - margin * 2),
+                                })
                             }
                             None => RenderingTree::Empty,
                         }
                     }),
                     table::ratio(3, |wh| {
-                        typography::body::center(wh, &cut.line, Color::WHITE)
+                        let margin = 32.px();
+                        text(TextParam {
+                            text: cut.line.clone(),
+                            x: margin,
+                            y: margin,
+                            align: TextAlign::Left,
+                            baseline: TextBaseline::Middle,
+                            font_type: FontType {
+                                serif: false,
+                                size: 24.int_px(),
+                                language: Language::Ko,
+                                font_weight: FontWeight::BOLD,
+                            },
+                            style: TextStyle {
+                                border: Some(TextStyleBorder {
+                                    width: 4.px(),
+                                    color: Color::BLACK,
+                                }),
+                                drop_shadow: Some(TextStyleDropShadow {
+                                    x: 1.px(),
+                                    y: 2.px(),
+                                    color: Some(Color::BLACK),
+                                }),
+                                color: Color::WHITE,
+                                background: None,
+                            },
+                            max_width: Some(wh.width - margin * 2),
+                        })
                     }),
                 ]),
             ),
