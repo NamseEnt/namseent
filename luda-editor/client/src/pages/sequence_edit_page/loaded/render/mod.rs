@@ -10,6 +10,10 @@ pub struct Props {
 
 impl LoadedSequenceEditorPage {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
+        if let Some(sequence_player) = &self.sequence_player {
+            return sequence_player.render(sequence_player::Props { wh: props.wh });
+        }
+
         let sequence = &self.sequence;
         let characters = &self.project_shared_data.characters;
 
