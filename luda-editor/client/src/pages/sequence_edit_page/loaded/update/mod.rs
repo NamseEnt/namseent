@@ -1,6 +1,7 @@
 mod update_data;
 
 use super::*;
+use crate::components::sequence_player;
 use rpc::data::*;
 
 impl LoadedSequenceEditorPage {
@@ -81,6 +82,15 @@ impl LoadedSequenceEditorPage {
                 }
                 Event::UpdateRecentSelectedImageIds { image_ids } => {
                     self.recent_selected_image_ids = image_ids.clone();
+                }
+                Event::PreviewButtonClicked => {
+                    self.sequence_player = Some(sequence_player::SequencePlayer::new(
+                        self.sequence.clone(),
+                        self.project_shared_data.clone(),
+                    ));
+                }
+                Event::ClosePlayer => {
+                    self.sequence_player = None;
                 }
             }
         } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
@@ -189,6 +199,9 @@ impl LoadedSequenceEditorPage {
         self.image_select_modal
             .as_mut()
             .map(|image_select_modal| image_select_modal.update(event));
+        self.sequence_player
+            .as_mut()
+            .map(|sequence_player| sequence_player.update(event));
     }
     fn on_sequence_updated_by_server(&mut self) {
         self.renew_line_text_inputs();

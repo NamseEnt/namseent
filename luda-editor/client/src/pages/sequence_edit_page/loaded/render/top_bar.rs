@@ -3,16 +3,37 @@ use crate::{
     pages::{router, sequence_list_page::SequenceListPage},
     sync::SyncStatus,
 };
-use namui_prebuilt::{button::text_button, *};
+use namui_prebuilt::{
+    button::{text_button, text_button_fit},
+    *,
+};
 use std::sync::Arc;
 
 impl LoadedSequenceEditorPage {
-    pub fn render_top_bar(
+    pub fn render_top_bar_for_player(&self, wh: Wh<Px>) -> RenderingTree {
+        render([
+            simple_rect(wh, Color::WHITE, 1.px(), Color::TRANSPARENT),
+            text_button_fit(
+                wh.height,
+                "Close Player",
+                Color::WHITE,
+                Color::WHITE,
+                1.px(),
+                Color::BLACK,
+                8.px(),
+                move || {
+                    namui::event::send(Event::ClosePlayer);
+                },
+            ),
+        ])
+    }
+
+    pub fn render_top_bar_for_editor(
         &self,
         wh: Wh<Px>,
         sequence: &Sequence,
         sync_send_status: SyncStatus,
-    ) -> namui::RenderingTree {
+    ) -> RenderingTree {
         let go_back_button = table::fixed(52.px(), |wh| {
             text_button(
                 Rect::from_xy_wh(Xy::zero(), wh),
@@ -54,6 +75,19 @@ impl LoadedSequenceEditorPage {
             };
             typography::body::left(wh.height, text, Color::WHITE)
         });
+        let preview_button = table::fit(
+            table::FitAlign::CenterMiddle,
+            text_button_fit(
+                wh.height,
+                "Preview",
+                Color::WHITE,
+                Color::WHITE,
+                1.px(),
+                Color::BLACK,
+                8.px(),
+                || namui::event::send(Event::PreviewButtonClicked),
+            ),
+        );
         fn margin() -> table::TableCell<'static> {
             table::fixed(10.px(), |_wh| RenderingTree::Empty)
         }
@@ -65,6 +99,7 @@ impl LoadedSequenceEditorPage {
                 sequence_name_label,
                 margin(),
                 sync_status,
+                preview_button,
             ])(wh),
         ])
     }
