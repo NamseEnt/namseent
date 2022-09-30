@@ -1,13 +1,12 @@
 macro_rules! common_for_f32_type {
-    ($your_type: tt) => {
+    ($your_type: tt, $short_term: ident, $short_term_ext: ident) => {
         $crate::types::macros::common_for_f32_type!($your_type, |lhs: $your_type| -> f32 {
             lhs.0
         }, |rhs: f32| -> $your_type {
             $your_type(rhs)
-        });
+        }, $short_term, $short_term_ext);
     };
-    ($your_type: tt, $to_f32: expr, $from: expr) => {
-
+    ($your_type: tt, $to_f32: expr, $from: expr, $short_term: ident, $short_term_ext: ident) => {
         #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize, PartialEq, PartialOrd, Default)]
         pub struct $your_type(f32);
 
@@ -117,6 +116,26 @@ macro_rules! common_for_f32_type {
         });
         auto_ops::impl_op!(/=|lhs: &mut $your_type, rhs: i32| { *lhs /= (rhs as f32) });
         auto_ops::impl_op!(/=|lhs: &mut $your_type, rhs: usize| { *lhs /= (rhs as f32) });
+
+        pub const fn $short_term(value: f32) -> $your_type {
+            $your_type(value)
+        }
+
+        pub trait $short_term_ext {
+            fn $short_term(self) -> $your_type;
+        }
+
+        impl $short_term_ext for f32 {
+            fn $short_term(self) -> $your_type {
+                $your_type(self)
+            }
+        }
+
+        impl $short_term_ext for i32 {
+            fn $short_term(self) -> $your_type {
+                $your_type(self as f32)
+            }
+        }
     };
 }
 pub(crate) use common_for_f32_type;
