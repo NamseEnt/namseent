@@ -97,7 +97,7 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                     project_id: req.project_id.clone(),
                     name: req.name,
                     json: serde_json::to_string(&rpc::data::Sequence::new(
-                        rpc::Uuid::new_v4(),
+                        sequence_id,
                         "New Sequence".to_string(),
                     ))
                     .unwrap(),
