@@ -89,6 +89,9 @@ impl LoadedSequenceEditorPage {
                         self.project_shared_data.clone(),
                     ));
                 }
+                Event::ClosePlayer => {
+                    self.sequence_player = None;
+                }
             }
         } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
             if let text_input::Event::TextUpdated { id, text } = event {

@@ -10,12 +10,30 @@ use namui_prebuilt::{
 use std::sync::Arc;
 
 impl LoadedSequenceEditorPage {
-    pub fn render_top_bar(
+    pub fn render_top_bar_for_player(&self, wh: Wh<Px>) -> RenderingTree {
+        render([
+            simple_rect(wh, Color::WHITE, 1.px(), Color::TRANSPARENT),
+            text_button_fit(
+                wh.height,
+                "Close Player",
+                Color::WHITE,
+                Color::WHITE,
+                1.px(),
+                Color::BLACK,
+                8.px(),
+                move || {
+                    namui::event::send(Event::ClosePlayer);
+                },
+            ),
+        ])
+    }
+
+    pub fn render_top_bar_for_editor(
         &self,
         wh: Wh<Px>,
         sequence: &Sequence,
         sync_send_status: SyncStatus,
-    ) -> namui::RenderingTree {
+    ) -> RenderingTree {
         let go_back_button = table::fixed(52.px(), |wh| {
             text_button(
                 Rect::from_xy_wh(Xy::zero(), wh),

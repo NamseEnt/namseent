@@ -11,7 +11,12 @@ pub struct Props {
 impl LoadedSequenceEditorPage {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
         if let Some(sequence_player) = &self.sequence_player {
-            return sequence_player.render(sequence_player::Props { wh: props.wh });
+            return table::vertical([
+                table::fixed(20.px(), |wh| self.render_top_bar_for_player(wh)),
+                table::ratio(1.0, |wh| {
+                    sequence_player.render(sequence_player::Props { wh })
+                }),
+            ])(props.wh);
         }
 
         let sequence = &self.sequence;
@@ -52,7 +57,11 @@ impl LoadedSequenceEditorPage {
         render([
             table::vertical([
                 table::fixed(20.px(), |wh| {
-                    self.render_top_bar(wh, &sequence, self.sequence_syncer.get_sync_status())
+                    self.render_top_bar_for_editor(
+                        wh,
+                        &sequence,
+                        self.sequence_syncer.get_sync_status(),
+                    )
                 }),
                 table::ratio(
                     1.0,

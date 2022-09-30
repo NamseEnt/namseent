@@ -49,6 +49,7 @@ enum Event {
         image_ids: VecDeque<Uuid>,
     },
     PreviewButtonClicked,
+    ClosePlayer,
 }
 
 impl LoadedSequenceEditorPage {
