@@ -30,7 +30,7 @@ fn append_components(
             width: 1.tile(),
             height: 1.tile(),
         }))
-        .add_component(Mover::new(MovementPlan::stay_forever(
+        .add_component(Positioner::new(MovementPlan::stay_forever(
             position,
             current_time,
         )))
@@ -43,8 +43,8 @@ fn append_components(
                 height: VISUAL_HEIGHT,
             },
             |entity, _game_context, rendering_context| {
-                let mover = entity.get_component::<&Mover>().unwrap();
-                let position = mover.get_position(rendering_context.current_time);
+                let positioner = entity.get_component::<&Positioner>().unwrap();
+                let position = positioner.get_position(rendering_context.current_time);
                 render([translate(
                     rendering_context.px_per_tile * (position.x + VISUAL_OFFSET_X),
                     rendering_context.px_per_tile * (position.y + VISUAL_OFFSET_Y),

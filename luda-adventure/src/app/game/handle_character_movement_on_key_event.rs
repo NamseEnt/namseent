@@ -15,9 +15,9 @@ impl Game {
             if character_velocity_has_not_changed {
                 return;
             }
-            if let Some(mover) = character.get_component_mut::<&mut Mover>() {
+            if let Some(positioner) = character.get_component_mut::<&mut Positioner>() {
                 self.state.character.last_velocity = character_velocity;
-                mover.set_velocity(current_time, character_velocity, f32::INFINITY.ms())
+                positioner.set_velocity(current_time, character_velocity, f32::INFINITY.ms())
             }
         }
     }

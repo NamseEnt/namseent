@@ -11,9 +11,10 @@ impl Game {
                 .get_quest_object_list(&self.ecs_app)
                 .iter()
                 .map(|entity| {
-                    let (renderer, mover) = entity.get_component::<(&Renderer, &Mover)>().unwrap();
-                    let visual_area =
-                        renderer.visual_rect + mover.get_position(rendering_context.current_time);
+                    let (renderer, positioner) =
+                        entity.get_component::<(&Renderer, &Positioner)>().unwrap();
+                    let visual_area = renderer.visual_rect
+                        + positioner.get_position(rendering_context.current_time);
                     render([
                         translate(
                             rendering_context.px_per_tile

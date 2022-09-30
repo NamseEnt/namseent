@@ -40,25 +40,27 @@ pub trait RenderGameObjectList {
     ) -> namui::RenderingTree;
 }
 
-impl RenderGameObjectList for Vec<(&crate::ecs::Entity, (&Renderer, &Mover))> {
+impl RenderGameObjectList for Vec<(&crate::ecs::Entity, (&Renderer, &Positioner))> {
     fn render(
         &self,
         game_state: &GameState,
         rendering_context: &RenderingContext,
     ) -> namui::RenderingTree {
         let mut sorted_object_list = Vec::from_iter(self);
-        sorted_object_list.sort_by(|(_, (a_renderer, a_mover)), (_, (b_renderer, b_mover))| {
-            let z_index_comparison = a_renderer.z_index.cmp(&b_renderer.z_index);
-            if z_index_comparison == std::cmp::Ordering::Equal {
-                a_mover
-                    .get_position(rendering_context.current_time)
-                    .y
-                    .partial_cmp(&b_mover.get_position(rendering_context.current_time).y)
-                    .unwrap_or(Ordering::Equal)
-            } else {
-                z_index_comparison
-            }
-        });
+        sorted_object_list.sort_by(
+            |(_, (a_renderer, a_positioner)), (_, (b_renderer, b_positioner))| {
+                let z_index_comparison = a_renderer.z_index.cmp(&b_renderer.z_index);
+                if z_index_comparison == std::cmp::Ordering::Equal {
+                    a_positioner
+                        .get_position(rendering_context.current_time)
+                        .y
+                        .partial_cmp(&b_positioner.get_position(rendering_context.current_time).y)
+                        .unwrap_or(Ordering::Equal)
+                } else {
+                    z_index_comparison
+                }
+            },
+        );
         render(
             sorted_object_list
                 .into_iter()

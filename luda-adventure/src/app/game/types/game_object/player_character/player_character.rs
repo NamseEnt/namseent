@@ -12,7 +12,10 @@ pub struct PlayerCharacter {}
 
 pub fn new_player(position: Xy<Tile>) -> crate::ecs::Entity {
     crate::ecs::Entity::new()
-        .add_component(Mover::new(MovementPlan::stay_forever(position, 0.sec())))
+        .add_component(Positioner::new(MovementPlan::stay_forever(
+            position,
+            0.sec(),
+        )))
         .add_component(Collider::new(Rect::Xywh {
             x: tile(-1.5),
             y: tile(-1.5),
@@ -29,8 +32,8 @@ pub fn new_player(position: Xy<Tile>) -> crate::ecs::Entity {
                 height: VISUAL_HEIGHT,
             },
             |entity, _game_context, rendering_context| {
-                let mover = entity.get_component::<&Mover>().unwrap();
-                let position = mover.get_position(rendering_context.current_time);
+                let positioner = entity.get_component::<&Positioner>().unwrap();
+                let position = positioner.get_position(rendering_context.current_time);
                 translate(
                     rendering_context.px_per_tile * (position.x + VISUAL_OFFSET_X),
                     rendering_context.px_per_tile * (position.y + VISUAL_OFFSET_Y),
@@ -49,7 +52,7 @@ pub fn new_player(position: Xy<Tile>) -> crate::ecs::Entity {
                                 width: rendering_context.px_per_tile * VISUAL_WIDTH,
                                 height: rendering_context.px_per_tile * VISUAL_HEIGHT,
                             },
-                            match mover.heading {
+                            match positioner.heading {
                                 Heading::Left => "L",
                                 Heading::Right => "R",
                             },
