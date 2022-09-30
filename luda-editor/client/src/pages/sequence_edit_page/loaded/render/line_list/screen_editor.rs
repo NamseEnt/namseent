@@ -14,7 +14,7 @@ impl LoadedSequenceEditorPage {
                     .map(|(index, image_id)| {
                         table::ratio(1.0, move |wh| {
                             let image_source = image_id.map(|image_id| {
-                                get_project_image_url(self.project_id, image_id).unwrap()
+                                get_project_image_url(self.project_id(), image_id).unwrap()
                             });
 
                             render([

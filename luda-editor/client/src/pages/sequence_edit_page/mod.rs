@@ -6,11 +6,7 @@ use namui_prebuilt::*;
 use rpc::data::{ProjectSharedData, Sequence};
 
 pub enum SequenceEditPage {
-    Loading {
-        project_id: namui::Uuid,
-        sequence_id: namui::Uuid,
-        error: Option<String>,
-    },
+    Loading { error: Option<String> },
     Loaded(LoadedSequenceEditorPage),
 }
 
@@ -26,13 +22,9 @@ pub struct Props {
 }
 
 impl SequenceEditPage {
-    pub fn new(project_id: namui::Uuid, sequence_id: namui::Uuid) -> Self {
+    pub fn new(sequence_id: namui::Uuid) -> Self {
         load_data(sequence_id);
-        Self::Loading {
-            project_id,
-            sequence_id,
-            error: None,
-        }
+        Self::Loading { error: None }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
         if let Some(event) = event.downcast_ref::<Event>() {
@@ -41,14 +33,8 @@ impl SequenceEditPage {
                     project_shared_data,
                     sequence,
                 } => match self {
-                    SequenceEditPage::Loading {
-                        project_id,
-                        sequence_id,
-                        ..
-                    } => {
+                    SequenceEditPage::Loading { .. } => {
                         *self = SequenceEditPage::Loaded(LoadedSequenceEditorPage::new(
-                            *project_id,
-                            *sequence_id,
                             project_shared_data.clone(),
                             sequence.clone(),
                         ));
@@ -66,11 +52,7 @@ impl SequenceEditPage {
             }
         }
         match self {
-            SequenceEditPage::Loading {
-                project_id: _,
-                sequence_id: _,
-                error: _,
-            } => {}
+            SequenceEditPage::Loading { error: _ } => {}
             SequenceEditPage::Loaded(loaded) => loaded.update(event),
         }
     }

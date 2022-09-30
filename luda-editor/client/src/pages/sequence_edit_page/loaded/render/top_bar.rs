@@ -34,6 +34,7 @@ impl LoadedSequenceEditorPage {
         sequence: &Sequence,
         sync_send_status: SyncStatus,
     ) -> RenderingTree {
+        let project_id = self.project_id();
         let go_back_button = table::fixed(52.px(), |wh| {
             text_button(
                 Rect::from_xy_wh(Xy::zero(), wh),
@@ -43,9 +44,7 @@ impl LoadedSequenceEditorPage {
                 1.px(),
                 Color::BLACK,
                 {
-                    let project_id = self.project_id;
                     move || {
-                        let project_id = project_id;
                         // TODO: Check saving finished
                         namui::event::send(router::Event::Route(Arc::new(move || {
                             router::Route::SequenceListPage(SequenceListPage::new(project_id))
