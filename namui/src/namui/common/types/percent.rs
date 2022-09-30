@@ -4,28 +4,14 @@ use std::fmt::Display;
 common_for_f32_type!(
     Percent,
     |lhs: Percent| -> f32 { lhs.0 / 100.0 },
-    |lhs: f32| -> Percent { Percent(lhs * 100.0) }
+    |lhs: f32| -> Percent { Percent(lhs * 100.0) },
+    percent,
+    PercentExt
 );
 
 impl Ratio for Percent {
     fn as_f32(&self) -> f32 {
         self.0 / 100.0
-    }
-}
-
-pub trait PercentExt {
-    fn percent(self) -> Percent;
-}
-
-impl PercentExt for f32 {
-    fn percent(self) -> Percent {
-        Percent(self)
-    }
-}
-
-impl PercentExt for i32 {
-    fn percent(self) -> Percent {
-        Percent(self as f32)
     }
 }
 
