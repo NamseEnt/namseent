@@ -1,6 +1,6 @@
 mod character;
-mod game_context;
+mod game_state;
 mod quest;
 pub use character::*;
-pub use game_context::*;
+pub use game_state::*;
 pub use quest::*;

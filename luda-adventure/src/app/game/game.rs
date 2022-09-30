@@ -1,6 +1,5 @@
 use super::{player_character::new_player, *};
 use namui::prelude::*;
-use namui_prebuilt::simple_rect;
 
 pub struct Game {
     pub player_entity_id: Uuid,
@@ -60,60 +59,23 @@ impl Game {
     }
 
     pub fn render(&self) -> namui::RenderingTree {
-        let screen_size = namui::screen::size();
-        let current_time = now();
-        let px_per_tile = Per::new(32.px(), 1.tile());
-        let rendering_context = RenderingContext {
-            current_time,
-            px_per_tile,
-            screen_rect: self.get_screen_rect(current_time, px_per_tile, screen_size),
-        };
-
-        let in_screen_object_list = self
-            .camera
-            .get_in_screen_object_list(&self.ecs_app, &rendering_context);
+        let rendering_context = self.create_rendering_context();
 
         render([
-            render_background(screen_size),
-            self.camera.render(
+            render_background(),
+            self.camera.translate_to_camera_screen(
                 &rendering_context,
                 render([
-                    in_screen_object_list.render(&self.state, &rendering_context),
+                    self.render_in_screen_object_list(&rendering_context),
                     self.render_guide_icon(&rendering_context),
                 ]),
             ),
         ])
     }
-
-    fn get_screen_rect(
-        &self,
-        time: Time,
-        px_per_tile: Per<Px, Tile>,
-        screen_size: Wh<Px>,
-    ) -> Rect<Tile> {
-        let camera_center_position = self.camera.get_position(&self.ecs_app, time);
-
-        let screen_size = Wh {
-            width: px_per_tile.invert() * screen_size.width,
-            height: px_per_tile.invert() * screen_size.height,
-        };
-
-        let screen_center = (screen_size * 0.5).as_xy();
-        Rect::from_xy_wh(camera_center_position - screen_center, screen_size)
-    }
 }
 
 pub enum GameEvent {
     // AddObject(Arc<dyn (Fn() -> crate::ecs::Entity) + Send + Sync>),
-}
-
-fn render_background(wh: Wh<Px>) -> namui::RenderingTree {
-    render([simple_rect(
-        wh,
-        Color::TRANSPARENT,
-        0.px(),
-        Color::grayscale_f01(0.2),
-    )])
 }
 
 fn mock_character() -> crate::ecs::Entity {

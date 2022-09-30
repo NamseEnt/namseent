@@ -1,18 +1,12 @@
 mod camera;
 mod game;
-mod get_character_velocity_from_key_state;
-mod get_collision_box_list_without_character_collision_box;
-mod handle_character_movement_on_key_event;
 pub mod known_id;
-mod predict_character_movement_if_needed;
-mod render_guide_icon;
+mod render;
 mod types;
+mod update;
 
 pub use camera::*;
 pub use game::*;
-pub use get_character_velocity_from_key_state::*;
-pub use get_collision_box_list_without_character_collision_box::*;
-pub use handle_character_movement_on_key_event::*;
-pub use predict_character_movement_if_needed::*;
-pub use render_guide_icon::*;
+pub use render::*;
 pub use types::*;
+pub use update::*;

@@ -45,7 +45,7 @@ impl Camera {
         }
     }
 
-    pub fn render(
+    pub fn translate_to_camera_screen(
         &self,
         rendering_context: &RenderingContext,
         rendering_tree: RenderingTree,
