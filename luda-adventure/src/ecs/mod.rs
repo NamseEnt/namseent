@@ -20,14 +20,12 @@ pub trait ComponentCombinationMut {
         Self: Sized;
 }
 pub struct App {
-    systems: Vec<Box<dyn Fn(&Vec<Entity>)>>,
     entities: Vec<Entity>,
 }
 
 impl App {
     pub fn new() -> Self {
         Self {
-            systems: Vec::new(),
             entities: Vec::new(),
         }
     }
@@ -42,22 +40,6 @@ impl App {
     }
     pub fn add_entities(&mut self, entities: impl IntoIterator<Item = Entity>) {
         self.entities.extend(entities);
-    }
-    pub fn add_system<'a, T, F>(&'a mut self, system_func: F)
-    where
-        F: Fn(Vec<T>) + 'static,
-        T: ComponentCombination,
-    {
-        let wrapped_system_func = Box::new(move |entities: &Vec<Entity>| {
-            let components = get_components::<T>(entities);
-            system_func(components);
-        });
-        self.systems.push(wrapped_system_func);
-    }
-    pub fn run(&self, entities: &Vec<Entity>) {
-        for system in &self.systems {
-            system(entities);
-        }
     }
     pub fn query_entities<T: ComponentCombination>(&self) -> Vec<(&Entity, T)> {
         let mut query = Vec::new();
@@ -85,20 +67,6 @@ impl std::fmt::Debug for App {
             .field("entities", &self.entities)
             .finish()
     }
-}
-
-pub fn get_components<T: ComponentCombination>(entities: &Vec<Entity>) -> Vec<T> {
-    let mut components = Vec::new();
-    for entity in entities {
-        if let Some(component) = T::filter(entity) {
-            components.push(component);
-        }
-    }
-    components
-}
-
-pub fn get_component<T: ComponentCombination>(entity: &Entity) -> Option<T> {
-    T::filter(entity)
 }
 
 ecs_macro::define_combinations!();
