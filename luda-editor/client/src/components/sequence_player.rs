@@ -39,26 +39,41 @@ impl SequencePlayer {
         }
     }
     pub fn render(&self, props: Props) -> RenderingTree {
-        match &self.state {
-            &State::ShowingCut { cut_index } => {
-                let cut = self.sequence.cuts.get(cut_index).unwrap();
-                render([
-                    self.render_images(props.wh, cut, 1.0.one_zero()),
-                    self.render_text(props.wh, cut),
-                    simple_rect(props.wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT)
+        let inner_content_rect = get_inner_content_rect(props.wh);
+
+        translate(
+            inner_content_rect.x(),
+            inner_content_rect.y(),
+            match &self.state {
+                &State::ShowingCut { cut_index } => {
+                    let cut = self.sequence.cuts.get(cut_index).unwrap();
+                    render([
+                        self.render_images(inner_content_rect.wh(), cut, 1.0.one_zero()),
+                        self.render_text(inner_content_rect.wh(), cut),
+                        simple_rect(
+                            inner_content_rect.wh(),
+                            Color::TRANSPARENT,
+                            0.px(),
+                            Color::TRANSPARENT,
+                        )
                         .attach_event(|builder| {
                             builder.on_mouse_down_in(|_| {
                                 namui::event::send(InternalEvent::NextCut);
                             });
                         }),
-                ])
-            }
-            &State::Transitioning {
-                from_cut_index,
-                transition_progress,
-                start_time: _start_time,
-            } => self.render_transition(props.wh, from_cut_index, transition_progress),
-        }
+                    ])
+                }
+                &State::Transitioning {
+                    from_cut_index,
+                    transition_progress,
+                    start_time: _start_time,
+                } => self.render_transition(
+                    inner_content_rect.wh(),
+                    from_cut_index,
+                    transition_progress,
+                ),
+            },
+        )
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
         match &mut self.state {
@@ -193,5 +208,23 @@ impl SequencePlayer {
             self.render_images(wh, from_cut, from_opacity),
             self.render_images(wh, to_cut, to_opacity),
         ])
+    }
+}
+
+fn get_inner_content_rect(wh: Wh<Px>) -> Rect<Px> {
+    let width_per_height = 4.0 / 3.0;
+
+    let ratio = wh.width / wh.height;
+
+    if ratio == width_per_height {
+        Rect::from_xy_wh(Xy::zero(), wh)
+    } else if ratio > width_per_height {
+        let result_wh = Wh::new(wh.height * width_per_height, wh.height);
+        let result_xy = Xy::new((wh.width - result_wh.width) / 2.0, 0.px());
+        Rect::from_xy_wh(result_xy, result_wh)
+    } else {
+        let result_wh = Wh::new(wh.width, wh.width / width_per_height);
+        let result_xy = Xy::new(0.px(), (wh.height - result_wh.height) / 2.0);
+        Rect::from_xy_wh(result_xy, result_wh)
     }
 }
