@@ -35,13 +35,7 @@ impl Game {
 
     pub fn update(&mut self, event: &dyn std::any::Any) {
         let current_time = now();
-        if let Some(_event) = event.downcast_ref::<GameEvent>() {
-            // match event {
-            //     GameEvent::AddObject(object_constructor) => {
-            //         self.object_list.push(object_constructor());
-            //     }
-            // }
-        } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
+        if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
                 NamuiEvent::KeyDown(_) => self.handle_character_movement_on_key_event(current_time),
                 NamuiEvent::KeyUp(_) => self.handle_character_movement_on_key_event(current_time),
@@ -72,10 +66,6 @@ impl Game {
             ),
         ])
     }
-}
-
-pub enum GameEvent {
-    // AddObject(Arc<dyn (Fn() -> crate::ecs::Entity) + Send + Sync>),
 }
 
 fn mock_character() -> crate::ecs::Entity {

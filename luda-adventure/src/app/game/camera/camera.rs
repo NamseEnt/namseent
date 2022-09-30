@@ -11,10 +11,6 @@ pub enum CameraSubject {
     Position { position: Xy<Tile> },
 }
 
-pub enum Event {
-    // SetSubject { subject: CameraSubject },
-}
-
 impl Camera {
     pub fn new(subject: Option<CameraSubject>) -> Self {
         Self {
@@ -24,13 +20,7 @@ impl Camera {
         }
     }
 
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(_event) = event.downcast_ref::<Event>() {
-            // match event {
-            //     Event::SetSubject { subject } => self.subject = subject.clone(),
-            // }
-        }
-    }
+    pub fn update(&mut self, _event: &dyn std::any::Any) {}
 
     pub fn get_position(&self, esc_app: &ecs::App, time: Time) -> Xy<Tile> {
         match &self.subject {

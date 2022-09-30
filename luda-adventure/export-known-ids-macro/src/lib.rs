@@ -74,6 +74,5 @@ fn create_known_id_exports(uuid_name_map: BTreeMap<String, Ident>) -> TokenStrea
         exports_string
             .push_str(format!("pub const {name}: namui::Uuid = namui::uuid!({uuid});\n").as_str());
     }
-    // panic!("{}", exports_string);
     exports_string.parse().unwrap()
 }
