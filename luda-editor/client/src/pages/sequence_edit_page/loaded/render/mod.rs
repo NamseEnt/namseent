@@ -71,6 +71,10 @@ impl LoadedSequenceEditorPage {
                 ),
             ])(props.wh),
             modal,
+            self.context_menu
+                .as_ref()
+                .map(|context_menu| context_menu.render())
+                .unwrap_or(RenderingTree::Empty),
         ])
     }
 }

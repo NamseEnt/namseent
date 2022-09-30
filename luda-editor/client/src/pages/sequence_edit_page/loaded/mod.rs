@@ -2,7 +2,7 @@ mod components;
 mod render;
 mod update;
 
-use crate::{components::sequence_player, sync::Syncer};
+use crate::{components::*, sync::Syncer};
 use components::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
@@ -24,6 +24,7 @@ pub struct LoadedSequenceEditorPage {
     image_select_modal: Option<image_select_modal::ImageSelectModal>,
     recent_selected_image_ids: VecDeque<Uuid>,
     sequence_player: Option<sequence_player::SequencePlayer>,
+    context_menu: Option<context_menu::ContextMenu>,
 }
 
 enum Event {
@@ -47,6 +48,14 @@ enum Event {
     },
     PreviewButtonClicked,
     ClosePlayer,
+    LineRightClicked {
+        global_xy: Xy<Px>,
+        cut_id: Uuid,
+    },
+    DeleteCut {
+        cut_id: Uuid,
+    },
+    CloseContextMenu,
 }
 
 impl LoadedSequenceEditorPage {
@@ -74,6 +83,7 @@ impl LoadedSequenceEditorPage {
             sequence,
             recent_selected_image_ids: VecDeque::new(),
             sequence_player: None,
+            context_menu: None,
         }
     }
     fn project_id(&self) -> Uuid {
