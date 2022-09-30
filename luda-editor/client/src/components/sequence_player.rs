@@ -37,6 +37,10 @@ impl SequencePlayer {
         }
     }
     pub fn render(&self, props: Props) -> RenderingTree {
+        if self.sequence.cuts.is_empty() {
+            return RenderingTree::Empty;
+        }
+
         let inner_content_rect = get_inner_content_rect(props.wh);
 
         translate(
