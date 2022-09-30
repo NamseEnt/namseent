@@ -13,8 +13,6 @@ pub struct Props {
     pub wh: Wh<Px>,
 }
 
-pub enum Event {}
-
 enum InternalEvent {
     NextCut,
 }
