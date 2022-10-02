@@ -11,6 +11,7 @@ pub fn component(input: TokenStream) -> TokenStream {
     let set_name = format_ident!("{name}_SET");
 
     let expanded = quote! {
+        #[allow(non_upper_case_globals)]
         static mut #set_name: once_cell::sync::OnceCell<rustc_hash::FxHashMap<namui::Uuid, #name>> = once_cell::sync::OnceCell::new();
         impl crate::ecs::Component for #name {
             fn insert(self, id: namui::Uuid) {
