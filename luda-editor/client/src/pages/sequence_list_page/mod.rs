@@ -238,17 +238,11 @@ impl SequenceListPage {
             || {},
         )
         .attach_event(|builder| {
-            let project_id = self.project_id;
             let sequence_id = sequence.id;
             builder.on_mouse_up_in(move |event| {
                 if event.button == Some(MouseButton::Left) {
-                    let project_id = project_id;
-                    let sequence_id = sequence_id;
                     namui::event::send(router::Event::Route(Arc::new(move || {
-                        router::Route::SequenceEditPage(SequenceEditPage::new(
-                            project_id,
-                            sequence_id,
-                        ))
+                        router::Route::SequenceEditPage(SequenceEditPage::new(sequence_id))
                     })));
                 } else if event.button == Some(MouseButton::Right) {
                     namui::event::send(Event::CellRightClick {

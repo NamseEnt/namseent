@@ -38,7 +38,7 @@ impl LoadedSequenceEditorPage {
                 }
                 &Event::ScreenEditorCellClicked { index, cut_id } => {
                     self.image_select_modal = Some(image_select_modal::ImageSelectModal::new(
-                        self.project_id,
+                        self.project_id(),
                         move |image_id| {
                             namui::event::send(Event::ScreenEditorConfirmClicked {
                                 index,
@@ -91,6 +91,25 @@ impl LoadedSequenceEditorPage {
                 }
                 Event::ClosePlayer => {
                     self.sequence_player = None;
+                }
+                &Event::LineRightClicked { global_xy, cut_id } => {
+                    self.context_menu = Some(context_menu::ContextMenu::new(
+                        global_xy,
+                        [context_menu::Item::new("Delete Cut", {
+                            move || {
+                                namui::event::send(Event::DeleteCut { cut_id });
+                                namui::event::send(Event::CloseContextMenu);
+                            }
+                        })],
+                    ))
+                }
+                &Event::DeleteCut { cut_id } => {
+                    self.update_sequence(|sequence| {
+                        sequence.cuts.retain(|cut| cut.id() != cut_id);
+                    });
+                }
+                Event::CloseContextMenu => {
+                    self.context_menu = None;
                 }
             }
         } else if let Some(event) = event.downcast_ref::<text_input::Event>() {

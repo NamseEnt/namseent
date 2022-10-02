@@ -36,7 +36,7 @@ impl LoadedSequenceEditorPage {
                 item_render: |wh, item| match item {
                     Item::Cut(cut) => {
                         let line_text_input = self.line_text_inputs.get(&cut.id()).unwrap();
-
+                        let cut_id = cut.id();
                         let is_selected = line_text_input.is_focused();
 
                         table::horizontal([
@@ -45,49 +45,60 @@ impl LoadedSequenceEditorPage {
                                 |wh| self.character_cell(wh, cut, characters),
                             ),
                             table::ratio(1.0, |wh| {
-                                line_text_input.render(text_input::Props {
-                                    rect: Rect::from_xy_wh(Xy::zero(), wh),
-                                    rect_style: RectStyle {
-                                        stroke: Some(match is_selected {
-                                            true => RectStroke {
-                                                color: Color::BLUE,
-                                                width: 2.px(),
-                                                border_position: BorderPosition::Inside,
-                                            },
-                                            false => RectStroke {
-                                                color: Color::WHITE,
-                                                width: 1.px(),
-                                                border_position: BorderPosition::Inside,
-                                            },
-                                        }),
-                                        fill: Some(RectFill {
-                                            color: match is_selected {
-                                                true => Color::WHITE,
-                                                false => Color::BLACK,
-                                            },
-                                        }),
-                                        round: None,
-                                    },
-                                    text: cut.line.clone(),
-                                    text_align: TextAlign::Left,
-                                    text_baseline: TextBaseline::Middle,
-                                    font_type: FontType {
-                                        serif: false,
-                                        size: 14.int_px(),
-                                        language: Language::Ko,
-                                        font_weight: FontWeight::REGULAR,
-                                    },
-                                    text_style: TextStyle {
-                                        border: None,
-                                        drop_shadow: None,
-                                        color: match is_selected {
-                                            true => Color::BLUE,
-                                            false => Color::WHITE,
+                                line_text_input
+                                    .render(text_input::Props {
+                                        rect: Rect::from_xy_wh(Xy::zero(), wh),
+                                        rect_style: RectStyle {
+                                            stroke: Some(match is_selected {
+                                                true => RectStroke {
+                                                    color: Color::BLUE,
+                                                    width: 2.px(),
+                                                    border_position: BorderPosition::Inside,
+                                                },
+                                                false => RectStroke {
+                                                    color: Color::WHITE,
+                                                    width: 1.px(),
+                                                    border_position: BorderPosition::Inside,
+                                                },
+                                            }),
+                                            fill: Some(RectFill {
+                                                color: match is_selected {
+                                                    true => Color::WHITE,
+                                                    false => Color::BLACK,
+                                                },
+                                            }),
+                                            round: None,
                                         },
-                                        background: None,
-                                    },
-                                    event_handler: None,
-                                })
+                                        text: cut.line.clone(),
+                                        text_align: TextAlign::Left,
+                                        text_baseline: TextBaseline::Middle,
+                                        font_type: FontType {
+                                            serif: false,
+                                            size: 14.int_px(),
+                                            language: Language::Ko,
+                                            font_weight: FontWeight::REGULAR,
+                                        },
+                                        text_style: TextStyle {
+                                            border: None,
+                                            drop_shadow: None,
+                                            color: match is_selected {
+                                                true => Color::BLUE,
+                                                false => Color::WHITE,
+                                            },
+                                            background: None,
+                                        },
+                                        event_handler: None,
+                                    })
+                                    .attach_event(move |builder| {
+                                        builder.on_mouse_down_in(move |event| {
+                                            if event.button == Some(MouseButton::Right) {
+                                                namui::event::send(Event::LineRightClicked {
+                                                    global_xy: event.global_xy,
+                                                    cut_id,
+                                                })
+                                            }
+                                        });
+                                    })
                             }),
                             table::calculative(
                                 |wh| wh.height * 3,
