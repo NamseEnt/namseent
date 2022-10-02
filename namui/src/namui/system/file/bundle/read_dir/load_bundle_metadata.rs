@@ -13,7 +13,7 @@ pub enum LoadBundleMetadataError {
 
 #[namui_cfg(all(target_env = "electron", not(watch_reload)))]
 pub async fn load_bundle_metadata() -> Result<Vec<PathBuf>, LoadBundleMetadataError> {
-    let file: Vec<u8> = electron::read_vec_u8("/bundle_metadata.json")
+    let file: Vec<u8> = electron::read_vec_u8("bundle_metadata.json")
         .await
         .map_err(|error| error.into())?;
     serde_json::from_slice(&file)
@@ -22,7 +22,7 @@ pub async fn load_bundle_metadata() -> Result<Vec<PathBuf>, LoadBundleMetadataEr
 
 #[namui_cfg(not(all(target_env = "electron", not(watch_reload))))]
 pub async fn load_bundle_metadata() -> Result<Vec<PathBuf>, LoadBundleMetadataError> {
-    let file = crate::network::http::get_bytes("/bundle_metadata.json")
+    let file = crate::network::http::get_bytes("bundle_metadata.json")
         .await
         .map_err(|message| LoadBundleMetadataError::NetworkError(message.to_string()))?;
     serde_json::from_slice(file.as_ref())
