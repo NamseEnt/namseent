@@ -65,7 +65,14 @@ fn resolve_relative_url(url: impl IntoUrl) -> Result<Url, HttpError> {
         Err(ParseError::RelativeUrlWithoutBase) => {
             #[cfg(target_arch = "wasm32")]
             fn get_base_url() -> Option<String> {
-                Some(web_sys::window().unwrap().origin())
+                Some(
+                    web_sys::window()
+                        .unwrap()
+                        .document()
+                        .unwrap()
+                        .url()
+                        .unwrap(),
+                )
             }
             #[cfg(not(target_arch = "wasm32"))]
             fn get_base_url() -> Option<String> {
