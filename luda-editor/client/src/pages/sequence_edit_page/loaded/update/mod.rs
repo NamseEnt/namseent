@@ -9,10 +9,10 @@ impl LoadedSequenceEditorPage {
         if let Some(event) = event.downcast_ref::<Event>() {
             match event {
                 Event::AddCutClicked => {
-                    let new_cut = Cut::new(uuid());
-                    let cut_id = new_cut.id();
+                    let cut_id = uuid();
 
                     self.update_sequence(|sequence| {
+                        let new_cut = Cut::new(cut_id);
                         sequence.cuts.push(new_cut);
                     });
 
@@ -95,12 +95,30 @@ impl LoadedSequenceEditorPage {
                 &Event::LineRightClicked { global_xy, cut_id } => {
                     self.context_menu = Some(context_menu::ContextMenu::new(
                         global_xy,
-                        [context_menu::Item::new("Delete Cut", {
-                            move || {
-                                namui::event::send(Event::DeleteCut { cut_id });
-                                namui::event::send(Event::CloseContextMenu);
-                            }
-                        })],
+                        [
+                            context_menu::Item::new("Delete Cut", {
+                                move || {
+                                    namui::event::send(Event::DeleteCut { cut_id });
+                                    namui::event::send(Event::CloseContextMenu);
+                                }
+                            }),
+                            context_menu::Item::new("Insert Cut Up", {
+                                move || {
+                                    namui::event::send(Event::InsertCut {
+                                        position: AddCutPosition::Before { cut_id },
+                                    });
+                                    namui::event::send(Event::CloseContextMenu);
+                                }
+                            }),
+                            context_menu::Item::new("Insert Cut Down", {
+                                move || {
+                                    namui::event::send(Event::InsertCut {
+                                        position: AddCutPosition::After { cut_id },
+                                    });
+                                    namui::event::send(Event::CloseContextMenu);
+                                }
+                            }),
+                        ],
                     ))
                 }
                 &Event::DeleteCut { cut_id } => {
@@ -111,6 +129,26 @@ impl LoadedSequenceEditorPage {
                 Event::CloseContextMenu => {
                     self.context_menu = None;
                 }
+                &Event::InsertCut { position } => match position {
+                    AddCutPosition::Before { cut_id } | AddCutPosition::After { cut_id } => {
+                        let index = self.sequence.cuts.iter().position(|cut| cut.id() == cut_id);
+                        if let Some(index) = index {
+                            let cut_id = uuid();
+
+                            self.update_sequence(|sequence| {
+                                let new_cut = Cut::new(cut_id);
+                                let new_cut_index = match position {
+                                    AddCutPosition::Before { .. } => index,
+                                    AddCutPosition::After { .. } => index + 1,
+                                };
+                                sequence.cuts.insert(new_cut_index, new_cut);
+                            });
+
+                            self.line_text_inputs
+                                .insert(cut_id, text_input::TextInput::new());
+                        }
+                    }
+                },
             }
         } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
             if let text_input::Event::TextUpdated { id, text } = event {
