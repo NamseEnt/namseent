@@ -12,7 +12,7 @@ pub struct GlyphGroup {
 
 pub(crate) fn get_glyph_groups(
     text: &str,
-    fonts: &[Arc<Font>],
+    fonts: &Vec<Arc<Font>>,
     paint: &Arc<Paint>,
 ) -> Vec<GlyphGroup> {
     let cache_key = CacheKey {
