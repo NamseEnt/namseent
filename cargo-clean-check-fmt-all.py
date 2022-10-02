@@ -39,7 +39,4 @@ run()
 if in_wsl():
     os.system("powershell.exe '[console]::beep(261.6,700)'")
 else:
-    import os
-    beep = lambda x: os.system("echo -n '\a';sleep 0.2;" * x)
-    beep(3)
     pass
