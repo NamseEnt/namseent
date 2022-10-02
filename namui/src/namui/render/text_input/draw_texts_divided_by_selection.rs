@@ -3,7 +3,7 @@ use crate::{
     namui::{self, RenderingTree, TextInput},
     render,
     text::*,
-    Font, Paint, Px, TextParam, TextStyleBackground,
+    *,
 };
 use std::sync::Arc;
 
@@ -35,13 +35,27 @@ impl TextInput {
         let left_caret = line_texts.get_multiline_caret(left_selection_index);
         let right_caret = line_texts.get_multiline_caret(right_selection_index);
 
+        let y_of_line = |line_index: usize| {
+            let line_height = get_line_height(props.font_type.size);
+
+            let multiline_y_baseline_offset = get_multiline_y_baseline_offset(
+                props.text_baseline,
+                line_height,
+                line_texts.line_len(),
+            );
+
+            let line_height_from_top = line_height * line_index;
+
+            props.text_y() + multiline_y_baseline_offset + line_height_from_top
+        };
+
         let render_checking_background_order =
             |render_only_selection_background: bool| -> RenderingTree {
                 let non_selected_upper_lines = if render_only_selection_background {
                     RenderingTree::Empty
                 } else {
                     render((0..left_caret.line_index).map(|line_index| {
-                        let y = props.rect.y() + get_line_height(props.font_type.size) * line_index;
+                        let y = y_of_line(line_index);
                         let line_text = &line_texts.iter_str().nth(line_index).unwrap();
                         crate::text(TextParam {
                             y,
@@ -53,8 +67,7 @@ impl TextInput {
 
                 let is_single_line = left_caret.line_index == right_caret.line_index;
                 let selected_lines = if is_single_line {
-                    let y = props.rect.y()
-                        + get_line_height(props.font_type.size) * left_caret.line_index;
+                    let y = y_of_line(left_caret.line_index);
                     self.render_single_line(
                         &props,
                         &fonts,
@@ -71,8 +84,7 @@ impl TextInput {
                         left_caret.line_index + 1..right_caret.line_index;
 
                     let first_line = {
-                        let y = props.rect.y()
-                            + get_line_height(props.font_type.size) * left_caret.line_index;
+                        let y = y_of_line(left_caret.line_index);
 
                         let first_line_text_with_newline =
                             line_texts.iter_chars().nth(left_caret.line_index).unwrap();
@@ -91,7 +103,7 @@ impl TextInput {
                     };
 
                     let middle_lines = line_indexes_in_the_middle.map(|line_index| {
-                        let y = props.rect.y() + get_line_height(props.font_type.size) * line_index;
+                        let y = y_of_line(line_index);
 
                         let line_text_with_newline =
                             line_texts.iter_chars().nth(line_index).unwrap();
@@ -110,8 +122,7 @@ impl TextInput {
                     });
 
                     let last_line = {
-                        let y = props.rect.y()
-                            + get_line_height(props.font_type.size) * right_caret.line_index;
+                        let y = y_of_line(right_caret.line_index);
 
                         let text = if line_texts.line_len() == right_caret.line_index {
                             "".chars().collect()
@@ -144,8 +155,7 @@ impl TextInput {
                 } else {
                     render(
                         (right_caret.line_index + 1..line_texts.line_len()).map(|line_index| {
-                            let y =
-                                props.rect.y() + get_line_height(props.font_type.size) * line_index;
+                            let y = y_of_line(line_index);
                             let line_text = &line_texts.iter_str().nth(line_index).unwrap();
                             crate::text(TextParam {
                                 y,
@@ -198,9 +208,13 @@ impl TextInput {
         );
 
         if render_only_selection_background {
-            let left = selected_text_left;
-            let top = y;
             let line_height = get_line_height(props.font_type.size);
+            let left = selected_text_left;
+            let top = y - match props.text_baseline {
+                TextBaseline::Top => 0.px(),
+                TextBaseline::Middle => line_height / 2,
+                TextBaseline::Bottom => line_height,
+            };
 
             let mut width = get_text_width_with_fonts(fonts, &selected_text_string, paint);
             if with_newline_background {
