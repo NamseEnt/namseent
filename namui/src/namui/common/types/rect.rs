@@ -586,36 +586,3 @@ where
         }
     }
 }
-
-impl<T> std::ops::Add<Xy<T>> for Rect<T>
-where
-    T: std::ops::Add<Output = T> + Clone,
-{
-    type Output = Rect<T>;
-    fn add(self, rhs: Xy<T>) -> Self::Output {
-        match self {
-            Rect::Xywh {
-                x,
-                y,
-                width,
-                height,
-            } => Rect::Xywh {
-                x: x + rhs.x,
-                y: y + rhs.y,
-                width,
-                height,
-            },
-            Rect::Ltrb {
-                left,
-                top,
-                right,
-                bottom,
-            } => Rect::Ltrb {
-                left: left + rhs.x.clone(),
-                top: top + rhs.y.clone(),
-                right: right + rhs.x,
-                bottom: bottom + rhs.y,
-            },
-        }
-    }
-}
