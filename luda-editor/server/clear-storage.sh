@@ -1,4 +1,4 @@
-docker compose down
+docker-compose down
 
 docker rm -v dynamodb-local
 rm -rf ./dynamodblocal
