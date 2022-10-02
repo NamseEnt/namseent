@@ -136,19 +136,6 @@ macro_rules! common_for_f32_type {
             }
         }
 
-        impl<'a, T: $crate::types::Ratio> std::ops::Mul<T> for &'a $your_type {
-            type Output = $your_type;
-            fn mul(self, rhs: T) -> Self::Output {
-                (self.0 * rhs.as_f32()).into()
-            }
-        }
-
-        impl<T: $crate::types::Ratio> std::ops::MulAssign<T> for $your_type {
-            fn mul_assign(&mut self, rhs: T) {
-                self.0 *= rhs.as_f32();
-            }
-        }
-
         impl std::iter::Sum for $your_type {
             fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
                 iter.fold(Self::default(), |acc, x| acc + x)

@@ -44,7 +44,6 @@ impl Parse for MacroInput {
     }
 }
 
-#[derive(Debug)]
 struct NameUuidPair {
     name: Ident,
     uuid: LitStr,
