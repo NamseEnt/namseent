@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
+    components::sync::SyncStatus,
     pages::{router, sequence_list_page::SequenceListPage},
-    sync::SyncStatus,
 };
 use namui_prebuilt::{
     button::{text_button, text_button_fit},

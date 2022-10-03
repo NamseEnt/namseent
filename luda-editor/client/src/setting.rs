@@ -7,8 +7,11 @@ pub struct Setting {
 impl Default for Setting {
     fn default() -> Self {
         Self {
-            rpc_endpoint: "http://localhost:8888".to_string(),
-            resource_base_url: "http://localhost:9000/one-for-all/".to_string(),
+            rpc_endpoint:
+                "https://onl32ingagofnhyojrlu3qbkne0uyfts.lambda-url.ap-northeast-2.on.aws/"
+                    .to_string(),
+            resource_base_url: "https://luda-editor.s3.ap-northeast-2.amazonaws.com/master"
+                .to_string(),
         }
     }
 }

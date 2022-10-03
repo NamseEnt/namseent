@@ -208,9 +208,9 @@ impl LoadedSequenceEditorPage {
                 image_select_modal::Event::Close => self.image_select_modal = None,
                 image_select_modal::Event::Error(_) => todo!(),
             }
-        } else if let Some(event) = event.downcast_ref::<crate::sync::Event>() {
+        } else if let Some(event) = event.downcast_ref::<crate::components::sync::Event>() {
             match event {
-                crate::sync::Event::UpdateReceived { patch, id } => {
+                crate::components::sync::Event::UpdateReceived { patch, id } => {
                     if patch.0.len() > 0 {
                         if self.sequence_syncer.id().eq(id) {
                             let sequence = std::mem::take(&mut self.sequence);

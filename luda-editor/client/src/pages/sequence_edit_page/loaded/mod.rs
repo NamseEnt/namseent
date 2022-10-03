@@ -2,7 +2,7 @@ mod components;
 mod render;
 mod update;
 
-use crate::{components::*, sync::Syncer};
+use crate::components::{sync::Syncer, *};
 use components::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
