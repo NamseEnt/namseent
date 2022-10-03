@@ -12,12 +12,14 @@ impl LoadedSequenceEditorPage {
             return;
         }
 
+        let reversed_patch = patch.to_reversed_patch();
+
         let mut sequence_value = serde_json::to_value(&self.sequence).unwrap();
-        rpc::json_patch::patch(&mut sequence_value, &patch.to_reversed_patch()).unwrap();
+        rpc::json_patch::patch(&mut sequence_value, &reversed_patch).unwrap();
 
         self.sequence = serde_json::from_value(sequence_value).unwrap();
 
         self.sequence_syncer
-            .push_patch(patch.to_patch(), self.sequence.clone())
+            .push_patch(reversed_patch, self.sequence.clone())
     }
 }
