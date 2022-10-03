@@ -934,17 +934,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "json-patch"
-version = "0.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f995a3c8f2bc3dd52a18a583e90f9ec109c047fa1603a853e46bcda14d2e279d"
-dependencies = [
- "serde",
- "serde_json",
- "treediff",
-]
-
-[[package]]
 name = "lambda-web"
 version = "0.2.0"
 dependencies = [
@@ -1247,6 +1236,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "revert-json-patch"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "treediff",
+]
+
+[[package]]
 name = "ring"
 version = "0.16.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1266,7 +1264,7 @@ name = "rpc"
 version = "0.1.0"
 dependencies = [
  "hyper",
- "json-patch",
+ "revert-json-patch",
  "serde",
  "serde_json",
  "uuid",

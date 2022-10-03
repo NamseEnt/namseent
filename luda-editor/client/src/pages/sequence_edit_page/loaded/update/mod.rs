@@ -1,3 +1,4 @@
+mod revert;
 mod update_data;
 
 use super::*;
@@ -245,6 +246,15 @@ impl LoadedSequenceEditorPage {
             match event {
                 context_menu::Event::Close => {
                     self.context_menu = None;
+                }
+            }
+        } else if let Some(event) = event.downcast_ref::<namui::event::NamuiEvent>() {
+            if let NamuiEvent::KeyDown(event) = event {
+                if [Code::ControlLeft, Code::KeyZ]
+                    .iter()
+                    .all(|code| event.pressing_codes.contains(code))
+                {
+                    self.revert_sequence();
                 }
             }
         }
