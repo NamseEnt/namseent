@@ -13,7 +13,10 @@ impl LoadedSequenceEditorPage {
         characters: &Vec<Character>,
     ) -> namui::RenderingTree {
         let line_list_label = table::fixed(20.px(), |wh| {
-            typography::body::center(wh, format!("Line List"), Color::WHITE)
+            render([
+                simple_rect(wh, Color::WHITE, 1.px(), Color::TRANSPARENT),
+                typography::body::center(wh, "Line List", Color::WHITE),
+            ])
         });
         let line_list = table::ratio(1.0, |wh| {
             let item_wh = Wh::new(wh.width, 80.px());
