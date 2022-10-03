@@ -99,7 +99,6 @@ impl LoadedSequenceEditorPage {
                             context_menu::Item::new("Delete Cut", {
                                 move || {
                                     namui::event::send(Event::DeleteCut { cut_id });
-                                    namui::event::send(Event::CloseContextMenu);
                                 }
                             }),
                             context_menu::Item::new("Insert Cut Up", {
@@ -107,7 +106,6 @@ impl LoadedSequenceEditorPage {
                                     namui::event::send(Event::InsertCut {
                                         position: AddCutPosition::Before { cut_id },
                                     });
-                                    namui::event::send(Event::CloseContextMenu);
                                 }
                             }),
                             context_menu::Item::new("Insert Cut Down", {
@@ -115,7 +113,6 @@ impl LoadedSequenceEditorPage {
                                     namui::event::send(Event::InsertCut {
                                         position: AddCutPosition::After { cut_id },
                                     });
-                                    namui::event::send(Event::CloseContextMenu);
                                 }
                             }),
                         ],
@@ -125,9 +122,6 @@ impl LoadedSequenceEditorPage {
                     self.update_sequence(|sequence| {
                         sequence.cuts.retain(|cut| cut.id() != cut_id);
                     });
-                }
-                Event::CloseContextMenu => {
-                    self.context_menu = None;
                 }
                 &Event::InsertCut { position } => match position {
                     AddCutPosition::Before { cut_id } | AddCutPosition::After { cut_id } => {
@@ -245,6 +239,12 @@ impl LoadedSequenceEditorPage {
                             self.on_sequence_updated_by_server();
                         }
                     }
+                }
+            }
+        } else if let Some(event) = event.downcast_ref::<context_menu::Event>() {
+            match event {
+                context_menu::Event::Close => {
+                    self.context_menu = None;
                 }
             }
         }

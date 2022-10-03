@@ -74,8 +74,13 @@ impl ContextMenu {
                         namui::event::send(InternalEvent::MouseOver { item_id })
                     })
                     .on_mouse_down_in(move |event| {
-                        event.stop_propagation();
-                        (on_click)();
+                        if let Some(MouseButton::Left) = event.button {
+                            event.stop_propagation();
+                            (on_click)();
+                            namui::event::send(Event::Close);
+                        }
+                    })
+                    .on_mouse_down_out(|_| {
                         namui::event::send(Event::Close);
                     });
             })

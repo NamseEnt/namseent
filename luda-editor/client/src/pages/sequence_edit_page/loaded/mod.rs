@@ -55,7 +55,6 @@ enum Event {
     DeleteCut {
         cut_id: Uuid,
     },
-    CloseContextMenu,
     InsertCut {
         position: AddCutPosition,
     },
