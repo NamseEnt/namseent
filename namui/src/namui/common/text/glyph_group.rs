@@ -1,18 +1,29 @@
 use crate::*;
-use std::sync::Arc;
+use once_cell::sync::OnceCell;
+use std::sync::{Arc, Mutex};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GlyphGroup {
     pub glyph_ids: Vec<u16>,
     pub end_index: usize,
     pub width: Px,
     pub font: Arc<Font>,
 }
+
 pub(crate) fn get_glyph_groups(
     text: &str,
     fonts: &Vec<Arc<Font>>,
     paint: &Arc<Paint>,
 ) -> Vec<GlyphGroup> {
+    let cache_key = CacheKey {
+        text: text.to_string(),
+        fonts: fonts.to_vec(),
+        paint: paint.clone(),
+    };
+    if let Some(cached) = get_glyph_groups_cache(&cache_key) {
+        return cached;
+    }
+
     let mut groups: Vec<GlyphGroup> = vec![];
     let mut non_calculated_char_and_indexes: Vec<(char, usize)> = text
         .chars()
@@ -76,10 +87,54 @@ pub(crate) fn get_glyph_groups(
         }
     }
     groups.sort_by(|a, b| a.end_index.cmp(&b.end_index));
+
+    put_glyph_groups_cache(cache_key, groups.clone());
     groups
 }
 impl GlyphGroup {
     pub(crate) fn start_index(&self) -> usize {
         self.end_index + 1 - self.glyph_ids.len()
     }
+}
+
+static GLYPH_GROUPS_CACHE: OnceCell<Mutex<lru::LruCache<CacheKey, Vec<GlyphGroup>>>> =
+    OnceCell::new();
+
+struct CacheKey {
+    text: String,
+    fonts: Vec<Arc<Font>>,
+    paint: Arc<Paint>,
+}
+
+impl std::hash::Hash for CacheKey {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.text.hash(state);
+        self.fonts.hash(state);
+        self.paint.hash(state);
+    }
+}
+
+impl PartialEq for CacheKey {
+    fn eq(&self, other: &Self) -> bool {
+        self.text == other.text && self.fonts == other.fonts && self.paint == other.paint
+    }
+}
+
+impl Eq for CacheKey {}
+
+fn get_glyph_groups_cache(key: &CacheKey) -> Option<Vec<GlyphGroup>> {
+    GLYPH_GROUPS_CACHE
+        .get_or_init(|| Mutex::new(lru::LruCache::new(1024)))
+        .lock()
+        .unwrap()
+        .get(key)
+        .cloned()
+}
+
+fn put_glyph_groups_cache(key: CacheKey, value: Vec<GlyphGroup>) {
+    GLYPH_GROUPS_CACHE
+        .get_or_init(|| Mutex::new(lru::LruCache::new(1024)))
+        .lock()
+        .unwrap()
+        .put(key, value);
 }
