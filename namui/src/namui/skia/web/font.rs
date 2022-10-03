@@ -117,3 +117,17 @@ impl std::fmt::Debug for Font {
         write!(f, "")
     }
 }
+
+impl std::hash::Hash for Font {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+impl PartialEq for Font {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Eq for Font {}
