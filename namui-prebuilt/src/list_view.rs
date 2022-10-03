@@ -48,7 +48,9 @@ impl ListView {
             return RenderingTree::Empty;
         }
 
-        let scroll_y = self.scroll_view.scroll_y;
+        let max_scroll_y = props.item_wh.height * item_len - props.height;
+        let scroll_y = self.scroll_view.scroll_y.min(max_scroll_y);
+
         let visible_item_start_index = (scroll_y / props.item_wh.height).floor() as usize;
         let visible_item_end_index =
             ((scroll_y + props.height) / props.item_wh.height).ceil() as usize;
