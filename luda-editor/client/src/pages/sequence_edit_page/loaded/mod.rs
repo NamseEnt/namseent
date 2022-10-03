@@ -56,6 +56,15 @@ enum Event {
         cut_id: Uuid,
     },
     CloseContextMenu,
+    InsertCut {
+        position: AddCutPosition,
+    },
+}
+
+#[derive(Clone, Copy)]
+enum AddCutPosition {
+    Before { cut_id: Uuid },
+    After { cut_id: Uuid },
 }
 
 impl LoadedSequenceEditorPage {
