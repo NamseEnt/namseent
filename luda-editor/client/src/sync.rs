@@ -89,11 +89,15 @@ impl<State: std::fmt::Debug + serde::Serialize + serde::de::DeserializeOwned + '
                     !is_dropped
                 } {
                     // Merge ing_patch_state
-                    {
-                        if let Some(mut self_patch_state) = self_patch_state.lock().unwrap().take()
-                        {
-                            patch.0.append(self_patch_state.patch.0.as_mut());
-                            state = self_patch_state.state;
+                    loop {
+                        let self_patch_state = { self_patch_state.lock().unwrap().take() };
+                        match self_patch_state {
+                            Some(mut self_patch_state) => {
+                                patch.0.append(self_patch_state.patch.0.as_mut());
+                                state = self_patch_state.state;
+                                namui::time::delay(DEAFULT_WAIT_DELAY).await;
+                            }
+                            None => break,
                         }
                     }
 
