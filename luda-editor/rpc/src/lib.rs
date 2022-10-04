@@ -1,7 +1,7 @@
 pub mod data;
 mod define_rpc;
 
-pub use json_patch;
+pub use revert_json_patch as json_patch;
 pub use uuid::{uuid, Uuid};
 
 #[macro_export]
@@ -86,7 +86,7 @@ define_rpc::define_rpc! {
         update_server_sequence: {
             pub struct Request {
                 pub sequence_id: uuid::Uuid,
-                pub patch: json_patch::Patch,
+                pub patch: revert_json_patch::Patch,
             }
             pub struct Response {
             }
@@ -101,7 +101,7 @@ define_rpc::define_rpc! {
                 pub sequence_json: serde_json::Value,
             }
             pub struct Response {
-                pub patch: json_patch::Patch,
+                pub patch: revert_json_patch::Patch,
             }
             Error {
                 Unknown(String),
@@ -203,7 +203,7 @@ define_rpc::define_rpc! {
         update_server_project_shared_data: {
             pub struct Request {
                 pub project_id: uuid::Uuid,
-                pub patch: json_patch::Patch,
+                pub patch: revert_json_patch::Patch,
             }
             pub struct Response {
             }
@@ -218,7 +218,7 @@ define_rpc::define_rpc! {
                 pub project_shared_data_json: serde_json::Value,
             }
             pub struct Response {
-                pub patch: json_patch::Patch,
+                pub patch: revert_json_patch::Patch,
             }
             Error {
                 Unknown(String),

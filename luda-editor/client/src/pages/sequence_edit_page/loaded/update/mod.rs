@@ -1,3 +1,4 @@
+mod revert;
 mod update_data;
 
 use super::*;
@@ -208,9 +209,9 @@ impl LoadedSequenceEditorPage {
                 image_select_modal::Event::Close => self.image_select_modal = None,
                 image_select_modal::Event::Error(_) => todo!(),
             }
-        } else if let Some(event) = event.downcast_ref::<crate::sync::Event>() {
+        } else if let Some(event) = event.downcast_ref::<crate::components::sync::Event>() {
             match event {
-                crate::sync::Event::UpdateReceived { patch, id } => {
+                crate::components::sync::Event::UpdateReceived { patch, id } => {
                     if patch.0.len() > 0 {
                         if self.sequence_syncer.id().eq(id) {
                             let sequence = std::mem::take(&mut self.sequence);
@@ -245,6 +246,15 @@ impl LoadedSequenceEditorPage {
             match event {
                 context_menu::Event::Close => {
                     self.context_menu = None;
+                }
+            }
+        } else if let Some(event) = event.downcast_ref::<namui::event::NamuiEvent>() {
+            if let NamuiEvent::KeyDown(event) = event {
+                if [Code::ControlLeft, Code::KeyZ]
+                    .iter()
+                    .all(|code| event.pressing_codes.contains(code))
+                {
+                    self.revert_sequence();
                 }
             }
         }

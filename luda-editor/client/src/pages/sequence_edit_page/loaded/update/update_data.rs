@@ -50,14 +50,16 @@ impl LoadedSequenceEditorPage {
 
         self.send_patch(patch, PatchType::ProjectSharedData);
     }
-    fn send_patch(&self, patch: rpc::json_patch::Patch, patch_type: PatchType) {
+    fn send_patch(&mut self, patch: rpc::json_patch::RevertablePatch, patch_type: PatchType) {
         match patch_type {
-            PatchType::Sequence => self
-                .sequence_syncer
-                .push_patch(patch, self.sequence.clone()),
+            PatchType::Sequence => {
+                self.patch_stack.push(patch.clone());
+                self.sequence_syncer
+                    .push_patch(patch.to_patch(), self.sequence.clone())
+            }
             PatchType::ProjectSharedData => self
                 .project_shared_data_syncer
-                .push_patch(patch, self.project_shared_data.clone()),
+                .push_patch(patch.to_patch(), self.project_shared_data.clone()),
         }
     }
 }
@@ -70,7 +72,10 @@ enum PatchType {
 fn get_patch(
     prev: impl serde::Serialize,
     next: impl serde::Serialize,
-) -> Result<rpc::json_patch::Patch, Box<dyn std::error::Error>> {
-    let patch = rpc::json_patch::diff(&serde_json::to_value(prev)?, &serde_json::to_value(next)?);
+) -> Result<rpc::json_patch::RevertablePatch, Box<dyn std::error::Error>> {
+    let patch = rpc::json_patch::diff_revertable(
+        &serde_json::to_value(prev)?,
+        &serde_json::to_value(next)?,
+    );
     Ok(patch)
 }

@@ -2,7 +2,7 @@ mod components;
 mod render;
 mod update;
 
-use crate::{components::*, sync::Syncer};
+use crate::components::{sync::Syncer, *};
 use components::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
@@ -25,6 +25,7 @@ pub struct LoadedSequenceEditorPage {
     recent_selected_image_ids: VecDeque<Uuid>,
     sequence_player: Option<sequence_player::SequencePlayer>,
     context_menu: Option<context_menu::ContextMenu>,
+    patch_stack: Vec<rpc::json_patch::RevertablePatch>,
 }
 
 enum Event {
@@ -92,6 +93,7 @@ impl LoadedSequenceEditorPage {
             recent_selected_image_ids: VecDeque::new(),
             sequence_player: None,
             context_menu: None,
+            patch_stack: Vec::new(),
         }
     }
     fn project_id(&self) -> Uuid {

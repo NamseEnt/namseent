@@ -4,7 +4,6 @@ mod late_init;
 mod pages;
 mod setting;
 mod storage;
-mod sync;
 
 #[cfg(test)]
 #[cfg(target_family = "wasm")]
