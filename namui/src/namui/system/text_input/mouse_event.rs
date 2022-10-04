@@ -162,6 +162,7 @@ fn get_selection_on_mouse_movement(
 
     Some(get_one_click_selection(
         props.text_align,
+        props.text_baseline,
         &font,
         &line_texts,
         click_local_xy,
@@ -172,6 +173,7 @@ fn get_selection_on_mouse_movement(
 
 fn get_one_click_selection(
     text_align: TextAlign,
+    text_baseline: TextBaseline,
     font: &Font,
     line_texts: &LineTexts,
     click_local_xy: Xy<Px>,
@@ -179,7 +181,7 @@ fn get_one_click_selection(
     last_selection: &Option<Range<usize>>,
 ) -> Range<usize> {
     let selection_index_of_xy =
-        get_selection_index_of_x(text_align, font, line_texts, click_local_xy);
+        get_selection_index_of_xy(text_align, text_baseline, font, line_texts, click_local_xy);
 
     let start = match last_selection {
         Some(last_selection) => {
@@ -195,24 +197,38 @@ fn get_one_click_selection(
     start..selection_index_of_xy
 }
 
-/// TODO: Calculate Baseline
-fn get_selection_index_of_x(
+fn get_selection_index_of_xy(
     text_align: TextAlign,
+    text_baseline: TextBaseline,
     font: &Font,
     line_texts: &LineTexts,
     click_local_xy: Xy<Px>,
 ) -> usize {
-    if click_local_xy.y <= 0.px() {
+    let line_len = line_texts.line_len();
+    if line_len == 0 {
         return 0;
     }
 
-    let line_height = get_line_height(font.size);
-    let line_index = (click_local_xy.y / line_height).floor() as usize;
-    let line_max_index = line_texts.line_len() - 1;
+    let line_index = {
+        let line_height = get_line_height(font.size);
 
-    if line_index > line_max_index {
-        return line_texts.chars_len();
-    }
+        let top_y = click_local_xy.y
+            + line_height
+                * match text_baseline {
+                    TextBaseline::Top => 0.0,
+                    TextBaseline::Middle => line_len as f32 / 2.0,
+                    TextBaseline::Bottom => line_len as f32,
+                };
+
+        let line_index = if top_y <= 0.px() {
+            0
+        } else {
+            (top_y / line_height).floor() as usize
+        };
+
+        let line_max_index = line_len - 1;
+        line_index.min(line_max_index)
+    };
 
     let str_index_before_line = line_texts.char_index_before_line(line_index);
 

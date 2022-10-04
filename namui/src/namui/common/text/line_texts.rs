@@ -24,7 +24,6 @@ pub(crate) struct Line {
 #[derive(Debug)]
 pub(crate) struct LineTexts<'a> {
     vec: Vec<Line>,
-    chars_len: usize,
     pub fonts: &'a Vec<Arc<Font>>,
     pub paint: &'a Arc<Paint>,
 }
@@ -35,7 +34,6 @@ impl<'a> LineTexts<'a> {
         paint: &'a Arc<Paint>,
         max_width: Option<Px>,
     ) -> LineTexts<'a> {
-        let chars_len = text.chars().count();
         let vec = if let Some(max_width) = max_width {
             let word_separator = WordSeparator::UnicodeBreakProperties;
             let word_splitter = WordSplitter::NoHyphenation;
@@ -93,12 +91,7 @@ impl<'a> LineTexts<'a> {
             }
             vec
         };
-        Self {
-            vec,
-            chars_len,
-            fonts,
-            paint,
-        }
+        Self { vec, fonts, paint }
     }
     pub fn line_len(&self) -> usize {
         self.vec.len()
@@ -114,9 +107,6 @@ impl<'a> LineTexts<'a> {
     }
     pub fn get_line(&self, line_index: usize) -> Option<&Line> {
         self.vec.get(line_index)
-    }
-    pub(crate) fn chars_len(&self) -> usize {
-        self.chars_len
     }
     pub(crate) fn char_index_before_line(&self, line_index: usize) -> usize {
         self.vec
