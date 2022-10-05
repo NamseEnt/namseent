@@ -2,7 +2,6 @@ use super::{update_data::PatchType, *};
 
 impl LoadedSequenceEditorPage {
     pub fn undo_sequence_change(&mut self) {
-        namui::log!("undo requested");
         let patch = self.patch_stack.pop();
         if patch.is_none() {
             return;
