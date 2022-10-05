@@ -52,7 +52,7 @@ impl SequencePlayer {
                     render([
                         self.render_images(inner_content_rect.wh(), cut, 1.0.one_zero()),
                         self.render_text_box(inner_content_rect.wh()),
-                        self.render_text(inner_content_rect.wh(), cut),
+                        self.render_text(inner_content_rect.wh(), cut, 1.0.one_zero()),
                         simple_rect(
                             inner_content_rect.wh(),
                             Color::TRANSPARENT,
@@ -70,14 +70,22 @@ impl SequencePlayer {
                     from_cut_index,
                     transition_progress,
                     start_time: _start_time,
-                } => render([
-                    self.render_transition(
-                        inner_content_rect.wh(),
-                        from_cut_index,
-                        transition_progress,
-                    ),
-                    self.render_text_box(inner_content_rect.wh()),
-                ]),
+                } => {
+                    let from_cut = self.sequence.cuts.get(from_cut_index).unwrap();
+                    render([
+                        self.render_transitioning_image(
+                            inner_content_rect.wh(),
+                            from_cut_index,
+                            transition_progress,
+                        ),
+                        self.render_text_box(inner_content_rect.wh()),
+                        self.render_text(
+                            inner_content_rect.wh(),
+                            from_cut,
+                            1.0.one_zero() - transition_progress,
+                        ),
+                    ])
+                }
             },
         )
     }
@@ -133,7 +141,7 @@ impl SequencePlayer {
         ])(wh)
     }
 
-    fn render_text(&self, wh: Wh<Px>, cut: &Cut) -> RenderingTree {
+    fn render_text(&self, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
         table::vertical([
             table::ratio(3, |_wh| RenderingTree::Empty),
             table::ratio(
@@ -168,14 +176,19 @@ impl SequencePlayer {
                                     style: TextStyle {
                                         border: Some(TextStyleBorder {
                                             width: 4.px(),
-                                            color: Color::BLACK,
+                                            color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
                                         }),
                                         drop_shadow: Some(TextStyleDropShadow {
                                             x: 1.px(),
                                             y: 2.px(),
-                                            color: Some(Color::BLACK),
+                                            color: Some(Color::from_f01(
+                                                0.0,
+                                                0.0,
+                                                0.0,
+                                                opacity.as_f32(),
+                                            )),
                                         }),
-                                        color: Color::WHITE,
+                                        color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
                                         background: None,
                                     },
                                     max_width: Some(wh.width - margin * 2),
@@ -201,14 +214,14 @@ impl SequencePlayer {
                             style: TextStyle {
                                 border: Some(TextStyleBorder {
                                     width: 4.px(),
-                                    color: Color::BLACK,
+                                    color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
                                 }),
                                 drop_shadow: Some(TextStyleDropShadow {
                                     x: 1.px(),
                                     y: 2.px(),
-                                    color: Some(Color::BLACK),
+                                    color: Some(Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32())),
                                 }),
-                                color: Color::WHITE,
+                                color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
                                 background: None,
                             },
                             max_width: Some(wh.width - margin * 2),
@@ -217,6 +230,13 @@ impl SequencePlayer {
                 ]),
             ),
         ])(wh)
+    }
+    fn get_image_urls(&self, cut: &Cut) -> Vec<Url> {
+        cut.screen_image_ids
+            .into_iter()
+            .filter_map(|image_id| image_id)
+            .map(|image_id| get_project_image_url(self.project_shared_data.id(), image_id).unwrap())
+            .collect::<Vec<_>>()
     }
     fn render_images(&self, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
         let image_urls = cut
@@ -274,7 +294,7 @@ impl SequencePlayer {
         }
     }
 
-    fn render_transition(
+    fn render_transitioning_image(
         &self,
         wh: Wh<Px>,
         from_cut_index: usize,
@@ -283,13 +303,20 @@ impl SequencePlayer {
         let from_cut = self.sequence.cuts.get(from_cut_index).unwrap();
         let to_cut = self.sequence.cuts.get(from_cut_index + 1).unwrap();
 
-        let from_opacity = 1.0.one_zero() - transition_progress;
-        let to_opacity = transition_progress;
+        let from_cut_image_urls = self.get_image_urls(from_cut);
+        let to_cut_image_urls = self.get_image_urls(to_cut);
 
-        render([
-            self.render_images(wh, from_cut, from_opacity),
-            self.render_images(wh, to_cut, to_opacity),
-        ])
+        if from_cut_image_urls == to_cut_image_urls {
+            self.render_images(wh, from_cut, 1.0.one_zero())
+        } else {
+            let from_opacity = 1.0.one_zero() - transition_progress;
+            let to_opacity = transition_progress;
+
+            render([
+                self.render_images(wh, from_cut, from_opacity),
+                self.render_images(wh, to_cut, to_opacity),
+            ])
+        }
     }
 }
 
