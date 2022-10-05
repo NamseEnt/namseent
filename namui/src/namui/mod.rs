@@ -23,6 +23,7 @@ pub use render::{
     MouseEventCallback, MouseEventType, React, RenderingData, RenderingTree, TextInput,
     WheelEventCallback,
 };
+pub use serde;
 pub use shader_macro::shader;
 pub use skia::{
     make_runtime_effect_shader, BlendMode, ClipOp, Color, FilterMode, Font, Image, MipmapMode,

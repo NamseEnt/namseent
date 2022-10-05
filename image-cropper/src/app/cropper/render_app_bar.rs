@@ -5,7 +5,7 @@ use namui::prelude::*;
 
 pub fn render_app_bar(wh: Wh<Px>) -> RenderingTree {
     const MARGIN: Px = px(8.0);
-    let inner_height = wh.height - 2.0 * MARGIN;
+    let inner_height = wh.height - MARGIN * 2.0;
     let button_wh = Wh {
         width: px(128.0),
         height: inner_height,

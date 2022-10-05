@@ -119,45 +119,45 @@ impl Display for Angle {
     }
 }
 
-super::impl_op_forward_ref!(*|lhs: Angle, rhs: f32| -> Angle {
+crate::impl_op_forward_ref!(*|lhs: Angle, rhs: f32| -> Angle {
     match lhs {
         Angle::Radian(x) => Angle::Radian(x * rhs),
         Angle::Degree(x) => Angle::Degree(x * rhs),
     }
 });
 
-super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i8| -> Angle { lhs * rhs as f32 });
-super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u8| -> Angle { lhs * rhs as f32 });
-super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i16| -> Angle { lhs * rhs as f32 });
-super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u16| -> Angle { lhs * rhs as f32 });
-super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i32| -> Angle { lhs * rhs as f32 });
-super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u32| -> Angle { lhs * rhs as f32 });
-super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i64| -> Angle { lhs * rhs as f32 });
-super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u64| -> Angle { lhs * rhs as f32 });
-super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i128| -> Angle { lhs * rhs as f32 });
-super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u128| -> Angle { lhs * rhs as f32 });
-super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: isize| -> Angle { lhs * rhs as f32 });
-super::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: usize| -> Angle { lhs * rhs as f32 });
+crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i8| -> Angle { lhs * rhs as f32 });
+crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u8| -> Angle { lhs * rhs as f32 });
+crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i16| -> Angle { lhs * rhs as f32 });
+crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u16| -> Angle { lhs * rhs as f32 });
+crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i32| -> Angle { lhs * rhs as f32 });
+crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u32| -> Angle { lhs * rhs as f32 });
+crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i64| -> Angle { lhs * rhs as f32 });
+crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u64| -> Angle { lhs * rhs as f32 });
+crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: i128| -> Angle { lhs * rhs as f32 });
+crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: u128| -> Angle { lhs * rhs as f32 });
+crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: isize| -> Angle { lhs * rhs as f32 });
+crate::impl_op_forward_ref_reversed!(*|lhs: Angle, rhs: usize| -> Angle { lhs * rhs as f32 });
 
-super::impl_op_forward_ref!(/|lhs: Angle, rhs: f32| -> Angle {
+crate::impl_op_forward_ref!(/|lhs: Angle, rhs: f32| -> Angle {
     match lhs {
         Angle::Radian(x) => Angle::Radian(x / rhs),
         Angle::Degree(x) => Angle::Degree(x / rhs),
     }
 });
 
-super::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: i8| -> Angle { lhs / rhs as f32 });
-super::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: u8| -> Angle { lhs / rhs as f32 });
-super::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: i16| -> Angle { lhs / rhs as f32 });
-super::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: u16| -> Angle { lhs / rhs as f32 });
-super::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: i32| -> Angle { lhs / rhs as f32 });
-super::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: u32| -> Angle { lhs / rhs as f32 });
-super::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: i64| -> Angle { lhs / rhs as f32 });
-super::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: u64| -> Angle { lhs / rhs as f32 });
-super::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: i128| -> Angle { lhs / rhs as f32 });
-super::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: u128| -> Angle { lhs / rhs as f32 });
-super::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: isize| -> Angle { lhs / rhs as f32 });
-super::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: usize| -> Angle { lhs / rhs as f32 });
+crate::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: i8| -> Angle { lhs / rhs as f32 });
+crate::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: u8| -> Angle { lhs / rhs as f32 });
+crate::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: i16| -> Angle { lhs / rhs as f32 });
+crate::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: u16| -> Angle { lhs / rhs as f32 });
+crate::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: i32| -> Angle { lhs / rhs as f32 });
+crate::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: u32| -> Angle { lhs / rhs as f32 });
+crate::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: i64| -> Angle { lhs / rhs as f32 });
+crate::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: u64| -> Angle { lhs / rhs as f32 });
+crate::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: i128| -> Angle { lhs / rhs as f32 });
+crate::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: u128| -> Angle { lhs / rhs as f32 });
+crate::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: isize| -> Angle { lhs / rhs as f32 });
+crate::impl_op_forward_ref_reversed!(/|lhs: Angle, rhs: usize| -> Angle { lhs / rhs as f32 });
 
 auto_ops::impl_op!(+=|lhs: &mut Angle, rhs: Angle| {
     match lhs {

@@ -76,8 +76,8 @@ pub fn rect(
             Rect::Xywh {
                 x: px(0.0),
                 y: px(0.0),
-                width: width - 2.0 * stroke_width,
-                height: height - 2.0 * stroke_width,
+                width: width - stroke_width * 2.0,
+                height: height - stroke_width * 2.0,
             },
         ),
         Some(RectStroke {
