@@ -250,18 +250,21 @@ impl LoadedSequenceEditorPage {
             }
         } else if let Some(event) = event.downcast_ref::<namui::event::NamuiEvent>() {
             if let NamuiEvent::KeyDown(event) = event {
-                if [Code::ControlLeft, Code::KeyZ]
+                if [
+                    [Code::ControlLeft, Code::KeyY].iter_mut(),
+                    [Code::ControlLeft, Code::ShiftLeft, Code::KeyZ].iter_mut(),
+                ]
+                .into_iter()
+                .any(|mut codes| codes.all(|code| event.pressing_codes.contains(code)))
+                    && !self.is_any_line_text_input_focused()
+                {
+                    self.redo_sequence_change();
+                } else if [Code::ControlLeft, Code::KeyZ]
                     .iter()
                     .all(|code| event.pressing_codes.contains(code))
                     && !self.is_any_line_text_input_focused()
                 {
                     self.undo_sequence_change();
-                } else if [Code::ControlLeft, Code::KeyY]
-                    .iter()
-                    .all(|code| event.pressing_codes.contains(code))
-                    && !self.is_any_line_text_input_focused()
-                {
-                    self.redo_sequence_change();
                 } else if [Code::Escape]
                     .iter()
                     .all(|code| event.pressing_codes.contains(code))
