@@ -188,6 +188,21 @@ pub fn focus(text_input_id: crate::Uuid) {
         .replace(text_input_id);
 }
 
+pub fn blur() {
+    let input_element = get_input_element();
+    input_element.blur().unwrap();
+    TEXT_INPUT_SYSTEM
+        .focus_requested_text_input_id
+        .lock()
+        .unwrap()
+        .take();
+    TEXT_INPUT_SYSTEM
+        .last_focused_text_input
+        .lock()
+        .unwrap()
+        .take();
+}
+
 fn get_input_element_selection(input_element: &HtmlTextAreaElement) -> text_input::Selection {
     let selection_start = input_element.selection_start().unwrap();
     if selection_start.is_none() {
