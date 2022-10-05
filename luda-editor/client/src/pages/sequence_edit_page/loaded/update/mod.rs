@@ -1,4 +1,4 @@
-mod revert;
+mod undo_redo;
 mod update_data;
 
 use super::*;
@@ -254,7 +254,12 @@ impl LoadedSequenceEditorPage {
                     .iter()
                     .all(|code| event.pressing_codes.contains(code))
                 {
-                    self.revert_sequence();
+                    self.undo_sequence_change();
+                } else if [Code::ControlLeft, Code::KeyY]
+                    .iter()
+                    .all(|code| event.pressing_codes.contains(code))
+                {
+                    self.redo_sequence_change();
                 }
             }
         }

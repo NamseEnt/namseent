@@ -20,7 +20,9 @@ impl LoadedSequenceEditorPage {
             return;
         }
 
-        self.send_patch(patch, PatchType::Sequence);
+        self.send_patch(patch.clone(), PatchType::Sequence);
+        self.patch_stack.push(patch.clone());
+        self.undo_stack.clear();
     }
     pub fn update_cut(&mut self, cut_id: Uuid, f: impl FnOnce(&mut Cut)) {
         self.update_sequence(|sequence| {
@@ -50,13 +52,14 @@ impl LoadedSequenceEditorPage {
 
         self.send_patch(patch, PatchType::ProjectSharedData);
     }
-    fn send_patch(&mut self, patch: rpc::json_patch::RevertablePatch, patch_type: PatchType) {
+    pub fn send_patch(&mut self, patch: rpc::json_patch::RevertablePatch, patch_type: PatchType) {
         match patch_type {
             PatchType::Sequence => {
-                self.patch_stack.push(patch.clone());
-                self.sequence_syncer
-                    .push_patch(patch.to_patch(), self.sequence.clone())
-            }
+                namui::log!("patch: {:#?}", patch);
+                self
+                .sequence_syncer
+                .push_patch(patch.to_patch(), self.sequence.clone())
+            },
             PatchType::ProjectSharedData => self
                 .project_shared_data_syncer
                 .push_patch(patch.to_patch(), self.project_shared_data.clone()),
@@ -64,7 +67,7 @@ impl LoadedSequenceEditorPage {
     }
 }
 
-enum PatchType {
+pub enum PatchType {
     Sequence,
     ProjectSharedData,
 }
