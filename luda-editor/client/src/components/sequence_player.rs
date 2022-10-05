@@ -222,6 +222,13 @@ impl SequencePlayer {
             ),
         ])(wh)
     }
+    fn get_image_urls(&self, cut: &Cut) -> Vec<Url> {
+        cut.screen_image_ids
+            .into_iter()
+            .filter_map(|image_id| image_id)
+            .map(|image_id| get_project_image_url(self.project_shared_data.id(), image_id).unwrap())
+            .collect::<Vec<_>>()
+    }
     fn render_images(&self, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
         let image_urls = cut
             .screen_image_ids
@@ -287,13 +294,20 @@ impl SequencePlayer {
         let from_cut = self.sequence.cuts.get(from_cut_index).unwrap();
         let to_cut = self.sequence.cuts.get(from_cut_index + 1).unwrap();
 
-        let from_opacity = 1.0.one_zero() - transition_progress;
-        let to_opacity = transition_progress;
+        let from_cut_image_urls = self.get_image_urls(from_cut);
+        let to_cut_image_urls = self.get_image_urls(to_cut);
 
-        render([
-            self.render_images(wh, from_cut, from_opacity),
-            self.render_images(wh, to_cut, to_opacity),
-        ])
+        if from_cut_image_urls == to_cut_image_urls {
+            self.render_images(wh, from_cut, 1.0.one_zero())
+        } else {
+            let from_opacity = 1.0.one_zero() - transition_progress;
+            let to_opacity = transition_progress;
+
+            render([
+                self.render_images(wh, from_cut, from_opacity),
+                self.render_images(wh, to_cut, to_opacity),
+            ])
+        }
     }
 }
 
