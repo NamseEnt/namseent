@@ -70,14 +70,18 @@ impl SequencePlayer {
                     from_cut_index,
                     transition_progress,
                     start_time: _start_time,
-                } => render([
-                    self.render_transition(
-                        inner_content_rect.wh(),
-                        from_cut_index,
-                        transition_progress,
-                    ),
-                    self.render_text_box(inner_content_rect.wh()),
-                ]),
+                } => {
+                    let from_cut = self.sequence.cuts.get(from_cut_index).unwrap();
+                    render([
+                        self.render_transitioning_image(
+                            inner_content_rect.wh(),
+                            from_cut_index,
+                            transition_progress,
+                        ),
+                        self.render_text_box(inner_content_rect.wh()),
+                        self.render_text(inner_content_rect.wh(), from_cut),
+                    ])
+                }
             },
         )
     }
@@ -274,7 +278,7 @@ impl SequencePlayer {
         }
     }
 
-    fn render_transition(
+    fn render_transitioning_image(
         &self,
         wh: Wh<Px>,
         from_cut_index: usize,
