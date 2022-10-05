@@ -11,6 +11,7 @@ pub mod system;
 pub mod utils;
 
 pub use self::random::*;
+pub use auto_ops;
 pub use common::{types::*, *};
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
 pub use event::NamuiEvent;

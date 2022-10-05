@@ -65,15 +65,15 @@ macro_rules! common_for_f32_type {
         $crate::types::macros::impl_op_forward_ref!(/|x: $your_type, y: $your_type| -> f32 {
             x.0 / y.0
         });
-        auto_ops::impl_op!(-|x: $your_type| -> $your_type {
+        $crate::auto_ops::impl_op!(-|x: $your_type| -> $your_type {
             (-(x.as_f32())).into()
         });
 
-        auto_ops::impl_op!(+=|x: &mut $your_type, y: $your_type| {
+        $crate::auto_ops::impl_op!(+=|x: &mut $your_type, y: $your_type| {
             x.0 = (*x + y).0;
         });
 
-        auto_ops::impl_op!(-=|x: &mut $your_type, y: $your_type| {
+        $crate::auto_ops::impl_op!(-=|x: &mut $your_type, y: $your_type| {
             x.0 = (*x - y).0;
         });
 
@@ -117,11 +117,11 @@ macro_rules! common_for_f32_type {
             (lhs.as_f32() % rhs).into()
         });
 
-        auto_ops::impl_op!(/=|lhs: &mut $your_type, rhs: f32| {
+        $crate::auto_ops::impl_op!(/=|lhs: &mut $your_type, rhs: f32| {
             lhs.0 = (*lhs / rhs).0;
         });
-        auto_ops::impl_op!(/=|lhs: &mut $your_type, rhs: i32| { *lhs /= (rhs as f32) });
-        auto_ops::impl_op!(/=|lhs: &mut $your_type, rhs: usize| { *lhs /= (rhs as f32) });
+        $crate::auto_ops::impl_op!(/=|lhs: &mut $your_type, rhs: i32| { *lhs /= (rhs as f32) });
+        $crate::auto_ops::impl_op!(/=|lhs: &mut $your_type, rhs: usize| { *lhs /= (rhs as f32) });
 
         pub const fn $short_term(value: f32) -> $your_type {
             $your_type(value)
@@ -149,10 +149,10 @@ pub use common_for_f32_type;
 #[macro_export]
 macro_rules! impl_op_forward_ref {
     ($op:tt |$lhs_i:ident : $lhs:ty, $rhs_i:ident : $rhs:ty| -> $out:ty $body:block) => {
-        auto_ops::impl_op!($op|$lhs_i : $lhs, $rhs_i : $rhs| -> $out $body);
-        auto_ops::impl_op!($op|$lhs_i : &$lhs, $rhs_i : $rhs| -> $out { *$lhs_i $op $rhs_i });
-        auto_ops::impl_op!($op|$lhs_i : $lhs, $rhs_i : &$rhs| -> $out { $lhs_i $op *$rhs_i });
-        auto_ops::impl_op!($op|$lhs_i : &$lhs, $rhs_i : &$rhs| -> $out { *$lhs_i $op *$rhs_i });
+        $crate::auto_ops::impl_op!($op|$lhs_i : $lhs, $rhs_i : $rhs| -> $out $body);
+        $crate::auto_ops::impl_op!($op|$lhs_i : &$lhs, $rhs_i : $rhs| -> $out { *$lhs_i $op $rhs_i });
+        $crate::auto_ops::impl_op!($op|$lhs_i : $lhs, $rhs_i : &$rhs| -> $out { $lhs_i $op *$rhs_i });
+        $crate::auto_ops::impl_op!($op|$lhs_i : &$lhs, $rhs_i : &$rhs| -> $out { *$lhs_i $op *$rhs_i });
     };
 }
 pub use impl_op_forward_ref;
