@@ -52,7 +52,7 @@ impl SequencePlayer {
                     render([
                         self.render_images(inner_content_rect.wh(), cut, 1.0.one_zero()),
                         self.render_text_box(inner_content_rect.wh()),
-                        self.render_text(inner_content_rect.wh(), cut),
+                        self.render_text(inner_content_rect.wh(), cut, 1.0.one_zero()),
                         simple_rect(
                             inner_content_rect.wh(),
                             Color::TRANSPARENT,
@@ -79,7 +79,11 @@ impl SequencePlayer {
                             transition_progress,
                         ),
                         self.render_text_box(inner_content_rect.wh()),
-                        self.render_text(inner_content_rect.wh(), from_cut),
+                        self.render_text(
+                            inner_content_rect.wh(),
+                            from_cut,
+                            1.0.one_zero() - transition_progress,
+                        ),
                     ])
                 }
             },
@@ -137,7 +141,7 @@ impl SequencePlayer {
         ])(wh)
     }
 
-    fn render_text(&self, wh: Wh<Px>, cut: &Cut) -> RenderingTree {
+    fn render_text(&self, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
         table::vertical([
             table::ratio(3, |_wh| RenderingTree::Empty),
             table::ratio(
@@ -172,14 +176,19 @@ impl SequencePlayer {
                                     style: TextStyle {
                                         border: Some(TextStyleBorder {
                                             width: 4.px(),
-                                            color: Color::BLACK,
+                                            color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
                                         }),
                                         drop_shadow: Some(TextStyleDropShadow {
                                             x: 1.px(),
                                             y: 2.px(),
-                                            color: Some(Color::BLACK),
+                                            color: Some(Color::from_f01(
+                                                0.0,
+                                                0.0,
+                                                0.0,
+                                                opacity.as_f32(),
+                                            )),
                                         }),
-                                        color: Color::WHITE,
+                                        color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
                                         background: None,
                                     },
                                     max_width: Some(wh.width - margin * 2),
@@ -205,14 +214,14 @@ impl SequencePlayer {
                             style: TextStyle {
                                 border: Some(TextStyleBorder {
                                     width: 4.px(),
-                                    color: Color::BLACK,
+                                    color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
                                 }),
                                 drop_shadow: Some(TextStyleDropShadow {
                                     x: 1.px(),
                                     y: 2.px(),
-                                    color: Some(Color::BLACK),
+                                    color: Some(Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32())),
                                 }),
-                                color: Color::WHITE,
+                                color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
                                 background: None,
                             },
                             max_width: Some(wh.width - margin * 2),
