@@ -7,7 +7,7 @@ mod namui_context;
 mod random;
 mod render;
 mod skia;
-pub(crate) mod system;
+pub mod system;
 pub mod utils;
 
 pub use self::random::*;
