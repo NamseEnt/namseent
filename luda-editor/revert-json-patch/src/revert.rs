@@ -23,30 +23,37 @@ impl RevertablePatch {
         )
     }
     pub fn to_reversed_patch(&self) -> Patch {
-        Patch(
+        self.reverse().to_patch()
+    }
+    pub fn reverse(&self) -> RevertablePatch {
+        RevertablePatch(
             self.0
                 .iter()
                 .rev()
                 .map(|patch| match patch {
-                    RevertablePatchOperation::Add(operation) => {
-                        PatchOperation::Remove(RemoveOperation {
+                    RevertablePatchOperation::Add(operation) => RevertablePatchOperation::Remove {
+                        operation: RemoveOperation {
                             path: operation.path.clone(),
-                        })
-                    }
+                        },
+                        previous_value: operation.value.clone(),
+                    },
                     RevertablePatchOperation::Remove {
                         operation,
                         previous_value,
-                    } => PatchOperation::Add(AddOperation {
+                    } => RevertablePatchOperation::Add(AddOperation {
                         path: operation.path.clone(),
                         value: previous_value.clone(),
                     }),
                     RevertablePatchOperation::Replace {
                         operation,
                         previous_value,
-                    } => PatchOperation::Replace(ReplaceOperation {
-                        path: operation.path.clone(),
-                        value: previous_value.clone(),
-                    }),
+                    } => RevertablePatchOperation::Replace {
+                        operation: ReplaceOperation {
+                            path: operation.path.clone(),
+                            value: previous_value.clone(),
+                        },
+                        previous_value: operation.value.clone(),
+                    },
                 })
                 .collect(),
         )

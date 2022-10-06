@@ -26,6 +26,7 @@ pub struct LoadedSequenceEditorPage {
     sequence_player: Option<sequence_player::SequencePlayer>,
     context_menu: Option<context_menu::ContextMenu>,
     patch_stack: Vec<rpc::json_patch::RevertablePatch>,
+    undo_stack: Vec<rpc::json_patch::RevertablePatch>,
 }
 
 enum Event {
@@ -94,6 +95,7 @@ impl LoadedSequenceEditorPage {
             sequence_player: None,
             context_menu: None,
             patch_stack: Vec::new(),
+            undo_stack: Vec::new(),
         }
     }
     fn project_id(&self) -> Uuid {

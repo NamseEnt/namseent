@@ -1,4 +1,4 @@
-mod revert;
+mod undo_redo;
 mod update_data;
 
 use super::*;
@@ -250,11 +250,29 @@ impl LoadedSequenceEditorPage {
             }
         } else if let Some(event) = event.downcast_ref::<namui::event::NamuiEvent>() {
             if let NamuiEvent::KeyDown(event) = event {
-                if [Code::ControlLeft, Code::KeyZ]
+                if [
+                    [Code::ControlLeft, Code::KeyY].iter_mut(),
+                    [Code::ControlLeft, Code::ShiftLeft, Code::KeyZ].iter_mut(),
+                ]
+                .into_iter()
+                .any(|mut codes| codes.all(|code| event.pressing_codes.contains(code)))
+                    && !self.is_any_line_text_input_focused()
+                {
+                    self.redo_sequence_change();
+                } else if [Code::ControlLeft, Code::KeyZ]
+                    .iter()
+                    .all(|code| event.pressing_codes.contains(code))
+                    && !self.is_any_line_text_input_focused()
+                {
+                    self.undo_sequence_change();
+                } else if [Code::Escape]
                     .iter()
                     .all(|code| event.pressing_codes.contains(code))
                 {
-                    self.revert_sequence();
+                    self.context_menu = None;
+                    self.character_edit_modal = None;
+                    self.image_select_modal = None;
+                    namui::system::text_input::blur();
                 }
             }
         }
@@ -283,5 +301,10 @@ impl LoadedSequenceEditorPage {
                     .insert(cut.id(), text_input::TextInput::new());
             }
         }
+    }
+    fn is_any_line_text_input_focused(&self) -> bool {
+        self.line_text_inputs
+            .iter()
+            .any(|(_, text_input)| text_input.is_focused())
     }
 }

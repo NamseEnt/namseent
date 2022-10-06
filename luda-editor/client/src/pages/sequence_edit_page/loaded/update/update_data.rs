@@ -20,7 +20,33 @@ impl LoadedSequenceEditorPage {
             return;
         }
 
-        self.send_patch(patch, PatchType::Sequence);
+        self.send_patch(patch.clone(), PatchType::Sequence);
+        self.merge_or_push_patch(patch);
+        self.undo_stack.clear();
+    }
+    fn merge_or_push_patch(&mut self, patch: revert_json_patch::RevertablePatch) {
+        if let Some(last) = self.patch_stack.last_mut() {
+            if patch.0.len() == 1 && last.0.len() == 1 {
+                if let revert_json_patch::RevertablePatchOperation::Replace {
+                    operation: patch_opeation,
+                    ..
+                } = patch.0.get(0).unwrap()
+                {
+                    if let revert_json_patch::RevertablePatchOperation::Replace {
+                        operation: last_operation,
+                        ..
+                    } = last.0.get_mut(0).unwrap()
+                    {
+                        if patch_opeation.path == last_operation.path {
+                            last_operation.value = patch_opeation.value.clone();
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        self.patch_stack.push(patch);
     }
     pub fn update_cut(&mut self, cut_id: Uuid, f: impl FnOnce(&mut Cut)) {
         self.update_sequence(|sequence| {
@@ -50,13 +76,11 @@ impl LoadedSequenceEditorPage {
 
         self.send_patch(patch, PatchType::ProjectSharedData);
     }
-    fn send_patch(&mut self, patch: rpc::json_patch::RevertablePatch, patch_type: PatchType) {
+    pub fn send_patch(&mut self, patch: rpc::json_patch::RevertablePatch, patch_type: PatchType) {
         match patch_type {
-            PatchType::Sequence => {
-                self.patch_stack.push(patch.clone());
-                self.sequence_syncer
-                    .push_patch(patch.to_patch(), self.sequence.clone())
-            }
+            PatchType::Sequence => self
+                .sequence_syncer
+                .push_patch(patch.to_patch(), self.sequence.clone()),
             PatchType::ProjectSharedData => self
                 .project_shared_data_syncer
                 .push_patch(patch.to_patch(), self.project_shared_data.clone()),
@@ -64,7 +88,7 @@ impl LoadedSequenceEditorPage {
     }
 }
 
-enum PatchType {
+pub enum PatchType {
     Sequence,
     ProjectSharedData,
 }
