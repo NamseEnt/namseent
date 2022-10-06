@@ -8,7 +8,9 @@ const VISUAL_OFFSET_X: Tile = tile(-1.5);
 const VISUAL_OFFSET_Y: Tile = tile(-2.5);
 
 #[derive(ecs_macro::Component)]
-pub struct PlayerCharacter {}
+pub struct PlayerCharacter {
+    pub last_velocity: Velocity,
+}
 
 pub fn new_player(position: Xy<Tile>) -> crate::ecs::Entity {
     crate::ecs::Entity::new()
@@ -22,7 +24,9 @@ pub fn new_player(position: Xy<Tile>) -> crate::ecs::Entity {
             width: tile(3.0),
             height: tile(3.0),
         }))
-        .add_component(PlayerCharacter {})
+        .add_component(PlayerCharacter {
+            last_velocity: Velocity::single(Per::new(0.tile(), 1.ms())),
+        })
         .add_component(Renderer::new(
             0,
             Rect::Xywh {
