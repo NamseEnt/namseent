@@ -57,8 +57,8 @@ impl ImageSelectModal {
                     Some(image.id) == self.selected_image.as_ref().map(|image| image.id);
 
                 translate(
-                    column_index * (image_width + padding) + padding,
-                    row_index * (image_width + padding),
+                    (image_width + padding) * column_index + padding,
+                    (image_width + padding) * row_index,
                     render([
                         namui::image(ImageParam {
                             rect: Rect::from_xy_wh(Xy::zero(), Wh::single(image_width)),

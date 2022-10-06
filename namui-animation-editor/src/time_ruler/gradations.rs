@@ -32,7 +32,7 @@ pub fn render_gradations(props: &GradationsProps) -> RenderingTree {
 
         for i in 1..SUB_GRADATION_FREQUENCY {
             gradation_properties.push(GradationProperty {
-                x: x + i * props.gap_px / SUB_GRADATION_FREQUENCY,
+                x: x + (props.gap_px * i) / SUB_GRADATION_FREQUENCY,
                 is_big: false,
             });
         }

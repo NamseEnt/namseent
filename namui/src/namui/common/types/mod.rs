@@ -1,7 +1,7 @@
 mod angle;
 mod int_px;
 mod ltrb;
-pub(crate) mod macros;
+pub mod macros;
 mod one_zero;
 mod per;
 mod percent;
@@ -16,7 +16,7 @@ mod vector_types;
 pub use angle::*;
 pub use int_px::*;
 pub use ltrb::*;
-pub(crate) use macros::*;
+pub use macros::*;
 pub use one_zero::*;
 pub use per::*;
 pub use percent::*;

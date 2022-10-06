@@ -64,7 +64,7 @@ impl FileSelector {
         const MARGIN: Px = px(16.0);
         const BUTTON_HEIGHT: Px = px(36.0);
         let button_wh = Wh {
-            width: props.screen_wh.width - (2.0 * MARGIN),
+            width: props.screen_wh.width - (MARGIN * 2.0),
             height: BUTTON_HEIGHT,
         };
         render([

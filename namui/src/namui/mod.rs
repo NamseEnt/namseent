@@ -11,6 +11,7 @@ pub mod system;
 pub mod utils;
 
 pub use self::random::*;
+pub use auto_ops;
 pub use common::{types::*, *};
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
 pub use event::NamuiEvent;
@@ -23,6 +24,7 @@ pub use render::{
     MouseEventCallback, MouseEventType, React, RenderingData, RenderingTree, TextInput,
     WheelEventCallback,
 };
+pub use serde;
 pub use shader_macro::shader;
 pub use skia::{
     make_runtime_effect_shader, BlendMode, ClipOp, Color, FilterMode, Font, Image, MipmapMode,
