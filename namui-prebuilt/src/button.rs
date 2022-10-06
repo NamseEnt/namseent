@@ -48,7 +48,7 @@ pub fn text_button_fit(
 
     render([
         simple_rect(
-            Wh::new(width + 2 * side_padding, height),
+            Wh::new(width + side_padding * 2, height),
             stroke_color,
             stroke_width,
             fill_color,

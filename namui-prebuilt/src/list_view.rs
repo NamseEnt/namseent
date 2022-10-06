@@ -64,12 +64,12 @@ impl ListView {
         let rendered_items = visible_items.map(|(index, item)| {
             translate(
                 px(0.0),
-                index * props.item_wh.height,
+                props.item_wh.height * index,
                 (props.item_render)(props.item_wh, item),
             )
         });
 
-        let content_height = item_len * props.item_wh.height;
+        let content_height = props.item_wh.height * item_len;
 
         let transparent_pillar = rect(RectParam {
             rect: Rect::Xywh {

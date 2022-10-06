@@ -45,7 +45,7 @@ impl ContextMenu {
         let cell_wh = Wh::new(160.px(), 24.px());
 
         let menus = self.items.iter().enumerate().map(|(index, item)| {
-            let y = index * cell_wh.height;
+            let y = cell_wh.height * index;
             let is_selected = self.mouse_over_item_id.as_ref() == Some(&item.id);
             let border = if is_selected {
                 simple_rect(cell_wh, Color::BLACK, 1.px(), Color::WHITE)

@@ -108,7 +108,7 @@ impl KeyframeValue<ImageInterpolation> for ImageKeyframe {
                 let velocity = {
                     let length = vector.length();
 
-                    let vt = (PI / 2.0) * length * (PI * time_ratio).sin();
+                    let vt = length * (PI / 2.0) * (PI * time_ratio).sin();
                     vt
                 };
                 let sx = (velocity.as_f32() / 1000.0).min(1.25).max(1.0);

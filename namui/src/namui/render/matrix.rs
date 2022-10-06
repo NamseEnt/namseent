@@ -86,8 +86,7 @@ impl Matrix3x3 {
 
     pub fn transform_rect<T>(&self, rect: Rect<T>) -> Rect<T>
     where
-        f32: std::ops::Mul<T, Output = T> + Into<T>,
-        T: std::ops::Add<Output = T> + Copy,
+        T: std::ops::Add<Output = T> + Copy + std::ops::Mul<f32, Output = T> + From<f32>,
     {
         let Ltrb {
             left,
@@ -96,17 +95,17 @@ impl Matrix3x3 {
             bottom,
         } = rect.as_ltrb();
         Rect::Ltrb {
-            left: *self.values.index((0, 0)) * left
-                + *self.values.index((0, 1)) * top
+            left: left * *self.values.index((0, 0))
+                + top * *self.values.index((0, 1))
                 + (*self.values.index((0, 2))).into(),
-            top: *self.values.index((1, 0)) * left
-                + *self.values.index((1, 1)) * top
+            top: left * *self.values.index((1, 0))
+                + top * *self.values.index((1, 1))
                 + (*self.values.index((1, 2))).into(),
-            right: *self.values.index((0, 0)) * right
-                + *self.values.index((0, 1)) * bottom
+            right: right * *self.values.index((0, 0))
+                + bottom * *self.values.index((0, 1))
                 + (*self.values.index((0, 2))).into(),
-            bottom: *self.values.index((1, 0)) * right
-                + *self.values.index((1, 1)) * bottom
+            bottom: right * *self.values.index((1, 0))
+                + bottom * *self.values.index((1, 1))
                 + (*self.values.index((1, 2))).into(),
         }
     }

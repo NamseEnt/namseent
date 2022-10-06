@@ -170,21 +170,21 @@ fn calculate_contain_fit_dest_rect(image_size: Wh<Px>, command_rect: Rect<Px>) -
 
     if image_size.width / image_size.height > command_rect.width() / command_rect.height() {
         let k = command_rect.width() / image_size.width;
-        let delta_y = (command_rect.height() - k * image_size.height) / 2.0;
+        let delta_y = (command_rect.height() - image_size.height * k) / 2.0;
         return Rect::Xywh {
             x: command_rect.x(),
             y: command_rect.y() + delta_y,
             width: command_rect.width(),
-            height: k * image_size.height,
+            height: image_size.height * k,
         };
     }
 
     let k = command_rect.height() / image_size.height;
-    let delta_x = (command_rect.width() - k * image_size.width) / 2.0;
+    let delta_x = (command_rect.width() - image_size.width * k) / 2.0;
     return Rect::Xywh {
         x: command_rect.x() + delta_x,
         y: command_rect.y(),
-        width: k * image_size.width,
+        width: image_size.width * k,
         height: command_rect.height(),
     };
 }
@@ -201,21 +201,21 @@ fn calculate_cover_fit_src_rect(image_size: Wh<Px>, command_rect: Rect<Px>) -> R
 
     if image_size.width / image_size.height > command_rect.width() / command_rect.height() {
         let k = command_rect.height() / image_size.height;
-        let delta_x = (k * image_size.width - command_rect.width()) / (2.0 * k);
+        let delta_x = (image_size.width * k - command_rect.width()) / (2.0 * k);
         return Rect::Xywh {
             x: delta_x,
             y: px(0.0),
-            width: image_size.width - 2.0 * delta_x,
+            width: image_size.width - delta_x * 2.0,
             height: image_size.height,
         };
     }
 
     let k = command_rect.width() / image_size.width;
-    let delta_y = (k * image_size.height - command_rect.height()) / (2.0 * k);
+    let delta_y = (image_size.height * k - command_rect.height()) / (2.0 * k);
     return Rect::Xywh {
         x: px(0.0),
         y: delta_y,
         width: image_size.width,
-        height: image_size.height - 2.0 * delta_y,
+        height: image_size.height - delta_y * 2.0,
     };
 }

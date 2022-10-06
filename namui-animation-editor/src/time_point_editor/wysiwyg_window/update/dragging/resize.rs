@@ -69,13 +69,13 @@ impl Act<Animation> for DragResizeCircleAction {
                 update_xy(
                     layer,
                     self.keyframe_point_id,
-                    self.rotation_angle.cos() * reversed_rotated_delta_in_real.x / 2.0f32,
+                    reversed_rotated_delta_in_real.x * self.rotation_angle.cos() / 2.0f32,
                     XY::X,
                 )?;
                 update_xy(
                     layer,
                     self.keyframe_point_id,
-                    self.rotation_angle.sin() * reversed_rotated_delta_in_real.x / 2.0f32,
+                    reversed_rotated_delta_in_real.x * self.rotation_angle.sin() / 2.0f32,
                     XY::Y,
                 )?;
             }
@@ -83,13 +83,13 @@ impl Act<Animation> for DragResizeCircleAction {
                 update_xy(
                     layer,
                     self.keyframe_point_id,
-                    -self.rotation_angle.sin() * reversed_rotated_delta_in_real.y / 2.0f32,
+                    reversed_rotated_delta_in_real.y * -self.rotation_angle.sin() / 2.0f32,
                     XY::X,
                 )?;
                 update_xy(
                     layer,
                     self.keyframe_point_id,
-                    self.rotation_angle.cos() * reversed_rotated_delta_in_real.y / 2.0f32,
+                    reversed_rotated_delta_in_real.y * self.rotation_angle.cos() / 2.0f32,
                     XY::Y,
                 )?;
             }
