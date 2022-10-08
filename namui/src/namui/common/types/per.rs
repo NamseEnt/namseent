@@ -64,6 +64,46 @@ where
     }
 }
 
+impl<TNumerator, TDenominator> Ord for Per<TNumerator, TDenominator>
+where
+    TNumerator: std::ops::Mul<f32, Output = TNumerator> + Ord + Copy,
+    TDenominator: std::ops::Div<Output = f32> + Copy,
+{
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let denominator_ratio = self.denominator / other.denominator;
+        let common_other_numerator = other.numerator * denominator_ratio;
+        self.numerator.cmp(&common_other_numerator)
+    }
+}
+impl<TNumerator, TDenominator> Eq for Per<TNumerator, TDenominator>
+where
+    TNumerator: std::ops::Mul<f32, Output = TNumerator> + PartialOrd + PartialEq + Copy,
+    TDenominator: std::ops::Div<Output = f32> + Copy,
+{
+}
+impl<TNumerator, TDenominator> PartialOrd for Per<TNumerator, TDenominator>
+where
+    TNumerator: std::ops::Mul<f32, Output = TNumerator> + PartialOrd + Copy,
+    TDenominator: std::ops::Div<Output = f32> + Copy,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let denominator_ratio = self.denominator / other.denominator;
+        let common_other_numerator = other.numerator * denominator_ratio;
+        self.numerator.partial_cmp(&common_other_numerator)
+    }
+}
+impl<TNumerator, TDenominator> PartialEq for Per<TNumerator, TDenominator>
+where
+    TNumerator: std::ops::Mul<f32, Output = TNumerator> + PartialEq + Copy,
+    TDenominator: std::ops::Div<Output = f32> + Copy,
+{
+    fn eq(&self, other: &Self) -> bool {
+        let denominator_ratio = self.denominator / other.denominator;
+        let common_other_numerator = other.numerator * denominator_ratio;
+        self.numerator == common_other_numerator
+    }
+}
+
 impl<TNumerator, TDenominator> std::fmt::Display for Per<TNumerator, TDenominator>
 where
     TNumerator: std::fmt::Display,
