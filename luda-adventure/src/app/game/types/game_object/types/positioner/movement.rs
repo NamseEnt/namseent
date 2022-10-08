@@ -58,7 +58,8 @@ impl Movement {
 }
 
 fn check_velocity_is_zero(velocity: Velocity) -> bool {
-    velocity.x * 1.0.ms() == 0.0.tile() && velocity.y * 1.0.ms() == 0.0.tile()
+    let zero_velocity = Xy::single(Per::new(0.tile(), 1.ms()));
+    velocity == zero_velocity
 }
 
 fn check_time_is_finity(time: Time) -> bool {

@@ -126,8 +126,8 @@ fn predict_intersection_on_one_axis(
         Zero,
         Negative,
     }
-    let movement_direction = match (speed * 1.0.ms())
-        .partial_cmp(&0.0_f32.tile())
+    let movement_direction = match speed
+        .partial_cmp(&Per::new(0.tile(), 1.ms()))
         .expect("Invalid speed")
     {
         std::cmp::Ordering::Less => MovementDirection::Negative,
