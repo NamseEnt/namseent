@@ -113,3 +113,17 @@ where
         write!(f, "{}/{}", self.numerator, self.denominator)
     }
 }
+
+impl<TNumerator, TDenominator> crate::SimpleSigned for Per<TNumerator, TDenominator>
+where
+    TNumerator: crate::SimpleSigned,
+    TDenominator: crate::SimpleSigned,
+{
+    fn is_sign_positive(&self) -> bool {
+        !self.is_sign_negative()
+    }
+
+    fn is_sign_negative(&self) -> bool {
+        self.numerator.is_sign_positive() ^ self.denominator.is_sign_positive()
+    }
+}

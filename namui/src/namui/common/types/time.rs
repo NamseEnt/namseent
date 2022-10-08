@@ -324,6 +324,30 @@ impl Ord for Time {
     }
 }
 
+impl crate::SimpleSigned for Time {
+    fn is_sign_positive(&self) -> bool {
+        match self {
+            Time::Ms(inner)
+            | Time::Sec(inner)
+            | Time::Minute(inner)
+            | Time::Hour(inner)
+            | Time::Day(inner)
+            | Time::Week(inner) => inner.is_sign_positive(),
+        }
+    }
+
+    fn is_sign_negative(&self) -> bool {
+        match self {
+            Time::Ms(inner)
+            | Time::Sec(inner)
+            | Time::Minute(inner)
+            | Time::Hour(inner)
+            | Time::Day(inner)
+            | Time::Week(inner) => inner.is_sign_negative(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
