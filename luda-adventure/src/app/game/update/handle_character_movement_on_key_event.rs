@@ -9,9 +9,8 @@ impl Game {
             .first_mut()
         {
             let character_velocity = get_character_velocity_from_key_state();
-            let character_velocity_has_not_changed = character_velocity.x * 1.ms()
-                == player_character.last_velocity.x * 1.ms()
-                && character_velocity.y * 1.ms() == player_character.last_velocity.y * 1.ms();
+            let character_velocity_has_not_changed =
+                character_velocity == player_character.last_velocity;
             if character_velocity_has_not_changed {
                 return;
             }
