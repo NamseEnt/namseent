@@ -134,18 +134,21 @@ fn predict_intersection_on_one_axis(
         std::cmp::Ordering::Equal => MovementDirection::Zero,
         std::cmp::Ordering::Greater => MovementDirection::Positive,
     };
-    let target_greater_side_minus_character_less_side = target_greater_side - character_less_side;
-    let target_greater_side_minus_character_less_side_divided_by_speed =
-        speed.invert() * target_greater_side_minus_character_less_side;
-    let target_less_side_minus_character_greater_side = target_less_side - character_greater_side;
-    let target_less_side_minus_character_greater_side_divided_by_speed =
-        speed.invert() * target_less_side_minus_character_greater_side;
+    let distance_between_character_less_side_to_target_greater_side =
+        target_greater_side - character_less_side;
+    let remaining_time_from_character_less_side_to_target_greater_side =
+        speed.invert() * distance_between_character_less_side_to_target_greater_side;
+    let distance_between_character_greater_side_to_target_less_side =
+        target_less_side - character_greater_side;
+    let remaining_time_from_character_greater_side_to_target_less_side =
+        speed.invert() * distance_between_character_greater_side_to_target_less_side;
     let intersection_prediction = match movement_direction {
         MovementDirection::Positive => {
             let start_remaining_time =
-                target_less_side_minus_character_greater_side_divided_by_speed;
-            let end_remaining_time = target_greater_side_minus_character_less_side_divided_by_speed;
-            let start_remaining_distance = target_less_side_minus_character_greater_side;
+                remaining_time_from_character_greater_side_to_target_less_side;
+            let end_remaining_time = remaining_time_from_character_less_side_to_target_greater_side;
+            let start_remaining_distance =
+                distance_between_character_greater_side_to_target_less_side;
             let will_intersect = start_remaining_time <= end_remaining_time;
             if will_intersect {
                 IntersectionPrediction::WillIntersect {
@@ -172,9 +175,10 @@ fn predict_intersection_on_one_axis(
         }
         MovementDirection::Negative => {
             let start_remaining_time =
-                target_greater_side_minus_character_less_side_divided_by_speed;
-            let end_remaining_time = target_less_side_minus_character_greater_side_divided_by_speed;
-            let start_remaining_distance = target_greater_side_minus_character_less_side;
+                remaining_time_from_character_less_side_to_target_greater_side;
+            let end_remaining_time = remaining_time_from_character_greater_side_to_target_less_side;
+            let start_remaining_distance =
+                distance_between_character_less_side_to_target_greater_side;
             let will_intersect = start_remaining_time <= end_remaining_time;
             if will_intersect {
                 IntersectionPrediction::WillIntersect {
