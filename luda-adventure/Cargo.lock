@@ -576,7 +576,6 @@ dependencies = [
 name = "luda-adventure"
 version = "0.1.0"
 dependencies = [
- "auto_ops",
  "ecs-macro",
  "float-cmp",
  "mockall",
