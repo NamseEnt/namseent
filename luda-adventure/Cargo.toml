@@ -9,7 +9,6 @@ version = "0.1.0"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-export-known-ids-macro = {path = "./export-known-ids-macro"}
 ecs-macro = {path = "./ecs-macro"}
 namui = {path = "../namui"}
 namui-prebuilt = {path = "../namui-prebuilt"}
