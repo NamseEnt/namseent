@@ -142,6 +142,16 @@ macro_rules! common_for_f32_type {
                 $your_type(self as f32)
             }
         }
+
+        impl $crate::SimpleSigned for $your_type {
+            fn is_sign_positive(&self) -> bool {
+                self.0.is_sign_positive()
+            }
+
+            fn is_sign_negative(&self) -> bool {
+                self.0.is_sign_negative()
+            }
+        }
     };
 }
 pub use common_for_f32_type;
