@@ -19,6 +19,7 @@ jobs:
       namui-sample: ${{ steps.filter.outputs.namui-sample }}
       image-cropper: ${{ steps.filter.outputs.image-cropper }}
       namui-animation-editor: ${{ steps.filter.outputs.namui-animation-editor }}
+      luda-adventure: ${{ steps.filter.outputs.luda-adventure }}
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
@@ -59,6 +60,11 @@ jobs:
             namui-animation-editor:
               - .github/**
               - namui-animation-editor/**
+              - namui/**
+              - docker-images/namui-test-host/linux.Dockerfile
+            luda-adventure:
+              - .github/**
+              - luda-adventure/**
               - namui/**
               - docker-images/namui-test-host/linux.Dockerfile
 
@@ -182,6 +188,18 @@ jobs:
           target: wasm-unknown-web
           path: namui-animation-editor/sample
 
+  test-luda-adventure:
+    needs: [check-rebuild, set-up]
+    if: needs.check-rebuild.outputs.luda-adventure == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/init-test-job
+      - uses: ./.github/actions/namui-test
+        with:
+          target: wasm-unknown-web
+          path: luda-adventure
+
   # NOTE: This is for status check of pull request.
   post-test:
     if: always()
@@ -199,6 +217,7 @@ jobs:
       - test-namui-sample
       - test-image-cropper
       - test-namui-animation-editor
+      - test-luda-adventure
     steps:
       - run: ANY_TEST_FAILED=${{!contains(join(needs.*.result, ','), 'failure')}}
       - run: echo $ANY_TEST_FAILED
