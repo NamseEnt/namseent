@@ -143,7 +143,7 @@ macro_rules! common_for_f32_type {
             }
         }
 
-        impl crate::SimpleSigned for $your_type {
+        impl $crate::SimpleSigned for $your_type {
             fn is_sign_positive(&self) -> bool {
                 self.0.is_sign_positive()
             }
