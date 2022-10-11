@@ -1,6 +1,6 @@
 use super::{
-    get_heading_from_velocity, predict_collision, CollisionDirection, Heading, Movement,
-    MovementPlan, MovementState, Velocity,
+    get_heading_from_velocity, predict_collision, CollisionDirection, CollisionState, Heading,
+    Movement, MovementPlan, Velocity,
 };
 use crate::app::game::{Collider, TileExt};
 use namui::prelude::*;
@@ -51,8 +51,8 @@ impl Positioner {
             return;
         }
 
-        match last_prediction.movement_state {
-            super::MovementState::MoveAlongAxis | super::MovementState::FreeMove => {
+        match last_prediction.collision_state {
+            super::CollisionState::MoveAlongAxis | super::CollisionState::FreeMove => {
                 if let Some(collision) = predict_collision(
                     directed_movement.velocity,
                     &character_collision_box,
@@ -67,7 +67,7 @@ impl Positioner {
                         start_position: prediction_start_position,
                         end_position: collision.start_position,
                         velocity: directed_movement.velocity,
-                        movement_state: MovementState::MoveToCollide(collision),
+                        collision_state: CollisionState::MoveToCollide(collision),
                     };
                     self.movement_plan
                         .predicted_movement_list
@@ -79,14 +79,14 @@ impl Positioner {
                         start_position: prediction_start_position,
                         velocity: directed_movement.velocity,
                         end_position: directed_movement.end_position,
-                        movement_state: MovementState::FreeMove,
+                        collision_state: CollisionState::FreeMove,
                     };
                     self.movement_plan
                         .predicted_movement_list
                         .push(movement_until_directed_movement_end);
                 }
             }
-            super::MovementState::MoveToCollide(last_collision) => {
+            super::CollisionState::MoveToCollide(last_collision) => {
                 let velocity_after_last_collision = match last_collision.direction {
                     CollisionDirection::Vertical => Xy {
                         x: directed_movement.velocity.x,
@@ -112,7 +112,7 @@ impl Positioner {
                         start_position: prediction_start_position,
                         end_position: collision.start_position,
                         velocity: velocity_after_last_collision,
-                        movement_state: MovementState::MoveAlongAxisToCollide,
+                        collision_state: CollisionState::MoveAlongAxisToCollide,
                     };
                     self.movement_plan
                         .predicted_movement_list
@@ -130,14 +130,14 @@ impl Positioner {
                         start_position: prediction_start_position,
                         velocity: velocity_after_last_collision,
                         end_position,
-                        movement_state: MovementState::MoveAlongAxis,
+                        collision_state: CollisionState::MoveAlongAxis,
                     };
                     self.movement_plan
                         .predicted_movement_list
                         .push(movement_until_last_collision_end);
                 }
             }
-            super::MovementState::MoveAlongAxisToCollide | super::MovementState::Stuck => {
+            super::CollisionState::MoveAlongAxisToCollide | super::CollisionState::Stuck => {
                 let stay_forever =
                     Movement::stay_forever(prediction_start_position, prediction_start_time);
                 self.movement_plan
@@ -162,7 +162,7 @@ impl Positioner {
                 start_position: self.movement_plan.directed_movement.start_position,
                 end_position: self.movement_plan.directed_movement.end_position,
                 velocity: self.movement_plan.directed_movement.velocity,
-                movement_state: self.movement_plan.directed_movement.movement_state.clone(),
+                collision_state: self.movement_plan.directed_movement.collision_state.clone(),
             },
         }
     }
