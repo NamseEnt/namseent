@@ -169,9 +169,7 @@ impl Time {
     }
 }
 
-crate::types::macros::impl_op_forward_ref_reversed_for_f32_i32_usize!(*|lhs: Time,
-                                                                        rhs: f32|
- -> Time {
+crate::types::impl_op_forward_ref_reversed_for_f32_i32_usize!(*|lhs: Time, rhs: f32| -> Time {
     match lhs {
         Time::Ms(x) => Time::Ms(x * rhs),
         Time::Sec(x) => Time::Sec(x * rhs),

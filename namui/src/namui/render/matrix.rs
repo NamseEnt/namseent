@@ -194,18 +194,18 @@ impl Matrix3x3 {
     }
 }
 
-crate::types::macros::impl_op_forward_ref!(*|a: Matrix3x3, b: Matrix3x3| -> Matrix3x3 {
+crate::types::impl_op_forward_ref!(*|a: Matrix3x3, b: Matrix3x3| -> Matrix3x3 {
     Matrix3x3 {
         values: a.values * b.values,
     }
 });
-crate::types::macros::impl_op_forward_ref!(+|a: Matrix3x3, b: Matrix3x3| -> Matrix3x3 {
+crate::types::impl_op_forward_ref!(+|a: Matrix3x3, b: Matrix3x3| -> Matrix3x3 {
     Matrix3x3 {
         values: a.values + b.values,
     }
 });
 
-crate::types::macros::impl_op_forward_ref_reversed!(*|a: Matrix3x3, b: f32| -> Matrix3x3 {
+crate::types::impl_op_forward_ref_reversed!(*|a: Matrix3x3, b: f32| -> Matrix3x3 {
     Matrix3x3 {
         values: a.values * b,
     }

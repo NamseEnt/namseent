@@ -42,9 +42,9 @@ impl Into<Px> for IntPx {
     }
 }
 
-crate::namui::common::types::macros::impl_op_forward_ref_reversed!(+|lhs: IntPx, rhs: Px| -> Px {
+crate::namui::common::types::impl_op_forward_ref_reversed!(+|lhs: IntPx, rhs: Px| -> Px {
     crate::px(lhs.0 as f32 + rhs.as_f32())
 });
-crate::namui::common::types::macros::impl_op_forward_ref_reversed!(-|lhs: IntPx, rhs: Px| -> Px {
+crate::namui::common::types::impl_op_forward_ref_reversed!(-|lhs: IntPx, rhs: Px| -> Px {
     crate::px(lhs.0 as f32 - rhs.as_f32())
 });

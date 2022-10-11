@@ -185,8 +185,7 @@ impl Entity for ShaderExample {
                     }
                     .as_slice();
 
-                    let display_rect =
-                        Rect::from_xy_wh(Xy::single(100.px()), wh - Wh::single(200.px()));
+                    let display_rect = Rect::from_xy_wh(Xy::single(100.px()), wh - Wh::single(200.px()));
 
                     let wh = display_rect.wh().into_slice();
                     let delta_x_center = {
