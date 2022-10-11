@@ -1,6 +1,6 @@
 use super::{
     get_heading_from_velocity, predict_collision, CollisionDirection, Heading, Movement,
-    MovementPlan, Velocity,
+    MovementPlan, MovementState, Velocity,
 };
 use crate::app::game::{Collider, TileExt};
 use namui::prelude::*;
@@ -32,14 +32,15 @@ impl Positioner {
     pub fn predict_movement(
         &mut self,
         collider: &Collider,
-        collision_box_list: &[crate::app::game::CollisionBox],
+        target_collision_box_list: &[crate::app::game::CollisionBox],
     ) {
-        let prediction_start_time = self.get_predicted_movement_end_time();
-        let prediction_start_position = self.get_position(prediction_start_time);
+        let last_prediction = self.get_last_prediction();
+        let prediction_start_time = last_prediction.end_time;
+        let prediction_start_position = last_prediction.end_position;
         let character_collision_box = collider.get_collision_box(prediction_start_position);
+        let directed_movement = &self.movement_plan.directed_movement;
 
-        let directed_movement_ended =
-            prediction_start_time == self.movement_plan.directed_movement.end_time;
+        let directed_movement_ended = prediction_start_time == directed_movement.end_time;
         if directed_movement_ended {
             self.movement_plan
                 .predicted_movement_list
@@ -50,107 +51,116 @@ impl Positioner {
             return;
         }
 
-        let first_collision = predict_collision(
-            self.movement_plan.directed_movement.velocity,
-            &character_collision_box,
-            &collision_box_list,
-            prediction_start_time,
-            self.movement_plan.directed_movement.end_time,
-            prediction_start_position,
-        );
-        match first_collision {
-            Some(first_collision) => {
-                let movement_until_first_collision = Movement {
-                    start_time: prediction_start_time,
-                    end_time: first_collision.start_time,
-                    start_position: prediction_start_position,
-                    end_position: first_collision.start_position,
-                    velocity: self.movement_plan.directed_movement.velocity,
-                };
-                self.movement_plan
-                    .predicted_movement_list
-                    .push(movement_until_first_collision);
-
-                let character_collision_box_at_first_collision =
-                    collider.get_collision_box(self.get_position(first_collision.start_time));
-                let velocity_after_first_collision = match first_collision.direction {
+        match last_prediction.movement_state {
+            super::MovementState::MoveAlongAxis | super::MovementState::FreeMove => {
+                if let Some(collision) = predict_collision(
+                    directed_movement.velocity,
+                    &character_collision_box,
+                    &target_collision_box_list,
+                    prediction_start_time,
+                    directed_movement.end_time,
+                    prediction_start_position,
+                ) {
+                    let movement_until_collision = Movement {
+                        start_time: prediction_start_time,
+                        end_time: collision.start_time,
+                        start_position: prediction_start_position,
+                        end_position: collision.start_position,
+                        velocity: directed_movement.velocity,
+                        movement_state: MovementState::MoveToCollide(collision),
+                    };
+                    self.movement_plan
+                        .predicted_movement_list
+                        .push(movement_until_collision);
+                } else {
+                    let movement_until_directed_movement_end = Movement {
+                        start_time: prediction_start_time,
+                        end_time: directed_movement.end_time,
+                        start_position: prediction_start_position,
+                        velocity: directed_movement.velocity,
+                        end_position: directed_movement.end_position,
+                        movement_state: MovementState::FreeMove,
+                    };
+                    self.movement_plan
+                        .predicted_movement_list
+                        .push(movement_until_directed_movement_end);
+                }
+            }
+            super::MovementState::MoveToCollide(last_collision) => {
+                let velocity_after_last_collision = match last_collision.direction {
                     CollisionDirection::Vertical => Xy {
-                        x: self.movement_plan.directed_movement.velocity.x,
+                        x: directed_movement.velocity.x,
                         y: Per::new(0.tile(), 1.ms()),
                     },
                     CollisionDirection::Horizontal => Xy {
                         x: Per::new(0.tile(), 1.ms()),
-                        y: self.movement_plan.directed_movement.velocity.y,
+                        y: directed_movement.velocity.y,
                     },
                 };
-                let second_collision = predict_collision(
-                    velocity_after_first_collision,
-                    &character_collision_box_at_first_collision,
-                    &collision_box_list,
-                    first_collision.start_time,
-                    first_collision.end_time,
-                    first_collision.start_position,
-                );
-                match second_collision {
-                    Some(second_collision) => {
-                        let movement_until_second_collision = Movement {
-                            start_time: first_collision.start_time,
-                            end_time: second_collision.start_time,
-                            start_position: first_collision.start_position,
-                            end_position: second_collision.start_position,
-                            velocity: velocity_after_first_collision,
-                        };
-                        let movement_after_second_collision = Movement::stay_forever(
-                            movement_until_second_collision
-                                .get_position(movement_until_second_collision.end_time)
-                                .unwrap(),
-                            movement_until_second_collision.end_time,
-                        );
-                        self.movement_plan.predicted_movement_list.extend([
-                            movement_until_second_collision,
-                            movement_after_second_collision,
-                        ]);
-                    }
-                    None => {
-                        let movement_after_first_collision_delta_time =
-                            first_collision.end_time - first_collision.start_time;
-                        let movement_after_first_collision = Movement {
-                            start_time: first_collision.start_time,
-                            end_time: first_collision.end_time,
-                            start_position: first_collision.start_position,
-                            velocity: velocity_after_first_collision,
-                            end_position: first_collision.start_position
-                                + Xy {
-                                    x: velocity_after_first_collision.x
-                                        * movement_after_first_collision_delta_time,
-                                    y: velocity_after_first_collision.y
-                                        * movement_after_first_collision_delta_time,
-                                },
-                        };
-                        self.movement_plan
-                            .predicted_movement_list
-                            .push(movement_after_first_collision);
-                    }
+
+                if let Some(collision) = predict_collision(
+                    velocity_after_last_collision,
+                    &character_collision_box,
+                    &target_collision_box_list,
+                    prediction_start_time,
+                    directed_movement.end_time,
+                    prediction_start_position,
+                ) {
+                    let movement_until_collision = Movement {
+                        start_time: prediction_start_time,
+                        end_time: collision.start_time,
+                        start_position: prediction_start_position,
+                        end_position: collision.start_position,
+                        velocity: velocity_after_last_collision,
+                        movement_state: MovementState::MoveAlongAxisToCollide,
+                    };
+                    self.movement_plan
+                        .predicted_movement_list
+                        .push(movement_until_collision);
+                } else {
+                    let delta_time = last_collision.end_time - last_collision.start_time;
+                    let end_position =
+                        velocity_after_last_collision * delta_time + prediction_start_position;
+                    let movement_until_last_collision_end = Movement {
+                        start_time: prediction_start_time,
+                        end_time: last_collision.end_time,
+                        start_position: prediction_start_position,
+                        velocity: velocity_after_last_collision,
+                        end_position,
+                        movement_state: MovementState::MoveAlongAxis,
+                    };
+                    self.movement_plan
+                        .predicted_movement_list
+                        .push(movement_until_last_collision_end);
                 }
             }
-            None => {
-                let movement_until_end = Movement {
-                    start_time: prediction_start_time,
-                    end_time: self.movement_plan.directed_movement.end_time,
-                    start_position: prediction_start_position,
-                    velocity: self.movement_plan.directed_movement.velocity,
-                    end_position: self.movement_plan.directed_movement.end_position,
-                };
+            super::MovementState::MoveAlongAxisToCollide | super::MovementState::Stuck => {
+                let stay_forever =
+                    Movement::stay_forever(prediction_start_position, prediction_start_time);
                 self.movement_plan
                     .predicted_movement_list
-                    .push(movement_until_end);
+                    .push(stay_forever);
             }
-        };
+        }
     }
 
     pub fn get_position(&self, current_time: Time) -> Xy<crate::app::game::Tile> {
         self.movement_plan
             .get_position(current_time)
             .expect("get_position() of PlayerCharacter called before prediction")
+    }
+
+    fn get_last_prediction(&self) -> Movement {
+        match self.movement_plan.predicted_movement_list.last() {
+            Some(movement) => movement.clone(),
+            None => Movement {
+                start_time: (f32::NEG_INFINITY).ms(),
+                end_time: self.movement_plan.directed_movement.start_time,
+                start_position: self.movement_plan.directed_movement.start_position,
+                end_position: self.movement_plan.directed_movement.end_position,
+                velocity: self.movement_plan.directed_movement.velocity,
+                movement_state: self.movement_plan.directed_movement.movement_state.clone(),
+            },
+        }
     }
 }

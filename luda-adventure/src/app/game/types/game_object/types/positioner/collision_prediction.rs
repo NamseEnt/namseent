@@ -1,7 +1,7 @@
 use crate::app::game::Tile;
 use namui::prelude::*;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CollisionPrediction {
     pub start_time: Time,
     pub end_time: Time,
@@ -9,7 +9,7 @@ pub struct CollisionPrediction {
     pub start_position: Xy<Tile>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum CollisionDirection {
     Vertical,
     Horizontal,

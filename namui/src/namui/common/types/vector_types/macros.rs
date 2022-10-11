@@ -169,6 +169,15 @@ macro_rules! vector_types {
                 sum
             }
         }
+        impl<T, Q: Copy, R:  std::ops::Mul<Q, Output = T>> std::ops::Mul<Q> for $type_name<R>
+         {
+            type Output = $type_name<T>;
+            fn mul(self, rhs: Q) -> Self::Output {
+                $type_name {
+                    $( $field_ident: self.$field_ident.mul(rhs as Q) ),*
+                }
+            }
+        }
     };
 }
 
