@@ -1,4 +1,4 @@
-use super::{Movement, MovementState};
+use super::{CollisionState, Movement};
 use crate::app::game::Tile;
 use namui::prelude::*;
 
@@ -38,7 +38,7 @@ impl MovementPlan {
                 start_position: position,
                 end_position,
                 velocity,
-                movement_state: MovementState::FreeMove,
+                collision_state: CollisionState::FreeMove,
             },
             predicted_movement_list: vec![Movement {
                 start_time: current_time,
@@ -46,7 +46,7 @@ impl MovementPlan {
                 start_position: position,
                 end_position: position,
                 velocity,
-                movement_state: MovementState::FreeMove,
+                collision_state: CollisionState::FreeMove,
             }],
         }
     }

@@ -9,7 +9,7 @@ pub struct Movement {
     pub start_position: Xy<Tile>,
     pub end_position: Xy<Tile>,
     pub velocity: Velocity,
-    pub movement_state: MovementState,
+    pub collision_state: CollisionState,
 }
 impl Movement {
     pub fn get_position(&self, current_time: Time) -> Option<Xy<Tile>> {
@@ -55,13 +55,13 @@ impl Movement {
             start_position: position,
             end_position: position,
             velocity: Xy::single(Per::new(0.tile(), 1.ms())),
-            movement_state: MovementState::Stuck,
+            collision_state: CollisionState::Stuck,
         }
     }
 }
 
 #[derive(Clone, Debug)]
-pub enum MovementState {
+pub enum CollisionState {
     FreeMove,
     MoveToCollide(CollisionPrediction),
     MoveAlongAxis,
