@@ -155,7 +155,7 @@ impl Positioner {
 
     fn get_last_prediction(&self) -> Movement {
         match self.movement_plan.predicted_movement_list.last() {
-            Some(movement) => movement.clone(),
+            Some(movement) => *movement,
             None => Movement {
                 start_time: (f32::NEG_INFINITY).ms(),
                 end_time: self.movement_plan.directed_movement.start_time,
