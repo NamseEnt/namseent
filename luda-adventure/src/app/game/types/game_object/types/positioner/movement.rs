@@ -2,7 +2,7 @@ use super::CollisionPrediction;
 use crate::app::game::{Tile, TileExt, Velocity};
 use namui::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 pub struct Movement {
     pub start_time: Time,
     pub end_time: Time,
@@ -60,7 +60,7 @@ impl Movement {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 pub enum CollisionState {
     FreeMove,
     MoveToCollide(CollisionPrediction),
