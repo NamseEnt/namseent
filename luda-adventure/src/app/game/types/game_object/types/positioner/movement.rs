@@ -55,7 +55,7 @@ impl Movement {
             start_position: position,
             end_position: position,
             velocity: Xy::single(Per::new(0.tile(), 1.ms())),
-            collision_state: CollisionState::Stuck,
+            collision_state: CollisionState::FreeMove,
         }
     }
 }
