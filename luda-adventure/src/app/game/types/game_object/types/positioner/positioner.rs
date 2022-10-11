@@ -38,10 +38,10 @@ impl Positioner {
         let prediction_start_time = last_prediction.end_time;
         let prediction_start_position = last_prediction.end_position;
         let character_collision_box = collider.get_collision_box(prediction_start_position);
-        let directed_movement = &self.movement_plan.directed_movement;
+        let original_movement = &self.movement_plan.original_movement;
 
-        let directed_movement_ended = prediction_start_time == directed_movement.end_time;
-        if directed_movement_ended {
+        let original_movement_ended = prediction_start_time == original_movement.end_time;
+        if original_movement_ended {
             self.movement_plan
                 .predicted_movement_list
                 .push(super::Movement::stay_forever(
@@ -54,11 +54,11 @@ impl Positioner {
         match last_prediction.collision_state {
             super::CollisionState::MoveAlongAxis | super::CollisionState::FreeMove => {
                 if let Some(collision) = predict_collision(
-                    directed_movement.velocity,
+                    original_movement.velocity,
                     &character_collision_box,
                     &target_collision_box_list,
                     prediction_start_time,
-                    directed_movement.end_time,
+                    original_movement.end_time,
                     prediction_start_position,
                 ) {
                     let movement_until_collision = Movement {
@@ -66,35 +66,35 @@ impl Positioner {
                         end_time: collision.start_time,
                         start_position: prediction_start_position,
                         end_position: collision.start_position,
-                        velocity: directed_movement.velocity,
+                        velocity: original_movement.velocity,
                         collision_state: CollisionState::MoveToCollide(collision),
                     };
                     self.movement_plan
                         .predicted_movement_list
                         .push(movement_until_collision);
                 } else {
-                    let movement_until_directed_movement_end = Movement {
+                    let movement_until_original_movement_end = Movement {
                         start_time: prediction_start_time,
-                        end_time: directed_movement.end_time,
+                        end_time: original_movement.end_time,
                         start_position: prediction_start_position,
-                        velocity: directed_movement.velocity,
-                        end_position: directed_movement.end_position,
+                        velocity: original_movement.velocity,
+                        end_position: original_movement.end_position,
                         collision_state: CollisionState::FreeMove,
                     };
                     self.movement_plan
                         .predicted_movement_list
-                        .push(movement_until_directed_movement_end);
+                        .push(movement_until_original_movement_end);
                 }
             }
             super::CollisionState::MoveToCollide(last_collision) => {
                 let velocity_after_last_collision = match last_collision.direction {
                     CollisionDirection::Vertical => Xy {
-                        x: directed_movement.velocity.x,
+                        x: original_movement.velocity.x,
                         y: Per::new(0.tile(), 1.ms()),
                     },
                     CollisionDirection::Horizontal => Xy {
                         x: Per::new(0.tile(), 1.ms()),
-                        y: directed_movement.velocity.y,
+                        y: original_movement.velocity.y,
                     },
                 };
 
@@ -103,7 +103,7 @@ impl Positioner {
                     &character_collision_box,
                     &target_collision_box_list,
                     prediction_start_time,
-                    directed_movement.end_time,
+                    original_movement.end_time,
                     prediction_start_position,
                 ) {
                     let movement_until_collision = Movement {
@@ -158,11 +158,11 @@ impl Positioner {
             Some(movement) => *movement,
             None => Movement {
                 start_time: (f32::NEG_INFINITY).ms(),
-                end_time: self.movement_plan.directed_movement.start_time,
-                start_position: self.movement_plan.directed_movement.start_position,
-                end_position: self.movement_plan.directed_movement.end_position,
-                velocity: self.movement_plan.directed_movement.velocity,
-                collision_state: self.movement_plan.directed_movement.collision_state.clone(),
+                end_time: self.movement_plan.original_movement.start_time,
+                start_position: self.movement_plan.original_movement.start_position,
+                end_position: self.movement_plan.original_movement.end_position,
+                velocity: self.movement_plan.original_movement.velocity,
+                collision_state: self.movement_plan.original_movement.collision_state.clone(),
             },
         }
     }
