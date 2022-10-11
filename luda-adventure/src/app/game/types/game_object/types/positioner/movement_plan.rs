@@ -3,7 +3,7 @@ use crate::app::game::Tile;
 use namui::prelude::*;
 
 pub struct MovementPlan {
-    pub directed_movement: Movement,
+    pub original_movement: Movement,
     pub predicted_movement_list: Vec<Movement>,
 }
 impl MovementPlan {
@@ -17,7 +17,7 @@ impl MovementPlan {
     }
     pub fn stay_forever(position: Xy<Tile>, current_time: Time) -> Self {
         Self {
-            directed_movement: Movement::stay_forever(position, current_time),
+            original_movement: Movement::stay_forever(position, current_time),
             predicted_movement_list: vec![Movement::stay_forever(position, current_time)],
         }
     }
@@ -32,7 +32,7 @@ impl MovementPlan {
             y: velocity.y * duration + position.y,
         };
         Self {
-            directed_movement: Movement {
+            original_movement: Movement {
                 start_time: current_time,
                 end_time: current_time + duration,
                 start_position: position,
@@ -54,6 +54,6 @@ impl MovementPlan {
         self.predicted_movement_list
             .last()
             .map(|last_predicated_movement| last_predicated_movement.end_time)
-            .unwrap_or(self.directed_movement.start_time)
+            .unwrap_or(self.original_movement.start_time)
     }
 }
