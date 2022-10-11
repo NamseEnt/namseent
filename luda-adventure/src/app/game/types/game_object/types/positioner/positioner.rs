@@ -119,8 +119,11 @@ impl Positioner {
                         .push(movement_until_collision);
                 } else {
                     let delta_time = last_collision.end_time - last_collision.start_time;
-                    let end_position =
-                        velocity_after_last_collision * delta_time + prediction_start_position;
+                    let end_position = prediction_start_position
+                        + Xy {
+                            x: velocity_after_last_collision.x * delta_time,
+                            y: velocity_after_last_collision.y * delta_time,
+                        };
                     let movement_until_last_collision_end = Movement {
                         start_time: prediction_start_time,
                         end_time: last_collision.end_time,

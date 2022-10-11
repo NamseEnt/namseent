@@ -156,7 +156,6 @@ macro_rules! vector_types {
                 T::from(length_in_f32)
             }
         }
-
         impl<T> $type_name<T>
         where
             T: std::ops::Mul<Output = T> + std::ops::AddAssign + Clone + Default,
@@ -167,15 +166,6 @@ macro_rules! vector_types {
                     sum += self.$field_ident.clone().mul(rhs.$field_ident.clone());
                 )*
                 sum
-            }
-        }
-        impl<T, Q: Copy, R:  std::ops::Mul<Q, Output = T>> std::ops::Mul<Q> for $type_name<R>
-         {
-            type Output = $type_name<T>;
-            fn mul(self, rhs: Q) -> Self::Output {
-                $type_name {
-                    $( $field_ident: self.$field_ident.mul(rhs as Q) ),*
-                }
             }
         }
     };
