@@ -1,0 +1,14 @@
+[package]
+name = "type-macro"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+namui = { path = "../.." }
+serde = { version = "1.0", features = ["derive"] }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.2"

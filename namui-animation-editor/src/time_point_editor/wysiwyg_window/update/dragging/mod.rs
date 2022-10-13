@@ -16,7 +16,7 @@ impl WysiwygWindow {
         let dragging = self.dragging.as_ref().unwrap();
         match dragging {
             Dragging::Background { anchor_xy } => {
-                let delta = self.real_px_per_screen_px * (mouse_local_xy - anchor_xy);
+                let delta = (mouse_local_xy - anchor_xy) * self.real_px_per_screen_px;
                 self.real_left_top_xy = self.real_left_top_xy - delta;
 
                 self.dragging = Some(Dragging::Background {
@@ -42,7 +42,7 @@ impl WysiwygWindow {
             &Dragging::Rotation { ticket } => {
                 self.animation_history
                     .update_action(ticket, |action: &mut DragRotationAction| {
-                        action.end_mouse_real_xy = self.real_px_per_screen_px * mouse_local_xy;
+                        action.end_mouse_real_xy = mouse_local_xy * self.real_px_per_screen_px;
                     })
                     .unwrap();
             }

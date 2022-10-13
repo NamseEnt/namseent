@@ -85,7 +85,7 @@ impl WysiwygWindow {
                     .namui_context
                     .get_rendering_tree_xy_by_id(window_id)
                     .unwrap();
-                let mouse_local_xy = real_px_per_screen_px * (event.global_xy - window_global_xy);
+                let mouse_local_xy = (event.global_xy - window_global_xy) * real_px_per_screen_px;
 
                 namui::event::send(Event::RotationToolMouseDown {
                     layer_id: selected_layer_id,

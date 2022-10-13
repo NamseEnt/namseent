@@ -6,7 +6,8 @@ common_for_f32_type!(
     |lhs: Percent| -> f32 { lhs.0 / 100.0 },
     |lhs: f32| -> Percent { Percent(lhs * 100.0) },
     percent,
-    PercentExt
+    PercentExt,
+    ratio
 );
 
 impl Ratio for Percent {

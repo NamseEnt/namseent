@@ -29,10 +29,10 @@ impl WysiwygWindow {
                     let next_real_px_per_screen_px = zoom(self.real_px_per_screen_px, *delta);
 
                     let real_xy_on_mouse_xy =
-                        self.real_left_top_xy + self.real_px_per_screen_px * *mouse_local_xy;
+                        self.real_left_top_xy + *mouse_local_xy * self.real_px_per_screen_px;
 
                     let next_left_top_xy =
-                        real_xy_on_mouse_xy - next_real_px_per_screen_px * *mouse_local_xy;
+                        real_xy_on_mouse_xy - *mouse_local_xy * next_real_px_per_screen_px;
 
                     self.real_left_top_xy = next_left_top_xy;
 
@@ -141,7 +141,7 @@ impl WysiwygWindow {
             y: px(1080.0) / 2.0,
         };
 
-        let window_center_in_real_px = (self.real_px_per_screen_px / 2.0) * wh.as_xy();
+        let window_center_in_real_px = wh.as_xy() * (self.real_px_per_screen_px / 2.0);
 
         self.real_left_top_xy = viewport_center_in_real_px - window_center_in_real_px;
     }

@@ -16,7 +16,7 @@ impl Act<Animation> for DragImageBodyAction {
             .find(|layer| layer.id.eq(&self.layer_id))
         {
             let delta_in_real =
-                self.real_px_per_screen_px * (self.last_mouse_local_xy - self.anchor_xy);
+                (self.last_mouse_local_xy - self.anchor_xy) * self.real_px_per_screen_px;
 
             update_xy(layer, self.keyframe_point_id, delta_in_real.x, XY::X)?;
             update_xy(layer, self.keyframe_point_id, delta_in_real.y, XY::Y)?;

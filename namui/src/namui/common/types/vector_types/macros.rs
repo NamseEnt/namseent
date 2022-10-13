@@ -1,3 +1,8 @@
+#[macro_export]
+/// Please add serde into your Cargo.toml
+/// ```toml
+/// serde = { version = "1.0", features = ["derive"] }
+/// ```
 macro_rules! vector_types {
     ($type_name: ident, {
         $($field_ident:ident),* $(,)?
@@ -47,6 +52,80 @@ macro_rules! vector_types {
         $crate::overload_tuple_types_binary_operator!(Mul, mul, $type_name, {
             $( $field_ident ),*
         });
+
+        impl<Lhs, Rhs> std::ops::Div<Rhs> for $type_name<Lhs>
+        where
+            Lhs: std::ops::Div<Rhs, Output = Lhs>,
+            Rhs: $crate::types::Ratio + Clone,
+        {
+            type Output = $type_name<Lhs>;
+            fn div(self, rhs: Rhs) -> Self::Output {
+                $type_name {
+                    $( $field_ident: self.$field_ident.div(rhs.clone())),*
+                }
+            }
+        }
+
+        impl<'a, Lhs, Rhs> std::ops::Div<Rhs> for &'a $type_name<Lhs>
+        where
+            Lhs: std::ops::Div<Rhs, Output = Lhs> + Clone,
+            Rhs: $crate::types::Ratio + Clone,
+        {
+            type Output = $type_name<Lhs>;
+            fn div(self, rhs: Rhs) -> Self::Output {
+                $type_name {
+                    $( $field_ident: self.$field_ident.clone().div(rhs.clone())),*
+                }
+            }
+        }
+
+        impl<Lhs, Rhs> std::ops::DivAssign<Rhs> for $type_name<Lhs>
+        where
+            Lhs: std::ops::DivAssign<Rhs>,
+            Rhs: $crate::types::Ratio + Clone,
+        {
+            fn div_assign(&mut self, rhs: Rhs) {
+                $( self.$field_ident.div_assign(rhs.clone()); )*
+            }
+        }
+
+        impl<Lhs, Rhs> std::ops::Mul<Rhs> for $type_name<Lhs>
+        where
+            Lhs: std::ops::Mul<Rhs, Output = Lhs>,
+            Rhs: $crate::types::Ratio + Clone,
+        {
+            type Output = $type_name<Lhs>;
+            fn mul(self, rhs: Rhs) -> Self::Output {
+                $type_name {
+                    $( $field_ident: self.$field_ident.mul(rhs.clone())),*
+                }
+            }
+        }
+
+        impl<'a, Lhs, Rhs> std::ops::Mul<Rhs> for &'a $type_name<Lhs>
+        where
+            Lhs: std::ops::Mul<Rhs, Output = Lhs> + Clone,
+            Rhs: $crate::types::Ratio + Clone,
+        {
+            type Output = $type_name<Lhs>;
+            fn mul(self, rhs: Rhs) -> Self::Output {
+                $type_name {
+                    $( $field_ident: self.$field_ident.clone().mul(rhs.clone())),*
+                }
+            }
+        }
+
+        impl<Lhs, Rhs> std::ops::MulAssign<Rhs> for $type_name<Lhs>
+        where
+            Lhs: std::ops::MulAssign<Rhs>,
+            Rhs: $crate::types::Ratio + Clone,
+        {
+            fn mul_assign(&mut self, rhs: Rhs) {
+                $( self.$field_ident.mul_assign(rhs.clone()); )*
+            }
+        }
+
+
         impl<T> $type_name<T>
         where
             T: From<f32>,
@@ -77,54 +156,7 @@ macro_rules! vector_types {
                 T::from(length_in_f32)
             }
         }
-        impl<T: std::ops::Mul<f32, Output = T>> std::ops::Mul<$type_name<T>> for f32 {
-            type Output = $type_name<T>;
-            fn mul(self, rhs: $type_name<T>) -> Self::Output {
-                $type_name {
-                    $( $field_ident: rhs.$field_ident.mul(self) ),*
-                }
-            }
-        }
-        impl<T: std::ops::Mul<f32, Output = T>> std::ops::Mul<$type_name<T>> for i32 {
-            type Output = $type_name<T>;
-            fn mul(self, rhs: $type_name<T>) -> Self::Output {
-                $type_name {
-                    $( $field_ident: rhs.$field_ident.mul(self as f32) ),*
-                }
-            }
-        }
-        impl<T: std::ops::Mul<f32, Output = T>> std::ops::Mul<f32> for $type_name<T> {
-            type Output = $type_name<T>;
-            fn mul(self, rhs: f32) -> Self::Output {
-                $type_name {
-                    $( $field_ident: self.$field_ident.mul(rhs) ),*
-                }
-            }
-        }
-        impl<T: std::ops::Mul<f32, Output = T>> std::ops::Mul<i32> for $type_name<T> {
-            type Output = $type_name<T>;
-            fn mul(self, rhs: i32) -> Self::Output {
-                $type_name {
-                    $( $field_ident: self.$field_ident.mul(rhs as f32) ),*
-                }
-            }
-        }
-        impl<T: std::ops::Div<f32, Output = T>> std::ops::Div<f32> for $type_name<T> {
-            type Output = $type_name<T>;
-            fn div(self, rhs: f32) -> Self::Output {
-                $type_name {
-                    $( $field_ident: self.$field_ident.div(rhs) ),*
-                }
-            }
-        }
-        impl<T: std::ops::Div<f32, Output = T>> std::ops::Div<i32> for $type_name<T> {
-            type Output = $type_name<T>;
-            fn div(self, rhs: i32) -> Self::Output {
-                $type_name {
-                    $( $field_ident: self.$field_ident.div(rhs as f32) ),*
-                }
-            }
-        }
+
         impl<T> $type_name<T>
         where
             T: std::ops::Mul<Output = T> + std::ops::AddAssign + Clone + Default,
@@ -140,61 +172,65 @@ macro_rules! vector_types {
     };
 }
 
-pub(crate) use vector_types;
+pub use vector_types;
 
+#[macro_export]
 macro_rules! overload_tuple_types_binary_operator {
     ($ops_trait: tt, $fn_name: ident, $type_name: ident, { $($field_ident:ident),* $(,)? }) => {
-        impl<T> std::ops::$ops_trait for $type_name<T>
+        impl<Lhs, Rhs, TOutput> std::ops::$ops_trait<$type_name<Rhs>> for $type_name<Lhs>
         where
-            T: std::ops::$ops_trait<Output = T>,
+            Lhs: std::ops::$ops_trait<Rhs, Output = TOutput>,
         {
-            type Output = $type_name<T>;
-            fn $fn_name(self, other: $type_name<T>) -> $type_name<T> {
+            type Output = $type_name<TOutput>;
+            fn $fn_name(self, rhs: $type_name<Rhs>) -> Self::Output {
                 $type_name {
-                    $( $field_ident: self.$field_ident.$fn_name(other.$field_ident) ),*
+                    $( $field_ident: self.$field_ident.$fn_name(rhs.$field_ident) ),*
                 }
             }
         }
-        impl<'a, T> std::ops::$ops_trait<$type_name<T>> for &'a $type_name<T>
+        impl<'a, Lhs, Rhs, TOutput> std::ops::$ops_trait<$type_name<Rhs>> for &'a $type_name<Lhs>
         where
-            T: std::ops::$ops_trait<Output = T> + Copy,
+            Lhs: std::ops::$ops_trait<Rhs, Output = TOutput> + Clone,
         {
-            type Output = $type_name<T>;
-            fn $fn_name(self, other: $type_name<T>) -> $type_name<T> {
+            type Output = $type_name<TOutput>;
+            fn $fn_name(self, rhs: $type_name<Rhs>) -> Self::Output {
                 $type_name {
-                    $( $field_ident: self.$field_ident.$fn_name(other.$field_ident) ),*
+                    $( $field_ident: self.$field_ident.clone().$fn_name(rhs.$field_ident) ),*
                 }
             }
         }
-        impl<'b, T> std::ops::$ops_trait<&'b $type_name<T>> for $type_name<T>
+        impl<'b, Lhs, Rhs, TOutput> std::ops::$ops_trait<&'b $type_name<Rhs>> for $type_name<Lhs>
         where
-            T: std::ops::$ops_trait<Output = T> + Copy,
+            Lhs: std::ops::$ops_trait<Rhs, Output = TOutput>,
+            Rhs: Clone,
         {
-            type Output = $type_name<T>;
-            fn $fn_name(self, other: &'b $type_name<T>) -> $type_name<T> {
+            type Output = $type_name<TOutput>;
+            fn $fn_name(self, rhs: &'b $type_name<Rhs>) -> Self::Output {
                 $type_name {
-                    $( $field_ident: self.$field_ident.$fn_name(other.$field_ident) ),*
+                    $( $field_ident: self.$field_ident.$fn_name(rhs.$field_ident.clone()) ),*
                 }
             }
         }
-        impl<'a, 'b, T> std::ops::$ops_trait<&'b $type_name<T>> for &'a $type_name<T>
+        impl<'a, 'b, Lhs, Rhs, TOutput> std::ops::$ops_trait<&'b $type_name<Rhs>> for &'a $type_name<Lhs>
         where
-            T: std::ops::$ops_trait<Output = T> + Copy,
+            Lhs: std::ops::$ops_trait<Rhs, Output = TOutput> + Clone,
+            Rhs: Clone,
         {
-            type Output = $type_name<T>;
-            fn $fn_name(self, other: &'b $type_name<T>) -> $type_name<T> {
+            type Output = $type_name<TOutput>;
+            fn $fn_name(self, rhs: &'b $type_name<Rhs>) -> Self::Output {
                 $type_name {
-                    $( $field_ident: self.$field_ident.$fn_name(other.$field_ident) ),*
+                    $( $field_ident: self.$field_ident.clone().$fn_name(rhs.$field_ident.clone()) ),*
                 }
             }
         }
     };
 }
 
-pub(crate) use overload_tuple_types_binary_operator;
+pub use overload_tuple_types_binary_operator;
 
+#[macro_export]
 macro_rules! count {
     () => (0usize);
     ( $x:tt $($xs:tt)* ) => (1usize + $crate::count!($($xs)*));
 }
-pub(crate) use count;
+pub use count;

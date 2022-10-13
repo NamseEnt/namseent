@@ -6,10 +6,10 @@ pub struct TimePerPx {
     time: Time,
 }
 
-auto_ops::impl_op!(*|lhs: TimePerPx, rhs: Px| -> Time { lhs.time * (rhs / px(1.0f32)) });
-auto_ops::impl_op!(*|lhs: &TimePerPx, rhs: Px| -> Time { lhs.time * (rhs / px(1.0f32)) });
-auto_ops::impl_op!(*|lhs: TimePerPx, rhs: &Px| -> Time { lhs.time * (rhs / px(1.0f32)) });
-auto_ops::impl_op!(*|lhs: &TimePerPx, rhs: &Px| -> Time { lhs.time * (rhs / px(1.0f32)) });
+auto_ops::impl_op!(*|lhs: TimePerPx, rhs: Px| -> Time { lhs.time * (rhs / 1.px()) });
+auto_ops::impl_op!(*|lhs: &TimePerPx, rhs: Px| -> Time { lhs.time * (rhs / 1.px()) });
+auto_ops::impl_op!(*|lhs: TimePerPx, rhs: &Px| -> Time { lhs.time * (rhs / 1.px()) });
+auto_ops::impl_op!(*|lhs: &TimePerPx, rhs: &Px| -> Time { lhs.time * (rhs / 1.px()) });
 
 auto_ops::impl_op!(*|lhs: Px, rhs: TimePerPx| -> Time { rhs * lhs });
 auto_ops::impl_op!(*|lhs: &Px, rhs: TimePerPx| -> Time { rhs * lhs });
@@ -17,7 +17,7 @@ auto_ops::impl_op!(*|lhs: Px, rhs: &TimePerPx| -> Time { rhs * lhs });
 auto_ops::impl_op!(*|lhs: &Px, rhs: &TimePerPx| -> Time { rhs * lhs });
 
 auto_ops::impl_op!(/ |lhs: Time, rhs: Px| -> TimePerPx { TimePerPx {
-    time: lhs / (rhs / px(1.0f32)),
+    time: lhs / (rhs / 1.px()),
 } });
 
 auto_ops::impl_op!(/ |lhs: Time, rhs: TimePerPx| -> Px {

@@ -18,7 +18,7 @@ impl Act<Animation> for DragResizeCircleAction {
             .find(|layer| layer.id.eq(&self.layer_id))
         {
             let delta_in_real =
-                self.real_px_per_screen_px * (self.last_mouse_local_xy - self.anchor_xy);
+                (self.last_mouse_local_xy - self.anchor_xy) * self.real_px_per_screen_px;
             let reversed_rotated_delta_in_real = Xy {
                 x: delta_in_real.x * (-self.rotation_angle).cos()
                     - delta_in_real.y * (-self.rotation_angle).sin(),
