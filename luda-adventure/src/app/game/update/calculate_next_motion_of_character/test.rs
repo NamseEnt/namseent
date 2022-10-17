@@ -1,6 +1,9 @@
 use crate::app::game::{
-    new_wall, types::game_object::player_character::player_character::new_player, Collider,
-    Positioner, TileExt, Velocity,
+    new_player, new_wall,
+    update::calculate_next_motion_of_character::{
+        calculate_next_movement_of_character, need_to_calculate_next_motion_of_character,
+    },
+    PlayerCharacter, Positioner, TileExt,
 };
 use float_cmp::assert_approx_eq;
 use namui::prelude::*;
@@ -47,53 +50,43 @@ fn move_to_wall_then_move_along_wall_finally_stop_at_corner() {
         x: 2.tile(),
         y: 4.tile(),
     });
-
+    character
+        .get_component_mut::<&mut PlayerCharacter>()
+        .unwrap()
+        .set_user_input(Xy { x: 1.0, y: -1.0 });
     character
         .get_component_mut::<&mut Positioner>()
         .unwrap()
-        .set_velocity(
-            0.sec(),
-            Velocity {
-                x: Per::new(1.tile(), 1.sec()),
-                y: Per::new((-1).tile(), 1.sec()),
+        .move_from(
+            Xy {
+                x: 2.tile(),
+                y: 4.tile(),
             },
-            f32::INFINITY.sec(),
+            0.ms(),
         );
-    let character_id = character.id();
-
-    let (positioner, collider) = character
-        .get_component_mut::<(&mut Positioner, &Collider)>()
-        .unwrap();
-
-    let collision_box_list_without_character = app
-        .query_entities::<(&Collider, &Positioner)>()
-        .iter()
-        .filter_map(|(entity, (collider, positioner))| {
-            if entity.id() == character_id {
-                None
-            } else {
-                let position = positioner.get_position(0.sec());
-                Some(collider.get_collision_box(position))
-            }
-        })
-        .collect::<Vec<_>>();
-
-    while positioner.get_predicted_movement_end_time() < 20.sec() {
-        positioner.predict_movement(&collider, &collision_box_list_without_character);
+    app.add_entity(character);
+    while need_to_calculate_next_motion_of_character(&app, 0.ms(), 2.sec()) {
+        calculate_next_movement_of_character(&mut app, 2.sec());
     }
 
+    let (_, (_, positioner)) = app
+        .query_entities::<(&PlayerCharacter, &Positioner)>()
+        .into_iter()
+        .next()
+        .unwrap();
+
     // Step 1: Move to wall
-    let position_at_step_1 = positioner.get_position(2.sec());
+    let position_at_step_1 = positioner.xy(0.2.sec());
     assert_approx_eq!(f32, position_at_step_1.x.as_f32(), 4.0);
     assert_approx_eq!(f32, position_at_step_1.y.as_f32(), 2.0);
 
     // Step 2: Move along wall
-    let position_at_step_2 = positioner.get_position(4.sec());
+    let position_at_step_2 = positioner.xy(0.4.sec());
     assert_approx_eq!(f32, position_at_step_2.x.as_f32(), 6.0);
     assert_approx_eq!(f32, position_at_step_2.y.as_f32(), 2.0);
 
     // Step 3: Stay corner forever
-    let position_at_step_3 = positioner.get_position(20.sec());
+    let position_at_step_3 = positioner.xy(2.sec());
     assert_approx_eq!(f32, position_at_step_3.x.as_f32(), 7.0);
     assert_approx_eq!(f32, position_at_step_3.y.as_f32(), 2.0);
 }
@@ -114,11 +107,8 @@ fn mock_walls() -> Vec<crate::ecs::Entity> {
 }
 
 fn mock_wall(x: i32, y: i32) -> crate::ecs::Entity {
-    new_wall(
-        Xy {
-            x: x.tile(),
-            y: y.tile(),
-        },
-        0.sec(),
-    )
+    new_wall(Xy {
+        x: x.tile(),
+        y: y.tile(),
+    })
 }

@@ -30,7 +30,7 @@ impl Camera {
                 .expect("failed to find entity")
                 .get_component::<&Positioner>()
                 .unwrap()
-                .get_position(time),
+                .xy(time),
             CameraSubject::Position { position } => position.clone(),
         }
     }
@@ -57,7 +57,7 @@ impl Camera {
             .into_iter()
             .filter(|(_, (renderer, positioner))| {
                 let visual_area =
-                    renderer.visual_rect + positioner.get_position(rendering_context.current_time);
+                    renderer.visual_rect + positioner.xy(rendering_context.current_time);
 
                 visual_area
                     .intersect(rendering_context.screen_rect)

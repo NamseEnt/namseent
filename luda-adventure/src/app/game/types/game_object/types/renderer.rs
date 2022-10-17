@@ -52,9 +52,9 @@ impl RenderGameObjectList for Vec<(&crate::ecs::Entity, (&Renderer, &Positioner)
                 let z_index_comparison = a_renderer.z_index.cmp(&b_renderer.z_index);
                 if z_index_comparison == std::cmp::Ordering::Equal {
                     a_positioner
-                        .get_position(rendering_context.current_time)
+                        .xy(rendering_context.current_time)
                         .y
-                        .partial_cmp(&b_positioner.get_position(rendering_context.current_time).y)
+                        .partial_cmp(&b_positioner.xy(rendering_context.current_time).y)
                         .unwrap_or(Ordering::Equal)
                 } else {
                     z_index_comparison

@@ -1,5 +1,5 @@
+mod heading;
 mod player_character;
-#[cfg(test)]
-mod test;
 
+pub use heading::*;
 pub use player_character::*;

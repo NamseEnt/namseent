@@ -8,21 +8,17 @@ const VISUAL_HEIGHT: Tile = tile(1.0);
 const VISUAL_OFFSET_X: Tile = tile(-0.5);
 const VISUAL_OFFSET_Y: Tile = tile(-0.5);
 
-pub fn new_wall(position: Xy<Tile>, current_time: Time) -> crate::ecs::Entity {
+pub fn new_wall(position: Xy<Tile>) -> crate::ecs::Entity {
     let entity = crate::ecs::Entity::new();
-    append_components(entity, position, current_time)
+    append_components(entity, position)
 }
 
-pub fn new_wall_with_id(id: Uuid, position: Xy<Tile>, current_time: Time) -> crate::ecs::Entity {
+pub fn new_wall_with_id(id: Uuid, position: Xy<Tile>) -> crate::ecs::Entity {
     let entity = crate::ecs::Entity::with_id(id);
-    append_components(entity, position, current_time)
+    append_components(entity, position)
 }
 
-fn append_components(
-    entity: crate::ecs::Entity,
-    position: Xy<Tile>,
-    current_time: Time,
-) -> crate::ecs::Entity {
+fn append_components(entity: crate::ecs::Entity, xy: Xy<Tile>) -> crate::ecs::Entity {
     entity
         .add_component(Collider::new(namui::Rect::Xywh {
             x: -0.5.tile(),
@@ -30,10 +26,7 @@ fn append_components(
             width: 1.tile(),
             height: 1.tile(),
         }))
-        .add_component(Positioner::new(MovementPlan::stay_forever(
-            position,
-            current_time,
-        )))
+        .add_component(Positioner::new_with_xy(xy))
         .add_component(Renderer::new(
             0,
             Rect::Xywh {
@@ -44,7 +37,7 @@ fn append_components(
             },
             |entity, _game_context, rendering_context| {
                 let positioner = entity.get_component::<&Positioner>().unwrap();
-                let position = positioner.get_position(rendering_context.current_time);
+                let position = positioner.xy(rendering_context.current_time);
                 render([translate(
                     rendering_context.px_per_tile * (position.x + VISUAL_OFFSET_X),
                     rendering_context.px_per_tile * (position.y + VISUAL_OFFSET_Y),
