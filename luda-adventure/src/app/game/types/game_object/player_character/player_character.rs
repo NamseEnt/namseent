@@ -1,4 +1,4 @@
-use crate::app::game::*;
+use crate::app::game::{known_id::object::PLAYER_CHARACTER, *};
 use namui::prelude::*;
 use namui_prebuilt::simple_rect;
 
@@ -9,15 +9,52 @@ const VISUAL_OFFSET_Y: Tile = tile(-2.5);
 
 #[derive(ecs_macro::Component)]
 pub struct PlayerCharacter {
-    pub last_velocity: Velocity,
+    user_input: Xy<f32>,
+    heading: Heading,
 }
 
-pub fn new_player(position: Xy<Tile>) -> crate::ecs::Entity {
-    crate::ecs::Entity::new()
-        .add_component(Positioner::new(MovementPlan::stay_forever(
-            position,
-            0.sec(),
-        )))
+impl PlayerCharacter {
+    pub fn velocity(&self) -> Velocity {
+        Xy {
+            x: Per::new(10.tile() * self.user_input.x, 1.sec()),
+            y: Per::new(10.tile() * self.user_input.y, 1.sec()),
+        }
+    }
+
+    pub fn heading(&self) -> Heading {
+        self.heading
+    }
+
+    pub fn user_input(&self) -> Xy<f32> {
+        self.user_input
+    }
+
+    pub fn set_user_input(&mut self, user_input: Xy<f32>) {
+        self.user_input = user_input;
+        self.update_heading();
+    }
+
+    fn update_heading(&mut self) {
+        let x = self.user_input.x;
+        let y = self.user_input.y;
+
+        if x == 0.0 {
+            return;
+        }
+        let tangent = y / x;
+        if tangent.abs() > 8.0 {
+            return;
+        } else if x > 0.0 {
+            self.heading = Heading::Right;
+        } else {
+            self.heading = Heading::Left;
+        }
+    }
+}
+
+pub fn new_player(xy: Xy<Tile>) -> crate::ecs::Entity {
+    crate::ecs::Entity::with_id(PLAYER_CHARACTER)
+        .add_component(Positioner::new_with_xy(xy))
         .add_component(Collider::new(Rect::Xywh {
             x: tile(-1.5),
             y: tile(-1.5),
@@ -25,7 +62,8 @@ pub fn new_player(position: Xy<Tile>) -> crate::ecs::Entity {
             height: tile(3.0),
         }))
         .add_component(PlayerCharacter {
-            last_velocity: Velocity::single(Per::new(0.tile(), 1.ms())),
+            user_input: Xy::zero(),
+            heading: Heading::Left,
         })
         .add_component(Renderer::new(
             0,
@@ -37,7 +75,8 @@ pub fn new_player(position: Xy<Tile>) -> crate::ecs::Entity {
             },
             |entity, _game_context, rendering_context| {
                 let positioner = entity.get_component::<&Positioner>().unwrap();
-                let position = positioner.get_position(rendering_context.current_time);
+                let character = entity.get_component::<&PlayerCharacter>().unwrap();
+                let position = positioner.xy(rendering_context.current_time);
                 translate(
                     rendering_context.px_per_tile * (position.x + VISUAL_OFFSET_X),
                     rendering_context.px_per_tile * (position.y + VISUAL_OFFSET_Y),
@@ -56,7 +95,7 @@ pub fn new_player(position: Xy<Tile>) -> crate::ecs::Entity {
                                 width: rendering_context.px_per_tile * VISUAL_WIDTH,
                                 height: rendering_context.px_per_tile * VISUAL_HEIGHT,
                             },
-                            match positioner.heading {
+                            match character.heading {
                                 Heading::Left => "L",
                                 Heading::Right => "R",
                             },

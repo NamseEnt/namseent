@@ -2,25 +2,25 @@ use crate::app::game::*;
 use namui::prelude::*;
 
 impl Game {
-    pub fn handle_character_movement_on_key_event(&mut self, current_time: Time) {
-        if let Some((_character, (player_character, positioner))) = self
+    pub fn handle_user_input_for_character_movement(&mut self, current_time: Time) {
+        if let Some((_entity, (character, positioner))) = self
             .ecs_app
             .query_entities_mut::<(&mut PlayerCharacter, &mut Positioner)>()
             .first_mut()
         {
-            let character_velocity = get_character_velocity_from_key_state();
-            let character_velocity_has_not_changed =
-                character_velocity == player_character.last_velocity;
-            if character_velocity_has_not_changed {
+            let user_input = get_user_input_from_key_state();
+            let user_input_not_changed = user_input == character.user_input();
+            if user_input_not_changed {
                 return;
             }
-            player_character.last_velocity = character_velocity;
-            positioner.set_velocity(current_time, character_velocity, f32::INFINITY.ms())
+            character.set_user_input(user_input);
+            let current_xy = positioner.xy(current_time);
+            positioner.move_from(current_xy, current_time)
         }
     }
 }
 
-fn get_character_velocity_from_key_state() -> Velocity {
+fn get_user_input_from_key_state() -> Xy<f32> {
     let mut direction = Xy::<f32>::zero();
     if namui::keyboard::any_code_press([Code::ArrowDown]) {
         direction.y += 1.0;
@@ -39,8 +39,5 @@ fn get_character_velocity_from_key_state() -> Velocity {
         true => direction,
         false => direction / direction_length,
     };
-    Xy {
-        x: Per::new(10.tile() * normalized_direction.x, 1.sec()),
-        y: Per::new(10.tile() * normalized_direction.y, 1.sec()),
-    }
+    normalized_direction
 }

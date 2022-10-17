@@ -14,10 +14,10 @@ impl Collider {
             collision_offset_rect,
         }
     }
-    pub fn get_collision_box(&self, position: Xy<Tile>) -> CollisionBox {
+    pub fn get_collision_box(&self, xy: Xy<Tile>) -> CollisionBox {
         Rect::Xywh {
-            x: position.x + self.collision_offset_rect.x(),
-            y: position.y + self.collision_offset_rect.y(),
+            x: xy.x + self.collision_offset_rect.x(),
+            y: xy.y + self.collision_offset_rect.y(),
             width: self.collision_offset_rect.width(),
             height: self.collision_offset_rect.height(),
         }

@@ -1,8 +1,9 @@
 use super::{player_character::new_player, *};
 use namui::prelude::*;
 
+const NEAR_FUTURE: Time = Time::Sec(5.0);
+
 pub struct Game {
-    pub player_entity_id: Uuid,
     pub state: GameState,
     pub camera: Camera,
     pub ecs_app: crate::ecs::App,
@@ -24,7 +25,6 @@ impl Game {
         ecs_app.add_entity(floors);
 
         Self {
-            player_entity_id,
             state,
             camera: Camera::new(Some(CameraSubject::Object {
                 id: player_entity_id,
@@ -37,8 +37,10 @@ impl Game {
         let current_time = now();
         if let Some(event) = event.downcast_ref::<NamuiEvent>() {
             match event {
-                NamuiEvent::KeyDown(_) => self.handle_character_movement_on_key_event(current_time),
-                NamuiEvent::KeyUp(_) => self.handle_character_movement_on_key_event(current_time),
+                NamuiEvent::KeyDown(_) => {
+                    self.handle_user_input_for_character_movement(current_time)
+                }
+                NamuiEvent::KeyUp(_) => self.handle_user_input_for_character_movement(current_time),
                 NamuiEvent::AnimationFrame
                 | NamuiEvent::MouseDown(_)
                 | NamuiEvent::MouseUp(_)
@@ -48,7 +50,10 @@ impl Game {
                 | NamuiEvent::DeepLinkOpened(_) => (),
             }
         }
-        self.predict_character_movement_if_needed(current_time);
+
+        while need_to_calculate_next_motion_of_character(&self.ecs_app, current_time, NEAR_FUTURE) {
+            calculate_next_movement_of_character(&mut self.ecs_app, NEAR_FUTURE);
+        }
         self.camera.update(event);
     }
 
@@ -80,29 +85,20 @@ fn mock_walls() -> Vec<crate::ecs::Entity> {
     for x in 1..10 {
         if x == 5 {
             for y in 1..10 {
-                wall.push(new_wall(
-                    Xy {
-                        x: x.tile(),
-                        y: y.tile(),
-                    },
-                    0.sec(),
-                ));
+                wall.push(new_wall(Xy {
+                    x: x.tile(),
+                    y: y.tile(),
+                }));
             }
         } else {
-            wall.push(new_wall(
-                Xy {
-                    x: x.tile(),
-                    y: 1.tile(),
-                },
-                0.sec(),
-            ));
-            wall.push(new_wall(
-                Xy {
-                    x: x.tile(),
-                    y: 9.tile(),
-                },
-                0.sec(),
-            ));
+            wall.push(new_wall(Xy {
+                x: x.tile(),
+                y: 1.tile(),
+            }));
+            wall.push(new_wall(Xy {
+                x: x.tile(),
+                y: 9.tile(),
+            }));
         }
     }
     wall
@@ -128,6 +124,5 @@ fn mock_quest_object() -> crate::ecs::Entity {
             x: 10.tile(),
             y: 10.tile(),
         },
-        0.sec(),
     )
 }
