@@ -88,60 +88,75 @@ impl SequenceListPage {
             }
         } else if let Some(event) = event.downcast_ref::<context_menu::Event>() {
             match event {
-                context_menu::Event::DeleteButtonClicked { sequence_id: _ } => {
-                    todo!();
-                    // self.editor_history_system.mutate(|system_tree| {
-                    //     let index = system_tree
-                    //         .sequence_list
-                    //         .iter()
-                    //         .position(|sequence| sequence.id() == *sequence_id)
-                    //         .unwrap();
-                    //     system_tree.sequence_list.remove(index);
-                    // });
-                    // self.context_menu = None;
-                }
-                context_menu::Event::RenameButtonClicked { sequence_id: _ } => {
-                    todo!()
-                    // self.context_menu = None;
-                    // let sequence_name = self
-                    //     .editor_history_system
-                    //     .get_state()
-                    //     .sequence_list
-                    //     .iter()
-                    //     .find(|sequence| sequence.id() == *sequence_id)
-                    //     .map(|sequence| sequence.name.clone());
+                &context_menu::Event::DeleteButtonClicked { sequence_id } => {
+                    self.context_menu = None;
 
-                    // match sequence_name {
-                    //     Some(sequence_name) => {
-                    //         self.rename_modal = Some(rename_modal::RenameModal::new(
-                    //             sequence_id,
-                    //             sequence_name,
-                    //         ))
-                    //     }
-                    //     None => {
-                    //         namui::log!("sequence not found for id {sequence_id}");
-                    //     }
-                    // }
+                    let project_id = self.project_id;
+
+                    spawn_local(async move {
+                        match crate::RPC
+                            .delete_sequence(rpc::delete_sequence::Request { sequence_id })
+                            .await
+                        {
+                            Ok(_) => {
+                                start_fetch_list(project_id);
+                            }
+                            Err(error) => {
+                                namui::event::send(Event::Error(error.to_string()));
+                            }
+                        }
+                    });
+                }
+                &context_menu::Event::RenameButtonClicked { sequence_id } => {
+                    self.context_menu = None;
+
+                    let sequence_name =
+                        self.sequence_list.iter().find_map(|sequence_name_and_id| {
+                            if sequence_name_and_id.id == sequence_id {
+                                Some(sequence_name_and_id.name.clone())
+                            } else {
+                                None
+                            }
+                        });
+
+                    match sequence_name {
+                        Some(sequence_name) => {
+                            self.rename_modal =
+                                Some(rename_modal::RenameModal::new(sequence_id, sequence_name))
+                        }
+                        None => {
+                            namui::log!("sequence not found for id {sequence_id}");
+                        }
+                    }
                 }
             }
         } else if let Some(event) = event.downcast_ref::<rename_modal::Event>() {
             match event {
-                rename_modal::Event::RenameDone {
-                    sequence_id: _,
-                    sequence_name: _,
+                &rename_modal::Event::RenameDone {
+                    sequence_id,
+                    ref sequence_name,
                 } => {
                     self.rename_modal = None;
-                    todo!()
-                    // self.editor_history_system.mutate(|system_tree| {
-                    //     let index = system_tree
-                    //         .sequence_list
-                    //         .iter()
-                    //         .position(|sequence| sequence.id() == *sequence_id)
-                    //         .unwrap();
-                    //     system_tree.sequence_list.update(index, |sequence| {
-                    //         sequence.name = sequence_name.clone();
-                    //     });
-                    // });
+
+                    let project_id = self.project_id;
+                    let new_name = sequence_name.clone();
+
+                    spawn_local(async move {
+                        match crate::RPC
+                            .rename_sequence(rpc::rename_sequence::Request {
+                                sequence_id,
+                                new_name,
+                            })
+                            .await
+                        {
+                            Ok(_) => {
+                                start_fetch_list(project_id);
+                            }
+                            Err(error) => {
+                                namui::event::send(Event::Error(error.to_string()));
+                            }
+                        }
+                    });
                 }
             }
         }

@@ -200,6 +200,31 @@ impl DynamoDb {
             Err(error) => Err(QueryError::Unknown(error.to_string())),
         }
     }
+
+    pub async fn delete_item<TDocument: Document>(
+        &self,
+        partition_key_without_prefix: impl ToString,
+        sort_key: Option<impl ToString>,
+    ) -> Result<(), DeleteItemError> {
+        let partition_key = get_partition_key::<TDocument>(partition_key_without_prefix);
+        let sort_key = sort_key
+            .map(|sort_key| sort_key.to_string())
+            .unwrap_or(DEFAULT_SORT_KEY.to_string());
+
+        let result = self
+            .client
+            .delete_item()
+            .table_name(&self.table_name)
+            .key(PARTITION_KEY, AttributeValue::S(partition_key))
+            .key(SORT_KEY, AttributeValue::S(sort_key))
+            .send()
+            .await;
+
+        match result {
+            Ok(_) => Ok(()),
+            Err(error) => Err(DeleteItemError::Unknown(error.to_string())),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -290,3 +315,9 @@ impl From<serde_dynamo::Error> for PutItemError {
         PutItemError::SerializeFailed(error.to_string())
     }
 }
+
+#[derive(Debug)]
+pub enum DeleteItemError {
+    Unknown(String),
+}
+crate::simple_error_impl!(DeleteItemError);
