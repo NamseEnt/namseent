@@ -1,7 +1,7 @@
 use crate::{
     app::game::{
-        known_id::object::PLAYER_CHARACTER, zero_speed, Collider, CollisionBox, MovementPath,
-        PlayerCharacter, Positioner, Velocity,
+        known_id::object::PLAYER_CHARACTER, simplify_collision_box_list, zero_speed, Collider,
+        CollisionBox, MovementPath, PlayerCharacter, Positioner, TileExt, Velocity,
     },
     ecs,
 };
@@ -10,25 +10,23 @@ use namui::prelude::*;
 
 const COLLISION_MARGIN: F32Margin = F32Margin {
     ulps: 1,
-    epsilon: 0.00001,
-};
-const TIME_MS_MARGIN: F32Margin = F32Margin {
-    ulps: 1,
-    epsilon: 0.01,
+    epsilon: 0.0001,
 };
 
 pub fn calculate_next_movement_of_character(ecs_app: &mut ecs::App, max_duration: Time) {
     let target_collider_list = ecs_app.query_entities::<(&Collider, &Positioner)>();
-    let target_collision_box_list: Vec<_> = target_collider_list
-        .iter()
-        .filter_map(|(target_entity, (target_collider, target_positioner))| {
-            if target_entity.id() == PLAYER_CHARACTER {
-                None
-            } else {
-                Some(target_collider.get_collision_box(target_positioner.xy(0.ms())))
-            }
-        })
-        .collect();
+    let target_collision_box_list = simplify_collision_box_list(
+        target_collider_list
+            .iter()
+            .filter_map(|(target_entity, (target_collider, target_positioner))| {
+                if target_entity.id() == PLAYER_CHARACTER {
+                    None
+                } else {
+                    Some(target_collider.get_collision_box(target_positioner.xy(0.ms())))
+                }
+            })
+            .collect(),
+    );
 
     if let Some((_character_entity, (character, character_collider, character_positioner))) =
         ecs_app
@@ -59,7 +57,6 @@ pub fn calculate_next_movement_of_character(ecs_app: &mut ecs::App, max_duration
             }
             None => end_time,
         };
-
         let delta_time = end_time - current_time;
         let delta_xy = Xy {
             x: velocity.x * delta_time,
@@ -83,16 +80,21 @@ fn resolve_collision(
         if !detect_collision(character_collision_box, *target_collision_box) {
             continue;
         }
-        let collision_normal = get_collision_normal(character_collision_box, *target_collision_box);
-
-        restrict_velocity(velocity, collision_normal);
-        restrict_end_time(
-            end_time,
-            current_time,
-            *velocity,
-            character_collision_box,
-            *target_collision_box,
-        );
+        if let Some(collision_normal) =
+            get_collision_normal(character_collision_box, *target_collision_box)
+        {
+            if will_character_no_longer_collide(*velocity, collision_normal) {
+                continue;
+            }
+            restrict_velocity(velocity, collision_normal);
+            restrict_end_time(
+                end_time,
+                current_time,
+                *velocity,
+                character_collision_box,
+                *target_collision_box,
+            );
+        }
     }
 }
 
@@ -110,7 +112,7 @@ enum CollisionNormal {
     Right,
     Down,
 }
-fn get_collision_normal(character: CollisionBox, target: CollisionBox) -> CollisionNormal {
+fn get_collision_normal(character: CollisionBox, target: CollisionBox) -> Option<CollisionNormal> {
     let vector_character_to_target = target.center() - character.center();
     let overlap_x = match vector_character_to_target.x.is_sign_positive() {
         true => character.right() - target.left(),
@@ -120,17 +122,22 @@ fn get_collision_normal(character: CollisionBox, target: CollisionBox) -> Collis
         true => character.bottom() - target.top(),
         false => target.bottom() - character.top(),
     };
+    let collision_can_be_ignored = overlap_x.approx_eq(0.tile(), COLLISION_MARGIN)
+        && overlap_y.approx_eq(0.tile(), COLLISION_MARGIN);
+    if collision_can_be_ignored {
+        return None;
+    }
     if overlap_x < overlap_y {
         if vector_character_to_target.x.is_sign_positive() {
-            CollisionNormal::Right
+            Some(CollisionNormal::Right)
         } else {
-            CollisionNormal::Left
+            Some(CollisionNormal::Left)
         }
     } else {
         if vector_character_to_target.y.is_sign_positive() {
-            CollisionNormal::Down
+            Some(CollisionNormal::Down)
         } else {
-            CollisionNormal::Up
+            Some(CollisionNormal::Up)
         }
     }
 }
@@ -160,6 +167,32 @@ fn restrict_velocity(velocity: &mut Velocity, collision_normal: CollisionNormal)
     }
 }
 
+fn will_character_no_longer_collide(velocity: Velocity, collision_normal: CollisionNormal) -> bool {
+    match collision_normal {
+        CollisionNormal::Left => {
+            if velocity.x.is_sign_positive() {
+                return true;
+            }
+        }
+        CollisionNormal::Up => {
+            if velocity.y.is_sign_positive() {
+                return true;
+            }
+        }
+        CollisionNormal::Right => {
+            if velocity.x.is_sign_negative() {
+                return true;
+            }
+        }
+        CollisionNormal::Down => {
+            if velocity.y.is_sign_negative() {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 fn restrict_end_time(
     end_time: &mut Time,
     current_time: Time,
@@ -170,22 +203,17 @@ fn restrict_end_time(
     let collision_duration_of_x = velocity.x.invert()
         * match velocity.x.is_sign_positive() {
             true => target.right() - character.left(),
-            false => character.right() - target.left(),
+            false => target.left() - character.right(),
         };
     let collision_duration_of_y = velocity.y.invert()
         * match velocity.y.is_sign_positive() {
             true => target.bottom() - character.top(),
-            false => character.bottom() - target.top(),
+            false => target.left() - character.bottom(),
         };
     let collision_duration = Time::min(collision_duration_of_x, collision_duration_of_y);
-    let collision_duration_approx_less_or_equal_to_zero = collision_duration.as_millis() < 0.0
-        || collision_duration
-            .as_millis()
-            .approx_eq(0.0, TIME_MS_MARGIN);
-    if collision_duration_approx_less_or_equal_to_zero {
-        return;
+    if collision_duration.as_millis() > 0.0 {
+        *end_time = Time::min(*end_time, current_time + collision_duration);
     }
-    *end_time = Time::min(*end_time, current_time + collision_duration);
 }
 
 fn predict_remaining_collision_start_time(
@@ -193,10 +221,13 @@ fn predict_remaining_collision_start_time(
     character_collision_box: CollisionBox,
     target_collision_box_list: &Vec<CollisionBox>,
 ) -> Option<Time> {
-    let collision_prediction_list =
+    let remaining_collision_start_time_list =
         target_collision_box_list
             .iter()
             .filter_map(|target_collision_box| {
+                if detect_collision(character_collision_box, *target_collision_box) {
+                    return None;
+                }
                 let (remaining_collision_start_time_of_x, remaining_collision_end_time_of_x) =
                     match velocity.x.is_sign_positive() {
                         true => (
@@ -235,12 +266,8 @@ fn predict_remaining_collision_start_time(
                     remaining_collision_end_time_of_x,
                     remaining_collision_end_time_of_y,
                 );
-                let will_collide_at_future = remaining_collision_start_time
-                    < remaining_collision_end_time
-                    && remaining_collision_start_time.as_millis() > 0.0
-                    && remaining_collision_start_time
-                        .as_millis()
-                        .approx_ne(0.0, TIME_MS_MARGIN);
+                let will_collide_at_future = remaining_collision_start_time.as_millis() > 0.0
+                    && remaining_collision_start_time < remaining_collision_end_time;
 
                 match will_collide_at_future {
                     true => Some(remaining_collision_start_time),
@@ -248,5 +275,5 @@ fn predict_remaining_collision_start_time(
                 }
             });
 
-    collision_prediction_list.min()
+    remaining_collision_start_time_list.min()
 }
