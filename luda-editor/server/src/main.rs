@@ -1,7 +1,7 @@
 mod handle;
 mod services;
 mod session;
-mod storage;
+pub mod storage;
 mod utils;
 
 use handle::handle_with_wrapped_error;
