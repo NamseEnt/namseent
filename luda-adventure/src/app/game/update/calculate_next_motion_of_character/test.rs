@@ -42,9 +42,18 @@ fn move_to_wall_then_move_along_wall_finally_stop_at_corner() {
     // Step 0: Init
     let mut app = crate::ecs::App::new();
 
-    for wall in mock_walls() {
-        app.add_entity(wall);
+    let mut walls = Vec::new();
+    for x in 0..10 {
+        match x {
+            9 => {
+                for y in 0..10 {
+                    walls.push(mock_wall(x, y))
+                }
+            }
+            _ => walls.push(mock_wall(x, 0)),
+        }
     }
+    app.add_entities(walls);
 
     let mut character = new_player(Xy {
         x: 2.tile(),
@@ -91,19 +100,88 @@ fn move_to_wall_then_move_along_wall_finally_stop_at_corner() {
     assert_approx_eq!(f32, position_at_step_3.y.as_f32(), 2.0);
 }
 
-fn mock_walls() -> Vec<crate::ecs::Entity> {
+#[test]
+#[wasm_bindgen_test]
+fn move_to_wall_then_move_along_wall_finally_move_along_requested_path() {
+    // Character going upper right
+    // Step 0: Init
+    // ═════════════════
+    //
+    //    ▲
+    //
+    // *******************
+    //
+    // Step 1: Move to wall
+    // ═════════════════
+    //     ▲
+    //    /
+    //
+    // *******************
+    //
+    // Step 2: Move along wall
+    // ═════════════════
+    //                 -▲
+    //
+    //
+    // *******************
+    //
+    // Step 3: Move along requested path
+    // ═════════════════ ▲
+    //                  /
+    //
+
+    // Step 0: Init
+    let mut app = crate::ecs::App::new();
+
     let mut walls = Vec::new();
     for x in 0..10 {
-        match x {
-            9 => {
-                for y in 0..10 {
-                    walls.push(mock_wall(x, y))
-                }
-            }
-            _ => walls.push(mock_wall(x, 0)),
-        }
+        walls.push(mock_wall(x, 0))
     }
-    walls
+    app.add_entities(walls);
+
+    let mut character = new_player(Xy {
+        x: 2.tile(),
+        y: 4.tile(),
+    });
+    character
+        .get_component_mut::<&mut PlayerCharacter>()
+        .unwrap()
+        .set_user_input(Xy { x: 1.0, y: -1.0 });
+    character
+        .get_component_mut::<&mut Positioner>()
+        .unwrap()
+        .move_from(
+            Xy {
+                x: 2.tile(),
+                y: 4.tile(),
+            },
+            0.ms(),
+        );
+    app.add_entity(character);
+    while need_to_calculate_next_motion_of_character(&app, 0.ms(), 2.sec()) {
+        calculate_next_movement_of_character(&mut app, 2.sec());
+    }
+
+    let (_, (_, positioner)) = app
+        .query_entities::<(&PlayerCharacter, &Positioner)>()
+        .into_iter()
+        .next()
+        .unwrap();
+
+    // Step 1: Move to wall
+    let position_at_step_1 = positioner.xy(0.2.sec());
+    assert_approx_eq!(f32, position_at_step_1.x.as_f32(), 4.0);
+    assert_approx_eq!(f32, position_at_step_1.y.as_f32(), 2.0);
+
+    // Step 2: Move along wall
+    let position_at_step_2 = positioner.xy(0.9.sec());
+    assert_approx_eq!(f32, position_at_step_2.x.as_f32(), 11.0);
+    assert_approx_eq!(f32, position_at_step_2.y.as_f32(), 2.0);
+
+    // Step 3: Move along requested path
+    let position_at_step_3 = positioner.xy(2.sec());
+    assert_approx_eq!(f32, position_at_step_3.x.as_f32(), 22.0);
+    assert_approx_eq!(f32, position_at_step_3.y.as_f32(), -9.0);
 }
 
 fn mock_wall(x: i32, y: i32) -> crate::ecs::Entity {
