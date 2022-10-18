@@ -139,7 +139,7 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
 
             crate::dynamo_db()
                 .update_item(
-                    req.sequence_id.clone(),
+                    req.sequence_id,
                     Option::<String>::None,
                     |mut sequence: SequenceDocument| async {
                         let is_project_editor = crate::services()
@@ -236,6 +236,98 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                 sequence_json: sequence.json,
                 project_shared_data_json: project.shared_data_json,
             })
+        })
+    }
+
+    fn delete_sequence<'a>(
+        &'a self,
+        session: Option<SessionDocument>,
+        req: rpc::delete_sequence::Request,
+    ) -> std::pin::Pin<
+        Box<dyn 'a + std::future::Future<Output = rpc::delete_sequence::Result> + Send>,
+    > {
+        Box::pin(async move {
+            if session.is_none() {
+                return Err(rpc::delete_sequence::Error::Unauthorized);
+            }
+            let session = session.unwrap();
+
+            let sequence = crate::dynamo_db()
+                .get_item::<SequenceDocument>(req.sequence_id.clone(), Option::<String>::None)
+                .await
+                .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?;
+
+            let is_project_editor = crate::services()
+                .project_service
+                .is_project_editor(session.user_id, sequence.project_id)
+                .await
+                .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?;
+
+            if !is_project_editor {
+                return Err(rpc::delete_sequence::Error::Unauthorized);
+            }
+
+            crate::dynamo_db()
+                .transact()
+                .delete_item::<SequenceDocument>(req.sequence_id, Option::<String>::None)
+                .delete_item::<ProjectSequenceDocument>(sequence.project_id, Some(req.sequence_id))
+                .send()
+                .await
+                .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?;
+
+            Ok(rpc::delete_sequence::Response {})
+        })
+    }
+
+    fn rename_sequence<'a>(
+        &'a self,
+        session: Option<SessionDocument>,
+        req: rpc::rename_sequence::Request,
+    ) -> std::pin::Pin<
+        Box<dyn 'a + std::future::Future<Output = rpc::rename_sequence::Result> + Send>,
+    > {
+        Box::pin(async move {
+            if session.is_none() {
+                return Err(rpc::rename_sequence::Error::Unauthorized);
+            }
+            let session = session.unwrap();
+
+            let sequence = crate::dynamo_db()
+                .get_item::<SequenceDocument>(req.sequence_id.clone(), Option::<String>::None)
+                .await
+                .map_err(|error| rpc::rename_sequence::Error::Unknown(error.to_string()))?;
+
+            let is_project_editor = crate::services()
+                .project_service
+                .is_project_editor(session.user_id, sequence.project_id)
+                .await
+                .map_err(|error| rpc::rename_sequence::Error::Unknown(error.to_string()))?;
+
+            if !is_project_editor {
+                return Err(rpc::rename_sequence::Error::Unauthorized);
+            }
+
+            crate::dynamo_db()
+                .update_item(
+                    req.sequence_id,
+                    Option::<String>::None,
+                    |mut sequence: SequenceDocument| async {
+                        sequence.name = req.new_name;
+                        Ok(sequence)
+                    },
+                )
+                .await
+                .map_err(|error| match error {
+                    crate::storage::dynamo_db::UpdateItemError::Canceled(error) => error,
+                    crate::storage::dynamo_db::UpdateItemError::NotFound
+                    | crate::storage::dynamo_db::UpdateItemError::SerializationFailed(_)
+                    | crate::storage::dynamo_db::UpdateItemError::Conflict
+                    | crate::storage::dynamo_db::UpdateItemError::Unknown(_) => {
+                        rpc::rename_sequence::Error::Unknown(error.to_string())
+                    }
+                })?;
+
+            Ok(rpc::rename_sequence::Response {})
         })
     }
 }

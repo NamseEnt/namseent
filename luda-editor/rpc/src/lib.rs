@@ -119,6 +119,29 @@ define_rpc::define_rpc! {
                 Unknown(String),
             }
         },
+        delete_sequence: {
+            pub struct Request {
+                pub sequence_id: uuid::Uuid,
+            }
+            pub struct Response {
+            }
+            Error {
+                Unauthorized,
+                Unknown(String),
+            }
+        },
+        rename_sequence: {
+            pub struct Request {
+                pub sequence_id: uuid::Uuid,
+                pub new_name: String,
+            }
+            pub struct Response {
+            }
+            Error {
+                Unauthorized,
+                Unknown(String),
+            }
+        },
     },
     ImageService: {
         put_image_meta_data: {
