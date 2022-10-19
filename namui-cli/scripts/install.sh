@@ -15,6 +15,8 @@ function main() {
 
     make_cli_symlink $cargo_bin_dir_path $cli_path
 
+    install_npm_packages $cli_root_path
+
     install_electron $electron_root_path
     if [ $(is_os_wsl) -eq 1 ]; then
         export WSL_INTEROP=
@@ -50,6 +52,7 @@ EXIT_NPM_NOT_FOUND=6
 EXIT_ELECTRON_INSTALL_FAILED=7
 EXIT_ELECTRON_ON_WINDOWS_INSTALL_FAILED=8
 ELECTRON_DOT_ENV_FILE_INSTALL_FAILED=9
+EXIT_NPM_INSTALL_FAILED=7
 
 function check_cargo_installed() {
     cargo --version
@@ -124,8 +127,21 @@ function install_electron() {
     electron_root_path=$1
     cd $electron_root_path && npm i
     if [ $? -ne 0 ]; then
-        echo "Electron install failed"
+        echo "npm package install failed"
         exit $EXIT_ELECTRON_INSTALL_FAILED
+    fi
+}
+
+#######################################
+# Arguments:
+#   cli_root_path: string
+#######################################
+function install_npm_packages() {
+    cli_path=$1
+    cd $cli_path && npm i
+    if [ $? -ne 0 ]; then
+        echo "npm package install failed"
+        exit $EXIT_NPM_INSTALL_FAILED
     fi
 }
 
