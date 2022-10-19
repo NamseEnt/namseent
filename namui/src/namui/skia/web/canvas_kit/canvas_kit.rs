@@ -99,4 +99,7 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     pub(crate) fn Typeface(this: &CanvasKit) -> TypefaceFactory;
+
+    #[wasm_bindgen(method, getter)]
+    pub(crate) fn Shader(this: &CanvasKit) -> ShaderFactory;
 }

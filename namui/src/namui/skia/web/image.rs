@@ -16,6 +16,8 @@ pub struct Image {
     #[serde(skip)]
     pub(crate) canvas_kit_image: CanvasKitImage,
     image_info: PartialImageInfo,
+    #[serde(skip)]
+    default_shader: Arc<Shader>,
 }
 
 static IMAGE_ID: AtomicUsize = AtomicUsize::new(0);
@@ -50,10 +52,18 @@ impl Image {
                 },
             }
         };
+        let default_shader = Arc::new(Shader::new(canvas_kit_image.makeShaderOptions(
+            TileMode::Clamp.into_canvas_kit(),
+            TileMode::Clamp.into_canvas_kit(),
+            FilterMode::Linear.into_canvas_kit(),
+            MipmapMode::Linear.into_canvas_kit(),
+        )));
+
         Image {
             id,
             canvas_kit_image,
             image_info,
+            default_shader,
         }
     }
     pub fn get_image_info(&self) -> PartialImageInfo {
@@ -81,6 +91,10 @@ impl Image {
         );
 
         Arc::new(Shader::new(shader))
+    }
+
+    pub(crate) fn get_default_shader(&self) -> Arc<Shader> {
+        self.default_shader.clone()
     }
 }
 

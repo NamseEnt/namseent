@@ -10,6 +10,15 @@ impl Shader {
     pub(crate) fn new(canvas_kit_shader: CanvasKitShader) -> Shader {
         Shader { canvas_kit_shader }
     }
+
+    pub(crate) fn blend(&self, mode: BlendMode, other: &Shader) -> Shader {
+        let shader = canvas_kit().Shader().MakeBlend(
+            mode.into_canvas_kit(),
+            &self.canvas_kit_shader,
+            &other.canvas_kit_shader,
+        );
+        Shader::new(shader)
+    }
 }
 
 impl Drop for Shader {

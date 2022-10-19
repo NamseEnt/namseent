@@ -45,11 +45,11 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub(crate) fn height(this: &CanvasKitImage, ) -> number;
 
-    // ///
-    // /// Returns an Image with the same "base" pixels as the this image, but with mipmap levels
-    // /// automatically generated and attached.
-    // #[wasm_bindgen(method)]
-    // pub(crate) fn makeCopyWithDefaultMipmaps(this: &CanvasKitImage, ) -> Image;
+    ///
+    /// Returns an Image with the same "base" pixels as the this image, but with mipmap levels
+    /// automatically generated and attached.
+    #[wasm_bindgen(method)]
+    pub(crate) fn makeCopyWithDefaultMipmaps(this: &CanvasKitImage) -> CanvasKitImage;
 
     // ///
     // /// Returns this image as a shader with the specified tiling. It will use cubic sampling.

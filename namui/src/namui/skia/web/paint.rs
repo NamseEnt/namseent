@@ -57,6 +57,9 @@ impl Paint {
         self.canvas_kit_paint
             .setShader(shader.map(|shader| &shader.canvas_kit_shader));
     }
+    pub(crate) fn get_shader(&self) -> Option<Arc<Shader>> {
+        self.last_set_shader.lock().unwrap().clone()
+    }
     pub fn get_stroke_cap(&self) -> StrokeCap {
         let stroke_cap = self.canvas_kit_paint.getStrokeCap();
 

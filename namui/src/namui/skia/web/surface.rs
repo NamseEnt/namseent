@@ -1,5 +1,4 @@
 use super::*;
-use wasm_bindgen::JsValue;
 
 pub(crate) struct Surface {
     canvas_kit_surface: CanvasKitSurface,
@@ -31,6 +30,7 @@ impl Surface {
         let image = self
             .canvas_kit_surface
             .makeImageFromTextureSource(src, info, src_is_premul);
+        let image = image.makeCopyWithDefaultMipmaps();
         Image::new(image)
     }
 }

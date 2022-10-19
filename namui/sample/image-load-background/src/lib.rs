@@ -21,7 +21,7 @@ impl Entity for App {
         let size = namui::screen::size();
         let now = namui::now();
 
-        if now < 3.sec() {
+        if now < 5.sec() {
             return RenderingTree::Empty;
         }
 
