@@ -156,6 +156,7 @@ macro_rules! vector_types {
                 T::from(length_in_f32)
             }
         }
+
         impl<T> $type_name<T>
         where
             T: std::ops::Mul<Output = T> + std::ops::AddAssign + Clone + Default,
