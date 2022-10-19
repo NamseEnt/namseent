@@ -242,6 +242,38 @@ pub struct PartialImageInfo {
     pub height: Px,
     pub width: Px,
 }
+impl PartialImageInfo {
+    pub fn into_js_object(&self) -> js_sys::Object {
+        let mut obj = js_sys::Object::new();
+
+        js_sys::Reflect::set(
+            &obj,
+            &wasm_bindgen::JsValue::from("width"),
+            &wasm_bindgen::JsValue::from(self.width.as_f32()),
+        )
+        .expect("Failed to set width");
+        js_sys::Reflect::set(
+            &obj,
+            &wasm_bindgen::JsValue::from("height"),
+            &wasm_bindgen::JsValue::from(self.height.as_f32()),
+        )
+        .expect("Failed to set height");
+        js_sys::Reflect::set(
+            &obj,
+            &wasm_bindgen::JsValue::from("colorType"),
+            &wasm_bindgen::JsValue::from(self.color_type.into_canvas_kit()),
+        )
+        .expect("Failed to set colorType");
+        js_sys::Reflect::set(
+            &obj,
+            &wasm_bindgen::JsValue::from("alphaType"),
+            &wasm_bindgen::JsValue::from(self.alpha_type.into_canvas_kit()),
+        )
+        .expect("Failed to set alphaType");
+
+        obj
+    }
+}
 pub enum FilterMode {
     Linear,
     Nearest,

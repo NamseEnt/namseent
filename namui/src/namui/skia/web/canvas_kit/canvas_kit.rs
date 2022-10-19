@@ -45,16 +45,17 @@ extern "C" {
     // #[wasm_bindgen(js_namespace = CanvasKit)]
     // fn MakeImage(info: ImageInfo, bytes: &[u8], bytesPerRow: u32) -> Option<Image>;
 
-    ///
-    /// Return an Image backed by the encoded data, but attempt to defer decoding until the image
-    /// is actually used/drawn. This deferral allows the system to cache the result, either on the
-    /// CPU or on the GPU, depending on where the image is drawn.
-    /// This decoding uses the codecs that have been compiled into CanvasKit. If the bytes are
-    /// invalid (or an unrecognized codec), null will be returned. See Image.h for more details.
-    /// @param bytes
-    ///
-    #[wasm_bindgen(method)]
-    pub(crate) fn MakeImageFromEncoded(this: &CanvasKit, bytes: &[u8]) -> Option<CanvasKitImage>;
+    // /// NOTE: This function load image in blocking way, So it is not recommended to use it.
+    // ///
+    // /// Return an Image backed by the encoded data, but attempt to defer decoding until the image
+    // /// is actually used/drawn. This deferral allows the system to cache the result, either on the
+    // /// CPU or on the GPU, depending on where the image is drawn.
+    // /// This decoding uses the codecs that have been compiled into CanvasKit. If the bytes are
+    // /// invalid (or an unrecognized codec), null will be returned. See Image.h for more details.
+    // /// @param bytes
+    // ///
+    // #[wasm_bindgen(method)]
+    // pub(crate) fn MakeImageFromEncoded(this: &CanvasKit, bytes: &[u8]) -> Option<CanvasKitImage>;
 
     // ///
     // /// Returns an SkPicture which has been serialized previously to the given bytes.
@@ -95,4 +96,7 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     pub(crate) fn RuntimeEffect(this: &CanvasKit) -> RuntimeEffectFactory;
+
+    #[wasm_bindgen(method, getter)]
+    pub(crate) fn Typeface(this: &CanvasKit) -> TypefaceFactory;
 }

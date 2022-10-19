@@ -1,12 +1,12 @@
 use super::*;
-use crate::{file::picker::File, namui::skia::canvas_kit, Image};
+use crate::{file::picker::File, Image};
 use dashmap::DashMap;
 use std::{
     collections::HashSet,
     sync::{Arc, Mutex},
 };
 use url::Url;
-use wasm_bindgen_futures::spawn_local;
+use wasm_bindgen_futures::{spawn_local, JsFuture};
 
 struct ImageSystem {
     image_url_map: DashMap<Url, Arc<Image>>,
@@ -65,12 +65,16 @@ fn start_load_url(url: &Url) {
         };
 
         match read_url_result {
-            Ok(data) => match new_image_from_u8(&data) {
-                Some(image) => {
+            Ok(data) => match new_image_from_u8(&data).await {
+                Ok(image) => {
                     IMAGE_SYSTEM.image_url_map.insert(url, image);
                 }
-                None => {
-                    crate::log!("failed to MakeImageFromEncoded: {}, {:?}", url, data);
+                Err(error) => {
+                    crate::log!(
+                        "failed to MakeImageFromEncoded: {error}, {}, {:?}",
+                        url,
+                        data
+                    );
                 }
             },
             Err(error) => {
@@ -83,10 +87,41 @@ fn start_load_url(url: &Url) {
         }
     });
 }
-pub fn new_image_from_u8(data: &[u8]) -> Option<Arc<Image>> {
-    match canvas_kit().MakeImageFromEncoded(data) {
-        Some(canvas_kit_image) => Some(Arc::new(Image::new(canvas_kit_image))),
-        None => None,
+pub async fn new_image_from_u8(data: &[u8]) -> Result<Arc<Image>, Box<dyn std::error::Error>> {
+    let image_element = document().create_element("img").unwrap();
+    let image_element =
+        wasm_bindgen::JsCast::dyn_into::<web_sys::HtmlImageElement>(image_element).unwrap();
+
+    let u8_array = js_sys::Uint8Array::from(data);
+
+    let u8_array_sequence = {
+        let array = js_sys::Array::new();
+        array.push(&u8_array);
+        array
+    };
+    let blob = web_sys::Blob::new_with_u8_array_sequence(&u8_array_sequence.into()).unwrap();
+
+    let object_url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
+
+    let promise = js_sys::Promise::new(&mut |resolve, reject| {
+        image_element.set_onload(Some(&resolve));
+        image_element.set_onerror(Some(&reject));
+        image_element.set_src(&object_url);
+    });
+
+    let result = JsFuture::from(promise).await;
+
+    match result {
+        Ok(_) => {
+            let image =
+                graphics::surface().make_image_from_texture_source(image_element, None, None);
+
+            Ok(Arc::new(image))
+        }
+        Err(_) => Err(
+            "You know, browser does not give us enough information when it failed to load image"
+                .into(),
+        ),
     }
 }
 
@@ -102,13 +137,13 @@ pub(crate) fn try_load_file(file: &file::picker::File) -> Option<Arc<Image>> {
 fn start_load_file(file: File) {
     spawn_local(async move {
         let content = file.content().await;
-        match new_image_from_u8(&content) {
-            Some(image) => {
+        match new_image_from_u8(&content).await {
+            Ok(image) => {
                 IMAGE_SYSTEM.image_file_map.insert(file, image);
             }
-            None => {
+            Err(error) => {
                 crate::log!(
-                    "failed to new_image_from_u8 for file: {:?}, {:?}",
+                    "failed to new_image_from_u8 for file: {error}, {:?}, {:?}",
                     file,
                     content
                 );

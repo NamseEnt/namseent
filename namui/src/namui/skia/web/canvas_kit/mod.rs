@@ -1,4 +1,4 @@
-#![allow(unused_doc_comments, dead_code)]
+#![allow(unused_doc_comments, dead_code, unused_imports)]
 
 mod canvas;
 mod canvas_kit;
@@ -19,6 +19,7 @@ mod surface;
 mod text_blob;
 mod text_blob_factory;
 mod typeface;
+mod typeface_factory;
 
 pub(crate) use canvas::*;
 pub(crate) use canvas_kit::*;
@@ -38,4 +39,5 @@ pub(crate) use surface::*;
 pub(crate) use text_blob::*;
 pub(crate) use text_blob_factory::*;
 pub(crate) use typeface::*;
+pub(crate) use typeface_factory::*;
 use wasm_bindgen::prelude::*;
