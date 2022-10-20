@@ -68,4 +68,7 @@ features = [
     "InputEvent",
     "AddEventListenerOptions",
     "FileList",
+    "HtmlImageElement",
+    "Url",
+    "ErrorEvent",
 ]

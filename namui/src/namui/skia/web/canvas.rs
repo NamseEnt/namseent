@@ -30,38 +30,6 @@ impl Canvas {
     pub(crate) fn restore(&self) {
         self.0.restore();
     }
-    pub(crate) fn draw_image_rect_options(
-        &self,
-        image: &Image,
-        src_rect: Rect<Px>,
-        dest_rect: Rect<Px>,
-        filter_mode: FilterMode,
-        mipmap_mode: MipmapMode,
-        paint: Option<&Paint>,
-    ) {
-        let src_rect_lrtb = src_rect.as_ltrb();
-        let src_rect_lrtb_array = js_sys::Float32Array::new_with_length(4);
-        src_rect_lrtb_array.set_index(0, src_rect_lrtb.left.into());
-        src_rect_lrtb_array.set_index(1, src_rect_lrtb.top.into());
-        src_rect_lrtb_array.set_index(2, src_rect_lrtb.right.into());
-        src_rect_lrtb_array.set_index(3, src_rect_lrtb.bottom.into());
-
-        let dest_rect_lrtb = dest_rect.as_ltrb();
-        let dest_rect_lrtb_array = js_sys::Float32Array::new_with_length(4);
-        dest_rect_lrtb_array.set_index(0, dest_rect_lrtb.left.into());
-        dest_rect_lrtb_array.set_index(1, dest_rect_lrtb.top.into());
-        dest_rect_lrtb_array.set_index(2, dest_rect_lrtb.right.into());
-        dest_rect_lrtb_array.set_index(3, dest_rect_lrtb.bottom.into());
-
-        self.0.drawImageRectOptions(
-            &image.canvas_kit_image,
-            src_rect_lrtb_array,
-            dest_rect_lrtb_array,
-            filter_mode.into_canvas_kit(),
-            mipmap_mode.into_canvas_kit(),
-            paint.map(|paint| &paint.canvas_kit_paint),
-        );
-    }
     #[allow(dead_code)]
     pub(crate) fn get_matrix(&self) -> Matrix3x3 {
         let total_matrix = self.0.getTotalMatrix();

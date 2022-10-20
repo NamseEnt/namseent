@@ -1,4 +1,4 @@
-#![allow(unused_doc_comments, dead_code)]
+#![allow(unused_doc_comments, dead_code, unused_imports)]
 
 mod canvas;
 mod canvas_kit;
@@ -15,10 +15,12 @@ mod path;
 mod runtime_effect;
 mod runtime_effect_factory;
 mod shader;
+mod shader_factory;
 mod surface;
 mod text_blob;
 mod text_blob_factory;
 mod typeface;
+mod typeface_factory;
 
 pub(crate) use canvas::*;
 pub(crate) use canvas_kit::*;
@@ -34,8 +36,10 @@ pub(crate) use path::*;
 pub(crate) use runtime_effect::*;
 pub(crate) use runtime_effect_factory::*;
 pub(crate) use shader::*;
+pub(crate) use shader_factory::*;
 pub(crate) use surface::*;
 pub(crate) use text_blob::*;
 pub(crate) use text_blob_factory::*;
 pub(crate) use typeface::*;
+pub(crate) use typeface_factory::*;
 use wasm_bindgen::prelude::*;

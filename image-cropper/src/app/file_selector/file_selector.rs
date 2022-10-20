@@ -16,18 +16,20 @@ pub struct FileSelector {
 impl FileSelector {
     pub fn new() -> Self {
         let input_element = create_image_input_element();
-        set_file_handler(
-            &input_element,
-            |file, url, name| match namui::image::new_image_from_u8(&file) {
-                Some(image) => {
-                    namui::event::send(FileSelectorEvent::NamuiImagePrepared { image, url, name })
+        set_file_handler(&input_element, |file, url, name| {
+            spawn_local(async move {
+                match namui::image::new_image_from_u8(&file).await {
+                    Ok(image) => namui::event::send(FileSelectorEvent::NamuiImagePrepared {
+                        image,
+                        url,
+                        name,
+                    }),
+                    Err(error) => namui::event::send(FileSelectorEvent::NamuiImageMakeFailed(
+                        format!("failed to make image of {}, {error}", name),
+                    )),
                 }
-                None => namui::event::send(FileSelectorEvent::NamuiImageMakeFailed(format!(
-                    "failed to make image of {}",
-                    name
-                ))),
-            },
-        );
+            })
+        });
 
         Self {
             html_input_element: input_element,

@@ -1,11 +1,6 @@
 use super::*;
-use crate::{
-    namui::{
-        render::ImageFit,
-        skia::{FilterMode, MipmapMode},
-    },
-    *,
-};
+use crate::{namui::render::ImageFit, *};
+use std::sync::Arc;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct ImageDrawCommand {
@@ -46,20 +41,37 @@ impl ImageDrawCommand {
         };
         let (src_rect, dest_rect) = get_src_dest_rects_in_fit(self.fit, image_size, self.rect);
 
+        let image_shader = image.get_default_shader();
+
         let paint = self
             .paint_builder
             .as_ref()
             .unwrap_or(&PaintBuilder::new())
             .build();
 
-        crate::graphics::surface().canvas().draw_image_rect_options(
-            &image,
-            src_rect,
-            dest_rect,
-            FilterMode::Linear,
-            MipmapMode::Linear,
-            Some(&paint),
+        let next_shader = if let Some(super_shader) = paint.get_shader() {
+            Arc::new(super_shader.blend(BlendMode::Plus, &image_shader))
+        } else {
+            image_shader
+        };
+
+        paint.set_shader(Some(&next_shader));
+
+        crate::graphics::surface().canvas().save();
+
+        crate::graphics::surface().canvas().transform(
+            Matrix3x3::from_translate(dest_rect.x().as_f32(), dest_rect.y().as_f32())
+                * Matrix3x3::from_scale(
+                    dest_rect.width() / src_rect.width(),
+                    dest_rect.height() / src_rect.height(),
+                ),
         );
+
+        crate::graphics::surface()
+            .canvas()
+            .draw_path(&PathBuilder::new().add_rect(src_rect).build(), &paint);
+
+        crate::graphics::surface().canvas().restore();
     }
     pub fn get_bounding_box(&self) -> Option<Rect<Px>> {
         Some(self.rect)
