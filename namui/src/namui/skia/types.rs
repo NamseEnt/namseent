@@ -244,7 +244,7 @@ pub struct PartialImageInfo {
 }
 impl PartialImageInfo {
     pub fn into_js_object(&self) -> js_sys::Object {
-        let mut obj = js_sys::Object::new();
+        let obj = js_sys::Object::new();
 
         js_sys::Reflect::set(
             &obj,
