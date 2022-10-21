@@ -37,7 +37,7 @@ fn append_components(entity: crate::ecs::Entity, xy: Xy<Tile>) -> crate::ecs::En
             },
             |entity, _game_context, rendering_context| {
                 let positioner = entity.get_component::<&Positioner>().unwrap();
-                let position = positioner.xy(rendering_context.current_time);
+                let position = positioner.xy();
                 render([translate(
                     rendering_context.px_per_tile * (position.x + VISUAL_OFFSET_X),
                     rendering_context.px_per_tile * (position.y + VISUAL_OFFSET_Y),

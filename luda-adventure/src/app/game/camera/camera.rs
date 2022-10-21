@@ -22,7 +22,7 @@ impl Camera {
 
     pub fn update(&mut self, _event: &dyn std::any::Any) {}
 
-    pub fn get_position(&self, esc_app: &ecs::App, time: Time) -> Xy<Tile> {
+    pub fn get_xy(&self, esc_app: &ecs::App) -> Xy<Tile> {
         match &self.subject {
             CameraSubject::Object { id } => esc_app
                 .entities()
@@ -30,7 +30,7 @@ impl Camera {
                 .expect("failed to find entity")
                 .get_component::<&Positioner>()
                 .unwrap()
-                .xy(time),
+                .xy(),
             CameraSubject::Position { position } => position.clone(),
         }
     }
@@ -56,8 +56,7 @@ impl Camera {
             .query_entities::<(&Renderer, &Positioner)>()
             .into_iter()
             .filter(|(_, (renderer, positioner))| {
-                let visual_area =
-                    renderer.visual_rect + positioner.xy(rendering_context.current_time);
+                let visual_area = renderer.visual_rect + positioner.xy();
 
                 visual_area
                     .intersect(rendering_context.screen_rect)

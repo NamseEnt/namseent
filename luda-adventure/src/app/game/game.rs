@@ -1,8 +1,6 @@
 use super::{player_character::new_player, *};
 use namui::prelude::*;
 
-const NEAR_FUTURE: Time = Time::Sec(5.0);
-
 pub struct Game {
     pub state: GameState,
     pub camera: Camera,
@@ -34,25 +32,12 @@ impl Game {
     }
 
     pub fn update(&mut self, event: &dyn std::any::Any) {
-        let current_time = now();
-        if let Some(event) = event.downcast_ref::<NamuiEvent>() {
-            match event {
-                NamuiEvent::KeyDown(_) => {
-                    self.handle_user_input_for_character_movement(current_time)
-                }
-                NamuiEvent::KeyUp(_) => self.handle_user_input_for_character_movement(current_time),
-                NamuiEvent::AnimationFrame
-                | NamuiEvent::MouseDown(_)
-                | NamuiEvent::MouseUp(_)
-                | NamuiEvent::MouseMove(_)
-                | NamuiEvent::ScreenResize(_)
-                | NamuiEvent::Wheel(_)
-                | NamuiEvent::DeepLinkOpened(_) => (),
-            }
-        }
-
-        while need_to_calculate_next_motion_of_character(&self.ecs_app, current_time, NEAR_FUTURE) {
-            calculate_next_movement_of_character(&mut self.ecs_app, NEAR_FUTURE);
+        self.state.tick.set_current_time(now());
+        self.set_character_movement_according_to_user_input(event);
+        while self.state.tick.need_to_evaluate_more_than_one_tick() {
+            self.move_character();
+            self.resolve_collision_about_character();
+            self.state.tick.consume_one_tick()
         }
         self.camera.update(event);
     }
