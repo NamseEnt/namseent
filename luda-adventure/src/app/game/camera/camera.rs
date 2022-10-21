@@ -22,7 +22,7 @@ impl Camera {
 
     pub fn update(&mut self, _event: &dyn std::any::Any) {}
 
-    pub fn get_xy(&self, esc_app: &ecs::App) -> Xy<Tile> {
+    pub fn get_xy(&self, esc_app: &ecs::App, interpolation_progress: f32) -> Xy<Tile> {
         match &self.subject {
             CameraSubject::Object { id } => esc_app
                 .entities()
@@ -30,7 +30,7 @@ impl Camera {
                 .expect("failed to find entity")
                 .get_component::<&Positioner>()
                 .unwrap()
-                .xy(),
+                .xy_with_interpolation(interpolation_progress),
             CameraSubject::Position { position } => position.clone(),
         }
     }

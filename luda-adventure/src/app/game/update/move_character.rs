@@ -7,6 +7,7 @@ impl Game {
             .query_entities_mut::<(&mut PlayerCharacter, &mut Positioner)>()
             .first_mut()
         {
+            positioner.save_xy_for_interpolation();
             positioner.apply_movement(TICK_INTERVAL);
         }
     }

@@ -55,7 +55,8 @@ pub fn new_player(xy: Xy<Tile>) -> crate::ecs::Entity {
             |entity, _game_context, rendering_context| {
                 let positioner = entity.get_component::<&Positioner>().unwrap();
                 let character = entity.get_component::<&PlayerCharacter>().unwrap();
-                let position = positioner.xy();
+                let position =
+                    positioner.xy_with_interpolation(rendering_context.interpolation_progress);
                 translate(
                     rendering_context.px_per_tile * (position.x + VISUAL_OFFSET_X),
                     rendering_context.px_per_tile * (position.y + VISUAL_OFFSET_Y),
