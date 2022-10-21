@@ -1,9 +1,8 @@
-use super::{player_character::new_player, *};
+use super::{known_id::object::PLAYER_CHARACTER, player_character::new_player, *};
 use namui::prelude::*;
 
 pub struct Game {
     pub state: GameState,
-    pub camera: Camera,
     pub ecs_app: crate::ecs::App,
 }
 impl Game {
@@ -12,9 +11,10 @@ impl Game {
         let quest_object = mock_quest_object();
         let walls = mock_walls();
         let floors = mock_floor();
-        let state = GameState::new();
-
-        let player_entity_id = character.id();
+        let mut state = GameState::new();
+        state.camera.set_subject(CameraSubject::Object {
+            id: PLAYER_CHARACTER,
+        });
 
         let mut ecs_app = crate::ecs::App::new();
         ecs_app.add_entity(character);
@@ -22,13 +22,7 @@ impl Game {
         ecs_app.add_entities(walls);
         ecs_app.add_entity(floors);
 
-        Self {
-            state,
-            camera: Camera::new(Some(CameraSubject::Object {
-                id: player_entity_id,
-            })),
-            ecs_app,
-        }
+        Self { state, ecs_app }
     }
 
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -39,7 +33,6 @@ impl Game {
             self.resolve_collision_about_character();
             self.state.tick.consume_one_tick()
         }
-        self.camera.update(event);
     }
 
     pub fn render(&self) -> namui::RenderingTree {
@@ -47,7 +40,7 @@ impl Game {
 
         render([
             render_background(),
-            self.camera.translate_to_camera_screen(
+            self.translate_to_camera_screen(
                 &rendering_context,
                 render([
                     self.render_in_screen_object_list(&rendering_context),
