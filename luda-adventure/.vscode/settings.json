@@ -4,6 +4,7 @@
     "cdylib",
     "mockall",
     "namui",
-    "rlib"
+    "rlib",
+    "Xywh"
   ]
 }

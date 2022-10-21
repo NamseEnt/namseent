@@ -9,42 +9,22 @@ const VISUAL_OFFSET_Y: Tile = tile(-2.5);
 
 #[derive(ecs_macro::Component)]
 pub struct PlayerCharacter {
-    user_input: Xy<f32>,
     heading: Heading,
 }
 
 impl PlayerCharacter {
-    pub fn velocity(&self) -> Velocity {
-        Xy {
-            x: Per::new(10.tile() * self.user_input.x, 1.sec()),
-            y: Per::new(10.tile() * self.user_input.y, 1.sec()),
-        }
-    }
-
     pub fn heading(&self) -> Heading {
         self.heading
     }
 
-    pub fn user_input(&self) -> Xy<f32> {
-        self.user_input
-    }
-
-    pub fn set_user_input(&mut self, user_input: Xy<f32>) {
-        self.user_input = user_input;
-        self.update_heading();
-    }
-
-    fn update_heading(&mut self) {
-        let x = self.user_input.x;
-        let y = self.user_input.y;
-
-        if x == 0.0 {
+    pub fn update_heading(&mut self, movement_direction: Xy<f32>) {
+        if movement_direction.x == 0.0 {
             return;
         }
-        let tangent = y / x;
+        let tangent = movement_direction.y / movement_direction.x;
         if tangent.abs() > 8.0 {
             return;
-        } else if x > 0.0 {
+        } else if movement_direction.x > 0.0 {
             self.heading = Heading::Right;
         } else {
             self.heading = Heading::Left;
@@ -62,7 +42,6 @@ pub fn new_player(xy: Xy<Tile>) -> crate::ecs::Entity {
             height: tile(3.0),
         }))
         .add_component(PlayerCharacter {
-            user_input: Xy::zero(),
             heading: Heading::Left,
         })
         .add_component(Renderer::new(
@@ -76,7 +55,7 @@ pub fn new_player(xy: Xy<Tile>) -> crate::ecs::Entity {
             |entity, _game_context, rendering_context| {
                 let positioner = entity.get_component::<&Positioner>().unwrap();
                 let character = entity.get_component::<&PlayerCharacter>().unwrap();
-                let position = positioner.xy(rendering_context.current_time);
+                let position = positioner.xy();
                 translate(
                     rendering_context.px_per_tile * (position.x + VISUAL_OFFSET_X),
                     rendering_context.px_per_tile * (position.y + VISUAL_OFFSET_Y),

@@ -9,18 +9,13 @@ impl Game {
         let rendering_context = RenderingContext {
             current_time,
             px_per_tile,
-            screen_rect: self.get_screen_rect(current_time, px_per_tile, screen_size),
+            screen_rect: self.get_screen_rect(px_per_tile, screen_size),
         };
         rendering_context
     }
 
-    fn get_screen_rect(
-        &self,
-        time: Time,
-        px_per_tile: Per<Px, Tile>,
-        screen_size: Wh<Px>,
-    ) -> Rect<Tile> {
-        let camera_center_position = self.camera.get_position(&self.ecs_app, time);
+    fn get_screen_rect(&self, px_per_tile: Per<Px, Tile>, screen_size: Wh<Px>) -> Rect<Tile> {
+        let camera_center_position = self.camera.get_xy(&self.ecs_app);
 
         let screen_size = Wh {
             width: px_per_tile.invert() * screen_size.width,
