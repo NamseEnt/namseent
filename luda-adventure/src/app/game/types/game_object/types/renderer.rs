@@ -30,11 +30,3 @@ impl Renderer {
         (self.render)(entity, game_state, rendering_context)
     }
 }
-
-pub trait RenderGameObjectList {
-    fn render(
-        &self,
-        game_state: &GameState,
-        rendering_context: &RenderingContext,
-    ) -> namui::RenderingTree;
-}
