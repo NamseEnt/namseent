@@ -46,8 +46,7 @@ impl Positioner {
     pub fn apply_movement(&mut self, duration: Time) {
         if let Movement::Moving(velocity) = self.movement {
             self.previous_xy = self.current_xy;
-            self.current_xy.x += velocity.x * duration;
-            self.current_xy.y += velocity.y * duration;
+            self.current_xy = self.current_xy + velocity * Xy::single(duration);
         }
     }
 }
