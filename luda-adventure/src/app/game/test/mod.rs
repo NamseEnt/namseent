@@ -1,0 +1,3 @@
+mod character_should_not_move_on_cross_axis_when_collide;
+
+pub use character_should_not_move_on_cross_axis_when_collide::*;
