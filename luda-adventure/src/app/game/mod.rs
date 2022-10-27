@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod test;
+
 mod game;
 pub mod known_id;
 mod render;

@@ -5,7 +5,9 @@ pub struct App {
 }
 impl App {
     pub fn new() -> Self {
-        Self { game: Game::new() }
+        Self {
+            game: Game::new_with_mock(),
+        }
     }
 }
 

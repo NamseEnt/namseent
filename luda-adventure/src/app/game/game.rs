@@ -6,7 +6,7 @@ pub struct Game {
     pub ecs_app: crate::ecs::App,
 }
 impl Game {
-    pub fn new() -> Self {
+    pub fn new_with_mock() -> Self {
         let character = mock_character();
         let quest_object = mock_quest_object();
         let walls = mock_walls();
@@ -23,6 +23,12 @@ impl Game {
         ecs_app.add_entity(floors);
 
         Self { state, ecs_app }
+    }
+    pub fn new() -> Self {
+        Self {
+            state: GameState::new(),
+            ecs_app: crate::ecs::App::new(),
+        }
     }
 
     pub fn update(&mut self, event: &dyn std::any::Any) {
