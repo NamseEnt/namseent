@@ -1,7 +1,5 @@
-mod move_character;
-mod resolve_collision_about_character;
+mod evaluate_ticks;
 mod set_character_movement_according_to_user_input;
 
-pub use move_character::*;
-pub use resolve_collision_about_character::*;
+pub use evaluate_ticks::*;
 pub use set_character_movement_according_to_user_input::*;

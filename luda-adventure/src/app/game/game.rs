@@ -28,11 +28,7 @@ impl Game {
     pub fn update(&mut self, event: &dyn std::any::Any) {
         self.state.tick.set_current_time(now());
         self.set_character_movement_according_to_user_input(event);
-        while self.state.tick.need_to_evaluate_more_than_one_tick() {
-            self.move_character();
-            self.resolve_collision_about_character();
-            self.state.tick.consume_one_tick()
-        }
+        self.evaluate_ticks();
     }
 
     pub fn render(&self) -> namui::RenderingTree {
