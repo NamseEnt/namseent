@@ -3,18 +3,9 @@ use namui::prelude::*;
 
 #[derive(ecs_macro::Component, Debug)]
 pub struct Positioner {
-    movement: Movement,
     current_xy: Xy<Tile>,
     previous_xy: Xy<Tile>,
 }
-
-#[derive(Clone, Debug)]
-pub enum Movement {
-    Fixed,
-    Moving(Velocity),
-}
-
-pub type Velocity = Xy<Per<Tile, Time>>;
 
 impl Positioner {
     pub fn new() -> Self {
@@ -22,7 +13,6 @@ impl Positioner {
     }
     pub fn new_with_xy(xy: Xy<Tile>) -> Self {
         Self {
-            movement: Movement::Fixed,
             current_xy: xy,
             previous_xy: xy,
         }
@@ -41,16 +31,5 @@ impl Positioner {
 
     pub fn set_xy(&mut self, xy: Xy<Tile>) {
         self.current_xy = xy;
-    }
-
-    pub fn set_movement(&mut self, movement: Movement) {
-        self.movement = movement;
-    }
-
-    pub fn apply_movement(&mut self, duration: Time) {
-        if let Movement::Moving(velocity) = self.movement {
-            self.previous_xy = self.current_xy;
-            self.current_xy = self.current_xy + velocity * Xy::single(duration);
-        }
     }
 }

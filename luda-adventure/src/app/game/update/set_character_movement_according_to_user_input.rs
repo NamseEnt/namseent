@@ -1,4 +1,4 @@
-use crate::app::game::{Game, Movement, PlayerCharacter, Positioner, TileExt};
+use crate::app::game::{Game, Movement, Mover, PlayerCharacter, TileExt};
 use namui::prelude::*;
 use std::collections::{hash_map::RandomState, HashSet};
 
@@ -10,13 +10,13 @@ impl Game {
                     let movement_direction =
                         get_movement_direction_from_pressing_codes(&event.pressing_codes);
 
-                    if let Some((_entity, (player_character, positioner))) = self
+                    if let Some((_entity, (player_character, mover))) = self
                         .ecs_app
-                        .query_entities_mut::<(&mut PlayerCharacter, &mut Positioner)>()
+                        .query_entities_mut::<(&mut PlayerCharacter, &mut Mover)>()
                         .first_mut()
                     {
                         player_character.update_heading(movement_direction);
-                        positioner.set_movement(Movement::Moving(Xy {
+                        mover.set_movement(Movement::Moving(Xy {
                             x: Per::new(10.tile() * movement_direction.x, 1.sec()),
                             y: Per::new(10.tile() * movement_direction.y, 1.sec()),
                         }));

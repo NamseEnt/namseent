@@ -3,7 +3,9 @@ use namui::prelude::*;
 use wasm_bindgen_test::wasm_bindgen_test;
 
 use crate::{
-    app::game::{new_player, new_wall, Game, Movement, PlayerCharacter, Positioner, Tile, TileExt},
+    app::game::{
+        new_player, new_wall, Game, Movement, Mover, PlayerCharacter, Positioner, Tile, TileExt,
+    },
     ecs,
 };
 
@@ -32,8 +34,8 @@ fn add_character(ecs_app: &mut ecs::App) {
         x: 2.999.tile(),
         y: 0.tile(),
     });
-    let positioner = character.get_component_mut::<&mut Positioner>().unwrap();
-    positioner.set_movement(Movement::Moving(Xy {
+    let mover = character.get_component_mut::<&mut Mover>().unwrap();
+    mover.set_movement(Movement::Moving(Xy {
         x: Per::new(0.tile(), 1.sec()),
         y: Per::new(10.tile(), 1.sec()),
     }));

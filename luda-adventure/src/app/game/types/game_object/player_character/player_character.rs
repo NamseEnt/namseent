@@ -85,4 +85,5 @@ pub fn new_player(xy: Xy<Tile>) -> crate::ecs::Entity {
                 )
             },
         ))
+        .add_component(Mover::new())
 }
