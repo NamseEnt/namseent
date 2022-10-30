@@ -90,7 +90,9 @@ impl Entity for RectExample {
                             width: 1.px(),
                             border_position,
                         }),
-                        fill: None,
+                        fill: Some(RectFill {
+                            color: Color::from_f01(1.0, 1.0, 0.0, 1.0),
+                        }),
                         round: None,
                     },
                 });
