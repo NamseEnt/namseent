@@ -67,6 +67,15 @@ macro_rules! common_for_f32_type {
             pub fn is_finite(&self) -> bool {
                 self.0.is_finite()
             }
+            pub fn floor(&self) -> $your_type {
+                self.0.floor().into()
+            }
+            pub fn ceil(&self) -> $your_type {
+                self.0.ceil().into()
+            }
+            pub fn round(&self) -> $your_type {
+                self.0.round().into()
+            }
         }
 
         $crate::types::impl_op_forward_ref!(+|x: $your_type, y: $your_type| -> $your_type {
