@@ -58,8 +58,8 @@ pub fn new_player(xy: Xy<Tile>) -> crate::ecs::Entity {
                 let position =
                     positioner.xy_with_interpolation(rendering_context.interpolation_progress);
                 translate(
-                    rendering_context.px_per_tile * (position.x + VISUAL_OFFSET_X),
-                    rendering_context.px_per_tile * (position.y + VISUAL_OFFSET_Y),
+                    (rendering_context.px_per_tile * (position.x + VISUAL_OFFSET_X)).floor(),
+                    (rendering_context.px_per_tile * (position.y + VISUAL_OFFSET_Y)).floor(),
                     render([
                         simple_rect(
                             Wh {
