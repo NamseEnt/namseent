@@ -25,3 +25,10 @@ impl Tile {
         self.approx_eq(other, margin) || self > other
     }
 }
+
+impl Ord for Tile {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.total_cmp(&other.0)
+    }
+}
+impl Eq for Tile {}

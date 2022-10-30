@@ -20,7 +20,7 @@ pub fn new_wall_with_id(id: Uuid, position: Xy<Tile>) -> crate::ecs::Entity {
 
 fn append_components(entity: crate::ecs::Entity, xy: Xy<Tile>) -> crate::ecs::Entity {
     entity
-        .add_component(Collider::new(namui::Rect::Xywh {
+        .add_component(Collider::from_rect(namui::Rect::Xywh {
             x: -0.5.tile(),
             y: -0.5.tile(),
             width: 1.tile(),
