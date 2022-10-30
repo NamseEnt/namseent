@@ -58,7 +58,7 @@ impl ScrollView {
                 height: props.height,
             }),
             namui::ClipOp::Intersect,
-            namui::translate(px(0.0), -scroll_y, props.content.clone()),
+            namui::translate(px(0.0), -scroll_y.floor(), props.content.clone()),
         );
 
         let scroll_bar_handle_height =
