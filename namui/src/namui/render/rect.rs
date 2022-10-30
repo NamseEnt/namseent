@@ -37,14 +37,16 @@ pub struct RectParam {
 /// If you use odd width with `BorderPosition::Inside`, the border will be
 /// rendered with anti-aliasing. It will be blurred.
 ///
-/// # Rect style
-/// Rect(x: 2, y: 2, w: 4, h: 4), border_width: 1
-/// stroke: s
-/// half stroke: h (anti-alias)
-/// fill: f
-/// corner: x
+/// # Rect stroke example
+/// - Rect(x: 2, y: 2, w: 4, h: 4)
+/// - border_width: 1
+/// - stroke: s
+/// - half stroke: h (anti-alias)
+/// - fill: f
+/// - corner: x
 ///
-/// # Inside
+/// ```
+/// // BorderPosition::Inside
 ///  0 1 2 3 4 5 6 7
 /// 0┼─┼─┼─┼─┼─┼─┼─┼─
 ///  │ │ │ │ │ │ │ │
@@ -62,7 +64,7 @@ pub struct RectParam {
 ///  │ │ │ │ │ │ │ │
 /// 7┼─┼─┼─┼─┼─┼─┼─┼─
 ///
-/// # Outside
+/// // BorderPosition::Outside
 ///  0 1 2 3 4 5 6 7
 /// 0┼─┼─┼─┼─┼─┼─┼─┼─
 ///  │ │ │ │ │ │ │ │
@@ -80,7 +82,7 @@ pub struct RectParam {
 ///  │ │s│s│s│s│s│s│
 /// 7┼─┼─┼─┼─┼─┼─┼─┼─
 ///
-/// # Middle
+/// // BorderPosition::Middle
 ///  0 1 2 3 4 5 6 7
 /// 0┼─┼─┼─┼─┼─┼─┼─┼─
 ///  │ │ │ │ │ │ │ │
@@ -97,6 +99,7 @@ pub struct RectParam {
 /// 6┼─┼─x─┼─┼─┼─x─┼─
 ///  │ │h│h│h│h│h│h│
 /// 7┼─┼─┼─┼─┼─┼─┼─┼─
+/// ```
 ///
 pub fn rect(param: RectParam) -> RenderingTree {
     let (rect, translate_xy) = get_rect_and_translate_xy(&param);
