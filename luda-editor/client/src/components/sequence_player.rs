@@ -189,7 +189,7 @@ impl SequencePlayer {
                                             )),
                                         }),
                                         color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
-                                        background: None,
+                                        ..Default::default()
                                     },
                                     max_width: Some(wh.width - margin * 2),
                                 })
@@ -204,7 +204,7 @@ impl SequencePlayer {
                             x: margin,
                             y: margin,
                             align: TextAlign::Left,
-                            baseline: TextBaseline::Middle,
+                            baseline: TextBaseline::Top,
                             font_type: FontType {
                                 serif: false,
                                 size: 24.int_px(),
@@ -222,7 +222,8 @@ impl SequencePlayer {
                                     color: Some(Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32())),
                                 }),
                                 color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
-                                background: None,
+                                line_height_percent: 150.percent(),
+                                ..Default::default()
                             },
                             max_width: Some(wh.width - margin * 2),
                         })

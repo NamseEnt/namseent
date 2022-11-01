@@ -17,12 +17,25 @@ pub struct TextStyleBackground {
     pub color: Color,
     pub margin: Option<Ltrb<Px>>,
 }
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug)]
 pub struct TextStyle {
     pub border: Option<TextStyleBorder>,
     pub drop_shadow: Option<TextStyleDropShadow>,
     pub color: Color,
     pub background: Option<TextStyleBackground>,
+    pub line_height_percent: Percent,
+}
+
+impl Default for TextStyle {
+    fn default() -> Self {
+        Self {
+            border: Default::default(),
+            drop_shadow: Default::default(),
+            color: Default::default(),
+            background: Default::default(),
+            line_height_percent: 110.percent(),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -132,6 +145,7 @@ fn draw_text(param: &TextParam, font: Arc<Font>) -> DrawCommand {
         align: param.align,
         baseline: param.baseline,
         max_width: param.max_width,
+        line_height_percent: param.style.line_height_percent,
     })
 }
 fn draw_border(param: &TextParam, font: Arc<Font>) -> Option<DrawCommand> {
@@ -153,6 +167,7 @@ fn draw_border(param: &TextParam, font: Arc<Font>) -> Option<DrawCommand> {
         align: param.align,
         baseline: param.baseline,
         max_width: param.max_width,
+        line_height_percent: param.style.line_height_percent,
     }))
 }
 
@@ -173,7 +188,7 @@ fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
 
     let font_metrics = font.metrics;
 
-    let height = get_line_height(param.font_type.size);
+    let height = param.line_height_px();
     let bottom_of_baseline = get_bottom_of_baseline(param.baseline, font_metrics);
     let top = param.y + bottom_of_baseline + font_metrics.descent + font_metrics.ascent;
 
@@ -214,4 +229,10 @@ pub fn get_text_width(text: &str, font_type: FontType, drop_shadow_x: Option<Px>
         let glyph_widths = font.get_glyph_widths(glyph_ids, Option::None);
         glyph_widths.iter().fold(px(0.0), |acc, cur| acc + cur) + drop_shadow_x.unwrap_or(px(0.0))
     })
+}
+
+impl TextParam {
+    pub fn line_height_px(&self) -> Px {
+        self.font_type.size.into_px() * self.style.line_height_percent
+    }
 }

@@ -97,10 +97,8 @@ impl RenameModal {
                                 font_weight: FontWeight::REGULAR,
                             },
                             text_style: TextStyle {
-                                border: None,
-                                drop_shadow: None,
                                 color: Color::BLACK,
-                                background: None,
+                                ..Default::default()
                             },
                             event_handler: None,
                         }),

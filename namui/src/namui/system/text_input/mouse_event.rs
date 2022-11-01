@@ -1,5 +1,5 @@
 use super::*;
-use crate::text::{get_fallback_fonts, get_line_height, LineTexts};
+use crate::text::{get_fallback_fonts, LineTexts};
 use std::ops::Range;
 
 pub(crate) fn on_mouse_down_in_before_attach_event_calls() {
@@ -161,8 +161,7 @@ fn get_selection_on_mouse_movement(
     let selection = super::get_input_element_selection(input_element);
 
     Some(get_one_click_selection(
-        props.text_align,
-        props.text_baseline,
+        props,
         &font,
         &line_texts,
         click_local_xy,
@@ -172,8 +171,7 @@ fn get_selection_on_mouse_movement(
 }
 
 fn get_one_click_selection(
-    text_align: TextAlign,
-    text_baseline: TextBaseline,
+    text_input_props: &Props,
     font: &Font,
     line_texts: &LineTexts,
     click_local_xy: Xy<Px>,
@@ -181,7 +179,7 @@ fn get_one_click_selection(
     last_selection: &Option<Range<usize>>,
 ) -> Range<usize> {
     let selection_index_of_xy =
-        get_selection_index_of_xy(text_align, text_baseline, font, line_texts, click_local_xy);
+        get_selection_index_of_xy(text_input_props, font, line_texts, click_local_xy);
 
     let start = match last_selection {
         Some(last_selection) => {
@@ -198,8 +196,7 @@ fn get_one_click_selection(
 }
 
 fn get_selection_index_of_xy(
-    text_align: TextAlign,
-    text_baseline: TextBaseline,
+    text_input_props: &Props,
     font: &Font,
     line_texts: &LineTexts,
     click_local_xy: Xy<Px>,
@@ -210,11 +207,11 @@ fn get_selection_index_of_xy(
     }
 
     let line_index = {
-        let line_height = get_line_height(font.size);
+        let line_height = text_input_props.line_height_px();
 
         let top_y = click_local_xy.y
             + line_height
-                * match text_baseline {
+                * match text_input_props.text_baseline {
                     TextBaseline::Top => 0.0,
                     TextBaseline::Middle => line_len as f32 / 2.0,
                     TextBaseline::Bottom => line_len as f32,
@@ -239,7 +236,7 @@ fn get_selection_index_of_xy(
 
     let line_width = glyph_widths.iter().sum::<Px>();
 
-    let aligned_x = match text_align {
+    let aligned_x = match text_input_props.text_align {
         TextAlign::Left => click_local_xy.x,
         TextAlign::Center => click_local_xy.x + line_width / 2.0,
         TextAlign::Right => click_local_xy.x + line_width,

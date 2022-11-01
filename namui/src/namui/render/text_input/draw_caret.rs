@@ -15,7 +15,7 @@ impl TextInput {
         let selection = selection.as_ref().unwrap();
         let caret = line_texts.get_multiline_caret(selection.end);
 
-        let line_height = get_line_height(props.font_type.size);
+        let line_height = props.line_height_px();
 
         let multiline_y_baseline_offset = get_multiline_y_baseline_offset(
             props.text_baseline,

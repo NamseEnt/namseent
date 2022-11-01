@@ -42,10 +42,8 @@ impl Entity for MultilineTextExample {
                     font_weight: FontWeight::REGULAR,
                 },
                 style: TextStyle {
-                    border: None,
-                    drop_shadow: None,
                     color: Color::BLACK,
-                    background: None,
+                    ..Default::default()
                 },
                 max_width: None,
             });
@@ -99,10 +97,8 @@ impl Entity for MultilineTextExample {
                         font_weight: FontWeight::REGULAR,
                     },
                     style: TextStyle {
-                        border: None,
-                        drop_shadow: None,
                         color: Color::BLACK,
-                        background: None,
+                        ..Default::default()
                     },
                     max_width: None,
                 });
@@ -156,10 +152,8 @@ impl Entity for MultilineTextExample {
                         font_weight: FontWeight::REGULAR,
                     },
                     style: TextStyle {
-                        border: None,
-                        drop_shadow: None,
                         color: Color::BLACK,
-                        background: None,
+                        ..Default::default()
                     },
                     max_width: Some(278.px()),
                 });

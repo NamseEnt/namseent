@@ -177,4 +177,7 @@ impl Props {
             TextBaseline::Bottom => self.rect.bottom(),
         }
     }
+    pub fn line_height_px(&self) -> Px {
+        self.font_type.size.into_px() * self.text_style.line_height_percent
+    }
 }

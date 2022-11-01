@@ -44,10 +44,8 @@ impl ImageEditModal {
                                     font_weight: FontWeight::REGULAR,
                                 },
                                 text_style: TextStyle {
-                                    border: None,
-                                    drop_shadow: None,
                                     color: Color::WHITE,
-                                    background: None,
+                                    ..Default::default()
                                 },
                                 event_handler: Some(text_input::EventHandler::new().on_key_down(
                                     |event| {
