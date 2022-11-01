@@ -144,6 +144,28 @@ impl LoadedSequenceEditorPage {
                         }
                     }
                 },
+                Event::DownloadButtonClicked => {
+                    let project_shared_data_json =
+                        serde_json::to_string(&self.project_shared_data).unwrap();
+                    let sequence_json = serde_json::to_string(&self.sequence).unwrap();
+                    let project_id = self.project_id();
+                    let sequence_name = self.sequence.name.clone();
+                    spawn_local(async move {
+                        namui::system::file::download(
+                            format!("project_{project_id}.json"),
+                            project_shared_data_json,
+                        )
+                        .await
+                        .unwrap();
+
+                        namui::system::file::download(
+                            format!("sequence_{sequence_name}_{project_id}.json"),
+                            sequence_json,
+                        )
+                        .await
+                        .unwrap();
+                    });
+                }
             }
         } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
             if let text_input::Event::TextUpdated { id, text } = event {
