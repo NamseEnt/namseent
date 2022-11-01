@@ -23,13 +23,14 @@ impl LoadedSequenceEditorPage {
                 Event::Error(error) => {
                     todo!("error: {error}")
                 }
-                &Event::CharacterCellClicked { cut_id } => {
+                &Event::CharacterCellClicked { cut_id, global_xy } => {
                     match self.sequence.cuts.iter().find(|cut| cut.id() == cut_id) {
                         Some(cut) => {
                             self.character_edit_modal =
                                 Some(character_edit_modal::CharacterEditModal::new(
                                     cut_id,
                                     cut.character_id,
+                                    global_xy,
                                 ));
                         }
                         None => {
