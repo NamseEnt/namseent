@@ -48,6 +48,7 @@ impl namui::Entity for Viewer {
                     self.sequence_player = Some(sequence_player::SequencePlayer::new(
                         sequence.clone(),
                         project_shared_data.clone(),
+                        0,
                     ));
                 }
             }

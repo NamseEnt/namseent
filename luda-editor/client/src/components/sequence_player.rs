@@ -29,11 +29,17 @@ enum State {
 }
 
 impl SequencePlayer {
-    pub fn new(sequence: Sequence, project_shared_data: ProjectSharedData) -> Self {
+    pub fn new(
+        sequence: Sequence,
+        project_shared_data: ProjectSharedData,
+        start_cut_index: usize,
+    ) -> Self {
         Self {
             sequence,
             project_shared_data,
-            state: State::ShowingCut { cut_index: 0 },
+            state: State::ShowingCut {
+                cut_index: start_cut_index,
+            },
         }
     }
     pub fn render(&self, props: Props) -> RenderingTree {

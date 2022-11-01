@@ -88,6 +88,7 @@ impl LoadedSequenceEditorPage {
                     self.sequence_player = Some(sequence_player::SequencePlayer::new(
                         self.sequence.clone(),
                         self.project_shared_data.clone(),
+                        0,
                     ));
                 }
                 Event::ClosePlayer => {
@@ -115,6 +116,9 @@ impl LoadedSequenceEditorPage {
                                         position: AddCutPosition::After { cut_id },
                                     });
                                 }
+                            }),
+                            context_menu::Item::new("Start preview from here", {
+                                move || namui::event::send(Event::StartPreviewFromHere { cut_id })
                             }),
                         ],
                     ))
@@ -144,6 +148,16 @@ impl LoadedSequenceEditorPage {
                         }
                     }
                 },
+                &Event::StartPreviewFromHere { cut_id } => {
+                    let cut_index = self.sequence.cuts.iter().position(|cut| cut.id() == cut_id);
+                    if let Some(cut_index) = cut_index {
+                        self.sequence_player = Some(sequence_player::SequencePlayer::new(
+                            self.sequence.clone(),
+                            self.project_shared_data.clone(),
+                            cut_index,
+                        ));
+                    }
+                }
             }
         } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
             if let text_input::Event::TextUpdated { id, text } = event {
