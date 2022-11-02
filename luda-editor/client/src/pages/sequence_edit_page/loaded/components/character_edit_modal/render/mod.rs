@@ -18,7 +18,9 @@ impl CharacterEditModal {
             None => RenderingTree::Empty,
         };
 
-        on_top(
+        on_top(absolute(
+            self.global_xy.x,
+            self.global_xy.y,
             render([character_list_view, context_menu]).attach_event(|builder| {
                 builder
                     .on_mouse_down_in(|event| {
@@ -29,6 +31,6 @@ impl CharacterEditModal {
                         namui::event::send(Event::Close)
                     });
             }),
-        )
+        ))
     }
 }
