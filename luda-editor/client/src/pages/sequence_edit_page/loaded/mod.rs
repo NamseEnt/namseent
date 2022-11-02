@@ -60,6 +60,7 @@ enum Event {
     InsertCut {
         position: AddCutPosition,
     },
+    DownloadButtonClicked,
 }
 
 #[derive(Clone, Copy)]

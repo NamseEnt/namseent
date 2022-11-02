@@ -71,4 +71,5 @@ features = [
     "HtmlImageElement",
     "Url",
     "ErrorEvent",
+    "HtmlAnchorElement",
 ]

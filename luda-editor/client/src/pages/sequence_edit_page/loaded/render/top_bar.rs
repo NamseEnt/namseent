@@ -74,6 +74,19 @@ impl LoadedSequenceEditorPage {
             };
             typography::body::left(wh.height, text, Color::WHITE)
         });
+        let download_button = table::fit(
+            table::FitAlign::CenterMiddle,
+            text_button_fit(
+                wh.height,
+                "Download",
+                Color::WHITE,
+                Color::WHITE,
+                1.px(),
+                Color::BLACK,
+                8.px(),
+                || namui::event::send(Event::DownloadButtonClicked),
+            ),
+        );
         let preview_button = table::fit(
             table::FitAlign::CenterMiddle,
             text_button_fit(
@@ -98,6 +111,7 @@ impl LoadedSequenceEditorPage {
                 sequence_name_label,
                 margin(),
                 sync_status,
+                download_button,
                 preview_button,
             ])(wh),
         ])
