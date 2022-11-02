@@ -10,15 +10,7 @@ impl LoadedSequenceEditorPage {
         if let Some(event) = event.downcast_ref::<Event>() {
             match event {
                 Event::AddCutClicked => {
-                    let cut_id = uuid();
-
-                    self.update_sequence(|sequence| {
-                        let new_cut = Cut::new(cut_id);
-                        sequence.cuts.push(new_cut);
-                    });
-
-                    self.line_text_inputs
-                        .insert(cut_id, text_input::TextInput::new());
+                    self.push_back_new_cut();
                 }
                 Event::Error(error) => {
                     todo!("error: {error}")
@@ -144,6 +136,28 @@ impl LoadedSequenceEditorPage {
                         }
                     }
                 },
+                Event::DownloadButtonClicked => {
+                    let project_shared_data_json =
+                        serde_json::to_string(&self.project_shared_data).unwrap();
+                    let sequence_json = serde_json::to_string(&self.sequence).unwrap();
+                    let project_id = self.project_id();
+                    let sequence_name = self.sequence.name.clone();
+                    spawn_local(async move {
+                        namui::system::file::download(
+                            format!("project_{project_id}.json"),
+                            project_shared_data_json,
+                        )
+                        .await
+                        .unwrap();
+
+                        namui::system::file::download(
+                            format!("sequence_{sequence_name}_{project_id}.json"),
+                            sequence_json,
+                        )
+                        .await
+                        .unwrap();
+                    });
+                }
             }
         } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
             if let text_input::Event::TextUpdated { id, text } = event {
@@ -250,29 +264,56 @@ impl LoadedSequenceEditorPage {
             }
         } else if let Some(event) = event.downcast_ref::<namui::event::NamuiEvent>() {
             if let NamuiEvent::KeyDown(event) = event {
-                if [
-                    [Code::ControlLeft, Code::KeyY].iter_mut(),
-                    [Code::ControlLeft, Code::ShiftLeft, Code::KeyZ].iter_mut(),
-                ]
-                .into_iter()
-                .any(|mut codes| codes.all(|code| event.pressing_codes.contains(code)))
-                    && !self.is_any_line_text_input_focused()
+                if code_composites_on(
+                    event,
+                    [
+                        vec![Code::ControlLeft, Code::KeyY],
+                        vec![Code::ControlLeft, Code::ShiftLeft, Code::KeyZ],
+                    ],
+                ) && !self.is_any_line_text_input_focused()
                 {
                     self.redo_sequence_change();
-                } else if [Code::ControlLeft, Code::KeyZ]
-                    .iter()
-                    .all(|code| event.pressing_codes.contains(code))
+                } else if code_composites_on(event, [vec![Code::ControlLeft, Code::KeyZ]])
                     && !self.is_any_line_text_input_focused()
                 {
                     self.undo_sequence_change();
-                } else if [Code::Escape]
-                    .iter()
-                    .all(|code| event.pressing_codes.contains(code))
-                {
+                } else if code_composites_on(event, [vec![Code::Escape]]) {
                     self.context_menu = None;
                     self.character_edit_modal = None;
                     self.image_select_modal = None;
                     namui::system::text_input::blur();
+                } else if code_composites_on(event, [vec![Code::ControlLeft, Code::Enter]])
+                    && self.is_any_line_text_input_focused()
+                {
+                    let focused_cut_id = self
+                        .line_text_inputs
+                        .iter()
+                        .find_map(|(id, text_input)| match text_input.is_focused() {
+                            true => Some(id),
+                            false => None,
+                        })
+                        .unwrap();
+
+                    let next_cut_index = self
+                        .sequence
+                        .cuts
+                        .iter()
+                        .position(|cut| cut.id().eq(focused_cut_id))
+                        .unwrap()
+                        + 1;
+
+                    self.insert_new_cut(next_cut_index);
+                }
+
+                fn code_composites_on(
+                    event: &RawKeyboardEvent,
+                    iter: impl IntoIterator<Item = Vec<Code>>,
+                ) -> bool {
+                    iter.into_iter().any(|codes| {
+                        codes
+                            .into_iter()
+                            .all(|code| event.pressing_codes.contains(&code))
+                    })
                 }
             }
         }
@@ -306,5 +347,22 @@ impl LoadedSequenceEditorPage {
         self.line_text_inputs
             .iter()
             .any(|(_, text_input)| text_input.is_focused())
+    }
+    fn push_back_new_cut(&mut self) {
+        self.insert_new_cut(self.sequence.cuts.len());
+    }
+    fn insert_new_cut(&mut self, index: usize) {
+        let cut_id = uuid();
+
+        self.update_sequence(|sequence| {
+            let new_cut = Cut::new(cut_id);
+            sequence.cuts.insert(index, new_cut);
+        });
+
+        let text_input = text_input::TextInput::new();
+
+        text_input.focus();
+
+        self.line_text_inputs.insert(cut_id, text_input);
     }
 }
