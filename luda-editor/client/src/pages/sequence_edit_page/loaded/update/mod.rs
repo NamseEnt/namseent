@@ -150,6 +150,7 @@ impl LoadedSequenceEditorPage {
                             cut_index,
                         ));
                     }
+                }
                 Event::DownloadButtonClicked => {
                     let project_shared_data_json =
                         serde_json::to_string(&self.project_shared_data).unwrap();
