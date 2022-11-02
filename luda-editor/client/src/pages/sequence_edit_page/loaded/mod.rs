@@ -61,6 +61,9 @@ enum Event {
     InsertCut {
         position: AddCutPosition,
     },
+    StartPreviewFromHere {
+        cut_id: Uuid,
+    },
     DownloadButtonClicked,
 }
 
