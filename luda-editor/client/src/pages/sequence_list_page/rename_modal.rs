@@ -76,17 +76,6 @@ impl RenameModal {
                         ),
                         self.text_input.render(text_input::Props {
                             rect: text_input_rect_in_modal,
-                            rect_style: RectStyle {
-                                stroke: Some(RectStroke {
-                                    color: Color::BLACK,
-                                    width: 1.px(),
-                                    border_position: BorderPosition::Outside,
-                                }),
-                                fill: Some(RectFill {
-                                    color: Color::WHITE,
-                                }),
-                                round: None,
-                            },
                             text: self.sequence_name.clone(),
                             text_align: TextAlign::Left,
                             text_baseline: TextBaseline::Top,
@@ -96,8 +85,22 @@ impl RenameModal {
                                 language: Language::Ko,
                                 font_weight: FontWeight::REGULAR,
                             },
-                            text_style: TextStyle {
-                                color: Color::BLACK,
+                            style: text_input::Style {
+                                rect: RectStyle {
+                                    stroke: Some(RectStroke {
+                                        color: Color::BLACK,
+                                        width: 1.px(),
+                                        border_position: BorderPosition::Outside,
+                                    }),
+                                    fill: Some(RectFill {
+                                        color: Color::WHITE,
+                                    }),
+                                    ..Default::default()
+                                },
+                                text: TextStyle {
+                                    color: Color::BLACK,
+                                    ..Default::default()
+                                },
                                 ..Default::default()
                             },
                             event_handler: None,

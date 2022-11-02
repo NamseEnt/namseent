@@ -20,12 +20,11 @@ pub struct TextInput {
 #[derive(Clone, Debug)]
 pub struct Props {
     pub rect: Rect<Px>,
-    pub rect_style: RectStyle,
     pub text: String,
     pub text_align: TextAlign,
     pub text_baseline: TextBaseline,
     pub font_type: FontType,
-    pub text_style: TextStyle,
+    pub style: Style,
     pub event_handler: Option<EventHandler>,
 }
 #[derive(Clone, Default)]
@@ -49,6 +48,27 @@ impl std::fmt::Debug for EventHandler {
         f.debug_struct("EventHandler")
             .field("on_key_down", &self.on_key_down.is_some())
             .finish()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Style {
+    pub rect: RectStyle,
+    pub text: TextStyle,
+    pub padding: Ltrb<Px>,
+}
+impl Default for Style {
+    fn default() -> Self {
+        Self {
+            rect: RectStyle::default(),
+            text: TextStyle::default(),
+            padding: Ltrb {
+                left: 4.px(),
+                top: 4.px(),
+                right: 4.px(),
+                bottom: 4.px(),
+            },
+        }
     }
 }
 
@@ -112,9 +132,9 @@ impl TextInput {
             .chain(std::iter::once_with(|| get_fallback_fonts(font.size)).flatten())
             .collect::<Vec<_>>();
 
-        let paint = get_text_paint(props.text_style.color).build();
+        let paint = get_text_paint(props.style.text.color).build();
 
-        let line_texts = LineTexts::new(&props.text, &fonts, &paint, Some(props.rect.width()));
+        let line_texts = LineTexts::new(&props.text, &fonts, &paint, props.text_param().max_width);
 
         let selection = crate::system::text_input::get_selection(self.id, &props.text);
 
@@ -125,7 +145,7 @@ impl TextInput {
         render([
             namui::rect(RectParam {
                 rect: props.rect,
-                style: props.rect_style,
+                style: props.style.rect,
             }),
             self.draw_texts_divided_by_selection(&props, &fonts, &paint, &line_texts, &selection),
             self.draw_caret(&props, &line_texts, &selection),
@@ -158,26 +178,26 @@ impl Props {
             align: self.text_align,
             baseline: self.text_baseline,
             font_type: self.font_type,
-            style: self.text_style,
-            max_width: Some(self.rect.width()),
+            style: self.style.text,
+            max_width: Some(self.rect.width() - self.style.padding.left - self.style.padding.right),
         }
     }
     pub fn text_x(&self) -> Px {
         match self.text_align {
-            TextAlign::Left => self.rect.left(),
+            TextAlign::Left => self.rect.left() + self.style.padding.left,
             TextAlign::Center => self.rect.center().x,
-            TextAlign::Right => self.rect.right(),
+            TextAlign::Right => self.rect.right() - self.style.padding.right,
         }
     }
 
     pub fn text_y(&self) -> Px {
         match self.text_baseline {
-            TextBaseline::Top => self.rect.top(),
+            TextBaseline::Top => self.rect.top() + self.style.padding.top,
             TextBaseline::Middle => self.rect.center().y,
-            TextBaseline::Bottom => self.rect.bottom(),
+            TextBaseline::Bottom => self.rect.bottom() - self.style.padding.bottom,
         }
     }
     pub fn line_height_px(&self) -> Px {
-        self.font_type.size.into_px() * self.text_style.line_height_percent
+        self.font_type.size.into_px() * self.style.text.line_height_percent
     }
 }

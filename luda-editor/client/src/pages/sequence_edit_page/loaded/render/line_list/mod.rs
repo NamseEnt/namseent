@@ -51,27 +51,6 @@ impl LoadedSequenceEditorPage {
                                 line_text_input
                                     .render(text_input::Props {
                                         rect: Rect::from_xy_wh(Xy::zero(), wh),
-                                        rect_style: RectStyle {
-                                            stroke: Some(match is_selected {
-                                                true => RectStroke {
-                                                    color: Color::BLUE,
-                                                    width: 2.px(),
-                                                    border_position: BorderPosition::Inside,
-                                                },
-                                                false => RectStroke {
-                                                    color: Color::WHITE,
-                                                    width: 1.px(),
-                                                    border_position: BorderPosition::Inside,
-                                                },
-                                            }),
-                                            fill: Some(RectFill {
-                                                color: match is_selected {
-                                                    true => Color::WHITE,
-                                                    false => Color::BLACK,
-                                                },
-                                            }),
-                                            round: None,
-                                        },
                                         text: cut.line.clone(),
                                         text_align: TextAlign::Left,
                                         text_baseline: TextBaseline::Middle,
@@ -81,12 +60,35 @@ impl LoadedSequenceEditorPage {
                                             language: Language::Ko,
                                             font_weight: FontWeight::REGULAR,
                                         },
-                                        text_style: TextStyle {
-                                            color: match is_selected {
-                                                true => Color::BLUE,
-                                                false => Color::WHITE,
+                                        style: text_input::Style {
+                                            rect: RectStyle {
+                                                stroke: Some(match is_selected {
+                                                    true => RectStroke {
+                                                        color: Color::BLUE,
+                                                        width: 2.px(),
+                                                        border_position: BorderPosition::Inside,
+                                                    },
+                                                    false => RectStroke {
+                                                        color: Color::WHITE,
+                                                        width: 1.px(),
+                                                        border_position: BorderPosition::Inside,
+                                                    },
+                                                }),
+                                                fill: Some(RectFill {
+                                                    color: match is_selected {
+                                                        true => Color::WHITE,
+                                                        false => Color::BLACK,
+                                                    },
+                                                }),
+                                                ..Default::default()
                                             },
-                                            line_height_percent: 150.percent(),
+                                            text: TextStyle {
+                                                color: match is_selected {
+                                                    true => Color::BLUE,
+                                                    false => Color::WHITE,
+                                                },
+                                                ..Default::default()
+                                            },
                                             ..Default::default()
                                         },
                                         event_handler: None,

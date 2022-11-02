@@ -68,14 +68,6 @@ impl Entity for TextInputExample {
                         width: px(200.0),
                         height: px(200.0),
                     },
-                    rect_style: RectStyle {
-                        stroke: Some(RectStroke {
-                            border_position: BorderPosition::Inside,
-                            color: Color::BLACK,
-                            width: px(1.0),
-                        }),
-                        ..Default::default()
-                    },
                     text_align: match x {
                         x if x == 0 => TextAlign::Left,
                         x if x == 1 => TextAlign::Center,
@@ -95,8 +87,19 @@ impl Entity for TextInputExample {
                         serif: false,
                         size: int_px(20),
                     },
-                    text_style: namui::TextStyle {
-                        color: namui::Color::BLACK,
+                    style: text_input::Style {
+                        rect: RectStyle {
+                            stroke: Some(RectStroke {
+                                border_position: BorderPosition::Inside,
+                                color: Color::BLACK,
+                                width: px(1.0),
+                            }),
+                            ..Default::default()
+                        },
+                        text: namui::TextStyle {
+                            color: namui::Color::BLACK,
+                            ..Default::default()
+                        },
                         ..Default::default()
                     },
                     event_handler: None,

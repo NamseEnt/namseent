@@ -52,7 +52,7 @@ impl TextInput {
         }
         let font = font.unwrap();
 
-        let drop_shadow_x = props.text_style.drop_shadow.map(|shadow| shadow.x);
+        let drop_shadow_x = props.style.text.drop_shadow.map(|shadow| shadow.x);
 
         let left_text_width = get_text_width_internal(&font, &left_text_string, drop_shadow_x);
         let right_text_width = get_text_width_internal(&font, &right_text_string, drop_shadow_x);
