@@ -14,7 +14,9 @@ pub struct Props {
 }
 
 enum InternalEvent {
-    NextCut,
+    OnClickScreen,
+    GoToPrevCut,
+    GoToNextCut,
 }
 
 enum State {
@@ -61,7 +63,7 @@ impl SequencePlayer {
                         )
                         .attach_event(|builder| {
                             builder.on_mouse_down_in(|_| {
-                                namui::event::send(InternalEvent::NextCut);
+                                namui::event::send(InternalEvent::OnClickScreen);
                             });
                         }),
                     ])
@@ -88,6 +90,15 @@ impl SequencePlayer {
                 }
             },
         )
+        .attach_event(|builder| {
+            builder.on_key_down(|event| {
+                if event.code == Code::ArrowLeft {
+                    namui::event::send(InternalEvent::GoToPrevCut);
+                } else if event.code == Code::ArrowRight {
+                    namui::event::send(InternalEvent::GoToNextCut);
+                }
+            });
+        })
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
         match &mut self.state {
@@ -112,9 +123,11 @@ impl SequencePlayer {
 
         if let Some(event) = event.downcast_ref::<InternalEvent>() {
             match event {
-                InternalEvent::NextCut => {
-                    self.on_next_cut();
+                InternalEvent::OnClickScreen => {
+                    self.go_to_next_cut(true);
                 }
+                InternalEvent::GoToPrevCut => self.go_to_prev_cut(),
+                InternalEvent::GoToNextCut => self.go_to_next_cut(false),
             }
         }
     }
@@ -270,7 +283,7 @@ impl SequencePlayer {
         }))
     }
 
-    fn on_next_cut(&mut self) {
+    fn go_to_next_cut(&mut self, do_transition: bool) {
         if self.sequence.cuts.len() == 0 {
             return;
         }
@@ -282,16 +295,42 @@ impl SequencePlayer {
                     return;
                 }
 
-                self.state = State::Transitioning {
-                    from_cut_index: cut_index,
-                    transition_progress: 0.0.one_zero(),
-                    start_time: Time::now(),
-                };
+                if do_transition {
+                    self.state = State::Transitioning {
+                        from_cut_index: cut_index,
+                        transition_progress: 0.0.one_zero(),
+                        start_time: Time::now(),
+                    };
+                } else {
+                    self.state = State::ShowingCut {
+                        cut_index: next_cut_index,
+                    };
+                }
             }
-            State::Transitioning { .. } => {
-                return;
+            State::Transitioning { from_cut_index, .. } => {
+                if !do_transition {
+                    self.state = State::ShowingCut {
+                        cut_index: from_cut_index + 1,
+                    };
+                }
             }
         }
+    }
+
+    fn go_to_prev_cut(&mut self) {
+        let prev_cut_index = match self.state {
+            State::ShowingCut { cut_index } => {
+                if cut_index == 0 {
+                    return;
+                }
+                cut_index - 1
+            }
+            State::Transitioning { from_cut_index, .. } => from_cut_index,
+        };
+
+        self.state = State::ShowingCut {
+            cut_index: prev_cut_index,
+        };
     }
 
     fn render_transitioning_image(
