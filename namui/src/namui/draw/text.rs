@@ -14,6 +14,7 @@ pub struct TextDrawCommand {
     pub align: TextAlign,
     pub baseline: TextBaseline,
     pub max_width: Option<Px>,
+    pub line_height_percent: Percent,
 }
 
 #[derive(Debug, Serialize, Copy, Clone)]
@@ -43,7 +44,7 @@ impl TextDrawCommand {
 
         let line_texts = LineTexts::new(&self.text, &fonts, &paint, self.max_width);
 
-        let line_height = get_line_height(self.font.size);
+        let line_height = self.line_height_px();
 
         let mut bottom_of_fonts: HashMap<String, Px> = HashMap::new();
 
@@ -108,7 +109,7 @@ impl TextDrawCommand {
 
         let line_texts = LineTexts::new(&self.text, &fonts, &paint, self.max_width);
 
-        let line_height = get_line_height(self.font.size);
+        let line_height = self.line_height_px();
 
         let multiline_y_baseline_offset =
             get_multiline_y_baseline_offset(self.baseline, line_height, line_texts.line_len());
@@ -172,5 +173,9 @@ impl TextDrawCommand {
         self.get_bounding_box()
             .map(|bound| bound.is_xy_inside(xy))
             .unwrap_or(false)
+    }
+
+    fn line_height_px(&self) -> Px {
+        self.font.size.into_px() * self.line_height_percent
     }
 }

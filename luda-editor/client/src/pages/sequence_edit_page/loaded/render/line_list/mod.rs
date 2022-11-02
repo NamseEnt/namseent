@@ -82,13 +82,12 @@ impl LoadedSequenceEditorPage {
                                             font_weight: FontWeight::REGULAR,
                                         },
                                         text_style: TextStyle {
-                                            border: None,
-                                            drop_shadow: None,
                                             color: match is_selected {
                                                 true => Color::BLUE,
                                                 false => Color::WHITE,
                                             },
-                                            background: None,
+                                            line_height_percent: 150.percent(),
+                                            ..Default::default()
                                         },
                                         event_handler: None,
                                     })

@@ -87,10 +87,8 @@ impl ImageSelectModal {
                         font_weight: FontWeight::BOLD,
                     },
                     style: TextStyle {
-                        border: None,
-                        drop_shadow: None,
                         color: stroke_color,
-                        background: None,
+                        ..Default::default()
                     },
                     max_width: None,
                 });

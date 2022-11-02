@@ -93,10 +93,8 @@ impl CharacterEditModal {
                                                 font_weight: FontWeight::MEDIUM,
                                             },
                                             text_style: TextStyle {
-                                                border: None,
-                                                drop_shadow: None,
                                                 color: stroke_color,
-                                                background: None,
+                                                ..Default::default()
                                             },
                                             event_handler: None,
                                         }),

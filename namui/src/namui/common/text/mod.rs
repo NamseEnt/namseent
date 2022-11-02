@@ -26,9 +26,6 @@ pub fn get_fallback_fonts(font_size: IntPx) -> VecDeque<Arc<Font>> {
         .map(|typeface| crate::font::get_font_of_typeface(typeface.clone(), font_size))
         .collect()
 }
-pub fn get_line_height(font_size: IntPx) -> Px {
-    font_size.into_px() * 110.percent()
-}
 pub fn get_multiline_y_baseline_offset(
     baseline: TextBaseline,
     line_height: Px,

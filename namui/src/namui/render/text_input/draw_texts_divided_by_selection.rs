@@ -36,7 +36,7 @@ impl TextInput {
         let right_caret = line_texts.get_multiline_caret(right_selection_index);
 
         let y_of_line = |line_index: usize| {
-            let line_height = get_line_height(props.font_type.size);
+            let line_height = props.line_height_px();
 
             let multiline_y_baseline_offset = get_multiline_y_baseline_offset(
                 props.text_baseline,
@@ -208,7 +208,7 @@ impl TextInput {
         );
 
         if render_only_selection_background {
-            let line_height = get_line_height(props.font_type.size);
+            let line_height = props.line_height_px();
             let left = selected_text_left;
             let top = y - match props.text_baseline {
                 TextBaseline::Top => 0.px(),
