@@ -35,6 +35,7 @@ enum Event {
     Error(String),
     CharacterCellClicked {
         cut_id: namui::Uuid,
+        global_xy: Xy<Px>,
     },
     ScreenEditorCellClicked {
         index: usize,
