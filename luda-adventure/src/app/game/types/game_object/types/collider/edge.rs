@@ -1,4 +1,4 @@
-use crate::app::game::{Tile, TileExt};
+use crate::app::game::{dot, Tile, TileExt};
 use namui::prelude::*;
 
 #[derive(Clone, Copy)]
@@ -67,6 +67,10 @@ impl Edge {
             Edge::Outside { normal_vector, .. } => *normal_vector,
             Edge::Inside { normal_vector, .. } => *normal_vector,
         }
+    }
+
+    pub fn is_same_direction_as(&self, other: &Self) -> bool {
+        dot(&self.normal_vector(), &other.normal_vector()) == 1.tile()
     }
 }
 

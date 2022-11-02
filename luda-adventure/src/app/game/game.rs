@@ -9,8 +9,7 @@ impl Game {
     pub fn new_with_mock() -> Self {
         let character = mock_character();
         let quest_object = mock_quest_object();
-        let walls = mock_walls();
-        let floors = mock_floor();
+        let map_entities = Map::mock().create_entities();
         let mut state = GameState::new();
         state.camera.set_subject(CameraSubject::Object {
             id: PLAYER_CHARACTER,
@@ -19,8 +18,7 @@ impl Game {
         let mut ecs_app = crate::ecs::App::new();
         ecs_app.add_entity(character);
         ecs_app.add_entity(quest_object);
-        ecs_app.add_entities(walls);
-        ecs_app.add_entity(floors);
+        ecs_app.add_entities(map_entities);
 
         Self { state, ecs_app }
     }
@@ -60,49 +58,12 @@ fn mock_character() -> crate::ecs::Entity {
     })
 }
 
-fn mock_walls() -> Vec<crate::ecs::Entity> {
-    let mut wall = Vec::new();
-    for x in 1..10 {
-        if x == 5 {
-            for y in 1..10 {
-                wall.push(new_wall(Xy {
-                    x: x.tile(),
-                    y: y.tile(),
-                }));
-            }
-        } else {
-            wall.push(new_wall(Xy {
-                x: x.tile(),
-                y: 1.tile(),
-            }));
-            wall.push(new_wall(Xy {
-                x: x.tile(),
-                y: 9.tile(),
-            }));
-        }
-    }
-    wall
-}
-
-fn mock_floor() -> crate::ecs::Entity {
-    let positions = (1..100)
-        .into_iter()
-        .flat_map(|x| {
-            (1..100).into_iter().map(move |y| Xy {
-                x: x.tile(),
-                y: y.tile(),
-            })
-        })
-        .collect();
-    new_floor(positions)
-}
-
 fn mock_quest_object() -> crate::ecs::Entity {
     new_wall_with_id(
         known_id::object::FIRST_QUEST_OBJECT,
-        Xy {
+        vec![Xy {
             x: 10.tile(),
             y: 10.tile(),
-        },
+        }],
     )
 }

@@ -8,49 +8,87 @@ const VISUAL_HEIGHT: Tile = tile(1.0);
 const VISUAL_OFFSET_X: Tile = tile(-0.5);
 const VISUAL_OFFSET_Y: Tile = tile(-0.5);
 
-pub fn new_wall(position: Xy<Tile>) -> crate::ecs::Entity {
+pub fn new_wall(positions: Vec<Xy<Tile>>) -> crate::ecs::Entity {
     let entity = crate::ecs::Entity::new();
-    append_components(entity, position)
+    append_components(entity, positions)
 }
 
-pub fn new_wall_with_id(id: Uuid, position: Xy<Tile>) -> crate::ecs::Entity {
+pub fn new_wall_with_id(id: Uuid, positions: Vec<Xy<Tile>>) -> crate::ecs::Entity {
     let entity = crate::ecs::Entity::with_id(id);
-    append_components(entity, position)
+    append_components(entity, positions)
 }
 
-fn append_components(entity: crate::ecs::Entity, xy: Xy<Tile>) -> crate::ecs::Entity {
+fn append_components(entity: crate::ecs::Entity, positions: Vec<Xy<Tile>>) -> crate::ecs::Entity {
+    let min_x = positions
+        .iter()
+        .map(|p| p.x)
+        .reduce(|a, b| a.min(b))
+        .unwrap();
+    let min_y = positions
+        .iter()
+        .map(|p| p.y)
+        .reduce(|a, b| a.min(b))
+        .unwrap();
+    let max_x = positions
+        .iter()
+        .map(|p| p.x)
+        .reduce(|a, b| a.max(b))
+        .unwrap();
+    let max_y = positions
+        .iter()
+        .map(|p| p.y)
+        .reduce(|a, b| a.max(b))
+        .unwrap();
+    let center_xy = Xy {
+        x: (min_x + max_x) * 0.5,
+        y: (min_y + max_y) * 0.5,
+    };
+    let width = VISUAL_WIDTH + max_x - min_x;
+    let height = VISUAL_HEIGHT + max_y - min_y;
+
     entity
-        .add_component(Collider::from_rect(namui::Rect::Xywh {
-            x: -0.5.tile(),
-            y: -0.5.tile(),
-            width: 1.tile(),
-            height: 1.tile(),
-        }))
-        .add_component(Positioner::new_with_xy(xy))
+        .add_component(Positioner::new_with_xy(center_xy))
         .add_component(Renderer::new(
             0,
             Rect::Xywh {
-                x: VISUAL_OFFSET_X,
-                y: VISUAL_OFFSET_Y,
-                width: VISUAL_WIDTH,
-                height: VISUAL_HEIGHT,
+                x: width * -0.5,
+                y: height * -0.5,
+                width,
+                height,
             },
-            |entity, _game_context, rendering_context| {
+            move |entity, _game_context, rendering_context| {
                 let positioner = entity.get_component::<&Positioner>().unwrap();
-                let position = positioner.xy();
-                render([translate(
-                    rendering_context.px_per_tile * (position.x + VISUAL_OFFSET_X),
-                    rendering_context.px_per_tile * (position.y + VISUAL_OFFSET_Y),
-                    simple_rect(
-                        Wh {
-                            width: rendering_context.px_per_tile * VISUAL_WIDTH,
-                            height: rendering_context.px_per_tile * VISUAL_HEIGHT,
-                        },
-                        Color::TRANSPARENT,
-                        0.px(),
-                        Color::from_f01(1.0, 0.5, 0.5, 0.5),
-                    ),
-                )])
+                let main_position = positioner.xy();
+
+                render(
+                    positions
+                        .iter()
+                        .map(|position| position + main_position)
+                        .filter(|position| {
+                            rendering_context
+                                .screen_rect
+                                .intersect(Rect::from_xy_wh(
+                                    *position + Xy::new(VISUAL_OFFSET_X, VISUAL_OFFSET_Y),
+                                    Wh::new(VISUAL_WIDTH, VISUAL_HEIGHT),
+                                ))
+                                .is_some()
+                        })
+                        .map(|position| {
+                            translate(
+                                rendering_context.px_per_tile * (position.x + VISUAL_OFFSET_X),
+                                rendering_context.px_per_tile * (position.y + VISUAL_OFFSET_Y),
+                                simple_rect(
+                                    Wh {
+                                        width: rendering_context.px_per_tile * VISUAL_WIDTH,
+                                        height: rendering_context.px_per_tile * VISUAL_HEIGHT,
+                                    },
+                                    Color::TRANSPARENT,
+                                    0.px(),
+                                    Color::from_f01(0.3, 0.9, 0.3, 1.0),
+                                ),
+                            )
+                        }),
+                )
             },
         ))
 }

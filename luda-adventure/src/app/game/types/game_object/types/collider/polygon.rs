@@ -1,5 +1,5 @@
 use super::{CollisionInfo, Edge};
-use crate::app::game::Tile;
+use crate::app::game::{dot, Tile};
 use namui::prelude::*;
 
 /// Polygon should always be counterclockwise convex.
@@ -107,8 +107,4 @@ impl Polygon {
             })
             .collect()
     }
-}
-
-fn dot(lhs: &Xy<Tile>, rhs: &Xy<Tile>) -> Tile {
-    (lhs.x.as_f32() * rhs.x.as_f32() + lhs.y.as_f32() * rhs.y.as_f32()).into()
 }

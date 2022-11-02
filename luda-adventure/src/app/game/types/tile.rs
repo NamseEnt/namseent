@@ -1,4 +1,5 @@
 use float_cmp::{ApproxEq, F32Margin};
+use namui::Xy;
 use std::fmt::Display;
 
 namui::common_for_f32_type!(Tile, tile, TileExt);
@@ -32,3 +33,7 @@ impl Ord for Tile {
     }
 }
 impl Eq for Tile {}
+
+pub fn dot(lhs: &Xy<Tile>, rhs: &Xy<Tile>) -> Tile {
+    (lhs.x.as_f32() * rhs.x.as_f32() + lhs.y.as_f32() * rhs.y.as_f32()).into()
+}

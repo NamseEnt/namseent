@@ -3,9 +3,7 @@ use namui::prelude::*;
 use wasm_bindgen_test::wasm_bindgen_test;
 
 use crate::{
-    app::game::{
-        new_player, new_wall, Game, Movement, Mover, PlayerCharacter, Positioner, Tile, TileExt,
-    },
+    app::game::{new_player, Game, Movement, Mover, PlayerCharacter, Positioner, Tile, TileExt},
     ecs,
 };
 
@@ -44,14 +42,8 @@ fn add_character(ecs_app: &mut ecs::App) {
 
 /// Horizontal wall at y = 12
 /// Character will stop at y = 10, 1 sec
-fn add_wall(ecs_app: &mut ecs::App) {
-    let walls = (0..5).map(|x| {
-        new_wall(Xy {
-            x: x.tile(),
-            y: 12.tile(),
-        })
-    });
-    ecs_app.add_entities(walls);
+fn add_wall(_ecs_app: &mut ecs::App) {
+    todo!()
 }
 
 fn get_character_x(ecs_app: &ecs::App) -> Tile {
