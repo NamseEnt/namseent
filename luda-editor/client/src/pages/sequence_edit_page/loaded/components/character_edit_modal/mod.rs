@@ -13,6 +13,7 @@ pub struct CharacterEditModal {
     context_menu: Option<context_menu::ContextMenu>,
     editing_text_mode: Option<EditingTextMode>,
     text_input: TextInput,
+    global_xy: Xy<Px>,
 }
 
 pub struct Props<'a> {
@@ -53,7 +54,11 @@ enum EditingTextMode {
 }
 
 impl CharacterEditModal {
-    pub fn new(cut_id: namui::Uuid, character_id: Option<Uuid>) -> CharacterEditModal {
+    pub fn new(
+        cut_id: namui::Uuid,
+        character_id: Option<Uuid>,
+        global_xy: Xy<Px>,
+    ) -> CharacterEditModal {
         CharacterEditModal {
             cut_id,
             character_list_view: list_view::ListView::new(),
@@ -61,6 +66,7 @@ impl CharacterEditModal {
             context_menu: None,
             editing_text_mode: None,
             text_input: TextInput::new(),
+            global_xy,
         }
     }
 }
