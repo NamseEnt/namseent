@@ -63,6 +63,7 @@ enum Event {
     StartPreviewFromHere {
         cut_id: Uuid,
     },
+    DownloadButtonClicked,
 }
 
 #[derive(Clone, Copy)]
