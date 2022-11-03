@@ -23,17 +23,6 @@ impl ImageEditModal {
                         table::ratio(1, |wh| {
                             self.label_text_input.render(text_input::Props {
                                 rect: Rect::from_xy_wh(Xy::zero(), wh),
-                                rect_style: RectStyle {
-                                    stroke: Some(RectStroke {
-                                        color: Color::WHITE,
-                                        width: 1.px(),
-                                        border_position: BorderPosition::Inside,
-                                    }),
-                                    fill: Some(RectFill {
-                                        color: Color::BLACK,
-                                    }),
-                                    round: None,
-                                },
                                 text: self.label_text.clone(),
                                 text_align: TextAlign::Left,
                                 text_baseline: TextBaseline::Middle,
@@ -43,8 +32,22 @@ impl ImageEditModal {
                                     language: Language::Ko,
                                     font_weight: FontWeight::REGULAR,
                                 },
-                                text_style: TextStyle {
-                                    color: Color::WHITE,
+                                style: text_input::Style {
+                                    rect: RectStyle {
+                                        stroke: Some(RectStroke {
+                                            color: Color::WHITE,
+                                            width: 1.px(),
+                                            border_position: BorderPosition::Inside,
+                                        }),
+                                        fill: Some(RectFill {
+                                            color: Color::BLACK,
+                                        }),
+                                        ..Default::default()
+                                    },
+                                    text: TextStyle {
+                                        color: Color::WHITE,
+                                        ..Default::default()
+                                    },
                                     ..Default::default()
                                 },
                                 event_handler: Some(text_input::EventHandler::new().on_key_down(

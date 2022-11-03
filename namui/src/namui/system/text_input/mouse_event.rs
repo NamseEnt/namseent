@@ -143,7 +143,7 @@ fn get_selection_on_mouse_movement(
         .chain(std::iter::once_with(|| get_fallback_fonts(font.size)).flatten())
         .collect::<Vec<_>>();
 
-    let paint = get_text_paint(props.text_style.color).build();
+    let paint = get_text_paint(props.style.text.color).build();
 
     let line_texts = LineTexts::new(&props.text, &fonts, &paint, Some(props.rect.width()));
 

@@ -75,15 +75,6 @@ impl CharacterEditModal {
                                         true => self.text_input.render(text_input::Props {
                                             text: editing_text.unwrap().clone(),
                                             rect: Rect::from_xy_wh(Xy::zero(), wh),
-                                            rect_style: RectStyle {
-                                                stroke: Some(RectStroke {
-                                                    color: stroke_color,
-                                                    width: 1.px(),
-                                                    border_position: BorderPosition::Inside,
-                                                }),
-                                                fill: Some(RectFill { color: fill_color }),
-                                                round: None,
-                                            },
                                             text_align: TextAlign::Left,
                                             text_baseline: TextBaseline::Middle,
                                             font_type: FontType {
@@ -92,8 +83,20 @@ impl CharacterEditModal {
                                                 language: Language::Ko,
                                                 font_weight: FontWeight::MEDIUM,
                                             },
-                                            text_style: TextStyle {
-                                                color: stroke_color,
+                                            style: text_input::Style {
+                                                rect: RectStyle {
+                                                    stroke: Some(RectStroke {
+                                                        color: stroke_color,
+                                                        width: 1.px(),
+                                                        border_position: BorderPosition::Inside,
+                                                    }),
+                                                    fill: Some(RectFill { color: fill_color }),
+                                                    ..Default::default()
+                                                },
+                                                text: TextStyle {
+                                                    color: stroke_color,
+                                                    ..Default::default()
+                                                },
                                                 ..Default::default()
                                             },
                                             event_handler: None,
