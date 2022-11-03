@@ -34,6 +34,10 @@ impl ImageSelectModal {
                 &InternalEvent::Done { image_id } => {
                     (self.on_done)(image_id);
                 }
+                InternalEvent::EditScreenPressed => todo!(),
+                &InternalEvent::SelectScreenImageIndex { index } => {
+                    self.selected_screen_image_index = Some(index);
+                }
             }
         } else if let Some(event) = event.downcast_ref::<context_menu::Event>() {
             match event {

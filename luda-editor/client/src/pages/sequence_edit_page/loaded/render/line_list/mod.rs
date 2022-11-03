@@ -1,5 +1,4 @@
 mod character_cell;
-mod screen_editor;
 
 use super::*;
 use namui_prebuilt::{button::text_button, *};
@@ -106,7 +105,20 @@ impl LoadedSequenceEditorPage {
                             }),
                             table::calculative(
                                 |wh| wh.height * 3,
-                                |wh| self.screen_editor(wh, cut),
+                                |wh| {
+                                    screen_image_list::render(screen_image_list::Props {
+                                        wh,
+                                        cut,
+                                        project_id: self.project_id(),
+                                        selected_index: None,
+                                        on_click: move |index| {
+                                            namui::event::send(Event::ScreenEditorCellClicked {
+                                                index,
+                                                cut_id,
+                                            });
+                                        },
+                                    })
+                                },
                             ),
                         ])(wh)
                     }

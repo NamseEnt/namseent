@@ -33,6 +33,8 @@ impl LoadedSequenceEditorPage {
                 &Event::ScreenEditorCellClicked { index, cut_id } => {
                     self.image_select_modal = Some(image_select_modal::ImageSelectModal::new(
                         self.project_id(),
+                        cut_id,
+                        index,
                         move |image_id| {
                             namui::event::send(Event::ScreenEditorConfirmClicked {
                                 index,

@@ -10,6 +10,7 @@ use std::collections::{BTreeSet, VecDeque};
 
 pub struct ImageSelectModal {
     project_id: Uuid,
+    pub cut_id: Uuid,
     context_menu: Option<context_menu::ContextMenu>,
     label_scroll_view: scroll_view::ScrollView,
     image_list_scroll_view: scroll_view::ScrollView,
@@ -18,11 +19,13 @@ pub struct ImageSelectModal {
     selected_labels: BTreeSet<Label>,
     selected_image: Option<ImageWithLabels>,
     on_done: Box<dyn Fn(Option<Uuid>)>,
+    selected_screen_image_index: Option<usize>,
 }
 
 pub struct Props<'a> {
     pub wh: Wh<Px>,
     pub recent_selected_image_ids: &'a VecDeque<Uuid>,
+    pub cut: &'a Cut,
 }
 
 pub enum Event {
@@ -41,12 +44,22 @@ enum InternalEvent {
     Done {
         image_id: Option<Uuid>,
     },
+    EditScreenPressed,
+    SelectScreenImageIndex {
+        index: usize,
+    },
 }
 
 impl ImageSelectModal {
-    pub fn new(project_id: Uuid, on_done: impl Fn(Option<Uuid>) + 'static) -> ImageSelectModal {
+    pub fn new(
+        project_id: Uuid,
+        cut_id: Uuid,
+        selected_screen_image_index: usize,
+        on_done: impl Fn(Option<Uuid>) + 'static,
+    ) -> ImageSelectModal {
         let modal = ImageSelectModal {
             project_id,
+            cut_id,
             context_menu: None,
             label_scroll_view: scroll_view::ScrollView::new(),
             image_list_scroll_view: scroll_view::ScrollView::new(),
@@ -55,6 +68,7 @@ impl ImageSelectModal {
             selected_labels: BTreeSet::new(),
             selected_image: None,
             on_done: Box::new(on_done),
+            selected_screen_image_index: Some(selected_screen_image_index),
         };
         modal.request_reload_images();
         modal

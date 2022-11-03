@@ -6,3 +6,4 @@
 pub mod character_edit_modal;
 pub mod image_edit_modal;
 pub mod image_select_modal;
+pub mod screen_image_list;
