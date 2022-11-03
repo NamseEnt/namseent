@@ -123,6 +123,21 @@ pub fn is_focused(text_input_id: crate::Uuid) -> bool {
         .map(|text_input| text_input.id == (text_input_id))
         .unwrap_or(false)
 }
+pub fn focused_text_input_id() -> Option<Uuid> {
+    TEXT_INPUT_SYSTEM
+        .last_focused_text_input
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|text_input| text_input.id)
+}
+pub fn last_focus_requested_text_input_id() -> Option<Uuid> {
+    TEXT_INPUT_SYSTEM
+        .focus_requested_text_input_id
+        .lock()
+        .unwrap()
+        .clone()
+}
 fn get_text_input_xy(rendering_tree: &RenderingTree, id: crate::Uuid) -> Option<Xy<Px>> {
     let mut return_value = None;
 
