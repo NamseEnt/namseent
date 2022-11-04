@@ -1,15 +1,33 @@
 // pub mod cropper;
+pub mod mover;
 pub mod resizer;
 
 use super::*;
 use crate::storage::get_project_image_url;
 use namui_prebuilt::*;
+use rpc::data::Circumscribed;
 
 impl WysiwygEditor {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
         render([
-            simple_rect(props.wh, Color::WHITE, 1.px(), Color::TRANSPARENT),
-            self.render_image_clip(&props),
+            simple_rect(props.wh, Color::WHITE, 1.px(), Color::TRANSPARENT).attach_event(
+                |builder| {
+                    builder
+                        .on_mouse_move_in(|event| {
+                            namui::event::send(InternalEvent::MouseMoveContainer {
+                                global_xy: event.global_xy,
+                            });
+                        })
+                        .on_mouse_down_in(|_event| {
+                            namui::event::send(InternalEvent::MouseDownContainer);
+                        });
+                },
+            ),
+            clip(
+                PathBuilder::new().add_rect(Rect::from_xy_wh(Xy::zero(), props.wh)),
+                ClipOp::Intersect,
+                self.render_image_clip(&props),
+            ),
         ])
     }
     fn render_image_clip(&self, props: &Props) -> RenderingTree {
@@ -28,31 +46,54 @@ impl WysiwygEditor {
                         let screen_radius = props.wh.length() / 2;
                         let image_radius_px = image_size.length() / 2;
                         let radius_px = screen_radius * image.circumscribed.radius;
-                        let mut image_size_on_screen = image_size * (radius_px / image_radius_px);
-                        let image_size_before_resize = image_size_on_screen;
+                        let image_size_on_screen = image_size * (radius_px / image_radius_px);
 
                         let center_xy = props.wh.as_xy() * image.circumscribed.center_xy;
 
-                        if let Some(Dragging::Resizer { context }) = self.dragging.as_ref() {
-                            if is_editing_image {
-                                let circumscribed =
-                                    context.resize(center_xy, image_size_before_resize, props.wh);
-                                let radius_px = screen_radius * circumscribed.radius;
-                                image_size_on_screen = image_size * (radius_px / image_radius_px);
+                        let image_rendering_rect = {
+                            match (is_editing_image, self.dragging.as_ref()) {
+                                (true, Some(dragging)) => match dragging {
+                                    Dragging::Resizer { context } => {
+                                        let circumscribed = context.resize(
+                                            center_xy,
+                                            image_size_on_screen,
+                                            props.wh,
+                                        );
+                                        calculate_image_rect_on_screen(
+                                            image_size,
+                                            props.wh,
+                                            circumscribed,
+                                        )
+                                    }
+                                    Dragging::Cropper => todo!(),
+
+                                    Dragging::Mover { context } => {
+                                        let circumscribed =
+                                            context.move_circumscribed(image.circumscribed);
+
+                                        calculate_image_rect_on_screen(
+                                            image_size,
+                                            props.wh,
+                                            circumscribed,
+                                        )
+                                    }
+                                },
+                                _ => {
+                                    let image_left_top_xy =
+                                        center_xy - image_size_on_screen.as_xy() / 2.0;
+
+                                    Rect::from_xy_wh(image_left_top_xy, image_size_on_screen)
+                                }
                             }
-                        }
-
-                        let image_left_top_xy = center_xy - image_size_on_screen.as_xy() / 2.0;
-
-                        let image_dest_rect =
-                            Rect::from_xy_wh(image_left_top_xy, image_size_on_screen);
+                        };
 
                         let wysiwyg_tool = if is_editing_image {
                             self.render_wysiwyg_tool(
                                 props,
-                                image_dest_rect,
-                                image_size_before_resize,
+                                image_rendering_rect,
+                                image_size,
                                 image_index,
+                                image,
                             )
                         } else {
                             RenderingTree::Empty
@@ -60,7 +101,7 @@ impl WysiwygEditor {
 
                         Some(render([
                             namui::image(ImageParam {
-                                rect: image_dest_rect,
+                                rect: image_rendering_rect,
                                 source: namui::ImageSource::Image(namui_image),
                                 style: ImageStyle {
                                     fit: ImageFit::Fill,
@@ -68,7 +109,8 @@ impl WysiwygEditor {
                                 },
                             })
                             .attach_event(move |builder| {
-                                builder.on_mouse_down_in(move |_event| {
+                                builder.on_mouse_down_in(move |event| {
+                                    event.stop_propagation();
                                     namui::event::send(InternalEvent::SelectImage {
                                         index: image_index,
                                     });
@@ -84,10 +126,12 @@ impl WysiwygEditor {
         &self,
         props: &Props,
         image_dest_rect: Rect<Px>,
-        image_size: Wh<Px>,
+        original_image_size: Wh<Px>,
         image_index: usize,
+        image: &ScreenImage,
     ) -> RenderingTree {
         render([
+            self.render_border_with_move_handling(image_dest_rect, props.wh),
             resizer::render_resizer(resizer::Props {
                 rect: image_dest_rect,
                 dragging_context: if let Some(Dragging::Resizer { context }) =
@@ -106,9 +150,39 @@ impl WysiwygEditor {
                     })
                 },
                 container_size: props.wh,
-                image_size,
+                image_size: calculate_image_wh_on_screen(
+                    original_image_size,
+                    props.wh,
+                    image.circumscribed,
+                ),
             }),
             // self.render_cropper(props),
         ])
     }
+}
+
+fn calculate_image_wh_on_screen(
+    original_image_size: Wh<Px>,
+    container_wh: Wh<Px>,
+    circumscribed: Circumscribed<Percent>,
+) -> Wh<Px> {
+    let screen_radius = container_wh.length() / 2;
+    let image_radius_px = original_image_size.length() / 2;
+    let radius_px = screen_radius * circumscribed.radius;
+
+    let wh = original_image_size * (radius_px / image_radius_px);
+    wh
+}
+
+fn calculate_image_rect_on_screen(
+    original_image_size: Wh<Px>,
+    container_wh: Wh<Px>,
+    circumscribed: Circumscribed<Percent>,
+) -> Rect<Px> {
+    let wh = calculate_image_wh_on_screen(original_image_size, container_wh, circumscribed);
+    let center_xy = container_wh.as_xy() * circumscribed.center_xy;
+
+    let xy = center_xy - wh.as_xy() / 2.0;
+
+    Rect::from_xy_wh(xy, wh)
 }

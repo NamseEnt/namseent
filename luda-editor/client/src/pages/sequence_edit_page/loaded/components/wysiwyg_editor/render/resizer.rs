@@ -18,34 +18,14 @@ pub struct ResizerDraggingContext {
 }
 
 pub enum Event {
+    StartDraggingContext(ResizerDraggingContext),
     UpdateDraggingContext(Option<ResizerDraggingContext>),
 }
-
-// HandleMouseDownEvent {
-//     handle: ResizerHandle,
-//     center_xy: Xy<Px>,
-//     mouse_xy: Xy<Px>,
-//     container_size: Wh<Px>,
-//     image_size_ratio: Wh<Px>,
-// },
 
 pub fn render_resizer<OnResize: Fn(Circumscribed<Percent>) + 'static>(
     props: Props<OnResize>,
 ) -> RenderingTree {
-    render([
-        rect(RectParam {
-            rect: props.rect,
-            style: RectStyle {
-                stroke: Some(RectStroke {
-                    color: Color::grayscale_f01(0.2),
-                    width: px(1.0),
-                    border_position: BorderPosition::Inside,
-                }),
-                ..Default::default()
-            },
-        }),
-        render_resize_handles(props),
-    ])
+    render([render_resize_handles(props)])
 }
 
 fn render_resize_handles<OnResize: Fn(Circumscribed<Percent>) + 'static>(
@@ -118,13 +98,15 @@ fn render_resize_handles<OnResize: Fn(Circumscribed<Percent>) + 'static>(
                     }
                     None => {
                         builder.on_mouse_down_in(move |mouse_event| {
-                            namui::event::send(Event::UpdateDraggingContext(Some(
+                            namui::log!("mouse down in");
+                            mouse_event.stop_propagation();
+                            namui::event::send(Event::StartDraggingContext(
                                 ResizerDraggingContext {
                                     handle,
                                     start_global_xy: mouse_event.global_xy,
                                     end_global_xy: mouse_event.global_xy,
                                 },
-                            )))
+                            ))
                         });
                     }
                 })

@@ -20,7 +20,9 @@ enum Dragging {
         context: render::resizer::ResizerDraggingContext,
     },
     Cropper,
-    Mover,
+    Mover {
+        context: render::mover::MoverDraggingContext,
+    },
 }
 
 enum InternalEvent {
@@ -31,6 +33,15 @@ enum InternalEvent {
         index: usize,
         circumscribed: rpc::data::Circumscribed<Percent>,
     },
+    ImageMoveStart {
+        start_global_xy: Xy<Px>,
+        end_global_xy: Xy<Px>,
+        container_wh: Wh<Px>,
+    },
+    MouseMoveContainer {
+        global_xy: Xy<Px>,
+    },
+    MouseDownContainer,
 }
 
 impl WysiwygEditor {

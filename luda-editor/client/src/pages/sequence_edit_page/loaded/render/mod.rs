@@ -62,7 +62,12 @@ impl LoadedSequenceEditorPage {
                 }
                 None => RenderingTree::Empty,
             },
-        ]);
+        ])
+        .attach_event(|builder| {
+            builder.on_mouse_down_in(|event| {
+                event.stop_propagation();
+            });
+        });
 
         render([
             table::vertical([
