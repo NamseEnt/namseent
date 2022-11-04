@@ -27,6 +27,7 @@ pub struct LoadedSequenceEditorPage {
     context_menu: Option<context_menu::ContextMenu>,
     patch_stack: Vec<rpc::json_patch::RevertablePatch>,
     undo_stack: Vec<rpc::json_patch::RevertablePatch>,
+    cut_clipboard: Option<Cut>,
 }
 
 enum Event {
@@ -65,6 +66,18 @@ enum Event {
         cut_id: Uuid,
     },
     DownloadButtonClicked,
+    CutTheCut {
+        cut_id: Uuid,
+    },
+    CopyTheCut {
+        cut_id: Uuid,
+    },
+    PasteCutUp {
+        cut_id: Uuid,
+    },
+    PasteCutDown {
+        cut_id: Uuid,
+    },
 }
 
 #[derive(Clone, Copy)]
@@ -101,6 +114,7 @@ impl LoadedSequenceEditorPage {
             context_menu: None,
             patch_stack: Vec::new(),
             undo_stack: Vec::new(),
+            cut_clipboard: None,
         }
     }
     fn project_id(&self) -> Uuid {
