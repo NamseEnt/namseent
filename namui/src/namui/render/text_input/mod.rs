@@ -92,7 +92,6 @@ pub struct TextInputCustomData {
 pub enum Event {
     Focus {
         id: crate::Uuid,
-        selection: Selection,
     },
     Blur {
         id: crate::Uuid,
