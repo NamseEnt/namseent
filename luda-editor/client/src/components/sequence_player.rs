@@ -252,18 +252,22 @@ impl SequencePlayer {
         ])(wh)
     }
     fn get_image_urls(&self, cut: &Cut) -> Vec<Url> {
-        cut.screen_image_ids
-            .into_iter()
-            .filter_map(|image_id| image_id)
-            .map(|image_id| get_project_image_url(self.project_shared_data.id(), image_id).unwrap())
+        cut.screen_images
+            .iter()
+            .filter_map(|screen_image| screen_image.as_ref())
+            .map(|screen_image| {
+                get_project_image_url(self.project_shared_data.id(), screen_image.id).unwrap()
+            })
             .collect::<Vec<_>>()
     }
     fn render_images(&self, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
         let image_urls = cut
-            .screen_image_ids
-            .into_iter()
-            .filter_map(|image_id| image_id)
-            .map(|image_id| get_project_image_url(self.project_shared_data.id(), image_id).unwrap())
+            .screen_images
+            .iter()
+            .filter_map(|screen_image| screen_image.as_ref())
+            .map(|screen_image| {
+                get_project_image_url(self.project_shared_data.id(), screen_image.id).unwrap()
+            })
             .collect::<Vec<_>>();
 
         let image_count = image_urls.len();
@@ -366,7 +370,7 @@ impl SequencePlayer {
     }
 }
 
-fn get_inner_content_rect(wh: Wh<Px>) -> Rect<Px> {
+pub fn get_inner_content_rect(wh: Wh<Px>) -> Rect<Px> {
     let width_per_height = 4.0 / 3.0;
 
     let ratio = wh.width / wh.height;

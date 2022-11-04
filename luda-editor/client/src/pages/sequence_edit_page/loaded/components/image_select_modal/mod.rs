@@ -1,7 +1,7 @@
 mod render;
 mod update;
 
-use super::image_edit_modal;
+use super::{image_edit_modal, screen_editor};
 use crate::components::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
@@ -23,6 +23,7 @@ pub struct ImageSelectModal {
     selected_image: Option<ImageWithLabels>,
     on_update_image: Arc<dyn Fn(Update)>,
     selected_screen_image_index: Option<usize>,
+    screen_editor: Option<screen_editor::ScreenEditor>,
 }
 
 pub struct Props<'a> {
@@ -44,7 +45,9 @@ enum InternalEvent {
         image: ImageWithLabels,
         update_labels: bool,
     },
-    EditScreenPressed,
+    EditScreenPressed {
+        screen_images: Vec<ScreenImage>,
+    },
     SelectScreenImageIndex {
         index: usize,
     },
@@ -75,6 +78,7 @@ impl ImageSelectModal {
             selected_image: None,
             on_update_image: Arc::new(on_update_image),
             selected_screen_image_index: Some(selected_screen_image_index),
+            screen_editor: None,
         };
         modal.request_reload_images();
         modal

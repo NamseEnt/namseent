@@ -49,7 +49,13 @@ impl LoadedSequenceEditorPage {
                     image_index,
                     image_id,
                 } => {
-                    self.update_cut(cut_id, |cut| cut.screen_image_ids[image_index] = image_id);
+                    self.update_cut(cut_id, |cut| {
+                        cut.screen_images[image_index] = image_id.map(|image_id| ScreenImage {
+                            id: image_id,
+                            center_percent_xy: Xy::new(50.percent(), 50.percent()),
+                            radius_percent: 50.percent(),
+                        })
+                    });
                     if let Some(image_id) = image_id {
                         self.recent_selected_image_ids.retain(|id| id.ne(&image_id));
                         self.recent_selected_image_ids.push_front(image_id);

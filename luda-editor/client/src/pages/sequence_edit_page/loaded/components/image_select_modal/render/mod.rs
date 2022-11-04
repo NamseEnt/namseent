@@ -12,6 +12,16 @@ impl ImageSelectModal {
         if let Some(image_edit_modal) = &self.image_edit_modal {
             return image_edit_modal.render(image_edit_modal::Props { wh: props.wh });
         }
+        if let Some(screen_editor) = &self.screen_editor {
+            return screen_editor.render(screen_editor::Props { wh: props.wh });
+        }
+
+        let screen_images: Vec<_> = props
+            .cut
+            .screen_images
+            .iter()
+            .filter_map(|screen_image| screen_image.clone())
+            .collect();
 
         on_top(
             render([
@@ -60,8 +70,10 @@ impl ImageSelectModal {
                                     1.px(),
                                     Color::BLACK,
                                     TextAlign::Center,
-                                    || {
-                                        namui::event::send(InternalEvent::EditScreenPressed);
+                                    move || {
+                                        namui::event::send(InternalEvent::EditScreenPressed {
+                                            screen_images: screen_images.clone(),
+                                        });
                                     },
                                 )
                             }),

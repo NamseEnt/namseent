@@ -14,11 +14,12 @@ pub struct Props<'a, OnClick: Fn(usize) + 'static + Copy> {
 pub fn render<'a, OnClick: Fn(usize) + 'static + Copy>(props: Props<'a, OnClick>) -> RenderingTree {
     namui::render([
         simple_rect(props.wh, Color::WHITE, 1.px(), Color::BLACK),
-        table::horizontal(props.cut.screen_image_ids.iter().enumerate().map(
-            |(index, image_id)| {
+        table::horizontal(props.cut.screen_images.iter().enumerate().map(
+            |(index, screen_image)| {
                 table::ratio(1.0, move |wh| {
-                    let image_source = image_id
-                        .map(|image_id| get_project_image_url(props.project_id, image_id).unwrap());
+                    let image_source = screen_image.as_ref().map(|screen_image| {
+                        get_project_image_url(props.project_id, screen_image.id).unwrap()
+                    });
 
                     let border_color = match props.selected_index {
                         Some(selected_index) => {
