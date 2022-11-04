@@ -31,9 +31,6 @@ impl ImageSelectModal {
                         self.selected_labels = image.labels.clone().into_iter().collect();
                     }
                 }
-                &InternalEvent::Done { image_id } => {
-                    (self.on_done)(image_id);
-                }
                 InternalEvent::EditScreenPressed => todo!(),
                 &InternalEvent::SelectScreenImageIndex { index } => {
                     self.selected_screen_image_index = Some(index);

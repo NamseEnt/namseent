@@ -6,12 +6,19 @@ pub struct Props {
 }
 
 impl ImageSelectModal {
-    pub fn render_image_preview(&self, props: Props) -> namui::RenderingTree {
+    pub fn render_image_preview(
+        &self,
+        props: Props,
+        selected_screen_image_index: usize,
+    ) -> namui::RenderingTree {
         let title = translate(
             12.px(),
             12.px(),
             typography::title::left_top("Preview", Color::WHITE),
         );
+
+        let on_update_image = self.on_update_image.clone();
+        let cut_id = self.cut_id;
 
         render([
             simple_rect(props.wh, Color::WHITE, 1.px(), Color::BLACK),
@@ -77,27 +84,19 @@ impl ImageSelectModal {
                             table::FitAlign::CenterMiddle,
                             button::text_button_fit(
                                 button_height,
-                                "Cancel",
-                                Color::WHITE,
-                                Color::WHITE,
-                                2.px(),
-                                Color::BLACK,
-                                padding,
-                                || namui::event::send(Event::Close),
-                            )
-                            .padding(12.px()),
-                        ),
-                        table::fit(
-                            table::FitAlign::CenterMiddle,
-                            button::text_button_fit(
-                                button_height,
-                                "Confirm",
+                                "Set",
                                 Color::BLACK,
                                 Color::BLACK,
                                 2.px(),
                                 Color::WHITE,
                                 padding,
-                                move || namui::event::send(InternalEvent::Done { image_id }),
+                                move || {
+                                    on_update_image(Update {
+                                        cut_id,
+                                        image_index: selected_screen_image_index,
+                                        image_id,
+                                    })
+                                },
                             )
                             .padding(12.px()),
                         ),

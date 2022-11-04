@@ -41,9 +41,9 @@ enum Event {
         index: usize,
         cut_id: Uuid,
     },
-    ScreenEditorConfirmClicked {
-        index: usize,
+    ImageUpdated {
         cut_id: Uuid,
+        image_index: usize,
         image_id: Option<Uuid>,
     },
     UpdateRecentSelectedImageIds {

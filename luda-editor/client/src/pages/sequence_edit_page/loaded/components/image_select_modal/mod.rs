@@ -6,7 +6,10 @@ use crate::components::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::*;
-use std::collections::{BTreeSet, VecDeque};
+use std::{
+    collections::{BTreeSet, VecDeque},
+    sync::Arc,
+};
 
 pub struct ImageSelectModal {
     project_id: Uuid,
@@ -18,7 +21,7 @@ pub struct ImageSelectModal {
     images: Vec<ImageWithLabels>,
     selected_labels: BTreeSet<Label>,
     selected_image: Option<ImageWithLabels>,
-    on_done: Box<dyn Fn(Option<Uuid>)>,
+    on_update_image: Arc<dyn Fn(Update)>,
     selected_screen_image_index: Option<usize>,
 }
 
@@ -41,13 +44,16 @@ enum InternalEvent {
         image: ImageWithLabels,
         update_labels: bool,
     },
-    Done {
-        image_id: Option<Uuid>,
-    },
     EditScreenPressed,
     SelectScreenImageIndex {
         index: usize,
     },
+}
+
+pub struct Update {
+    pub cut_id: Uuid,
+    pub image_index: usize,
+    pub image_id: Option<Uuid>,
 }
 
 impl ImageSelectModal {
@@ -55,7 +61,7 @@ impl ImageSelectModal {
         project_id: Uuid,
         cut_id: Uuid,
         selected_screen_image_index: usize,
-        on_done: impl Fn(Option<Uuid>) + 'static,
+        on_update_image: impl Fn(Update) + 'static,
     ) -> ImageSelectModal {
         let modal = ImageSelectModal {
             project_id,
@@ -67,7 +73,7 @@ impl ImageSelectModal {
             images: vec![],
             selected_labels: BTreeSet::new(),
             selected_image: None,
-            on_done: Box::new(on_done),
+            on_update_image: Arc::new(on_update_image),
             selected_screen_image_index: Some(selected_screen_image_index),
         };
         modal.request_reload_images();
