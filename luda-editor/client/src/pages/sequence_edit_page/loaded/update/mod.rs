@@ -10,7 +10,7 @@ impl LoadedSequenceEditorPage {
         if let Some(event) = event.downcast_ref::<Event>() {
             match event {
                 Event::AddCutClicked => {
-                    self.push_back_new_cut();
+                    self.push_back_cut(Cut::new(uuid()));
                 }
                 Event::Error(error) => {
                     todo!("error: {error}")
@@ -113,7 +113,29 @@ impl LoadedSequenceEditorPage {
                             context_menu::Item::new("Start preview from here", {
                                 move || namui::event::send(Event::StartPreviewFromHere { cut_id })
                             }),
-                        ],
+                            context_menu::Item::new("Cut", {
+                                move || namui::event::send(Event::CutTheCut { cut_id })
+                            }),
+                            context_menu::Item::new("Copy", {
+                                move || namui::event::send(Event::CopyTheCut { cut_id })
+                            }),
+                        ]
+                        .into_iter()
+                        .chain(
+                            if self.cut_clipboard.is_some() {
+                                vec![
+                                    context_menu::Item::new("Paste Cut Up", {
+                                        move || namui::event::send(Event::PasteCutUp { cut_id })
+                                    }),
+                                    context_menu::Item::new("Paste Cut Down", {
+                                        move || namui::event::send(Event::PasteCutDown { cut_id })
+                                    }),
+                                ]
+                            } else {
+                                vec![]
+                            }
+                            .into_iter(),
+                        ),
                     ))
                 }
                 &Event::DeleteCut { cut_id } => {
@@ -172,6 +194,47 @@ impl LoadedSequenceEditorPage {
                         .await
                         .unwrap();
                     });
+                }
+                &Event::CutTheCut { cut_id } => {
+                    let clip_index = self.sequence.cuts.iter().position(|cut| cut.id() == cut_id);
+                    if let Some(clip_index) = clip_index {
+                        let clip = self.sequence.cuts[clip_index].clone();
+                        self.update_sequence(|sequence| {
+                            sequence.cuts.remove(clip_index);
+                        });
+                        self.cut_clipboard = Some(clip);
+                    }
+                }
+                &Event::CopyTheCut { cut_id } => {
+                    let clip_index = self.sequence.cuts.iter().position(|cut| cut.id() == cut_id);
+                    if let Some(clip_index) = clip_index {
+                        let clip = self.sequence.cuts[clip_index].clone();
+                        self.cut_clipboard = Some(clip);
+                    }
+                }
+                &Event::PasteCutUp { cut_id } => {
+                    if let Some(cut_clipboard) = self.cut_clipboard.as_ref() {
+                        let clip_index =
+                            self.sequence.cuts.iter().position(|cut| cut.id() == cut_id);
+                        if let Some(clip_index) = clip_index {
+                            let index_to_insert = clip_index;
+
+                            let new_cut = cut_clipboard.duplicate(uuid());
+                            self.insert_cut(index_to_insert, new_cut)
+                        }
+                    }
+                }
+                &Event::PasteCutDown { cut_id } => {
+                    if let Some(cut_clipboard) = self.cut_clipboard.as_ref() {
+                        let clip_index =
+                            self.sequence.cuts.iter().position(|cut| cut.id() == cut_id);
+                        if let Some(clip_index) = clip_index {
+                            let index_to_insert = clip_index + 1;
+
+                            let new_cut = cut_clipboard.duplicate(uuid());
+                            self.insert_cut(index_to_insert, new_cut)
+                        }
+                    }
                 }
             }
         } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
@@ -328,7 +391,7 @@ impl LoadedSequenceEditorPage {
                         .unwrap()
                         + 1;
 
-                    self.insert_new_cut(next_cut_index);
+                    self.insert_cut(next_cut_index, Cut::new(uuid()));
                 }
 
                 fn code_composites_on(
@@ -374,15 +437,14 @@ impl LoadedSequenceEditorPage {
             .iter()
             .any(|(_, text_input)| text_input.is_focused())
     }
-    fn push_back_new_cut(&mut self) {
-        self.insert_new_cut(self.sequence.cuts.len());
+    fn push_back_cut(&mut self, cut: Cut) {
+        self.insert_cut(self.sequence.cuts.len(), cut);
     }
-    fn insert_new_cut(&mut self, index: usize) {
-        let cut_id = uuid();
+    fn insert_cut(&mut self, index: usize, cut: Cut) {
+        let cut_id = cut.id();
 
         self.update_sequence(|sequence| {
-            let new_cut = Cut::new(cut_id);
-            sequence.cuts.insert(index, new_cut);
+            sequence.cuts.insert(index, cut);
         });
 
         let text_input = text_input::TextInput::new();
