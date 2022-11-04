@@ -2,11 +2,7 @@ use namui::prelude::*;
 use rpc::data::Circumscribed;
 use std::sync::Arc;
 
-/*
-    완료 되기 전까지는 preview 볼 수 있는 기능을 dargging context에 넣자.
-*/
-
-pub struct Props<OnResize: Fn(Circumscribed) + 'static> {
+pub struct Props<OnResize: Fn(Circumscribed<Percent>) + 'static> {
     pub rect: Rect<Px>,
     pub dragging_context: Option<ResizerDraggingContext>,
     pub on_resize: OnResize,
@@ -33,7 +29,7 @@ pub enum Event {
 //     image_size_ratio: Wh<Px>,
 // },
 
-pub fn render_resizer<OnResize: Fn(Circumscribed) + 'static>(
+pub fn render_resizer<OnResize: Fn(Circumscribed<Percent>) + 'static>(
     props: Props<OnResize>,
 ) -> RenderingTree {
     render([
@@ -52,7 +48,7 @@ pub fn render_resizer<OnResize: Fn(Circumscribed) + 'static>(
     ])
 }
 
-fn render_resize_handles<OnResize: Fn(Circumscribed) + 'static>(
+fn render_resize_handles<OnResize: Fn(Circumscribed<Percent>) + 'static>(
     props: Props<OnResize>,
 ) -> RenderingTree {
     const HANDLE_RADIUS: Px = px(5.0);
@@ -230,7 +226,7 @@ fn resize_by_center(
     diff_xy: Xy<Px>,
     container_size: Wh<Px>,
     image_size: Wh<Px>,
-) -> Circumscribed {
+) -> Circumscribed<Percent> {
     let handle_xy = handle.xy(Rect::from_xy_wh(
         center_xy - image_size.as_xy() / 2.0,
         image_size,
@@ -260,19 +256,19 @@ fn resize_by_center(
         | ResizerHandle::RightBottom
         | ResizerHandle::LeftBottom => projected_length,
         ResizerHandle::Top | ResizerHandle::Bottom => {
-            projected_length / image_size.height * image_size.length()
+            image_size.length() * (projected_length / image_size.height)
         }
         ResizerHandle::Right | ResizerHandle::Left => {
-            projected_length / image_size.width * image_size.length()
+            image_size.length() * (projected_length / image_size.width)
         }
     };
 
     Circumscribed {
-        center: Xy {
+        center_xy: Xy {
             x: (center_xy.x / container_size.width).into(),
             y: (center_xy.y / container_size.height).into(),
         },
-        radius: (radius / container_size.length()).into(),
+        radius: (radius / (container_size.length() / 2)).into(),
     }
 }
 
@@ -285,8 +281,8 @@ fn get_y_in_vector(xy1: Xy<Px>, xy2: Xy<Px>, x: Px) -> Option<Px> {
         let Xy { x: x1, y: y1 } = xy1;
         let Xy { x: x2, y: y2 } = xy2;
         let a = (y2 - y1) / (x2 - x1);
-        let b = y1 - a * x1;
-        Some(a * x + b)
+        let b = y1 - x1 * a;
+        Some(x * a + b)
     }
 }
 fn get_x_in_vector(xy1: Xy<Px>, xy2: Xy<Px>, y: Px) -> Option<Px> {
@@ -298,7 +294,7 @@ fn get_x_in_vector(xy1: Xy<Px>, xy2: Xy<Px>, y: Px) -> Option<Px> {
         let Xy { x: x1, y: y1 } = xy1;
         let Xy { x: x2, y: y2 } = xy2;
         let a = (y2 - y1) / (x2 - x1);
-        let b = y1 - a * x1;
+        let b = y1 - x1 * a;
         Some((y - b) / a)
     }
 }
@@ -308,7 +304,7 @@ impl ResizerDraggingContext {
         center_xy: Xy<Px>,
         image_size: Wh<Px>,
         container_size: Wh<Px>,
-    ) -> Circumscribed {
+    ) -> Circumscribed<Percent> {
         let delta_xy = self.end_global_xy - self.start_global_xy;
         resize_by_center(self.handle, center_xy, delta_xy, container_size, image_size)
     }

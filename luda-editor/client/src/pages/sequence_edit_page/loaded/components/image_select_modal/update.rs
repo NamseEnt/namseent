@@ -67,5 +67,8 @@ impl ImageSelectModal {
         self.image_edit_modal
             .as_mut()
             .map(|image_edit_modal| image_edit_modal.update(event));
+        self.screen_editor
+            .as_mut()
+            .map(|screen_editor| screen_editor.update(event));
     }
 }

@@ -2,6 +2,7 @@
 pub mod resizer;
 
 use super::*;
+use crate::storage::get_project_image_url;
 use namui_prebuilt::*;
 
 impl WysiwygEditor {
@@ -12,68 +13,79 @@ impl WysiwygEditor {
         ])
     }
     fn render_image_clip(&self, props: &Props) -> RenderingTree {
-        render(props.image_clip.images.iter().enumerate().map(|(layer_index, image)| {
-            let is_selected_layer = props.selected_layer_index == Some(layer_index);
+        render(
+            self.screen_images
+                .iter()
+                .enumerate()
+                .map(|(image_index, image)| {
+                    let is_editing_image = self.editing_image_index == Some(image_index);
 
-            namui::try_render(|| {
-                let url = namui::Url::parse(&format!("https://raw.githubusercontent.com/namseent/luda-editor-storage/master/resources/{}", image.image_path.as_ref()?)).unwrap();
-                let namui_image = namui::image::try_load(&url)?;
-                let image_size = namui_image.size();
-                
+                    namui::try_render(|| {
+                        let url = get_project_image_url(self.project_id, image.id).unwrap();
+                        let namui_image = namui::image::try_load_url(&url)?;
+                        let image_size = namui_image.size();
 
-                let mut image_size_on_screen = Wh::new(
-                    image_size.width * image.circumscribed.radius / 1920.px() * props.wh.width,
-                    image_size.height * image.circumscribed.radius / 1080.px() * props.wh.height,
-                );
+                        let screen_radius = props.wh.length() / 2;
+                        let image_radius_px = image_size.length() / 2;
+                        let radius_px = screen_radius * image.circumscribed.radius;
+                        let mut image_size_on_screen = image_size * (radius_px / image_radius_px);
+                        let image_size_before_resize = image_size_on_screen;
 
-                if let Some(Dragging::Resizer { context }) =
-                    self.dragging.as_ref()
-                {
-                    if is_selected_layer {
-                        let circumscribed = context.resize(image_size_on_screen, props.wh);
-                        image_size_on_screen = Wh::new(
-                            image_size.width * circumscribed.radius / 1920.px() * props.wh.width,
-                            image_size.height * circumscribed.radius / 1080.px() * props.wh.height,
-                        );
-                    }
-                }
+                        let center_xy = props.wh.as_xy() * image.circumscribed.center_xy;
 
-                let image_center_xy = Xy::new(
-                    props.wh.width * image.circumscribed.center.x,
-                    props.wh.height * image.circumscribed.center.y,
-                );
-                let image_left_top_xy = image_center_xy - image_size_on_screen.as_xy() / 2.0;
+                        if let Some(Dragging::Resizer { context }) = self.dragging.as_ref() {
+                            if is_editing_image {
+                                let circumscribed =
+                                    context.resize(center_xy, image_size_before_resize, props.wh);
+                                let radius_px = screen_radius * circumscribed.radius;
+                                image_size_on_screen = image_size * (radius_px / image_radius_px);
+                            }
+                        }
 
-                let image_dest_rect = Rect::from_xy_wh(image_left_top_xy, image_size_on_screen);
+                        let image_left_top_xy = center_xy - image_size_on_screen.as_xy() / 2.0;
 
-                let wysiwyg_tool = if is_selected_layer {
-                    self.render_wysiwyg_tool(props, image_dest_rect, image_size, layer_index)
-                } else {
-                    RenderingTree::Empty
-                };
+                        let image_dest_rect =
+                            Rect::from_xy_wh(image_left_top_xy, image_size_on_screen);
 
-                Some(
-                    render([
-                        namui::image(ImageParam {
-                            rect: image_dest_rect,
-                            source: namui::ImageSource::Image(namui_image),
-                            style: ImageStyle {
-                                fit: ImageFit::None,
-                                paint_builder: None,
-                            },
-                        }),
-                        wysiwyg_tool,
-                    ])
-                )
-            })
-        }))
+                        let wysiwyg_tool = if is_editing_image {
+                            self.render_wysiwyg_tool(
+                                props,
+                                image_dest_rect,
+                                image_size_before_resize,
+                                image_index,
+                            )
+                        } else {
+                            RenderingTree::Empty
+                        };
+
+                        Some(render([
+                            namui::image(ImageParam {
+                                rect: image_dest_rect,
+                                source: namui::ImageSource::Image(namui_image),
+                                style: ImageStyle {
+                                    fit: ImageFit::Fill,
+                                    paint_builder: None,
+                                },
+                            })
+                            .attach_event(move |builder| {
+                                builder.on_mouse_down_in(move |_event| {
+                                    namui::event::send(InternalEvent::SelectImage {
+                                        index: image_index,
+                                    });
+                                });
+                            }),
+                            wysiwyg_tool,
+                        ]))
+                    })
+                }),
+        )
     }
     fn render_wysiwyg_tool(
         &self,
         props: &Props,
         image_dest_rect: Rect<Px>,
         image_size: Wh<Px>,
-        layer_index: usize,
+        image_index: usize,
     ) -> RenderingTree {
         render([
             resizer::render_resizer(resizer::Props {
@@ -86,13 +98,11 @@ impl WysiwygEditor {
                     None
                 },
                 on_resize: {
-                    let image_clip_address = props.image_clip_address.clone();
                     Box::new(move |circumscribed| {
-                        namui::event::send(Event::Resize {
+                        namui::event::send(InternalEvent::ResizeImage {
+                            index: image_index,
                             circumscribed,
-                            image_clip_address: image_clip_address.clone(),
-                            layer_index,
-                        })
+                        });
                     })
                 },
                 container_size: props.wh,

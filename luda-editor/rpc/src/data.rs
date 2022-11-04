@@ -65,7 +65,7 @@ impl Cut {
     }
 }
 
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Character {
     id: Uuid,
     pub name: String,
@@ -104,23 +104,29 @@ pub struct ImageWithLabels {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ScreenImage {
     pub id: Uuid,
-    /// (0,0) : left top, (1,1) : right bottom
     #[cfg(feature = "client")]
-    pub center_percent_xy: Xy<Percent>,
-    /// 1.0 = 100% of the screen's radius
-    #[cfg(feature = "client")]
-    pub radius_percent: Percent,
+    pub circumscribed: Circumscribed<Percent>,
 }
 impl Default for ScreenImage {
     fn default() -> Self {
         Self {
             id: Default::default(),
             #[cfg(feature = "client")]
-            center_percent_xy: Xy::new(50.percent(), 50.percent()),
-            #[cfg(feature = "client")]
-            radius_percent: 50.percent(),
+            circumscribed: Circumscribed {
+                center_xy: Xy::new(50.percent(), 50.percent()),
+                radius: 50.percent(),
+            },
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[cfg(feature = "client")]
+pub struct Circumscribed<T> {
+    /// (0,0) : left top, (1,1) : right bottom
+    pub center_xy: Xy<T>,
+    /// 1.0 = 100% of the screen's radius
+    pub radius: T,
 }
 
 // TODO: implement migration

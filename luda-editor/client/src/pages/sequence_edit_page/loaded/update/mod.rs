@@ -52,8 +52,10 @@ impl LoadedSequenceEditorPage {
                     self.update_cut(cut_id, |cut| {
                         cut.screen_images[image_index] = image_id.map(|image_id| ScreenImage {
                             id: image_id,
-                            center_percent_xy: Xy::new(50.percent(), 50.percent()),
-                            radius_percent: 50.percent(),
+                            circumscribed: Circumscribed {
+                                center_xy: Xy::new(50.percent(), 50.percent()),
+                                radius: 50.percent(),
+                            },
                         })
                     });
                     if let Some(image_id) = image_id {

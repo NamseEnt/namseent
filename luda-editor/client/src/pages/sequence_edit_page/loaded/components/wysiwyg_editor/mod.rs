@@ -2,26 +2,17 @@ mod render;
 mod update;
 
 use namui::prelude::*;
-use rpc::data::*;
+use rpc::data::ScreenImage;
 
 pub struct WysiwygEditor {
-    editor_history_system: EditorHistorySystem,
+    project_id: Uuid,
     dragging: Option<Dragging>,
+    screen_images: Vec<ScreenImage>,
+    editing_image_index: Option<usize>,
 }
 
-pub struct Props<'a> {
+pub struct Props {
     pub wh: Wh<Px>,
-    pub image_clip: &'a ImageClip,
-    pub selected_layer_index: Option<usize>,
-    pub image_clip_address: &'a ImageClipAddress,
-}
-
-enum Event {
-    Resize {
-        circumscribed: Circumscribed,
-        image_clip_address: ImageClipAddress,
-        layer_index: usize,
-    },
 }
 
 enum Dragging {
@@ -29,13 +20,26 @@ enum Dragging {
         context: render::resizer::ResizerDraggingContext,
     },
     Cropper,
+    Mover,
+}
+
+enum InternalEvent {
+    SelectImage {
+        index: usize,
+    },
+    ResizeImage {
+        index: usize,
+        circumscribed: rpc::data::Circumscribed<Percent>,
+    },
 }
 
 impl WysiwygEditor {
-    pub fn new(editor_history_system: EditorHistorySystem) -> Self {
+    pub fn new(project_id: Uuid, screen_images: Vec<ScreenImage>) -> Self {
         Self {
-            editor_history_system,
+            project_id,
             dragging: None,
+            screen_images,
+            editing_image_index: None,
         }
     }
 }
