@@ -59,6 +59,14 @@ impl Cut {
     pub fn id(&self) -> Uuid {
         self.id
     }
+    pub fn duplicate(&self, id: Uuid) -> Self {
+        Self {
+            id,
+            line: self.line.clone(),
+            character_id: self.character_id,
+            screen_image_ids: self.screen_image_ids,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
