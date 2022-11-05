@@ -3,9 +3,11 @@ pub mod mover;
 pub mod resizer;
 
 use super::*;
-use crate::storage::get_project_image_url;
+use crate::{
+    components::sequence_player::{calculate_image_rect_on_screen, calculate_image_wh_on_screen},
+    storage::get_project_image_url,
+};
 use namui_prebuilt::*;
-use rpc::data::Circumscribed;
 
 impl WysiwygEditor {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
@@ -160,30 +162,4 @@ impl WysiwygEditor {
             // self.render_cropper(props),
         ])
     }
-}
-
-fn calculate_image_wh_on_screen(
-    original_image_size: Wh<Px>,
-    container_wh: Wh<Px>,
-    circumscribed: Circumscribed<Percent>,
-) -> Wh<Px> {
-    let screen_radius = container_wh.length() / 2;
-    let image_radius_px = original_image_size.length() / 2;
-    let radius_px = screen_radius * circumscribed.radius;
-
-    let wh = original_image_size * (radius_px / image_radius_px);
-    wh
-}
-
-fn calculate_image_rect_on_screen(
-    original_image_size: Wh<Px>,
-    container_wh: Wh<Px>,
-    circumscribed: Circumscribed<Percent>,
-) -> Rect<Px> {
-    let wh = calculate_image_wh_on_screen(original_image_size, container_wh, circumscribed);
-    let center_xy = container_wh.as_xy() * circumscribed.center_xy;
-
-    let xy = center_xy - wh.as_xy() / 2.0;
-
-    Rect::from_xy_wh(xy, wh)
 }

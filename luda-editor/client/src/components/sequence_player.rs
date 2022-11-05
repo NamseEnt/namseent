@@ -153,37 +153,32 @@ impl SequencePlayer {
             .collect::<Vec<_>>()
     }
     fn render_images(&self, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
-        let image_urls = cut
-            .screen_images
-            .iter()
-            .filter_map(|screen_image| screen_image.as_ref())
-            .map(|screen_image| {
-                get_project_image_url(self.project_shared_data.id(), screen_image.id).unwrap()
-            })
-            .collect::<Vec<_>>();
-
-        let image_count = image_urls.len();
-
-        let image_width = wh.width / image_count;
-
         let paint_builder = namui::PaintBuilder::new().set_color_filter(
             Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
             BlendMode::DstIn,
         );
 
-        render(image_urls.into_iter().enumerate().map(|(i, image_url)| {
-            namui::image(ImageParam {
-                rect: Rect::from_xy_wh(
-                    Xy::new(image_width * i, 0.px()),
-                    Wh::new(image_width, wh.height),
-                ),
-                source: ImageSource::Url(image_url),
-                style: ImageStyle {
-                    fit: ImageFit::Contain,
-                    paint_builder: Some(paint_builder.clone()),
-                },
-            })
-        }))
+        let images = cut.screen_images.iter().filter_map(|screen_image| {
+            Some(namui::try_render(|| {
+                let screen_image = screen_image.as_ref()?;
+                let url =
+                    get_project_image_url(self.project_shared_data.id(), screen_image.id).unwrap();
+                let image = namui::image::try_load_url(&url)?;
+
+                let rect =
+                    calculate_image_rect_on_screen(image.size(), wh, screen_image.circumscribed);
+
+                Some(namui::image(ImageParam {
+                    rect,
+                    source: ImageSource::Image(image),
+                    style: ImageStyle {
+                        fit: ImageFit::Fill,
+                        paint_builder: Some(paint_builder.clone()),
+                    },
+                }))
+            }))
+        });
+        render(images)
     }
 
     fn go_to_next_cut(&mut self, do_transition: bool) {
@@ -397,4 +392,30 @@ pub fn render_text(
             ]),
         ),
     ])(wh)
+}
+
+pub fn calculate_image_wh_on_screen(
+    original_image_size: Wh<Px>,
+    container_wh: Wh<Px>,
+    circumscribed: Circumscribed<Percent>,
+) -> Wh<Px> {
+    let screen_radius = container_wh.length() / 2;
+    let image_radius_px = original_image_size.length() / 2;
+    let radius_px = screen_radius * circumscribed.radius;
+
+    let wh = original_image_size * (radius_px / image_radius_px);
+    wh
+}
+
+pub fn calculate_image_rect_on_screen(
+    original_image_size: Wh<Px>,
+    container_wh: Wh<Px>,
+    circumscribed: Circumscribed<Percent>,
+) -> Rect<Px> {
+    let wh = calculate_image_wh_on_screen(original_image_size, container_wh, circumscribed);
+    let center_xy = container_wh.as_xy() * circumscribed.center_xy;
+
+    let xy = center_xy - wh.as_xy() / 2.0;
+
+    Rect::from_xy_wh(xy, wh)
 }
