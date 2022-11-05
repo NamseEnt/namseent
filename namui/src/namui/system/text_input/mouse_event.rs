@@ -116,11 +116,9 @@ fn update_focus_with_mouse_movement(
         .unwrap();
 
     input_element.focus().unwrap();
-    let event = text_input::Event::Focus {
+    crate::event::send(text_input::Event::Focus {
         id: custom_data.id.clone(),
-        selection,
-    };
-    crate::event::send(event);
+    });
 }
 
 fn get_selection_on_mouse_movement(

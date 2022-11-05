@@ -71,20 +71,27 @@ impl LoadedSequenceEditorPage {
         });
 
         render([
-            table::vertical([
-                table::fixed(20.px(), |wh| {
-                    self.render_top_bar_for_editor(
-                        wh,
-                        &sequence,
-                        self.sequence_syncer.get_sync_status(),
-                    )
-                }),
+            table::horizontal([
+                table::ratio(1, |_wh| RenderingTree::Empty),
                 table::ratio(
-                    1.0,
-                    table::horizontal([table::ratio(1.0, |wh| {
-                        self.render_line_list(wh, &sequence, &characters)
-                    })]),
+                    4,
+                    table::vertical([
+                        table::fixed(20.px(), |wh| {
+                            self.render_top_bar_for_editor(
+                                wh,
+                                &sequence,
+                                self.sequence_syncer.get_sync_status(),
+                            )
+                        }),
+                        table::ratio(
+                            1.0,
+                            table::horizontal([table::ratio(1.0, |wh| {
+                                self.render_line_list(wh, &sequence, &characters)
+                            })]),
+                        ),
+                    ]),
                 ),
+                table::ratio(1, |_wh| RenderingTree::Empty),
             ])(props.wh),
             modal,
             self.context_menu
