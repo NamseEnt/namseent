@@ -70,7 +70,7 @@ impl Cut {
             id,
             line: self.line.clone(),
             character_id: self.character_id,
-            screen_image_ids: self.screen_image_ids,
+            screen_images: self.screen_images.clone(),
         }
     }
 }
