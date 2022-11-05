@@ -1,15 +1,28 @@
 mod serve_s3;
 
 use lambda_web::LambdaError;
-use rpc::hyper::{Body, Method, Request, Response, StatusCode};
+use rpc::{
+    hyper::{Body, Method, Request, Response, StatusCode},
+    Uuid,
+};
 use serve_s3::serve_s3;
 
 pub async fn handle_with_wrapped_error(
     request: Request<Body>,
 ) -> Result<Response<Body>, LambdaError> {
+    let request_id = Uuid::new_v4();
+    let method = request.method().clone();
+    let path = request.uri().path().to_string();
+    log::info!("Request[{request_id}] {method} {path}");
     let response = handle(request).await;
     match response {
-        Ok(response) => Ok(response),
+        Ok(response) => {
+            log::info!(
+                "Response[{request_id}] {method} {path} {status}",
+                status = response.status()
+            );
+            Ok(response)
+        }
         Err(error) => {
             eprintln!("{}", error);
             Ok(Response::builder()
