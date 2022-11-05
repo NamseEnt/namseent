@@ -30,6 +30,7 @@ pub struct Props<'a> {
     pub wh: Wh<Px>,
     pub recent_selected_image_ids: &'a VecDeque<Uuid>,
     pub cut: &'a Cut,
+    pub project_shared_data: &'a ProjectSharedData,
 }
 
 pub enum Event {
@@ -46,17 +47,19 @@ enum InternalEvent {
         update_labels: bool,
     },
     EditScreenPressed {
-        screen_images: Vec<ScreenImage>,
+        screen_images: ScreenImages,
     },
     SelectScreenImageIndex {
         index: usize,
+    },
+    ScreenEditDone {
+        screen_images: ScreenImages,
     },
 }
 
 pub struct Update {
     pub cut_id: Uuid,
-    pub image_index: usize,
-    pub image_id: Option<Uuid>,
+    pub screen_images: ScreenImages,
 }
 
 impl ImageSelectModal {

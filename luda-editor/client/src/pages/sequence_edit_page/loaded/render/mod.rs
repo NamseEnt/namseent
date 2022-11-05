@@ -54,6 +54,7 @@ impl LoadedSequenceEditorPage {
                                 wh: modal_wh,
                                 recent_selected_image_ids: &self.recent_selected_image_ids,
                                 cut,
+                                project_shared_data: &self.project_shared_data,
                             }),
                         )
                     } else {

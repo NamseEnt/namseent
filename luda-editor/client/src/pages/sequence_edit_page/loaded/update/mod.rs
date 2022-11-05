@@ -37,33 +37,55 @@ impl LoadedSequenceEditorPage {
                         index,
                         |update| {
                             namui::event::send(Event::ImageUpdated {
-                                image_index: update.image_index,
                                 cut_id: update.cut_id,
-                                image_id: update.image_id,
+                                screen_images: update.screen_images,
                             })
                         },
                     ));
                 }
                 &Event::ImageUpdated {
                     cut_id,
-                    image_index,
-                    image_id,
+                    ref screen_images,
                 } => {
                     self.update_cut(cut_id, |cut| {
-                        cut.screen_images[image_index] = image_id.map(|image_id| ScreenImage {
-                            id: image_id,
-                            circumscribed: Circumscribed {
-                                center_xy: Xy::new(50.percent(), 50.percent()),
-                                radius: 50.percent(),
-                            },
-                        })
+                        cut.screen_images = screen_images.clone();
                     });
-                    if let Some(image_id) = image_id {
-                        self.recent_selected_image_ids.retain(|id| id.ne(&image_id));
-                        self.recent_selected_image_ids.push_front(image_id);
-                        while self.recent_selected_image_ids.len() > 10 {
-                            self.recent_selected_image_ids.pop_back();
-                        }
+
+                    let previous_image_ids = self
+                        .cut(cut_id)
+                        .unwrap()
+                        .screen_images
+                        .iter()
+                        .filter_map(|image| image.as_ref().map(|image| image.id))
+                        .collect::<Vec<_>>();
+
+                    let new_image_ids = screen_images
+                        .iter()
+                        .filter_map(|image| {
+                            let image_id = image.as_ref().map(|image| image.id);
+                            if let Some(image_id) = image_id {
+                                if !previous_image_ids.contains(&image_id) {
+                                    Some(image_id)
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        })
+                        .collect::<Vec<_>>();
+                    if !new_image_ids.is_empty() {
+                        self.recent_selected_image_ids = new_image_ids
+                            .clone()
+                            .into_iter()
+                            .chain(
+                                self.recent_selected_image_ids
+                                    .clone()
+                                    .into_iter()
+                                    .filter(|id| !new_image_ids.contains(id)),
+                            )
+                            .take(10)
+                            .collect();
 
                         spawn_local({
                             let recent_selected_image_ids = self.recent_selected_image_ids.clone();

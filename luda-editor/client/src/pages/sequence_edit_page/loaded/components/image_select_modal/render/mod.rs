@@ -13,15 +13,14 @@ impl ImageSelectModal {
             return image_edit_modal.render(image_edit_modal::Props { wh: props.wh });
         }
         if let Some(screen_editor) = &self.screen_editor {
-            return screen_editor.render(screen_editor::Props { wh: props.wh });
+            return screen_editor.render(screen_editor::Props {
+                wh: props.wh,
+                project_shared_data: props.project_shared_data,
+                cut: props.cut,
+            });
         }
 
-        let screen_images: Vec<_> = props
-            .cut
-            .screen_images
-            .iter()
-            .filter_map(|screen_image| screen_image.clone())
-            .collect();
+        let screen_images = props.cut.screen_images.clone();
 
         on_top(
             render([
@@ -70,10 +69,13 @@ impl ImageSelectModal {
                                     1.px(),
                                     Color::BLACK,
                                     TextAlign::Center,
-                                    move || {
-                                        namui::event::send(InternalEvent::EditScreenPressed {
-                                            screen_images: screen_images.clone(),
-                                        });
+                                    {
+                                        let screen_images = screen_images.clone();
+                                        move || {
+                                            namui::event::send(InternalEvent::EditScreenPressed {
+                                                screen_images: screen_images.clone(),
+                                            });
+                                        }
                                     },
                                 )
                             }),
@@ -107,6 +109,7 @@ impl ImageSelectModal {
                                     self.render_image_preview(
                                         image_preview::Props { wh },
                                         selected_screen_image_index,
+                                        &screen_images,
                                     )
                                 }),
                             ])(wh)

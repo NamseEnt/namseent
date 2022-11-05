@@ -43,8 +43,7 @@ enum Event {
     },
     ImageUpdated {
         cut_id: Uuid,
-        image_index: usize,
-        image_id: Option<Uuid>,
+        screen_images: ScreenImages,
     },
     UpdateRecentSelectedImageIds {
         image_ids: VecDeque<Uuid>,
@@ -105,6 +104,10 @@ impl LoadedSequenceEditorPage {
     }
     fn project_id(&self) -> Uuid {
         self.project_shared_data.id()
+    }
+
+    fn cut(&self, cut_id: Uuid) -> Option<&Cut> {
+        self.sequence.cuts.iter().find(|cut| cut.id() == cut_id)
     }
 }
 

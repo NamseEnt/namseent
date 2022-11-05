@@ -39,6 +39,8 @@ impl WysiwygEditor {
                     let is_editing_image = self.editing_image_index == Some(image_index);
 
                     namui::try_render(|| {
+                        let image = image.as_ref()?;
+
                         let url = get_project_image_url(self.project_id, image.id).unwrap();
                         let namui_image = namui::image::try_load_url(&url)?;
                         let image_size = namui_image.size();

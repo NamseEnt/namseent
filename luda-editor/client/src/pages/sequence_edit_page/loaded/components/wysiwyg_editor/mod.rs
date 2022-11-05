@@ -2,12 +2,12 @@ mod render;
 mod update;
 
 use namui::prelude::*;
-use rpc::data::ScreenImage;
+use rpc::data::{ScreenImage, ScreenImages};
 
 pub struct WysiwygEditor {
     project_id: Uuid,
     dragging: Option<Dragging>,
-    screen_images: Vec<ScreenImage>,
+    pub screen_images: ScreenImages,
     editing_image_index: Option<usize>,
 }
 
@@ -45,7 +45,7 @@ enum InternalEvent {
 }
 
 impl WysiwygEditor {
-    pub fn new(project_id: Uuid, screen_images: Vec<ScreenImage>) -> Self {
+    pub fn new(project_id: Uuid, screen_images: ScreenImages) -> Self {
         Self {
             project_id,
             dragging: None,

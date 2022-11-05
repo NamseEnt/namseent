@@ -60,7 +60,12 @@ impl SequencePlayer {
                     render([
                         self.render_images(inner_content_rect.wh(), cut, 1.0.one_zero()),
                         render_text_box(inner_content_rect.wh()),
-                        self.render_text(inner_content_rect.wh(), cut, 1.0.one_zero()),
+                        render_text(
+                            &self.project_shared_data,
+                            inner_content_rect.wh(),
+                            cut,
+                            1.0.one_zero(),
+                        ),
                         simple_rect(
                             inner_content_rect.wh(),
                             Color::TRANSPARENT,
@@ -87,7 +92,8 @@ impl SequencePlayer {
                             transition_progress,
                         ),
                         render_text_box(inner_content_rect.wh()),
-                        self.render_text(
+                        render_text(
+                            &self.project_shared_data,
                             inner_content_rect.wh(),
                             from_cut,
                             1.0.one_zero() - transition_progress,
@@ -136,98 +142,6 @@ impl SequencePlayer {
                 InternalEvent::GoToNextCut => self.go_to_next_cut(false),
             }
         }
-    }
-
-    fn render_text(&self, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
-        table::vertical([
-            table::ratio(3, |_wh| RenderingTree::Empty),
-            table::ratio(
-                1,
-                table::vertical([
-                    table::ratio(1, |wh| {
-                        let character_name = cut
-                            .character_id
-                            .and_then(|character_id| {
-                                self.project_shared_data
-                                    .characters
-                                    .iter()
-                                    .find(|character| character.id() == character_id)
-                            })
-                            .map(|character| &character.name);
-
-                        match character_name {
-                            Some(character_name) => {
-                                let margin = 32.px();
-                                text(TextParam {
-                                    text: character_name.clone(),
-                                    x: margin,
-                                    y: wh.height / 2,
-                                    align: TextAlign::Left,
-                                    baseline: TextBaseline::Middle,
-                                    font_type: FontType {
-                                        serif: false,
-                                        size: 36.int_px(),
-                                        language: Language::Ko,
-                                        font_weight: FontWeight::BOLD,
-                                    },
-                                    style: TextStyle {
-                                        border: Some(TextStyleBorder {
-                                            width: 4.px(),
-                                            color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
-                                        }),
-                                        drop_shadow: Some(TextStyleDropShadow {
-                                            x: 1.px(),
-                                            y: 2.px(),
-                                            color: Some(Color::from_f01(
-                                                0.0,
-                                                0.0,
-                                                0.0,
-                                                opacity.as_f32(),
-                                            )),
-                                        }),
-                                        color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
-                                        ..Default::default()
-                                    },
-                                    max_width: Some(wh.width - margin * 2),
-                                })
-                            }
-                            None => RenderingTree::Empty,
-                        }
-                    }),
-                    table::ratio(3, |wh| {
-                        let margin = 32.px();
-                        text(TextParam {
-                            text: cut.line.clone(),
-                            x: margin,
-                            y: margin,
-                            align: TextAlign::Left,
-                            baseline: TextBaseline::Top,
-                            font_type: FontType {
-                                serif: false,
-                                size: 24.int_px(),
-                                language: Language::Ko,
-                                font_weight: FontWeight::BOLD,
-                            },
-                            style: TextStyle {
-                                border: Some(TextStyleBorder {
-                                    width: 4.px(),
-                                    color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
-                                }),
-                                drop_shadow: Some(TextStyleDropShadow {
-                                    x: 1.px(),
-                                    y: 2.px(),
-                                    color: Some(Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32())),
-                                }),
-                                color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
-                                line_height_percent: 150.percent(),
-                                ..Default::default()
-                            },
-                            max_width: Some(wh.width - margin * 2),
-                        })
-                    }),
-                ]),
-            ),
-        ])(wh)
     }
     fn get_image_urls(&self, cut: &Cut) -> Vec<Url> {
         cut.screen_images
@@ -386,4 +300,101 @@ pub fn render_text_box(screen_wh: Wh<Px>) -> RenderingTree {
             })
         }),
     ])(screen_wh)
+}
+
+pub fn render_text(
+    project_shared_data: &ProjectSharedData,
+    wh: Wh<Px>,
+    cut: &Cut,
+    opacity: OneZero,
+) -> RenderingTree {
+    table::vertical([
+        table::ratio(3, |_wh| RenderingTree::Empty),
+        table::ratio(
+            1,
+            table::vertical([
+                table::ratio(1, |wh| {
+                    let character_name = cut
+                        .character_id
+                        .and_then(|character_id| {
+                            project_shared_data
+                                .characters
+                                .iter()
+                                .find(|character| character.id() == character_id)
+                        })
+                        .map(|character| &character.name);
+
+                    match character_name {
+                        Some(character_name) => {
+                            let margin = 32.px();
+                            text(TextParam {
+                                text: character_name.clone(),
+                                x: margin,
+                                y: wh.height / 2,
+                                align: TextAlign::Left,
+                                baseline: TextBaseline::Middle,
+                                font_type: FontType {
+                                    serif: false,
+                                    size: 36.int_px(),
+                                    language: Language::Ko,
+                                    font_weight: FontWeight::BOLD,
+                                },
+                                style: TextStyle {
+                                    border: Some(TextStyleBorder {
+                                        width: 4.px(),
+                                        color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
+                                    }),
+                                    drop_shadow: Some(TextStyleDropShadow {
+                                        x: 1.px(),
+                                        y: 2.px(),
+                                        color: Some(Color::from_f01(
+                                            0.0,
+                                            0.0,
+                                            0.0,
+                                            opacity.as_f32(),
+                                        )),
+                                    }),
+                                    color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
+                                    ..Default::default()
+                                },
+                                max_width: Some(wh.width - margin * 2),
+                            })
+                        }
+                        None => RenderingTree::Empty,
+                    }
+                }),
+                table::ratio(3, |wh| {
+                    let margin = 32.px();
+                    text(TextParam {
+                        text: cut.line.clone(),
+                        x: margin,
+                        y: margin,
+                        align: TextAlign::Left,
+                        baseline: TextBaseline::Top,
+                        font_type: FontType {
+                            serif: false,
+                            size: 24.int_px(),
+                            language: Language::Ko,
+                            font_weight: FontWeight::BOLD,
+                        },
+                        style: TextStyle {
+                            border: Some(TextStyleBorder {
+                                width: 4.px(),
+                                color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
+                            }),
+                            drop_shadow: Some(TextStyleDropShadow {
+                                x: 1.px(),
+                                y: 2.px(),
+                                color: Some(Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32())),
+                            }),
+                            color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
+                            line_height_percent: 150.percent(),
+                            ..Default::default()
+                        },
+                        max_width: Some(wh.width - margin * 2),
+                    })
+                }),
+            ]),
+        ),
+    ])(wh)
 }

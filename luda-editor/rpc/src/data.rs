@@ -42,13 +42,15 @@ impl Sequence {
     }
 }
 
+pub type ScreenImages = [Option<ScreenImage>; 5];
+
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cut {
     id: Uuid,
     /// The text that the character speaks in this cut.
     pub line: String,
     pub character_id: Option<Uuid>,
-    pub screen_images: [Option<ScreenImage>; 5],
+    pub screen_images: ScreenImages,
 }
 
 impl Cut {
@@ -107,10 +109,10 @@ pub struct ScreenImage {
     #[cfg(feature = "client")]
     pub circumscribed: Circumscribed<Percent>,
 }
-impl Default for ScreenImage {
-    fn default() -> Self {
+impl ScreenImage {
+    pub fn new(id: Uuid) -> Self {
         Self {
-            id: Default::default(),
+            id,
             #[cfg(feature = "client")]
             circumscribed: Circumscribed {
                 center_xy: Xy::new(50.percent(), 50.percent()),

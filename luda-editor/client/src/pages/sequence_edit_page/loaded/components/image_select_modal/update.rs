@@ -35,10 +35,20 @@ impl ImageSelectModal {
                     self.screen_editor = Some(screen_editor::ScreenEditor::new(
                         self.project_id,
                         screen_images.clone(),
+                        |screen_images| {
+                            namui::event::send(InternalEvent::ScreenEditDone { screen_images });
+                        },
                     ));
                 }
                 &InternalEvent::SelectScreenImageIndex { index } => {
                     self.selected_screen_image_index = Some(index);
+                }
+                InternalEvent::ScreenEditDone { screen_images } => {
+                    self.screen_editor = None;
+                    (self.on_update_image)(Update {
+                        cut_id: self.cut_id,
+                        screen_images: screen_images.clone(),
+                    })
                 }
             }
         } else if let Some(event) = event.downcast_ref::<context_menu::Event>() {

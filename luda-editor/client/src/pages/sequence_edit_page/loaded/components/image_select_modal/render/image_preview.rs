@@ -10,6 +10,7 @@ impl ImageSelectModal {
         &self,
         props: Props,
         selected_screen_image_index: usize,
+        screen_images: &ScreenImages,
     ) -> namui::RenderingTree {
         let title = translate(
             12.px(),
@@ -90,12 +91,29 @@ impl ImageSelectModal {
                                 2.px(),
                                 Color::WHITE,
                                 padding,
-                                move || {
-                                    on_update_image(Update {
-                                        cut_id,
-                                        image_index: selected_screen_image_index,
-                                        image_id,
-                                    })
+                                {
+                                    let screen_images = screen_images.clone();
+                                    move || {
+                                        let mut screen_images = screen_images.clone();
+
+                                        if let Some(image_id) = image_id {
+                                            if let Some(screen_image) =
+                                                screen_images[selected_screen_image_index].as_mut()
+                                            {
+                                                screen_image.id = image_id;
+                                            } else {
+                                                screen_images[selected_screen_image_index] =
+                                                    Some(ScreenImage::new(image_id));
+                                            }
+                                        } else {
+                                            screen_images[selected_screen_image_index] = None;
+                                        }
+
+                                        on_update_image(Update {
+                                            cut_id,
+                                            screen_images,
+                                        })
+                                    }
                                 },
                             )
                             .padding(12.px()),
