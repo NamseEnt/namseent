@@ -59,7 +59,7 @@ impl SequencePlayer {
                     let cut = self.sequence.cuts.get(cut_index).unwrap();
                     render([
                         self.render_images(inner_content_rect.wh(), cut, 1.0.one_zero()),
-                        self.render_text_box(inner_content_rect.wh()),
+                        render_text_box(inner_content_rect.wh()),
                         self.render_text(inner_content_rect.wh(), cut, 1.0.one_zero()),
                         simple_rect(
                             inner_content_rect.wh(),
@@ -86,7 +86,7 @@ impl SequencePlayer {
                             from_cut_index,
                             transition_progress,
                         ),
-                        self.render_text_box(inner_content_rect.wh()),
+                        render_text_box(inner_content_rect.wh()),
                         self.render_text(
                             inner_content_rect.wh(),
                             from_cut,
@@ -136,28 +136,6 @@ impl SequencePlayer {
                 InternalEvent::GoToNextCut => self.go_to_next_cut(false),
             }
         }
-    }
-
-    fn render_text_box(&self, wh: Wh<Px>) -> RenderingTree {
-        table::vertical([
-            table::ratio(3, |_wh| RenderingTree::Empty),
-            table::ratio(1, |wh| {
-                rect(RectParam {
-                    rect: Rect::from_xy_wh(Xy::zero(), wh),
-                    style: RectStyle {
-                        stroke: Some(RectStroke {
-                            color: Color::BLACK,
-                            width: 1.px(),
-                            border_position: BorderPosition::Inside,
-                        }),
-                        fill: Some(RectFill {
-                            color: Color::from_f01(1.0, 1.0, 1.0, 0.3),
-                        }),
-                        round: Some(RectRound { radius: 8.px() }),
-                    },
-                })
-            }),
-        ])(wh)
     }
 
     fn render_text(&self, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
@@ -386,4 +364,26 @@ pub fn get_inner_content_rect(wh: Wh<Px>) -> Rect<Px> {
         let result_xy = Xy::new(0.px(), (wh.height - result_wh.height) / 2.0);
         Rect::from_xy_wh(result_xy, result_wh)
     }
+}
+
+pub fn render_text_box(screen_wh: Wh<Px>) -> RenderingTree {
+    table::vertical([
+        table::ratio(3, |_wh| RenderingTree::Empty),
+        table::ratio(1, |wh| {
+            rect(RectParam {
+                rect: Rect::from_xy_wh(Xy::zero(), wh),
+                style: RectStyle {
+                    stroke: Some(RectStroke {
+                        color: Color::BLACK,
+                        width: 1.px(),
+                        border_position: BorderPosition::Inside,
+                    }),
+                    fill: Some(RectFill {
+                        color: Color::from_f01(1.0, 1.0, 1.0, 0.3),
+                    }),
+                    round: Some(RectRound { radius: 8.px() }),
+                },
+            })
+        }),
+    ])(screen_wh)
 }

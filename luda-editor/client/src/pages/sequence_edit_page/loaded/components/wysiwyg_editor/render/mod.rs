@@ -65,8 +65,7 @@ impl WysiwygEditor {
                                             circumscribed,
                                         )
                                     }
-                                    Dragging::Cropper => todo!(),
-
+                                    // Dragging::Cropper => todo!(),
                                     Dragging::Mover { context } => {
                                         let circumscribed =
                                             context.move_circumscribed(image.circumscribed);

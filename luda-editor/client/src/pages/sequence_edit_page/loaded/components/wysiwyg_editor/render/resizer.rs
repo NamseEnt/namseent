@@ -163,18 +163,18 @@ impl ResizerHandle {
             },
         }
     }
-    pub fn opposite(&self) -> Self {
-        match self {
-            ResizerHandle::LeftTop => ResizerHandle::RightBottom,
-            ResizerHandle::RightTop => ResizerHandle::LeftBottom,
-            ResizerHandle::LeftBottom => ResizerHandle::RightTop,
-            ResizerHandle::RightBottom => ResizerHandle::LeftTop,
-            ResizerHandle::Top => ResizerHandle::Bottom,
-            ResizerHandle::Bottom => ResizerHandle::Top,
-            ResizerHandle::Left => ResizerHandle::Right,
-            ResizerHandle::Right => ResizerHandle::Left,
-        }
-    }
+    // pub fn opposite(&self) -> Self {
+    //     match self {
+    //         ResizerHandle::LeftTop => ResizerHandle::RightBottom,
+    //         ResizerHandle::RightTop => ResizerHandle::LeftBottom,
+    //         ResizerHandle::LeftBottom => ResizerHandle::RightTop,
+    //         ResizerHandle::RightBottom => ResizerHandle::LeftTop,
+    //         ResizerHandle::Top => ResizerHandle::Bottom,
+    //         ResizerHandle::Bottom => ResizerHandle::Top,
+    //         ResizerHandle::Left => ResizerHandle::Right,
+    //         ResizerHandle::Right => ResizerHandle::Left,
+    //     }
+    // }
     pub fn cursor(&self) -> MouseCursor {
         match self {
             ResizerHandle::LeftTop => MouseCursor::LeftTopRightBottomResize,

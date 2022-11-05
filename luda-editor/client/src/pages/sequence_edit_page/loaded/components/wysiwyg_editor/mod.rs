@@ -19,7 +19,7 @@ enum Dragging {
     Resizer {
         context: render::resizer::ResizerDraggingContext,
     },
-    Cropper,
+    // Cropper,
     Mover {
         context: render::mover::MoverDraggingContext,
     },

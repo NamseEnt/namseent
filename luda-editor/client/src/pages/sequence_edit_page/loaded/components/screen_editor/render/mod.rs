@@ -1,5 +1,5 @@
 use super::*;
-use crate::{components::sequence_player::get_inner_content_rect, storage::get_project_image_url};
+use crate::components::sequence_player::get_inner_content_rect;
 
 impl ScreenEditor {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
@@ -48,8 +48,11 @@ impl ScreenEditor {
         translate(
             rect.x(),
             rect.y(),
-            self.wysiwyg_editor
-                .render(wysiwyg_editor::Props { wh: rect.wh() }),
+            render([
+                self.wysiwyg_editor
+                    .render(wysiwyg_editor::Props { wh: rect.wh() }),
+                sequence_player::render_text_box(rect.wh()),
+            ]),
         )
     }
 }
