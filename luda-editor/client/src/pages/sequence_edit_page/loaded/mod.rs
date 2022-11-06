@@ -27,6 +27,7 @@ pub struct LoadedSequenceEditorPage {
     context_menu: Option<context_menu::ContextMenu>,
     patch_stack: Vec<rpc::json_patch::RevertablePatch>,
     undo_stack: Vec<rpc::json_patch::RevertablePatch>,
+    text_input_selected_cut_id: Option<Uuid>,
     cut_clipboard: Option<Cut>,
 }
 
@@ -114,6 +115,7 @@ impl LoadedSequenceEditorPage {
             context_menu: None,
             patch_stack: Vec::new(),
             undo_stack: Vec::new(),
+            text_input_selected_cut_id: None,
             cut_clipboard: None,
         }
     }

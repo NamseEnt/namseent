@@ -255,6 +255,17 @@ impl LoadedSequenceEditorPage {
                         cut.line = text.clone();
                     });
                 }
+            } else if let &text_input::Event::Focus { id } = event {
+                self.text_input_selected_cut_id =
+                    self.line_text_inputs
+                        .iter()
+                        .find_map(|(cut_id, text_input)| {
+                            if text_input.get_id() == &id {
+                                Some(*cut_id)
+                            } else {
+                                None
+                            }
+                        });
             }
         } else if let Some(event) = event.downcast_ref::<character_edit_modal::Event>() {
             match event {
