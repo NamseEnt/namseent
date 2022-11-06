@@ -4,6 +4,7 @@ mod session;
 pub mod storage;
 mod utils;
 
+use aws_smithy_async::rt::sleep::default_async_sleep;
 use handle::handle_with_wrapped_error;
 use lambda_web::{is_running_on_lambda, run_hyper_on_lambda, LambdaError};
 use once_cell::sync::OnceCell;
@@ -45,6 +46,9 @@ fn s3<'a>() -> &'a S3 {
 
 #[tokio::main]
 async fn main() -> Result<(), LambdaError> {
+    env_logger::init();
+    log::info!("starting up");
+
     SERVICES
         .set(Services {
             auth_service: services::auth::AuthService::new(),
@@ -55,6 +59,7 @@ async fn main() -> Result<(), LambdaError> {
         .unwrap();
 
     if is_running_on_lambda() {
+        log::info!("running on lambda");
         let config = aws_config::load_from_env().await;
         let dynamo_db = DynamoDb::new(&config);
         let s3 = S3::new(
@@ -70,6 +75,7 @@ async fn main() -> Result<(), LambdaError> {
         let svc = service_fn(handle_with_wrapped_error);
         run_hyper_on_lambda(svc).await?;
     } else {
+        log::info!("not running on lambda");
         let dynamo_db = DynamoDb::new(
             &aws_config::SdkConfig::builder()
                 .endpoint_resolver(aws_sdk_dynamodb::Endpoint::immutable(Uri::from_static(
@@ -79,6 +85,7 @@ async fn main() -> Result<(), LambdaError> {
                 .credentials_provider(aws_types::credentials::SharedCredentialsProvider::new(
                     aws_types::Credentials::new("local", "local", None, None, "local"),
                 ))
+                .sleep_impl(default_async_sleep().unwrap())
                 .build(),
         );
         let s3 = S3::new(
@@ -90,6 +97,7 @@ async fn main() -> Result<(), LambdaError> {
                 .credentials_provider(aws_types::credentials::SharedCredentialsProvider::new(
                     aws_types::Credentials::new("minio", "minio123", None, None, "local"),
                 ))
+                .sleep_impl(default_async_sleep().unwrap())
                 .build(),
             "http://localhost:9000".to_string(),
         );
