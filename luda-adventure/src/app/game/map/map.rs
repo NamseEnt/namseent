@@ -1,7 +1,7 @@
 use super::try_create_new_polygon::try_create_new_polygon;
 use crate::{
     app::game::new_floor,
-    app::game::{new_wall, types::TileExt, Tile},
+    app::game::{new_wall, types::TileExt, Collider, Positioner, Tile},
     ecs::Entity,
 };
 use namui::{Wh, Xy};
@@ -67,7 +67,7 @@ impl Map {
         self.wall
             .iter()
             .enumerate()
-            .map(|(y, row)| {
+            .filter_map(|(y, row)| {
                 let positions = row
                     .chars()
                     .enumerate()
@@ -75,20 +75,30 @@ impl Map {
                         '1' => Some(Xy::new(Tile::from(x as f32), Tile::from(y as f32))),
                         _ => None,
                     })
-                    .collect();
-                new_wall(positions)
+                    .collect::<Vec<_>>();
+                match positions.len() > 0 {
+                    true => Some(new_wall(positions)),
+                    false => None,
+                }
             })
             .collect()
     }
 
     fn create_wall_collision_entities(&self) -> Vec<Entity> {
         let mut visit_map = vec![vec![false; self.wh.width]; self.wh.height];
+        let mut wall_collision_entities = Vec::new();
         for y in 0..self.wh.height {
             for x in 0..self.wh.width {
-                try_create_new_polygon(&self.wall, &mut visit_map, Xy::new(x, y));
-                todo!()
+                if let Some(polygon) =
+                    try_create_new_polygon(&self.wall, &mut visit_map, Xy::new(x, y))
+                {
+                    let wall_collision_entity = Entity::new()
+                        .add_component(Positioner::new())
+                        .add_component(Collider::new(polygon));
+                    wall_collision_entities.push(wall_collision_entity);
+                }
             }
         }
-        Vec::new()
+        wall_collision_entities
     }
 }

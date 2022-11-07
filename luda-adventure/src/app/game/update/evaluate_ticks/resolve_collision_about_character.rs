@@ -7,6 +7,8 @@ use crate::{
 };
 use namui::prelude::*;
 
+const MAX_COLLISION_RESOLVE_COUNT: i32 = 6;
+
 impl Game {
     pub fn resolve_collision_about_character(&mut self) {
         let rigid_body_list_except_character = get_rigid_body_list_except_character(&self.ecs_app);
@@ -17,21 +19,32 @@ impl Game {
         {
             let mut character_rigid_body =
                 character_collider.get_rigid_body(character_positioner.xy());
-            for other_rigid_body in rigid_body_list_except_character {
-                if let CollisionInfo::Collided {
-                    penetration_depth,
-                    collision_normal,
-                } = CollisionInfo::min_by_penetration_depth(
-                    character_rigid_body.collide(&other_rigid_body),
-                    other_rigid_body.collide(&character_rigid_body),
-                ) {
-                    move_back_by_penetration_depth(
+            let mut collision_resolve_count = 0;
+            while collision_resolve_count < MAX_COLLISION_RESOLVE_COUNT {
+                let mut no_collision_detected = true;
+                for other_rigid_body in rigid_body_list_except_character.iter() {
+                    if let CollisionInfo::Collided {
                         penetration_depth,
                         collision_normal,
-                        character_positioner,
-                    );
-                    character_rigid_body =
-                        character_collider.get_rigid_body(character_positioner.xy());
+                    } = CollisionInfo::min_by_penetration_depth(
+                        character_rigid_body.collide(&other_rigid_body),
+                        other_rigid_body
+                            .collide(&character_rigid_body)
+                            .reverse_collision_normal(),
+                    ) {
+                        no_collision_detected = false;
+                        collision_resolve_count += 1;
+                        move_back_by_penetration_depth(
+                            penetration_depth,
+                            collision_normal,
+                            character_positioner,
+                        );
+                        character_rigid_body =
+                            character_collider.get_rigid_body(character_positioner.xy());
+                    }
+                }
+                if no_collision_detected {
+                    break;
                 }
             }
         }

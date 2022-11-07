@@ -1,4 +1,4 @@
-use crate::app::game::{Edge, Polygon, Tile, TileExt};
+use geo::{coord, Area, Coordinate, EuclideanDistance, Line, LineString, Polygon};
 use namui::prelude::*;
 use std::collections::HashMap;
 
@@ -7,64 +7,129 @@ pub(super) fn try_create_new_polygon(
     visit_map: &mut Vec<Vec<bool>>,
     start_xy: Xy<usize>,
 ) -> Option<Polygon> {
-    let edges = get_edges(wall, visit_map, start_xy);
-    let edges = simplify_edges(edges);
-    if edges.len() < 3 {
-        return None;
-    }
-    return None;
+    let lines = get_lines(wall, visit_map, start_xy);
+    let lines = simplify_lines(lines);
+    let line_strings = connect_lines_into_line_strings(lines);
+    build_line_strings_into_polygon(line_strings)
 }
 
-fn simplify_edges(edges: Vec<Edge>) -> Vec<Edge> {
-    let mut start_point_edge_map = HashMap::new();
-    let mut simplified_edges = Vec::new();
-    for edge in edges.into_iter() {
-        let start_point = edge.start_point();
-        let key = key_from_point(start_point);
-        start_point_edge_map.insert(key, edge);
+fn build_line_strings_into_polygon(mut line_strings: Vec<LineString>) -> Option<Polygon> {
+    line_strings.sort_by(|a, b| a.unsigned_area().total_cmp(&b.unsigned_area()));
+    match line_strings.pop() {
+        Some(widest_line_string) => Some(Polygon::new(widest_line_string, line_strings)),
+        None => None,
+    }
+}
+
+fn connect_lines_into_line_strings(lines: Vec<Line>) -> Vec<LineString> {
+    let mut line_strings = Vec::new();
+    let mut start_point_line_map = HashMap::new();
+    for line in lines.into_iter() {
+        let key = key_from_coord(line.start);
+        start_point_line_map.insert(key, line);
     }
 
-    while let Some(first_key) = start_point_edge_map.keys().next().copied() {
-        let mut merging_edge = start_point_edge_map.remove(&first_key).unwrap();
+    while let Some(first_key) = start_point_line_map.keys().next().copied() {
+        let mut merging_line = start_point_line_map.remove(&first_key).unwrap();
+        let mut line_string = LineString::new(vec![merging_line.start]);
+
         loop {
-            let next_edge_key = key_from_point(merging_edge.end_point());
-            if let Some(next_edge) = start_point_edge_map.remove(&next_edge_key) {
-                if merging_edge.is_same_direction_as(&next_edge) {
-                    merging_edge =
-                        Edge::new_outside(merging_edge.start_point(), next_edge.end_point());
-                } else {
-                    simplified_edges.push(merging_edge);
-                    merging_edge = next_edge;
-                }
+            let next_line_key = key_from_coord(merging_line.end);
+            if let Some(next_line) = start_point_line_map.remove(&next_line_key) {
+                line_string.0.push(next_line.start);
+                merging_line = next_line;
             } else {
-                simplified_edges.push(merging_edge);
+                let start_point_of_line_string = line_string.coords().next().unwrap();
+                let loop_complete = merging_line.end == *start_point_of_line_string;
+                if loop_complete {
+                    line_strings.push(line_string);
+                }
                 break;
             }
         }
     }
 
-    simplified_edges
-}
-fn key_from_point(start_point: Xy<Tile>) -> (u32, u32) {
-    (
-        start_point.x.as_f32().to_bits(),
-        start_point.y.as_f32().to_bits(),
-    )
+    line_strings
 }
 
-fn get_edges(wall: &Vec<String>, visit_map: &mut Vec<Vec<bool>>, xy: Xy<usize>) -> Vec<Edge> {
+fn simplify_lines(lines: Vec<Line>) -> Vec<Line> {
+    let mut simplified_lines = Vec::new();
+    let mut start_point_line_map = HashMap::new();
+    for line in lines.into_iter() {
+        let key = key_from_coord(line.start);
+        start_point_line_map.insert(key, line);
+    }
+
+    while let Some(first_key) = start_point_line_map.keys().next().copied() {
+        let mut merging_line = start_point_line_map.remove(&first_key).unwrap();
+        loop {
+            let next_line_key = key_from_coord(merging_line.end);
+            if let Some(next_line) = start_point_line_map.remove(&next_line_key) {
+                if let Some(merged_line) = try_merge_line(merging_line, next_line) {
+                    merging_line = merged_line;
+                } else {
+                    simplified_lines.push(merging_line);
+                    merging_line = next_line;
+                }
+            } else {
+                simplified_lines.push(merging_line);
+                break;
+            }
+        }
+    }
+
+    simplified_lines
+}
+fn key_from_coord(coord: Coordinate<f64>) -> (u64, u64) {
+    (coord.x.to_bits(), coord.y.to_bits())
+}
+
+fn try_merge_line(a: Line, b: Line) -> Option<Line> {
+    if !same_direction(a, b) {
+        None
+    } else if a.end == b.start {
+        Some(Line {
+            start: a.start,
+            end: b.end,
+        })
+    } else if b.end == a.start {
+        Some(Line {
+            start: b.start,
+            end: a.end,
+        })
+    } else {
+        None
+    }
+}
+fn same_direction(a: Line, b: Line) -> bool {
+    let normalized_vector_a = normalized_vector(a);
+    let normalized_vector_b = normalized_vector(b);
+    let cosine_between_a_b = normalized_vector_a.x * normalized_vector_b.x
+        + normalized_vector_a.y * normalized_vector_b.y;
+    cosine_between_a_b == 1.0
+}
+fn normalized_vector(line: Line) -> Coordinate {
+    let vector = line.delta();
+    let length = vector.euclidean_distance(&coord! {x: 0., y: 0.});
+    vector / length
+}
+
+fn get_lines(wall: &Vec<String>, visit_map: &mut Vec<Vec<bool>>, xy: Xy<usize>) -> Vec<Line> {
     match already_visited(&visit_map, xy) {
         true => return Vec::new(),
         false => mark_as_visited(visit_map, xy),
     };
+    if !wall_exist(wall, xy) {
+        return Vec::new();
+    }
 
     VisitDirection::iter()
-        .flat_map(|visit_direction| {
-            let next_xy = visit_direction.next_xy(xy);
-            match wall_exist(wall, xy) {
-                true => get_edges(wall, visit_map, next_xy),
-                false => vec![visit_direction.edge(xy)],
-            }
+        .flat_map(|visit_direction| match visit_direction.next_xy(xy) {
+            Some(next_xy) => match wall_exist(wall, next_xy) {
+                true => get_lines(wall, visit_map, next_xy),
+                false => vec![visit_direction.line(xy)],
+            },
+            None => vec![visit_direction.line(xy)],
         })
         .collect()
 }
@@ -86,25 +151,37 @@ impl VisitDirection {
         DIRECTIONS.iter()
     }
 
-    fn next_xy(&self, xy: Xy<usize>) -> Xy<usize> {
+    fn next_xy(&self, mut xy: Xy<usize>) -> Option<Xy<usize>> {
         match self {
-            VisitDirection::Left => xy - Xy::new(1, 0),
-            VisitDirection::Down => xy + Xy::new(1, 1),
-            VisitDirection::Right => xy + Xy::new(1, 0),
-            VisitDirection::Up => xy - Xy::new(0, 1),
+            VisitDirection::Left => xy.x.checked_sub(1).map(|next_x| {
+                xy.x = next_x;
+                xy
+            }),
+            VisitDirection::Down => xy.y.checked_add(1).map(|next_y| {
+                xy.y = next_y;
+                xy
+            }),
+            VisitDirection::Right => xy.x.checked_add(1).map(|next_x| {
+                xy.x = next_x;
+                xy
+            }),
+            VisitDirection::Up => xy.y.checked_sub(1).map(|next_y| {
+                xy.y = next_y;
+                xy
+            }),
         }
     }
 
-    fn edge(&self, xy: Xy<usize>) -> Edge {
+    fn line(&self, xy: Xy<usize>) -> Line {
         let ((start_point_x, start_point_y), (end_point_x, end_point_y)) = match self {
-            VisitDirection::Left => ((xy.x as f32, xy.y as f32), (xy.x as f32, xy.y as f32)),
-            VisitDirection::Down => ((xy.x as f32, xy.y as f32), (xy.x as f32, xy.y as f32)),
-            VisitDirection::Right => ((xy.x as f32, xy.y as f32), (xy.x as f32, xy.y as f32)),
-            VisitDirection::Up => ((xy.x as f32, xy.y as f32), (xy.x as f32, xy.y as f32)),
+            VisitDirection::Left => ((xy.x, xy.y), (xy.x, xy.y + 1)),
+            VisitDirection::Down => ((xy.x, xy.y + 1), (xy.x + 1, xy.y + 1)),
+            VisitDirection::Right => ((xy.x + 1, xy.y + 1), (xy.x + 1, xy.y)),
+            VisitDirection::Up => ((xy.x + 1, xy.y), (xy.x, xy.y)),
         };
-        Edge::new_outside(
-            Xy::new(start_point_x.tile(), start_point_y.tile()),
-            Xy::new(end_point_x.tile(), end_point_y.tile()),
+        Line::new(
+            coord! {x:start_point_x as f64 - 0.5, y:start_point_y as f64 - 0.5},
+            coord! {x:end_point_x as f64 - 0.5, y:end_point_y as f64 - 0.5},
         )
     }
 }

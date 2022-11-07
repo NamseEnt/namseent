@@ -43,8 +43,8 @@ fn append_components(entity: crate::ecs::Entity, positions: Vec<Xy<Tile>>) -> cr
         x: (min_x + max_x) * 0.5,
         y: (min_y + max_y) * 0.5,
     };
-    let width = VISUAL_WIDTH + max_x - min_x;
-    let height = VISUAL_HEIGHT + max_y - min_y;
+    let width = max_x - min_x;
+    let height = max_y - min_y;
 
     entity
         .add_component(Positioner::new_with_xy(center_xy))
@@ -56,14 +56,10 @@ fn append_components(entity: crate::ecs::Entity, positions: Vec<Xy<Tile>>) -> cr
                 width,
                 height,
             },
-            move |entity, _game_context, rendering_context| {
-                let positioner = entity.get_component::<&Positioner>().unwrap();
-                let main_position = positioner.xy();
-
+            move |_entity, _game_context, rendering_context| {
                 render(
                     positions
                         .iter()
-                        .map(|position| position + main_position)
                         .filter(|position| {
                             rendering_context
                                 .screen_rect
@@ -84,7 +80,7 @@ fn append_components(entity: crate::ecs::Entity, positions: Vec<Xy<Tile>>) -> cr
                                     },
                                     Color::TRANSPARENT,
                                     0.px(),
-                                    Color::from_f01(0.3, 0.9, 0.3, 1.0),
+                                    Color::from_f01(0.9, 0.3, 0.3, 1.0),
                                 ),
                             )
                         }),
