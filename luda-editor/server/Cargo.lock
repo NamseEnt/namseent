@@ -1050,6 +1050,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
+name = "migration"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "mime"
 version = "0.3.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1294,6 +1303,7 @@ name = "rpc"
 version = "0.1.0"
 dependencies = [
  "hyper",
+ "migration",
  "revert-json-patch",
  "serde",
  "serde_json",
