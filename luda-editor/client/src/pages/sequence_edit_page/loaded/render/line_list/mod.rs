@@ -39,7 +39,14 @@ impl LoadedSequenceEditorPage {
                     Item::Cut(cut) => {
                         let line_text_input = self.line_text_inputs.get(&cut.id()).unwrap();
                         let cut_id = cut.id();
-                        let is_selected = line_text_input.is_focused();
+                        let is_selected = self.text_input_selected_cut_id == Some(cut_id);
+                        if is_selected
+                            && namui::system::text_input::focused_text_input_id().is_none()
+                            && namui::system::text_input::last_focus_requested_text_input_id()
+                                .is_none()
+                        {
+                            line_text_input.focus();
+                        }
 
                         table::horizontal([
                             table::calculative(
