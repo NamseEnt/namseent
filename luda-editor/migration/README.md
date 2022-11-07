@@ -1,3 +1,7 @@
+# Notice
+
+Migration only works with serde_json.
+
 # How to use migration?
 
 ## 1. Use `#[migration::version({version})]` on your struct
