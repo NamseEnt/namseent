@@ -6,12 +6,20 @@ pub struct Props {
 }
 
 impl ImageSelectModal {
-    pub fn render_image_preview(&self, props: Props) -> namui::RenderingTree {
+    pub fn render_image_preview(
+        &self,
+        props: Props,
+        selected_screen_image_index: usize,
+        screen_images: &ScreenImages,
+    ) -> namui::RenderingTree {
         let title = translate(
             12.px(),
             12.px(),
             typography::title::left_top("Preview", Color::WHITE),
         );
+
+        let on_update_image = self.on_update_image.clone();
+        let cut_id = self.cut_id;
 
         render([
             simple_rect(props.wh, Color::WHITE, 1.px(), Color::BLACK),
@@ -77,27 +85,36 @@ impl ImageSelectModal {
                             table::FitAlign::CenterMiddle,
                             button::text_button_fit(
                                 button_height,
-                                "Cancel",
-                                Color::WHITE,
-                                Color::WHITE,
-                                2.px(),
-                                Color::BLACK,
-                                padding,
-                                || namui::event::send(Event::Close),
-                            )
-                            .padding(12.px()),
-                        ),
-                        table::fit(
-                            table::FitAlign::CenterMiddle,
-                            button::text_button_fit(
-                                button_height,
-                                "Confirm",
+                                "Set",
                                 Color::BLACK,
                                 Color::BLACK,
                                 2.px(),
                                 Color::WHITE,
                                 padding,
-                                move || namui::event::send(InternalEvent::Done { image_id }),
+                                {
+                                    let screen_images = screen_images.clone();
+                                    move || {
+                                        let mut screen_images = screen_images.clone();
+
+                                        if let Some(image_id) = image_id {
+                                            if let Some(screen_image) =
+                                                screen_images[selected_screen_image_index].as_mut()
+                                            {
+                                                screen_image.id = image_id;
+                                            } else {
+                                                screen_images[selected_screen_image_index] =
+                                                    Some(ScreenImage::new(image_id));
+                                            }
+                                        } else {
+                                            screen_images[selected_screen_image_index] = None;
+                                        }
+
+                                        on_update_image(Update {
+                                            cut_id,
+                                            screen_images,
+                                        })
+                                    }
+                                },
                             )
                             .padding(12.px()),
                         ),

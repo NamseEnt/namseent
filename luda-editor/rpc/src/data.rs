@@ -1,4 +1,8 @@
+#[cfg(feature = "server")]
 use uuid::Uuid;
+
+#[cfg(feature = "client")]
+use namui::prelude::*;
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ProjectSharedData {
@@ -38,13 +42,15 @@ impl Sequence {
     }
 }
 
+pub type ScreenImages = [Option<ScreenImage>; 5];
+
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cut {
     id: Uuid,
     /// The text that the character speaks in this cut.
     pub line: String,
     pub character_id: Option<Uuid>,
-    pub screen_image_ids: [Option<Uuid>; 5],
+    pub screen_images: ScreenImages,
 }
 
 impl Cut {
@@ -53,7 +59,7 @@ impl Cut {
             id,
             line: String::new(),
             character_id: None,
-            screen_image_ids: [None; 5],
+            screen_images: [None, None, None, None, None],
         }
     }
     pub fn id(&self) -> Uuid {
@@ -64,12 +70,12 @@ impl Cut {
             id,
             line: self.line.clone(),
             character_id: self.character_id,
-            screen_image_ids: self.screen_image_ids,
+            screen_images: self.screen_images.clone(),
         }
     }
 }
 
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Character {
     id: Uuid,
     pub name: String,
@@ -103,6 +109,34 @@ pub struct ImageWithLabels {
     pub id: Uuid,
     pub url: String,
     pub labels: Vec<Label>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ScreenImage {
+    pub id: Uuid,
+    #[cfg(feature = "client")]
+    pub circumscribed: Circumscribed<Percent>,
+}
+impl ScreenImage {
+    pub fn new(id: Uuid) -> Self {
+        Self {
+            id,
+            #[cfg(feature = "client")]
+            circumscribed: Circumscribed {
+                center_xy: Xy::new(50.percent(), 50.percent()),
+                radius: 50.percent(),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[cfg(feature = "client")]
+pub struct Circumscribed<T> {
+    /// (0,0) : left top, (1,1) : right bottom
+    pub center_xy: Xy<T>,
+    /// 1.0 = 100% of the screen's radius
+    pub radius: T,
 }
 
 // TODO: implement migration

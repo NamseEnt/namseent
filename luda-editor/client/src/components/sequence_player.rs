@@ -59,8 +59,13 @@ impl SequencePlayer {
                     let cut = self.sequence.cuts.get(cut_index).unwrap();
                     render([
                         self.render_images(inner_content_rect.wh(), cut, 1.0.one_zero()),
-                        self.render_text_box(inner_content_rect.wh()),
-                        self.render_text(inner_content_rect.wh(), cut, 1.0.one_zero()),
+                        render_text_box(inner_content_rect.wh()),
+                        render_text(
+                            &self.project_shared_data,
+                            inner_content_rect.wh(),
+                            cut,
+                            1.0.one_zero(),
+                        ),
                         simple_rect(
                             inner_content_rect.wh(),
                             Color::TRANSPARENT,
@@ -86,8 +91,9 @@ impl SequencePlayer {
                             from_cut_index,
                             transition_progress,
                         ),
-                        self.render_text_box(inner_content_rect.wh()),
-                        self.render_text(
+                        render_text_box(inner_content_rect.wh()),
+                        render_text(
+                            &self.project_shared_data,
                             inner_content_rect.wh(),
                             from_cut,
                             1.0.one_zero() - transition_progress,
@@ -137,157 +143,42 @@ impl SequencePlayer {
             }
         }
     }
-
-    fn render_text_box(&self, wh: Wh<Px>) -> RenderingTree {
-        table::vertical([
-            table::ratio(3, |_wh| RenderingTree::Empty),
-            table::ratio(1, |wh| {
-                rect(RectParam {
-                    rect: Rect::from_xy_wh(Xy::zero(), wh),
-                    style: RectStyle {
-                        stroke: Some(RectStroke {
-                            color: Color::BLACK,
-                            width: 1.px(),
-                            border_position: BorderPosition::Inside,
-                        }),
-                        fill: Some(RectFill {
-                            color: Color::from_f01(1.0, 1.0, 1.0, 0.3),
-                        }),
-                        round: Some(RectRound { radius: 8.px() }),
-                    },
-                })
-            }),
-        ])(wh)
-    }
-
-    fn render_text(&self, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
-        table::vertical([
-            table::ratio(3, |_wh| RenderingTree::Empty),
-            table::ratio(
-                1,
-                table::vertical([
-                    table::ratio(1, |wh| {
-                        let character_name = cut
-                            .character_id
-                            .and_then(|character_id| {
-                                self.project_shared_data
-                                    .characters
-                                    .iter()
-                                    .find(|character| character.id() == character_id)
-                            })
-                            .map(|character| &character.name);
-
-                        match character_name {
-                            Some(character_name) => {
-                                let margin = 32.px();
-                                text(TextParam {
-                                    text: character_name.clone(),
-                                    x: margin,
-                                    y: wh.height / 2,
-                                    align: TextAlign::Left,
-                                    baseline: TextBaseline::Middle,
-                                    font_type: FontType {
-                                        serif: false,
-                                        size: 36.int_px(),
-                                        language: Language::Ko,
-                                        font_weight: FontWeight::BOLD,
-                                    },
-                                    style: TextStyle {
-                                        border: Some(TextStyleBorder {
-                                            width: 4.px(),
-                                            color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
-                                        }),
-                                        drop_shadow: Some(TextStyleDropShadow {
-                                            x: 1.px(),
-                                            y: 2.px(),
-                                            color: Some(Color::from_f01(
-                                                0.0,
-                                                0.0,
-                                                0.0,
-                                                opacity.as_f32(),
-                                            )),
-                                        }),
-                                        color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
-                                        ..Default::default()
-                                    },
-                                    max_width: Some(wh.width - margin * 2),
-                                })
-                            }
-                            None => RenderingTree::Empty,
-                        }
-                    }),
-                    table::ratio(3, |wh| {
-                        let margin = 32.px();
-                        text(TextParam {
-                            text: cut.line.clone(),
-                            x: margin,
-                            y: margin,
-                            align: TextAlign::Left,
-                            baseline: TextBaseline::Top,
-                            font_type: FontType {
-                                serif: false,
-                                size: 24.int_px(),
-                                language: Language::Ko,
-                                font_weight: FontWeight::BOLD,
-                            },
-                            style: TextStyle {
-                                border: Some(TextStyleBorder {
-                                    width: 4.px(),
-                                    color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
-                                }),
-                                drop_shadow: Some(TextStyleDropShadow {
-                                    x: 1.px(),
-                                    y: 2.px(),
-                                    color: Some(Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32())),
-                                }),
-                                color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
-                                line_height_percent: 150.percent(),
-                                ..Default::default()
-                            },
-                            max_width: Some(wh.width - margin * 2),
-                        })
-                    }),
-                ]),
-            ),
-        ])(wh)
-    }
     fn get_image_urls(&self, cut: &Cut) -> Vec<Url> {
-        cut.screen_image_ids
-            .into_iter()
-            .filter_map(|image_id| image_id)
-            .map(|image_id| get_project_image_url(self.project_shared_data.id(), image_id).unwrap())
+        cut.screen_images
+            .iter()
+            .filter_map(|screen_image| screen_image.as_ref())
+            .map(|screen_image| {
+                get_project_image_url(self.project_shared_data.id(), screen_image.id).unwrap()
+            })
             .collect::<Vec<_>>()
     }
     fn render_images(&self, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
-        let image_urls = cut
-            .screen_image_ids
-            .into_iter()
-            .filter_map(|image_id| image_id)
-            .map(|image_id| get_project_image_url(self.project_shared_data.id(), image_id).unwrap())
-            .collect::<Vec<_>>();
-
-        let image_count = image_urls.len();
-
-        let image_width = wh.width / image_count;
-
         let paint_builder = namui::PaintBuilder::new().set_color_filter(
             Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
             BlendMode::DstIn,
         );
 
-        render(image_urls.into_iter().enumerate().map(|(i, image_url)| {
-            namui::image(ImageParam {
-                rect: Rect::from_xy_wh(
-                    Xy::new(image_width * i, 0.px()),
-                    Wh::new(image_width, wh.height),
-                ),
-                source: ImageSource::Url(image_url),
-                style: ImageStyle {
-                    fit: ImageFit::Contain,
-                    paint_builder: Some(paint_builder.clone()),
-                },
-            })
-        }))
+        let images = cut.screen_images.iter().filter_map(|screen_image| {
+            Some(namui::try_render(|| {
+                let screen_image = screen_image.as_ref()?;
+                let url =
+                    get_project_image_url(self.project_shared_data.id(), screen_image.id).unwrap();
+                let image = namui::image::try_load_url(&url)?;
+
+                let rect =
+                    calculate_image_rect_on_screen(image.size(), wh, screen_image.circumscribed);
+
+                Some(namui::image(ImageParam {
+                    rect,
+                    source: ImageSource::Image(image),
+                    style: ImageStyle {
+                        fit: ImageFit::Fill,
+                        paint_builder: Some(paint_builder.clone()),
+                    },
+                }))
+            }))
+        });
+        render(images)
     }
 
     fn go_to_next_cut(&mut self, do_transition: bool) {
@@ -366,7 +257,7 @@ impl SequencePlayer {
     }
 }
 
-fn get_inner_content_rect(wh: Wh<Px>) -> Rect<Px> {
+pub fn get_inner_content_rect(wh: Wh<Px>) -> Rect<Px> {
     let width_per_height = 4.0 / 3.0;
 
     let ratio = wh.width / wh.height;
@@ -382,4 +273,149 @@ fn get_inner_content_rect(wh: Wh<Px>) -> Rect<Px> {
         let result_xy = Xy::new(0.px(), (wh.height - result_wh.height) / 2.0);
         Rect::from_xy_wh(result_xy, result_wh)
     }
+}
+
+pub fn render_text_box(screen_wh: Wh<Px>) -> RenderingTree {
+    table::vertical([
+        table::ratio(3, |_wh| RenderingTree::Empty),
+        table::ratio(1, |wh| {
+            rect(RectParam {
+                rect: Rect::from_xy_wh(Xy::zero(), wh),
+                style: RectStyle {
+                    stroke: Some(RectStroke {
+                        color: Color::BLACK,
+                        width: 1.px(),
+                        border_position: BorderPosition::Inside,
+                    }),
+                    fill: Some(RectFill {
+                        color: Color::from_f01(1.0, 1.0, 1.0, 0.3),
+                    }),
+                    round: Some(RectRound { radius: 8.px() }),
+                },
+            })
+        }),
+    ])(screen_wh)
+}
+
+pub fn render_text(
+    project_shared_data: &ProjectSharedData,
+    wh: Wh<Px>,
+    cut: &Cut,
+    opacity: OneZero,
+) -> RenderingTree {
+    table::vertical([
+        table::ratio(3, |_wh| RenderingTree::Empty),
+        table::ratio(
+            1,
+            table::vertical([
+                table::ratio(1, |wh| {
+                    let character_name = cut
+                        .character_id
+                        .and_then(|character_id| {
+                            project_shared_data
+                                .characters
+                                .iter()
+                                .find(|character| character.id() == character_id)
+                        })
+                        .map(|character| &character.name);
+
+                    match character_name {
+                        Some(character_name) => {
+                            let margin = 32.px();
+                            text(TextParam {
+                                text: character_name.clone(),
+                                x: margin,
+                                y: wh.height / 2,
+                                align: TextAlign::Left,
+                                baseline: TextBaseline::Middle,
+                                font_type: FontType {
+                                    serif: false,
+                                    size: 36.int_px(),
+                                    language: Language::Ko,
+                                    font_weight: FontWeight::BOLD,
+                                },
+                                style: TextStyle {
+                                    border: Some(TextStyleBorder {
+                                        width: 4.px(),
+                                        color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
+                                    }),
+                                    drop_shadow: Some(TextStyleDropShadow {
+                                        x: 1.px(),
+                                        y: 2.px(),
+                                        color: Some(Color::from_f01(
+                                            0.0,
+                                            0.0,
+                                            0.0,
+                                            opacity.as_f32(),
+                                        )),
+                                    }),
+                                    color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
+                                    ..Default::default()
+                                },
+                                max_width: Some(wh.width - margin * 2),
+                            })
+                        }
+                        None => RenderingTree::Empty,
+                    }
+                }),
+                table::ratio(3, |wh| {
+                    let margin = 32.px();
+                    text(TextParam {
+                        text: cut.line.clone(),
+                        x: margin,
+                        y: margin,
+                        align: TextAlign::Left,
+                        baseline: TextBaseline::Top,
+                        font_type: FontType {
+                            serif: false,
+                            size: 24.int_px(),
+                            language: Language::Ko,
+                            font_weight: FontWeight::BOLD,
+                        },
+                        style: TextStyle {
+                            border: Some(TextStyleBorder {
+                                width: 4.px(),
+                                color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
+                            }),
+                            drop_shadow: Some(TextStyleDropShadow {
+                                x: 1.px(),
+                                y: 2.px(),
+                                color: Some(Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32())),
+                            }),
+                            color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
+                            line_height_percent: 150.percent(),
+                            ..Default::default()
+                        },
+                        max_width: Some(wh.width - margin * 2),
+                    })
+                }),
+            ]),
+        ),
+    ])(wh)
+}
+
+pub fn calculate_image_wh_on_screen(
+    original_image_size: Wh<Px>,
+    container_wh: Wh<Px>,
+    circumscribed: Circumscribed<Percent>,
+) -> Wh<Px> {
+    let screen_radius = container_wh.length() / 2;
+    let image_radius_px = original_image_size.length() / 2;
+    let radius_px = screen_radius * circumscribed.radius;
+
+    let wh = original_image_size * (radius_px / image_radius_px);
+    wh
+}
+
+pub fn calculate_image_rect_on_screen(
+    original_image_size: Wh<Px>,
+    container_wh: Wh<Px>,
+    circumscribed: Circumscribed<Percent>,
+) -> Rect<Px> {
+    let wh = calculate_image_wh_on_screen(original_image_size, container_wh, circumscribed);
+    let center_xy = container_wh.as_xy() * circumscribed.center_xy;
+
+    let xy = center_xy - wh.as_xy() / 2.0;
+
+    Rect::from_xy_wh(xy, wh)
 }

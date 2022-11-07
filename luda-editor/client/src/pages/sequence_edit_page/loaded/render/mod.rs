@@ -39,20 +39,36 @@ impl LoadedSequenceEditorPage {
             },
             match &self.image_select_modal {
                 Some(image_select_modal) => {
-                    let modal_wh = props.wh * 2.0 / 3.0;
-                    let xy = ((props.wh - modal_wh) / 2.0).as_xy();
-                    translate(
-                        xy.x,
-                        xy.y,
-                        image_select_modal.render(image_select_modal::Props {
-                            wh: modal_wh,
-                            recent_selected_image_ids: &self.recent_selected_image_ids,
-                        }),
-                    )
+                    if let Some(cut) = self
+                        .sequence
+                        .cuts
+                        .iter()
+                        .find(|cut| cut.id() == image_select_modal.cut_id)
+                    {
+                        let modal_wh = props.wh * 2.0 / 3.0;
+                        let xy = ((props.wh - modal_wh) / 2.0).as_xy();
+                        translate(
+                            xy.x,
+                            xy.y,
+                            image_select_modal.render(image_select_modal::Props {
+                                wh: modal_wh,
+                                recent_selected_image_ids: &self.recent_selected_image_ids,
+                                cut,
+                                project_shared_data: &self.project_shared_data,
+                            }),
+                        )
+                    } else {
+                        RenderingTree::Empty
+                    }
                 }
                 None => RenderingTree::Empty,
             },
-        ]);
+        ])
+        .attach_event(|builder| {
+            builder.on_mouse_down_in(|event| {
+                event.stop_propagation();
+            });
+        });
 
         render([
             table::horizontal([

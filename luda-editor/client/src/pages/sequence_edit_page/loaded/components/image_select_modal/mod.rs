@@ -1,15 +1,19 @@
 mod render;
 mod update;
 
-use super::image_edit_modal;
+use super::{image_edit_modal, screen_editor};
 use crate::components::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::*;
-use std::collections::{BTreeSet, VecDeque};
+use std::{
+    collections::{BTreeSet, VecDeque},
+    sync::Arc,
+};
 
 pub struct ImageSelectModal {
     project_id: Uuid,
+    pub cut_id: Uuid,
     context_menu: Option<context_menu::ContextMenu>,
     label_scroll_view: scroll_view::ScrollView,
     image_list_scroll_view: scroll_view::ScrollView,
@@ -17,12 +21,16 @@ pub struct ImageSelectModal {
     images: Vec<ImageWithLabels>,
     selected_labels: BTreeSet<Label>,
     selected_image: Option<ImageWithLabels>,
-    on_done: Box<dyn Fn(Option<Uuid>)>,
+    on_update_image: Arc<dyn Fn(Update)>,
+    selected_screen_image_index: Option<usize>,
+    screen_editor: Option<screen_editor::ScreenEditor>,
 }
 
 pub struct Props<'a> {
     pub wh: Wh<Px>,
     pub recent_selected_image_ids: &'a VecDeque<Uuid>,
+    pub cut: &'a Cut,
+    pub project_shared_data: &'a ProjectSharedData,
 }
 
 pub enum Event {
@@ -38,15 +46,32 @@ enum InternalEvent {
         image: ImageWithLabels,
         update_labels: bool,
     },
-    Done {
-        image_id: Option<Uuid>,
+    EditScreenPressed {
+        screen_images: ScreenImages,
+    },
+    SelectScreenImageIndex {
+        index: usize,
+    },
+    ScreenEditDone {
+        screen_images: ScreenImages,
     },
 }
 
+pub struct Update {
+    pub cut_id: Uuid,
+    pub screen_images: ScreenImages,
+}
+
 impl ImageSelectModal {
-    pub fn new(project_id: Uuid, on_done: impl Fn(Option<Uuid>) + 'static) -> ImageSelectModal {
+    pub fn new(
+        project_id: Uuid,
+        cut_id: Uuid,
+        selected_screen_image_index: usize,
+        on_update_image: impl Fn(Update) + 'static,
+    ) -> ImageSelectModal {
         let modal = ImageSelectModal {
             project_id,
+            cut_id,
             context_menu: None,
             label_scroll_view: scroll_view::ScrollView::new(),
             image_list_scroll_view: scroll_view::ScrollView::new(),
@@ -54,7 +79,9 @@ impl ImageSelectModal {
             images: vec![],
             selected_labels: BTreeSet::new(),
             selected_image: None,
-            on_done: Box::new(on_done),
+            on_update_image: Arc::new(on_update_image),
+            selected_screen_image_index: Some(selected_screen_image_index),
+            screen_editor: None,
         };
         modal.request_reload_images();
         modal
