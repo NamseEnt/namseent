@@ -32,7 +32,11 @@ impl Positioner {
         self.current_xy
     }
     pub fn xy_with_interpolation(&self, interpolation_progress: f32) -> Xy<Tile> {
-        self.previous_xy * (1.0 - interpolation_progress) + self.current_xy * interpolation_progress
+        if interpolation_progress >= 1.0 {
+            self.current_xy
+        } else {
+            self.previous_xy + (self.current_xy - self.previous_xy) * interpolation_progress
+        }
     }
 
     pub fn set_xy(&mut self, xy: Xy<Tile>) {
