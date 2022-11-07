@@ -22,7 +22,7 @@ impl PlayingStatus {
                 start_at,
                 playback_time_on_start,
             } => {
-                let now = Time::now();
+                let now = namui::now();
                 let elapsed = now - start_at;
                 playback_time_on_start + elapsed
             }
@@ -38,7 +38,7 @@ impl PlayingStatus {
             }
             PlayingStatus::Paused { playback_time } => {
                 *self = PlayingStatus::Playing {
-                    start_at: Time::now(),
+                    start_at: namui::now(),
                     playback_time_on_start: *playback_time,
                 }
             }
@@ -48,7 +48,7 @@ impl PlayingStatus {
         match self {
             PlayingStatus::Playing { .. } => {
                 *self = PlayingStatus::Playing {
-                    start_at: Time::now(),
+                    start_at: namui::now(),
                     playback_time_on_start: time,
                 }
             }

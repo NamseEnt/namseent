@@ -3,7 +3,6 @@ mod open_external;
 mod request_animation_frame;
 mod set_timeout;
 pub(crate) mod text;
-pub mod types;
 
 use super::render::{RenderingData, RenderingTree};
 use crate::*;
@@ -14,7 +13,6 @@ use serde::{Deserialize, Serialize};
 use serde_repr::*;
 pub use set_timeout::*;
 use std::collections::HashSet;
-pub use types::*;
 
 impl std::convert::From<RenderingData> for RenderingTree {
     fn from(data: RenderingData) -> Self {

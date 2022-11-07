@@ -12,11 +12,13 @@ pub mod utils;
 
 pub use self::random::*;
 pub use auto_ops;
-pub use common::{types::*, *};
+pub use common::*;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
 pub use event::NamuiEvent;
 pub use namui_cfg::*;
 pub use namui_context::NamuiContext;
+pub use namui_type as types;
+pub use namui_type::*;
 pub use random::uuid::*;
 pub use render::{
     absolute, clip, image::*, on_top, path::*, react, rect::*, rotate, scale, text::*, text_input,

@@ -656,6 +656,7 @@ dependencies = [
  "lru",
  "nalgebra",
  "namui-cfg",
+ "namui-type",
  "num",
  "once_cell",
  "ordered-float",
@@ -686,6 +687,16 @@ dependencies = [
  "lazy_static",
  "namui-user-config",
  "rust_cfg_parser",
+]
+
+[[package]]
+name = "namui-type"
+version = "0.1.0"
+dependencies = [
+ "auto_ops",
+ "num",
+ "ordered-float",
+ "serde",
 ]
 
 [[package]]

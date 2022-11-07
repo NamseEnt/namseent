@@ -1,8 +1,6 @@
-use ::uuid::Uuid;
-
 use super::previous;
-#[cfg(feature = "client")]
-use namui::prelude::*;
+use ::uuid::Uuid;
+use namui_type::*;
 
 pub type ScreenImages = [Option<ScreenImage>; 5];
 
@@ -51,14 +49,12 @@ impl Cut {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ScreenImage {
     pub id: Uuid,
-    #[cfg(feature = "client")]
     pub circumscribed: Circumscribed<Percent>,
 }
 impl ScreenImage {
     pub fn new(id: Uuid) -> Self {
         Self {
             id,
-            #[cfg(feature = "client")]
             circumscribed: Circumscribed {
                 center_xy: Xy::new(50.percent(), 50.percent()),
                 radius: 50.percent(),
@@ -68,7 +64,6 @@ impl ScreenImage {
 }
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
-#[cfg(feature = "client")]
 pub struct Circumscribed<T> {
     /// (0,0) : left top, (1,1) : right bottom
     pub center_xy: Xy<T>,

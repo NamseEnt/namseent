@@ -4,6 +4,7 @@ use super::project::documents::ProjectDocument;
 use crate::session::SessionDocument;
 use documents::*;
 use futures::future::try_join_all;
+use rpc::data::Sequence;
 
 #[derive(Debug)]
 pub struct SequenceService {}
@@ -141,10 +142,10 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                 .update_item(
                     req.sequence_id,
                     Option::<String>::None,
-                    |mut sequence: SequenceDocument| async {
+                    |mut document: SequenceDocument| async {
                         let is_project_editor = crate::services()
                             .project_service
-                            .is_project_editor(session.user_id, sequence.project_id)
+                            .is_project_editor(session.user_id, document.project_id)
                             .await
                             .map_err(|error| {
                                 rpc::update_server_sequence::Error::Unknown(error.to_string())
@@ -154,20 +155,26 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                             return Err(rpc::update_server_sequence::Error::Unauthorized);
                         }
 
-                        let mut sequence_json =
-                            serde_json::from_str::<serde_json::Value>(&sequence.json).map_err(
-                                |err| rpc::update_server_sequence::Error::Unknown(err.to_string()),
-                            )?;
-                        rpc::json_patch::patch(&mut sequence_json, &req.patch).map_err(|err| {
-                            rpc::update_server_sequence::Error::Unknown(err.to_string())
-                        })?;
+                        // to call migration
+                        let sequence =
+                            serde_json::from_str::<Sequence>(&document.json).map_err(|err| {
+                                rpc::update_server_sequence::Error::Unknown(err.to_string())
+                            })?;
+                        let mut sequence_json_value =
+                            serde_json::to_value(&sequence).map_err(|err| {
+                                rpc::update_server_sequence::Error::Unknown(err.to_string())
+                            })?;
+                        rpc::json_patch::patch(&mut sequence_json_value, &req.patch).map_err(
+                            |err| rpc::update_server_sequence::Error::Unknown(err.to_string()),
+                        )?;
 
-                        sequence.json = serde_json::to_string(&sequence_json).map_err(|err| {
-                            rpc::update_server_sequence::Error::Unknown(err.to_string())
-                        })?;
+                        document.json =
+                            serde_json::to_string(&sequence_json_value).map_err(|err| {
+                                rpc::update_server_sequence::Error::Unknown(err.to_string())
+                            })?;
 
-                        sequence.last_modified = Some(chrono::Utc::now().timestamp_nanos());
-                        Ok(sequence)
+                        document.last_modified = Some(chrono::Utc::now().timestamp_nanos());
+                        Ok(document)
                     },
                 )
                 .await

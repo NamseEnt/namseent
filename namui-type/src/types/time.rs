@@ -139,11 +139,7 @@ impl Time {
         }
     }
 
-    pub fn now() -> Self {
-        Time::Ms(crate::now().as_millis() as f32)
-    }
-
-    pub(crate) fn as_duration(&self) -> std::time::Duration {
+    pub fn as_duration(&self) -> std::time::Duration {
         match self {
             Time::Ms(ms) => std::time::Duration::from_millis(*ms as u64),
             Time::Sec(s) => std::time::Duration::from_secs(*s as u64),
@@ -169,7 +165,7 @@ impl Time {
     }
 }
 
-crate::types::impl_op_forward_ref_reversed_for_f32_i32_usize!(*|lhs: Time, rhs: f32| -> Time {
+crate::impl_op_forward_ref_reversed_for_f32_i32_usize!(*|lhs: Time, rhs: f32| -> Time {
     match lhs {
         Time::Ms(x) => Time::Ms(x * rhs),
         Time::Sec(x) => Time::Sec(x * rhs),
@@ -349,10 +345,8 @@ impl crate::SimpleSigned for Time {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
-    #[wasm_bindgen_test]
     fn relative_time_format_works() {
         assert_eq!("a few seconds ago", 1.5.sec().relative_time_format());
         assert_eq!("47 seconds ago", 46.7.sec().relative_time_format());
