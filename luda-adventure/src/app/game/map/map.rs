@@ -13,6 +13,9 @@ pub struct Map {
 }
 
 impl Map {
+    pub fn new(wh: Wh<usize>, wall: Vec<String>) -> Self {
+        Self { wh, wall }
+    }
     pub fn mock() -> Self {
         Self {
             wh: Wh {

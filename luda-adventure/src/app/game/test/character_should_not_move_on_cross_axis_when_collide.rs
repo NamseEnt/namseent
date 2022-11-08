@@ -3,7 +3,9 @@ use namui::prelude::*;
 use wasm_bindgen_test::wasm_bindgen_test;
 
 use crate::{
-    app::game::{new_player, Game, Movement, Mover, PlayerCharacter, Positioner, Tile, TileExt},
+    app::game::{
+        new_player, Game, Map, Movement, Mover, PlayerCharacter, Positioner, Tile, TileExt,
+    },
     ecs,
 };
 
@@ -42,8 +44,27 @@ fn add_character(ecs_app: &mut ecs::App) {
 
 /// Horizontal wall at y = 12
 /// Character will stop at y = 10, 1 sec
-fn add_wall(_ecs_app: &mut ecs::App) {
-    todo!()
+fn add_wall(ecs_app: &mut ecs::App) {
+    ecs_app.add_entities(
+        Map::new(
+            Wh::new(12, 12),
+            vec![
+                "000000000000".to_string(),
+                "000000000000".to_string(),
+                "000000000000".to_string(),
+                "000000000000".to_string(),
+                "000000000000".to_string(),
+                "000000000000".to_string(),
+                "000000000000".to_string(),
+                "000000000000".to_string(),
+                "000000000000".to_string(),
+                "000000000000".to_string(),
+                "000000000000".to_string(),
+                "111111111111".to_string(),
+            ],
+        )
+        .create_entities(),
+    )
 }
 
 fn get_character_x(ecs_app: &ecs::App) -> Tile {

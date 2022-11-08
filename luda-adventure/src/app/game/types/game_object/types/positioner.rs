@@ -32,4 +32,7 @@ impl Positioner {
     pub fn set_xy(&mut self, xy: Xy<Tile>) {
         self.current_xy = xy;
     }
+    pub fn save_current_xy(&mut self) {
+        self.previous_xy = self.current_xy;
+    }
 }
