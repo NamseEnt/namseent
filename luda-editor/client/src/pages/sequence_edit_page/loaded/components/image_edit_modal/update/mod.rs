@@ -1,4 +1,7 @@
+mod optimize_image;
+
 use super::*;
+use optimize_image::*;
 
 impl ImageEditModal {
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -97,6 +100,8 @@ async fn create_image(
         None => [].into(),
     };
 
+    let body = optimize_to_jpg(&body)?;
+
     namui::network::http::fetch(
         response.upload_url,
         namui::network::http::Method::PUT,
@@ -108,7 +113,6 @@ async fn create_image(
 
     Ok(())
 }
-
 async fn update_image(
     _prev_label_list: Vec<Label>,
     _new_label_list: Vec<Label>,
