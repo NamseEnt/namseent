@@ -25,7 +25,7 @@ impl Game {
                 for other_rigid_body in rigid_body_list_except_character.iter() {
                     if let CollisionInfo::Collided {
                         penetration_depth,
-                        collision_normal,
+                        counter_penetration_vector,
                     } = CollisionInfo::min_by_penetration_depth(
                         character_rigid_body.collide(&other_rigid_body),
                         other_rigid_body
@@ -36,7 +36,7 @@ impl Game {
                         collision_resolve_count += 1;
                         move_back_by_penetration_depth(
                             penetration_depth,
-                            collision_normal,
+                            counter_penetration_vector,
                             character_positioner,
                         );
                         character_rigid_body =
@@ -66,9 +66,9 @@ fn get_rigid_body_list_except_character(ecs_app: &ecs::App) -> Vec<RigidBody> {
 
 fn move_back_by_penetration_depth(
     penetration_depth: Tile,
-    collision_normal: Xy<Tile>,
+    counter_penetration_vector: Xy<Tile>,
     character_positioner: &mut Positioner,
 ) {
-    let counter_penetration_xy = collision_normal * penetration_depth.as_f32();
+    let counter_penetration_xy = counter_penetration_vector * penetration_depth.as_f32();
     character_positioner.set_xy(character_positioner.xy() + counter_penetration_xy)
 }

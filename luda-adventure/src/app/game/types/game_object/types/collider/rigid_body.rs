@@ -1,8 +1,8 @@
 use super::CollisionInfo;
 use crate::app::game::Tile;
 use geo::{
-    coord, polygon, Contains, Coordinate, CoordsIter, EuclideanDistance, Line, LinesIter, Polygon,
-    Translate,
+    coord, polygon, ClosestPoint, Contains, Coordinate, CoordsIter, EuclideanDistance, Line,
+    LinesIter, Polygon, Translate,
 };
 use namui::prelude::*;
 
@@ -38,13 +38,18 @@ impl RigidBody {
             .filter(|point| other.polygon.contains(point))
             .collect::<Vec<_>>();
         let other_collider_lines = other.polygon.lines_iter().collect::<Vec<_>>();
-        match minimum_distance_line_pair(penetrating_points, other_collider_lines) {
-            Some((distance, line)) => {
-                let penetration_depth = Tile::from(distance as f32);
-                let collision_normal = normal_vector(line);
+        match closest_point_line_pair(penetrating_points, other_collider_lines) {
+            Some((point, line)) => {
+                let counter_penetration_vector = match line.closest_point(&point.into()) {
+                    geo::Closest::SinglePoint(closest_point) => {
+                        normalized_vector(point, closest_point.into())
+                    }
+                    _ => normal_vector(line),
+                };
+                let penetration_depth = Tile::from(point.euclidean_distance(&line) as f32);
                 CollisionInfo::Collided {
                     penetration_depth,
-                    collision_normal,
+                    counter_penetration_vector,
                 }
             }
             None => CollisionInfo::NotCollided,
@@ -61,26 +66,35 @@ fn normal_vector(line: Line) -> Xy<Tile> {
     };
     normal_vector
 }
-
-fn minimum_distance_line_pair(points: Vec<Coordinate>, lines: Vec<Line>) -> Option<(f64, Line)> {
-    let mut minimum_distance_line_pair = None;
+fn normalized_vector(from: Coordinate, to: Coordinate) -> Xy<Tile> {
+    let vector = to - from;
+    let length = vector.euclidean_distance(&coord! {x: 0., y: 0.});
+    let normalized_vector = vector / length;
+    Xy::new(
+        Tile::from(normalized_vector.x as f32),
+        Tile::from(normalized_vector.y as f32),
+    )
+}
+fn closest_point_line_pair(
+    points: Vec<Coordinate>,
+    lines: Vec<Line>,
+) -> Option<(Coordinate, Line)> {
+    let mut closest_point_line_pair = None;
+    let mut closest_distance = None;
     for point in points {
         for line in lines.iter() {
             let distance = point.euclidean_distance(line);
-            replace_minimum_distance_line_pair_if_less(
-                &mut minimum_distance_line_pair,
-                (distance, *line),
-            );
+            if is_new_distance_closest(closest_distance, distance) {
+                closest_distance = Some(distance);
+                closest_point_line_pair = Some((point, *line));
+            }
         }
     }
-    minimum_distance_line_pair
+    closest_point_line_pair
 }
-fn replace_minimum_distance_line_pair_if_less(
-    minimum_distance_line_pair: &mut Option<(f64, Line)>,
-    new: (f64, Line),
-) {
-    match minimum_distance_line_pair {
-        Some(old) if old.0 < new.0 => (),
-        _ => *minimum_distance_line_pair = Some(new),
+fn is_new_distance_closest(closest_distance: Option<f64>, new_distance: f64) -> bool {
+    match closest_distance {
+        Some(old_distance) if old_distance < new_distance => false,
+        _ => true,
     }
 }

@@ -7,7 +7,7 @@ pub enum CollisionInfo {
     NotCollided,
     Collided {
         penetration_depth: Tile,
-        collision_normal: Xy<Tile>,
+        counter_penetration_vector: Xy<Tile>,
     },
 }
 
@@ -17,12 +17,12 @@ impl CollisionInfo {
             CollisionInfo::NotCollided => self,
             CollisionInfo::Collided {
                 penetration_depth,
-                collision_normal,
+                counter_penetration_vector,
             } => CollisionInfo::Collided {
                 penetration_depth,
-                collision_normal: Xy {
-                    x: collision_normal.x.neg(),
-                    y: collision_normal.y.neg(),
+                counter_penetration_vector: Xy {
+                    x: counter_penetration_vector.x.neg(),
+                    y: counter_penetration_vector.y.neg(),
                 },
             },
         }
