@@ -4,13 +4,12 @@ pub fn get_project_image_url(
     project_id: Uuid,
     image_id: Uuid,
 ) -> Result<Url, Box<dyn std::error::Error>> {
-    let filename = format!("{}.jpg", image_id);
     let url_string = crate::append_slash![
         crate::SETTING.resource_base_url,
         "projects",
         project_id,
         "images",
-        filename,
+        image_id,
     ];
     let url = Url::parse(&url_string)?;
     Ok(url)

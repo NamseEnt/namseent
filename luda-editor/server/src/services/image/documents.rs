@@ -23,8 +23,7 @@ impl Document for ProjectImageDocument {
 
 impl ProjectImageDocument {
     fn s3_key(&self) -> String {
-        let filename = format!("{}.jpg", self.image_id);
-        crate::append_slash!["projects", self.project_id, "images", filename]
+        crate::append_slash!["projects", self.project_id, "images", self.image_id,]
     }
     pub fn get_image_url(&self) -> String {
         let s3_key = self.s3_key();
