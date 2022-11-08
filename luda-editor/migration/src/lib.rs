@@ -9,7 +9,7 @@ pub fn version(attribute_input: TokenStream, input: TokenStream) -> TokenStream 
     let version = attribute_args
         .iter()
         .find_map(|arg| match arg {
-            syn::NestedMeta::Lit(syn::Lit::Int(lit)) => Some(lit.base10_parse::<u32>().unwrap()),
+            syn::NestedMeta::Lit(syn::Lit::Int(lit)) => Some(lit.base10_parse::<u64>().unwrap()),
             _ => None,
         })
         .expect("version attribute must have a integer version");
@@ -223,7 +223,7 @@ pub fn version(attribute_input: TokenStream, input: TokenStream) -> TokenStream 
                     })
                     .unwrap_or(Ok(0))?;
 
-                if version < 1 {
+                if version < #version {
                     let previous = serde_json::from_value(json_value).map_err(|e| {
                         serde::de::Error::custom(format!("failed to deserialize previous version: {}", e))
                     })?;
