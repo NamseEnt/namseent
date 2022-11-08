@@ -28,6 +28,19 @@ impl ImageSelectModal {
                 table::vertical([
                     table::fixed(20.px(), |wh| {
                         table::horizontal([
+                            table::fit(
+                                table::FitAlign::RightBottom,
+                                button::text_button_fit(
+                                    wh.height,
+                                    "Upload Bulk Images using zip",
+                                    Color::WHITE,
+                                    Color::WHITE,
+                                    2.px(),
+                                    Color::BLACK,
+                                    12.px(),
+                                    || namui::event::send(InternalEvent::RequestUploadBulkImages),
+                                ),
+                            ),
                             table::ratio(1, |_| RenderingTree::Empty),
                             table::fit(
                                 table::FitAlign::RightBottom,

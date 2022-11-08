@@ -5,6 +5,7 @@
 pub mod character_edit_modal;
 pub mod image_edit_modal;
 pub mod image_select_modal;
+pub mod image_upload;
 pub mod screen_editor;
 pub mod screen_image_list;
 pub mod wysiwyg_editor;

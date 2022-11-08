@@ -1,3 +1,5 @@
+mod upload_images;
+
 use super::*;
 
 impl ImageSelectModal {
@@ -50,6 +52,16 @@ impl ImageSelectModal {
                         screen_images: screen_images.clone(),
                     })
                 }
+                InternalEvent::RequestUploadBulkImages => {
+                    let project_id = self.project_id;
+                    spawn_local(async move {
+                        let result = upload_images::upload_images(project_id).await;
+                        match result {
+                            Ok(_) => request_reload_images(project_id),
+                            Err(error) => namui::event::send(Event::Error(error.to_string())),
+                        }
+                    });
+                }
             }
         } else if let Some(event) = event.downcast_ref::<context_menu::Event>() {
             match event {
@@ -61,7 +73,7 @@ impl ImageSelectModal {
             match event {
                 image_edit_modal::Event::Close => {
                     self.image_edit_modal = None;
-                    self.request_reload_images();
+                    request_reload_images(self.project_id);
                 }
                 image_edit_modal::Event::Error(error) => {
                     namui::log!("image_edit_modal error: {}", error);
