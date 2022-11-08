@@ -19,7 +19,7 @@ impl Body {
         self.list_view.update(event);
     }
     pub fn render(&self, props: Props) -> RenderingTree {
-        let now = Time::now();
+        let now = namui::now();
         self.list_view.render(list_view::Props {
             xy: Xy::single(px(0.0)),
             height: props.wh.height,

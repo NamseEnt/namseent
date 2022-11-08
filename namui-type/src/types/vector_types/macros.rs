@@ -56,7 +56,7 @@ macro_rules! vector_types {
         impl<Lhs, Rhs> std::ops::Div<Rhs> for $type_name<Lhs>
         where
             Lhs: std::ops::Div<Rhs, Output = Lhs>,
-            Rhs: $crate::types::Ratio + Clone,
+            Rhs: $crate::Ratio + Clone,
         {
             type Output = $type_name<Lhs>;
             fn div(self, rhs: Rhs) -> Self::Output {
@@ -69,7 +69,7 @@ macro_rules! vector_types {
         impl<'a, Lhs, Rhs> std::ops::Div<Rhs> for &'a $type_name<Lhs>
         where
             Lhs: std::ops::Div<Rhs, Output = Lhs> + Clone,
-            Rhs: $crate::types::Ratio + Clone,
+            Rhs: $crate::Ratio + Clone,
         {
             type Output = $type_name<Lhs>;
             fn div(self, rhs: Rhs) -> Self::Output {
@@ -82,7 +82,7 @@ macro_rules! vector_types {
         impl<Lhs, Rhs> std::ops::DivAssign<Rhs> for $type_name<Lhs>
         where
             Lhs: std::ops::DivAssign<Rhs>,
-            Rhs: $crate::types::Ratio + Clone,
+            Rhs: $crate::Ratio + Clone,
         {
             fn div_assign(&mut self, rhs: Rhs) {
                 $( self.$field_ident.div_assign(rhs.clone()); )*
@@ -92,7 +92,7 @@ macro_rules! vector_types {
         impl<Lhs, Rhs> std::ops::Mul<Rhs> for $type_name<Lhs>
         where
             Lhs: std::ops::Mul<Rhs, Output = Lhs>,
-            Rhs: $crate::types::Ratio + Clone,
+            Rhs: $crate::Ratio + Clone,
         {
             type Output = $type_name<Lhs>;
             fn mul(self, rhs: Rhs) -> Self::Output {
@@ -105,7 +105,7 @@ macro_rules! vector_types {
         impl<'a, Lhs, Rhs> std::ops::Mul<Rhs> for &'a $type_name<Lhs>
         where
             Lhs: std::ops::Mul<Rhs, Output = Lhs> + Clone,
-            Rhs: $crate::types::Ratio + Clone,
+            Rhs: $crate::Ratio + Clone,
         {
             type Output = $type_name<Lhs>;
             fn mul(self, rhs: Rhs) -> Self::Output {
@@ -118,7 +118,7 @@ macro_rules! vector_types {
         impl<Lhs, Rhs> std::ops::MulAssign<Rhs> for $type_name<Lhs>
         where
             Lhs: std::ops::MulAssign<Rhs>,
-            Rhs: $crate::types::Ratio + Clone,
+            Rhs: $crate::Ratio + Clone,
         {
             fn mul_assign(&mut self, rhs: Rhs) {
                 $( self.$field_ident.mul_assign(rhs.clone()); )*

@@ -27,10 +27,8 @@ auto_ops::impl_op!(/ |lhs: Time, rhs: TimePerPx| -> Px {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
-    #[wasm_bindgen_test]
     fn time_div_px_should_work() {
         let time = Time::Ms(1000.0);
         let px = px(10.0);
@@ -41,7 +39,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn time_per_px_mul_px_should_work() {
         let time = Time::Ms(1000.0);
         let px = px(10.0);
@@ -53,7 +50,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn time_div_time_per_px_should_work() {
         let time = Time::Ms(1000.0);
         let px = px(10.0);

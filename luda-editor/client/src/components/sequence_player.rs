@@ -122,7 +122,7 @@ impl SequencePlayer {
             } => {
                 let transition_duration = 500.ms();
 
-                let delta_time = Time::now() - *start_time;
+                let delta_time = namui::now() - *start_time;
                 if delta_time > transition_duration {
                     self.state = State::ShowingCut {
                         cut_index: *from_cut_index + 1,
@@ -197,7 +197,7 @@ impl SequencePlayer {
                     self.state = State::Transitioning {
                         from_cut_index: cut_index,
                         transition_progress: 0.0.one_zero(),
-                        start_time: Time::now(),
+                        start_time: namui::now(),
                     };
                 } else {
                     self.state = State::ShowingCut {

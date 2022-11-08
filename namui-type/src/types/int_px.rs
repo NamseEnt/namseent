@@ -22,6 +22,9 @@ impl IntPx {
     pub fn into_px(self) -> Px {
         (self.0 as f32).px()
     }
+    pub fn as_i32(&self) -> i32 {
+        self.0
+    }
 }
 
 impl std::fmt::Display for IntPx {
@@ -42,9 +45,9 @@ impl Into<Px> for IntPx {
     }
 }
 
-crate::namui::common::types::impl_op_forward_ref_reversed!(+|lhs: IntPx, rhs: Px| -> Px {
+crate::impl_op_forward_ref_reversed!(+|lhs: IntPx, rhs: Px| -> Px {
     crate::px(lhs.0 as f32 + rhs.as_f32())
 });
-crate::namui::common::types::impl_op_forward_ref_reversed!(-|lhs: IntPx, rhs: Px| -> Px {
+crate::impl_op_forward_ref_reversed!(-|lhs: IntPx, rhs: Px| -> Px {
     crate::px(lhs.0 as f32 - rhs.as_f32())
 });

@@ -38,6 +38,7 @@ textwrap = "0.15"
 unicode-segmentation = "1.9"
 uuid = { version = "1.1", features = ["v4", "js", "macro-diagnostics", "serde"]}
 siphasher = "0.3"
+namui-type = { path = "../namui-type" }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"

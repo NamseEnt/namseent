@@ -40,10 +40,8 @@ impl Display for Percent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
-    #[wasm_bindgen_test]
     fn percent_multiply_should_work() {
         let a = 4.0_f32;
         let b = Percent::from_percent(150.0_f32);
@@ -54,7 +52,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn percent_addition_should_work() {
         let a = 50.percent();
         let b = 25.percent();
@@ -65,7 +62,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn percent_display_should_work() {
         let b = Percent::from_percent(150.0);
 

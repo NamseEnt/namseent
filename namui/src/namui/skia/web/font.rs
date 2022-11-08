@@ -20,7 +20,8 @@ impl Font {
         format!("{}-{}", typeface.id, size)
     }
     pub fn new(typeface: &Typeface, size: IntPx) -> Self {
-        let canvas_kit_font = CanvasKitFont::new(&typeface.canvas_kit_typeface, size.0 as i16);
+        let canvas_kit_font =
+            CanvasKitFont::new(&typeface.canvas_kit_typeface, size.as_i32() as i16);
         Font {
             id: Self::generate_id(typeface, size),
             size,

@@ -1,4 +1,4 @@
-use crate::types::Angle;
+use crate::Angle;
 
 crate::vector_types!(Xy, { x, y });
 
@@ -22,10 +22,8 @@ where
 mod tests {
     use super::*;
     use crate::*;
-    use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
-    #[wasm_bindgen_test]
     fn xy_add_xy() {
         let xy = Xy::new(1.0, 2.0);
         let result = xy + Xy::new(2.0, 3.0);
@@ -33,7 +31,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn xy_sub_xy() {
         let xy = Xy::new(1.px(), 2.px());
         let result = xy - Xy::new(2.px(), 3.px());
@@ -41,7 +38,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn xy_div_f32() {
         let xy = Xy::new(1.px(), 2.px());
         let result = xy / 2.0;
@@ -49,7 +45,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn xy_div_xy() {
         let xy = Xy::new(1.px(), 2.px());
         let result = xy / Xy::new(2.0f32, 4.0f32);
@@ -57,7 +52,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn xy_mul_f32() {
         let xy = Xy::new(1.0, 2.0);
         let result = xy * 2.0;
@@ -65,7 +59,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn xy_mul_xy() {
         let xy = Xy::new(1.px(), 2.px());
         let result = xy * Xy::new(2, 3);
@@ -73,7 +66,6 @@ mod tests {
     }
 
     #[test]
-    #[wasm_bindgen_test]
     fn xy_velocity_multiply_time_vector() {
         let xy = Xy::new(Per::new(1.px(), 4.ms()), Per::new(2.px(), 8.ms()));
         let result = xy * Xy::single(4.ms());
@@ -82,7 +74,6 @@ mod tests {
 
     // NOTE: This is not compiled because it needs specialization. https://github.com/rust-lang/rust/issues/31844
     // #[test]
-    // #[wasm_bindgen_test]
     // fn xy_velocity_multiply_time() {
     //     let xy = Xy::new(Per::new(1.px(), 4.ms()), Per::new(2.px(), 8.ms()));
     //     let result = xy * 4.ms();

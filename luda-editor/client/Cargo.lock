@@ -610,6 +610,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "308cc39be01b73d0d18f82a0e7b2a3df85245f84af96fdddc5d202d27e47b86a"
 
 [[package]]
+name = "migration"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "mime"
 version = "0.3.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -696,6 +705,7 @@ dependencies = [
  "lru",
  "nalgebra",
  "namui-cfg",
+ "namui-type",
  "num",
  "once_cell",
  "ordered-float",
@@ -733,6 +743,16 @@ name = "namui-prebuilt"
 version = "0.1.0"
 dependencies = [
  "namui",
+]
+
+[[package]]
+name = "namui-type"
+version = "0.1.0"
+dependencies = [
+ "auto_ops",
+ "num",
+ "ordered-float",
+ "serde",
 ]
 
 [[package]]
@@ -1143,7 +1163,9 @@ dependencies = [
 name = "rpc"
 version = "0.1.0"
 dependencies = [
+ "migration",
  "namui",
+ "namui-type",
  "revert-json-patch",
  "serde",
  "serde_json",
