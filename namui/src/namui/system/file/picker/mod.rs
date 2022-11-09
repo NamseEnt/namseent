@@ -1,11 +1,14 @@
 use crate::system::platform_utils::web::document;
 use std::sync::Arc;
+use uuid::Uuid;
 use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{FileList, InputEvent};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct File {
+    id: Uuid,
+    #[serde(skip_serializing)]
     inner: Arc<web_sys::File>,
 }
 unsafe impl Send for File {}
@@ -64,6 +67,7 @@ pub async fn open() -> Box<[File]> {
     for index in 0..files.length() {
         let file = files.item(index).unwrap();
         result.push(File {
+            id: Uuid::new_v4(),
             inner: Arc::new(file),
         });
     }
