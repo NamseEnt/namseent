@@ -32,7 +32,7 @@ impl ImageSelectModal {
                                 table::FitAlign::RightBottom,
                                 button::text_button_fit(
                                     wh.height,
-                                    "Upload Bulk Images using zip",
+                                    "Upload Bulk Images",
                                     Color::WHITE,
                                     Color::WHITE,
                                     2.px(),
