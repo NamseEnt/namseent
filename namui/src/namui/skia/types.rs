@@ -235,6 +235,13 @@ pub enum ColorType {
     RgbaF16,
     RgbaF32,
 }
+#[allow(dead_code)]
+#[derive(Debug, Serialize, Clone, Copy, Hash, PartialEq, Eq)]
+pub enum ColorSpace {
+    SRGB,
+    DisplayP3,
+    AdobeRgb,
+}
 #[derive(Debug, Serialize, Clone, Copy, PartialEq)]
 pub struct PartialImageInfo {
     pub alpha_type: AlphaType,

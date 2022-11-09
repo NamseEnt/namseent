@@ -7,21 +7,72 @@ unsafe impl Send for CanvasKit {}
 #[wasm_bindgen]
 extern "C" {
     pub type CanvasKit;
+    pub type WebGPUCanvasContext;
+    pub type WebGPUDeviceContext;
 
     #[wasm_bindgen(js_namespace = globalThis, js_name = getCanvasKit)]
     pub(crate) fn canvas_kit() -> CanvasKit;
 
-    /// Surface related functions
     ///
-    /// Creates a Surface on a given canvas. If both GPU and CPU modes have been compiled in, this
-    /// will first try to create a GPU surface and then fallback to a CPU one if that fails. If just
-    /// the CPU mode has been compiled in, a CPU surface will be created.
-    /// @param canvas - either the canvas element itself or a string with the DOM id of it.
+    /// Creates a context that operates over the given WebGPU Device.
+    /// @param device
     ///
     #[wasm_bindgen(structural, method)]
-    pub(crate) fn MakeCanvasSurface(
+    pub(crate) fn MakeGPUDeviceContext(
         this: &CanvasKit,
-        canvas: &HtmlCanvasElement,
+        device: JsValue, // GpuDevice,
+    ) -> Option<WebGPUDeviceContext>;
+
+    // ///
+    // /// Creates a Surface that draws to the given GPU texture.
+    // /// @param ctx
+    // /// @param texture - A texture that was created on the GPU device associated with `ctx`.
+    // /// @param width - Width of the visible region in pixels.
+    // /// @param height - Height of the visible region in pixels.
+    // /// @param colorSpace
+    // ///
+    // #[wasm_bindgen(structural, method)]
+    // pub(crate) fn MakeGPUTextureSurface(
+    //     this: &CanvasKit,
+    //     ctx: WebGPUDeviceContext,
+    //     texture: GPUTexture,
+    //     width: u32,
+    //     height: u32,
+    //     colorSpace: ColorSpace,
+    // ) -> Option<Surface>;
+
+    ///
+    /// Creates and configures a WebGPU context for the given canvas.
+    /// @param ctx
+    /// @param canvas
+    /// @param opts
+    ///
+    #[wasm_bindgen(structural, method)]
+    pub(crate) fn MakeGPUCanvasContext(
+        this: &CanvasKit,
+        ctx: WebGPUDeviceContext,
+        canvas: HtmlCanvasElement,
+        // opts: Option<WebGPUCanvasOptions>,
+    ) -> Option<WebGPUCanvasContext>;
+
+    ///
+    /// Creates a Surface backed by the next available texture in the swapchain associated with the
+    /// given WebGPU canvas context. The context must have been already successfully configured using
+    /// the same GPUDevice associated with `ctx`.
+    /// @param canvasContext - WebGPU context associated with the canvas. The canvas can either be an
+    ///                        on-screen HTMLCanvasElement or an OffscreenCanvas.
+    /// @param colorSpace
+    /// @param width - width of the visible region. If not present, the canvas width from `canvasContext`
+    ///                is used.
+    /// @param height - height of the visible region. If not present, the canvas width from `canvasContext`
+    ///                is used.
+    #[wasm_bindgen(structural, method)]
+    pub(crate) fn MakeGPUCanvasSurface(
+        this: &CanvasKit,
+        canvasContext: WebGPUCanvasContext,
+        colorSpace: CanvasKitColorSpace,
+        width: Option<u32>,
+        height: Option<u32>,
     ) -> Option<CanvasKitSurface>;
 
     // ///

@@ -60,8 +60,8 @@ extern "C" {
     #[wasm_bindgen(structural, method)]
     pub(crate) fn makeImageFromTextureSource(
         this: &CanvasKitSurface,
-        src: web_sys::HtmlImageElement, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
-        info: Option<js_sys::Object>,   // ImageInfo | PartialImageInfo
+        src: JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
+        info: Option<js_sys::Object>, // ImageInfo | PartialImageInfo
         srcIsPremul: Option<bool>,
     ) -> CanvasKitImage;
 

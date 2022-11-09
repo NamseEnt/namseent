@@ -200,3 +200,8 @@ canvas_kit_enum!(TileMode, CanvasKitTileModeEnumValues, CanvasKitTileMode, {
     Mirror: TILE_MODE_MIRROR_VALUE,
     Repeat: TILE_MODE_REPEAT_VALUE,
 });
+canvas_kit_enum!(ColorSpace, CanvasKitColorSpaceEnumValues, CanvasKitColorSpace, {
+    SRGB: SRGB: COLOR_SPACE_SRGB_VALUE,
+    DisplayP3: DISPLAY_P3: COLOR_SPACE_DISPLAY_P3_VALUE,
+    AdobeRgb: ADOBE_RGB: COLOR_SPACE_ADOBE_RGB_VALUE,
+});
