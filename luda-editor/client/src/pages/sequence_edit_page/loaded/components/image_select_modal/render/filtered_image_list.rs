@@ -42,57 +42,15 @@ impl ImageSelectModal {
             .collect::<Vec<_>>();
 
         let row_cell_count = 4;
-
-        let mut rows = vec![];
-
         let padding = 12.px();
+        let image_width = (props.wh.width - padding * 5) / row_cell_count;
 
-        for index in (0..filtered_images.len()).step_by(row_cell_count) {
-            let row_index = index / row_cell_count;
-            let row_images = filtered_images.iter().skip(index).take(row_cell_count);
-
-            let image_width = (props.wh.width - padding * 5) / row_cell_count;
-            let row = row_images.enumerate().map(|(column_index, image)| {
-                let is_selected =
-                    Some(image.id) == self.selected_image.as_ref().map(|image| image.id);
-
-                translate(
-                    (image_width + padding) * column_index + padding,
-                    (image_width + padding) * row_index,
-                    render([
-                        namui::image(ImageParam {
-                            rect: Rect::from_xy_wh(Xy::zero(), Wh::single(image_width)),
-                            source: ImageSource::Url(namui::Url::from_str(&image.url).unwrap()),
-                            style: ImageStyle {
-                                fit: ImageFit::Contain,
-                                paint_builder: None,
-                            },
-                        }),
-                        simple_rect(
-                            Wh::single(image_width),
-                            if is_selected {
-                                Color::RED
-                            } else {
-                                Color::WHITE
-                            },
-                            1.px(),
-                            Color::TRANSPARENT,
-                        ),
-                    ])
-                    .attach_event(move |builder| {
-                        let image = (*image).clone();
-                        builder.on_mouse_down_in(move |_| {
-                            namui::event::send(InternalEvent::ImageSelected {
-                                image: image.clone(),
-                                update_labels: false,
-                            });
-                        });
-                    }),
-                )
+        let row_images_list = (0..filtered_images.len())
+            .step_by(row_cell_count)
+            .map(|index| {
+                let row_images = filtered_images.iter().skip(index).take(row_cell_count);
+                row_images
             });
-
-            rows.push(render(row));
-        }
 
         let title_height_with_padding = 24.px() + typography::title::FONT_SIZE;
 
@@ -100,11 +58,54 @@ impl ImageSelectModal {
             simple_rect(props.wh, Color::WHITE, 1.px(), Color::BLACK),
             title,
             add_image_button,
-            self.image_list_scroll_view.render(&scroll_view::Props {
+            self.image_list_view.render(list_view::Props {
                 xy: Xy::new(0.px(), title_height_with_padding),
                 height: props.wh.height - title_height_with_padding,
                 scroll_bar_width: 4.px(),
-                content: render(rows),
+                item_wh: Wh::new(props.wh.width, image_width + padding),
+                items: row_images_list,
+                item_render: |_wh, item| {
+                    render(item.enumerate().map(|(column_index, image)| {
+                        let is_selected =
+                            Some(image.id) == self.selected_image.as_ref().map(|image| image.id);
+
+                        translate(
+                            (image_width + padding) * column_index + padding,
+                            0.px(),
+                            render([
+                                namui::image(ImageParam {
+                                    rect: Rect::from_xy_wh(Xy::zero(), Wh::single(image_width)),
+                                    source: ImageSource::Url(
+                                        namui::Url::from_str(&image.url).unwrap(),
+                                    ),
+                                    style: ImageStyle {
+                                        fit: ImageFit::Contain,
+                                        paint_builder: None,
+                                    },
+                                }),
+                                simple_rect(
+                                    Wh::single(image_width),
+                                    if is_selected {
+                                        Color::RED
+                                    } else {
+                                        Color::WHITE
+                                    },
+                                    1.px(),
+                                    Color::TRANSPARENT,
+                                ),
+                            ])
+                            .attach_event(move |builder| {
+                                let image = (*image).clone();
+                                builder.on_mouse_down_in(move |_| {
+                                    namui::event::send(InternalEvent::ImageSelected {
+                                        image: image.clone(),
+                                        update_labels: false,
+                                    });
+                                });
+                            }),
+                        )
+                    }))
+                },
             }),
         ])
     }
