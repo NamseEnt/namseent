@@ -1,4 +1,5 @@
 use super::*;
+use wasm_bindgen::JsValue;
 
 pub(crate) struct Surface {
     canvas_kit_surface: CanvasKitSurface,
@@ -22,7 +23,7 @@ impl Surface {
     }
     pub fn make_image_from_texture_source(
         &self,
-        src: web_sys::HtmlImageElement, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
+        src: JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
         info: Option<PartialImageInfo>,
         src_is_premul: Option<bool>,
     ) -> Image {
