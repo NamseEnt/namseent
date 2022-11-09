@@ -21,7 +21,7 @@ impl ImageSelectModal {
             .filter(|image| {
                 self.selected_labels
                     .iter()
-                    .any(|label| image.labels.contains(label))
+                    .all(|label| image.labels.contains(label))
             })
             .collect::<Vec<_>>();
 
