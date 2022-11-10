@@ -341,7 +341,9 @@ impl LoadedSequenceEditorPage {
         } else if let Some(event) = event.downcast_ref::<image_select_modal::Event>() {
             match event {
                 image_select_modal::Event::Close => self.image_select_modal = None,
-                image_select_modal::Event::Error(_) => todo!(),
+                image_select_modal::Event::Error(error) => {
+                    namui::log!("image_select_modal::Event::Error: {error}")
+                }
             }
         } else if let Some(event) = event.downcast_ref::<crate::components::sync::Event>() {
             match event {
