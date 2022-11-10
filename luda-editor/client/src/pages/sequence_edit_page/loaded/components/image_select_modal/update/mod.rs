@@ -85,7 +85,7 @@ impl ImageSelectModal {
             .as_mut()
             .map(|context_menu| context_menu.update(event));
         self.label_scroll_view.update(event);
-        self.image_list_scroll_view.update(event);
+        self.image_list_view.update(event);
         self.image_edit_modal
             .as_mut()
             .map(|image_edit_modal| image_edit_modal.update(event));
