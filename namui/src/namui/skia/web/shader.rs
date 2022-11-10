@@ -1,14 +1,21 @@
 use super::*;
+use uuid::Uuid;
 use wasm_bindgen::{JsCast, JsValue};
 
+#[derive(serde::Serialize)]
 pub struct Shader {
+    id: Uuid,
+    #[serde(skip_serializing)]
     pub(crate) canvas_kit_shader: CanvasKitShader,
 }
 unsafe impl Send for Shader {}
 unsafe impl Sync for Shader {}
 impl Shader {
     pub(crate) fn new(canvas_kit_shader: CanvasKitShader) -> Shader {
-        Shader { canvas_kit_shader }
+        Shader {
+            id: Uuid::new_v4(),
+            canvas_kit_shader,
+        }
     }
 
     pub(crate) fn blend(&self, mode: BlendMode, other: &Shader) -> Shader {

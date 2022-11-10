@@ -3,9 +3,7 @@ use crate::*;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct PathDrawCommand {
-    #[serde(skip_serializing)]
     pub path_builder: PathBuilder,
-    #[serde(skip_serializing)]
     pub paint_builder: PaintBuilder,
 }
 

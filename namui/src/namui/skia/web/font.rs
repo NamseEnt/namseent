@@ -5,13 +5,20 @@ use std::sync::Mutex;
 
 unsafe impl Sync for CanvasKitFont {}
 unsafe impl Send for CanvasKitFont {}
+#[derive(serde::Serialize)]
 pub struct Font {
     pub(crate) id: String,
+    #[serde(skip_serializing)]
     pub(crate) canvas_kit_font: CanvasKitFont,
+    #[serde(skip_serializing)]
     pub(crate) size: IntPx,
+    #[serde(skip_serializing)]
     pub(crate) metrics: FontMetrics,
+    #[serde(skip_serializing)]
     glyph_ids_caches: Mutex<lru::LruCache<String, GlyphIds>>,
+    #[serde(skip_serializing)]
     glyph_widths_caches: Mutex<lru::LruCache<(GlyphIds, Option<Paint>), Vec<Px>>>,
+    #[serde(skip_serializing)]
     glyph_bounds_caches: Mutex<lru::LruCache<(GlyphIds, Option<Paint>), Vec<Rect<Px>>>>,
 }
 

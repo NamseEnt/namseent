@@ -31,9 +31,7 @@ pub struct ImageStyle {
 #[derive(Debug, Serialize, Clone)]
 pub enum ImageSource {
     Url(Url),
-    #[serde(skip_serializing)]
     Image(Arc<Image>),
-    #[serde(skip_serializing)]
     File(File),
 }
 

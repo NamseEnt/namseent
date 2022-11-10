@@ -7,7 +7,6 @@ pub struct ImageDrawCommand {
     pub rect: Rect<Px>,
     pub source: ImageSource,
     pub fit: ImageFit,
-    #[serde(skip_serializing)]
     pub paint_builder: Option<PaintBuilder>,
 }
 
