@@ -21,7 +21,7 @@ impl ImageSelectModal {
             .filter(|image| {
                 self.selected_labels
                     .iter()
-                    .any(|label| image.labels.contains(label))
+                    .all(|label| image.labels.contains(label))
             })
             .collect::<Vec<_>>();
 
@@ -47,14 +47,6 @@ impl ImageSelectModal {
         let scroll_content = label_key_items.into_iter().map(|(key, labels)| {
             let key_title = typography::body::left_top_bold(key, Color::WHITE);
             let mut value_horizontal_list = vec![];
-
-            let mut labels = labels.into_iter().collect::<Vec<_>>();
-            labels.sort_by_key(|item| {
-                !(images_contains_selected_labels.is_empty()
-                    || images_contains_selected_labels
-                        .iter()
-                        .any(|image| image.labels.contains(item)))
-            });
 
             let value_buttons_with_bounding_box = labels.into_iter().map(|label| {
                 let is_selected = self.selected_labels.contains(label);
