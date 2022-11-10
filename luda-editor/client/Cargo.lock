@@ -576,6 +576,7 @@ dependencies = [
 name = "luda-editor-client"
 version = "0.1.0"
 dependencies = [
+ "futures",
  "mockall",
  "namui",
  "namui-prebuilt",
