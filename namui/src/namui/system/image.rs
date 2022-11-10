@@ -6,7 +6,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 use url::Url;
-use wasm_bindgen_futures::{spawn_local, JsFuture};
+use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::spawn_local;
 
 struct ImageSystem {
     image_url_map: DashMap<Url, Arc<Image>>,
@@ -87,11 +88,14 @@ fn start_load_url(url: &Url) {
         }
     });
 }
-pub async fn new_image_from_u8(data: &[u8]) -> Result<Arc<Image>, Box<dyn std::error::Error>> {
-    let image_element = document().create_element("img").unwrap();
-    let image_element =
-        wasm_bindgen::JsCast::dyn_into::<web_sys::HtmlImageElement>(image_element).unwrap();
 
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = globalThis, js_name = createImageBitmap)]
+    async fn create_image_bitmap(image: JsValue) -> JsValue;
+}
+
+pub async fn new_image_from_u8(data: &[u8]) -> Result<Arc<Image>, Box<dyn std::error::Error>> {
     let u8_array = js_sys::Uint8Array::from(data);
 
     let u8_array_sequence = {
@@ -101,28 +105,11 @@ pub async fn new_image_from_u8(data: &[u8]) -> Result<Arc<Image>, Box<dyn std::e
     };
     let blob = web_sys::Blob::new_with_u8_array_sequence(&u8_array_sequence.into()).unwrap();
 
-    let object_url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
+    let image_bitmap = create_image_bitmap(blob.into()).await;
 
-    let promise = js_sys::Promise::new(&mut |resolve, reject| {
-        image_element.set_onload(Some(&resolve));
-        image_element.set_onerror(Some(&reject));
-        image_element.set_src(&object_url);
-    });
+    let image = graphics::surface().make_image_from_texture_source(image_bitmap, None, None);
 
-    let result = JsFuture::from(promise).await;
-
-    match result {
-        Ok(_) => {
-            let image =
-                graphics::surface().make_image_from_texture_source(image_element, None, None);
-
-            Ok(Arc::new(image))
-        }
-        Err(_) => Err(
-            "You know, browser does not give us enough information when it failed to load image"
-                .into(),
-        ),
-    }
+    Ok(Arc::new(image))
 }
 
 pub(crate) fn try_load_file(file: &file::picker::File) -> Option<Arc<Image>> {

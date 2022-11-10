@@ -25,44 +25,44 @@ impl ImageSelectModal {
             })
             .collect::<Vec<_>>();
 
-        struct Item<'a> {
-            label: &'a Label,
-            is_in_selectable_images: bool,
-        }
+        let is_in_selectable_images = |label| {
+            images_contains_selected_labels.is_empty()
+                || images_contains_selected_labels
+                    .iter()
+                    .any(|image| image.labels.contains(label))
+        };
 
         let label_key_items = {
             let mut map = BTreeMap::new();
             for label in labels {
-                map.entry(&label.key).or_insert_with(|| vec![]).push(Item {
-                    label,
-                    is_in_selectable_images: images_contains_selected_labels.is_empty()
-                        || images_contains_selected_labels
-                            .iter()
-                            .any(|image| image.labels.contains(label)),
-                });
+                map.entry(&label.key)
+                    .or_insert_with(|| BTreeSet::new())
+                    .insert(label);
             }
             map
         };
 
         let mut label_key_top = 0.px();
 
-        let scroll_content = label_key_items.into_iter().map(|(key, mut items)| {
+        let scroll_content = label_key_items.into_iter().map(|(key, labels)| {
             let key_title = typography::body::left_top_bold(key, Color::WHITE);
             let mut value_horizontal_list = vec![];
 
-            items.sort_by_key(|item| {
+            let mut labels = labels.into_iter().collect::<Vec<_>>();
+            labels.sort_by_key(|item| {
                 !(images_contains_selected_labels.is_empty()
                     || images_contains_selected_labels
                         .iter()
-                        .any(|image| image.labels.contains(item.label)))
+                        .any(|image| image.labels.contains(item)))
             });
 
-            let value_buttons_with_bounding_box = items.into_iter().map(|item| {
-                let is_selected = self.selected_labels.contains(item.label);
+            let value_buttons_with_bounding_box = labels.into_iter().map(|label| {
+                let is_selected = self.selected_labels.contains(label);
+                let is_in_selectable_images = is_in_selectable_images(&label);
 
                 let stroke_color = if is_selected {
                     Color::BLACK
-                } else if item.is_in_selectable_images {
+                } else if is_in_selectable_images {
                     Color::WHITE
                 } else {
                     Color::grayscale_f01(0.5)
@@ -75,7 +75,7 @@ impl ImageSelectModal {
                 };
 
                 let text = namui::text(TextParam {
-                    text: item.label.value.to_string(),
+                    text: label.value.to_string(),
                     x: 0.px(),
                     y: 0.px(),
                     align: TextAlign::Left,
@@ -104,8 +104,8 @@ impl ImageSelectModal {
                         translate(4.px(), 4.px(), text),
                     ])
                     .attach_event(move |builder| {
-                        let label = item.label.clone();
-                        if is_selected || item.is_in_selectable_images {
+                        let label = label.clone();
+                        if is_selected || is_in_selectable_images {
                             builder.on_mouse_down_in(move |_| {
                                 namui::event::send(InternalEvent::ToggleLabel(label.clone()));
                             });

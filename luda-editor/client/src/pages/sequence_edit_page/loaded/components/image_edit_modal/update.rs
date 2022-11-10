@@ -1,3 +1,4 @@
+use super::super::image_upload::*;
 use super::*;
 
 impl ImageEditModal {
@@ -8,35 +9,36 @@ impl ImageEditModal {
                     self.image = Some(image.clone());
                 }
                 InternalEvent::DonePressed => {
-                    // todo: upload
-                    spawn_local({
-                        let future: std::pin::Pin<
-                            Box<
-                                dyn std::future::Future<
-                                    Output = Result<(), Box<dyn std::error::Error>>,
-                                >,
-                            >,
-                        > = match self.purpose {
-                            ModalPurpose::Add => Box::pin(create_image(
-                                self.project_id,
-                                self.label_list.clone(),
-                                self.image.clone(),
-                            )),
-                            ModalPurpose::Edit => Box::pin(update_image(
-                                todo!(),
-                                #[allow(unreachable_code)]
-                                self.label_list.clone(),
-                                self.image.clone(),
-                            )),
-                        };
-                        async move {
-                            let result = future.await;
-                            match result {
-                                Ok(_) => {
-                                    namui::event::send(Event::Close);
-                                }
-                                Err(error) => namui::event::send(Event::Error(error.to_string())),
+                    let purpose = self.purpose;
+                    let project_id = self.project_id;
+                    let label_list = self.label_list.clone();
+                    let image = self.image.clone();
+                    spawn_local(async move {
+                        let result = match purpose {
+                            ModalPurpose::Add => {
+                                create_image(project_id, label_list.clone(), {
+                                    match &image {
+                                        Some(image) => Some(image.content().await),
+                                        None => None,
+                                    }
+                                })
+                                .await
                             }
+                            ModalPurpose::Edit => {
+                                update_image(
+                                    todo!(),
+                                    #[allow(unreachable_code)]
+                                    label_list.clone(),
+                                    image.clone(),
+                                )
+                                .await
+                            }
+                        };
+                        match result {
+                            Ok(_) => {
+                                namui::event::send(Event::Close);
+                            }
+                            Err(error) => namui::event::send(Event::Error(error.to_string())),
                         }
                     });
                 }
@@ -68,62 +70,4 @@ impl ImageEditModal {
             }
         }
     }
-}
-
-async fn create_image(
-    project_id: namui::Uuid,
-    labels: Vec<Label>,
-    image: Option<File>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let image_id = namui::uuid();
-
-    crate::RPC
-        .put_image_meta_data(rpc::put_image_meta_data::Request {
-            project_id,
-            image_id,
-            labels,
-        })
-        .await?;
-
-    let response = crate::RPC
-        .prepare_upload_image(rpc::prepare_upload_image::Request {
-            project_id,
-            image_id,
-        })
-        .await?;
-
-    let body = match image {
-        Some(file) => file.content().await,
-        None => [].into(),
-    };
-
-    namui::network::http::fetch(
-        response.upload_url,
-        namui::network::http::Method::PUT,
-        |builder| builder.body(body.to_vec()),
-    )
-    .await?
-    .error_for_400599()
-    .await?;
-
-    Ok(())
-}
-
-async fn update_image(
-    _prev_label_list: Vec<Label>,
-    _new_label_list: Vec<Label>,
-    _image: Option<File>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    /*
-    1) 이미지를 수정할 경우
-    -> 그냥 put 하면 돼
-    2) 레이블을 수정할 경우
-    -> move 하면 돼
-        -> 근데 move는 Copy & Delete야.
-    3) 이미지와 레이블 둘 다 수정할 경우
-    -> put & Delete
-
-    실패할 수 있다. 실패했다고 알려주면 된다. Delete를 먼저 하진 않는다.
-     */
-    todo!()
 }
