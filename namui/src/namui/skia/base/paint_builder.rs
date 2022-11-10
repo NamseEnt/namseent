@@ -9,7 +9,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub struct PaintBuilder {
     color: Option<Color>,
     paint_style: Option<PaintStyle>,

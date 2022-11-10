@@ -5,11 +5,9 @@ use std::{collections::HashMap, sync::Arc};
 #[derive(Serialize, Clone, Debug)]
 pub struct TextDrawCommand {
     pub text: String,
-    #[serde(skip_serializing)]
     pub font: Arc<Font>,
     pub x: Px,
     pub y: Px,
-    #[serde(skip_serializing)]
     pub paint_builder: PaintBuilder,
     pub align: TextAlign,
     pub baseline: TextBaseline,
