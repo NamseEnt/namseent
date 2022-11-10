@@ -55,6 +55,7 @@ enum InternalEvent {
     ScreenEditDone {
         screen_images: ScreenImages,
     },
+    RequestUploadBulkImages,
 }
 
 pub struct Update {
@@ -69,7 +70,8 @@ impl ImageSelectModal {
         selected_screen_image_index: usize,
         on_update_image: impl Fn(Update) + 'static,
     ) -> ImageSelectModal {
-        let modal = ImageSelectModal {
+        request_reload_images(project_id);
+        ImageSelectModal {
             project_id,
             cut_id,
             context_menu: None,
@@ -82,27 +84,24 @@ impl ImageSelectModal {
             on_update_image: Arc::new(on_update_image),
             selected_screen_image_index: Some(selected_screen_image_index),
             screen_editor: None,
-        };
-        modal.request_reload_images();
-        modal
+        }
     }
-    pub fn request_reload_images(&self) {
-        let project_id = self.project_id;
-        spawn_local({
-            async move {
-                let result = crate::RPC
-                    .list_images(rpc::list_images::Request { project_id })
-                    .await;
+}
+pub fn request_reload_images(project_id: Uuid) {
+    spawn_local({
+        async move {
+            let result = crate::RPC
+                .list_images(rpc::list_images::Request { project_id })
+                .await;
 
-                match result {
-                    Ok(response) => {
-                        namui::event::send(InternalEvent::LoadImages(response.images));
-                    }
-                    Err(error) => {
-                        namui::event::send(Event::Error(error.to_string()));
-                    }
+            match result {
+                Ok(response) => {
+                    namui::event::send(InternalEvent::LoadImages(response.images));
+                }
+                Err(error) => {
+                    namui::event::send(Event::Error(error.to_string()));
                 }
             }
-        });
-    }
+        }
+    });
 }
