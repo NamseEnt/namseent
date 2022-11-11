@@ -19,7 +19,7 @@ fn character_should_escape_edge_of_wall() {
     game.state.tick.set_current_time(6.sec());
     game.evaluate_ticks();
     let actual_character_x = get_character_x(&game.ecs_app);
-    assert!(actual_character_x > 3.tile());
+    assert!(actual_character_x > 2.tile());
 }
 
 /// Move right down sqrt(2) tiles per second.

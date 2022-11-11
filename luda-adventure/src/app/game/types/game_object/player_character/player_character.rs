@@ -35,12 +35,7 @@ impl PlayerCharacter {
 pub fn new_player(xy: Xy<Tile>) -> crate::ecs::Entity {
     crate::ecs::Entity::with_id(PLAYER_CHARACTER)
         .add_component(Positioner::new_with_xy(xy))
-        .add_component(Collider::from_rect(Rect::Xywh {
-            x: tile(-1.5),
-            y: tile(-1.5),
-            width: tile(3.0),
-            height: tile(3.0),
-        }))
+        .add_component(Collider::from_circle(Xy::zero(), tile(1.5)))
         .add_component(PlayerCharacter {
             heading: Heading::Left,
         })

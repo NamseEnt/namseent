@@ -97,7 +97,7 @@ impl Map {
                 {
                     let wall_collision_entity = Entity::new()
                         .add_component(Positioner::new())
-                        .add_component(Collider::new(polygon));
+                        .add_component(Collider::from_polygon(polygon));
                     wall_collision_entities.push(wall_collision_entity);
                 }
             }

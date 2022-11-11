@@ -9,9 +9,14 @@ pub struct Collider {
 }
 
 impl Collider {
-    pub fn new(polygon_at_origin: Polygon) -> Self {
+    pub fn from_circle(center: Xy<Tile>, radius: Tile) -> Self {
         Self {
-            rigid_body_at_origin: RigidBody::new(polygon_at_origin),
+            rigid_body_at_origin: RigidBody::from_circle(center, radius),
+        }
+    }
+    pub fn from_polygon(polygon_at_origin: Polygon) -> Self {
+        Self {
+            rigid_body_at_origin: RigidBody::from_polygon(polygon_at_origin),
         }
     }
     pub fn from_rect(rect_at_origin: Rect<Tile>) -> Self {
