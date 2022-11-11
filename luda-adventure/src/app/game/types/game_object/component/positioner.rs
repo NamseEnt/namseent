@@ -3,7 +3,7 @@ use namui::prelude::*;
 
 #[derive(ecs_macro::Component, Debug)]
 pub struct Positioner {
-    current_xy: Xy<Tile>,
+    pub xy: Xy<Tile>,
     previous_xy: Xy<Tile>,
 }
 
@@ -13,26 +13,20 @@ impl Positioner {
     }
     pub fn new_with_xy(xy: Xy<Tile>) -> Self {
         Self {
-            current_xy: xy,
+            xy,
             previous_xy: xy,
         }
     }
 
-    pub fn xy(&self) -> Xy<Tile> {
-        self.current_xy
-    }
     pub fn xy_with_interpolation(&self, interpolation_progress: f32) -> Xy<Tile> {
         if interpolation_progress >= 1.0 {
-            self.current_xy
+            self.xy
         } else {
-            self.previous_xy + (self.current_xy - self.previous_xy) * interpolation_progress
+            self.previous_xy + (self.xy - self.previous_xy) * interpolation_progress
         }
     }
 
-    pub fn set_xy(&mut self, xy: Xy<Tile>) {
-        self.current_xy = xy;
-    }
     pub fn save_current_xy(&mut self) {
-        self.previous_xy = self.current_xy;
+        self.previous_xy = self.xy;
     }
 }

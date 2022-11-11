@@ -2,7 +2,7 @@ use crate::app::game::Tile;
 use namui::{Uuid, Xy};
 
 pub struct CameraState {
-    subject: CameraSubject,
+    pub subject: CameraSubject,
 }
 
 #[derive(Clone, Copy)]
@@ -17,13 +17,5 @@ impl CameraState {
     }
     pub fn new_with_subject(subject: CameraSubject) -> Self {
         Self { subject }
-    }
-
-    pub fn subject(&self) -> CameraSubject {
-        self.subject
-    }
-
-    pub fn set_subject(&mut self, subject: CameraSubject) {
-        self.subject = subject;
     }
 }

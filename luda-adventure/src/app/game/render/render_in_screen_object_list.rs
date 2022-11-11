@@ -29,7 +29,7 @@ impl Game {
             .query_entities::<(&Renderer, &Positioner)>()
             .into_iter()
             .filter(|(_, (renderer, positioner))| {
-                let visual_area = renderer.visual_rect + positioner.xy();
+                let visual_area = renderer.visual_rect + positioner.xy;
                 visual_area
                     .intersect(rendering_context.screen_rect)
                     .is_some()
@@ -46,9 +46,9 @@ fn sort_in_screen_object_list_with_z_index_then_sort_with_y_coordinate(
             let z_index_comparison = a_renderer.z_index.cmp(&b_renderer.z_index);
             if z_index_comparison == std::cmp::Ordering::Equal {
                 a_positioner
-                    .xy()
+                    .xy
                     .y
-                    .partial_cmp(&b_positioner.xy().y)
+                    .partial_cmp(&b_positioner.xy.y)
                     .unwrap_or(Ordering::Equal)
             } else {
                 z_index_comparison

@@ -18,7 +18,7 @@ impl Game {
             .first_mut()
         {
             let mut character_rigid_body =
-                character_collider.get_rigid_body(character_positioner.xy());
+                character_collider.get_rigid_body(character_positioner.xy);
             let mut collision_resolve_count = 0;
             while collision_resolve_count < MAX_COLLISION_RESOLVE_COUNT {
                 let mut no_collision_detected = true;
@@ -40,7 +40,7 @@ impl Game {
                             character_positioner,
                         );
                         character_rigid_body =
-                            character_collider.get_rigid_body(character_positioner.xy());
+                            character_collider.get_rigid_body(character_positioner.xy);
                     }
                 }
                 if no_collision_detected {
@@ -58,7 +58,7 @@ fn get_rigid_body_list_except_character(ecs_app: &ecs::App) -> Vec<RigidBody> {
         .filter_map(
             |(entity, (collider, positioner))| match entity.id() == PLAYER_CHARACTER {
                 true => None,
-                false => Some(collider.get_rigid_body(positioner.xy())),
+                false => Some(collider.get_rigid_body(positioner.xy)),
             },
         )
         .collect::<Vec<_>>()
@@ -70,5 +70,5 @@ fn move_back_by_penetration_depth(
     character_positioner: &mut Positioner,
 ) {
     let counter_penetration_xy = counter_penetration_vector * penetration_depth.as_f32();
-    character_positioner.set_xy(character_positioner.xy() + counter_penetration_xy)
+    character_positioner.xy = character_positioner.xy + counter_penetration_xy
 }

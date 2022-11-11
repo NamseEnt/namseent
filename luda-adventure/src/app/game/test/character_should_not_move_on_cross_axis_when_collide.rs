@@ -16,7 +16,7 @@ fn character_should_not_move_on_cross_axis_when_collide() {
     add_character(&mut game.ecs_app);
     add_wall(&mut game.ecs_app);
 
-    game.state.tick.set_current_time(2.sec());
+    game.state.tick.current_time = 2.sec();
     game.evaluate_ticks();
 
     let expected_character_x = 2.999.tile();
@@ -35,10 +35,10 @@ fn add_character(ecs_app: &mut ecs::App) {
         y: 0.tile(),
     });
     let mover = character.get_component_mut::<&mut Mover>().unwrap();
-    mover.set_movement(Movement::Moving(Xy {
+    mover.movement = Movement::Moving(Xy {
         x: Per::new(0.tile(), 1.sec()),
         y: Per::new(10.tile(), 1.sec()),
-    }));
+    });
     ecs_app.add_entity(character);
 }
 

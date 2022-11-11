@@ -11,9 +11,9 @@ impl Game {
         let quest_object = mock_quest_object();
         let map_entities = Map::mock().create_entities();
         let mut state = GameState::new();
-        state.camera.set_subject(CameraSubject::Object {
+        state.camera.subject = CameraSubject::Object {
             id: PLAYER_CHARACTER,
-        });
+        };
 
         let mut ecs_app = crate::ecs::App::new();
         ecs_app.add_entity(character);
@@ -30,7 +30,7 @@ impl Game {
     }
 
     pub fn update(&mut self, event: &dyn std::any::Any) {
-        self.state.tick.set_current_time(now());
+        self.state.tick.current_time = now();
         self.set_character_movement_according_to_user_input(event);
         self.evaluate_ticks();
     }

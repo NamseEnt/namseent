@@ -16,10 +16,10 @@ impl Game {
                         .first_mut()
                     {
                         player_character.update_heading(movement_direction);
-                        mover.set_movement(Movement::Moving(Xy {
+                        mover.movement = Movement::Moving(Xy {
                             x: Per::new(10.tile() * movement_direction.x, 1.sec()),
                             y: Per::new(10.tile() * movement_direction.y, 1.sec()),
-                        }));
+                        });
                     }
                 }
                 _ => (),

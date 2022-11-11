@@ -16,7 +16,7 @@ fn character_should_escape_edge_of_wall() {
     add_wall(&mut game.ecs_app);
 
     // Character should escape edge of wall and keep going above x > 3
-    game.state.tick.set_current_time(6.sec());
+    game.state.tick.current_time = 6.sec();
     game.evaluate_ticks();
     let actual_character_x = get_character_x(&game.ecs_app);
     assert!(actual_character_x > 2.tile());
@@ -32,10 +32,10 @@ fn add_character(ecs_app: &mut ecs::App) {
         y: 0.tile(),
     });
     let mover = character.get_component_mut::<&mut Mover>().unwrap();
-    mover.set_movement(Movement::Moving(Xy {
+    mover.movement = Movement::Moving(Xy {
         x: Per::new(1.tile(), 1.sec()),
         y: Per::new(1.tile(), 1.sec()),
-    }));
+    });
     ecs_app.add_entity(character);
 }
 

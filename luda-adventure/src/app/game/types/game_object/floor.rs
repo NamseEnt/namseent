@@ -42,7 +42,7 @@ pub fn new_floor(positions: Vec<Xy<Tile>>) -> crate::ecs::Entity {
             },
             move |entity, _game_context, rendering_context| {
                 let positioner = entity.get_component::<&Positioner>().unwrap();
-                let main_position = positioner.xy();
+                let main_position = positioner.xy;
 
                 render(
                     positions

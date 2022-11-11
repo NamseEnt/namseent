@@ -3,7 +3,7 @@ use namui::prelude::*;
 
 #[derive(ecs_macro::Component, Debug)]
 pub struct Mover {
-    movement: Movement,
+    pub movement: Movement,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -19,13 +19,5 @@ impl Mover {
         Self {
             movement: Movement::Fixed,
         }
-    }
-
-    pub fn movement(&self) -> Movement {
-        self.movement
-    }
-
-    pub fn set_movement(&mut self, movement: Movement) {
-        self.movement = movement;
     }
 }

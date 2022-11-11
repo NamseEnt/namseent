@@ -8,9 +8,9 @@ impl Game {
             .query_entities_mut::<(&PlayerCharacter, &mut Positioner, &Mover)>()
             .first_mut()
         {
-            if let Movement::Moving(velocity) = mover.movement() {
+            if let Movement::Moving(velocity) = mover.movement {
                 let delta_xy = velocity * Xy::single(TICK_INTERVAL);
-                positioner.set_xy(positioner.xy() + delta_xy);
+                positioner.xy = positioner.xy + delta_xy;
             }
         }
     }

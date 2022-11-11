@@ -39,7 +39,7 @@ impl Game {
     }
 
     fn camera_center_xy(&self, interpolation_progress: f32) -> Xy<Tile> {
-        match self.state.camera.subject() {
+        match self.state.camera.subject {
             CameraSubject::Object { id } => self
                 .ecs_app
                 .entities()

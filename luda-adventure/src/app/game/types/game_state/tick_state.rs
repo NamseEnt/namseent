@@ -16,10 +16,6 @@ impl TickState {
         }
     }
 
-    pub fn set_current_time(&mut self, current_time: Time) {
-        self.current_time = current_time;
-    }
-
     pub fn need_to_evaluate_more_than_one_tick(&self) -> bool {
         self.current_time - self.last_tick_time > TICK_INTERVAL
     }
