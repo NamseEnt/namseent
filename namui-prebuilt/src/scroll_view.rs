@@ -111,11 +111,11 @@ impl ScrollView {
                     .get_rendering_tree_xy(event.target)
                     .unwrap();
 
-                let is_mouse_in_timeline = mouse_position.x >= whole_rect_xy.x
+                let is_mouse_in = mouse_position.x >= whole_rect_xy.x
                     && mouse_position.x <= whole_rect_xy.x + width
                     && mouse_position.y >= whole_rect_xy.y
                     && mouse_position.y <= whole_rect_xy.y + height;
-                if !is_mouse_in_timeline {
+                if !is_mouse_in {
                     return;
                 }
 
@@ -126,6 +126,8 @@ impl ScrollView {
                 );
 
                 namui::event::send(Event::Scrolled(button_id.clone(), next_scroll_y));
+
+                event.stop_propagation();
             });
         });
         translate(

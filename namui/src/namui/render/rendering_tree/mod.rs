@@ -158,12 +158,19 @@ impl RenderingTree {
                 if let SpecialRenderingNode::AttachEvent(attach_event) = special {
                     // NOTE : Should i check if the mouse is in the attach_event?
                     if let Some(on_wheel) = &attach_event.on_wheel {
+                        let is_stop_propagation = Arc::new(AtomicBool::new(false));
+
                         on_wheel(&WheelEvent {
                             delta_xy: raw_wheel_event.delta_xy,
                             id: raw_wheel_event.id.clone(),
                             namui_context,
                             target: node,
+                            is_stop_propagation: is_stop_propagation.clone(),
                         });
+
+                        if is_stop_propagation.load(Ordering::Relaxed) {
+                            return ControlFlow::Break(());
+                        }
                     }
                 }
             }

@@ -60,6 +60,12 @@ pub struct WheelEvent<'a> {
     pub target: &'a RenderingTree,
     /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
     pub delta_xy: Xy<f32>,
+    pub(crate) is_stop_propagation: Arc<AtomicBool>,
+}
+impl WheelEvent<'_> {
+    pub fn stop_propagation(&self) {
+        self.is_stop_propagation.store(true, Ordering::Relaxed);
+    }
 }
 pub struct KeyboardEvent<'a> {
     pub id: crate::Uuid,
