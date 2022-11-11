@@ -61,5 +61,5 @@ fn get_character_x(ecs_app: &ecs::App) -> Tile {
         .into_iter()
         .next()
         .unwrap();
-    positioner.xy().x
+    positioner.xy.x
 }
