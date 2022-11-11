@@ -1,6 +1,7 @@
-use super::{normalized_vector, Circle};
+use super::Circle;
 use crate::app::game::{CollisionInfo, Tile};
-use geo::{ClosestPoint, Contains, Coordinate, EuclideanDistance, Line, LinesIter, Polygon};
+use geo::{coord, ClosestPoint, Contains, Coordinate, EuclideanDistance, Line, LinesIter, Polygon};
+use namui::prelude::*;
 
 pub fn collide_circle_to_polygon(circle: &Circle, polygon: &Polygon) -> CollisionInfo {
     let lines = polygon.lines_iter().collect::<Vec<_>>();
@@ -53,4 +54,13 @@ fn is_new_closest(closest_distance_to_circle_center: Option<f64>, new_distance: 
         Some(old_distance) if old_distance < new_distance => false,
         _ => true,
     }
+}
+fn normalized_vector(from: Coordinate, to: Coordinate) -> Xy<Tile> {
+    let vector = to - from;
+    let length = vector.euclidean_distance(&coord! {x: 0., y: 0.});
+    let normalized_vector = vector / length;
+    Xy::new(
+        Tile::from(normalized_vector.x as f32),
+        Tile::from(normalized_vector.y as f32),
+    )
 }
