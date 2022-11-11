@@ -37,7 +37,10 @@ async fn handle(request: Request<Body>) -> Result<Response<Body>, LambdaError> {
     let response_builder = Response::builder()
         .header("Access-Control-Allow-Origin", "*")
         .header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        .header("Access-Control-Allow-Headers", "Content-Type, session");
+        .header("Access-Control-Allow-Headers", "Content-Type, session")
+        .header("Cache-Control", "no-cache, no-store, must-revalidate")
+        .header("Pragma", "no-cache")
+        .header("Expires", "0");
 
     if request.method() == Method::OPTIONS {
         return Ok(response_builder

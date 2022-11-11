@@ -1,4 +1,5 @@
 use namui::file::picker::File;
+use namui::prelude::*;
 use rpc::data::*;
 
 pub async fn create_image(
@@ -8,36 +9,89 @@ pub async fn create_image(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let image_id = namui::uuid();
 
-    crate::RPC
-        .put_image_meta_data(rpc::put_image_meta_data::Request {
-            project_id,
-            image_id,
-            labels,
-        })
-        .await?;
+    retry_on_error(
+        move || {
+            crate::RPC.put_image_meta_data(rpc::put_image_meta_data::Request {
+                project_id,
+                image_id,
+                labels: labels.clone(),
+            })
+        },
+        10,
+    )
+    .await?;
 
-    let response = crate::RPC
-        .prepare_upload_image(rpc::prepare_upload_image::Request {
-            project_id,
-            image_id,
-        })
-        .await?;
+    let response = retry_on_error(
+        move || {
+            crate::RPC.prepare_upload_image(rpc::prepare_upload_image::Request {
+                project_id,
+                image_id,
+            })
+        },
+        10,
+    )
+    .await?;
 
     let body = match image {
         Some(buffer) => buffer,
         None => [].into(),
     };
 
-    namui::network::http::fetch(
-        response.upload_url,
-        namui::network::http::Method::PUT,
-        |builder| builder.body(body.to_vec()),
+    retry_on_error(
+        move || {
+            let body = body.clone();
+            let upload_url = response.upload_url.clone();
+            async move {
+                namui::network::http::fetch(
+                    upload_url,
+                    namui::network::http::Method::PUT,
+                    |builder| builder.body(body.to_vec()),
+                )
+                .await?
+                .error_for_400599()
+                .await
+            }
+        },
+        10,
     )
-    .await?
-    .error_for_400599()
     .await?;
 
     Ok(())
+}
+
+async fn retry_on_error<FuncFuture, FuncOk, FuncErr>(
+    func: impl Fn() -> FuncFuture,
+    max_retry_count: usize,
+) -> Result<FuncOk, FuncErr>
+where
+    FuncFuture: std::future::Future<Output = Result<FuncOk, FuncErr>>,
+{
+    let mut retry_count = 0;
+    let mut delay = 100.ms();
+    loop {
+        match func().await {
+            Ok(result) => return Ok(result),
+            Err(error) => {
+                if retry_count < max_retry_count {
+                    retry_count += 1;
+                    namui::time::delay(delay).await;
+                    delay = {
+                        let collision_avoidance = ((namui::random(1)[0] % 10) as f32).ms();
+                        let next_delay = delay * 2 + collision_avoidance;
+                        let max_delay = 4000.ms();
+                        if next_delay > max_delay {
+                            max_delay
+                        } else {
+                            next_delay
+                        }
+                    };
+                    continue;
+                } else {
+                    return Err(error);
+                }
+            }
+        }
+    }
 }
 
 pub async fn update_image(
