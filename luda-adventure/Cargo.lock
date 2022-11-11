@@ -838,6 +838,7 @@ dependencies = [
  "lru",
  "nalgebra",
  "namui-cfg",
+ "namui-type",
  "num",
  "once_cell",
  "ordered-float",
@@ -875,6 +876,16 @@ name = "namui-prebuilt"
 version = "0.1.0"
 dependencies = [
  "namui",
+]
+
+[[package]]
+name = "namui-type"
+version = "0.1.0"
+dependencies = [
+ "auto_ops",
+ "num",
+ "ordered-float",
+ "serde",
 ]
 
 [[package]]

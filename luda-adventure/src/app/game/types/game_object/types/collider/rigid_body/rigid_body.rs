@@ -1,6 +1,4 @@
-use super::{
-    collide_circle_to_polygon, collide_polygon_to_circle, collide_polygon_to_polygon, Circle,
-};
+use super::{collide_circle_to_polygon, collide_polygon_to_circle, Circle};
 use crate::app::game::{CollisionInfo, Tile};
 use geo::{coord, polygon, Polygon, Translate};
 use namui::prelude::*;
@@ -40,9 +38,7 @@ impl RigidBody {
 
     pub fn collide(&self, other: &Self) -> CollisionInfo {
         match (self, other) {
-            (RigidBody::Polygon(self_polygon), RigidBody::Polygon(other_polygon)) => {
-                collide_polygon_to_polygon(self_polygon, other_polygon)
-            }
+            (RigidBody::Polygon(_), RigidBody::Polygon(_)) => unimplemented!(),
             (RigidBody::Polygon(polygon), RigidBody::Circle(circle)) => {
                 collide_polygon_to_circle(polygon, circle)
             }
