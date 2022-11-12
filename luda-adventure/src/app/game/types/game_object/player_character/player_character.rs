@@ -7,7 +7,7 @@ const VISUAL_HEIGHT: Tile = tile(4.0);
 const VISUAL_OFFSET_X: Tile = tile(-1.5);
 const VISUAL_OFFSET_Y: Tile = tile(-2.5);
 
-#[derive(ecs_macro::Component)]
+#[derive(ecs_macro::Component, Debug)]
 pub struct PlayerCharacter {
     heading: Heading,
 }
@@ -48,8 +48,8 @@ pub fn new_player(xy: Xy<Tile>) -> crate::ecs::Entity {
                 height: VISUAL_HEIGHT,
             },
             |entity, _game_context, rendering_context| {
-                let positioner = entity.get_component::<&Positioner>().unwrap();
-                let character = entity.get_component::<&PlayerCharacter>().unwrap();
+                let positioner = entity.get_component::<Positioner>().unwrap();
+                let character = entity.get_component::<PlayerCharacter>().unwrap();
                 let position =
                     positioner.xy_with_interpolation(rendering_context.interpolation_progress);
                 translate(

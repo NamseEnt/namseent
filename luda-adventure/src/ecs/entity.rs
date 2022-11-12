@@ -1,9 +1,10 @@
 use super::*;
 use namui::Uuid;
+use std::cell::{Ref, RefCell, RefMut};
 
 pub struct Entity {
     id: Uuid,
-    drop_functions: Vec<Box<dyn FnOnce()>>,
+    components: Vec<Box<dyn WrappedComponent>>,
 }
 
 impl Entity {
@@ -13,30 +14,27 @@ impl Entity {
     pub fn with_id(id: Uuid) -> Self {
         Self {
             id,
-            drop_functions: Vec::new(),
+            components: Vec::new(),
         }
     }
     pub fn id(&self) -> Uuid {
         self.id
     }
-    pub fn add_component<T: Component>(mut self, component: T) -> Self {
-        let id = self.id;
-        component.insert(id);
-        self.drop_functions.push(Box::new(move || T::drop(id)));
+    pub fn add_component<T: Component + 'static>(mut self, component: T) -> Self {
+        self.components.push(Box::new(RefCell::new(component)));
         self
     }
-    pub fn get_component<T: ComponentCombination>(&self) -> Option<T> {
-        T::filter(&self)
+    pub fn get_component<T: Component + 'static>(&self) -> Option<Ref<T>> {
+        self.components
+            .iter()
+            .find_map(|component| component.as_any().downcast_ref::<RefCell<T>>())
+            .map(|component| component.borrow())
     }
-    pub fn get_component_mut<T: ComponentCombinationMut>(&mut self) -> Option<T> {
-        T::filter(self)
-    }
-}
-impl Drop for Entity {
-    fn drop(&mut self) {
-        for drop_function in self.drop_functions.drain(..) {
-            drop_function();
-        }
+    pub fn get_component_mut<T: Component + 'static>(&self) -> Option<RefMut<T>> {
+        self.components
+            .iter()
+            .find_map(|component| component.as_any().downcast_ref::<RefCell<T>>())
+            .map(|component| component.borrow_mut())
     }
 }
 
@@ -50,7 +48,9 @@ impl Eq for Entity {}
 
 impl std::fmt::Debug for Entity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // TODO: Add debug component of entity
-        f.debug_struct("Entity").field("id", &self.id).finish()
+        f.debug_struct("Entity")
+            .field("id", &self.id)
+            .field("components", &self.components)
+            .finish()
     }
 }

@@ -30,15 +30,17 @@ fn character_should_not_move_on_cross_axis_when_collide() {
 /// - x: 2.999 tile
 /// - y: 0 tile
 fn add_character(ecs_app: &mut ecs::App) {
-    let mut character = new_player(Xy {
+    let character = new_player(Xy {
         x: 2.999.tile(),
         y: 0.tile(),
     });
-    let mover = character.get_component_mut::<&mut Mover>().unwrap();
-    mover.movement = Movement::Moving(Xy {
-        x: Per::new(0.tile(), 1.sec()),
-        y: Per::new(10.tile(), 1.sec()),
-    });
+    {
+        let mut mover = character.get_component_mut::<Mover>().unwrap();
+        mover.movement = Movement::Moving(Xy {
+            x: Per::new(0.tile(), 1.sec()),
+            y: Per::new(10.tile(), 1.sec()),
+        });
+    }
     ecs_app.add_entity(character);
 }
 

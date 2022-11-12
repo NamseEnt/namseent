@@ -1,6 +1,6 @@
 use crate::{app::game::*, ecs::Entity};
 use namui::prelude::*;
-use std::cmp::Ordering;
+use std::{cell::Ref, cmp::Ordering};
 
 impl Game {
     pub fn render_in_screen_object_list(
@@ -24,7 +24,7 @@ impl Game {
     fn get_in_screen_object_list(
         &self,
         rendering_context: &RenderingContext,
-    ) -> Vec<(&crate::ecs::Entity, (&Renderer, &Positioner))> {
+    ) -> Vec<(&crate::ecs::Entity, (Ref<Renderer>, Ref<Positioner>))> {
         self.ecs_app
             .query_entities::<(&Renderer, &Positioner)>()
             .into_iter()
@@ -39,7 +39,7 @@ impl Game {
 }
 
 fn sort_in_screen_object_list_with_z_index_then_sort_with_y_coordinate(
-    in_screen_object_list: &mut Vec<(&Entity, (&Renderer, &Positioner))>,
+    in_screen_object_list: &mut Vec<(&Entity, (Ref<Renderer>, Ref<Positioner>))>,
 ) {
     in_screen_object_list.sort_by(
         |(_, (a_renderer, a_positioner)), (_, (b_renderer, b_positioner))| {

@@ -45,7 +45,7 @@ impl Game {
                 .entities()
                 .find(|entity| entity.id() == id)
                 .expect("failed to find entity")
-                .get_component::<&Positioner>()
+                .get_component::<Positioner>()
                 .unwrap()
                 .xy_with_interpolation(interpolation_progress),
             CameraSubject::Xy { xy } => xy.clone(),

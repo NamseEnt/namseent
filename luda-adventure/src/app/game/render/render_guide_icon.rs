@@ -10,8 +10,8 @@ impl Game {
                 .get_quest_object_list(&self.ecs_app)
                 .iter()
                 .map(|entity| {
-                    let (renderer, positioner) =
-                        entity.get_component::<(&Renderer, &Positioner)>().unwrap();
+                    let renderer = entity.get_component::<Renderer>().unwrap();
+                    let positioner = entity.get_component::<Positioner>().unwrap();
                     let visual_area = renderer.visual_rect + positioner.xy;
                     render([
                         translate(

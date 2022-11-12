@@ -1,5 +1,6 @@
 use geo::{Contains, Coordinate, EuclideanDistance};
 
+#[derive(Debug)]
 pub struct Circle {
     pub center: Coordinate<f64>,
     pub radius: f64,

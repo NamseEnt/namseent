@@ -1,5 +1,6 @@
 use crate::app::game::*;
 use namui::prelude::*;
+use std::fmt::Debug;
 
 #[derive(ecs_macro::Component)]
 pub struct Renderer {
@@ -28,5 +29,14 @@ impl Renderer {
         rendering_context: &RenderingContext,
     ) -> RenderingTree {
         (self.render)(entity, game_state, rendering_context)
+    }
+}
+
+impl Debug for Renderer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Renderer")
+            .field("z_index", &self.z_index)
+            .field("visual_rect", &self.visual_rect)
+            .finish()
     }
 }

@@ -8,50 +8,25 @@ pub fn component(input: TokenStream) -> TokenStream {
 
     let name = input.ident;
 
-    let set_name = format_ident!("{name}_SET");
-
     let expanded = quote! {
-        #[allow(non_upper_case_globals)]
-        static mut #set_name: once_cell::sync::OnceCell<rustc_hash::FxHashMap<namui::Uuid, #name>> = once_cell::sync::OnceCell::new();
-        impl crate::ecs::Component for #name {
-            fn insert(self, id: namui::Uuid) {
-                unsafe {
-                    #set_name.get_or_init(|| rustc_hash::FxHashMap::default());
-                    #set_name.get_mut().unwrap().insert(id, self);
-                }
-            }
+        impl crate::ecs::Component for #name {}
 
-            fn drop(id: namui::Uuid) {
-                unsafe {
-                    #set_name.get_mut().unwrap().remove(&id);
-                }
+        impl<'a> crate::ecs::ComponentCombination<'a> for &#name {
+            type Output = std::cell::Ref<'a, #name>;
+            fn filter(entity: &'a crate::ecs::Entity) -> Option<Self::Output> {
+                entity.get_component::<#name>()
             }
         }
-
-        impl crate::ecs::ComponentCombination for &#name {
-            fn filter(entity: &crate::ecs::Entity) -> Option<Self> {
-                unsafe {
-                    #set_name
-                        .get_or_init(|| rustc_hash::FxHashMap::default())
-                        .get(&entity.id())
-                }
+        impl<'a> crate::ecs::ComponentCombinationMut<'a> for &#name {
+            type Output = std::cell::Ref<'a, #name>;
+            fn filter(entity: &'a crate::ecs::Entity) -> Option<Self::Output> {
+                entity.get_component::<#name>()
             }
         }
-        impl crate::ecs::ComponentCombinationMut for &#name {
-            fn filter(entity: &mut crate::ecs::Entity) -> Option<Self> {
-                unsafe {
-                    #set_name
-                        .get_or_init(|| rustc_hash::FxHashMap::default())
-                        .get(&entity.id())
-                }
-            }
-        }
-        impl crate::ecs::ComponentCombinationMut for &mut #name {
-            fn filter(entity: &mut crate::ecs::Entity) -> Option<Self> {
-                unsafe {
-                    #set_name.get_or_init(|| rustc_hash::FxHashMap::default());
-                    #set_name.get_mut().unwrap().get_mut(&entity.id())
-                }
+        impl<'a> crate::ecs::ComponentCombinationMut<'a> for &mut #name {
+            type Output = std::cell::RefMut<'a, #name>;
+            fn filter(entity: &'a crate::ecs::Entity) -> Option<Self::Output> {
+                entity.get_component_mut::<#name>()
             }
         }
     };
@@ -69,7 +44,7 @@ pub fn define_combinations(_input: TokenStream) -> TokenStream {
             .map(|i| {
                 let name = format_ident!("T{i}");
                 quote! {
-                    #name: ComponentCombination
+                    #name: ComponentCombination<'a>
                 }
             })
             .collect::<Vec<_>>();
@@ -79,7 +54,7 @@ pub fn define_combinations(_input: TokenStream) -> TokenStream {
             .map(|i| {
                 let name = format_ident!("T{i}");
                 quote! {
-                    #name: ComponentCombinationMut
+                    #name: ComponentCombinationMut<'a>
                 }
             })
             .collect::<Vec<_>>();
@@ -87,6 +62,16 @@ pub fn define_combinations(_input: TokenStream) -> TokenStream {
         let for_target = zero_to_index
             .clone()
             .map(|i| format_ident!("T{i}"))
+            .collect::<Vec<_>>();
+
+        let outputs = zero_to_index
+            .clone()
+            .map(|i| {
+                let t_name = format_ident!("T{i}");
+                quote!(
+                    #t_name::Output
+                )
+            })
             .collect::<Vec<_>>();
 
         let filter_statements = zero_to_index
@@ -106,16 +91,18 @@ pub fn define_combinations(_input: TokenStream) -> TokenStream {
             .collect::<Vec<_>>();
 
         quote! {
-            impl< #(#generics),* > ComponentCombination for ( #(#for_target),* )
+            impl<'a, #(#generics),* > ComponentCombination<'a> for ( #(#for_target),* )
             {
-                fn filter(entity: &Entity) -> Option<Self> {
+                type Output = ( #(#outputs),* );
+                fn filter(entity: &'a Entity) -> Option<Self::Output> {
                     #(#filter_statements)*
                     Some((#(#tuple_content),*))
                 }
             }
-            impl< #(#generics_mut),* > ComponentCombinationMut for ( #(#for_target),* )
+            impl<'a, #(#generics_mut),* > ComponentCombinationMut<'a> for ( #(#for_target),* )
             {
-                fn filter(entity: &mut Entity) -> Option<Self> {
+                type Output = ( #(#outputs),* );
+                fn filter(entity: &'a Entity) -> Option<Self::Output> {
                     #(#filter_statements)*
                     Some((#(#tuple_content),*))
                 }

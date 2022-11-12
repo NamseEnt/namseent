@@ -3,6 +3,7 @@ use crate::app::game::{CollisionInfo, Tile};
 use geo::{coord, polygon, Polygon, Translate};
 use namui::prelude::*;
 
+#[derive(Debug)]
 pub enum RigidBody {
     Polygon(Polygon),
     Circle(Circle),
