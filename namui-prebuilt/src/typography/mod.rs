@@ -24,6 +24,39 @@ pub fn center_text(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> Rendering
     })
 }
 
+pub fn text_fit(
+    height: Px,
+    text: impl AsRef<str>,
+    color: Color,
+    side_padding: Px,
+) -> namui::RenderingTree {
+    let center_text = namui::text(TextParam {
+        text: String::from(text.as_ref()),
+        x: 0.px(),
+        y: height / 2.0,
+        align: TextAlign::Center,
+        baseline: TextBaseline::Middle,
+        font_type: FontType {
+            font_weight: FontWeight::REGULAR,
+            language: Language::Ko,
+            serif: false,
+            size: adjust_font_size(height),
+        },
+        style: TextStyle {
+            color,
+            ..Default::default()
+        },
+        max_width: None,
+    });
+
+    let width = match center_text.get_bounding_box() {
+        Some(bounding_box) => bounding_box.width(),
+        None => return RenderingTree::Empty,
+    };
+
+    translate(width / 2 + side_padding, 0.px(), center_text)
+}
+
 fn adjust_font_size(height: Px) -> IntPx {
     // 0, 4, 8, 16, 20, ...
     let mut font_size: Px = height * 0.7;

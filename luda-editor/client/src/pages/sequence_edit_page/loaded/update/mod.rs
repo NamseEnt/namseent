@@ -47,10 +47,6 @@ impl LoadedSequenceEditorPage {
                     cut_id,
                     ref screen_images,
                 } => {
-                    self.update_cut(cut_id, |cut| {
-                        cut.screen_images = screen_images.clone();
-                    });
-
                     let previous_image_ids = self
                         .cut(cut_id)
                         .unwrap()
@@ -74,6 +70,11 @@ impl LoadedSequenceEditorPage {
                             }
                         })
                         .collect::<Vec<_>>();
+
+                    self.update_cut(cut_id, |cut| {
+                        cut.screen_images = screen_images.clone();
+                    });
+
                     if !new_image_ids.is_empty() {
                         self.recent_selected_image_ids = new_image_ids
                             .clone()
