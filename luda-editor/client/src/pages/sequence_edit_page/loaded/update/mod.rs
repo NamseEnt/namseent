@@ -120,54 +120,83 @@ impl LoadedSequenceEditorPage {
                     self.sequence_player = None;
                 }
                 &Event::LineRightClicked { global_xy, cut_id } => {
+                    /// This is for rust-analyzer, it doesn't run inside of macro vec![].
+                    fn vec<T>(items: impl IntoIterator<Item = T>) -> Vec<T> {
+                        items.into_iter().collect()
+                    }
+
                     self.context_menu = Some(context_menu::ContextMenu::new(
                         global_xy,
                         [
-                            context_menu::Item::new("Delete Cut", {
+                            vec([context_menu::Item::new_button("Delete Cut", {
                                 move || {
                                     namui::event::send(Event::DeleteCut { cut_id });
                                 }
-                            }),
-                            context_menu::Item::new("Insert Cut Up", {
-                                move || {
-                                    namui::event::send(Event::InsertCut {
-                                        position: AddCutPosition::Before { cut_id },
-                                    });
-                                }
-                            }),
-                            context_menu::Item::new("Insert Cut Down", {
-                                move || {
-                                    namui::event::send(Event::InsertCut {
-                                        position: AddCutPosition::After { cut_id },
-                                    });
-                                }
-                            }),
-                            context_menu::Item::new("Start preview from here", {
+                            })]),
+                            vec([
+                                context_menu::Item::new_button("Insert Cut Up", {
+                                    move || {
+                                        namui::event::send(Event::InsertCut {
+                                            position: AddCutPosition::Before { cut_id },
+                                        });
+                                    }
+                                }),
+                                context_menu::Item::new_button("Insert Cut Down", {
+                                    move || {
+                                        namui::event::send(Event::InsertCut {
+                                            position: AddCutPosition::After { cut_id },
+                                        });
+                                    }
+                                }),
+                            ]),
+                            vec([context_menu::Item::new_button("Start preview from here", {
                                 move || namui::event::send(Event::StartPreviewFromHere { cut_id })
-                            }),
-                            context_menu::Item::new("Cut", {
-                                move || namui::event::send(Event::CutTheCut { cut_id })
-                            }),
-                            context_menu::Item::new("Copy", {
-                                move || namui::event::send(Event::CopyTheCut { cut_id })
-                            }),
+                            })]),
+                            vec([
+                                context_menu::Item::new_button("Cut whole cut", {
+                                    move || namui::event::send(Event::CutTheCut { cut_id })
+                                }),
+                                context_menu::Item::new_button("Copy whole cut", {
+                                    move || namui::event::send(Event::CopyTheCut { cut_id })
+                                }),
+                            ])
+                            .into_iter()
+                            .chain(
+                                if self.cut_clipboard.is_some() {
+                                    vec([
+                                        context_menu::Item::Divider,
+                                        context_menu::Item::new_button("Paste Cut Up", {
+                                            move || namui::event::send(Event::PasteCutUp { cut_id })
+                                        }),
+                                        context_menu::Item::new_button("Paste Cut Down", {
+                                            move || {
+                                                namui::event::send(Event::PasteCutDown { cut_id })
+                                            }
+                                        }),
+                                    ])
+                                } else {
+                                    vec([])
+                                }
+                                .into_iter(),
+                            )
+                            .collect(),
+                            vec([context_menu::Item::new_button("Copy images", {
+                                move || namui::event::send(Event::CopyImages { cut_id })
+                            })])
+                            .into_iter()
+                            .chain(
+                                if self.images_clipboard.is_some() {
+                                    vec([context_menu::Item::new_button("Paste images", {
+                                        move || namui::event::send(Event::PasteImages { cut_id })
+                                    })])
+                                } else {
+                                    vec([])
+                                }
+                                .into_iter(),
+                            )
+                            .collect(),
                         ]
-                        .into_iter()
-                        .chain(
-                            if self.cut_clipboard.is_some() {
-                                vec![
-                                    context_menu::Item::new("Paste Cut Up", {
-                                        move || namui::event::send(Event::PasteCutUp { cut_id })
-                                    }),
-                                    context_menu::Item::new("Paste Cut Down", {
-                                        move || namui::event::send(Event::PasteCutDown { cut_id })
-                                    }),
-                                ]
-                            } else {
-                                vec![]
-                            }
-                            .into_iter(),
-                        ),
+                        .join(&context_menu::Item::Divider),
                     ))
                 }
                 &Event::DeleteCut { cut_id } => {
@@ -266,6 +295,19 @@ impl LoadedSequenceEditorPage {
                             let new_cut = cut_clipboard.duplicate(uuid());
                             self.insert_cut(index_to_insert, new_cut)
                         }
+                    }
+                }
+                &Event::CopyImages { cut_id } => {
+                    let cut = self.sequence.cuts.iter().find(|cut| cut.id() == cut_id);
+                    if let Some(cut) = cut {
+                        self.images_clipboard = Some(cut.screen_images.clone());
+                    }
+                }
+                &Event::PasteImages { cut_id } => {
+                    if let Some(images_clipboard) = self.images_clipboard.clone() {
+                        self.update_cut(cut_id, |cut| {
+                            cut.screen_images = images_clipboard;
+                        })
                     }
                 }
             }
@@ -451,6 +493,9 @@ impl LoadedSequenceEditorPage {
         self.sequence_player
             .as_mut()
             .map(|sequence_player| sequence_player.update(event));
+        self.context_menu
+            .as_mut()
+            .map(|context_menu| context_menu.update(event));
     }
     fn on_sequence_updated_by_server(&mut self) {
         self.renew_line_text_inputs();
