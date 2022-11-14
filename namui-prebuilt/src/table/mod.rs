@@ -234,8 +234,8 @@ pub fn fit<'a>(align: FitAlign, rendering_tree: RenderingTree) -> TableCell<'a> 
     match rendering_tree.get_bounding_box() {
         Some(bounding_box) => TableCell {
             unit: Unit::Responsive(Box::new(move |direction| match direction {
-                Direction::Vertical => bounding_box.height(),
-                Direction::Horizontal => bounding_box.width(),
+                Direction::Vertical => bounding_box.y() + bounding_box.height(),
+                Direction::Horizontal => bounding_box.x() + bounding_box.width(),
             })),
             render: Box::new(move |direction, wh| {
                 let x = match direction {
