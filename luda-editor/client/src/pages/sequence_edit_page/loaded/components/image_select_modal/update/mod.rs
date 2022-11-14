@@ -28,7 +28,7 @@ impl ImageSelectModal {
                     image,
                     update_labels,
                 } => {
-                    self.select_image(image.clone(), *update_labels);
+                    self.select_image(image.clone(), *update_labels, false);
                 }
                 InternalEvent::EditScreenPressed { screen_images } => {
                     self.screen_editor = Some(screen_editor::ScreenEditor::new(
@@ -76,7 +76,7 @@ impl ImageSelectModal {
                             let image = images.get(index);
 
                             if let Some(image) = image {
-                                self.select_image((*image).clone(), false);
+                                self.select_image((*image).clone(), false, true);
                             }
                         }
                     }
@@ -112,10 +112,16 @@ impl ImageSelectModal {
             .as_mut()
             .map(|screen_editor| screen_editor.update(event));
     }
-    fn select_image(&mut self, image: ImageWithLabels, update_labels: bool) {
+    fn select_image(&mut self, image: ImageWithLabels, update_labels: bool, scroll_to: bool) {
         self.selected_image = Some(image.clone());
         if update_labels {
             self.selected_labels = image.labels.clone().into_iter().collect();
+        }
+        if scroll_to {
+            let row_of_selected_image = self.get_selected_image_row_column().map(|(row, _)| row);
+            if let Some(row) = row_of_selected_image {
+                self.image_list_view.scroll_to(row);
+            }
         }
     }
 }
