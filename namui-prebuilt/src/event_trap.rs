@@ -46,6 +46,9 @@ pub fn event_trap_mouse(content: RenderingTree) -> RenderingTree {
             .on_mouse_move_in(|event| {
                 event.stop_propagation();
             })
+            .on_mouse_up_in(|event| {
+                event.stop_propagation();
+            })
             .on_wheel(|event| {
                 let xy = event.namui_context.get_rendering_tree_xy(event.target);
                 if let Some(xy) = xy {
