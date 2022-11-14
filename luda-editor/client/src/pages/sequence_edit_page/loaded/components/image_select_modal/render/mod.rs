@@ -13,16 +13,16 @@ impl ImageSelectModal {
             return image_edit_modal.render(image_edit_modal::Props { wh: props.wh });
         }
         if let Some(screen_editor) = &self.screen_editor {
-            return screen_editor.render(screen_editor::Props {
+            return event_trap(screen_editor.render(screen_editor::Props {
                 wh: props.wh,
                 project_shared_data: props.project_shared_data,
                 cut: props.cut,
-            });
+            }));
         }
 
         let screen_images = props.cut.screen_images.clone();
 
-        on_top(
+        on_top(event_trap(
             render([
                 simple_rect(props.wh, Color::WHITE, 1.px(), Color::BLACK),
                 table::vertical([
@@ -133,15 +133,11 @@ impl ImageSelectModal {
                 ])(props.wh),
             ])
             .attach_event(|builder| {
-                builder
-                    .on_mouse_down_in(|event| {
-                        event.stop_propagation();
-                    })
-                    .on_mouse_down_out(|event| {
-                        event.stop_propagation();
-                        namui::event::send(Event::Close)
-                    });
+                builder.on_mouse_down_out(|event| {
+                    event.stop_propagation();
+                    namui::event::send(Event::Close)
+                });
             }),
-        )
+        ))
     }
 }
