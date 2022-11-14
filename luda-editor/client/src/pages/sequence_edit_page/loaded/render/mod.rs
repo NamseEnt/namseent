@@ -45,7 +45,7 @@ impl LoadedSequenceEditorPage {
                         .iter()
                         .find(|cut| cut.id() == image_select_modal.cut_id)
                     {
-                        let modal_wh = props.wh * 2.0 / 3.0;
+                        let modal_wh = props.wh;
                         let xy = ((props.wh - modal_wh) / 2.0).as_xy();
                         translate(
                             xy.x,
