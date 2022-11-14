@@ -30,24 +30,17 @@ impl ImageSelectModal {
             },
         );
 
-        let filtered_images = self
-            .images
-            .iter()
-            .filter(|image| {
-                self.selected_labels
-                    .iter()
-                    .all(|label| image.labels.contains(label))
-            })
-            .collect::<Vec<_>>();
+        let filtered_images = self.get_filtered_images();
 
-        let row_cell_count = 4;
         let padding = 12.px();
-        let image_width = (props.wh.width - padding * 5) / row_cell_count;
-
+        let image_width = (props.wh.width - padding * 5) / Self::ROW_CELL_COUNT;
         let row_images_list = (0..filtered_images.len())
-            .step_by(row_cell_count)
+            .step_by(Self::ROW_CELL_COUNT)
             .map(|index| {
-                let row_images = filtered_images.iter().skip(index).take(row_cell_count);
+                let row_images = filtered_images
+                    .iter()
+                    .skip(index)
+                    .take(Self::ROW_CELL_COUNT);
                 row_images
             });
 
@@ -107,5 +100,10 @@ impl ImageSelectModal {
                 },
             }),
         ])
+        .attach_event(move |builder| {
+            builder.on_key_down(move |event| {
+                namui::event::send(InternalEvent::ImageListKeyDown(event.code));
+            });
+        })
     }
 }

@@ -28,10 +28,7 @@ impl ImageSelectModal {
                     image,
                     update_labels,
                 } => {
-                    self.selected_image = Some(image.clone());
-                    if *update_labels {
-                        self.selected_labels = image.labels.clone().into_iter().collect();
-                    }
+                    self.select_image(image.clone(), *update_labels);
                 }
                 InternalEvent::EditScreenPressed { screen_images } => {
                     self.screen_editor = Some(screen_editor::ScreenEditor::new(
@@ -61,6 +58,28 @@ impl ImageSelectModal {
                             Err(error) => namui::event::send(Event::Error(error.to_string())),
                         }
                     });
+                }
+                &InternalEvent::ImageListKeyDown(code) => {
+                    let selected_image_row_column = self.get_selected_image_row_column();
+                    if let Some((row, column)) = selected_image_row_column {
+                        let next_row_column = self.get_row_column_on_keyboard_event(
+                            code,
+                            row,
+                            column,
+                            self.get_row_count(),
+                            Self::ROW_CELL_COUNT,
+                            self.get_filtered_images().len(),
+                        );
+                        if let Some((row, column)) = next_row_column {
+                            let images = self.get_filtered_images();
+                            let index = row * Self::ROW_CELL_COUNT + column;
+                            let image = images.get(index);
+
+                            if let Some(image) = image {
+                                self.select_image((*image).clone(), false);
+                            }
+                        }
+                    }
                 }
             }
         } else if let Some(event) = event.downcast_ref::<context_menu::Event>() {
@@ -92,5 +111,11 @@ impl ImageSelectModal {
         self.screen_editor
             .as_mut()
             .map(|screen_editor| screen_editor.update(event));
+    }
+    fn select_image(&mut self, image: ImageWithLabels, update_labels: bool) {
+        self.selected_image = Some(image.clone());
+        if update_labels {
+            self.selected_labels = image.labels.clone().into_iter().collect();
+        }
     }
 }
