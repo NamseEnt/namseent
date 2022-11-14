@@ -5,7 +5,7 @@ mod recent_images;
 
 use super::*;
 use crate::pages::sequence_edit_page::loaded::components::screen_image_list;
-use namui_prebuilt::button::body_text_button;
+use namui_prebuilt::{button::body_text_button, typography::*};
 
 impl ImageSelectModal {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
@@ -26,10 +26,10 @@ impl ImageSelectModal {
             render([
                 simple_rect(props.wh, Color::WHITE, 1.px(), Color::BLACK),
                 table::vertical([
-                    table::fixed(20.px(), |wh| {
+                    table::fixed(36.px(), |wh| {
                         table::horizontal([
                             table::fit(
-                                table::FitAlign::RightBottom,
+                                table::FitAlign::LeftTop,
                                 button::text_button_fit(
                                     wh.height,
                                     "Upload Bulk Images",
@@ -39,6 +39,15 @@ impl ImageSelectModal {
                                     Color::BLACK,
                                     12.px(),
                                     || namui::event::send(InternalEvent::RequestUploadBulkImages),
+                                ),
+                            ),
+                            table::fit(
+                                table::FitAlign::LeftTop,
+                                text_fit(
+                                    wh.height,
+                                    format!("Text: \"{}\"", props.cut.line.replace("\n", " ")),
+                                    Color::WHITE,
+                                    12.px(),
                                 ),
                             ),
                             table::ratio(1, |_| RenderingTree::Empty),

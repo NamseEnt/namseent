@@ -1,4 +1,5 @@
 use super::*;
+use namui_prebuilt::table::FitAlign;
 use std::str::FromStr;
 
 pub struct Props {
@@ -39,7 +40,8 @@ impl ImageSelectModal {
                         }))
                     })
                 }),
-                table::ratio(1, |wh| {
+                table::fit(
+                    FitAlign::LeftTop,
                     namui::try_render(|| {
                         let label_title = typography::body::left_top_bold("Labels", Color::WHITE);
 
@@ -70,11 +72,11 @@ impl ImageSelectModal {
                                     color: Color::WHITE,
                                     ..Default::default()
                                 },
-                                max_width: Some(wh.width - 24.px()),
+                                max_width: Some(props.wh.width - 24.px()),
                             }),
                         ]))
-                    })
-                }),
+                    }),
+                ),
                 table::fixed(64.px(), |wh| {
                     let padding = 12.px();
                     let button_height = wh.height - padding * 2;
