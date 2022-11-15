@@ -310,6 +310,11 @@ impl LoadedSequenceEditorPage {
                         })
                     }
                 }
+                Event::ImageManagerButtonClicked => {
+                    self.image_manager_modal = Some(image_manager_modal::ImageManagerModal::new(
+                        self.project_shared_data.id(),
+                    ));
+                }
             }
         } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
             if let text_input::Event::TextUpdated { id, text } = event {
@@ -496,6 +501,9 @@ impl LoadedSequenceEditorPage {
         self.context_menu
             .as_mut()
             .map(|context_menu| context_menu.update(event));
+        self.image_manager_modal
+            .as_mut()
+            .map(|image_manager_modal| image_manager_modal.update(event));
     }
     fn on_sequence_updated_by_server(&mut self) {
         self.renew_line_text_inputs();
