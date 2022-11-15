@@ -42,8 +42,7 @@ struct EditingTarget {
 
 impl ImageTable {
     pub fn new(project_id: Uuid) -> ImageTable {
-        request_reload_images(project_id);
-        ImageTable {
+        let table = ImageTable {
             project_id,
             list_view: list_view::ListView::new(),
             images: vec![],
@@ -51,24 +50,23 @@ impl ImageTable {
             text_input: text_input::TextInput::new(),
             editing_target: None,
             saving_count: 0,
-        }
-    }
-}
-pub fn request_reload_images(project_id: Uuid) {
-    spawn_local({
-        async move {
-            let result = crate::RPC
-                .list_images(rpc::list_images::Request { project_id })
-                .await;
+        };
 
-            match result {
+        table.request_reload_images();
+        table
+    }
+    pub fn request_reload_images(&self) {
+        crate::RPC
+            .list_images(rpc::list_images::Request {
+                project_id: self.project_id,
+            })
+            .callback(|result| match result {
                 Ok(response) => {
                     namui::event::send(InternalEvent::LoadImages(response.images));
                 }
                 Err(error) => {
                     namui::event::send(Event::Error(error.to_string()));
                 }
-            }
-        }
-    });
+            })
+    }
 }

@@ -1,6 +1,5 @@
-mod upload_images;
-
 use super::*;
+use crate::pages::sequence_edit_page::loaded::components::image_upload::upload_images;
 
 impl ImageSelectModal {
     pub fn update(&mut self, event: &dyn std::any::Any) {
@@ -52,7 +51,7 @@ impl ImageSelectModal {
                 InternalEvent::RequestUploadBulkImages => {
                     let project_id = self.project_id;
                     spawn_local(async move {
-                        let result = upload_images::upload_images(project_id).await;
+                        let result = upload_images(project_id).await;
                         match result {
                             Ok(_) => request_reload_images(project_id),
                             Err(error) => namui::event::send(Event::Error(error.to_string())),
