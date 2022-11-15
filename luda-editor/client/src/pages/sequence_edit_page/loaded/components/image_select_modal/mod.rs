@@ -1,3 +1,4 @@
+mod image_filter;
 mod render;
 mod update;
 
@@ -56,6 +57,7 @@ enum InternalEvent {
         screen_images: ScreenImages,
     },
     RequestUploadBulkImages,
+    ImageListKeyDown(Code),
 }
 
 pub struct Update {

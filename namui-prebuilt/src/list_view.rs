@@ -1,10 +1,12 @@
 use crate::scroll_view;
 use namui::prelude::*;
+use std::sync::{Arc, Mutex};
 
 /// ListView is a vertical list view with fixed height items.
 #[derive(Debug, Clone)]
 pub struct ListView {
     scroll_view: scroll_view::ScrollView,
+    requested_scroll_index: Arc<Mutex<Option<usize>>>,
 }
 
 pub struct Props<TItem, TIterator, TItems, TItemRender>
@@ -27,10 +29,15 @@ impl ListView {
     pub fn new() -> Self {
         Self {
             scroll_view: scroll_view::ScrollView::new(),
+            requested_scroll_index: Arc::new(Mutex::new(None)),
         }
     }
     pub fn update(&mut self, event: &dyn std::any::Any) {
         self.scroll_view.update(event);
+    }
+    /// This will scroll on next rendering stage.
+    pub fn scroll_to(&mut self, index: usize) {
+        *self.requested_scroll_index.lock().unwrap() = Some(index);
     }
     pub fn render<TItem, TIterator, TItems, TItemRender>(
         &self,
@@ -49,7 +56,21 @@ impl ListView {
         }
 
         let max_scroll_y = props.item_wh.height * item_len - props.height;
-        let scroll_y = self.scroll_view.scroll_y.min(max_scroll_y);
+        let scroll_y = {
+            let mut index_guard = self.requested_scroll_index.lock().unwrap();
+            (if let Some(index) = index_guard.as_ref() {
+                let scroll_y = props.item_wh.height * (*index);
+                namui::event::send(scroll_view::Event::Scrolled(
+                    self.scroll_view.id.clone(),
+                    scroll_y,
+                ));
+                *index_guard = None;
+                scroll_y
+            } else {
+                self.scroll_view.scroll_y
+            })
+            .min(max_scroll_y)
+        };
 
         let visible_item_start_index = (scroll_y / props.item_wh.height).floor() as usize;
         let visible_item_end_index =
