@@ -158,7 +158,7 @@ fn render_entry(
         vertical([
             ratio(0.8, |wh| render_thumbnail(wh, entry)),
             ratio(0.2, |wh| {
-                typography::center_text(
+                typography::center_text_full_height(
                     wh,
                     entry
                         .path_buf()
