@@ -5,7 +5,7 @@ mod recent_images;
 
 use super::*;
 use crate::pages::sequence_edit_page::loaded::components::screen_image_list;
-use namui_prebuilt::button::body_text_button;
+use namui_prebuilt::{button::body_text_button, typography::*};
 
 impl ImageSelectModal {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
@@ -13,23 +13,23 @@ impl ImageSelectModal {
             return image_edit_modal.render(image_edit_modal::Props { wh: props.wh });
         }
         if let Some(screen_editor) = &self.screen_editor {
-            return screen_editor.render(screen_editor::Props {
+            return event_trap(screen_editor.render(screen_editor::Props {
                 wh: props.wh,
                 project_shared_data: props.project_shared_data,
                 cut: props.cut,
-            });
+            }));
         }
 
         let screen_images = props.cut.screen_images.clone();
 
-        on_top(
+        on_top(event_trap(
             render([
                 simple_rect(props.wh, Color::WHITE, 1.px(), Color::BLACK),
                 table::vertical([
-                    table::fixed(20.px(), |wh| {
+                    table::fixed(36.px(), |wh| {
                         table::horizontal([
                             table::fit(
-                                table::FitAlign::RightBottom,
+                                table::FitAlign::LeftTop,
                                 button::text_button_fit(
                                     wh.height,
                                     "Upload Bulk Images",
@@ -39,6 +39,15 @@ impl ImageSelectModal {
                                     Color::BLACK,
                                     12.px(),
                                     || namui::event::send(InternalEvent::RequestUploadBulkImages),
+                                ),
+                            ),
+                            table::fit(
+                                table::FitAlign::LeftTop,
+                                text_fit(
+                                    wh.height,
+                                    format!("Text: \"{}\"", props.cut.line.replace("\n", " ")),
+                                    Color::WHITE,
+                                    12.px(),
                                 ),
                             ),
                             table::ratio(1, |_| RenderingTree::Empty),
@@ -133,15 +142,11 @@ impl ImageSelectModal {
                 ])(props.wh),
             ])
             .attach_event(|builder| {
-                builder
-                    .on_mouse_down_in(|event| {
-                        event.stop_propagation();
-                    })
-                    .on_mouse_down_out(|event| {
-                        event.stop_propagation();
-                        namui::event::send(Event::Close)
-                    });
+                builder.on_mouse_down_out(|event| {
+                    event.stop_propagation();
+                    namui::event::send(Event::Close)
+                });
             }),
-        )
+        ))
     }
 }

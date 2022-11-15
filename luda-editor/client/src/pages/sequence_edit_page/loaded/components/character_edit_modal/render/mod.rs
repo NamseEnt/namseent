@@ -21,16 +21,14 @@ impl CharacterEditModal {
         on_top(absolute(
             self.global_xy.x,
             self.global_xy.y,
-            render([character_list_view, context_menu]).attach_event(|builder| {
-                builder
-                    .on_mouse_down_in(|event| {
-                        event.stop_propagation();
-                    })
-                    .on_mouse_down_out(|event| {
+            event_trap(
+                render([character_list_view, context_menu]).attach_event(|builder| {
+                    builder.on_mouse_down_out(|event| {
                         event.stop_propagation();
                         namui::event::send(Event::Close)
                     });
-            }),
+                }),
+            ),
         ))
     }
 }
