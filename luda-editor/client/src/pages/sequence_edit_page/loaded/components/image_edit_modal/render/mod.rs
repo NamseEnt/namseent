@@ -7,7 +7,7 @@ use super::*;
 
 impl ImageEditModal {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
-        on_top(
+        on_top(event_trap(
             render([
                 simple_rect(props.wh, Color::WHITE, 1.px(), Color::BLACK),
                 table::horizontal([
@@ -31,15 +31,11 @@ impl ImageEditModal {
                 ])(props.wh),
             ])
             .attach_event(|builder| {
-                builder
-                    .on_mouse_down_in(|event| {
-                        event.stop_propagation();
-                    })
-                    .on_mouse_down_out(|event| {
-                        event.stop_propagation();
-                        namui::event::send(Event::Close)
-                    });
+                builder.on_mouse_down_out(|event| {
+                    event.stop_propagation();
+                    namui::event::send(Event::Close)
+                });
             }),
-        )
+        ))
     }
 }

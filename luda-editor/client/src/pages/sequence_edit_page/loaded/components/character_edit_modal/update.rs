@@ -19,7 +19,7 @@ impl CharacterEditModal {
                 } => {
                     self.context_menu = Some(context_menu::ContextMenu::new(
                         *mouse_global_xy,
-                        [context_menu::Item::new("Edit Name", {
+                        [context_menu::Item::new_button("Edit Name", {
                             let character_id = *character_id;
                             let name = name.clone();
                             move || {
