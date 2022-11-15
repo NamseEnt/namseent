@@ -81,8 +81,34 @@ impl ImageSelectModal {
                     let padding = 12.px();
                     let button_height = wh.height - padding * 2;
                     let image_id = self.selected_image.as_ref().map(|image| image.id);
+
                     table::horizontal([
                         table::ratio(1, |_wh| RenderingTree::Empty),
+                        table::fit(
+                            table::FitAlign::CenterMiddle,
+                            button::text_button_fit(
+                                button_height,
+                                "Reset",
+                                Color::WHITE,
+                                Color::WHITE,
+                                2.px(),
+                                Color::BLACK,
+                                padding,
+                                {
+                                    let screen_images = screen_images.clone();
+                                    let on_update_image = on_update_image.clone();
+                                    move || {
+                                        let mut screen_images = screen_images.clone();
+                                        screen_images[selected_screen_image_index] = None;
+                                        on_update_image(Update {
+                                            cut_id,
+                                            screen_images,
+                                        })
+                                    }
+                                },
+                            )
+                            .padding(12.px()),
+                        ),
                         table::fit(
                             table::FitAlign::CenterMiddle,
                             button::text_button_fit(
