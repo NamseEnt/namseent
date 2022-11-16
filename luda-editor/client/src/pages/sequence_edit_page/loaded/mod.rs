@@ -30,6 +30,7 @@ pub struct LoadedSequenceEditorPage {
     text_input_selected_cut_id: Option<Uuid>,
     cut_clipboard: Option<Cut>,
     images_clipboard: Option<ScreenImages>,
+    image_manager_modal: Option<image_manager_modal::ImageManagerModal>,
 }
 
 enum Event {
@@ -85,6 +86,7 @@ enum Event {
     PasteImages {
         cut_id: Uuid,
     },
+    ImageManagerButtonClicked,
 }
 
 #[derive(Clone, Copy)]
@@ -124,6 +126,7 @@ impl LoadedSequenceEditorPage {
             text_input_selected_cut_id: None,
             cut_clipboard: None,
             images_clipboard: None,
+            image_manager_modal: None,
         }
     }
     fn project_id(&self) -> Uuid {

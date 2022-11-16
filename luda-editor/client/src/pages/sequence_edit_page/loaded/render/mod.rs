@@ -45,21 +45,21 @@ impl LoadedSequenceEditorPage {
                         .iter()
                         .find(|cut| cut.id() == image_select_modal.cut_id)
                     {
-                        let modal_wh = props.wh;
-                        let xy = ((props.wh - modal_wh) / 2.0).as_xy();
-                        translate(
-                            xy.x,
-                            xy.y,
-                            image_select_modal.render(image_select_modal::Props {
-                                wh: modal_wh,
-                                recent_selected_image_ids: &self.recent_selected_image_ids,
-                                cut,
-                                project_shared_data: &self.project_shared_data,
-                            }),
-                        )
+                        image_select_modal.render(image_select_modal::Props {
+                            wh: props.wh,
+                            recent_selected_image_ids: &self.recent_selected_image_ids,
+                            cut,
+                            project_shared_data: &self.project_shared_data,
+                        })
                     } else {
                         RenderingTree::Empty
                     }
+                }
+                None => RenderingTree::Empty,
+            },
+            match &self.image_manager_modal {
+                Some(image_manager_modal) => {
+                    image_manager_modal.render(image_manager_modal::Props { wh: props.wh })
                 }
                 None => RenderingTree::Empty,
             },

@@ -74,6 +74,19 @@ impl LoadedSequenceEditorPage {
             };
             typography::body::left(wh.height, text, Color::WHITE)
         });
+        let image_manager_button = table::fit(
+            table::FitAlign::CenterMiddle,
+            text_button_fit(
+                wh.height,
+                "Image Manager",
+                Color::WHITE,
+                Color::WHITE,
+                1.px(),
+                Color::BLACK,
+                8.px(),
+                || namui::event::send(Event::ImageManagerButtonClicked),
+            ),
+        );
         let download_button = table::fit(
             table::FitAlign::CenterMiddle,
             text_button_fit(
@@ -111,6 +124,7 @@ impl LoadedSequenceEditorPage {
                 sequence_name_label,
                 margin(),
                 sync_status,
+                image_manager_button,
                 download_button,
                 preview_button,
             ])(wh),
