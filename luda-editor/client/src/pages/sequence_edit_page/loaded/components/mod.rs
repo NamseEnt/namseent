@@ -4,7 +4,9 @@
 // pub mod character_image_select_modal;
 pub mod character_edit_modal;
 pub mod image_edit_modal;
+pub mod image_manager_modal;
 pub mod image_select_modal;
+pub mod image_table;
 pub mod image_upload;
 pub mod screen_editor;
 pub mod screen_image_list;
