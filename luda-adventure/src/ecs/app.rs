@@ -22,24 +22,20 @@ impl App {
     pub fn add_entities(&mut self, entities: impl IntoIterator<Item = Entity>) {
         self.entities.extend(entities);
     }
-    pub fn query_entities<'a, T: ComponentCombination<'a>>(
-        &'a self,
-    ) -> Vec<(&'a Entity, T::Output)> {
+    pub fn query_component<'a, T: ComponentCombination<'a>>(&'a self) -> Vec<T::Output> {
         let mut query = Vec::new();
         for entity in &self.entities {
-            if let Some(component) = T::filter(entity) {
-                query.push((entity, component));
+            if let Some(component) = entity.get_component::<T>() {
+                query.push(component);
             }
         }
         query
     }
-    pub fn query_entities_mut<'a, T: ComponentCombinationMut<'a>>(
-        &'a mut self,
-    ) -> Vec<(&'a Entity, T::Output)> {
+    pub fn query_component_mut<'a, T: ComponentCombinationMut<'a>>(&'a mut self) -> Vec<T::Output> {
         let mut query = Vec::new();
-        for entity in &self.entities {
-            if let Some(component) = T::filter(entity) {
-                query.push((entity, component));
+        for entity in &mut self.entities {
+            if let Some(component) = entity.get_component_mut::<T>() {
+                query.push(component);
             }
         }
         query

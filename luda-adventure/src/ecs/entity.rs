@@ -1,10 +1,10 @@
 use super::*;
+use ecs_macro::define_component_combinations;
 use namui::Uuid;
-use std::cell::{Ref, RefCell, RefMut};
 
 pub struct Entity {
     id: Uuid,
-    components: Vec<Box<dyn WrappedComponent>>,
+    components: Vec<Box<dyn ContainedComponent>>,
 }
 
 impl Entity {
@@ -21,22 +21,80 @@ impl Entity {
         self.id
     }
     pub fn add_component<T: Component + 'static>(mut self, component: T) -> Self {
-        self.components.push(Box::new(RefCell::new(component)));
+        self.components
+            .push(Box::new(ComponentContainer::new(component)));
         self
     }
-    pub fn get_component<T: Component + 'static>(&self) -> Option<Ref<T>> {
-        self.components
-            .iter()
-            .find_map(|component| component.as_any().downcast_ref::<RefCell<T>>())
-            .map(|component| component.borrow())
+    pub fn get_component<'entity, T: ComponentCombination<'entity>>(
+        &'entity self,
+    ) -> Option<T::Output> {
+        T::filter(self)
     }
-    pub fn get_component_mut<T: Component + 'static>(&self) -> Option<RefMut<T>> {
-        self.components
-            .iter()
-            .find_map(|component| component.as_any().downcast_ref::<RefCell<T>>())
-            .map(|component| component.borrow_mut())
+    pub fn get_component_mut<'entity, T: ComponentCombinationMut<'entity>>(
+        &'entity mut self,
+    ) -> Option<T::Output> {
+        T::filter(self)
     }
 }
+
+impl<'entity, T: Component + 'static + Sized> ComponentCombination<'entity> for T {
+    type Output = &'entity T;
+    fn filter(entity: &'entity Entity) -> Option<Self::Output>
+    where
+        Self: Sized,
+    {
+        let mut component1 = None;
+
+        for component in entity.components.iter() {
+            if component.as_any().is::<ComponentContainer<T>>() {
+                component1 = Some(component);
+            }
+        }
+
+        Some(
+            component1?
+                .as_any()
+                .downcast_ref::<ComponentContainer<T>>()?
+                .as_ref(),
+        )
+    }
+}
+impl<'entity, T: Component + 'static> ComponentCombinationMut<'entity> for T {
+    type Output = &'entity mut T;
+    fn filter(entity: &'entity mut Entity) -> Option<Self::Output>
+    where
+        Self: Sized,
+    {
+        let mut component1 = None;
+
+        for component in entity.components.iter_mut() {
+            if component.as_any_mut().is::<ComponentContainer<T>>() {
+                component1 = Some(component);
+            }
+        }
+
+        Some(
+            component1?
+                .as_any_mut()
+                .downcast_mut::<ComponentContainer<T>>()?
+                .as_ref_mut(),
+        )
+    }
+}
+
+pub trait ComponentCombination<'entity> {
+    type Output;
+    fn filter(entity: &'entity Entity) -> Option<Self::Output>
+    where
+        Self: Sized;
+}
+pub trait ComponentCombinationMut<'entity> {
+    type Output;
+    fn filter(entity: &'entity mut Entity) -> Option<Self::Output>
+    where
+        Self: Sized;
+}
+define_component_combinations!();
 
 impl PartialEq for Entity {
     fn eq(&self, other: &Self) -> bool {

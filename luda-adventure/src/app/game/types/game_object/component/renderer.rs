@@ -6,15 +6,14 @@ use std::fmt::Debug;
 pub struct Renderer {
     pub z_index: i32,
     pub visual_rect: Rect<Tile>,
-    render:
-        Box<dyn Fn(&crate::ecs::Entity, &GameState, &RenderingContext) -> RenderingTree + 'static>,
+    render: Box<dyn Fn(&GameState, &RenderingContext, Xy<Tile>) -> RenderingTree + 'static>,
 }
 
 impl Renderer {
     pub fn new(
         z_index: i32,
         visual_rect: Rect<Tile>,
-        render: impl Fn(&crate::ecs::Entity, &GameState, &RenderingContext) -> RenderingTree + 'static,
+        render: impl Fn(&GameState, &RenderingContext, Xy<Tile>) -> RenderingTree + 'static,
     ) -> Self {
         Self {
             z_index,
@@ -24,11 +23,11 @@ impl Renderer {
     }
     pub fn render(
         &self,
-        entity: &crate::ecs::Entity,
         game_state: &GameState,
         rendering_context: &RenderingContext,
+        xy: Xy<Tile>,
     ) -> RenderingTree {
-        (self.render)(entity, game_state, rendering_context)
+        (self.render)(game_state, rendering_context, xy)
     }
 }
 

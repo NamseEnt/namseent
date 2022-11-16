@@ -1,6 +1,6 @@
-use crate::{app::game::*, ecs::Entity};
+use crate::app::game::*;
 use namui::prelude::*;
-use std::{cell::Ref, cmp::Ordering};
+use std::cmp::Ordering;
 
 impl Game {
     pub fn render_in_screen_object_list(
@@ -15,8 +15,12 @@ impl Game {
         render(
             in_screen_object_list
                 .into_iter()
-                .map(|(entity, (renderer, _))| {
-                    renderer.render(entity, &self.state, rendering_context)
+                .map(|(renderer, positioner)| {
+                    renderer.render(
+                        &self.state,
+                        rendering_context,
+                        positioner.xy_with_interpolation(rendering_context.interpolation_progress),
+                    )
                 }),
         )
     }
@@ -24,11 +28,11 @@ impl Game {
     fn get_in_screen_object_list(
         &self,
         rendering_context: &RenderingContext,
-    ) -> Vec<(&crate::ecs::Entity, (Ref<Renderer>, Ref<Positioner>))> {
+    ) -> Vec<(&Renderer, &Positioner)> {
         self.ecs_app
-            .query_entities::<(&Renderer, &Positioner)>()
+            .query_component::<(Renderer, Positioner)>()
             .into_iter()
-            .filter(|(_, (renderer, positioner))| {
+            .filter(|(renderer, positioner)| {
                 let visual_area = renderer.visual_rect + positioner.xy;
                 visual_area
                     .intersect(rendering_context.screen_rect)
@@ -39,20 +43,18 @@ impl Game {
 }
 
 fn sort_in_screen_object_list_with_z_index_then_sort_with_y_coordinate(
-    in_screen_object_list: &mut Vec<(&Entity, (Ref<Renderer>, Ref<Positioner>))>,
+    in_screen_object_list: &mut Vec<(&Renderer, &Positioner)>,
 ) {
-    in_screen_object_list.sort_by(
-        |(_, (a_renderer, a_positioner)), (_, (b_renderer, b_positioner))| {
-            let z_index_comparison = a_renderer.z_index.cmp(&b_renderer.z_index);
-            if z_index_comparison == std::cmp::Ordering::Equal {
-                a_positioner
-                    .xy
-                    .y
-                    .partial_cmp(&b_positioner.xy.y)
-                    .unwrap_or(Ordering::Equal)
-            } else {
-                z_index_comparison
-            }
-        },
-    );
+    in_screen_object_list.sort_by(|(a_renderer, a_positioner), (b_renderer, b_positioner)| {
+        let z_index_comparison = a_renderer.z_index.cmp(&b_renderer.z_index);
+        if z_index_comparison == std::cmp::Ordering::Equal {
+            a_positioner
+                .xy
+                .y
+                .partial_cmp(&b_positioner.xy.y)
+                .unwrap_or(Ordering::Equal)
+        } else {
+            z_index_comparison
+        }
+    });
 }

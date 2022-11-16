@@ -56,7 +56,7 @@ fn append_components(entity: crate::ecs::Entity, positions: Vec<Xy<Tile>>) -> cr
                 width,
                 height,
             },
-            move |_entity, _game_context, rendering_context| {
+            move |_game_context, rendering_context, _xy| {
                 render(
                     positions
                         .iter()

@@ -1,8 +1,5 @@
 use crate::{
-    app::game::{
-        known_id::object::PLAYER_CHARACTER, Collider, CollisionInfo, Game, PlayerCharacter,
-        Positioner, RigidBody, Tile,
-    },
+    app::game::{Collider, CollisionInfo, Game, PlayerCharacter, Positioner, RigidBody, Tile},
     ecs,
 };
 use namui::prelude::*;
@@ -12,9 +9,9 @@ const MAX_COLLISION_RESOLVE_COUNT: i32 = 6;
 impl Game {
     pub fn resolve_collision_about_character(&mut self) {
         let rigid_body_list_except_character = get_rigid_body_list_except_character(&self.ecs_app);
-        if let Some((_, (_, character_collider, character_positioner))) = self
+        if let Some((_, character_collider, character_positioner)) = self
             .ecs_app
-            .query_entities_mut::<(&PlayerCharacter, &Collider, &mut Positioner)>()
+            .query_component_mut::<(PlayerCharacter, Collider, Positioner)>()
             .first_mut()
         {
             let mut character_rigid_body =
@@ -53,14 +50,10 @@ impl Game {
 
 fn get_rigid_body_list_except_character(ecs_app: &ecs::App) -> Vec<RigidBody> {
     ecs_app
-        .query_entities::<(&Collider, &Positioner)>()
+        .query_component::<(Collider, Positioner)>()
         .into_iter()
-        .filter_map(
-            |(entity, (collider, positioner))| match entity.id() == PLAYER_CHARACTER {
-                true => None,
-                false => Some(collider.get_rigid_body(positioner.xy)),
-            },
-        )
+        // TODO: Filter out character
+        .map(|(collider, positioner)| collider.get_rigid_body(positioner.xy))
         .collect::<Vec<_>>()
 }
 

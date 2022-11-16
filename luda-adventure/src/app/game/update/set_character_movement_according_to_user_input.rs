@@ -10,9 +10,9 @@ impl Game {
                     let movement_direction =
                         get_movement_direction_from_pressing_codes(&event.pressing_codes);
 
-                    if let Some((_entity, (player_character, mover))) = self
+                    if let Some((player_character, mover)) = self
                         .ecs_app
-                        .query_entities_mut::<(&mut PlayerCharacter, &mut Mover)>()
+                        .query_component_mut::<(PlayerCharacter, Mover)>()
                         .first_mut()
                     {
                         player_character.update_heading(movement_direction);

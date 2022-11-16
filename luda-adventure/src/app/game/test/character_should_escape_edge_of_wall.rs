@@ -27,7 +27,7 @@ fn character_should_escape_edge_of_wall() {
 /// - x: 0 tile
 /// - y: 0 tile
 fn add_character(ecs_app: &mut ecs::App) {
-    let character = new_player(Xy {
+    let mut character = new_player(Xy {
         x: 0.tile(),
         y: 0.tile(),
     });
@@ -58,8 +58,8 @@ fn add_wall(ecs_app: &mut ecs::App) {
 }
 
 fn get_character_x(ecs_app: &ecs::App) -> Tile {
-    let (_, (_, positioner)) = ecs_app
-        .query_entities::<(&PlayerCharacter, &Positioner)>()
+    let (_, positioner) = ecs_app
+        .query_component::<(PlayerCharacter, Positioner)>()
         .into_iter()
         .next()
         .unwrap();

@@ -40,14 +40,11 @@ pub fn new_floor(positions: Vec<Xy<Tile>>) -> crate::ecs::Entity {
                 width: VISUAL_WIDTH + max_x - min_x,
                 height: VISUAL_HEIGHT + max_y - min_y,
             },
-            move |entity, _game_context, rendering_context| {
-                let positioner = entity.get_component::<Positioner>().unwrap();
-                let main_position = positioner.xy;
-
+            move |_game_context, rendering_context, xy| {
                 render(
                     positions
                         .iter()
-                        .map(|position| position + main_position)
+                        .map(|position| position + xy)
                         .filter(|position| {
                             rendering_context
                                 .screen_rect

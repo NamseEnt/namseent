@@ -47,14 +47,11 @@ pub fn new_player(xy: Xy<Tile>) -> crate::ecs::Entity {
                 width: VISUAL_WIDTH,
                 height: VISUAL_HEIGHT,
             },
-            |entity, _game_context, rendering_context| {
-                let positioner = entity.get_component::<Positioner>().unwrap();
-                let character = entity.get_component::<PlayerCharacter>().unwrap();
-                let position =
-                    positioner.xy_with_interpolation(rendering_context.interpolation_progress);
+            |_game_context, rendering_context, xy| {
+                //TODO: Render the player character with heading
                 translate(
-                    (rendering_context.px_per_tile * (position.x + VISUAL_OFFSET_X)).floor(),
-                    (rendering_context.px_per_tile * (position.y + VISUAL_OFFSET_Y)).floor(),
+                    (rendering_context.px_per_tile * (xy.x + VISUAL_OFFSET_X)).floor(),
+                    (rendering_context.px_per_tile * (xy.y + VISUAL_OFFSET_Y)).floor(),
                     render([
                         simple_rect(
                             Wh {
@@ -70,10 +67,11 @@ pub fn new_player(xy: Xy<Tile>) -> crate::ecs::Entity {
                                 width: rendering_context.px_per_tile * VISUAL_WIDTH,
                                 height: rendering_context.px_per_tile * VISUAL_HEIGHT,
                             },
-                            match character.heading {
-                                Heading::Left => "L",
-                                Heading::Right => "R",
-                            },
+                            // match character.heading {
+                            //     Heading::Left => "L",
+                            //     Heading::Right => "R",
+                            // },
+                            "E",
                             Color::WHITE,
                         ),
                     ]),

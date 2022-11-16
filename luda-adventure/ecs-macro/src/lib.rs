@@ -10,32 +10,13 @@ pub fn component(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         impl crate::ecs::Component for #name {}
-
-        impl<'a> crate::ecs::ComponentCombination<'a> for &#name {
-            type Output = std::cell::Ref<'a, #name>;
-            fn filter(entity: &'a crate::ecs::Entity) -> Option<Self::Output> {
-                entity.get_component::<#name>()
-            }
-        }
-        impl<'a> crate::ecs::ComponentCombinationMut<'a> for &#name {
-            type Output = std::cell::Ref<'a, #name>;
-            fn filter(entity: &'a crate::ecs::Entity) -> Option<Self::Output> {
-                entity.get_component::<#name>()
-            }
-        }
-        impl<'a> crate::ecs::ComponentCombinationMut<'a> for &mut #name {
-            type Output = std::cell::RefMut<'a, #name>;
-            fn filter(entity: &'a crate::ecs::Entity) -> Option<Self::Output> {
-                entity.get_component_mut::<#name>()
-            }
-        }
     };
 
     TokenStream::from(expanded)
 }
 
 #[proc_macro]
-pub fn define_combinations(_input: TokenStream) -> TokenStream {
+pub fn define_component_combinations(_input: TokenStream) -> TokenStream {
     let expanded = (2..32).into_iter().map(|index| {
         let zero_to_index = 0..index;
 
@@ -44,17 +25,7 @@ pub fn define_combinations(_input: TokenStream) -> TokenStream {
             .map(|i| {
                 let name = format_ident!("T{i}");
                 quote! {
-                    #name: ComponentCombination<'a>
-                }
-            })
-            .collect::<Vec<_>>();
-
-        let generics_mut = zero_to_index
-            .clone()
-            .map(|i| {
-                let name = format_ident!("T{i}");
-                quote! {
-                    #name: ComponentCombinationMut<'a>
+                    #name: Component + 'static
                 }
             })
             .collect::<Vec<_>>();
@@ -69,42 +40,93 @@ pub fn define_combinations(_input: TokenStream) -> TokenStream {
             .map(|i| {
                 let t_name = format_ident!("T{i}");
                 quote!(
-                    #t_name::Output
+                    &'entity #t_name
                 )
             })
             .collect::<Vec<_>>();
 
-        let filter_statements = zero_to_index
+        let outputs_mut = zero_to_index
             .clone()
             .map(|i| {
-                let result_name = format_ident!("result_{i}");
+                let t_name = format_ident!("T{i}");
+                quote!(
+                    &'entity mut #t_name
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let picked_components = zero_to_index
+            .clone()
+            .map(|i| {
+                let component_name = format_ident!("component{i}");
+                quote!(
+                    let mut #component_name = None;
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let picker_statements = zero_to_index
+            .clone()
+            .map(|i| {
+                let picked_component_name = format_ident!("component{i}");
                 let t_name = format_ident!("T{i}");
                 quote! {
-                    let #result_name = #t_name::filter(entity)?;
+                    if component.as_any().is::<ComponentContainer<#t_name>>() {
+                        #picked_component_name = Some(component);
+                    }
                 }
             })
             .collect::<Vec<_>>();
 
         let tuple_content = zero_to_index
             .clone()
-            .map(|i| format_ident!("result_{i}"))
+            .map(|i| {
+                let picked_component_name = format_ident!("component{i}");
+                let t_name = format_ident!("T{i}");
+                quote! {
+                    #picked_component_name?
+                        .as_any()
+                        .downcast_ref::<ComponentContainer<#t_name>>()?
+                        .as_ref()
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let tuple_content_mut = zero_to_index
+            .clone()
+            .map(|i| {
+                let picked_component_name = format_ident!("component{i}");
+                let t_name = format_ident!("T{i}");
+                quote! {
+                    #picked_component_name?
+                        .as_any_mut()
+                        .downcast_mut::<ComponentContainer<#t_name>>()?
+                        .as_ref_mut()
+                }
+            })
             .collect::<Vec<_>>();
 
         quote! {
-            impl<'a, #(#generics),* > ComponentCombination<'a> for ( #(#for_target),* )
+            impl<'entity, #(#generics),* > ComponentCombination<'entity> for ( #(#for_target),* )
             {
                 type Output = ( #(#outputs),* );
-                fn filter(entity: &'a Entity) -> Option<Self::Output> {
-                    #(#filter_statements)*
+                fn filter(entity: &'entity Entity) -> Option<Self::Output> {
+                    #(#picked_components)*
+                    for component in entity.components.iter() {
+                        #(#picker_statements)else*
+                    }
                     Some((#(#tuple_content),*))
                 }
             }
-            impl<'a, #(#generics_mut),* > ComponentCombinationMut<'a> for ( #(#for_target),* )
+            impl<'entity, #(#generics),* > ComponentCombinationMut<'entity> for ( #(#for_target),* )
             {
-                type Output = ( #(#outputs),* );
-                fn filter(entity: &'a Entity) -> Option<Self::Output> {
-                    #(#filter_statements)*
-                    Some((#(#tuple_content),*))
+                type Output = ( #(#outputs_mut),* );
+                fn filter(entity: &'entity mut Entity) -> Option<Self::Output> {
+                    #(#picked_components)*
+                    for component in entity.components.iter_mut() {
+                        #(#picker_statements)else*
+                    }
+                    Some((#(#tuple_content_mut),*))
                 }
             }
         }
