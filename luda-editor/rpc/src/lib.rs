@@ -1,6 +1,7 @@
 pub mod data;
 mod define_rpc;
 
+pub use define_rpc::RpcFuture;
 pub use revert_json_patch as json_patch;
 pub use uuid::{uuid, Uuid};
 
