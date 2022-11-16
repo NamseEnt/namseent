@@ -12,6 +12,7 @@ pub struct ImageTable {
     sort_order_by: Option<SortOrderBy>,
     text_input: text_input::TextInput,
     editing_target: Option<EditingTarget>,
+    pub saving_count: usize,
 }
 
 pub struct Props {
@@ -26,6 +27,7 @@ enum InternalEvent {
     LoadImages(Vec<ImageWithLabels>),
     LeftClickOnLabelHeader { key: String },
     LeftClickOnLabelCell { image_id: Uuid, label_key: String },
+    PutImageMetaDataSuccess,
 }
 
 enum SortOrderBy {
@@ -48,6 +50,7 @@ impl ImageTable {
             sort_order_by: None,
             text_input: text_input::TextInput::new(),
             editing_target: None,
+            saving_count: 0,
         }
     }
 }

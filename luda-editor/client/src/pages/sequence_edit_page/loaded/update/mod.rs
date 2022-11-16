@@ -486,6 +486,13 @@ impl LoadedSequenceEditorPage {
                     })
                 }
             }
+        } else if let Some(event) = event.downcast_ref::<image_manager_modal::Event>() {
+            match event {
+                image_manager_modal::Event::Close => {
+                    self.image_manager_modal = None;
+                }
+                image_manager_modal::Event::Error(error) => todo!("{}", error),
+            }
         }
 
         self.cut_list_view.update(event);
