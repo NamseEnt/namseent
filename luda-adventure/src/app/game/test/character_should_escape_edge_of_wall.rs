@@ -31,13 +31,11 @@ fn add_character(ecs_app: &mut ecs::App) {
         x: 0.tile(),
         y: 0.tile(),
     });
-    {
-        let mut mover = character.get_component_mut::<Mover>().unwrap();
-        mover.movement = Movement::Moving(Xy {
-            x: Per::new(1.tile(), 1.sec()),
-            y: Per::new(1.tile(), 1.sec()),
-        });
-    }
+    let mut mover = character.get_component_mut::<Mover>().unwrap();
+    mover.movement = Movement::Moving(Xy {
+        x: Per::new(1.tile(), 1.sec()),
+        y: Per::new(1.tile(), 1.sec()),
+    });
     ecs_app.add_entity(character);
 }
 
