@@ -65,7 +65,7 @@ pub fn new_player(xy: Xy<Tile>) -> crate::ecs::Entity {
                             0.px(),
                             Color::from_f01(0.5, 0.5, 1.0, 0.5),
                         ),
-                        namui_prebuilt::typography::center_text(
+                        namui_prebuilt::typography::center_text_full_height(
                             Wh {
                                 width: rendering_context.px_per_tile * VISUAL_WIDTH,
                                 height: rendering_context.px_per_tile * VISUAL_HEIGHT,
