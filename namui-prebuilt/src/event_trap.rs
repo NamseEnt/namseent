@@ -3,34 +3,13 @@ use namui::prelude::*;
 pub fn event_trap(content: RenderingTree) -> RenderingTree {
     content.attach_event(move |builder| {
         builder
-            .on_mouse_move_in(|event| {
-                namui::log!("on_mouse_move_in");
-                event.stop_propagation()
-            })
-            .on_mouse_move_out(|event| {
-                namui::log!("on_mouse_move_out");
-                event.stop_propagation()
-            })
-            .on_mouse_down_in(|event| {
-                namui::log!("on_mouse_down_in");
-                event.stop_propagation()
-            })
-            .on_mouse_down_out(|event| {
-                namui::log!("on_mouse_down_out");
-                event.stop_propagation()
-            })
-            .on_mouse_up_in(|event| {
-                namui::log!("on_mouse_up_in");
-                event.stop_propagation()
-            })
-            .on_mouse_up_out(|event| {
-                namui::log!("on_mouse_up_out");
-                event.stop_propagation()
-            })
-            .on_wheel(|event| {
-                namui::log!("on_wheel");
-                event.stop_propagation()
-            });
+            .on_mouse_move_in(|event| event.stop_propagation())
+            .on_mouse_move_out(|event| event.stop_propagation())
+            .on_mouse_down_in(|event| event.stop_propagation())
+            .on_mouse_down_out(|event| event.stop_propagation())
+            .on_mouse_up_in(|event| event.stop_propagation())
+            .on_mouse_up_out(|event| event.stop_propagation())
+            .on_wheel(|event| event.stop_propagation());
         // below don't support stop_propagation
         // .on_key_down(|event| event.stop_propagation())
         // .on_key_up(|event| event.stop_propagation())
