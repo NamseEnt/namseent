@@ -1,6 +1,7 @@
 pub mod body;
 pub mod title;
 
+use crate::*;
 use namui::prelude::*;
 
 pub fn center_text(
@@ -80,7 +81,15 @@ pub fn text_fit(
         None => return RenderingTree::Empty,
     };
 
-    translate(width / 2 + side_padding, 0.px(), center_text)
+    render([
+        simple_rect(
+            Wh::new(width + side_padding * 2, height),
+            Color::TRANSPARENT,
+            0.px(),
+            Color::TRANSPARENT,
+        ),
+        translate(width / 2 + side_padding, 0.px(), center_text),
+    ])
 }
 
 fn adjust_font_size(height: Px) -> IntPx {
