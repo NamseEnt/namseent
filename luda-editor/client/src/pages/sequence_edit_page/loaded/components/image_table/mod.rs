@@ -10,6 +10,8 @@ pub struct ImageTable {
     list_view: list_view::ListView,
     images: Vec<ImageWithLabels>,
     sort_order_by: Option<SortOrderBy>,
+    text_input: text_input::TextInput,
+    editing_target: Option<EditingTarget>,
 }
 
 pub struct Props {
@@ -23,11 +25,17 @@ pub enum Event {
 enum InternalEvent {
     LoadImages(Vec<ImageWithLabels>),
     LeftClickOnLabelHeader { key: String },
+    LeftClickOnLabelCell { image_id: Uuid, label_key: String },
 }
 
 enum SortOrderBy {
     Ascending { key: String },
     Descending { key: String },
+}
+
+struct EditingTarget {
+    image_id: Uuid,
+    label_key: String,
 }
 
 impl ImageTable {
@@ -38,6 +46,8 @@ impl ImageTable {
             list_view: list_view::ListView::new(),
             images: vec![],
             sort_order_by: None,
+            text_input: text_input::TextInput::new(),
+            editing_target: None,
         }
     }
 }

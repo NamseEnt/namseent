@@ -1,6 +1,9 @@
+mod row;
+
 use super::*;
 use crate::storage::get_project_image_url;
 use namui_prebuilt::typography::center_text;
+use row::*;
 use std::collections::BTreeSet;
 
 const ROW_HEIGHT: Px = px(280.0);
@@ -9,7 +12,6 @@ const FONT_SIZE: IntPx = int_px(18);
 
 impl ImageTable {
     pub fn render(&self, props: Props) -> RenderingTree {
-        let project_id = self.project_id;
         let label_keys = self.label_keys();
         let rows = self.sorted_rows();
 
@@ -22,7 +24,7 @@ impl ImageTable {
                     scroll_bar_width: 10.px(),
                     item_wh: Wh::new(wh.width, ROW_HEIGHT),
                     items: rows,
-                    item_render: |_wh, row| row.render(project_id),
+                    item_render: |_wh, row| row.render(&self),
                 })
             }),
         ])(props.wh)
@@ -98,20 +100,22 @@ impl ImageTable {
             .iter()
             .map(|image| Row {
                 image_id: image.id,
-                label_values: label_keys
+                labels: label_keys
                     .iter()
-                    .map(|key| {
-                        image
+                    .map(|key| Label {
+                        key: key.clone(),
+                        value: image
                             .labels
                             .iter()
                             .find(|label| &label.key == key)
                             .map(|label| label.value.clone())
+                            .unwrap_or_default(),
                     })
                     .collect(),
             })
             .collect::<Vec<_>>();
         if let Some(sort_index) = sort_index {
-            rows.sort_by_key(|row| row.label_values.get(sort_index).cloned());
+            rows.sort_by_key(|row| row.labels.get(sort_index).cloned());
             match self.sort_order_by.as_ref().unwrap() {
                 SortOrderBy::Ascending { .. } => {}
                 SortOrderBy::Descending { .. } => {
@@ -120,52 +124,6 @@ impl ImageTable {
             };
         }
         rows
-    }
-}
-
-struct Row {
-    image_id: Uuid,
-    label_values: Vec<Option<String>>,
-}
-
-impl Row {
-    fn render(&self, project_id: Uuid) -> RenderingTree {
-        let cell_wh = Wh::new(COLUMN_WIDTH, ROW_HEIGHT);
-        let image = render([
-            border(cell_wh),
-            namui::try_render(|| {
-                let url = get_project_image_url(project_id, self.image_id).unwrap();
-                let image = namui::image::try_load_url(&url)?;
-
-                Some(namui::image(ImageParam {
-                    rect: Rect::from_xy_wh(Xy::zero(), cell_wh),
-                    source: ImageSource::Image(image),
-                    style: ImageStyle {
-                        fit: ImageFit::Contain,
-                        paint_builder: None,
-                    },
-                }))
-            }),
-        ]);
-
-        render(
-            [image]
-                .into_iter()
-                .chain(self.label_values.iter().map(|label_value| {
-                    let text = label_value
-                        .as_ref()
-                        .map(|label_value| {
-                            center_text(cell_wh, label_value, Color::WHITE, FONT_SIZE)
-                        })
-                        .unwrap_or(RenderingTree::Empty);
-
-                    render([border(cell_wh), text])
-                }))
-                .enumerate()
-                .map(|(index, rendering_tree)| {
-                    translate(COLUMN_WIDTH * index, 0.px(), rendering_tree)
-                }),
-        )
     }
 }
 

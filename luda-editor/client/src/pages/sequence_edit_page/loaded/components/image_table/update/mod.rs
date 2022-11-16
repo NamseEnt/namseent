@@ -26,6 +26,41 @@ impl ImageTable {
                         },
                     };
                 }
+                &InternalEvent::LeftClickOnLabelCell {
+                    image_id,
+                    ref label_key,
+                } => {
+                    self.editing_target = Some(EditingTarget {
+                        image_id,
+                        label_key: label_key.clone(),
+                    });
+                    self.text_input.focus();
+                }
+            }
+        } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
+            match event {
+                text_input::Event::Focus { id } => {}
+                text_input::Event::Blur { id } => {}
+                text_input::Event::TextUpdated { id, text } => {
+                    if id == self.text_input.get_id() {
+                        let editing_target = self.editing_target.as_ref().unwrap();
+                        if let Some(image) = self
+                            .images
+                            .iter_mut()
+                            .find(|image| image.id.eq(&editing_target.image_id))
+                        {
+                            if let Some(label) = image
+                                .labels
+                                .iter_mut()
+                                .find(|label| label.key.eq(&editing_target.label_key))
+                            {
+                                label.value = text.clone();
+                            }
+                        }
+                    }
+                }
+                text_input::Event::SelectionUpdated { id, selection } => {}
+                text_input::Event::KeyDown { id, code } => {}
             }
         }
         self.list_view.update(event);
