@@ -144,7 +144,19 @@ impl TextInput {
         render([
             namui::rect(RectParam {
                 rect: props.rect,
-                style: props.style.rect,
+                style: RectStyle {
+                    stroke: if props.style.rect.stroke.is_some() || props.style.rect.fill.is_some()
+                    {
+                        props.style.rect.stroke
+                    } else {
+                        Some(RectStroke {
+                            color: Color::TRANSPARENT,
+                            width: 0.px(),
+                            border_position: BorderPosition::Inside,
+                        })
+                    },
+                    ..props.style.rect
+                },
             }),
             self.draw_texts_divided_by_selection(&props, &fonts, &paint, &line_texts, &selection),
             self.draw_caret(&props, &line_texts, &selection),
