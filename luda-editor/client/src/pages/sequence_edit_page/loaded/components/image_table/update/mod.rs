@@ -39,6 +39,30 @@ impl ImageTable {
                 InternalEvent::PutImageMetaDataSuccess => {
                     self.saving_count -= 1;
                 }
+                &InternalEvent::RightClickOnImageRow {
+                    image_id,
+                    global_xy,
+                } => {
+                    let project_id = self.project_id;
+                    self.context_menu = Some(context_menu::ContextMenu::new(
+                        global_xy,
+                        [context_menu::Item::new_button("Delete", move || {
+                            crate::RPC
+                                .delete_image(rpc::delete_image::Request {
+                                    image_id,
+                                    project_id,
+                                })
+                                .callback(move |result| match result {
+                                    Ok(_) => {
+                                        request_reload_images(project_id);
+                                    }
+                                    Err(error) => {
+                                        namui::event::send(Event::Error(error.to_string()))
+                                    }
+                                })
+                        })],
+                    ))
+                }
             }
         } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
             match event {
@@ -68,8 +92,17 @@ impl ImageTable {
                 }
                 _ => {}
             }
+        } else if let Some(event) = event.downcast_ref::<context_menu::Event>() {
+            match event {
+                context_menu::Event::Close => {
+                    self.context_menu = None;
+                }
+            }
         }
         self.list_view.update(event);
+        self.context_menu.as_mut().map(|context_menu| {
+            context_menu.update(event);
+        });
     }
     fn update_label(&mut self, image: ImageWithLabels) {
         let project_id = self.project_id;

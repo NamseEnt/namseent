@@ -1,8 +1,9 @@
 mod documents;
 
+use self::documents::image_s3_key;
 use crate::session::SessionDocument;
 use documents::ProjectImageDocument;
-use rpc::data::ImageWithLabels;
+use rpc::{data::ImageWithLabels, utils::retry_on_error};
 
 #[derive(Debug)]
 pub struct ImageService {}
@@ -111,6 +112,58 @@ impl rpc::ImageService<SessionDocument> for ImageService {
                     })
                     .collect(),
             })
+        })
+    }
+
+    fn delete_image<'a>(
+        &'a self,
+        session: Option<SessionDocument>,
+        req: rpc::delete_image::Request,
+    ) -> std::pin::Pin<Box<dyn 'a + std::future::Future<Output = rpc::delete_image::Result> + Send>>
+    {
+        // TODO: Remove s3 image using queue or sweep using bot.
+        Box::pin(async move {
+            if session.is_none() {
+                return Err(rpc::delete_image::Error::Unauthorized);
+            }
+            let session = session.unwrap();
+            let is_project_editor = crate::services()
+                .project_service
+                .is_project_editor(session.user_id, req.project_id)
+                .await
+                .map_err(|error| {
+                    println!("error on is_project_editor: {:?}", error);
+                    rpc::delete_image::Error::Unknown(error.to_string())
+                })?;
+
+            if !is_project_editor {
+                return Err(rpc::delete_image::Error::Unauthorized);
+            }
+
+            retry_on_error(
+                || {
+                    crate::dynamo_db()
+                        .delete_item::<ProjectImageDocument>(req.project_id, Some(req.image_id))
+                },
+                5,
+            )
+            .await
+            .map_err(|error| {
+                println!("error on delete_item: {:?}", error);
+                rpc::delete_image::Error::Unknown(error.to_string())
+            })?;
+
+            retry_on_error(
+                || crate::s3().delete_object(image_s3_key(req.project_id, req.image_id)),
+                5,
+            )
+            .await
+            .map_err(|error| {
+                println!("error on delete_object: {:?}", error);
+                rpc::delete_image::Error::Unknown(error.to_string())
+            })?;
+
+            Ok(rpc::delete_image::Response {})
         })
     }
 }

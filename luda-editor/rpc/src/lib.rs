@@ -1,5 +1,6 @@
 pub mod data;
 mod define_rpc;
+pub mod utils;
 
 pub use define_rpc::RpcFuture;
 pub use revert_json_patch as json_patch;
@@ -179,6 +180,18 @@ define_rpc::define_rpc! {
                 pub images: Vec<crate::data::ImageWithLabels>
             }
             Error {
+                Unknown(String),
+            }
+        },
+        delete_image: {
+            pub struct Request {
+                pub project_id: uuid::Uuid,
+                pub image_id: uuid::Uuid,
+            }
+            pub struct Response {
+            }
+            Error {
+                Unauthorized,
                 Unknown(String),
             }
         },

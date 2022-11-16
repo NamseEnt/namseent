@@ -74,7 +74,12 @@ impl ContextMenu {
                     let border = if is_selected {
                         simple_rect(cell_wh, Color::TRANSPARENT, 0.px(), Color::WHITE)
                     } else {
-                        simple_rect(cell_wh, Color::TRANSPARENT, 0.px(), Color::BLACK)
+                        simple_rect(
+                            cell_wh,
+                            Color::TRANSPARENT,
+                            0.px(),
+                            Color::grayscale_f01(0.2),
+                        )
                     };
                     let text_color = if is_selected {
                         Color::BLACK
