@@ -50,10 +50,10 @@ impl Game {
 
 fn get_rigid_body_list_except_character(ecs_app: &ecs::App) -> Vec<RigidBody> {
     ecs_app
-        .query_component::<(Collider, Positioner)>()
+        .query_component::<(Collider, Positioner, Option<PlayerCharacter>)>()
         .into_iter()
-        // TODO: Filter out character
-        .map(|(collider, positioner)| collider.get_rigid_body(positioner.xy))
+        .filter(|(_, _, player_character)| player_character.is_none())
+        .map(|(collider, positioner, _)| collider.get_rigid_body(positioner.xy))
         .collect::<Vec<_>>()
 }
 

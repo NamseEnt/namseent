@@ -58,6 +58,58 @@ pub fn component(input: TokenStream) -> TokenStream {
                 )
             }
         }
+
+        impl<'component> crate::ecs::ComponentQueryArgument<'component> for Option<#name> {
+            type Output = Option<&'component #name>;
+            fn filter(
+                contained_component: &Box<dyn crate::ecs::ContainedComponent>,
+                filtered: &Option<&'component Box<dyn crate::ecs::ContainedComponent>>,
+            ) -> bool {
+                if filtered.is_some() {
+                    return false;
+                }
+                if contained_component.as_any().is::<crate::ecs::ComponentContainer<#name>>() {
+                    return true;
+                }
+                false
+            }
+            fn output(filtered: Option<&'component Box<dyn crate::ecs::ContainedComponent>>) -> Option<Self::Output> {
+                Some(filtered.and_then(|filtered| {
+                    Some(
+                        filtered
+                            .as_any()
+                            .downcast_ref::<crate::ecs::ComponentContainer<#name>>()?
+                            .as_ref(),
+                    )
+                }))
+            }
+        }
+
+        impl<'component> crate::ecs::ComponentQueryArgumentMut<'component> for Option<#name> {
+            type Output = Option<&'component mut #name>;
+            fn filter(
+                contained_component: &Box<dyn crate::ecs::ContainedComponent>,
+                filtered: &Option<&'component mut Box<dyn crate::ecs::ContainedComponent>>,
+            ) -> bool {
+                if filtered.is_some() {
+                    return false;
+                }
+                if contained_component.as_any().is::<crate::ecs::ComponentContainer<#name>>() {
+                    return true;
+                }
+                false
+            }
+            fn output(filtered: Option<&'component mut Box<dyn crate::ecs::ContainedComponent>>) -> Option<Self::Output> {
+                Some(filtered.and_then(|filtered| {
+                    Some(
+                        filtered
+                            .as_any_mut()
+                            .downcast_mut::<crate::ecs::ComponentContainer<#name>>()?
+                            .as_ref_mut(),
+                    )
+                }))
+            }
+        }
     };
 
     TokenStream::from(expanded)
