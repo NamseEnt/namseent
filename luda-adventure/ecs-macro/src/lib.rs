@@ -10,22 +10,80 @@ pub fn component(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         impl crate::ecs::Component for #name {}
+
+        impl<'component> crate::ecs::ComponentQueryArgument<'component> for #name {
+            type Output = &'component #name;
+            fn filter(
+                contained_component: &Box<dyn crate::ecs::ContainedComponent>,
+                filtered: &Option<&'component Box<dyn crate::ecs::ContainedComponent>>,
+            ) -> bool {
+                if filtered.is_some() {
+                    return false;
+                }
+                if contained_component.as_any().is::<crate::ecs::ComponentContainer<#name>>() {
+                    return true;
+                }
+                false
+            }
+            fn output(filtered: Option<&'component Box<dyn crate::ecs::ContainedComponent>>) -> Option<Self::Output> {
+                Some(
+                    filtered?
+                        .as_any()
+                        .downcast_ref::<crate::ecs::ComponentContainer<#name>>()?
+                        .as_ref(),
+                )
+            }
+        }
+
+        impl<'component> crate::ecs::ComponentQueryArgumentMut<'component> for #name {
+            type Output = &'component mut #name;
+            fn filter(
+                contained_component: &Box<dyn crate::ecs::ContainedComponent>,
+                filtered: &Option<&'component mut Box<dyn crate::ecs::ContainedComponent>>,
+            ) -> bool {
+                if filtered.is_some() {
+                    return false;
+                }
+                if contained_component.as_any().is::<crate::ecs::ComponentContainer<#name>>() {
+                    return true;
+                }
+                false
+            }
+            fn output(filtered: Option<&'component mut Box<dyn crate::ecs::ContainedComponent>>) -> Option<Self::Output> {
+                Some(
+                    filtered?
+                        .as_any_mut()
+                        .downcast_mut::<crate::ecs::ComponentContainer<#name>>()?
+                        .as_ref_mut(),
+                )
+            }
+        }
     };
 
     TokenStream::from(expanded)
 }
 
 #[proc_macro]
-pub fn define_component_combinations(_input: TokenStream) -> TokenStream {
+pub fn define_component_query_combinations(_input: TokenStream) -> TokenStream {
     let expanded = (2..32).into_iter().map(|index| {
         let zero_to_index = 0..index;
 
         let generics = zero_to_index
             .clone()
             .map(|i| {
-                let name = format_ident!("T{i}");
+                let t_name = format_ident!("T{i}");
                 quote! {
-                    #name: Component + 'static
+                    #t_name: ComponentQueryArgument<'entity>
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let generics_mut = zero_to_index
+            .clone()
+            .map(|i| {
+                let t_name = format_ident!("T{i}");
+                quote! {
+                    #t_name: ComponentQueryArgumentMut<'entity>
                 }
             })
             .collect::<Vec<_>>();
@@ -40,39 +98,29 @@ pub fn define_component_combinations(_input: TokenStream) -> TokenStream {
             .map(|i| {
                 let t_name = format_ident!("T{i}");
                 quote!(
-                    &'entity #t_name
+                    #t_name::Output
                 )
             })
             .collect::<Vec<_>>();
 
-        let outputs_mut = zero_to_index
+        let filtered_components = zero_to_index
             .clone()
             .map(|i| {
-                let t_name = format_ident!("T{i}");
+                let filtered_component_name = format_ident!("filtered{i}");
                 quote!(
-                    &'entity mut #t_name
+                    let mut #filtered_component_name = None;
                 )
             })
             .collect::<Vec<_>>();
 
-        let picked_components = zero_to_index
+        let filter_statements = zero_to_index
             .clone()
             .map(|i| {
-                let component_name = format_ident!("component{i}");
-                quote!(
-                    let mut #component_name = None;
-                )
-            })
-            .collect::<Vec<_>>();
-
-        let picker_statements = zero_to_index
-            .clone()
-            .map(|i| {
-                let picked_component_name = format_ident!("component{i}");
+                let filtered_component_name = format_ident!("filtered{i}");
                 let t_name = format_ident!("T{i}");
                 quote! {
-                    if component.as_any().is::<ComponentContainer<#t_name>>() {
-                        #picked_component_name = Some(component);
+                    if #t_name::filter(component, &#filtered_component_name) {
+                        #filtered_component_name = Some(component);
                     }
                 }
             })
@@ -81,52 +129,35 @@ pub fn define_component_combinations(_input: TokenStream) -> TokenStream {
         let tuple_content = zero_to_index
             .clone()
             .map(|i| {
-                let picked_component_name = format_ident!("component{i}");
+                let filtered_component_name = format_ident!("filtered{i}");
                 let t_name = format_ident!("T{i}");
                 quote! {
-                    #picked_component_name?
-                        .as_any()
-                        .downcast_ref::<ComponentContainer<#t_name>>()?
-                        .as_ref()
-                }
-            })
-            .collect::<Vec<_>>();
-
-        let tuple_content_mut = zero_to_index
-            .clone()
-            .map(|i| {
-                let picked_component_name = format_ident!("component{i}");
-                let t_name = format_ident!("T{i}");
-                quote! {
-                    #picked_component_name?
-                        .as_any_mut()
-                        .downcast_mut::<ComponentContainer<#t_name>>()?
-                        .as_ref_mut()
+                    #t_name::output(#filtered_component_name)?
                 }
             })
             .collect::<Vec<_>>();
 
         quote! {
-            impl<'entity, #(#generics),* > ComponentCombination<'entity> for ( #(#for_target),* )
+            impl<'entity, #(#generics),* > ComponentQueryCombination<'entity> for ( #(#for_target),* )
             {
                 type Output = ( #(#outputs),* );
                 fn filter(entity: &'entity Entity) -> Option<Self::Output> {
-                    #(#picked_components)*
+                    #(#filtered_components)*
                     for component in entity.components.iter() {
-                        #(#picker_statements)else*
+                        #(#filter_statements)*
                     }
                     Some((#(#tuple_content),*))
                 }
             }
-            impl<'entity, #(#generics),* > ComponentCombinationMut<'entity> for ( #(#for_target),* )
+            impl<'entity, #(#generics_mut),* > ComponentQueryCombinationMut<'entity> for ( #(#for_target),* )
             {
-                type Output = ( #(#outputs_mut),* );
+                type Output = ( #(#outputs),* );
                 fn filter(entity: &'entity mut Entity) -> Option<Self::Output> {
-                    #(#picked_components)*
+                    #(#filtered_components)*
                     for component in entity.components.iter_mut() {
-                        #(#picker_statements)else*
+                        #(#filter_statements)else*
                     }
-                    Some((#(#tuple_content_mut),*))
+                    Some((#(#tuple_content),*))
                 }
             }
         }

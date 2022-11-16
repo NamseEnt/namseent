@@ -1,3 +1,4 @@
+use super::Entity;
 use std::fmt::Debug;
 
 pub trait Component: Debug {}
@@ -32,4 +33,36 @@ impl<T: Debug + 'static> ContainedComponent for ComponentContainer<T> {
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self as &mut dyn std::any::Any
     }
+}
+
+pub trait ComponentQueryArgument<'component> {
+    type Output;
+    fn filter(
+        contained_component: &Box<dyn ContainedComponent>,
+        filtered: &Option<&'component Box<dyn ContainedComponent>>,
+    ) -> bool;
+    fn output(filtered: Option<&'component Box<dyn ContainedComponent>>) -> Option<Self::Output>;
+}
+pub trait ComponentQueryArgumentMut<'component> {
+    type Output;
+    fn filter(
+        contained_component: &Box<dyn ContainedComponent>,
+        filtered: &Option<&'component mut Box<dyn ContainedComponent>>,
+    ) -> bool;
+    fn output(
+        filtered: Option<&'component mut Box<dyn ContainedComponent>>,
+    ) -> Option<Self::Output>;
+}
+
+pub trait ComponentQueryCombination<'entity> {
+    type Output;
+    fn filter(entity: &'entity Entity) -> Option<Self::Output>
+    where
+        Self: Sized;
+}
+pub trait ComponentQueryCombinationMut<'entity> {
+    type Output;
+    fn filter(entity: &'entity mut Entity) -> Option<Self::Output>
+    where
+        Self: Sized;
 }

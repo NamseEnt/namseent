@@ -1,5 +1,5 @@
 use super::*;
-use ecs_macro::define_component_combinations;
+use ecs_macro::define_component_query_combinations;
 use namui::Uuid;
 
 pub struct Entity {
@@ -25,76 +25,48 @@ impl Entity {
             .push(Box::new(ComponentContainer::new(component)));
         self
     }
-    pub fn get_component<'entity, T: ComponentCombination<'entity>>(
+    pub fn get_component<'entity, T: ComponentQueryCombination<'entity>>(
         &'entity self,
     ) -> Option<T::Output> {
         T::filter(self)
     }
-    pub fn get_component_mut<'entity, T: ComponentCombinationMut<'entity>>(
+    pub fn get_component_mut<'entity, T: ComponentQueryCombinationMut<'entity>>(
         &'entity mut self,
     ) -> Option<T::Output> {
         T::filter(self)
     }
 }
 
-impl<'entity, T: Component + 'static + Sized> ComponentCombination<'entity> for T {
-    type Output = &'entity T;
-    fn filter(entity: &'entity Entity) -> Option<Self::Output>
-    where
-        Self: Sized,
-    {
-        let mut component1 = None;
+impl<'entity, T0: ComponentQueryArgument<'entity>> ComponentQueryCombination<'entity> for T0 {
+    type Output = T0::Output;
+    fn filter(entity: &'entity Entity) -> Option<Self::Output> {
+        let mut filtered0 = None;
 
         for component in entity.components.iter() {
-            if component.as_any().is::<ComponentContainer<T>>() {
-                component1 = Some(component);
+            if T0::filter(component, &filtered0) {
+                filtered0 = Some(component);
             }
         }
 
-        Some(
-            component1?
-                .as_any()
-                .downcast_ref::<ComponentContainer<T>>()?
-                .as_ref(),
-        )
+        Some(T0::output(filtered0)?)
     }
 }
-impl<'entity, T: Component + 'static> ComponentCombinationMut<'entity> for T {
-    type Output = &'entity mut T;
-    fn filter(entity: &'entity mut Entity) -> Option<Self::Output>
-    where
-        Self: Sized,
-    {
-        let mut component1 = None;
+impl<'entity, T0: ComponentQueryArgumentMut<'entity>> ComponentQueryCombinationMut<'entity> for T0 {
+    type Output = T0::Output;
+    fn filter(entity: &'entity mut Entity) -> Option<Self::Output> {
+        let mut filtered0 = None;
 
         for component in entity.components.iter_mut() {
-            if component.as_any_mut().is::<ComponentContainer<T>>() {
-                component1 = Some(component);
+            if T0::filter(component, &filtered0) {
+                filtered0 = Some(component);
             }
         }
 
-        Some(
-            component1?
-                .as_any_mut()
-                .downcast_mut::<ComponentContainer<T>>()?
-                .as_ref_mut(),
-        )
+        Some(T0::output(filtered0)?)
     }
 }
 
-pub trait ComponentCombination<'entity> {
-    type Output;
-    fn filter(entity: &'entity Entity) -> Option<Self::Output>
-    where
-        Self: Sized;
-}
-pub trait ComponentCombinationMut<'entity> {
-    type Output;
-    fn filter(entity: &'entity mut Entity) -> Option<Self::Output>
-    where
-        Self: Sized;
-}
-define_component_combinations!();
+define_component_query_combinations!();
 
 impl PartialEq for Entity {
     fn eq(&self, other: &Self) -> bool {

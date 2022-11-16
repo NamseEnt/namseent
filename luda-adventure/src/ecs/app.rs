@@ -1,4 +1,4 @@
-use super::{ComponentCombination, ComponentCombinationMut, Entity};
+use super::{ComponentQueryCombination, ComponentQueryCombinationMut, Entity};
 
 pub struct App {
     entities: Vec<Entity>,
@@ -22,7 +22,7 @@ impl App {
     pub fn add_entities(&mut self, entities: impl IntoIterator<Item = Entity>) {
         self.entities.extend(entities);
     }
-    pub fn query_component<'a, T: ComponentCombination<'a>>(&'a self) -> Vec<T::Output> {
+    pub fn query_component<'a, T: ComponentQueryCombination<'a>>(&'a self) -> Vec<T::Output> {
         let mut query = Vec::new();
         for entity in &self.entities {
             if let Some(component) = entity.get_component::<T>() {
@@ -31,7 +31,9 @@ impl App {
         }
         query
     }
-    pub fn query_component_mut<'a, T: ComponentCombinationMut<'a>>(&'a mut self) -> Vec<T::Output> {
+    pub fn query_component_mut<'a, T: ComponentQueryCombinationMut<'a>>(
+        &'a mut self,
+    ) -> Vec<T::Output> {
         let mut query = Vec::new();
         for entity in &mut self.entities {
             if let Some(component) = entity.get_component_mut::<T>() {
