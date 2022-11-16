@@ -5,6 +5,7 @@ use std::collections::BTreeSet;
 
 const ROW_HEIGHT: Px = px(280.0);
 const COLUMN_WIDTH: Px = px(200.0);
+const FONT_SIZE: IntPx = int_px(18);
 
 impl ImageTable {
     pub fn render(&self, props: Props) -> RenderingTree {
@@ -29,14 +30,30 @@ impl ImageTable {
                 .collect(),
         });
 
-        self.list_view.render(list_view::Props {
-            xy: Xy::zero(),
-            height: props.wh.height,
-            scroll_bar_width: 10.px(),
-            item_wh: Wh::new(props.wh.width, ROW_HEIGHT),
-            items: rows,
-            item_render: |_wh, row| row.render(project_id),
-        })
+        table::vertical([
+            table::fixed(36.px(), |wh| self.render_header_row(wh, &label_keys)),
+            table::ratio(1, |wh| {
+                self.list_view.render(list_view::Props {
+                    xy: Xy::zero(),
+                    height: wh.height,
+                    scroll_bar_width: 10.px(),
+                    item_wh: Wh::new(wh.width, ROW_HEIGHT),
+                    items: rows,
+                    item_render: |_wh, row| row.render(project_id),
+                })
+            }),
+        ])(props.wh)
+    }
+
+    fn render_header_row(&self, wh: Wh<Px>, label_keys: &BTreeSet<String>) -> RenderingTree {
+        let cells = ["Image"]
+            .into_iter()
+            .chain(label_keys.iter().map(|key| key.as_str()));
+        table::horizontal(cells.map(|string| {
+            table::fixed(COLUMN_WIDTH, move |wh| {
+                render([border(wh), center_text(wh, string, Color::WHITE, FONT_SIZE)])
+            })
+        }))(wh)
     }
 }
 
@@ -48,33 +65,35 @@ struct Row {
 impl Row {
     fn render(&self, project_id: Uuid) -> RenderingTree {
         let cell_wh = Wh::new(COLUMN_WIDTH, ROW_HEIGHT);
-        let image = namui::try_render(|| {
-            let url = get_project_image_url(project_id, self.image_id).unwrap();
-            let image = namui::image::try_load_url(&url)?;
+        let image = render([
+            border(cell_wh),
+            namui::try_render(|| {
+                let url = get_project_image_url(project_id, self.image_id).unwrap();
+                let image = namui::image::try_load_url(&url)?;
 
-            Some(namui::image(ImageParam {
-                rect: Rect::from_xy_wh(Xy::zero(), cell_wh),
-                source: ImageSource::Image(image),
-                style: ImageStyle {
-                    fit: ImageFit::Fill,
-                    paint_builder: None,
-                },
-            }))
-        });
+                Some(namui::image(ImageParam {
+                    rect: Rect::from_xy_wh(Xy::zero(), cell_wh),
+                    source: ImageSource::Image(image),
+                    style: ImageStyle {
+                        fit: ImageFit::Contain,
+                        paint_builder: None,
+                    },
+                }))
+            }),
+        ]);
 
         render(
             [image]
                 .into_iter()
                 .chain(self.label_values.iter().map(|label_value| {
-                    let border = simple_rect(cell_wh, Color::WHITE, 1.px(), Color::TRANSPARENT);
                     let text = label_value
                         .as_ref()
                         .map(|label_value| {
-                            center_text(cell_wh, label_value, Color::WHITE, 18.int_px())
+                            center_text(cell_wh, label_value, Color::WHITE, FONT_SIZE)
                         })
                         .unwrap_or(RenderingTree::Empty);
 
-                    render([border, text])
+                    render([border(cell_wh), text])
                 }))
                 .enumerate()
                 .map(|(index, rendering_tree)| {
@@ -82,4 +101,8 @@ impl Row {
                 }),
         )
     }
+}
+
+fn border(wh: Wh<Px>) -> RenderingTree {
+    simple_rect(wh, Color::WHITE, 1.px(), Color::TRANSPARENT)
 }
