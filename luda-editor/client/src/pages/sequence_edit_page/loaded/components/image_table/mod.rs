@@ -9,6 +9,7 @@ pub struct ImageTable {
     project_id: Uuid,
     list_view: list_view::ListView,
     images: Vec<ImageWithLabels>,
+    sort_order_by: Option<SortOrderBy>,
 }
 
 pub struct Props {
@@ -21,6 +22,12 @@ pub enum Event {
 
 enum InternalEvent {
     LoadImages(Vec<ImageWithLabels>),
+    LeftClickOnLabelHeader { key: String },
+}
+
+enum SortOrderBy {
+    Ascending { key: String },
+    Descending { key: String },
 }
 
 impl ImageTable {
@@ -30,6 +37,7 @@ impl ImageTable {
             project_id,
             list_view: list_view::ListView::new(),
             images: vec![],
+            sort_order_by: None,
         }
     }
 }

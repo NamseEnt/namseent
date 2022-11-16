@@ -10,25 +10,8 @@ const FONT_SIZE: IntPx = int_px(18);
 impl ImageTable {
     pub fn render(&self, props: Props) -> RenderingTree {
         let project_id = self.project_id;
-        let label_keys: BTreeSet<_> = self
-            .images
-            .iter()
-            .flat_map(|image| image.labels.iter().map(|label| label.key.clone()))
-            .collect();
-
-        let rows = self.images.iter().map(|image| Row {
-            image_id: image.id,
-            label_values: label_keys
-                .iter()
-                .map(|key| {
-                    image
-                        .labels
-                        .iter()
-                        .find(|label| &label.key == key)
-                        .map(|label| label.value.clone())
-                })
-                .collect(),
-        });
+        let label_keys = self.label_keys();
+        let rows = self.sorted_rows();
 
         table::vertical([
             table::fixed(36.px(), |wh| self.render_header_row(wh, &label_keys)),
@@ -49,11 +32,94 @@ impl ImageTable {
         let cells = ["Image"]
             .into_iter()
             .chain(label_keys.iter().map(|key| key.as_str()));
-        table::horizontal(cells.map(|string| {
+
+        table::horizontal(cells.enumerate().map(|(index, string)| {
             table::fixed(COLUMN_WIDTH, move |wh| {
-                render([border(wh), center_text(wh, string, Color::WHITE, FONT_SIZE)])
+                let title_with_sort_mark = {
+                    if index > 0 {
+                        match self.sort_order_by.as_ref() {
+                            Some(sort_order_by) => match sort_order_by {
+                                SortOrderBy::Ascending { key }
+                                | SortOrderBy::Descending { key }
+                                    if key.ne(string) =>
+                                {
+                                    string.to_string()
+                                }
+                                SortOrderBy::Ascending { key } => format!("{} ▲", key),
+                                SortOrderBy::Descending { key } => format!("{} ▼", key),
+                            },
+                            None => string.to_string(),
+                        }
+                    } else {
+                        string.to_string()
+                    }
+                };
+
+                let cell = render([
+                    border(wh),
+                    center_text(wh, title_with_sort_mark, Color::WHITE, FONT_SIZE),
+                ]);
+                if index > 0 {
+                    cell.attach_event(move |builder| {
+                        let key = string.to_string();
+                        builder.on_mouse_down_in(move |event| {
+                            if event.button == Some(MouseButton::Left) {
+                                namui::event::send(InternalEvent::LeftClickOnLabelHeader {
+                                    key: key.clone(),
+                                });
+                            }
+                        });
+                    })
+                } else {
+                    cell
+                }
             })
         }))(wh)
+    }
+
+    fn label_keys(&self) -> BTreeSet<String> {
+        self.images
+            .iter()
+            .flat_map(|image| image.labels.iter().map(|label| label.key.clone()))
+            .collect()
+    }
+
+    fn sorted_rows(&self) -> Vec<Row> {
+        let label_keys = self.label_keys();
+        let sort_index = self.sort_order_by.as_ref().map(|sort_order_by| {
+            match sort_order_by {
+                SortOrderBy::Ascending { key } => label_keys.iter().position(|k| k.eq(key)),
+                SortOrderBy::Descending { key } => label_keys.iter().position(|k| k.eq(key)),
+            }
+            .unwrap_or_default()
+        });
+        let mut rows = self
+            .images
+            .iter()
+            .map(|image| Row {
+                image_id: image.id,
+                label_values: label_keys
+                    .iter()
+                    .map(|key| {
+                        image
+                            .labels
+                            .iter()
+                            .find(|label| &label.key == key)
+                            .map(|label| label.value.clone())
+                    })
+                    .collect(),
+            })
+            .collect::<Vec<_>>();
+        if let Some(sort_index) = sort_index {
+            rows.sort_by_key(|row| row.label_values.get(sort_index).cloned());
+            match self.sort_order_by.as_ref().unwrap() {
+                SortOrderBy::Ascending { .. } => {}
+                SortOrderBy::Descending { .. } => {
+                    rows.reverse();
+                }
+            };
+        }
+        rows
     }
 }
 
