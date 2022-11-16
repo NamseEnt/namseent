@@ -1,9 +1,36 @@
 pub mod body;
 pub mod title;
 
+use crate::*;
 use namui::prelude::*;
 
-pub fn center_text(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> RenderingTree {
+pub fn center_text(
+    wh: Wh<Px>,
+    text: impl AsRef<str>,
+    color: Color,
+    font_size: IntPx,
+) -> RenderingTree {
+    namui::text(TextParam {
+        text: String::from(text.as_ref()),
+        x: wh.width / 2.0,
+        y: wh.height / 2.0,
+        align: TextAlign::Center,
+        baseline: TextBaseline::Middle,
+        font_type: FontType {
+            font_weight: FontWeight::REGULAR,
+            language: Language::Ko,
+            serif: false,
+            size: font_size,
+        },
+        style: TextStyle {
+            color,
+            ..Default::default()
+        },
+        max_width: None,
+    })
+}
+
+pub fn center_text_full_height(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> RenderingTree {
     namui::text(TextParam {
         text: String::from(text.as_ref()),
         x: wh.width / 2.0,
@@ -54,7 +81,15 @@ pub fn text_fit(
         None => return RenderingTree::Empty,
     };
 
-    translate(width / 2 + side_padding, 0.px(), center_text)
+    render([
+        simple_rect(
+            Wh::new(width + side_padding * 2, height),
+            Color::TRANSPARENT,
+            0.px(),
+            Color::TRANSPARENT,
+        ),
+        translate(width / 2 + side_padding, 0.px(), center_text),
+    ])
 }
 
 fn adjust_font_size(height: Px) -> IntPx {

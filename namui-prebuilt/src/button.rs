@@ -1,4 +1,4 @@
-use crate::{simple_rect, typography::center_text};
+use crate::{simple_rect, typography::center_text_full_height};
 use namui::prelude::*;
 use std::sync::Arc;
 
@@ -17,7 +17,7 @@ pub fn text_button(
         rect.y(),
         render([
             simple_rect(rect.wh(), stroke_color, stroke_width, fill_color),
-            center_text(rect.wh(), text, text_color),
+            center_text_full_height(rect.wh(), text, text_color),
         ]),
     )
     .attach_event(|builder| {
@@ -38,7 +38,7 @@ pub fn text_button_fit(
     side_padding: Px,
     on_mouse_down_in: impl Fn() + 'static,
 ) -> namui::RenderingTree {
-    let center_text = center_text(Wh::new(0.px(), height), text, text_color);
+    let center_text = center_text_full_height(Wh::new(0.px(), height), text, text_color);
     let width = match center_text.get_bounding_box() {
         Some(bounding_box) => bounding_box.width(),
         None => return RenderingTree::Empty,
