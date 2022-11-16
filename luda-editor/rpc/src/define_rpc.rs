@@ -146,38 +146,40 @@ macro_rules! define_rpc {
 
             $($(
             impl Rpc {
-                pub async fn $method<'a>(
+                pub fn $method<'a>(
                     &'a self,
                     req: super::$method::Request,
-                ) -> super::$method::Result {
-                    let result = namui::network::http::fetch_json::<
-                        super::$method::Result,
-                    >(
-                        format!(
-                            "{endpoint}/?{method}",
-                            endpoint = self.endpoint(),
-                            method = stringify!($method),
-                        ),
-                        namui::network::http::Method::POST,
-                        |builder| {
-                            let builder = builder
-                                .header("Content-Type", "application/json")
-                                .header("Accept", "application/json");
-                            (if let Some(session_id) = self.session_id() {
-                                builder.header("session", session_id.to_string())
-                            } else {
-                                builder
-                            })
-                            .body(serde_json::to_string(&req).unwrap())
-                        },
-                    )
-                    .await;
+                ) -> $crate::RpcFuture<super::$method::Result> {
+                    pub async fn call<'a>(
+                        endpoint: String,
+                        session_id: Option<namui::Uuid>,
+                        req: super::$method::Request,
+                    ) -> super::$method::Result {
+                        let url = format!("{endpoint}/?{method}", method = stringify!($method),);
+                        let result = namui::network::http::fetch_json::<super::$method::Result>(
+                            url,
+                            namui::network::http::Method::POST,
+                            |builder| {
+                                let builder = builder
+                                    .header("Content-Type", "application/json")
+                                    .header("Accept", "application/json");
+                                (if let Some(session_id) = session_id {
+                                    builder.header("session", session_id.to_string())
+                                } else {
+                                    builder
+                                })
+                                .body(serde_json::to_string(&req).unwrap())
+                            },
+                        )
+                        .await;
 
-                    match result {
-                        Ok(result) => result,
-                        Err(error) => Err(
-                            super::$method::Error::Unknown(error.to_string()),
-                        ),
+                        match result {
+                            Ok(result) => result,
+                            Err(error) => Err(super::$method::Error::Unknown(error.to_string())),
+                        }
+                    }
+                    $crate::RpcFuture {
+                        future: Box::new(Box::pin(call(self.endpoint(), self.session_id(), req))),
                     }
                 }
             }
@@ -189,3 +191,32 @@ macro_rules! define_rpc {
 }
 
 pub(crate) use define_rpc;
+
+pub struct RpcFuture<RpcResult: 'static> {
+    pub(crate) future: Box<dyn std::future::Future<Output = RpcResult> + Unpin + 'static>,
+}
+
+#[cfg(feature = "client")]
+impl<RpcResult: 'static> RpcFuture<RpcResult> {
+    pub fn callback(self, callback: impl FnOnce(RpcResult) + 'static) {
+        let future = self.future;
+        namui::spawn_local(async move {
+            let result = future.await;
+            callback(result);
+        });
+    }
+}
+impl<RpcResult: 'static> std::future::Future for RpcFuture<RpcResult> {
+    type Output = RpcResult;
+
+    fn poll(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        let this = self.get_mut();
+        match std::pin::Pin::new(&mut this.future).poll(cx) {
+            std::task::Poll::Ready(result) => std::task::Poll::Ready(result),
+            std::task::Poll::Pending => std::task::Poll::Pending,
+        }
+    }
+}
