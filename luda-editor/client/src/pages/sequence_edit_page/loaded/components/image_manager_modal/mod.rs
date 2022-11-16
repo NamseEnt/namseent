@@ -2,10 +2,8 @@ mod render;
 mod update;
 
 use super::*;
-use crate::components::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
-use rpc::data::*;
 
 pub struct ImageManagerModal {
     image_table: image_table::ImageTable,

@@ -66,10 +66,7 @@ impl ImageTable {
                         }
                     }
                 }
-                text_input::Event::Focus { id } => {}
-                text_input::Event::Blur { id } => {}
-                text_input::Event::SelectionUpdated { id, selection } => {}
-                text_input::Event::KeyDown { id, code } => {}
+                _ => {}
             }
         }
         self.list_view.update(event);
