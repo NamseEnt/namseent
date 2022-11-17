@@ -1,3 +1,4 @@
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Per<TNumerator, TDenominator> {
     numerator: TNumerator,
     denominator: TDenominator,

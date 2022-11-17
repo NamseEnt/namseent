@@ -1,7 +1,8 @@
 use crate::app::game::Tile;
 use namui::prelude::*;
 
-#[derive(ecs_macro::Component, Debug)]
+#[ecs_macro::component]
+#[derive(Debug)]
 pub struct Positioner {
     pub xy: Xy<Tile>,
     previous_xy: Xy<Tile>,

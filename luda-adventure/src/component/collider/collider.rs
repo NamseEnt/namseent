@@ -3,7 +3,7 @@ use crate::app::game::Tile;
 use geo::Polygon;
 use namui::prelude::*;
 
-#[derive(ecs_macro::Component)]
+#[ecs_macro::component]
 pub struct Collider {
     rigid_body_at_origin: RigidBody,
 }

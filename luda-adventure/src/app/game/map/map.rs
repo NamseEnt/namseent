@@ -1,8 +1,6 @@
 use super::try_create_new_polygon::try_create_new_polygon;
-use crate::{
-    app::game::new_floor,
-    app::game::{new_wall, types::TileExt, Collider, Positioner, Tile},
-};
+use crate::app::game::{new_floor, new_wall, types::TileExt, Tile};
+use crate::component::*;
 use namui::{Wh, Xy};
 
 /// Mock map. Spec and concept may change.

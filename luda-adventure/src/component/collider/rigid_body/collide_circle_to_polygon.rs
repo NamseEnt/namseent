@@ -1,6 +1,6 @@
 use super::Circle;
-use crate::app::game::{CollisionInfo, Tile};
-use geo::{coord, ClosestPoint, Contains, Coordinate, EuclideanDistance, Line, LinesIter, Polygon};
+use crate::{app::game::Tile, component::CollisionInfo};
+use geo::*;
 use namui::prelude::*;
 
 pub fn collide_circle_to_polygon(circle: &Circle, polygon: &Polygon) -> CollisionInfo {

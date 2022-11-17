@@ -1,12 +1,12 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, DeriveInput};
+use syn::parse_macro_input;
 
-#[proc_macro_derive(Component)]
-pub fn component(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
+#[proc_macro_attribute]
+pub fn component(_attribute_input: TokenStream, input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as syn::DeriveInput);
 
-    let name = input.ident;
+    let name = input.ident.clone();
 
     let set_name = format_ident!("{name}_SET");
 
@@ -16,7 +16,7 @@ pub fn component(input: TokenStream) -> TokenStream {
         use once_cell::sync::OnceCell;
         use rustc_hash::FxHashMap;
         #[allow(non_upper_case_globals)]
-        static mut #set_name: OnceCell<FxHashMap<AppId, FxHashMap<EntityId, #name>>> = OnceCell::new();
+        pub static mut #set_name: OnceCell<FxHashMap<AppId, FxHashMap<EntityId, #name>>> = OnceCell::new();
         impl crate::ecs::Component for #name {
             fn insert(self, app_id: AppId, entity_id: EntityId) {
                 unsafe {
@@ -78,6 +78,9 @@ pub fn component(input: TokenStream) -> TokenStream {
                 }
             }
         }
+
+        #[derive(serde::Serialize, serde::Deserialize)]
+        #input
     };
 
     TokenStream::from(expanded)

@@ -1,3 +1,4 @@
+use crate::component::*;
 use crate::{app::game::*, ecs::Entity};
 use namui::prelude::*;
 use std::cmp::Ordering;

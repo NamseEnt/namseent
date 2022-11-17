@@ -1,13 +1,7 @@
+use crate::{app::game::*, component::*, ecs};
 use float_cmp::assert_approx_eq;
 use namui::prelude::*;
 use wasm_bindgen_test::wasm_bindgen_test;
-
-use crate::{
-    app::game::{
-        new_player, Game, Map, Movement, Mover, PlayerCharacter, Positioner, Tile, TileExt,
-    },
-    ecs,
-};
 
 #[test]
 #[wasm_bindgen_test]

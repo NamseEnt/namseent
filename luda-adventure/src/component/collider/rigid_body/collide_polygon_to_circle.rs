@@ -1,5 +1,5 @@
 use super::{collide_circle_to_polygon, Circle};
-use crate::app::game::CollisionInfo;
+use crate::component::CollisionInfo;
 use geo::Polygon;
 
 pub fn collide_polygon_to_circle(polygon: &Polygon, circle: &Circle) -> CollisionInfo {

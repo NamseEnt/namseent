@@ -1,4 +1,5 @@
-use crate::app::game::{Game, Positioner};
+use crate::app::game::Game;
+use crate::component::*;
 
 impl Game {
     pub fn save_positioner_xy(&mut self) {

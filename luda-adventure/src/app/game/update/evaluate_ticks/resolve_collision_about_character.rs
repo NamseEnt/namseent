@@ -1,8 +1,6 @@
+use crate::component::*;
 use crate::{
-    app::game::{
-        known_id::object::PLAYER_CHARACTER, Collider, CollisionInfo, Game, PlayerCharacter,
-        Positioner, RigidBody, Tile,
-    },
+    app::game::{known_id::object::PLAYER_CHARACTER, Game, Tile},
     ecs,
 };
 use namui::prelude::*;
