@@ -8,17 +8,23 @@ const VISUAL_HEIGHT: Tile = tile(1.0);
 const VISUAL_OFFSET_X: Tile = tile(-0.5);
 const VISUAL_OFFSET_Y: Tile = tile(-0.5);
 
-pub fn new_wall(positions: Vec<Xy<Tile>>) -> crate::ecs::Entity {
-    let entity = crate::ecs::Entity::new();
+pub fn new_wall(app: &mut crate::ecs::App, positions: Vec<Xy<Tile>>) -> &mut crate::ecs::Entity {
+    new_wall_with_id(app, Uuid::new_v4(), positions)
+}
+
+pub fn new_wall_with_id(
+    app: &mut crate::ecs::App,
+    id: Uuid,
+    positions: Vec<Xy<Tile>>,
+) -> &mut crate::ecs::Entity {
+    let entity = app.new_entity_with_id(id);
     append_components(entity, positions)
 }
 
-pub fn new_wall_with_id(id: Uuid, positions: Vec<Xy<Tile>>) -> crate::ecs::Entity {
-    let entity = crate::ecs::Entity::with_id(id);
-    append_components(entity, positions)
-}
-
-fn append_components(entity: crate::ecs::Entity, positions: Vec<Xy<Tile>>) -> crate::ecs::Entity {
+fn append_components(
+    entity: &mut crate::ecs::Entity,
+    positions: Vec<Xy<Tile>>,
+) -> &mut crate::ecs::Entity {
     let min_x = positions
         .iter()
         .map(|p| p.x)

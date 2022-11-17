@@ -2,7 +2,6 @@ use super::try_create_new_polygon::try_create_new_polygon;
 use crate::{
     app::game::new_floor,
     app::game::{new_wall, types::TileExt, Collider, Positioner, Tile},
-    ecs::Entity,
 };
 use namui::{Wh, Xy};
 
@@ -43,65 +42,53 @@ impl Map {
         }
     }
 
-    pub fn create_entities(&self) -> Vec<Entity> {
-        let mut entities = Vec::new();
-        entities.extend(self.create_floor_entities());
-        entities.extend(self.create_wall_entities());
-        entities
+    pub fn create_entities(&self, app: &mut crate::ecs::App) {
+        self.create_floor_entities(app);
+        self.create_wall_entities(app);
     }
 
-    fn create_floor_entities(&self) -> Vec<Entity> {
+    fn create_floor_entities(&self, app: &mut crate::ecs::App) {
         let positions = (0..self.wh.width)
             .flat_map(|x| {
                 (0..self.wh.height).map(move |y| Xy::new((x as f32).tile(), (y as f32).tile()))
             })
             .collect();
-        vec![new_floor(positions)]
+        new_floor(app, positions);
     }
 
-    fn create_wall_entities(&self) -> Vec<Entity> {
-        let mut entities = Vec::new();
-        entities.extend(self.create_wall_visual_entities());
-        entities.extend(self.create_wall_collision_entities());
-        entities
+    fn create_wall_entities(&self, app: &mut crate::ecs::App) {
+        self.create_wall_visual_entities(app);
+        self.create_wall_collision_entities(app);
     }
 
-    fn create_wall_visual_entities(&self) -> Vec<Entity> {
-        self.wall
-            .iter()
-            .enumerate()
-            .filter_map(|(y, row)| {
-                let positions = row
-                    .chars()
-                    .enumerate()
-                    .filter_map(|(x, wall)| match wall {
-                        '1' => Some(Xy::new(Tile::from(x as f32), Tile::from(y as f32))),
-                        _ => None,
-                    })
-                    .collect::<Vec<_>>();
-                match positions.len() > 0 {
-                    true => Some(new_wall(positions)),
-                    false => None,
-                }
-            })
-            .collect()
+    fn create_wall_visual_entities(&self, app: &mut crate::ecs::App) {
+        self.wall.iter().enumerate().for_each(|(y, row)| {
+            let positions = row
+                .chars()
+                .enumerate()
+                .filter_map(|(x, wall)| match wall {
+                    '1' => Some(Xy::new(Tile::from(x as f32), Tile::from(y as f32))),
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
+            if let true = positions.len() > 0 {
+                new_wall(app, positions);
+            };
+        });
     }
 
-    fn create_wall_collision_entities(&self) -> Vec<Entity> {
+    fn create_wall_collision_entities(&self, app: &mut crate::ecs::App) {
         let mut visit_map = vec![vec![false; self.wh.width]; self.wh.height];
-        let mut wall_collision_entities = Vec::new();
         for y in 0..self.wh.height {
             for x in 0..self.wh.width {
                 if let Some(polygon) =
                     try_create_new_polygon(&self.wall, &mut visit_map, Xy::new(x, y))
                 {
-                    let wall_collision_entity = Entity::new()
+                    app.new_entity()
                         .add_component(Positioner::new())
                         .add_component(Collider::from_polygon(polygon));
-                    wall_collision_entities.push(wall_collision_entity);
                 }
             }
         }
-        wall_collision_entities
     }
 }

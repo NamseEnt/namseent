@@ -32,8 +32,8 @@ impl PlayerCharacter {
     }
 }
 
-pub fn new_player(xy: Xy<Tile>) -> crate::ecs::Entity {
-    crate::ecs::Entity::with_id(PLAYER_CHARACTER)
+pub fn new_player(app: &mut crate::ecs::App, xy: Xy<Tile>) -> &mut crate::ecs::Entity {
+    app.new_entity_with_id(PLAYER_CHARACTER)
         .add_component(Positioner::new_with_xy(xy))
         .add_component(Collider::from_circle(Xy::zero(), tile(1.5)))
         .add_component(PlayerCharacter {

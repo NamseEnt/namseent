@@ -8,7 +8,7 @@ const VISUAL_HEIGHT: Tile = tile(1.0);
 const VISUAL_OFFSET_X: Tile = tile(-0.5);
 const VISUAL_OFFSET_Y: Tile = tile(-0.5);
 
-pub fn new_floor(positions: Vec<Xy<Tile>>) -> crate::ecs::Entity {
+pub fn new_floor(app: &mut crate::ecs::App, positions: Vec<Xy<Tile>>) -> &mut crate::ecs::Entity {
     let min_x = positions
         .iter()
         .map(|p| p.x)
@@ -30,7 +30,7 @@ pub fn new_floor(positions: Vec<Xy<Tile>>) -> crate::ecs::Entity {
         .reduce(|a, b| a.max(b))
         .unwrap();
 
-    crate::ecs::Entity::new()
+    app.new_entity()
         .add_component(Positioner::new())
         .add_component(Renderer::new(
             -1,

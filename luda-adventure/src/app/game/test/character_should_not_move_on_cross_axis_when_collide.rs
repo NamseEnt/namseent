@@ -30,41 +30,41 @@ fn character_should_not_move_on_cross_axis_when_collide() {
 /// - x: 2.999 tile
 /// - y: 0 tile
 fn add_character(ecs_app: &mut ecs::App) {
-    let mut character = new_player(Xy {
-        x: 2.999.tile(),
-        y: 0.tile(),
-    });
+    let character = new_player(
+        ecs_app,
+        Xy {
+            x: 2.999.tile(),
+            y: 0.tile(),
+        },
+    );
     let mover = character.get_component_mut::<&mut Mover>().unwrap();
     mover.movement = Movement::Moving(Xy {
         x: Per::new(0.tile(), 1.sec()),
         y: Per::new(10.tile(), 1.sec()),
     });
-    ecs_app.add_entity(character);
 }
 
 /// Horizontal wall at y = 12
 /// Character will stop at y = 10, 1 sec
 fn add_wall(ecs_app: &mut ecs::App) {
-    ecs_app.add_entities(
-        Map::new(
-            Wh::new(12, 12),
-            vec![
-                "000000000000".to_string(),
-                "000000000000".to_string(),
-                "000000000000".to_string(),
-                "000000000000".to_string(),
-                "000000000000".to_string(),
-                "000000000000".to_string(),
-                "000000000000".to_string(),
-                "000000000000".to_string(),
-                "000000000000".to_string(),
-                "000000000000".to_string(),
-                "000000000000".to_string(),
-                "111111111111".to_string(),
-            ],
-        )
-        .create_entities(),
+    Map::new(
+        Wh::new(12, 12),
+        vec![
+            "000000000000".to_string(),
+            "000000000000".to_string(),
+            "000000000000".to_string(),
+            "000000000000".to_string(),
+            "000000000000".to_string(),
+            "000000000000".to_string(),
+            "000000000000".to_string(),
+            "000000000000".to_string(),
+            "000000000000".to_string(),
+            "000000000000".to_string(),
+            "000000000000".to_string(),
+            "111111111111".to_string(),
+        ],
     )
+    .create_entities(ecs_app)
 }
 
 fn get_character_x(ecs_app: &ecs::App) -> Tile {
