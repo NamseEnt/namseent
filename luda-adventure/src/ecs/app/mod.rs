@@ -1,14 +1,11 @@
 mod save;
 
 use super::*;
-use once_cell::sync::OnceCell;
 
 pub struct App {
     id: Uuid,
     entities: Vec<Entity>,
 }
-
-pub static mut TYPE_REGISTERS: OnceCell<Vec<Box<dyn Fn(&App)>>> = OnceCell::new();
 
 impl App {
     pub fn new() -> Self {
@@ -19,13 +16,6 @@ impl App {
             id,
             entities: Vec::new(),
         };
-
-        unsafe {
-            let type_registers = TYPE_REGISTERS.get_or_init(|| Vec::new());
-            for register in type_registers.iter() {
-                register(&app);
-            }
-        }
 
         app
     }

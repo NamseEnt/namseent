@@ -1,5 +1,6 @@
+mod generated;
+
 use super::*;
-use crate::component::*;
 
 impl App {
     pub fn save(&self) -> String {
@@ -11,35 +12,14 @@ impl App {
                 .iter()
                 .map(|entity| EntitySaveData {
                     entity_id: entity.id(),
-                    components: {
-                        let entity_id = entity.id();
-                        let mut components = vec![];
-
-                        {
-                            unsafe {
-                                let component = Collider_SET.get().and_then(|entity_set| {
-                                    entity_set
-                                        .get(&app_id)
-                                        .and_then(|component_set| component_set.get(&entity_id))
-                                });
-                                if let Some(component) = component {
-                                    components.push(ComponentSaveData {
-                                        component_type: "Collider".to_string(),
-                                        component_ron: ron::to_string(component).unwrap(),
-                                    });
-                                }
-                            }
-                        }
-
-                        components
-                    },
+                    components: generated::save_components(app_id, entity.id()),
                 })
                 .collect(),
         };
 
         ron::to_string(&save_data).unwrap()
     }
-    pub fn load(save_data_ron: &str) -> Result<Self, ron::Error> {
+    pub fn load(save_data_ron: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let save_data = ron::from_str::<SaveData>(save_data_ron)?;
 
         let mut app = Self::new_with_id(save_data.app_id);
@@ -47,10 +27,7 @@ impl App {
             let entity = app.new_entity_with_id(entity_save_data.entity_id);
 
             for component_save_data in entity_save_data.components {
-                if "Collider" == component_save_data.component_type {
-                    let component: Collider = ron::from_str(&component_save_data.component_ron)?;
-                    entity.add_component(component);
-                }
+                generated::load_component(entity, component_save_data)?;
             }
         }
 
@@ -80,6 +57,7 @@ struct ComponentSaveData {
 mod test {
     use super::*;
     use crate::app::game::*;
+    use crate::component::*;
     use namui::prelude::*;
     use std::str::FromStr;
     use wasm_bindgen_test::wasm_bindgen_test;
