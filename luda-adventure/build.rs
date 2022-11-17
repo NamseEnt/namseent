@@ -4,45 +4,51 @@ use walkdir::WalkDir;
 
 fn main() {
     println!("cargo:rerun-if-changed=src/component");
-    let mut files = vec![];
-    for entry in WalkDir::new("src/component") {
-        let entry = entry.unwrap();
-        if entry.file_type().is_file() && entry.path().extension().unwrap() == "rs" {
-            files.push(entry.path().to_str().unwrap().to_string());
-        }
-    }
+    let files = WalkDir::new("src/component")
+        .into_iter()
+        .filter_map(|entry| {
+            let entry = entry.unwrap();
+            if entry.file_type().is_file() && entry.path().extension().unwrap() == "rs" {
+                Some(entry.path().to_str().unwrap().to_string())
+            } else {
+                None
+            }
+        });
 
-    let mut component_idents = vec![];
-    for file in files {
-        let content = std::fs::read_to_string(file).unwrap();
-        enum State {
-            FindingComponentAttribute,
-            FindingComponentName,
-        }
-        let mut state = State::FindingComponentAttribute;
-        for line in content.lines() {
-            match state {
-                State::FindingComponentAttribute => {
-                    if line.starts_with("#[ecs_macro::component]") {
-                        state = State::FindingComponentName;
+    let component_idents = files
+        .flat_map(|file| {
+            let content = std::fs::read_to_string(file).unwrap();
+            let mut component_idents = Vec::new();
+            enum State {
+                FindingComponentAttribute,
+                FindingComponentName,
+            }
+            let mut state = State::FindingComponentAttribute;
+            for line in content.lines() {
+                match state {
+                    State::FindingComponentAttribute => {
+                        if line.starts_with("#[ecs_macro::component]") {
+                            state = State::FindingComponentName;
+                        }
                     }
-                }
-                State::FindingComponentName => {
-                    if line.starts_with("pub struct ") {
-                        let component_name = line
-                            .split("pub struct ")
-                            .nth(1)
-                            .unwrap()
-                            .split(" ")
-                            .nth(0)
-                            .unwrap();
-                        component_idents.push(format_ident!("{component_name}"));
-                        state = State::FindingComponentAttribute;
+                    State::FindingComponentName => {
+                        if line.starts_with("pub struct ") {
+                            let component_name = line
+                                .split("pub struct ")
+                                .nth(1)
+                                .unwrap()
+                                .split(" ")
+                                .nth(0)
+                                .unwrap();
+                            component_idents.push(format_ident!("{component_name}"));
+                            state = State::FindingComponentAttribute;
+                        }
                     }
                 }
             }
-        }
-    }
+            component_idents
+        })
+        .collect::<Vec<_>>();
 
     let save_components_lines = component_idents.iter().map(|component_ident| {
         let set_ident = format_ident!("{}_SET", component_ident);
