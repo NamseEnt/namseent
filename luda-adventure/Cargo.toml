@@ -25,7 +25,6 @@ wasm-bindgen-test = "0.3.13"
 
 [build-dependencies]
 walkdir = "2"
-syn = "1.0"
 quote = "1.0"
 
 [profile.release]

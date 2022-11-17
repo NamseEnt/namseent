@@ -737,7 +737,6 @@ dependencies = [
  "ron",
  "rustc-hash",
  "serde",
- "syn",
  "walkdir",
  "wasm-bindgen-test",
 ]
