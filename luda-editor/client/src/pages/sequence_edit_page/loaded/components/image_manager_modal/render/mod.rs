@@ -10,6 +10,19 @@ impl ImageManagerModal {
                 table::vertical([
                     table::fixed(36.px(), |wh| {
                         table::horizontal([
+                            table::fit(
+                                table::FitAlign::LeftTop,
+                                button::text_button_fit(
+                                    wh.height,
+                                    "Upload Images",
+                                    Color::WHITE,
+                                    Color::WHITE,
+                                    2.px(),
+                                    Color::BLACK,
+                                    12.px(),
+                                    || namui::event::send(InternalEvent::RequestUploadImages),
+                                ),
+                            ),
                             table::ratio(1, |_| RenderingTree::Empty),
                             table::fit(
                                 table::FitAlign::LeftTop,
