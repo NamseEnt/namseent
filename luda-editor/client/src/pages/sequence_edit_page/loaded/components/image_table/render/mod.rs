@@ -29,8 +29,8 @@ impl ImageTable {
                         height: wh.height,
                         scroll_bar_width: 10.px(),
                         item_wh: Wh::new(wh.width, ROW_HEIGHT),
-                        items: rows,
-                        item_render: |_wh, row| row.render(&self),
+                        items: rows.into_iter().enumerate(),
+                        item_render: |_wh, (row_index, row)| row.render(&self, row_index),
                     })
                 }),
             ])(props.wh),

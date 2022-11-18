@@ -6,13 +6,22 @@ pub struct Row {
 }
 
 impl Row {
-    pub fn render(&self, image_table: &ImageTable) -> RenderingTree {
+    pub fn render(&self, image_table: &ImageTable, row_index: usize) -> RenderingTree {
         let project_id = image_table.project_id;
         let cell_wh = Wh::new(COLUMN_WIDTH, ROW_HEIGHT);
         let image_id = self.image_id;
 
         let image = render([
             border(cell_wh),
+            path(
+                PathBuilder::new()
+                    .move_to(cell_wh.width - 2.5.px(), 0.px())
+                    .line_to(cell_wh.width - 2.5.px(), cell_wh.height),
+                PaintBuilder::new()
+                    .set_color(Color::WHITE)
+                    .set_style(PaintStyle::Stroke)
+                    .set_stroke_width(1.px()),
+            ),
             namui::try_render(|| {
                 let url = get_project_image_url(project_id, self.image_id).unwrap();
                 let image = namui::image::try_load_url(&url)?;
@@ -31,7 +40,18 @@ impl Row {
         render(
             [image]
                 .into_iter()
-                .chain(self.labels.iter().map(|label| {
+                .chain(self.labels.iter().enumerate().map(|(column_index, label)| {
+                    let is_dragged_cell = is_dragged_cell(image_table, row_index, column_index);
+                    let fill_rect = simple_rect(
+                        cell_wh,
+                        Color::TRANSPARENT,
+                        0.px(),
+                        if is_dragged_cell {
+                            Color::from_u8(37, 49, 109, 255)
+                        } else {
+                            Color::TRANSPARENT
+                        },
+                    );
                     let text = {
                         match image_table.editing_target.as_ref() {
                             Some(editing_target)
@@ -66,14 +86,49 @@ impl Row {
                         }
                     };
 
-                    render([border(cell_wh), text]).attach_event(move |builder| {
+                    render([fill_rect, border(cell_wh), text]).attach_event(move |builder| {
                         let label_key = label.key.clone();
                         builder.on_mouse_down_in(move |event| {
                             if event.button == Some(MouseButton::Left) {
-                                namui::event::send(InternalEvent::LeftClickOnLabelCell {
+                                namui::event::send(InternalEvent::LabelCellMouseLeftDown {
                                     image_id,
                                     label_key: label_key.clone(),
+                                    row_index,
+                                    column_index,
                                 });
+                            }
+                        });
+                        let label_key = label.key.clone();
+                        builder.on_mouse_up_in(move |event| {
+                            if event.button == Some(MouseButton::Left) {
+                                namui::event::send(InternalEvent::LabelCellMouseLeftUp {
+                                    image_id,
+                                    label_key: label_key.clone(),
+                                    row_index,
+                                    column_index,
+                                });
+                            }
+                        });
+                        let last_row_column_index =
+                            image_table
+                                .cell_drag_context
+                                .as_ref()
+                                .map(|cell_drag_context| {
+                                    (
+                                        cell_drag_context.last_row_index,
+                                        cell_drag_context.last_column_index,
+                                    )
+                                });
+                        builder.on_mouse_move_in(move |_event| {
+                            if let Some((last_row_index, last_column_index)) = last_row_column_index
+                            {
+                                if last_row_index != row_index || last_column_index != column_index
+                                {
+                                    namui::event::send(InternalEvent::LabelCellMouseMove {
+                                        row_index,
+                                        column_index,
+                                    });
+                                }
                             }
                         });
                     })
@@ -93,5 +148,37 @@ impl Row {
                 }
             });
         })
+    }
+}
+
+fn is_dragged_cell(image_table: &ImageTable, row_index: usize, column_index: usize) -> bool {
+    let ltrb = if let Some(cell_drag_context) = image_table.cell_drag_context.as_ref() {
+        Some(Ltrb {
+            left: cell_drag_context
+                .start_column_index
+                .min(cell_drag_context.last_column_index),
+            top: cell_drag_context
+                .start_row_index
+                .min(cell_drag_context.last_row_index),
+            right: cell_drag_context
+                .start_column_index
+                .max(cell_drag_context.last_column_index),
+            bottom: cell_drag_context
+                .start_row_index
+                .max(cell_drag_context.last_row_index),
+        })
+    } else if let Some(selection) = image_table.selection.as_ref() {
+        Some(*selection)
+    } else {
+        None
+    };
+
+    if let Some(ltrb) = ltrb {
+        ltrb.left <= column_index
+            && column_index <= ltrb.right
+            && ltrb.top <= row_index
+            && row_index <= ltrb.bottom
+    } else {
+        false
     }
 }

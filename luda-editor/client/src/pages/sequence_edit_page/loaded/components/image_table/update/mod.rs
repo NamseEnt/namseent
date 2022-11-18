@@ -26,15 +26,23 @@ impl ImageTable {
                         },
                     };
                 }
-                &InternalEvent::LeftClickOnLabelCell {
+                &InternalEvent::LabelCellMouseLeftDown {
                     image_id,
                     ref label_key,
+                    row_index,
+                    column_index,
                 } => {
-                    self.editing_target = Some(EditingTarget {
-                        image_id,
-                        label_key: label_key.clone(),
-                    });
-                    self.text_input.focus();
+                    // self.editing_target = Some(EditingTarget {
+                    //     image_id,
+                    //     label_key: label_key.clone(),
+                    // });
+                    // self.text_input.focus();
+                    self.cell_drag_context = Some(CellDragContext {
+                        start_row_index: row_index,
+                        start_column_index: column_index,
+                        last_row_index: row_index,
+                        last_column_index: column_index,
+                    })
                 }
                 InternalEvent::PutImageMetaDataSuccess => {
                     self.saving_count -= 1;
@@ -62,6 +70,30 @@ impl ImageTable {
                                 })
                         })],
                     ))
+                }
+                &InternalEvent::LabelCellMouseLeftUp {
+                    image_id,
+                    ref label_key,
+                    row_index,
+                    column_index,
+                } => {
+                    if let Some(cell_drag_context) = self.cell_drag_context.take() {
+                        self.selection = Some(Ltrb {
+                            left: cell_drag_context.start_column_index.min(column_index),
+                            top: cell_drag_context.start_row_index.min(row_index),
+                            right: cell_drag_context.start_column_index.max(column_index),
+                            bottom: cell_drag_context.start_row_index.max(row_index),
+                        });
+                    }
+                }
+                &InternalEvent::LabelCellMouseMove {
+                    row_index,
+                    column_index,
+                } => {
+                    if let Some(cell_drag_context) = self.cell_drag_context.as_mut() {
+                        cell_drag_context.last_row_index = row_index;
+                        cell_drag_context.last_column_index = column_index;
+                    }
                 }
             }
         } else if let Some(event) = event.downcast_ref::<text_input::Event>() {

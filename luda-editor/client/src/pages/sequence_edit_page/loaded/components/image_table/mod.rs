@@ -15,6 +15,8 @@ pub struct ImageTable {
     editing_target: Option<EditingTarget>,
     pub saving_count: usize,
     context_menu: Option<context_menu::ContextMenu>,
+    selection: Option<Selection>,
+    cell_drag_context: Option<CellDragContext>,
 }
 
 pub struct Props {
@@ -27,10 +29,30 @@ pub enum Event {
 
 enum InternalEvent {
     LoadImages(Vec<ImageWithLabels>),
-    LeftClickOnLabelHeader { key: String },
-    LeftClickOnLabelCell { image_id: Uuid, label_key: String },
+    LeftClickOnLabelHeader {
+        key: String,
+    },
+    LabelCellMouseLeftDown {
+        image_id: Uuid,
+        label_key: String,
+        row_index: usize,
+        column_index: usize,
+    },
+    LabelCellMouseMove {
+        row_index: usize,
+        column_index: usize,
+    },
+    LabelCellMouseLeftUp {
+        image_id: Uuid,
+        label_key: String,
+        row_index: usize,
+        column_index: usize,
+    },
     PutImageMetaDataSuccess,
-    RightClickOnImageRow { image_id: Uuid, global_xy: Xy<Px> },
+    RightClickOnImageRow {
+        image_id: Uuid,
+        global_xy: Xy<Px>,
+    },
 }
 
 enum SortOrderBy {
@@ -41,6 +63,15 @@ enum SortOrderBy {
 struct EditingTarget {
     image_id: Uuid,
     label_key: String,
+}
+
+type Selection = Ltrb<usize>;
+
+struct CellDragContext {
+    start_row_index: usize,
+    start_column_index: usize,
+    last_row_index: usize,
+    last_column_index: usize,
 }
 
 impl ImageTable {
@@ -55,6 +86,8 @@ impl ImageTable {
             editing_target: None,
             saving_count: 0,
             context_menu: None,
+            selection: None,
+            cell_drag_context: None,
         };
 
         table.request_reload_images();
