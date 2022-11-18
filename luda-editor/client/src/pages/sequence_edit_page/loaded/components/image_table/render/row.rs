@@ -82,7 +82,24 @@ impl Row {
                                     event_handler: None,
                                 })
                             }
-                            _ => center_text(cell_wh, &label.value, Color::WHITE, FONT_SIZE),
+                            _ => namui::text(TextParam {
+                                text: label.value.clone(),
+                                x: cell_wh.width / 2.0,
+                                y: cell_wh.height / 2.0,
+                                align: TextAlign::Center,
+                                baseline: TextBaseline::Middle,
+                                font_type: FontType {
+                                    font_weight: FontWeight::REGULAR,
+                                    language: Language::Ko,
+                                    serif: false,
+                                    size: FONT_SIZE,
+                                },
+                                style: TextStyle {
+                                    color: Color::WHITE,
+                                    ..Default::default()
+                                },
+                                max_width: Some(cell_wh.width),
+                            }),
                         }
                     };
 

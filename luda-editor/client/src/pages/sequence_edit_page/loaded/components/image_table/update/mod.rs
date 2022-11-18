@@ -26,24 +26,6 @@ impl ImageTable {
                         },
                     };
                 }
-                &InternalEvent::LabelCellMouseLeftDown {
-                    image_id,
-                    ref label_key,
-                    row_index,
-                    column_index,
-                } => {
-                    // self.editing_target = Some(EditingTarget {
-                    //     image_id,
-                    //     label_key: label_key.clone(),
-                    // });
-                    // self.text_input.focus();
-                    self.cell_drag_context = Some(CellDragContext {
-                        start_row_index: row_index,
-                        start_column_index: column_index,
-                        last_row_index: row_index,
-                        last_column_index: column_index,
-                    })
-                }
                 InternalEvent::PutImageMetaDataSuccess => {
                     self.saving_count -= 1;
                 }
@@ -71,12 +53,73 @@ impl ImageTable {
                         })],
                     ))
                 }
+                &InternalEvent::LabelCellMouseLeftDown {
+                    image_id,
+                    ref label_key,
+                    row_index,
+                    column_index,
+                } => {
+                    if let Some(editing_target) = self.editing_target.as_ref() {
+                        if editing_target.image_id != image_id
+                            || editing_target.label_key.ne(label_key)
+                        {
+                            self.editing_target = None;
+                        }
+                    }
+                    self.cell_drag_context = Some(CellDragContext {
+                        start_row_index: row_index,
+                        start_column_index: column_index,
+                        last_row_index: row_index,
+                        last_column_index: column_index,
+                    })
+                }
+                &InternalEvent::LabelCellMouseMove {
+                    row_index,
+                    column_index,
+                } => {
+                    if let Some(cell_drag_context) = self.cell_drag_context.as_mut() {
+                        if self.editing_target.is_some()
+                            && (row_index != cell_drag_context.start_row_index
+                                || column_index != cell_drag_context.start_column_index)
+                        {
+                            self.editing_target = None;
+                        }
+
+                        cell_drag_context.last_row_index = row_index;
+                        cell_drag_context.last_column_index = column_index;
+                    }
+                }
                 &InternalEvent::LabelCellMouseLeftUp {
                     image_id,
                     ref label_key,
                     row_index,
                     column_index,
                 } => {
+                    let is_selected_only_this_cell =
+                        if let Some(selection) = self.selection.as_ref() {
+                            selection.top == row_index
+                                && selection.bottom == row_index
+                                && selection.left == column_index
+                                && selection.right == column_index
+                        } else {
+                            false
+                        };
+                    let is_double_click_only_this_cell = is_selected_only_this_cell
+                        && if let Some(cell_drag_context) = self.cell_drag_context.as_ref() {
+                            cell_drag_context.start_row_index == row_index
+                                && cell_drag_context.start_column_index == column_index
+                        } else {
+                            false
+                        };
+
+                    if is_double_click_only_this_cell {
+                        self.editing_target = Some(EditingTarget {
+                            image_id,
+                            label_key: label_key.clone(),
+                        });
+                        self.text_input.focus();
+                    }
+
                     if let Some(cell_drag_context) = self.cell_drag_context.take() {
                         self.selection = Some(Ltrb {
                             left: cell_drag_context.start_column_index.min(column_index),
@@ -86,14 +129,13 @@ impl ImageTable {
                         });
                     }
                 }
-                &InternalEvent::LabelCellMouseMove {
-                    row_index,
-                    column_index,
-                } => {
-                    if let Some(cell_drag_context) = self.cell_drag_context.as_mut() {
-                        cell_drag_context.last_row_index = row_index;
-                        cell_drag_context.last_column_index = column_index;
+                InternalEvent::EscKeyDown => {
+                    if self.editing_target.is_some() {
+                        self.editing_target = None;
+                    } else {
+                        self.selection = None;
                     }
+                    self.context_menu = None;
                 }
             }
         } else if let Some(event) = event.downcast_ref::<text_input::Event>() {

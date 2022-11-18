@@ -53,6 +53,7 @@ enum InternalEvent {
         image_id: Uuid,
         global_xy: Xy<Px>,
     },
+    EscKeyDown,
 }
 
 enum SortOrderBy {

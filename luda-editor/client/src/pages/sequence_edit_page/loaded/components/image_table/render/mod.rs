@@ -35,6 +35,13 @@ impl ImageTable {
                 }),
             ])(props.wh),
         ])
+        .attach_event(|builder| {
+            builder.on_key_down(|event| {
+                if event.code == Code::Escape {
+                    namui::event::send(InternalEvent::EscKeyDown);
+                }
+            });
+        })
     }
 
     fn label_keys(&self) -> BTreeSet<String> {
