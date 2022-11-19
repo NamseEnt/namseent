@@ -1,4 +1,5 @@
-use crate::app::game::{Game, Movement, Mover, PlayerCharacter, TileExt};
+use crate::app::game::*;
+use crate::component::*;
 use namui::prelude::*;
 use std::collections::{hash_map::RandomState, HashSet};
 

@@ -1,4 +1,5 @@
-use crate::app::game::{Game, Movement, Mover, PlayerCharacter, Positioner, TICK_INTERVAL};
+use crate::app::game::*;
+use crate::component::*;
 use namui::prelude::*;
 
 impl Game {

@@ -1,12 +1,6 @@
+use crate::{app::game::*, component::*, ecs};
 use namui::prelude::*;
 use wasm_bindgen_test::wasm_bindgen_test;
-
-use crate::{
-    app::game::{
-        new_player, Game, Map, Movement, Mover, PlayerCharacter, Positioner, Tile, TileExt,
-    },
-    ecs,
-};
 
 #[test]
 #[wasm_bindgen_test]
@@ -27,32 +21,32 @@ fn character_should_escape_edge_of_wall() {
 /// - x: 0 tile
 /// - y: 0 tile
 fn add_character(ecs_app: &mut ecs::App) {
-    let mut character = new_player(Xy {
-        x: 0.tile(),
-        y: 0.tile(),
-    });
+    let character = new_player(
+        ecs_app,
+        Xy {
+            x: 0.tile(),
+            y: 0.tile(),
+        },
+    );
     let mover = character.get_component_mut::<&mut Mover>().unwrap();
     mover.movement = Movement::Moving(Xy {
         x: Per::new(1.tile(), 1.sec()),
         y: Per::new(1.tile(), 1.sec()),
     });
-    ecs_app.add_entity(character);
 }
 
 /// Vertical wall at x = 3 with length 4
 fn add_wall(ecs_app: &mut ecs::App) {
-    ecs_app.add_entities(
-        Map::new(
-            Wh::new(4, 4),
-            vec![
-                "0001".to_string(),
-                "0001".to_string(),
-                "0001".to_string(),
-                "0001".to_string(),
-            ],
-        )
-        .create_entities(),
+    Map::new(
+        Wh::new(4, 4),
+        vec![
+            "0001".to_string(),
+            "0001".to_string(),
+            "0001".to_string(),
+            "0001".to_string(),
+        ],
     )
+    .create_entities(ecs_app);
 }
 
 fn get_character_x(ecs_app: &ecs::App) -> Tile {

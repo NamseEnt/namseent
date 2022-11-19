@@ -1,8 +1,9 @@
 use super::{collide_circle_to_polygon, collide_polygon_to_circle, Circle};
-use crate::app::game::{CollisionInfo, Tile};
+use crate::{app::game::Tile, component::CollisionInfo};
 use geo::{coord, polygon, Polygon, Translate};
 use namui::prelude::*;
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub enum RigidBody {
     Polygon(Polygon),
     Circle(Circle),

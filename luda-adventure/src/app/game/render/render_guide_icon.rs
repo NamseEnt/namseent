@@ -1,4 +1,5 @@
 use crate::app::game::*;
+use crate::component::*;
 use namui::prelude::*;
 
 impl Game {

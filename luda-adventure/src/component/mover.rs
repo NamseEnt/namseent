@@ -1,12 +1,13 @@
 use crate::app::game::Tile;
 use namui::prelude::*;
 
-#[derive(ecs_macro::Component, Debug)]
+#[ecs_macro::component]
+#[derive(Debug)]
 pub struct Mover {
     pub movement: Movement,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Copy, Clone, Debug)]
 pub enum Movement {
     Fixed,
     Moving(Velocity),

@@ -3,33 +3,37 @@ use namui::Uuid;
 
 pub struct Entity {
     id: Uuid,
+    app_id: Uuid,
     drop_functions: Vec<Box<dyn FnOnce()>>,
 }
 
 impl Entity {
-    pub fn new() -> Self {
-        Self::with_id(Uuid::new_v4())
+    pub fn new(app_id: Uuid) -> Self {
+        Self::with_id(app_id, Uuid::new_v4())
     }
-    pub fn with_id(id: Uuid) -> Self {
+    pub fn with_id(app_id: Uuid, entity_id: Uuid) -> Self {
         Self {
-            id,
+            id: entity_id,
+            app_id,
             drop_functions: Vec::new(),
         }
     }
     pub fn id(&self) -> Uuid {
         self.id
     }
-    pub fn add_component<T: Component>(mut self, component: T) -> Self {
+    pub fn add_component<T: Component>(&mut self, component: T) -> &mut Self {
         let id = self.id;
-        component.insert(id);
-        self.drop_functions.push(Box::new(move || T::drop(id)));
+        let app_id = self.app_id;
+        component.insert(self.app_id, id);
+        self.drop_functions
+            .push(Box::new(move || T::drop(app_id, id)));
         self
     }
     pub fn get_component<T: ComponentCombination>(&self) -> Option<T> {
-        T::filter(&self)
+        T::filter(self.app_id, &self)
     }
     pub fn get_component_mut<T: ComponentCombinationMut>(&mut self) -> Option<T> {
-        T::filter(self)
+        T::filter(self.app_id, self)
     }
 }
 impl Drop for Entity {
