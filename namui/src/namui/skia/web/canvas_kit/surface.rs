@@ -39,31 +39,31 @@ extern "C" {
     // #[wasm_bindgen(structural, method)]
     // fn makeImageFromTexture(this: &CanvasKitSurface, tex: WebGLTexture, info: ImageInfo) -> Image | null;
 
-    ///
-    /// Returns a texture-backed image based on the content in src. It uses RGBA_8888, unpremul
-    /// and SRGB - for more control, use makeImageFromTexture.
-    ///
-    /// The underlying texture for this image will be created immediately from src, so
-    /// it can be disposed of after this call. This image will *only* be usable for this
-    /// surface (because WebGL textures are not transferable to other WebGL contexts).
-    /// For an image that can be used across multiple surfaces, at the cost of being lazily
-    /// loaded, see MakeLazyImageFromTextureSource.
-    ///
-    /// Not available for software-backed surfaces.
-    /// @param src
-    /// @param info - If provided, will be used to determine the width/height/format of the
-    ///               source image. If not, sensible defaults will be used.
-    /// @param srcIsPremul - set to true if the src data has premultiplied alpha. Otherwise, it will
-    ///               be assumed to be Unpremultiplied. Note: if this is true and info specifies
-    ///               Unpremul, Skia will not convert the src pixels first.
-    ///
-    #[wasm_bindgen(structural, method)]
-    pub(crate) fn makeImageFromTextureSource(
-        this: &CanvasKitSurface,
-        src: JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
-        info: Option<js_sys::Object>, // ImageInfo | PartialImageInfo
-        srcIsPremul: Option<bool>,
-    ) -> CanvasKitImage;
+    // ///
+    // /// Returns a texture-backed image based on the content in src. It uses RGBA_8888, unpremul
+    // /// and SRGB - for more control, use makeImageFromTexture.
+    // ///
+    // /// The underlying texture for this image will be created immediately from src, so
+    // /// it can be disposed of after this call. This image will *only* be usable for this
+    // /// surface (because WebGL textures are not transferable to other WebGL contexts).
+    // /// For an image that can be used across multiple surfaces, at the cost of being lazily
+    // /// loaded, see MakeLazyImageFromTextureSource.
+    // ///
+    // /// Not available for software-backed surfaces.
+    // /// @param src
+    // /// @param info - If provided, will be used to determine the width/height/format of the
+    // ///               source image. If not, sensible defaults will be used.
+    // /// @param srcIsPremul - set to true if the src data has premultiplied alpha. Otherwise, it will
+    // ///               be assumed to be Unpremultiplied. Note: if this is true and info specifies
+    // ///               Unpremul, Skia will not convert the src pixels first.
+    // ///
+    // #[wasm_bindgen(structural, method)]
+    // pub(crate) fn makeImageFromTextureSource(
+    //     this: &CanvasKitSurface,
+    //     src: JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
+    //     info: Option<js_sys::Object>, // ImageInfo | PartialImageInfo
+    //     srcIsPremul: Option<bool>,
+    // ) -> CanvasKitImage;
 
     // ///
     // /// Returns current contents of the surface as an Image. This image will be optimized to be
