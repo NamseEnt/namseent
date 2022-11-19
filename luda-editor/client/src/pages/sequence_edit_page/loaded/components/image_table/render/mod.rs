@@ -29,12 +29,19 @@ impl ImageTable {
                         height: wh.height,
                         scroll_bar_width: 10.px(),
                         item_wh: Wh::new(wh.width, ROW_HEIGHT),
-                        items: rows,
-                        item_render: |_wh, row| row.render(&self),
+                        items: rows.into_iter().enumerate(),
+                        item_render: |_wh, (row_index, row)| row.render(&self, row_index),
                     })
                 }),
             ])(props.wh),
         ])
+        .attach_event(|builder| {
+            builder.on_key_down(|event| {
+                if event.code == Code::Escape {
+                    namui::event::send(InternalEvent::EscKeyDown);
+                }
+            });
+        })
     }
 
     fn label_keys(&self) -> BTreeSet<String> {
