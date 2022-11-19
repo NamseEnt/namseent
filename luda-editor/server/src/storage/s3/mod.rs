@@ -177,6 +177,26 @@ impl S3 {
             key.as_ref(),
         ]
     }
+
+    pub(crate) async fn delete_object(
+        &self,
+        key: impl AsRef<str>,
+    ) -> Result<(), DeleteObjectError> {
+        let result = self
+            .client
+            .delete_object()
+            .bucket(&self.bucket_name)
+            .key(self.key_with_prefix(key))
+            .send()
+            .await;
+
+        if let Err(error) = result {
+            eprintln!("error on delete_object: {:?}", error);
+            return Err(DeleteObjectError::Unknown(error.to_string()));
+        }
+
+        Ok(())
+    }
 }
 
 pub struct ListedObject {
@@ -214,3 +234,9 @@ pub enum RequestPresignedUrlError {
     Unknown(String),
 }
 crate::simple_error_impl!(RequestPresignedUrlError);
+
+#[derive(Debug)]
+pub enum DeleteObjectError {
+    Unknown(String),
+}
+crate::simple_error_impl!(DeleteObjectError);

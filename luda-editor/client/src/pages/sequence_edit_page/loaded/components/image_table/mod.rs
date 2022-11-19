@@ -1,6 +1,7 @@
 mod render;
 mod update;
 
+use crate::components::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::*;
@@ -13,6 +14,7 @@ pub struct ImageTable {
     text_input: text_input::TextInput,
     editing_target: Option<EditingTarget>,
     pub saving_count: usize,
+    context_menu: Option<context_menu::ContextMenu>,
 }
 
 pub struct Props {
@@ -28,6 +30,7 @@ enum InternalEvent {
     LeftClickOnLabelHeader { key: String },
     LeftClickOnLabelCell { image_id: Uuid, label_key: String },
     PutImageMetaDataSuccess,
+    RightClickOnImageRow { image_id: Uuid, global_xy: Xy<Px> },
 }
 
 enum SortOrderBy {
@@ -42,6 +45,7 @@ struct EditingTarget {
 
 impl ImageTable {
     pub fn new(project_id: Uuid) -> ImageTable {
+        request_reload_images(project_id);
         let table = ImageTable {
             project_id,
             list_view: list_view::ListView::new(),
@@ -50,23 +54,26 @@ impl ImageTable {
             text_input: text_input::TextInput::new(),
             editing_target: None,
             saving_count: 0,
+            context_menu: None,
         };
 
         table.request_reload_images();
         table
     }
     pub fn request_reload_images(&self) {
-        crate::RPC
-            .list_images(rpc::list_images::Request {
-                project_id: self.project_id,
-            })
-            .callback(|result| match result {
-                Ok(response) => {
-                    namui::event::send(InternalEvent::LoadImages(response.images));
-                }
-                Err(error) => {
-                    namui::event::send(Event::Error(error.to_string()));
-                }
-            })
+        request_reload_images(self.project_id);
     }
+}
+
+pub fn request_reload_images(project_id: Uuid) {
+    crate::RPC
+        .list_images(rpc::list_images::Request { project_id })
+        .callback(|result| match result {
+            Ok(response) => {
+                namui::event::send(InternalEvent::LoadImages(response.images));
+            }
+            Err(error) => {
+                namui::event::send(Event::Error(error.to_string()));
+            }
+        })
 }

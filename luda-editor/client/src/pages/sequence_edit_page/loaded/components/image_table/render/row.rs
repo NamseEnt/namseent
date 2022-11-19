@@ -83,5 +83,15 @@ impl Row {
                     translate(COLUMN_WIDTH * index, 0.px(), rendering_tree)
                 }),
         )
+        .attach_event(move |builder| {
+            builder.on_mouse_down_in(move |event| {
+                if event.button == Some(MouseButton::Right) {
+                    namui::event::send(InternalEvent::RightClickOnImageRow {
+                        image_id,
+                        global_xy: event.global_xy,
+                    });
+                }
+            });
+        })
     }
 }
