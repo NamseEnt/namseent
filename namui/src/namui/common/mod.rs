@@ -65,6 +65,12 @@ pub fn render(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> Rende
     RenderingTree::Children(rendering_trees.into_iter().collect())
 }
 
+impl From<Option<RenderingTree>> for RenderingTree {
+    fn from(option: Option<RenderingTree>) -> Self {
+        option.unwrap_or(RenderingTree::Empty)
+    }
+}
+
 pub fn try_render(func: impl FnOnce() -> Option<RenderingTree>) -> RenderingTree {
     func().unwrap_or(RenderingTree::Empty)
 }

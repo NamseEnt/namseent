@@ -305,7 +305,6 @@ crate::simple_error_impl!(QueryError);
 #[derive(Debug)]
 pub enum PutItemError {
     SerializeFailed(String),
-    #[allow(dead_code)]
     Unknown(String),
 }
 crate::simple_error_impl!(PutItemError);

@@ -16,19 +16,25 @@ impl ImageTable {
         let label_keys = self.label_keys();
         let rows = self.sorted_rows();
 
-        table::vertical([
-            table::fixed(36.px(), |wh| self.render_header_row(wh, &label_keys)),
-            table::ratio(1, |wh| {
-                self.list_view.render(list_view::Props {
-                    xy: Xy::zero(),
-                    height: wh.height,
-                    scroll_bar_width: 10.px(),
-                    item_wh: Wh::new(wh.width, ROW_HEIGHT),
-                    items: rows,
-                    item_render: |_wh, row| row.render(&self),
-                })
-            }),
-        ])(props.wh)
+        render([
+            self.context_menu
+                .as_ref()
+                .map(|context_menu| context_menu.render())
+                .into(),
+            table::vertical([
+                table::fixed(36.px(), |wh| self.render_header_row(wh, &label_keys)),
+                table::ratio(1, |wh| {
+                    self.list_view.render(list_view::Props {
+                        xy: Xy::zero(),
+                        height: wh.height,
+                        scroll_bar_width: 10.px(),
+                        item_wh: Wh::new(wh.width, ROW_HEIGHT),
+                        items: rows,
+                        item_render: |_wh, row| row.render(&self),
+                    })
+                }),
+            ])(props.wh),
+        ])
     }
 
     fn label_keys(&self) -> BTreeSet<String> {

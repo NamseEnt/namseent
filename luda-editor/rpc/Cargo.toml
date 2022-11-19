@@ -14,7 +14,9 @@ revert-json-patch = { path = "../revert-json-patch" }
 uuid = { version = "1.1", features = ["v4", "js", "macro-diagnostics", "serde"]}
 migration = { path = "../migration" }
 namui-type = { path = "../../namui-type" }
+tokio = { version = "1.21", optional = true, features = ["time"] }
+rand = { version = "0.8", optional = true }
 
 [features]
 client = ["dep:namui"]
-server = ["dep:hyper"]
+server = ["dep:hyper", "dep:tokio", "dep:rand"]
