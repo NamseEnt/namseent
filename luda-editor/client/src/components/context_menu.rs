@@ -71,15 +71,15 @@ impl ContextMenu {
                 } => {
                     next_y += cell_wh.height;
                     let is_selected = self.mouse_over_item_id.as_ref() == Some(&id);
-                    let border = if is_selected {
-                        simple_rect(cell_wh, Color::TRANSPARENT, 0.px(), Color::WHITE)
-                    } else {
+                    let background = if is_selected {
                         simple_rect(
                             cell_wh,
                             Color::TRANSPARENT,
                             0.px(),
-                            Color::grayscale_f01(0.2),
+                            Color::from_u8(129, 198, 232, 255),
                         )
+                    } else {
+                        RenderingTree::Empty
                     };
                     let text_color = if is_selected {
                         Color::BLACK
@@ -91,7 +91,7 @@ impl ContextMenu {
                         0.px(),
                         y,
                         render([
-                            border,
+                            background,
                             typography::body::left(
                                 cell_wh.height,
                                 format!("  {}", text),
@@ -129,7 +129,7 @@ impl ContextMenu {
             Wh::new(cell_wh.width, next_y),
             Color::TRANSPARENT,
             0.px(),
-            Color::BLACK,
+            Color::grayscale_f01(0.2),
         );
 
         on_top(absolute(
