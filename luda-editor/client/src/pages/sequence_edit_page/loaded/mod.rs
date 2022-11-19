@@ -41,7 +41,7 @@ enum Event {
         cut_id: namui::Uuid,
         global_xy: Xy<Px>,
     },
-    ScreenEditorCellClicked {
+    ScreenEditorCellMouseLeftDown {
         index: usize,
         cut_id: Uuid,
     },

@@ -75,10 +75,12 @@ impl ImageSelectModal {
                                     cut: &props.cut,
                                     project_id: self.project_id,
                                     selected_index: self.selected_screen_image_index,
-                                    on_click: move |index| {
-                                        namui::event::send(InternalEvent::SelectScreenImageIndex {
-                                            index,
-                                        })
+                                    on_click: move |index, event| {
+                                        if event.button == Some(MouseButton::Left) {
+                                            namui::event::send(
+                                                InternalEvent::SelectScreenImageIndex { index },
+                                            )
+                                        }
                                     },
                                 })
                             }),

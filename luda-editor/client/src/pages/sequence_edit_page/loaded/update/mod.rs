@@ -30,7 +30,7 @@ impl LoadedSequenceEditorPage {
                         }
                     }
                 }
-                &Event::ScreenEditorCellClicked { index, cut_id } => {
+                &Event::ScreenEditorCellMouseLeftDown { index, cut_id } => {
                     self.image_select_modal = Some(image_select_modal::ImageSelectModal::new(
                         self.project_id(),
                         cut_id,
