@@ -1,5 +1,5 @@
 use super::*;
-use crate::{file::picker::File, Image};
+use crate::{file::picker::File, namui::skia::canvas_kit, Image};
 use dashmap::DashMap;
 use std::{
     collections::HashSet,
@@ -107,7 +107,7 @@ pub async fn new_image_from_u8(data: &[u8]) -> Result<Arc<Image>, Box<dyn std::e
 
     let image_bitmap = create_image_bitmap(blob.into()).await;
 
-    let image = graphics::surface().make_image_from_texture_source(image_bitmap, None, None);
+    let image = canvas_kit().make_lazy_image_from_texture_source(image_bitmap, None, None);
 
     Ok(Arc::new(image))
 }

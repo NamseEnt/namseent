@@ -1,4 +1,5 @@
 use super::*;
+use crate::{namui::skia::PartialImageInfo, Image};
 use js_sys::Float32Array;
 use web_sys::HtmlCanvasElement;
 
@@ -57,6 +58,27 @@ extern "C" {
     // #[wasm_bindgen(method)]
     // pub(crate) fn MakeImageFromEncoded(this: &CanvasKit, bytes: &[u8]) -> Option<CanvasKitImage>;
 
+    ///
+    /// Returns a texture-backed image based on the content in src. It assumes the image is
+    /// RGBA_8888, unpremul and SRGB. This image can be re-used across multiple surfaces.
+    ///
+    /// Not available for software-backed surfaces.
+    /// @param src - CanvasKit will take ownership of the TextureSource and clean it up when
+    ///              the image is destroyed.
+    /// @param info - If provided, will be used to determine the width/height/format of the
+    ///               source image. If not, sensible defaults will be used.
+    /// @param srcIsPremul - set to true if the src data has premultiplied alpha. Otherwise, it will
+    ///         be assumed to be Unpremultiplied. Note: if this is true and info specifies
+    ///         Unpremul, Skia will not convert the src pixels first.
+    ///
+    #[wasm_bindgen(method)]
+    fn MakeLazyImageFromTextureSource(
+        this: &CanvasKit,
+        src: JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
+        info: Option<js_sys::Object>, // ImageInfo | PartialImageInfo
+        srcIsPremul: Option<bool>,
+    ) -> CanvasKitImage;
+
     // ///
     // /// Returns an SkPicture which has been serialized previously to the given bytes.
     // /// @param bytes
@@ -102,4 +124,18 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     pub(crate) fn Shader(this: &CanvasKit) -> ShaderFactory;
+}
+
+impl CanvasKit {
+    pub(crate) fn make_lazy_image_from_texture_source(
+        &self,
+        src: JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
+        info: Option<PartialImageInfo>,
+        src_is_premul: Option<bool>,
+    ) -> Image {
+        let info = info.map(|info| info.into_js_object());
+        let image = self.MakeLazyImageFromTextureSource(src, info, src_is_premul);
+        let image = image.makeCopyWithDefaultMipmaps();
+        Image::new(image)
+    }
 }
