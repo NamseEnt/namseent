@@ -8,45 +8,26 @@ const VISUAL_OFFSET_X: Tile = tile(-0.5);
 const VISUAL_OFFSET_Y: Tile = tile(-0.5);
 
 pub fn new_floor(app: &mut crate::ecs::App, positions: Vec<Xy<Tile>>) -> &mut crate::ecs::Entity {
-    let min_x = positions
-        .iter()
-        .map(|p| p.x)
-        .reduce(|a, b| a.min(b))
-        .unwrap();
-    let min_y = positions
-        .iter()
-        .map(|p| p.y)
-        .reduce(|a, b| a.min(b))
-        .unwrap();
-    let max_x = positions
-        .iter()
-        .map(|p| p.x)
-        .reduce(|a, b| a.max(b))
-        .unwrap();
-    let max_y = positions
-        .iter()
-        .map(|p| p.y)
-        .reduce(|a, b| a.max(b))
-        .unwrap();
+    let sprites = positions
+        .into_iter()
+        .map(|position| Sprite {
+            visual_rect: Rect::Xywh {
+                x: position.x + VISUAL_OFFSET_X,
+                y: position.y + VISUAL_OFFSET_Y,
+                width: VISUAL_WIDTH,
+                height: VISUAL_HEIGHT,
+            },
+            image_url: Url::parse("bundle:image/floor.png").unwrap(),
+        })
+        .collect();
+    let mut sprite_batch = SpriteBatch::new(sprites);
+    let center_xy = sprite_batch.visual_rect.center();
+    sprite_batch.translate(Xy {
+        x: -center_xy.x,
+        y: -center_xy.y,
+    });
 
     app.new_entity()
-        .add_component(Positioner::new())
-        .add_component(Renderer::new(
-            -1,
-            Rect::Xywh {
-                x: VISUAL_OFFSET_X + min_x,
-                y: VISUAL_OFFSET_Y + min_y,
-                width: VISUAL_WIDTH + max_x - min_x,
-                height: VISUAL_HEIGHT + max_y - min_y,
-            },
-            RenderType::Floor {
-                positions,
-                visual_offset_rect: Rect::Xywh {
-                    x: VISUAL_OFFSET_X,
-                    y: VISUAL_OFFSET_Y,
-                    width: VISUAL_WIDTH,
-                    height: VISUAL_HEIGHT,
-                },
-            },
-        ))
+        .add_component(Positioner::new_with_xy(center_xy))
+        .add_component(Renderer::new(-1, RenderType::SpriteBatch(sprite_batch)))
 }
