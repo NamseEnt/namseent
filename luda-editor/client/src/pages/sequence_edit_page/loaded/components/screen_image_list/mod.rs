@@ -3,7 +3,7 @@ use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::*;
 
-pub struct Props<'a, OnClick: Fn(usize) + 'static + Copy> {
+pub struct Props<'a, OnClick: Fn(usize, &MouseEvent) + 'static + Copy> {
     pub wh: Wh<Px>,
     pub cut: &'a Cut,
     pub project_id: Uuid,
@@ -11,7 +11,9 @@ pub struct Props<'a, OnClick: Fn(usize) + 'static + Copy> {
     pub selected_index: Option<usize>,
 }
 
-pub fn render<'a, OnClick: Fn(usize) + 'static + Copy>(props: Props<'a, OnClick>) -> RenderingTree {
+pub fn render<'a, OnClick: Fn(usize, &MouseEvent) + 'static + Copy>(
+    props: Props<'a, OnClick>,
+) -> RenderingTree {
     namui::render([
         simple_rect(props.wh, Color::WHITE, 1.px(), Color::BLACK),
         table::horizontal(props.cut.screen_images.iter().enumerate().map(
@@ -52,8 +54,8 @@ pub fn render<'a, OnClick: Fn(usize) + 'static + Copy>(props: Props<'a, OnClick>
                         },
                     ])
                     .attach_event(move |builder| {
-                        builder.on_mouse_down_in(move |_event| {
-                            (props.on_click)(index);
+                        builder.on_mouse_down_in(move |event| {
+                            (props.on_click)(index, event);
                         });
                     })
                 })

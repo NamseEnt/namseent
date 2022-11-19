@@ -118,11 +118,20 @@ impl LoadedSequenceEditorPage {
                                         cut,
                                         project_id: self.project_id(),
                                         selected_index: None,
-                                        on_click: move |index| {
-                                            namui::event::send(Event::ScreenEditorCellClicked {
-                                                index,
-                                                cut_id,
-                                            });
+                                        on_click: move |index, event| {
+                                            if event.button == Some(MouseButton::Left) {
+                                                namui::event::send(
+                                                    Event::ScreenEditorCellMouseLeftDown {
+                                                        index,
+                                                        cut_id,
+                                                    },
+                                                );
+                                            } else if event.button == Some(MouseButton::Right) {
+                                                namui::event::send(Event::LineRightClicked {
+                                                    global_xy: event.global_xy,
+                                                    cut_id,
+                                                })
+                                            }
                                         },
                                     })
                                 },
