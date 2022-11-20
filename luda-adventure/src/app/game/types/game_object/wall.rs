@@ -24,53 +24,28 @@ fn append_components(
     entity: &mut crate::ecs::Entity,
     positions: Vec<Xy<Tile>>,
 ) -> &mut crate::ecs::Entity {
-    let min_x = positions
-        .iter()
-        .map(|p| p.x)
-        .reduce(|a, b| a.min(b))
-        .unwrap();
-    let min_y = positions
-        .iter()
-        .map(|p| p.y)
-        .reduce(|a, b| a.min(b))
-        .unwrap();
-    let max_x = positions
-        .iter()
-        .map(|p| p.x)
-        .reduce(|a, b| a.max(b))
-        .unwrap();
-    let max_y = positions
-        .iter()
-        .map(|p| p.y)
-        .reduce(|a, b| a.max(b))
-        .unwrap();
-    let center_xy = Xy {
-        x: (min_x + max_x) * 0.5,
-        y: (min_y + max_y) * 0.5,
-    };
-    let width = max_x - min_x;
-    let height = max_y - min_y;
+    let sprites = positions
+        .into_iter()
+        .map(|position| Sprite {
+            visual_rect: Rect::Xywh {
+                x: position.x + VISUAL_OFFSET_X,
+                y: position.y + VISUAL_OFFSET_Y,
+                width: VISUAL_WIDTH,
+                height: VISUAL_HEIGHT,
+            },
+            image_url: Url::parse("bundle:image/wall.png").unwrap(),
+        })
+        .collect();
+    let mut sprite_batch = SpriteBatch::new(sprites);
+    let center_xy = sprite_batch.visual_rect.center();
+    sprite_batch.translate(Xy {
+        x: -center_xy.x,
+        y: -center_xy.y,
+    });
 
     entity
         .add_component(Positioner::new_with_xy(center_xy))
-        .add_component(Renderer::new(
-            0,
-            Rect::Xywh {
-                x: width * -0.5,
-                y: height * -0.5,
-                width,
-                height,
-            },
-            RenderType::Wall {
-                positions,
-                visual_offset_rect: Rect::Xywh {
-                    x: VISUAL_OFFSET_X,
-                    y: VISUAL_OFFSET_Y,
-                    width: VISUAL_WIDTH,
-                    height: VISUAL_HEIGHT,
-                },
-            },
-        ))
+        .add_component(Renderer::new(0, RenderType::SpriteBatch(sprite_batch)))
 }
 
 pub struct Wall {

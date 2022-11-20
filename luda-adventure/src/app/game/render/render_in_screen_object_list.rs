@@ -16,9 +16,7 @@ impl Game {
         render(
             in_screen_object_list
                 .into_iter()
-                .map(|(entity, (renderer, _))| {
-                    renderer.render(entity, &self.state, rendering_context)
-                }),
+                .map(|(entity, (renderer, _))| renderer.render(entity, rendering_context)),
         )
     }
 
@@ -30,7 +28,7 @@ impl Game {
             .query_entities::<(&Renderer, &Positioner)>()
             .into_iter()
             .filter(|(_, (renderer, positioner))| {
-                let visual_area = renderer.visual_rect + positioner.xy;
+                let visual_area = renderer.visual_rect() + positioner.xy;
                 visual_area
                     .intersect(rendering_context.screen_rect)
                     .is_some()

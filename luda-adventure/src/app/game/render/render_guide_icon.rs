@@ -13,7 +13,7 @@ impl Game {
                 .map(|entity| {
                     let (renderer, positioner) =
                         entity.get_component::<(&Renderer, &Positioner)>().unwrap();
-                    let visual_area = renderer.visual_rect + positioner.xy;
+                    let visual_area = renderer.visual_rect() + positioner.xy;
                     render([
                         translate(
                             rendering_context.px_per_tile

@@ -16,20 +16,15 @@ pub fn new_player(app: &mut crate::ecs::App, xy: Xy<Tile>) -> &mut crate::ecs::E
         })
         .add_component(Renderer::new(
             0,
-            Rect::Xywh {
-                x: VISUAL_OFFSET_X,
-                y: VISUAL_OFFSET_Y,
-                width: VISUAL_WIDTH,
-                height: VISUAL_HEIGHT,
-            },
-            RenderType::PlayerCharacter {
-                visual_offset_rect: Rect::Xywh {
+            RenderType::Sprite(Sprite {
+                image_url: Url::parse("bundle:image/character.png").unwrap(),
+                visual_rect: Rect::Xywh {
                     x: VISUAL_OFFSET_X,
                     y: VISUAL_OFFSET_Y,
                     width: VISUAL_WIDTH,
                     height: VISUAL_HEIGHT,
                 },
-            },
+            }),
         ))
         .add_component(Mover::new())
 }
