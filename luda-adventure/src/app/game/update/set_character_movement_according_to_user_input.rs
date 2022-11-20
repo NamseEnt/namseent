@@ -17,6 +17,10 @@ impl Game {
                             get_movement_direction_from_pressing_codes(&event.pressing_codes);
                         let new_movement = movement(movement_direction);
                         let previous_movement = mover.movement;
+                        let previous_heading = player_character.heading;
+
+                        player_character.update_heading(movement_direction);
+                        mover.movement = new_movement;
 
                         match (previous_movement, new_movement) {
                             (Movement::Fixed, Movement::Moving(_)) => {
@@ -33,8 +37,15 @@ impl Game {
                             _ => (),
                         }
 
-                        player_character.update_heading(movement_direction);
-                        mover.movement = new_movement;
+                        match (previous_heading, player_character.heading) {
+                            (Heading::Left, Heading::Right) => {
+                                renderer.x_reverse = false;
+                            }
+                            (Heading::Right, Heading::Left) => {
+                                renderer.x_reverse = true;
+                            }
+                            _ => (),
+                        }
                     }
                 }
                 _ => (),

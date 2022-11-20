@@ -5,6 +5,7 @@ use namui::prelude::*;
 pub struct Renderer {
     pub z_index: i32,
     pub render_type: RenderType,
+    pub x_reverse: bool,
 }
 
 impl Renderer {
@@ -12,6 +13,7 @@ impl Renderer {
         Self {
             z_index,
             render_type,
+            x_reverse: false,
         }
     }
     pub fn visual_rect(&self) -> Rect<Tile> {
@@ -31,10 +33,14 @@ impl Renderer {
             })
             .unwrap_or(Xy::zero());
 
+        let inner_rendering_tree = self.render_type.render(rendering_context, game_state);
         translate(
             xy.x,
             xy.y,
-            self.render_type.render(rendering_context, game_state),
+            match self.x_reverse {
+                true => scale(-1., 1., inner_rendering_tree),
+                false => inner_rendering_tree,
+            },
         )
     }
 }

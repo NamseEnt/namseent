@@ -12,7 +12,7 @@ pub fn new_player(app: &mut crate::ecs::App, xy: Xy<Tile>) -> &mut crate::ecs::E
         .add_component(Positioner::new_with_xy(xy))
         .add_component(Collider::from_circle(Xy::zero(), tile(1.5)))
         .add_component(PlayerCharacter {
-            heading: Heading::Left,
+            heading: Heading::Right,
         })
         .add_component(Renderer::new(0, RenderType::Sprite(standing_sprite())))
         .add_component(Mover::new())
