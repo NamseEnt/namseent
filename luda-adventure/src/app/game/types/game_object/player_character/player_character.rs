@@ -12,19 +12,8 @@ pub fn new_player(app: &mut crate::ecs::App, xy: Xy<Tile>) -> &mut crate::ecs::E
         .add_component(Positioner::new_with_xy(xy))
         .add_component(Collider::from_circle(Xy::zero(), tile(1.5)))
         .add_component(PlayerCharacter {
-            heading: Heading::Left,
+            heading: Heading::Right,
         })
-        .add_component(Renderer::new(
-            0,
-            RenderType::Sprite(Sprite {
-                image_url: Url::parse("bundle:image/character.png").unwrap(),
-                visual_rect: Rect::Xywh {
-                    x: VISUAL_OFFSET_X,
-                    y: VISUAL_OFFSET_Y,
-                    width: VISUAL_WIDTH,
-                    height: VISUAL_HEIGHT,
-                },
-            }),
-        ))
+        .add_component(Renderer::new(0, RenderType::Sprite(standing_sprite())))
         .add_component(Mover::new())
 }

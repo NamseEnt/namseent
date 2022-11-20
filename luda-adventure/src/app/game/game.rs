@@ -40,7 +40,7 @@ impl Game {
             self.translate_to_camera_screen(
                 &rendering_context,
                 render([
-                    self.render_in_screen_object_list(&rendering_context),
+                    self.render_in_screen_object_list(&self.state, &rendering_context),
                     self.render_guide_icon(&rendering_context),
                 ]),
             ),
