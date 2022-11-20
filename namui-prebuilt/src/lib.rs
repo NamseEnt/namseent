@@ -3,6 +3,7 @@ pub mod dropdown;
 mod event_trap;
 pub mod list_view;
 pub mod scroll_view;
+pub mod sheet;
 mod simple_rect;
 pub mod table;
 pub mod typography;
