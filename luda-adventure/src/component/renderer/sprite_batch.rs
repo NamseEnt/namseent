@@ -1,4 +1,4 @@
-use super::Sprite;
+use super::{minimum_visual_rect_containing_sprites, Sprite};
 use crate::app::game::{RenderingContext, Tile};
 use namui::prelude::*;
 
@@ -31,19 +31,5 @@ impl SpriteBatch {
         self.sprites
             .iter_mut()
             .for_each(|sprite| sprite.translate(xy));
-    }
-}
-
-fn minimum_visual_rect_containing_sprites(sprites: &Vec<Sprite>) -> Option<Rect<Tile>> {
-    let first_visual_rect = sprites.first().map(|sprite| sprite.visual_rect);
-    match first_visual_rect {
-        Some(first_visual_rect) => Some(
-            sprites
-                .iter()
-                .fold(first_visual_rect, |visual_rect, sprite| {
-                    visual_rect.get_minimum_rectangle_containing(sprite.visual_rect)
-                }),
-        ),
-        None => None,
     }
 }

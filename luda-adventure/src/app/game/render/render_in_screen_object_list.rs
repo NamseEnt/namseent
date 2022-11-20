@@ -6,6 +6,7 @@ use std::cmp::Ordering;
 impl Game {
     pub fn render_in_screen_object_list(
         &self,
+        game_state: &GameState,
         rendering_context: &RenderingContext,
     ) -> RenderingTree {
         let mut in_screen_object_list = self.get_in_screen_object_list(rendering_context);
@@ -16,7 +17,9 @@ impl Game {
         render(
             in_screen_object_list
                 .into_iter()
-                .map(|(entity, (renderer, _))| renderer.render(entity, rendering_context)),
+                .map(|(entity, (renderer, _))| {
+                    renderer.render(entity, game_state, rendering_context)
+                }),
         )
     }
 

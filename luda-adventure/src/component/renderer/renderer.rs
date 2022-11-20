@@ -20,6 +20,7 @@ impl Renderer {
     pub fn render(
         &self,
         entity: &crate::ecs::Entity,
+        game_state: &GameState,
         rendering_context: &RenderingContext,
     ) -> RenderingTree {
         let xy = entity
@@ -30,6 +31,10 @@ impl Renderer {
             })
             .unwrap_or(Xy::zero());
 
-        translate(xy.x, xy.y, self.render_type.render(rendering_context))
+        translate(
+            xy.x,
+            xy.y,
+            self.render_type.render(rendering_context, game_state),
+        )
     }
 }
