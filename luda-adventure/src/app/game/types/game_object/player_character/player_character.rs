@@ -14,32 +14,6 @@ pub fn new_player(app: &mut crate::ecs::App, xy: Xy<Tile>) -> &mut crate::ecs::E
         .add_component(PlayerCharacter {
             heading: Heading::Left,
         })
-        .add_component(Renderer::new(
-            0,
-            RenderType::SpriteAnimation(SpriteAnimation::new(
-                vec![
-                    Sprite {
-                        image_url: Url::parse("bundle:image/character/character_0.png").unwrap(),
-                        visual_rect: Rect::Xywh {
-                            x: VISUAL_OFFSET_X,
-                            y: VISUAL_OFFSET_Y,
-                            width: VISUAL_WIDTH,
-                            height: VISUAL_HEIGHT,
-                        },
-                    },
-                    Sprite {
-                        image_url: Url::parse("bundle:image/character/character_1.png").unwrap(),
-                        visual_rect: Rect::Xywh {
-                            x: VISUAL_OFFSET_X,
-                            y: VISUAL_OFFSET_Y,
-                            width: VISUAL_WIDTH,
-                            height: VISUAL_HEIGHT,
-                        },
-                    },
-                ],
-                100.ms(),
-                0.ms(),
-            )),
-        ))
+        .add_component(Renderer::new(0, RenderType::Sprite(standing_sprite())))
         .add_component(Mover::new())
 }
