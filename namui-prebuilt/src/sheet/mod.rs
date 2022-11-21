@@ -49,13 +49,24 @@ impl<Row, Column> Sheet<Row, Column> {
         ColumnWidths: Fn(&Column) -> Px,
         Cells: Fn(&Row, &Column) -> Box<dyn Cell>,
     {
+        let columns = props.columns.into_iter().collect::<Vec<_>>();
         self.vh_list_view.render(vh_list_view::Props {
             xy: Xy::zero(),
             wh: props.wh,
             scroll_bar_width: 10.px(),
             items: props.rows,
             item_height: |row| (props.row_heights)(row),
-            item_render: |wh, row| RenderingTree::Empty,
+            item_render: |wh, row| {
+                let mut right = 0.px();
+                render(columns.iter().map(|column| {
+                    let left = right;
+                    let width = (props.column_widths)(column);
+                    right = left + width;
+
+                    let cell = (props.cells)(&row, column);
+                    cell.render(Wh::new(width, wh.height))
+                }))
+            },
         })
     }
 }
