@@ -1,19 +1,63 @@
 pub mod cell;
 
+use crate::*;
 use cell::*;
 use namui::prelude::*;
 
-struct Sheet<Row, Column> {
-    rows: Vec<Row>,
-    columns: Vec<Column>,
-    row_heights: Box<dyn Fn(&Row) -> Px>,
-    column_widths: Box<dyn Fn(&Column) -> Px>,
-    cells: Box<dyn Fn(&Row, &Column) -> Box<dyn Cell>>,
-    // 위에꺼 전부 다 render로 넣자.
+pub struct Sheet<Row, Column> {
+    vh_list_view: vh_list_view::VHListView,
     selection: Option<Ltrb<usize>>,
     clip_board: Option<Vec<RowColumn<Row, Column>>>,
     text_input: TextInput,
     editing_cell: Option<CellIndex>,
+}
+
+pub struct Props<Row, Column, Rows, Columns, RowHeights, ColumnWidths, Cells>
+where
+    Rows: IntoIterator<Item = Row>,
+    Columns: IntoIterator<Item = Column>,
+    RowHeights: Fn(&Row) -> Px,
+    ColumnWidths: Fn(&Column) -> Px,
+    Cells: Fn(&Row, &Column) -> Box<dyn Cell>,
+{
+    wh: Wh<Px>,
+    rows: Rows,
+    columns: Columns,
+    row_heights: RowHeights,
+    column_widths: ColumnWidths,
+    cells: Cells,
+}
+
+impl<Row, Column> Sheet<Row, Column> {
+    pub fn new() -> Self {
+        Self {
+            vh_list_view: vh_list_view::VHListView::new(),
+            selection: None,
+            clip_board: None,
+            text_input: TextInput::new(),
+            editing_cell: None,
+        }
+    }
+    pub fn render<Rows, Columns, RowHeights, ColumnWidths, Cells>(
+        &self,
+        props: Props<Row, Column, Rows, Columns, RowHeights, ColumnWidths, Cells>,
+    ) -> RenderingTree
+    where
+        Rows: IntoIterator<Item = Row>,
+        Columns: IntoIterator<Item = Column>,
+        RowHeights: Fn(&Row) -> Px,
+        ColumnWidths: Fn(&Column) -> Px,
+        Cells: Fn(&Row, &Column) -> Box<dyn Cell>,
+    {
+        self.vh_list_view.render(vh_list_view::Props {
+            xy: Xy::zero(),
+            wh: props.wh,
+            scroll_bar_width: 10.px(),
+            items: props.rows,
+            item_height: |row| (props.row_heights)(row),
+            item_render: |wh, row| RenderingTree::Empty,
+        })
+    }
 }
 
 struct CellIndex {
@@ -97,11 +141,13 @@ fn usage() {
         },
     ];
 
-    let sheet = Sheet {
+    let sheet = Sheet::<RowType, ColumnType>::new();
+
+    sheet.render(Props {
+        wh: Wh::new(100.px(), 100.px()),
         rows: [RowType::Header]
             .into_iter()
-            .chain(data.map(|data| RowType::Data(data)))
-            .collect(),
+            .chain(data.map(|data| RowType::Data(data))),
         columns: [ColumnType::Image]
             .into_iter()
             .chain(
@@ -112,17 +158,16 @@ fn usage() {
                         key: key.to_string(),
                         label_index: index,
                     }),
-            )
-            .collect(),
-        row_heights: Box::new(|row| match row {
+            ),
+        row_heights: |row| match row {
             RowType::Header => 36.px(),
             RowType::Data(_) => 108.px(),
-        }),
-        column_widths: Box::new(|column| match column {
+        },
+        column_widths: |column| match column {
             ColumnType::Image => 108.px(),
             ColumnType::Label { .. } => 64.px(),
-        }),
-        cells: Box::new(|row, column| match row {
+        },
+        cells: |row, column| match row {
             RowType::Header => match column {
                 ColumnType::Image => cell::text("image").into(),
                 ColumnType::Label { key, .. } => cell::text(key).into(),
@@ -139,10 +184,6 @@ fn usage() {
                         .into()
                 }
             },
-        }),
-        selection: None,
-        clip_board: None,
-        text_input: TextInput::new(),
-        editing_cell: None,
-    };
+        },
+    });
 }
