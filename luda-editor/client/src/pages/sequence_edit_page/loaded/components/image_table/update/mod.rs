@@ -174,6 +174,7 @@ impl ImageTable {
         self.context_menu.as_mut().map(|context_menu| {
             context_menu.update(event);
         });
+        self.sheet.update(event);
     }
     fn update_label(&mut self, image: ImageWithLabels) {
         let project_id = self.project_id;

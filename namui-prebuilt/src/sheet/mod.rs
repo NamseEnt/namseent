@@ -12,20 +12,20 @@ pub struct Sheet<Row, Column> {
     editing_cell: Option<CellIndex>,
 }
 
-pub struct Props<Row, Column, Rows, Columns, RowHeights, ColumnWidths, Cells>
+pub struct Props<Row, Column, Rows, Columns, RowHeight, ColumnWidth, TCell>
 where
     Rows: IntoIterator<Item = Row>,
     Columns: IntoIterator<Item = Column>,
-    RowHeights: Fn(&Row) -> Px,
-    ColumnWidths: Fn(&Column) -> Px,
-    Cells: Fn(&Row, &Column) -> Box<dyn Cell>,
+    RowHeight: Fn(&Row) -> Px,
+    ColumnWidth: Fn(&Column) -> Px,
+    TCell: Fn(&Row, &Column) -> Box<dyn Cell>,
 {
-    wh: Wh<Px>,
-    rows: Rows,
-    columns: Columns,
-    row_heights: RowHeights,
-    column_widths: ColumnWidths,
-    cells: Cells,
+    pub wh: Wh<Px>,
+    pub rows: Rows,
+    pub columns: Columns,
+    pub row_height: RowHeight,
+    pub column_width: ColumnWidth,
+    pub cell: TCell,
 }
 
 impl<Row, Column> Sheet<Row, Column> {
@@ -38,16 +38,16 @@ impl<Row, Column> Sheet<Row, Column> {
             editing_cell: None,
         }
     }
-    pub fn render<Rows, Columns, RowHeights, ColumnWidths, Cells>(
+    pub fn render<Rows, Columns, RowHeight, ColumnWidth, TCell>(
         &self,
-        props: Props<Row, Column, Rows, Columns, RowHeights, ColumnWidths, Cells>,
+        props: Props<Row, Column, Rows, Columns, RowHeight, ColumnWidth, TCell>,
     ) -> RenderingTree
     where
         Rows: IntoIterator<Item = Row>,
         Columns: IntoIterator<Item = Column>,
-        RowHeights: Fn(&Row) -> Px,
-        ColumnWidths: Fn(&Column) -> Px,
-        Cells: Fn(&Row, &Column) -> Box<dyn Cell>,
+        RowHeight: Fn(&Row) -> Px,
+        ColumnWidth: Fn(&Column) -> Px,
+        TCell: Fn(&Row, &Column) -> Box<dyn Cell>,
     {
         let columns = props.columns.into_iter().collect::<Vec<_>>();
         self.vh_list_view.render(vh_list_view::Props {
@@ -55,19 +55,29 @@ impl<Row, Column> Sheet<Row, Column> {
             wh: props.wh,
             scroll_bar_width: 10.px(),
             items: props.rows,
-            item_height: |row| (props.row_heights)(row),
+            item_height: |row| (props.row_height)(row),
             item_render: |wh, row| {
                 let mut right = 0.px();
                 render(columns.iter().map(|column| {
                     let left = right;
-                    let width = (props.column_widths)(column);
+                    let width = (props.column_width)(column);
                     right = left + width;
 
-                    let cell = (props.cells)(&row, column);
-                    cell.render(Wh::new(width, wh.height))
+                    let cell = (props.cell)(&row, column);
+                    translate(left, 0.px(), {
+                        let cell_wh = Wh::new(width, wh.height);
+                        clip(
+                            PathBuilder::new().add_rect(Rect::from_xy_wh(Xy::zero(), cell_wh)),
+                            ClipOp::Intersect,
+                            cell.render(cell_wh),
+                        )
+                    })
                 }))
             },
         })
+    }
+    pub fn update(&mut self, event: &dyn std::any::Any) {
+        self.vh_list_view.update(event);
     }
 }
 
@@ -88,40 +98,6 @@ struct CopyPaste<Row, Column> {
     from: RowColumn<Row, Column>,
     to: RowColumn<Row, Column>,
 }
-
-/*
-    클립보드로 붙여넣기를 sheet가 지원하려면, 데이터 변경 요청이 데이터 소스에 영향을 미쳐야한다.
-    그러기 위해선 붙여넣기할 때 on_edit과 같은 변경 콜백을 사용자에게 전달해주거나,
-    아니면 처음부터 데이터를 다 sheet가 가지고 있고, 나중에 사용자가 sheet에서 데이터를 빼올 수 있도록 하는 것도 방법 중 하나일거다.
-    성능은 두번째 방법이 더 좋을거다.
-    공간은 첫번째 방법이 더 좋을거다.
-    싱크를 위해선 첫번째 방법이 더 좋을거다. 왜냐하면 두번째 방법은 싱크를 할 타이밍을 어떻게 정할지 모르기 때문이다.
-    싱크는 변경이 일어날 때 일어나야한다.
-
-    한번에 여러 셀을 복사 붙여넣기 한다면,
-    이벤트를 N개 보내는 것보다는 한번에 N개의 변경을 보내는 것이 더 좋을거다.
-    안그러면 N번의 렌더링이 일어날거다. 성능이 떨어질거다.
-    변경은 어떻게 정의할까?
-    텍스트에 변경이 있을 수도 있고, 이미지에 변경이 있을 수 있다.
-    근데 그 텍스트라는게 String으로서 눈에 보이는 거지만, 그것의 데이터 소스는 숫자일지도 모른다.
-    그럴 때 우리는 변경을 String으로 줘야할까, 아니면 숫자로 줘야할까?
-    나는 사용자 마음대로 할 수 있게 해야한다고 생각한다.
-    Box any를 사용해보자.
-
-    Box any를 사용하면 디버깅이 어려워질 것 같다.
-    그래서 디버깅을 위해선 변경을 어떻게 정의해야할까?
-
-    sheet에서 다룰 타입을 limit하는 것은 어떨까?
-    - String
-    - Number
-    - Image
-    이미지의 경우 변경사항이 참 애매하다. 나는 이미지의 url보다는, url을 만드는 요소를 받고 싶다.
-
-    cell마다 source를 연결해놓은건 어떨까? 그러면 복사 붙여넣기의 변경사항을 source의 타입으로 줄 수 있을거다.
-    text input의 경우 parse를 해야하는게 맞을 것 같다. 숫자만 입력한다는 보장이 없잖은가.
-
-
-*/
 
 fn usage() {
     enum RowType {
@@ -170,15 +146,15 @@ fn usage() {
                         label_index: index,
                     }),
             ),
-        row_heights: |row| match row {
+        row_height: |row| match row {
             RowType::Header => 36.px(),
             RowType::Data(_) => 108.px(),
         },
-        column_widths: |column| match column {
+        column_width: |column| match column {
             ColumnType::Image => 108.px(),
             ColumnType::Label { .. } => 64.px(),
         },
-        cells: |row, column| match row {
+        cell: |row, column| match row {
             RowType::Header => match column {
                 ColumnType::Image => cell::text("image").into(),
                 ColumnType::Label { key, .. } => cell::text(key).into(),

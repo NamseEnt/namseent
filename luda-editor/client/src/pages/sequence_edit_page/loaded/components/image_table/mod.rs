@@ -17,6 +17,17 @@ pub struct ImageTable {
     context_menu: Option<context_menu::ContextMenu>,
     selection: Option<Selection>,
     cell_drag_context: Option<CellDragContext>,
+    sheet: sheet::Sheet<Row, Column>,
+}
+
+enum Row {
+    Header,
+    Image { image: ImageWithLabels },
+}
+
+enum Column {
+    Image,
+    Label { key: String },
 }
 
 pub struct Props {
@@ -89,6 +100,7 @@ impl ImageTable {
             context_menu: None,
             selection: None,
             cell_drag_context: None,
+            sheet: sheet::Sheet::new(),
         };
 
         table.request_reload_images();
