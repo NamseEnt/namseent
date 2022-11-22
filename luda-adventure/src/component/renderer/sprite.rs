@@ -10,7 +10,7 @@ pub struct Sprite {
 impl Sprite {
     pub fn render(&self, rendering_context: &RenderingContext) -> RenderingTree {
         image(ImageParam {
-            rect: px_rect(self.visual_rect, rendering_context),
+            rect: image_rect(self.visual_rect, rendering_context),
             source: ImageSource::Url(self.image_url.clone()),
             style: ImageStyle {
                 fit: ImageFit::Fill,
@@ -24,7 +24,7 @@ impl Sprite {
     }
 }
 
-fn px_rect(tile_rect: Rect<Tile>, rendering_context: &RenderingContext) -> Rect<Px> {
+fn image_rect(tile_rect: Rect<Tile>, rendering_context: &RenderingContext) -> Rect<Px> {
     Rect::Xywh {
         x: rendering_context.px_per_tile * tile_rect.x(),
         y: rendering_context.px_per_tile * tile_rect.y(),
