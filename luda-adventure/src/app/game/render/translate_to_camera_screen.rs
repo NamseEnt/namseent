@@ -8,8 +8,8 @@ impl Game {
         rendering_tree: RenderingTree,
     ) -> namui::RenderingTree {
         translate(
-            -(rendering_context.px_per_tile * rendering_context.screen_rect.x()).floor(),
-            -(rendering_context.px_per_tile * rendering_context.screen_rect.y()).floor(),
+            -(rendering_context.px_per_tile * rendering_context.screen_rect.x()),
+            -(rendering_context.px_per_tile * rendering_context.screen_rect.y()),
             rendering_tree,
         )
     }

@@ -26,9 +26,9 @@ impl Sprite {
 
 fn px_rect(tile_rect: Rect<Tile>, rendering_context: &RenderingContext) -> Rect<Px> {
     Rect::Xywh {
-        x: (rendering_context.px_per_tile * tile_rect.x()).floor(),
-        y: (rendering_context.px_per_tile * tile_rect.y()).floor(),
-        width: (rendering_context.px_per_tile * tile_rect.width()).floor(),
-        height: (rendering_context.px_per_tile * tile_rect.height()).floor(),
+        x: rendering_context.px_per_tile * tile_rect.x(),
+        y: rendering_context.px_per_tile * tile_rect.y(),
+        width: rendering_context.px_per_tile * tile_rect.width(),
+        height: rendering_context.px_per_tile * tile_rect.height(),
     }
 }
