@@ -14,7 +14,7 @@ impl QuestState {
         Self { quest_progress_map }
     }
 
-    pub fn get_quest_object_list<'a>(
+    pub fn get_quest_entity_list<'a>(
         &self,
         ecs_app: &'a crate::ecs::App,
     ) -> Vec<&'a crate::ecs::Entity> {

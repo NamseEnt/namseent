@@ -41,7 +41,7 @@ impl Game {
                 &rendering_context,
                 render([
                     self.render_in_screen_object_list(&self.state, &rendering_context),
-                    self.render_guide_icon(&rendering_context),
+                    self.render_quest_guide(&rendering_context),
                 ]),
             ),
         ])
