@@ -27,21 +27,52 @@ impl ImageTable {
             column_width: |_| 200.px(),
             cell: |row, column| match row {
                 Row::Header => match column {
-                    Column::Image => sheet::cell::text("Image").font_size(18.int_px()).into(),
-                    Column::Label { key } => sheet::cell::text(key).font_size(18.int_px()).into(),
+                    Column::Image => sheet::cell::text("Image")
+                        .font_size(18.int_px())
+                        .borders(
+                            sheet::cell::Side::All,
+                            sheet::cell::Line::SingleLine {
+                                color: Color::WHITE,
+                                width: 1.px(),
+                            },
+                        )
+                        .into(),
+                    Column::Label { key } => sheet::cell::text(key)
+                        .font_size(18.int_px())
+                        .borders(
+                            sheet::cell::Side::All,
+                            sheet::cell::Line::SingleLine {
+                                color: Color::WHITE,
+                                width: 1.px(),
+                            },
+                        )
+                        .into(),
                 },
                 Row::Image { image } => match column {
                     Column::Image => sheet::cell::image(ImageSource::Url(
                         get_project_image_url(project_id, image.id).unwrap(),
                     ))
+                    .borders(
+                        sheet::cell::Side::All,
+                        sheet::cell::Line::SingleLine {
+                            color: Color::WHITE,
+                            width: 1.px(),
+                        },
+                    )
                     .into(),
                     Column::Label { key } => sheet::cell::text(get_label_value(image, key))
                         .font_size(18.int_px())
+                        .borders(
+                            sheet::cell::Side::All,
+                            sheet::cell::Line::SingleLine {
+                                color: Color::WHITE,
+                                width: 1.px(),
+                            },
+                        )
                         .edit_with_text_input({
                             let image_id = image.id;
                             let label_key = key.clone();
                             move |text| {
-                                namui::log!("edit label: {} = {}", label_key, text);
                                 namui::event::send(InternalEvent::EditLabel {
                                     image_id,
                                     key: label_key.clone(),

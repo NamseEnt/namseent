@@ -8,6 +8,7 @@ pub struct TextCell {
     text_input_on_change: Option<Arc<dyn Fn(&str)>>,
     on_edit: Option<Box<dyn Fn()>>,
     font_size: Option<IntPx>,
+    borders: Borders,
 }
 pub fn text(text: impl AsRef<str>) -> TextCell {
     TextCell {
@@ -15,6 +16,7 @@ pub fn text(text: impl AsRef<str>) -> TextCell {
         text_input_on_change: None,
         on_edit: None,
         font_size: None,
+        borders: Borders::new(),
     }
 }
 impl TextCell {
@@ -86,9 +88,20 @@ impl Cell for TextCell {
             }),
         }
     }
+
+    fn borders(&self) -> &Borders {
+        &self.borders
+    }
 }
 impl Into<Box<dyn Cell>> for TextCell {
     fn into(self) -> Box<dyn Cell> {
         Box::new(self)
+    }
+}
+
+impl TextCell {
+    pub fn borders(mut self, side: Side, line: Line) -> Self {
+        self.borders.add(side, line);
+        self
     }
 }

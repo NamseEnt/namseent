@@ -127,7 +127,15 @@ fn usage() {
         },
         cell: |row, column| match row {
             RowType::Header => match column {
-                ColumnType::Image => cell::text("image").into(),
+                ColumnType::Image => cell::text("image")
+                    .borders(
+                        Side::All,
+                        Line::SingleLine {
+                            color: Color::BLACK,
+                            width: 1.px(),
+                        },
+                    )
+                    .into(),
                 ColumnType::Label { key, .. } => cell::text(key).into(),
             },
             RowType::Data(data) => match column {

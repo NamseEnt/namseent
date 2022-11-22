@@ -3,11 +3,13 @@ use super::*;
 pub struct ImageCell {
     image_source: ImageSource,
     on_edit: Option<Box<dyn Fn()>>,
+    borders: Borders,
 }
 pub fn image(image_source: ImageSource) -> ImageCell {
     ImageCell {
         image_source,
         on_edit: None,
+        borders: Borders::new(),
     }
 }
 impl ImageCell {
@@ -30,10 +32,21 @@ impl Cell for ImageCell {
             },
         })
     }
+
+    fn borders(&self) -> &Borders {
+        &self.borders
+    }
 }
 
 impl Into<Box<dyn Cell>> for ImageCell {
     fn into(self) -> Box<dyn Cell> {
         Box::new(self)
+    }
+}
+
+impl ImageCell {
+    pub fn borders(mut self, side: Side, line: Line) -> Self {
+        self.borders.add(side, line);
+        self
     }
 }
