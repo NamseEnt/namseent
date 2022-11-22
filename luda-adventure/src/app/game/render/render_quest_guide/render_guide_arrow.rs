@@ -29,7 +29,15 @@ pub fn render_guide_arrow(
                                 );
                             let angle = Xy::new(1.px(), 0.px())
                                 .angle_to(quest_entity_xy - character_visual_center);
-                            rotate(angle, arrow(character_visual_radius))
+                            let distance_between_character_and_quest_entity =
+                                (quest_entity_xy - character_visual_center).length();
+                            rotate(
+                                angle,
+                                arrow(
+                                    character_visual_radius,
+                                    distance_between_character_and_quest_entity,
+                                ),
+                            )
                         })
                 })),
             )
@@ -38,12 +46,20 @@ pub fn render_guide_arrow(
     }
 }
 
-fn arrow(character_visual_radius: Px) -> RenderingTree {
+fn arrow(
+    character_visual_radius: Px,
+    distance_between_character_and_quest_entity: Px,
+) -> RenderingTree {
+    let scale = ((distance_between_character_and_quest_entity - character_visual_radius)
+        / character_visual_radius)
+        .max(0.)
+        .min(1.)
+        * ARROW_SIZE;
     let path_builder = PathBuilder::new()
         .line_to(-0.2.px(), -0.8.px())
         .line_to(1.px(), 0.px())
         .line_to(-0.2.px(), 0.8.px())
-        .scale(ARROW_SIZE, ARROW_SIZE);
+        .scale(scale, scale);
     let paint_builder = PaintBuilder::new()
         .set_color(Color::from_u8(255, 252, 127, 255))
         .set_style(PaintStyle::Fill);
