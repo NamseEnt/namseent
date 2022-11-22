@@ -1,12 +1,15 @@
 pub mod cell;
+mod render;
+mod update;
 
 use crate::*;
 use cell::*;
 use namui::prelude::*;
+use std::collections::HashSet;
 
 pub struct Sheet<Row, Column> {
     vh_list_view: vh_list_view::VHListView,
-    selection: Option<Ltrb<usize>>,
+    selections: HashSet<CellIndex>,
     clip_board: Option<Vec<RowColumn<Row, Column>>>,
     text_input: TextInput,
     editing_cell: Option<CellIndex>,
@@ -32,55 +35,23 @@ impl<Row, Column> Sheet<Row, Column> {
     pub fn new() -> Self {
         Self {
             vh_list_view: vh_list_view::VHListView::new(),
-            selection: None,
+            selections: HashSet::new(),
             clip_board: None,
             text_input: TextInput::new(),
             editing_cell: None,
         }
     }
-    pub fn render<Rows, Columns, RowHeight, ColumnWidth, TCell>(
-        &self,
-        props: Props<Row, Column, Rows, Columns, RowHeight, ColumnWidth, TCell>,
-    ) -> RenderingTree
-    where
-        Rows: IntoIterator<Item = Row>,
-        Columns: IntoIterator<Item = Column>,
-        RowHeight: Fn(&Row) -> Px,
-        ColumnWidth: Fn(&Column) -> Px,
-        TCell: Fn(&Row, &Column) -> Box<dyn Cell>,
-    {
-        let columns = props.columns.into_iter().collect::<Vec<_>>();
-        self.vh_list_view.render(vh_list_view::Props {
-            xy: Xy::zero(),
-            wh: props.wh,
-            scroll_bar_width: 10.px(),
-            items: props.rows,
-            item_height: |row| (props.row_height)(row),
-            item_render: |wh, row| {
-                let mut right = 0.px();
-                render(columns.iter().map(|column| {
-                    let left = right;
-                    let width = (props.column_width)(column);
-                    right = left + width;
-
-                    let cell = (props.cell)(&row, column);
-                    translate(left, 0.px(), {
-                        let cell_wh = Wh::new(width, wh.height);
-                        clip(
-                            PathBuilder::new().add_rect(Rect::from_xy_wh(Xy::zero(), cell_wh)),
-                            ClipOp::Intersect,
-                            cell.render(cell_wh),
-                        )
-                    })
-                }))
-            },
-        })
-    }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        self.vh_list_view.update(event);
-    }
 }
 
+/*
+    클릭 = 선택
+    더블 클릭 = 편집
+*/
+enum InternalEvent {
+    CellMouseLeftDown { cell_index: CellIndex },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct CellIndex {
     pub row: usize,
     pub column: usize,

@@ -65,6 +65,11 @@ enum InternalEvent {
         global_xy: Xy<Px>,
     },
     EscKeyDown,
+    EditLabel {
+        image_id: Uuid,
+        key: String,
+        value: String,
+    },
 }
 
 enum SortOrderBy {

@@ -137,39 +137,32 @@ impl ImageTable {
                     }
                     self.context_menu = None;
                 }
-            })
-            .is::<text_input::Event>(|event| match event {
-                text_input::Event::TextUpdated { id, text } => {
-                    if id == self.text_input.get_id() {
-                        let editing_target = self.editing_target.as_ref().unwrap();
-                        let mut updated_image = None;
-                        if let Some(image) = self
-                            .images
-                            .iter_mut()
-                            .find(|image| image.id.eq(&editing_target.image_id))
+                &InternalEvent::EditLabel {
+                    image_id,
+                    ref key,
+                    ref value,
+                } => {
+                    let mut updated_image = None;
+                    if let Some(image) = self.images.iter_mut().find(|image| image.id.eq(&image_id))
+                    {
+                        if let Some(label) = image.labels.iter_mut().find(|label| label.key.eq(key))
                         {
-                            if let Some(label) = image
-                                .labels
-                                .iter_mut()
-                                .find(|label| label.key.eq(&editing_target.label_key))
-                            {
-                                label.value = text.clone();
-                                updated_image = Some(image.clone());
-                            }
-                        }
-
-                        if let Some(updated_image) = updated_image {
-                            self.update_label(updated_image);
+                            label.value = value.clone();
+                            updated_image = Some(image.clone());
                         }
                     }
+
+                    if let Some(updated_image) = updated_image {
+                        self.update_label(updated_image);
+                    }
                 }
-                _ => {}
             })
             .is::<context_menu::Event>(|event| match event {
                 context_menu::Event::Close => {
                     self.context_menu = None;
                 }
             });
+
         self.list_view.update(event);
         self.context_menu.as_mut().map(|context_menu| {
             context_menu.update(event);

@@ -37,6 +37,18 @@ impl ImageTable {
                     .into(),
                     Column::Label { key } => sheet::cell::text(get_label_value(image, key))
                         .font_size(18.int_px())
+                        .edit_with_text_input({
+                            let image_id = image.id;
+                            let label_key = key.clone();
+                            move |text| {
+                                namui::log!("edit label: {} = {}", label_key, text);
+                                namui::event::send(InternalEvent::EditLabel {
+                                    image_id,
+                                    key: label_key.clone(),
+                                    value: text.to_string(),
+                                });
+                            }
+                        })
                         .into(),
                 },
             },
