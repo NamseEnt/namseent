@@ -2,9 +2,9 @@ use super::super::image_upload::*;
 use super::*;
 
 impl ImageEditModal {
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<InternalEvent>() {
-            match event {
+    pub fn update(&mut self, event: &namui::Event) {
+        event
+            .is::<InternalEvent>(|event| match event {
                 InternalEvent::ImageChanged { image } => {
                     self.image = Some(image.clone());
                 }
@@ -57,17 +57,17 @@ impl ImageEditModal {
 
                     self.label_text = "".to_string();
                 }
-            }
-        } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
-            if let text_input::Event::TextUpdated {
-                id,
-                text: updated_text,
-            } = event
-            {
-                if id.eq(self.label_text_input.get_id()) {
-                    self.label_text = updated_text.clone();
+            })
+            .is::<text_input::Event>(|event| {
+                if let text_input::Event::TextUpdated {
+                    id,
+                    text: updated_text,
+                } = event
+                {
+                    if id.eq(self.label_text_input.get_id()) {
+                        self.label_text = updated_text.clone();
+                    }
                 }
-            }
-        }
+            });
     }
 }

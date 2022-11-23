@@ -127,8 +127,8 @@ impl Entity for RectExample {
         render(rendering_tree)
     }
 
-    fn update(&mut self, _event: &dyn std::any::Any) {
-        if let Some(Event::DeltaXy(delta_xy)) = _event.downcast_ref::<Event>() {
+    fn update(&mut self, event: &namui::Event) {
+        if let Some(Event::DeltaXy(delta_xy)) = event.downcast_ref() {
             self.delta_xy.x += delta_xy.x;
             self.delta_xy.y += delta_xy.y;
         }

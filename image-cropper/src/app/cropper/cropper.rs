@@ -35,18 +35,16 @@ impl Cropper {
         }
     }
 
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<CropperEvent>() {
-            match &event {
+    pub fn update(&mut self, event: &namui::Event) {
+        event
+            .is::<CropperEvent>(|event| match &event {
                 CropperEvent::SaveButtonClicked => save_image(
                     self.image_url.clone(),
                     self.image_name.clone(),
                     self.selection_list.clone(),
                 ),
-            }
-        }
-        if let Some(event) = event.downcast_ref::<CanvasEvent>() {
-            match *event {
+            })
+            .is::<CanvasEvent>(|event| match *event {
                 CanvasEvent::LeftMouseDownInCanvas {
                     position,
                     tool_type,
@@ -72,10 +70,8 @@ impl Cropper {
                     }
                 }
                 _ => (),
-            }
-        }
-        if let Some(event) = event.downcast_ref::<SelectionEvent>() {
-            match *event {
+            })
+            .is::<SelectionEvent>(|event| match *event {
                 SelectionEvent::RectSelectionResizeHandleClicked {
                     selection_id,
                     direction,
@@ -90,10 +86,8 @@ impl Cropper {
                 SelectionEvent::SelectionRightClicked { target_id } => {
                     self.remove_selection(target_id)
                 }
-            }
-        }
-        if let Some(event) = event.downcast_ref::<NamuiEvent>() {
-            match &event {
+            })
+            .is::<NamuiEvent>(|event| match &event {
                 NamuiEvent::MouseUp(_) => {
                     if let Some(job) = &self.job {
                         match job {
@@ -109,8 +103,7 @@ impl Cropper {
                     }
                 }
                 _ => (),
-            }
-        }
+            });
         self.canvas.update(event);
     }
 

@@ -55,17 +55,15 @@ impl Entity for AnimationEditorExample {
             .render(namui_animation_editor::Props { wh })
     }
 
-    fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<namui_animation_editor::Event>() {
-            match event {
-                Event::Error(error) => {
-                    namui::log!("error: {}", error);
-                }
-                Event::AnimationUpdated(animation) => {
-                    self.animation = (**animation).clone();
-                }
+    fn update(&mut self, event: &namui::Event) {
+        event.is::<namui_animation_editor::Event>(|event| match event {
+            namui_animation_editor::Event::Error(error) => {
+                namui::log!("error: {}", error);
             }
-        }
+            namui_animation_editor::Event::AnimationUpdated(animation) => {
+                self.animation = (**animation).clone();
+            }
+        });
         self.animation_editor.update(event);
     }
 }

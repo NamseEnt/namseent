@@ -134,8 +134,8 @@ impl Entity for TextInputExample {
         render(tree)
     }
 
-    fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<text_input::Event>() {
+    fn update(&mut self, event: &namui::Event) {
+        event.is::<text_input::Event>(|event| {
             match event {
                 text_input::Event::TextUpdated { id, text, .. } => {
                     for x in 0..3 {
@@ -158,6 +158,6 @@ impl Entity for TextInputExample {
                 }
                 _ => {}
             }
-        }
+        });
     }
 }

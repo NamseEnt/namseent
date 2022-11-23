@@ -19,7 +19,7 @@ impl ContextMenu {
             sequence_id,
         }
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
+    pub fn update(&mut self, event: &namui::Event) {
         self.list_view.update(event);
     }
     pub fn render(&self) -> namui::RenderingTree {

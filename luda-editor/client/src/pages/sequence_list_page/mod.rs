@@ -46,9 +46,9 @@ impl SequenceListPage {
             error_message: None,
         }
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
-            match event {
+    pub fn update(&mut self, event: &namui::Event) {
+        event
+            .is::<Event>(|event| match event {
                 Event::AddButtonClicked => {
                     let project_id = self.project_id;
                     spawn_local(async move {
@@ -85,9 +85,8 @@ impl SequenceListPage {
                 Event::Error(error_message) => {
                     self.error_message = Some(error_message.clone());
                 }
-            }
-        } else if let Some(event) = event.downcast_ref::<context_menu::Event>() {
-            match event {
+            })
+            .is::<context_menu::Event>(|event| match event {
                 &context_menu::Event::DeleteButtonClicked { sequence_id } => {
                     self.context_menu = None;
 
@@ -129,9 +128,8 @@ impl SequenceListPage {
                         }
                     }
                 }
-            }
-        } else if let Some(event) = event.downcast_ref::<rename_modal::Event>() {
-            match event {
+            })
+            .is::<rename_modal::Event>(|event| match event {
                 &rename_modal::Event::RenameDone {
                     sequence_id,
                     ref sequence_name,
@@ -158,8 +156,7 @@ impl SequenceListPage {
                         }
                     });
                 }
-            }
-        }
+            });
 
         self.context_menu
             .as_mut()

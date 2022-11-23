@@ -183,5 +183,5 @@ impl Entity for MultilineTextExample {
         render(trees)
     }
 
-    fn update(&mut self, _event: &dyn std::any::Any) {}
+    fn update(&mut self, _event: &namui::Event) {}
 }

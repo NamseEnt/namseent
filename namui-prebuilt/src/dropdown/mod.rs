@@ -192,28 +192,26 @@ impl React for Dropdown {
         translate(props.rect.x(), props.rect.y(), namui::render([head, body]))
     }
 
-    fn update(&mut self, event: &dyn Any) {
-        if let Some(event) = event.downcast_ref::<InternalEvent>() {
-            match *event {
-                InternalEvent::ToggleDropdown { id } => {
-                    if id == self.id {
-                        self.is_opened = !self.is_opened;
-                        self.mouse_over_item_id = None;
-                    }
-                }
-                InternalEvent::MoveOverItem { id, item_id } => {
-                    if id == self.id {
-                        self.mouse_over_item_id = Some(item_id);
-                    }
-                }
-                InternalEvent::CloseDropdown { id } => {
-                    if id == self.id {
-                        self.is_opened = false;
-                        self.mouse_over_item_id = None;
-                    }
+    fn update(&mut self, event: &namui::Event) {
+        event.is::<InternalEvent>(|event| match *event {
+            InternalEvent::ToggleDropdown { id } => {
+                if id == self.id {
+                    self.is_opened = !self.is_opened;
+                    self.mouse_over_item_id = None;
                 }
             }
-        }
+            InternalEvent::MoveOverItem { id, item_id } => {
+                if id == self.id {
+                    self.mouse_over_item_id = Some(item_id);
+                }
+            }
+            InternalEvent::CloseDropdown { id } => {
+                if id == self.id {
+                    self.is_opened = false;
+                    self.mouse_over_item_id = None;
+                }
+            }
+        });
 
         self.list_view.update(event);
     }

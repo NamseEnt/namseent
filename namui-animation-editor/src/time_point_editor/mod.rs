@@ -37,21 +37,19 @@ impl TimePointEditor {
             selected_layer_id: None,
         }
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
-            match event {
+    pub fn update(&mut self, event: &namui::Event) {
+        event
+            .is::<Event>(|event| match event {
                 &Event::ChangEditingTarget(editing_target) => {
                     self.editing_target = editing_target;
                 }
-            }
-        } else if let Some(event) = event.downcast_ref::<layer_list_window::Event>() {
-            match *event {
+            })
+            .is::<layer_list_window::Event>(|event| match *event {
                 layer_list_window::Event::LayerSelected(layer_id) => {
                     self.selected_layer_id = Some(layer_id);
                 }
                 _ => {}
-            }
-        }
+            });
 
         self.wysiwyg_window.update(event);
         self.timeline_window.update(event);

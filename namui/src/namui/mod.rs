@@ -14,7 +14,7 @@ pub use self::random::*;
 pub use auto_ops;
 pub use common::*;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
-pub use event::NamuiEvent;
+pub use event::{Event, NamuiEvent};
 pub use namui_cfg::*;
 pub use namui_context::NamuiContext;
 pub use namui_type as types;
@@ -42,7 +42,7 @@ pub use wasm_bindgen_futures::spawn_local;
 
 pub trait Entity {
     type Props;
-    fn update(&mut self, event: &dyn std::any::Any);
+    fn update(&mut self, event: &Event);
     fn render(&self, props: &Self::Props) -> RenderingTree;
 }
 

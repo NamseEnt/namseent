@@ -1,9 +1,9 @@
 use super::{render::resizer, *};
 
 impl WysiwygEditor {
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<resizer::Event>() {
-            match event {
+    pub fn update(&mut self, event: &namui::Event) {
+        event
+            .is::<resizer::Event>(|event| match event {
                 resizer::Event::UpdateDraggingContext(context) => {
                     if matches!(self.dragging, Some(Dragging::Resizer { .. })) {
                         self.dragging =
@@ -15,9 +15,8 @@ impl WysiwygEditor {
                         self.dragging = Some(Dragging::Resizer { context });
                     }
                 }
-            }
-        } else if let Some(event) = event.downcast_ref::<InternalEvent>() {
-            match event {
+            })
+            .is::<InternalEvent>(|event| match event {
                 &InternalEvent::SelectImage { index } => {
                     self.editing_image_index = Some(index);
                 }
@@ -50,8 +49,9 @@ impl WysiwygEditor {
                 InternalEvent::MouseDownContainer => {
                     self.editing_image_index = None;
                 }
-            }
-        } else if let Some(NamuiEvent::MouseUp(event)) = event.downcast_ref::<NamuiEvent>() {
+            });
+
+        if let Some(NamuiEvent::MouseUp(event)) = event.downcast_ref() {
             if let Some(Dragging::Mover { context }) = self.dragging.as_mut() {
                 context.end_global_xy = event.xy;
                 if let Some(index) = self.editing_image_index {

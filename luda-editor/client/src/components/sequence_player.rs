@@ -112,7 +112,7 @@ impl SequencePlayer {
             });
         })
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
+    pub fn update(&mut self, event: &namui::Event) {
         match &mut self.state {
             State::ShowingCut { .. } => {}
             State::Transitioning {
@@ -133,15 +133,13 @@ impl SequencePlayer {
             }
         }
 
-        if let Some(event) = event.downcast_ref::<InternalEvent>() {
-            match event {
-                InternalEvent::OnClickScreen => {
-                    self.go_to_next_cut(true);
-                }
-                InternalEvent::GoToPrevCut => self.go_to_prev_cut(),
-                InternalEvent::GoToNextCut => self.go_to_next_cut(false),
+        event.is::<InternalEvent>(|event| match event {
+            InternalEvent::OnClickScreen => {
+                self.go_to_next_cut(true);
             }
-        }
+            InternalEvent::GoToPrevCut => self.go_to_prev_cut(),
+            InternalEvent::GoToNextCut => self.go_to_next_cut(false),
+        });
     }
     fn get_image_urls(&self, cut: &Cut) -> Vec<Url> {
         cut.screen_images

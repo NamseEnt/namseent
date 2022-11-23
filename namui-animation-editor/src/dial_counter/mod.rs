@@ -32,7 +32,7 @@ impl DialCounter {
     }
 
     #[allow(dead_code)]
-    pub fn update(&mut self, _event: &dyn std::any::Any) {}
+    pub fn update(&mut self, _event: &namui::Event) {}
 
     #[allow(dead_code)]
     pub fn render<TValue, TValueChanged>(

@@ -65,5 +65,5 @@ impl Entity for App {
         render(images)
     }
 
-    fn update(&mut self, _event: &dyn std::any::Any) {}
+    fn update(&mut self, _event: &namui::Event) {}
 }

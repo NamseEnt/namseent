@@ -15,7 +15,7 @@ pub struct CropperProps {
 }
 
 impl Cropper {
-    pub fn update(&mut self, _event: &dyn std::any::Any) {}
+    pub fn update(&mut self, _event: &namui::Event) {}
 
     pub fn render(&self, props: &CropperProps) -> RenderingTree {
         render([

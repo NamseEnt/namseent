@@ -2,8 +2,8 @@ use super::*;
 use rpc::data::{ImageClip, ImageClipAddress};
 
 impl Timeline {
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
+    pub fn update(&mut self, event: &namui::Event) {
+        event.is::<Event>(|event| {
             match event {
                 Event::OpenContextMenu(context_menu) => {
                     self.context_menu = Some(context_menu.clone());
@@ -23,7 +23,7 @@ impl Timeline {
                 Event::SelectImageClip { .. } => {}
                 Event::DeselectImageClip => {}
             }
-        } else if let Some(event) = event.downcast_ref::<resizable_clip::Event>() {
+        } ).is::<resizable_clip::Event>(|event| {
             match event {
                 resizable_clip::Event::MouseDown {
                     clip_id,
@@ -74,7 +74,7 @@ impl Timeline {
                     }
                 }
             }
-        } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
+        } ).is::<NamuiEvent>(|event| {
             match event {
                 NamuiEvent::AnimationFrame
                 | NamuiEvent::MouseDown(_)

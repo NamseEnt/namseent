@@ -2,9 +2,9 @@ use super::*;
 use crate::pages::sequence_edit_page::loaded::components::image_upload::upload_images;
 
 impl ImageSelectModal {
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<InternalEvent>() {
-            match event {
+    pub fn update(&mut self, event: &namui::Event) {
+        event
+            .is::<InternalEvent>(|event| match event {
                 InternalEvent::AddImageButtonClicked => {
                     self.image_edit_modal = Some(image_edit_modal::ImageEditModal::new(
                         image_edit_modal::ModalPurpose::Add,
@@ -80,15 +80,13 @@ impl ImageSelectModal {
                         }
                     }
                 }
-            }
-        } else if let Some(event) = event.downcast_ref::<context_menu::Event>() {
-            match event {
+            })
+            .is::<context_menu::Event>(|event| match event {
                 context_menu::Event::Close => {
                     self.context_menu = None;
                 }
-            }
-        } else if let Some(event) = event.downcast_ref::<image_edit_modal::Event>() {
-            match event {
+            })
+            .is::<image_edit_modal::Event>(|event| match event {
                 image_edit_modal::Event::Close => {
                     self.image_edit_modal = None;
                     request_reload_images(self.project_id);
@@ -96,8 +94,7 @@ impl ImageSelectModal {
                 image_edit_modal::Event::Error(error) => {
                     namui::log!("image_edit_modal error: {}", error);
                 }
-            }
-        }
+            });
 
         self.context_menu
             .as_mut()

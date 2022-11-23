@@ -297,8 +297,8 @@ impl Entity for ShaderExample {
         ])(size)
     }
 
-    fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(Event::SelectTab { tab }) = event.downcast_ref::<Event>() {
+    fn update(&mut self, event: &namui::Event) {
+        if let Some(Event::SelectTab { tab }) = event.downcast_ref() {
             self.tab = *tab;
         }
     }

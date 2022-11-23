@@ -36,30 +36,26 @@ impl FileSelector {
         }
     }
 
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<FileSelectorEvent>() {
-            match &event {
-                FileSelectorEvent::FileSelectDialogOpenButtonClicked => {
-                    self.html_input_element.click()
-                }
-                FileSelectorEvent::NamuiImageMakeFailed(message) => {
-                    alert(format!("failed to make image: {}", message).as_str())
-                }
-                FileSelectorEvent::NamuiImagePrepared { image, url, name } => {
-                    let image = image.clone();
-                    let url = url.clone();
-                    let name = name.clone();
-                    namui::event::send(RouterEvent::PageChangeRequestedToCropperEvent(Box::new(
-                        move || {
-                            let image = image.clone();
-                            let url = url.clone();
-                            let name = name.clone();
-                            Cropper::new(image, url, name)
-                        },
-                    )))
-                }
+    pub fn update(&mut self, event: &namui::Event) {
+        event.is::<FileSelectorEvent>(|event| match &event {
+            FileSelectorEvent::FileSelectDialogOpenButtonClicked => self.html_input_element.click(),
+            FileSelectorEvent::NamuiImageMakeFailed(message) => {
+                alert(format!("failed to make image: {}", message).as_str())
             }
-        }
+            FileSelectorEvent::NamuiImagePrepared { image, url, name } => {
+                let image = image.clone();
+                let url = url.clone();
+                let name = name.clone();
+                namui::event::send(RouterEvent::PageChangeRequestedToCropperEvent(Box::new(
+                    move || {
+                        let image = image.clone();
+                        let url = url.clone();
+                        let name = name.clone();
+                        Cropper::new(image, url, name)
+                    },
+                )))
+            }
+        });
     }
 
     pub fn render(&self, props: &FileSelectorProps) -> RenderingTree {

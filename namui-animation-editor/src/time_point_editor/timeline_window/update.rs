@@ -3,9 +3,9 @@ use crate::zoom::zoom_time_per_px;
 use namui::animation::*;
 
 impl TimelineWindow {
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
-            match event {
+    pub fn update(&mut self, event: &namui::Event) {
+        event
+            .is::<Event>(|event| match event {
                 &Event::ShiftWheel { delta } => {
                     self.start_at += Px::from(delta) * self.time_per_px;
                 }
@@ -140,9 +140,8 @@ impl TimelineWindow {
                     namui::log!("MouseDownOutOfKeyframeButInWindow");
                     namui::event::send(crate::time_point_editor::Event::ChangEditingTarget(None));
                 }
-            }
-        } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
-            match event {
+            })
+            .is::<NamuiEvent>(|event| match event {
                 NamuiEvent::MouseUp(_) => {
                     if let Some(Dragging::Keyframe { action_ticket }) = self.dragging {
                         self.animation_history.act(action_ticket).unwrap();
@@ -150,8 +149,7 @@ impl TimelineWindow {
                     self.dragging = None;
                 }
                 _ => {}
-            }
-        }
+            });
     }
     fn move_playback_time_to_point(&mut self, layer_id: Uuid, point_id: Uuid) {
         let animation = self.animation_history.get_preview();

@@ -1,17 +1,18 @@
 use super::*;
 
 impl CharacterEditModal {
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
-            if let Event::CharacterSelected {
-                character_id,
-                cut_id: _,
-            } = event
-            {
-                self.character_id = Some(*character_id);
-            }
-        } else if let Some(event) = event.downcast_ref::<InternalEvent>() {
-            match event {
+    pub fn update(&mut self, event: &namui::Event) {
+        event
+            .is::<Event>(|event| {
+                if let Event::CharacterSelected {
+                    character_id,
+                    cut_id: _,
+                } = event
+                {
+                    self.character_id = Some(*character_id);
+                }
+            })
+            .is::<InternalEvent>(|event| match event {
                 InternalEvent::CharacterRightClicked {
                     character_id,
                     mouse_global_xy,
@@ -38,15 +39,13 @@ impl CharacterEditModal {
                     });
                     self.text_input.focus();
                 }
-            }
-        } else if let Some(event) = event.downcast_ref::<context_menu::Event>() {
-            match event {
+            })
+            .is::<context_menu::Event>(|event| match event {
                 context_menu::Event::Close => {
                     self.context_menu = None;
                 }
-            }
-        } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
-            match event {
+            })
+            .is::<text_input::Event>(|event| match event {
                 text_input::Event::Focus { .. }
                 | text_input::Event::Blur { .. }
                 | text_input::Event::SelectionUpdated { .. } => {}
@@ -80,8 +79,7 @@ impl CharacterEditModal {
                         self.editing_text_mode = None;
                     }
                 }
-            }
-        }
+            });
         self.character_list_view.update(event);
         self.context_menu
             .as_mut()

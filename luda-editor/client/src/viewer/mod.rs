@@ -38,21 +38,19 @@ impl Viewer {
 impl namui::Entity for Viewer {
     type Props = ();
 
-    fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
-            match event {
-                Event::DataForSequencePlayerLoaded {
-                    sequence,
-                    project_shared_data,
-                } => {
-                    self.sequence_player = Some(sequence_player::SequencePlayer::new(
-                        sequence.clone(),
-                        project_shared_data.clone(),
-                        0,
-                    ));
-                }
+    fn update(&mut self, event: &namui::Event) {
+        event.is::<Event>(|event| match event {
+            Event::DataForSequencePlayerLoaded {
+                sequence,
+                project_shared_data,
+            } => {
+                self.sequence_player = Some(sequence_player::SequencePlayer::new(
+                    sequence.clone(),
+                    project_shared_data.clone(),
+                    0,
+                ));
             }
-        }
+        });
 
         self.sequence_player.as_mut().map(|sequence_player| {
             sequence_player.update(event);

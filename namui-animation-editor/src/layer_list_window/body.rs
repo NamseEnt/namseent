@@ -15,7 +15,7 @@ impl Body {
             list_view: list_view::ListView::new(),
         }
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
+    pub fn update(&mut self, event: &namui::Event) {
         self.list_view.update(event);
     }
     pub fn render(&self, props: Props) -> RenderingTree {

@@ -32,7 +32,7 @@ impl ListView {
             requested_scroll_index: Arc::new(Mutex::new(None)),
         }
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
+    pub fn update(&mut self, event: &namui::Event) {
         self.scroll_view.update(event);
     }
     /// This will scroll on next rendering stage.

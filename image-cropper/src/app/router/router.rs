@@ -20,17 +20,15 @@ impl Router {
         }
     }
 
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<RouterEvent>() {
-            match &event {
-                RouterEvent::PageChangeRequestedToFileSelectorEvent(initializer) => {
-                    self.page = Page::FileSelector(initializer());
-                }
-                RouterEvent::PageChangeRequestedToCropperEvent(initializer) => {
-                    self.page = Page::Cropper(initializer());
-                }
+    pub fn update(&mut self, event: &namui::Event) {
+        event.is::<RouterEvent>(|event| match &event {
+            RouterEvent::PageChangeRequestedToFileSelectorEvent(initializer) => {
+                self.page = Page::FileSelector(initializer());
             }
-        }
+            RouterEvent::PageChangeRequestedToCropperEvent(initializer) => {
+                self.page = Page::Cropper(initializer());
+            }
+        });
         match &mut self.page {
             Page::FileSelector(file_selector) => file_selector.update(event),
             Page::Cropper(cropper) => cropper.update(event),

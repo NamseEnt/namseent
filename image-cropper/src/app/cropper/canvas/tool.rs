@@ -35,13 +35,13 @@ impl Tool {
         )
     }
 
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<NamuiEvent>() {
+    pub fn update(&mut self, event: &namui::Event) {
+        event.is::<NamuiEvent>(|event| {
             match event {
                 NamuiEvent::MouseMove(event) => self.last_cursor_position = event.xy.clone(),
                 _ => (),
             };
-        }
+        });
     }
 
     pub fn get_current_tool_type(&self) -> ToolType {
