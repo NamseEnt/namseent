@@ -106,9 +106,12 @@ impl ImageTable {
             selection: None,
             cell_drag_context: None,
             sheet: sheet::Sheet::new(sheet::ColorPalette {
-                primary_color: Color::WHITE,
-                secondary_color: Color::from_u8(129, 198, 232, 255),
+                text_color: Color::WHITE,
+                stroke_color: Color::WHITE,
                 background_color: Color::BLACK,
+                selected_text_color: Color::WHITE,
+                selected_stroke_color: Color::from_u8(129, 198, 232, 255),
+                selected_background_color: Color::BLACK, //Color::from_u8(37, 49, 109, 255)
             }),
         };
 

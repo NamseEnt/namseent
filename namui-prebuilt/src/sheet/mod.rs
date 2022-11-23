@@ -47,9 +47,12 @@ impl<Row, Column> Sheet<Row, Column> {
 
 #[derive(Clone, Copy, Debug)]
 pub struct ColorPalette {
-    pub primary_color: Color,
-    pub secondary_color: Color,
+    pub text_color: Color,
+    pub stroke_color: Color,
     pub background_color: Color,
+    pub selected_text_color: Color,
+    pub selected_stroke_color: Color,
+    pub selected_background_color: Color,
 }
 
 /*
@@ -108,13 +111,16 @@ fn usage() {
         },
     ];
 
-    let luda_color_palette = ColorPalette {
-        primary_color: Color::WHITE,
-        secondary_color: Color::from_u8(129, 198, 232, 255),
+    let color_palette = ColorPalette {
+        text_color: Color::WHITE,
+        stroke_color: Color::WHITE,
         background_color: Color::BLACK,
+        selected_text_color: Color::WHITE,
+        selected_stroke_color: Color::WHITE,
+        selected_background_color: Color::from_u8(37, 49, 109, 255),
     };
 
-    let sheet = Sheet::<RowType, ColumnType>::new(luda_color_palette);
+    let sheet = Sheet::<RowType, ColumnType>::new(color_palette);
 
     sheet.render(Props {
         wh: Wh::new(100.px(), 100.px()),

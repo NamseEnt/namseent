@@ -25,11 +25,12 @@ pub enum Side {
     All,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Line {
     None,
     Single,
     Double,
+    BoldSingle,
 }
 
 ///
@@ -91,6 +92,7 @@ pub struct Props<'a> {
     pub is_editing: bool,
     pub is_selected: bool,
     pub text_input: &'a TextInput,
+    pub color_palette: ColorPalette,
 }
 
 pub struct EmptyCell {

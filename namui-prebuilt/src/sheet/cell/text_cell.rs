@@ -35,6 +35,12 @@ impl TextCell {
 }
 impl Cell for TextCell {
     fn render(&self, props: Props) -> RenderingTree {
+        let text_color = if props.is_selected {
+            props.color_palette.selected_text_color
+        } else {
+            props.color_palette.text_color
+        };
+
         let font_size = self
             .font_size
             .unwrap_or_else(|| adjust_font_size(props.wh.height));
@@ -55,7 +61,7 @@ impl Cell for TextCell {
                     },
                     style: text_input::Style {
                         text: TextStyle {
-                            color: Color::WHITE,
+                            color: text_color,
                             ..Default::default()
                         },
                         rect: RectStyle {
@@ -81,7 +87,7 @@ impl Cell for TextCell {
                     size: font_size,
                 },
                 style: TextStyle {
-                    color: Color::WHITE,
+                    color: text_color,
                     ..Default::default()
                 },
                 max_width: Some(props.wh.width),
