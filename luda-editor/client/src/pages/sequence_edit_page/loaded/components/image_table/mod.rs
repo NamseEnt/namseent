@@ -11,12 +11,8 @@ pub struct ImageTable {
     list_view: list_view::ListView,
     images: Vec<ImageWithLabels>,
     sort_order_by: Option<SortOrderBy>,
-    text_input: text_input::TextInput,
-    editing_target: Option<EditingTarget>,
     pub saving_count: usize,
     context_menu: Option<context_menu::ContextMenu>,
-    selection: Option<Selection>,
-    cell_drag_context: Option<CellDragContext>,
     sheet: sheet::Sheet,
 }
 
@@ -61,20 +57,6 @@ enum SortOrderBy {
     Descending { key: String },
 }
 
-struct EditingTarget {
-    image_id: Uuid,
-    label_key: String,
-}
-
-type Selection = Ltrb<usize>;
-
-struct CellDragContext {
-    start_row_index: usize,
-    start_column_index: usize,
-    last_row_index: usize,
-    last_column_index: usize,
-}
-
 impl ImageTable {
     pub fn new(project_id: Uuid) -> ImageTable {
         request_reload_images(project_id);
@@ -83,12 +65,8 @@ impl ImageTable {
             list_view: list_view::ListView::new(),
             images: vec![],
             sort_order_by: None,
-            text_input: text_input::TextInput::new(),
-            editing_target: None,
             saving_count: 0,
             context_menu: None,
-            selection: None,
-            cell_drag_context: None,
             sheet: sheet::Sheet::new(sheet::ColorPalette {
                 text_color: Color::WHITE,
                 stroke_color: Color::WHITE,

@@ -102,19 +102,6 @@ impl ImageTable {
                 .map(|context_menu| context_menu.render())
                 .into(),
             sheet,
-            // table::vertical([
-            //     table::fixed(36.px(), |wh| self.render_header_row(wh, &label_keys)),
-            //     table::ratio(1, |wh| {
-            //         self.list_view.render(list_view::Props {
-            //             xy: Xy::zero(),
-            //             height: wh.height,
-            //             scroll_bar_width: 10.px(),
-            //             item_wh: Wh::new(wh.width, ROW_HEIGHT),
-            //             items: rows.into_iter().enumerate(),
-            //             item_render: |_wh, (row_index, row)| row.render(&self, row_index),
-            //         })
-            //     }),
-            // ])(props.wh),
         ])
         .attach_event(|builder| {
             builder.on_key_down(|event| {

@@ -54,11 +54,6 @@ impl ImageTable {
                     ))
                 }
                 InternalEvent::EscKeyDown => {
-                    if self.editing_target.is_some() {
-                        self.editing_target = None;
-                    } else {
-                        self.selection = None;
-                    }
                     self.context_menu = None;
                 }
                 &InternalEvent::EditLabel {
