@@ -13,12 +13,10 @@ pub enum Side {
     All,
 }
 
+/// TODO: Add double line
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Line {
-    None,
     Single,
-    Double,
-    BoldSingle,
 }
 
 ///
@@ -35,41 +33,41 @@ pub enum Line {
 /// ```
 ///
 pub struct Borders {
-    pub(crate) left: Line,
-    pub(crate) top: Line,
-    pub(crate) right: Line,
-    pub(crate) bottom: Line,
+    pub(crate) left: Option<Line>,
+    pub(crate) top: Option<Line>,
+    pub(crate) right: Option<Line>,
+    pub(crate) bottom: Option<Line>,
 }
 
 impl Borders {
     pub fn new() -> Self {
         Self {
-            left: Line::None,
-            top: Line::None,
-            right: Line::None,
-            bottom: Line::None,
+            left: None,
+            top: None,
+            right: None,
+            bottom: None,
         }
     }
 
     pub(crate) fn add(&mut self, side: Side, line: Line) {
         match side {
-            Side::Left => self.left = line,
-            Side::Top => self.top = line,
-            Side::Right => self.right = line,
-            Side::Bottom => self.bottom = line,
+            Side::Left => self.left = Some(line),
+            Side::Top => self.top = Some(line),
+            Side::Right => self.right = Some(line),
+            Side::Bottom => self.bottom = Some(line),
             Side::LeftRight => {
-                self.left = line;
-                self.right = line;
+                self.left = Some(line);
+                self.right = Some(line);
             }
             Side::TopBottom => {
-                self.top = line;
-                self.bottom = line;
+                self.top = Some(line);
+                self.bottom = Some(line);
             }
             Side::All => {
-                self.left = line;
-                self.top = line;
-                self.right = line;
-                self.bottom = line;
+                self.left = Some(line);
+                self.top = Some(line);
+                self.right = Some(line);
+                self.bottom = Some(line);
             }
         }
     }

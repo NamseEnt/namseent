@@ -141,8 +141,8 @@ impl Sheet {
                             let mut rendering_trees = vec![];
                             let borders = cell.inner.borders();
                             match borders.left {
-                                Line::None => {}
-                                Line::Single => {
+                                None => {}
+                                Some(Line::Single) => {
                                     let stroke_width = if is_selected { 4.px() } else { 1.px() };
                                     rendering_trees.push(translate(
                                         left + stroke_width / 2 - 1.px(),
@@ -158,13 +158,11 @@ impl Sheet {
                                         ),
                                     ))
                                 }
-                                Line::Double => {}
-                                Line::BoldSingle => {}
                             }
 
                             match borders.right {
-                                Line::None => {}
-                                Line::Single => {
+                                None => {}
+                                Some(Line::Single) => {
                                     let stroke_width = if is_selected { 4.px() } else { 1.px() };
                                     rendering_trees.push(translate(
                                         right - stroke_width / 2 + 1.px(),
@@ -180,13 +178,11 @@ impl Sheet {
                                         ),
                                     ))
                                 }
-                                Line::Double => {}
-                                Line::BoldSingle => {}
                             }
 
                             match borders.top {
-                                Line::None => {}
-                                Line::Single => {
+                                None => {}
+                                Some(Line::Single) => {
                                     let stroke_width = if is_selected { 4.px() } else { 1.px() };
                                     rendering_trees.push(translate(
                                         left - 1.px(),
@@ -202,13 +198,11 @@ impl Sheet {
                                         ),
                                     ))
                                 }
-                                Line::Double => {}
-                                Line::BoldSingle => {}
                             }
 
                             match borders.bottom {
-                                Line::None => {}
-                                Line::Single => {
+                                None => {}
+                                Some(Line::Single) => {
                                     let stroke_width = if is_selected { 4.px() } else { 1.px() };
                                     rendering_trees.push(translate(
                                         left - 1.px(),
@@ -224,8 +218,6 @@ impl Sheet {
                                         ),
                                     ))
                                 }
-                                Line::Double => {}
-                                Line::BoldSingle => {}
                             }
 
                             render(rendering_trees)
