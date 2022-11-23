@@ -1,11 +1,11 @@
 use super::*;
 use crate::typography::adjust_font_size;
-use namui::text_input::EventHandler;
 use std::sync::Arc;
 
 pub struct TextCell {
     text: String,
     on_change: Option<Arc<dyn Fn(&str)>>,
+    on_mouse_down: Option<Arc<dyn Fn(&MouseEvent)>>,
     font_size: Option<IntPx>,
     borders: Borders,
 }
@@ -13,6 +13,7 @@ pub fn text(text: impl AsRef<str>) -> TextCell {
     TextCell {
         text: text.as_ref().to_string(),
         on_change: None,
+        on_mouse_down: None,
         font_size: None,
         borders: Borders::new(),
     }
@@ -30,6 +31,14 @@ impl TextCell {
             ..self
         }
     }
+    pub fn borders(mut self, side: Side, line: Line) -> Self {
+        self.borders.add(side, line);
+        self
+    }
+    pub fn on_mouse_down(mut self, on_mouse_down: impl Fn(&MouseEvent) + 'static) -> Self {
+        self.on_mouse_down = Some(Arc::new(on_mouse_down));
+        self
+    }
 }
 impl Cell for TextCell {
     fn render(&self, props: Props) -> RenderingTree {
@@ -43,54 +52,70 @@ impl Cell for TextCell {
             .font_size
             .unwrap_or_else(|| adjust_font_size(props.wh.height));
 
-        match self.on_change.as_ref() {
-            Some(text_input_on_change) if props.is_editing => {
-                let text_input_on_change = text_input_on_change.clone();
-                props.text_input.render(text_input::Props {
-                    rect: Rect::from_xy_wh(Xy::zero(), props.wh),
+        let mouse_event_listener =
+            simple_rect(props.wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(
+                move |builder| {
+                    if let Some(on_mouse_down) = self.on_mouse_down.clone() {
+                        builder.on_mouse_down_in(move |event| {
+                            on_mouse_down(event);
+                        });
+                    }
+                },
+            );
+
+        render([
+            mouse_event_listener,
+            match self.on_change.as_ref() {
+                Some(text_input_on_change) if props.is_editing => {
+                    let text_input_on_change = text_input_on_change.clone();
+                    props.text_input.render(text_input::Props {
+                        rect: Rect::from_xy_wh(Xy::zero(), props.wh),
+                        text: self.text.clone(),
+                        text_align: TextAlign::Center,
+                        text_baseline: TextBaseline::Middle,
+                        font_type: FontType {
+                            serif: false,
+                            size: font_size,
+                            language: Language::Ko,
+                            font_weight: FontWeight::REGULAR,
+                        },
+                        style: text_input::Style {
+                            text: TextStyle {
+                                color: text_color,
+                                ..Default::default()
+                            },
+                            rect: RectStyle {
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        },
+                        event_handler: Some(text_input::EventHandler::new().on_text_updated(
+                            move |text| {
+                                text_input_on_change(text);
+                            },
+                        )),
+                    })
+                }
+                _ => namui::text(TextParam {
                     text: self.text.clone(),
-                    text_align: TextAlign::Center,
-                    text_baseline: TextBaseline::Middle,
+                    x: props.wh.width / 2.0,
+                    y: props.wh.height / 2.0,
+                    align: TextAlign::Center,
+                    baseline: TextBaseline::Middle,
                     font_type: FontType {
+                        font_weight: FontWeight::REGULAR,
+                        language: Language::Ko,
                         serif: false,
                         size: font_size,
-                        language: Language::Ko,
-                        font_weight: FontWeight::REGULAR,
                     },
-                    style: text_input::Style {
-                        text: TextStyle {
-                            color: text_color,
-                            ..Default::default()
-                        },
-                        rect: RectStyle {
-                            ..Default::default()
-                        },
+                    style: TextStyle {
+                        color: text_color,
                         ..Default::default()
                     },
-                    event_handler: Some(EventHandler::new().on_text_updated(move |text| {
-                        text_input_on_change(text);
-                    })),
-                })
-            }
-            _ => namui::text(TextParam {
-                text: self.text.clone(),
-                x: props.wh.width / 2.0,
-                y: props.wh.height / 2.0,
-                align: TextAlign::Center,
-                baseline: TextBaseline::Middle,
-                font_type: FontType {
-                    font_weight: FontWeight::REGULAR,
-                    language: Language::Ko,
-                    serif: false,
-                    size: font_size,
-                },
-                style: TextStyle {
-                    color: text_color,
-                    ..Default::default()
-                },
-                max_width: Some(props.wh.width),
-            }),
-        }
+                    max_width: Some(props.wh.width),
+                }),
+            },
+        ])
     }
 
     fn borders(&self) -> &Borders {
@@ -114,12 +139,5 @@ impl Cell for TextCell {
 impl Into<Box<dyn Cell>> for TextCell {
     fn into(self) -> Box<dyn Cell> {
         Box::new(self)
-    }
-}
-
-impl TextCell {
-    pub fn borders(mut self, side: Side, line: Line) -> Self {
-        self.borders.add(side, line);
-        self
     }
 }

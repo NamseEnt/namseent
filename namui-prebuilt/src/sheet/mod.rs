@@ -58,10 +58,6 @@ pub struct ColorPalette {
     pub selected_background_color: Color,
 }
 
-/*
-    클릭 = 선택
-    더블 클릭 = 편집
-*/
 enum InternalEvent {
     CellMouseLeftDown {
         cell_index: CellIndex,
@@ -69,7 +65,6 @@ enum InternalEvent {
     CtrlCDown {
         clipboard_items: Vec<Vec<ClipboardItem>>,
     },
-    CtrlVDown,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -78,7 +73,8 @@ struct CellIndex {
     pub column: usize,
 }
 
-fn usage() {
+#[allow(dead_code)]
+fn usage_code() {
     enum RowType {
         Header,
         Data(Data),
@@ -151,11 +147,10 @@ fn usage() {
                 ColumnType::Image => cell::image(ImageSource::Url(
                     Url::parse(&format!("https://example.com/{}.png", data.image_id)).unwrap(),
                 ))
-                .on_edit(|| namui::event::send("Open image selector"))
                 .into(),
                 ColumnType::Label { label_index, .. } => {
                     cell::text(data.label_values[*label_index])
-                        .on_change(|string| namui::event::send("Update label value"))
+                        .on_change(|_string| namui::event::send("Update label value"))
                         .into()
                 }
             },

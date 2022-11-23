@@ -2,22 +2,12 @@ use super::*;
 
 pub struct ImageCell {
     image_source: ImageSource,
-    on_edit: Option<Box<dyn Fn()>>,
     borders: Borders,
 }
 pub fn image(image_source: ImageSource) -> ImageCell {
     ImageCell {
         image_source,
-        on_edit: None,
         borders: Borders::new(),
-    }
-}
-impl ImageCell {
-    pub fn on_edit(self, callback: impl Fn() + 'static) -> Self {
-        Self {
-            on_edit: Some(Box::new(callback)),
-            ..self
-        }
     }
 }
 

@@ -17,13 +17,6 @@ impl Sheet {
                 InternalEvent::CtrlCDown { clipboard_items } => {
                     self.clip_board = Some(clipboard_items.clone());
                 }
-                InternalEvent::CtrlVDown => {
-                    let selection_left_top = self
-                        .selections
-                        .iter()
-                        .min_by_key(|selection| (selection.row, selection.column))
-                        .unwrap();
-                }
             }
         }
         self.vh_list_view.update(event);

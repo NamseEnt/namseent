@@ -1,12 +1,10 @@
 use super::*;
 
 pub struct EmptyCell {
-    on_edit: Option<Box<dyn Fn()>>,
     borders: Borders,
 }
 pub fn empty() -> EmptyCell {
     EmptyCell {
-        on_edit: None,
         borders: Borders::new(),
     }
 }

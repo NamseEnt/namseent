@@ -33,10 +33,35 @@ impl ImageTable {
                             .font_size(18.int_px())
                             .borders(Side::All, Line::Single)
                             .into(),
-                        Column::Label { key } => cell::text(key)
-                            .font_size(18.int_px())
-                            .borders(Side::All, Line::Single)
-                            .into(),
+                        Column::Label { key } => {
+                            let key = key.clone();
+
+                            let text = match self.sort_order_by.as_ref() {
+                                Some(sort_order_by) => match sort_order_by {
+                                    SortOrderBy::Ascending { key: sort_key }
+                                    | SortOrderBy::Descending { key: sort_key }
+                                        if sort_key.ne(&key) =>
+                                    {
+                                        key.clone()
+                                    }
+                                    SortOrderBy::Ascending { key } => format!("{} ▲", key),
+                                    SortOrderBy::Descending { key } => format!("{} ▼", key),
+                                },
+                                None => key.to_string(),
+                            };
+
+                            cell::text(text)
+                                .font_size(18.int_px())
+                                .borders(Side::All, Line::Single)
+                                .on_mouse_down(move |event| {
+                                    if event.button == Some(MouseButton::Left) {
+                                        namui::event::send(InternalEvent::LeftClickOnLabelHeader {
+                                            key: key.clone(),
+                                        });
+                                    }
+                                })
+                                .into()
+                        }
                     },
                     Row::Image { image } => match column {
                         Column::Image => cell::image(ImageSource::Url(
@@ -119,8 +144,7 @@ impl ImageTable {
             };
         }
 
-        let image_rows = self
-            .images
+        let image_rows = images
             .iter()
             .map(|image| Row::Image {
                 image: image.clone(),
