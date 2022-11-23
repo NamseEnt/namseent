@@ -30,16 +30,24 @@ pub struct Props {
 #[derive(Clone, Default)]
 pub struct EventHandler {
     pub(crate) on_key_down: Option<Arc<dyn Fn(KeyDownEvent) + 'static>>,
+    pub(crate) on_text_updated: Option<Arc<dyn Fn(&str) + 'static>>,
 }
 unsafe impl Send for EventHandler {}
 unsafe impl Sync for EventHandler {}
 
 impl EventHandler {
     pub fn new() -> Self {
-        Self { on_key_down: None }
+        Self {
+            on_key_down: None,
+            on_text_updated: None,
+        }
     }
     pub fn on_key_down(mut self, on_key_down: impl Fn(KeyDownEvent) + 'static) -> Self {
         self.on_key_down = Some(Arc::new(on_key_down));
+        self
+    }
+    pub fn on_text_updated(mut self, on_text_updated: impl Fn(&str) + 'static) -> Self {
+        self.on_text_updated = Some(Arc::new(on_text_updated));
         self
     }
 }
