@@ -47,7 +47,7 @@ impl ImageTable {
                         Column::Label { key } => cell::text(get_label_value(image, key))
                             .font_size(18.int_px())
                             .borders(Side::All, Line::Single)
-                            .edit_with_text_input({
+                            .on_change({
                                 let image_id = image.id;
                                 let label_key = key.clone();
                                 move |text| {

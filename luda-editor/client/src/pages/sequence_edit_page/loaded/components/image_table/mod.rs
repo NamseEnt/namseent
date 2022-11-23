@@ -17,7 +17,7 @@ pub struct ImageTable {
     context_menu: Option<context_menu::ContextMenu>,
     selection: Option<Selection>,
     cell_drag_context: Option<CellDragContext>,
-    sheet: sheet::Sheet<Row, Column>,
+    sheet: sheet::Sheet,
 }
 
 enum Row {

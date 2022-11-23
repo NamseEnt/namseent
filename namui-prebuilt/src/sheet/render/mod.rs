@@ -1,7 +1,7 @@
 use super::*;
 
-impl<Row, Column> Sheet<Row, Column> {
-    pub fn render<Rows, Columns, RowHeight, ColumnWidth, TCell>(
+impl Sheet {
+    pub fn render<Row, Column, Rows, Columns, RowHeight, ColumnWidth, TCell>(
         &self,
         props: Props<Row, Column, Rows, Columns, RowHeight, ColumnWidth, TCell>,
     ) -> RenderingTree
@@ -14,6 +14,33 @@ impl<Row, Column> Sheet<Row, Column> {
     {
         let columns = props.columns.into_iter().collect::<Vec<_>>();
         let rows = props.rows.into_iter().collect::<Vec<_>>();
+
+        let next_clipboard_items = [self
+            .selections
+            .iter()
+            .take(1)
+            .map(|cell_index| {
+                let row = &rows[cell_index.row];
+                let column = &columns[cell_index.column];
+                let cell = (props.cell)(&row, &column);
+                cell.copy()
+            })
+            .collect::<Vec<_>>()]
+        .into_iter()
+        .collect::<Vec<_>>();
+
+        let on_paste = {
+            let selection_left_top = self
+                .selections
+                .iter()
+                .min_by_key(|selection| (selection.row, selection.column));
+            selection_left_top.and_then(|selection_left_top| {
+                let row = &rows[selection_left_top.row];
+                let column = &columns[selection_left_top.column];
+                let cell = (props.cell)(&row, &column);
+                cell.on_paste()
+            })
+        };
 
         render([
             self.vh_list_view.render(vh_list_view::Props {
@@ -203,5 +230,29 @@ impl<Row, Column> Sheet<Row, Column> {
                 })
             })),
         ])
+        .attach_event(move |builder| {
+            let next_clipboard_items = next_clipboard_items.clone();
+            let clip_board = self.clip_board.clone();
+            let on_paste = on_paste.clone();
+            builder.on_key_down(move |event| {
+                if [Code::ControlLeft, Code::KeyC]
+                    .iter()
+                    .all(|code| event.pressing_codes.contains(code))
+                {
+                    namui::event::send(InternalEvent::CtrlCDown {
+                        clipboard_items: next_clipboard_items.clone(),
+                    });
+                } else if let Some(clip_board) = clip_board.as_ref() {
+                    if let Some(on_paste) = on_paste.as_ref() {
+                        if [Code::ControlLeft, Code::KeyV]
+                            .iter()
+                            .all(|code| event.pressing_codes.contains(code))
+                        {
+                            on_paste(clip_board[0][0].clone())
+                        }
+                    }
+                }
+            });
+        })
     }
 }

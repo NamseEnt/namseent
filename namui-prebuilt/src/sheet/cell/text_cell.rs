@@ -5,24 +5,22 @@ use std::sync::Arc;
 
 pub struct TextCell {
     text: String,
-    text_input_on_change: Option<Arc<dyn Fn(&str)>>,
-    on_edit: Option<Box<dyn Fn()>>,
+    on_change: Option<Arc<dyn Fn(&str)>>,
     font_size: Option<IntPx>,
     borders: Borders,
 }
 pub fn text(text: impl AsRef<str>) -> TextCell {
     TextCell {
         text: text.as_ref().to_string(),
-        text_input_on_change: None,
-        on_edit: None,
+        on_change: None,
         font_size: None,
         borders: Borders::new(),
     }
 }
 impl TextCell {
-    pub fn edit_with_text_input(self, text_input_on_change: impl Fn(&str) + 'static) -> Self {
+    pub fn on_change(self, on_change: impl Fn(&str) + 'static) -> Self {
         Self {
-            text_input_on_change: Some(Arc::new(text_input_on_change)),
+            on_change: Some(Arc::new(on_change)),
             ..self
         }
     }
@@ -45,7 +43,7 @@ impl Cell for TextCell {
             .font_size
             .unwrap_or_else(|| adjust_font_size(props.wh.height));
 
-        match self.text_input_on_change.as_ref() {
+        match self.on_change.as_ref() {
             Some(text_input_on_change) if props.is_editing => {
                 let text_input_on_change = text_input_on_change.clone();
                 props.text_input.render(text_input::Props {
@@ -97,6 +95,20 @@ impl Cell for TextCell {
 
     fn borders(&self) -> &Borders {
         &self.borders
+    }
+
+    fn copy(&self) -> ClipboardItem {
+        ClipboardItem::Text(self.text.clone())
+    }
+
+    fn on_paste(&self) -> Option<Arc<dyn Fn(ClipboardItem)>> {
+        self.on_change.clone().map(|on_change| {
+            Arc::new(move |clipboard_item| {
+                if let ClipboardItem::Text(text) = clipboard_item {
+                    on_change(&text);
+                }
+            }) as Arc<dyn Fn(ClipboardItem)>
+        })
     }
 }
 impl Into<Box<dyn Cell>> for TextCell {

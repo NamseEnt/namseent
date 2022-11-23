@@ -7,10 +7,10 @@ use cell::*;
 use namui::prelude::*;
 use std::collections::HashSet;
 
-pub struct Sheet<Row, Column> {
+pub struct Sheet {
     vh_list_view: vh_list_view::VHListView,
     selections: HashSet<CellIndex>,
-    clip_board: Option<Vec<RowColumn<Row, Column>>>,
+    clip_board: Option<Vec<Vec<ClipboardItem>>>,
     text_input: TextInput,
     editing_cell: Option<CellIndex>,
     color_palette: ColorPalette,
@@ -32,7 +32,7 @@ where
     pub cell: TCell,
 }
 
-impl<Row, Column> Sheet<Row, Column> {
+impl Sheet {
     pub fn new(color_palette: ColorPalette) -> Self {
         Self {
             vh_list_view: vh_list_view::VHListView::new(),
@@ -60,26 +60,19 @@ pub struct ColorPalette {
     더블 클릭 = 편집
 */
 enum InternalEvent {
-    CellMouseLeftDown { cell_index: CellIndex },
+    CellMouseLeftDown {
+        cell_index: CellIndex,
+    },
+    CtrlCDown {
+        clipboard_items: Vec<Vec<ClipboardItem>>,
+    },
+    CtrlVDown,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct CellIndex {
     pub row: usize,
     pub column: usize,
-}
-
-pub struct CopyPasteEvent<Row, Column> {
-    copy_pastes: Vec<CopyPaste<Row, Column>>,
-}
-
-struct RowColumn<Row, Column> {
-    row: Row,
-    column: Column,
-}
-struct CopyPaste<Row, Column> {
-    from: RowColumn<Row, Column>,
-    to: RowColumn<Row, Column>,
 }
 
 fn usage() {
@@ -120,7 +113,7 @@ fn usage() {
         selected_background_color: Color::from_u8(37, 49, 109, 255),
     };
 
-    let sheet = Sheet::<RowType, ColumnType>::new(color_palette);
+    let sheet = Sheet::new(color_palette);
 
     sheet.render(Props {
         wh: Wh::new(100.px(), 100.px()),
@@ -159,7 +152,7 @@ fn usage() {
                 .into(),
                 ColumnType::Label { label_index, .. } => {
                     cell::text(data.label_values[*label_index])
-                        .edit_with_text_input(|string| namui::event::send("Update label value"))
+                        .on_change(|string| namui::event::send("Update label value"))
                         .into()
                 }
             },

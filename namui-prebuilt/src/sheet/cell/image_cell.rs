@@ -36,6 +36,14 @@ impl Cell for ImageCell {
     fn borders(&self) -> &Borders {
         &self.borders
     }
+
+    fn copy(&self) -> ClipboardItem {
+        ClipboardItem::Image(self.image_source.clone())
+    }
+
+    fn on_paste(&self) -> Option<Arc<dyn Fn(ClipboardItem)>> {
+        None
+    }
 }
 
 impl Into<Box<dyn Cell>> for ImageCell {
