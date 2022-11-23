@@ -9,7 +9,10 @@ use std::collections::HashSet;
 
 pub struct Sheet {
     vh_list_view: vh_list_view::VHListView,
+    /// TODO: Support multiple selection
     selections: HashSet<CellIndex>,
+    /// TODO: Support multiple copy/paste
+    /// TODO: Support OS clipboard compatibility using CSV format
     clip_board: Option<Vec<Vec<ClipboardItem>>>,
     text_input: TextInput,
     editing_cell: Option<CellIndex>,

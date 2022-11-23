@@ -234,6 +234,8 @@ impl Sheet {
             let next_clipboard_items = next_clipboard_items.clone();
             let clip_board = self.clip_board.clone();
             let on_paste = on_paste.clone();
+            // TODO: Move using arrow key
+            // TODO: Select using shift + arrow key
             builder.on_key_down(move |event| {
                 if [Code::ControlLeft, Code::KeyC]
                     .iter()
