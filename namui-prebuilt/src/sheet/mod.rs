@@ -13,6 +13,7 @@ pub struct Sheet<Row, Column> {
     clip_board: Option<Vec<RowColumn<Row, Column>>>,
     text_input: TextInput,
     editing_cell: Option<CellIndex>,
+    color_palette: ColorPalette,
 }
 
 pub struct Props<Row, Column, Rows, Columns, RowHeight, ColumnWidth, TCell>
@@ -32,15 +33,23 @@ where
 }
 
 impl<Row, Column> Sheet<Row, Column> {
-    pub fn new() -> Self {
+    pub fn new(color_palette: ColorPalette) -> Self {
         Self {
             vh_list_view: vh_list_view::VHListView::new(),
             selections: HashSet::new(),
             clip_board: None,
             text_input: TextInput::new(),
             editing_cell: None,
+            color_palette,
         }
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct ColorPalette {
+    pub primary_color: Color,
+    pub secondary_color: Color,
+    pub background_color: Color,
 }
 
 /*
@@ -99,7 +108,13 @@ fn usage() {
         },
     ];
 
-    let sheet = Sheet::<RowType, ColumnType>::new();
+    let luda_color_palette = ColorPalette {
+        primary_color: Color::WHITE,
+        secondary_color: Color::from_u8(129, 198, 232, 255),
+        background_color: Color::BLACK,
+    };
+
+    let sheet = Sheet::<RowType, ColumnType>::new(luda_color_palette);
 
     sheet.render(Props {
         wh: Wh::new(100.px(), 100.px()),
@@ -127,15 +142,7 @@ fn usage() {
         },
         cell: |row, column| match row {
             RowType::Header => match column {
-                ColumnType::Image => cell::text("image")
-                    .borders(
-                        Side::All,
-                        Line::SingleLine {
-                            color: Color::BLACK,
-                            width: 1.px(),
-                        },
-                    )
-                    .into(),
+                ColumnType::Image => cell::text("image").borders(Side::All, Line::Single).into(),
                 ColumnType::Label { key, .. } => cell::text(key).into(),
             },
             RowType::Data(data) => match column {

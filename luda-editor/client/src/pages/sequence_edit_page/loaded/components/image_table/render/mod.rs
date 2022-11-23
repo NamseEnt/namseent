@@ -16,74 +16,53 @@ impl ImageTable {
             .into_iter()
             .chain(label_keys.into_iter().map(|key| Column::Label { key }));
 
-        let sheet = self.sheet.render(sheet::Props {
-            wh: props.wh,
-            rows,
-            columns,
-            row_height: |row| match row {
-                Row::Header => 36.px(),
-                Row::Image { .. } => 280.px(),
-            },
-            column_width: |_| 200.px(),
-            cell: |row, column| match row {
-                Row::Header => match column {
-                    Column::Image => sheet::cell::text("Image")
-                        .font_size(18.int_px())
-                        .borders(
-                            sheet::cell::Side::All,
-                            sheet::cell::Line::SingleLine {
-                                color: Color::WHITE,
-                                width: 1.px(),
-                            },
-                        )
-                        .into(),
-                    Column::Label { key } => sheet::cell::text(key)
-                        .font_size(18.int_px())
-                        .borders(
-                            sheet::cell::Side::All,
-                            sheet::cell::Line::SingleLine {
-                                color: Color::WHITE,
-                                width: 1.px(),
-                            },
-                        )
-                        .into(),
+        let sheet = {
+            use sheet::{cell, cell::*};
+            self.sheet.render(sheet::Props {
+                wh: props.wh,
+                rows,
+                columns,
+                row_height: |row| match row {
+                    Row::Header => 36.px(),
+                    Row::Image { .. } => 280.px(),
                 },
-                Row::Image { image } => match column {
-                    Column::Image => sheet::cell::image(ImageSource::Url(
-                        get_project_image_url(project_id, image.id).unwrap(),
-                    ))
-                    .borders(
-                        sheet::cell::Side::All,
-                        sheet::cell::Line::SingleLine {
-                            color: Color::WHITE,
-                            width: 1.px(),
-                        },
-                    )
-                    .into(),
-                    Column::Label { key } => sheet::cell::text(get_label_value(image, key))
-                        .font_size(18.int_px())
-                        .borders(
-                            sheet::cell::Side::All,
-                            sheet::cell::Line::SingleLine {
-                                color: Color::WHITE,
-                                width: 1.px(),
-                            },
-                        )
-                        .edit_with_text_input({
-                            let image_id = image.id;
-                            let label_key = key.clone();
-                            move |text| {
-                                namui::event::send(InternalEvent::EditLabel {
-                                    image_id,
-                                    key: label_key.clone(),
-                                    value: text.to_string(),
-                                });
-                            }
-                        })
+                column_width: |_| 200.px(),
+                cell: |row, column| match row {
+                    Row::Header => match column {
+                        Column::Image => cell::text("Image")
+                            .font_size(18.int_px())
+                            .borders(Side::All, Line::Single)
+                            .into(),
+                        Column::Label { key } => cell::text(key)
+                            .font_size(18.int_px())
+                            .borders(Side::All, Line::Single)
+                            .into(),
+                    },
+                    Row::Image { image } => match column {
+                        Column::Image => cell::image(ImageSource::Url(
+                            get_project_image_url(project_id, image.id).unwrap(),
+                        ))
+                        .borders(Side::All, Line::Single)
                         .into(),
+                        Column::Label { key } => cell::text(get_label_value(image, key))
+                            .font_size(18.int_px())
+                            .borders(Side::All, Line::Single)
+                            .edit_with_text_input({
+                                let image_id = image.id;
+                                let label_key = key.clone();
+                                move |text| {
+                                    namui::event::send(InternalEvent::EditLabel {
+                                        image_id,
+                                        key: label_key.clone(),
+                                        value: text.to_string(),
+                                    });
+                                }
+                            })
+                            .into(),
+                    },
                 },
-            },
-        });
+            })
+        };
 
         render([
             self.context_menu

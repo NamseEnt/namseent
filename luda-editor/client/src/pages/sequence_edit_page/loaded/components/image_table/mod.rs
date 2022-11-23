@@ -105,7 +105,11 @@ impl ImageTable {
             context_menu: None,
             selection: None,
             cell_drag_context: None,
-            sheet: sheet::Sheet::new(),
+            sheet: sheet::Sheet::new(sheet::ColorPalette {
+                primary_color: Color::WHITE,
+                secondary_color: Color::from_u8(129, 198, 232, 255),
+                background_color: Color::BLACK,
+            }),
         };
 
         table.request_reload_images();

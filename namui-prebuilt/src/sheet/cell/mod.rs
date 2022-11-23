@@ -28,18 +28,23 @@ pub enum Side {
 #[derive(Clone, Copy, Debug)]
 pub enum Line {
     None,
-    SingleLine {
-        color: Color,
-        width: Px,
-    },
-    DoubleLine {
-        color: Color,
-        inner_line_width: Px,
-        space_width: Px,
-        outer_line_width: Px,
-    },
+    Single,
+    Double,
 }
 
+///
+/// border
+/// border starts center pixel between cell and cell.
+/// So, there iis 1px extra pixel for border.
+///
+/// ```text
+/// ┌──────┐│┌──────┐
+/// │ cell │││ cell │
+/// └──────┘│└──────┘
+///         ^This is the 1px for start of border.
+///         Every cell's border starts from here and goes to inside of cell
+/// ```
+///
 pub struct Borders {
     pub(crate) left: Line,
     pub(crate) top: Line,
@@ -118,15 +123,3 @@ impl Into<Box<dyn Cell>> for EmptyCell {
         Box::new(self)
     }
 }
-
-/*
-border
-cell과 cell 사이 중앙 픽셀을 기준으로 한다.
-그래서 그것을 위해 테두리를 위한 1px의 빈칸이 필요하다.
-
-┌──────┐│┌──────┐
-│ cell │││ cell │
-└──────┘│└──────┘
-        ^이것이 테두리의 시작점이 되는 1px이다.
-        모든 셀의 테두리는 여기서 시작해서, 자기 내부쪽으로 들어간다.
-*/

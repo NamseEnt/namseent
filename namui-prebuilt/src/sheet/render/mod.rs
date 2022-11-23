@@ -64,86 +64,78 @@ impl<Row, Column> Sheet<Row, Column> {
                         let borders = cell.borders();
                         match borders.left {
                             Line::None => {}
-                            Line::SingleLine { color, width } => rendering_trees.push(translate(
-                                left + width / 2 - 1.px(),
-                                top - 0.5.px(),
-                                path(
-                                    PathBuilder::new().line_to(0.px(), wh.height + 1.px()),
-                                    PaintBuilder::new()
-                                        .set_color(color)
-                                        .set_style(PaintStyle::Stroke)
-                                        .set_stroke_width(width),
-                                ),
-                            )),
-                            Line::DoubleLine {
-                                color,
-                                inner_line_width,
-                                space_width,
-                                outer_line_width,
-                            } => todo!(),
+                            Line::Single => {
+                                let line_width = 1.px();
+                                rendering_trees.push(translate(
+                                    left + line_width / 2 - 1.px(),
+                                    top - 0.5.px(),
+                                    path(
+                                        PathBuilder::new().line_to(0.px(), wh.height + 1.px()),
+                                        PaintBuilder::new()
+                                            .set_color(self.color_palette.primary_color)
+                                            .set_style(PaintStyle::Stroke)
+                                            .set_stroke_width(line_width),
+                                    ),
+                                ))
+                            }
+                            Line::Double => todo!(),
                         }
 
                         match borders.right {
                             Line::None => {}
-                            Line::SingleLine { color, width } => rendering_trees.push(translate(
-                                right - width / 2 + 1.px(),
-                                top - 0.5.px(),
-                                path(
-                                    PathBuilder::new().line_to(0.px(), wh.height + 1.px()),
-                                    PaintBuilder::new()
-                                        .set_color(color)
-                                        .set_style(PaintStyle::Stroke)
-                                        .set_stroke_width(width),
-                                ),
-                            )),
-                            Line::DoubleLine {
-                                color,
-                                inner_line_width,
-                                space_width,
-                                outer_line_width,
-                            } => todo!(),
+                            Line::Single => {
+                                let stroke_width = 1.px();
+                                rendering_trees.push(translate(
+                                    right - stroke_width / 2 + 1.px(),
+                                    top - 0.5.px(),
+                                    path(
+                                        PathBuilder::new().line_to(0.px(), wh.height + 1.px()),
+                                        PaintBuilder::new()
+                                            .set_color(self.color_palette.primary_color)
+                                            .set_style(PaintStyle::Stroke)
+                                            .set_stroke_width(stroke_width),
+                                    ),
+                                ))
+                            }
+                            Line::Double => todo!(),
                         }
 
                         match borders.top {
                             Line::None => {}
-                            Line::SingleLine { color, width } => rendering_trees.push(translate(
-                                -0.5.px(),
-                                top + width / 2 - 1.px(),
-                                path(
-                                    PathBuilder::new().line_to(wh.width + 1.px(), 0.px()),
-                                    PaintBuilder::new()
-                                        .set_color(color)
-                                        .set_style(PaintStyle::Stroke)
-                                        .set_stroke_width(width),
-                                ),
-                            )),
-                            Line::DoubleLine {
-                                color,
-                                inner_line_width,
-                                space_width,
-                                outer_line_width,
-                            } => todo!(),
+                            Line::Single => {
+                                let stroke_width = 1.px();
+                                rendering_trees.push(translate(
+                                    -0.5.px(),
+                                    top + stroke_width / 2 - 1.px(),
+                                    path(
+                                        PathBuilder::new().line_to(wh.width + 1.px(), 0.px()),
+                                        PaintBuilder::new()
+                                            .set_color(self.color_palette.primary_color)
+                                            .set_style(PaintStyle::Stroke)
+                                            .set_stroke_width(stroke_width),
+                                    ),
+                                ))
+                            }
+                            Line::Double => todo!(),
                         }
 
                         match borders.bottom {
                             Line::None => {}
-                            Line::SingleLine { color, width } => rendering_trees.push(translate(
-                                -0.5.px(),
-                                top + cell_wh.height - width / 2 + 1.px(),
-                                path(
-                                    PathBuilder::new().line_to(wh.width + 1.px(), 0.px()),
-                                    PaintBuilder::new()
-                                        .set_color(color)
-                                        .set_style(PaintStyle::Stroke)
-                                        .set_stroke_width(width),
-                                ),
-                            )),
-                            Line::DoubleLine {
-                                color,
-                                inner_line_width,
-                                space_width,
-                                outer_line_width,
-                            } => todo!(),
+                            Line::Single => {
+                                let stroke_width = 1.px();
+                                rendering_trees.push(translate(
+                                    -0.5.px(),
+                                    top + cell_wh.height - stroke_width / 2 + 1.px(),
+                                    path(
+                                        PathBuilder::new().line_to(wh.width + 1.px(), 0.px()),
+                                        PaintBuilder::new()
+                                            .set_color(self.color_palette.primary_color)
+                                            .set_style(PaintStyle::Stroke)
+                                            .set_stroke_width(stroke_width),
+                                    ),
+                                ))
+                            }
+                            Line::Double => todo!(),
                         }
 
                         render(rendering_trees)
