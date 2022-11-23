@@ -11,7 +11,17 @@ pub fn image(image_source: ImageSource) -> ImageCell {
     }
 }
 
-impl Cell for ImageCell {
+impl ImageCell {
+    pub fn borders(mut self, side: Side, line: Line) -> Self {
+        self.borders.add(side, line);
+        self
+    }
+    pub fn build(self) -> Cell {
+        Cell::new(Box::new(self))
+    }
+}
+
+impl CellTrait for ImageCell {
     fn render(&self, props: Props) -> RenderingTree {
         namui::image(ImageParam {
             rect: Rect::from_xy_wh(Xy::zero(), props.wh),
@@ -33,18 +43,5 @@ impl Cell for ImageCell {
 
     fn on_paste(&self) -> Option<Arc<dyn Fn(ClipboardItem)>> {
         None
-    }
-}
-
-impl Into<Box<dyn Cell>> for ImageCell {
-    fn into(self) -> Box<dyn Cell> {
-        Box::new(self)
-    }
-}
-
-impl ImageCell {
-    pub fn borders(mut self, side: Side, line: Line) -> Self {
-        self.borders.add(side, line);
-        self
     }
 }

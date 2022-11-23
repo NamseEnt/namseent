@@ -25,7 +25,7 @@ where
     Columns: IntoIterator<Item = Column>,
     RowHeight: Fn(&Row) -> Px,
     ColumnWidth: Fn(&Column) -> Px,
-    TCell: Fn(&Row, &Column) -> Box<dyn Cell>,
+    TCell: Fn(&Row, &Column) -> Cell,
 {
     pub wh: Wh<Px>,
     pub rows: Rows,
@@ -140,18 +140,18 @@ fn usage_code() {
         },
         cell: |row, column| match row {
             RowType::Header => match column {
-                ColumnType::Image => cell::text("image").borders(Side::All, Line::Single).into(),
-                ColumnType::Label { key, .. } => cell::text(key).into(),
+                ColumnType::Image => cell::text("image").borders(Side::All, Line::Single).build(),
+                ColumnType::Label { key, .. } => cell::text(key).build(),
             },
             RowType::Data(data) => match column {
                 ColumnType::Image => cell::image(ImageSource::Url(
                     Url::parse(&format!("https://example.com/{}.png", data.image_id)).unwrap(),
                 ))
-                .into(),
+                .build(),
                 ColumnType::Label { label_index, .. } => {
                     cell::text(data.label_values[*label_index])
                         .on_change(|_string| namui::event::send("Update label value"))
-                        .into()
+                        .build()
                 }
             },
         },

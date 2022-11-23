@@ -8,7 +8,7 @@ pub fn empty() -> EmptyCell {
         borders: Borders::new(),
     }
 }
-impl Cell for EmptyCell {
+impl CellTrait for EmptyCell {
     fn render(&self, _props: Props) -> RenderingTree {
         RenderingTree::Empty
     }
@@ -30,9 +30,7 @@ impl EmptyCell {
         self.borders.add(side, line);
         self
     }
-}
-impl Into<Box<dyn Cell>> for EmptyCell {
-    fn into(self) -> Box<dyn Cell> {
-        Box::new(self)
+    pub fn build(self) -> Cell {
+        Cell::new(Box::new(self))
     }
 }

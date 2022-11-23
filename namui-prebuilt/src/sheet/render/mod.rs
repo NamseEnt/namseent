@@ -10,7 +10,7 @@ impl Sheet {
         Columns: IntoIterator<Item = Column>,
         RowHeight: Fn(&Row) -> Px,
         ColumnWidth: Fn(&Column) -> Px,
-        TCell: Fn(&Row, &Column) -> Box<dyn Cell>,
+        TCell: Fn(&Row, &Column) -> Cell,
     {
         let columns = props.columns.into_iter().collect::<Vec<_>>();
         let rows = props.rows.into_iter().collect::<Vec<_>>();
@@ -23,7 +23,7 @@ impl Sheet {
                 let row = &rows[cell_index.row];
                 let column = &columns[cell_index.column];
                 let cell = (props.cell)(&row, &column);
-                cell.copy()
+                cell.inner.copy()
             })
             .collect::<Vec<_>>()]
         .into_iter()
@@ -38,7 +38,7 @@ impl Sheet {
                 let row = &rows[selection_left_top.row];
                 let column = &columns[selection_left_top.column];
                 let cell = (props.cell)(&row, &column);
-                cell.on_paste()
+                cell.inner.on_paste()
             })
         };
 
@@ -75,11 +75,15 @@ impl Sheet {
                                     Color::TRANSPARENT,
                                 )
                                 .attach_event(|builder| {
+                                    let on_mouse_down = cell.on_mouse_down.clone();
                                     builder.on_mouse_down_in(move |event| {
                                         if event.button == Some(MouseButton::Left) {
                                             namui::event::send(InternalEvent::CellMouseLeftDown {
                                                 cell_index,
                                             })
+                                        }
+                                        if let Some(on_mouse_down) = on_mouse_down.as_ref() {
+                                            on_mouse_down(event)
                                         }
                                     });
                                 }),
@@ -87,7 +91,7 @@ impl Sheet {
                                     PathBuilder::new()
                                         .add_rect(Rect::from_xy_wh(Xy::zero(), cell_wh)),
                                     ClipOp::Intersect,
-                                    cell.render(cell::Props {
+                                    cell.inner.render(cell::Props {
                                         wh: cell_wh,
                                         is_editing: self.editing_cell == Some(cell_index),
                                         is_selected,
@@ -135,7 +139,7 @@ impl Sheet {
                             };
 
                             let mut rendering_trees = vec![];
-                            let borders = cell.borders();
+                            let borders = cell.inner.borders();
                             match borders.left {
                                 Line::None => {}
                                 Line::Single => {

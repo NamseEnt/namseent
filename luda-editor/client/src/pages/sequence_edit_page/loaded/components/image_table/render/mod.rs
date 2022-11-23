@@ -1,10 +1,6 @@
-// mod header_row;
-// mod row;
-
 use super::*;
 use crate::storage::get_project_image_url;
 use namui_prebuilt::*;
-// use row::*;
 use std::collections::BTreeSet;
 
 impl ImageTable {
@@ -32,7 +28,7 @@ impl ImageTable {
                         Column::Image => cell::text("Image")
                             .font_size(18.int_px())
                             .borders(Side::All, Line::Single)
-                            .into(),
+                            .build(),
                         Column::Label { key } => {
                             let key = key.clone();
 
@@ -53,6 +49,7 @@ impl ImageTable {
                             cell::text(text)
                                 .font_size(18.int_px())
                                 .borders(Side::All, Line::Single)
+                                .build()
                                 .on_mouse_down(move |event| {
                                     if event.button == Some(MouseButton::Left) {
                                         namui::event::send(InternalEvent::LeftClickOnLabelHeader {
@@ -60,7 +57,6 @@ impl ImageTable {
                                         });
                                     }
                                 })
-                                .into()
                         }
                     },
                     Row::Image { image } => match column {
@@ -68,7 +64,7 @@ impl ImageTable {
                             get_project_image_url(project_id, image.id).unwrap(),
                         ))
                         .borders(Side::All, Line::Single)
-                        .into(),
+                        .build(),
                         Column::Label { key } => cell::text(get_label_value(image, key))
                             .font_size(18.int_px())
                             .borders(Side::All, Line::Single)
@@ -83,8 +79,19 @@ impl ImageTable {
                                     });
                                 }
                             })
-                            .into(),
-                    },
+                            .build(),
+                    }
+                    .on_mouse_down({
+                        let image_id = image.id;
+                        move |event| {
+                            if event.button == Some(MouseButton::Right) {
+                                namui::event::send(InternalEvent::RightClickOnImageRow {
+                                    image_id,
+                                    global_xy: event.global_xy,
+                                });
+                            }
+                        }
+                    }),
                 },
             })
         };

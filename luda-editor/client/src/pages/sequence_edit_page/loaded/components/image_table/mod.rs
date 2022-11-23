@@ -43,22 +43,6 @@ enum InternalEvent {
     LeftClickOnLabelHeader {
         key: String,
     },
-    LabelCellMouseLeftDown {
-        image_id: Uuid,
-        label_key: String,
-        row_index: usize,
-        column_index: usize,
-    },
-    LabelCellMouseMove {
-        row_index: usize,
-        column_index: usize,
-    },
-    LabelCellMouseLeftUp {
-        image_id: Uuid,
-        label_key: String,
-        row_index: usize,
-        column_index: usize,
-    },
     PutImageMetaDataSuccess,
     RightClickOnImageRow {
         image_id: Uuid,
