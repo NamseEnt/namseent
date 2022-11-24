@@ -118,7 +118,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/init-test-job
       - run: cargo test --manifest-path luda-editor/rpc/Cargo.toml
-      - run: cargo test --manifest-path luda-editor/server/Cargo.toml      
+      - run: cargo test --manifest-path luda-editor/server/Cargo.toml
       - uses: ./.github/actions/namui-test
         with:
           target: wasm-unknown-web
@@ -223,6 +223,7 @@ jobs:
       - test-namui-animation-editor
       - test-luda-adventure
     steps:
+      - run: echo ${{join(needs.*.result, ',')}}
       - run: ANY_TEST_FAILED=${{!contains(join(needs.*.result, ','), 'failure')}}
       - run: echo $ANY_TEST_FAILED
       - run: |
