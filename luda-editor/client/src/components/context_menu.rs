@@ -34,6 +34,7 @@ pub enum Event {
 
 enum InternalEvent {
     MouseOver { item_id: namui::Uuid },
+    MouseOverOut { item_id: namui::Uuid },
     MouseOverClear,
 }
 
@@ -70,18 +71,42 @@ impl ContextMenu {
                     ref on_click,
                 } => {
                     next_y += cell_wh.height;
-                    let is_selected = self.mouse_over_item_id.as_ref() == Some(&id);
-                    let background = if is_selected {
-                        simple_rect(
-                            cell_wh,
-                            Color::TRANSPARENT,
-                            0.px(),
-                            Color::from_u8(129, 198, 232, 255),
+                    let is_mouse_over = self.mouse_over_item_id.as_ref() == Some(&id);
+                    let background_with_event_handler = {
+                        let fill_color = if is_mouse_over {
+                            Color::from_u8(129, 198, 232, 255)
+                        } else {
+                            Color::TRANSPARENT
+                        };
+                        simple_rect(cell_wh, Color::TRANSPARENT, 0.px(), fill_color).attach_event(
+                            move |builder| {
+                                let on_click = on_click.clone();
+                                if is_mouse_over {
+                                    builder.on_mouse_move_out(move |_| {
+                                        namui::event::send(InternalEvent::MouseOverOut {
+                                            item_id: id,
+                                        })
+                                    });
+                                } else {
+                                    builder.on_mouse_move_in(move |_| {
+                                        namui::event::send(InternalEvent::MouseOver { item_id: id })
+                                    });
+                                }
+                                builder
+                                    .on_mouse_down_in(move |event| {
+                                        if let Some(MouseButton::Left) = event.button {
+                                            event.stop_propagation();
+                                            (on_click)();
+                                            namui::event::send(Event::Close);
+                                        }
+                                    })
+                                    .on_mouse_down_out(|_| {
+                                        namui::event::send(Event::Close);
+                                    });
+                            },
                         )
-                    } else {
-                        RenderingTree::Empty
                     };
-                    let text_color = if is_selected {
+                    let text_color = if is_mouse_over {
                         Color::BLACK
                     } else {
                         Color::WHITE
@@ -91,7 +116,7 @@ impl ContextMenu {
                         0.px(),
                         y,
                         render([
-                            background,
+                            background_with_event_handler,
                             typography::body::left(
                                 cell_wh.height,
                                 format!("  {}", text),
@@ -99,23 +124,6 @@ impl ContextMenu {
                             ),
                         ]),
                     )
-                    .attach_event(move |builder| {
-                        let on_click = on_click.clone();
-                        builder
-                            .on_mouse_move_in(move |_| {
-                                namui::event::send(InternalEvent::MouseOver { item_id: id })
-                            })
-                            .on_mouse_down_in(move |event| {
-                                if let Some(MouseButton::Left) = event.button {
-                                    event.stop_propagation();
-                                    (on_click)();
-                                    namui::event::send(Event::Close);
-                                }
-                            })
-                            .on_mouse_down_out(|_| {
-                                namui::event::send(Event::Close);
-                            });
-                    })
                 }
                 Item::Divider => {
                     next_y += divider_height;
@@ -149,6 +157,14 @@ impl ContextMenu {
         event.is::<InternalEvent>(|event| match event {
             &InternalEvent::MouseOver { item_id } => {
                 self.mouse_over_item_id = Some(item_id);
+            }
+            InternalEvent::MouseOverClear => {
+                self.mouse_over_item_id = None;
+            }
+            &InternalEvent::MouseOverOut { item_id } => {
+                if self.mouse_over_item_id.as_ref() == Some(&item_id) {
+                    self.mouse_over_item_id = None;
+                }
             }
             InternalEvent::MouseOverClear => {
                 self.mouse_over_item_id = None;

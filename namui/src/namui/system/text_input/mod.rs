@@ -169,6 +169,19 @@ fn on_text_element_input(input_element: &HtmlTextAreaElement) {
     }
     let last_focused_text_input = last_focused_text_input.as_ref().unwrap();
 
+    last_focused_text_input
+        .props
+        .event_handler
+        .as_ref()
+        .map(|event_handler| {
+            event_handler
+                .on_text_updated
+                .as_ref()
+                .map(|on_text_updated| {
+                    on_text_updated(&text);
+                })
+        });
+
     crate::event::send(text_input::Event::TextUpdated {
         id: last_focused_text_input.id.clone(),
         text: text.to_string(),
