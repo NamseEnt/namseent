@@ -166,9 +166,6 @@ impl ContextMenu {
                     self.mouse_over_item_id = None;
                 }
             }
-            InternalEvent::MouseOverClear => {
-                self.mouse_over_item_id = None;
-            }
         });
     }
 }
