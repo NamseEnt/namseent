@@ -12,7 +12,7 @@ pub struct Props {
 }
 
 impl Header {
-    pub fn update(&mut self, _event: &dyn std::any::Any) {}
+    pub fn update(&mut self, _event: &namui::Event) {}
     pub fn render(&self, props: Props) -> RenderingTree {
         let button_rect = Rect::Xywh {
             x: px(2.0),

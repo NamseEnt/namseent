@@ -3,7 +3,6 @@ use once_cell::sync::OnceCell;
 use std::any::Any;
 use tokio::sync::mpsc::{self, unbounded_channel};
 
-pub type Event = Box<dyn Any + Send + Sync>;
 static EVENT_SENDER: OnceCell<mpsc::UnboundedSender<Event>> = OnceCell::new();
 pub(crate) type EventReceiver = mpsc::UnboundedReceiver<Event>;
 
@@ -14,7 +13,29 @@ pub fn init() -> EventReceiver {
 }
 
 pub fn send(event: impl Any + Send + Sync) {
-    EVENT_SENDER.get().unwrap().send(Box::new(event)).unwrap();
+    EVENT_SENDER
+        .get()
+        .unwrap()
+        .send(Event {
+            inner: Box::new(event),
+        })
+        .unwrap();
+}
+
+#[derive(Debug)]
+pub struct Event {
+    inner: Box<dyn Any + Send + Sync>,
+}
+impl Event {
+    pub fn is<T: 'static>(&self, callback: impl FnOnce(&T)) -> &Self {
+        if let Some(event) = self.inner.downcast_ref::<T>() {
+            callback(event);
+        }
+        self
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.inner.downcast_ref::<T>()
+    }
 }
 
 #[derive(Debug)]
@@ -41,8 +62,12 @@ mod tests {
             Test,
         }
         super::send(Event::Test);
+        let mut is_called = false;
         let event = event_receiver.recv().await.unwrap();
-        let downcasted = event.downcast_ref::<Event>().unwrap();
-        assert_eq!(downcasted, &Event::Test);
+        event.is::<Event>(|event| {
+            is_called = true;
+            assert_eq!(event, &Event::Test);
+        });
+        assert!(is_called);
     }
 }

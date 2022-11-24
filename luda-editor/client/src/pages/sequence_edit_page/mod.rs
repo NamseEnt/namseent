@@ -26,31 +26,29 @@ impl SequenceEditPage {
         load_data(sequence_id);
         Self::Loading { error: None }
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
-            match event {
-                Event::DataLoaded {
-                    project_shared_data,
-                    sequence,
-                } => match self {
-                    SequenceEditPage::Loading { .. } => {
-                        *self = SequenceEditPage::Loaded(LoadedSequenceEditorPage::new(
-                            project_shared_data.clone(),
-                            sequence.clone(),
-                        ));
-                    }
-                    SequenceEditPage::Loaded(_) => unreachable!(),
-                },
-                Event::ErrorOnLoading(error) => match self {
-                    SequenceEditPage::Loading {
-                        error: page_error, ..
-                    } => {
-                        *page_error = Some(error.clone());
-                    }
-                    SequenceEditPage::Loaded(_) => unreachable!(),
-                },
-            }
-        }
+    pub fn update(&mut self, event: &namui::Event) {
+        event.is::<Event>(|event| match event {
+            Event::DataLoaded {
+                project_shared_data,
+                sequence,
+            } => match self {
+                SequenceEditPage::Loading { .. } => {
+                    *self = SequenceEditPage::Loaded(LoadedSequenceEditorPage::new(
+                        project_shared_data.clone(),
+                        sequence.clone(),
+                    ));
+                }
+                SequenceEditPage::Loaded(_) => unreachable!(),
+            },
+            Event::ErrorOnLoading(error) => match self {
+                SequenceEditPage::Loading {
+                    error: page_error, ..
+                } => {
+                    *page_error = Some(error.clone());
+                }
+                SequenceEditPage::Loaded(_) => unreachable!(),
+            },
+        });
         match self {
             SequenceEditPage::Loading { error: _ } => {}
             SequenceEditPage::Loaded(loaded) => loaded.update(event),

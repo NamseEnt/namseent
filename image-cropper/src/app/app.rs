@@ -8,7 +8,7 @@ pub struct App {
 impl Entity for App {
     type Props = ();
 
-    fn update(&mut self, event: &dyn std::any::Any) {
+    fn update(&mut self, event: &namui::Event) {
         self.router.update(event);
     }
 

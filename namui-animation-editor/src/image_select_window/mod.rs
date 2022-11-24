@@ -31,48 +31,46 @@ impl ImageSelectWindow {
             animation_history,
         }
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
-            match event {
-                Event::ImageSelected {
-                    url,
-                    selected_layer_id,
-                } => {
-                    struct SelectImageAction {
-                        url: Url,
-                        layer_id: namui::Uuid,
-                    }
-                    impl Act<Animation> for SelectImageAction {
-                        fn act(
-                            &self,
-                            state: &Animation,
-                        ) -> Result<Animation, Box<dyn std::error::Error>> {
-                            let mut animation = state.clone();
+    pub fn update(&mut self, event: &namui::Event) {
+        event.is::<Event>(|event| match event {
+            Event::ImageSelected {
+                url,
+                selected_layer_id,
+            } => {
+                struct SelectImageAction {
+                    url: Url,
+                    layer_id: namui::Uuid,
+                }
+                impl Act<Animation> for SelectImageAction {
+                    fn act(
+                        &self,
+                        state: &Animation,
+                    ) -> Result<Animation, Box<dyn std::error::Error>> {
+                        let mut animation = state.clone();
 
-                            if let Some(layer) = animation
-                                .layers
-                                .iter_mut()
-                                .find(|layer| layer.id.eq(&self.layer_id))
-                            {
-                                layer.image.image_source_url = Some(self.url.clone());
-                                Ok(animation)
-                            } else {
-                                Err("layer not found".into())
-                            }
+                        if let Some(layer) = animation
+                            .layers
+                            .iter_mut()
+                            .find(|layer| layer.id.eq(&self.layer_id))
+                        {
+                            layer.image.image_source_url = Some(self.url.clone());
+                            Ok(animation)
+                        } else {
+                            Err("layer not found".into())
                         }
                     }
+                }
 
-                    if let Some(action_ticket) =
-                        self.animation_history.try_set_action(SelectImageAction {
-                            url: url.clone(),
-                            layer_id: selected_layer_id.clone(),
-                        })
-                    {
-                        self.animation_history.act(action_ticket).unwrap();
-                    }
+                if let Some(action_ticket) =
+                    self.animation_history.try_set_action(SelectImageAction {
+                        url: url.clone(),
+                        layer_id: selected_layer_id.clone(),
+                    })
+                {
+                    self.animation_history.act(action_ticket).unwrap();
                 }
             }
-        }
+        });
         self.list_view.update(event);
     }
     pub fn render(&self, props: Props) -> RenderingTree {

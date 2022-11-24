@@ -21,7 +21,7 @@ impl AnimationEditor {
             animation_history,
         }
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
+    pub fn update(&mut self, event: &namui::Event) {
         self.time_point_editor.update(event);
         self.layer_list_window.update(event);
     }

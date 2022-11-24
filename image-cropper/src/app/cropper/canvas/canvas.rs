@@ -29,9 +29,9 @@ impl Canvas {
         }
     }
 
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<CanvasEvent>() {
-            match &event {
+    pub fn update(&mut self, event: &namui::Event) {
+        event
+            .is::<CanvasEvent>(|event| match &event {
                 CanvasEvent::Scrolled { offset } => self.offset = offset.clone(),
                 CanvasEvent::Zoomed { offset, scale } => {
                     self.offset = offset.clone();
@@ -41,10 +41,8 @@ impl Canvas {
                     self.canvas_drag_state = drag_state.clone();
                 }
                 _ => (),
-            }
-        }
-        if let Some(event) = event.downcast_ref::<NamuiEvent>() {
-            match &event {
+            })
+            .is::<NamuiEvent>(|event| match &event {
                 NamuiEvent::MouseUp(_) => {
                     self.canvas_drag_state = CanvasDragState::None;
                 }
@@ -79,8 +77,7 @@ impl Canvas {
                     _ => (),
                 },
                 _ => (),
-            }
-        }
+            });
         self.tool.update(event);
     }
 

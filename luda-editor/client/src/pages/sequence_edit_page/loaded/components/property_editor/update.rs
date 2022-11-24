@@ -3,8 +3,8 @@ use crate::{pages::sequence_edit_page::timeline, storage::Circumscribed};
 use std::sync::Arc;
 
 impl PropertyEditor {
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
+    pub fn update(&mut self, event: &namui::Event) {
+        event.is::<Event>(|event| {
             match event {
                 Event::LayerListPlusButtonClicked { image_clip_address } => {
                     self.editor_history_system
@@ -31,7 +31,7 @@ impl PropertyEditor {
                         });
                 }
             }
-        } else if let Some(event) = event.downcast_ref::<timeline::Event>() {
+        } ).is::<timeline::Event>(|event| {
             match event {
                 timeline::Event::OpenContextMenu(_)
                 | timeline::Event::CloseContextMenu
@@ -60,7 +60,7 @@ impl PropertyEditor {
                     self.content = PropertyContent::Nothing;
                 }
             }
-        } else if let Some(event) = event.downcast_ref::<crate::pages::sequence_edit_page::Event>()
+        } ).is::<crate::pages::sequence_edit_page::Event>()
         {
             match event {
                 crate::pages::sequence_edit_page::Event::SelectCut(_)

@@ -32,34 +32,32 @@ impl ProjectListPage {
             error_message: None,
         }
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
-            match event {
-                Event::AddButtonClicked => spawn_local(async move {
-                    match crate::RPC
-                        .create_project(rpc::create_project::Request {
-                            name: "new project".to_string(),
-                        })
-                        .await
-                    {
-                        Ok(_) => {
-                            start_fetch_list();
-                        }
-                        Err(error) => {
-                            namui::event::send(Event::Error(error.to_string()));
-                        }
+    pub fn update(&mut self, event: &namui::Event) {
+        event.is::<Event>(|event| match event {
+            Event::AddButtonClicked => spawn_local(async move {
+                match crate::RPC
+                    .create_project(rpc::create_project::Request {
+                        name: "new project".to_string(),
+                    })
+                    .await
+                {
+                    Ok(_) => {
+                        start_fetch_list();
                     }
-                }),
-                Event::ProjectListLoaded(projects) => {
-                    self.project_list = projects.to_vec();
-                    self.is_loading = false;
+                    Err(error) => {
+                        namui::event::send(Event::Error(error.to_string()));
+                    }
                 }
-                Event::Error(message) => {
-                    namui::log!("error: {}", message);
-                    self.error_message = Some(message.to_string());
-                }
+            }),
+            Event::ProjectListLoaded(projects) => {
+                self.project_list = projects.to_vec();
+                self.is_loading = false;
             }
-        }
+            Event::Error(message) => {
+                namui::log!("error: {}", message);
+                self.error_message = Some(message.to_string());
+            }
+        });
     }
     pub fn render(&self, props: Props) -> namui::RenderingTree {
         if let Some(error_message) = &self.error_message {

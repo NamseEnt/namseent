@@ -22,18 +22,16 @@ enum Event {
 impl namui::Entity for App {
     type Props = ();
 
-    fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
-            match event {
-                Event::LoggedIn => {
-                    *self = App::LoggedIn {
-                        router: router::Router::new(router::Route::ProjectListPage(
-                            ProjectListPage::new(),
-                        )),
-                    };
-                }
+    fn update(&mut self, event: &namui::Event) {
+        event.is::<Event>(|event| match event {
+            Event::LoggedIn => {
+                *self = App::LoggedIn {
+                    router: router::Router::new(router::Route::ProjectListPage(
+                        ProjectListPage::new(),
+                    )),
+                };
             }
-        }
+        });
 
         self.update_login(event);
 

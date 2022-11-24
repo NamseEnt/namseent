@@ -10,30 +10,30 @@ pub enum Event {
 }
 
 impl App {
-    pub fn update_login(&mut self, event: &dyn std::any::Any) {
-        if let Some(namui::NamuiEvent::DeepLinkOpened(DeepLinkOpenedEvent { url })) =
-            event.downcast_ref()
-        {
-            match Url::parse(url) {
-                Ok(url) => {
-                    let code = url.query_pairs().find(|(key, _)| key == "code");
-                    if let Some((_, code)) = code {
-                        login_with_oauth_code(code.to_string());
+    pub fn update_login(&mut self, event: &namui::Event) {
+        event
+            .is::<namui::NamuiEvent>(|event| {
+                if let namui::NamuiEvent::DeepLinkOpened(DeepLinkOpenedEvent { url }) = event {
+                    match Url::parse(url) {
+                        Ok(url) => {
+                            let code = url.query_pairs().find(|(key, _)| key == "code");
+                            if let Some((_, code)) = code {
+                                login_with_oauth_code(code.to_string());
+                            }
+                        }
+                        Err(error) => {
+                            namui::log!("Error for deep link {url}: {error}");
+                        }
                     }
                 }
-                Err(error) => {
-                    namui::log!("Error for deep link {url}: {error}");
-                }
-            }
-        } else if let Some(event) = event.downcast_ref::<Event>() {
-            match event {
+            })
+            .is::<Event>(|event| match event {
                 Event::SessionId(session_id) => {
                     crate::RPC.set_session_id(*session_id);
                     namui::event::send(super::Event::LoggedIn);
                 }
                 Event::Error(error) => namui::log!("error: {}", error),
-            }
-        }
+            });
     }
 }
 

@@ -153,21 +153,22 @@ impl ContextMenu {
             }),
         ))
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<InternalEvent>() {
-            match event {
-                &InternalEvent::MouseOver { item_id } => {
-                    self.mouse_over_item_id = Some(item_id);
-                }
-                InternalEvent::MouseOverClear => {
+    pub fn update(&mut self, event: &namui::Event) {
+        event.is::<InternalEvent>(|event| match event {
+            &InternalEvent::MouseOver { item_id } => {
+                self.mouse_over_item_id = Some(item_id);
+            }
+            InternalEvent::MouseOverClear => {
+                self.mouse_over_item_id = None;
+            }
+            &InternalEvent::MouseOverOut { item_id } => {
+                if self.mouse_over_item_id.as_ref() == Some(&item_id) {
                     self.mouse_over_item_id = None;
                 }
-                &InternalEvent::MouseOverOut { item_id } => {
-                    if self.mouse_over_item_id.as_ref() == Some(&item_id) {
-                        self.mouse_over_item_id = None;
-                    }
-                }
             }
-        }
+            InternalEvent::MouseOverClear => {
+                self.mouse_over_item_id = None;
+            }
+        });
     }
 }

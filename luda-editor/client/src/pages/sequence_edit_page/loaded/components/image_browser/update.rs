@@ -1,8 +1,8 @@
 use super::*;
 
 impl ImageBrowser {
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
+    pub fn update(&mut self, event: &namui::Event) {
+        event.is::<Event>(|event| {
             match event {
                 Event::PlusButtonClicked => {
                     let storage = self.storage.clone();

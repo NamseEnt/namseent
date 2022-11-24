@@ -24,17 +24,15 @@ impl ScrollView {
             scroll_y: px(0.0),
         }
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
-            match *event {
-                Event::Scrolled(id, scroll_y) => {
-                    if id != self.id {
-                        return;
-                    }
-                    self.scroll_y = scroll_y;
+    pub fn update(&mut self, event: &namui::Event) {
+        event.is::<Event>(|event| match *event {
+            Event::Scrolled(id, scroll_y) => {
+                if id != self.id {
+                    return;
                 }
+                self.scroll_y = scroll_y;
             }
-        }
+        });
     }
     pub fn render(&self, props: &Props) -> RenderingTree {
         let button_id = self.id.clone();

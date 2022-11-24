@@ -3,9 +3,9 @@ use crate::types::Act;
 pub(crate) mod dragging;
 
 impl WysiwygWindow {
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
-            match event {
+    pub fn update(&mut self, event: &namui::Event) {
+        event
+            .is::<Event>(|event| match event {
                 Event::BackgroundClicked { mouse_xy } => {
                     if self.dragging.is_none() {
                         self.dragging = Some(Dragging::Background {
@@ -106,9 +106,8 @@ impl WysiwygWindow {
                         }
                     }
                 }
-            }
-        } else if let Some(event) = event.downcast_ref::<NamuiEvent>() {
-            match event {
+            })
+            .is::<NamuiEvent>(|event| match event {
                 NamuiEvent::MouseUp(_) => {
                     match &self.dragging {
                         Some(dragging) => match dragging {
@@ -131,8 +130,7 @@ impl WysiwygWindow {
                     }
                 }
                 _ => {}
-            }
-        }
+            });
     }
 
     fn center_viewport(&mut self, wh: Wh<Px>) {

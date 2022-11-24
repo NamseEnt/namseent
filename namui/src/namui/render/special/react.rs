@@ -41,7 +41,7 @@ impl std::fmt::Debug for ReactNode {
 
 pub trait React {
     fn render(&self, props: &dyn Any) -> RenderingTree;
-    fn update(&mut self, event: &dyn Any);
+    fn update(&mut self, event: &crate::Event);
 }
 
 pub fn react<TReact, TCreateEntity, TProps>(
@@ -74,7 +74,7 @@ impl ReactNode {
             }
         }
     }
-    pub(crate) fn reconciliate(&self, prev_node: Option<&ReactNode>, event: Option<&dyn Any>) {
+    pub(crate) fn reconciliate(&self, prev_node: Option<&ReactNode>, event: Option<&crate::Event>) {
         let mut entity = match prev_node {
             Some(prev_node) if prev_node.type_id == self.type_id => {
                 prev_node.react_entity.lock().unwrap().take().unwrap()
@@ -96,7 +96,11 @@ impl ReactNode {
     }
 }
 
-pub fn reconciliate(prev_tree: &RenderingTree, next_tree: &RenderingTree, event: Option<&dyn Any>) {
+pub fn reconciliate(
+    prev_tree: &RenderingTree,
+    next_tree: &RenderingTree,
+    event: Option<&crate::Event>,
+) {
     match next_tree {
         RenderingTree::Node(_) => {}
         RenderingTree::Children(children) => {
@@ -146,7 +150,7 @@ fn is_same_special_variant(a: &SpecialRenderingNode, b: &SpecialRenderingNode) -
     std::mem::discriminant(a) == std::mem::discriminant(b)
 }
 
-fn renew_react(tree: &RenderingTree, event: Option<&dyn Any>) {
+fn renew_react(tree: &RenderingTree, event: Option<&crate::Event>) {
     match tree {
         RenderingTree::Node(_) => {}
         RenderingTree::Children(children) => {

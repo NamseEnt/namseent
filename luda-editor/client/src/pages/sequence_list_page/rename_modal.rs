@@ -22,7 +22,7 @@ impl RenameModal {
             sequence_name,
         }
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
+    pub fn update(&mut self, event: &namui::Event) {
         if let Some(text_input::Event::TextUpdated { id, text, .. }) = event.downcast_ref() {
             if self.text_input.get_id().eq(id) {
                 self.sequence_name = text.clone();

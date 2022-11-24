@@ -1,9 +1,9 @@
 use super::*;
 
 impl ImageTable {
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<InternalEvent>() {
-            match event {
+    pub fn update(&mut self, event: &namui::Event) {
+        event
+            .is::<InternalEvent>(|event| match event {
                 InternalEvent::LoadImages(images) => {
                     self.images = images.clone();
                 }
@@ -137,9 +137,8 @@ impl ImageTable {
                     }
                     self.context_menu = None;
                 }
-            }
-        } else if let Some(event) = event.downcast_ref::<text_input::Event>() {
-            match event {
+            })
+            .is::<text_input::Event>(|event| match event {
                 text_input::Event::TextUpdated { id, text } => {
                     if id == self.text_input.get_id() {
                         let editing_target = self.editing_target.as_ref().unwrap();
@@ -165,14 +164,12 @@ impl ImageTable {
                     }
                 }
                 _ => {}
-            }
-        } else if let Some(event) = event.downcast_ref::<context_menu::Event>() {
-            match event {
+            })
+            .is::<context_menu::Event>(|event| match event {
                 context_menu::Event::Close => {
                     self.context_menu = None;
                 }
-            }
-        }
+            });
         self.list_view.update(event);
         self.context_menu.as_mut().map(|context_menu| {
             context_menu.update(event);

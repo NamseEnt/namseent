@@ -33,36 +33,32 @@ impl LayerListWindow {
             selected_layer_id: None,
         }
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
-            match event {
-                Event::AddLayerButtonClicked => {
-                    struct AddLayerAction;
-                    impl Act<Animation> for AddLayerAction {
-                        fn act(
-                            &self,
-                            state: &Animation,
-                        ) -> Result<Animation, Box<dyn std::error::Error>> {
-                            let mut animation = state.clone();
-                            animation.layers.push(animation::Layer {
-                                id: namui::uuid(),
-                                name: "New Layer".to_string(),
-                                image: namui::animation::AnimatableImage::new(),
-                            });
-                            Ok(animation)
-                        }
-                    }
-                    if let Some(action_ticket) =
-                        self.animation_history.try_set_action(AddLayerAction)
-                    {
-                        self.animation_history.act(action_ticket).unwrap();
+    pub fn update(&mut self, event: &namui::Event) {
+        event.is::<Event>(|event| match event {
+            Event::AddLayerButtonClicked => {
+                struct AddLayerAction;
+                impl Act<Animation> for AddLayerAction {
+                    fn act(
+                        &self,
+                        state: &Animation,
+                    ) -> Result<Animation, Box<dyn std::error::Error>> {
+                        let mut animation = state.clone();
+                        animation.layers.push(animation::Layer {
+                            id: namui::uuid(),
+                            name: "New Layer".to_string(),
+                            image: namui::animation::AnimatableImage::new(),
+                        });
+                        Ok(animation)
                     }
                 }
-                Event::LayerSelected(layer_id) => {
-                    self.selected_layer_id = Some(layer_id.clone());
+                if let Some(action_ticket) = self.animation_history.try_set_action(AddLayerAction) {
+                    self.animation_history.act(action_ticket).unwrap();
                 }
             }
-        }
+            Event::LayerSelected(layer_id) => {
+                self.selected_layer_id = Some(layer_id.clone());
+            }
+        });
         self.header.update(event);
         self.body.update(event);
     }

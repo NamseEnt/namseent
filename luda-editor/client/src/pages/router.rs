@@ -26,12 +26,10 @@ impl Router {
     pub fn new(route: Route) -> Self {
         Self { route }
     }
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<Event>() {
-            match event {
-                Event::Route(route) => self.route = (route)(),
-            }
-        }
+    pub fn update(&mut self, event: &namui::Event) {
+        event.is::<Event>(|event| match event {
+            Event::Route(route) => self.route = (route)(),
+        });
         match &mut self.route {
             Route::ProjectListPage(project_list_page) => project_list_page.update(event),
             Route::SequenceListPage(sequence_list_page) => sequence_list_page.update(event),

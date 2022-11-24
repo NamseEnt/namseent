@@ -2,15 +2,14 @@ use super::*;
 use crate::pages::sequence_edit_page::loaded::components::image_upload::upload_images;
 
 impl ImageManagerModal {
-    pub fn update(&mut self, event: &dyn std::any::Any) {
-        if let Some(event) = event.downcast_ref::<image_table::Event>() {
-            match event {
+    pub fn update(&mut self, event: &namui::Event) {
+        event
+            .is::<image_table::Event>(|event| match event {
                 image_table::Event::Error(error) => {
                     namui::event::send(Event::Error(error.clone()));
                 }
-            }
-        } else if let Some(event) = event.downcast_ref::<InternalEvent>() {
-            match event {
+            })
+            .is::<InternalEvent>(|event| match event {
                 InternalEvent::RequestUploadImages => {
                     let project_id = self.project_id;
                     spawn_local(async move {
@@ -24,8 +23,7 @@ impl ImageManagerModal {
                 InternalEvent::UploadImageFinished => {
                     self.image_table.request_reload_images();
                 }
-            }
-        }
+            });
         self.image_table.update(event);
     }
 }
