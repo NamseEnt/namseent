@@ -6,6 +6,7 @@ pub mod scroll_view;
 mod simple_rect;
 pub mod table;
 pub mod typography;
+pub mod vh_list_view;
 
 pub use event_trap::*;
 pub use simple_rect::simple_rect;
