@@ -223,11 +223,11 @@ jobs:
       - test-namui-animation-editor
       - test-luda-adventure
     steps:
-      - run: echo ${{join(needs.*.result, ',')}}
-      - run: ANY_TEST_FAILED=${{!contains(join(needs.*.result, ','), 'failure')}}
-      - run: echo $ANY_TEST_FAILED
+      - run: echo ${{ join(needs.*.result, ',') }}
+      - run: echo "any_test_failed=${{ contains(join(needs.*.result, ','), 'failure') }}" >> $GITHUB_ENV
+      - run: echo ${{ env.any_test_failed }}
       - run: |
-          if [[ $ANY_TEST_FAILED == "true" ]]; then
+          if [[ ${{ env.any_test_failed }} == "true" ]]; then
               echo "::error::There are failed job"
               exit 1
           else
