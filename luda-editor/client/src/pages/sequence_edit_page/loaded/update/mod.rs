@@ -136,14 +136,14 @@ impl LoadedSequenceEditorPage {
                                     }
                                 })]),
                                 vec([
-                                    context_menu::Item::new_button("Insert Cut Up", {
+                                    context_menu::Item::new_button("Insert Cut Up ↑", {
                                         move || {
                                             namui::event::send(Event::InsertCut {
                                                 position: AddCutPosition::Before { cut_id },
                                             });
                                         }
                                     }),
-                                    context_menu::Item::new_button("Insert Cut Down", {
+                                    context_menu::Item::new_button("Insert Cut Down ↓", {
                                         move || {
                                             namui::event::send(Event::InsertCut {
                                                 position: AddCutPosition::After { cut_id },
