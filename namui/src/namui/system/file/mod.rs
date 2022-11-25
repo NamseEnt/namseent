@@ -2,6 +2,7 @@ pub mod bundle;
 pub mod download;
 mod electron;
 mod init;
+pub mod local_storage;
 pub mod picker;
 pub mod system_drive;
 pub mod types;
