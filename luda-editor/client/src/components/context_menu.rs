@@ -165,11 +165,6 @@ impl ContextMenu {
                 if self.mouse_over_item_id.as_ref() == Some(&item_id) {
                     self.mouse_over_item_id = None;
                 }
-                &InternalEvent::MouseOverOut { item_id } => {
-                    if self.mouse_over_item_id.as_ref() == Some(&item_id) {
-                        self.mouse_over_item_id = None;
-                    }
-                }
             }
         });
     }
