@@ -92,7 +92,7 @@ pub fn text_fit(
     ])
 }
 
-fn adjust_font_size(height: Px) -> IntPx {
+pub fn adjust_font_size(height: Px) -> IntPx {
     // 0, 4, 8, 16, 20, ...
     let mut font_size: Px = height * 0.7;
     font_size -= font_size % 4;

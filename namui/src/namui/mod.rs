@@ -22,8 +22,8 @@ pub use namui_type::*;
 pub use random::uuid::*;
 pub use render::{
     absolute, clip, image::*, on_top, path::*, react, rect::*, rotate, scale, text::*, text_input,
-    transform, translate, ImageSource, KeyboardEvent, Matrix3x3, MouseCursor, MouseEvent,
-    MouseEventCallback, MouseEventType, React, RenderingData, RenderingTree, TextInput,
+    transform, translate, AttachEventBuilder, ImageSource, KeyboardEvent, Matrix3x3, MouseCursor,
+    MouseEvent, MouseEventCallback, MouseEventType, React, RenderingData, RenderingTree, TextInput,
     WheelEventCallback,
 };
 pub use serde;
