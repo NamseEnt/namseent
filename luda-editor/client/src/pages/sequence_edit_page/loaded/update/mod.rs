@@ -464,6 +464,7 @@ impl LoadedSequenceEditorPage {
                         self.context_menu = None;
                         self.character_edit_modal = None;
                         self.image_select_modal = None;
+                        self.text_input_selected_cut_id = None;
                         namui::system::text_input::blur();
                     } else if code_composites_on(event, [vec![Code::ControlLeft, Code::Enter]])
                         && self.is_any_line_text_input_focused()
