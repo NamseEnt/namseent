@@ -87,6 +87,9 @@ enum Event {
         cut_id: Uuid,
     },
     ImageManagerButtonClicked,
+    CopyIssueInfo {
+        cut_id: Uuid,
+    },
 }
 
 #[derive(Clone, Copy)]

@@ -1,3 +1,4 @@
+mod copy_issue_info;
 mod undo_redo;
 mod update_data;
 
@@ -205,6 +206,10 @@ impl LoadedSequenceEditorPage {
                                     .into_iter(),
                                 )
                                 .collect(),
+                                vec([context_menu::Item::new_button(
+                                    "Copy issue info for this cut",
+                                    move || namui::event::send(Event::CopyIssueInfo { cut_id }),
+                                )]),
                             ]
                             .join(&context_menu::Item::Divider),
                         ))
@@ -329,6 +334,9 @@ impl LoadedSequenceEditorPage {
                             Some(image_manager_modal::ImageManagerModal::new(
                                 self.project_shared_data.id(),
                             ));
+                    }
+                    &Event::CopyIssueInfo { cut_id } => {
+                        self.copy_issue_info(cut_id);
                     }
                 }
             })

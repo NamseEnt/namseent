@@ -1,4 +1,5 @@
 pub mod cache;
+pub mod clipboard;
 pub mod deep_link;
 pub mod file;
 pub mod font;
