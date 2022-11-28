@@ -6,7 +6,6 @@ use wasm_bindgen::JsValue;
 #[derive(Debug)]
 pub enum ReadDirError {
     DirNotFound(String),
-    ParseError(serde_json::Error),
     PathShouldBeAbsolute(String),
     InvalidUrl(String),
     Other(String),

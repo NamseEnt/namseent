@@ -7,6 +7,7 @@ use wasm_bindgen_futures::JsFuture;
 
 #[derive(Debug)]
 pub enum ReadError {
+    InvalidFileName(String),
     FileNotFound(String),
     PathShouldBeAbsolute(String),
     DirNotFound(String),
@@ -21,7 +22,7 @@ pub async fn read(path_like: impl PathLike) -> Result<Vec<u8>, ReadError> {
     }
     let file_name = match file_path.file_name() {
         Some(file_name) => file_name.to_string_lossy().to_string(),
-        None => return Err(ReadError::FileNotFound(format!("{file_path:?}"))),
+        None => return Err(ReadError::InvalidFileName(format!("{file_path:?}"))),
     };
     let parent_directory_path = match file_path.parent().as_deref() {
         Some(path) => path.to_path_buf(),

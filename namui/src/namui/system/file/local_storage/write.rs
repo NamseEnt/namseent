@@ -9,9 +9,8 @@ const CHUNK_SIZE: usize = 4 * 1024; // 4 KiB
 
 #[derive(Debug)]
 pub enum WriteError {
-    FileNotFound(String),
+    InvalidFileName(String),
     PathShouldBeAbsolute(String),
-    DirNotFound(String),
     Other(String),
 }
 simple_error_impl!(WriteError);
@@ -19,13 +18,11 @@ simple_error_impl!(WriteError);
 pub async fn write(path_like: impl PathLike, content: impl AsRef<[u8]>) -> Result<(), WriteError> {
     let file_path = path_like.path();
     if !file_path.has_root() {
-        return Err(WriteError::PathShouldBeAbsolute(
-            file_path.to_string_lossy().to_string(),
-        ));
+        return Err(WriteError::PathShouldBeAbsolute(format!("{file_path:?}")));
     }
     let file_name = match file_path.file_name() {
         Some(file_name) => file_name.to_string_lossy().to_string(),
-        None => return Err(WriteError::FileNotFound(format!("{file_path:?}"))),
+        None => return Err(WriteError::InvalidFileName(format!("{file_path:?}"))),
     };
     let parent_directory_path = match file_path.parent().as_deref() {
         Some(path) => path.to_path_buf(),
@@ -37,15 +34,13 @@ pub async fn write(path_like: impl PathLike, content: impl AsRef<[u8]>) -> Resul
             parent_directory_path,
             crate::file::local_storage::file_system_handle::GetHandleOption { create: true },
         )
-        .await
-        .map_err(|error| WriteError::DirNotFound(format!("{error:?}")))?;
+        .await?;
     let file_handle = parent_directory_handle
         .get_file_handle(
             file_name,
             super::file_system_handle::GetHandleOption { create: true },
         )
-        .await
-        .map_err(|error| WriteError::FileNotFound(format!("{error:?}")))?;
+        .await?;
 
     let file_stream = file_handle.create_writable().await?;
     let writer = file_stream.get_writer()?;
