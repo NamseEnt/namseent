@@ -1,4 +1,7 @@
-use super::file_system_handle::{FileSystemHandle, GetHandleOption};
+use super::{
+    file_system_file_handle::FileSystemFileHandle,
+    file_system_handle::{FileSystemHandle, GetHandleOption},
+};
 use crate::file::types::PathLike;
 use futures::Future;
 use js_sys::AsyncIterator;
@@ -26,6 +29,16 @@ extern "C" {
     #[doc = ""]
     #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemDirectoryHandle/getDirectoryHandle)"]
     async fn get_directory_handle_unchecked(
+        this: &FileSystemDirectoryHandle,
+        name: String,
+        options: GetHandleOption,
+    ) -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(method, catch, js_class="FileSystemDirectoryHandle", js_name=getFileHandle)]
+    #[doc = "The `getFileHandle` method."]
+    #[doc = ""]
+    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemDirectoryHandle/getFileHandle)"]
+    async fn get_file_handle_unchecked(
         this: &FileSystemDirectoryHandle,
         name: String,
         options: GetHandleOption,
@@ -75,6 +88,15 @@ impl<'a> FileSystemDirectoryHandle {
             }
             Ok(cursor)
         })
+    }
+
+    pub async fn get_file_handle(
+        &'a self,
+        name: String,
+        options: GetHandleOption,
+    ) -> Result<FileSystemFileHandle, JsValue> {
+        let js_value = self.get_file_handle_unchecked(name, options).await?;
+        Ok(js_value.into())
     }
 
     pub fn values(
