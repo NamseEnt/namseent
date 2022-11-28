@@ -6,21 +6,12 @@ use web_sys::{File, WritableStream};
 extern "C" {
     #[wasm_bindgen(extends=FileSystemHandle, js_name=FileSystemFileHandle)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    #[doc = "The `FileSystemFileHandle` class."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemFileHandle)"]
     pub type FileSystemFileHandle;
 
     #[wasm_bindgen(method, catch, js_class="FileSystemFileHandle", js_name=getFile)]
-    #[doc = "The `getFile` method."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemFileHandle/getFile)"]
     async fn get_file_unchecked(this: &FileSystemFileHandle) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(method, catch, js_class="FileSystemFileHandle", js_name=createWritable)]
-    #[doc = "The `createWritable` method."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemFileHandle/createWritable)"]
     async fn create_writable_unchecked(this: &FileSystemFileHandle) -> Result<JsValue, JsValue>;
 }
 
@@ -28,9 +19,6 @@ extern "C" {
 extern "C" {
     #[wasm_bindgen(extends=WritableStream, js_name=FileSystemWritableFileStream)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    #[doc = "The `FileSystemWritableFileStream` class."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemWritableFileStream)"]
     pub type FileSystemWritableFileStream;
 }
 

@@ -15,22 +15,13 @@ pub struct GetHandleOption {
 
 #[wasm_bindgen]
 extern "C" {
-    # [wasm_bindgen (extends=js_sys::Object, js_name=FileSystemHandle)]
+    #[wasm_bindgen(extends=js_sys::Object, js_name=FileSystemHandle)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    #[doc = "The `FileSystemHandle` class."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle)"]
     pub type FileSystemHandle;
 
-    # [wasm_bindgen (method, getter, js_class="FileSystemHandle", js_name=kind)]
-    #[doc = "The `kind` properties."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle/kind)"]
+    #[wasm_bindgen(method, getter, js_class="FileSystemHandle", js_name=kind)]
     pub fn kind(this: &FileSystemHandle) -> FileSystemHandleKind;
 
-    # [wasm_bindgen (method, getter, js_class="FileSystemHandle", js_name=name)]
-    #[doc = "The `name` properties."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle/name)"]
+    #[wasm_bindgen(method, getter, js_class="FileSystemHandle", js_name=name)]
     pub fn name(this: &FileSystemHandle) -> String;
 }

@@ -11,21 +11,12 @@ use wasm_bindgen_futures::JsFuture;
 extern "C" {
     #[wasm_bindgen(extends=FileSystemHandle, js_name=FileSystemDirectoryHandle)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    #[doc = "The `FileSystemDirectoryHandle` class."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemDirectoryHandle)"]
     pub type FileSystemDirectoryHandle;
 
     #[wasm_bindgen(method, js_class="FileSystemDirectoryHandle", js_name=values)]
-    #[doc = "The `values` method."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemDirectoryHandle/values)"]
     fn values_unchecked(this: &FileSystemDirectoryHandle) -> AsyncIterator;
 
     #[wasm_bindgen(method, catch, js_class="FileSystemDirectoryHandle", js_name=getDirectoryHandle)]
-    #[doc = "The `get_directory_handle` method."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemDirectoryHandle/getDirectoryHandle)"]
     async fn get_directory_handle_unchecked(
         this: &FileSystemDirectoryHandle,
         name: String,
@@ -33,9 +24,6 @@ extern "C" {
     ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(method, catch, js_class="FileSystemDirectoryHandle", js_name=getFileHandle)]
-    #[doc = "The `getFileHandle` method."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemDirectoryHandle/getFileHandle)"]
     async fn get_file_handle_unchecked(
         this: &FileSystemDirectoryHandle,
         name: String,
