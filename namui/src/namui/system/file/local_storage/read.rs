@@ -14,7 +14,7 @@ pub enum ReadError {
 }
 simple_error_impl!(ReadError);
 
-pub async fn read(path_like: impl PathLike) -> Result<impl AsRef<[u8]>, ReadError> {
+pub async fn read(path_like: impl PathLike) -> Result<Vec<u8>, ReadError> {
     let file_path = path_like.path();
     if !file_path.has_root() {
         return Err(ReadError::PathShouldBeAbsolute(
