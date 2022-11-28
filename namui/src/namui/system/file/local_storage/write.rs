@@ -25,11 +25,7 @@ pub async fn write(path_like: impl PathLike, content: impl AsRef<[u8]>) -> Resul
     }
     let file_name = match file_path.file_name() {
         Some(file_name) => file_name.to_string_lossy().to_string(),
-        None => {
-            return Err(WriteError::FileNotFound(
-                file_path.to_string_lossy().to_string(),
-            ))
-        }
+        None => return Err(WriteError::FileNotFound(format!("{file_path:?}"))),
     };
     let parent_directory_path = match file_path.parent().as_deref() {
         Some(path) => path.to_path_buf(),
@@ -42,14 +38,14 @@ pub async fn write(path_like: impl PathLike, content: impl AsRef<[u8]>) -> Resul
             crate::file::local_storage::file_system_handle::GetHandleOption { create: true },
         )
         .await
-        .map_err(|error| WriteError::DirNotFound(error.as_string().unwrap_or("".to_string())))?;
+        .map_err(|error| WriteError::DirNotFound(format!("{error:?}")))?;
     let file_handle = parent_directory_handle
         .get_file_handle(
             file_name,
             super::file_system_handle::GetHandleOption { create: true },
         )
         .await
-        .map_err(|error| WriteError::FileNotFound(error.as_string().unwrap()))?;
+        .map_err(|error| WriteError::FileNotFound(format!("{error:?}")))?;
 
     let file_stream = file_handle.create_writable().await?;
     let writer = file_stream.get_writer()?;
