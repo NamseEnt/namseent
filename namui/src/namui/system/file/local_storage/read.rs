@@ -17,17 +17,11 @@ simple_error_impl!(ReadError);
 pub async fn read(path_like: impl PathLike) -> Result<Vec<u8>, ReadError> {
     let file_path = path_like.path();
     if !file_path.has_root() {
-        return Err(ReadError::PathShouldBeAbsolute(
-            file_path.to_string_lossy().to_string(),
-        ));
+        return Err(ReadError::PathShouldBeAbsolute(format!("{file_path:?}")));
     }
     let file_name = match file_path.file_name() {
-        Some(file_name) => file_name.to_string_lossy().to_string(),
-        None => {
-            return Err(ReadError::FileNotFound(
-                file_path.to_string_lossy().to_string(),
-            ))
-        }
+        Some(file_name) => format!("{file_name:?}"),
+        None => return Err(ReadError::FileNotFound(format!("{file_path:?}"))),
     };
     let parent_directory_path = match file_path.parent().as_deref() {
         Some(path) => path.to_path_buf(),
@@ -40,14 +34,14 @@ pub async fn read(path_like: impl PathLike) -> Result<Vec<u8>, ReadError> {
             crate::file::local_storage::file_system_handle::GetHandleOption { create: false },
         )
         .await
-        .map_err(|error| ReadError::DirNotFound(error.as_string().unwrap_or("".to_string())))?;
+        .map_err(|error| ReadError::DirNotFound(format!("{error:?}")))?;
     let file_handle = parent_directory_handle
         .get_file_handle(
             file_name,
             super::file_system_handle::GetHandleOption { create: false },
         )
         .await
-        .map_err(|error| ReadError::FileNotFound(error.as_string().unwrap()))?;
+        .map_err(|error| ReadError::FileNotFound(format!("{error:?}")))?;
     let file = file_handle.get_file().await?;
     let js_value = JsFuture::from(file.array_buffer()).await?;
     let array_buffer = js_value.dyn_into::<js_sys::ArrayBuffer>()?;

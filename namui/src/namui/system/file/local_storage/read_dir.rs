@@ -15,9 +15,9 @@ pub enum ReadDirError {
 pub async fn read_dir(path_like: impl PathLike) -> Result<Vec<Dirent>, ReadDirError> {
     let directory_path = path_like.path();
     if !directory_path.has_root() {
-        return Err(ReadDirError::PathShouldBeAbsolute(
-            directory_path.to_string_lossy().to_string(),
-        ));
+        return Err(ReadDirError::PathShouldBeAbsolute(format!(
+            "{directory_path:?}"
+        )));
     }
     let root = get_root_directory().await?;
     let directory_handle = root
@@ -26,7 +26,7 @@ pub async fn read_dir(path_like: impl PathLike) -> Result<Vec<Dirent>, ReadDirEr
             crate::file::local_storage::file_system_handle::GetHandleOption { create: false },
         )
         .await
-        .map_err(|error| ReadDirError::DirNotFound(error.as_string().unwrap_or("".to_string())))?;
+        .map_err(|error| ReadDirError::DirNotFound(format!("{error:?}")))?;
     let mut entries = vec![];
     for entry in directory_handle.values().await?.into_iter() {
         let entry_path = directory_path.join(entry.name());
