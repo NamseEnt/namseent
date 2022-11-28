@@ -50,7 +50,7 @@ pub async fn write(path_like: impl PathLike, content: impl AsRef<[u8]>) -> Resul
     let file_stream = file_handle.create_writable().await?;
     let writer = file_stream.get_writer()?;
     for chunk in content.as_ref().chunks(CHUNK_SIZE) {
-        let unit8array = Uint8Array::new_with_length(CHUNK_SIZE as u32);
+        let unit8array = Uint8Array::new_with_length(chunk.len() as u32);
         unit8array.copy_from(chunk);
         JsFuture::from(writer.write_with_chunk(&unit8array)).await?;
     }
