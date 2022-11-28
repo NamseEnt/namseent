@@ -20,7 +20,7 @@ pub async fn read(path_like: impl PathLike) -> Result<Vec<u8>, ReadError> {
         return Err(ReadError::PathShouldBeAbsolute(format!("{file_path:?}")));
     }
     let file_name = match file_path.file_name() {
-        Some(file_name) => format!("{file_name:?}"),
+        Some(file_name) => file_name.to_string_lossy().to_string(),
         None => return Err(ReadError::FileNotFound(format!("{file_path:?}"))),
     };
     let parent_directory_path = match file_path.parent().as_deref() {
