@@ -52,7 +52,7 @@ impl<'a> FileSystemFileHandle {
         &'a self,
     ) -> Pin<Box<dyn Future<Output = Result<FileSystemWritableFileStream, JsValue>> + 'a>> {
         Box::pin(async move {
-            let promise = self.get_file_unchecked();
+            let promise = self.create_writable_unchecked();
             let js_value = JsFuture::from(promise).await?;
             let writable_file_stream: FileSystemWritableFileStream = js_value.dyn_into()?;
             Ok(writable_file_stream)
