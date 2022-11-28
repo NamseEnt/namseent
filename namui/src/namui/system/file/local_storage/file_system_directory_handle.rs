@@ -3,9 +3,7 @@ use super::{
     file_system_handle::{FileSystemHandle, GetHandleOption},
 };
 use crate::file::types::PathLike;
-use futures::Future;
 use js_sys::AsyncIterator;
-use std::pin::Pin;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
@@ -58,40 +56,35 @@ extern "C" {
     pub fn value(this: &FileSystemDirectoryIteratorItem) -> Option<FileSystemHandle>;
 }
 
-impl<'a> FileSystemDirectoryHandle {
-    pub fn get_directory_handle(
-        &'a self,
+impl FileSystemDirectoryHandle {
+    pub async fn get_directory_handle(
+        &self,
         name: String,
         options: GetHandleOption,
-    ) -> Pin<Box<dyn Future<Output = Result<FileSystemDirectoryHandle, JsValue>> + 'a>> {
-        Box::pin(async move {
-            let js_value = self.get_directory_handle_unchecked(name, options).await?;
-            Ok(js_value.into())
-        })
+    ) -> Result<FileSystemDirectoryHandle, JsValue> {
+        let js_value = self.get_directory_handle_unchecked(name, options).await?;
+        Ok(js_value.into())
     }
 
-    pub fn get_directory_handle_recursively(
-        &'a self,
+    pub async fn get_directory_handle_recursively(
+        &self,
         path_like: impl PathLike,
         options: GetHandleOption,
-    ) -> Pin<Box<dyn Future<Output = Result<FileSystemDirectoryHandle, JsValue>> + 'a>> {
-        let path = path_like.path();
-        Box::pin(async move {
-            let mut cursor = self.clone();
-            for directory_name in path.into_iter() {
-                if directory_name == "/" {
-                    continue;
-                }
-                cursor = cursor
-                    .get_directory_handle(directory_name.to_string_lossy().to_string(), options)
-                    .await?;
+    ) -> Result<FileSystemDirectoryHandle, JsValue> {
+        let mut cursor = self.clone();
+        for directory_name in path_like.path().into_iter() {
+            if directory_name == "/" {
+                continue;
             }
-            Ok(cursor)
-        })
+            cursor = cursor
+                .get_directory_handle(directory_name.to_string_lossy().to_string(), options)
+                .await?;
+        }
+        Ok(cursor)
     }
 
     pub async fn get_file_handle(
-        &'a self,
+        &self,
         name: String,
         options: GetHandleOption,
     ) -> Result<FileSystemFileHandle, JsValue> {
@@ -99,24 +92,20 @@ impl<'a> FileSystemDirectoryHandle {
         Ok(js_value.into())
     }
 
-    pub fn values(
-        &'a self,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<FileSystemHandle>, JsValue>> + 'a>> {
-        Box::pin(async move {
-            let js_async_iterator = self.values_unchecked();
-            let mut values = vec![];
-            loop {
-                let promise = js_async_iterator.next()?;
-                let js_value = JsFuture::from(promise).await?;
-                let file_system_directory_iterator_item: FileSystemDirectoryIteratorItem =
-                    js_value.into();
-                if let Some(file_system_handle) = file_system_directory_iterator_item.value() {
-                    values.push(file_system_handle);
-                    continue;
-                }
-                break;
+    pub async fn values(&self) -> Result<Vec<FileSystemHandle>, JsValue> {
+        let js_async_iterator = self.values_unchecked();
+        let mut values = vec![];
+        loop {
+            let promise = js_async_iterator.next()?;
+            let js_value = JsFuture::from(promise).await?;
+            let file_system_directory_iterator_item: FileSystemDirectoryIteratorItem =
+                js_value.into();
+            if let Some(file_system_handle) = file_system_directory_iterator_item.value() {
+                values.push(file_system_handle);
+                continue;
             }
-            Ok(values)
-        })
+            break;
+        }
+        Ok(values)
     }
 }
