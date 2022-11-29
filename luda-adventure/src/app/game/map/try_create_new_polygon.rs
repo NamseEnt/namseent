@@ -1,4 +1,4 @@
-use geo::{coord, Area, Coordinate, EuclideanDistance, Line, LineString, Polygon};
+use geo::{coord, Area, Coord, EuclideanDistance, Line, LineString, Polygon};
 use namui::prelude::*;
 use std::collections::HashMap;
 
@@ -80,7 +80,7 @@ fn simplify_lines(lines: Vec<Line>) -> Vec<Line> {
 
     simplified_lines
 }
-fn key_from_coord(coord: Coordinate<f64>) -> (u64, u64) {
+fn key_from_coord(coord: Coord<f64>) -> (u64, u64) {
     (coord.x.to_bits(), coord.y.to_bits())
 }
 
@@ -108,7 +108,7 @@ fn same_direction(a: Line, b: Line) -> bool {
         + normalized_vector_a.y * normalized_vector_b.y;
     cosine_between_a_b == 1.0
 }
-fn normalized_vector(line: Line) -> Coordinate {
+fn normalized_vector(line: Line) -> Coord {
     let vector = line.delta();
     let length = vector.euclidean_distance(&coord! {x: 0., y: 0.});
     vector / length

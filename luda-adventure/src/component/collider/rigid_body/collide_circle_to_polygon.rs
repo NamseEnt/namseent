@@ -30,7 +30,7 @@ pub fn collide_circle_to_polygon(circle: &Circle, polygon: &Polygon) -> Collisio
     }
 }
 
-fn closest_point(lines: Vec<Line>, circle: &Circle) -> Option<Coordinate<f64>> {
+fn closest_point(lines: Vec<Line>, circle: &Circle) -> Option<Coord<f64>> {
     let mut closest_line = None;
     let mut closest_distance_to_circle_center = None;
     for line in lines {
@@ -55,7 +55,7 @@ fn is_new_closest(closest_distance_to_circle_center: Option<f64>, new_distance: 
         _ => true,
     }
 }
-fn normalized_vector(from: Coordinate, to: Coordinate) -> Xy<Tile> {
+fn normalized_vector(from: Coord, to: Coord) -> Xy<Tile> {
     let vector = to - from;
     let length = vector.euclidean_distance(&coord! {x: 0., y: 0.});
     let normalized_vector = vector / length;
