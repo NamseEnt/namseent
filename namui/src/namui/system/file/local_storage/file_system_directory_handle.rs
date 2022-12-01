@@ -29,6 +29,13 @@ extern "C" {
         name: String,
         options: GetHandleOption,
     ) -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(method, catch, js_class="FileSystemDirectoryHandle", js_name=removeEntry)]
+    async fn remove_entry_unchecked(
+        this: &FileSystemDirectoryHandle,
+        name: String,
+        options: DeleteOption,
+    ) -> Result<JsValue, JsValue>;
 }
 
 #[wasm_bindgen]
@@ -42,6 +49,12 @@ extern "C" {
 
     #[wasm_bindgen(method, getter, js_class="FileSystemDirectoryIteratorItem", js_name=value)]
     pub fn value(this: &FileSystemDirectoryIteratorItem) -> Option<FileSystemHandle>;
+}
+
+#[wasm_bindgen]
+#[derive(Copy, Clone, Debug)]
+pub struct DeleteOption {
+    pub recursive: bool,
 }
 
 impl FileSystemDirectoryHandle {
@@ -95,5 +108,10 @@ impl FileSystemDirectoryHandle {
             break;
         }
         Ok(values)
+    }
+
+    pub async fn remove_entry(&self, name: String, options: DeleteOption) -> Result<(), JsValue> {
+        self.remove_entry_unchecked(name, options).await?;
+        Ok(())
     }
 }

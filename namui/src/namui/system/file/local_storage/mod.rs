@@ -1,3 +1,4 @@
+mod delete;
 mod file_system_directory_handle;
 mod file_system_file_handle;
 mod file_system_handle;
@@ -7,6 +8,7 @@ mod read;
 mod read_dir;
 mod write;
 
+pub use delete::*;
 pub use make_dir::*;
 pub use read::*;
 pub use read_dir::*;
