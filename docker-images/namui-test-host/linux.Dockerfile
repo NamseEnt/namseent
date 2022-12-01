@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM rust:1.64-alpine
+FROM rust:1.65-alpine
 
 ENV CARGO_HOME=/usr/local/cargo
 ENV RUSTFLAGS="-D warnings"
