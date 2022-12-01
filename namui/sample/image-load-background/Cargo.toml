@@ -11,4 +11,4 @@ namui = { path = "../.." }
 namui-prebuilt = { path = "../../../namui-prebuilt" }
 
 [dev-dependencies]
-wasm-bindgen-test = "0.2"
+wasm-bindgen-test = "0.3"

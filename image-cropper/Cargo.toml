@@ -16,7 +16,7 @@ wasm-bindgen-futures = "0.4.31"
 zip = {version = "0.6.2", default-features = false}
 
 [dev-dependencies]
-wasm-bindgen-test = "0.2"
+wasm-bindgen-test = "0.3"
 
 [profile.release]
 lto = true
