@@ -9,8 +9,8 @@ def in_wsl() -> bool:
 
 
 def run():
-    for menifast_path in os.popen("git ls-files | grep -e /Cargo.toml").read().splitlines():
-        dir_path = os.path.dirname(menifast_path)
+    for manifest_path in os.popen("git ls-files | grep -e /Cargo.toml").read().splitlines():
+        dir_path = os.path.dirname(manifest_path)
         print(f"cd {dir_path} && cargo check")
         exit = os.system(
             f"cd {dir_path} && cargo check")
@@ -19,7 +19,7 @@ def run():
             return
 
         print(f"cd {dir_path} && cargo fmt")
-        dir_path = os.path.dirname(menifast_path)
+        dir_path = os.path.dirname(manifest_path)
         exit = os.system(
             f"cd {dir_path} && cargo fmt")
         if exit != 0:
