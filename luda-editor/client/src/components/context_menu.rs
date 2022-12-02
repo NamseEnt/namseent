@@ -133,16 +133,19 @@ impl ContextMenu {
             menus.push(menu);
         }
 
+        let context_menu_wh = Wh::new(cell_wh.width, next_y);
+
         let background = simple_rect(
-            Wh::new(cell_wh.width, next_y),
+            context_menu_wh,
             Color::TRANSPARENT,
             0.px(),
             Color::grayscale_f01(0.2),
         );
 
+        let global_xy_within_screen = self.global_xy_within_screen(context_menu_wh);
         on_top(absolute(
-            self.global_xy.x,
-            self.global_xy.y,
+            global_xy_within_screen.x,
+            global_xy_within_screen.y,
             render([background, render(menus)]).attach_event(move |builder| {
                 let is_mouse_over_something = self.mouse_over_item_id.is_some();
                 builder.on_mouse_move_out(move |_| {
@@ -167,5 +170,19 @@ impl ContextMenu {
                 }
             }
         });
+    }
+
+    fn global_xy_within_screen(&self, context_menu_wh: Wh<Px>) -> Xy<Px> {
+        let screen_wh = namui::screen::size();
+        Xy {
+            x: self
+                .global_xy
+                .x
+                .min(screen_wh.width - context_menu_wh.width),
+            y: self
+                .global_xy
+                .y
+                .min(screen_wh.height - context_menu_wh.height),
+        }
     }
 }
