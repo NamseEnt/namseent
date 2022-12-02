@@ -2,10 +2,8 @@ use super::get_root_directory::get_root_directory;
 use crate::{file::types::PathLike, simple_error_impl};
 use js_sys::Uint8Array;
 use std::path::PathBuf;
-use wasm_bindgen::JsValue;
+use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
-
-const CHUNK_SIZE: usize = 4 * 1024; // 4 KiB
 
 #[derive(Debug)]
 pub enum WriteError {
@@ -44,9 +42,8 @@ pub async fn write(path_like: impl PathLike, content: impl AsRef<[u8]>) -> Resul
 
     let file_stream = file_handle.create_writable().await?;
     let writer = file_stream.get_writer()?;
-    for chunk in content.as_ref().chunks(CHUNK_SIZE) {
-        let unit8array = Uint8Array::new_with_length(chunk.len() as u32);
-        unit8array.copy_from(chunk);
+    unsafe {
+        let unit8array = Uint8Array::view(content.as_ref());
         JsFuture::from(writer.write_with_chunk(&unit8array)).await?;
     }
     JsFuture::from(writer.close()).await?;
