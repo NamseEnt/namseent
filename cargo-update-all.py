@@ -11,19 +11,11 @@ def in_wsl() -> bool:
 def run():
     for manifest_path in os.popen("git ls-files | grep -e /Cargo.toml").read().splitlines():
         dir_path = os.path.dirname(manifest_path)
-        print(f"cd {dir_path} && cargo check")
+        print(f"cd {dir_path} && cargo update")
         exit = os.system(
-            f"cd {dir_path} && cargo check")
+            f"cd {dir_path} && cargo update")
         if exit != 0:
-            print(f"\n\n-- fail cargo check on {dir_path}\n\n")
-            return
-
-        print(f"cd {dir_path} && cargo fmt")
-        dir_path = os.path.dirname(manifest_path)
-        exit = os.system(
-            f"cd {dir_path} && cargo fmt")
-        if exit != 0:
-            print(f"\n\n-- fail cargo fmt on {dir_path}\n\n")
+            print(f"\n\n-- fail cargo update on {dir_path}\n\n")
             return
 
 
