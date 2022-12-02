@@ -57,6 +57,11 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
         .parent()
         .expect("No parent directory found");
 
+    let chmod_777_rollback_directories = [
+        source_bind_path,
+        "~/.cargo".into(), // NOTE: This would be a problem if the docker has a different cargo directory
+    ];
+
     let command_to_pass_to_docker = format!(
         "{}",
         [
@@ -66,12 +71,16 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
                 directory.to_str().unwrap()
             ),
             "exit_code=$?".to_string(),
+        ]
+        .into_iter()
+        .chain(chmod_777_rollback_directories.into_iter().map(|directory| {
             format!(
                 "find {} -user $(whoami) -print0 | xargs -0 chmod 777",
-                source_bind_path.to_str().unwrap()
-            ),
-            "exit $exit_code".to_string(),
-        ]
+                directory.to_str().unwrap()
+            )
+        }))
+        .chain(["exit $exit_code".to_string()])
+        .collect::<Vec<String>>()
         .join("; ")
     );
 
