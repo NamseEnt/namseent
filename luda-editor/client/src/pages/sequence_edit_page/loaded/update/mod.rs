@@ -210,6 +210,10 @@ impl LoadedSequenceEditorPage {
                                     "Copy issue info for this cut",
                                     move || namui::event::send(Event::CopyIssueInfo { cut_id }),
                                 )]),
+                                vec([context_menu::Item::new_button(
+                                    "Copy preview link 🔗",
+                                    move || namui::event::send(Event::CopyPreviewLink { cut_id }),
+                                )]),
                             ]
                             .join(&context_menu::Item::Divider),
                         ))
@@ -337,6 +341,28 @@ impl LoadedSequenceEditorPage {
                     }
                     &Event::CopyIssueInfo { cut_id } => {
                         self.copy_issue_info(cut_id);
+                    }
+                    &Event::CopyPreviewLink { cut_id } => {
+                        let share_preview = crate::share_preview::SharePreview {
+                            index: self
+                                .sequence
+                                .cuts
+                                .iter()
+                                .position(|cut| cut.id() == cut_id)
+                                .unwrap(),
+                            sequence_id: self.sequence.id(),
+                        };
+
+                        let url = share_preview.url();
+
+                        spawn_local(async move {
+                            let result = namui::system::clipboard::write_text(url).await;
+                            if let Err(_) = result {
+                                namui::event::send(Event::Error(
+                                    "Failed to copy to clipboard".to_string(),
+                                ));
+                            }
+                        })
                     }
                 }
             })

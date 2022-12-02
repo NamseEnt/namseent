@@ -3,10 +3,9 @@ mod components;
 mod late_init;
 mod pages;
 mod setting;
+mod share_preview;
 mod storage;
 mod viewer;
-
-use namui::prelude::*;
 
 #[cfg(test)]
 #[cfg(target_family = "wasm")]
@@ -42,50 +41,17 @@ pub async fn main() {
     SETTING.init(setting);
     RPC.init(rpc::Rpc::new(SETTING.rpc_endpoint.clone()));
 
-    let view_request = parse_view_request(&search);
+    let share_preview = share_preview::SharePreview::from_search(&search);
 
-    match view_request {
-        Some(view_request) => {
+    match share_preview {
+        Some(share_preview) => {
             namui::start(
                 namui_context,
-                &mut viewer::Viewer::new(view_request.sequence_id),
+                &mut viewer::Viewer::new(share_preview.sequence_id, share_preview.index),
                 &(),
             )
             .await
         }
         None => namui::start(namui_context, &mut app::App::new(), &()).await,
-    }
-}
-
-struct ViewRequest {
-    sequence_id: Uuid,
-}
-fn parse_view_request(search: &str) -> Option<ViewRequest> {
-    if search.len() < 2 {
-        return None;
-    }
-
-    let query_tuples = search[1..].split('&').map(|s| {
-        let mut iter = s.split('=');
-        let key = iter.next().unwrap_or_default();
-        let value = iter.next().unwrap_or_default();
-        (key, value)
-    });
-    let mut sequence_id = None;
-    let mut is_view_request = false;
-    for (key, value) in query_tuples {
-        if key == "sequence_id" {
-            sequence_id = Some(value);
-        } else if key == "view" {
-            is_view_request = true;
-        }
-    }
-
-    if is_view_request && sequence_id.is_some() {
-        Some(ViewRequest {
-            sequence_id: sequence_id.unwrap().parse().unwrap(),
-        })
-    } else {
-        None
     }
 }
