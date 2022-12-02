@@ -175,14 +175,8 @@ impl ContextMenu {
     fn global_xy_within_screen(&self, context_menu_wh: Wh<Px>) -> Xy<Px> {
         let screen_wh = namui::screen::size();
         Xy {
-            x: self
-                .global_xy
-                .x
-                .min(screen_wh.width - context_menu_wh.width),
-            y: self
-                .global_xy
-                .y
-                .min(screen_wh.height - context_menu_wh.height),
+            x: (screen_wh.width - context_menu_wh.width).min(self.global_xy.x),
+            y: (screen_wh.height - context_menu_wh.height).min(self.global_xy.y),
         }
     }
 }
