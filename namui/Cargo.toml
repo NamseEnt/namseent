@@ -74,4 +74,6 @@ features = [
     "ErrorEvent",
     "HtmlAnchorElement",
     "ImageBitmap",
+    "WritableStream",
+    "WritableStreamDefaultWriter",
 ]
