@@ -11,7 +11,10 @@ runs:
   steps:
     - name: Chmod 777 for cache
       shell: bash
-      run: time chmod 777 -R ~/.cargo/registry/index/ ~/.cargo/registry/cache/ ~/.cargo/git/db/
+      run: |
+        [ -d ~/.cargo/registry/index/ ] && chmod 777 -R ~/.cargo/registry/index/;
+        [ -d ~/.cargo/registry/cache/ ] && chmod 777 -R ~/.cargo/registry/cache/;
+        [ -d ~/.cargo/git/db/ ] && chmod 777 -R ~/.cargo/git/db/;
 
     - uses: actions/cache@v3
       with:
