@@ -90,6 +90,9 @@ enum Event {
     CopyIssueInfo {
         cut_id: Uuid,
     },
+    CopyPreviewLink {
+        cut_id: Uuid,
+    },
 }
 
 #[derive(Clone, Copy)]

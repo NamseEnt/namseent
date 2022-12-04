@@ -5,6 +5,7 @@ use rpc::data::*;
 
 pub struct Viewer {
     sequence_player: Option<sequence_player::SequencePlayer>,
+    start_index: usize,
 }
 
 enum Event {
@@ -15,7 +16,7 @@ enum Event {
 }
 
 impl Viewer {
-    pub fn new(sequence_id: Uuid) -> Self {
+    pub fn new(sequence_id: Uuid, start_index: usize) -> Self {
         spawn_local(async move {
             let response = crate::RPC
                 .get_sequence_and_project_shared_data(
@@ -31,6 +32,7 @@ impl Viewer {
         });
         Self {
             sequence_player: None,
+            start_index,
         }
     }
 }
@@ -47,7 +49,7 @@ impl namui::Entity for Viewer {
                 self.sequence_player = Some(sequence_player::SequencePlayer::new(
                     sequence.clone(),
                     project_shared_data.clone(),
-                    0,
+                    self.start_index,
                 ));
             }
         });
