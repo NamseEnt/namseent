@@ -11,7 +11,8 @@ impl Game {
         let mut ecs_app = crate::ecs::App::new();
 
         mock_character(&mut ecs_app);
-        mock_quest_object(&mut ecs_app);
+        mock_quest_object_1(&mut ecs_app);
+        mock_quest_object_2(&mut ecs_app);
         Map::mock().create_entities(&mut ecs_app);
         let mut state = GameState::new();
         state.camera.subject = CameraSubject::Object {
@@ -60,12 +61,24 @@ fn mock_character(app: &mut crate::ecs::App) -> &mut crate::ecs::Entity {
     )
 }
 
-fn mock_quest_object(app: &mut crate::ecs::App) -> &mut crate::ecs::Entity {
+fn mock_quest_object_1(app: &mut crate::ecs::App) -> &mut crate::ecs::Entity {
     new_wall_with_id(
         app,
         known_id::object::FIRST_QUEST_OBJECT,
         vec![Xy {
             x: 10.tile(),
+            y: 10.tile(),
+        }],
+    )
+    .add_component(Interactor {})
+}
+
+fn mock_quest_object_2(app: &mut crate::ecs::App) -> &mut crate::ecs::Entity {
+    new_wall_with_id(
+        app,
+        known_id::object::SECOND_QUEST_OBJECT,
+        vec![Xy {
+            x: 6.tile(),
             y: 10.tile(),
         }],
     )
