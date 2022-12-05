@@ -1,4 +1,5 @@
 use super::{known_id::object::PLAYER_CHARACTER, player_character::new_player, *};
+use crate::component::Interactor;
 use namui::prelude::*;
 
 pub struct Game {
@@ -42,6 +43,7 @@ impl Game {
                 render([
                     self.render_in_screen_object_list(&self.state, &rendering_context),
                     self.render_quest_guide(&rendering_context),
+                    self.render_interaction_guide(&self.state, &rendering_context),
                 ]),
             ),
         ])
@@ -67,4 +69,5 @@ fn mock_quest_object(app: &mut crate::ecs::App) -> &mut crate::ecs::Entity {
             y: 10.tile(),
         }],
     )
+    .add_component(Interactor {})
 }

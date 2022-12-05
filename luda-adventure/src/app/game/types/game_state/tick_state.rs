@@ -24,7 +24,7 @@ impl TickState {
         self.last_tick_time += TICK_INTERVAL;
     }
 
-    pub fn interpolation_progress(&self, current_time: Time) -> f32 {
-        (current_time - self.last_tick_time) / TICK_INTERVAL
+    pub fn interpolation_progress(&self) -> f32 {
+        (self.current_time - self.last_tick_time) / TICK_INTERVAL
     }
 }
