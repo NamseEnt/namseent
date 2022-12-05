@@ -45,8 +45,7 @@ pub fn component(_attribute_input: TokenStream, input: TokenStream) -> TokenStre
                 unsafe {
                     #set_name
                         .get_or_init(|| rustc_hash::FxHashMap::default())
-                        .get(&app_id)
-                        .unwrap()
+                        .get(&app_id)?
                         .get(&entity.id())
                 }
             }
@@ -56,8 +55,7 @@ pub fn component(_attribute_input: TokenStream, input: TokenStream) -> TokenStre
                 unsafe {
                     #set_name
                         .get_or_init(|| rustc_hash::FxHashMap::default())
-                        .get(&app_id)
-                        .unwrap()
+                        .get(&app_id)?
                         .get(&entity.id())
                 }
             }
