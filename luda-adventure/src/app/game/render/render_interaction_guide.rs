@@ -1,7 +1,5 @@
-use crate::{
-    app::game::{Game, GameState, RenderingContext, Tile, MAX_INTERACTION_DISTANCE},
-    component::{Positioner, Renderer},
-    ecs::Entity,
+use crate::app::game::{
+    nearest_entity_id, Game, GameState, RenderingContext, MAX_INTERACTION_DISTANCE,
 };
 use namui::prelude::*;
 
@@ -79,18 +77,4 @@ fn interaction_icon(xy: Xy<Px>, scale: f32, nearest: bool) -> RenderingTree {
         },
         max_width: None,
     })
-}
-
-fn nearest_entity_id(
-    interactive_object_list: &Vec<((&Entity, (&Positioner, &Renderer)), Tile)>,
-) -> Option<Uuid> {
-    let mut nearest_entity_id = None;
-    let mut nearest_entity_distance = MAX_INTERACTION_DISTANCE;
-    for ((entity, _), distance) in interactive_object_list {
-        if distance < &nearest_entity_distance {
-            nearest_entity_id = Some(entity.id());
-            nearest_entity_distance = *distance;
-        }
-    }
-    nearest_entity_id
 }
