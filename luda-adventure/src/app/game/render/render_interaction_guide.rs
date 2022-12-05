@@ -18,7 +18,7 @@ impl Game {
         let Some(nearest_entity_id) = nearest_entity_id(&interactive_object_list) else {
             return RenderingTree::Empty;
         };
-        render(interactive_object_list.into_iter().map(
+        render(interactive_object_list.into_iter().filter_map(
             |((entity, (positioner, renderer)), distance)| {
                 let xy = positioner.xy_with_interpolation(rendering_context.interpolation_progress);
                 let visual_rect = renderer.visual_rect() + xy;
@@ -30,7 +30,14 @@ impl Game {
                         - (ICON_SIZE * 0.5),
                 };
                 let scale = 1. - (distance / MAX_INTERACTION_DISTANCE).max(0.).min(1.);
-                interaction_icon(icon_xy, scale, entity.id() == nearest_entity_id)
+                if scale < 0.01 {
+                    return None;
+                }
+                Some(interaction_icon(
+                    icon_xy,
+                    scale,
+                    entity.id() == nearest_entity_id,
+                ))
             },
         ))
     }
