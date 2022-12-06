@@ -6,10 +6,7 @@ impl Game {
     pub fn create_rendering_context(&self) -> RenderingContext {
         let namui_screen_size = namui::screen::size();
         let px_per_tile = Per::new(32.px(), 1.tile());
-        let interpolation_progress = self
-            .state
-            .tick
-            .interpolation_progress(self.state.tick.current_time);
+        let interpolation_progress = self.state.tick.interpolation_progress();
         let rendering_context = RenderingContext {
             px_per_tile,
             screen_rect: self.get_screen_rect(
