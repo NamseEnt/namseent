@@ -2,8 +2,10 @@ use super::try_create_new_polygon::try_create_new_polygon;
 use crate::app::game::{new_floor, new_wall, types::TileExt, Tile};
 use crate::component::*;
 use namui::{Wh, Xy};
+use serde::{Deserialize, Serialize};
 
 /// Mock map. Spec and concept may change.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Map {
     wh: Wh<usize>,
     wall: Vec<String>,
@@ -12,32 +14,6 @@ pub struct Map {
 impl Map {
     pub fn new(wh: Wh<usize>, wall: Vec<String>) -> Self {
         Self { wh, wall }
-    }
-    pub fn mock() -> Self {
-        Self {
-            wh: Wh {
-                width: 24,
-                height: 16,
-            },
-            wall: vec![
-                "111111111111111111111111".into(),
-                "100000000000000000000001".into(),
-                "100000000000000000000001".into(),
-                "100000000000000000000001".into(),
-                "100000000000000000000001".into(),
-                "100000000000000000100001".into(),
-                "100000000000000000100001".into(),
-                "100000000001111111100001".into(),
-                "100000000000000000100001".into(),
-                "100000000000000000100001".into(),
-                "100000000000000000100001".into(),
-                "111111111111111111111111".into(),
-                "000000000000000000000000".into(),
-                "000000000000000000000000".into(),
-                "000000000000000000000000".into(),
-                "000000000000000000000000".into(),
-            ],
-        }
     }
 
     pub fn create_entities(&self, app: &mut crate::ecs::App) {
