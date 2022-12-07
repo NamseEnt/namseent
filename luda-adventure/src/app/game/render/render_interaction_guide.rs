@@ -46,35 +46,43 @@ fn interaction_icon(xy: Xy<Px>, scale: f32, nearest: bool) -> RenderingTree {
         true => scale * 1.2,
         false => scale,
     };
-    text(TextParam {
-        text: "press Z".to_string(),
-        x: xy.x,
-        y: xy.y,
-        align: TextAlign::Center,
-        baseline: TextBaseline::Middle,
-        font_type: FontType {
-            serif: false,
-            size: (ICON_SIZE * scale).into(),
-            language: Language::Ko,
-            font_weight: FontWeight::BOLD,
-        },
-        style: TextStyle {
-            border: Some(TextStyleBorder {
-                width: 4.px(),
-                color: Color::BLACK,
+    translate(
+        xy.x,
+        xy.y,
+        namui::scale(
+            scale,
+            scale,
+            text(TextParam {
+                text: "press Z".to_string(),
+                x: 0.px(),
+                y: 0.px(),
+                align: TextAlign::Center,
+                baseline: TextBaseline::Middle,
+                font_type: FontType {
+                    serif: false,
+                    size: ICON_SIZE.into(),
+                    language: Language::Ko,
+                    font_weight: FontWeight::BOLD,
+                },
+                style: TextStyle {
+                    border: Some(TextStyleBorder {
+                        width: 4.px(),
+                        color: Color::BLACK,
+                    }),
+                    drop_shadow: Some(TextStyleDropShadow {
+                        x: 0.0.px(),
+                        y: 0.0.px(),
+                        color: Some(Color::GREEN),
+                    }),
+                    color: match nearest {
+                        true => Color::WHITE,
+                        false => Color::grayscale_f01(0.8),
+                    },
+                    background: None,
+                    ..Default::default()
+                },
+                max_width: None,
             }),
-            drop_shadow: Some(TextStyleDropShadow {
-                x: 0.0.px(),
-                y: 0.0.px(),
-                color: Some(Color::GREEN),
-            }),
-            color: match nearest {
-                true => Color::WHITE,
-                false => Color::grayscale_f01(0.8),
-            },
-            background: None,
-            ..Default::default()
-        },
-        max_width: None,
-    })
+        ),
+    )
 }
