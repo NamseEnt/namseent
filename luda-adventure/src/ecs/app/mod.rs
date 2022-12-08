@@ -54,6 +54,9 @@ impl App {
         }
         query
     }
+    pub fn clear_entities(&mut self) {
+        self.entities.clear();
+    }
 }
 
 impl std::fmt::Debug for App {
