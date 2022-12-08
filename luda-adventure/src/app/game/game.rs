@@ -77,7 +77,9 @@ fn mock_quest_object_1(app: &mut crate::ecs::App) -> &mut crate::ecs::Entity {
             y: 10.tile(),
         }],
     )
-    .add_component(Interactor {})
+    .add_component(Interactor {
+        kind: InteractionKind::Quest,
+    })
 }
 
 fn mock_quest_object_2(app: &mut crate::ecs::App) -> &mut crate::ecs::Entity {
@@ -89,5 +91,7 @@ fn mock_quest_object_2(app: &mut crate::ecs::App) -> &mut crate::ecs::Entity {
             y: 10.tile(),
         }],
     )
-    .add_component(Interactor {})
+    .add_component(Interactor {
+        kind: InteractionKind::Quest,
+    })
 }
