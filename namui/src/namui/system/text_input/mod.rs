@@ -251,15 +251,6 @@ fn get_input_element_selection(input_element: &HtmlTextAreaElement) -> Selection
         }
     };
 
-    crate::log!("utf16_code_unit_selection: {:?}", utf16_code_unit_selection);
-    crate::log!(
-        "result: {:?}",
-        Selection::from_utf16(
-            utf16_code_unit_selection.clone(),
-            input_element.value().as_str()
-        )
-    );
-
     Selection::from_utf16(utf16_code_unit_selection, input_element.value().as_str())
 }
 

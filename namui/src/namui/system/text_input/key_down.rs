@@ -134,9 +134,7 @@ fn get_caret_index_after_apply_key_movement(
     let multiline_caret = line_texts.get_multiline_caret(selection.end);
 
     let caret_after_move = multiline_caret.get_caret_on_key(key);
-    crate::log!("caret_after_move: {:?}", caret_after_move);
 
     let next_selection_end = caret_after_move.to_selection_index();
-    crate::log!("next_selection_end: {:?}", next_selection_end);
     next_selection_end
 }
