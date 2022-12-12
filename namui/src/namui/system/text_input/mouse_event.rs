@@ -1,5 +1,5 @@
 use super::*;
-use crate::text::{get_fallback_fonts, LineTexts};
+use crate::text::*;
 use std::ops::Range;
 
 pub(crate) fn on_mouse_down_in_before_attach_event_calls() {
@@ -86,14 +86,14 @@ fn update_focus_with_mouse_movement(
     );
 
     let selection_direction = match &selection {
-        Some(selection) => {
-            if selection.start <= selection.end {
+        Selection::Range(range) => {
+            if range.start <= range.end {
                 "forward"
             } else {
                 "backward"
             }
         }
-        None => "none",
+        Selection::None => "none",
     };
 
     let width = custom_data.props.rect.width().as_f32();
@@ -103,12 +103,15 @@ fn update_focus_with_mouse_movement(
         .unwrap();
 
     input_element.set_value(&custom_data.props.text);
+
+    let utf16_selection = selection.as_utf8_selection(input_element.value());
+
     input_element
         .set_selection_range_with_direction(
-            selection
+            utf16_selection
                 .as_ref()
                 .map_or(0, |selection| selection.start.min(selection.end) as u32),
-            selection
+            utf16_selection
                 .as_ref()
                 .map_or(0, |selection| selection.start.max(selection.end) as u32),
             selection_direction,
@@ -126,24 +129,21 @@ fn get_selection_on_mouse_movement(
     props: &Props,
     click_local_xy: Xy<Px>,
     is_dragging_by_mouse: bool,
-) -> Option<Range<usize>> {
+) -> Selection {
     let font = crate::font::get_font(props.font_type);
 
     if font.is_none() {
-        return None;
+        return Selection::None;
     };
     let font = font.unwrap();
+    let fonts = crate::font::with_fallbacks(font);
 
     let is_shift_key_pressed =
         crate::keyboard::any_code_press([crate::Code::ShiftLeft, crate::Code::ShiftRight]);
 
-    let fonts = std::iter::once(font.clone())
-        .chain(std::iter::once_with(|| get_fallback_fonts(font.size)).flatten())
-        .collect::<Vec<_>>();
-
     let paint = get_text_paint(props.style.text.color).build();
 
-    let line_texts = LineTexts::new(&props.text, &fonts, &paint, Some(props.rect.width()));
+    let line_texts = LineTexts::new(&props.text, &fonts, Some(&paint), Some(props.rect.width()));
 
     // const continouslyFastClickCount: number;
 
@@ -158,9 +158,9 @@ fn get_selection_on_mouse_movement(
 
     let selection = super::get_input_element_selection(input_element);
 
-    Some(get_one_click_selection(
+    Selection::Range(get_one_click_selection(
         props,
-        &font,
+        &fonts,
         &line_texts,
         click_local_xy,
         is_dragging,
@@ -170,24 +170,24 @@ fn get_selection_on_mouse_movement(
 
 fn get_one_click_selection(
     text_input_props: &Props,
-    font: &Font,
+    fonts: &Vec<Arc<Font>>,
     line_texts: &LineTexts,
     click_local_xy: Xy<Px>,
     is_dragging: bool,
-    last_selection: &Option<Range<usize>>,
+    last_selection: &Selection,
 ) -> Range<usize> {
     let selection_index_of_xy =
-        get_selection_index_of_xy(text_input_props, font, line_texts, click_local_xy);
+        get_selection_index_of_xy(text_input_props, fonts, line_texts, click_local_xy);
 
     let start = match last_selection {
-        Some(last_selection) => {
+        Selection::Range(range) => {
             if !is_dragging {
                 selection_index_of_xy
             } else {
-                last_selection.start
+                range.start
             }
         }
-        None => selection_index_of_xy,
+        Selection::None => selection_index_of_xy,
     };
 
     start..selection_index_of_xy
@@ -195,7 +195,7 @@ fn get_one_click_selection(
 
 fn get_selection_index_of_xy(
     text_input_props: &Props,
-    font: &Font,
+    fonts: &Vec<Arc<Font>>,
     line_texts: &LineTexts,
     click_local_xy: Xy<Px>,
 ) -> usize {
@@ -229,8 +229,7 @@ fn get_selection_index_of_xy(
 
     let line_text = line_texts.iter_str().nth(line_index).unwrap();
 
-    let glyph_ids = font.get_glyph_ids(&line_text);
-    let glyph_widths = font.get_glyph_widths(glyph_ids, None);
+    let glyph_widths = get_text_widths(&line_text, &fonts, None);
 
     let line_width = glyph_widths.iter().sum::<Px>();
 

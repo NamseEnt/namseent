@@ -1,7 +1,8 @@
-use super::{Props, Selection};
+use super::Props;
 use crate::{
     namui::{self, RenderingTree, TextInput},
     render,
+    system::text_input::Selection,
     text::*,
     *,
 };
@@ -16,15 +17,16 @@ impl TextInput {
         line_texts: &LineTexts,
         selection: &Selection,
     ) -> RenderingTree {
-        let is_not_divided_by_selection = selection
-            .as_ref()
-            .map_or(true, |selection| selection.start == selection.end);
+        let is_not_divided_by_selection =
+            selection.map_or(true, |selection| selection.start == selection.end);
 
         if is_not_divided_by_selection {
             return namui::text(props.text_param());
         };
 
-        let selection = selection.as_ref().unwrap();
+        let Selection::Range(selection) = selection else {
+            return RenderingTree::Empty;
+        };
 
         let (left_selection_index, right_selection_index) = if selection.start < selection.end {
             (selection.start, selection.end)
@@ -77,7 +79,7 @@ impl TextInput {
                         right_caret.caret_index_in_line,
                         render_only_selection_background,
                         false,
-                        &paint,
+                        paint.clone(),
                     )
                 } else {
                     let line_indexes_in_the_middle =
@@ -98,7 +100,7 @@ impl TextInput {
                             first_line_text_with_newline.len(),
                             render_only_selection_background,
                             true,
-                            &paint,
+                            paint.clone(),
                         )
                     };
 
@@ -117,7 +119,7 @@ impl TextInput {
                             line_text_with_newline.len(),
                             render_only_selection_background,
                             true,
-                            &paint,
+                            paint.clone(),
                         )
                     });
 
@@ -143,7 +145,7 @@ impl TextInput {
                             right_caret.caret_index_in_line,
                             render_only_selection_background,
                             false,
-                            &paint,
+                            paint.clone(),
                         )
                     };
 
@@ -183,20 +185,20 @@ impl TextInput {
         &self,
         props: &Props,
         fonts: &Vec<Arc<Font>>,
-        text: &Vec<char>,
+        chars: &Vec<char>,
         y: Px,
         left_caret_index: usize,
         right_caret_index: usize,
         render_only_selection_background: bool,
         with_newline_background: bool,
-        paint: &Arc<Paint>,
+        paint: Arc<Paint>,
     ) -> RenderingTree {
         let (left_text_string, selected_text_string, right_text_string) = (
-            &text[..left_caret_index].iter().collect::<String>(),
-            &text[left_caret_index..right_caret_index]
+            &chars[..left_caret_index].iter().collect::<String>(),
+            &chars[left_caret_index..right_caret_index]
                 .iter()
                 .collect::<String>(),
-            &text[right_caret_index..].iter().collect::<String>(),
+            &chars[right_caret_index..].iter().collect::<String>(),
         );
         let (left_text_left, selected_text_left, right_text_left) = self.get_text_lefts(
             &props,
@@ -204,7 +206,7 @@ impl TextInput {
             left_text_string,
             selected_text_string,
             right_text_string,
-            paint,
+            &paint,
         );
 
         if render_only_selection_background {
@@ -216,9 +218,9 @@ impl TextInput {
                 TextBaseline::Bottom => line_height,
             };
 
-            let mut width = get_text_width_with_fonts(fonts, &selected_text_string, paint);
+            let mut width = get_text_width_with_fonts(fonts, &selected_text_string, Some(&paint));
             if with_newline_background {
-                width += get_text_width_with_fonts(fonts, " ", paint)
+                width += get_text_width_with_fonts(fonts, " ", Some(&paint))
             };
 
             namui::rect(crate::RectParam {
@@ -283,12 +285,12 @@ impl TextInput {
         left_text_string: &str,
         selected_text_string: &str,
         right_text_string: &str,
-        paint: &Arc<Paint>,
+        paint: &Paint,
     ) -> (Px, Px, Px) {
         let (left_text_width, selected_text_width, right_text_width) = (
-            get_text_width_with_fonts(&fonts, left_text_string, paint),
-            get_text_width_with_fonts(&fonts, selected_text_string, paint),
-            get_text_width_with_fonts(&fonts, right_text_string, paint),
+            get_text_width_with_fonts(&fonts, left_text_string, Some(paint)),
+            get_text_width_with_fonts(&fonts, selected_text_string, Some(paint)),
+            get_text_width_with_fonts(&fonts, right_text_string, Some(paint)),
         );
 
         let total_width = left_text_width + selected_text_width + right_text_width;

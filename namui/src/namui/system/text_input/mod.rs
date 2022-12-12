@@ -2,6 +2,7 @@ mod find;
 mod key_down;
 mod mouse_event;
 mod post_render;
+mod selection;
 
 use super::InitResult;
 use crate::namui::*;
@@ -10,6 +11,7 @@ pub(crate) use find::*;
 pub(crate) use key_down::*;
 pub(crate) use mouse_event::*;
 pub(crate) use post_render::*;
+pub use selection::*;
 use std::str::FromStr;
 use std::{ops::ControlFlow, sync::Mutex};
 use wasm_bindgen::{prelude::Closure, JsCast};
@@ -231,44 +233,56 @@ pub fn blur() {
         .take();
 }
 
-fn get_input_element_selection(input_element: &HtmlTextAreaElement) -> text_input::Selection {
-    let selection_start = input_element.selection_start().unwrap();
-    if selection_start.is_none() {
-        None
-    } else {
-        let selection_start = selection_start.unwrap() as usize;
-        let selection_end = input_element.selection_end().unwrap().unwrap() as usize;
-        let selection_direction = input_element.selection_direction().unwrap().unwrap();
-
-        if selection_direction.eq("backward") {
-            Some(selection_end..selection_start)
+fn get_input_element_selection(input_element: &HtmlTextAreaElement) -> Selection {
+    let utf16_code_unit_selection = {
+        let selection_start = input_element.selection_start().unwrap();
+        if selection_start.is_none() {
+            None
         } else {
-            Some(selection_start..selection_end)
+            let selection_start = selection_start.unwrap() as usize;
+            let selection_end = input_element.selection_end().unwrap().unwrap() as usize;
+            let selection_direction = input_element.selection_direction().unwrap().unwrap();
+
+            if selection_direction.eq("backward") {
+                Some(selection_end..selection_start)
+            } else {
+                Some(selection_start..selection_end)
+            }
         }
-    }
+    };
+
+    crate::log!("utf16_code_unit_selection: {:?}", utf16_code_unit_selection);
+    crate::log!(
+        "result: {:?}",
+        Selection::from_utf16(
+            utf16_code_unit_selection.clone(),
+            input_element.value().as_str()
+        )
+    );
+
+    Selection::from_utf16(utf16_code_unit_selection, input_element.value().as_str())
 }
 
-pub(crate) fn get_selection(id: crate::Uuid, text: &str) -> text_input::Selection {
+pub(crate) fn get_selection(id: crate::Uuid, text: &str) -> Selection {
     let input_element = get_input_element();
     let selection = get_input_element_selection(&input_element);
-    if selection.is_none() {
-        return None;
-    }
+    let Selection::Range(range) = selection else {
+        return Selection::None;
+    };
+
     {
         let last_focused_text_input = TEXT_INPUT_SYSTEM.last_focused_text_input.lock().unwrap();
 
         if last_focused_text_input.is_none() {
-            return None;
+            return Selection::None;
         }
         let last_focused_text_input = last_focused_text_input.as_ref().unwrap();
 
         if last_focused_text_input.id != id {
-            return None;
+            return Selection::None;
         }
     }
 
-    selection.map(|selection| {
-        let chars_count = text.chars().count();
-        selection.start.min(chars_count)..selection.end.min(chars_count)
-    })
+    let chars_count = text.chars().count();
+    Selection::Range(range.start.min(chars_count)..range.end.min(chars_count))
 }

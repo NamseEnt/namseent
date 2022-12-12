@@ -1,5 +1,5 @@
 use super::*;
-use crate::text::{get_fallback_fonts, LineTexts};
+use crate::text::LineTexts;
 use std::{
     ops::Range,
     sync::atomic::{AtomicBool, Ordering},
@@ -72,12 +72,12 @@ fn handle_selection_change(
 
     let selection =
         get_selection_on_keyboard_down(&input_element, &text_input.props, key_in_interest);
-    if selection.is_none() {
-        return;
-    }
-    let selection = selection.unwrap();
 
-    let selection_direction = if selection.start <= selection.end {
+    let Some(utf16_selection) = selection.as_utf8_selection(input_element.value()) else {
+        return;
+    };
+
+    let selection_direction = if utf16_selection.start <= utf16_selection.end {
         "forward"
     } else {
         "backward"
@@ -85,8 +85,8 @@ fn handle_selection_change(
 
     input_element
         .set_selection_range_with_direction(
-            selection.start.min(selection.end) as u32,
-            selection.start.max(selection.end) as u32,
+            utf16_selection.start.min(utf16_selection.end) as u32,
+            utf16_selection.start.max(utf16_selection.end) as u32,
             selection_direction,
         )
         .unwrap();
@@ -96,37 +96,33 @@ fn get_selection_on_keyboard_down(
     input_element: &HtmlTextAreaElement,
     props: &text_input::Props,
     key: KeyInInterest,
-) -> text_input::Selection {
+) -> Selection {
     let selection = super::get_input_element_selection(input_element);
-    if selection.is_none() {
-        return None;
-    }
-    let selection = selection.as_ref().unwrap();
+    let Selection::Range(range) = selection else {
+        return Selection::None;
+    };
 
     let font = crate::font::get_font(props.font_type);
     if font.is_none() {
-        return None;
+        return Selection::None;
     };
     let font = font.unwrap();
+    let fonts = crate::font::with_fallbacks(font);
 
     let is_shift_key_pressed =
         crate::keyboard::any_code_press([crate::Code::ShiftLeft, crate::Code::ShiftRight]);
 
-    let fonts = std::iter::once(font.clone())
-        .chain(std::iter::once_with(|| get_fallback_fonts(font.size)).flatten())
-        .collect::<Vec<_>>();
-
     let paint = get_text_paint(props.style.text.color).build();
 
-    let line_texts = LineTexts::new(&props.text, &fonts, &paint, Some(props.rect.width()));
+    let line_texts = LineTexts::new(&props.text, &fonts, Some(&paint), Some(props.rect.width()));
 
     let is_dragging = is_shift_key_pressed;
 
-    let next_selection_end = get_caret_index_after_apply_key_movement(key, line_texts, selection);
+    let next_selection_end = get_caret_index_after_apply_key_movement(key, line_texts, &range);
 
     match is_dragging {
-        true => Some(selection.start..next_selection_end),
-        false => Some(next_selection_end..next_selection_end),
+        true => Selection::Range(range.start..next_selection_end),
+        false => Selection::Range(next_selection_end..next_selection_end),
     }
 }
 
@@ -138,7 +134,9 @@ fn get_caret_index_after_apply_key_movement(
     let multiline_caret = line_texts.get_multiline_caret(selection.end);
 
     let caret_after_move = multiline_caret.get_caret_on_key(key);
+    crate::log!("caret_after_move: {:?}", caret_after_move);
 
     let next_selection_end = caret_after_move.to_selection_index();
+    crate::log!("next_selection_end: {:?}", next_selection_end);
     next_selection_end
 }

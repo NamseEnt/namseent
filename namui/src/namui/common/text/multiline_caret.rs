@@ -1,5 +1,4 @@
 use crate::{
-    namui::skia::GlyphIds,
     system::text_input::{ArrowUpDown, KeyInInterest},
     text::*,
     *,
@@ -124,19 +123,14 @@ impl MultilineCaret<'_> {
 
         let mut x = 0.px();
         for glyph_group in glyph_groups {
-            if self.caret_index_in_line <= glyph_group.end_index {
+            if self.caret_index_in_line <= glyph_group.end_char_index {
                 let start_index = glyph_group.start_index();
 
-                let glyph_ids_left: GlyphIds = glyph_group
-                    .glyph_ids
+                let glyph_widths_left = glyph_group
+                    .widths
                     .into_iter()
-                    .take(self.caret_index_in_line - start_index)
-                    .collect();
-                return x + glyph_group
-                    .font
-                    .get_glyph_widths(glyph_ids_left, Some(self.line_texts.paint))
-                    .iter()
-                    .sum::<Px>();
+                    .take(self.caret_index_in_line - start_index);
+                return x + glyph_widths_left.sum::<Px>();
             } else {
                 x += glyph_group.width;
             }
@@ -159,7 +153,7 @@ impl MultilineCaret<'_> {
             let glyph_ids = glyph_group.glyph_ids.into_boxed_slice();
             let glyph_widths = glyph_group
                 .font
-                .get_glyph_widths(glyph_ids, Some(self.line_texts.paint));
+                .get_glyph_widths(glyph_ids, self.line_texts.paint);
 
             for glyph_width in glyph_widths.into_iter() {
                 let last = caret_positions.last().unwrap().clone();

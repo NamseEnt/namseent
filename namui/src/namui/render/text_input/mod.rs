@@ -3,15 +3,11 @@ mod draw_texts_divided_by_selection;
 
 use crate::{
     namui::{self, *},
-    text::{get_fallback_fonts, LineTexts},
+    system::text_input::Selection,
+    text::LineTexts,
     RectParam,
 };
-use std::{
-    ops::Range,
-    sync::atomic::{AtomicBool, Ordering},
-};
-
-pub type Selection = Option<Range<usize>>;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Clone, Debug)]
 pub struct TextInput {
@@ -135,13 +131,16 @@ impl TextInput {
         }
         let font = font.unwrap();
 
-        let fonts = std::iter::once(font.clone())
-            .chain(std::iter::once_with(|| get_fallback_fonts(font.size)).flatten())
-            .collect::<Vec<_>>();
+        let fonts = crate::font::with_fallbacks(font);
 
         let paint = get_text_paint(props.style.text.color).build();
 
-        let line_texts = LineTexts::new(&props.text, &fonts, &paint, props.text_param().max_width);
+        let line_texts = LineTexts::new(
+            &props.text,
+            &fonts,
+            Some(&paint),
+            props.text_param().max_width,
+        );
 
         let selection = crate::system::text_input::get_selection(self.id, &props.text);
 
@@ -167,7 +166,7 @@ impl TextInput {
                 },
             }),
             self.draw_texts_divided_by_selection(&props, &fonts, &paint, &line_texts, &selection),
-            self.draw_caret(&props, &line_texts, &selection),
+            self.draw_caret(&props, &line_texts, &selection, &paint),
         ])
         .with_custom(custom_data.clone())
         .attach_event(|builder| {

@@ -1,11 +1,15 @@
 mod glyph_group;
 mod line_texts;
+mod measure_glyphs;
 mod multiline_caret;
+mod text_width;
 
 use crate::{namui::skia::FontMetrics, *};
 pub(crate) use glyph_group::*;
 pub(crate) use line_texts::*;
-use std::{collections::VecDeque, sync::Arc};
+pub(crate) use measure_glyphs::*;
+use std::sync::Arc;
+pub(crate) use text_width::*;
 
 pub fn get_left_in_align(x: Px, align: TextAlign, width: Px) -> Px {
     match align {
@@ -21,11 +25,6 @@ pub fn get_bottom_of_baseline(baseline: TextBaseline, font_metrics: FontMetrics)
         TextBaseline::Bottom => -font_metrics.descent,
     }
 }
-pub fn get_fallback_fonts(font_size: IntPx) -> VecDeque<Arc<Font>> {
-    crate::typeface::get_fallback_font_typefaces()
-        .map(|typeface| crate::font::get_font_of_typeface(typeface.clone(), font_size))
-        .collect()
-}
 pub fn get_multiline_y_baseline_offset(
     baseline: TextBaseline,
     line_height: Px,
@@ -40,7 +39,7 @@ pub fn get_multiline_y_baseline_offset(
 pub(crate) fn get_text_width_with_fonts(
     fonts: &Vec<Arc<Font>>,
     text: &str,
-    paint: &Arc<Paint>,
+    paint: Option<&Paint>,
 ) -> Px {
     let groups = get_glyph_groups(text, fonts, paint);
     groups.iter().map(|group| group.width).sum()
