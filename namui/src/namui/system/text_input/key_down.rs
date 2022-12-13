@@ -73,7 +73,7 @@ fn handle_selection_change(
     let selection =
         get_selection_on_keyboard_down(&input_element, &text_input.props, key_in_interest);
 
-    let Some(utf16_selection) = selection.as_utf8_selection(input_element.value()) else {
+    let Some(utf16_selection) = selection.as_utf16(input_element.value()) else {
         return;
     };
 

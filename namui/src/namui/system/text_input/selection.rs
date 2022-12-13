@@ -9,56 +9,24 @@ pub enum Selection {
 }
 
 impl Selection {
-    pub(crate) fn as_utf8_selection(&self, text: impl AsRef<str>) -> Option<Range<usize>> {
-        let Selection::Range(utf8_range) = self else {
+    /// utf-16 code units.
+    pub(crate) fn as_utf16(&self, text: impl AsRef<str>) -> Option<Range<usize>> {
+        let Selection::Range(range) = self else {
             return None;
         };
-
-        let mut range = utf8_range.clone();
-
-        for (index, char) in text.as_ref().chars().enumerate() {
-            if range.start <= index && range.end <= index {
-                break;
-            }
-            let char_len_utf16 = char.len_utf16();
-            if char_len_utf16 <= 1 {
-                continue;
-            }
-            if range.start > index {
-                range.start += char_len_utf16 - 1;
-            }
-            if range.end > index {
-                range.end += char_len_utf16 - 1;
-            }
-        }
-
-        Some(range)
+        let u16_code_unit_indexes = to_u16_code_unit_indexes(text);
+        Some(u16_code_unit_indexes[range.start]..u16_code_unit_indexes[range.end])
     }
 
     pub(crate) fn from_utf16(utf16_selection: Option<Range<usize>>, text: impl AsRef<str>) -> Self {
-        let Some(utf8_selection) = utf16_selection else {
+        let Some(range) = utf16_selection else {
             return Selection::None;
         };
 
-        let mut range = utf8_selection;
-
-        for (index, char) in text.as_ref().chars().enumerate() {
-            if range.start <= index && range.end <= index {
-                break;
-            }
-            let char_len_utf16 = char.len_utf16();
-            if char_len_utf16 <= 1 {
-                continue;
-            }
-            if range.start > index {
-                range.start -= char_len_utf16 - 1;
-            }
-            if range.end > index {
-                range.end -= char_len_utf16 - 1;
-            }
-        }
-
-        Self::Range(range)
+        let u16_code_unit_indexes = to_u16_code_unit_indexes(text);
+        let start = u16_code_unit_indexes.binary_search(&range.start).unwrap();
+        let end = u16_code_unit_indexes.binary_search(&range.end).unwrap();
+        Self::Range(start..end)
     }
 
     pub(crate) fn map(&self, f: impl FnOnce(Range<usize>) -> Range<usize>) -> Self {
@@ -74,6 +42,16 @@ impl Selection {
             Self::Range(range) => f(range.clone()),
         }
     }
+}
+
+fn to_u16_code_unit_indexes(text: impl AsRef<str>) -> Vec<usize> {
+    let mut code_unit_indexes = vec![0];
+    let mut index_on_utf16 = 0;
+    for char in text.as_ref().chars() {
+        index_on_utf16 += char.len_utf16();
+        code_unit_indexes.push(index_on_utf16);
+    }
+    code_unit_indexes
 }
 
 #[cfg(test)]
@@ -121,16 +99,13 @@ mod tests {
     #[test]
     #[wasm_bindgen_test]
     fn to_utf16_code_unit_selection_test() {
-        assert_eq!(Some(0..0), Selection::Range(0..0).as_utf8_selection(""));
-        assert_eq!(Some(0..0), Selection::Range(0..0).as_utf8_selection("abc"));
-        assert_eq!(Some(1..1), Selection::Range(1..1).as_utf8_selection("abc"));
-        assert_eq!(Some(3..3), Selection::Range(3..3).as_utf8_selection("abc"));
-        assert_eq!(Some(3..3), Selection::Range(2..2).as_utf8_selection("🔗1"));
-        assert_eq!(Some(2..2), Selection::Range(1..1).as_utf8_selection("🔗1"));
-        assert_eq!(Some(0..0), Selection::Range(0..0).as_utf8_selection("🔗1"));
-        assert_eq!(
-            Some(3..5),
-            Selection::Range(2..3).as_utf8_selection("🔗1🔗")
-        );
+        assert_eq!(Some(0..0), Selection::Range(0..0).as_utf16(""));
+        assert_eq!(Some(0..0), Selection::Range(0..0).as_utf16("abc"));
+        assert_eq!(Some(1..1), Selection::Range(1..1).as_utf16("abc"));
+        assert_eq!(Some(3..3), Selection::Range(3..3).as_utf16("abc"));
+        assert_eq!(Some(3..3), Selection::Range(2..2).as_utf16("🔗1"));
+        assert_eq!(Some(2..2), Selection::Range(1..1).as_utf16("🔗1"));
+        assert_eq!(Some(0..0), Selection::Range(0..0).as_utf16("🔗1"));
+        assert_eq!(Some(3..5), Selection::Range(2..3).as_utf16("🔗1🔗"));
     }
 }

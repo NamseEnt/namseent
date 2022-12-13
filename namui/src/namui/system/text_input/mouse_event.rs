@@ -104,7 +104,7 @@ fn update_focus_with_mouse_movement(
 
     input_element.set_value(&custom_data.props.text);
 
-    let utf16_selection = selection.as_utf8_selection(input_element.value());
+    let utf16_selection = selection.as_utf16(input_element.value());
 
     input_element
         .set_selection_range_with_direction(
