@@ -1,7 +1,10 @@
 #!/bin/bash
 
 function main() {
-    install_docker_rootless_mode
+    if ! set_docker_rootless_mode; then
+        echo "Fail to set docker rootless mode"
+        exit 1
+    fi
 
     cli_root_path=$(cd $(dirname $0) && cd .. && pwd -P)
     cli_path="$cli_root_path/target/debug/namui-cli"
@@ -186,7 +189,7 @@ function install_dot_env_file() {
     fi
 }
 
-function install_docker_rootless_mode() {
+function set_docker_rootless_mode() {
     cargo --version
     if [ ! $(which newuidmap) ]; then
         echo "Installing newuidmap..."
@@ -224,7 +227,7 @@ function install_docker_rootless_mode() {
     echo "If you have a problem, please reinstall docker like this doc, https://docs.docker.com/engine/install/ubuntu/"
     echo "Setting docker as rootress mode..."
 
-    if ! -d ~/.config/systemd/user/docker.service; then
+    if [ ! -f ~/.config/systemd/user/docker.service ]; then
         dockerd-rootless-setuptool.sh install --force
 
         export PATH=/usr/bin:$PATH
