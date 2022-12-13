@@ -190,6 +190,7 @@ function install_docker_rootless_mode() {
     cargo --version
     if [ ! $(which newuidmap) ]; then
         echo "Installing newuidmap..."
+        sudo apt-get update -y
         sudo apt install uidmap
     fi
 
@@ -213,20 +214,17 @@ function install_docker_rootless_mode() {
         exit 1
     fi
 
-    if ! dpkg -l | grep -q dbus-user-session; then
+    if ! dpkg -l | grep -q dbus-user-session \
+        || ! dpkg -l | grep -q docker-ce-rootless-extras; then
         echo "Installing dbus-user-session..."
-        sudo apt-get install -y dbus-user-session
+        sudo apt-get update -y
+        sudo apt-get install -y dbus-user-session docker-ce-rootless-extras
     fi
 
     echo "If you have a problem, please reinstall docker like this doc, https://docs.docker.com/engine/install/ubuntu/"
     echo "Setting docker as rootress mode..."
 
-    if ! dpkg -l | grep -q docker-ce-rootless-extras; then
-        echo "Installing docker-ce-rootless-extras..."
-        sudo apt-get install -y docker-ce-rootless-extras
-    fi
-
-    if [! -d ~/.config/systemd/user/docker.service]; then
+    if ! -d ~/.config/systemd/user/docker.service; then
         dockerd-rootless-setuptool.sh install --force
 
         export PATH=/usr/bin:$PATH
