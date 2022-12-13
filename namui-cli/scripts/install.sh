@@ -190,7 +190,11 @@ function install_dot_env_file() {
 }
 
 function set_docker_rootless_mode() {
-    cargo --version
+    if [ $(docker info --format "{{ .ClientInfo.Context }}") == "rootless" ]; then
+        echo "Docker is already in rootless mode."
+        return
+    fi
+
     if [ ! $(which newuidmap) ]; then
         echo "Installing newuidmap..."
         sudo apt-get update -y
