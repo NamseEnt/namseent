@@ -21,4 +21,7 @@
         "000000000000000000000000",
         "000000000000000000000000",
     ],
+    objects: [
+        Portal((xy:(x:(21.5),y:(5.0)),destination_map_name:"first",destination_character_xy:(x:(2.0),y:(5.0)))),
+    ],
 )

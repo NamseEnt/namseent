@@ -1,5 +1,6 @@
 use super::Map;
-use namui::{simple_error_impl, spawn_local};
+use crate::app::game::{interaction, new_player, Tile, TileExt};
+use namui::{prelude::*, simple_error_impl};
 
 pub struct MapLoader {
     state: MapLoaderState,
@@ -23,25 +24,39 @@ impl MapLoader {
     pub fn update(&mut self, event: &namui::Event, app: &mut crate::ecs::App) {
         // TODO: This is a mock. We should be able to start loading a map from the outside.
         if let MapLoaderState::Idle = self.state {
-            let _ = self.start_load("first".to_string());
+            let _ = self.start_load("first".to_string(), Xy::new(8.tile(), 6.tile()));
         }
 
-        event.is::<InternalEvent>(|event| match event {
-            InternalEvent::FailedToReadMapFromBundle => {
-                self.state = MapLoaderState::Error(Error::MapNotFound);
-            }
-            InternalEvent::SerializedMapLoaded(serialized_map) => {
-                let Ok(map) = ron::from_str::<Map>(serialized_map) else {
-                    self.state = MapLoaderState::Error(Error::InvalidMap);
+        event
+            .is::<InternalEvent>(|event| match event {
+                InternalEvent::FailedToReadMapFromBundle => {
+                    self.state = MapLoaderState::Error(Error::MapNotFound);
+                }
+                InternalEvent::SerializedMapLoaded(serialized_map, player_xy) => {
+                    let Ok(map) = ron::from_str::<Map>(serialized_map) else {
+                        self.state = MapLoaderState::Error(Error::InvalidMap);
+                        return;
+                    };
+                    app.clear_entities();
+                    map.create_entities(app);
+                    new_player(app, *player_xy);
+                    self.state = MapLoaderState::Loaded;
+                }
+            })
+            .is::<interaction::Event>(|event| {
+                let interaction::Event::Interacted { kind, .. } = event;
+                let interaction::InteractionKind::MapTeleport { map_name, player_xy } = kind else {
                     return;
                 };
-                map.create_entities(app);
-                self.state = MapLoaderState::Loaded;
-            }
-        });
+                let _ = self.start_load(map_name.clone(), *player_xy);
+            });
     }
 
-    pub fn start_load(&mut self, map_name: String) -> Result<(), StartLoadError> {
+    pub fn start_load(
+        &mut self,
+        map_name: String,
+        player_xy: Xy<Tile>,
+    ) -> Result<(), StartLoadError> {
         if let MapLoaderState::Loading = self.state {
             return Err(StartLoadError::AlreadyLoading);
         }
@@ -54,7 +69,10 @@ impl MapLoader {
                 namui::event::send(InternalEvent::FailedToReadMapFromBundle);
                 return;
             };
-            namui::event::send(InternalEvent::SerializedMapLoaded(serialized_map));
+            namui::event::send(InternalEvent::SerializedMapLoaded(
+                serialized_map,
+                player_xy,
+            ));
         });
         return Ok(());
     }
@@ -82,5 +100,5 @@ simple_error_impl!(Error);
 
 enum InternalEvent {
     FailedToReadMapFromBundle,
-    SerializedMapLoaded(String),
+    SerializedMapLoaded(String, Xy<Tile>),
 }

@@ -1,4 +1,5 @@
 use super::try_create_new_polygon::try_create_new_polygon;
+use super::MapObject;
 use crate::app::game::{new_floor, new_wall, types::TileExt, Tile};
 use crate::component::*;
 use namui::{Wh, Xy};
@@ -9,16 +10,18 @@ use serde::{Deserialize, Serialize};
 pub struct Map {
     wh: Wh<usize>,
     wall: Vec<String>,
+    objects: Vec<MapObject>,
 }
 
 impl Map {
-    pub fn new(wh: Wh<usize>, wall: Vec<String>) -> Self {
-        Self { wh, wall }
+    pub fn new(wh: Wh<usize>, wall: Vec<String>, objects: Vec<MapObject>) -> Self {
+        Self { wh, wall, objects }
     }
 
     pub fn create_entities(&self, app: &mut crate::ecs::App) {
         self.create_floor_entities(app);
         self.create_wall_entities(app);
+        self.create_map_object_entities(app);
     }
 
     fn create_floor_entities(&self, app: &mut crate::ecs::App) {
@@ -63,6 +66,12 @@ impl Map {
                         .add_component(Collider::from_polygon(polygon));
                 }
             }
+        }
+    }
+
+    fn create_map_object_entities(&self, app: &mut crate::ecs::App) {
+        for object in &self.objects {
+            object.create_entity(app);
         }
     }
 }

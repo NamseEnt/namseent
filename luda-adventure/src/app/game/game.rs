@@ -1,5 +1,4 @@
-use super::{known_id::object::PLAYER_CHARACTER, player_character::new_player, *};
-use crate::component::Interactor;
+use super::{known_id::object::PLAYER_CHARACTER, *};
 use namui::prelude::*;
 
 pub struct Game {
@@ -9,11 +8,7 @@ pub struct Game {
 }
 impl Game {
     pub fn new_with_mock() -> Self {
-        let mut ecs_app = crate::ecs::App::new();
-
-        mock_character(&mut ecs_app);
-        mock_quest_object_1(&mut ecs_app);
-        mock_quest_object_2(&mut ecs_app);
+        let ecs_app = crate::ecs::App::new();
         let mut state = GameState::new();
         state.camera.subject = CameraSubject::Object {
             id: PLAYER_CHARACTER,
@@ -56,42 +51,4 @@ impl Game {
             ),
         ])
     }
-}
-
-fn mock_character(app: &mut crate::ecs::App) -> &mut crate::ecs::Entity {
-    new_player(
-        app,
-        Xy {
-            x: 8.tile(),
-            y: 6.tile(),
-        },
-    )
-}
-
-fn mock_quest_object_1(app: &mut crate::ecs::App) -> &mut crate::ecs::Entity {
-    new_wall_with_id(
-        app,
-        known_id::object::FIRST_QUEST_OBJECT,
-        vec![Xy {
-            x: 10.tile(),
-            y: 10.tile(),
-        }],
-    )
-    .add_component(Interactor {
-        kind: InteractionKind::Quest,
-    })
-}
-
-fn mock_quest_object_2(app: &mut crate::ecs::App) -> &mut crate::ecs::Entity {
-    new_wall_with_id(
-        app,
-        known_id::object::SECOND_QUEST_OBJECT,
-        vec![Xy {
-            x: 6.tile(),
-            y: 10.tile(),
-        }],
-    )
-    .add_component(Interactor {
-        kind: InteractionKind::Quest,
-    })
 }
