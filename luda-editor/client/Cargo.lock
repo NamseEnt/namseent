@@ -1154,9 +1154,19 @@ dependencies = [
  "namui",
  "namui-type",
  "revert-json-patch",
+ "rpc_macro",
  "serde",
  "serde_json",
  "uuid",
+]
+
+[[package]]
+name = "rpc_macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

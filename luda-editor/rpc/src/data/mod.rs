@@ -76,3 +76,8 @@ pub struct ImageWithLabels {
     pub url: String,
     pub labels: Vec<Label>,
 }
+
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub enum ProjectAclUserPermission {
+    Editor,
+}
