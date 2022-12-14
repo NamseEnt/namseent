@@ -1,6 +1,6 @@
 use crate::{
     namui::skia::{Shader, StrokeJoin},
-    BlendMode, Color, ColorFilter, Paint, PaintStyle, Px, StrokeCap,
+    uuid_from_hash, BlendMode, Color, ColorFilter, Paint, PaintStyle, Px, StrokeCap,
 };
 use once_cell::sync::OnceCell;
 use ordered_float::OrderedFloat;
@@ -8,6 +8,7 @@ use std::{
     hash::Hash,
     sync::{Arc, Mutex},
 };
+use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub struct PaintBuilder {
@@ -146,17 +147,20 @@ impl PaintBuilder {
         }
     }
 
-    fn generate_id(&self) -> Box<[u8]> {
-        bincode::serialize(&(
-            &self.color,
-            &self.paint_style,
-            &self.anti_alias,
-            &self.stroke_width,
-            &self.stroke_cap,
-            &self.color_filter,
-        ))
-        .unwrap()
-        .into()
+    fn generate_id(&self) -> Uuid {
+        uuid_from_hash(self.as_paint_builder_without_shader())
+    }
+
+    fn as_paint_builder_without_shader(&self) -> PaintBuilderWithoutShader {
+        PaintBuilderWithoutShader {
+            color: self.color,
+            paint_style: self.paint_style,
+            anti_alias: self.anti_alias,
+            stroke_width: self.stroke_width,
+            stroke_cap: self.stroke_cap,
+            stroke_join: self.stroke_join,
+            color_filter: self.color_filter,
+        }
     }
 }
 

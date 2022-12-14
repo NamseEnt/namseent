@@ -25,13 +25,13 @@ pub(crate) struct Line {
 pub(crate) struct LineTexts<'a> {
     vec: Vec<Line>,
     pub fonts: &'a Vec<Arc<Font>>,
-    pub paint: &'a Arc<Paint>,
+    pub paint: Option<&'a Paint>,
 }
 impl<'a> LineTexts<'a> {
     pub fn new(
         text: &str,
         fonts: &'a Vec<Arc<Font>>,
-        paint: &'a Arc<Paint>,
+        paint: Option<&'a Paint>,
         max_width: Option<Px>,
     ) -> LineTexts<'a> {
         let vec = if let Some(max_width) = max_width {
@@ -155,7 +155,7 @@ impl<'a> Fragment for NamuiWord<'a> {
 }
 
 impl<'a> NamuiWord<'a> {
-    fn from_word(word: core::Word<'a>, fonts: &Vec<Arc<Font>>, paint: &Arc<Paint>) -> Self {
+    fn from_word(word: core::Word<'a>, fonts: &Vec<Arc<Font>>, paint: Option<&Paint>) -> Self {
         Self {
             word: word.word,
             width: get_text_width_with_fonts(fonts, word.word, paint),
@@ -170,7 +170,7 @@ impl<'a> NamuiWord<'a> {
         self,
         max_width: Px,
         fonts: &Vec<Arc<Font>>,
-        paint: &Arc<Paint>,
+        paint: Option<&Paint>,
     ) -> Vec<NamuiWord<'a>> {
         if self.width <= max_width {
             return vec![self];

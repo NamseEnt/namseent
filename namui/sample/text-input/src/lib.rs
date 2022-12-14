@@ -34,19 +34,19 @@ impl TextInputExample {
             ],
             text_3x3: [
                 [
-                    "Left Top\nHello you!\nmamama mimimi mo".to_string(),
-                    "Center Top\nHello you!\nmamama mimimi mo".to_string(),
+                    "Left Top\nHel🔗lo you!\nmamama mimimi mo".to_string(),
+                    "Center Top\nHello yo🔗u!\nmamama mimimi mo".to_string(),
                     "Right Top\nHello you!\nmamama mimimi mo".to_string(),
                 ],
                 [
                     "Left Center\nHello you!\nmamama mimimi mo".to_string(),
-                    "Center Center\nHello you!\nmamama mimimi mo".to_string(),
-                    "Right Center\nHello you!\nmamama mimimi mo".to_string(),
+                    "Center Center\nHello you!🔗\nmamama mimimi mo".to_string(),
+                    "Right Center\nHe🔗llo you!\nmamama mimimi mo".to_string(),
                 ],
                 [
-                    "Left Bottom\nHello you!\nmamama mimimi mo".to_string(),
-                    "Center Bottom\nHello you!\nmamama mimimi mo".to_string(),
-                    "Right Bottom\nHello you!\nmamama mimimi mo".to_string(),
+                    "Left Bottom\nHello you!\nmama🔗ma mimimi mo".to_string(),
+                    "Center Bottom\n🔗Hello you!\nmamama mimimi mo".to_string(),
+                    "Right Bottom\nHell🔗o you!\nmamama mimimi mo".to_string(),
                 ],
             ],
             left_top_value: None,
@@ -106,30 +106,6 @@ impl Entity for TextInputExample {
                 }));
             }
         }
-
-        let left_top_value_text = namui::text(TextParam {
-            x: px(10.0),
-            y: px(10.0),
-            align: TextAlign::Left,
-            baseline: TextBaseline::Top,
-            text: self
-                .left_top_value
-                .map(|v| v.to_string())
-                .unwrap_or("is't not f32".to_string()),
-            font_type: namui::FontType {
-                font_weight: namui::FontWeight::REGULAR,
-                language: namui::Language::Ko,
-                serif: false,
-                size: int_px(20),
-            },
-            style: namui::TextStyle {
-                color: namui::Color::BLACK,
-                ..Default::default()
-            },
-            max_width: Some(100.px()),
-        });
-
-        tree.push(left_top_value_text);
 
         render(tree)
     }
