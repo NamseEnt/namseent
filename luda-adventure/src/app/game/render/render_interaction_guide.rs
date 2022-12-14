@@ -1,24 +1,18 @@
-use crate::app::game::{
-    nearest_entity, Game, GameState, RenderingContext, MAX_INTERACTION_DISTANCE,
-};
+use crate::app::game::{nearest_entity, Game, RenderingContext, MAX_INTERACTION_DISTANCE};
 use namui::prelude::*;
 
 const ICON_SIZE: Px = px(36.0);
 const OFFSET_Y: Px = px(-4.0);
 
 impl Game {
-    pub fn render_interaction_guide(
-        &self,
-        game_state: &GameState,
-        rendering_context: &RenderingContext,
-    ) -> RenderingTree {
-        let interactive_object_list = self.get_interactive_object_with_distance(game_state);
+    pub fn render_interaction_guide(&self, rendering_context: &RenderingContext) -> RenderingTree {
+        let interactive_object_list = self.get_interactive_object_with_distance();
         let Some((nearest_entity_id, _)) = nearest_entity(&interactive_object_list) else {
             return RenderingTree::Empty;
         };
         render(interactive_object_list.into_iter().filter_map(
             |((entity, (_interactor, positioner, renderer)), distance)| {
-                let xy = positioner.xy_with_interpolation(rendering_context.interpolation_progress);
+                let xy = positioner.xy;
                 let visual_rect = renderer.visual_rect() + xy;
                 let icon_xy = Xy {
                     x: rendering_context.px_per_tile

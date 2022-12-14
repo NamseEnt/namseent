@@ -10,7 +10,8 @@ impl Game {
             .first_mut()
         {
             if let Movement::Moving(velocity) = mover.movement {
-                let delta_xy = velocity * Xy::single(TICK_INTERVAL);
+                let delta_time = self.state.tick.delta_time();
+                let delta_xy = velocity * Xy::single(delta_time);
                 positioner.xy = positioner.xy + delta_xy;
             }
         }

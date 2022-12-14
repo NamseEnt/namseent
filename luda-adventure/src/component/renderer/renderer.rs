@@ -27,10 +27,7 @@ impl Renderer {
     ) -> RenderingTree {
         let xy = entity
             .get_component::<&Positioner>()
-            .map(|positioner| {
-                Xy::single(rendering_context.px_per_tile)
-                    * positioner.xy_with_interpolation(rendering_context.interpolation_progress)
-            })
+            .map(|positioner| Xy::single(rendering_context.px_per_tile) * positioner.xy)
             .unwrap_or(Xy::zero());
 
         let inner_rendering_tree = self.render_type.render(rendering_context, game_state);

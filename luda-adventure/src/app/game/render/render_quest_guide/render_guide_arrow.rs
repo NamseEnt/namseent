@@ -24,9 +24,7 @@ pub fn render_guide_arrow(
                         .get_component::<&Positioner>()
                         .map(|quest_entity_positioner| {
                             let quest_entity_xy = Xy::single(rendering_context.px_per_tile)
-                                * quest_entity_positioner.xy_with_interpolation(
-                                    rendering_context.interpolation_progress,
-                                );
+                                * quest_entity_positioner.xy;
                             let angle = Xy::new(1.px(), 0.px())
                                 .angle_to(quest_entity_xy - character_visual_center);
                             let distance_between_character_and_quest_entity =

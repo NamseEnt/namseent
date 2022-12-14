@@ -7,8 +7,6 @@ impl Game {
             return;
         }
 
-        self.pre_evaluate_ticks();
-
         while self.state.tick.need_to_evaluate_more_than_one_tick() {
             self.move_character();
             self.resolve_collision_about_character();
