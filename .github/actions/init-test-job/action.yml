@@ -38,9 +38,6 @@ runs:
         restore-keys: |
           ${{ runner.os }}-node-
 
-    - name: Use Docker in rootless mode.
-      uses: ScribeMD/rootless-docker@0.2.2
-
     - name: install namui-cli
       shell: bash
       run: time bash namui-cli/scripts/install.sh

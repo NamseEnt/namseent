@@ -1,11 +1,6 @@
 #!/bin/bash
 
 function main() {
-    if ! set_docker_rootless_mode; then
-        echo "Fail to set docker rootless mode"
-        exit 1
-    fi
-
     cli_root_path=$(cd $(dirname $0) && cd .. && pwd -P)
     cli_path="$cli_root_path/target/debug/namui-cli"
     cargo_bin_dir_path=$(dirname $(which cargo))
@@ -186,71 +181,6 @@ function install_dot_env_file() {
     if [ $? -ne 0 ]; then
         echo "Electron dot env file install failed"
         exit $ELECTRON_DOT_ENV_FILE_INSTALL_FAILED
-    fi
-}
-
-function set_docker_rootless_mode() {
-    if [ $(docker info --format "{{ .ClientInfo.Context }}") == "rootless" ]; then
-        echo "Docker is already in rootless mode."
-        return
-    fi
-
-    if [ ! $(which newuidmap) ]; then
-        echo "Installing newuidmap..."
-        sudo apt-get update -y
-        sudo apt install uidmap
-    fi
-
-    if [ ! $(which docker) ]; then
-        echo "Please install docker."
-        exit 1
-    fi
-
-    docker_version=$(docker version --format '{{.Server.Version}}')
-    version_major=$(echo "$docker_version"| cut -d'.' -f 1)
-
-    if [ $version_major -lt 20 ]; then
-        echo "Please update docker to 20.xx or higher."
-        exit 1
-    fi
-
-    subuid=$(grep ^$(whoami): /etc/subgid | cut -d':' -f 3)
-    subgid=$(grep ^$(whoami): /etc/subuid | cut -d':' -f 3)
-    if [ $subuid -lt 65536 ] || [ $subgid -lt 65536 ]; then
-        echo "/etc/subuid and /etc/subgid should contain at least 65,536 subordinate UIDs/GIDs for the user."
-        exit 1
-    fi
-
-    if ! dpkg -l | grep -q dbus-user-session \
-        || ! dpkg -l | grep -q docker-ce-rootless-extras; then
-        echo "Installing dbus-user-session..."
-        sudo apt-get update -y
-        sudo apt-get install -y dbus-user-session docker-ce-rootless-extras
-    fi
-
-    echo "If you have a problem, please reinstall docker like this doc, https://docs.docker.com/engine/install/ubuntu/"
-    echo "Setting docker as rootress mode..."
-
-    if [ ! -f ~/.config/systemd/user/docker.service ]; then
-        dockerd-rootless-setuptool.sh install --force
-
-        export PATH=/usr/bin:$PATH
-        export DOCKER_HOST=unix:///run/user/1000/docker.sock
-        grep -qxF 'PATH=/usr/bin:$PATH' ~/.bashrc || echo 'PATH=/usr/bin:$PATH' >> ~/.bashrc
-        grep -qxF 'DOCKER_HOST=unix:///run/user/1000/docker.sock' ~/.bashrc || echo 'DOCKER_HOST=unix:///run/user/1000/docker.sock' >> ~/.bashrc
-        # Should I set Docker Host like `export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/docker.sock`?
-    
-        systemctl --user start docker
-        systemctl --user enable docker
-    fi
-
-    if ! loginctl list-users | grep -q $(whoami); then
-        sudo loginctl enable-linger $(whoami)
-    fi
-    
-    if ! docker context use rootless; then
-        echo "Fail to set docker context as rootless"
-        exit 1
     fi
 }
 
