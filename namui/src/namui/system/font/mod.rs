@@ -1,8 +1,5 @@
 use super::InitResult;
-use crate::{
-    namui::{skia::Font, FontType, TypefaceType},
-    IntPx, Typeface,
-};
+use crate::*;
 use dashmap::DashMap;
 use std::sync::Arc;
 
@@ -38,6 +35,23 @@ pub fn get_font(font_type: FontType) -> Option<Arc<Font>> {
         },
     }
 }
+pub fn get_font_with_fallbacks(font_type: FontType) -> Vec<Arc<Font>> {
+    let font = get_font(font_type);
+    let mut fonts = vec![];
+    if let Some(font) = font {
+        fonts.push(font);
+    }
+    fonts
+        .into_iter()
+        .chain(std::iter::once_with(|| get_fallback_fonts(font_type.size)).flatten())
+        .collect::<Vec<_>>()
+}
+pub fn with_fallbacks(font: Arc<Font>) -> Vec<Arc<Font>> {
+    let font_size = font.size;
+    std::iter::once(font)
+        .chain(std::iter::once_with(|| get_fallback_fonts(font_size)).flatten())
+        .collect::<Vec<_>>()
+}
 pub fn get_font_of_typeface(typeface: Arc<Typeface>, font_size: IntPx) -> Arc<Font> {
     let key = Font::generate_id(&typeface, font_size);
     let font = FONT_SYSTEM.typeface_fonts.get(&key);
@@ -64,4 +78,9 @@ fn create_font_from_font_type(font_type: FontType) -> Result<Arc<Font>, String> 
 }
 fn crate_font(typeface: &Typeface, font_size: IntPx) -> Arc<Font> {
     Arc::new(Font::new(typeface, font_size))
+}
+pub fn get_fallback_fonts(font_size: IntPx) -> Vec<Arc<Font>> {
+    crate::typeface::get_fallback_font_typefaces()
+        .map(|typeface| crate::font::get_font_of_typeface(typeface.clone(), font_size))
+        .collect()
 }

@@ -1,4 +1,4 @@
-use crate::{text::*, *};
+use crate::{font::with_fallbacks, text::*, *};
 use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug)]
@@ -62,7 +62,7 @@ pub fn text(param: TextParam) -> RenderingTree {
         }
         Some(font) => {
             crate::render![
-                draw_background(&param, font.as_ref()),
+                draw_background(&param, font.clone()),
                 namui::RenderingData {
                     draw_calls: vec![namui::DrawCall {
                         commands: vec![
@@ -171,7 +171,7 @@ fn draw_border(param: &TextParam, font: Arc<Font>) -> Option<DrawCommand> {
     }))
 }
 
-fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
+fn draw_background(param: &TextParam, font: Arc<Font>) -> RenderingTree {
     let style = &param.style;
 
     let background = &style.background;
@@ -180,13 +180,10 @@ fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
     };
     let background = background.as_ref().unwrap();
 
-    let width = get_text_width_internal(
-        font,
-        &param.text,
-        param.style.drop_shadow.map(|drop_shadow| drop_shadow.x),
-    );
-
     let font_metrics = font.metrics;
+    let fonts = with_fallbacks(font);
+
+    let width = get_text_width_with_fonts(&fonts, &param.text, None);
 
     let height = param.line_height_px();
     let bottom_of_baseline = get_bottom_of_baseline(param.baseline, font_metrics);
@@ -213,21 +210,6 @@ fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
             ..Default::default()
         },
         ..Default::default()
-    })
-}
-
-pub(crate) fn get_text_width_internal(font: &Font, text: &str, drop_shadow_x: Option<Px>) -> Px {
-    let glyph_ids = font.get_glyph_ids(text);
-    let glyph_widths = font.get_glyph_widths(glyph_ids, Option::None);
-    glyph_widths.iter().fold(px(0.0), |acc, cur| acc + cur) + drop_shadow_x.unwrap_or(px(0.0))
-}
-
-pub fn get_text_width(text: &str, font_type: FontType, drop_shadow_x: Option<Px>) -> Option<Px> {
-    let font = namui::font::get_font(font_type);
-    font.map(|font| {
-        let glyph_ids = font.get_glyph_ids(text);
-        let glyph_widths = font.get_glyph_widths(glyph_ids, Option::None);
-        glyph_widths.iter().fold(px(0.0), |acc, cur| acc + cur) + drop_shadow_x.unwrap_or(px(0.0))
     })
 }
 
