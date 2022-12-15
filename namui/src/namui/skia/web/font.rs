@@ -60,6 +60,9 @@ impl Font {
         }
     }
     pub(crate) fn get_glyph_widths(&self, glyph_ids: GlyphIds, paint: Option<&Paint>) -> Vec<Px> {
+        if glyph_ids.len() == 0 {
+            return vec![];
+        }
         let mut caches = self.glyph_widths_caches.lock().unwrap();
 
         let key = (glyph_ids.clone(), paint.cloned());
@@ -122,7 +125,10 @@ impl Drop for Font {
 
 impl std::fmt::Debug for Font {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "")
+        f.debug_struct("Font")
+            .field("id", &self.id)
+            .field("size", &self.size)
+            .finish()
     }
 }
 

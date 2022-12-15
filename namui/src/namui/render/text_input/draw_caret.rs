@@ -1,5 +1,5 @@
 use super::*;
-use crate::{namui::*, text::*};
+use crate::{font::with_fallbacks, namui::*, system::text_input::Selection, text::*};
 
 impl TextInput {
     /// Caret is drawn at the end of the text.
@@ -8,12 +8,12 @@ impl TextInput {
         props: &Props,
         line_texts: &LineTexts,
         selection: &Selection,
+        paint: &Paint,
     ) -> RenderingTree {
-        if selection.is_none() {
+        let Selection::Range(range) = selection else {
             return RenderingTree::Empty;
         };
-        let selection = selection.as_ref().unwrap();
-        let caret = line_texts.get_multiline_caret(selection.end);
+        let caret = line_texts.get_multiline_caret(range.end);
 
         let line_height = props.line_height_px();
 
@@ -45,17 +45,15 @@ impl TextInput {
         let left_text_string: String = char_vec[..caret.caret_index_in_line].iter().collect();
         let right_text_string: String = char_vec[caret.caret_index_in_line..].iter().collect();
 
-        let font = namui::font::get_font(props.font_type);
-
-        if font.is_none() {
+        let Some(font) = namui::font::get_font(props.font_type) else {
             return RenderingTree::Empty;
-        }
-        let font = font.unwrap();
+        };
 
-        let drop_shadow_x = props.style.text.drop_shadow.map(|shadow| shadow.x);
+        let font_metrics = font.metrics;
+        let fonts = with_fallbacks(font);
 
-        let left_text_width = get_text_width_internal(&font, &left_text_string, drop_shadow_x);
-        let right_text_width = get_text_width_internal(&font, &right_text_string, drop_shadow_x);
+        let left_text_width = get_text_width_with_fonts(&fonts, &left_text_string, Some(paint));
+        let right_text_width = get_text_width_with_fonts(&fonts, &right_text_string, Some(paint));
 
         let total_width = left_text_width + right_text_width;
 
@@ -65,7 +63,6 @@ impl TextInput {
             namui::TextAlign::Right => props.text_x() - total_width + 1.px(),
         } + left_text_width;
 
-        let font_metrics = font.metrics;
         let top = get_bottom_of_baseline(props.text_baseline, font_metrics)
             + font_metrics.ascent
             + font_metrics.descent

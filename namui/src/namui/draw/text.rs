@@ -34,13 +34,11 @@ impl TextDrawCommand {
             return;
         }
 
-        let fonts = std::iter::once(self.font.clone())
-            .chain(std::iter::once_with(|| get_fallback_fonts(self.font.size)).flatten())
-            .collect::<Vec<_>>();
+        let fonts = crate::font::with_fallbacks(self.font.clone());
 
         let paint = self.paint_builder.build();
 
-        let line_texts = LineTexts::new(&self.text, &fonts, &paint, self.max_width);
+        let line_texts = LineTexts::new(&self.text, &fonts, Some(&paint), self.max_width);
 
         let line_height = self.line_height_px();
 
@@ -59,7 +57,7 @@ impl TextDrawCommand {
                 )
             })
             .for_each(|(y, line_text)| {
-                let glyph_groups = get_glyph_groups(&line_text, &fonts, &paint);
+                let glyph_groups = get_glyph_groups(&line_text, &fonts, Some(&paint));
 
                 let total_width = glyph_groups.iter().map(|group| group.width).sum();
 
@@ -70,8 +68,9 @@ impl TextDrawCommand {
                 for GlyphGroup {
                     glyph_ids,
                     width,
-                    end_index: _,
+                    end_char_index: _,
                     font,
+                    widths: _,
                 } in glyph_groups
                 {
                     let bottom = y + bottom_of_fonts
@@ -99,13 +98,11 @@ impl TextDrawCommand {
             return None;
         }
 
-        let fonts = std::iter::once(self.font.clone())
-            .chain(std::iter::once_with(|| get_fallback_fonts(self.font.size)).flatten())
-            .collect::<Vec<_>>();
+        let fonts = crate::font::with_fallbacks(self.font.clone());
 
         let paint = self.paint_builder.build();
 
-        let line_texts = LineTexts::new(&self.text, &fonts, &paint, self.max_width);
+        let line_texts = LineTexts::new(&self.text, &fonts, Some(&paint), self.max_width);
 
         let line_height = self.line_height_px();
 

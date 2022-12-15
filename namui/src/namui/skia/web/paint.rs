@@ -6,13 +6,13 @@ use std::sync::{Arc, Mutex};
 unsafe impl Sync for CanvasKitPaint {}
 unsafe impl Send for CanvasKitPaint {}
 pub(crate) struct Paint {
-    id: Box<[u8]>,
+    pub id: Uuid,
     last_set_shader: Arc<Mutex<Option<Arc<Shader>>>>,
     pub(crate) canvas_kit_paint: CanvasKitPaint,
 }
 impl Paint {
     pub fn new(
-        id: Box<[u8]>,
+        id: Uuid,
         color: Option<Color>,
         style: Option<&PaintStyle>,
         anti_alias: Option<bool>,
