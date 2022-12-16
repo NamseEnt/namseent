@@ -9,8 +9,7 @@ impl Game {
                 if event.code != Code::KeyZ {
                     return;
                 }
-                let interactive_object_list =
-                    self.get_interactive_object_with_distance(&self.state);
+                let interactive_object_list = self.get_interactive_object_with_distance();
                 let Some((entity_id, kind)) = nearest_entity(&interactive_object_list) else {
                     return;
                 };

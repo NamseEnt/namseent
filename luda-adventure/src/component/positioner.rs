@@ -19,14 +19,6 @@ impl Positioner {
         }
     }
 
-    pub fn xy_with_interpolation(&self, interpolation_progress: f32) -> Xy<Tile> {
-        if interpolation_progress >= 1.0 {
-            self.xy
-        } else {
-            self.previous_xy + (self.xy - self.previous_xy) * interpolation_progress
-        }
-    }
-
     pub fn save_current_xy(&mut self) {
         self.previous_xy = self.xy;
     }

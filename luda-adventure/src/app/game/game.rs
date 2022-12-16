@@ -32,7 +32,13 @@ impl Game {
         self.state.tick.current_time = now();
         self.handle_interaction(event);
         self.set_character_movement_according_to_user_input(event);
-        self.evaluate_ticks();
+
+        event.is::<NamuiEvent>(|event| {
+            if let NamuiEvent::AnimationFrame = event {
+                self.evaluate_ticks();
+            };
+        });
+
         self.map_loader.update(event, &mut self.ecs_app);
     }
 
@@ -46,7 +52,7 @@ impl Game {
                 render([
                     self.render_in_screen_object_list(&self.state, &rendering_context),
                     self.render_quest_guide(&rendering_context),
-                    self.render_interaction_guide(&self.state, &rendering_context),
+                    self.render_interaction_guide(&rendering_context),
                 ]),
             ),
         ])
