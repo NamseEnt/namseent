@@ -7,21 +7,20 @@ runs:
   steps:
     - name: Pull latest image
       shell: bash
-      run: time docker pull $LATEST_IMAGE_NAME
+      run: time podman pull $LATEST_IMAGE_NAME
 
     - name: Set inner image
       shell: bash
-      run: time docker tag $LATEST_IMAGE_NAME $INNER_IMAGE_NAME
+      run: time podman tag $LATEST_IMAGE_NAME $INNER_IMAGE_NAME
 
     - name: Build image
       if: inputs.namui-test-host-changed == 'true'
       shell: bash
-      run:
-        DOCKER_BUILDKIT=1 time docker build . -f docker-images/namui-test-host/linux.Dockerfile
+      run: time podman build . -f docker-images/namui-test-host/linux.Dockerfile
         -t $INNER_IMAGE_NAME --cache-from $LATEST_IMAGE_NAME
 
     - name: Login to GitHub Container Registry
-      uses: docker/login-action@v1
+      uses: redhat-actions/podman-login@v1
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
@@ -29,4 +28,4 @@ runs:
 
     - name: Push inner image
       shell: bash
-      run: time docker push $INNER_IMAGE_NAME
+      run: time podman push $INNER_IMAGE_NAME
