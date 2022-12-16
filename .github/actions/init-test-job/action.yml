@@ -6,7 +6,7 @@ runs:
 
     - uses: actions-rs/toolchain@v1
       with:
-        toolchain: stable
+        toolchain: 1.65
 
     - name: wasm-pack install
       shell: bash

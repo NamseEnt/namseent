@@ -10,24 +10,24 @@ use regex::Regex;
 
 pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
     let source_root_directory_to_bind =
-        find_source_root_directory_to_bind_to_docker(manifest_path)?;
+        find_source_root_directory_to_bind_to_podman(manifest_path)?;
     let source_bind_path = PathBuf::from_str("/namui-test")?;
 
-    let manifest_path_in_docker = get_manifest_path_in_docker(
+    let manifest_path_in_podman = get_manifest_path_in_podman(
         manifest_path,
         &source_root_directory_to_bind,
         &source_bind_path,
     );
 
     let cargo_directory = get_cargo_directory();
-    let cargo_directory_of_docker = PathBuf::from_str("/usr/local/cargo")?;
+    let cargo_directory_of_podman = PathBuf::from_str("/usr/local/cargo")?;
 
     let cargo_cache_bind_directory_tuples = ["registry/index", "registry/cache", "git/db"]
         .iter()
         .map(|cache_path_suffix| {
             (
                 cargo_directory.join(cache_path_suffix),
-                cargo_directory_of_docker.join(cache_path_suffix),
+                cargo_directory_of_podman.join(cache_path_suffix),
             )
         })
         .filter(|(cargo_cache_path, _)| cargo_cache_path.exists());
@@ -41,28 +41,19 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
 
     let bind_args: Vec<String> = bind_directory_tuples
         .map(|(source, target)| {
-            format!(
-                "type=bind,source={},target={}",
-                source.to_str().unwrap(),
-                target.to_str().unwrap()
-            )
+            format!("{}:{}", source.to_str().unwrap(), target.to_str().unwrap())
         })
         .fold(vec![], |mut acc, bind_arg| {
-            acc.push("--mount".to_string());
+            acc.push("--volume".to_string());
             acc.push(bind_arg);
             acc
         });
 
-    let directory = manifest_path_in_docker
+    let directory = manifest_path_in_podman
         .parent()
         .expect("No parent directory found");
 
-    let chmod_777_rollback_directories = [
-        source_bind_path,
-        "~/.cargo".into(), // NOTE: This would be a problem if the docker has a different cargo directory
-    ];
-
-    let command_to_pass_to_docker = format!(
+    let command_to_pass_to_podman = format!(
         "{}",
         [
             format!("rustc --version"),
@@ -70,16 +61,8 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
                 "RUSTFLAGS=\"-D warnings\" wasm-pack test --headless --chrome {}",
                 directory.to_str().unwrap()
             ),
-            "exit_code=$?".to_string(),
         ]
         .into_iter()
-        .chain(chmod_777_rollback_directories.into_iter().map(|directory| {
-            format!(
-                "find {} -user $(whoami) -print0 | xargs -0 chmod 777",
-                directory.to_str().unwrap()
-            )
-        }))
-        .chain(["exit $exit_code".to_string()])
         .collect::<Vec<String>>()
         .join("; ")
     );
@@ -91,9 +74,9 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
             "ghcr.io/namseent/namui-test-host:latest",
             "sh",
             "-c",
-            &command_to_pass_to_docker,
+            &command_to_pass_to_podman,
         ]);
-    let result = Command::new("docker").args(args).status()?;
+    let result = Command::new("podman").args(args).status()?;
 
     if !result.success() {
         return Err(format!("test failed").into());
@@ -117,7 +100,7 @@ fn get_cargo_directory() -> PathBuf {
         .to_path_buf()
 }
 
-fn get_manifest_path_in_docker(
+fn get_manifest_path_in_podman(
     original_manifest_path: &PathBuf,
     directory_to_bind: &PathBuf,
     bind_path: &PathBuf,
@@ -134,11 +117,11 @@ fn get_manifest_path_in_docker(
 mod tests {
     use std::{path::PathBuf, str::FromStr};
 
-    use super::get_manifest_path_in_docker;
+    use super::get_manifest_path_in_podman;
 
     #[test]
-    fn test_get_manifest_path_in_docker() {
-        let manifest_path = get_manifest_path_in_docker(
+    fn test_get_manifest_path_in_podman() {
+        let manifest_path = get_manifest_path_in_podman(
             &PathBuf::from_str("/a/b/c/Cargo.toml").unwrap(),
             &PathBuf::from_str("/a").unwrap(),
             &PathBuf::from_str("/namseent").unwrap(),
@@ -149,7 +132,7 @@ mod tests {
             PathBuf::from_str("/namseent/b/c/Cargo.toml").unwrap()
         );
 
-        let manifest_path = get_manifest_path_in_docker(
+        let manifest_path = get_manifest_path_in_podman(
             &PathBuf::from_str("/a/b/c/Cargo.toml").unwrap(),
             &PathBuf::from_str("/a/b/c").unwrap(),
             &PathBuf::from_str("/namseent").unwrap(),
@@ -162,7 +145,7 @@ mod tests {
     }
 }
 
-fn find_source_root_directory_to_bind_to_docker(
+fn find_source_root_directory_to_bind_to_podman(
     manifest_path: &PathBuf,
 ) -> Result<PathBuf, crate::Error> {
     let manifest_paths = get_all_path_dependencies_recursively(manifest_path)?;

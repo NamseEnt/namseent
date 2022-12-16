@@ -1,6 +1,10 @@
 #!/bin/bash
 
 function main() {
+    if ! which podman &> /dev/null; then
+        sudo apt install -y podman
+    fi
+
     cli_root_path=$(cd $(dirname $0) && cd .. && pwd -P)
     cli_path="$cli_root_path/target/debug/namui-cli"
     cargo_bin_dir_path=$(dirname $(which cargo))
