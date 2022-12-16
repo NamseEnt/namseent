@@ -20,7 +20,7 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
     );
 
     let cargo_directory = get_cargo_directory();
-    let cargo_directory_of_docker = PathBuf::from_str("/usr/local/cargo")?;
+    let cargo_directory_of_docker = PathBuf::from_str("/home/user/.cargo")?;
 
     let cargo_cache_bind_directory_tuples = ["registry/index", "registry/cache", "git/db"]
         .iter()
