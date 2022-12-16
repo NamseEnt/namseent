@@ -42,13 +42,13 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
     let bind_args: Vec<String> = bind_directory_tuples
         .map(|(source, target)| {
             format!(
-                "type=bind,source={},target={}",
+                "{}:{}:z",
                 source.to_str().unwrap(),
                 target.to_str().unwrap()
             )
         })
         .fold(vec![], |mut acc, bind_arg| {
-            acc.push("--mount".to_string());
+            acc.push("--volume".to_string());
             acc.push(bind_arg);
             acc
         });
