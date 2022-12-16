@@ -1,5 +1,5 @@
 use crate::app::game::{interaction, Game};
-use interaction::nearest_entity_id;
+use interaction::nearest_entity;
 use namui::{Code, NamuiEvent};
 
 impl Game {
@@ -9,14 +9,11 @@ impl Game {
                 if event.code != Code::KeyZ {
                     return;
                 }
-                let interactive_object_list =
-                    self.get_interactive_object_with_distance(&self.state);
-                let Some(nearest_entity_id) = nearest_entity_id(&interactive_object_list) else {
+                let interactive_object_list = self.get_interactive_object_with_distance();
+                let Some((entity_id, kind)) = nearest_entity(&interactive_object_list) else {
                     return;
                 };
-                namui::event::send(interaction::Event::Interacted {
-                    entity_id: nearest_entity_id,
-                });
+                namui::event::send(interaction::Event::Interacted { entity_id, kind });
             }
             _ => (),
         });

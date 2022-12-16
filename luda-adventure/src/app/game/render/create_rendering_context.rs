@@ -6,26 +6,15 @@ impl Game {
     pub fn create_rendering_context(&self) -> RenderingContext {
         let namui_screen_size = namui::screen::size();
         let px_per_tile = Per::new(32.px(), 1.tile());
-        let interpolation_progress = self.state.tick.interpolation_progress();
         let rendering_context = RenderingContext {
             px_per_tile,
-            screen_rect: self.get_screen_rect(
-                px_per_tile,
-                namui_screen_size,
-                interpolation_progress,
-            ),
-            interpolation_progress,
+            screen_rect: self.get_screen_rect(px_per_tile, namui_screen_size),
         };
         rendering_context
     }
 
-    fn get_screen_rect(
-        &self,
-        px_per_tile: Per<Px, Tile>,
-        namui_screen_size: Wh<Px>,
-        interpolation_progress: f32,
-    ) -> Rect<Tile> {
-        let camera_center_position = self.camera_center_xy(interpolation_progress);
+    fn get_screen_rect(&self, px_per_tile: Per<Px, Tile>, namui_screen_size: Wh<Px>) -> Rect<Tile> {
+        let camera_center_position = self.camera_center_xy();
 
         let screen_size = Wh {
             width: px_per_tile.invert() * namui_screen_size.width,
@@ -36,16 +25,20 @@ impl Game {
         Rect::from_xy_wh(camera_center_position - screen_center, screen_size)
     }
 
-    fn camera_center_xy(&self, interpolation_progress: f32) -> Xy<Tile> {
+    fn camera_center_xy(&self) -> Xy<Tile> {
         match self.state.camera.subject {
-            CameraSubject::Object { id } => self
-                .ecs_app
-                .entities()
-                .find(|entity| entity.id() == id)
-                .expect("failed to find entity")
-                .get_component::<&Positioner>()
-                .unwrap()
-                .xy_with_interpolation(interpolation_progress),
+            CameraSubject::Object { id } => {
+                let Some(subject) = self
+                    .ecs_app
+                    .entities()
+                    .find(|entity| entity.id() == id) else {
+                        return Xy::zero()
+                    };
+                let Some(positioner) = subject.get_component::<&Positioner>() else {
+                    return Xy::zero()
+                };
+                positioner.xy
+            }
             CameraSubject::Xy { xy } => xy.clone(),
         }
     }
