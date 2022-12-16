@@ -10,7 +10,7 @@ impl Game {
     pub fn get_interactive_object_with_distance(
         &self,
         game_state: &GameState,
-    ) -> Vec<((&Entity, (&Positioner, &Renderer)), Tile)> {
+    ) -> Vec<((&Entity, (&Interactor, &Positioner, &Renderer)), Tile)> {
         let Some((_, (_, character_positioner))) = self
             .ecs_app
             .query_entities::<(&PlayerCharacter, &Positioner)>()
@@ -26,11 +26,11 @@ impl Game {
             .query_entities::<(&Interactor, &Positioner, &Renderer)>();
         interactive_objects
             .into_iter()
-            .map(|(entity, (_, positioner, renderer))| {
+            .map(|(entity, (interactor, positioner, renderer))| {
                 let distance = (character_position
                     - positioner.xy_with_interpolation(interpolation_progress))
                 .length();
-                ((entity, (positioner, renderer)), distance)
+                ((entity, (interactor, positioner, renderer)), distance)
             })
             .collect()
     }

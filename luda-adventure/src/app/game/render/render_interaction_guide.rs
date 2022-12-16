@@ -1,5 +1,5 @@
 use crate::app::game::{
-    nearest_entity_id, Game, GameState, RenderingContext, MAX_INTERACTION_DISTANCE,
+    nearest_entity, Game, GameState, RenderingContext, MAX_INTERACTION_DISTANCE,
 };
 use namui::prelude::*;
 
@@ -13,11 +13,11 @@ impl Game {
         rendering_context: &RenderingContext,
     ) -> RenderingTree {
         let interactive_object_list = self.get_interactive_object_with_distance(game_state);
-        let Some(nearest_entity_id) = nearest_entity_id(&interactive_object_list) else {
+        let Some((nearest_entity_id, _)) = nearest_entity(&interactive_object_list) else {
             return RenderingTree::Empty;
         };
         render(interactive_object_list.into_iter().filter_map(
-            |((entity, (positioner, renderer)), distance)| {
+            |((entity, (_interactor, positioner, renderer)), distance)| {
                 let xy = positioner.xy_with_interpolation(rendering_context.interpolation_progress);
                 let visual_rect = renderer.visual_rect() + xy;
                 let icon_xy = Xy {

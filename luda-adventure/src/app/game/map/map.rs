@@ -1,48 +1,27 @@
 use super::try_create_new_polygon::try_create_new_polygon;
+use super::MapObject;
 use crate::app::game::{new_floor, new_wall, types::TileExt, Tile};
 use crate::component::*;
 use namui::{Wh, Xy};
+use serde::{Deserialize, Serialize};
 
 /// Mock map. Spec and concept may change.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Map {
     wh: Wh<usize>,
     wall: Vec<String>,
+    objects: Vec<MapObject>,
 }
 
 impl Map {
-    pub fn new(wh: Wh<usize>, wall: Vec<String>) -> Self {
-        Self { wh, wall }
-    }
-    pub fn mock() -> Self {
-        Self {
-            wh: Wh {
-                width: 24,
-                height: 16,
-            },
-            wall: vec![
-                "111111111111111111111111".into(),
-                "100000000000000000000001".into(),
-                "100000000000000000000001".into(),
-                "100000000000000000000001".into(),
-                "100000000000000000000001".into(),
-                "100000000000000000100001".into(),
-                "100000000000000000100001".into(),
-                "100000000001111111100001".into(),
-                "100000000000000000100001".into(),
-                "100000000000000000100001".into(),
-                "100000000000000000100001".into(),
-                "111111111111111111111111".into(),
-                "000000000000000000000000".into(),
-                "000000000000000000000000".into(),
-                "000000000000000000000000".into(),
-                "000000000000000000000000".into(),
-            ],
-        }
+    pub fn new(wh: Wh<usize>, wall: Vec<String>, objects: Vec<MapObject>) -> Self {
+        Self { wh, wall, objects }
     }
 
     pub fn create_entities(&self, app: &mut crate::ecs::App) {
         self.create_floor_entities(app);
         self.create_wall_entities(app);
+        self.create_map_object_entities(app);
     }
 
     fn create_floor_entities(&self, app: &mut crate::ecs::App) {
@@ -87,6 +66,12 @@ impl Map {
                         .add_component(Collider::from_polygon(polygon));
                 }
             }
+        }
+    }
+
+    fn create_map_object_entities(&self, app: &mut crate::ecs::App) {
+        for object in &self.objects {
+            object.create_entity(app);
         }
     }
 }

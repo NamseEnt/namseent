@@ -57,6 +57,7 @@ fn add_wall(ecs_app: &mut ecs::App) {
             "000000000000".to_string(),
             "111111111111".to_string(),
         ],
+        vec![],
     )
     .create_entities(ecs_app)
 }

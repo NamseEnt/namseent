@@ -38,14 +38,18 @@ impl Game {
 
     fn camera_center_xy(&self, interpolation_progress: f32) -> Xy<Tile> {
         match self.state.camera.subject {
-            CameraSubject::Object { id } => self
-                .ecs_app
-                .entities()
-                .find(|entity| entity.id() == id)
-                .expect("failed to find entity")
-                .get_component::<&Positioner>()
-                .unwrap()
-                .xy_with_interpolation(interpolation_progress),
+            CameraSubject::Object { id } => {
+                let Some(subject) = self
+                    .ecs_app
+                    .entities()
+                    .find(|entity| entity.id() == id) else {
+                        return Xy::zero()
+                    };
+                let Some(positioner) = subject.get_component::<&Positioner>() else {
+                    return Xy::zero()
+                };
+                positioner.xy_with_interpolation(interpolation_progress)
+            }
             CameraSubject::Xy { xy } => xy.clone(),
         }
     }
