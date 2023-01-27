@@ -43,8 +43,13 @@ pub fn get_fallback_font_typefaces<'a>() -> impl Iterator<Item = RefMulti<'a, St
     TYPEFACE_SYSTEM.fallback_font_typefaces.iter()
 }
 
-pub(crate) fn load_fallback_font_typeface(font_family: FontFamily, typeface: Typeface) {
+pub(crate) fn load_fallback_font_typeface(
+    font_family: FontFamily,
+    typeface: Typeface,
+) -> Arc<Typeface> {
+    let typeface = Arc::new(typeface);
     TYPEFACE_SYSTEM
         .fallback_font_typefaces
-        .insert(font_family, Arc::new(typeface));
+        .insert(font_family, typeface.clone());
+    typeface
 }

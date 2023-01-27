@@ -19,12 +19,9 @@ pub async fn load_all_typefaces() -> Result<(), Box<dyn std::error::Error>> {
 async fn load_fallback_font_typefaces() -> Result<(), Box<dyn std::error::Error>> {
     let typeface = get_noto_color_emoji_typeface().await?;
 
-    crate::typeface::load_fallback_font_typeface("emoji".to_string(), typeface);
+    let typeface = crate::typeface::load_fallback_font_typeface("emoji".to_string(), typeface);
 
-    crate::typeface::get_fallback_font_typefaces().for_each(|font_family_type_face_pair| {
-        let typeface = font_family_type_face_pair.value();
-        load_default_font_of_typeface(typeface);
-    });
+    load_default_font_of_typeface(&typeface);
 
     Ok(())
 }
