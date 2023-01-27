@@ -1,6 +1,6 @@
 use crate::*;
 use futures::{future::try_join_all, try_join};
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 const DEFAULT_FONT_SIZE: IntPx = int_px(12);
 
@@ -23,7 +23,7 @@ async fn load_fallback_font_typefaces() -> Result<(), Box<dyn std::error::Error>
 
     crate::typeface::get_fallback_font_typefaces().for_each(|font_family_type_face_pair| {
         let typeface = font_family_type_face_pair.value();
-        load_default_font_of_typeface(typeface.clone());
+        load_default_font_of_typeface(typeface);
     });
 
     Ok(())
@@ -43,13 +43,11 @@ pub async fn load_sans_typeface_of_all_languages() -> Result<(), Box<dyn std::er
 
     let typeface_files = get_typeface_files(&typeface_file_urls).await?;
     typeface_files.iter().for_each(|(typeface_type, bytes)| {
-        crate::typeface::load_typeface(&typeface_type, bytes);
+        let typeface = crate::typeface::load_typeface(&typeface_type, bytes);
 
-        let Some(typeface) = crate::typeface::get_typeface(typeface_type.clone()) else {
-            log!("Could not load typeface {:?}", typeface_type);
-            return;
-        };
-        load_default_font_of_typeface(typeface);
+        crate::typeface::get_typeface(typeface_type.clone());
+
+        load_default_font_of_typeface(&typeface);
     });
 
     Ok(())
@@ -152,6 +150,6 @@ mod tests {
     }
 }
 
-fn load_default_font_of_typeface(typeface: Arc<Typeface>) {
+fn load_default_font_of_typeface(typeface: &Typeface) {
     font::get_font_of_typeface(typeface, DEFAULT_FONT_SIZE);
 }

@@ -52,13 +52,13 @@ pub fn with_fallbacks(font: Arc<Font>) -> Vec<Arc<Font>> {
         .chain(std::iter::once_with(|| get_fallback_fonts(font_size)).flatten())
         .collect::<Vec<_>>()
 }
-pub fn get_font_of_typeface(typeface: Arc<Typeface>, font_size: IntPx) -> Arc<Font> {
+pub fn get_font_of_typeface(typeface: &Typeface, font_size: IntPx) -> Arc<Font> {
     let key = Font::generate_id(&typeface, font_size);
     let font = FONT_SYSTEM.typeface_fonts.get(&key);
     match font {
         Some(font) => font.clone(),
         None => {
-            let font = crate_font(&typeface, font_size);
+            let font = crate_font(typeface, font_size);
             FONT_SYSTEM.typeface_fonts.insert(key, font.clone());
             font
         }
@@ -81,6 +81,6 @@ fn crate_font(typeface: &Typeface, font_size: IntPx) -> Arc<Font> {
 }
 pub fn get_fallback_fonts(font_size: IntPx) -> Vec<Arc<Font>> {
     crate::typeface::get_fallback_font_typefaces()
-        .map(|typeface| crate::font::get_font_of_typeface(typeface.clone(), font_size))
+        .map(|typeface| crate::font::get_font_of_typeface(&typeface, font_size))
         .collect()
 }

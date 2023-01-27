@@ -30,12 +30,12 @@ pub fn get_typeface(option: TypefaceType) -> Option<Arc<Typeface>> {
         .map(|typeface| typeface.clone())
 }
 
-pub(crate) fn load_typeface(option: &TypefaceType, bytes: &impl AsRef<[u8]>) {
-    let typeface = Typeface::new(bytes);
+pub(crate) fn load_typeface(option: &TypefaceType, bytes: &impl AsRef<[u8]>) -> Arc<Typeface> {
+    let typeface = Arc::new(Typeface::new(bytes));
 
-    TYPEFACE_SYSTEM
-        .typefaces
-        .insert(*option, Arc::new(typeface));
+    TYPEFACE_SYSTEM.typefaces.insert(*option, typeface.clone());
+
+    typeface
 }
 
 pub fn get_fallback_font_typefaces<'a>() -> impl Iterator<Item = RefMulti<'a, String, Arc<Typeface>>>
