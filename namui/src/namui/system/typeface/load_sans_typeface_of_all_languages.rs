@@ -1,6 +1,6 @@
 use crate::*;
 use futures::{future::try_join_all, try_join};
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 const DEFAULT_FONT_SIZE: IntPx = int_px(12);
 
@@ -21,7 +21,7 @@ async fn load_fallback_font_typefaces() -> Result<(), Box<dyn std::error::Error>
 
     let typeface = crate::typeface::load_fallback_font_typeface("emoji".to_string(), typeface);
 
-    load_default_font_of_typeface(&typeface);
+    load_default_font_of_typeface(typeface);
 
     Ok(())
 }
@@ -44,7 +44,7 @@ pub async fn load_sans_typeface_of_all_languages() -> Result<(), Box<dyn std::er
 
         crate::typeface::get_typeface(typeface_type.clone());
 
-        load_default_font_of_typeface(&typeface);
+        load_default_font_of_typeface(typeface);
     });
 
     Ok(())
@@ -147,6 +147,6 @@ mod tests {
     }
 }
 
-fn load_default_font_of_typeface(typeface: &Typeface) {
+fn load_default_font_of_typeface(typeface: Arc<Typeface>) {
     font::get_font_of_typeface(typeface, DEFAULT_FONT_SIZE);
 }
