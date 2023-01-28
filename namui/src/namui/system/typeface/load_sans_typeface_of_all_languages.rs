@@ -1,6 +1,8 @@
 use crate::*;
 use futures::{future::try_join_all, try_join};
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
+
+const DEFAULT_FONT_SIZE: IntPx = int_px(12);
 
 type TypefaceFileUrls = HashMap<TypefaceType, String>;
 type TypefaceFileUrlsFile = HashMap<Language, HashMap<FontWeight, String>>;
@@ -15,9 +17,10 @@ pub async fn load_all_typefaces() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn load_fallback_font_typefaces() -> Result<(), Box<dyn std::error::Error>> {
-    let typeface = get_noto_color_emoji_typeface().await?;
+    let typeface = Arc::new(get_noto_color_emoji_typeface().await?);
+    crate::typeface::load_fallback_font_typeface("emoji".to_string(), typeface.clone());
+    load_default_font_of_typeface(typeface);
 
-    crate::typeface::load_fallback_font_typeface("emoji".to_string(), typeface);
     Ok(())
 }
 
@@ -34,9 +37,11 @@ pub async fn load_sans_typeface_of_all_languages() -> Result<(), Box<dyn std::er
     let typeface_file_urls: TypefaceFileUrls = get_typeface_file_urls().await?;
 
     let typeface_files = get_typeface_files(&typeface_file_urls).await?;
-    typeface_files
-        .iter()
-        .for_each(|(typeface_type, bytes)| crate::typeface::load_typeface(&typeface_type, bytes));
+    typeface_files.iter().for_each(|(typeface_type, bytes)| {
+        let typeface = Arc::new(Typeface::new(bytes));
+        crate::typeface::load_typeface(&typeface_type, typeface.clone());
+        load_default_font_of_typeface(typeface);
+    });
 
     Ok(())
 }
@@ -136,4 +141,8 @@ mod tests {
             serde_json::from_str(&serialized_font_file_url_map).unwrap();
         assert_eq!(deserialized_font_file_url_map, answer);
     }
+}
+
+fn load_default_font_of_typeface(typeface: Arc<Typeface>) {
+    font::get_font_of_typeface(typeface, DEFAULT_FONT_SIZE);
 }
