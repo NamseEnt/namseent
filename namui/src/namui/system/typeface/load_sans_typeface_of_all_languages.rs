@@ -17,10 +17,8 @@ pub async fn load_all_typefaces() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn load_fallback_font_typefaces() -> Result<(), Box<dyn std::error::Error>> {
-    let typeface = get_noto_color_emoji_typeface().await?;
-
-    let typeface = crate::typeface::load_fallback_font_typeface("emoji".to_string(), typeface);
-
+    let typeface = Arc::new(get_noto_color_emoji_typeface().await?);
+    crate::typeface::load_fallback_font_typeface("emoji".to_string(), typeface.clone());
     load_default_font_of_typeface(typeface);
 
     Ok(())
@@ -40,10 +38,8 @@ pub async fn load_sans_typeface_of_all_languages() -> Result<(), Box<dyn std::er
 
     let typeface_files = get_typeface_files(&typeface_file_urls).await?;
     typeface_files.iter().for_each(|(typeface_type, bytes)| {
-        let typeface = crate::typeface::load_typeface(&typeface_type, bytes);
-
-        crate::typeface::get_typeface(typeface_type.clone());
-
+        let typeface = Arc::new(Typeface::new(bytes));
+        crate::typeface::load_typeface(&typeface_type, typeface.clone());
         load_default_font_of_typeface(typeface);
     });
 
