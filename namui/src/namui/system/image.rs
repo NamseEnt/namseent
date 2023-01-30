@@ -1,6 +1,7 @@
 use super::*;
-use crate::{file::picker::File, namui::skia::canvas_kit, Image};
+use crate::{file::picker::File, namui::skia::canvas_kit, time::delay, Image};
 use dashmap::DashMap;
+use namui_type::Time;
 use std::{
     collections::HashSet,
     sync::{Arc, Mutex},
@@ -87,6 +88,17 @@ fn start_load_url(url: &Url) {
             }
         }
     });
+}
+pub async fn load_url(url: &Url) -> Arc<Image> {
+    const OBSERVATION_INTERVAL: Time = Time::Ms(8.);
+
+    loop {
+        if let Some(image) = try_load_url(url) {
+            return image.clone();
+        };
+
+        delay(OBSERVATION_INTERVAL).await;
+    }
 }
 
 #[wasm_bindgen]
