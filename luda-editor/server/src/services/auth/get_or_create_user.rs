@@ -7,6 +7,7 @@ use crate::storage::dynamo_db::{GetItemError, TransactError};
 pub async fn get_or_create_user(
     user_identity: UserIdentity,
 ) -> Result<UserDocument, GetOrCreateUserError> {
+    let username = user_identity.username().to_string();
     let identity_id = user_identity.into_document_id();
 
     match crate::dynamo_db()
@@ -23,11 +24,14 @@ pub async fn get_or_create_user(
         Err(error) => match error {
             GetItemError::NotFound => {
                 let user_id = rpc::Uuid::new_v4();
-                let user_document = UserDocument { id: user_id };
+                let user_document = UserDocument {
+                    id: user_id,
+                    name: username,
+                };
 
                 crate::dynamo_db()
                     .transact()
-                    .create_item(UserDocument { id: user_id })
+                    .create_item(user_document.clone())
                     .create_item(IdentityDocument {
                         id: identity_id,
                         user_id,
