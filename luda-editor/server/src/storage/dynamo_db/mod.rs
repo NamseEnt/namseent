@@ -46,9 +46,19 @@ impl DynamoDb {
 }
 
 fn get_partition_key<TDocument: Document>(partition_key_without_prefix: impl ToString) -> String {
+    concat_partition_key(
+        TDocument::partition_key_prefix(),
+        partition_key_without_prefix,
+    )
+}
+
+fn concat_partition_key(
+    partition_prefix: impl ToString,
+    partition_key_without_prefix: impl ToString,
+) -> String {
     format!(
         "{}.{}",
-        TDocument::partition_key_prefix(),
+        partition_prefix.to_string(),
         partition_key_without_prefix.to_string()
     )
 }

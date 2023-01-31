@@ -80,12 +80,12 @@ impl Transact {
 
         self
     }
-    pub fn delete_item<TDocument: Document>(
+    fn delete_item(
         mut self,
-        partition_key_without_prefix: impl ToString,
+        partition_key: impl ToString,
         sort_key: Option<impl ToString>,
     ) -> Self {
-        let partition_key = get_partition_key::<TDocument>(partition_key_without_prefix);
+        let partition_key = partition_key.to_string();
         let sort_key = sort_key
             .map(|sort_key| sort_key.to_string())
             .unwrap_or(DEFAULT_SORT_KEY.to_string());
@@ -172,6 +172,28 @@ impl Transact {
 
         self
     }
+
+    pub fn command(self, command: impl Into<TransactCommand>) -> Self {
+        let command: TransactCommand = command.into();
+        match command {
+            TransactCommand::DeleteItem {
+                partition_prefix,
+                partition_key_without_prefix,
+                sort_key,
+            } => self.delete_item(
+                concat_partition_key(partition_prefix, partition_key_without_prefix),
+                sort_key,
+            ),
+        }
+    }
+}
+
+pub enum TransactCommand {
+    DeleteItem {
+        partition_prefix: String,
+        partition_key_without_prefix: String,
+        sort_key: Option<String>,
+    },
 }
 
 #[derive(Debug)]

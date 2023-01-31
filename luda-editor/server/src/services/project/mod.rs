@@ -39,8 +39,8 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
             let owner_id = session.user_id;
 
             let project_document = ProjectDocument {
-                id: project_id.clone(),
-                owner_id: owner_id.clone(),
+                id: project_id,
+                owner_id: owner_id,
                 name: req.name,
                 shared_data_json: serde_json::to_string(&rpc::data::ProjectSharedData::new(
                     project_id,
@@ -175,7 +175,7 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
                     .transact()
                     .update_item(
                         &project.id,
-                        Some(session.user_id.clone()),
+                        Some(session.user_id),
                         move |mut document: UserInProjectAclDocument| async move {
                             document.permission = permission;
                             Ok(document)
@@ -183,7 +183,7 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
                     )
                     .update_item(
                         &session.user_id,
-                        Some(project.id.clone()),
+                        Some(project.id),
                         move |mut document: ProjectAclUserInDocument| async move {
                             document.permission = permission;
                             Ok(document)
@@ -195,14 +195,14 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
                     .map_err(|error| rpc::edit_user_acl::Error::Unknown(error.to_string())),
                 None => crate::dynamo_db()
                     .transact()
-                    .delete_item::<UserInProjectAclDocument>(
-                        &project.id,
-                        Some(session.user_id.clone()),
-                    )
-                    .delete_item::<ProjectAclUserInDocument>(
-                        &session.user_id,
-                        Some(project.id.clone()),
-                    )
+                    .command(UserInProjectAclDocumentDelete {
+                        pk_project_id: project.id,
+                        sk_user_id: session.user_id,
+                    })
+                    .command(ProjectAclUserInDocumentDelete {
+                        pk_user_id: session.user_id,
+                        sk_project_id: project.id,
+                    })
                     .send()
                     .await
                     .map(|_| rpc::edit_user_acl::Response {})

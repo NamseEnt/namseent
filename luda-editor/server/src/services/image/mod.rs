@@ -147,8 +147,11 @@ impl rpc::ImageService<SessionDocument> for ImageService {
 
             retry_on_error(
                 || {
-                    crate::dynamo_db()
-                        .delete_item::<ProjectImageDocument>(req.project_id, Some(req.image_id))
+                    ProjectImageDocumentDelete {
+                        pk_project_id: req.project_id,
+                        sk_image_id: req.image_id,
+                    }
+                    .run()
                 },
                 5,
             )

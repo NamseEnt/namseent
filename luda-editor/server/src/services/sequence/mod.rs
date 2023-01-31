@@ -285,8 +285,13 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
 
             crate::dynamo_db()
                 .transact()
-                .delete_item::<SequenceDocument>(req.sequence_id, Option::<String>::None)
-                .delete_item::<ProjectSequenceDocument>(sequence.project_id, Some(req.sequence_id))
+                .command(SequenceDocumentDelete {
+                    pk_id: req.sequence_id,
+                })
+                .command(ProjectSequenceDocumentDelete {
+                    pk_project_id: sequence.project_id,
+                    sk_sequence_id: req.sequence_id,
+                })
                 .send()
                 .await
                 .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?;
