@@ -94,10 +94,11 @@ impl ImageSelectModal {
                                 2.px(),
                                 Color::BLACK,
                                 padding,
+                                [MouseButton::Left],
                                 {
                                     let screen_images = screen_images.clone();
                                     let on_update_image = on_update_image.clone();
-                                    move || {
+                                    move |_| {
                                         let mut screen_images = screen_images.clone();
                                         screen_images[selected_screen_image_index] = None;
                                         on_update_image(Update {
@@ -119,9 +120,10 @@ impl ImageSelectModal {
                                 2.px(),
                                 Color::WHITE,
                                 padding,
+                                [MouseButton::Left],
                                 {
                                     let screen_images = screen_images.clone();
-                                    move || {
+                                    move |_| {
                                         let mut screen_images = screen_images.clone();
 
                                         if let Some(image_id) = image_id {

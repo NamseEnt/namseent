@@ -112,10 +112,11 @@ impl RenameModal {
                             Color::WHITE,
                             1.px(),
                             Color::BLACK,
+                            [MouseButton::Left],
                             {
                                 let sequence_id = self.sequence_id;
                                 let sequence_name = self.sequence_name.clone();
-                                move || {
+                                move |_| {
                                     namui::event::send(Event::RenameDone {
                                         sequence_id,
                                         sequence_name: sequence_name.clone(),

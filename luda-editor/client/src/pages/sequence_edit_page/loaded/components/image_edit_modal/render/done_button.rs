@@ -20,7 +20,8 @@ impl ImageEditModal {
                     1.px(),
                     Color::BLACK,
                     padding,
-                    || namui::event::send(Event::Close),
+                    [MouseButton::Left],
+                    |_| namui::event::send(Event::Close),
                 )
                 .padding(12.px()),
             ),
@@ -34,7 +35,8 @@ impl ImageEditModal {
                     1.px(),
                     Color::WHITE,
                     padding,
-                    move || namui::event::send(InternalEvent::DonePressed),
+                    [MouseButton::Left],
+                    move |_| namui::event::send(InternalEvent::DonePressed),
                 )
                 .padding(12.px()),
             ),

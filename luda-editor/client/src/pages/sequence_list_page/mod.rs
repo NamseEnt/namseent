@@ -187,7 +187,8 @@ impl SequenceListPage {
                                 Color::grayscale_f01(0.5),
                                 1.px(),
                                 Color::BLACK,
-                                || namui::event::send(Event::AddButtonClicked),
+                                [MouseButton::Left],
+                                |_| namui::event::send(Event::AddButtonClicked),
                             )
                         }),
                         table::ratio(1.0, |wh| {
@@ -240,6 +241,7 @@ impl SequenceListPage {
         wh: Wh<Px>,
         sequence: &SequenceNameAndId,
     ) -> namui::RenderingTree {
+        let sequence_id = sequence.id;
         namui_prebuilt::button::text_button(
             Rect::from_xy_wh(Xy::single(0.px()), wh),
             sequence.name.as_str(),
@@ -247,11 +249,8 @@ impl SequenceListPage {
             Color::grayscale_f01(0.3),
             1.px(),
             Color::BLACK,
-            || {},
-        )
-        .attach_event(|builder| {
-            let sequence_id = sequence.id;
-            builder.on_mouse_up_in(move |event| {
+            [MouseButton::Left, MouseButton::Right],
+            move |event| {
                 if event.button == Some(MouseButton::Left) {
                     namui::event::send(router::Event::Route(Arc::new(move || {
                         router::Route::SequenceEditPage(SequenceEditPage::new(sequence_id))
@@ -262,8 +261,8 @@ impl SequenceListPage {
                         sequence_id,
                     });
                 }
-            });
-        })
+            },
+        )
     }
 }
 

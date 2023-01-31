@@ -20,7 +20,8 @@ impl ImageManagerModal {
                                     2.px(),
                                     Color::BLACK,
                                     12.px(),
-                                    || namui::event::send(InternalEvent::RequestUploadImages),
+                                    [MouseButton::Left],
+                                    |_| namui::event::send(InternalEvent::RequestUploadImages),
                                 ),
                             ),
                             table::ratio(1, |_| RenderingTree::Empty),
@@ -50,7 +51,8 @@ impl ImageManagerModal {
                                     2.px(),
                                     Color::BLACK,
                                     12.px(),
-                                    move || {
+                                    [MouseButton::Left],
+                                    move |_| {
                                         if saving_count == 0 {
                                             namui::event::send(Event::Close)
                                         }
