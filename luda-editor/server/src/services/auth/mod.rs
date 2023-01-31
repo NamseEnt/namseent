@@ -151,15 +151,19 @@ impl rpc::AuthService<SessionDocument> for AuthService {
             }
             let access_token = access_token.unwrap();
 
-            let github_user_id = self.get_github_user_id(access_token).await;
-            if let Err(error) = github_user_id {
+            let github_user = self.get_github_user(access_token).await;
+            if let Err(error) = github_user {
                 return Err(rpc::log_in_with_github_oauth_code::Error::Unknown(
                     error.to_string(),
                 ));
             }
-            let github_user_id = github_user_id.unwrap();
+            let github_user = github_user.unwrap();
 
-            let user = get_or_create_user(UserIdentity::Github { github_user_id }).await;
+            let user = get_or_create_user(UserIdentity::Github {
+                github_user_id: github_user.id,
+                username: github_user.username,
+            })
+            .await;
             if let Err(error) = user {
                 return Err(rpc::log_in_with_github_oauth_code::Error::Unknown(
                     error.to_string(),
