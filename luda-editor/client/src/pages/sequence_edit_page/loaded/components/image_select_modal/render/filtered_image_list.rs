@@ -25,7 +25,8 @@ impl ImageSelectModal {
             Color::WHITE,
             1.px(),
             Color::BLACK,
-            || {
+            [MouseButton::Left],
+            |_| {
                 namui::event::send(InternalEvent::AddImageButtonClicked);
             },
         );

@@ -38,7 +38,8 @@ impl ImageSelectModal {
                                     2.px(),
                                     Color::BLACK,
                                     12.px(),
-                                    || namui::event::send(InternalEvent::RequestUploadBulkImages),
+                                    [MouseButton::Left],
+                                    |_| namui::event::send(InternalEvent::RequestUploadBulkImages),
                                 ),
                             ),
                             table::fit(
@@ -61,7 +62,8 @@ impl ImageSelectModal {
                                     2.px(),
                                     Color::BLACK,
                                     12.px(),
-                                    || namui::event::send(Event::Close),
+                                    [MouseButton::Left],
+                                    |_| namui::event::send(Event::Close),
                                 ),
                             ),
                         ])(wh)
@@ -93,9 +95,10 @@ impl ImageSelectModal {
                                     1.px(),
                                     Color::BLACK,
                                     TextAlign::Center,
+                                    [MouseButton::Left],
                                     {
                                         let screen_images = screen_images.clone();
-                                        move || {
+                                        move |_| {
                                             namui::event::send(InternalEvent::EditScreenPressed {
                                                 screen_images: screen_images.clone(),
                                             });

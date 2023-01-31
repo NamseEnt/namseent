@@ -140,7 +140,8 @@ impl CharacterEditModal {
                         Color::WHITE,
                         1.px(),
                         Color::BLACK,
-                        || namui::event::send(Event::AddCharacterClicked),
+                        [MouseButton::Left],
+                        |_| namui::event::send(Event::AddCharacterClicked),
                     ),
                 };
 
