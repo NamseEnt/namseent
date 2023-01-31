@@ -1645,6 +1645,7 @@ dependencies = [
  "futures",
  "lambda-web",
  "log",
+ "migration",
  "once_cell",
  "reqwest",
  "rpc",

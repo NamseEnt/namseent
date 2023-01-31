@@ -51,7 +51,7 @@ impl AuthService {
             Err(error) => Err(error.to_string()),
         }
     }
-    pub async fn get_github_user_id(&self, github_access_token: String) -> Result<String, String> {
+    pub async fn get_github_user(&self, github_access_token: String) -> Result<GithubUser, String> {
         let result = self
             .reqwest_client
             .get("https://api.github.com/user")
@@ -64,13 +64,17 @@ impl AuthService {
         #[derive(serde::Deserialize)]
         struct ResponseBody {
             id: u128,
+            login: String,
         }
         match result {
             Ok(response) => {
                 if response.status().is_success() {
                     let body = response.text().await.unwrap();
                     let response: ResponseBody = serde_json::from_str(&body).unwrap();
-                    Ok(response.id.to_string())
+                    Ok(GithubUser {
+                        id: response.id.to_string(),
+                        username: response.login,
+                    })
                 } else {
                     Err(format!(
                         "get_github_user_id failed: {:?}\n{body}",
@@ -83,4 +87,9 @@ impl AuthService {
             Err(error) => Err(error.to_string()),
         }
     }
+}
+
+pub struct GithubUser {
+    pub id: String,
+    pub username: String,
 }
