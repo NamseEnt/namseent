@@ -80,7 +80,35 @@ impl Transact {
 
         self
     }
-    fn delete_item(
+    pub fn delete_item(self, command: impl Into<TransactDeleteCommand>) -> Self {
+        let command: TransactDeleteCommand = command.into();
+        self.delete_item_internal(
+            concat_partition_key(
+                command.partition_prefix,
+                command.partition_key_without_prefix,
+            ),
+            command.sort_key,
+        )
+    }
+    pub fn update_item<
+        Update: FnOnce(TDocument) -> TUpdateFuture + 'static + Send,
+        TDocument: Document + std::marker::Send,
+        TUpdateFuture: Future<Output = Result<TDocument, ()>> + Send,
+    >(
+        self,
+        command: impl Into<TransactUpdateCommand<TDocument, Update, TUpdateFuture>>,
+    ) -> Self {
+        let command: TransactUpdateCommand<TDocument, Update, TUpdateFuture> = command.into();
+        self.update_item_internal(
+            concat_partition_key(
+                command.partition_prefix,
+                command.partition_key_without_prefix,
+            ),
+            command.sort_key,
+            command.update,
+        )
+    }
+    fn delete_item_internal(
         mut self,
         partition_key: impl ToString,
         sort_key: Option<impl ToString>,
@@ -104,7 +132,7 @@ impl Transact {
 
         self
     }
-    pub fn update_item<
+    fn update_item_internal<
         TDocument: Document + std::marker::Send,
         TUpdateFuture: Future<Output = Result<TDocument, ()>> + Send,
     >(
@@ -172,28 +200,24 @@ impl Transact {
 
         self
     }
-
-    pub fn command(self, command: impl Into<TransactCommand>) -> Self {
-        let command: TransactCommand = command.into();
-        match command {
-            TransactCommand::DeleteItem {
-                partition_prefix,
-                partition_key_without_prefix,
-                sort_key,
-            } => self.delete_item(
-                concat_partition_key(partition_prefix, partition_key_without_prefix),
-                sort_key,
-            ),
-        }
-    }
 }
 
-pub enum TransactCommand {
-    DeleteItem {
-        partition_prefix: String,
-        partition_key_without_prefix: String,
-        sort_key: Option<String>,
-    },
+pub struct TransactDeleteCommand {
+    pub partition_prefix: String,
+    pub partition_key_without_prefix: String,
+    pub sort_key: Option<String>,
+}
+
+pub struct TransactUpdateCommand<TDocument, Update, TUpdateFuture>
+where
+    Update: FnOnce(TDocument) -> TUpdateFuture + 'static + Send,
+    TUpdateFuture: std::future::Future<Output = Result<TDocument, ()>> + Send,
+{
+    pub partition_prefix: String,
+    pub partition_key_without_prefix: String,
+    pub sort_key: Option<String>,
+    pub update: Update,
+    pub _phantom: std::marker::PhantomData<(TDocument, TUpdateFuture)>,
 }
 
 #[derive(Debug)]

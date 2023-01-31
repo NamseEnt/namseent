@@ -285,10 +285,10 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
 
             crate::dynamo_db()
                 .transact()
-                .command(SequenceDocumentDelete {
+                .delete_item(SequenceDocumentDelete {
                     pk_id: req.sequence_id,
                 })
-                .command(ProjectSequenceDocumentDelete {
+                .delete_item(ProjectSequenceDocumentDelete {
                     pk_project_id: sequence.project_id,
                     sk_sequence_id: req.sequence_id,
                 })

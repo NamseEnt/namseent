@@ -26,7 +26,7 @@ pub fn document(
         let get_struct_fields = prefixed_pk_fields.iter().chain(prefixed_sk_fields.iter());
         quote! {
             pub struct #get_struct_ident {
-                #(#get_struct_fields),*
+                #(#get_struct_fields,)*
             }
             impl #get_struct_ident {
                 pub async fn run(self) -> Result<#struct_ident, crate::storage::dynamo_db::GetItemError> {
@@ -43,7 +43,7 @@ pub fn document(
         let query_struct_fields = prefixed_pk_fields.iter();
         quote! {
             pub struct #query_struct_ident {
-                #(#query_struct_fields),*
+                #(#query_struct_fields,)*
             }
             impl #query_struct_ident {
                 pub async fn run(self) -> Result<Vec<#struct_ident>, crate::storage::dynamo_db::QueryError> {
@@ -60,7 +60,7 @@ pub fn document(
         let delete_struct_fields = prefixed_pk_fields.iter().chain(prefixed_sk_fields.iter());
         quote! {
             pub struct #delete_struct_ident {
-                #(#delete_struct_fields),*
+                #(#delete_struct_fields,)*
             }
             impl #delete_struct_ident {
                 pub async fn run(self) -> Result<(), crate::storage::dynamo_db::DeleteItemError> {
@@ -69,17 +69,66 @@ pub fn document(
                     crate::dynamo_db().delete_item::<#struct_ident>(pk, sk).await
                 }
             }
-            impl std::convert::Into<crate::storage::dynamo_db::TransactCommand> for #delete_struct_ident {
-                fn into(self) -> crate::storage::dynamo_db::TransactCommand {
+            impl std::convert::Into<crate::storage::dynamo_db::TransactDeleteCommand> for #delete_struct_ident
+            {
+                fn into(self) -> crate::storage::dynamo_db::TransactDeleteCommand {
                     let pk = #prefixed_pk;
                     let sk = #prefixed_sk;
-                    crate::storage::dynamo_db::TransactCommand::DeleteItem {
+                    crate::storage::dynamo_db::TransactDeleteCommand {
                         partition_prefix: stringify!(#struct_ident).to_string(),
                         partition_key_without_prefix: pk,
                         sort_key: sk,
                     }
                 }
             }
+        }
+    };
+
+    let update_struct_output = {
+        let update_struct_ident =
+            Ident::new(&format!("{}Update", struct_ident), struct_ident.span());
+        let update_struct_fields = prefixed_pk_fields.iter().chain(prefixed_sk_fields.iter());
+        quote! {
+            pub struct #update_struct_ident<Update, TUpdateFuture>
+            where
+                Update: FnOnce(#struct_ident) -> TUpdateFuture + 'static + Send,
+                TUpdateFuture: std::future::Future<Output = Result<#struct_ident, ()>> + Send,
+            {
+                #(#update_struct_fields,)*
+                pub update: Update,
+            }
+
+            impl<Update, TUpdateFuture>
+                Into<
+                    crate::storage::dynamo_db::TransactUpdateCommand<
+                        #struct_ident,
+                        Update,
+                        TUpdateFuture,
+                    >,
+                > for #update_struct_ident<Update, TUpdateFuture>
+            where
+                Update: FnOnce(#struct_ident) -> TUpdateFuture + 'static + Send,
+                TUpdateFuture: std::future::Future<Output = Result<#struct_ident, ()>> + Send,
+            {
+                fn into(
+                    self,
+                ) -> crate::storage::dynamo_db::TransactUpdateCommand<
+                    #struct_ident,
+                    Update,
+                    TUpdateFuture,
+                > {
+                    let pk = #prefixed_pk;
+                    let sk = #prefixed_sk;
+                    crate::storage::dynamo_db::TransactUpdateCommand {
+                        partition_prefix: stringify!(#struct_ident).to_string(),
+                        partition_key_without_prefix: pk,
+                        sort_key: sk,
+                        update: self.update,
+                        _phantom: std::marker::PhantomData,
+                    }
+                }
+            }
+
         }
     };
 
@@ -149,6 +198,7 @@ pub fn document(
         #get_struct_output
         #query_struct_output
         #delete_struct_output
+        #update_struct_output
     };
 
     output.into()

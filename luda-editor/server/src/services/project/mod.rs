@@ -173,33 +173,33 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
             match req.permission {
                 Some(permission) => crate::dynamo_db()
                     .transact()
-                    .update_item(
-                        &project.id,
-                        Some(session.user_id),
-                        move |mut document: UserInProjectAclDocument| async move {
+                    .update_item(UserInProjectAclDocumentUpdate {
+                        pk_project_id: project.id,
+                        sk_user_id: req.user_id,
+                        update: move |mut document: UserInProjectAclDocument| async move {
                             document.permission = permission;
                             Ok(document)
                         },
-                    )
-                    .update_item(
-                        &session.user_id,
-                        Some(project.id),
-                        move |mut document: ProjectAclUserInDocument| async move {
+                    })
+                    .update_item(ProjectAclUserInDocumentUpdate {
+                        pk_user_id: session.user_id,
+                        sk_project_id: project.id,
+                        update: move |mut document: ProjectAclUserInDocument| async move {
                             document.permission = permission;
                             Ok(document)
                         },
-                    )
+                    })
                     .send()
                     .await
                     .map(|_| rpc::edit_user_acl::Response {})
                     .map_err(|error| rpc::edit_user_acl::Error::Unknown(error.to_string())),
                 None => crate::dynamo_db()
                     .transact()
-                    .command(UserInProjectAclDocumentDelete {
+                    .delete_item(UserInProjectAclDocumentDelete {
                         pk_project_id: project.id,
                         sk_user_id: session.user_id,
                     })
-                    .command(ProjectAclUserInDocumentDelete {
+                    .delete_item(ProjectAclUserInDocumentDelete {
                         pk_user_id: session.user_id,
                         sk_project_id: project.id,
                     })
