@@ -80,7 +80,8 @@ impl ProjectListPage {
                                 Color::grayscale_f01(0.5),
                                 1.px(),
                                 Color::BLACK,
-                                || namui::event::send(Event::AddButtonClicked),
+                                [MouseButton::Left],
+                                |_| namui::event::send(Event::AddButtonClicked),
                             )
                         }),
                         table::ratio(1.0, |wh| {
@@ -129,6 +130,7 @@ impl ProjectListPage {
     }
 
     fn render_project_cell(&self, wh: Wh<Px>, project: &EditableProject) -> namui::RenderingTree {
+        let project_id = project.id;
         namui_prebuilt::button::text_button(
             Rect::from_xy_wh(Xy::single(0.px()), wh),
             project.name.as_str(),
@@ -136,11 +138,8 @@ impl ProjectListPage {
             Color::grayscale_f01(0.3),
             1.px(),
             Color::BLACK,
-            || {},
-        )
-        .attach_event(|builder| {
-            let project_id = project.id;
-            builder.on_mouse_up_in(move |event| {
+            [MouseButton::Left],
+            move |event| {
                 if event.button == Some(MouseButton::Left) {
                     namui::event::send(router::Event::Route(Arc::new(move || {
                         router::Route::SequenceListPage(SequenceListPage::new(project_id))
@@ -152,8 +151,8 @@ impl ProjectListPage {
                     //     project_id,
                     // });
                 }
-            });
-        })
+            },
+        )
     }
 }
 

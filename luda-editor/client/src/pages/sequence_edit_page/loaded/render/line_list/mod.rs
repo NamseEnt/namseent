@@ -145,7 +145,8 @@ impl LoadedSequenceEditorPage {
                         Color::WHITE,
                         1.px(),
                         Color::BLACK,
-                        || namui::event::send(Event::AddCutClicked),
+                        [MouseButton::Left],
+                        |_| namui::event::send(Event::AddCutClicked),
                     ),
                 },
             })

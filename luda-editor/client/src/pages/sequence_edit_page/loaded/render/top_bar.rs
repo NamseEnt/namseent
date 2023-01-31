@@ -43,8 +43,9 @@ impl LoadedSequenceEditorPage {
                 Color::WHITE,
                 1.px(),
                 Color::BLACK,
+                [MouseButton::Left],
                 {
-                    move || {
+                    move |_| {
                         // TODO: Check saving finished
                         namui::event::send(router::Event::Route(Arc::new(move || {
                             router::Route::SequenceListPage(SequenceListPage::new(project_id))

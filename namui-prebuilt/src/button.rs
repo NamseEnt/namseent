@@ -9,9 +9,11 @@ pub fn text_button(
     stroke_color: Color,
     stroke_width: Px,
     fill_color: Color,
-    on_mouse_down_in: impl Fn() + 'static,
+    mouse_buttons: impl IntoIterator<Item = MouseButton>,
+    on_mouse_up_in: impl Fn(&MouseEvent) + 'static,
 ) -> namui::RenderingTree {
-    let on_mouse_down_in = Arc::new(on_mouse_down_in);
+    let mouse_buttons = mouse_buttons.into_iter().collect::<Vec<_>>();
+    let on_mouse_up_in = Arc::new(on_mouse_up_in);
     translate(
         rect.x(),
         rect.y(),
@@ -21,9 +23,15 @@ pub fn text_button(
         ]),
     )
     .attach_event(|builder| {
-        let on_mouse_down_in = on_mouse_down_in.clone();
-        builder.on_mouse_down_in(move |_| {
-            on_mouse_down_in();
+        let mouse_buttons = mouse_buttons.clone();
+        let on_mouse_up_in = on_mouse_up_in.clone();
+        builder.on_mouse_up_in(move |event| {
+            let Some(button) = event.button else {
+                return;
+            };
+            if mouse_buttons.contains(&button) {
+                on_mouse_up_in(event);
+            }
         });
     })
 }
