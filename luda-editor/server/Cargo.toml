@@ -24,3 +24,4 @@ log = "0.4"
 env_logger = "0.9"
 aws-smithy-async = "0.47"
 migration = { path = "../migration" }
+document-macro = { path = "./document-macro" }

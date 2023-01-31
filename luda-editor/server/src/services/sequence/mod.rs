@@ -1,6 +1,6 @@
 mod documents;
 
-use super::project::documents::ProjectDocument;
+use super::project::documents::*;
 use crate::session::SessionDocument;
 use documents::*;
 use futures::future::try_join_all;
@@ -36,12 +36,11 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
 
             let sequence_name_and_ids = try_join_all(project_sequence_documents.into_iter().map(
                 |project_sequence_document| async move {
-                    match crate::dynamo_db()
-                        .get_item::<SequenceDocument>(
-                            &project_sequence_document.sequence_id,
-                            Option::<String>::None,
-                        )
-                        .await
+                    match (SequenceDocumentGet {
+                        pk_id: project_sequence_document.sequence_id,
+                    })
+                    .run()
+                    .await
                     {
                         Ok(sequence) => Ok(rpc::list_project_sequences::SequenceNameAndId {
                             id: sequence.id,
@@ -200,10 +199,12 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
         Box<dyn 'a + std::future::Future<Output = rpc::update_client_sequence::Result> + Send>,
     > {
         Box::pin(async move {
-            let sequence = crate::dynamo_db()
-                .get_item::<SequenceDocument>(req.sequence_id, Option::<String>::None)
-                .await
-                .map_err(|error| rpc::update_client_sequence::Error::Unknown(error.to_string()))?;
+            let sequence = SequenceDocumentGet {
+                pk_id: req.sequence_id,
+            }
+            .run()
+            .await
+            .map_err(|error| rpc::update_client_sequence::Error::Unknown(error.to_string()))?;
 
             let sequence_json = serde_json::from_str::<serde_json::Value>(&sequence.json)
                 .map_err(|err| rpc::update_client_sequence::Error::Unknown(err.to_string()))?;
@@ -225,19 +226,23 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
         >,
     > {
         Box::pin(async move {
-            let sequence = crate::dynamo_db()
-                .get_item::<SequenceDocument>(req.sequence_id, Option::<String>::None)
-                .await
-                .map_err(|error| {
-                    rpc::get_sequence_and_project_shared_data::Error::Unknown(error.to_string())
-                })?;
+            let sequence = SequenceDocumentGet {
+                pk_id: req.sequence_id,
+            }
+            .run()
+            .await
+            .map_err(|error| {
+                rpc::get_sequence_and_project_shared_data::Error::Unknown(error.to_string())
+            })?;
 
-            let project = crate::dynamo_db()
-                .get_item::<ProjectDocument>(sequence.project_id, Option::<String>::None)
-                .await
-                .map_err(|error| {
-                    rpc::get_sequence_and_project_shared_data::Error::Unknown(error.to_string())
-                })?;
+            let project = ProjectDocumentGet {
+                pk_id: sequence.project_id,
+            }
+            .run()
+            .await
+            .map_err(|error| {
+                rpc::get_sequence_and_project_shared_data::Error::Unknown(error.to_string())
+            })?;
 
             Ok(rpc::get_sequence_and_project_shared_data::Response {
                 sequence_json: sequence.json,
@@ -259,10 +264,12 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             }
             let session = session.unwrap();
 
-            let sequence = crate::dynamo_db()
-                .get_item::<SequenceDocument>(req.sequence_id.clone(), Option::<String>::None)
-                .await
-                .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?;
+            let sequence = SequenceDocumentGet {
+                pk_id: req.sequence_id,
+            }
+            .run()
+            .await
+            .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?;
 
             let is_project_editor = crate::services()
                 .project_service
@@ -299,10 +306,12 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             }
             let session = session.unwrap();
 
-            let sequence = crate::dynamo_db()
-                .get_item::<SequenceDocument>(req.sequence_id.clone(), Option::<String>::None)
-                .await
-                .map_err(|error| rpc::rename_sequence::Error::Unknown(error.to_string()))?;
+            let sequence = SequenceDocumentGet {
+                pk_id: req.sequence_id,
+            }
+            .run()
+            .await
+            .map_err(|error| rpc::rename_sequence::Error::Unknown(error.to_string()))?;
 
             let is_project_editor = crate::services()
                 .project_service

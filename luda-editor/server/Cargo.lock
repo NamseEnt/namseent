@@ -651,6 +651,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "document-macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "either"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1641,6 +1650,7 @@ dependencies = [
  "aws-smithy-async",
  "aws-types",
  "chrono",
+ "document-macro",
  "env_logger",
  "futures",
  "lambda-web",

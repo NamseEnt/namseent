@@ -2,7 +2,7 @@ mod documents;
 
 use self::documents::image_s3_key;
 use crate::session::SessionDocument;
-use documents::ProjectImageDocument;
+use documents::*;
 use rpc::{data::ImageWithLabels, utils::retry_on_error};
 
 #[derive(Debug)]
@@ -76,10 +76,13 @@ impl rpc::ImageService<SessionDocument> for ImageService {
             if !is_project_editor {
                 return Err(rpc::prepare_upload_image::Error::Unauthorized);
             }
-            let document = crate::dynamo_db()
-                .get_item::<ProjectImageDocument>(req.project_id, Some(req.image_id))
-                .await
-                .map_err(|error| rpc::prepare_upload_image::Error::Unknown(error.to_string()))?;
+            let document = ProjectImageDocumentGet {
+                pk_project_id: req.project_id,
+                sk_image_id: req.image_id,
+            }
+            .run()
+            .await
+            .map_err(|error| rpc::prepare_upload_image::Error::Unknown(error.to_string()))?;
 
             let upload_url = document
                 .request_put_presigned_url()

@@ -99,12 +99,11 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
 
             let editable_projects = try_join_all(owner_project_documents.into_iter().map(
                 |owner_project_document| async move {
-                    match crate::dynamo_db()
-                        .get_item::<ProjectDocument>(
-                            &owner_project_document.project_id,
-                            Option::<String>::None,
-                        )
-                        .await
+                    match (ProjectDocumentGet {
+                        pk_id: owner_project_document.project_id,
+                    })
+                    .run()
+                    .await
                     {
                         Ok(project) => Ok(rpc::list_editable_projects::EditableProject {
                             id: owner_project_document.project_id,
@@ -149,9 +148,11 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
             }
             let session = session.unwrap();
 
-            let project = crate::dynamo_db()
-                .get_item::<ProjectDocument>(&req.project_id, Option::<String>::None)
-                .await;
+            let project = ProjectDocumentGet {
+                pk_id: req.project_id,
+            }
+            .run()
+            .await;
             if let Err(error) = project {
                 return Err(rpc::edit_user_acl::Error::Unknown(error.to_string()));
             }
@@ -292,12 +293,14 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
         >,
     > {
         Box::pin(async move {
-            let project = crate::dynamo_db()
-                .get_item::<ProjectDocument>(req.project_id, Option::<String>::None)
-                .await
-                .map_err(|error| {
-                    rpc::update_client_project_shared_data::Error::Unknown(error.to_string())
-                })?;
+            let project = ProjectDocumentGet {
+                pk_id: req.project_id,
+            }
+            .run()
+            .await
+            .map_err(|error| {
+                rpc::update_client_project_shared_data::Error::Unknown(error.to_string())
+            })?;
 
             let project_shared_data_json =
                 serde_json::from_str::<serde_json::Value>(&project.shared_data_json).map_err(

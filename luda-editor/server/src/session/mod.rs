@@ -1,24 +1,11 @@
-use crate::storage::dynamo_db::Document;
 use rpc::hyper::{Body, Request};
+use std::str::FromStr;
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[document_macro::document]
 pub struct SessionDocument {
+    #[pk]
     pub id: rpc::Uuid,
     pub user_id: rpc::Uuid,
-}
-
-impl Document for SessionDocument {
-    fn partition_key_without_prefix(&self) -> String {
-        self.id.to_string()
-    }
-
-    fn sort_key(&self) -> Option<String> {
-        None
-    }
-
-    fn partition_key_prefix() -> &'static str {
-        "session"
-    }
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -37,11 +24,9 @@ pub async fn get_session(req: &Request<Body>) -> Result<Option<SessionDocument>,
 
     let header_value = header_value.unwrap();
 
-    let session_id = header_value.to_str().unwrap();
+    let session_id = rpc::Uuid::from_str(header_value.to_str().unwrap()).unwrap();
 
-    let result = crate::dynamo_db()
-        .get_item::<SessionDocument>(session_id, Option::<String>::None)
-        .await;
+    let result = SessionDocumentGet { pk_id: session_id }.run().await;
 
     match result {
         Ok(session) => Ok(Some(session)),

@@ -1,7 +1,6 @@
-use crate::storage::dynamo_db::Document;
-
-#[derive(serde::Serialize, serde::Deserialize)]
+#[document_macro::document]
 pub struct SequenceDocument {
+    #[pk]
     pub id: rpc::Uuid,
     pub project_id: rpc::Uuid,
     pub name: String,
@@ -10,36 +9,10 @@ pub struct SequenceDocument {
     pub last_modified: Option<i64>,
 }
 
-impl Document for SequenceDocument {
-    fn partition_key_prefix() -> &'static str {
-        "sequence"
-    }
-
-    fn partition_key_without_prefix(&self) -> String {
-        self.id.to_string()
-    }
-
-    fn sort_key(&self) -> Option<String> {
-        None
-    }
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
+#[document_macro::document]
 pub struct ProjectSequenceDocument {
+    #[pk]
     pub project_id: rpc::Uuid,
+    #[sk]
     pub sequence_id: rpc::Uuid,
-}
-
-impl Document for ProjectSequenceDocument {
-    fn partition_key_prefix() -> &'static str {
-        "project_sequence"
-    }
-
-    fn partition_key_without_prefix(&self) -> String {
-        self.project_id.to_string()
-    }
-
-    fn sort_key(&self) -> Option<String> {
-        Some(self.sequence_id.to_string())
-    }
 }
