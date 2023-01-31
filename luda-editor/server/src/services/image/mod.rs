@@ -100,10 +100,12 @@ impl rpc::ImageService<SessionDocument> for ImageService {
     ) -> std::pin::Pin<Box<dyn 'a + std::future::Future<Output = rpc::list_images::Result> + Send>>
     {
         Box::pin(async move {
-            let documents = crate::dynamo_db()
-                .query::<ProjectImageDocument>(req.project_id)
-                .await
-                .map_err(|error| rpc::list_images::Error::Unknown(error.to_string()))?;
+            let documents = ProjectImageDocumentQuery {
+                pk_project_id: req.project_id,
+            }
+            .run()
+            .await
+            .map_err(|error| rpc::list_images::Error::Unknown(error.to_string()))?;
 
             Ok(rpc::list_images::Response {
                 images: documents

@@ -24,9 +24,11 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
         Box<dyn 'a + std::future::Future<Output = rpc::list_project_sequences::Result> + Send>,
     > {
         Box::pin(async move {
-            let project_sequence_documents = crate::dynamo_db()
-                .query::<ProjectSequenceDocument>(req.project_id)
-                .await;
+            let project_sequence_documents = ProjectSequenceDocumentQuery {
+                pk_project_id: req.project_id,
+            }
+            .run()
+            .await;
             if let Err(error) = project_sequence_documents {
                 return Err(rpc::list_project_sequences::Error::Unknown(
                     error.to_string(),

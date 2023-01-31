@@ -87,9 +87,11 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
                 return Err(rpc::list_editable_projects::Error::Unauthorized);
             }
             let session = session.unwrap();
-            let owner_project_documents = crate::dynamo_db()
-                .query::<OwnerProjectDocument>(session.user_id)
-                .await;
+            let owner_project_documents = OwnerProjectDocumentQuery {
+                pk_owner_id: session.user_id,
+            }
+            .run()
+            .await;
             if let Err(error) = owner_project_documents {
                 return Err(rpc::list_editable_projects::Error::Unknown(
                     error.to_string(),
