@@ -1,7 +1,4 @@
-use super::{
-    documents::{IdentityDocument, UserDocument},
-    *,
-};
+use super::{documents::*, *};
 use crate::storage::dynamo_db::{GetItemError, TransactError};
 
 pub async fn get_or_create_user(
@@ -10,15 +7,19 @@ pub async fn get_or_create_user(
     let username = user_identity.username().to_string();
     let identity_id = user_identity.into_document_id();
 
-    match crate::dynamo_db()
-        .get_item::<IdentityDocument>(&identity_id, Option::<String>::None)
-        .await
+    match (IdentityDocumentGet {
+        pk_id: identity_id.clone(),
+    })
+    .run()
+    .await
     {
         Ok(identity_document) => {
-            let user_document = crate::dynamo_db()
-                .get_item::<UserDocument>(&identity_document.user_id, Option::<String>::None)
-                .await
-                .map_err(|error| GetOrCreateUserError::GetUserError(error))?;
+            let user_document = UserDocumentGet {
+                pk_id: identity_document.user_id,
+            }
+            .run()
+            .await
+            .map_err(|error| GetOrCreateUserError::GetUserError(error))?;
             Ok(user_document)
         }
         Err(error) => match error {

@@ -1,25 +1,10 @@
-use crate::storage::dynamo_db::Document;
-use rpc::Uuid;
-
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[document_macro::document]
 pub struct ProjectImageDocument {
+    #[pk]
     pub project_id: rpc::Uuid,
+    #[sk]
     pub image_id: rpc::Uuid,
     pub labels: Vec<rpc::data::Label>,
-}
-
-impl Document for ProjectImageDocument {
-    fn partition_key_prefix() -> &'static str {
-        "project_image"
-    }
-
-    fn partition_key_without_prefix(&self) -> String {
-        self.project_id.to_string()
-    }
-
-    fn sort_key(&self) -> Option<String> {
-        Some(self.image_id.to_string())
-    }
 }
 
 impl ProjectImageDocument {
@@ -41,6 +26,6 @@ impl ProjectImageDocument {
     }
 }
 
-pub fn image_s3_key(project_id: Uuid, image_id: Uuid) -> String {
+pub fn image_s3_key(project_id: rpc::Uuid, image_id: rpc::Uuid) -> String {
     crate::append_slash!["projects", project_id, "images", image_id,]
 }

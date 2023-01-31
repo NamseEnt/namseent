@@ -39,8 +39,8 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
             let owner_id = session.user_id;
 
             let project_document = ProjectDocument {
-                id: project_id.clone(),
-                owner_id: owner_id.clone(),
+                id: project_id,
+                owner_id: owner_id,
                 name: req.name,
                 shared_data_json: serde_json::to_string(&rpc::data::ProjectSharedData::new(
                     project_id,
@@ -87,9 +87,11 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
                 return Err(rpc::list_editable_projects::Error::Unauthorized);
             }
             let session = session.unwrap();
-            let owner_project_documents = crate::dynamo_db()
-                .query::<OwnerProjectDocument>(session.user_id)
-                .await;
+            let owner_project_documents = OwnerProjectDocumentQuery {
+                pk_owner_id: session.user_id,
+            }
+            .run()
+            .await;
             if let Err(error) = owner_project_documents {
                 return Err(rpc::list_editable_projects::Error::Unknown(
                     error.to_string(),
@@ -99,12 +101,11 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
 
             let editable_projects = try_join_all(owner_project_documents.into_iter().map(
                 |owner_project_document| async move {
-                    match crate::dynamo_db()
-                        .get_item::<ProjectDocument>(
-                            &owner_project_document.project_id,
-                            Option::<String>::None,
-                        )
-                        .await
+                    match (ProjectDocumentGet {
+                        pk_id: owner_project_document.project_id,
+                    })
+                    .run()
+                    .await
                     {
                         Ok(project) => Ok(rpc::list_editable_projects::EditableProject {
                             id: owner_project_document.project_id,
@@ -149,9 +150,11 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
             }
             let session = session.unwrap();
 
-            let project = crate::dynamo_db()
-                .get_item::<ProjectDocument>(&req.project_id, Option::<String>::None)
-                .await;
+            let project = ProjectDocumentGet {
+                pk_id: req.project_id,
+            }
+            .run()
+            .await;
             if let Err(error) = project {
                 return Err(rpc::edit_user_acl::Error::Unknown(error.to_string()));
             }
@@ -170,36 +173,36 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
             match req.permission {
                 Some(permission) => crate::dynamo_db()
                     .transact()
-                    .update_item(
-                        &project.id,
-                        Some(session.user_id.clone()),
-                        move |mut document: UserInProjectAclDocument| async move {
+                    .update_item(UserInProjectAclDocumentUpdate {
+                        pk_project_id: project.id,
+                        sk_user_id: req.user_id,
+                        update: move |mut document: UserInProjectAclDocument| async move {
                             document.permission = permission;
                             Ok(document)
                         },
-                    )
-                    .update_item(
-                        &session.user_id,
-                        Some(project.id.clone()),
-                        move |mut document: ProjectAclUserInDocument| async move {
+                    })
+                    .update_item(ProjectAclUserInDocumentUpdate {
+                        pk_user_id: session.user_id,
+                        sk_project_id: project.id,
+                        update: move |mut document: ProjectAclUserInDocument| async move {
                             document.permission = permission;
                             Ok(document)
                         },
-                    )
+                    })
                     .send()
                     .await
                     .map(|_| rpc::edit_user_acl::Response {})
                     .map_err(|error| rpc::edit_user_acl::Error::Unknown(error.to_string())),
                 None => crate::dynamo_db()
                     .transact()
-                    .delete_item::<UserInProjectAclDocument>(
-                        &project.id,
-                        Some(session.user_id.clone()),
-                    )
-                    .delete_item::<ProjectAclUserInDocument>(
-                        &session.user_id,
-                        Some(project.id.clone()),
-                    )
+                    .delete_item(UserInProjectAclDocumentDelete {
+                        pk_project_id: project.id,
+                        sk_user_id: session.user_id,
+                    })
+                    .delete_item(ProjectAclUserInDocumentDelete {
+                        pk_user_id: session.user_id,
+                        sk_project_id: project.id,
+                    })
                     .send()
                     .await
                     .map(|_| rpc::edit_user_acl::Response {})
@@ -292,12 +295,14 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
         >,
     > {
         Box::pin(async move {
-            let project = crate::dynamo_db()
-                .get_item::<ProjectDocument>(req.project_id, Option::<String>::None)
-                .await
-                .map_err(|error| {
-                    rpc::update_client_project_shared_data::Error::Unknown(error.to_string())
-                })?;
+            let project = ProjectDocumentGet {
+                pk_id: req.project_id,
+            }
+            .run()
+            .await
+            .map_err(|error| {
+                rpc::update_client_project_shared_data::Error::Unknown(error.to_string())
+            })?;
 
             let project_shared_data_json =
                 serde_json::from_str::<serde_json::Value>(&project.shared_data_json).map_err(

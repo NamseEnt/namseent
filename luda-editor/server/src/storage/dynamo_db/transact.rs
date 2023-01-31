@@ -80,12 +80,40 @@ impl Transact {
 
         self
     }
-    pub fn delete_item<TDocument: Document>(
+    pub fn delete_item(self, command: impl Into<TransactDeleteCommand>) -> Self {
+        let command: TransactDeleteCommand = command.into();
+        self.delete_item_internal(
+            concat_partition_key(
+                command.partition_prefix,
+                command.partition_key_without_prefix,
+            ),
+            command.sort_key,
+        )
+    }
+    pub fn update_item<
+        Update: FnOnce(TDocument) -> TUpdateFuture + 'static + Send,
+        TDocument: Document + std::marker::Send,
+        TUpdateFuture: Future<Output = Result<TDocument, ()>> + Send,
+    >(
+        self,
+        command: impl Into<TransactUpdateCommand<TDocument, Update, TUpdateFuture>>,
+    ) -> Self {
+        let command: TransactUpdateCommand<TDocument, Update, TUpdateFuture> = command.into();
+        self.update_item_internal(
+            concat_partition_key(
+                command.partition_prefix,
+                command.partition_key_without_prefix,
+            ),
+            command.sort_key,
+            command.update,
+        )
+    }
+    fn delete_item_internal(
         mut self,
-        partition_key_without_prefix: impl ToString,
+        partition_key: impl ToString,
         sort_key: Option<impl ToString>,
     ) -> Self {
-        let partition_key = get_partition_key::<TDocument>(partition_key_without_prefix);
+        let partition_key = partition_key.to_string();
         let sort_key = sort_key
             .map(|sort_key| sort_key.to_string())
             .unwrap_or(DEFAULT_SORT_KEY.to_string());
@@ -104,7 +132,7 @@ impl Transact {
 
         self
     }
-    pub fn update_item<
+    fn update_item_internal<
         TDocument: Document + std::marker::Send,
         TUpdateFuture: Future<Output = Result<TDocument, ()>> + Send,
     >(
@@ -172,6 +200,24 @@ impl Transact {
 
         self
     }
+}
+
+pub struct TransactDeleteCommand {
+    pub partition_prefix: String,
+    pub partition_key_without_prefix: String,
+    pub sort_key: Option<String>,
+}
+
+pub struct TransactUpdateCommand<TDocument, Update, TUpdateFuture>
+where
+    Update: FnOnce(TDocument) -> TUpdateFuture + 'static + Send,
+    TUpdateFuture: std::future::Future<Output = Result<TDocument, ()>> + Send,
+{
+    pub partition_prefix: String,
+    pub partition_key_without_prefix: String,
+    pub sort_key: Option<String>,
+    pub update: Update,
+    pub _phantom: std::marker::PhantomData<(TDocument, TUpdateFuture)>,
 }
 
 #[derive(Debug)]
