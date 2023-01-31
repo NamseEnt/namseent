@@ -26,32 +26,52 @@ async fn load_fallback_font_typefaces() -> Result<(), Box<dyn std::error::Error>
 
 async fn get_noto_color_emoji_typeface() -> Result<Typeface, Box<dyn std::error::Error>> {
     let url = crate::Url::parse("bundle:__system__/font/NotoColorEmoji.woff2")?;
-    let bytes = crate::file::bundle::read(&url)
-        .await
-        .expect(format!("Could not fetch {}", url).as_str());
-
-    Ok(Typeface::new(&bytes))
+    get_typeface(url).await
 }
 
 pub async fn load_sans_typeface_of_all_languages() -> Result<(), Box<dyn std::error::Error>> {
     let typeface_file_urls: TypefaceFileUrls = get_typeface_file_urls().await?;
-
-    let typeface_files = get_typeface_files(&typeface_file_urls).await?;
-    typeface_files.iter().for_each(|(typeface_type, bytes)| {
-        let typeface = Arc::new(Typeface::new(bytes));
+    let iter = try_join_all(typeface_file_urls.iter().map(
+        |(typeface_type, font_file_url)| async move {
+            let url = crate::Url::parse(font_file_url)?;
+            get_typeface(url)
+                .await
+                .map(|typeface| (*typeface_type, Arc::new(typeface)))
+        },
+    ))
+    .await?
+    .into_iter();
+    for (typeface_type, typeface) in iter {
         crate::typeface::load_typeface(&typeface_type, typeface.clone());
         load_default_font_of_typeface(typeface);
-    });
+    }
 
     Ok(())
+}
+
+async fn get_typeface(url: Url) -> Result<Typeface, Box<dyn std::error::Error>> {
+    let typeface = match crate::cache::get(url.as_str()).await? {
+        Some(cached_bytes) => Typeface::new(&cached_bytes),
+        None => {
+            let bytes = crate::file::bundle::read(&url)
+                .await
+                .expect(format!("Could not fetch {}", url).as_str());
+            crate::cache::set(url.as_str(), bytes.as_ref()).await?;
+            Typeface::new(&bytes)
+        }
+    };
+    Ok(typeface)
 }
 
 async fn load_typeface_file_urls_file() -> Result<TypefaceFileUrlsFile, Box<dyn std::error::Error>>
 {
     let url = crate::Url::parse("bundle:__system__/font/map.json")?;
-    let typeface_file_urls_file = crate::file::bundle::read_json(url).await?;
-
-    Ok(typeface_file_urls_file)
+    let Some(cached_typeface_file_urls_file) = crate::cache::get_serde(url.as_str()).await? else {
+        let typeface_file_urls_file = crate::file::bundle::read_json(url.clone()).await?;
+        crate::cache::set_serde(url.as_str(), &typeface_file_urls_file).await?;
+        return Ok(typeface_file_urls_file)
+    };
+    Ok(cached_typeface_file_urls_file)
 }
 
 async fn get_typeface_file_urls() -> Result<TypefaceFileUrls, Box<dyn std::error::Error>> {
@@ -74,26 +94,6 @@ async fn get_typeface_file_urls() -> Result<TypefaceFileUrls, Box<dyn std::error
                 })
         })
         .collect())
-}
-
-async fn get_typeface_files<'a>(
-    typeface_file_urls: &'a TypefaceFileUrls,
-) -> Result<HashMap<TypefaceType, impl AsRef<[u8]> + 'a>, Box<dyn std::error::Error>> {
-    let iter = try_join_all(typeface_file_urls.iter().map(
-        |(typeface_type, font_file_url)| async move {
-            let url = crate::Url::parse(font_file_url)?;
-
-            let result: Result<_, Box<dyn std::error::Error>> =
-                match crate::file::bundle::read(url).await {
-                    Ok(bytes) => Ok((*typeface_type, bytes)),
-                    Err(error) => Err(format!("Could not fetch {font_file_url} - {error}").into()),
-                };
-            result
-        },
-    ))
-    .await?;
-
-    Ok(HashMap::from_iter(iter))
 }
 
 #[cfg(test)]
