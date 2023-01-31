@@ -21,7 +21,8 @@ impl LoadedSequenceEditorPage {
                 1.px(),
                 Color::BLACK,
                 8.px(),
-                move || {
+                [MouseButton::Left],
+                move |_| {
                     namui::event::send(Event::ClosePlayer);
                 },
             ),
@@ -85,7 +86,8 @@ impl LoadedSequenceEditorPage {
                 1.px(),
                 Color::BLACK,
                 8.px(),
-                || namui::event::send(Event::ImageManagerButtonClicked),
+                [MouseButton::Left],
+                |_| namui::event::send(Event::ImageManagerButtonClicked),
             ),
         );
         let download_button = table::fit(
@@ -98,7 +100,8 @@ impl LoadedSequenceEditorPage {
                 1.px(),
                 Color::BLACK,
                 8.px(),
-                || namui::event::send(Event::DownloadButtonClicked),
+                [MouseButton::Left],
+                |_| namui::event::send(Event::DownloadButtonClicked),
             ),
         );
         let preview_button = table::fit(
@@ -111,7 +114,8 @@ impl LoadedSequenceEditorPage {
                 1.px(),
                 Color::BLACK,
                 8.px(),
-                || namui::event::send(Event::PreviewButtonClicked),
+                [MouseButton::Left],
+                |_| namui::event::send(Event::PreviewButtonClicked),
             ),
         );
         fn margin() -> table::TableCell<'static> {

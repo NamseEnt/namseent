@@ -19,7 +19,8 @@ impl Timeline {
                         Color::WHITE,
                         1.px(),
                         Color::BLACK,
-                        || {
+                        [MouseButton::Left],
+                        |_| {
                             namui::event::send(Event::NewImageClip);
                             namui::event::send(Event::CloseContextMenu);
                         },

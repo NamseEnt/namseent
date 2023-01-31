@@ -2,27 +2,14 @@ use crate::{simple_rect, typography::center_text_full_height};
 use namui::prelude::*;
 use std::sync::Arc;
 
-pub fn text_button(
-    rect: Rect<Px>,
-    text: &str,
-    text_color: Color,
-    stroke_color: Color,
-    stroke_width: Px,
-    fill_color: Color,
+fn attach_text_button_event(
+    button: RenderingTree,
     mouse_buttons: impl IntoIterator<Item = MouseButton>,
     on_mouse_up_in: impl Fn(&MouseEvent) + 'static,
-) -> namui::RenderingTree {
+) -> RenderingTree {
     let mouse_buttons = mouse_buttons.into_iter().collect::<Vec<_>>();
     let on_mouse_up_in = Arc::new(on_mouse_up_in);
-    translate(
-        rect.x(),
-        rect.y(),
-        render([
-            simple_rect(rect.wh(), stroke_color, stroke_width, fill_color),
-            center_text_full_height(rect.wh(), text, text_color),
-        ]),
-    )
-    .attach_event(|builder| {
+    button.attach_event(|builder| {
         let mouse_buttons = mouse_buttons.clone();
         let on_mouse_up_in = on_mouse_up_in.clone();
         builder.on_mouse_up_in(move |event| {
@@ -36,6 +23,30 @@ pub fn text_button(
     })
 }
 
+pub fn text_button(
+    rect: Rect<Px>,
+    text: &str,
+    text_color: Color,
+    stroke_color: Color,
+    stroke_width: Px,
+    fill_color: Color,
+    mouse_buttons: impl IntoIterator<Item = MouseButton>,
+    on_mouse_up_in: impl Fn(&MouseEvent) + 'static,
+) -> namui::RenderingTree {
+    attach_text_button_event(
+        translate(
+            rect.x(),
+            rect.y(),
+            render([
+                simple_rect(rect.wh(), stroke_color, stroke_width, fill_color),
+                center_text_full_height(rect.wh(), text, text_color),
+            ]),
+        ),
+        mouse_buttons,
+        on_mouse_up_in,
+    )
+}
+
 pub fn text_button_fit(
     height: Px,
     text: &str,
@@ -44,31 +55,29 @@ pub fn text_button_fit(
     stroke_width: Px,
     fill_color: Color,
     side_padding: Px,
-    on_mouse_down_in: impl Fn() + 'static,
+    mouse_buttons: impl IntoIterator<Item = MouseButton>,
+    on_mouse_up_in: impl Fn(&MouseEvent) + 'static,
 ) -> namui::RenderingTree {
+    let mouse_buttons = mouse_buttons.into_iter().collect::<Vec<_>>();
     let center_text = center_text_full_height(Wh::new(0.px(), height), text, text_color);
     let width = match center_text.get_bounding_box() {
         Some(bounding_box) => bounding_box.width(),
         None => return RenderingTree::Empty,
     };
 
-    let on_mouse_down_in = Arc::new(on_mouse_down_in);
-
-    render([
-        simple_rect(
-            Wh::new(width + side_padding * 2, height),
-            stroke_color,
-            stroke_width,
-            fill_color,
-        ),
-        translate(width / 2 + side_padding, 0.px(), center_text),
-    ])
-    .attach_event(|builder| {
-        let on_mouse_down_in = on_mouse_down_in.clone();
-        builder.on_mouse_down_in(move |_| {
-            on_mouse_down_in();
-        });
-    })
+    attach_text_button_event(
+        render([
+            simple_rect(
+                Wh::new(width + side_padding * 2, height),
+                stroke_color,
+                stroke_width,
+                fill_color,
+            ),
+            translate(width / 2 + side_padding, 0.px(), center_text),
+        ]),
+        mouse_buttons,
+        on_mouse_up_in,
+    )
 }
 
 pub fn body_text_button(
@@ -79,27 +88,27 @@ pub fn body_text_button(
     stroke_width: Px,
     fill_color: Color,
     text_align: TextAlign,
-    on_mouse_down_in: impl Fn() + 'static,
+    mouse_buttons: impl IntoIterator<Item = MouseButton>,
+    on_mouse_up_in: impl Fn(&MouseEvent) + 'static,
 ) -> namui::RenderingTree {
-    let on_mouse_down_in = Arc::new(on_mouse_down_in);
-    translate(
-        rect.x(),
-        rect.y(),
-        render([
-            simple_rect(rect.wh(), stroke_color, stroke_width, fill_color),
-            match text_align {
-                TextAlign::Left => {
-                    crate::typography::body::left(rect.wh().height, text, text_color)
-                }
-                TextAlign::Center => crate::typography::body::center(rect.wh(), text, text_color),
-                TextAlign::Right => crate::typography::body::right(rect.wh(), text, text_color),
-            },
-        ]),
+    attach_text_button_event(
+        translate(
+            rect.x(),
+            rect.y(),
+            render([
+                simple_rect(rect.wh(), stroke_color, stroke_width, fill_color),
+                match text_align {
+                    TextAlign::Left => {
+                        crate::typography::body::left(rect.wh().height, text, text_color)
+                    }
+                    TextAlign::Center => {
+                        crate::typography::body::center(rect.wh(), text, text_color)
+                    }
+                    TextAlign::Right => crate::typography::body::right(rect.wh(), text, text_color),
+                },
+            ]),
+        ),
+        mouse_buttons,
+        on_mouse_up_in,
     )
-    .attach_event(|builder| {
-        let on_mouse_down_in = on_mouse_down_in.clone();
-        builder.on_mouse_down_in(move |_| {
-            on_mouse_down_in();
-        });
-    })
 }

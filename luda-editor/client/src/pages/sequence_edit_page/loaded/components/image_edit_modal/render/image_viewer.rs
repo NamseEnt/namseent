@@ -30,7 +30,8 @@ impl ImageEditModal {
                         2.px(),
                         Color::BLACK,
                         TextAlign::Center,
-                        || {
+                        [MouseButton::Left],
+                        |_| {
                             spawn_local(async move {
                                 let files = namui::file::picker::open().await;
                                 let first_file = if files.len() > 0 {
