@@ -1,5 +1,5 @@
 use super::Map;
-use crate::app::game::{interaction, new_player, Tile, TileExt};
+use crate::app::game::{interaction, menu, new_player, Tile, TileExt};
 use namui::{prelude::*, simple_error_impl};
 
 pub struct MapLoader {
@@ -22,11 +22,6 @@ impl MapLoader {
     }
 
     pub fn update(&mut self, event: &namui::Event, app: &mut crate::ecs::App) {
-        // TODO: This is a mock. We should be able to start loading a map from the outside.
-        if let MapLoaderState::Idle = self.state {
-            let _ = self.start_load("first".to_string(), Xy::new(8.tile(), 6.tile()));
-        }
-
         event
             .is::<InternalEvent>(|event| match event {
                 InternalEvent::FailedToReadMapFromBundle => {
@@ -49,6 +44,9 @@ impl MapLoader {
                     return;
                 };
                 let _ = self.start_load(map_name.clone(), *player_xy);
+            })
+            .is::<menu::Event>(|_| {
+                let _ = self.start_load("first".to_string(), Xy::new(8.tile(), 6.tile()));
             });
     }
 

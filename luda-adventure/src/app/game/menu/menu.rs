@@ -1,4 +1,4 @@
-use super::{render_in_game_menu, render_start_menu};
+use super::{render_in_game_menu, render_start_menu, Event};
 use namui::{on_top, screen, RenderingTree};
 use namui_prebuilt::event_trap;
 
@@ -15,6 +15,15 @@ impl Menu {
         }
     }
 
+    pub fn update(&mut self, event: &namui::Event) {
+        event.is::<Event>(|event| match event {
+            Event::StartNewButtonClicked => {
+                self.close();
+                self.tab = Tab::InGame;
+            }
+        });
+    }
+
     pub fn render(&self) -> RenderingTree {
         match self.open {
             true => {
@@ -26,6 +35,10 @@ impl Menu {
             }
             false => RenderingTree::Empty,
         }
+    }
+
+    fn close(&mut self) {
+        self.open = false;
     }
 }
 

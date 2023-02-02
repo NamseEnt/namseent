@@ -43,6 +43,7 @@ impl Game {
         });
 
         self.map_loader.update(event, &mut self.ecs_app);
+        self.menu.update(event);
     }
 
     pub fn render(&self) -> namui::RenderingTree {
