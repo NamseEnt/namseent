@@ -25,16 +25,15 @@ impl Menu {
     }
 
     pub fn render(&self) -> RenderingTree {
-        match self.open {
-            true => {
-                let wh = screen::size();
-                on_top(event_trap(match self.tab {
-                    Tab::Start => render_start_menu(wh),
-                    Tab::InGame => render_in_game_menu(wh),
-                }))
-            }
-            false => RenderingTree::Empty,
+        if !self.open {
+            return RenderingTree::Empty;
         }
+
+        let wh = screen::size();
+        on_top(event_trap(match self.tab {
+            Tab::Start => render_start_menu(wh),
+            Tab::InGame => render_in_game_menu(wh),
+        }))
     }
 
     fn close(&mut self) {
