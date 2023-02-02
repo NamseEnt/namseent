@@ -26,7 +26,7 @@ async fn load_fallback_font_typefaces() -> Result<(), Box<dyn std::error::Error>
 
 async fn get_noto_color_emoji_typeface() -> Result<Typeface, Box<dyn std::error::Error>> {
     let url = crate::Url::parse("bundle:__system__/font/NotoColorEmoji.woff2")?;
-    let bytes = crate::file::bundle::read(&url)
+    let bytes = get_file_from_bundle_with_cached(&url)
         .await
         .expect(format!("Could not fetch {}", url).as_str());
 
@@ -49,9 +49,10 @@ pub async fn load_sans_typeface_of_all_languages() -> Result<(), Box<dyn std::er
 async fn load_typeface_file_urls_file() -> Result<TypefaceFileUrlsFile, Box<dyn std::error::Error>>
 {
     let url = crate::Url::parse("bundle:__system__/font/map.json")?;
-    let typeface_file_urls_file = crate::file::bundle::read_json(url).await?;
-
-    Ok(typeface_file_urls_file)
+    match serde_json::from_slice(&get_file_from_bundle_with_cached(&url).await?) {
+        Ok(typeface_file_urls_file) => Ok(typeface_file_urls_file),
+        Err(error) => Err(format!("{error:?}").into()),
+    }
 }
 
 async fn get_typeface_file_urls() -> Result<TypefaceFileUrls, Box<dyn std::error::Error>> {
@@ -76,15 +77,15 @@ async fn get_typeface_file_urls() -> Result<TypefaceFileUrls, Box<dyn std::error
         .collect())
 }
 
-async fn get_typeface_files<'a>(
-    typeface_file_urls: &'a TypefaceFileUrls,
-) -> Result<HashMap<TypefaceType, impl AsRef<[u8]> + 'a>, Box<dyn std::error::Error>> {
+async fn get_typeface_files(
+    typeface_file_urls: &TypefaceFileUrls,
+) -> Result<HashMap<TypefaceType, Vec<u8>>, Box<dyn std::error::Error>> {
     let iter = try_join_all(typeface_file_urls.iter().map(
         |(typeface_type, font_file_url)| async move {
             let url = crate::Url::parse(font_file_url)?;
 
             let result: Result<_, Box<dyn std::error::Error>> =
-                match crate::file::bundle::read(url).await {
+                match get_file_from_bundle_with_cached(&url).await {
                     Ok(bytes) => Ok((*typeface_type, bytes)),
                     Err(error) => Err(format!("Could not fetch {font_file_url} - {error}").into()),
                 };
@@ -94,6 +95,23 @@ async fn get_typeface_files<'a>(
     .await?;
 
     Ok(HashMap::from_iter(iter))
+}
+
+async fn get_file_from_bundle_with_cached(
+    url: &crate::Url,
+) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    let file = match crate::cache::get(url.as_str()).await? {
+        Some(cached_file) => cached_file.to_vec(),
+        None => {
+            let file = crate::file::bundle::read(url.clone())
+                .await?
+                .as_ref()
+                .to_vec();
+            crate::cache::set(url.as_str(), &file).await?;
+            file
+        }
+    };
+    Ok(file)
 }
 
 #[cfg(test)]
