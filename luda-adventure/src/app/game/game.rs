@@ -5,6 +5,7 @@ pub struct Game {
     pub state: GameState,
     pub ecs_app: crate::ecs::App,
     pub map_loader: MapLoader,
+    menu: Menu,
 }
 impl Game {
     pub fn new_with_mock() -> Self {
@@ -18,6 +19,7 @@ impl Game {
             state,
             ecs_app,
             map_loader: MapLoader::new(),
+            menu: Menu::new(),
         }
     }
     pub fn new() -> Self {
@@ -25,6 +27,7 @@ impl Game {
             state: GameState::new(),
             ecs_app: crate::ecs::App::new(),
             map_loader: MapLoader::new(),
+            menu: Menu::new(),
         }
     }
 
@@ -55,6 +58,7 @@ impl Game {
                     self.render_interaction_guide(&rendering_context),
                 ]),
             ),
+            self.menu.render(),
         ])
     }
 }
