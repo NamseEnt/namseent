@@ -45,8 +45,10 @@ impl MapLoader {
                 };
                 let _ = self.start_load(map_name.clone(), *player_xy);
             })
-            .is::<menu::Event>(|_| {
-                let _ = self.start_load("first".to_string(), Xy::new(8.tile(), 6.tile()));
+            .is::<menu::Event>(|event| match event {
+                menu::Event::StartNewButtonClicked => {
+                    let _ = self.start_load("first".to_string(), Xy::new(8.tile(), 6.tile()));
+                }
             });
     }
 
