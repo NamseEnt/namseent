@@ -31,6 +31,19 @@ async fn get_noto_color_emoji_typeface() -> Result<Typeface, Box<dyn std::error:
 
 pub async fn load_sans_typeface_of_all_languages() -> Result<(), Box<dyn std::error::Error>> {
     let typeface_file_urls: TypefaceFileUrls = get_typeface_file_urls().await?;
+
+    let typefaces = get_typefaces_from_file_urls(typeface_file_urls).await?;
+    typefaces.into_iter().for_each(|(typeface_type, typeface)| {
+        crate::typeface::load_typeface(&typeface_type, typeface.clone());
+        load_default_font_of_typeface(typeface);
+    });
+
+    Ok(())
+}
+
+async fn get_typefaces_from_file_urls(
+    typeface_file_urls: TypefaceFileUrls,
+) -> Result<HashMap<TypefaceType, Arc<Typeface>>, Box<dyn std::error::Error>> {
     let iter = try_join_all(typeface_file_urls.iter().map(
         |(typeface_type, font_file_url)| async move {
             let url = crate::Url::parse(font_file_url)?;
@@ -39,14 +52,8 @@ pub async fn load_sans_typeface_of_all_languages() -> Result<(), Box<dyn std::er
                 .map(|typeface| (*typeface_type, Arc::new(typeface)))
         },
     ))
-    .await?
-    .into_iter();
-    for (typeface_type, typeface) in iter {
-        crate::typeface::load_typeface(&typeface_type, typeface.clone());
-        load_default_font_of_typeface(typeface);
-    }
-
-    Ok(())
+    .await?;
+    Ok(HashMap::from_iter(iter))
 }
 
 async fn get_typeface(url: Url) -> Result<Typeface, Box<dyn std::error::Error>> {
