@@ -1,6 +1,6 @@
-use std::sync::{Arc, Mutex};
 use super::menu;
 use namui::prelude::*;
+use std::sync::{Arc, Mutex};
 
 pub struct ImageLoader {
     image_loader_state: ImageLoaderState,
@@ -103,14 +103,9 @@ fn load_images_concurrently(image_urls: Vec<Url>, concurrent: usize) {
         let image_urls = image_urls.clone();
         spawn_local(async move {
             loop {
-                let image_url = {
-                    image_urls
-                      .lock()
-                      .unwrap()
-                      .pop()
-                };
+                let image_url = { image_urls.lock().unwrap().pop() };
                 let Some(image_url) = image_url else {
-                  break;  
+                  break;
                 };
                 namui::image::load_url(&image_url).await;
                 namui::event::send(InternalEvent::ImageLoaded);
