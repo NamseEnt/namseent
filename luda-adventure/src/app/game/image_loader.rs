@@ -1,3 +1,4 @@
+use std::sync::{Arc, Mutex};
 use super::menu;
 use namui::prelude::*;
 
@@ -97,25 +98,23 @@ fn check_path_is_image_path(path: &String) -> bool {
 }
 
 fn load_images_concurrently(image_urls: Vec<Url>, concurrent: usize) {
-    split_image_urls_into_task_size(image_urls, concurrent)
-        .into_iter()
-        .for_each(|image_urls| {
-            spawn_local(async move {
-                for image_url in image_urls {
-                    namui::image::load_url(&image_url).await;
-                    namui::event::send(InternalEvent::ImageLoaded);
-                }
-            })
-        });
-}
-
-fn split_image_urls_into_task_size(image_urls: Vec<Url>, concurrent: usize) -> Vec<Vec<Url>> {
-    let mut splited = (0..concurrent).map(|_| Vec::new()).collect::<Vec<_>>();
-    image_urls
-        .into_iter()
-        .enumerate()
-        .for_each(|(index, image_url)| {
-            splited[index % concurrent].push(image_url);
-        });
-    splited
+    let image_urls = Arc::new(Mutex::new(image_urls));
+    for _ in 0..concurrent {
+        let image_urls = image_urls.clone();
+        spawn_local(async move {
+            loop {
+                let image_url = {
+                    image_urls
+                      .lock()
+                      .unwrap()
+                      .pop()
+                };
+                let Some(image_url) = image_url else {
+                  break;  
+                };
+                namui::image::load_url(&image_url).await;
+                namui::event::send(InternalEvent::ImageLoaded);
+            }
+        })
+    }
 }
