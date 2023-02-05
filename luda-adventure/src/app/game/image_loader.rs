@@ -105,7 +105,7 @@ fn load_images_concurrently(image_urls: Vec<Url>, concurrent: usize) {
             loop {
                 let image_url = { image_urls.lock().unwrap().pop() };
                 let Some(image_url) = image_url else {
-                  break;
+                    break;
                 };
                 namui::image::load_url(&image_url).await;
                 namui::event::send(InternalEvent::ImageLoaded);
