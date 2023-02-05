@@ -33,6 +33,7 @@ impl ImageLoader {
     }
 
     fn start_load_all_images(&mut self) {
+        const CONCURRENT: usize = 4;
         let ImageLoaderState::Idle = self.image_loader_state  else{
             return;
         };
@@ -45,12 +46,7 @@ impl ImageLoader {
             total_image_count: image_urls.len(),
             loaded_image_count: 0,
         };
-        spawn_local(async move {
-            for image_url in image_urls {
-                namui::image::load_url(&image_url).await;
-                namui::event::send(InternalEvent::ImageLoaded);
-            }
-        })
+        load_images_concurrently(image_urls, CONCURRENT)
     }
 
     fn on_image_loaded(&mut self) {
@@ -98,4 +94,28 @@ fn check_path_is_image_path(path: &String) -> bool {
     IMAGE_EXTENSION_NAMES
         .iter()
         .any(|extention_name| path.ends_with(extention_name))
+}
+
+fn load_images_concurrently(image_urls: Vec<Url>, concurrent: usize) {
+    split_image_urls_into_task_size(image_urls, concurrent)
+        .into_iter()
+        .for_each(|image_urls| {
+            spawn_local(async move {
+                for image_url in image_urls {
+                    namui::image::load_url(&image_url).await;
+                    namui::event::send(InternalEvent::ImageLoaded);
+                }
+            })
+        });
+}
+
+fn split_image_urls_into_task_size(image_urls: Vec<Url>, concurrent: usize) -> Vec<Vec<Url>> {
+    let mut splited = (0..concurrent).map(|_| Vec::new()).collect::<Vec<_>>();
+    image_urls
+        .into_iter()
+        .enumerate()
+        .for_each(|(index, image_url)| {
+            splited[index % concurrent].push(image_url);
+        });
+    splited
 }
