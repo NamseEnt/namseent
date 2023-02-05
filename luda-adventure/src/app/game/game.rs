@@ -5,6 +5,7 @@ pub struct Game {
     pub state: GameState,
     pub ecs_app: crate::ecs::App,
     pub map_loader: MapLoader,
+    image_loader: ImageLoader,
     menu: Menu,
 }
 impl Game {
@@ -19,6 +20,7 @@ impl Game {
             state,
             ecs_app,
             map_loader: MapLoader::new(),
+            image_loader: ImageLoader::new(),
             menu: Menu::new(),
         }
     }
@@ -27,6 +29,7 @@ impl Game {
             state: GameState::new(),
             ecs_app: crate::ecs::App::new(),
             map_loader: MapLoader::new(),
+            image_loader: ImageLoader::new(),
             menu: Menu::new(),
         }
     }
@@ -43,6 +46,7 @@ impl Game {
         });
 
         self.map_loader.update(event, &mut self.ecs_app);
+        self.image_loader.update(event);
         self.menu.update(event);
     }
 
