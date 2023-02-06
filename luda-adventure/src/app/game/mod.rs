@@ -2,6 +2,7 @@
 mod test;
 
 mod game;
+mod image_loader;
 mod interaction;
 pub mod known_id;
 mod map;
@@ -11,6 +12,7 @@ mod types;
 mod update;
 
 pub use game::*;
+pub use image_loader::*;
 pub use interaction::*;
 pub use map::*;
 pub use menu::*;
