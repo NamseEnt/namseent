@@ -1,11 +1,10 @@
 mod handle;
-mod services;
+pub mod services;
 mod session;
 pub mod storage;
 mod utils;
 
 use aws_smithy_async::rt::sleep::default_async_sleep;
-use handle::handle_with_wrapped_error;
 use lambda_web::{is_running_on_lambda, run_hyper_on_lambda, LambdaError};
 use once_cell::sync::OnceCell;
 use rpc::hyper::{
@@ -36,16 +35,15 @@ struct Storage {
 
 static STORAGES: OnceCell<Storage> = OnceCell::new();
 
-fn dynamo_db<'a>() -> &'a DynamoDb {
+pub fn dynamo_db<'a>() -> &'a DynamoDb {
     &STORAGES.get().unwrap().dynamo_db
 }
 
-fn s3<'a>() -> &'a S3 {
+pub fn s3<'a>() -> &'a S3 {
     &STORAGES.get().unwrap().s3
 }
 
-#[tokio::main]
-async fn main() -> Result<(), LambdaError> {
+pub async fn init() {
     env_logger::init();
     log::info!("starting up");
 
@@ -71,9 +69,6 @@ async fn main() -> Result<(), LambdaError> {
         );
 
         STORAGES.set(Storage { dynamo_db, s3 }).unwrap();
-
-        let svc = service_fn(handle_with_wrapped_error);
-        run_hyper_on_lambda(svc).await?;
     } else {
         log::info!("not running on lambda");
         let dynamo_db = DynamoDb::new(
@@ -103,14 +98,22 @@ async fn main() -> Result<(), LambdaError> {
         );
 
         STORAGES.set(Storage { dynamo_db, s3 }).unwrap();
+    }
+}
 
+pub async fn run_server() -> Result<(), LambdaError> {
+    if is_running_on_lambda() {
+        let svc = service_fn(handle::handle_with_wrapped_error);
+        run_hyper_on_lambda(svc).await?;
+    } else {
         let addr = SocketAddr::from(([0, 0, 0, 0], 8888));
         let make_svc = make_service_fn(|_conn| async {
-            Ok::<_, LambdaError>(service_fn(handle_with_wrapped_error))
+            Ok::<_, LambdaError>(service_fn(handle::handle_with_wrapped_error))
         });
         let server = Server::bind(&addr).serve(make_svc);
 
         server.await?;
     }
+
     Ok(())
 }

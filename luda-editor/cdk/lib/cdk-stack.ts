@@ -70,7 +70,7 @@ export class CdkStack extends cdk.Stack {
             code: cdk.aws_lambda.Code.fromAsset(
                 path.join(
                     __dirname,
-                    "../../server/target/lambda/server/bootstrap.zip",
+                    "../../server-bin/target/lambda/server-bin/bootstrap.zip",
                 ),
             ),
             functionName: lambdaFunctionName.valueAsString,

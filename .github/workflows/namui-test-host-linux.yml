@@ -118,7 +118,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/init-test-job
       - run: cargo test --manifest-path luda-editor/rpc/Cargo.toml
-      - run: cargo test --manifest-path luda-editor/server/Cargo.toml
+      - run: cargo test --manifest-path luda-editor/server/server-bin/Cargo.toml
       - uses: ./.github/actions/namui-test
         with:
           target: wasm-unknown-web

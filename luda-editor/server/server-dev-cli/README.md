@@ -1,0 +1,5 @@
+# Usage
+
+```
+cargo run -- help
+```

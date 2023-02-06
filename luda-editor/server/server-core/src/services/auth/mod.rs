@@ -1,12 +1,12 @@
-mod documents;
+pub mod documents;
 mod get_or_create_user;
 mod impls;
 mod user_identity;
 
 use crate::session::SessionDocument;
-use get_or_create_user::*;
+pub use get_or_create_user::*;
 use lambda_web::is_running_on_lambda;
-use user_identity::*;
+pub use user_identity::*;
 
 #[derive(Debug)]
 pub struct AuthService {
