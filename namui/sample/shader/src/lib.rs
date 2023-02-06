@@ -1,6 +1,6 @@
 use namui::prelude::*;
 use namui_prebuilt::{table::*, *};
-use std::{f32::consts::PI, mem::discriminant};
+use std::f32::consts::PI;
 
 pub async fn main() {
     let namui_context = namui::init().await;
@@ -8,11 +8,20 @@ pub async fn main() {
     namui::start(namui_context, &mut ShaderExample::new(), &()).await
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Tab {
     Spiral,
     Shake,
     Scroll,
+}
+impl std::fmt::Display for Tab {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Tab::Spiral => write!(f, "Spiral"),
+            Tab::Shake => write!(f, "Shake"),
+            Tab::Scroll => write!(f, "Scroll"),
+        }
+    }
 }
 
 struct ShaderExample {
@@ -38,23 +47,13 @@ impl Entity for ShaderExample {
         horizontal([
             fixed(100.px(), |wh| {
                 dropdown::render(dropdown::Props {
-                    items: vec![
-                        dropdown::Item {
-                            id: uuid_from_hash("Spiral"),
-                            is_selected: discriminant(&self.tab) == discriminant(&Tab::Spiral),
-                            text: "Spiral".to_string(),
-                        },
-                        dropdown::Item {
-                            id: uuid_from_hash("Shake"),
-                            is_selected: discriminant(&self.tab) == discriminant(&Tab::Shake),
-                            text: "Shake".to_string(),
-                        },
-                        dropdown::Item {
-                            id: uuid_from_hash("Scroll"),
-                            is_selected: discriminant(&self.tab) == discriminant(&Tab::Scroll),
-                            text: "Scroll".to_string(),
-                        },
-                    ],
+                    items: vec![Tab::Spiral, Tab::Shake, Tab::Scroll]
+                        .into_iter()
+                        .map(|tab| dropdown::Item {
+                            is_selected: self.tab == tab,
+                            text: tab.to_string(),
+                            on_select_item: move || namui::event::send(Event::SelectTab { tab }),
+                        }),
                     rect: Rect::from_xy_wh(
                         Xy::single(0.px()),
                         Wh {
@@ -62,18 +61,6 @@ impl Entity for ShaderExample {
                             height: wh.height.min(40.px()),
                         },
                     ),
-                    on_select_item: |id| match id {
-                        id if id == uuid_from_hash("Spiral") => {
-                            namui::event::send(Event::SelectTab { tab: Tab::Spiral });
-                        }
-                        id if id == uuid_from_hash("Shake") => {
-                            namui::event::send(Event::SelectTab { tab: Tab::Shake });
-                        }
-                        id if id == uuid_from_hash("Scroll") => {
-                            namui::event::send(Event::SelectTab { tab: Tab::Scroll });
-                        }
-                        _ => unreachable!(),
-                    },
                     visible_item_count: 0,
                 })
             }),

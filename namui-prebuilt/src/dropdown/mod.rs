@@ -6,57 +6,70 @@ pub struct Dropdown {
     id: Uuid,
     is_opened: bool,
     list_view: list_view::ListView,
-    mouse_over_item_id: Option<Uuid>,
+    mouse_over_item_index: Option<usize>,
 }
 
 pub enum Event {}
 
 enum InternalEvent {
     ToggleDropdown { id: Uuid },
-    MoveOverItem { id: Uuid, item_id: namui::Uuid },
+    MoveOverItem { id: Uuid, item_index: usize },
     CloseDropdown { id: Uuid },
 }
 
 #[derive(Debug, Clone)]
-pub struct Item {
-    /// Should be unique.
-    pub id: namui::Uuid,
+pub struct Item<TOnSelectItem>
+where
+    TOnSelectItem: Fn() + 'static,
+{
     pub text: String,
     pub is_selected: bool,
+    pub on_select_item: TOnSelectItem,
 }
 
 pub struct Props<TItems, TOnSelectItem>
 where
-    TItems: IntoIterator<Item = Item>,
-    TOnSelectItem: Fn(Uuid) + 'static,
+    TOnSelectItem: Fn() + 'static,
+    TItems: IntoIterator<Item = Item<TOnSelectItem>>,
 {
     pub rect: Rect<Px>,
     /// Only first `is_selected = true` item will be displayed.
     pub items: TItems,
     /// if `visible_item_count = 0`, all items will be displayed.
     pub visible_item_count: usize,
-    pub on_select_item: TOnSelectItem,
+}
+
+struct InternalItem {
+    text: String,
+    is_selected: bool,
+    on_select_item: Arc<dyn Fn()>,
 }
 
 struct InternalProps {
     pub rect: Rect<Px>,
     /// Only first `is_selected = true` item will be displayed.
-    pub items: Vec<Item>,
+    pub items: Vec<InternalItem>,
     /// if `visible_item_count = 0`, all items will be displayed.
     pub visible_item_count: usize,
-    pub on_select_item: Arc<dyn Fn(Uuid)>,
 }
 
 pub fn render<TItems, TOnSelectItem>(props: Props<TItems, TOnSelectItem>) -> RenderingTree
 where
-    TItems: IntoIterator<Item = Item>,
-    TOnSelectItem: Fn(Uuid) + 'static,
+    TItems: IntoIterator<Item = Item<TOnSelectItem>>,
+    TOnSelectItem: Fn() + 'static,
 {
     let internal_props = InternalProps {
         rect: props.rect,
-        items: props.items.into_iter().collect(),
+        items: props
+            .items
+            .into_iter()
+            .map(|item| InternalItem {
+                text: item.text,
+                is_selected: item.is_selected,
+                on_select_item: Arc::new(item.on_select_item),
+            })
+            .collect(),
         visible_item_count: props.visible_item_count,
-        on_select_item: Arc::new(props.on_select_item),
     };
     react::<Dropdown, _, _>(
         || {
@@ -64,7 +77,7 @@ where
                 id: namui::uuid(),
                 is_opened: false,
                 list_view: list_view::ListView::new(),
-                mouse_over_item_id: None,
+                mouse_over_item_index: None,
             })
         },
         internal_props,
@@ -124,9 +137,9 @@ impl React for Dropdown {
                         height: body_height,
                         scroll_bar_width: 5.px(),
                         item_wh: props.rect.wh(),
-                        items: &props.items,
-                        item_render: move |wh, item| {
-                            let is_mouse_over = self.mouse_over_item_id.as_ref() == Some(&item.id);
+                        items: props.items.iter().enumerate(),
+                        item_render: move |wh, (item_index, item)| {
+                            let is_mouse_over = self.mouse_over_item_index == Some(item_index);
                             let is_selected = item.is_selected;
                             let background = simple_rect(
                                 props.rect.wh(),
@@ -153,22 +166,20 @@ impl React for Dropdown {
                                     },
                                 ),
                             );
-                            let on_select_item = props.on_select_item.clone();
+                            let on_select_item = item.on_select_item.clone();
                             namui::render([background, text]).attach_event(move |builder| {
-                                let item_id = item.id.clone();
                                 builder.on_mouse_move_in(move |_| {
                                     namui::event::send(InternalEvent::MoveOverItem {
                                         id,
-                                        item_id: item_id.clone(),
+                                        item_index,
                                     });
                                 });
 
-                                let item_id = item.id.clone();
                                 let on_select_item = on_select_item.clone();
                                 builder.on_mouse_down_in(move |event| {
                                     event.stop_propagation();
                                     if !is_selected {
-                                        (on_select_item)(item_id);
+                                        (on_select_item)();
                                     }
                                     namui::event::send(InternalEvent::CloseDropdown { id });
                                 });
@@ -197,18 +208,18 @@ impl React for Dropdown {
             InternalEvent::ToggleDropdown { id } => {
                 if id == self.id {
                     self.is_opened = !self.is_opened;
-                    self.mouse_over_item_id = None;
+                    self.mouse_over_item_index = None;
                 }
             }
-            InternalEvent::MoveOverItem { id, item_id } => {
+            InternalEvent::MoveOverItem { id, item_index } => {
                 if id == self.id {
-                    self.mouse_over_item_id = Some(item_id);
+                    self.mouse_over_item_index = Some(item_index);
                 }
             }
             InternalEvent::CloseDropdown { id } => {
                 if id == self.id {
                     self.is_opened = false;
-                    self.mouse_over_item_id = None;
+                    self.mouse_over_item_index = None;
                 }
             }
         });
