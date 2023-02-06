@@ -39,15 +39,18 @@ impl ImageLoader {
             return;
         };
 
-        let Ok(image_urls) = get_image_urls() else {
-            namui::log!("failed to get image urls");
-            return;
-        };
-        self.image_loader_state = ImageLoaderState::Loading {
-            total_image_count: image_urls.len(),
-            loaded_image_count: 0,
-        };
-        load_images_concurrently(image_urls, CONCURRENT)
+        match get_image_urls() {
+            Ok(image_urls) => {
+                self.image_loader_state = ImageLoaderState::Loading {
+                    total_image_count: image_urls.len(),
+                    loaded_image_count: 0,
+                };
+                load_images_concurrently(image_urls, CONCURRENT)
+            }
+            Err(error) => {
+                self.image_loader_state = ImageLoaderState::Failed(error);
+            }
+        }
     }
 
     fn on_image_loaded(&mut self) {
