@@ -82,7 +82,7 @@ jobs:
         run: namui build wasm-unknown-web
 
       - name: build server as lambda
-        working-directory: luda-editor/server-bin
+        working-directory: luda-editor/server/server-bin
         run: cargo lambda build --release --target x86_64-unknown-linux-gnu --output-format zip
 
       - name: npm install in cdk
