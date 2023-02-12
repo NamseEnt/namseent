@@ -257,7 +257,7 @@ impl TextInput {
                         color: namui::Color::TRANSPARENT,
                         ..Default::default()
                     }),
-                    ..left_text_text_param.style
+                    ..left_text_text_param.style.clone()
                 },
                 align: crate::TextAlign::Left,
                 ..props.text_param()

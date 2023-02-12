@@ -196,7 +196,7 @@ impl Props {
             align: self.text_align,
             baseline: self.text_baseline,
             font_type: self.font_type,
-            style: self.style.text,
+            style: self.style.text.clone(),
             max_width: Some(self.rect.width() - self.style.padding.left - self.style.padding.right),
         }
     }
