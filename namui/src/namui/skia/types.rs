@@ -69,11 +69,17 @@ impl Color {
             a: (a * 255.0) as u8,
         }
     }
-    pub fn from_u8(r: u8, g: u8, b: u8, a: u8) -> Color {
+    pub const fn from_u8(r: u8, g: u8, b: u8, a: u8) -> Color {
         Color { r, g, b, a }
     }
     pub fn grayscale_f01(value: f32) -> Color {
         Color::from_f01(value, value, value, 1.0)
+    }
+    pub fn grayscale_alpha_f01(value: f32, alpha: f32) -> Color {
+        Color::from_f01(value, value, value, alpha)
+    }
+    pub const fn grayscale_u8(value: u8) -> Color {
+        Color::from_u8(value, value, value, 255)
     }
     pub fn from_string_for_random_color(value: &str, is_random_alpha: bool) -> Self {
         let mut hasher = DefaultHasher::default();

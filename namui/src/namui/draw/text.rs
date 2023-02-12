@@ -13,6 +13,7 @@ pub struct TextDrawCommand {
     pub baseline: TextBaseline,
     pub max_width: Option<Px>,
     pub line_height_percent: Percent,
+    pub underline: Option<PaintBuilder>,
 }
 
 #[derive(Debug, Serialize, Copy, Clone)]
@@ -37,6 +38,7 @@ impl TextDrawCommand {
         let fonts = crate::font::with_fallbacks(self.font.clone());
 
         let paint = self.paint_builder.build();
+        let underline_paint = self.underline.as_ref().map(|underline| underline.build());
 
         let line_texts = LineTexts::new(&self.text, &fonts, Some(&paint), self.max_width);
 
@@ -84,6 +86,14 @@ impl TextDrawCommand {
                         });
 
                     let text_blob = TextBlob::from_glyph_ids(glyph_ids.into_boxed_slice(), &font);
+
+                    if let Some(underline_paint) = &underline_paint {
+                        graphics::surface().canvas().draw_line(
+                            Xy::new(x, bottom + 2.px()),
+                            Xy::new(x + width, bottom + 2.px()),
+                            &underline_paint,
+                        );
+                    }
 
                     graphics::surface()
                         .canvas()
