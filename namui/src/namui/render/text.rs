@@ -17,13 +17,14 @@ pub struct TextStyleBackground {
     pub color: Color,
     pub margin: Option<Ltrb<Px>>,
 }
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct TextStyle {
     pub border: Option<TextStyleBorder>,
     pub drop_shadow: Option<TextStyleDropShadow>,
     pub color: Color,
     pub background: Option<TextStyleBackground>,
     pub line_height_percent: Percent,
+    pub underline: Option<PaintBuilder>,
 }
 
 impl Default for TextStyle {
@@ -34,6 +35,7 @@ impl Default for TextStyle {
             color: Default::default(),
             background: Default::default(),
             line_height_percent: 110.percent(),
+            underline: Default::default(),
         }
     }
 }
@@ -146,6 +148,7 @@ fn draw_text(param: &TextParam, font: Arc<Font>) -> DrawCommand {
         baseline: param.baseline,
         max_width: param.max_width,
         line_height_percent: param.style.line_height_percent,
+        underline: param.style.underline.clone(),
     })
 }
 fn draw_border(param: &TextParam, font: Arc<Font>) -> Option<DrawCommand> {
@@ -168,6 +171,7 @@ fn draw_border(param: &TextParam, font: Arc<Font>) -> Option<DrawCommand> {
         baseline: param.baseline,
         max_width: param.max_width,
         line_height_percent: param.style.line_height_percent,
+        underline: None,
     }))
 }
 

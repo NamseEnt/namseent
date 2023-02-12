@@ -14,6 +14,15 @@ impl Canvas {
         self.0
             .drawPath(&path.canvas_kit_path, &paint.canvas_kit_paint);
     }
+    pub fn draw_line(&self, from: Xy<Px>, to: Xy<Px>, paint: &Paint) {
+        self.0.drawLine(
+            from.x.as_f32(),
+            from.y.as_f32(),
+            to.x.as_f32(),
+            to.y.as_f32(),
+            &paint.canvas_kit_paint,
+        );
+    }
     pub fn translate(&self, dx: Px, dy: Px) {
         self.0.translate(dx.into(), dy.into());
     }

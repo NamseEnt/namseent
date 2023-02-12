@@ -248,17 +248,24 @@ extern "C" {
         paint: Option<&CanvasKitPaint>,
     );
 
-    //     ///
-    //     /// Draws line segment from (x0, y0) to (x1, y1) using the current clip, current matrix,
-    //     /// and the provided paint.
-    //     /// @param x0
-    //     /// @param y0
-    //     /// @param x1
-    //     /// @param y1
-    //     /// @param paint
-    //     ///
-    // #[wasm_bindgen(method)]
-    // pub(crate) fn drawLine(this: &CanvasKitCanvas, x0: number, y0: number, x1: number, y1: number, paint: Paint);
+    ///
+    /// Draws line segment from (x0, y0) to (x1, y1) using the current clip, current matrix,
+    /// and the provided paint.
+    /// @param x0
+    /// @param y0
+    /// @param x1
+    /// @param y1
+    /// @param paint
+    ///
+    #[wasm_bindgen(method)]
+    pub(crate) fn drawLine(
+        this: &CanvasKitCanvas,
+        x0: f32,
+        y0: f32,
+        x1: f32,
+        y1: f32,
+        paint: &CanvasKitPaint,
+    );
 
     //     ///
     //     /// Draws an oval bounded by the given rectangle using the current clip, current matrix,
