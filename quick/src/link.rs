@@ -1,5 +1,4 @@
 use super::*;
-use namui_prebuilt::table;
 
 pub struct Link {
     text: String,

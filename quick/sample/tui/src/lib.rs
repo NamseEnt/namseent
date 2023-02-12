@@ -1,5 +1,5 @@
 use namui::prelude::*;
-use namui_prebuilt::{simple_rect, table};
+use namui_prebuilt::simple_rect;
 use quick::*;
 
 pub async fn main() {
@@ -24,16 +24,20 @@ impl Entity for TuiExample {
 
         let content = quick::vertical([
             quick::block(
-                "Tabs",
+                "v block 0",
                 [
                     quick::line([
                         link("Tab 0"),
                         link("Tab 1"),
+                    ]),
+                    quick::line([
+                        link("Tab 2"),
+                        link("Tab 3"),
                     ]),
                 ],
             ),
             quick::block(
-                "Tabs",
+                "v block 1",
                 [
                     quick::line([
                         link("Tab 0"),
@@ -41,6 +45,26 @@ impl Entity for TuiExample {
                     ]),
                 ],
             ),
+            quick::horizontal([
+                quick::block(
+                    "h block 0",
+                    [
+                        quick::line([
+                            link("Tab 0"),
+                            link("Tab 1"),
+                        ]),
+                    ],
+                ),
+                quick::block(
+                    "h block 1",
+                    [
+                        quick::line([
+                            link("Tab 0"),
+                            link("Tab 1"),
+                        ]),
+                    ],
+                ),
+            ]),
         ])
         .render(wh);
 
