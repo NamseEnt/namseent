@@ -49,6 +49,7 @@ impl MapLoader {
                 menu::Event::StartNewButtonClicked => {
                     let _ = self.start_load("first".to_string(), Xy::new(8.tile(), 6.tile()));
                 }
+                _ => (),
             });
     }
 

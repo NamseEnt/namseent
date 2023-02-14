@@ -30,6 +30,7 @@ impl ImageLoader {
             })
             .is::<menu::Event>(|event| match event {
                 menu::Event::StartNewButtonClicked => self.start_load_all_images(),
+                _ => (),
             });
     }
 

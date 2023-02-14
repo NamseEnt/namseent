@@ -1,8 +1,10 @@
 use super::Quest;
 use crate::app::game::known_id;
 use namui::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
+#[derive(Serialize, Deserialize)]
 pub struct QuestState {
     quest_progress_map: HashMap<Uuid, usize>,
 }

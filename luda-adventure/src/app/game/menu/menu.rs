@@ -21,6 +21,7 @@ impl Menu {
                 self.close();
                 self.tab = Tab::InGame;
             }
+            _ => (),
         });
     }
 
