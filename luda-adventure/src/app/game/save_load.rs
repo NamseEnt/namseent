@@ -1,4 +1,5 @@
-use crate::{app::game::Game, ecs};
+use super::{menu, GameState};
+use crate::ecs;
 use namui::{file::local_storage, simple_error_impl, spawn_local};
 use serde::{Deserialize, Serialize};
 
@@ -13,38 +14,40 @@ impl SaveLoad {
         }
     }
 
-    pub fn update(&mut self, event: &namui::Event, game: &mut Game) {
-        event.is::<InternalEvent>(|event| match event {
-            InternalEvent::Saved | InternalEvent::Loaded => {
-                self.state = SaveLoadState::Idle;
-            }
-            InternalEvent::SerializedGameFetched(serialized_game) => {
-                let ecs_app = ecs::App::load(&serialized_game.serialized_ecs_app);
-                if let Err(error) = ecs_app {
-                    namui::event::send(InternalEvent::Failed(error.to_string()));
-                    return;
+    pub fn update(
+        &mut self,
+        event: &namui::Event,
+        ecs_app: &mut ecs::App,
+        game_state: &mut GameState,
+    ) {
+        event
+            .is::<InternalEvent>(|event| match event {
+                InternalEvent::Saved | InternalEvent::Loaded => {
+                    self.state = SaveLoadState::Idle;
                 }
-                let ecs_app = ecs_app.unwrap();
-
-                let state = ron::from_str(&serialized_game.serialized_game_state);
-                if let Err(error) = state {
-                    namui::event::send(InternalEvent::Failed(error.to_string()));
-                    return;
+                InternalEvent::SerializedGameFetched(serialized_game) => {
+                    self.apply_serialized_game(ecs_app, game_state, serialized_game);
                 }
-                let state = state.unwrap();
-
-                game.ecs_app.clear_entities();
-                game.ecs_app = ecs_app;
-                game.state = state;
-                namui::event::send(InternalEvent::Loaded);
-            }
-            InternalEvent::Failed(error) => self.state = SaveLoadState::Failed(error.clone()),
-        });
+                InternalEvent::Failed(error) => self.state = SaveLoadState::Failed(error.clone()),
+            })
+            .is::<menu::Event>(|event| match event {
+                menu::Event::SaveButtonClicked => {
+                    let _ = self.request_save(ecs_app, game_state);
+                }
+                menu::Event::LoadButtonClicked => {
+                    let _ = self.request_load();
+                }
+                _ => {}
+            });
     }
 
-    fn request_save(&mut self, game: &mut Game) -> Result<(), Box<dyn std::error::Error>> {
-        let serialized_game_state = ron::to_string(&game.state).unwrap();
-        let serialized_ecs_app = game.ecs_app.save();
+    fn request_save(
+        &mut self,
+        ecs_app: &ecs::App,
+        game_state: &GameState,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let serialized_game_state = ron::to_string(&game_state).unwrap();
+        let serialized_ecs_app = ecs_app.save();
         let serialized_game = SerializedGame {
             serialized_game_state,
             serialized_ecs_app,
@@ -76,6 +79,33 @@ impl SaveLoad {
             }
             _ => Err(SaveLoadError::Busy.into()),
         }
+    }
+
+    fn apply_serialized_game(
+        &mut self,
+        ecs_app: &mut ecs::App,
+        game_state: &mut GameState,
+        serialized_game: &SerializedGame,
+    ) {
+        ecs_app.clear_entities();
+
+        let saved_state = ron::from_str(&serialized_game.serialized_game_state);
+        if let Err(error) = saved_state {
+            namui::event::send(InternalEvent::Failed(error.to_string()));
+            return;
+        }
+        let saved_state = saved_state.unwrap();
+
+        let saved_ecs_app = ecs::App::load(&serialized_game.serialized_ecs_app);
+        if let Err(error) = saved_ecs_app {
+            namui::event::send(InternalEvent::Failed(error.to_string()));
+            return;
+        }
+        let saved_ecs_app = saved_ecs_app.unwrap();
+
+        *ecs_app = saved_ecs_app;
+        *game_state = saved_state;
+        namui::event::send(InternalEvent::Loaded);
     }
 }
 
