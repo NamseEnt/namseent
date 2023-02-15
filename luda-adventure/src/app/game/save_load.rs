@@ -55,7 +55,7 @@ impl SaveLoad {
         let serialized_game =
             ron::to_string(&serialized_game).map_err(|error| error.to_string())?;
         spawn_local(async move {
-            match local_storage::write("saved_game", serialized_game).await {
+            match local_storage::write("/saved_game", serialized_game).await {
                 Ok(_) => namui::event::send(InternalEvent::Saved),
                 Err(error) => namui::event::send(InternalEvent::Failed(error.to_string())),
             }
@@ -110,7 +110,7 @@ impl SaveLoad {
 }
 
 async fn get_serialized_game() -> Result<SerializedGame, Box<dyn std::error::Error>> {
-    let serialized_game = local_storage::read("saved_game")
+    let serialized_game = local_storage::read("/saved_game")
         .await
         .map_err(|error| error.to_string())
         .and_then(|bytes| String::from_utf8(bytes).map_err(|error| error.to_string()))
