@@ -38,7 +38,7 @@ impl Game {
     }
 
     pub fn update(&mut self, event: &namui::Event) {
-        self.state.tick.current_time = now();
+        self.state.tick.current_time = now() + self.state.tick.time_offset;
         self.handle_interaction(event);
         self.set_character_movement_according_to_user_input(event);
 

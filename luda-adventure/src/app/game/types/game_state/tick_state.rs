@@ -10,6 +10,7 @@ pub const MIN_TICK_INTERVAL: Time = Time::Ms(4.0);
 pub struct TickState {
     pub last_tick_time: Time,
     pub current_time: Time,
+    pub time_offset: Time,
 }
 
 impl TickState {
@@ -17,6 +18,7 @@ impl TickState {
         Self {
             last_tick_time: 0.0.ms(),
             current_time: 0.0.ms(),
+            time_offset: 0.0.ms(),
         }
     }
 

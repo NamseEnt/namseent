@@ -1,6 +1,6 @@
 use super::{menu, GameState};
 use crate::ecs;
-use namui::{file::local_storage, simple_error_impl, spawn_local};
+use namui::{file::local_storage, simple_error_impl, spawn_local, Time};
 use serde::{Deserialize, Serialize};
 
 pub struct SaveLoad {
@@ -89,7 +89,8 @@ impl SaveLoad {
     ) {
         ecs_app.clear_entities();
 
-        let saved_state = ron::from_str(&serialized_game.serialized_game_state);
+        let saved_state: Result<GameState, _> =
+            ron::from_str(&serialized_game.serialized_game_state);
         if let Err(error) = saved_state {
             namui::event::send(InternalEvent::Failed(error.to_string()));
             return;
@@ -103,8 +104,13 @@ impl SaveLoad {
         }
         let saved_ecs_app = saved_ecs_app.unwrap();
 
+        let new_time_offset = get_new_time_offset(&saved_state, game_state);
+
         *ecs_app = saved_ecs_app;
         *game_state = saved_state;
+
+        game_state.tick.time_offset = new_time_offset;
+
         namui::event::send(InternalEvent::Loaded);
     }
 }
@@ -144,4 +150,34 @@ simple_error_impl!(SaveLoadError);
 struct SerializedGame {
     serialized_game_state: String,
     serialized_ecs_app: String,
+}
+
+fn get_new_time_offset(saved_state: &GameState, current_state: &GameState) -> Time {
+    saved_state.tick.current_time - current_state.tick.current_time + current_state.tick.time_offset
+}
+
+#[cfg(test)]
+mod test {
+    use namui::TimeExt;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    use crate::app::game::GameState;
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn calibrate_time_offset() {
+        // Saved when now() is 1500ms
+        let mut saved = GameState::new();
+        saved.tick.current_time = 2000.ms();
+        saved.tick.time_offset = 500.ms();
+
+        // Load start when now() is 15ms
+        let mut current = GameState::new();
+        current.tick.current_time = 20.ms();
+        current.tick.time_offset = 5.ms();
+
+        let new_time_offset = super::get_new_time_offset(&saved, &current);
+
+        assert_eq!(saved.tick.current_time, new_time_offset + 15.ms());
+    }
 }
