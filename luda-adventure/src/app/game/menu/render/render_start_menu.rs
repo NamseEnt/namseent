@@ -1,4 +1,4 @@
-use crate::app::game::menu;
+use crate::app::game::{menu, request_auto_save_on};
 use namui::{px, render, Color, MouseButton, Px, PxExt, RenderingTree, Wh};
 use namui_prebuilt::{
     button::text_button_fit,
@@ -58,7 +58,10 @@ fn render_start_new_button<'a>(height: Px) -> table::TableCell<'a> {
             BUTTON_FILL_COLOR,
             BUTTON_PADDING,
             [MouseButton::Left],
-            |_| namui::event::send(menu::Event::StartNewButtonClicked),
+            |_| {
+                request_auto_save_on();
+                namui::event::send(menu::Event::StartNewButtonClicked);
+            },
         )
         .with_mouse_cursor(namui::MouseCursor::Pointer),
     )

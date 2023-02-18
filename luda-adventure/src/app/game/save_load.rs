@@ -1,16 +1,22 @@
 use super::{menu, GameState};
 use crate::ecs;
-use namui::{file::local_storage, simple_error_impl, spawn_local, Time};
+use namui::{file::local_storage, simple_error_impl, spawn_local, Time, TimeExt};
 use serde::{Deserialize, Serialize};
+
+const AUTOSAVE_MINIMUM_TERM: Time = Time::Sec(5.0);
 
 pub struct SaveLoad {
     pub state: SaveLoadState,
+    last_autosave_time: Time,
+    auto_save: bool,
 }
 
 impl SaveLoad {
     pub fn new() -> Self {
         Self {
             state: SaveLoadState::Idle,
+            last_autosave_time: 0.ms(),
+            auto_save: false,
         }
     }
 
@@ -20,6 +26,8 @@ impl SaveLoad {
         ecs_app: &mut ecs::App,
         game_state: &mut GameState,
     ) {
+        self.try_auto_save(ecs_app, game_state);
+
         event
             .is::<InternalEvent>(|event| match event {
                 InternalEvent::Saved | InternalEvent::Loaded => {
@@ -29,11 +37,12 @@ impl SaveLoad {
                     self.apply_serialized_game(ecs_app, game_state, serialized_game);
                 }
                 InternalEvent::Failed(error) => self.state = SaveLoadState::Failed(error.clone()),
-            })
-            .is::<menu::Event>(|event| match event {
-                menu::Event::SaveButtonClicked => {
+                InternalEvent::AutoSaveOnRequested => {
+                    self.auto_save = true;
                     let _ = self.request_save(ecs_app, game_state);
                 }
+            })
+            .is::<menu::Event>(|event| match event {
                 menu::Event::LoadButtonClicked => {
                     let _ = self.request_load();
                 }
@@ -113,6 +122,15 @@ impl SaveLoad {
 
         namui::event::send(InternalEvent::Loaded);
     }
+
+    fn try_auto_save(&mut self, ecs_app: &mut ecs::App, game_state: &mut GameState) {
+        if self.auto_save
+            && (self.last_autosave_time + AUTOSAVE_MINIMUM_TERM <= game_state.tick.current_time)
+        {
+            self.last_autosave_time = game_state.tick.current_time;
+            let _ = self.request_save(ecs_app, game_state);
+        }
+    }
 }
 
 async fn get_serialized_game() -> Result<SerializedGame, Box<dyn std::error::Error>> {
@@ -138,6 +156,7 @@ enum InternalEvent {
     Loaded,
     SerializedGameFetched(SerializedGame),
     Failed(String),
+    AutoSaveOnRequested,
 }
 
 #[derive(Debug)]
@@ -154,6 +173,10 @@ struct SerializedGame {
 
 fn get_new_time_offset(saved_state: &GameState, current_state: &GameState) -> Time {
     saved_state.tick.current_time - current_state.tick.current_time + current_state.tick.time_offset
+}
+
+pub fn request_auto_save_on() {
+    namui::event::send(InternalEvent::AutoSaveOnRequested);
 }
 
 #[cfg(test)]

@@ -20,8 +20,6 @@ pub fn render_in_game_menu(wh: Wh<Px>) -> RenderingTree {
             margin(),
             render_start_new_button(BUTTON_HEIGHT),
             spacing(),
-            render_save_button(BUTTON_HEIGHT),
-            spacing(),
             render_load_button(BUTTON_HEIGHT),
             margin(),
         ],
@@ -60,24 +58,6 @@ fn render_start_new_button<'a>(height: Px) -> table::TableCell<'a> {
             BUTTON_PADDING,
             [MouseButton::Left],
             |_| namui::event::send(menu::Event::StartNewButtonClicked),
-        )
-        .with_mouse_cursor(namui::MouseCursor::Pointer),
-    )
-}
-
-fn render_save_button<'a>(height: Px) -> table::TableCell<'a> {
-    table::fit(
-        table::FitAlign::LeftTop,
-        text_button_fit(
-            height,
-            "Save",
-            BUTTON_TEXT_COLOR,
-            Color::TRANSPARENT,
-            0.px(),
-            BUTTON_FILL_COLOR,
-            BUTTON_PADDING,
-            [MouseButton::Left],
-            |_| namui::event::send(menu::Event::SaveButtonClicked),
         )
         .with_mouse_cursor(namui::MouseCursor::Pointer),
     )
