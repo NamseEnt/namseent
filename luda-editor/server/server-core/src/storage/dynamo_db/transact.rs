@@ -3,7 +3,18 @@ use aws_sdk_dynamodb::model;
 use std::{future::Future, pin::Pin};
 
 impl DynamoDb {
-    pub fn transact(&self) -> Transact {
+    pub fn transact(&self) -> Transact<NoCancel> {
+        Transact {
+            client: self.client.clone(),
+            table_name: self.table_name.clone(),
+            items: Vec::new(),
+            dynamo_db: self.clone(),
+            update_items: Vec::new(),
+        }
+    }
+    pub fn transact_with_cancel<TCancelError: std::error::Error + Send>(
+        &self,
+    ) -> Transact<TCancelError> {
         Transact {
             client: self.client.clone(),
             table_name: self.table_name.clone(),
@@ -14,21 +25,25 @@ impl DynamoDb {
     }
 }
 
-pub struct Transact {
+pub struct Transact<TCancelError: std::error::Error + Send> {
     dynamo_db: DynamoDb,
     client: aws_sdk_dynamodb::Client,
     table_name: String,
     items: Vec<model::TransactWriteItem>,
-    update_items: Vec<UpdateItem>,
+    update_items: Vec<UpdateItem<TCancelError>>,
 }
-unsafe impl Send for Transact {}
+unsafe impl<TCancelError: std::error::Error + Send> Send for Transact<TCancelError> {}
 
-struct UpdateItem {
-    future:
-        Pin<Box<dyn Future<Output = Result<model::TransactWriteItem, TransactUpdateError>> + Send>>,
+struct UpdateItem<TCancelError: std::error::Error + Send> {
+    future: Pin<
+        Box<
+            dyn Future<Output = Result<model::TransactWriteItem, TransactUpdateError<TCancelError>>>
+                + Send,
+        >,
+    >,
 }
 
-impl Transact {
+impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
     pub async fn send(self) -> Result<(), TransactError> {
         let mut items = self.items;
 
@@ -93,12 +108,13 @@ impl Transact {
     pub fn update_item<
         Update: FnOnce(TDocument) -> TUpdateFuture + 'static + Send,
         TDocument: Document + std::marker::Send,
-        TUpdateFuture: Future<Output = Result<TDocument, ()>> + Send,
+        TUpdateFuture: Future<Output = Result<TDocument, TCancelError>> + Send,
     >(
         self,
-        command: impl Into<TransactUpdateCommand<TDocument, Update, TUpdateFuture>>,
+        command: impl Into<TransactUpdateCommand<TDocument, Update, TCancelError, TUpdateFuture>>,
     ) -> Self {
-        let command: TransactUpdateCommand<TDocument, Update, TUpdateFuture> = command.into();
+        let command: TransactUpdateCommand<TDocument, Update, TCancelError, TUpdateFuture> =
+            command.into();
         self.update_item_internal(
             concat_partition_key(
                 command.partition_prefix,
@@ -134,7 +150,7 @@ impl Transact {
     }
     fn update_item_internal<
         TDocument: Document + std::marker::Send,
-        TUpdateFuture: Future<Output = Result<TDocument, ()>> + Send,
+        TUpdateFuture: Future<Output = Result<TDocument, TCancelError>> + Send,
     >(
         mut self,
         partition_key_without_prefix: impl ToString,
@@ -166,8 +182,8 @@ impl Transact {
 
             let document: TDocument = serde_dynamo::from_item(item).unwrap();
             let result = update(document).await;
-            if let Err(_) = result {
-                return Err(TransactUpdateError::Canceled);
+            if let Err(error) = result {
+                return Err(TransactUpdateError::Canceled(error));
             }
             let document = result.unwrap();
 
@@ -208,10 +224,11 @@ pub struct TransactDeleteCommand {
     pub sort_key: Option<String>,
 }
 
-pub struct TransactUpdateCommand<TDocument, Update, TUpdateFuture>
+pub struct TransactUpdateCommand<TDocument, Update, TCancelError, TUpdateFuture>
 where
     Update: FnOnce(TDocument) -> TUpdateFuture + 'static + Send,
-    TUpdateFuture: std::future::Future<Output = Result<TDocument, ()>> + Send,
+    TCancelError: std::error::Error + Send,
+    TUpdateFuture: std::future::Future<Output = Result<TDocument, TCancelError>> + Send,
 {
     pub partition_prefix: String,
     pub partition_key_without_prefix: String,
@@ -227,8 +244,27 @@ pub enum TransactError {
 crate::simple_error_impl!(TransactError);
 
 #[derive(Debug)]
-pub enum TransactUpdateError {
-    Canceled,
+pub enum TransactUpdateError<TCancelError: std::error::Error + Send> {
+    Canceled(TCancelError),
     Unknown(String),
 }
-crate::simple_error_impl!(TransactUpdateError);
+impl<TCancelError: std::error::Error + Send> std::fmt::Display
+    for TransactUpdateError<TCancelError>
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+impl<TCancelError: std::error::Error + Send> std::error::Error
+    for TransactUpdateError<TCancelError>
+{
+}
+
+#[derive(Debug)]
+pub enum NoCancel {}
+impl std::fmt::Display for NoCancel {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+impl std::error::Error for NoCancel {}

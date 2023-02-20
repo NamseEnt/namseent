@@ -3,6 +3,7 @@ use aws_sdk_dynamodb::model::AttributeValue;
 use futures::Future;
 use std::{error::Error, fmt::Debug};
 
+/// Do not use this directly.
 impl DynamoDb {
     pub(super) async fn get_item_internal(
         &self,
@@ -41,6 +42,7 @@ impl DynamoDb {
         }
     }
 
+    /// Do not use this function directly.
     pub async fn get_item<'a, TDocument: Document>(
         &self,
         partition_key_without_prefix: impl ToString,
@@ -53,6 +55,7 @@ impl DynamoDb {
             .map_err(|error| GetItemError::DeserializeFailed(error.to_string()))
     }
 
+    /// Do not use this function directly.
     pub async fn put_item(&self, item: impl Document) -> Result<(), PutItemError> {
         let partition_key = item.partition_key();
         let sort_key = item.sort_key().unwrap_or(DEFAULT_SORT_KEY.to_string());
@@ -76,6 +79,7 @@ impl DynamoDb {
         }
     }
 
+    /// Do not use this function directly.
     pub async fn create_item(&self, item: impl Document) -> Result<(), CreateItemError> {
         let partition_key = item.partition_key();
         let sort_key = item.sort_key().unwrap_or(DEFAULT_SORT_KEY.to_string());
@@ -108,6 +112,7 @@ impl DynamoDb {
         }
     }
 
+    /// Do not use this function directly.
     pub async fn update_item<
         TDocument: Document,
         TCancelError: std::error::Error,
@@ -172,6 +177,7 @@ impl DynamoDb {
         }
     }
 
+    /// Do not use this function directly.
     pub async fn query<TDocument: Document>(
         &self,
         partition_key_without_prefix: impl ToString,
@@ -201,6 +207,7 @@ impl DynamoDb {
         }
     }
 
+    /// Do not use this function directly.
     pub async fn delete_item<TDocument: Document>(
         &self,
         partition_key_without_prefix: impl ToString,

@@ -239,45 +239,40 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
                 return Err(rpc::update_server_project_shared_data::Error::Unauthorized);
             }
 
-            crate::dynamo_db()
-                .update_item::<_, rpc::update_server_project_shared_data::Error, _>(
-                    &req.project_id,
-                    Option::<String>::None,
-                    |mut project: ProjectDocument| async {
-                        let mut project_shared_data_json =
-                            serde_json::from_str::<serde_json::Value>(&project.shared_data_json)
-                                .map_err(|err| {
-                                    rpc::update_server_project_shared_data::Error::Unknown(
-                                        err.to_string(),
-                                    )
-                                })?;
-                        rpc::json_patch::patch(&mut project_shared_data_json, &req.patch).map_err(
-                            |err| {
-                                rpc::update_server_project_shared_data::Error::Unknown(
-                                    err.to_string(),
-                                )
-                            },
-                        )?;
-
-                        project.shared_data_json = serde_json::to_string(&project_shared_data_json)
+            ProjectDocumentUpdate {
+                pk_id: req.project_id,
+                update: move |mut project: ProjectDocument| async move {
+                    let mut project_shared_data_json =
+                        serde_json::from_str::<serde_json::Value>(&project.shared_data_json)
                             .map_err(|err| {
                                 rpc::update_server_project_shared_data::Error::Unknown(
                                     err.to_string(),
                                 )
                             })?;
-                        Ok(project)
-                    },
-                )
-                .await
-                .map_err(|error| match error {
-                    crate::storage::dynamo_db::UpdateItemError::Canceled(error) => error,
-                    crate::storage::dynamo_db::UpdateItemError::NotFound
-                    | crate::storage::dynamo_db::UpdateItemError::SerializationFailed(_)
-                    | crate::storage::dynamo_db::UpdateItemError::Conflict
-                    | crate::storage::dynamo_db::UpdateItemError::Unknown(_) => {
-                        rpc::update_server_project_shared_data::Error::Unknown(error.to_string())
-                    }
-                })?;
+                    rpc::json_patch::patch(&mut project_shared_data_json, &req.patch).map_err(
+                        |err| {
+                            rpc::update_server_project_shared_data::Error::Unknown(err.to_string())
+                        },
+                    )?;
+
+                    project.shared_data_json = serde_json::to_string(&project_shared_data_json)
+                        .map_err(|err| {
+                            rpc::update_server_project_shared_data::Error::Unknown(err.to_string())
+                        })?;
+                    Ok(project)
+                },
+            }
+            .run()
+            .await
+            .map_err(|error| match error {
+                crate::storage::dynamo_db::UpdateItemError::Canceled(error) => error,
+                crate::storage::dynamo_db::UpdateItemError::NotFound
+                | crate::storage::dynamo_db::UpdateItemError::SerializationFailed(_)
+                | crate::storage::dynamo_db::UpdateItemError::Conflict
+                | crate::storage::dynamo_db::UpdateItemError::Unknown(_) => {
+                    rpc::update_server_project_shared_data::Error::Unknown(error.to_string())
+                }
+            })?;
 
             Ok(rpc::update_server_project_shared_data::Response {})
         })

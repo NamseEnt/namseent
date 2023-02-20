@@ -89,32 +89,48 @@ pub fn document(
             Ident::new(&format!("{}Update", struct_ident), struct_ident.span());
         let update_struct_fields = prefixed_pk_fields.iter().chain(prefixed_sk_fields.iter());
         quote! {
-            pub struct #update_struct_ident<Update, TUpdateFuture>
+            pub struct #update_struct_ident<Update, TCancelError, TUpdateFuture>
             where
                 Update: FnOnce(#struct_ident) -> TUpdateFuture + 'static + Send,
-                TUpdateFuture: std::future::Future<Output = Result<#struct_ident, ()>> + Send,
+                TCancelError: std::error::Error + Send,
+                TUpdateFuture: std::future::Future<Output = Result<#struct_ident, TCancelError>> + Send,
             {
                 #(#update_struct_fields,)*
                 pub update: Update,
             }
+            impl<Update, TCancelError, TUpdateFuture> #update_struct_ident<Update, TCancelError, TUpdateFuture>
+            where
+                Update: FnOnce(#struct_ident) -> TUpdateFuture + 'static + Send,
+                TCancelError: std::error::Error + Send,
+                TUpdateFuture: std::future::Future<Output = Result<#struct_ident, TCancelError>> + Send,
+            {
+                pub async fn run(self) -> Result<(), crate::storage::dynamo_db::UpdateItemError<TCancelError>> {
+                    let pk = #prefixed_pk;
+                    let sk = #prefixed_sk;
+                    crate::dynamo_db().update_item::<#struct_ident, TCancelError, TUpdateFuture>(pk, sk, self.update).await
+                }
+            }
 
-            impl<Update, TUpdateFuture>
+            impl<Update, TCancelError, TUpdateFuture>
                 Into<
                     crate::storage::dynamo_db::TransactUpdateCommand<
                         #struct_ident,
                         Update,
+                        TCancelError,
                         TUpdateFuture,
                     >,
-                > for #update_struct_ident<Update, TUpdateFuture>
+                > for #update_struct_ident<Update, TCancelError, TUpdateFuture>
             where
                 Update: FnOnce(#struct_ident) -> TUpdateFuture + 'static + Send,
-                TUpdateFuture: std::future::Future<Output = Result<#struct_ident, ()>> + Send,
+                TCancelError: std::error::Error + Send,
+                TUpdateFuture: std::future::Future<Output = Result<#struct_ident, TCancelError>> + Send,
             {
                 fn into(
                     self,
                 ) -> crate::storage::dynamo_db::TransactUpdateCommand<
                     #struct_ident,
                     Update,
+                    TCancelError,
                     TUpdateFuture,
                 > {
                     let pk = #prefixed_pk;

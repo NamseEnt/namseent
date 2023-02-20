@@ -11,6 +11,7 @@ use rpc::hyper::{
     service::{make_service_fn, service_fn},
     Server, Uri,
 };
+use std::io::Write;
 use std::net::SocketAddr;
 use storage::{dynamo_db::DynamoDb, s3::S3};
 
@@ -44,7 +45,20 @@ pub fn s3<'a>() -> &'a S3 {
 }
 
 pub async fn init() {
-    env_logger::init();
+    env_logger::Builder::new()
+        .format(|buf, record| {
+            writeln!(
+                buf,
+                "{}:{} {} [{}] - {}",
+                chrono::Local::now().format("%Y-%m-%dT%H:%M:%S"),
+                record.file().unwrap_or("unknown-file"),
+                record.line().unwrap_or(0),
+                record.level(),
+                record.args()
+            )
+        })
+        .filter_level(log::LevelFilter::Info)
+        .init();
     log::info!("starting up");
 
     SERVICES

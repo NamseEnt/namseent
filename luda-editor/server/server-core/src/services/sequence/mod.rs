@@ -139,55 +139,62 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             }
             let session = session.unwrap();
 
-            crate::dynamo_db()
-                .update_item(
-                    req.sequence_id,
-                    Option::<String>::None,
-                    |mut document: SequenceDocument| async {
-                        let is_project_editor = crate::services()
-                            .project_service
-                            .is_project_editor(session.user_id, document.project_id)
-                            .await
-                            .map_err(|error| {
-                                rpc::update_server_sequence::Error::Unknown(error.to_string())
-                            })?;
+            SequenceDocumentUpdate {
+                pk_id: req.sequence_id,
+                update: move |mut document: SequenceDocument| async move {
+                    let is_project_editor = crate::services()
+                        .project_service
+                        .is_project_editor(session.user_id, document.project_id)
+                        .await
+                        .map_err(|error| {
+                            log::warn!("Error: {}", error);
+                            rpc::update_server_sequence::Error::Unknown(error.to_string())
+                        })?;
 
-                        if !is_project_editor {
-                            return Err(rpc::update_server_sequence::Error::Unauthorized);
-                        }
-
-                        // to call migration
-                        let sequence =
-                            serde_json::from_str::<Sequence>(&document.json).map_err(|err| {
-                                rpc::update_server_sequence::Error::Unknown(err.to_string())
-                            })?;
-                        let mut sequence_json_value =
-                            serde_json::to_value(&sequence).map_err(|err| {
-                                rpc::update_server_sequence::Error::Unknown(err.to_string())
-                            })?;
-                        rpc::json_patch::patch(&mut sequence_json_value, &req.patch).map_err(
-                            |err| rpc::update_server_sequence::Error::Unknown(err.to_string()),
-                        )?;
-
-                        document.json =
-                            serde_json::to_string(&sequence_json_value).map_err(|err| {
-                                rpc::update_server_sequence::Error::Unknown(err.to_string())
-                            })?;
-
-                        document.last_modified = Some(chrono::Utc::now().timestamp_nanos());
-                        Ok(document)
-                    },
-                )
-                .await
-                .map_err(|error| match error {
-                    crate::storage::dynamo_db::UpdateItemError::Canceled(error) => error,
-                    crate::storage::dynamo_db::UpdateItemError::NotFound
-                    | crate::storage::dynamo_db::UpdateItemError::SerializationFailed(_)
-                    | crate::storage::dynamo_db::UpdateItemError::Conflict
-                    | crate::storage::dynamo_db::UpdateItemError::Unknown(_) => {
-                        rpc::update_server_sequence::Error::Unknown(error.to_string())
+                    if !is_project_editor {
+                        return Err(rpc::update_server_sequence::Error::Unauthorized);
                     }
-                })?;
+
+                    // to call migration
+                    let sequence =
+                        serde_json::from_str::<Sequence>(&document.json).map_err(|error| {
+                            log::warn!("Error: {}", error);
+                            rpc::update_server_sequence::Error::Unknown(error.to_string())
+                        })?;
+                    let mut sequence_json_value =
+                        serde_json::to_value(&sequence).map_err(|error| {
+                            log::warn!("Error: {}", error);
+                            rpc::update_server_sequence::Error::Unknown(error.to_string())
+                        })?;
+                    rpc::json_patch::patch(&mut sequence_json_value, &req.patch).map_err(
+                        |error| {
+                            log::warn!("Error: {}", error);
+                            rpc::update_server_sequence::Error::Unknown(error.to_string())
+                        },
+                    )?;
+
+                    document.json =
+                        serde_json::to_string(&sequence_json_value).map_err(|error| {
+                            log::warn!("Error: {}", error);
+                            rpc::update_server_sequence::Error::Unknown(error.to_string())
+                        })?;
+
+                    document.last_modified = Some(chrono::Utc::now().timestamp_nanos());
+                    Ok(document)
+                },
+            }
+            .run()
+            .await
+            .map_err(|error| match error {
+                crate::storage::dynamo_db::UpdateItemError::Canceled(error) => error,
+                crate::storage::dynamo_db::UpdateItemError::NotFound
+                | crate::storage::dynamo_db::UpdateItemError::SerializationFailed(_)
+                | crate::storage::dynamo_db::UpdateItemError::Conflict
+                | crate::storage::dynamo_db::UpdateItemError::Unknown(_) => {
+                    log::warn!("Error: {}", error);
+                    rpc::update_server_sequence::Error::Unknown(error.to_string())
+                }
+            })?;
 
             Ok(rpc::update_server_sequence::Response {})
         })
@@ -330,25 +337,24 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                 return Err(rpc::rename_sequence::Error::Unauthorized);
             }
 
-            crate::dynamo_db()
-                .update_item(
-                    req.sequence_id,
-                    Option::<String>::None,
-                    |mut sequence: SequenceDocument| async {
-                        sequence.name = req.new_name;
-                        Ok(sequence)
-                    },
-                )
-                .await
-                .map_err(|error| match error {
-                    crate::storage::dynamo_db::UpdateItemError::Canceled(error) => error,
-                    crate::storage::dynamo_db::UpdateItemError::NotFound
-                    | crate::storage::dynamo_db::UpdateItemError::SerializationFailed(_)
-                    | crate::storage::dynamo_db::UpdateItemError::Conflict
-                    | crate::storage::dynamo_db::UpdateItemError::Unknown(_) => {
-                        rpc::rename_sequence::Error::Unknown(error.to_string())
-                    }
-                })?;
+            SequenceDocumentUpdate {
+                pk_id: req.sequence_id,
+                update: move |mut sequence: SequenceDocument| async move {
+                    sequence.name = req.new_name;
+                    Ok(sequence)
+                },
+            }
+            .run()
+            .await
+            .map_err(|error| match error {
+                crate::storage::dynamo_db::UpdateItemError::Canceled(error) => error,
+                crate::storage::dynamo_db::UpdateItemError::NotFound
+                | crate::storage::dynamo_db::UpdateItemError::SerializationFailed(_)
+                | crate::storage::dynamo_db::UpdateItemError::Conflict
+                | crate::storage::dynamo_db::UpdateItemError::Unknown(_) => {
+                    rpc::rename_sequence::Error::Unknown(error.to_string())
+                }
+            })?;
 
             Ok(rpc::rename_sequence::Response {})
         })
