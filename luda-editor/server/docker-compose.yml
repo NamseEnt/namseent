@@ -10,7 +10,6 @@ services:
     volumes:
       - "./dynamodblocal:/home/dynamodblocal/data"
     working_dir: /home/dynamodblocal
-    restart: unless-stopped
   s3:
     command: "server /data --console-address :9001"
     image: minio/minio:latest
@@ -23,4 +22,3 @@ services:
     environment:
       - MINIO_ACCESS_KEY=minio
       - MINIO_SECRET_KEY=minio123
-    restart: unless-stopped

@@ -1,4 +1,5 @@
-use super::previous;
+use super::*;
+use crate::data::Circumscribed;
 use ::uuid::Uuid;
 use namui_type::*;
 
@@ -15,7 +16,7 @@ pub struct Cut {
 }
 
 impl Cut {
-    pub fn migrate(previous: previous::v0::Cut) -> Self {
+    pub fn migrate(previous: v0::Cut) -> Self {
         Self {
             id: previous.id(),
             line: previous.line,
@@ -63,21 +64,13 @@ impl ScreenImage {
     }
 }
 
-#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
-pub struct Circumscribed<T> {
-    /// (0,0) : left top, (1,1) : right bottom
-    pub center_xy: Xy<T>,
-    /// 1.0 = 100% of the screen's radius
-    pub radius: T,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_migrate() {
-        let previous = previous::v0::Cut::new(Uuid::new_v4());
+        let previous = v0::Cut::new(Uuid::new_v4());
         let previous_id = previous.id();
         let current = Cut::migrate(previous);
         assert_eq!(current.id(), previous_id);

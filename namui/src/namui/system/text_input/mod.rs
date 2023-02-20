@@ -222,6 +222,7 @@ pub fn focus(text_input_id: crate::Uuid) {
         .replace(text_input_id);
 }
 
+/// If you have a problem with blur not working, Make sure that you call blur on the composing text input
 pub fn blur() {
     let input_element = get_input_element();
     input_element.blur().unwrap();

@@ -2,6 +2,7 @@ mod cut;
 
 use ::uuid::Uuid;
 pub use cut::*;
+use namui_type::Xy;
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ProjectSharedData {
@@ -75,4 +76,12 @@ pub struct ImageWithLabels {
     pub id: Uuid,
     pub url: String,
     pub labels: Vec<Label>,
+}
+
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub struct Circumscribed<T> {
+    /// (0,0) : left top, (1,1) : right bottom
+    pub center_xy: Xy<T>,
+    /// 1.0 = 100% of the screen's radius
+    pub radius: T,
 }

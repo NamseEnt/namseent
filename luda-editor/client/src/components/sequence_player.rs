@@ -295,98 +295,98 @@ pub fn render_text_box(screen_wh: Wh<Px>) -> RenderingTree {
     ])(screen_wh)
 }
 
+pub const CHARACTER_NAME_FONT: FontType = FontType {
+    serif: false,
+    size: int_px(36),
+    language: Language::Ko,
+    font_weight: FontWeight::BOLD,
+};
+pub fn character_name_text_style(opacity: OneZero) -> TextStyle {
+    TextStyle {
+        border: Some(TextStyleBorder {
+            width: 4.px(),
+            color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
+        }),
+        drop_shadow: Some(TextStyleDropShadow {
+            x: 1.px(),
+            y: 2.px(),
+            color: Some(Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32())),
+        }),
+        color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
+        ..Default::default()
+    }
+}
+
+pub const CUT_TEXT_FONT: FontType = FontType {
+    serif: false,
+    size: int_px(24),
+    language: Language::Ko,
+    font_weight: FontWeight::BOLD,
+};
+pub fn cut_text_style(opacity: OneZero) -> TextStyle {
+    TextStyle {
+        border: Some(TextStyleBorder {
+            width: 4.px(),
+            color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
+        }),
+        drop_shadow: Some(TextStyleDropShadow {
+            x: 1.px(),
+            y: 2.px(),
+            color: Some(Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32())),
+        }),
+        color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
+        line_height_percent: 150.percent(),
+        ..Default::default()
+    }
+}
+
 pub fn render_text(
     project_shared_data: &ProjectSharedData,
     wh: Wh<Px>,
     cut: &Cut,
     opacity: OneZero,
 ) -> RenderingTree {
+    render_over_text(
+        wh,
+        |wh| {
+            text(TextParam {
+                text: cut.character_name.clone(),
+                x: 0.px(),
+                y: wh.height / 2,
+                align: TextAlign::Left,
+                baseline: TextBaseline::Middle,
+                font_type: CHARACTER_NAME_FONT,
+                style: character_name_text_style(opacity),
+                max_width: Some(wh.width),
+            })
+        },
+        |wh| {
+            text(TextParam {
+                text: cut.line.clone(),
+                x: 0.px(),
+                y: 0.px(),
+                align: TextAlign::Left,
+                baseline: TextBaseline::Top,
+                font_type: CUT_TEXT_FONT,
+                style: cut_text_style(opacity),
+                max_width: Some(wh.width),
+            })
+        },
+    )
+}
+
+pub fn render_over_text(
+    wh: Wh<Px>,
+    character_name_side: impl FnOnce(Wh<Px>) -> RenderingTree,
+    cut_text_side: impl FnOnce(Wh<Px>) -> RenderingTree,
+) -> RenderingTree {
     table::vertical([
         table::ratio(3, |_wh| RenderingTree::Empty),
         table::ratio(
             1,
             table::vertical([
-                table::ratio(1, |wh| {
-                    let character_name = cut
-                        .character_id
-                        .and_then(|character_id| {
-                            project_shared_data
-                                .characters
-                                .iter()
-                                .find(|character| character.id() == character_id)
-                        })
-                        .map(|character| &character.name);
-
-                    match character_name {
-                        Some(character_name) => {
-                            let margin = 32.px();
-                            text(TextParam {
-                                text: character_name.clone(),
-                                x: margin,
-                                y: wh.height / 2,
-                                align: TextAlign::Left,
-                                baseline: TextBaseline::Middle,
-                                font_type: FontType {
-                                    serif: false,
-                                    size: 36.int_px(),
-                                    language: Language::Ko,
-                                    font_weight: FontWeight::BOLD,
-                                },
-                                style: TextStyle {
-                                    border: Some(TextStyleBorder {
-                                        width: 4.px(),
-                                        color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
-                                    }),
-                                    drop_shadow: Some(TextStyleDropShadow {
-                                        x: 1.px(),
-                                        y: 2.px(),
-                                        color: Some(Color::from_f01(
-                                            0.0,
-                                            0.0,
-                                            0.0,
-                                            opacity.as_f32(),
-                                        )),
-                                    }),
-                                    color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
-                                    ..Default::default()
-                                },
-                                max_width: Some(wh.width - margin * 2),
-                            })
-                        }
-                        None => RenderingTree::Empty,
-                    }
-                }),
-                table::ratio(3, |wh| {
-                    let margin = 32.px();
-                    text(TextParam {
-                        text: cut.line.clone(),
-                        x: margin,
-                        y: margin,
-                        align: TextAlign::Left,
-                        baseline: TextBaseline::Top,
-                        font_type: FontType {
-                            serif: false,
-                            size: 24.int_px(),
-                            language: Language::Ko,
-                            font_weight: FontWeight::BOLD,
-                        },
-                        style: TextStyle {
-                            border: Some(TextStyleBorder {
-                                width: 4.px(),
-                                color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
-                            }),
-                            drop_shadow: Some(TextStyleDropShadow {
-                                x: 1.px(),
-                                y: 2.px(),
-                                color: Some(Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32())),
-                            }),
-                            color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
-                            line_height_percent: 150.percent(),
-                            ..Default::default()
-                        },
-                        max_width: Some(wh.width - margin * 2),
-                    })
-                }),
+                table::ratio(1, table::horizontal_padding(32.px(), character_name_side)),
+                table::ratio(3, table::padding_no_clip(32.px(), cut_text_side)),
             ]),
         ),
     ])(wh)

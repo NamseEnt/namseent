@@ -1,6 +1,3 @@
-mod line_list;
-mod top_bar;
-
 use super::*;
 use namui_prebuilt::*;
 
@@ -10,94 +7,33 @@ pub struct Props {
 
 impl LoadedSequenceEditorPage {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
-        if let Some(sequence_player) = &self.sequence_player {
-            return table::vertical([
-                table::fixed(20.px(), |wh| self.render_top_bar_for_player(wh)),
-                table::ratio(1.0, |wh| {
-                    sequence_player.render(sequence_player::Props { wh })
-                }),
-            ])(props.wh);
-        }
-
-        let sequence = &self.sequence;
-        let characters = &self.project_shared_data.characters;
-
-        let modal = render([
-            match &self.character_edit_modal {
-                Some(character_edit_modal) => {
-                    let character_cell_right = 40.px() * 2.0 / 3.0;
-                    translate(
-                        character_cell_right,
-                        0.px(),
-                        character_edit_modal.render(character_edit_modal::Props {
-                            wh: props.wh,
-                            characters: &characters,
-                        }),
-                    )
-                }
-                None => RenderingTree::Empty,
-            },
-            match &self.image_select_modal {
-                Some(image_select_modal) => {
-                    if let Some(cut) = self
-                        .sequence
-                        .cuts
-                        .iter()
-                        .find(|cut| cut.id() == image_select_modal.cut_id)
-                    {
-                        image_select_modal.render(image_select_modal::Props {
-                            wh: props.wh,
-                            recent_selected_image_ids: &self.recent_selected_image_ids,
-                            cut,
-                            project_shared_data: &self.project_shared_data,
-                        })
-                    } else {
-                        RenderingTree::Empty
-                    }
-                }
-                None => RenderingTree::Empty,
-            },
-            match &self.image_manager_modal {
-                Some(image_manager_modal) => {
-                    image_manager_modal.render(image_manager_modal::Props { wh: props.wh })
-                }
-                None => RenderingTree::Empty,
-            },
-        ])
-        .attach_event(|builder| {
-            builder.on_mouse_down_in(|event| {
-                event.stop_propagation();
-            });
-        });
+        let context_menu = match self.context_menu.as_ref() {
+            Some(context_menu) => context_menu.render(),
+            None => RenderingTree::Empty,
+        };
 
         render([
             table::horizontal([
-                table::ratio(1, |_wh| RenderingTree::Empty),
-                table::ratio(
-                    4,
-                    table::vertical([
-                        table::fixed(20.px(), |wh| {
-                            self.render_top_bar_for_editor(
-                                wh,
-                                &sequence,
-                                self.sequence_syncer.get_sync_status(),
-                            )
-                        }),
-                        table::ratio(
-                            1.0,
-                            table::horizontal([table::ratio(1.0, |wh| {
-                                self.render_line_list(wh, &sequence, &characters)
-                            })]),
-                        ),
-                    ]),
-                ),
-                table::ratio(1, |_wh| RenderingTree::Empty),
+                table::fixed(220.px(), |wh| {
+                    self.cut_list_view.render(cut_list_view::Props {
+                        wh,
+                        cuts: &self.sequence.cuts,
+                        is_focused: self.focused_component == Some(FocusableComponent::CutListView),
+                        selected_cut_id: self.selected_cut_id,
+                    })
+                }),
+                table::ratio(4, |wh| {
+                    self.cut_editor.render(cut_editor::Props {
+                        wh,
+                        cut: self
+                            .selected_cut_id
+                            .and_then(|id| self.sequence.cuts.iter().find(|c| c.id() == id)),
+                        is_focused: self.focused_component == Some(FocusableComponent::CutEditor),
+                        cuts: &self.sequence.cuts,
+                    })
+                }),
             ])(props.wh),
-            modal,
-            self.context_menu
-                .as_ref()
-                .map(|context_menu| context_menu.render())
-                .unwrap_or(RenderingTree::Empty),
+            context_menu,
         ])
     }
 }
