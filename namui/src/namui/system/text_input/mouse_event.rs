@@ -143,7 +143,12 @@ fn get_selection_on_mouse_movement(
 
     let paint = get_text_paint(props.style.text.color).build();
 
-    let line_texts = LineTexts::new(&props.text, &fonts, Some(&paint), Some(props.rect.width()));
+    let line_texts = LineTexts::new(
+        &props.text,
+        fonts.clone(),
+        paint.clone(),
+        Some(props.rect.width()),
+    );
 
     // const continouslyFastClickCount: number;
 
@@ -165,6 +170,7 @@ fn get_selection_on_mouse_movement(
         click_local_xy,
         is_dragging,
         &selection,
+        paint,
     ))
 }
 
@@ -175,9 +181,10 @@ fn get_one_click_selection(
     click_local_xy: Xy<Px>,
     is_dragging: bool,
     last_selection: &Selection,
+    paint: Arc<Paint>,
 ) -> Range<usize> {
     let selection_index_of_xy =
-        get_selection_index_of_xy(text_input_props, fonts, line_texts, click_local_xy);
+        get_selection_index_of_xy(text_input_props, fonts, line_texts, click_local_xy, paint);
 
     let start = match last_selection {
         Selection::Range(range) => {
@@ -198,6 +205,7 @@ fn get_selection_index_of_xy(
     fonts: &Vec<Arc<Font>>,
     line_texts: &LineTexts,
     click_local_xy: Xy<Px>,
+    paint: Arc<Paint>,
 ) -> usize {
     let line_len = line_texts.line_len();
     if line_len == 0 {
@@ -229,7 +237,7 @@ fn get_selection_index_of_xy(
 
     let line_text = line_texts.iter_str().nth(line_index).unwrap();
 
-    let glyph_widths = get_text_widths(&line_text, &fonts, None);
+    let glyph_widths = get_text_widths(&line_text, &fonts, paint);
 
     let line_width = glyph_widths.iter().sum::<Px>();
 
