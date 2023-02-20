@@ -119,11 +119,11 @@ impl PaintBuilder {
         let paint = Paint::new(
             id,
             self.color,
-            self.paint_style.as_ref(),
+            self.paint_style,
             self.anti_alias,
             self.stroke_width,
-            self.stroke_cap.as_ref(),
-            self.stroke_join.as_ref(),
+            self.stroke_cap,
+            self.stroke_join,
             self.color_filter
                 .as_ref()
                 .map(|(color, blend_mode)| Self::get_or_create_color_filter(*color, *blend_mode)),

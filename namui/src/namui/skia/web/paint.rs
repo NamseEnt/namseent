@@ -14,11 +14,11 @@ impl Paint {
     pub fn new(
         id: Uuid,
         color: Option<Color>,
-        style: Option<&PaintStyle>,
+        style: Option<PaintStyle>,
         anti_alias: Option<bool>,
         stroke_width: Option<Px>,
-        stroke_cap: Option<&StrokeCap>,
-        stroke_join: Option<&StrokeJoin>,
+        stroke_cap: Option<StrokeCap>,
+        stroke_join: Option<StrokeJoin>,
         color_filter: Option<impl AsRef<ColorFilter>>,
     ) -> Self {
         let canvas_kit_paint = CanvasKitPaint::new();

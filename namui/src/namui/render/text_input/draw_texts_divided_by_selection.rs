@@ -13,7 +13,7 @@ impl TextInput {
         &self,
         props: &Props,
         fonts: &Vec<Arc<Font>>,
-        paint: &Arc<Paint>,
+        paint: Arc<Paint>,
         line_texts: &LineTexts,
         selection: &Selection,
     ) -> RenderingTree {
@@ -34,8 +34,12 @@ impl TextInput {
             (selection.end, selection.start)
         };
 
-        let left_caret = line_texts.get_multiline_caret(left_selection_index);
-        let right_caret = line_texts.get_multiline_caret(right_selection_index);
+        let left_caret = line_texts
+            .clone()
+            .into_multiline_caret(left_selection_index);
+        let right_caret = line_texts
+            .clone()
+            .into_multiline_caret(right_selection_index);
 
         let y_of_line = |line_index: usize| {
             let line_height = props.line_height_px();
@@ -206,7 +210,7 @@ impl TextInput {
             left_text_string,
             selected_text_string,
             right_text_string,
-            &paint,
+            paint.clone(),
         );
 
         if render_only_selection_background {
@@ -218,9 +222,9 @@ impl TextInput {
                 TextBaseline::Bottom => line_height,
             };
 
-            let mut width = get_text_width_with_fonts(fonts, &selected_text_string, Some(&paint));
+            let mut width = get_text_width_with_fonts(fonts, &selected_text_string, paint.clone());
             if with_newline_background {
-                width += get_text_width_with_fonts(fonts, " ", Some(&paint))
+                width += get_text_width_with_fonts(fonts, " ", paint.clone())
             };
 
             namui::rect(crate::RectParam {
@@ -285,12 +289,12 @@ impl TextInput {
         left_text_string: &str,
         selected_text_string: &str,
         right_text_string: &str,
-        paint: &Paint,
+        paint: Arc<Paint>,
     ) -> (Px, Px, Px) {
         let (left_text_width, selected_text_width, right_text_width) = (
-            get_text_width_with_fonts(&fonts, left_text_string, Some(paint)),
-            get_text_width_with_fonts(&fonts, selected_text_string, Some(paint)),
-            get_text_width_with_fonts(&fonts, right_text_string, Some(paint)),
+            get_text_width_with_fonts(&fonts, left_text_string, paint.clone()),
+            get_text_width_with_fonts(&fonts, selected_text_string, paint.clone()),
+            get_text_width_with_fonts(&fonts, right_text_string, paint.clone()),
         );
 
         let total_width = left_text_width + selected_text_width + right_text_width;

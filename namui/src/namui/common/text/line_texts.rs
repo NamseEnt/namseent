@@ -21,19 +21,19 @@ pub(crate) struct Line {
     pub new_line_by: Option<NewLineBy>,
 }
 
-#[derive(Debug)]
-pub(crate) struct LineTexts<'a> {
+#[derive(Debug, Clone)]
+pub(crate) struct LineTexts {
     vec: Vec<Line>,
-    pub fonts: &'a Vec<Arc<Font>>,
-    pub paint: Option<&'a Paint>,
+    pub fonts: Vec<Arc<Font>>,
+    pub paint: Arc<Paint>,
 }
-impl<'a> LineTexts<'a> {
+impl LineTexts {
     pub fn new(
         text: &str,
-        fonts: &'a Vec<Arc<Font>>,
-        paint: Option<&'a Paint>,
+        fonts: Vec<Arc<Font>>,
+        paint: Arc<Paint>,
         max_width: Option<Px>,
-    ) -> LineTexts<'a> {
+    ) -> LineTexts {
         let vec = if let Some(max_width) = max_width {
             let word_separator = WordSeparator::UnicodeBreakProperties;
             let word_splitter = WordSplitter::NoHyphenation;
@@ -49,8 +49,11 @@ impl<'a> LineTexts<'a> {
 
                 let namui_words = split_words
                     .flat_map(|word| {
-                        NamuiWord::from_word(word, fonts, paint)
-                            .break_apart(max_width, fonts, paint)
+                        NamuiWord::from_word(word, &fonts, paint.clone()).break_apart(
+                            max_width,
+                            &fonts,
+                            paint.clone(),
+                        )
                     })
                     .collect::<Vec<_>>();
 
@@ -96,10 +99,10 @@ impl<'a> LineTexts<'a> {
     pub fn line_len(&self) -> usize {
         self.vec.len()
     }
-    pub fn iter_str(&'a self) -> impl Iterator<Item = String> + 'a {
+    pub fn iter_str(&self) -> impl Iterator<Item = String> + '_ {
         self.vec.iter().map(|line| line.chars.iter().collect())
     }
-    pub fn iter_chars(&'a self) -> impl Iterator<Item = &'a Vec<char>> + 'a {
+    pub fn iter_chars(&self) -> impl Iterator<Item = &Vec<char>> {
         self.vec.iter().map(|line| &line.chars)
     }
     pub(crate) fn iter_lines(&self) -> impl Iterator<Item = &Line> {
@@ -125,7 +128,7 @@ impl<'a> LineTexts<'a> {
             .sum()
     }
 
-    pub(crate) fn get_multiline_caret(&'a self, selection_index: usize) -> MultilineCaret<'a> {
+    pub(crate) fn into_multiline_caret(self, selection_index: usize) -> MultilineCaret {
         get_multiline_caret(selection_index, self)
     }
 }
@@ -155,12 +158,12 @@ impl<'a> Fragment for NamuiWord<'a> {
 }
 
 impl<'a> NamuiWord<'a> {
-    fn from_word(word: core::Word<'a>, fonts: &Vec<Arc<Font>>, paint: Option<&Paint>) -> Self {
+    fn from_word(word: core::Word<'a>, fonts: &Vec<Arc<Font>>, paint: Arc<Paint>) -> Self {
         Self {
             word: word.word,
-            width: get_text_width_with_fonts(fonts, word.word, paint),
+            width: get_text_width_with_fonts(fonts, word.word, paint.clone()),
             whitespace: word.whitespace,
-            whitespace_width: get_text_width_with_fonts(fonts, word.whitespace, paint),
+            whitespace_width: get_text_width_with_fonts(fonts, word.whitespace, paint.clone()),
             penalty: word.penalty,
             penalty_width: get_text_width_with_fonts(fonts, word.penalty, paint),
         }
@@ -170,7 +173,7 @@ impl<'a> NamuiWord<'a> {
         self,
         max_width: Px,
         fonts: &Vec<Arc<Font>>,
-        paint: Option<&Paint>,
+        paint: Arc<Paint>,
     ) -> Vec<NamuiWord<'a>> {
         if self.width <= max_width {
             return vec![self];
@@ -181,8 +184,10 @@ impl<'a> NamuiWord<'a> {
         for (idx, grapheme) in self.word.grapheme_indices(true) {
             let with_grapheme = &self.word[start..idx + grapheme.len()];
             let without_grapheme = &self.word[start..idx];
-            if idx > 0 && get_text_width_with_fonts(fonts, with_grapheme, paint) > max_width {
-                let natural_width = get_text_width_with_fonts(fonts, without_grapheme, paint);
+            if idx > 0 && get_text_width_with_fonts(fonts, with_grapheme, paint.clone()) > max_width
+            {
+                let natural_width =
+                    get_text_width_with_fonts(fonts, without_grapheme, paint.clone());
                 words.push(NamuiWord {
                     word: &without_grapheme,
                     width: max_width.max(natural_width),

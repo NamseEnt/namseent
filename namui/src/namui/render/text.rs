@@ -187,7 +187,8 @@ fn draw_background(param: &TextParam, font: Arc<Font>) -> RenderingTree {
     let font_metrics = font.metrics;
     let fonts = with_fallbacks(font);
 
-    let width = get_text_width_with_fonts(&fonts, &param.text, None);
+    let text_paint = get_text_paint(param.style.color).build();
+    let width = get_text_width_with_fonts(&fonts, &param.text, text_paint);
 
     let height = param.line_height_px();
     let bottom_of_baseline = get_bottom_of_baseline(param.baseline, font_metrics);

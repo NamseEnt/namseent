@@ -8,12 +8,12 @@ impl TextInput {
         props: &Props,
         line_texts: &LineTexts,
         selection: &Selection,
-        paint: &Paint,
+        paint: Arc<Paint>,
     ) -> RenderingTree {
         let Selection::Range(range) = selection else {
             return RenderingTree::Empty;
         };
-        let caret = line_texts.get_multiline_caret(range.end);
+        let caret = line_texts.clone().into_multiline_caret(range.end);
 
         let line_height = props.line_height_px();
 
@@ -52,8 +52,8 @@ impl TextInput {
         let font_metrics = font.metrics;
         let fonts = with_fallbacks(font);
 
-        let left_text_width = get_text_width_with_fonts(&fonts, &left_text_string, Some(paint));
-        let right_text_width = get_text_width_with_fonts(&fonts, &right_text_string, Some(paint));
+        let left_text_width = get_text_width_with_fonts(&fonts, &left_text_string, paint.clone());
+        let right_text_width = get_text_width_with_fonts(&fonts, &right_text_string, paint.clone());
 
         let total_width = left_text_width + right_text_width;
 
