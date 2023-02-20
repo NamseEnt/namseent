@@ -1,7 +1,7 @@
 mod glyph_group;
 mod line_texts;
 mod measure_glyphs;
-mod multiline_caret;
+pub(crate) mod multiline_caret;
 mod text_width;
 
 use crate::{namui::skia::FontMetrics, *};
@@ -39,7 +39,7 @@ pub fn get_multiline_y_baseline_offset(
 pub(crate) fn get_text_width_with_fonts(
     fonts: &Vec<Arc<Font>>,
     text: &str,
-    paint: Option<&Paint>,
+    paint: Arc<Paint>,
 ) -> Px {
     let groups = get_glyph_groups(text, fonts, paint);
     groups.iter().map(|group| group.width).sum()

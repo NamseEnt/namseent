@@ -37,6 +37,7 @@ pub(crate) fn on_key_down(code: Code, event: web_sys::KeyboardEvent) {
         .map(|event_handler| {
             event_handler.on_key_down.as_ref().map(|on_key_down| {
                 let is_prevented_default = Arc::new(AtomicBool::new(false));
+
                 let key_down_event = KeyDownEvent {
                     code,
                     is_prevented_default: is_prevented_default.clone(),
@@ -55,6 +56,18 @@ pub(crate) fn on_key_down(code: Code, event: web_sys::KeyboardEvent) {
         code,
     });
     handle_selection_change(&last_focused_text_input, input_element, code);
+}
+
+fn get_line_texts(props: &text_input::Props) -> Option<LineTexts> {
+    let font = crate::font::get_font(props.font_type)?;
+    let fonts = crate::font::with_fallbacks(font);
+    let paint = get_text_paint(props.style.text.color).build();
+    Some(LineTexts::new(
+        &props.text,
+        fonts,
+        paint.clone(),
+        Some(props.rect.width()),
+    ))
 }
 
 fn handle_selection_change(
@@ -102,23 +115,15 @@ fn get_selection_on_keyboard_down(
         return Selection::None;
     };
 
-    let font = crate::font::get_font(props.font_type);
-    if font.is_none() {
+    let Some(line_texts) = get_line_texts(props) else {
         return Selection::None;
     };
-    let font = font.unwrap();
-    let fonts = crate::font::with_fallbacks(font);
+
+    let next_selection_end = get_caret_index_after_apply_key_movement(key, line_texts, &range);
 
     let is_shift_key_pressed =
         crate::keyboard::any_code_press([crate::Code::ShiftLeft, crate::Code::ShiftRight]);
-
-    let paint = get_text_paint(props.style.text.color).build();
-
-    let line_texts = LineTexts::new(&props.text, &fonts, Some(&paint), Some(props.rect.width()));
-
     let is_dragging = is_shift_key_pressed;
-
-    let next_selection_end = get_caret_index_after_apply_key_movement(key, line_texts, &range);
 
     match is_dragging {
         true => Selection::Range(range.start..next_selection_end),
@@ -131,7 +136,7 @@ fn get_caret_index_after_apply_key_movement(
     line_texts: LineTexts,
     selection: &Range<usize>,
 ) -> usize {
-    let multiline_caret = line_texts.get_multiline_caret(selection.end);
+    let multiline_caret = line_texts.into_multiline_caret(selection.end);
 
     let caret_after_move = multiline_caret.get_caret_on_key(key);
 

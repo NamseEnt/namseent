@@ -40,7 +40,7 @@ impl TextDrawCommand {
         let paint = self.paint_builder.build();
         let underline_paint = self.underline.as_ref().map(|underline| underline.build());
 
-        let line_texts = LineTexts::new(&self.text, &fonts, Some(&paint), self.max_width);
+        let line_texts = LineTexts::new(&self.text, fonts.clone(), paint.clone(), self.max_width);
 
         let line_height = self.line_height_px();
 
@@ -59,7 +59,7 @@ impl TextDrawCommand {
                 )
             })
             .for_each(|(y, line_text)| {
-                let glyph_groups = get_glyph_groups(&line_text, &fonts, Some(&paint));
+                let glyph_groups = get_glyph_groups(&line_text, &fonts, paint.clone());
 
                 let total_width = glyph_groups.iter().map(|group| group.width).sum();
 
@@ -112,7 +112,7 @@ impl TextDrawCommand {
 
         let paint = self.paint_builder.build();
 
-        let line_texts = LineTexts::new(&self.text, &fonts, Some(&paint), self.max_width);
+        let line_texts = LineTexts::new(&self.text, fonts, paint.clone(), self.max_width);
 
         let line_height = self.line_height_px();
 
@@ -134,14 +134,14 @@ impl TextDrawCommand {
                 let glyph_ids = font.get_glyph_ids(line_text);
 
                 let paint = self.paint_builder.build();
-                let glyph_bounds = font.get_glyph_bounds(glyph_ids.clone(), Some(&paint));
+                let glyph_bounds = font.get_glyph_bounds(glyph_ids.clone(), paint.as_ref());
 
                 glyph_bounds
                     .iter()
                     .map(|bound| (bound.top(), bound.bottom()))
                     .reduce(|acc, (top, bottom)| (acc.0.min(top), acc.1.max(bottom)))
                     .and_then(|(top, bottom)| {
-                        let widths = font.get_glyph_widths(glyph_ids, Option::Some(&paint));
+                        let widths = font.get_glyph_widths(glyph_ids, paint.as_ref());
                         let width = widths.iter().fold(px(0.0), |prev, curr| prev + curr);
                         let x_axis_anchor = get_left_in_align(self.x, self.align, width);
 

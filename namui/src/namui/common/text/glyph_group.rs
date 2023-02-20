@@ -15,12 +15,12 @@ pub struct GlyphGroup {
 pub(crate) fn get_glyph_groups(
     text: &str,
     fonts: &Vec<Arc<Font>>,
-    paint: Option<&Paint>,
+    paint: Arc<Paint>,
 ) -> Vec<GlyphGroup> {
     let cache_key = CacheKey {
         text: text.to_string(),
         fonts: fonts.to_vec(),
-        paint_id: paint.map(|p| p.id),
+        paint_id: paint.id,
     };
     if let Some(cached) = get_glyph_groups_cache(&cache_key) {
         return cached;
@@ -81,7 +81,7 @@ static GLYPH_GROUPS_CACHE: OnceCell<Mutex<lru::LruCache<CacheKey, Vec<GlyphGroup
 struct CacheKey {
     text: String,
     fonts: Vec<Arc<Font>>,
-    paint_id: Option<Uuid>,
+    paint_id: Uuid,
 }
 
 impl std::hash::Hash for CacheKey {

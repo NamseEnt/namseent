@@ -17,9 +17,9 @@ pub struct Font {
     #[serde(skip_serializing)]
     glyph_ids_caches: Mutex<lru::LruCache<String, GlyphIds>>,
     #[serde(skip_serializing)]
-    glyph_widths_caches: Mutex<lru::LruCache<(GlyphIds, Option<Paint>), Vec<Px>>>,
+    glyph_widths_caches: Mutex<lru::LruCache<(GlyphIds, Paint), Vec<Px>>>,
     #[serde(skip_serializing)]
-    glyph_bounds_caches: Mutex<lru::LruCache<(GlyphIds, Option<Paint>), Vec<Rect<Px>>>>,
+    glyph_bounds_caches: Mutex<lru::LruCache<(GlyphIds, Paint), Vec<Rect<Px>>>>,
 }
 
 impl Font {
@@ -59,19 +59,19 @@ impl Font {
             }
         }
     }
-    pub(crate) fn get_glyph_widths(&self, glyph_ids: GlyphIds, paint: Option<&Paint>) -> Vec<Px> {
+    pub(crate) fn get_glyph_widths(&self, glyph_ids: GlyphIds, paint: &Paint) -> Vec<Px> {
         if glyph_ids.len() == 0 {
             return vec![];
         }
         let mut caches = self.glyph_widths_caches.lock().unwrap();
 
-        let key = (glyph_ids.clone(), paint.cloned());
+        let key = (glyph_ids.clone(), paint.clone());
         match caches.get(&key) {
             Some(glyph_widths) => glyph_widths.clone(),
             None => {
                 let glyph_widths: Vec<Px> = self
                     .canvas_kit_font
-                    .getGlyphWidths(glyph_ids, paint.map(|paint| &paint.canvas_kit_paint))
+                    .getGlyphWidths(glyph_ids, Some(&paint.canvas_kit_paint))
                     .to_vec()
                     .into_iter()
                     .map(|n| n.into())
@@ -81,20 +81,16 @@ impl Font {
             }
         }
     }
-    pub(crate) fn get_glyph_bounds(
-        &self,
-        glyph_ids: GlyphIds,
-        paint: Option<&Paint>,
-    ) -> Vec<Rect<Px>> {
+    pub(crate) fn get_glyph_bounds(&self, glyph_ids: GlyphIds, paint: &Paint) -> Vec<Rect<Px>> {
         let mut caches = self.glyph_bounds_caches.lock().unwrap();
 
-        let key = (glyph_ids.clone(), paint.cloned());
+        let key = (glyph_ids.clone(), paint.clone());
         match caches.get(&key) {
             Some(glyph_bounds) => glyph_bounds.clone(),
             None => {
                 let bound_items = self
                     .canvas_kit_font
-                    .getGlyphBounds(glyph_ids, paint.map(|paint| &paint.canvas_kit_paint))
+                    .getGlyphBounds(glyph_ids, Some(&paint.canvas_kit_paint))
                     .to_vec();
 
                 let mut iter = bound_items.iter().peekable();

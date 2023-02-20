@@ -82,6 +82,12 @@ pub struct KeyDownEvent {
     pub is_composing: bool,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct CursorPosition {
+    pub is_at_top: bool,
+    pub is_at_bottom: bool,
+}
+
 impl KeyDownEvent {
     pub fn prevent_default(&self) {
         self.is_prevented_default.store(true, Ordering::Relaxed);
@@ -137,8 +143,8 @@ impl TextInput {
 
         let line_texts = LineTexts::new(
             &props.text,
-            &fonts,
-            Some(&paint),
+            fonts.clone(),
+            paint.clone(),
             props.text_param().max_width,
         );
 
@@ -165,8 +171,14 @@ impl TextInput {
                     ..props.style.rect
                 },
             }),
-            self.draw_texts_divided_by_selection(&props, &fonts, &paint, &line_texts, &selection),
-            self.draw_caret(&props, &line_texts, &selection, &paint),
+            self.draw_texts_divided_by_selection(
+                &props,
+                &fonts,
+                paint.clone(),
+                &line_texts,
+                &selection,
+            ),
+            self.draw_caret(&props, &line_texts, &selection, paint.clone()),
         ])
         .with_custom(custom_data.clone())
         .attach_event(|builder| {
