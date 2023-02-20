@@ -49,7 +49,7 @@ pub async fn init() {
         .format(|buf, record| {
             writeln!(
                 buf,
-                "{}:{} {} [{}] - {}",
+                "{} {}:{} [{}] - {}",
                 chrono::Local::now().format("%Y-%m-%dT%H:%M:%S"),
                 record.file().unwrap_or("unknown-file"),
                 record.line().unwrap_or(0),
