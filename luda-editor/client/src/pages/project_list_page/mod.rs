@@ -1,8 +1,7 @@
-use super::{sequence_list_page::SequenceListPage, *};
+use super::router::Router;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::list_editable_projects::EditableProject;
-use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct ProjectListPage {
@@ -141,9 +140,7 @@ impl ProjectListPage {
             [MouseButton::Left],
             move |event| {
                 if event.button == Some(MouseButton::Left) {
-                    namui::event::send(router::Event::Route(Arc::new(move || {
-                        router::Route::SequenceListPage(SequenceListPage::new(project_id))
-                    })));
+                    Router::move_to(format!("/sequence_list/{project_id}"));
                 } else if event.button == Some(MouseButton::Right) {
                     // TODO
                     // namui::event::send(Event::CellRightClick {
