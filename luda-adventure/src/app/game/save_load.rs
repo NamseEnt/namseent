@@ -34,6 +34,7 @@ impl SaveLoad {
             }
             InternalEvent::SerializedGameFetched(serialized_game) => {
                 self.apply_serialized_game(ecs_app, game_state, serialized_game);
+                namui::event::send(Event::Loaded);
             }
             InternalEvent::Failed(error) => self.state = SaveLoadState::Failed(error.clone()),
             InternalEvent::AutoSaveOnRequested => {
@@ -160,6 +161,10 @@ pub enum SaveLoadState {
     Saving,
     Loading,
     Failed(String),
+}
+
+pub enum Event {
+    Loaded,
 }
 
 enum InternalEvent {
