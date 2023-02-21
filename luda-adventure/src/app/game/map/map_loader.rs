@@ -1,5 +1,5 @@
 use super::Map;
-use crate::app::game::{interaction, menu, new_player, Tile, TileExt};
+use crate::app::game::{interaction, new_player, Tile};
 use namui::{prelude::*, simple_error_impl};
 
 pub struct MapLoader {
@@ -37,6 +37,13 @@ impl MapLoader {
                     new_player(app, *player_xy);
                     self.state = MapLoaderState::Loaded;
                 }
+                InternalEvent::LoadRequested {
+                    map_name,
+                    player_xy,
+                } => {
+                    namui::log!("asd");
+                    let _ = self.start_load(map_name.clone(), player_xy.clone());
+                }
             })
             .is::<interaction::Event>(|event| {
                 let interaction::Event::Interacted { kind, .. } = event;
@@ -44,12 +51,6 @@ impl MapLoader {
                     return;
                 };
                 let _ = self.start_load(map_name.clone(), *player_xy);
-            })
-            .is::<menu::Event>(|event| match event {
-                menu::Event::StartNewButtonClicked => {
-                    let _ = self.start_load("first".to_string(), Xy::new(8.tile(), 6.tile()));
-                }
-                _ => (),
             });
     }
 
@@ -84,6 +85,13 @@ impl MapLoader {
             _ => false,
         }
     }
+
+    pub fn request_laod(map_name: String, player_xy: Xy<Tile>) {
+        namui::event::send(InternalEvent::LoadRequested {
+            map_name,
+            player_xy,
+        });
+    }
 }
 
 #[derive(Debug)]
@@ -102,4 +110,8 @@ simple_error_impl!(Error);
 enum InternalEvent {
     FailedToReadMapFromBundle,
     SerializedMapLoaded(String, Xy<Tile>),
+    LoadRequested {
+        map_name: String,
+        player_xy: Xy<Tile>,
+    },
 }

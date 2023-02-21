@@ -1,4 +1,4 @@
-use super::{menu, GameState};
+use super::GameState;
 use crate::ecs;
 use namui::{file::local_storage, simple_error_impl, spawn_local, Time, TimeExt};
 use serde::{Deserialize, Serialize};
@@ -28,29 +28,28 @@ impl SaveLoad {
     ) {
         self.try_auto_save(ecs_app, game_state);
 
-        event
-            .is::<InternalEvent>(|event| match event {
-                InternalEvent::Saved | InternalEvent::Loaded => {
-                    self.state = SaveLoadState::Idle;
-                }
-                InternalEvent::SerializedGameFetched(serialized_game) => {
-                    self.apply_serialized_game(ecs_app, game_state, serialized_game);
-                }
-                InternalEvent::Failed(error) => self.state = SaveLoadState::Failed(error.clone()),
-                InternalEvent::AutoSaveOnRequested => {
-                    self.auto_save = true;
-                    let _ = self.request_save(ecs_app, game_state);
-                }
-            })
-            .is::<menu::Event>(|event| match event {
-                menu::Event::LoadButtonClicked => {
-                    let _ = self.request_load();
-                }
-                _ => {}
-            });
+        event.is::<InternalEvent>(|event| match event {
+            InternalEvent::Saved | InternalEvent::Loaded => {
+                self.state = SaveLoadState::Idle;
+            }
+            InternalEvent::SerializedGameFetched(serialized_game) => {
+                self.apply_serialized_game(ecs_app, game_state, serialized_game);
+            }
+            InternalEvent::Failed(error) => self.state = SaveLoadState::Failed(error.clone()),
+            InternalEvent::AutoSaveOnRequested => {
+                self.auto_save = true;
+                let _ = self.save(ecs_app, game_state);
+            }
+            InternalEvent::SaveRequested => {
+                let _ = self.save(ecs_app, game_state);
+            }
+            InternalEvent::LoadRequested => {
+                let _ = self.load();
+            }
+        });
     }
 
-    fn request_save(
+    fn save(
         &mut self,
         ecs_app: &ecs::App,
         game_state: &GameState,
@@ -72,7 +71,7 @@ impl SaveLoad {
         return Ok(());
     }
 
-    fn request_load(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    fn load(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         match self.state {
             SaveLoadState::Idle | SaveLoadState::Failed(_) => {
                 spawn_local(async move {
@@ -128,8 +127,20 @@ impl SaveLoad {
             && (self.last_autosave_time + AUTOSAVE_MINIMUM_TERM <= game_state.tick.current_time)
         {
             self.last_autosave_time = game_state.tick.current_time;
-            let _ = self.request_save(ecs_app, game_state);
+            let _ = self.save(ecs_app, game_state);
         }
+    }
+
+    pub fn request_auto_save_on() {
+        namui::event::send(InternalEvent::AutoSaveOnRequested);
+    }
+
+    pub fn request_save() {
+        namui::event::send(InternalEvent::SaveRequested)
+    }
+
+    pub fn request_load() {
+        namui::event::send(InternalEvent::LoadRequested)
     }
 }
 
@@ -157,6 +168,8 @@ enum InternalEvent {
     SerializedGameFetched(SerializedGame),
     Failed(String),
     AutoSaveOnRequested,
+    SaveRequested,
+    LoadRequested,
 }
 
 #[derive(Debug)]
@@ -173,10 +186,6 @@ struct SerializedGame {
 
 fn get_new_time_offset(saved_state: &GameState, current_state: &GameState) -> Time {
     saved_state.tick.current_time - current_state.tick.current_time + current_state.tick.time_offset
-}
-
-pub fn request_auto_save_on() {
-    namui::event::send(InternalEvent::AutoSaveOnRequested);
 }
 
 #[cfg(test)]
