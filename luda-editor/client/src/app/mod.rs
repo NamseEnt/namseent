@@ -1,6 +1,6 @@
 mod login;
 
-use crate::pages::{project_list_page::ProjectListPage, router};
+use crate::pages::router;
 use namui::prelude::*;
 use namui_prebuilt::*;
 
@@ -26,9 +26,7 @@ impl namui::Entity for App {
         event.is::<Event>(|event| match event {
             Event::LoggedIn => {
                 *self = App::LoggedIn {
-                    router: router::Router::new(router::Route::ProjectListPage(
-                        ProjectListPage::new(),
-                    )),
+                    router: router::Router::new(),
                 };
             }
         });

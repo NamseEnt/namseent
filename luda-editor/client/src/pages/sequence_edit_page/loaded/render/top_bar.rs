@@ -1,13 +1,12 @@
 use super::*;
 use crate::{
     components::sync::SyncStatus,
-    pages::{router, sequence_list_page::SequenceListPage},
+    pages::router::{RoutePath, Router},
 };
 use namui_prebuilt::{
     button::{text_button, text_button_fit},
     *,
 };
-use std::sync::Arc;
 
 impl LoadedSequenceEditorPage {
     pub fn render_top_bar_for_player(&self, wh: Wh<Px>) -> RenderingTree {
@@ -48,9 +47,7 @@ impl LoadedSequenceEditorPage {
                 {
                     move |_| {
                         // TODO: Check saving finished
-                        namui::event::send(router::Event::Route(Arc::new(move || {
-                            router::Route::SequenceListPage(SequenceListPage::new(project_id))
-                        })));
+                        Router::move_to(RoutePath::SequenceList(project_id));
                     }
                 },
             )
