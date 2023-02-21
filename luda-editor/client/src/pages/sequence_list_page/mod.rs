@@ -1,11 +1,10 @@
 mod context_menu;
 mod rename_modal;
 
-use super::{router, sequence_edit_page::SequenceEditPage};
+use super::router::Router;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::list_project_sequences::SequenceNameAndId;
-use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct SequenceListPage {
@@ -252,9 +251,7 @@ impl SequenceListPage {
             [MouseButton::Left, MouseButton::Right],
             move |event| {
                 if event.button == Some(MouseButton::Left) {
-                    namui::event::send(router::Event::Route(Arc::new(move || {
-                        router::Route::SequenceEditPage(SequenceEditPage::new(sequence_id))
-                    })));
+                    Router::move_to(super::router::RoutePath::SequenceEdit(sequence_id));
                 } else if event.button == Some(MouseButton::Right) {
                     namui::event::send(Event::CellRightClick {
                         click_global_xy: event.global_xy,
