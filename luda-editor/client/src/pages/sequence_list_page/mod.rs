@@ -251,7 +251,7 @@ impl SequenceListPage {
             [MouseButton::Left, MouseButton::Right],
             move |event| {
                 if event.button == Some(MouseButton::Left) {
-                    Router::move_to(format!("/sequence_edit/{sequence_id}"));
+                    Router::move_to(super::router::RoutePath::SequenceEdit(sequence_id));
                 } else if event.button == Some(MouseButton::Right) {
                     namui::event::send(Event::CellRightClick {
                         click_global_xy: event.global_xy,

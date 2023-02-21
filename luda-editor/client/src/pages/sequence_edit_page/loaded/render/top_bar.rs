@@ -1,5 +1,8 @@
 use super::*;
-use crate::{components::sync::SyncStatus, pages::router::Router};
+use crate::{
+    components::sync::SyncStatus,
+    pages::router::{RoutePath, Router},
+};
 use namui_prebuilt::{
     button::{text_button, text_button_fit},
     *,
@@ -44,7 +47,7 @@ impl LoadedSequenceEditorPage {
                 {
                     move |_| {
                         // TODO: Check saving finished
-                        Router::move_to(format!("/sequence_list/{project_id}"));
+                        Router::move_to(RoutePath::SequenceList(project_id));
                     }
                 },
             )
