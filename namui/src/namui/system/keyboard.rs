@@ -32,27 +32,15 @@ impl KeyboardSystem {
                 Closure::wrap(Box::new({
                     let pressing_code_set = pressing_code_set.clone();
                     move |event: web_sys::KeyboardEvent| {
-                        let code_string = event.code();
-                        let code = Code::from_str(&code_string);
-                        if code.is_err() {
-                            crate::log!(
-                                "[DEBUG] Fail to get code from key_down callback {}",
-                                code_string,
-                            );
-                            return;
-                        }
-                        let code = code.unwrap();
-                        let mut pressing_code_set = pressing_code_set.write().unwrap();
-                        pressing_code_set.insert(code);
+                        let code = Code::from_str(&event.code()).unwrap();
+                        record_key_down(code);
 
-                        if event.alt_key() {
-                            event.prevent_default();
-                        }
+                        event.prevent_default();
 
                         crate::event::send(crate::NamuiEvent::KeyDown(crate::RawKeyboardEvent {
                             id: crate::uuid(),
                             code,
-                            pressing_codes: pressing_code_set.clone(),
+                            pressing_codes: pressing_code_set.read().unwrap().clone(),
                         }));
                     }
                 }) as Box<dyn FnMut(_)>)
@@ -67,16 +55,7 @@ impl KeyboardSystem {
                 Closure::wrap(Box::new({
                     let pressing_code_set = pressing_code_set.clone();
                     move |event: web_sys::KeyboardEvent| {
-                        let code_string = event.code();
-                        let code = Code::from_str(&code_string);
-                        if code.is_err() {
-                            crate::log!(
-                                "[DEBUG] Fail to get code from key_up callback {}",
-                                code_string
-                            );
-                            return;
-                        }
-                        let code = code.unwrap();
+                        let code = Code::from_str(&event.code()).unwrap();
                         let mut pressing_code_set = pressing_code_set.write().unwrap();
                         pressing_code_set.remove(&code);
 
@@ -130,4 +109,9 @@ pub fn any_code_press(codes: impl IntoIterator<Item = Code>) -> bool {
         }
     }
     false
+}
+
+pub(crate) fn record_key_down(code: Code) {
+    let mut pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.write().unwrap();
+    pressing_code_set.insert(code);
 }
