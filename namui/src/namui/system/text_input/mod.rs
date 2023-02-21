@@ -51,6 +51,7 @@ impl TextInputSystem {
                         event.target().unwrap(),
                     )
                     .unwrap();
+
                     system::text_input::on_text_element_input(&target);
                 }) as Box<dyn FnMut(_)>)
                 .into_js_value()
@@ -62,7 +63,10 @@ impl TextInputSystem {
             .add_event_listener_with_callback(
                 "keydown",
                 Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
+                    event.stop_immediate_propagation();
                     let code = Code::from_str(&event.code()).unwrap();
+                    crate::keyboard::record_key_down(code);
+
                     // NOTE: Not support page up/down yet.
                     if [
                         Code::ArrowUp,
