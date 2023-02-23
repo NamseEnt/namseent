@@ -53,12 +53,14 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
         .parent()
         .expect("No parent directory found");
 
+    let rust_flags = std::env::var("RUSTFLAGS").unwrap_or_else(|_| "".to_string());
     let command_to_pass_to_podman = format!(
         "{}",
         [
             format!("rustc --version"),
             format!(
-                "RUSTFLAGS=\"-D warnings\" wasm-pack test --headless --chrome {}",
+                "RUSTFLAGS=\"{}\" wasm-pack test --headless --chrome {}",
+                rust_flags,
                 directory.to_str().unwrap()
             ),
         ]
