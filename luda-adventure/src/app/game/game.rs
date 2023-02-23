@@ -52,7 +52,7 @@ impl Game {
         self.image_loader.update(event);
         self.menu.update(event);
         self.save_load
-            .update(event, &mut self.ecs_app, &mut self.state);
+            .update(event, &mut self.ecs_app, &mut self.state, &self.map_loader);
     }
 
     pub fn render(&self) -> namui::RenderingTree {

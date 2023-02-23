@@ -1,4 +1,4 @@
-use super::GameState;
+use super::{GameState, MapLoader};
 use crate::ecs;
 use namui::{file::local_storage, simple_error_impl, spawn_local, Time, TimeExt};
 use serde::{Deserialize, Serialize};
@@ -25,8 +25,9 @@ impl SaveLoad {
         event: &namui::Event,
         ecs_app: &mut ecs::App,
         game_state: &mut GameState,
+        map_loader: &MapLoader,
     ) {
-        self.try_auto_save(ecs_app, game_state);
+        self.try_auto_save(ecs_app, game_state, map_loader);
 
         event.is::<InternalEvent>(|event| match event {
             InternalEvent::Saved | InternalEvent::Loaded => {
@@ -39,10 +40,10 @@ impl SaveLoad {
             InternalEvent::Failed(error) => self.state = SaveLoadState::Failed(error.clone()),
             InternalEvent::AutoSaveOnRequested => {
                 self.auto_save = true;
-                let _ = self.save(ecs_app, game_state);
+                let _ = self.save(ecs_app, game_state, map_loader);
             }
             InternalEvent::SaveRequested => {
-                let _ = self.save(ecs_app, game_state);
+                let _ = self.save(ecs_app, game_state, map_loader);
             }
             InternalEvent::LoadRequested => {
                 let _ = self.load();
@@ -54,7 +55,11 @@ impl SaveLoad {
         &mut self,
         ecs_app: &ecs::App,
         game_state: &GameState,
+        map_loader: &MapLoader,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        if !map_loader.loaded() {
+            return Err(SaveLoadError::Busy.into());
+        }
         let serialized_game_state = ron::to_string(&game_state).unwrap();
         let serialized_ecs_app = ecs_app.save();
         let serialized_game = SerializedGame {
@@ -123,12 +128,17 @@ impl SaveLoad {
         namui::event::send(InternalEvent::Loaded);
     }
 
-    fn try_auto_save(&mut self, ecs_app: &mut ecs::App, game_state: &mut GameState) {
+    fn try_auto_save(
+        &mut self,
+        ecs_app: &mut ecs::App,
+        game_state: &mut GameState,
+        map_loader: &MapLoader,
+    ) {
         if self.auto_save
             && (self.last_autosave_time + AUTOSAVE_MINIMUM_TERM <= game_state.tick.current_time)
         {
             self.last_autosave_time = game_state.tick.current_time;
-            let _ = self.save(ecs_app, game_state);
+            let _ = self.save(ecs_app, game_state, map_loader);
         }
     }
 
