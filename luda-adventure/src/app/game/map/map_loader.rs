@@ -41,7 +41,6 @@ impl MapLoader {
                     map_name,
                     player_xy,
                 } => {
-                    namui::log!("asd");
                     let _ = self.start_load(map_name.clone(), player_xy.clone());
                 }
             })
