@@ -1,4 +1,3 @@
-use super::menu;
 use namui::prelude::*;
 use std::sync::{Arc, Mutex};
 
@@ -24,13 +23,10 @@ impl ImageLoader {
     }
 
     pub fn update(&mut self, event: &namui::Event) {
-        event
-            .is::<InternalEvent>(|event| match event {
-                InternalEvent::ImageLoaded => self.on_image_loaded(),
-            })
-            .is::<menu::Event>(|event| match event {
-                menu::Event::StartNewButtonClicked => self.start_load_all_images(),
-            });
+        event.is::<InternalEvent>(|event| match event {
+            InternalEvent::ImageLoaded => self.on_image_loaded(),
+            InternalEvent::LoadRequested => self.start_load_all_images(),
+        });
     }
 
     fn start_load_all_images(&mut self) {
@@ -66,10 +62,15 @@ impl ImageLoader {
             self.image_loader_state = ImageLoaderState::Loaded;
         }
     }
+
+    pub fn request_load() {
+        namui::event::send(InternalEvent::LoadRequested);
+    }
 }
 
 enum InternalEvent {
     ImageLoaded,
+    LoadRequested,
 }
 
 fn get_image_urls() -> Result<Vec<Url>, Box<dyn std::error::Error>> {

@@ -7,6 +7,7 @@ pub struct Game {
     pub map_loader: MapLoader,
     image_loader: ImageLoader,
     menu: Menu,
+    save_load: SaveLoad,
 }
 impl Game {
     pub fn new_with_mock() -> Self {
@@ -22,6 +23,7 @@ impl Game {
             map_loader: MapLoader::new(),
             image_loader: ImageLoader::new(),
             menu: Menu::new(),
+            save_load: SaveLoad::new(),
         }
     }
     pub fn new() -> Self {
@@ -31,11 +33,12 @@ impl Game {
             map_loader: MapLoader::new(),
             image_loader: ImageLoader::new(),
             menu: Menu::new(),
+            save_load: SaveLoad::new(),
         }
     }
 
     pub fn update(&mut self, event: &namui::Event) {
-        self.state.tick.current_time = now();
+        self.state.tick.current_time = now() + self.state.tick.time_offset;
         self.handle_interaction(event);
         self.set_character_movement_according_to_user_input(event);
 
@@ -48,6 +51,8 @@ impl Game {
         self.map_loader.update(event, &mut self.ecs_app);
         self.image_loader.update(event);
         self.menu.update(event);
+        self.save_load
+            .update(event, &mut self.ecs_app, &mut self.state, &self.map_loader);
     }
 
     pub fn render(&self) -> namui::RenderingTree {

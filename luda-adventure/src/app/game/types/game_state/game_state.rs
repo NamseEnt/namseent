@@ -1,5 +1,7 @@
 use super::{CameraState, QuestState, TickState};
+use serde::{Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize)]
 pub struct GameState {
     pub quest: QuestState,
     pub tick: TickState,

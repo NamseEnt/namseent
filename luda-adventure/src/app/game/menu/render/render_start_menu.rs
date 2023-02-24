@@ -1,11 +1,13 @@
-use crate::app::game::menu;
-use namui::{px, render, Color, MouseButton, Px, PxExt, RenderingTree, Wh};
+use crate::app::game::{menu, save_load, ImageLoader, MapLoader, TileExt};
+use menu::Menu;
+use namui::prelude::*;
 use namui_prebuilt::{
     button::text_button_fit,
     simple_rect,
     table::{self, TableCell},
     typography,
 };
+use save_load::SaveLoad;
 
 const BUTTON_TEXT_COLOR: Color = Color::WHITE;
 const BUTTON_FILL_COLOR: Color = Color::GREEN;
@@ -58,7 +60,13 @@ fn render_start_new_button<'a>(height: Px) -> table::TableCell<'a> {
             BUTTON_FILL_COLOR,
             BUTTON_PADDING,
             [MouseButton::Left],
-            |_| namui::event::send(menu::Event::StartNewButtonClicked),
+            |_| {
+                ImageLoader::request_load();
+                MapLoader::request_laod("first".to_string(), Xy::new(8.tile(), 6.tile()));
+                SaveLoad::request_auto_save_on();
+                Menu::request_close();
+                Menu::request_change_tab(menu::Tab::InGame);
+            },
         )
         .with_mouse_cursor(namui::MouseCursor::Pointer),
     )
