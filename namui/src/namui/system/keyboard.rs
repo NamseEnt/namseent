@@ -115,3 +115,13 @@ pub(crate) fn record_key_down(code: Code) {
     let mut pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.write().unwrap();
     pressing_code_set.insert(code);
 }
+
+pub fn shift_press() -> bool {
+    any_code_press([Code::ShiftLeft, Code::ShiftRight])
+}
+pub fn ctrl_press() -> bool {
+    any_code_press([Code::ControlLeft, Code::ControlRight])
+}
+pub fn alt_press() -> bool {
+    any_code_press([Code::AltLeft, Code::AltRight])
+}
