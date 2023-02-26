@@ -309,8 +309,12 @@ impl RenderingTree {
                     button: raw_mouse_event.button,
                     target: node,
                     root: self,
+                    event_type: mouse_event_type,
                     is_stop_propagation: Arc::new(AtomicBool::new(false)),
                 };
+                if let Some(on_mouse) = &attach_event.on_mouse {
+                    on_mouse(&mouse_event);
+                }
                 match is_mouse_in {
                     true => {
                         if let Some(in_func) = in_func {

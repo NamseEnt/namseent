@@ -40,12 +40,12 @@ impl Canvas {
                 CanvasEvent::DragStarted(drag_state) => {
                     self.canvas_drag_state = drag_state.clone();
                 }
-                _ => (),
-            })
-            .is::<NamuiEvent>(|event| match &event {
-                NamuiEvent::MouseUp(_) => {
+                CanvasEvent::DragEnded => {
                     self.canvas_drag_state = CanvasDragState::None;
                 }
+                _ => {}
+            })
+            .is::<NamuiEvent>(|event| match &event {
                 NamuiEvent::KeyDown(event) => match event.code {
                     namui::Code::Digit1 | namui::Code::KeyH => {
                         self.change_tool(ToolType::Hand);
@@ -103,7 +103,8 @@ impl Canvas {
                     .on_wheel(move |event| {
                         let mouse_position = namui::mouse::position();
                         let canvas_xy = event
-                            .root.get_xy_of_child(event.target)
+                            .root
+                            .get_xy_of_child(event.target)
                             .expect("failed to get canvas xy");
                         let local_mouse_position = mouse_position - canvas_xy;
                         let is_mouse_in_canvas = !(local_mouse_position.x < px(0.0)
@@ -205,6 +206,11 @@ impl Canvas {
                             _ => (),
                         }
                         namui::event::send(CanvasEvent::MouseMoveInCanvas(local_xy_on_image))
+                    })
+                    .on_mouse(|event| {
+                        if event.event_type == MouseEventType::Up {
+                            namui::event::send(CanvasEvent::DragEnded);
+                        }
                     });
             }),
             clip(

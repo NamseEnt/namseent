@@ -31,6 +31,9 @@ impl WysiwygWindow {
                             mouse_local_xy: event.local_xy,
                         });
                     })
+                    .on_mouse(|_| {
+                        namui::event::send(super::Event::MouseUp);
+                    })
                     .on_wheel(move |event| {
                         let mouse_global_xy = namui::mouse::position();
                         let row_xy = event

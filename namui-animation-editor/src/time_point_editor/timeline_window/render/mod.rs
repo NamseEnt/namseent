@@ -65,6 +65,11 @@ impl TimelineWindow {
                             namui::event::send(Event::TimelineMouseMoveIn {
                                 mouse_local_xy: event.local_xy,
                             })
+                        })
+                        .on_mouse(|event| {
+                            if event.event_type == MouseEventType::Up {
+                                namui::event::send(Event::MouseUp);
+                            }
                         });
 
                     let selected_layer_id = props.selected_layer_id.clone();

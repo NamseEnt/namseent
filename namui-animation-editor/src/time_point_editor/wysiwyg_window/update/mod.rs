@@ -106,9 +106,7 @@ impl WysiwygWindow {
                         }
                     }
                 }
-            })
-            .is::<NamuiEvent>(|event| match event {
-                NamuiEvent::MouseUp(_) => {
+                Event::MouseUp => {
                     match &self.dragging {
                         Some(dragging) => match dragging {
                             Dragging::ImageBody { ticket }
@@ -122,6 +120,8 @@ impl WysiwygWindow {
                     };
                     self.dragging = None;
                 }
+            })
+            .is::<NamuiEvent>(|event| match event {
                 NamuiEvent::KeyDown(event) => {
                     if let Some(wh) = self.last_wh {
                         if event.code == Code::Home {

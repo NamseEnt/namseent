@@ -9,6 +9,10 @@ pub struct Tool {
     current_tool_type: ToolType,
     secondary_tool_type: Option<ToolType>,
 }
+
+enum InternalEvent {
+    MouseMove { global_xy: Xy<Px> },
+}
 impl Tool {
     pub fn new() -> Self {
         Self {
@@ -33,13 +37,21 @@ impl Tool {
                 ToolType::Zoom => render_zoom_icon(),
             },
         )
+        .attach_event(|build| {
+            build.on_mouse(|event| {
+                if event.event_type == MouseEventType::Move {
+                    namui::event::send(InternalEvent::MouseMove {
+                        global_xy: event.global_xy,
+                    });
+                }
+            });
+        })
     }
 
     pub fn update(&mut self, event: &namui::Event) {
-        event.is::<NamuiEvent>(|event| {
+        event.is::<InternalEvent>(|event| {
             match event {
-                NamuiEvent::MouseMove(event) => self.last_cursor_position = event.xy.clone(),
-                _ => (),
+                &InternalEvent::MouseMove { global_xy } => self.last_cursor_position = global_xy,
             };
         });
     }
