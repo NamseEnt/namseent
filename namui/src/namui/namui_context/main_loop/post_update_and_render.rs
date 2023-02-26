@@ -55,6 +55,10 @@ impl NamuiContext {
                 self.rendering_tree
                     .call_keyboard_event(raw_keyboard_event, &self, DownUp::Up);
             }
+            NamuiEvent::FileDrop(raw_file_drop_event) => {
+                self.rendering_tree
+                    .call_file_drop_event(raw_file_drop_event, &self);
+            }
             NamuiEvent::ScreenResize(_) | NamuiEvent::DeepLinkOpened(_) => {}
         });
         let now = crate::now();

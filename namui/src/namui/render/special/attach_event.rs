@@ -32,6 +32,8 @@ pub struct AttachEventNode {
     pub on_key_down: Option<KeyboardEventCallback>,
     #[serde(skip_serializing)]
     pub on_key_up: Option<KeyboardEventCallback>,
+    #[serde(skip_serializing)]
+    pub on_file_drop: Option<FileDropEventCallback>,
 }
 
 pub struct MouseEvent<'a> {
@@ -74,9 +76,19 @@ pub struct KeyboardEvent<'a> {
     pub code: Code,
     pub pressing_codes: HashSet<Code>,
 }
+pub struct FileDropEvent<'a> {
+    pub namui_context: &'a NamuiContext,
+    pub target: &'a RenderingTree,
+    pub local_xy: Xy<Px>,
+    pub global_xy: Xy<Px>,
+    pub files: Vec<File>,
+    pub(crate) is_stop_propagation: Arc<AtomicBool>,
+}
+
 pub type MouseEventCallback = Arc<dyn Fn(&MouseEvent)>;
 pub type WheelEventCallback = Arc<dyn Fn(&WheelEvent)>;
 pub type KeyboardEventCallback = Arc<dyn Fn(&KeyboardEvent)>;
+pub type FileDropEventCallback = Arc<dyn Fn(&FileDropEvent)>;
 
 impl std::fmt::Debug for AttachEventNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -106,6 +118,7 @@ pub struct AttachEventBuilder {
     pub(crate) on_wheel: Option<WheelEventCallback>,
     pub(crate) on_key_down: Option<KeyboardEventCallback>,
     pub(crate) on_key_up: Option<KeyboardEventCallback>,
+    pub(crate) on_file_drop: Option<FileDropEventCallback>,
 }
 
 impl RenderingTree {
@@ -128,6 +141,7 @@ impl RenderingTree {
             on_wheel: builder.on_wheel,
             on_key_down: builder.on_key_down,
             on_key_up: builder.on_key_up,
+            on_file_drop: builder.on_file_drop,
         }))
     }
 }
@@ -190,6 +204,11 @@ impl AttachEventBuilder {
 
     pub fn on_key_up(&mut self, on_key_up: impl Fn(&KeyboardEvent) + 'static) -> &mut Self {
         self.on_key_up = Some(Arc::new(on_key_up));
+        self
+    }
+
+    pub fn on_file_drop(&mut self, on_file_drop: impl Fn(&FileDropEvent) + 'static) -> &mut Self {
+        self.on_file_drop = Some(Arc::new(on_file_drop));
         self
     }
 }

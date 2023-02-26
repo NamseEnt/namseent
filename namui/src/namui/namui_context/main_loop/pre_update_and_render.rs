@@ -18,7 +18,8 @@ impl NamuiContext {
             | NamuiEvent::KeyDown(_)
             | NamuiEvent::KeyUp(_)
             | NamuiEvent::Wheel(_)
-            | NamuiEvent::DeepLinkOpened(_) => {}
+            | NamuiEvent::DeepLinkOpened(_)
+            | NamuiEvent::FileDrop(_) => {}
         });
     }
 }

@@ -1,8 +1,9 @@
 mod bounding_box;
 mod visit;
 
+use self::visit::VisitUtils;
 use super::*;
-use crate::namui::*;
+use crate::{drag_and_drop::RawFileDropEvent, namui::*};
 use serde::Serialize;
 use std::{
     ops::ControlFlow,
@@ -219,11 +220,9 @@ impl RenderingTree {
         });
         result
     }
-    pub(crate) fn call_mouse_event(
+    fn call_event_of_screen(
         &self,
-        mouse_event_type: MouseEventType,
-        raw_mouse_event: &RawMouseEvent,
-        namui_context: &NamuiContext,
+        callback: impl Fn(CallEventOfScreenParam) -> CallEventOfScreenResult,
     ) {
         let mut is_stop_propagation = false;
 
@@ -237,75 +236,143 @@ impl RenderingTree {
             }
 
             self.visit_rln(|node, utils| {
-                if let RenderingTree::Special(special) = node {
-                    if let SpecialRenderingNode::AttachEvent(attach_event) = special {
-                        let is_on_right_layer = {
-                            let has_top_ancestor = utils.ancestors.iter().any(|ancestor| {
-                                if let RenderingTree::Special(SpecialRenderingNode::OnTop(_)) =
-                                    ancestor
-                                {
-                                    return true;
-                                }
-                                false
-                            });
+                let RenderingTree::Special(special) = node else {
+                    return ControlFlow::Continue(());
+                };
 
-                            match layer {
-                                Layer::Top => has_top_ancestor,
-                                Layer::Down => !has_top_ancestor,
-                            }
-                        };
-                        if !is_on_right_layer {
-                            return ControlFlow::Continue(());
+                let SpecialRenderingNode::AttachEvent(attach_event) = special else {
+                    return ControlFlow::Continue(());
+                };
+                let is_on_right_layer = {
+                    let has_top_ancestor = utils.ancestors.iter().any(|ancestor| {
+                        if let RenderingTree::Special(SpecialRenderingNode::OnTop(_)) = ancestor {
+                            return true;
                         }
+                        false
+                    });
 
-                        let (in_func, out_func) = match mouse_event_type {
-                            MouseEventType::Move => (
-                                &attach_event.on_mouse_move_in,
-                                &attach_event.on_mouse_move_out,
-                            ),
-                            MouseEventType::Down => (
-                                &attach_event.on_mouse_down_in,
-                                &attach_event.on_mouse_down_out,
-                            ),
-                            MouseEventType::Up => {
-                                (&attach_event.on_mouse_up_in, &attach_event.on_mouse_up_out)
-                            }
-                        };
-                        if in_func.is_some() || out_func.is_some() {
-                            let is_mouse_in = utils.is_xy_in(raw_mouse_event.xy);
-                            let mouse_event = MouseEvent {
-                                id: raw_mouse_event.id.clone(),
-                                global_xy: raw_mouse_event.xy,
-                                local_xy: utils.to_local_xy(raw_mouse_event.xy),
-                                pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
-                                button: raw_mouse_event.button,
-                                target: node,
-                                namui_context,
-                                is_stop_propagation: Arc::new(AtomicBool::new(false)),
-                            };
-                            match is_mouse_in {
-                                true => {
-                                    if let Some(in_func) = in_func {
-                                        in_func(&mouse_event);
-                                    }
-                                }
-                                false => {
-                                    if let Some(out_func) = out_func {
-                                        out_func(&mouse_event);
-                                    }
-                                }
-                            }
-
-                            if mouse_event.is_stop_propagation.load(Ordering::Relaxed) {
-                                is_stop_propagation = true;
-                                return ControlFlow::Break(());
-                            }
-                        }
+                    match layer {
+                        Layer::Top => has_top_ancestor,
+                        Layer::Down => !has_top_ancestor,
                     }
+                };
+                if !is_on_right_layer {
+                    return ControlFlow::Continue(());
                 }
+
+                let result = callback(CallEventOfScreenParam {
+                    attach_event,
+                    utils,
+                    node,
+                });
+                if result.is_stop_propagation {
+                    is_stop_propagation = true;
+                    return ControlFlow::Break(());
+                }
+
                 ControlFlow::Continue(())
             });
         }
+    }
+
+    pub(crate) fn call_mouse_event(
+        &self,
+        mouse_event_type: MouseEventType,
+        raw_mouse_event: &RawMouseEvent,
+        namui_context: &NamuiContext,
+    ) {
+        self.call_event_of_screen(
+            |CallEventOfScreenParam {
+                 attach_event,
+                 node,
+                 utils,
+             }| {
+                let (in_func, out_func) = match mouse_event_type {
+                    MouseEventType::Move => (
+                        &attach_event.on_mouse_move_in,
+                        &attach_event.on_mouse_move_out,
+                    ),
+                    MouseEventType::Down => (
+                        &attach_event.on_mouse_down_in,
+                        &attach_event.on_mouse_down_out,
+                    ),
+                    MouseEventType::Up => {
+                        (&attach_event.on_mouse_up_in, &attach_event.on_mouse_up_out)
+                    }
+                };
+                if in_func.is_none() && out_func.is_none() {
+                    return CallEventOfScreenResult {
+                        is_stop_propagation: false,
+                    };
+                }
+                let is_mouse_in = utils.is_xy_in(raw_mouse_event.xy);
+                let mouse_event = MouseEvent {
+                    id: raw_mouse_event.id.clone(),
+                    global_xy: raw_mouse_event.xy,
+                    local_xy: utils.to_local_xy(raw_mouse_event.xy),
+                    pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
+                    button: raw_mouse_event.button,
+                    target: node,
+                    namui_context,
+                    is_stop_propagation: Arc::new(AtomicBool::new(false)),
+                };
+                match is_mouse_in {
+                    true => {
+                        if let Some(in_func) = in_func {
+                            in_func(&mouse_event);
+                        }
+                    }
+                    false => {
+                        if let Some(out_func) = out_func {
+                            out_func(&mouse_event);
+                        }
+                    }
+                }
+
+                return CallEventOfScreenResult {
+                    is_stop_propagation: mouse_event.is_stop_propagation.load(Ordering::Relaxed),
+                };
+            },
+        );
+    }
+    pub(crate) fn call_file_drop_event(
+        &self,
+        file_drop_event: &RawFileDropEvent,
+        namui_context: &NamuiContext,
+    ) {
+        self.call_event_of_screen(
+            |CallEventOfScreenParam {
+                 attach_event,
+                 node,
+                 utils,
+             }| {
+                let Some(on_file_drop) = &attach_event.on_file_drop else {
+                    return CallEventOfScreenResult {
+                        is_stop_propagation: false,
+                    };
+                };
+                let is_mouse_in = utils.is_xy_in(file_drop_event.global_xy);
+                if !is_mouse_in {
+                    return CallEventOfScreenResult {
+                        is_stop_propagation: false,
+                    };
+                }
+
+                let event = FileDropEvent {
+                    namui_context,
+                    target: node,
+                    global_xy: file_drop_event.global_xy,
+                    local_xy: utils.to_local_xy(file_drop_event.global_xy),
+                    files: file_drop_event.files.clone(),
+                    is_stop_propagation: Arc::new(AtomicBool::new(false)),
+                };
+                on_file_drop(&event);
+
+                return CallEventOfScreenResult {
+                    is_stop_propagation: event.is_stop_propagation.load(Ordering::Relaxed),
+                };
+            },
+        );
     }
     pub(crate) fn get_xy_by_id(&self, id: crate::Uuid) -> Option<Xy<Px>> {
         let mut result = None;
@@ -353,6 +420,14 @@ impl RenderingData {
 pub(crate) enum DownUp {
     Down,
     Up,
+}
+struct CallEventOfScreenParam<'a> {
+    node: &'a RenderingTree,
+    attach_event: &'a AttachEventNode,
+    utils: VisitUtils<'a>,
+}
+struct CallEventOfScreenResult {
+    is_stop_propagation: bool,
 }
 
 // NOTE: I will uncomment this when wasm_bindgen_test support init canvas_kit

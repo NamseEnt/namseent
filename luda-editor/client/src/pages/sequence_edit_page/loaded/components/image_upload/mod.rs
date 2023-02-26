@@ -1,6 +1,6 @@
 mod upload_images;
 
-use namui::file::picker::File;
+use namui::prelude::*;
 use rpc::data::*;
 use rpc::utils::retry_on_error;
 pub use upload_images::*;
