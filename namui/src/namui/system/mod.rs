@@ -1,6 +1,7 @@
 pub mod cache;
 pub mod clipboard;
 pub mod deep_link;
+pub mod drag_and_drop;
 pub mod file;
 pub mod font;
 pub(crate) mod graphics;
@@ -39,6 +40,7 @@ pub(crate) async fn init() -> InitResult {
         typeface::init(),
         wheel::init(),
         deep_link::init(),
+        drag_and_drop::init(),
     )?;
 
     Ok(())

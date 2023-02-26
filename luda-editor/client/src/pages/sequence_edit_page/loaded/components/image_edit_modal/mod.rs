@@ -1,7 +1,7 @@
 mod render;
 mod update;
 
-use namui::{file::picker::File, prelude::*};
+use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::Label;
 

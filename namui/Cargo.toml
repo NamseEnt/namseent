@@ -76,4 +76,8 @@ features = [
     "ImageBitmap",
     "WritableStream",
     "WritableStreamDefaultWriter",
+    "DragEvent",
+    "DataTransfer",
+    "DataTransferItemList",
+    "DataTransferItem",
 ]

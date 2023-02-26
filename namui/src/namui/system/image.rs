@@ -1,5 +1,5 @@
 use super::*;
-use crate::{file::picker::File, namui::skia::canvas_kit, time::delay, Image};
+use crate::{namui::skia::canvas_kit, time::delay, File, Image};
 use dashmap::DashMap;
 use namui_type::Time;
 use std::{
@@ -124,7 +124,7 @@ pub async fn new_image_from_u8(data: &[u8]) -> Result<Arc<Image>, Box<dyn std::e
     Ok(Arc::new(image))
 }
 
-pub(crate) fn try_load_file(file: &file::picker::File) -> Option<Arc<Image>> {
+pub(crate) fn try_load_file(file: &File) -> Option<Arc<Image>> {
     if let Some(image) = IMAGE_SYSTEM.image_file_map.get(file) {
         return Some(image.clone());
     };
