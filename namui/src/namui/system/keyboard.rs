@@ -34,8 +34,14 @@ impl KeyboardSystem {
                     move |event: web_sys::KeyboardEvent| {
                         let code = Code::from_str(&event.code()).unwrap();
                         record_key_down(code);
-
-                        event.prevent_default();
+                        
+                        let is_dev_tool_open_called = any_code_press([Code::F12])
+                            || (ctrl_press() && shift_press() && any_code_press([Code::KeyI]));
+                        let is_refresh_called = any_code_press([Code::F5])
+                            || (ctrl_press() && any_code_press([Code::KeyR]));
+                        if !is_dev_tool_open_called && !is_refresh_called {
+                            event.prevent_default();
+                        }
 
                         crate::event::send(crate::NamuiEvent::KeyDown(crate::RawKeyboardEvent {
                             id: crate::uuid(),
