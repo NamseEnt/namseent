@@ -42,6 +42,9 @@ enum InternalEvent {
         global_xy: Xy<Px>,
     },
     MouseDownContainer,
+    MouseUp {
+        global_xy: Xy<Px>,
+    },
 }
 
 impl WysiwygEditor {

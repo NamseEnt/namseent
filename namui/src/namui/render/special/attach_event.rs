@@ -38,7 +38,7 @@ pub struct AttachEventNode {
 
 pub struct MouseEvent<'a> {
     pub id: crate::Uuid,
-    pub namui_context: &'a NamuiContext,
+    pub root: &'a RenderingTree,
     pub target: &'a RenderingTree,
     pub local_xy: Xy<Px>,
     pub global_xy: Xy<Px>,
@@ -58,7 +58,7 @@ pub enum MouseEventType {
 }
 pub struct WheelEvent<'a> {
     pub id: crate::Uuid,
-    pub namui_context: &'a NamuiContext,
+    pub root: &'a RenderingTree,
     pub target: &'a RenderingTree,
     /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
     pub delta_xy: Xy<f32>,
@@ -216,7 +216,7 @@ impl AttachEventBuilder {
 impl WheelEvent<'_> {
     pub fn is_mouse_in(&self) -> bool {
         let mut result = false;
-        self.namui_context.rendering_tree.visit_rln(|node, utils| {
+        self.root.visit_rln(|node, utils| {
             if std::ptr::eq(node, self.target) {
                 result = utils.is_xy_in(system::mouse::position());
                 ControlFlow::Break(())

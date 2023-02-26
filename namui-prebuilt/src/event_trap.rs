@@ -29,7 +29,7 @@ pub fn event_trap_mouse(content: RenderingTree) -> RenderingTree {
                 event.stop_propagation();
             })
             .on_wheel(|event| {
-                let xy = event.namui_context.get_rendering_tree_xy(event.target);
+                let xy = event.root.get_xy_of_child(event.target);
                 if let Some(xy) = xy {
                     if let Some(bounding_box) = event.target.get_bounding_box() {
                         let bounding_box = bounding_box + xy;

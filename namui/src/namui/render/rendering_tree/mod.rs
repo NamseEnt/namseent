@@ -149,11 +149,7 @@ impl RenderingTree {
             crate::graphics::surface().canvas().restore();
         }
     }
-    pub(crate) fn call_wheel_event(
-        &self,
-        raw_wheel_event: &RawWheelEvent,
-        namui_context: &NamuiContext,
-    ) {
+    pub(crate) fn call_wheel_event(&self, raw_wheel_event: &RawWheelEvent) {
         self.visit_rln(|node, _| {
             if let RenderingTree::Special(special) = node {
                 if let SpecialRenderingNode::AttachEvent(attach_event) = special {
@@ -164,7 +160,7 @@ impl RenderingTree {
                         on_wheel(&WheelEvent {
                             delta_xy: raw_wheel_event.delta_xy,
                             id: raw_wheel_event.id.clone(),
-                            namui_context,
+                            root: self,
                             target: node,
                             is_stop_propagation: is_stop_propagation.clone(),
                         });
@@ -279,7 +275,6 @@ impl RenderingTree {
         &self,
         mouse_event_type: MouseEventType,
         raw_mouse_event: &RawMouseEvent,
-        namui_context: &NamuiContext,
     ) {
         self.call_event_of_screen(
             |CallEventOfScreenParam {
@@ -313,7 +308,7 @@ impl RenderingTree {
                     pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
                     button: raw_mouse_event.button,
                     target: node,
-                    namui_context,
+                    root: self,
                     is_stop_propagation: Arc::new(AtomicBool::new(false)),
                 };
                 match is_mouse_in {
@@ -374,7 +369,7 @@ impl RenderingTree {
             },
         );
     }
-    pub(crate) fn get_xy_by_id(&self, id: crate::Uuid) -> Option<Xy<Px>> {
+    pub fn get_xy_by_id(&self, id: crate::Uuid) -> Option<Xy<Px>> {
         let mut result = None;
         self.visit_rln(|node, utils| {
             if let RenderingTree::Special(special) = node {
@@ -389,7 +384,7 @@ impl RenderingTree {
         });
         result
     }
-    pub(crate) fn get_xy_of_child(&self, child: &RenderingTree) -> Option<Xy<Px>> {
+    pub fn get_xy_of_child(&self, child: &RenderingTree) -> Option<Xy<Px>> {
         let mut result = None;
         self.visit_rln(|node, utils| {
             if std::ptr::eq(node, child) {

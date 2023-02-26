@@ -12,10 +12,7 @@ impl NamuiContext {
             NamuiEvent::ScreenResize(screen_size) => {
                 self.is_surface_resize_requested = Some(screen_size.clone());
             }
-            NamuiEvent::MouseDown(_)
-            | NamuiEvent::MouseUp(_)
-            | NamuiEvent::MouseMove(_)
-            | NamuiEvent::KeyDown(_)
+            NamuiEvent::KeyDown(_)
             | NamuiEvent::KeyUp(_)
             | NamuiEvent::Wheel(_)
             | NamuiEvent::DeepLinkOpened(_)

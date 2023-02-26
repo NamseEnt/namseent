@@ -4,6 +4,7 @@ use crate::namui::render::DownUp;
 impl NamuiContext {
     pub(super) fn post_update_and_render(&mut self, event: &Event) {
         system::text_input::post_render(&self.rendering_tree);
+        system::mouse::post_render(&self.rendering_tree);
 
         event.is::<NamuiEvent>(|event| match event {
             NamuiEvent::AnimationFrame => {
@@ -24,28 +25,8 @@ impl NamuiContext {
                     self.event_count = 0;
                 }
             }
-            NamuiEvent::MouseDown(raw_mouse_event) => {
-                crate::system::text_input::on_mouse_down_in_before_attach_event_calls();
-
-                self.rendering_tree
-                    .call_mouse_event(MouseEventType::Down, raw_mouse_event, &self);
-
-                crate::system::text_input::on_mouse_down_in_after_attach_event_calls();
-            }
-            NamuiEvent::MouseUp(raw_mouse_event) => {
-                crate::system::text_input::on_mouse_up_in();
-
-                self.rendering_tree
-                    .call_mouse_event(MouseEventType::Up, raw_mouse_event, &self);
-            }
-            NamuiEvent::MouseMove(raw_mouse_event) => {
-                crate::system::text_input::on_mouse_move(&self, &raw_mouse_event);
-
-                self.rendering_tree
-                    .call_mouse_event(MouseEventType::Move, raw_mouse_event, &self);
-            }
             NamuiEvent::Wheel(raw_wheel_event) => {
-                self.rendering_tree.call_wheel_event(raw_wheel_event, &self);
+                self.rendering_tree.call_wheel_event(raw_wheel_event);
             }
             NamuiEvent::KeyDown(raw_keyboard_event) => {
                 self.rendering_tree

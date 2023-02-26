@@ -103,8 +103,7 @@ impl Canvas {
                     .on_wheel(move |event| {
                         let mouse_position = namui::mouse::position();
                         let canvas_xy = event
-                            .namui_context
-                            .get_rendering_tree_xy(event.target)
+                            .root.get_xy_of_child(event.target)
                             .expect("failed to get canvas xy");
                         let local_mouse_position = mouse_position - canvas_xy;
                         let is_mouse_in_canvas = !(local_mouse_position.x < px(0.0)

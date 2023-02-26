@@ -75,10 +75,7 @@ impl TimelineWindow {
                         let layer_id = layer.id.clone();
 
                         builder.on_mouse_down_in(move |event| {
-                            let window_global_xy = event
-                                .namui_context
-                                .get_rendering_tree_xy_by_id(window_id)
-                                .unwrap();
+                            let window_global_xy = event.root.get_xy_by_id(window_id).unwrap();
 
                             namui::event::send(Event::KeyframeMouseDown {
                                 layer_id,

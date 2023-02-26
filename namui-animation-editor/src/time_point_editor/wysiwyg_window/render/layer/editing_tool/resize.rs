@@ -91,10 +91,7 @@ impl WysiwygWindow {
                         .attach_event(|builder| {
                             let window_id = self.window_id.clone();
                             builder.on_mouse_down_in(move |event| {
-                                let window_global_xy = event
-                                    .namui_context
-                                    .get_rendering_tree_xy_by_id(window_id)
-                                    .unwrap();
+                                let window_global_xy = event.root.get_xy_by_id(window_id).unwrap();
                                 let anchor_xy = event.global_xy - window_global_xy;
 
                                 namui::event::send(Event::ResizeCircleMouseDown {

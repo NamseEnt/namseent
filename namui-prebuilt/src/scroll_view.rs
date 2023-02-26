@@ -104,10 +104,7 @@ impl ScrollView {
             let button_id = button_id.clone();
             builder.on_wheel(move |event| {
                 let mouse_position = namui::mouse::position();
-                let whole_rect_xy = event
-                    .namui_context
-                    .get_rendering_tree_xy(event.target)
-                    .unwrap();
+                let whole_rect_xy = event.root.get_xy_of_child(event.target).unwrap();
 
                 let is_mouse_in = mouse_position.x >= whole_rect_xy.x
                     && mouse_position.x <= whole_rect_xy.x + width
