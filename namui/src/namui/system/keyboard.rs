@@ -34,7 +34,7 @@ impl KeyboardSystem {
                     move |event: web_sys::KeyboardEvent| {
                         let code = Code::from_str(&event.code()).unwrap();
                         record_key_down(code);
-                        
+
                         let is_dev_tool_open_called = any_code_press([Code::F12])
                             || (ctrl_press() && shift_press() && any_code_press([Code::KeyI]));
                         let is_refresh_called = any_code_press([Code::F5])
