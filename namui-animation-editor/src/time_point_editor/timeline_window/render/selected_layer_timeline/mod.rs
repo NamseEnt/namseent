@@ -28,10 +28,7 @@ impl TimelineWindow {
             let window_wh = props.wh;
             builder.on_mouse_down_out(move |event| {
                 if event.button == Some(MouseButton::Left) {
-                    let window_global_xy = event
-                        .namui_context
-                        .get_rendering_tree_xy_by_id(window_id)
-                        .unwrap();
+                    let window_global_xy = event.root.get_xy_by_id(window_id).unwrap();
 
                     let window_rect = Rect::from_xy_wh(window_global_xy, window_wh);
 

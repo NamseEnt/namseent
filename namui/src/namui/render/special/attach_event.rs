@@ -27,6 +27,8 @@ pub struct AttachEventNode {
     #[serde(skip_serializing)]
     pub on_mouse_up_out: Option<MouseEventCallback>,
     #[serde(skip_serializing)]
+    pub on_mouse: Option<MouseEventCallback>,
+    #[serde(skip_serializing)]
     pub on_wheel: Option<WheelEventCallback>,
     #[serde(skip_serializing)]
     pub on_key_down: Option<KeyboardEventCallback>,
@@ -38,12 +40,13 @@ pub struct AttachEventNode {
 
 pub struct MouseEvent<'a> {
     pub id: crate::Uuid,
-    pub namui_context: &'a NamuiContext,
+    pub root: &'a RenderingTree,
     pub target: &'a RenderingTree,
     pub local_xy: Xy<Px>,
     pub global_xy: Xy<Px>,
     pub pressing_buttons: HashSet<MouseButton>,
     pub button: Option<MouseButton>,
+    pub event_type: MouseEventType,
     pub(crate) is_stop_propagation: Arc<AtomicBool>,
 }
 impl MouseEvent<'_> {
@@ -51,6 +54,7 @@ impl MouseEvent<'_> {
         self.is_stop_propagation.store(true, Ordering::Relaxed);
     }
 }
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum MouseEventType {
     Down,
     Up,
@@ -58,7 +62,7 @@ pub enum MouseEventType {
 }
 pub struct WheelEvent<'a> {
     pub id: crate::Uuid,
-    pub namui_context: &'a NamuiContext,
+    pub root: &'a RenderingTree,
     pub target: &'a RenderingTree,
     /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
     pub delta_xy: Xy<f32>,
@@ -99,6 +103,7 @@ impl std::fmt::Debug for AttachEventNode {
             .field("on_mouse_down_out", &self.on_mouse_down_out.is_some())
             .field("on_mouse_up_in", &self.on_mouse_up_in.is_some())
             .field("on_mouse_up_out", &self.on_mouse_up_out.is_some())
+            .field("on_mouse", &self.on_mouse.is_some())
             .field("on_wheel", &self.on_wheel.is_some())
             .field("on_key_down", &self.on_key_down.is_some())
             .field("on_key_up", &self.on_key_up.is_some())
@@ -110,11 +115,11 @@ impl std::fmt::Debug for AttachEventNode {
 pub struct AttachEventBuilder {
     pub(crate) on_mouse_move_in: Option<MouseEventCallback>,
     pub(crate) on_mouse_move_out: Option<MouseEventCallback>,
-    // onMouseIn?: () => void;
     pub(crate) on_mouse_down_in: Option<MouseEventCallback>,
     pub(crate) on_mouse_down_out: Option<MouseEventCallback>,
     pub(crate) on_mouse_up_in: Option<MouseEventCallback>,
     pub(crate) on_mouse_up_out: Option<MouseEventCallback>,
+    pub(crate) on_mouse: Option<MouseEventCallback>,
     pub(crate) on_wheel: Option<WheelEventCallback>,
     pub(crate) on_key_down: Option<KeyboardEventCallback>,
     pub(crate) on_key_up: Option<KeyboardEventCallback>,
@@ -138,6 +143,7 @@ impl RenderingTree {
             on_mouse_down_out: builder.on_mouse_down_out,
             on_mouse_up_in: builder.on_mouse_up_in,
             on_mouse_up_out: builder.on_mouse_up_out,
+            on_mouse: builder.on_mouse,
             on_wheel: builder.on_wheel,
             on_key_down: builder.on_key_down,
             on_key_up: builder.on_key_up,
@@ -192,6 +198,11 @@ impl AttachEventBuilder {
         self
     }
 
+    pub fn on_mouse(&mut self, on_mouse: impl Fn(&MouseEvent) + 'static) -> &mut Self {
+        self.on_mouse = Some(Arc::new(on_mouse));
+        self
+    }
+
     pub fn on_wheel(&mut self, on_wheel: impl Fn(&WheelEvent) + 'static) -> &mut Self {
         self.on_wheel = Some(Arc::new(on_wheel));
         self
@@ -216,7 +227,7 @@ impl AttachEventBuilder {
 impl WheelEvent<'_> {
     pub fn is_mouse_in(&self) -> bool {
         let mut result = false;
-        self.namui_context.rendering_tree.visit_rln(|node, utils| {
+        self.root.visit_rln(|node, utils| {
             if std::ptr::eq(node, self.target) {
                 result = utils.is_xy_in(system::mouse::position());
                 ControlFlow::Break(())

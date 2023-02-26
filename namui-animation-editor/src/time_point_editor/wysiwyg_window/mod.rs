@@ -96,4 +96,5 @@ enum Event {
         keyframe_point_id: namui::Uuid,
         layer_id: namui::Uuid,
     },
+    MouseUp,
 }

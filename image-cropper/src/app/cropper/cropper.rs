@@ -43,6 +43,20 @@ impl Cropper {
                     self.image_name.clone(),
                     self.selection_list.clone(),
                 ),
+                CropperEvent::MouseUp => {
+                    if let Some(job) = &self.job {
+                        match job {
+                            Job::RectSelectionResize(_) | Job::RectSelectionCreate(_) => {
+                                self.execute_job();
+                            }
+                            Job::PolySelectionCreate(job) => {
+                                if job.is_done() {
+                                    self.execute_job();
+                                }
+                            }
+                        }
+                    }
+                }
             })
             .is::<CanvasEvent>(|event| match *event {
                 CanvasEvent::LeftMouseDownInCanvas {
@@ -86,23 +100,6 @@ impl Cropper {
                 SelectionEvent::SelectionRightClicked { target_id } => {
                     self.remove_selection(target_id)
                 }
-            })
-            .is::<NamuiEvent>(|event| match &event {
-                NamuiEvent::MouseUp(_) => {
-                    if let Some(job) = &self.job {
-                        match job {
-                            Job::RectSelectionResize(_) | Job::RectSelectionCreate(_) => {
-                                self.execute_job();
-                            }
-                            Job::PolySelectionCreate(job) => {
-                                if job.is_done() {
-                                    self.execute_job();
-                                }
-                            }
-                        }
-                    }
-                }
-                _ => (),
             });
         self.canvas.update(event);
     }
@@ -134,6 +131,13 @@ impl Cropper {
                 }),
             ),
         ])
+        .attach_event(|build| {
+            build.on_mouse(|event| {
+                if event.event_type == MouseEventType::Up {
+                    namui::event::send(CropperEvent::MouseUp)
+                }
+            });
+        })
     }
 
     fn create_rect_selection_create_job(&mut self, position: Xy<Px>) {

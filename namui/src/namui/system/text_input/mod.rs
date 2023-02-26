@@ -5,8 +5,8 @@ mod post_render;
 mod selection;
 
 use super::InitResult;
+use crate::namui::render::text_input::*;
 use crate::namui::*;
-use crate::namui::{namui_context::NamuiContext, render::text_input::*};
 pub(crate) use find::*;
 pub(crate) use key_down::*;
 pub(crate) use mouse_event::*;

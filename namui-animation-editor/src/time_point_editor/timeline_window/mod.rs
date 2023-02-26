@@ -84,6 +84,7 @@ pub(super) enum Event {
         point_id: namui::Uuid,
         layer_id: namui::Uuid,
     },
+    MouseUp,
 }
 
 enum Dragging {

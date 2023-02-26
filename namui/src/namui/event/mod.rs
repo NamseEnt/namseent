@@ -1,6 +1,5 @@
 use crate::{
-    drag_and_drop::RawFileDropEvent, namui, DeepLinkOpenedEvent, RawKeyboardEvent, RawMouseEvent,
-    RawWheelEvent,
+    drag_and_drop::RawFileDropEvent, namui, DeepLinkOpenedEvent, RawKeyboardEvent, RawWheelEvent,
 };
 use once_cell::sync::OnceCell;
 use std::any::Any;
@@ -44,9 +43,6 @@ impl Event {
 #[derive(Debug)]
 pub enum NamuiEvent {
     AnimationFrame,
-    MouseDown(RawMouseEvent),
-    MouseUp(RawMouseEvent),
-    MouseMove(RawMouseEvent),
     KeyDown(RawKeyboardEvent),
     KeyUp(RawKeyboardEvent),
     ScreenResize(namui::Wh<i16>),

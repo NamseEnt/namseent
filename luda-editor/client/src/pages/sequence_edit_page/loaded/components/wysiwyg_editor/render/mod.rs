@@ -22,6 +22,16 @@ impl WysiwygEditor {
                         })
                         .on_mouse_down_in(|_event| {
                             namui::event::send(InternalEvent::MouseDownContainer);
+                        })
+                        .on_mouse_up_in(|event| {
+                            namui::event::send(InternalEvent::MouseUp {
+                                global_xy: event.global_xy,
+                            });
+                        })
+                        .on_mouse_up_out(|event| {
+                            namui::event::send(InternalEvent::MouseUp {
+                                global_xy: event.global_xy,
+                            });
                         });
                 },
             ),

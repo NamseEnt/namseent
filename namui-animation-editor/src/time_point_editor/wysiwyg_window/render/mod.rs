@@ -31,11 +31,14 @@ impl WysiwygWindow {
                             mouse_local_xy: event.local_xy,
                         });
                     })
+                    .on_mouse(|_| {
+                        namui::event::send(super::Event::MouseUp);
+                    })
                     .on_wheel(move |event| {
                         let mouse_global_xy = namui::mouse::position();
                         let row_xy = event
-                            .namui_context
-                            .get_rendering_tree_xy(event.target)
+                            .root
+                            .get_xy_of_child(event.target)
                             .expect("ERROR: fail to get rendering_tree_xy");
 
                         let mouse_local_xy = mouse_global_xy - row_xy;
