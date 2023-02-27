@@ -117,11 +117,17 @@ pub async fn new_image_from_u8(data: &[u8]) -> Result<Arc<Image>, Box<dyn std::e
     };
     let blob = web_sys::Blob::new_with_u8_array_sequence(&u8_array_sequence.into()).unwrap();
 
+    let image = blob_to_image(blob).await;
+
+    Ok(image)
+}
+
+pub(crate) async fn blob_to_image(blob: web_sys::Blob) -> Arc<Image> {
     let image_bitmap = create_image_bitmap(blob.into()).await;
 
     let image = canvas_kit().make_lazy_image_from_texture_source(image_bitmap, None, None);
 
-    Ok(Arc::new(image))
+    Arc::new(image)
 }
 
 pub(crate) fn try_load_file(file: &File) -> Option<Arc<Image>> {
