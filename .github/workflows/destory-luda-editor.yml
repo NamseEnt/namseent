@@ -1,6 +1,6 @@
 name: destroy-luda-editor
 on:
-  delete:
+  push:
     branches:
       - "**__le**"
 
@@ -24,6 +24,9 @@ jobs:
       - name: npm install in cdk
         working-directory: luda-editor/cdk
         run: npm ci
+
+      - name: temp build
+        run: echo "" > luda-editor/server/server-bin/target/lambda/server-bin/bootstrap.zip
 
       - name: bootstrap cdk
         working-directory: luda-editor/cdk
