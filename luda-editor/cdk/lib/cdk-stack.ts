@@ -62,6 +62,10 @@ export class CdkStack extends cdk.Stack {
                 name: "__sort_key__",
                 type: cdk.aws_dynamodb.AttributeType.STRING,
             },
+            removalPolicy:
+                process.env.BRANCH_NAME === "master"
+                    ? cdk.RemovalPolicy.RETAIN
+                    : cdk.RemovalPolicy.DESTROY,
         });
 
         const lambda = new cdk.aws_lambda.Function(this, "Server", {
