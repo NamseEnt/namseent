@@ -1,0 +1,48 @@
+name: destroy-luda-editor
+on:
+  delete:
+    branches:
+      - "**__le**"
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: ap-northeast-2
+
+jobs:
+  destroy-stacks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: "npm"
+          cache-dependency-path: "**/package-lock.json"
+
+      - name: npm install in cdk
+        working-directory: luda-editor/cdk
+        run: npm ci
+
+      - name: bootstrap cdk
+        working-directory: luda-editor/cdk
+        run: npx cdk bootstrap
+
+      - name: destroy stacks
+        working-directory: luda-editor/cdk
+        run: |
+          CDK_STACK_NAME=${{ env.STACK_NAME }} npx cdk destroy CdkStack \
+            --ci true \
+            --force \
+            --parameters lambdaFunctionName=${{ env.BRANCH_NAME }} \
+            --parameters serveStaticS3Bucket=luda-editor \
+            --parameters serveStaticS3KeyPrefix=${{ env.BRANCH_NAME }}/www \
+            --parameters githubClientId=abd04a6aeba3e99f5b4b \
+            --parameters githubClientSecret=501a915ca627e24d2088cf01416fe836db470dba \
+            --parameters s3BucketName=luda-editor \
+            --parameters s3KeyPrefix=${{ env.BRANCH_NAME }}
+
+      - name: deploy client to s3
+        working-directory: luda-editor/client
+        run: aws s3 rm s3://luda-editor/${{ env.BRANCH_NAME }}/www --recursive
