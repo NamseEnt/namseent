@@ -1,7 +1,8 @@
 use super::router::Router;
 use namui::prelude::*;
-use namui_prebuilt::*;
+use namui_prebuilt::{sheet::cell::image, *};
 use rpc::list_editable_projects::EditableProject;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct ProjectListPage {
@@ -9,6 +10,7 @@ pub struct ProjectListPage {
     project_list: Vec<EditableProject>,
     is_loading: bool,
     error_message: Option<String>,
+    image: Option<Arc<Image>>,
 }
 
 pub struct Props {
@@ -19,6 +21,7 @@ enum Event {
     AddButtonClicked,
     ProjectListLoaded(Vec<EditableProject>),
     Error(String),
+    ImageLoaded { image: std::sync::Arc<Image> },
 }
 
 impl ProjectListPage {
@@ -29,6 +32,7 @@ impl ProjectListPage {
             project_list: vec![],
             is_loading: true,
             error_message: None,
+            image: None,
         }
     }
     pub fn update(&mut self, event: &namui::Event) {
@@ -56,6 +60,9 @@ impl ProjectListPage {
                 namui::log!("error: {}", message);
                 self.error_message = Some(message.to_string());
             }
+            Event::ImageLoaded { image } => {
+                self.image = Some(image.clone());
+            }
         });
     }
     pub fn render(&self, props: Props) -> namui::RenderingTree {
@@ -67,7 +74,40 @@ impl ProjectListPage {
         }
         render([
             table::horizontal([
-                table::ratio(1.0, |_wh| RenderingTree::Empty),
+                table::ratio(1.0, |wh| {
+                    render([
+                        simple_rect(wh, Color::WHITE, 1.px(), Color::WHITE).attach_event(|build| {
+                            build.on_mouse_down_in(|_event| {
+                                namui::log!("mouse down in");
+                                spawn_local(async move {
+                                    let result = namui::clipboard::read_images().await;
+                                    namui::log!("clipboard result: {:?}", result);
+                                    let Ok(images) = result else {
+                                            return;
+                                    };
+                                    if images.is_empty() {
+                                        return;
+                                    }
+                                    namui::event::send(Event::ImageLoaded {
+                                        image: images.first().unwrap().clone(),
+                                    })
+                                })
+                            });
+                        }),
+                        if let Some(image) = &self.image {
+                            namui::image(ImageParam {
+                                rect: wh.to_rect(),
+                                source: ImageSource::Image(image.clone()),
+                                style: ImageStyle {
+                                    fit: ImageFit::Contain,
+                                    paint_builder: None,
+                                },
+                            })
+                        } else {
+                            render([])
+                        },
+                    ])
+                }),
                 table::ratio(
                     2.0,
                     table::vertical([
