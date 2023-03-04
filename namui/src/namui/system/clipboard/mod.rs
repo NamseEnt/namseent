@@ -1,5 +1,5 @@
 use crate::Image;
-use js_sys::{Array, Promise, Reflect};
+use js_sys::{Array, ArrayBuffer, Promise, Reflect, Uint8Array};
 use std::sync::Arc;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 use web_sys::Blob;
@@ -23,7 +23,34 @@ pub async fn write_text(text: impl AsRef<str>) -> Result<(), ()> {
 }
 
 pub async fn read_images() -> Result<Vec<Arc<Image>>, ()> {
-    let mut images = Vec::new();
+    let mut outputs = Vec::new();
+
+    for blob in read_image_blobs().await?.into_iter() {
+        let image = crate::system::image::blob_to_image(blob).await;
+        outputs.push(image);
+    }
+
+    Ok(outputs)
+}
+
+pub async fn read_image_buffers() -> Result<Vec<Vec<u8>>, ()> {
+    let mut outputs = Vec::new();
+
+    for blob in read_image_blobs().await?.into_iter() {
+        let array_buffer: ArrayBuffer = wasm_bindgen_futures::JsFuture::from(blob.array_buffer())
+            .await
+            .map_err(|_| ())?
+            .into();
+
+        let uint8array = Uint8Array::new(&array_buffer);
+        outputs.push(uint8array.to_vec());
+    }
+
+    Ok(outputs)
+}
+
+async fn read_image_blobs() -> Result<Vec<Blob>, ()> {
+    let mut outputs = Vec::new();
 
     let promise = read();
     let items: Array = wasm_bindgen_futures::JsFuture::from(promise)
@@ -47,11 +74,9 @@ pub async fn read_images() -> Result<Vec<Arc<Image>>, ()> {
                 .await
                 .map_err(|_| ())?
                 .into();
-
-            let image = crate::system::image::blob_to_image(blob).await;
-            images.push(image);
+            outputs.push(blob);
         }
     }
 
-    Ok(images)
+    Ok(outputs)
 }
