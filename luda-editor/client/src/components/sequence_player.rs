@@ -144,7 +144,6 @@ impl SequencePlayer {
     fn get_image_urls(&self, cut: &Cut) -> Vec<Url> {
         cut.screen_images
             .iter()
-            .filter_map(|screen_image| screen_image.as_ref())
             .map(|screen_image| {
                 get_project_image_url(self.project_shared_data.id(), screen_image.id).unwrap()
             })
@@ -158,7 +157,6 @@ impl SequencePlayer {
 
         let images = cut.screen_images.iter().filter_map(|screen_image| {
             Some(namui::try_render(|| {
-                let screen_image = screen_image.as_ref()?;
                 let url =
                     get_project_image_url(self.project_shared_data.id(), screen_image.id).unwrap();
                 let image = namui::image::try_load_url(&url)?;

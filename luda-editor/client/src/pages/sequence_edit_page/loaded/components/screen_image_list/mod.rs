@@ -19,9 +19,8 @@ pub fn render<'a, OnClick: Fn(usize, &MouseEvent) + 'static + Copy>(
         table::horizontal(props.cut.screen_images.iter().enumerate().map(
             |(index, screen_image)| {
                 table::ratio(1.0, move |wh| {
-                    let image_source = screen_image.as_ref().map(|screen_image| {
-                        get_project_image_url(props.project_id, screen_image.id).unwrap()
-                    });
+                    let image_source =
+                        get_project_image_url(props.project_id, screen_image.id).unwrap();
 
                     let border_color = match props.selected_index {
                         Some(selected_index) => {
@@ -41,17 +40,14 @@ pub fn render<'a, OnClick: Fn(usize, &MouseEvent) + 'static + Copy>(
 
                     namui::render([
                         simple_rect(wh, border_color, border_width, Color::BLACK),
-                        match image_source {
-                            Some(image_source) => namui::image(ImageParam {
-                                rect: Rect::from_xy_wh(Xy::single(0.px()), wh),
-                                source: namui::ImageSource::Url(image_source),
-                                style: ImageStyle {
-                                    fit: ImageFit::Contain,
-                                    paint_builder: None,
-                                },
-                            }),
-                            None => RenderingTree::Empty,
-                        },
+                        namui::image(ImageParam {
+                            rect: Rect::from_xy_wh(Xy::single(0.px()), wh),
+                            source: namui::ImageSource::Url(image_source),
+                            style: ImageStyle {
+                                fit: ImageFit::Contain,
+                                paint_builder: None,
+                            },
+                        }),
                     ])
                     .attach_event(move |builder| {
                         builder.on_mouse_down_in(move |event| {

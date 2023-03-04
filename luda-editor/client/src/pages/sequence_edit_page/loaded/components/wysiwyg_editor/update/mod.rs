@@ -24,7 +24,7 @@ impl WysiwygEditor {
                     index,
                     circumscribed,
                 } => {
-                    self.screen_images[index].as_mut().unwrap().circumscribed = circumscribed;
+                    self.screen_images[index].circumscribed = circumscribed;
                 }
                 &InternalEvent::ImageMoveStart {
                     start_global_xy,
@@ -53,11 +53,9 @@ impl WysiwygEditor {
                     if let Some(Dragging::Mover { context }) = self.dragging.as_mut() {
                         context.end_global_xy = global_xy;
                         if let Some(index) = self.editing_image_index {
-                            let circumscribed =
-                                self.screen_images[index].as_ref().unwrap().circumscribed;
+                            let circumscribed = self.screen_images[index].circumscribed;
                             let moved_circumscribed = context.move_circumscribed(circumscribed);
-                            self.screen_images[index].as_mut().unwrap().circumscribed =
-                                moved_circumscribed;
+                            self.screen_images[index].circumscribed = moved_circumscribed;
                         }
                         self.dragging = None;
                     }

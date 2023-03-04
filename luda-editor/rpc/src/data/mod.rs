@@ -2,7 +2,7 @@ mod cut;
 
 use ::uuid::Uuid;
 pub use cut::*;
-use namui_type::Xy;
+use namui_type::{Percent, PercentExt, Xy};
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ProjectSharedData {
@@ -84,4 +84,21 @@ pub struct Circumscribed<T> {
     pub center_xy: Xy<T>,
     /// 1.0 = 100% of the screen's radius
     pub radius: T,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ScreenImage {
+    pub id: Uuid,
+    pub circumscribed: Circumscribed<Percent>,
+}
+impl ScreenImage {
+    pub fn new(id: Uuid) -> Self {
+        Self {
+            id,
+            circumscribed: Circumscribed {
+                center_xy: Xy::new(50.percent(), 50.percent()),
+                radius: 50.percent(),
+            },
+        }
+    }
 }

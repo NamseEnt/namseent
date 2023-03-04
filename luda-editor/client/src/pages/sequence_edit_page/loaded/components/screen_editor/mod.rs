@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 pub struct ScreenEditor {
     wysiwyg_editor: wysiwyg_editor::WysiwygEditor,
-    done: Arc<dyn Fn(ScreenImages)>,
+    done: Arc<dyn Fn(Vec<ScreenImage>)>,
 }
 
 pub struct Props<'a> {
@@ -22,8 +22,8 @@ pub struct Props<'a> {
 impl ScreenEditor {
     pub fn new(
         project_id: Uuid,
-        screen_images: ScreenImages,
-        done: impl Fn(ScreenImages) + 'static,
+        screen_images: Vec<ScreenImage>,
+        done: impl Fn(Vec<ScreenImage>) + 'static,
     ) -> Self {
         Self {
             wysiwyg_editor: wysiwyg_editor::WysiwygEditor::new(project_id, screen_images),

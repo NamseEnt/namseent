@@ -1,7 +1,6 @@
 use super::*;
-use crate::data::Circumscribed;
+use crate::data::ScreenImage;
 use ::uuid::Uuid;
-use namui_type::*;
 
 pub type ScreenImages = [Option<ScreenImage>; 5];
 
@@ -43,23 +42,6 @@ impl Cut {
             line: self.line.clone(),
             character_id: self.character_id,
             screen_images: self.screen_images.clone(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct ScreenImage {
-    pub id: Uuid,
-    pub circumscribed: Circumscribed<Percent>,
-}
-impl ScreenImage {
-    pub fn new(id: Uuid) -> Self {
-        Self {
-            id,
-            circumscribed: Circumscribed {
-                center_xy: Xy::new(50.percent(), 50.percent()),
-                radius: 50.percent(),
-            },
         }
     }
 }
