@@ -6,7 +6,6 @@ pub mod auto_complete_text_input;
 pub mod character_edit_modal;
 pub mod cut_editor;
 pub mod cut_list_view;
-pub mod image_edit_modal;
 pub mod image_manager_modal;
 pub mod image_table;
 pub mod image_upload;

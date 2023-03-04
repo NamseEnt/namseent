@@ -16,6 +16,7 @@ pub struct Props<'a> {
     pub cut: Option<&'a Cut>,
     pub cuts: &'a Vec<Cut>,
     pub is_focused: bool,
+    pub project_id: Uuid,
 }
 
 pub enum Event {
@@ -23,6 +24,7 @@ pub enum Event {
     ChangeCutLine { text: String, cut_id: Uuid },
     MoveCutByTab { cut_id: Uuid, to_prev: bool },
     Click { target: ClickTarget },
+    AddNewImage { png_bytes: Vec<u8>, cut_id: Uuid },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

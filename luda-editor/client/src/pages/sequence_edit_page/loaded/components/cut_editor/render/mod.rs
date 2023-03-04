@@ -1,5 +1,8 @@
 use super::*;
-use crate::{components::sequence_player, *};
+use crate::{
+    components::sequence_player::{self, render_images},
+    *,
+};
 use namui_prebuilt::*;
 use std::collections::BTreeSet;
 
@@ -42,14 +45,29 @@ impl CutEditor {
         render([
             simple_rect(props.wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND).attach_event(
                 |build| {
-                    build.on_file_drop(move |event| {
-                        namui::log!("file drop {:?}", event.files);
-                        let file = event.files[0].clone();
-                        spawn_local(async move {
-                            let content = file.content().await;
-                            namui::log!("file content {:?}", content);
+                    build
+                        .on_file_drop(move |event| {
+                            let file = event.files[0].clone();
+                            spawn_local(async move {
+                                let content = file.content().await;
+                                namui::event::send(Event::AddNewImage {
+                                    png_bytes: content.into(),
+                                    cut_id,
+                                })
+                            });
+                        })
+                        .on_key_down(move |event| {
+                            if event.code == Code::KeyV && namui::keyboard::ctrl_press() {
+                                spawn_local(async move {
+                                    let Ok(buffers) = clipboard::read_image_buffers().await else {
+                                    return
+                                };
+                                    for png_bytes in buffers {
+                                        namui::event::send(Event::AddNewImage { png_bytes, cut_id })
+                                    }
+                                });
+                            }
                         });
-                    });
                 },
             ),
             translate(
@@ -62,6 +80,7 @@ impl CutEditor {
                         1.px(),
                         color::BACKGROUND,
                     ),
+                    render_images(props.project_id, content_rect.wh(), cut, 1.one_zero()),
                     sequence_player::render_text_box(content_rect.wh()),
                     sequence_player::render_over_text(
                         content_rect.wh(),

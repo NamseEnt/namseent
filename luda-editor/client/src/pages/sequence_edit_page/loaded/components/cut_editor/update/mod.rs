@@ -11,7 +11,9 @@ impl CutEditor {
             &Event::Click { target } => {
                 self.focus(target);
             }
-            Event::ChangeCharacterName { .. } | Event::ChangeCutLine { .. } => {}
+            Event::ChangeCharacterName { .. }
+            | Event::ChangeCutLine { .. }
+            | Event::AddNewImage { .. } => {}
         });
 
         self.character_name_input.update(event);

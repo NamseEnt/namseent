@@ -30,6 +30,7 @@ impl LoadedSequenceEditorPage {
                             .and_then(|id| self.sequence.cuts.iter().find(|c| c.id() == id)),
                         is_focused: self.focused_component == Some(FocusableComponent::CutEditor),
                         cuts: &self.sequence.cuts,
+                        project_id: self.project_id(),
                     })
                 }),
             ])(props.wh),

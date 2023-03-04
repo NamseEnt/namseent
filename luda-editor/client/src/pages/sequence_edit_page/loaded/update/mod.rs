@@ -1,7 +1,7 @@
 mod undo_redo;
 mod update_data;
 
-use super::*;
+use super::{components::image_upload::create_image, *};
 use rpc::data::*;
 
 impl LoadedSequenceEditorPage {
@@ -17,6 +17,11 @@ impl LoadedSequenceEditorPage {
                     self.update_sequence(|sequence| {
                         let new_cut = Cut::new(cut_id);
                         sequence.cuts.push(new_cut);
+                    });
+                }
+                &InternalEvent::ImageUploaded { cut_id, image_id } => {
+                    self.update_cut(cut_id, |cut| {
+                        cut.screen_images.push(ScreenImage::new(image_id));
                     });
                 }
             })
@@ -105,6 +110,29 @@ impl LoadedSequenceEditorPage {
                 }
                 cut_editor::Event::Click { target: _ } => {
                     self.focused_component = Some(FocusableComponent::CutEditor);
+                }
+                &cut_editor::Event::AddNewImage {
+                    ref png_bytes,
+                    cut_id,
+                } => {
+                    let project_id = self.project_id();
+                    let png_bytes = png_bytes.clone();
+                    spawn_local(async move {
+                        match create_image(project_id, png_bytes).await {
+                            Ok(image_id) => {
+                                namui::event::send(InternalEvent::ImageUploaded {
+                                    cut_id,
+                                    image_id,
+                                });
+                            }
+                            Err(error) => {
+                                namui::event::send(InternalEvent::Error(format!(
+                                    "create_image {}",
+                                    error.to_string()
+                                )));
+                            }
+                        };
+                    });
                 }
             });
 

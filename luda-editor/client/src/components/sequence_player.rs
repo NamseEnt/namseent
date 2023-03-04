@@ -58,7 +58,12 @@ impl SequencePlayer {
                 &State::ShowingCut { cut_index } => {
                     let cut = self.sequence.cuts.get(cut_index).unwrap();
                     render([
-                        self.render_images(inner_content_rect.wh(), cut, 1.0.one_zero()),
+                        render_images(
+                            self.project_shared_data.id(),
+                            inner_content_rect.wh(),
+                            cut,
+                            1.0.one_zero(),
+                        ),
                         render_text_box(inner_content_rect.wh()),
                         render_text(
                             &self.project_shared_data,
@@ -149,33 +154,6 @@ impl SequencePlayer {
             })
             .collect::<Vec<_>>()
     }
-    fn render_images(&self, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
-        let paint_builder = namui::PaintBuilder::new().set_color_filter(
-            Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
-            BlendMode::DstIn,
-        );
-
-        let images = cut.screen_images.iter().filter_map(|screen_image| {
-            Some(namui::try_render(|| {
-                let url =
-                    get_project_image_url(self.project_shared_data.id(), screen_image.id).unwrap();
-                let image = namui::image::try_load_url(&url)?;
-
-                let rect =
-                    calculate_image_rect_on_screen(image.size(), wh, screen_image.circumscribed);
-
-                Some(namui::image(ImageParam {
-                    rect,
-                    source: ImageSource::Image(image),
-                    style: ImageStyle {
-                        fit: ImageFit::Fill,
-                        paint_builder: Some(paint_builder.clone()),
-                    },
-                }))
-            }))
-        });
-        render(images)
-    }
 
     fn go_to_next_cut(&mut self, do_transition: bool) {
         if self.sequence.cuts.len() == 0 {
@@ -238,16 +216,17 @@ impl SequencePlayer {
 
         let from_cut_image_urls = self.get_image_urls(from_cut);
         let to_cut_image_urls = self.get_image_urls(to_cut);
+        let project_id = self.project_shared_data.id();
 
         if from_cut_image_urls == to_cut_image_urls {
-            self.render_images(wh, from_cut, 1.0.one_zero())
+            render_images(project_id, wh, from_cut, 1.0.one_zero())
         } else {
             let from_opacity = 1.0.one_zero() - transition_progress;
             let to_opacity = transition_progress;
 
             render([
-                self.render_images(wh, from_cut, from_opacity),
-                self.render_images(wh, to_cut, to_opacity),
+                render_images(project_id, wh, from_cut, from_opacity),
+                render_images(project_id, wh, to_cut, to_opacity),
             ])
         }
     }
@@ -414,4 +393,30 @@ pub fn calculate_image_rect_on_screen(
     let xy = center_xy - wh.as_xy() / 2.0;
 
     Rect::from_xy_wh(xy, wh)
+}
+
+pub fn render_images(project_id: Uuid, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
+    let paint_builder = namui::PaintBuilder::new().set_color_filter(
+        Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
+        BlendMode::DstIn,
+    );
+
+    let images = cut.screen_images.iter().map(|screen_image| {
+        namui::try_render(|| {
+            let url = get_project_image_url(project_id, screen_image.id).unwrap();
+            let image = namui::image::try_load_url(&url)?;
+
+            let rect = calculate_image_rect_on_screen(image.size(), wh, screen_image.circumscribed);
+
+            Some(namui::image(ImageParam {
+                rect,
+                source: ImageSource::Image(image),
+                style: ImageStyle {
+                    fit: ImageFit::Fill,
+                    paint_builder: Some(paint_builder.clone()),
+                },
+            }))
+        })
+    });
+    render(images)
 }
