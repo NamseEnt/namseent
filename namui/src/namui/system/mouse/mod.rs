@@ -1,5 +1,4 @@
 mod event;
-mod post_render;
 
 use self::event::set_up_event_handler;
 use super::*;
@@ -7,14 +6,12 @@ use crate::{
     namui::{render::MouseCursor, Xy},
     *,
 };
-pub(crate) use post_render::*;
+use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
-use std::{collections::HashSet, sync::Mutex};
 use wasm_bindgen::{prelude::Closure, JsCast};
 
 struct MouseSystem {
     mouse_position: Arc<RwLock<Xy<Px>>>,
-    rendering_tree: Arc<Mutex<RenderingTree>>,
 }
 
 lazy_static::lazy_static! {
@@ -35,7 +32,6 @@ impl MouseSystem {
         }));
         let mouse = Self {
             mouse_position: mouse_position.clone(),
-            rendering_tree: Arc::new(Mutex::new(RenderingTree::Empty)),
         };
 
         mouse
