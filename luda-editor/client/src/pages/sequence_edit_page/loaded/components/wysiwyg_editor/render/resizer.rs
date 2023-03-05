@@ -98,15 +98,16 @@ fn render_resize_handles<OnResize: Fn(Circumscribed<Percent>) + 'static>(
                     }
                     None => {
                         builder.on_mouse_down_in(move |mouse_event| {
-                            namui::log!("mouse down in");
-                            mouse_event.stop_propagation();
-                            namui::event::send(Event::StartDraggingContext(
-                                ResizerDraggingContext {
-                                    handle,
-                                    start_global_xy: mouse_event.global_xy,
-                                    end_global_xy: mouse_event.global_xy,
-                                },
-                            ))
+                            if mouse_event.button == Some(MouseButton::Left) {
+                                mouse_event.stop_propagation();
+                                namui::event::send(Event::StartDraggingContext(
+                                    ResizerDraggingContext {
+                                        handle,
+                                        start_global_xy: mouse_event.global_xy,
+                                        end_global_xy: mouse_event.global_xy,
+                                    },
+                                ))
+                            }
                         });
                     }
                 })

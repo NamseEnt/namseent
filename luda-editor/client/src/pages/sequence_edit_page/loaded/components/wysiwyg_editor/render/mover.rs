@@ -53,12 +53,14 @@ impl WysiwygEditor {
             })
             .attach_event(move |builder| {
                 builder.on_mouse_down_in(move |event| {
-                    event.stop_propagation();
-                    namui::event::send(InternalEvent::ImageMoveStart {
-                        start_global_xy: event.global_xy,
-                        end_global_xy: event.global_xy,
-                        container_wh,
-                    });
+                    if event.button == Some(MouseButton::Left) {
+                        event.stop_propagation();
+                        namui::event::send(InternalEvent::ImageMoveStart {
+                            start_global_xy: event.global_xy,
+                            end_global_xy: event.global_xy,
+                            container_wh,
+                        });
+                    }
                 });
             }),
         )

@@ -21,8 +21,10 @@ impl WysiwygEditor {
                                 global_xy: event.global_xy,
                             });
                         })
-                        .on_mouse_down_in(|_event| {
-                            namui::event::send(InternalEvent::MouseDownContainer);
+                        .on_mouse_down_in(|event| {
+                            if event.button == Some(MouseButton::Left) {
+                                namui::event::send(InternalEvent::MouseDownContainer);
+                            }
                         })
                         .on_mouse(move |event| {
                             namui::log!("event: {:?}", event.event_type);
@@ -41,9 +43,13 @@ impl WysiwygEditor {
                 self.render_image_clip(&props),
             ),
             render_grid_guide(props.wh),
+            self.context_menu
+                .as_ref()
+                .map_or(RenderingTree::Empty, |context_menu| context_menu.render()),
         ])
     }
     fn render_image_clip(&self, props: &Props) -> RenderingTree {
+        let cut_id = props.cut_id;
         render(
             props
                 .screen_images
@@ -127,6 +133,15 @@ impl WysiwygEditor {
                                     namui::event::send(InternalEvent::SelectImage {
                                         index: image_index,
                                     });
+
+                                    if event.button == Some(MouseButton::Right) {
+                                        namui::event::send(InternalEvent::OpenContextMenu {
+                                            global_xy: event.global_xy,
+                                            cut_id,
+                                            image_index,
+                                            image_wh: image_size,
+                                        })
+                                    }
                                 });
                             }),
                             wysiwyg_tool,

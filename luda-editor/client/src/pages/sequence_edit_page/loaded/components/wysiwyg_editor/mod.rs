@@ -1,12 +1,14 @@
 mod render;
 mod update;
 
+use crate::components::context_menu;
 use namui::prelude::*;
 use rpc::data::ScreenImage;
 
 pub struct WysiwygEditor {
     dragging: Option<Dragging>,
     editing_image_index: Option<usize>,
+    context_menu: Option<context_menu::ContextMenu>,
 }
 
 pub struct Props<'a> {
@@ -51,6 +53,12 @@ enum InternalEvent {
         global_xy: Xy<Px>,
         cut_id: Uuid,
     },
+    OpenContextMenu {
+        global_xy: Xy<Px>,
+        cut_id: Uuid,
+        image_index: usize,
+        image_wh: Wh<Px>,
+    },
 }
 
 impl WysiwygEditor {
@@ -58,6 +66,7 @@ impl WysiwygEditor {
         Self {
             dragging: None,
             editing_image_index: None,
+            context_menu: None,
         }
     }
 }
