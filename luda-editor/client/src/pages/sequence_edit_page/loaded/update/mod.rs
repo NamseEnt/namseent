@@ -134,6 +134,14 @@ impl LoadedSequenceEditorPage {
                         };
                     });
                 }
+            })
+            .is::<wysiwyg_editor::Event>(|event| match event {
+                &wysiwyg_editor::Event::UpdateImages {
+                    cut_id,
+                    ref callback,
+                } => {
+                    self.update_cut(cut_id, |cut| callback(&mut cut.screen_images));
+                }
             });
 
         self.cut_list_view.update(event);

@@ -9,6 +9,5 @@ pub mod cut_list_view;
 pub mod image_manager_modal;
 pub mod image_table;
 pub mod image_upload;
-pub mod screen_editor;
 pub mod screen_image_list;
 pub mod wysiwyg_editor;

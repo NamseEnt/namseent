@@ -9,6 +9,8 @@ pub struct CutEditor {
     selected_target: Option<ClickTarget>,
     character_name_input: auto_complete_text_input::AutoCompleteTextInput,
     text_input: text_input::TextInput,
+    image_wysiwyg_editor: wysiwyg_editor::WysiwygEditor,
+    edit_mode: EditMode,
 }
 
 pub struct Props<'a> {
@@ -27,10 +29,22 @@ pub enum Event {
     AddNewImage { png_bytes: Vec<u8>, cut_id: Uuid },
 }
 
+enum InternalEvent {
+    ClickImage { image_id: Uuid },
+    ClickImageOutside,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ClickTarget {
     CharacterName,
     CutText,
+}
+
+enum EditMode {
+    Idle,
+    CharacterName,
+    CutText,
+    Image,
 }
 
 impl CutEditor {
@@ -39,6 +53,8 @@ impl CutEditor {
             selected_target: None,
             character_name_input: auto_complete_text_input::AutoCompleteTextInput::new(),
             text_input: text_input::TextInput::new(),
+            image_wysiwyg_editor: wysiwyg_editor::WysiwygEditor::new(),
+            edit_mode: EditMode::Idle,
         }
     }
 

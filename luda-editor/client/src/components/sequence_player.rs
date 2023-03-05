@@ -402,21 +402,30 @@ pub fn render_images(project_id: Uuid, wh: Wh<Px>, cut: &Cut, opacity: OneZero) 
     );
 
     let images = cut.screen_images.iter().map(|screen_image| {
-        namui::try_render(|| {
-            let url = get_project_image_url(project_id, screen_image.id).unwrap();
-            let image = namui::image::try_load_url(&url)?;
-
-            let rect = calculate_image_rect_on_screen(image.size(), wh, screen_image.circumscribed);
-
-            Some(namui::image(ImageParam {
-                rect,
-                source: ImageSource::Image(image),
-                style: ImageStyle {
-                    fit: ImageFit::Fill,
-                    paint_builder: Some(paint_builder.clone()),
-                },
-            }))
-        })
+        render_image(project_id, wh, screen_image, Some(paint_builder.clone()))
     });
     render(images)
+}
+
+pub fn render_image(
+    project_id: Uuid,
+    wh: Wh<Px>,
+    screen_image: &ScreenImage,
+    paint_builder: Option<PaintBuilder>,
+) -> RenderingTree {
+    namui::try_render(|| {
+        let url = get_project_image_url(project_id, screen_image.id).unwrap();
+        let image = namui::image::try_load_url(&url)?;
+
+        let rect = calculate_image_rect_on_screen(image.size(), wh, screen_image.circumscribed);
+
+        Some(namui::image(ImageParam {
+            rect,
+            source: ImageSource::Image(image),
+            style: ImageStyle {
+                fit: ImageFit::Fill,
+                paint_builder,
+            },
+        }))
+    })
 }

@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    components::sequence_player::{self, render_images},
+    components::sequence_player::{self, render_image},
     *,
 };
 use namui_prebuilt::*;
@@ -80,7 +80,14 @@ impl CutEditor {
                         1.px(),
                         color::BACKGROUND,
                     ),
-                    render_images(props.project_id, content_rect.wh(), cut, 1.one_zero()),
+                    props.cut.map_or(RenderingTree::Empty, |cut| {
+                        self.image_wysiwyg_editor.render(wysiwyg_editor::Props {
+                            wh: content_rect.wh(),
+                            screen_images: &cut.screen_images,
+                            project_id: props.project_id,
+                            cut_id: cut.id(),
+                        })
+                    }),
                     sequence_player::render_text_box(content_rect.wh()),
                     sequence_player::render_over_text(
                         content_rect.wh(),
@@ -266,53 +273,3 @@ fn get_character_name_candidates(cuts: &[Cut], current_cut: &Cut) -> Vec<String>
         .map(|(_, name)| name)
         .collect::<Vec<_>>()
 }
-
-// .on_key_down(move |event| {
-//     if event.is_composing || event.code != Code::Tab
-//     {
-//         return;
-//     }
-//     event.prevent_default();
-//     if namui::keyboard::any_code_press([
-//         Code::ShiftLeft,
-//         Code::ShiftRight,
-//     ]) {
-//         namui::event::send(Event::Click {
-//             target: ClickTarget::CharacterName,
-//         })
-//     } else {
-//         let Some(next_cut_id) = next_cut_id else {
-//             return;
-//         };
-//         namui::event::send(Event::MoveCutByTab {
-//             cut_id: next_cut_id,
-//             to_prev: false,
-//         });
-//     }
-// }),
-// .on_key_down(move |event| {
-//     if event.is_composing
-//         || (event.code != Code::Tab
-//             && event.code != Code::Enter)
-//     {
-//         return;
-//     }
-
-//     event.prevent_default();
-//     if namui::keyboard::any_code_press([
-//         Code::ShiftLeft,
-//         Code::ShiftRight,
-//     ]) {
-//         let Some(prev_cut_id) = prev_cut_id else {
-//             return;
-//         };
-
-//         namui::event::send(Event::MoveCutByTab {
-//             cut_id: prev_cut_id,
-//             to_prev: true,
-//         })
-//     } else {
-//         namui::event::send(Event::Click {
-//             target: ClickTarget::CutText,
-//         })
-//     }

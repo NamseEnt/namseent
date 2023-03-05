@@ -11,6 +11,7 @@ use namui_prebuilt::*;
 
 impl WysiwygEditor {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
+        let cut_id = props.cut_id;
         render([
             simple_rect(props.wh, Color::WHITE, 1.px(), Color::TRANSPARENT).attach_event(
                 |builder| {
@@ -23,15 +24,14 @@ impl WysiwygEditor {
                         .on_mouse_down_in(|_event| {
                             namui::event::send(InternalEvent::MouseDownContainer);
                         })
-                        .on_mouse_up_in(|event| {
-                            namui::event::send(InternalEvent::MouseUp {
-                                global_xy: event.global_xy,
-                            });
-                        })
-                        .on_mouse_up_out(|event| {
-                            namui::event::send(InternalEvent::MouseUp {
-                                global_xy: event.global_xy,
-                            });
+                        .on_mouse(move |event| {
+                            namui::log!("event: {:?}", event.event_type);
+                            if event.event_type == MouseEventType::Up {
+                                namui::event::send(InternalEvent::MouseUp {
+                                    global_xy: event.global_xy,
+                                    cut_id,
+                                });
+                            }
                         });
                 },
             ),
@@ -45,14 +45,15 @@ impl WysiwygEditor {
     }
     fn render_image_clip(&self, props: &Props) -> RenderingTree {
         render(
-            self.screen_images
+            props
+                .screen_images
                 .iter()
                 .enumerate()
                 .map(|(image_index, image)| {
                     let is_editing_image = self.editing_image_index == Some(image_index);
 
                     namui::try_render(|| {
-                        let url = get_project_image_url(self.project_id, image.id).unwrap();
+                        let url = get_project_image_url(props.project_id, image.id).unwrap();
                         let namui_image = namui::image::try_load_url(&url)?;
                         let image_size = namui_image.size();
 
@@ -142,6 +143,7 @@ impl WysiwygEditor {
         image_index: usize,
         image: &ScreenImage,
     ) -> RenderingTree {
+        let cut_id = props.cut_id;
         render([
             self.render_border_with_move_handling(image_dest_rect, props.wh),
             resizer::render_resizer(resizer::Props {
@@ -155,9 +157,11 @@ impl WysiwygEditor {
                 },
                 on_resize: {
                     Box::new(move |circumscribed| {
-                        namui::event::send(InternalEvent::ResizeImage {
-                            index: image_index,
-                            circumscribed,
+                        namui::event::send(Event::UpdateImages {
+                            cut_id,
+                            callback: Box::new(move |images| {
+                                images[image_index].circumscribed = circumscribed;
+                            }),
                         });
                     })
                 },

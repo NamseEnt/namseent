@@ -5,16 +5,18 @@ use namui::prelude::*;
 use rpc::data::ScreenImage;
 
 pub struct WysiwygEditor {
-    project_id: Uuid,
     dragging: Option<Dragging>,
-    pub screen_images: Vec<ScreenImage>,
     editing_image_index: Option<usize>,
 }
 
-pub struct Props {
+pub struct Props<'a> {
     pub wh: Wh<Px>,
+    pub cut_id: Uuid,
+    pub screen_images: &'a Vec<ScreenImage>,
+    pub project_id: Uuid,
 }
 
+#[derive(Debug)]
 enum Dragging {
     Resizer {
         context: render::resizer::ResizerDraggingContext,
@@ -25,13 +27,16 @@ enum Dragging {
     },
 }
 
+pub enum Event {
+    UpdateImages {
+        cut_id: Uuid,
+        callback: Box<dyn Fn(&mut Vec<ScreenImage>) -> () + 'static + Send + Sync>,
+    },
+}
+
 enum InternalEvent {
     SelectImage {
         index: usize,
-    },
-    ResizeImage {
-        index: usize,
-        circumscribed: rpc::data::Circumscribed<Percent>,
     },
     ImageMoveStart {
         start_global_xy: Xy<Px>,
@@ -44,15 +49,14 @@ enum InternalEvent {
     MouseDownContainer,
     MouseUp {
         global_xy: Xy<Px>,
+        cut_id: Uuid,
     },
 }
 
 impl WysiwygEditor {
-    pub fn new(project_id: Uuid, screen_images: Vec<ScreenImage>) -> Self {
+    pub fn new() -> Self {
         Self {
-            project_id,
             dragging: None,
-            screen_images,
             editing_image_index: None,
         }
     }

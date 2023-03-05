@@ -20,12 +20,6 @@ impl WysiwygEditor {
                 &InternalEvent::SelectImage { index } => {
                     self.editing_image_index = Some(index);
                 }
-                &InternalEvent::ResizeImage {
-                    index,
-                    circumscribed,
-                } => {
-                    self.screen_images[index].circumscribed = circumscribed;
-                }
                 &InternalEvent::ImageMoveStart {
                     start_global_xy,
                     end_global_xy,
@@ -49,13 +43,23 @@ impl WysiwygEditor {
                 InternalEvent::MouseDownContainer => {
                     self.editing_image_index = None;
                 }
-                &InternalEvent::MouseUp { global_xy } => {
+                &InternalEvent::MouseUp { global_xy, cut_id } => {
+                    namui::log!("MouseUp");
                     if let Some(Dragging::Mover { context }) = self.dragging.as_mut() {
                         context.end_global_xy = global_xy;
                         if let Some(index) = self.editing_image_index {
-                            let circumscribed = self.screen_images[index].circumscribed;
-                            let moved_circumscribed = context.move_circumscribed(circumscribed);
-                            self.screen_images[index].circumscribed = moved_circumscribed;
+                            let context = context.clone();
+                            namui::event::send(Event::UpdateImages {
+                                cut_id,
+                                callback: Box::new({
+                                    move |images| {
+                                        let circumscribed = images[index].circumscribed;
+                                        let moved_circumscribed =
+                                            context.move_circumscribed(circumscribed);
+                                        images[index].circumscribed = moved_circumscribed;
+                                    }
+                                }),
+                            });
                         }
                         self.dragging = None;
                     }
