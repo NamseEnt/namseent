@@ -136,11 +136,18 @@ impl LoadedSequenceEditorPage {
                 }
             })
             .is::<wysiwyg_editor::Event>(|event| match event {
-                &wysiwyg_editor::Event::UpdateImages {
+                &wysiwyg_editor::Event::UpdateCutImages {
                     cut_id,
                     ref callback,
                 } => {
                     self.update_cut(cut_id, |cut| callback(&mut cut.screen_images));
+                }
+                wysiwyg_editor::Event::UpdateSequenceImages { callback } => {
+                    self.update_sequence(|sequence| {
+                        sequence.cuts.iter_mut().for_each(|cut| {
+                            callback(&mut cut.screen_images);
+                        });
+                    });
                 }
             });
 

@@ -27,7 +27,6 @@ impl WysiwygEditor {
                             }
                         })
                         .on_mouse(move |event| {
-                            namui::log!("event: {:?}", event.event_type);
                             if event.event_type == MouseEventType::Up {
                                 namui::event::send(InternalEvent::MouseUp {
                                     global_xy: event.global_xy,
@@ -53,7 +52,8 @@ impl WysiwygEditor {
         render(
             props
                 .screen_images
-                .iter()
+                .clone()
+                .into_iter()
                 .enumerate()
                 .map(|(image_index, image)| {
                     let is_editing_image = self.editing_image_index == Some(image_index);
@@ -112,7 +112,7 @@ impl WysiwygEditor {
                                 image_rendering_rect,
                                 image_size,
                                 image_index,
-                                image,
+                                &image,
                             )
                         } else {
                             RenderingTree::Empty
@@ -140,6 +140,7 @@ impl WysiwygEditor {
                                             cut_id,
                                             image_index,
                                             image_wh: image_size,
+                                            image,
                                         })
                                     }
                                 });
@@ -172,7 +173,7 @@ impl WysiwygEditor {
                 },
                 on_resize: {
                     Box::new(move |circumscribed| {
-                        namui::event::send(Event::UpdateImages {
+                        namui::event::send(Event::UpdateCutImages {
                             cut_id,
                             callback: Box::new(move |images| {
                                 images[image_index].circumscribed = circumscribed;

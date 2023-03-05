@@ -30,8 +30,11 @@ enum Dragging {
 }
 
 pub enum Event {
-    UpdateImages {
+    UpdateCutImages {
         cut_id: Uuid,
+        callback: Box<dyn Fn(&mut Vec<ScreenImage>) -> () + 'static + Send + Sync>,
+    },
+    UpdateSequenceImages {
         callback: Box<dyn Fn(&mut Vec<ScreenImage>) -> () + 'static + Send + Sync>,
     },
 }
@@ -58,6 +61,7 @@ enum InternalEvent {
         cut_id: Uuid,
         image_index: usize,
         image_wh: Wh<Px>,
+        image: ScreenImage,
     },
 }
 

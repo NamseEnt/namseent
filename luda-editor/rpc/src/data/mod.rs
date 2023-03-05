@@ -86,7 +86,7 @@ pub struct Circumscribed<T> {
     pub radius: T,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct ScreenImage {
     pub id: Uuid,
     pub circumscribed: Circumscribed<Percent>,
