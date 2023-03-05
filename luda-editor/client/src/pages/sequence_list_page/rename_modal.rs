@@ -28,14 +28,6 @@ impl RenameModal {
                 self.sequence_name = text.clone();
             }
         }
-        if let Some(namui::event::NamuiEvent::KeyUp(event)) = event.downcast_ref() {
-            if event.code == Code::Enter {
-                namui::event::send(Event::RenameDone {
-                    sequence_id: self.sequence_id,
-                    sequence_name: self.sequence_name.clone(),
-                });
-            }
-        }
     }
     pub fn render(&self) -> namui::RenderingTree {
         let screen_wh = namui::screen::size();
@@ -53,6 +45,8 @@ impl RenameModal {
             width: 40.px(),
             height: 20.px(),
         };
+        let sequence_id = self.sequence_id;
+        let sequence_name = self.sequence_name.clone();
 
         absolute(
             0.px(),
@@ -103,7 +97,16 @@ impl RenameModal {
                                 },
                                 ..Default::default()
                             },
-                            event_handler: None,
+                            event_handler: Some(text_input::EventHandler::new().on_key_down(
+                                move |event| {
+                                    if event.code == Code::Enter {
+                                        namui::event::send(Event::RenameDone {
+                                            sequence_id,
+                                            sequence_name: sequence_name.clone(),
+                                        });
+                                    }
+                                },
+                            )),
                         }),
                         namui_prebuilt::button::text_button(
                             enter_button_rect_in_modal,

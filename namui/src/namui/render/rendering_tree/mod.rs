@@ -177,7 +177,6 @@ impl RenderingTree {
     pub(crate) fn call_keyboard_event(
         &self,
         raw_keyboard_event: &RawKeyboardEvent,
-        namui_context: &NamuiContext,
         down_up: DownUp,
     ) {
         self.visit_rln(|node, _| {
@@ -190,7 +189,6 @@ impl RenderingTree {
                     if let Some(callback) = &callback {
                         callback(&KeyboardEvent {
                             id: raw_keyboard_event.id.clone(),
-                            namui_context,
                             target: node,
                             code: raw_keyboard_event.code,
                             pressing_codes: raw_keyboard_event.pressing_codes.clone(),
