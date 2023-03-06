@@ -282,20 +282,24 @@ impl RenderingTree {
                  node,
                  utils,
              }| {
-                let (in_func, out_func) = match mouse_event_type {
+                let (in_func, out_func, on_mouse) = match mouse_event_type {
                     MouseEventType::Move => (
                         &attach_event.on_mouse_move_in,
                         &attach_event.on_mouse_move_out,
+                        &attach_event.on_mouse,
                     ),
                     MouseEventType::Down => (
                         &attach_event.on_mouse_down_in,
                         &attach_event.on_mouse_down_out,
+                        &attach_event.on_mouse,
                     ),
-                    MouseEventType::Up => {
-                        (&attach_event.on_mouse_up_in, &attach_event.on_mouse_up_out)
-                    }
+                    MouseEventType::Up => (
+                        &attach_event.on_mouse_up_in,
+                        &attach_event.on_mouse_up_out,
+                        &attach_event.on_mouse,
+                    ),
                 };
-                if in_func.is_none() && out_func.is_none() {
+                if in_func.is_none() && out_func.is_none() && on_mouse.is_none() {
                     return CallEventOfScreenResult {
                         is_stop_propagation: false,
                     };
@@ -312,6 +316,7 @@ impl RenderingTree {
                     event_type: mouse_event_type,
                     is_stop_propagation: Arc::new(AtomicBool::new(false)),
                 };
+
                 if let Some(on_mouse) = &attach_event.on_mouse {
                     on_mouse(&mouse_event);
                 }
