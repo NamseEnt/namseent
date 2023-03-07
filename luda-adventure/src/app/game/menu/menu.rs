@@ -26,16 +26,16 @@ impl Menu {
     }
 
     pub fn render(&self) -> RenderingTree {
-        if !self.open {
-            return RenderingTree::Empty;
-        }
-
         let wh = screen::size();
-        on_top(event_trap(match self.tab {
-            Tab::Start => render_start_menu(wh),
-            Tab::InGame => render_in_game_menu(wh),
-        }))
-        .attach_event(|builder| {
+        let tree = match self.open {
+            true => on_top(event_trap(match self.tab {
+                Tab::Start => render_start_menu(wh),
+                Tab::InGame => render_in_game_menu(wh),
+            })),
+            false => RenderingTree::Empty,
+        };
+
+        tree.attach_event(|builder| {
             builder.on_key_down(|event| {
                 if event.code == Code::Escape {
                     namui::event::send(InternalEvent::EscapeKeyDown);
