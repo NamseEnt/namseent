@@ -12,6 +12,7 @@ use namui_prebuilt::*;
 impl WysiwygEditor {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
         let cut_id = props.cut_id;
+
         render([
             simple_rect(props.wh, Color::WHITE, 1.px(), Color::TRANSPARENT).attach_event(
                 |builder| {
@@ -121,7 +122,7 @@ impl WysiwygEditor {
                         Some(render([
                             namui::image(ImageParam {
                                 rect: image_rendering_rect,
-                                source: namui::ImageSource::Image(namui_image),
+                                source: namui::ImageSource::Image(namui_image.clone()),
                                 style: ImageStyle {
                                     fit: ImageFit::Fill,
                                     paint_builder: None,
@@ -144,6 +145,35 @@ impl WysiwygEditor {
                                         })
                                     }
                                 });
+
+                                if is_editing_image {
+                                    let namui_image = namui_image.clone();
+                                    builder.on_key_down(move |event| {
+                                        namui::log!("key down: {:?}", event.code);
+                                        if event.code != Code::KeyC
+                                            || !namui::keyboard::ctrl_press()
+                                        {
+                                            return;
+                                        }
+
+                                        namui::log!("good");
+                                        let namui_image = namui_image.clone();
+                                        spawn_local(async move {
+                                            let result =
+                                                namui::clipboard::write_image(namui_image).await;
+                                            match result {
+                                                Ok(_) => {
+                                                    namui::log!("Image copied to clipboard");
+                                                }
+                                                Err(_) => {
+                                                    namui::log!(
+                                                        "Failed to copy image to clipboard"
+                                                    );
+                                                }
+                                            }
+                                        })
+                                    });
+                                }
                             }),
                             wysiwyg_tool,
                         ]))
