@@ -54,7 +54,7 @@ impl CharacterEditModal {
                     text: updated_text,
                     ..
                 } => {
-                    if id == &self.text_input.get_id() {
+                    if id.eq(self.text_input.get_id()) {
                         if let Some(editing_text_mode) = self.editing_text_mode.as_mut() {
                             match editing_text_mode {
                                 EditingTextMode::CharacterName { text, .. } => {
@@ -65,7 +65,7 @@ impl CharacterEditModal {
                     }
                 }
                 text_input::Event::KeyDown { id, code } => {
-                    if id == &self.text_input.get_id() && Code::Enter.eq(code) {
+                    if id.eq(self.text_input.get_id()) && Code::Enter.eq(code) {
                         if let Some(editing_text_mode) = self.editing_text_mode.as_ref() {
                             match editing_text_mode {
                                 EditingTextMode::CharacterName { character_id, text } => {
