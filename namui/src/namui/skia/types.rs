@@ -327,3 +327,10 @@ pub enum TileMode {
     Mirror,
     Repeat,
 }
+
+#[allow(dead_code)]
+pub enum ColorSpace {
+    Srgb,
+    DisplayP3,
+    AdobeRgb,
+}
