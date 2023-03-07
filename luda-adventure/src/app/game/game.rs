@@ -1,12 +1,15 @@
-use super::{known_id::object::PLAYER_CHARACTER, *};
+use super::{
+    known_id::object::PLAYER_CHARACTER, render::render_background, save_load::SaveLoad, *,
+};
 use namui::prelude::*;
+use std::collections::HashSet;
 
 pub struct Game {
     pub state: GameState,
     pub ecs_app: crate::ecs::App,
-    pub map_loader: MapLoader,
-    image_loader: ImageLoader,
-    menu: Menu,
+    pub map_loader: map::MapLoader,
+    image_loader: image_loader::ImageLoader,
+    menu: menu::Menu,
     save_load: SaveLoad,
 }
 impl Game {
@@ -20,9 +23,9 @@ impl Game {
         Self {
             state,
             ecs_app,
-            map_loader: MapLoader::new(),
-            image_loader: ImageLoader::new(),
-            menu: Menu::new(),
+            map_loader: map::MapLoader::new(),
+            image_loader: image_loader::ImageLoader::new(),
+            menu: menu::Menu::new(),
             save_load: SaveLoad::new(),
         }
     }
@@ -30,9 +33,9 @@ impl Game {
         Self {
             state: GameState::new(),
             ecs_app: crate::ecs::App::new(),
-            map_loader: MapLoader::new(),
-            image_loader: ImageLoader::new(),
-            menu: Menu::new(),
+            map_loader: map::MapLoader::new(),
+            image_loader: image_loader::ImageLoader::new(),
+            menu: menu::Menu::new(),
             save_load: SaveLoad::new(),
         }
     }
@@ -69,6 +72,36 @@ impl Game {
                 ]),
             ),
             self.menu.render(),
+            self.key_handler(),
         ])
     }
+
+    fn key_handler(&self) -> RenderingTree {
+        RenderingTree::Empty.attach_event(|builder| {
+            builder
+                .on_key_down(|event| {
+                    namui::event::send(Event::KeyDown {
+                        code: event.code,
+                        pressing_codes: event.pressing_codes.clone(),
+                    });
+                })
+                .on_key_down(|event| {
+                    namui::event::send(Event::KeyUp {
+                        code: event.code,
+                        pressing_codes: event.pressing_codes.clone(),
+                    });
+                });
+        })
+    }
+}
+
+pub enum Event {
+    KeyDown {
+        code: Code,
+        pressing_codes: HashSet<Code>,
+    },
+    KeyUp {
+        code: Code,
+        pressing_codes: HashSet<Code>,
+    },
 }

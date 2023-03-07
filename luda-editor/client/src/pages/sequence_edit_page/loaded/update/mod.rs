@@ -364,6 +364,39 @@ impl LoadedSequenceEditorPage {
                             }
                         })
                     }
+                    Event::RedoSequenceChange => {
+                        self.redo_sequence_change();
+                    }
+                    Event::UndoSequenceChange => {
+                        self.undo_sequence_change();
+                    }
+                    Event::EscapeKeyDown => {
+                        self.context_menu = None;
+                        self.character_edit_modal = None;
+                        self.image_select_modal = None;
+                        self.text_input_selected_cut_id = None;
+                        namui::system::text_input::blur();
+                    }
+                    Event::CtrlEnterKeyDown => {
+                        let focused_cut_id = self
+                            .line_text_inputs
+                            .iter()
+                            .find_map(|(id, text_input)| match text_input.is_focused() {
+                                true => Some(id),
+                                false => None,
+                            })
+                            .unwrap();
+
+                        let next_cut_index = self
+                            .sequence
+                            .cuts
+                            .iter()
+                            .position(|cut| cut.id().eq(focused_cut_id))
+                            .unwrap()
+                            + 1;
+
+                        self.insert_cut(next_cut_index, Cut::new(uuid()));
+                    }
                 }
             })
             .is::<text_input::Event>(|event| {
@@ -372,7 +405,7 @@ impl LoadedSequenceEditorPage {
                         self.line_text_inputs
                             .iter()
                             .find_map(|(cut_id, text_input)| {
-                                if text_input.get_id() == id {
+                                if &text_input.get_id() == id {
                                     Some(cut_id)
                                 } else {
                                     None
@@ -389,7 +422,7 @@ impl LoadedSequenceEditorPage {
                         self.line_text_inputs
                             .iter()
                             .find_map(|(cut_id, text_input)| {
-                                if text_input.get_id() == &id {
+                                if text_input.get_id() == id {
                                     Some(*cut_id)
                                 } else {
                                     None
@@ -479,62 +512,6 @@ impl LoadedSequenceEditorPage {
                     self.context_menu = None;
                 }
             })
-            .is::<namui::event::NamuiEvent>(|event| {
-                if let NamuiEvent::KeyDown(event) = event {
-                    if code_composites_on(
-                        event,
-                        [
-                            vec![Code::ControlLeft, Code::KeyY],
-                            vec![Code::ControlLeft, Code::ShiftLeft, Code::KeyZ],
-                        ],
-                    ) && !self.is_any_line_text_input_focused()
-                    {
-                        self.redo_sequence_change();
-                    } else if code_composites_on(event, [vec![Code::ControlLeft, Code::KeyZ]])
-                        && !self.is_any_line_text_input_focused()
-                    {
-                        self.undo_sequence_change();
-                    } else if code_composites_on(event, [vec![Code::Escape]]) {
-                        self.context_menu = None;
-                        self.character_edit_modal = None;
-                        self.image_select_modal = None;
-                        self.text_input_selected_cut_id = None;
-                        namui::system::text_input::blur();
-                    } else if code_composites_on(event, [vec![Code::ControlLeft, Code::Enter]])
-                        && self.is_any_line_text_input_focused()
-                    {
-                        let focused_cut_id = self
-                            .line_text_inputs
-                            .iter()
-                            .find_map(|(id, text_input)| match text_input.is_focused() {
-                                true => Some(id),
-                                false => None,
-                            })
-                            .unwrap();
-
-                        let next_cut_index = self
-                            .sequence
-                            .cuts
-                            .iter()
-                            .position(|cut| cut.id().eq(focused_cut_id))
-                            .unwrap()
-                            + 1;
-
-                        self.insert_cut(next_cut_index, Cut::new(uuid()));
-                    }
-
-                    fn code_composites_on(
-                        event: &RawKeyboardEvent,
-                        iter: impl IntoIterator<Item = Vec<Code>>,
-                    ) -> bool {
-                        iter.into_iter().any(|codes| {
-                            codes
-                                .into_iter()
-                                .all(|code| event.pressing_codes.contains(&code))
-                        })
-                    }
-                }
-            })
             .is::<image_manager_modal::Event>(|event| match event {
                 image_manager_modal::Event::Close => {
                     self.image_manager_modal = None;
@@ -572,11 +549,6 @@ impl LoadedSequenceEditorPage {
                     .insert(cut.id(), text_input::TextInput::new());
             }
         }
-    }
-    fn is_any_line_text_input_focused(&self) -> bool {
-        self.line_text_inputs
-            .iter()
-            .any(|(_, text_input)| text_input.is_focused())
     }
     fn push_back_cut(&mut self, cut: Cut) {
         self.insert_cut(self.sequence.cuts.len(), cut);

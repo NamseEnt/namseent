@@ -22,6 +22,11 @@ impl LoadedSequenceEditorPage {
         let sequence = &self.sequence;
         let characters = &self.project_shared_data.characters;
 
+        let is_any_line_text_input_focused = self
+            .line_text_inputs
+            .iter()
+            .any(|(_, text_input)| text_input.is_focused());
+
         let modal = render([
             match &self.character_edit_modal {
                 Some(character_edit_modal) => {
@@ -65,9 +70,43 @@ impl LoadedSequenceEditorPage {
             },
         ])
         .attach_event(|builder| {
-            builder.on_mouse_down_in(|event| {
-                event.stop_propagation();
-            });
+            builder
+                .on_mouse_down_in(|event| {
+                    event.stop_propagation();
+                })
+                .on_key_down(move |event| {
+                    if code_composites_on(
+                        event,
+                        [
+                            vec![Code::ControlLeft, Code::KeyY],
+                            vec![Code::ControlLeft, Code::ShiftLeft, Code::KeyZ],
+                        ],
+                    ) && !is_any_line_text_input_focused
+                    {
+                        namui::event::send(Event::RedoSequenceChange);
+                    } else if code_composites_on(event, [vec![Code::ControlLeft, Code::KeyZ]])
+                        && !is_any_line_text_input_focused
+                    {
+                        namui::event::send(Event::UndoSequenceChange);
+                    } else if code_composites_on(event, [vec![Code::Escape]]) {
+                        namui::event::send(Event::EscapeKeyDown);
+                    } else if code_composites_on(event, [vec![Code::ControlLeft, Code::Enter]])
+                        && is_any_line_text_input_focused
+                    {
+                        namui::event::send(Event::CtrlEnterKeyDown);
+                    }
+
+                    fn code_composites_on(
+                        event: &KeyboardEvent,
+                        iter: impl IntoIterator<Item = Vec<Code>>,
+                    ) -> bool {
+                        iter.into_iter().any(|codes| {
+                            codes
+                                .into_iter()
+                                .all(|code| event.pressing_codes.contains(&code))
+                        })
+                    }
+                });
         });
 
         render([

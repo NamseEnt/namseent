@@ -1,5 +1,5 @@
 use super::{render_in_game_menu, render_start_menu};
-use namui::{on_top, screen, Code, NamuiEvent, RenderingTree};
+use namui::{on_top, screen, Code, RenderingTree};
 use namui_prebuilt::event_trap;
 
 pub struct Menu {
@@ -16,19 +16,13 @@ impl Menu {
     }
 
     pub fn update(&mut self, event: &namui::Event) {
-        event
-            .is::<NamuiEvent>(|event| match event {
-                NamuiEvent::KeyDown(event) => {
-                    if event.code == Code::Escape {
-                        self.toggle_ingame_menu();
-                    }
-                }
-                _ => (),
-            })
-            .is::<InternalEvent>(|event| match event {
-                InternalEvent::CloseRequested => self.close(),
-                InternalEvent::ChangeTabRequested(tab) => self.tab = tab.clone(),
-            });
+        event.is::<InternalEvent>(|event| match event {
+            InternalEvent::CloseRequested => self.close(),
+            InternalEvent::ChangeTabRequested(tab) => self.tab = tab.clone(),
+            InternalEvent::EscapeKeyDown => {
+                self.toggle_ingame_menu();
+            }
+        });
     }
 
     pub fn render(&self) -> RenderingTree {
@@ -41,6 +35,13 @@ impl Menu {
             Tab::Start => render_start_menu(wh),
             Tab::InGame => render_in_game_menu(wh),
         }))
+        .attach_event(|builder| {
+            builder.on_key_down(|event| {
+                if event.code == Code::Escape {
+                    namui::event::send(InternalEvent::EscapeKeyDown);
+                }
+            });
+        })
     }
 
     fn toggle_ingame_menu(&mut self) {
@@ -71,4 +72,5 @@ pub enum Tab {
 enum InternalEvent {
     CloseRequested,
     ChangeTabRequested(Tab),
+    EscapeKeyDown,
 }

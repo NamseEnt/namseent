@@ -1,4 +1,7 @@
-use crate::app::game::{nearest_entity, Game, RenderingContext, MAX_INTERACTION_DISTANCE};
+use crate::app::game::{
+    interaction::{nearest_entity, MAX_INTERACTION_DISTANCE},
+    Game, RenderingContext,
+};
 use namui::prelude::*;
 
 const ICON_SIZE: Px = px(36.0);
