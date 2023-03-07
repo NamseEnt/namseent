@@ -85,7 +85,7 @@ impl Game {
                         pressing_codes: event.pressing_codes.clone(),
                     });
                 })
-                .on_key_down(|event| {
+                .on_key_up(|event| {
                     namui::event::send(Event::KeyUp {
                         code: event.code,
                         pressing_codes: event.pressing_codes.clone(),
