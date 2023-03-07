@@ -372,7 +372,7 @@ impl LoadedSequenceEditorPage {
                         self.line_text_inputs
                             .iter()
                             .find_map(|(cut_id, text_input)| {
-                                if text_input.get_id() == id {
+                                if text_input.get_id() == *id {
                                     Some(cut_id)
                                 } else {
                                     None
@@ -389,7 +389,7 @@ impl LoadedSequenceEditorPage {
                         self.line_text_inputs
                             .iter()
                             .find_map(|(cut_id, text_input)| {
-                                if text_input.get_id() == &id {
+                                if text_input.get_id() == id {
                                     Some(*cut_id)
                                 } else {
                                     None
