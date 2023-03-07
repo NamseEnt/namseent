@@ -1,6 +1,6 @@
 {
   "name": "namui-cli",
   "dependencies": {
-    "canvaskit-wasm": "=0.37.0"
+    "canvaskit-wasm": "=0.38.0"
   }
 }
