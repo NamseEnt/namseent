@@ -1,5 +1,5 @@
 use crate::Image;
-use js_sys::{Array, ArrayBuffer, Promise, Reflect, Uint8Array};
+use js_sys::{Array, ArrayBuffer, Object, Promise, Reflect, Uint8Array};
 use std::sync::Arc;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 use web_sys::Blob;
@@ -9,12 +9,40 @@ extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "navigator", "clipboard"])]
     fn writeText(text: &str) -> Promise;
     #[wasm_bindgen(js_namespace = ["window", "navigator", "clipboard"])]
+    fn write(items: &Array) -> Promise;
+    #[wasm_bindgen(js_namespace = ["window", "navigator", "clipboard"])]
     fn read() -> Promise;
+
+    type ClipboardItem;
+    #[wasm_bindgen(constructor)]
+    fn new(data: Object) -> ClipboardItem;
 }
 
 pub async fn write_text(text: impl AsRef<str>) -> Result<(), ()> {
     let text = text.as_ref();
     let promise = writeText(text);
+    let result = wasm_bindgen_futures::JsFuture::from(promise).await;
+    match result {
+        Ok(_) => Ok(()),
+        Err(_) => Err(()),
+    }
+}
+
+pub async fn write_image(image: Arc<Image>) -> Result<(), ()> {
+    let blob = image.as_png_blob().await;
+
+    let clipboard_item_data = {
+        let object = js_sys::Object::new();
+        Reflect::set(&object, &"image/png".into(), &blob.into()).unwrap();
+        object
+    };
+    let clipboard_item = ClipboardItem::new(clipboard_item_data);
+    let clipboard_items = {
+        let array = js_sys::Array::new();
+        array.push(&clipboard_item.into());
+        array
+    };
+    let promise = write(&clipboard_items);
     let result = wasm_bindgen_futures::JsFuture::from(promise).await;
     match result {
         Ok(_) => Ok(()),

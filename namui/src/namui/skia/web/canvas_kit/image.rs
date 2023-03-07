@@ -1,18 +1,22 @@
 use super::*;
+use js_sys::{Object, Uint8Array};
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_name = "Image")]
     pub type CanvasKitImage;
 
-    // ///
-    // /// Encodes this image's pixels to the specified format and returns them. Must be built with
-    // /// the specified codec. If the options are unspecified, sensible defaults will be
-    // /// chosen.
-    // /// @param fmt - PNG is the default value.
-    // /// @param quality - a value from 0 to 100; 100 is the least lossy. May be ignored.
-    // #[wasm_bindgen(method)]
-    // pub(crate) fn encodeToBytes(this: &CanvasKitImage, fmt?: EncodedImageFormat, quality?: number) -> Uint8Array | null;
+    ///
+    /// Encodes this image's pixels to the specified format and returns them. Must be built with
+    /// the specified codec. If the options are unspecified, sensible defaults will be
+    /// chosen.
+    /// @param fmt - PNG is the default value.
+    /// @param quality - a value from 0 to 100; 100 is the least lossy. May be ignored.
+    /// NOTE: This doesn't work well with lazy image. You should call readPixels() first.
+    #[wasm_bindgen(method)]
+    pub(crate) fn encodeToBytes(
+        this: &CanvasKitImage, // , fmt?: EncodedImageFormat, quality?: number
+    ) -> Uint8Array;
 
     // ///
     // /// Returns the color space associated with this object.
@@ -80,26 +84,30 @@ extern "C" {
         // localMatrix?: InputMatrix
     ) -> CanvasKitShader;
 
-    // ///
-    // /// Returns a TypedArray containing the pixels reading starting at (srcX, srcY) and does not
-    // /// exceed the size indicated by imageInfo. See SkImage.h for more on the caveats.
-    //  *
-    // /// If dest is not provided, we allocate memory equal to the provided height/// the provided
-    // /// bytesPerRow to fill the data with.
-    //  *
-    // /// @param srcX
-    // /// @param srcY
-    // /// @param imageInfo - describes the destination format of the pixels.
-    // /// @param dest - If provided, the pixels will be copied into the allocated buffer allowing
-    // ///        access to the pixels without allocating a new TypedArray.
-    // /// @param bytesPerRow - number of bytes per row. Must be provided if dest is set. This
-    // ///        depends on destination ColorType. For example, it must be at least 4/// width for
-    // ///        the 8888 color type.
-    // /// @returns a TypedArray appropriate for the specified ColorType. Note that 16 bit floats are
-    // ///          not supported in JS, so that colorType corresponds to raw bytes Uint8Array.
-    // #[wasm_bindgen(method)]
-    // pub(crate) fn readPixels(this: &CanvasKitImage, srcX: number, srcY: number, imageInfo: ImageInfo, dest?: MallocObj,
-    //             bytesPerRow?: number) -> Uint8Array | Float32Array | null;
+    ///
+    /// Returns a TypedArray containing the pixels reading starting at (srcX, srcY) and does not
+    /// exceed the size indicated by imageInfo. See SkImage.h for more on the caveats.
+    ///
+    /// If dest is not provided, we allocate memory equal to the provided height/// the provided
+    /// bytesPerRow to fill the data with.
+    ///
+    /// @param srcX
+    /// @param srcY
+    /// @param imageInfo - describes the destination format of the pixels.
+    /// @param dest - If provided, the pixels will be copied into the allocated buffer allowing
+    ///        access to the pixels without allocating a new TypedArray.
+    /// @param bytesPerRow - number of bytes per row. Must be provided if dest is set. This
+    ///        depends on destination ColorType. For example, it must be at least 4 * width for
+    ///        the 8888 color type.
+    /// @returns a TypedArray appropriate for the specified ColorType. Note that 16 bit floats are
+    ///          not supported in JS, so that colorType corresponds to raw bytes Uint8Array.
+    #[wasm_bindgen(method)]
+    pub(crate) fn readPixels(
+        this: &CanvasKitImage,
+        srcX: usize,
+        srcY: usize,
+        imageInfo: Object,
+    ) -> Uint8Array;
 
     // ///
     // /// Return the width in pixels of the image.
