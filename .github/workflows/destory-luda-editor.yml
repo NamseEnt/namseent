@@ -8,7 +8,7 @@ env:
 
 jobs:
   destroy-stacks:
-    if: contains(github.event.ref_type, '__le__')
+    if: contains(github.event.ref, '__le__')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
