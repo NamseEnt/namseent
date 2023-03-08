@@ -1,5 +1,5 @@
 use super::InitResult;
-use crate::Code;
+use crate::{namui::render::DownUp, Code};
 use std::{
     collections::HashSet,
     str::FromStr,
@@ -43,11 +43,16 @@ impl KeyboardSystem {
                             event.prevent_default();
                         }
 
-                        crate::event::send(crate::NamuiEvent::KeyDown(crate::RawKeyboardEvent {
-                            id: crate::uuid(),
-                            code,
-                            pressing_codes: pressing_code_set.read().unwrap().clone(),
-                        }));
+                        let rendering_tree = crate::system::render::last_rendering_tree();
+
+                        rendering_tree.call_keyboard_event(
+                            &crate::RawKeyboardEvent {
+                                id: crate::uuid(),
+                                code,
+                                pressing_codes: pressing_code_set.read().unwrap().clone(),
+                            },
+                            DownUp::Down,
+                        );
                     }
                 }) as Box<dyn FnMut(_)>)
                 .into_js_value()
@@ -65,11 +70,16 @@ impl KeyboardSystem {
                         let mut pressing_code_set = pressing_code_set.write().unwrap();
                         pressing_code_set.remove(&code);
 
-                        crate::event::send(crate::NamuiEvent::KeyUp(crate::RawKeyboardEvent {
-                            id: crate::uuid(),
-                            code,
-                            pressing_codes: pressing_code_set.clone(),
-                        }));
+                        let rendering_tree = crate::system::render::last_rendering_tree();
+
+                        rendering_tree.call_keyboard_event(
+                            &crate::RawKeyboardEvent {
+                                id: crate::uuid(),
+                                code,
+                                pressing_codes: pressing_code_set.clone(),
+                            },
+                            DownUp::Up,
+                        );
                     }
                 }) as Box<dyn FnMut(_)>)
                 .into_js_value()

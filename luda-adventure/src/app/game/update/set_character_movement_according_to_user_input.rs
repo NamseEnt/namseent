@@ -6,13 +6,19 @@ use std::collections::{hash_map::RandomState, HashSet};
 impl Game {
     pub fn set_character_movement_according_to_user_input(&mut self, event: &namui::Event) {
         event
-            .is::<NamuiEvent>(|event| match event {
-                NamuiEvent::KeyDown(event) | NamuiEvent::KeyUp(event) => {
+            .is::<game::Event>(|event| match event {
+                game::Event::KeyDown {
+                    code: _,
+                    pressing_codes,
+                }
+                | game::Event::KeyUp {
+                    code: _,
+                    pressing_codes,
+                } => {
                     let movement_direction =
-                        get_movement_direction_from_pressing_codes(&event.pressing_codes);
+                        get_movement_direction_from_pressing_codes(pressing_codes);
                     self.set_character_movement_with_movement_direction(movement_direction);
                 }
-                _ => (),
             })
             .is::<save_load::Event>(|event| match event {
                 save_load::Event::Loaded => {

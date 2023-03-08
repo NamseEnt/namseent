@@ -64,7 +64,7 @@ impl ImageEditModal {
                     text: updated_text,
                 } = event
                 {
-                    if id.eq(self.label_text_input.get_id()) {
+                    if id == &self.label_text_input.get_id() {
                         self.label_text = updated_text.clone();
                     }
                 }

@@ -1,10 +1,9 @@
 use super::*;
-use crate::namui::render::DownUp;
 
 impl NamuiContext {
     pub(super) fn post_update_and_render(&mut self, event: &Event) {
         system::text_input::post_render(&self.rendering_tree);
-        system::mouse::post_render(&self.rendering_tree);
+        system::render::post_render(&self.rendering_tree);
 
         event.is::<NamuiEvent>(|event| match event {
             NamuiEvent::AnimationFrame => {
@@ -27,14 +26,6 @@ impl NamuiContext {
             }
             NamuiEvent::Wheel(raw_wheel_event) => {
                 self.rendering_tree.call_wheel_event(raw_wheel_event);
-            }
-            NamuiEvent::KeyDown(raw_keyboard_event) => {
-                self.rendering_tree
-                    .call_keyboard_event(raw_keyboard_event, &self, DownUp::Down);
-            }
-            NamuiEvent::KeyUp(raw_keyboard_event) => {
-                self.rendering_tree
-                    .call_keyboard_event(raw_keyboard_event, &self, DownUp::Up);
             }
             NamuiEvent::FileDrop(raw_file_drop_event) => {
                 self.rendering_tree

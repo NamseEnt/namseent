@@ -1,3 +1,4 @@
+use super::*;
 use crate::{
     app::game::*,
     component::{PlayerCharacter, Positioner, Renderer},

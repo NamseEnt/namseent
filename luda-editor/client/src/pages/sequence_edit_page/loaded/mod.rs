@@ -93,6 +93,10 @@ enum Event {
     CopyPreviewLink {
         cut_id: Uuid,
     },
+    RedoSequenceChange,
+    UndoSequenceChange,
+    EscapeKeyDown,
+    CtrlEnterKeyDown,
 }
 
 #[derive(Clone, Copy)]

@@ -1,4 +1,4 @@
-use crate::app::game::InteractionKind;
+use crate::app::game::interaction::InteractionKind;
 
 #[ecs_macro::component]
 pub struct Interactor {

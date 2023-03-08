@@ -15,7 +15,7 @@ pub(crate) fn set_up_event_handler() {
                 crate::system::text_input::on_mouse_down_in_before_attach_event_calls();
 
                 let button = get_button(&event);
-                let rendering_tree = { MOUSE_SYSTEM.rendering_tree.lock().unwrap().clone() };
+                let rendering_tree = render::last_rendering_tree();
                 let mouse_position = { MOUSE_SYSTEM.mouse_position.read().unwrap().clone() };
 
                 rendering_tree.call_mouse_event(
@@ -40,7 +40,7 @@ pub(crate) fn set_up_event_handler() {
             "mousemove",
             Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
                 update_mouse_position(&event);
-                let rendering_tree = { MOUSE_SYSTEM.rendering_tree.lock().unwrap().clone() };
+                let rendering_tree = render::last_rendering_tree();
                 crate::system::text_input::on_mouse_move(&rendering_tree);
 
                 let button = get_button(&event);
@@ -70,7 +70,7 @@ pub(crate) fn set_up_event_handler() {
 
                 let button = get_button(&event);
                 let mouse_position = { MOUSE_SYSTEM.mouse_position.read().unwrap().clone() };
-                let rendering_tree = { MOUSE_SYSTEM.rendering_tree.lock().unwrap().clone() };
+                let rendering_tree = render::last_rendering_tree();
 
                 rendering_tree.call_mouse_event(
                     MouseEventType::Up,

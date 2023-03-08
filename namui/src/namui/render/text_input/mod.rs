@@ -124,8 +124,8 @@ impl TextInput {
     pub fn new() -> TextInput {
         TextInput { id: crate::uuid() }
     }
-    pub fn get_id(&self) -> &crate::Uuid {
-        &self.id
+    pub fn get_id(&self) -> crate::Uuid {
+        self.id
     }
 }
 
