@@ -1,5 +1,5 @@
 use super::*;
-use crate::{namui::skia::canvas_kit, time::delay, File, Image};
+use crate::{time::delay, File, Image};
 use dashmap::DashMap;
 use namui_type::Time;
 use std::{
@@ -103,9 +103,14 @@ pub async fn load_url(url: &Url) -> Arc<Image> {
 
 #[wasm_bindgen]
 extern "C" {
+    pub type ImageBitmap;
+
     #[wasm_bindgen(js_namespace = globalThis, js_name = createImageBitmap)]
     async fn create_image_bitmap(image: JsValue) -> JsValue;
 }
+
+unsafe impl Sync for ImageBitmap {}
+unsafe impl Send for ImageBitmap {}
 
 pub async fn new_image_from_u8(data: &[u8]) -> Result<Arc<Image>, Box<dyn std::error::Error>> {
     let u8_array = js_sys::Uint8Array::from(data);
@@ -123,9 +128,9 @@ pub async fn new_image_from_u8(data: &[u8]) -> Result<Arc<Image>, Box<dyn std::e
 }
 
 pub(crate) async fn blob_to_image(blob: web_sys::Blob) -> Arc<Image> {
-    let image_bitmap = create_image_bitmap(blob.into()).await;
+    let image_bitmap: ImageBitmap = create_image_bitmap(blob.into()).await.into();
 
-    let image = canvas_kit().make_lazy_image_from_texture_source(image_bitmap, None, None);
+    let image = Image::from_image_bitmap(image_bitmap);
 
     Arc::new(image)
 }

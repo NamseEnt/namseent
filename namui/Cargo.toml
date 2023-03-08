@@ -73,11 +73,11 @@ features = [
     "Url",
     "ErrorEvent",
     "HtmlAnchorElement",
-    "ImageBitmap",
     "WritableStream",
     "WritableStreamDefaultWriter",
     "DragEvent",
     "DataTransfer",
     "DataTransferItemList",
     "DataTransferItem",
+    "OffscreenCanvas",
 ]

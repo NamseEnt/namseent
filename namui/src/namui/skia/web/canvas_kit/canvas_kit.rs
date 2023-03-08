@@ -76,7 +76,7 @@ extern "C" {
     #[wasm_bindgen(method)]
     fn MakeLazyImageFromTextureSource(
         this: &CanvasKit,
-        src: JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
+        src: &JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
         info: Option<js_sys::Object>, // ImageInfo | PartialImageInfo
         srcIsPremul: Option<bool>,
     ) -> CanvasKitImage;
@@ -131,13 +131,12 @@ extern "C" {
 impl CanvasKit {
     pub(crate) fn make_lazy_image_from_texture_source(
         &self,
-        src: JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
+        src: &JsValue, // NOTE: It can also be an HTMLVideoElement or an HTMLCanvasElement.
         info: Option<PartialImageInfo>,
         src_is_premul: Option<bool>,
-    ) -> Image {
+    ) -> CanvasKitImage {
         let info = info.map(|info| info.into_js_object());
         let image = self.MakeLazyImageFromTextureSource(src, info, src_is_premul);
-        let image = image.makeCopyWithDefaultMipmaps();
-        Image::new(image)
+        image.makeCopyWithDefaultMipmaps()
     }
 }

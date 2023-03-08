@@ -1,11 +1,14 @@
 use super::*;
-use crate::*;
+use crate::{image::ImageBitmap, *};
 pub use base::*;
+use js_sys::{Array, Function, Promise, Reflect};
 use serde::Serialize;
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
 };
+use wasm_bindgen::JsValue;
+use web_sys::{Blob, OffscreenCanvas};
 
 unsafe impl Sync for CanvasKitImage {}
 unsafe impl Send for CanvasKitImage {}
@@ -18,12 +21,14 @@ pub struct Image {
     image_info: PartialImageInfo,
     #[serde(skip)]
     default_shader: Arc<Shader>,
+    #[serde(skip)]
+    image_bitmap: ImageBitmap,
 }
 
 static IMAGE_ID: AtomicUsize = AtomicUsize::new(0);
 
 impl Image {
-    pub(crate) fn new(canvas_kit_image: CanvasKitImage) -> Self {
+    pub(crate) fn new(canvas_kit_image: CanvasKitImage, image_bitmap: ImageBitmap) -> Self {
         let id = format!("image-{}", IMAGE_ID.fetch_add(1, Ordering::Relaxed));
         let image_info = {
             let canvas_kit_image_info = canvas_kit_image.getImageInfo();
@@ -64,6 +69,7 @@ impl Image {
             canvas_kit_image,
             image_info,
             default_shader,
+            image_bitmap,
         }
     }
     pub fn get_image_info(&self) -> PartialImageInfo {
@@ -95,6 +101,53 @@ impl Image {
 
     pub(crate) fn get_default_shader(&self) -> Arc<Shader> {
         self.default_shader.clone()
+    }
+
+    pub(crate) fn from_image_bitmap(image_bitmap: ImageBitmap) -> Image {
+        let canvas_kit_image =
+            canvas_kit().make_lazy_image_from_texture_source(&image_bitmap, None, None);
+        Image::new(canvas_kit_image, image_bitmap)
+    }
+    pub(crate) async fn as_png_blob(&self) -> Blob {
+        let image_size = self.size();
+        let offscreen_canvas = OffscreenCanvas::new(
+            image_size.width.as_f32() as u32,
+            image_size.height.as_f32() as u32,
+        )
+        .unwrap();
+
+        let context = offscreen_canvas
+            .get_context("bitmaprenderer")
+            .unwrap()
+            .expect("Fail to get image bitmap rendering context")
+            .into();
+        let transfer_from_image_bitmap: Function =
+            Reflect::get(&context, &JsValue::from_str("transferFromImageBitmap"))
+                .unwrap()
+                .into();
+        let arguments = {
+            let arguments = Array::new();
+            arguments.push(&self.image_bitmap);
+            arguments
+        };
+        Reflect::apply(&transfer_from_image_bitmap, &context, &arguments).unwrap();
+
+        // Wrong implemented on web-sys https://github.com/rustwasm/wasm-bindgen/pull/3341
+        let convert_to_blob: Function =
+            Reflect::get(&offscreen_canvas, &JsValue::from_str("convertToBlob"))
+                .unwrap()
+                .into();
+
+        let promise: Promise = Reflect::apply(&convert_to_blob, &offscreen_canvas, &Array::new())
+            .unwrap()
+            .into();
+
+        let blob: Blob = wasm_bindgen_futures::JsFuture::from(promise)
+            .await
+            .unwrap()
+            .into();
+
+        blob
     }
 }
 
