@@ -45,4 +45,8 @@ impl AutoCompleteTextInput {
     pub(crate) fn text_input_id(&self) -> Uuid {
         self.text_input.get_id()
     }
+
+    pub(crate) fn blur(&self) {
+        self.text_input.blur();
+    }
 }

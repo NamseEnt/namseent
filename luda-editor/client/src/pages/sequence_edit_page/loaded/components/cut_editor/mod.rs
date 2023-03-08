@@ -10,7 +10,6 @@ pub struct CutEditor {
     character_name_input: auto_complete_text_input::AutoCompleteTextInput,
     text_input: text_input::TextInput,
     image_wysiwyg_editor: wysiwyg_editor::WysiwygEditor,
-    edit_mode: EditMode,
 }
 
 pub struct Props<'a> {
@@ -22,29 +21,36 @@ pub struct Props<'a> {
 }
 
 pub enum Event {
-    ChangeCharacterName { name: String, cut_id: Uuid },
-    ChangeCutLine { text: String, cut_id: Uuid },
-    MoveCutByTab { cut_id: Uuid, to_prev: bool },
-    Click { target: ClickTarget },
-    AddNewImage { png_bytes: Vec<u8>, cut_id: Uuid },
+    ChangeCharacterName {
+        name: String,
+        cut_id: Uuid,
+    },
+    ChangeCutLine {
+        text: String,
+        cut_id: Uuid,
+    },
+    MoveCutRequest {
+        cut_id: Uuid,
+        to_prev: bool,
+        focused: bool,
+    },
+    Click {
+        target: ClickTarget,
+    },
+    AddNewImage {
+        png_bytes: Vec<u8>,
+        cut_id: Uuid,
+    },
 }
 
 enum InternalEvent {
-    ClickImage { image_id: Uuid },
-    ClickImageOutside,
+    EscapeKeyDown,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ClickTarget {
     CharacterName,
     CutText,
-}
-
-enum EditMode {
-    Idle,
-    CharacterName,
-    CutText,
-    Image,
 }
 
 impl CutEditor {
@@ -54,7 +60,6 @@ impl CutEditor {
             character_name_input: auto_complete_text_input::AutoCompleteTextInput::new(),
             text_input: text_input::TextInput::new(),
             image_wysiwyg_editor: wysiwyg_editor::WysiwygEditor::new(),
-            edit_mode: EditMode::Idle,
         }
     }
 

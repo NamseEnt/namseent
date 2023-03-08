@@ -4,11 +4,19 @@ impl CutEditor {
     pub fn update(&mut self, event: &namui::Event) {
         event
             .is::<Event>(|event| match event {
-                &Event::MoveCutByTab { cut_id: _, to_prev } => self.focus(if to_prev {
-                    ClickTarget::CutText
-                } else {
-                    ClickTarget::CharacterName
-                }),
+                &Event::MoveCutRequest {
+                    cut_id: _,
+                    to_prev,
+                    focused,
+                } => {
+                    if focused {
+                        self.focus(if to_prev {
+                            ClickTarget::CutText
+                        } else {
+                            ClickTarget::CharacterName
+                        })
+                    }
+                }
                 &Event::Click { target } => {
                     self.focus(target);
                 }
@@ -17,33 +25,26 @@ impl CutEditor {
                 | Event::AddNewImage { .. } => {}
             })
             .is::<InternalEvent>(|event| match event {
-                &InternalEvent::ClickImage { image_id } => {
-                    self.edit_mode = EditMode::Image;
-                }
-                InternalEvent::ClickImageOutside => {
-                    if let EditMode::Image = self.edit_mode {
-                        self.edit_mode = EditMode::Idle;
-                    }
+                InternalEvent::EscapeKeyDown => {
+                    self.blur();
                 }
             })
             .is::<text_input::Event>(|event| match event {
-                &text_input::Event::Focus { id } => {
-                    if id == self.character_name_input.text_input_id() {
-                        self.edit_mode = EditMode::CharacterName;
-                    } else if id == self.text_input.get_id() {
-                        self.edit_mode = EditMode::CutText;
-                    }
-                }
                 &text_input::Event::Blur { id } => {
-                    if id == self.character_name_input.text_input_id() {
-                        self.edit_mode = EditMode::Idle;
-                    } else if id == self.text_input.get_id() {
-                        self.edit_mode = EditMode::Idle;
+                    if id == self.character_name_input.text_input_id()
+                        && self.selected_target == Some(ClickTarget::CharacterName)
+                    {
+                        self.selected_target = None;
+                    } else if id == self.text_input.get_id()
+                        && self.selected_target == Some(ClickTarget::CutText)
+                    {
+                        self.selected_target = None;
                     }
                 }
                 text_input::Event::TextUpdated { .. }
                 | text_input::Event::SelectionUpdated { .. }
-                | text_input::Event::KeyDown { .. } => {}
+                | text_input::Event::KeyDown { .. }
+                | text_input::Event::Focus { .. } => {}
             });
 
         self.character_name_input.update(event);
@@ -60,5 +61,12 @@ impl CutEditor {
                 self.text_input.focus();
             }
         }
+    }
+
+    fn blur(&mut self) {
+        namui::log!("blur");
+        self.character_name_input.blur();
+        self.text_input.blur();
+        self.selected_target = None;
     }
 }

@@ -105,7 +105,11 @@ impl LoadedSequenceEditorPage {
                         cut.line = text.clone();
                     });
                 }
-                &cut_editor::Event::MoveCutByTab { cut_id, to_prev: _ } => {
+                &cut_editor::Event::MoveCutRequest {
+                    cut_id,
+                    to_prev: _,
+                    focused: _,
+                } => {
                     self.selected_cut_id = Some(cut_id);
                 }
                 cut_editor::Event::Click { target: _ } => {
