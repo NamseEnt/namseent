@@ -11,6 +11,7 @@ pub mod log;
 pub mod mouse;
 pub mod network;
 mod platform_utils;
+pub(crate) mod render;
 pub mod screen;
 pub mod text_input;
 pub mod time;
@@ -41,6 +42,7 @@ pub(crate) async fn init() -> InitResult {
         wheel::init(),
         deep_link::init(),
         drag_and_drop::init(),
+        render::init(),
     )?;
 
     Ok(())

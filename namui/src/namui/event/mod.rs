@@ -1,6 +1,4 @@
-use crate::{
-    drag_and_drop::RawFileDropEvent, namui, DeepLinkOpenedEvent, RawKeyboardEvent, RawWheelEvent,
-};
+use crate::{drag_and_drop::RawFileDropEvent, namui, DeepLinkOpenedEvent, RawWheelEvent};
 use once_cell::sync::OnceCell;
 use std::any::Any;
 use tokio::sync::mpsc::{self, unbounded_channel};
@@ -43,8 +41,6 @@ impl Event {
 #[derive(Debug)]
 pub enum NamuiEvent {
     AnimationFrame,
-    KeyDown(RawKeyboardEvent),
-    KeyUp(RawKeyboardEvent),
     ScreenResize(namui::Wh<i16>),
     Wheel(RawWheelEvent),
     DeepLinkOpened(DeepLinkOpenedEvent),

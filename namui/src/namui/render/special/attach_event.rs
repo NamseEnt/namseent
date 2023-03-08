@@ -75,7 +75,6 @@ impl WheelEvent<'_> {
 }
 pub struct KeyboardEvent<'a> {
     pub id: crate::Uuid,
-    pub namui_context: &'a NamuiContext,
     pub target: &'a RenderingTree,
     pub code: Code,
     pub pressing_codes: HashSet<Code>,

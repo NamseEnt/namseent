@@ -30,54 +30,47 @@ impl Canvas {
     }
 
     pub fn update(&mut self, event: &namui::Event) {
-        event
-            .is::<CanvasEvent>(|event| match &event {
-                CanvasEvent::Scrolled { offset } => self.offset = offset.clone(),
-                CanvasEvent::Zoomed { offset, scale } => {
-                    self.offset = offset.clone();
-                    self.scale = scale.clone();
+        event.is::<CanvasEvent>(|event| match &event {
+            CanvasEvent::Scrolled { offset } => self.offset = offset.clone(),
+            CanvasEvent::Zoomed { offset, scale } => {
+                self.offset = offset.clone();
+                self.scale = scale.clone();
+            }
+            CanvasEvent::DragStarted(drag_state) => {
+                self.canvas_drag_state = drag_state.clone();
+            }
+            CanvasEvent::DragEnded => {
+                self.canvas_drag_state = CanvasDragState::None;
+            }
+            CanvasEvent::KeyDown { code } => match code {
+                namui::Code::Digit1 | namui::Code::KeyH => {
+                    self.change_tool(ToolType::Hand);
                 }
-                CanvasEvent::DragStarted(drag_state) => {
-                    self.canvas_drag_state = drag_state.clone();
+
+                namui::Code::Digit2 | namui::Code::KeyM => {
+                    self.change_tool(ToolType::RectSelection);
                 }
-                CanvasEvent::DragEnded => {
-                    self.canvas_drag_state = CanvasDragState::None;
+
+                namui::Code::Digit3 | namui::Code::KeyL => {
+                    self.change_tool(ToolType::PolySelection);
                 }
-                _ => {}
-            })
-            .is::<NamuiEvent>(|event| match &event {
-                NamuiEvent::KeyDown(event) => match event.code {
-                    namui::Code::Digit1 | namui::Code::KeyH => {
-                        self.change_tool(ToolType::Hand);
-                    }
 
-                    namui::Code::Digit2 | namui::Code::KeyM => {
-                        self.change_tool(ToolType::RectSelection);
-                    }
+                namui::Code::Digit4 | namui::Code::KeyZ => {
+                    self.change_tool(ToolType::Zoom);
+                }
 
-                    namui::Code::Digit3 | namui::Code::KeyL => {
-                        self.change_tool(ToolType::PolySelection);
+                namui::Code::Space => {
+                    if namui::keyboard::any_code_press([Code::ControlLeft]) {
+                        self.tool.set_secondary_tool_type(ToolType::Zoom)
+                    } else {
+                        self.tool.set_secondary_tool_type(ToolType::Hand)
                     }
-
-                    namui::Code::Digit4 | namui::Code::KeyZ => {
-                        self.change_tool(ToolType::Zoom);
-                    }
-
-                    namui::Code::Space => {
-                        if namui::keyboard::any_code_press([Code::ControlLeft]) {
-                            self.tool.set_secondary_tool_type(ToolType::Zoom)
-                        } else {
-                            self.tool.set_secondary_tool_type(ToolType::Hand)
-                        }
-                    }
-                    _ => (),
-                },
-                NamuiEvent::KeyUp(event) => match event.code {
-                    namui::Code::Space => self.tool.unset_secondary_tool_type(),
-                    _ => (),
-                },
+                }
                 _ => (),
-            });
+            },
+            CanvasEvent::SpaceKeyUp => self.tool.unset_secondary_tool_type(),
+            CanvasEvent::LeftMouseDownInCanvas { .. } | CanvasEvent::MouseMoveInCanvas(_) => {}
+        });
         self.tool.update(event);
     }
 
@@ -210,6 +203,14 @@ impl Canvas {
                     .on_mouse(|event| {
                         if event.event_type == MouseEventType::Up {
                             namui::event::send(CanvasEvent::DragEnded);
+                        }
+                    })
+                    .on_key_down(|event| {
+                        namui::event::send(CanvasEvent::KeyDown { code: event.code });
+                    })
+                    .on_key_up(|event| {
+                        if event.code == namui::Code::Space {
+                            namui::event::send(CanvasEvent::SpaceKeyUp);
                         }
                     });
             }),

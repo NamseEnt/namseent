@@ -1,4 +1,4 @@
-use crate::app::game::{menu, save_load, ImageLoader, MapLoader, TileExt};
+use crate::app::game::{image_loader::ImageLoader, map::MapLoader, menu, save_load, TileExt};
 use menu::Menu;
 use namui::prelude::*;
 use namui_prebuilt::{

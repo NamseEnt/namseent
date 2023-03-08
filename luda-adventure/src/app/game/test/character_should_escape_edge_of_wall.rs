@@ -1,4 +1,8 @@
-use crate::{app::game::*, component::*, ecs};
+use crate::{
+    app::game::{map::Map, *},
+    component::*,
+    ecs,
+};
 use namui::prelude::*;
 use wasm_bindgen_test::wasm_bindgen_test;
 

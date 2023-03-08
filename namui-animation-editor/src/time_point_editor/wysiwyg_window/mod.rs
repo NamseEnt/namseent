@@ -14,7 +14,6 @@ pub struct WysiwygWindow {
     animation_history: AnimationHistory,
     real_left_top_xy: Xy<Px>,
     real_px_per_screen_px: f32,
-    last_wh: Option<Wh<Px>>,
     dragging: Option<Dragging>,
 }
 
@@ -25,7 +24,6 @@ impl WysiwygWindow {
             animation_history,
             real_left_top_xy: Xy::single(px(-50.0)),
             real_px_per_screen_px: 2.0,
-            last_wh: None,
             dragging: None,
         }
     }
@@ -75,9 +73,6 @@ enum Event {
         delta: f32,
         mouse_local_xy: Xy<Px>,
     },
-    UpdateWh {
-        wh: Wh<Px>,
-    },
     SelectedLayerMouseDown {
         layer_id: namui::Uuid,
         anchor_xy: Xy<Px>,
@@ -97,4 +92,7 @@ enum Event {
         layer_id: namui::Uuid,
     },
     MouseUp,
+    HomeKeyDown {
+        wh: Wh<Px>,
+    },
 }

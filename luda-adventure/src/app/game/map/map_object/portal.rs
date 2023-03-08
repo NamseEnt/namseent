@@ -17,7 +17,7 @@ impl Portal {
         app.new_entity()
             .add_component(Positioner::new_with_xy(self.xy))
             .add_component(Interactor {
-                kind: crate::app::game::InteractionKind::MapTeleport {
+                kind: crate::app::game::interaction::InteractionKind::MapTeleport {
                     map_name: self.destination_map_name.clone(),
                     player_xy: self.destination_character_xy,
                 },

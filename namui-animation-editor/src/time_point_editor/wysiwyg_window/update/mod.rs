@@ -4,74 +4,73 @@ pub(crate) mod dragging;
 
 impl WysiwygWindow {
     pub fn update(&mut self, event: &namui::Event) {
-        event
-            .is::<Event>(|event| match event {
-                Event::BackgroundClicked { mouse_xy } => {
-                    if self.dragging.is_none() {
-                        self.dragging = Some(Dragging::Background {
-                            anchor_xy: *mouse_xy,
-                        });
+        event.is::<Event>(|event| match event {
+            Event::BackgroundClicked { mouse_xy } => {
+                if self.dragging.is_none() {
+                    self.dragging = Some(Dragging::Background {
+                        anchor_xy: *mouse_xy,
+                    });
+                }
+            }
+            Event::MouseMoveIn { mouse_local_xy } => {
+                self.handle_dragging(*mouse_local_xy);
+            }
+            &Event::ShiftWheel { delta } => {
+                self.real_left_top_xy.x += px(delta);
+            }
+            &Event::Wheel { delta } => {
+                self.real_left_top_xy.y += px(delta);
+            }
+            Event::AltWheel {
+                delta,
+                mouse_local_xy,
+            } => {
+                let next_real_px_per_screen_px = zoom(self.real_px_per_screen_px, *delta);
+
+                let real_xy_on_mouse_xy =
+                    self.real_left_top_xy + *mouse_local_xy * self.real_px_per_screen_px;
+
+                let next_left_top_xy =
+                    real_xy_on_mouse_xy - *mouse_local_xy * next_real_px_per_screen_px;
+
+                self.real_left_top_xy = next_left_top_xy;
+
+                self.real_px_per_screen_px = next_real_px_per_screen_px;
+            }
+            &Event::HomeKeyDown { wh } => {
+                self.center_viewport(wh);
+            }
+            &Event::SelectedLayerMouseDown {
+                layer_id,
+                anchor_xy,
+                keyframe_point_id,
+            } => {
+                if self.dragging.is_none() {
+                    if let Some(ticket) =
+                        self.animation_history
+                            .try_set_action(dragging::DragImageBodyAction {
+                                anchor_xy,
+                                last_mouse_local_xy: anchor_xy,
+                                layer_id,
+                                keyframe_point_id,
+                                real_px_per_screen_px: self.real_px_per_screen_px,
+                            })
+                    {
+                        self.dragging = Some(Dragging::ImageBody { ticket });
                     }
                 }
-                Event::MouseMoveIn { mouse_local_xy } => {
-                    self.handle_dragging(*mouse_local_xy);
-                }
-                &Event::ShiftWheel { delta } => {
-                    self.real_left_top_xy.x += px(delta);
-                }
-                &Event::Wheel { delta } => {
-                    self.real_left_top_xy.y += px(delta);
-                }
-                Event::AltWheel {
-                    delta,
-                    mouse_local_xy,
-                } => {
-                    let next_real_px_per_screen_px = zoom(self.real_px_per_screen_px, *delta);
-
-                    let real_xy_on_mouse_xy =
-                        self.real_left_top_xy + *mouse_local_xy * self.real_px_per_screen_px;
-
-                    let next_left_top_xy =
-                        real_xy_on_mouse_xy - *mouse_local_xy * next_real_px_per_screen_px;
-
-                    self.real_left_top_xy = next_left_top_xy;
-
-                    self.real_px_per_screen_px = next_real_px_per_screen_px;
-                }
-                &Event::UpdateWh { wh } => {
-                    self.last_wh = Some(wh);
-                    self.center_viewport(wh);
-                }
-                &Event::SelectedLayerMouseDown {
-                    layer_id,
-                    anchor_xy,
-                    keyframe_point_id,
-                } => {
-                    if self.dragging.is_none() {
-                        if let Some(ticket) =
-                            self.animation_history
-                                .try_set_action(dragging::DragImageBodyAction {
-                                    anchor_xy,
-                                    last_mouse_local_xy: anchor_xy,
-                                    layer_id,
-                                    keyframe_point_id,
-                                    real_px_per_screen_px: self.real_px_per_screen_px,
-                                })
-                        {
-                            self.dragging = Some(Dragging::ImageBody { ticket });
-                        }
-                    }
-                }
-                &Event::ResizeCircleMouseDown {
-                    layer_id,
-                    location,
-                    anchor_xy,
-                    keyframe_point_id,
-                    rotation_angle,
-                } => {
-                    if self.dragging.is_none() {
-                        if let Some(ticket) = self.animation_history.try_set_action(
-                            dragging::DragResizeCircleAction {
+            }
+            &Event::ResizeCircleMouseDown {
+                layer_id,
+                location,
+                anchor_xy,
+                keyframe_point_id,
+                rotation_angle,
+            } => {
+                if self.dragging.is_none() {
+                    if let Some(ticket) =
+                        self.animation_history
+                            .try_set_action(dragging::DragResizeCircleAction {
                                 anchor_xy,
                                 last_mouse_local_xy: anchor_xy,
                                 layer_id,
@@ -79,58 +78,48 @@ impl WysiwygWindow {
                                 real_px_per_screen_px: self.real_px_per_screen_px,
                                 location,
                                 rotation_angle,
-                            },
-                        ) {
-                            self.dragging = Some(Dragging::ResizeCircle { ticket });
-                        }
+                            })
+                    {
+                        self.dragging = Some(Dragging::ResizeCircle { ticket });
                     }
                 }
-                &Event::RotationToolMouseDown {
-                    image_center_real_xy,
-                    mouse_local_xy: mouse_real_xy,
-                    keyframe_point_id,
-                    layer_id,
-                } => {
-                    if self.dragging.is_none() {
-                        if let Some(ticket) =
-                            self.animation_history
-                                .try_set_action(dragging::DragRotationAction {
-                                    image_center_real_xy,
-                                    start_mouse_real_xy: mouse_real_xy,
-                                    end_mouse_real_xy: mouse_real_xy,
-                                    keyframe_point_id,
-                                    layer_id,
-                                })
-                        {
-                            self.dragging = Some(Dragging::Rotation { ticket });
-                        }
+            }
+            &Event::RotationToolMouseDown {
+                image_center_real_xy,
+                mouse_local_xy: mouse_real_xy,
+                keyframe_point_id,
+                layer_id,
+            } => {
+                if self.dragging.is_none() {
+                    if let Some(ticket) =
+                        self.animation_history
+                            .try_set_action(dragging::DragRotationAction {
+                                image_center_real_xy,
+                                start_mouse_real_xy: mouse_real_xy,
+                                end_mouse_real_xy: mouse_real_xy,
+                                keyframe_point_id,
+                                layer_id,
+                            })
+                    {
+                        self.dragging = Some(Dragging::Rotation { ticket });
                     }
                 }
-                Event::MouseUp => {
-                    match &self.dragging {
-                        Some(dragging) => match dragging {
-                            Dragging::ImageBody { ticket }
-                            | Dragging::ResizeCircle { ticket }
-                            | Dragging::Rotation { ticket } => {
-                                self.animation_history.act(*ticket).unwrap();
-                            }
-                            _ => {}
-                        },
-                        None => {}
-                    };
-                    self.dragging = None;
-                }
-            })
-            .is::<NamuiEvent>(|event| match event {
-                NamuiEvent::KeyDown(event) => {
-                    if let Some(wh) = self.last_wh {
-                        if event.code == Code::Home {
-                            self.center_viewport(wh);
+            }
+            Event::MouseUp => {
+                match &self.dragging {
+                    Some(dragging) => match dragging {
+                        Dragging::ImageBody { ticket }
+                        | Dragging::ResizeCircle { ticket }
+                        | Dragging::Rotation { ticket } => {
+                            self.animation_history.act(*ticket).unwrap();
                         }
-                    }
-                }
-                _ => {}
-            });
+                        _ => {}
+                    },
+                    None => {}
+                };
+                self.dragging = None;
+            }
+        });
     }
 
     fn center_viewport(&mut self, wh: Wh<Px>) {

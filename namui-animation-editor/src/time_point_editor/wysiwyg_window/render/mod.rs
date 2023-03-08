@@ -7,11 +7,6 @@ impl WysiwygWindow {
         let animation = props.animation;
         let wh = props.wh;
 
-        if self.last_wh != Some(wh) {
-            namui::event::send(Event::UpdateWh { wh });
-            return RenderingTree::Empty;
-        }
-
         let layers = animation
             .layers
             .iter()
@@ -63,6 +58,11 @@ impl WysiwygWindow {
                             namui::event::send(super::Event::Wheel {
                                 delta: event.delta_xy.y,
                             });
+                        }
+                    })
+                    .on_key_down(move |event| {
+                        if event.code == Code::Home {
+                            namui::event::send(super::Event::HomeKeyDown { wh });
                         }
                     });
             });
