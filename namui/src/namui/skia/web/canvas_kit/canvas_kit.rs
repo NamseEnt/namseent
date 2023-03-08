@@ -12,17 +12,19 @@ extern "C" {
     #[wasm_bindgen(js_namespace = globalThis, js_name = getCanvasKit)]
     pub(crate) fn canvas_kit() -> CanvasKit;
 
-    /// Surface related functions
-    ///
-    /// Creates a Surface on a given canvas. If both GPU and CPU modes have been compiled in, this
-    /// will first try to create a GPU surface and then fallback to a CPU one if that fails. If just
-    /// the CPU mode has been compiled in, a CPU surface will be created.
-    /// @param canvas - either the canvas element itself or a string with the DOM id of it.
+    ///  
+    /// A helper for creating a WebGL backed (aka GPU) surface and falling back to a CPU surface if
+    /// the GPU one cannot be created. This works for both WebGL 1 and WebGL 2.
+    /// @param canvas - Either the canvas element itself or a string with the DOM id of it.
+    /// @param colorSpace - One of the supported color spaces. Default is SRGB.
+    /// @param opts - Options that will get passed to the creation of the WebGL context.
     ///
     #[wasm_bindgen(structural, method)]
-    pub(crate) fn MakeCanvasSurface(
+    pub(crate) fn MakeWebGLCanvasSurface(
         this: &CanvasKit,
         canvas: &HtmlCanvasElement,
+        // colorSpace?: ColorSpace,
+        // opts?: WebGLOptions
     ) -> Option<CanvasKitSurface>;
 
     // ///
