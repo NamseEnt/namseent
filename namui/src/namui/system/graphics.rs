@@ -29,7 +29,7 @@ impl GraphicsSystem {
 
 fn new_surface() -> Surface {
     let canvas_kit_surface = canvas_kit()
-        .MakeCanvasSurface(&canvas_element())
+        .MakeWebGLCanvasSurface(&canvas_element())
         .expect("fail to make canvas surface");
     Surface::new(canvas_kit_surface)
 }
