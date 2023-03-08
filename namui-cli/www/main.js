@@ -1,4 +1,4 @@
-import init, { start } from './bundle.js';
+import init, { start } from "./bundle.js";
 
 async function run() {
     const [_, CanvasKit] = await Promise.all([
