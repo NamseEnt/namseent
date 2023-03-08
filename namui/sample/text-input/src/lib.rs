@@ -116,7 +116,7 @@ impl Entity for TextInputExample {
                 text_input::Event::TextUpdated { id, text, .. } => {
                     for x in 0..3 {
                         for y in 0..3 {
-                            if self.text_input_3x3[x][y].get_id() == id {
+                            if self.text_input_3x3[x][y].get_id() == *id {
                                 self.text_3x3[x][y] = text.clone();
 
                                 if x == 0 && y == 0 {
