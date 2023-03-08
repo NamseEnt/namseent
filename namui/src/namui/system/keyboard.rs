@@ -36,10 +36,26 @@ impl KeyboardSystem {
                         record_key_down(code);
 
                         let is_dev_tool_open_called = any_code_press([Code::F12])
-                            || (ctrl_press() && shift_press() && any_code_press([Code::KeyI]));
+                            || (event.ctrl_key()
+                                && event.shift_key()
+                                && any_code_press([Code::KeyI]));
                         let is_refresh_called = any_code_press([Code::F5])
-                            || (ctrl_press() && any_code_press([Code::KeyR]));
-                        if !is_dev_tool_open_called && !is_refresh_called {
+                            || (event.ctrl_key() && any_code_press([Code::KeyR]));
+                        let is_jump_to_tab_called = event.ctrl_key()
+                            && any_code_press([
+                                Code::Digit1,
+                                Code::Digit2,
+                                Code::Digit3,
+                                Code::Digit4,
+                                Code::Digit5,
+                                Code::Digit6,
+                                Code::Digit7,
+                                Code::Digit8,
+                                Code::Digit9,
+                                Code::Digit0,
+                            ]);
+                        if !is_dev_tool_open_called && !is_refresh_called && !is_jump_to_tab_called
+                        {
                             event.prevent_default();
                         }
 
