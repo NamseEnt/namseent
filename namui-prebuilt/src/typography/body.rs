@@ -62,6 +62,26 @@ pub fn center(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> RenderingTree 
         max_width: None,
     })
 }
+pub fn center_top(width: Px, text: impl AsRef<str>, color: Color) -> RenderingTree {
+    namui::text(TextParam {
+        text: String::from(text.as_ref()),
+        x: width / 2.0,
+        y: 0.px(),
+        align: TextAlign::Center,
+        baseline: TextBaseline::Top,
+        font_type: FontType {
+            font_weight: FontWeight::REGULAR,
+            language: Language::Ko,
+            serif: false,
+            size: FONT_SIZE,
+        },
+        style: TextStyle {
+            color,
+            ..Default::default()
+        },
+        max_width: None,
+    })
+}
 pub fn right(wh: Wh<Px>, text: impl AsRef<str>, color: Color) -> RenderingTree {
     namui::text(TextParam {
         text: String::from(text.as_ref()),
