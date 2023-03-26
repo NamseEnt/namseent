@@ -25,3 +25,7 @@ pub fn simple_rect(
         ..Default::default()
     })
 }
+
+pub fn transparent_rect(wh: Wh<Px>) -> RenderingTree {
+    simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT)
+}
