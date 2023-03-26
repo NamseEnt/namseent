@@ -92,6 +92,9 @@ impl KeyDownEvent {
     pub fn prevent_default(&self) {
         self.is_prevented_default.store(true, Ordering::Relaxed);
     }
+    pub fn is_prevented_default(&self) -> bool {
+        self.is_prevented_default.load(Ordering::Relaxed)
+    }
 }
 
 #[derive(Clone)]
@@ -196,6 +199,9 @@ impl TextInput {
     }
     pub fn focus(&self) {
         crate::system::text_input::focus(self.id)
+    }
+    pub fn blur(&self) {
+        crate::system::text_input::blur()
     }
 }
 
