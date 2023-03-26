@@ -211,16 +211,59 @@ pub fn padding<'a>(
     padding: Px,
     cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
 ) -> impl FnOnce(Wh<Px>) -> RenderingTree + 'a {
+    horizontal_padding(padding, vertical_padding(padding, cell_render_closure))
+}
+
+pub fn padding_no_clip<'a>(
+    padding: Px,
+    cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
+) -> impl FnOnce(Wh<Px>) -> RenderingTree + 'a {
+    horizontal_padding_no_clip(
+        padding,
+        vertical_padding_no_clip(padding, cell_render_closure),
+    )
+}
+
+pub fn horizontal_padding<'a>(
+    padding: Px,
+    cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
+) -> impl FnOnce(Wh<Px>) -> RenderingTree + 'a {
     horizontal([
         fixed(padding, |_| RenderingTree::Empty),
-        ratio(
-            1,
-            vertical([
-                fixed(padding, |_| RenderingTree::Empty),
-                ratio(1, cell_render_closure),
-                fixed(padding, |_| RenderingTree::Empty),
-            ]),
-        ),
+        ratio(1, cell_render_closure),
+        fixed(padding, |_| RenderingTree::Empty),
+    ])
+}
+
+pub fn vertical_padding<'a>(
+    padding: Px,
+    cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
+) -> impl FnOnce(Wh<Px>) -> RenderingTree + 'a {
+    vertical([
+        fixed(padding, |_| RenderingTree::Empty),
+        ratio(1, cell_render_closure),
+        fixed(padding, |_| RenderingTree::Empty),
+    ])
+}
+
+pub fn horizontal_padding_no_clip<'a>(
+    padding: Px,
+    cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
+) -> impl FnOnce(Wh<Px>) -> RenderingTree + 'a {
+    horizontal([
+        fixed(padding, |_| RenderingTree::Empty),
+        ratio_no_clip(1, cell_render_closure),
+        fixed(padding, |_| RenderingTree::Empty),
+    ])
+}
+
+pub fn vertical_padding_no_clip<'a>(
+    padding: Px,
+    cell_render_closure: impl FnOnce(Wh<Px>) -> RenderingTree + 'a,
+) -> impl FnOnce(Wh<Px>) -> RenderingTree + 'a {
+    vertical([
+        fixed(padding, |_| RenderingTree::Empty),
+        ratio_no_clip(1, cell_render_closure),
         fixed(padding, |_| RenderingTree::Empty),
     ])
 }
