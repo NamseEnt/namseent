@@ -15,6 +15,7 @@ pub use auto_ops;
 pub use common::*;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
 pub use event::{Event, NamuiEvent};
+pub use lazy_static::lazy_static;
 pub use namui_cfg::*;
 pub use namui_context::NamuiContext;
 pub use namui_type as types;
