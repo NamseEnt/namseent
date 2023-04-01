@@ -1,10 +1,9 @@
-use crate::services::electron_package_service;
 use clap::{Parser, Subcommand, ValueEnum};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, path::PathBuf};
 
 #[derive(Parser)]
-#[command(version)]
+#[command(version, name = "namui")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
@@ -93,12 +92,4 @@ pub enum ElectronPackageArch {
     #[value(rename_all = "camelCase")]
     Auto,
     X64,
-}
-impl Into<Option<electron_package_service::Arch>> for &ElectronPackageArch {
-    fn into(self) -> Option<electron_package_service::Arch> {
-        match self {
-            ElectronPackageArch::Auto => None,
-            ElectronPackageArch::X64 => Some(electron_package_service::Arch::X64),
-        }
-    }
 }
