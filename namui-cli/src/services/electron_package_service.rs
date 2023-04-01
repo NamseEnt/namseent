@@ -1,4 +1,4 @@
-use crate::util::get_electron_root_path;
+use crate::{cli::ElectronPackageArch, util::get_electron_root_path};
 use serde::Deserialize;
 use std::process::{Command, Output};
 
@@ -41,6 +41,14 @@ impl std::fmt::Display for Arch {
                 Arch::X64 => "x64",
             }
         )
+    }
+}
+impl Into<Option<Arch>> for &ElectronPackageArch {
+    fn into(self) -> Option<Arch> {
+        match self {
+            ElectronPackageArch::Auto => None,
+            ElectronPackageArch::X64 => Some(Arch::X64),
+        }
     }
 }
 

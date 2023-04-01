@@ -6,7 +6,7 @@ mod test;
 mod types;
 mod util;
 
-use clap::StructOpt;
+use clap::Parser;
 use cli::{Cli, Commands};
 use namui_user_config::set_user_config;
 use std::env::current_dir;

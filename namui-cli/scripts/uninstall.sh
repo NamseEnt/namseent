@@ -6,6 +6,8 @@ function main() {
 
     remove_symlink $symlink_path
 
+    remove_completion_script
+
     if [ $(is_os_wsl) -eq 1 ]; then
         remove_electron_on_windows
     fi
@@ -16,6 +18,7 @@ function main() {
 # Error Code
 EXIT_SYMLINK_REMOVE_FAIL=1
 ELECTRON_ON_WINDOW_REMOVE_FAILED=2
+EXIT_REMOVE_COMPLETION_SCRIPT_FAILED=3
 
 #######################################
 # Arguments:
@@ -50,6 +53,23 @@ function remove_electron_on_windows() {
     if [ $? -ne 0 ]; then
         echo "Electron on window remove failed."
         exit $ELECTRON_ON_WINDOW_REMOVE_FAILED
+    fi
+}
+
+function remove_completion_script() {
+    cli_completion_root_path=$1
+    completion_script_start_marker="# namui completion script start"
+    completion_script_end_marker="# namui completion script end"
+    
+    if [ "$BASH" ]; then
+        cli_completion_path="$cli_completion_root_path/namui.bash"
+
+        # Remove old completion script
+        sed -i "/^$completion_script_start_marker/,/^$completion_script_end_marker/d" ~/.bashrc
+        if [ $? -ne 0 ]; then
+            echo "Remove completion script failed"
+            exit $EXIT_REMOVE_COMPLETION_SCRIPT_FAILED
+        fi
     fi
 }
 
