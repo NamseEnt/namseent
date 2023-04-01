@@ -7,6 +7,7 @@ function main() {
 
     cli_root_path=$(cd $(dirname $0) && cd .. && pwd -P)
     cli_path="$cli_root_path/target/debug/namui-cli"
+    cli_completion_root_path="$cli_root_path/target/completions"
     cargo_bin_dir_path=$(dirname $(which cargo))
     electron_root_path="$cli_root_path/electron"
 
@@ -16,6 +17,8 @@ function main() {
     check_cargo_bin_dir_exist $cargo_bin_dir_path
 
     build_cli $cli_root_path
+
+    install_completion_script $cli_completion_root_path
 
     make_cli_symlink $cargo_bin_dir_path $cli_path
 
@@ -57,6 +60,7 @@ EXIT_ELECTRON_INSTALL_FAILED=7
 EXIT_ELECTRON_ON_WINDOWS_INSTALL_FAILED=8
 ELECTRON_DOT_ENV_FILE_INSTALL_FAILED=9
 EXIT_NPM_INSTALL_FAILED=7
+EXIT_REMOVE_OLD_COMPLETION_SCRIPT_FAILED=11
 
 function check_cargo_installed() {
     cargo --version
@@ -185,6 +189,39 @@ function install_dot_env_file() {
     if [ $? -ne 0 ]; then
         echo "Electron dot env file install failed"
         exit $ELECTRON_DOT_ENV_FILE_INSTALL_FAILED
+    fi
+}
+
+#######################################
+# Arguments:
+#   cli_completion_root_path: string
+#######################################
+function install_completion_script() {
+    cli_completion_root_path=$1
+    completion_script_start_marker="# namui completion script start"
+    completion_script_end_marker="# namui completion script end"
+    
+    if [ "$BASH" ]; then
+        cli_completion_path="$cli_completion_root_path/namui.bash"
+
+        # Remove old completion script
+        sed -i "/^$completion_script_start_marker/,/^$completion_script_end_marker/d" ~/.bashrc
+        if [ $? -ne 0 ]; then
+            echo "Remove old completion script failed"
+            exit $EXIT_REMOVE_OLD_COMPLETION_SCRIPT_FAILED
+        fi
+
+        # Ensure last line of .bashrc has newline
+        sed -i '$a\' ~/.bashrc
+
+        # Add completion script
+        echo "$completion_script_start_marker" >> ~/.bashrc
+        cat $cli_completion_path >> ~/.bashrc
+        echo -e "\n$completion_script_end_marker" >> ~/.bashrc
+
+        echo "Completion script installed for bash. Please restart your shell"
+    else
+        echo "Not supported shell. Completion install failed"
     fi
 }
 
