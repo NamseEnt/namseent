@@ -15,9 +15,7 @@ fn main() -> Result<(), Error> {
     create_dir_all(&outdir)?;
 
     let mut cmd = Cli::command();
-    let path = generate_to(Bash, &mut cmd, "namui", outdir)?;
-
-    println!("cargo:warning=completion file is generated: {:?}", path);
+    generate_to(Bash, &mut cmd, "namui", outdir)?;
 
     Ok(())
 }
