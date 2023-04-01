@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum, ValueHint};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, path::PathBuf};
 
@@ -14,13 +14,13 @@ pub enum Commands {
     Start {
         #[arg(value_enum)]
         target: Option<Target>,
-        #[arg(short, long)]
+        #[arg(short, long, value_hint = ValueHint::FilePath)]
         manifest_path: Option<PathBuf>,
     },
     Build {
         #[arg(value_enum)]
         target: Option<Target>,
-        #[arg(short, long)]
+        #[arg(short, long, value_hint = ValueHint::FilePath)]
         manifest_path: Option<PathBuf>,
         #[arg(short, long, value_enum, default_value = "auto")]
         arch: ElectronPackageArch,
@@ -28,7 +28,7 @@ pub enum Commands {
     Test {
         #[arg(value_enum)]
         target: Option<Target>,
-        #[clap(short, long)]
+        #[clap(short, long, value_hint = ValueHint::FilePath)]
         manifest_path: Option<PathBuf>,
     },
     Target {
