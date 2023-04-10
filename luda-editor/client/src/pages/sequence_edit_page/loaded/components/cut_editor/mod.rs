@@ -1,6 +1,8 @@
 mod render;
 mod update;
 
+use crate::components::context_menu::ContextMenu;
+
 use super::*;
 use namui::prelude::*;
 use rpc::data::Cut;
@@ -10,6 +12,7 @@ pub struct CutEditor {
     character_name_input: auto_complete_text_input::AutoCompleteTextInput,
     text_input: text_input::TextInput,
     image_wysiwyg_editor: wysiwyg_editor::WysiwygEditor,
+    context_menu: Option<ContextMenu>,
 }
 
 pub struct Props<'a> {
@@ -41,10 +44,13 @@ pub enum Event {
         png_bytes: Vec<u8>,
         cut_id: Uuid,
     },
+    AddImageButtonClicked,
 }
 
 enum InternalEvent {
     EscapeKeyDown,
+    MouseRightButtonDown { global_xy: Xy<Px> },
+    MouseDownOutsideContextMenu,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -60,6 +66,7 @@ impl CutEditor {
             character_name_input: auto_complete_text_input::AutoCompleteTextInput::new(),
             text_input: text_input::TextInput::new(),
             image_wysiwyg_editor: wysiwyg_editor::WysiwygEditor::new(),
+            context_menu: None,
         }
     }
 

@@ -1,3 +1,5 @@
+use crate::components::context_menu;
+
 use super::*;
 
 impl CutEditor {
@@ -22,11 +24,23 @@ impl CutEditor {
                 }
                 Event::ChangeCharacterName { .. }
                 | Event::ChangeCutLine { .. }
-                | Event::AddNewImage { .. } => {}
+                | Event::AddNewImage { .. }
+                | Event::AddImageButtonClicked => {}
             })
             .is::<InternalEvent>(|event| match event {
                 InternalEvent::EscapeKeyDown => {
                     self.blur();
+                }
+                InternalEvent::MouseRightButtonDown { global_xy } => {
+                    self.context_menu = Some(ContextMenu::new(
+                        *global_xy,
+                        [context_menu::Item::new_button("Add Image", move || {
+                            namui::event::send(Event::AddImageButtonClicked);
+                        })],
+                    ));
+                }
+                InternalEvent::MouseDownOutsideContextMenu => {
+                    self.context_menu = None;
                 }
             })
             .is::<text_input::Event>(|event| match event {

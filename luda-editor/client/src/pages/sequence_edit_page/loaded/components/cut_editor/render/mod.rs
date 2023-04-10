@@ -43,6 +43,15 @@ impl CutEditor {
                     ),
                 ]),
             ),
+            self.context_menu
+                .as_ref()
+                .map_or(RenderingTree::Empty, |context_menu| {
+                    context_menu.render().attach_event(|builder| {
+                        builder.on_mouse_down_out(|_| {
+                            namui::event::send(InternalEvent::MouseDownOutsideContextMenu)
+                        });
+                    })
+                }),
         ])
     }
 }

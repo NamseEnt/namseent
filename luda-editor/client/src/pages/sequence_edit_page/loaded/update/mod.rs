@@ -138,6 +138,9 @@ impl LoadedSequenceEditorPage {
                         };
                     });
                 }
+                cut_editor::Event::AddImageButtonClicked => {
+                    namui::log!("AddImageButtonClicked");
+                }
             })
             .is::<wysiwyg_editor::Event>(|event| match event {
                 &wysiwyg_editor::Event::UpdateCutImages {

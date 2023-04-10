@@ -50,6 +50,14 @@ impl CutEditor {
                                 focused: false,
                             })
                         }
+                    })
+                    .on_mouse_down_in(move |event| {
+                        event.stop_propagation();
+                        if event.button == Some(MouseButton::Right) {
+                            namui::event::send(InternalEvent::MouseRightButtonDown {
+                                global_xy: event.global_xy,
+                            })
+                        }
                     });
             },
         )
