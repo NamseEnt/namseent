@@ -1,12 +1,15 @@
-use crate::app::game::{interaction, Game};
+use crate::app::game::{self, interaction, Game};
 use interaction::nearest_entity;
-use namui::{Code, NamuiEvent};
+use namui::Code;
 
 impl Game {
     pub fn handle_interaction(&mut self, event: &namui::Event) {
-        event.is::<NamuiEvent>(|event| match event {
-            NamuiEvent::KeyDown(event) => {
-                if event.code != Code::KeyZ {
+        event.is::<game::Event>(|event| match event {
+            &game::Event::KeyDown {
+                code,
+                pressing_codes: _,
+            } => {
+                if code != Code::KeyZ {
                     return;
                 }
                 let interactive_object_list = self.get_interactive_object_with_distance();
@@ -15,7 +18,7 @@ impl Game {
                 };
                 namui::event::send(interaction::Event::Interacted { entity_id, kind });
             }
-            _ => (),
+            game::Event::KeyUp { .. } => {}
         });
     }
 }

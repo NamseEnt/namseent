@@ -1,50 +1,49 @@
-use crate::services::electron_package_service;
-use clap::{ArgEnum, Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum, ValueHint};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, path::PathBuf};
 
 #[derive(Parser)]
-#[clap(version)]
+#[command(version, name = "namui")]
 pub struct Cli {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     pub command: Commands,
 }
 
 #[derive(Subcommand)]
 pub enum Commands {
     Start {
-        #[clap(arg_enum)]
+        #[arg(value_enum)]
         target: Option<Target>,
-        #[clap(short, long, parse(from_os_str))]
+        #[arg(short, long, value_hint = ValueHint::FilePath)]
         manifest_path: Option<PathBuf>,
     },
     Build {
-        #[clap(arg_enum)]
+        #[arg(value_enum)]
         target: Option<Target>,
-        #[clap(short, long, parse(from_os_str))]
+        #[arg(short, long, value_hint = ValueHint::FilePath)]
         manifest_path: Option<PathBuf>,
-        #[clap(arg_enum, default_value = "auto")]
+        #[arg(short, long, value_enum, default_value = "auto")]
         arch: ElectronPackageArch,
     },
     Test {
-        #[clap(arg_enum)]
+        #[arg(value_enum)]
         target: Option<Target>,
-        #[clap(short, long, parse(from_os_str))]
+        #[clap(short, long, value_hint = ValueHint::FilePath)]
         manifest_path: Option<PathBuf>,
     },
     Target {
-        #[clap(arg_enum)]
+        #[arg(value_enum)]
         target: Target,
     },
     Print {
-        #[clap(arg_enum)]
+        #[arg(value_enum)]
         printable_object: PrintableObject,
     },
 }
 
-#[derive(Clone, Copy, Debug, ArgEnum, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, ValueEnum)]
 pub enum Target {
-    #[clap(rename_all = "kebab-case")]
+    #[value(rename_all = "kebab-case")]
     WasmUnknownWeb,
     WasmWindowsElectron,
     WasmLinuxElectron,
@@ -81,25 +80,16 @@ impl Into<namui_user_config::Target> for Target {
     }
 }
 
-#[derive(Clone, ArgEnum)]
+#[derive(Clone, ValueEnum)]
 pub enum PrintableObject {
-    #[clap(rename_all = "camelCase")]
+    #[value(rename_all = "camelCase")]
     Cfg,
     Target,
 }
 
-#[derive(Clone, ArgEnum)]
-#[clap(short, long)]
+#[derive(Clone, ValueEnum)]
 pub enum ElectronPackageArch {
-    #[clap(rename_all = "camelCase")]
+    #[value(rename_all = "camelCase")]
     Auto,
     X64,
-}
-impl Into<Option<electron_package_service::Arch>> for &ElectronPackageArch {
-    fn into(self) -> Option<electron_package_service::Arch> {
-        match self {
-            ElectronPackageArch::Auto => None,
-            ElectronPackageArch::X64 => Some(electron_package_service::Arch::X64),
-        }
-    }
 }

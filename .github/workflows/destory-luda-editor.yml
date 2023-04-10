@@ -1,8 +1,5 @@
 name: destroy-luda-editor
-on:
-  delete:
-    branches:
-      - "**__le**"
+on: delete
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -11,9 +8,19 @@ env:
 
 jobs:
   destroy-stacks:
+    if: contains(github.event.ref, '__le__')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: set BRANCH_NAME, STACK_NAME
+        run: |
+          BRANCH_NAME=$(echo "${{ github.event.ref }}" | tr "[:upper:]" "[:lower:]" | sed -e "s#refs/heads/##g" -e 's/\//-/g' -e 's/|/-/g')
+          echo $BRANCH_NAME
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+          STACK_NAME=$(echo $BRANCH_NAME | tr "[:upper:]" "[:lower:]" | tr -cd '[:alnum:]')
+          echo $STACK_NAME
+          echo "STACK_NAME=$STACK_NAME" >> $GITHUB_ENV
 
       - uses: actions/setup-node@v3
         with:
@@ -24,6 +31,11 @@ jobs:
       - name: npm install in cdk
         working-directory: luda-editor/cdk
         run: npm ci
+
+      - name: temp build
+        run: |
+          mkdir -p luda-editor/server/server-bin/target/lambda/server-bin
+          echo "" > luda-editor/server/server-bin/target/lambda/server-bin/bootstrap.zip
 
       - name: bootstrap cdk
         working-directory: luda-editor/cdk
@@ -43,6 +55,6 @@ jobs:
             --parameters s3BucketName=luda-editor \
             --parameters s3KeyPrefix=${{ env.BRANCH_NAME }}
 
-      - name: deploy client to s3
+      - name: remove client from s3
         working-directory: luda-editor/client
         run: aws s3 rm s3://luda-editor/${{ env.BRANCH_NAME }}/www --recursive

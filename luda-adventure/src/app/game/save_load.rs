@@ -1,4 +1,4 @@
-use super::{GameState, MapLoader};
+use super::{map::MapLoader, GameState};
 use crate::ecs;
 use namui::{file::local_storage, simple_error_impl, spawn_local, Time, TimeExt};
 use serde::{Deserialize, Serialize};

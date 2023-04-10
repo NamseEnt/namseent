@@ -16,4 +16,8 @@ pub enum CanvasEvent {
     MouseMoveInCanvas(Xy<Px>),
     DragStarted(CanvasDragState),
     DragEnded,
+    KeyDown {
+        code: Code,
+    },
+    SpaceKeyUp,
 }
