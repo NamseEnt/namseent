@@ -14,8 +14,12 @@ pub struct Props {
     pub wh: Wh<Px>,
 }
 
-pub enum InternalEvent {
+enum InternalEvent {
     ImagesLoaded(Vec<ImageWithLabels>),
+}
+
+pub enum Event {
+    MouseDownOutsideCharacterPicker,
 }
 
 impl CharacterPicker {

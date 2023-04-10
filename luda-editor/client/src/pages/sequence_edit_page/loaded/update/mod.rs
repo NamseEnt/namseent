@@ -157,6 +157,11 @@ impl LoadedSequenceEditorPage {
                         });
                     });
                 }
+            })
+            .is::<components::character_picker::Event>(|event| match event {
+                components::character_picker::Event::MouseDownOutsideCharacterPicker => {
+                    self.character_picker = None;
+                }
             });
 
         self.cut_list_view.update(event);
