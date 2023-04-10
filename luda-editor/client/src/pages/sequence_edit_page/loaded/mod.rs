@@ -10,6 +10,8 @@ pub use render::Props;
 use rpc::data::*;
 use std::sync::Arc;
 
+use self::components::character_picker::CharacterPicker;
+
 pub struct LoadedSequenceEditorPage {
     project_shared_data: ProjectSharedData,
     project_shared_data_syncer: Arc<Syncer<ProjectSharedData>>,
@@ -23,6 +25,7 @@ pub struct LoadedSequenceEditorPage {
     cut_clipboard: Option<Cut>,
     focused_component: Option<FocusableComponent>,
     selected_cut_id: Option<Uuid>,
+    character_picker: Option<CharacterPicker>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -62,6 +65,7 @@ impl LoadedSequenceEditorPage {
             cut_clipboard: None,
             focused_component: None,
             selected_cut_id: None,
+            character_picker: None,
         }
     }
     fn project_id(&self) -> Uuid {

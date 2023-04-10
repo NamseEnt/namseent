@@ -139,7 +139,8 @@ impl LoadedSequenceEditorPage {
                     });
                 }
                 cut_editor::Event::AddImageButtonClicked => {
-                    namui::log!("AddImageButtonClicked");
+                    self.character_picker =
+                        Some(character_picker::CharacterPicker::new(self.project_id()));
                 }
             })
             .is::<wysiwyg_editor::Event>(|event| match event {
@@ -160,5 +161,8 @@ impl LoadedSequenceEditorPage {
 
         self.cut_list_view.update(event);
         self.cut_editor.update(event);
+        self.character_picker
+            .as_mut()
+            .map(|picker| picker.update(event));
     }
 }
