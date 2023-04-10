@@ -1,4 +1,5 @@
 mod app;
+mod color;
 mod components;
 mod late_init;
 mod pages;

@@ -11,6 +11,8 @@ use namui_prebuilt::*;
 
 impl WysiwygEditor {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
+        let cut_id = props.cut_id;
+
         render([
             simple_rect(props.wh, Color::WHITE, 1.px(), Color::TRANSPARENT).attach_event(
                 |builder| {
@@ -20,18 +22,18 @@ impl WysiwygEditor {
                                 global_xy: event.global_xy,
                             });
                         })
-                        .on_mouse_down_in(|_event| {
-                            namui::event::send(InternalEvent::MouseDownContainer);
+                        .on_mouse_down_in(|event| {
+                            if event.button == Some(MouseButton::Left) {
+                                namui::event::send(InternalEvent::MouseDownContainer);
+                            }
                         })
-                        .on_mouse_up_in(|event| {
-                            namui::event::send(InternalEvent::MouseUp {
-                                global_xy: event.global_xy,
-                            });
-                        })
-                        .on_mouse_up_out(|event| {
-                            namui::event::send(InternalEvent::MouseUp {
-                                global_xy: event.global_xy,
-                            });
+                        .on_mouse(move |event| {
+                            if event.event_type == MouseEventType::Up {
+                                namui::event::send(InternalEvent::MouseUp {
+                                    global_xy: event.global_xy,
+                                    cut_id,
+                                });
+                            }
                         });
                 },
             ),
@@ -41,20 +43,24 @@ impl WysiwygEditor {
                 self.render_image_clip(&props),
             ),
             render_grid_guide(props.wh),
+            self.context_menu
+                .as_ref()
+                .map_or(RenderingTree::Empty, |context_menu| context_menu.render()),
         ])
     }
     fn render_image_clip(&self, props: &Props) -> RenderingTree {
+        let cut_id = props.cut_id;
         render(
-            self.screen_images
-                .iter()
+            props
+                .screen_images
+                .clone()
+                .into_iter()
                 .enumerate()
                 .map(|(image_index, image)| {
                     let is_editing_image = self.editing_image_index == Some(image_index);
 
                     namui::try_render(|| {
-                        let image = image.as_ref()?;
-
-                        let url = get_project_image_url(self.project_id, image.id).unwrap();
+                        let url = get_project_image_url(props.project_id, image.id).unwrap();
                         let namui_image = namui::image::try_load_url(&url)?;
                         let image_size = namui_image.size();
 
@@ -107,7 +113,7 @@ impl WysiwygEditor {
                                 image_rendering_rect,
                                 image_size,
                                 image_index,
-                                image,
+                                &image,
                             )
                         } else {
                             RenderingTree::Empty
@@ -116,7 +122,7 @@ impl WysiwygEditor {
                         Some(render([
                             namui::image(ImageParam {
                                 rect: image_rendering_rect,
-                                source: namui::ImageSource::Image(namui_image),
+                                source: namui::ImageSource::Image(namui_image.clone()),
                                 style: ImageStyle {
                                     fit: ImageFit::Fill,
                                     paint_builder: None,
@@ -128,7 +134,46 @@ impl WysiwygEditor {
                                     namui::event::send(InternalEvent::SelectImage {
                                         index: image_index,
                                     });
+
+                                    if event.button == Some(MouseButton::Right) {
+                                        namui::event::send(InternalEvent::OpenContextMenu {
+                                            global_xy: event.global_xy,
+                                            cut_id,
+                                            image_index,
+                                            image_wh: image_size,
+                                            image,
+                                        })
+                                    }
                                 });
+
+                                if is_editing_image {
+                                    let namui_image = namui_image.clone();
+                                    builder.on_key_down(move |event| {
+                                        namui::log!("key down: {:?}", event.code);
+                                        if event.code != Code::KeyC
+                                            || !namui::keyboard::ctrl_press()
+                                        {
+                                            return;
+                                        }
+
+                                        namui::log!("good");
+                                        let namui_image = namui_image.clone();
+                                        spawn_local(async move {
+                                            let result =
+                                                namui::clipboard::write_image(namui_image).await;
+                                            match result {
+                                                Ok(_) => {
+                                                    namui::log!("Image copied to clipboard");
+                                                }
+                                                Err(_) => {
+                                                    namui::log!(
+                                                        "Failed to copy image to clipboard"
+                                                    );
+                                                }
+                                            }
+                                        })
+                                    });
+                                }
                             }),
                             wysiwyg_tool,
                         ]))
@@ -144,6 +189,7 @@ impl WysiwygEditor {
         image_index: usize,
         image: &ScreenImage,
     ) -> RenderingTree {
+        let cut_id = props.cut_id;
         render([
             self.render_border_with_move_handling(image_dest_rect, props.wh),
             resizer::render_resizer(resizer::Props {
@@ -157,9 +203,11 @@ impl WysiwygEditor {
                 },
                 on_resize: {
                     Box::new(move |circumscribed| {
-                        namui::event::send(InternalEvent::ResizeImage {
-                            index: image_index,
-                            circumscribed,
+                        namui::event::send(Event::UpdateCutImages {
+                            cut_id,
+                            callback: Box::new(move |images| {
+                                images[image_index].circumscribed = circumscribed;
+                            }),
                         });
                     })
                 },

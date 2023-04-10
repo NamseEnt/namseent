@@ -57,7 +57,7 @@ pub async fn init() {
                 record.args()
             )
         })
-        .filter_level(log::LevelFilter::Info)
+        .filter_level(log::LevelFilter::Warn)
         .init();
     log::info!("starting up");
 

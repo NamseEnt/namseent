@@ -8,95 +8,33 @@ use namui::prelude::*;
 use namui_prebuilt::*;
 pub use render::Props;
 use rpc::data::*;
-use std::{
-    collections::{HashMap, VecDeque},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 pub struct LoadedSequenceEditorPage {
     project_shared_data: ProjectSharedData,
     project_shared_data_syncer: Arc<Syncer<ProjectSharedData>>,
     sequence: Sequence,
-    cut_list_view: list_view::ListView,
-    line_text_inputs: HashMap<Uuid, text_input::TextInput>,
+    cut_list_view: components::cut_list_view::CutListView,
+    cut_editor: components::cut_editor::CutEditor,
     sequence_syncer: Arc<Syncer<Sequence>>,
-    character_edit_modal: Option<character_edit_modal::CharacterEditModal>,
-    image_select_modal: Option<image_select_modal::ImageSelectModal>,
-    recent_selected_image_ids: VecDeque<Uuid>,
-    sequence_player: Option<sequence_player::SequencePlayer>,
     context_menu: Option<context_menu::ContextMenu>,
     patch_stack: Vec<rpc::json_patch::RevertablePatch>,
     undo_stack: Vec<rpc::json_patch::RevertablePatch>,
-    text_input_selected_cut_id: Option<Uuid>,
     cut_clipboard: Option<Cut>,
-    images_clipboard: Option<ScreenImages>,
-    image_manager_modal: Option<image_manager_modal::ImageManagerModal>,
+    focused_component: Option<FocusableComponent>,
+    selected_cut_id: Option<Uuid>,
 }
 
-enum Event {
-    AddCutClicked,
-    #[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FocusableComponent {
+    CutListView,
+    CutEditor,
+}
+
+enum InternalEvent {
     Error(String),
-    CharacterCellClicked {
-        cut_id: namui::Uuid,
-        global_xy: Xy<Px>,
-    },
-    ScreenEditorCellMouseLeftDown {
-        index: usize,
-        cut_id: Uuid,
-    },
-    ImageUpdated {
-        cut_id: Uuid,
-        screen_images: ScreenImages,
-    },
-    UpdateRecentSelectedImageIds {
-        image_ids: VecDeque<Uuid>,
-    },
-    PreviewButtonClicked,
-    ClosePlayer,
-    LineRightClicked {
-        global_xy: Xy<Px>,
-        cut_id: Uuid,
-    },
-    DeleteCut {
-        cut_id: Uuid,
-    },
-    InsertCut {
-        position: AddCutPosition,
-    },
-    StartPreviewFromHere {
-        cut_id: Uuid,
-    },
-    DownloadButtonClicked,
-    CutTheCut {
-        cut_id: Uuid,
-    },
-    CopyTheCut {
-        cut_id: Uuid,
-    },
-    PasteCutUp {
-        cut_id: Uuid,
-    },
-    PasteCutDown {
-        cut_id: Uuid,
-    },
-    CopyImages {
-        cut_id: Uuid,
-    },
-    PasteImages {
-        cut_id: Uuid,
-    },
-    ImageManagerButtonClicked,
-    CopyIssueInfo {
-        cut_id: Uuid,
-    },
-    CopyPreviewLink {
-        cut_id: Uuid,
-    },
-    RedoSequenceChange,
-    UndoSequenceChange,
-    EscapeKeyDown,
-    CtrlEnterKeyDown,
+    ListViewContextMenuAddCutClicked,
+    ImageUploaded { cut_id: Uuid, image_id: Uuid },
 }
 
 #[derive(Clone, Copy)]
@@ -111,32 +49,19 @@ impl LoadedSequenceEditorPage {
         let project_shared_data_syncer =
             new_project_shared_data_syncer_syncer(project_shared_data.clone());
 
-        let line_text_inputs = {
-            let mut line_text_inputs = HashMap::new();
-            sequence.cuts.iter().for_each(|cut| {
-                line_text_inputs.insert(cut.id(), text_input::TextInput::new());
-            });
-            line_text_inputs
-        };
-        start_load_recent_selected_image_ids();
         Self {
-            cut_list_view: list_view::ListView::new(),
-            line_text_inputs,
+            cut_list_view: components::cut_list_view::CutListView::new(),
+            cut_editor: components::cut_editor::CutEditor::new(),
             sequence_syncer,
             project_shared_data_syncer,
-            character_edit_modal: None,
-            image_select_modal: None,
             project_shared_data,
             sequence,
-            recent_selected_image_ids: VecDeque::new(),
-            sequence_player: None,
             context_menu: None,
             patch_stack: Vec::new(),
             undo_stack: Vec::new(),
-            text_input_selected_cut_id: None,
             cut_clipboard: None,
-            images_clipboard: None,
-            image_manager_modal: None,
+            focused_component: None,
+            selected_cut_id: None,
         }
     }
     fn project_id(&self) -> Uuid {
@@ -146,22 +71,6 @@ impl LoadedSequenceEditorPage {
     fn cut(&self, cut_id: Uuid) -> Option<&Cut> {
         self.sequence.cuts.iter().find(|cut| cut.id() == cut_id)
     }
-}
-
-fn start_load_recent_selected_image_ids() {
-    spawn_local(async move {
-        let result = namui::cache::get_serde::<VecDeque<Uuid>>("recent_selected_image_ids").await;
-        match result {
-            Ok(image_ids) => {
-                if let Some(image_ids) = image_ids {
-                    namui::event::send(Event::UpdateRecentSelectedImageIds { image_ids });
-                }
-            }
-            Err(error) => {
-                namui::event::send(Event::Error(error.to_string()));
-            }
-        }
-    })
 }
 
 fn new_sequence_syncer(sequence: Sequence) -> Arc<Syncer<Sequence>> {

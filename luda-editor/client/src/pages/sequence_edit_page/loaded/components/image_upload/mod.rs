@@ -7,17 +7,25 @@ pub use upload_images::*;
 
 pub async fn create_image(
     project_id: namui::Uuid,
-    labels: Vec<Label>,
-    image: Option<Box<[u8]>>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let image_id = namui::uuid();
+    image: Vec<u8>,
+) -> Result<Uuid, Box<dyn std::error::Error>> {
+    let image_id = {
+        let mut hasher = crc32fast::Hasher::new();
+        hasher.update(&image);
+        let hash = hasher.finalize().to_le_bytes();
+        let bytes: [u8; 16] = [
+            hash[0], hash[1], hash[2], hash[3], hash[0], hash[1], hash[2], hash[3], hash[0],
+            hash[1], hash[2], hash[3], hash[0], hash[1], hash[2], hash[3],
+        ];
+        Uuid::from_bytes(bytes)
+    };
 
     retry_on_error(
         move || {
             crate::RPC.put_image_meta_data(rpc::put_image_meta_data::Request {
                 project_id,
                 image_id,
-                labels: labels.clone(),
+                labels: Vec::new(),
             })
         },
         10,
@@ -35,10 +43,7 @@ pub async fn create_image(
     )
     .await?;
 
-    let body = match image {
-        Some(buffer) => buffer,
-        None => [].into(),
-    };
+    let body = image;
 
     retry_on_error(
         move || {
@@ -59,7 +64,7 @@ pub async fn create_image(
     )
     .await?;
 
-    Ok(())
+    Ok(image_id)
 }
 
 pub async fn update_image(

@@ -8,7 +8,7 @@ impl LoadedSequenceEditorPage {
 
         let patch = get_patch(&previous_sequence, &self.sequence);
         if let Err(error) = patch {
-            namui::event::send(Event::Error(format!(
+            namui::event::send(InternalEvent::Error(format!(
                 "UpdateReceived get_patch {}",
                 error.to_string()
             )));
@@ -62,7 +62,7 @@ impl LoadedSequenceEditorPage {
 
         let patch = get_patch(&prev, &self.project_shared_data);
         if let Err(error) = patch {
-            namui::event::send(Event::Error(format!(
+            namui::event::send(InternalEvent::Error(format!(
                 "UpdateReceived get_patch {}",
                 error.to_string()
             )));

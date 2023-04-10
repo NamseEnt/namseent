@@ -58,7 +58,12 @@ impl SequencePlayer {
                 &State::ShowingCut { cut_index } => {
                     let cut = self.sequence.cuts.get(cut_index).unwrap();
                     render([
-                        self.render_images(inner_content_rect.wh(), cut, 1.0.one_zero()),
+                        render_images(
+                            self.project_shared_data.id(),
+                            inner_content_rect.wh(),
+                            cut,
+                            1.0.one_zero(),
+                        ),
                         render_text_box(inner_content_rect.wh()),
                         render_text(
                             &self.project_shared_data,
@@ -144,39 +149,10 @@ impl SequencePlayer {
     fn get_image_urls(&self, cut: &Cut) -> Vec<Url> {
         cut.screen_images
             .iter()
-            .filter_map(|screen_image| screen_image.as_ref())
             .map(|screen_image| {
                 get_project_image_url(self.project_shared_data.id(), screen_image.id).unwrap()
             })
             .collect::<Vec<_>>()
-    }
-    fn render_images(&self, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
-        let paint_builder = namui::PaintBuilder::new().set_color_filter(
-            Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
-            BlendMode::DstIn,
-        );
-
-        let images = cut.screen_images.iter().filter_map(|screen_image| {
-            Some(namui::try_render(|| {
-                let screen_image = screen_image.as_ref()?;
-                let url =
-                    get_project_image_url(self.project_shared_data.id(), screen_image.id).unwrap();
-                let image = namui::image::try_load_url(&url)?;
-
-                let rect =
-                    calculate_image_rect_on_screen(image.size(), wh, screen_image.circumscribed);
-
-                Some(namui::image(ImageParam {
-                    rect,
-                    source: ImageSource::Image(image),
-                    style: ImageStyle {
-                        fit: ImageFit::Fill,
-                        paint_builder: Some(paint_builder.clone()),
-                    },
-                }))
-            }))
-        });
-        render(images)
     }
 
     fn go_to_next_cut(&mut self, do_transition: bool) {
@@ -240,16 +216,17 @@ impl SequencePlayer {
 
         let from_cut_image_urls = self.get_image_urls(from_cut);
         let to_cut_image_urls = self.get_image_urls(to_cut);
+        let project_id = self.project_shared_data.id();
 
         if from_cut_image_urls == to_cut_image_urls {
-            self.render_images(wh, from_cut, 1.0.one_zero())
+            render_images(project_id, wh, from_cut, 1.0.one_zero())
         } else {
             let from_opacity = 1.0.one_zero() - transition_progress;
             let to_opacity = transition_progress;
 
             render([
-                self.render_images(wh, from_cut, from_opacity),
-                self.render_images(wh, to_cut, to_opacity),
+                render_images(project_id, wh, from_cut, from_opacity),
+                render_images(project_id, wh, to_cut, to_opacity),
             ])
         }
     }
@@ -295,98 +272,98 @@ pub fn render_text_box(screen_wh: Wh<Px>) -> RenderingTree {
     ])(screen_wh)
 }
 
+pub const CHARACTER_NAME_FONT: FontType = FontType {
+    serif: false,
+    size: int_px(36),
+    language: Language::Ko,
+    font_weight: FontWeight::BOLD,
+};
+pub fn character_name_text_style(opacity: OneZero) -> TextStyle {
+    TextStyle {
+        border: Some(TextStyleBorder {
+            width: 4.px(),
+            color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
+        }),
+        drop_shadow: Some(TextStyleDropShadow {
+            x: 1.px(),
+            y: 2.px(),
+            color: Some(Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32())),
+        }),
+        color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
+        ..Default::default()
+    }
+}
+
+pub const CUT_TEXT_FONT: FontType = FontType {
+    serif: false,
+    size: int_px(24),
+    language: Language::Ko,
+    font_weight: FontWeight::BOLD,
+};
+pub fn cut_text_style(opacity: OneZero) -> TextStyle {
+    TextStyle {
+        border: Some(TextStyleBorder {
+            width: 4.px(),
+            color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
+        }),
+        drop_shadow: Some(TextStyleDropShadow {
+            x: 1.px(),
+            y: 2.px(),
+            color: Some(Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32())),
+        }),
+        color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
+        line_height_percent: 150.percent(),
+        ..Default::default()
+    }
+}
+
 pub fn render_text(
     project_shared_data: &ProjectSharedData,
     wh: Wh<Px>,
     cut: &Cut,
     opacity: OneZero,
 ) -> RenderingTree {
+    render_over_text(
+        wh,
+        |wh| {
+            text(TextParam {
+                text: cut.character_name.clone(),
+                x: 0.px(),
+                y: wh.height / 2,
+                align: TextAlign::Left,
+                baseline: TextBaseline::Middle,
+                font_type: CHARACTER_NAME_FONT,
+                style: character_name_text_style(opacity),
+                max_width: Some(wh.width),
+            })
+        },
+        |wh| {
+            text(TextParam {
+                text: cut.line.clone(),
+                x: 0.px(),
+                y: 0.px(),
+                align: TextAlign::Left,
+                baseline: TextBaseline::Top,
+                font_type: CUT_TEXT_FONT,
+                style: cut_text_style(opacity),
+                max_width: Some(wh.width),
+            })
+        },
+    )
+}
+
+pub fn render_over_text(
+    wh: Wh<Px>,
+    character_name_side: impl FnOnce(Wh<Px>) -> RenderingTree,
+    cut_text_side: impl FnOnce(Wh<Px>) -> RenderingTree,
+) -> RenderingTree {
     table::vertical([
         table::ratio(3, |_wh| RenderingTree::Empty),
         table::ratio(
             1,
             table::vertical([
-                table::ratio(1, |wh| {
-                    let character_name = cut
-                        .character_id
-                        .and_then(|character_id| {
-                            project_shared_data
-                                .characters
-                                .iter()
-                                .find(|character| character.id() == character_id)
-                        })
-                        .map(|character| &character.name);
-
-                    match character_name {
-                        Some(character_name) => {
-                            let margin = 32.px();
-                            text(TextParam {
-                                text: character_name.clone(),
-                                x: margin,
-                                y: wh.height / 2,
-                                align: TextAlign::Left,
-                                baseline: TextBaseline::Middle,
-                                font_type: FontType {
-                                    serif: false,
-                                    size: 36.int_px(),
-                                    language: Language::Ko,
-                                    font_weight: FontWeight::BOLD,
-                                },
-                                style: TextStyle {
-                                    border: Some(TextStyleBorder {
-                                        width: 4.px(),
-                                        color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
-                                    }),
-                                    drop_shadow: Some(TextStyleDropShadow {
-                                        x: 1.px(),
-                                        y: 2.px(),
-                                        color: Some(Color::from_f01(
-                                            0.0,
-                                            0.0,
-                                            0.0,
-                                            opacity.as_f32(),
-                                        )),
-                                    }),
-                                    color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
-                                    ..Default::default()
-                                },
-                                max_width: Some(wh.width - margin * 2),
-                            })
-                        }
-                        None => RenderingTree::Empty,
-                    }
-                }),
-                table::ratio(3, |wh| {
-                    let margin = 32.px();
-                    text(TextParam {
-                        text: cut.line.clone(),
-                        x: margin,
-                        y: margin,
-                        align: TextAlign::Left,
-                        baseline: TextBaseline::Top,
-                        font_type: FontType {
-                            serif: false,
-                            size: 24.int_px(),
-                            language: Language::Ko,
-                            font_weight: FontWeight::BOLD,
-                        },
-                        style: TextStyle {
-                            border: Some(TextStyleBorder {
-                                width: 4.px(),
-                                color: Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32()),
-                            }),
-                            drop_shadow: Some(TextStyleDropShadow {
-                                x: 1.px(),
-                                y: 2.px(),
-                                color: Some(Color::from_f01(0.0, 0.0, 0.0, opacity.as_f32())),
-                            }),
-                            color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
-                            line_height_percent: 150.percent(),
-                            ..Default::default()
-                        },
-                        max_width: Some(wh.width - margin * 2),
-                    })
-                }),
+                table::ratio(1, table::horizontal_padding(32.px(), character_name_side)),
+                table::ratio(3, table::padding_no_clip(32.px(), cut_text_side)),
             ]),
         ),
     ])(wh)
@@ -416,4 +393,39 @@ pub fn calculate_image_rect_on_screen(
     let xy = center_xy - wh.as_xy() / 2.0;
 
     Rect::from_xy_wh(xy, wh)
+}
+
+pub fn render_images(project_id: Uuid, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
+    let paint_builder = namui::PaintBuilder::new().set_color_filter(
+        Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
+        BlendMode::DstIn,
+    );
+
+    let images = cut.screen_images.iter().map(|screen_image| {
+        render_image(project_id, wh, screen_image, Some(paint_builder.clone()))
+    });
+    render(images)
+}
+
+pub fn render_image(
+    project_id: Uuid,
+    wh: Wh<Px>,
+    screen_image: &ScreenImage,
+    paint_builder: Option<PaintBuilder>,
+) -> RenderingTree {
+    namui::try_render(|| {
+        let url = get_project_image_url(project_id, screen_image.id).unwrap();
+        let image = namui::image::try_load_url(&url)?;
+
+        let rect = calculate_image_rect_on_screen(image.size(), wh, screen_image.circumscribed);
+
+        Some(namui::image(ImageParam {
+            rect,
+            source: ImageSource::Image(image),
+            style: ImageStyle {
+                fit: ImageFit::Fill,
+                paint_builder,
+            },
+        }))
+    })
 }
