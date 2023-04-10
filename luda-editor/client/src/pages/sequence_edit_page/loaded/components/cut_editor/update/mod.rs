@@ -39,9 +39,6 @@ impl CutEditor {
                         })],
                     ));
                 }
-                InternalEvent::MouseDownOutsideContextMenu => {
-                    self.context_menu = None;
-                }
             })
             .is::<text_input::Event>(|event| match event {
                 &text_input::Event::Blur { id } => {
@@ -59,6 +56,11 @@ impl CutEditor {
                 | text_input::Event::SelectionUpdated { .. }
                 | text_input::Event::KeyDown { .. }
                 | text_input::Event::Focus { .. } => {}
+            })
+            .is::<context_menu::Event>(|event| match event {
+                context_menu::Event::Close => {
+                    self.context_menu = None;
+                }
             });
 
         self.character_name_input.update(event);

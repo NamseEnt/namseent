@@ -50,7 +50,6 @@ pub enum Event {
 enum InternalEvent {
     EscapeKeyDown,
     MouseRightButtonDown { global_xy: Xy<Px> },
-    MouseDownOutsideContextMenu,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
