@@ -16,14 +16,16 @@ runs:
       run: time rustup target add wasm32-unknown-unknown
 
     - uses: actions/cache@v3
-      id: namui-cli-rust-cache
+      id: rust-cache
       with:
         path: |
           ~/.cargo/registry/index/
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
-          namui-cli/target/
+          ./**/target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('namui-cli/Cargo.lock') }}
+        restore-keys: ${{ runner.os }}-cargo-
+        
 
     - name: Get npm cache directory
       id: npm-cache-dir
