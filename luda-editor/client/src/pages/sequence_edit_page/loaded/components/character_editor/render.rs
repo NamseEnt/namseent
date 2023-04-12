@@ -1,8 +1,7 @@
-use std::iter::once;
-
 use super::*;
 use crate::color;
 use namui_prebuilt::{table::TableCell, typography::center_text_full_height, *};
+use std::iter::once;
 
 impl CharacterEditor {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
@@ -41,6 +40,18 @@ fn render_pose_part_group(width: Px, pose_part: &PosePart) -> Vec<TableCell> {
     };
     const PADDING: Px = px(4.0);
 
+    fn render_thumbnail(_pose_variant: &PoseVariant) -> TableCell {
+        table::fixed(THUMBNAIL_WH.width, |wh| {
+            table::padding(PADDING, |wh| {
+                render([
+                    simple_rect(wh, Color::TRANSPARENT, 0.px(), color::BACKGROUND)
+                        .with_mouse_cursor(MouseCursor::Pointer),
+                    simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT),
+                ])
+            })(wh)
+        })
+    }
+
     let title_bar = table::fixed(TITLE_BAR_HEIGHT, |wh| {
         table::horizontal_padding(PADDING, |wh| {
             render([
@@ -50,28 +61,36 @@ fn render_pose_part_group(width: Px, pose_part: &PosePart) -> Vec<TableCell> {
         })(wh)
     });
     let divider = table::fixed(TITLE_BAR_HEIGHT, |_wh| RenderingTree::Empty);
+    let no_selection_thumbnail = table::fixed(THUMBNAIL_WH.width, |wh| {
+        table::padding(PADDING, |wh| {
+            render([
+                simple_rect(wh, Color::TRANSPARENT, 0.px(), color::BACKGROUND)
+                    .with_mouse_cursor(MouseCursor::Pointer),
+                simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT),
+            ])
+        })(wh)
+    });
+
     let max_thumbnails_per_row = (width / (THUMBNAIL_WH.width)).floor() as usize;
-    let variant_rows = pose_part
-        .variants
-        .chunks(max_thumbnails_per_row)
-        .map(|row| {
-            table::fixed(THUMBNAIL_WH.height, |wh| {
-                table::horizontal(row.iter().map(|_variant| {
-                    table::fixed(THUMBNAIL_WH.width, |wh| {
-                        table::padding(PADDING, |wh| {
-                            render([
-                                simple_rect(wh, Color::TRANSPARENT, 0.px(), color::BACKGROUND)
-                                    .with_mouse_cursor(MouseCursor::Pointer),
-                                simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT),
-                            ])
-                        })(wh)
-                    })
-                }))(wh)
-            })
-        });
+    let chunks = pose_part.variants.chunks_exact(max_thumbnails_per_row);
+    let chunk_remainder = chunks.remainder();
+    let last_variant_row = table::fixed(THUMBNAIL_WH.height, |wh| {
+        table::horizontal(
+            chunk_remainder
+                .iter()
+                .map(|variant| render_thumbnail(variant))
+                .chain(once(no_selection_thumbnail)),
+        )(wh)
+    });
+    let variant_rows = chunks.map(|row| {
+        table::fixed(THUMBNAIL_WH.height, |wh| {
+            table::horizontal(row.iter().map(|variant| render_thumbnail(variant)))(wh)
+        })
+    });
 
     once(title_bar)
         .chain(variant_rows)
+        .chain(once(last_variant_row))
         .chain(once(divider))
         .collect()
 }
@@ -97,7 +116,6 @@ fn mock() -> PoseFile {
             PosePart {
                 name: "PosePart name 1".to_string(),
                 variants: vec![
-                    PoseVariant {},
                     PoseVariant {},
                     PoseVariant {},
                     PoseVariant {},
