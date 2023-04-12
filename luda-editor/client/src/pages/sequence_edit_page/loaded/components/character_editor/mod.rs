@@ -11,7 +11,7 @@ pub struct Props {
 
 pub enum Event {
     MouseDownOutsideCharacterEditor,
-    EditCharacterButtonClicked,
+    OpenCharacterEditor,
 }
 
 impl CharacterEditor {

@@ -19,6 +19,7 @@ enum InternalEvent {
 
 pub enum Event {
     MouseDownOutsideCharacterPicker,
+    OpenCharacterPicker,
 }
 
 impl CharacterPicker {

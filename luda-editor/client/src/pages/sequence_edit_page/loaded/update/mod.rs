@@ -138,10 +138,6 @@ impl LoadedSequenceEditorPage {
                         };
                     });
                 }
-                cut_editor::Event::AddImageButtonClicked => {
-                    self.character_picker =
-                        Some(character_picker::CharacterPicker::new(self.project_id()));
-                }
             })
             .is::<wysiwyg_editor::Event>(|event| match event {
                 &wysiwyg_editor::Event::UpdateCutImages {
@@ -159,15 +155,19 @@ impl LoadedSequenceEditorPage {
                 }
             })
             .is::<components::character_picker::Event>(|event| match event {
-                components::character_picker::Event::MouseDownOutsideCharacterPicker => {
+                character_picker::Event::MouseDownOutsideCharacterPicker => {
                     self.character_picker = None;
+                }
+                character_picker::Event::OpenCharacterPicker => {
+                    self.character_picker =
+                        Some(character_picker::CharacterPicker::new(self.project_id()));
                 }
             })
             .is::<components::character_editor::Event>(|event| match event {
-                components::character_editor::Event::MouseDownOutsideCharacterEditor => {
+                character_editor::Event::MouseDownOutsideCharacterEditor => {
                     self.character_editor = None;
                 }
-                character_editor::Event::EditCharacterButtonClicked => {
+                character_editor::Event::OpenCharacterEditor => {
                     self.character_editor = Some(character_editor::CharacterEditor::new());
                 }
             });

@@ -1,6 +1,5 @@
-use crate::components::context_menu;
-
 use super::*;
+use crate::{components::context_menu, pages::sequence_edit_page::loaded::components};
 
 impl CutEditor {
     pub fn update(&mut self, event: &namui::Event) {
@@ -24,8 +23,7 @@ impl CutEditor {
                 }
                 Event::ChangeCharacterName { .. }
                 | Event::ChangeCutLine { .. }
-                | Event::AddNewImage { .. }
-                | Event::AddImageButtonClicked => {}
+                | Event::AddNewImage { .. } => {}
             })
             .is::<InternalEvent>(|event| match event {
                 InternalEvent::EscapeKeyDown => {
@@ -35,7 +33,9 @@ impl CutEditor {
                     self.context_menu = Some(ContextMenu::new(
                         *global_xy,
                         [context_menu::Item::new_button("Add Image", move || {
-                            namui::event::send(Event::AddImageButtonClicked);
+                            namui::event::send(
+                                components::character_picker::Event::OpenCharacterPicker,
+                            );
                         })],
                     ));
                 }

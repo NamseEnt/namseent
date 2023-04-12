@@ -44,7 +44,6 @@ pub enum Event {
         png_bytes: Vec<u8>,
         cut_id: Uuid,
     },
-    AddImageButtonClicked,
 }
 
 enum InternalEvent {
