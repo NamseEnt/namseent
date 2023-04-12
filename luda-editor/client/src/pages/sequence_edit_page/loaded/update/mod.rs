@@ -162,6 +162,14 @@ impl LoadedSequenceEditorPage {
                 components::character_picker::Event::MouseDownOutsideCharacterPicker => {
                     self.character_picker = None;
                 }
+            })
+            .is::<components::character_editor::Event>(|event| match event {
+                components::character_editor::Event::MouseDownOutsideCharacterEditor => {
+                    self.character_editor = None;
+                }
+                character_editor::Event::EditCharacterButtonClicked => {
+                    self.character_editor = Some(character_editor::CharacterEditor::new());
+                }
             });
 
         self.cut_list_view.update(event);
@@ -169,5 +177,8 @@ impl LoadedSequenceEditorPage {
         self.character_picker
             .as_mut()
             .map(|picker| picker.update(event));
+        self.character_editor
+            .as_mut()
+            .map(|editor| editor.update(event));
     }
 }
