@@ -6,6 +6,7 @@ use namui::prelude::*;
 pub struct CharacterPicker {
     project_id: Uuid,
     pose_files: Vec<PoseFile>,
+    pose_name_tooltip: Option<PoseNameTooltip>,
 }
 
 #[derive(Clone, Copy)]
@@ -15,6 +16,11 @@ pub struct Props {
 
 enum InternalEvent {
     ImagesLoaded(Vec<PoseFile>),
+    OpenPoseNameTooltip {
+        global_xy: Xy<Px>,
+        pose_name: String,
+    },
+    ClosePoseNameTooltip,
 }
 
 pub enum Event {
@@ -27,6 +33,7 @@ impl CharacterPicker {
         let mut image_picker = Self {
             project_id,
             pose_files: Vec::new(),
+            pose_name_tooltip: None,
         };
         image_picker.fetch_pose_files();
         image_picker
@@ -44,7 +51,6 @@ impl CharacterPicker {
                             .images
                             .iter()
                             .map(|image| PoseFile {
-                                id: image.id,
                                 name: image.id.to_string(),
                                 thumbnail_url: Url::parse(&image.url).unwrap(),
                             })
@@ -60,7 +66,6 @@ impl CharacterPicker {
 
 #[derive(Clone)]
 struct PoseFile {
-    id: Uuid,
     name: String,
     thumbnail_url: Url,
 }
@@ -68,4 +73,9 @@ impl PoseFile {
     fn thumbnail_url(&self) -> Url {
         self.thumbnail_url.clone()
     }
+}
+
+struct PoseNameTooltip {
+    global_xy: Xy<Px>,
+    pose_name: String,
 }
