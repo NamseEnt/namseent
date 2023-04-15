@@ -2,11 +2,13 @@ mod render;
 mod update;
 
 use namui::prelude::*;
+use namui_prebuilt::scroll_view::ScrollView;
 
 pub struct CharacterPicker {
     project_id: Uuid,
     pose_files: Vec<PoseFile>,
     pose_name_tooltip: Option<PoseNameTooltip>,
+    scroll_view: ScrollView,
 }
 
 #[derive(Clone, Copy)]
@@ -34,6 +36,7 @@ impl CharacterPicker {
             project_id,
             pose_files: Vec::new(),
             pose_name_tooltip: None,
+            scroll_view: ScrollView::new(),
         };
         image_picker.fetch_pose_files();
         image_picker

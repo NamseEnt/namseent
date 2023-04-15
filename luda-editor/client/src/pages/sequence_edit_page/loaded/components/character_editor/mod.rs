@@ -1,9 +1,11 @@
 mod render;
 mod update;
 use namui::prelude::*;
+use namui_prebuilt::scroll_view::ScrollView;
 
 pub struct CharacterEditor {
     variant_name_tooltip: Option<VariantNameTooltip>,
+    scroll_view: ScrollView,
 }
 
 #[derive(Clone, Copy)]
@@ -28,6 +30,7 @@ impl CharacterEditor {
     pub fn new() -> Self {
         let image_picker = Self {
             variant_name_tooltip: None,
+            scroll_view: ScrollView::new(),
         };
         image_picker
     }

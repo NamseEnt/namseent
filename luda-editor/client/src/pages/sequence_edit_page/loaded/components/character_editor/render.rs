@@ -29,12 +29,17 @@ impl CharacterEditor {
     fn render_pose_part_list(&self, wh: Wh<Px>, pose_file: &PoseFile) -> namui::RenderingTree {
         const PADDING: Px = px(8.0);
         table::padding(PADDING, |wh| {
-            table::vertical(
-                pose_file
-                    .parts
-                    .iter()
-                    .flat_map(|pose_part| render_pose_part_group(wh.width, pose_part)),
-            )(wh)
+            self.scroll_view.render(&scroll_view::Props {
+                xy: Xy::zero(),
+                height: wh.height,
+                scroll_bar_width: 4.px(),
+                content: table::vertical(
+                    pose_file
+                        .parts
+                        .iter()
+                        .flat_map(|pose_part| render_pose_part_group(wh.width, pose_part)),
+                )(wh),
+            })
         })(wh)
     }
 

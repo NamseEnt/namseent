@@ -31,34 +31,41 @@ impl CharacterPicker {
         table::padding(PADDING, |wh| {
             let max_items_per_row =
                 (props.wh.width / (CHARACTER_THUMBNAIL_WH.width)).floor() as usize;
-            table::vertical(self.pose_files.chunks(max_items_per_row).map(|pose_files| {
-                table::fixed(CHARACTER_THUMBNAIL_WH.height, |wh| {
-                    table::horizontal(pose_files.iter().map(|pose_file| {
-                        table::fixed(CHARACTER_THUMBNAIL_WH.width, |wh| {
-                            table::padding(PADDING, |wh| {
-                                render([
-                                    image(ImageParam {
-                                        rect: wh.to_rect(),
-                                        source: ImageSource::Url(pose_file.thumbnail_url()),
-                                        style: ImageStyle {
-                                            fit: ImageFit::Contain,
-                                            paint_builder: None,
-                                        },
-                                    })
-                                    .with_mouse_cursor(MouseCursor::Pointer)
-                                    .with_pose_name_tooltip(pose_file.name.clone()),
-                                    simple_rect(
-                                        wh,
-                                        color::STROKE_NORMAL,
-                                        1.px(),
-                                        Color::TRANSPARENT,
-                                    ),
-                                ])
-                            })(wh)
+            self.scroll_view.render(&scroll_view::Props {
+                xy: Xy::zero(),
+                height: wh.height,
+                scroll_bar_width: 4.px(),
+                content: table::vertical(self.pose_files.chunks(max_items_per_row).map(
+                    |pose_files| {
+                        table::fixed(CHARACTER_THUMBNAIL_WH.height, |wh| {
+                            table::horizontal(pose_files.iter().map(|pose_file| {
+                                table::fixed(CHARACTER_THUMBNAIL_WH.width, |wh| {
+                                    table::padding(PADDING, |wh| {
+                                        render([
+                                            image(ImageParam {
+                                                rect: wh.to_rect(),
+                                                source: ImageSource::Url(pose_file.thumbnail_url()),
+                                                style: ImageStyle {
+                                                    fit: ImageFit::Contain,
+                                                    paint_builder: None,
+                                                },
+                                            })
+                                            .with_mouse_cursor(MouseCursor::Pointer)
+                                            .with_pose_name_tooltip(pose_file.name.clone()),
+                                            simple_rect(
+                                                wh,
+                                                color::STROKE_NORMAL,
+                                                1.px(),
+                                                Color::TRANSPARENT,
+                                            ),
+                                        ])
+                                    })(wh)
+                                })
+                            }))(wh)
                         })
-                    }))(wh)
-                })
-            }))(wh)
+                    },
+                ))(wh),
+            })
         })(props.wh)
     }
 

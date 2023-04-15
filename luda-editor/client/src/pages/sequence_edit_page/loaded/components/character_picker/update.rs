@@ -19,5 +19,6 @@ impl CharacterPicker {
                 self.pose_name_tooltip = None;
             }
         });
+        self.scroll_view.update(event);
     }
 }

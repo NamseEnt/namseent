@@ -18,5 +18,6 @@ impl CharacterEditor {
                 }
             };
         });
+        self.scroll_view.update(event);
     }
 }
