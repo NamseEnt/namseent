@@ -1,6 +1,10 @@
 use super::*;
 use crate::color;
-use namui_prebuilt::{table::TableCell, typography::center_text_full_height, *};
+use namui_prebuilt::{
+    table::TableCell,
+    typography::{center_text, center_text_full_height},
+    *,
+};
 use std::iter::once;
 
 impl CharacterEditor {
@@ -75,9 +79,9 @@ fn render_pose_part_group(width: Px, pose_part: &PosePart) -> Vec<TableCell> {
     let no_selection_thumbnail = table::fixed(THUMBNAIL_WH.width, |wh| {
         table::padding(PADDING, |wh| {
             render([
-                simple_rect(wh, Color::TRANSPARENT, 0.px(), color::BACKGROUND)
+                center_text(wh, "No Selection", color::STROKE_NORMAL, 12.int_px()),
+                simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                     .with_mouse_cursor(MouseCursor::Pointer),
-                simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT),
             ])
         })(wh)
     });
