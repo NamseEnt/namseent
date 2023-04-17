@@ -76,7 +76,9 @@ impl RenderingTree {
                         .and_then(|bounding_box| {
                             let path = clip.path_builder.build();
 
-                            let clip_bounding_box = path.get_bounding_box();
+                            let clip_bounding_box = path
+                                .get_bounding_box()
+                                .map(|bounding_box| matrix.transform_rect(bounding_box));
 
                             match clip.clip_op {
                                 ClipOp::Intersect => {
