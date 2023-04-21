@@ -4,17 +4,14 @@ impl CharacterEditor {
     pub fn update(&mut self, event: &namui::Event) {
         event.is::<InternalEvent>(|event| {
             match event {
-                InternalEvent::OpenVariantNameTooltip {
-                    global_xy,
-                    pose_name,
-                } => {
-                    self.variant_name_tooltip = Some(VariantNameTooltip {
+                InternalEvent::OpenTooltip { global_xy, text } => {
+                    self.tooltip = Some(Tooltip {
                         global_xy: *global_xy,
-                        pose_name: pose_name.clone(),
+                        text: text.clone(),
                     });
                 }
-                InternalEvent::CloseVariantNameTooltip => {
-                    self.variant_name_tooltip = None;
+                InternalEvent::CloseTooltip => {
+                    self.tooltip = None;
                 }
             };
         });

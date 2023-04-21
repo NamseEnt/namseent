@@ -4,8 +4,9 @@ use namui::prelude::*;
 use namui_prebuilt::scroll_view::ScrollView;
 
 pub struct CharacterEditor {
-    variant_name_tooltip: Option<VariantNameTooltip>,
+    tooltip: Option<Tooltip>,
     scroll_view: ScrollView,
+    edit_target: EditTarget,
 }
 
 #[derive(Clone, Copy)]
@@ -15,28 +16,33 @@ pub struct Props {
 
 pub enum Event {
     MouseDownOutsideCharacterEditor,
-    OpenCharacterEditor,
+    OpenCharacterEditor { target: EditTarget },
 }
 
 enum InternalEvent {
-    OpenVariantNameTooltip {
-        global_xy: Xy<Px>,
-        pose_name: String,
-    },
-    CloseVariantNameTooltip,
+    OpenTooltip { global_xy: Xy<Px>, text: String },
+    CloseTooltip,
 }
 
 impl CharacterEditor {
-    pub fn new() -> Self {
+    pub fn new(edit_target: EditTarget) -> Self {
         let image_picker = Self {
-            variant_name_tooltip: None,
+            tooltip: None,
             scroll_view: ScrollView::new(),
+            edit_target,
         };
         image_picker
     }
 }
 
-struct VariantNameTooltip {
+struct Tooltip {
     global_xy: Xy<Px>,
-    pose_name: String,
+    text: String,
+}
+
+#[derive(Clone, Copy)]
+pub enum EditTarget {
+    NewCharacterPose,
+    // ExistingCharacterPose,
+    ExistingCharacterPart,
 }

@@ -161,7 +161,9 @@ impl WysiwygEditor {
 
                     let edit_character_button =
                         context_menu::Item::new_button("Edit character", move || {
-                            namui::event::send(character_editor::Event::OpenCharacterEditor);
+                            namui::event::send(character_editor::Event::OpenCharacterEditor {
+                                target: character_editor::EditTarget::ExistingCharacterPart,
+                            });
                         });
 
                     self.context_menu = Some(context_menu::ContextMenu::new(

@@ -33,21 +33,10 @@ impl LoadedSequenceEditorPage {
                         project_id: self.project_id(),
                     })
                 }),
-                self.render_character_picker(),
                 self.render_character_editor(),
             ])(props.wh),
             context_menu,
         ])
-    }
-
-    fn render_character_picker(&self) -> table::TableCell {
-        const CHARACTER_PICKER_WIDTH: Px = px(496.0);
-        match &self.character_picker {
-            Some(character_picker) => table::fixed(CHARACTER_PICKER_WIDTH, |wh| {
-                character_picker.render(character_picker::Props { wh })
-            }),
-            None => table::fixed(0.px(), |_| RenderingTree::Empty),
-        }
     }
 
     fn render_character_editor(&self) -> table::TableCell {
