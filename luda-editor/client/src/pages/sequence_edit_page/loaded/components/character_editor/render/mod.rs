@@ -31,9 +31,9 @@ impl CharacterEditor {
             EditTarget::NewCharacterPose => {
                 self.render_pose_picker(props.wh, &mock_pose_file_list())
             }
-            // EditTarget::ExistingCharacterPose => {
-            //     self.render_pose_picker(props.wh, &mock_pose_file_list())
-            // }
+            EditTarget::ExistingCharacterPose => {
+                self.render_pose_picker(props.wh, &mock_pose_file_list())
+            }
             EditTarget::ExistingCharacterPart => {
                 self.render_part_picker(props.wh, &mock_pose_file(""))
             }

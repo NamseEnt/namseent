@@ -22,6 +22,7 @@ pub enum Event {
 enum InternalEvent {
     OpenTooltip { global_xy: Xy<Px>, text: String },
     CloseTooltip,
+    PoseChangeButtonClicked,
 }
 
 impl CharacterEditor {
@@ -43,6 +44,6 @@ struct Tooltip {
 #[derive(Clone, Copy)]
 pub enum EditTarget {
     NewCharacterPose,
-    // ExistingCharacterPose,
+    ExistingCharacterPose,
     ExistingCharacterPart,
 }

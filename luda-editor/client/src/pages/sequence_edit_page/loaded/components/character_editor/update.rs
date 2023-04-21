@@ -13,6 +13,9 @@ impl CharacterEditor {
                 InternalEvent::CloseTooltip => {
                     self.tooltip = None;
                 }
+                InternalEvent::PoseChangeButtonClicked => {
+                    self.edit_target = EditTarget::ExistingCharacterPose
+                }
             };
         });
         self.scroll_view.update(event);
