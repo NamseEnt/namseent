@@ -2,6 +2,9 @@ use super::*;
 use crate::color;
 use namui_prebuilt::{table::TableCell, *};
 
+const OUTER_PADDING: Px = px(8.0);
+const INNER_PADDING: Px = px(4.0);
+
 impl CharacterEditor {
     pub fn render_pose_picker(
         &self,
@@ -12,11 +15,10 @@ impl CharacterEditor {
             width: px(96.0),
             height: px(144.0),
         };
-        const PADDING: Px = px(8.0);
 
         fn render_thumbnail(pose_file: &PoseFile) -> TableCell {
             table::fixed(CHARACTER_THUMBNAIL_WH.width, |wh| {
-                table::padding(PADDING, |wh| {
+                table::padding(INNER_PADDING, |wh| {
                     simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                         .with_mouse_cursor(MouseCursor::Pointer)
                         .with_tooltip(pose_file.name.clone())
@@ -24,7 +26,7 @@ impl CharacterEditor {
             })
         }
 
-        table::padding(PADDING, |wh| {
+        table::padding(OUTER_PADDING, |wh| {
             let max_items_per_row = (wh.width / (CHARACTER_THUMBNAIL_WH.width)).floor() as usize;
             self.scroll_view.render(&scroll_view::Props {
                 xy: Xy::zero(),
