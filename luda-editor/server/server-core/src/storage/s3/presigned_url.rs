@@ -34,12 +34,6 @@ pub struct PutPresignedUrlOptions {
 }
 
 #[derive(Debug)]
-pub enum PresignedMethod {
-    Get,
-    Put,
-}
-
-#[derive(Debug)]
 pub enum RequestPresignedUrlError {
     WrongExpiresIn(String),
     Unknown(String),
