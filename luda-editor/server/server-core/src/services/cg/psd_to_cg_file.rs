@@ -28,9 +28,9 @@ pub(crate) fn psd_to_webps_and_cg_file(
         let group = psd.groups().get(group_id).unwrap();
         let group_name = group.name();
         let selection_type = if group_name.ends_with("_s") {
-            PartSelecitonType::Single
+            PartSelectionType::Single
         } else if group_name.ends_with("_m") {
-            PartSelecitonType::Multi
+            PartSelectionType::Multi
         } else {
             continue;
         };

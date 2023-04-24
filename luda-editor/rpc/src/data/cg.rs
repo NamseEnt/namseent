@@ -11,7 +11,7 @@ pub struct CgFile {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CgPart {
     pub name: String,
-    pub selection_type: PartSelecitonType,
+    pub selection_type: PartSelectionType,
     pub variants: Vec<CgPartVariant>,
 }
 
@@ -23,7 +23,7 @@ pub struct CgPartVariant {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum PartSelecitonType {
+pub enum PartSelectionType {
     Single,
     Multi,
 }
