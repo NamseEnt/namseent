@@ -3,8 +3,8 @@ mod define_rpc;
 pub mod utils;
 
 pub use define_rpc::RpcFuture;
+pub use namui_type::{uuid, Uuid};
 pub use revert_json_patch as json_patch;
-pub use uuid::{uuid, Uuid};
 
 #[macro_export]
 macro_rules! simple_error_impl {
@@ -41,7 +41,7 @@ define_rpc::define_rpc! {
                 pub code: String,
             }
             pub struct Response {
-                pub session_id: uuid::Uuid,
+                pub session_id: crate::Uuid,
             }
             Error {
                 AlreadyLoggedIn,
@@ -60,14 +60,14 @@ define_rpc::define_rpc! {
     SequenceService: {
         list_project_sequences: {
             pub struct Request {
-                pub project_id: uuid::Uuid,
+                pub project_id: crate::Uuid,
             }
             pub struct Response {
                 pub sequence_name_and_ids: Vec<SequenceNameAndId>,
             }
             pub struct SequenceNameAndId {
                 pub name: String,
-                pub id: uuid::Uuid,
+                pub id: crate::Uuid,
             }
             Error {
                 Unknown(String),
@@ -75,7 +75,7 @@ define_rpc::define_rpc! {
         },
         create_sequence: {
             pub struct Request {
-                pub project_id: uuid::Uuid,
+                pub project_id: crate::Uuid,
                 pub name: String,
             }
             pub struct Response {
@@ -87,7 +87,7 @@ define_rpc::define_rpc! {
         },
         update_server_sequence: {
             pub struct Request {
-                pub sequence_id: uuid::Uuid,
+                pub sequence_id: crate::Uuid,
                 pub patch: revert_json_patch::Patch,
             }
             pub struct Response {
@@ -99,7 +99,7 @@ define_rpc::define_rpc! {
         },
         update_client_sequence: {
             pub struct Request {
-                pub sequence_id: uuid::Uuid,
+                pub sequence_id: crate::Uuid,
                 pub sequence_json: serde_json::Value,
             }
             pub struct Response {
@@ -111,7 +111,7 @@ define_rpc::define_rpc! {
         },
         get_sequence_and_project_shared_data: {
             pub struct Request {
-                pub sequence_id: uuid::Uuid,
+                pub sequence_id: crate::Uuid,
             }
             pub struct Response {
                 pub sequence_json: String,
@@ -123,7 +123,7 @@ define_rpc::define_rpc! {
         },
         delete_sequence: {
             pub struct Request {
-                pub sequence_id: uuid::Uuid,
+                pub sequence_id: crate::Uuid,
             }
             pub struct Response {
             }
@@ -134,7 +134,7 @@ define_rpc::define_rpc! {
         },
         rename_sequence: {
             pub struct Request {
-                pub sequence_id: uuid::Uuid,
+                pub sequence_id: crate::Uuid,
                 pub new_name: String,
             }
             pub struct Response {
@@ -148,8 +148,8 @@ define_rpc::define_rpc! {
     ImageService: {
         put_image_meta_data: {
             pub struct Request {
-                pub project_id: uuid::Uuid,
-                pub image_id: uuid::Uuid,
+                pub project_id: crate::Uuid,
+                pub image_id: crate::Uuid,
                 pub labels: Vec<crate::data::Label>,
             }
             pub struct Response {
@@ -161,8 +161,8 @@ define_rpc::define_rpc! {
         },
         prepare_upload_image: {
             pub struct Request {
-                pub project_id: uuid::Uuid,
-                pub image_id: uuid::Uuid,
+                pub project_id: crate::Uuid,
+                pub image_id: crate::Uuid,
             }
             pub struct Response {
                 pub upload_url: String,
@@ -174,7 +174,7 @@ define_rpc::define_rpc! {
         },
         list_images: {
             pub struct Request {
-                pub project_id: uuid::Uuid,
+                pub project_id: crate::Uuid,
             }
             pub struct Response {
                 pub images: Vec<crate::data::ImageWithLabels>
@@ -185,8 +185,8 @@ define_rpc::define_rpc! {
         },
         delete_image: {
             pub struct Request {
-                pub project_id: uuid::Uuid,
-                pub image_id: uuid::Uuid,
+                pub project_id: crate::Uuid,
+                pub image_id: crate::Uuid,
             }
             pub struct Response {
             }
@@ -210,7 +210,7 @@ define_rpc::define_rpc! {
         },
         list_editable_projects: {
             pub struct EditableProject {
-                pub id: uuid::Uuid,
+                pub id: crate::Uuid,
                 pub name: String,
             }
             pub struct Request {
@@ -226,8 +226,8 @@ define_rpc::define_rpc! {
         },
         edit_user_acl: {
             pub struct Request {
-                pub project_id: uuid::Uuid,
-                pub user_id: uuid::Uuid,
+                pub project_id: crate::Uuid,
+                pub user_id: crate::Uuid,
                 pub permission: Option<crate::types::ProjectAclUserPermission>,
             }
             pub struct Response {}
@@ -239,7 +239,7 @@ define_rpc::define_rpc! {
         },
         update_server_project_shared_data: {
             pub struct Request {
-                pub project_id: uuid::Uuid,
+                pub project_id: crate::Uuid,
                 pub patch: revert_json_patch::Patch,
             }
             pub struct Response {
@@ -251,13 +251,58 @@ define_rpc::define_rpc! {
         },
         update_client_project_shared_data: {
             pub struct Request {
-                pub project_id: uuid::Uuid,
+                pub project_id: crate::Uuid,
                 pub project_shared_data_json: serde_json::Value,
             }
             pub struct Response {
                 pub patch: revert_json_patch::Patch,
             }
             Error {
+                Unknown(String),
+            }
+        },
+    },
+    CgService: {
+        request_put_psd_presigned_url: {
+            pub struct Request {
+                pub project_id: crate::Uuid,
+                pub psd_file_name: String,
+                pub psd_file_size: usize,
+            }
+            pub struct Response {
+                pub presigned_url: String,
+                pub psd_id: crate::Uuid,
+            }
+            Error {
+                Unauthorized,
+                Unknown(String),
+            }
+        },
+        complete_put_psd: {
+            pub struct Request {
+                pub project_id: crate::Uuid,
+                pub psd_file_name: String,
+                pub psd_id: crate::Uuid,
+            }
+            pub struct Response {
+            }
+            Error {
+                Unauthorized,
+                PsdFileNotFound,
+                WrongPsdFile(String),
+                WrongPsdFileName,
+                Unknown(String),
+            }
+        },
+        list_cg_files: {
+            pub struct Request {
+                pub project_id: crate::Uuid,
+            }
+            pub struct Response {
+                pub cg_files: Vec<crate::data::CgFile>,
+            }
+            Error {
+                Unauthorized,
                 Unknown(String),
             }
         },

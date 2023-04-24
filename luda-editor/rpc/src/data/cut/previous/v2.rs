@@ -1,6 +1,6 @@
 use super::*;
 use crate::data::ScreenImage;
-use ::uuid::Uuid;
+use crate::Uuid;
 
 pub type ScreenImages = [Option<ScreenImage>; 5];
 

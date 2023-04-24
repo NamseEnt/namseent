@@ -1,8 +1,9 @@
+mod cg;
 mod cut;
 
-use ::uuid::Uuid;
+pub use cg::*;
 pub use cut::*;
-use namui_type::{Percent, PercentExt, Xy};
+use namui_type::{Percent, PercentExt, Uuid, Xy};
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ProjectSharedData {

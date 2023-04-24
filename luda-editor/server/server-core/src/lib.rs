@@ -21,6 +21,7 @@ struct Services {
     image_service: services::image::ImageService,
     sequence_service: services::sequence::SequenceService,
     project_service: services::project::ProjectService,
+    cg_service: services::cg::CgService,
 }
 
 static SERVICES: OnceCell<Services> = OnceCell::new();
@@ -67,6 +68,7 @@ pub async fn init() {
             sequence_service: services::sequence::SequenceService::new(),
             project_service: services::project::ProjectService::new(),
             image_service: services::image::ImageService::new(),
+            cg_service: services::cg::CgService::new(),
         })
         .unwrap();
 

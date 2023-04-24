@@ -1,4 +1,4 @@
-use uuid::Uuid;
+use crate::Uuid;
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cut {

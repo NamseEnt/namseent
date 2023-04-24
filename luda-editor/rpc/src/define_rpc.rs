@@ -110,7 +110,7 @@ macro_rules! define_rpc {
 
             pub struct RpcSetting {
                 endpoint: String,
-                session_id: Option<uuid::Uuid>,
+                session_id: Option<crate::Uuid>,
             }
 
             pub struct Rpc {
@@ -126,11 +126,11 @@ macro_rules! define_rpc {
                         }),
                     }
                 }
-                pub fn set_session_id(&self, session_id: uuid::Uuid) {
+                pub fn set_session_id(&self, session_id: crate::Uuid) {
                     let mut setting = self.setting.lock().unwrap();
                     setting.session_id.replace(session_id);
                 }
-                pub fn session_id(&self) -> Option<uuid::Uuid> {
+                pub fn session_id(&self) -> Option<crate::Uuid> {
                     let setting = self.setting.lock().unwrap();
                     setting.session_id
                 }
