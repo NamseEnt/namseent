@@ -20,7 +20,6 @@ pub use namui_cfg::*;
 pub use namui_context::NamuiContext;
 pub use namui_type as types;
 pub use namui_type::*;
-pub use random::uuid::*;
 pub use render::{
     absolute, clip, image::*, on_top, path::*, react, rect::*, rotate, scale, text::*, text_input,
     transform, translate, AttachEventBuilder, ImageSource, KeyboardEvent, Matrix3x3, MouseCursor,

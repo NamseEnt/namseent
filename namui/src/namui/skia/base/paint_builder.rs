@@ -1,3 +1,4 @@
+use crate::Uuid;
 use crate::{
     namui::skia::{Shader, StrokeJoin},
     uuid_from_hash, BlendMode, Color, ColorFilter, Paint, PaintStyle, Px, StrokeCap,
@@ -8,7 +9,6 @@ use std::{
     hash::Hash,
     sync::{Arc, Mutex},
 };
-use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub struct PaintBuilder {

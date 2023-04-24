@@ -1,5 +1,5 @@
 use super::*;
-use uuid::Uuid;
+use crate::Uuid;
 use wasm_bindgen::{JsCast, JsValue};
 
 #[derive(serde::Serialize)]

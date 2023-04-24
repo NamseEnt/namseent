@@ -799,14 +799,12 @@ dependencies = [
  "serde_json",
  "serde_repr",
  "shader-macro",
- "siphasher",
  "strum",
  "strum_macros",
  "textwrap",
  "tokio",
  "unicode-segmentation",
  "url",
- "uuid",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -836,6 +834,8 @@ dependencies = [
  "num",
  "ordered-float",
  "serde",
+ "siphasher",
+ "uuid",
 ]
 
 [[package]]
