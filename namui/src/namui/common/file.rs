@@ -1,5 +1,5 @@
+use crate::Uuid;
 use std::sync::Arc;
-use uuid::Uuid;
 use wasm_bindgen_futures::JsFuture;
 
 #[derive(Debug, Clone, serde::Serialize)]

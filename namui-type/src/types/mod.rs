@@ -11,8 +11,10 @@ mod rect;
 mod simple_signed;
 mod time;
 mod time_per_px;
+mod uuid;
 mod vector_types;
 
+pub use self::uuid::*;
 pub use angle::*;
 pub use int_px::*;
 pub use ltrb::*;
