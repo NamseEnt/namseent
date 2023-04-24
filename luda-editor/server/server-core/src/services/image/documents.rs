@@ -21,7 +21,14 @@ impl ProjectImageDocument {
     ) -> Result<String, crate::storage::s3::RequestPresignedUrlError> {
         let s3_key = self.s3_key();
         crate::s3()
-            .request_presigned_url(s3_key, crate::storage::s3::PresignedMethod::Put)
+            .request_put_presigned_url(
+                s3_key,
+                crate::storage::s3::PutPresignedUrlOptions {
+                    expires_in: std::time::Duration::from_secs(60),
+                    content_type: None,
+                    content_length: None,
+                },
+            )
             .await
     }
 }
