@@ -1,6 +1,9 @@
+mod presigned_url;
+
 use aws_config::SdkConfig;
-use aws_sdk_s3::{presigning::config::PresigningConfig, types::ByteStream, Client};
+use aws_sdk_s3::{types::ByteStream, Client};
 use lambda_web::is_running_on_lambda;
+pub use presigned_url::*;
 
 #[derive(Debug)]
 pub struct S3 {
@@ -131,40 +134,6 @@ impl S3 {
         Ok(())
     }
 
-    pub async fn request_presigned_url(
-        &self,
-        key: String,
-        method: PresignedMethod,
-    ) -> Result<String, RequestPresignedUrlError> {
-        let presining_config = PresigningConfig::builder()
-            .expires_in(std::time::Duration::from_secs(60))
-            .build()
-            .map_err(|error| RequestPresignedUrlError::Unknown(error.to_string()))?;
-
-        match method {
-            PresignedMethod::Get => Ok(self
-                .client
-                .get_object()
-                .bucket(&self.bucket_name)
-                .key(self.key_with_prefix(&key))
-                .presigned(presining_config)
-                .await
-                .map_err(|error| RequestPresignedUrlError::Unknown(error.to_string()))?
-                .uri()
-                .to_string()),
-            PresignedMethod::Put => Ok(self
-                .client
-                .put_object()
-                .bucket(&self.bucket_name)
-                .key(self.key_with_prefix(&key))
-                .presigned(presining_config)
-                .await
-                .map_err(|error| RequestPresignedUrlError::Unknown(error.to_string()))?
-                .uri()
-                .to_string()),
-        }
-    }
-
     fn prefixed_key_to_url(&self, prefixed_key: &str) -> String {
         crate::append_slash![self.rest_api_endpoint, self.bucket_name, prefixed_key,]
     }
@@ -205,12 +174,6 @@ pub struct ListedObject {
 }
 
 #[derive(Debug)]
-pub enum PresignedMethod {
-    Get,
-    Put,
-}
-
-#[derive(Debug)]
 pub enum GetObjectError {
     NotFound,
     Unknown(String),
@@ -228,12 +191,6 @@ pub enum PutObjectError {
     Unknown(String),
 }
 crate::simple_error_impl!(PutObjectError);
-
-#[derive(Debug)]
-pub enum RequestPresignedUrlError {
-    Unknown(String),
-}
-crate::simple_error_impl!(RequestPresignedUrlError);
 
 #[derive(Debug)]
 pub enum DeleteObjectError {
