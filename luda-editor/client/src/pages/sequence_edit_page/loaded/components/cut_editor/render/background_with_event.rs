@@ -17,7 +17,7 @@ impl CutEditor {
                             match file.name().ends_with(".psd") {
                                 true => namui::event::send(Event::AddNewCg {
                                     psd_bytes: content.into(),
-                                    psd_name: file.name(),
+                                    psd_name: file.name().trim_end_matches(".psd").to_string(),
                                     cut_id,
                                 }),
                                 false => namui::event::send(Event::AddNewImage {
