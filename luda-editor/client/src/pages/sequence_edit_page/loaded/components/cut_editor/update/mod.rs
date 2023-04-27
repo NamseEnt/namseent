@@ -23,7 +23,8 @@ impl CutEditor {
                 }
                 Event::ChangeCharacterName { .. }
                 | Event::ChangeCutLine { .. }
-                | Event::AddNewImage { .. } => {}
+                | Event::AddNewImage { .. }
+                | Event::AddNewCg { .. } => {}
             })
             .is::<InternalEvent>(|event| match event {
                 InternalEvent::EscapeKeyDown => {

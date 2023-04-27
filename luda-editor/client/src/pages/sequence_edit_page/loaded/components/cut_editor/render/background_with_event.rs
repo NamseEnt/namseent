@@ -14,10 +14,17 @@ impl CutEditor {
                         let file = event.files[0].clone();
                         spawn_local(async move {
                             let content = file.content().await;
-                            namui::event::send(Event::AddNewImage {
-                                png_bytes: content.into(),
-                                cut_id,
-                            })
+                            match file.name().ends_with(".psd") {
+                                true => namui::event::send(Event::AddNewCg {
+                                    psd_bytes: content.into(),
+                                    psd_name: file.name(),
+                                    cut_id,
+                                }),
+                                false => namui::event::send(Event::AddNewImage {
+                                    png_bytes: content.into(),
+                                    cut_id,
+                                }),
+                            }
                         });
                     })
                     .on_key_down(move |event| {

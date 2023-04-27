@@ -1,7 +1,10 @@
 mod undo_redo;
 mod update_data;
 
-use super::{components::image_upload::create_image, *};
+use super::{
+    components::{cg_upload::create_cg, image_upload::create_image},
+    *,
+};
 use rpc::data::*;
 
 impl LoadedSequenceEditorPage {
@@ -132,6 +135,29 @@ impl LoadedSequenceEditorPage {
                             Err(error) => {
                                 namui::event::send(InternalEvent::Error(format!(
                                     "create_image {}",
+                                    error.to_string()
+                                )));
+                            }
+                        };
+                    });
+                }
+                cut_editor::Event::AddNewCg {
+                    psd_name,
+                    psd_bytes,
+                    cut_id: _cut_id,
+                } => {
+                    let project_id = self.project_id();
+                    let psd_bytes = psd_bytes.clone();
+                    let psd_name = psd_name.clone();
+                    spawn_local(async move {
+                        match create_cg(project_id, psd_name, psd_bytes).await {
+                            Ok(_) => {
+                                // TODO: update cut
+                                namui::log!("create_cg success")
+                            }
+                            Err(error) => {
+                                namui::event::send(InternalEvent::Error(format!(
+                                    "create_cg {}",
                                     error.to_string()
                                 )));
                             }
