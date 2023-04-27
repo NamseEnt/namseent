@@ -1,5 +1,6 @@
+mod cg_picker;
 mod part_picker;
-mod pose_picker;
+mod text_content;
 mod tooltip;
 
 use super::*;
@@ -27,16 +28,30 @@ impl CharacterEditor {
     }
 
     fn render_content(&self, props: Props) -> namui::RenderingTree {
-        match self.edit_target {
-            EditTarget::NewCharacterPose => {
-                self.render_pose_picker(props.wh, &mock_pose_file_list())
-            }
-            EditTarget::ExistingCharacterPose => {
-                self.render_pose_picker(props.wh, &mock_pose_file_list())
-            }
-            EditTarget::ExistingCharacterPart => {
-                self.render_part_picker(props.wh, &mock_pose_file(""))
-            }
+        match &self.cg_file_load_state {
+            CgFileLoadState::Loading => self.render_text_content(props.wh, "Loading..."),
+            CgFileLoadState::Failed { error } => self.render_text_content(props.wh, error),
+            CgFileLoadState::Loaded(cg_file_list) => match self.edit_target {
+                EditTarget::NewCharacter => self.render_cg_picker(props.wh, &cg_file_list),
+                EditTarget::ExistingCharacter => self.render_cg_picker(props.wh, &cg_file_list),
+                EditTarget::ExistingCharacterPart => {
+                    let selected_cg_file =
+                        self.selected_cg_name.as_ref().and_then(|selected_cg_name| {
+                            cg_file_list
+                                .iter()
+                                .find(|cg_file| cg_file.name == *selected_cg_name)
+                        });
+                    match selected_cg_file {
+                        Some(selected_cg_file) => {
+                            self.render_part_picker(props.wh, selected_cg_file)
+                        }
+                        None => self.render_text_content(
+                            props.wh,
+                            "No CG file found. Please close character picker and try again.",
+                        ),
+                    }
+                }
+            },
         }
     }
 
@@ -45,109 +60,5 @@ impl CharacterEditor {
             Some(tooltip) => tooltip.render(),
             None => RenderingTree::Empty,
         }
-    }
-}
-
-pub struct PoseFile {
-    name: String,
-    parts: Vec<PosePart>,
-}
-struct PosePart {
-    name: String,
-    variants: Vec<PoseVariant>,
-}
-struct PoseVariant {
-    name: String,
-}
-
-fn mock_pose_file_list() -> Vec<PoseFile> {
-    vec![
-        mock_pose_file("PoseFile Name 0"),
-        mock_pose_file("PoseFile Name 1"),
-        mock_pose_file("PoseFile Name 2"),
-        mock_pose_file("PoseFile Name 3"),
-        mock_pose_file("PoseFile Name 4"),
-        mock_pose_file("PoseFile Name 5"),
-        mock_pose_file("PoseFile Name 6"),
-        mock_pose_file("PoseFile Name 7"),
-        mock_pose_file("PoseFile Name 8"),
-        mock_pose_file("PoseFile Name 9"),
-        mock_pose_file("PoseFile Name 10"),
-        mock_pose_file("PoseFile Name 11"),
-    ]
-}
-
-fn mock_pose_file(name: &str) -> PoseFile {
-    PoseFile {
-        name: name.to_string(),
-        parts: vec![
-            PosePart {
-                name: "PosePart name 0".to_string(),
-                variants: vec![
-                    PoseVariant {
-                        name: "PoseVariant name 0".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 1".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 2".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 3".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 4".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 5".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 6".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 7".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 8".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 9".to_string(),
-                    },
-                ],
-            },
-            PosePart {
-                name: "PosePart name 1".to_string(),
-                variants: vec![
-                    PoseVariant {
-                        name: "PoseVariant name 0".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 1".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 2".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 3".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 4".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 5".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 6".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 7".to_string(),
-                    },
-                    PoseVariant {
-                        name: "PoseVariant name 8".to_string(),
-                    },
-                ],
-            },
-        ],
     }
 }

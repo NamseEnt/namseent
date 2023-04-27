@@ -159,7 +159,10 @@ impl LoadedSequenceEditorPage {
                     self.character_editor = None;
                 }
                 character_editor::Event::OpenCharacterEditor { target } => {
-                    self.character_editor = Some(character_editor::CharacterEditor::new(*target));
+                    self.character_editor = Some(character_editor::CharacterEditor::new(
+                        self.project_id(),
+                        *target,
+                    ));
                 }
             });
 

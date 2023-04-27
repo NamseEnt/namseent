@@ -35,7 +35,7 @@ impl CutEditor {
                         [context_menu::Item::new_button("Add Image", move || {
                             namui::event::send(
                                 components::character_editor::Event::OpenCharacterEditor {
-                                    target: character_editor::EditTarget::NewCharacterPose,
+                                    target: character_editor::EditTarget::NewCharacter,
                                 },
                             );
                         })],

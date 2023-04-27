@@ -13,8 +13,11 @@ impl CharacterEditor {
                 InternalEvent::CloseTooltip => {
                     self.tooltip = None;
                 }
-                InternalEvent::PoseChangeButtonClicked => {
-                    self.edit_target = EditTarget::ExistingCharacterPose
+                InternalEvent::CgChangeButtonClicked => {
+                    self.edit_target = EditTarget::ExistingCharacter
+                }
+                InternalEvent::CgFileLoadStateChanged(cg_file_load_state) => {
+                    self.cg_file_load_state = cg_file_load_state.clone();
                 }
             };
         });

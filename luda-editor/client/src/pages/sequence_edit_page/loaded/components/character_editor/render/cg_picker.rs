@@ -1,27 +1,24 @@
 use super::*;
 use crate::color;
 use namui_prebuilt::{table::TableCell, *};
+use rpc::data::CgFile;
 
 const OUTER_PADDING: Px = px(8.0);
 const INNER_PADDING: Px = px(4.0);
 
 impl CharacterEditor {
-    pub fn render_pose_picker(
-        &self,
-        wh: Wh<Px>,
-        pose_file_list: &Vec<PoseFile>,
-    ) -> namui::RenderingTree {
+    pub fn render_cg_picker(&self, wh: Wh<Px>, cg_file_list: &Vec<CgFile>) -> namui::RenderingTree {
         const CHARACTER_THUMBNAIL_WH: Wh<Px> = Wh {
             width: px(96.0),
             height: px(144.0),
         };
 
-        fn render_thumbnail(pose_file: &PoseFile) -> TableCell {
+        fn render_thumbnail(cg_file: &CgFile) -> TableCell {
             table::fixed(CHARACTER_THUMBNAIL_WH.width, |wh| {
                 table::padding(INNER_PADDING, |wh| {
                     simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                         .with_mouse_cursor(MouseCursor::Pointer)
-                        .with_tooltip(pose_file.name.clone())
+                        .with_tooltip(cg_file.name.clone())
                 })(wh)
             })
         }
@@ -32,17 +29,13 @@ impl CharacterEditor {
                 xy: Xy::zero(),
                 height: wh.height,
                 scroll_bar_width: 4.px(),
-                content: table::vertical(pose_file_list.chunks(max_items_per_row).map(
-                    |pose_files| {
-                        table::fixed(CHARACTER_THUMBNAIL_WH.height, |wh| {
-                            table::horizontal(
-                                pose_files
-                                    .iter()
-                                    .map(|pose_file| render_thumbnail(pose_file)),
-                            )(wh)
-                        })
-                    },
-                ))(wh),
+                content: table::vertical(cg_file_list.chunks(max_items_per_row).map(|cg_files| {
+                    table::fixed(CHARACTER_THUMBNAIL_WH.height, |wh| {
+                        table::horizontal(cg_files.iter().map(|cg_file| render_thumbnail(cg_file)))(
+                            wh,
+                        )
+                    })
+                }))(wh),
             })
         })(wh)
     }

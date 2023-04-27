@@ -5,6 +5,7 @@ use namui_prebuilt::{
     typography::{center_text, center_text_full_height},
     *,
 };
+use rpc::data::{CgFile, CgPart, CgPartVariant};
 use std::iter::once;
 use tooltip::*;
 
@@ -13,17 +14,17 @@ const OUTER_PADDING: Px = px(8.0);
 const INNER_PADDING: Px = px(4.0);
 
 impl CharacterEditor {
-    pub fn render_part_picker(&self, wh: Wh<Px>, pose_file: &PoseFile) -> namui::RenderingTree {
+    pub fn render_part_picker(&self, wh: Wh<Px>, cg_file: &CgFile) -> namui::RenderingTree {
         table::padding(OUTER_PADDING, |wh| {
             table::vertical([
-                table::fixed(BUTTON_HEIGHT, |wh| render_pose_select_button(wh)),
+                table::fixed(BUTTON_HEIGHT, |wh| render_cg_select_button(wh)),
                 render_divider(BUTTON_HEIGHT),
                 table::ratio(1, |wh| {
                     self.scroll_view.render(&scroll_view::Props {
                         xy: Xy::zero(),
                         height: wh.height,
                         scroll_bar_width: 4.px(),
-                        content: render_pose_part_group_list(wh, pose_file),
+                        content: render_cg_part_group_list(wh, cg_file),
                     })
                 }),
             ])(wh)
@@ -31,37 +32,37 @@ impl CharacterEditor {
     }
 }
 
-fn render_pose_select_button(wh: Wh<Px>) -> RenderingTree {
+fn render_cg_select_button(wh: Wh<Px>) -> RenderingTree {
     table::horizontal_padding(INNER_PADDING, |wh| {
         render([
-            center_text_full_height(wh, "Change Pose", color::STROKE_NORMAL),
+            center_text_full_height(wh, "Change Cg", color::STROKE_NORMAL),
             simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                 .with_mouse_cursor(MouseCursor::Pointer)
                 .attach_event(|builder| {
                     builder.on_mouse_down_in(|_| {
-                        namui::event::send(InternalEvent::PoseChangeButtonClicked)
+                        namui::event::send(InternalEvent::CgChangeButtonClicked)
                     });
                 }),
         ])
     })(wh)
 }
 
-fn render_pose_part_group_list(wh: Wh<Px>, pose_file: &PoseFile) -> RenderingTree {
+fn render_cg_part_group_list(wh: Wh<Px>, cg_file: &CgFile) -> RenderingTree {
     table::vertical(
-        pose_file
+        cg_file
             .parts
             .iter()
-            .flat_map(|pose_part| render_pose_part_group(wh.width, pose_part)),
+            .flat_map(|cg_part| render_cg_part_group(wh.width, cg_part)),
     )(wh)
 }
 
-fn render_pose_part_group(width: Px, pose_part: &PosePart) -> Vec<TableCell> {
+fn render_cg_part_group(width: Px, cg_part: &CgPart) -> Vec<TableCell> {
     const THUMBNAIL_WH: Wh<Px> = Wh {
         width: px(96.0),
         height: px(96.0),
     };
 
-    fn render_thumbnail(pose_variant: &PoseVariant) -> TableCell {
+    fn render_thumbnail(cg_part_variant: &CgPartVariant) -> TableCell {
         table::fixed(THUMBNAIL_WH.width, |wh| {
             table::padding(INNER_PADDING, |wh| {
                 render([
@@ -69,7 +70,7 @@ fn render_pose_part_group(width: Px, pose_part: &PosePart) -> Vec<TableCell> {
                         .with_mouse_cursor(MouseCursor::Pointer),
                     simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT),
                 ])
-                .with_tooltip(pose_variant.name.clone())
+                .with_tooltip(cg_part_variant.name.clone())
             })(wh)
         })
     }
@@ -78,7 +79,7 @@ fn render_pose_part_group(width: Px, pose_part: &PosePart) -> Vec<TableCell> {
         table::horizontal_padding(INNER_PADDING, |wh| {
             render([
                 simple_rect(wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND),
-                center_text_full_height(wh, pose_part.name.clone(), color::STROKE_NORMAL),
+                center_text_full_height(wh, cg_part.name.clone(), color::STROKE_NORMAL),
             ])
         })(wh)
     });
@@ -94,7 +95,7 @@ fn render_pose_part_group(width: Px, pose_part: &PosePart) -> Vec<TableCell> {
     });
 
     let max_thumbnails_per_row = (width / (THUMBNAIL_WH.width)).floor() as usize;
-    let chunks = pose_part.variants.chunks_exact(max_thumbnails_per_row);
+    let chunks = cg_part.variants.chunks_exact(max_thumbnails_per_row);
     let chunk_remainder = chunks.remainder();
     let last_variant_row = table::fixed(THUMBNAIL_WH.height, |wh| {
         table::horizontal(
