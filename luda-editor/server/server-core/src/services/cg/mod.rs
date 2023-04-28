@@ -3,9 +3,10 @@ mod psd_to_cg_file;
 
 use self::{
     documents::{CgDocument, CgInProject, CgInProjectQuery},
-    psd_to_cg_file::psd_to_webps_and_cg_file,
+    psd_to_cg_file::{psd_to_webps_and_cg_file, PsdParsingResult},
 };
 use crate::{services::cg::documents::CgDocumentGet, session::SessionDocument};
+use futures::FutureExt;
 
 #[derive(Debug)]
 pub struct CgService {}
@@ -108,33 +109,60 @@ impl rpc::CgService<SessionDocument> for CgService {
                     }
                 })?;
 
-            let (webps, cg_file) = psd_to_webps_and_cg_file(&psd_bytes, &psd_file_name)
+            let PsdParsingResult {
+                variants_webps,
+                cg_file,
+                cg_thumbnail_webp,
+            } = psd_to_webps_and_cg_file(&psd_bytes, &psd_file_name)
                 .map_err(|e| rpc::complete_put_psd::Error::WrongPsdFile(e.to_string()))?;
 
-            let futures = webps.into_iter().map(|(filename, webp_bytes)| async move {
-                let file_id = namui_type::uuid_from_hash(&filename);
+            let cg_file_id = cg_file.id;
 
-                rpc::utils::retry_on_error(
-                    || async {
-                        let cg_key = format!(
-                            "{project_id}/cg/{file_id}",
-                            project_id = project_id,
-                            file_id = file_id
-                        );
+            let futures = variants_webps
+                .into_iter()
+                .map(|(variant_id, variant_webp_bytes)| {
+                    async move {
+                        rpc::utils::retry_on_error(
+                            || async {
+                                let cg_key =
+                                    format!("{project_id}/cg/{cg_file_id}/{variant_id}.webp");
 
-                        crate::s3()
-                            .put_object(cg_key, webp_bytes.clone())
-                            .await
-                            .map_err(|err| {
-                                rpc::complete_put_psd::Error::Unknown(err.to_string())
-                            })?;
+                                crate::s3()
+                                    .put_object(cg_key, variant_webp_bytes.clone())
+                                    .await
+                                    .map_err(|err| {
+                                        rpc::complete_put_psd::Error::Unknown(err.to_string())
+                                    })?;
 
-                        Ok(())
-                    },
-                    3,
-                )
-                .await
-            });
+                                Ok(())
+                            },
+                            3,
+                        )
+                        .await
+                    }
+                    .boxed()
+                })
+                .chain(std::iter::once(
+                    async move {
+                        rpc::utils::retry_on_error(
+                            || async {
+                                let cg_key = format!("{project_id}/cg/{cg_file_id}/thumbnail.webp");
+
+                                crate::s3()
+                                    .put_object(cg_key, cg_thumbnail_webp.clone())
+                                    .await
+                                    .map_err(|err| {
+                                        rpc::complete_put_psd::Error::Unknown(err.to_string())
+                                    })?;
+
+                                Ok(())
+                            },
+                            3,
+                        )
+                        .await
+                    }
+                    .boxed(),
+                ));
 
             futures::future::try_join_all(futures).await?;
 
