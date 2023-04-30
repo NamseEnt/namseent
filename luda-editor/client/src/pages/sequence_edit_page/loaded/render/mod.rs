@@ -43,7 +43,10 @@ impl LoadedSequenceEditorPage {
         const CHARACTER_EDITOR_WIDTH: Px = px(496.0);
         match &self.character_editor {
             Some(character_editor) => table::fixed(CHARACTER_EDITOR_WIDTH, |wh| {
-                character_editor.render(character_editor::Props { wh })
+                character_editor.render(character_editor::Props {
+                    wh,
+                    project_id: self.project_id(),
+                })
             }),
             None => table::fixed(0.px(), |_| RenderingTree::Empty),
         }

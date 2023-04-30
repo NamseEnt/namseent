@@ -32,8 +32,12 @@ impl CharacterEditor {
             CgFileLoadState::Loading => self.render_text_content(props.wh, "Loading..."),
             CgFileLoadState::Failed { error } => self.render_text_content(props.wh, error),
             CgFileLoadState::Loaded(cg_file_list) => match self.edit_target {
-                EditTarget::NewCharacter => self.render_cg_picker(props.wh, &cg_file_list),
-                EditTarget::ExistingCharacter => self.render_cg_picker(props.wh, &cg_file_list),
+                EditTarget::NewCharacter => {
+                    self.render_cg_picker(props.wh, &cg_file_list, props.project_id)
+                }
+                EditTarget::ExistingCharacter => {
+                    self.render_cg_picker(props.wh, &cg_file_list, props.project_id)
+                }
                 EditTarget::ExistingCharacterPart => {
                     let selected_cg_file =
                         self.selected_cg_name.as_ref().and_then(|selected_cg_name| {
@@ -43,7 +47,7 @@ impl CharacterEditor {
                         });
                     match selected_cg_file {
                         Some(selected_cg_file) => {
-                            self.render_part_picker(props.wh, selected_cg_file)
+                            self.render_part_picker(props.wh, selected_cg_file, props.project_id)
                         }
                         None => self.render_text_content(
                             props.wh,

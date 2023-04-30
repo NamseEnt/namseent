@@ -1,5 +1,5 @@
 use super::*;
-use crate::color;
+use crate::{color, storage::get_project_cg_thumbnail_image_url};
 use namui_prebuilt::{table::TableCell, *};
 use rpc::data::CgFile;
 
@@ -7,18 +7,38 @@ const OUTER_PADDING: Px = px(8.0);
 const INNER_PADDING: Px = px(4.0);
 
 impl CharacterEditor {
-    pub fn render_cg_picker(&self, wh: Wh<Px>, cg_file_list: &Vec<CgFile>) -> namui::RenderingTree {
+    pub fn render_cg_picker(
+        &self,
+        wh: Wh<Px>,
+        cg_file_list: &Vec<CgFile>,
+        project_id: Uuid,
+    ) -> namui::RenderingTree {
         const CHARACTER_THUMBNAIL_WH: Wh<Px> = Wh {
             width: px(96.0),
             height: px(144.0),
         };
 
-        fn render_thumbnail(cg_file: &CgFile) -> TableCell {
-            table::fixed(CHARACTER_THUMBNAIL_WH.width, |wh| {
+        fn render_thumbnail(cg_file: &CgFile, project_id: Uuid) -> TableCell {
+            table::fixed(CHARACTER_THUMBNAIL_WH.width, move |wh| {
                 table::padding(INNER_PADDING, |wh| {
-                    simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
-                        .with_mouse_cursor(MouseCursor::Pointer)
-                        .with_tooltip(cg_file.name.clone())
+                    render([
+                        get_project_cg_thumbnail_image_url(project_id, cg_file.id).map_or(
+                            RenderingTree::Empty,
+                            |cg_thumbnail_image_url| {
+                                image(ImageParam {
+                                    rect: Rect::from_xy_wh(Xy::zero(), wh),
+                                    source: ImageSource::Url(cg_thumbnail_image_url),
+                                    style: ImageStyle {
+                                        fit: ImageFit::Contain,
+                                        paint_builder: None,
+                                    },
+                                })
+                            },
+                        ),
+                        simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
+                            .with_mouse_cursor(MouseCursor::Pointer)
+                            .with_tooltip(cg_file.name.clone()),
+                    ])
                 })(wh)
             })
         }
@@ -31,9 +51,11 @@ impl CharacterEditor {
                 scroll_bar_width: 4.px(),
                 content: table::vertical(cg_file_list.chunks(max_items_per_row).map(|cg_files| {
                     table::fixed(CHARACTER_THUMBNAIL_WH.height, |wh| {
-                        table::horizontal(cg_files.iter().map(|cg_file| render_thumbnail(cg_file)))(
-                            wh,
-                        )
+                        table::horizontal(
+                            cg_files
+                                .iter()
+                                .map(|cg_file| render_thumbnail(cg_file, project_id)),
+                        )(wh)
                     })
                 }))(wh),
             })

@@ -15,6 +15,7 @@ pub struct CharacterEditor {
 #[derive(Clone, Copy)]
 pub struct Props {
     pub wh: Wh<Px>,
+    pub project_id: Uuid,
 }
 
 pub enum Event {
