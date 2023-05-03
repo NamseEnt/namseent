@@ -24,7 +24,8 @@ impl LoadedSequenceEditorPage {
                 }
                 &InternalEvent::ImageUploaded { cut_id, image_id } => {
                     self.update_cut(cut_id, |cut| {
-                        cut.screen_images.push(ScreenImage::new(image_id));
+                        cut.screen_graphics
+                            .push(ScreenGraphic::Image(ScreenImage::new(image_id)))
                     });
                 }
             })
@@ -170,12 +171,12 @@ impl LoadedSequenceEditorPage {
                     cut_id,
                     ref callback,
                 } => {
-                    self.update_cut(cut_id, |cut| callback(&mut cut.screen_images));
+                    self.update_cut(cut_id, |cut| callback(&mut cut.screen_graphics));
                 }
-                wysiwyg_editor::Event::UpdateSequenceImages { callback } => {
+                wysiwyg_editor::Event::UpdateSequenceGraphics { callback } => {
                     self.update_sequence(|sequence| {
                         sequence.cuts.iter_mut().for_each(|cut| {
-                            callback(&mut cut.screen_images);
+                            callback(&mut cut.screen_graphics);
                         });
                     });
                 }

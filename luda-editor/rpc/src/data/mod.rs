@@ -3,7 +3,7 @@ mod cut;
 
 pub use cg::*;
 pub use cut::*;
-use namui_type::{Percent, PercentExt, Uuid, Xy};
+use namui_type::{Percent, PercentExt, Rect, Uuid, Xy};
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ProjectSharedData {
@@ -87,6 +87,12 @@ pub struct Circumscribed<T> {
     pub radius: T,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum ScreenGraphic {
+    Image(ScreenImage),
+    Cg(ScreenCg),
+}
+
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct ScreenImage {
     pub id: Uuid,
@@ -96,6 +102,25 @@ impl ScreenImage {
     pub fn new(id: Uuid) -> Self {
         Self {
             id,
+            circumscribed: Circumscribed {
+                center_xy: Xy::new(50.percent(), 50.percent()),
+                radius: 50.percent(),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ScreenCg {
+    pub id: Uuid,
+    pub part_variants: Vec<(Uuid, Rect<Percent>)>,
+    pub circumscribed: Circumscribed<Percent>,
+}
+impl ScreenCg {
+    pub fn new(id: Uuid, part_variants: Vec<(Uuid, Rect<Percent>)>) -> Self {
+        Self {
+            id,
+            part_variants,
             circumscribed: Circumscribed {
                 center_xy: Xy::new(50.percent(), 50.percent()),
                 radius: 50.percent(),

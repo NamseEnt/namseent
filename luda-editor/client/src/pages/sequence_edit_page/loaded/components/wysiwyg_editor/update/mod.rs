@@ -53,11 +53,22 @@ impl WysiwygEditor {
                             namui::event::send(Event::UpdateCutImages {
                                 cut_id,
                                 callback: Box::new({
-                                    move |images| {
-                                        let circumscribed = images[index].circumscribed;
+                                    move |graphics| {
+                                        let graphic = &mut graphics[index];
+                                        let circumscribed = match graphic {
+                                            ScreenGraphic::Image(image) => image.circumscribed,
+                                            ScreenGraphic::Cg(cg) => cg.circumscribed,
+                                        };
                                         let moved_circumscribed =
                                             context.move_circumscribed(circumscribed);
-                                        images[index].circumscribed = moved_circumscribed;
+                                        match graphic {
+                                            ScreenGraphic::Image(image) => {
+                                                image.circumscribed = moved_circumscribed
+                                            }
+                                            ScreenGraphic::Cg(cg) => {
+                                                cg.circumscribed = moved_circumscribed
+                                            }
+                                        }
                                     }
                                 }),
                             });
@@ -65,39 +76,50 @@ impl WysiwygEditor {
                         self.dragging = None;
                     }
                 }
-                &InternalEvent::OpenContextMenu {
+                InternalEvent::OpenContextMenu {
                     global_xy,
                     cut_id,
-                    image_index,
-                    image_wh,
-                    image,
+                    graphic_index,
+                    graphic_wh,
+                    graphic,
                 } => {
-                    let image_width_per_height_ratio = image_wh.width / image_wh.height;
+                    let global_xy = global_xy.clone();
+                    let cut_id = cut_id.clone();
+                    let graphic_index = graphic_index.clone();
+                    let graphic_wh = graphic_wh.clone();
+
+                    let image_width_per_height_ratio = graphic_wh.width / graphic_wh.height;
                     let screen_width_per_height_ratio = 4.0 / 3.0;
 
                     let fit_items = [
                         context_menu::Item::new_button("Fit - contain", move || {
                             namui::event::send(Event::UpdateCutImages {
                                 cut_id,
-                                callback: Box::new({
-                                    move |images| {
-                                        let image = &mut images[image_index];
+                                callback: Box::new(move |graphics| {
+                                    let graphic = &mut graphics[graphic_index];
 
-                                        image.circumscribed.center_xy = Xy::single(50.percent());
+                                    let radius = if image_width_per_height_ratio
+                                        > screen_width_per_height_ratio
+                                    {
+                                        let width = 4.0 / 5.0;
+                                        let height = width / image_width_per_height_ratio;
+                                        Xy::new(width, height).length()
+                                    } else {
+                                        let height = 3.0 / 5.0;
+                                        let width = height * image_width_per_height_ratio;
+                                        Xy::new(width, height).length()
+                                    };
 
-                                        let radius = if image_width_per_height_ratio
-                                            > screen_width_per_height_ratio
-                                        {
-                                            let width = 4.0 / 5.0;
-                                            let height = width / image_width_per_height_ratio;
-                                            Xy::new(width, height).length()
-                                        } else {
-                                            let height = 3.0 / 5.0;
-                                            let width = height * image_width_per_height_ratio;
-                                            Xy::new(width, height).length()
-                                        };
-
-                                        image.circumscribed.radius = Percent::from(radius);
+                                    match graphic {
+                                        ScreenGraphic::Image(image) => {
+                                            image.circumscribed.center_xy =
+                                                Xy::single(50.percent());
+                                            image.circumscribed.radius = Percent::from(radius);
+                                        }
+                                        ScreenGraphic::Cg(cg) => {
+                                            cg.circumscribed.center_xy = Xy::single(50.percent());
+                                            cg.circumscribed.radius = Percent::from(radius);
+                                        }
                                     }
                                 }),
                             });
@@ -106,10 +128,8 @@ impl WysiwygEditor {
                             namui::event::send(Event::UpdateCutImages {
                                 cut_id,
                                 callback: Box::new({
-                                    move |images| {
-                                        let image = &mut images[image_index];
-
-                                        image.circumscribed.center_xy = Xy::single(50.percent());
+                                    move |graphics| {
+                                        let graphic = &mut graphics[graphic_index];
 
                                         let radius = if image_width_per_height_ratio
                                             > screen_width_per_height_ratio
@@ -123,39 +143,69 @@ impl WysiwygEditor {
                                             Xy::new(width, height).length()
                                         };
 
-                                        image.circumscribed.radius = Percent::from(radius);
+                                        match graphic {
+                                            ScreenGraphic::Image(image) => {
+                                                image.circumscribed.center_xy =
+                                                    Xy::single(50.percent());
+                                                image.circumscribed.radius = Percent::from(radius);
+                                            }
+                                            ScreenGraphic::Cg(cg) => {
+                                                cg.circumscribed.center_xy =
+                                                    Xy::single(50.percent());
+                                                cg.circumscribed.radius = Percent::from(radius);
+                                            }
+                                        }
                                     }
                                 }),
                             });
                         }),
                     ];
 
-                    let spread_as_background = if image_index != 0 {
+                    let spread_as_background = if graphic_index != 0 {
                         [].to_vec()
                     } else {
-                        [context_menu::Item::new_button(
-                            "Spread as background",
+                        [context_menu::Item::new_button("Spread as background", {
+                            let graphic = graphic.clone();
                             move || {
-                                namui::event::send(Event::UpdateSequenceImages {
+                                let graphic = graphic.clone();
+                                namui::event::send(Event::UpdateSequenceGraphics {
                                     callback: Box::new({
-                                        move |images| {
-                                            if images.len() == 0 {
-                                                images.push(image);
+                                        move |graphics| {
+                                            let graphic = graphic.clone();
+                                            if graphics.len() == 0 {
+                                                graphics.push(graphic);
                                                 return;
                                             }
 
-                                            let first = images.first_mut().unwrap();
-                                            if first.id == image.id {
-                                                first.circumscribed = image.circumscribed;
-                                                return;
+                                            let first = graphics.first_mut().unwrap();
+                                            match (first, &graphic) {
+                                                (
+                                                    ScreenGraphic::Image(first),
+                                                    ScreenGraphic::Image(graphic),
+                                                ) => {
+                                                    if first.id == graphic.id {
+                                                        first.circumscribed = graphic.circumscribed;
+                                                        return;
+                                                    }
+                                                }
+                                                (
+                                                    ScreenGraphic::Cg(first),
+                                                    ScreenGraphic::Cg(graphic),
+                                                ) => {
+                                                    if first.id == graphic.id {
+                                                        first.circumscribed = graphic.circumscribed;
+                                                        return;
+                                                    }
+                                                }
+                                                _ => (),
                                             }
 
-                                            images.insert(0, image);
+                                            graphics.insert(0, graphic);
                                         }
                                     }),
                                 });
-                            },
-                        )]
+                            }
+                        })]
                         .to_vec()
                     };
 

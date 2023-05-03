@@ -30,7 +30,7 @@ impl CutEditor {
                     props.cut.map_or(RenderingTree::Empty, |cut| {
                         self.image_wysiwyg_editor.render(wysiwyg_editor::Props {
                             wh: content_rect.wh(),
-                            screen_images: &cut.screen_images,
+                            screen_graphics: &cut.screen_graphics,
                             project_id: props.project_id,
                             cut_id: cut.id(),
                         })
