@@ -7,7 +7,10 @@ use crate::{
     components::sequence_player::{
         calculate_graphic_rect_on_screen, calculate_graphic_wh_on_screen,
     },
-    storage::{get_project_cg_thumbnail_image_url, get_project_image_url},
+    storage::{
+        get_project_cg_part_variant_image_url, get_project_cg_thumbnail_image_url,
+        get_project_image_url,
+    },
 };
 use namui_prebuilt::*;
 
@@ -42,7 +45,7 @@ impl WysiwygEditor {
             clip(
                 PathBuilder::new().add_rect(Rect::from_xy_wh(Xy::zero(), props.wh)),
                 ClipOp::Intersect,
-                self.render_image_clip(&props),
+                self.render_graphic_clip(&props),
             ),
             render_grid_guide(props.wh),
             self.context_menu
@@ -50,7 +53,7 @@ impl WysiwygEditor {
                 .map_or(RenderingTree::Empty, |context_menu| context_menu.render()),
         ])
     }
-    fn render_image_clip(&self, props: &Props) -> RenderingTree {
+    fn render_graphic_clip(&self, props: &Props) -> RenderingTree {
         let cut_id = props.cut_id;
         render(props.screen_graphics.clone().into_iter().enumerate().map(
             |(graphic_index, graphic)| {
@@ -123,16 +126,44 @@ impl WysiwygEditor {
                         RenderingTree::Empty
                     };
 
-                    Some(render([
-                        namui::image(ImageParam {
+                    let graphic_rendering_tree = match &graphic {
+                        ScreenGraphic::Image(_image) => namui::image(ImageParam {
                             rect: graphic_rendering_rect,
                             source: namui::ImageSource::Image(namui_image.clone()),
                             style: ImageStyle {
                                 fit: ImageFit::Fill,
                                 paint_builder: None,
                             },
-                        })
-                        .attach_event(move |builder| {
+                        }),
+                        ScreenGraphic::Cg(cg) => {
+                            render(cg.part_variants.iter().filter_map(|(variant_id, rect)| {
+                                let rect = Rect::Xywh {
+                                    x: graphic_rendering_rect.x() * rect.x(),
+                                    y: graphic_rendering_rect.y() * rect.y(),
+                                    width: graphic_rendering_rect.width() * rect.width(),
+                                    height: graphic_rendering_rect.height() * rect.height(),
+                                };
+                                let url = get_project_cg_part_variant_image_url(
+                                    props.project_id,
+                                    cg.id,
+                                    *variant_id,
+                                )
+                                .unwrap();
+                                let image = namui::image::try_load_url(&url)?;
+                                Some(namui::image(ImageParam {
+                                    rect,
+                                    source: ImageSource::Image(image),
+                                    style: ImageStyle {
+                                        fit: ImageFit::Fill,
+                                        paint_builder: None,
+                                    },
+                                }))
+                            }))
+                        }
+                    };
+
+                    Some(render([
+                        graphic_rendering_tree.attach_event(move |builder| {
                             let graphic = graphic.clone();
                             builder.on_mouse_down_in(move |event| {
                                 let graphic = graphic.clone();

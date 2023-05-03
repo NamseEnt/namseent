@@ -1,4 +1,7 @@
-use crate::storage::{get_project_cg_part_variant_image_url, get_project_image_url};
+use crate::storage::{
+    get_project_cg_part_variant_image_url, get_project_cg_thumbnail_image_url,
+    get_project_image_url,
+};
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::*;
@@ -415,8 +418,8 @@ pub fn render_graphics(project_id: Uuid, wh: Wh<Px>, cut: &Cut, opacity: OneZero
         BlendMode::DstIn,
     );
 
-    let graphics = cut.screen_graphics.iter().map(|screen_image| {
-        render_graphic(project_id, wh, screen_image, Some(paint_builder.clone()))
+    let graphics = cut.screen_graphics.iter().map(|screen_graphic| {
+        render_graphic(project_id, wh, screen_graphic, Some(paint_builder.clone()))
     });
     render(graphics)
 }
@@ -444,6 +447,37 @@ pub fn render_graphic(
                 },
             }))
         }
-        ScreenGraphic::Cg(_) => todo!(),
+        ScreenGraphic::Cg(screen_cg) => {
+            let url = get_project_cg_thumbnail_image_url(project_id, screen_cg.id).unwrap();
+            let image = namui::image::try_load_url(&url)?;
+            let outer_rect =
+                calculate_graphic_rect_on_screen(image.size(), wh, screen_cg.circumscribed);
+
+            Some(render(screen_cg.part_variants.iter().filter_map(
+                |(variant_id, rect)| {
+                    let rect = Rect::Xywh {
+                        x: outer_rect.x() * rect.x(),
+                        y: outer_rect.y() * rect.y(),
+                        width: outer_rect.width() * rect.width(),
+                        height: outer_rect.height() * rect.height(),
+                    };
+                    let url = get_project_cg_part_variant_image_url(
+                        project_id,
+                        screen_cg.id,
+                        *variant_id,
+                    )
+                    .unwrap();
+                    let image = namui::image::try_load_url(&url)?;
+                    Some(namui::image(ImageParam {
+                        rect,
+                        source: ImageSource::Image(image),
+                        style: ImageStyle {
+                            fit: ImageFit::Fill,
+                            paint_builder: paint_builder.clone(),
+                        },
+                    }))
+                },
+            )))
+        }
     })
 }
