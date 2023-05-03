@@ -6,4 +6,4 @@ chmod 777 -R s3local
 
 docker-compose up -d --force-recreate --remove-orphans
 
-cargo run --manifest-path ./server-bin/Cargo.toml
+RUST_BACKTRACE=1 RUST_LOG=info cargo run --manifest-path ./server-bin/Cargo.toml

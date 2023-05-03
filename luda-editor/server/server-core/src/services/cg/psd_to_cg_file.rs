@@ -1,7 +1,14 @@
+use image::Rgba;
 use libwebp_sys::WebPEncodeLosslessRGBA;
 use namui_type::*;
 use rayon::prelude::*;
 use rpc::data::*;
+
+struct ImageBuffer {
+    id: Uuid,
+    buffer: Vec<u8>,
+    rect: Rect<Px>,
+}
 
 pub(crate) struct PsdParsingResult {
     pub(crate) variants_webps: Vec<(Uuid, Vec<u8>)>,
@@ -15,12 +22,6 @@ pub(crate) fn psd_to_webps_and_cg_file(
 ) -> Result<PsdParsingResult, psd::PsdError> {
     let psd = psd::Psd::from_bytes(psd_bytes)?;
     let mut parts: Vec<CgPart> = vec![];
-
-    struct ImageBuffer {
-        id: Uuid,
-        buffer: Vec<u8>,
-        rect: Rect<Px>,
-    }
 
     let mut image_buffers = vec![];
 
@@ -45,13 +46,14 @@ pub(crate) fn psd_to_webps_and_cg_file(
             let layer_name = layer.name().to_string();
 
             let cropped = crop(
-                &layer.rgba(),
-                psd.width() as usize,
-                psd.height() as usize,
-                layer.layer_left() as usize,
-                layer.layer_top() as usize,
-                layer.width() as usize,
-                layer.height() as usize,
+                layer.rgba(),
+                Wh::new(psd.width() as usize, psd.height() as usize),
+                Rect::Xywh {
+                    x: layer.layer_left() as usize,
+                    y: layer.layer_top() as usize,
+                    width: layer.width() as usize,
+                    height: layer.height() as usize,
+                },
             );
 
             let id = namui_type::uuid_from_hash(format!(
@@ -151,7 +153,7 @@ pub(crate) fn psd_to_webps_and_cg_file(
                         .iter()
                         .find_map(|image_buffer| {
                             if image_buffer.id == variant.id {
-                                Some(image_buffer.buffer.clone())
+                                Some(image_buffer)
                             } else {
                                 None
                             }
@@ -180,13 +182,32 @@ pub(crate) fn psd_to_webps_and_cg_file(
     })
 }
 
-fn merge_images(part_images: Vec<Vec<u8>>, width: usize, height: usize) -> Vec<u8> {
-    let mut bottom = image::ImageBuffer::<image::Rgba<u8>, _>::new(width as u32, height as u32);
+fn merge_images(part_images: Vec<&ImageBuffer>, psd_width: usize, psd_height: usize) -> Vec<u8> {
+    let mut bottom =
+        image::ImageBuffer::<image::Rgba<u8>, _>::new(psd_width as u32, psd_height as u32);
 
-    for image in part_images.into_iter() {
-        let image = image::ImageBuffer::from_vec(width as u32, height as u32, image).unwrap();
+    for part_image in part_images.into_iter() {
+        let part_iamge_width = part_image.rect.width().as_f32() as u32;
+        let part_iamge_height = part_image.rect.height().as_f32() as u32;
 
-        image::imageops::overlay(&mut bottom, &image, 0, 0);
+        assert_eq!(
+            part_iamge_width * part_iamge_height * 4,
+            part_image.buffer.len() as u32
+        );
+
+        let image = image::ImageBuffer::from_vec(
+            part_image.rect.width().as_f32() as u32,
+            part_image.rect.height().as_f32() as u32,
+            part_image.buffer.clone(),
+        )
+        .unwrap();
+
+        image::imageops::overlay(
+            &mut bottom,
+            &image,
+            part_image.rect.x().as_f32() as i64,
+            part_image.rect.y().as_f32() as i64,
+        );
     }
 
     bottom.into_raw()
@@ -207,26 +228,20 @@ fn encode_rgba_webp(input_image: &[u8], width: Px, height: Px) -> Vec<u8> {
     }
 }
 
-pub fn crop(
-    input_image: &[u8],
-    source_width: usize,
-    source_height: usize,
-    dest_x: usize,
-    dest_y: usize,
-    dest_width: usize,
-    dest_height: usize,
-) -> Vec<u8> {
-    assert!(dest_x + dest_width <= source_width);
-    assert!(dest_y + dest_height <= source_height);
+pub fn crop(input_image: Vec<u8>, source_wh: Wh<usize>, crop_rect: Rect<usize>) -> Vec<u8> {
+    let mut buffer: image::ImageBuffer<Rgba<u8>, _> =
+        image::ImageBuffer::from_raw(source_wh.width as u32, source_wh.height as u32, input_image)
+            .unwrap();
 
-    (0..dest_height)
-        .into_par_iter()
-        .map(|y| {
-            input_image[(y * source_width + dest_x)..(y * source_width + dest_x + dest_width)]
-                .to_vec()
-        })
-        .flatten_iter()
-        .collect()
+    let cropped = image::imageops::crop(
+        &mut buffer,
+        crop_rect.x() as u32,
+        crop_rect.y() as u32,
+        crop_rect.width() as u32,
+        crop_rect.height() as u32,
+    );
+
+    cropped.to_image().into_raw()
 }
 
 fn concat_parent_names(psd: &psd::Psd, mut parent_group_id: Option<u32>) -> String {
