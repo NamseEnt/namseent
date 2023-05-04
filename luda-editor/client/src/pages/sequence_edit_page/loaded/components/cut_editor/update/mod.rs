@@ -30,13 +30,14 @@ impl CutEditor {
                 InternalEvent::EscapeKeyDown => {
                     self.blur();
                 }
-                InternalEvent::MouseRightButtonDown { global_xy } => {
+                InternalEvent::MouseRightButtonDown { global_xy, cut_id } => {
+                    let cut_id = *cut_id;
                     self.context_menu = Some(ContextMenu::new(
                         *global_xy,
-                        [context_menu::Item::new_button("Add Image", move || {
+                        [context_menu::Item::new_button("Add Cg", move || {
                             namui::event::send(
                                 components::character_editor::Event::OpenCharacterEditor {
-                                    target: character_editor::EditTarget::NewCharacter,
+                                    target: character_editor::EditTarget::NewCharacter { cut_id },
                                 },
                             );
                         })],

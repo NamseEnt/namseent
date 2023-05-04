@@ -36,6 +36,7 @@ enum InternalEvent {
     Error(String),
     ListViewContextMenuAddCutClicked,
     ImageUploaded { cut_id: Uuid, image_id: Uuid },
+    CgUploaded { cut_id: Uuid, cg_id: Uuid },
 }
 
 #[derive(Clone, Copy)]

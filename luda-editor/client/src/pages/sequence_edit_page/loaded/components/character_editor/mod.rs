@@ -9,7 +9,6 @@ pub struct CharacterEditor {
     scroll_view: ScrollView,
     edit_target: EditTarget,
     cg_file_load_state: CgFileLoadState,
-    selected_cg_name: Option<String>,
 }
 
 #[derive(Clone, Copy)]
@@ -37,7 +36,6 @@ impl CharacterEditor {
             scroll_view: ScrollView::new(),
             edit_target,
             cg_file_load_state: CgFileLoadState::Loading,
-            selected_cg_name: None,
         };
         character_editor.start_load_cg_files(project_id);
         character_editor
@@ -75,9 +73,22 @@ struct Tooltip {
 
 #[derive(Clone, Copy)]
 pub enum EditTarget {
-    NewCharacter,
-    ExistingCharacter,
-    ExistingCharacterPart,
+    NewCharacter {
+        cut_id: Uuid,
+    },
+    ExistingCharacter {
+        cut_id: Uuid,
+        graphic_index: usize,
+    },
+    NewCharacterPart {
+        cut_id: Uuid,
+        cg_id: Uuid,
+    },
+    ExistingCharacterPart {
+        cut_id: Uuid,
+        cg_id: Uuid,
+        graphic_index: usize,
+    },
 }
 
 #[derive(Clone)]

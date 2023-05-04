@@ -63,6 +63,7 @@ impl CutEditor {
                         if event.button == Some(MouseButton::Right) {
                             namui::event::send(InternalEvent::MouseRightButtonDown {
                                 global_xy: event.global_xy,
+                                cut_id,
                             })
                         }
                     });

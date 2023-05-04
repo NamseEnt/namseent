@@ -1,6 +1,5 @@
 use super::{render::resizer, *};
 use crate::pages::sequence_edit_page::loaded::components::character_editor;
-use std::iter::once;
 
 impl WysiwygEditor {
     pub fn update(&mut self, event: &namui::Event) {
@@ -208,21 +207,32 @@ impl WysiwygEditor {
                         })]
                         .to_vec()
                     };
-
-                    let edit_character_button =
-                        context_menu::Item::new_button("Edit character", move || {
-                            namui::event::send(character_editor::Event::OpenCharacterEditor {
-                                target: character_editor::EditTarget::ExistingCharacterPart,
-                            });
-                        });
+                    let edit_character_button_group = match graphic {
+                        ScreenGraphic::Cg(cg) => {
+                            let cg_id = cg.id;
+                            Some(context_menu::Item::new_button(
+                                "Edit character",
+                                move || {
+                                    namui::event::send(character_editor::Event::OpenCharacterEditor {
+                                        target: character_editor::EditTarget::ExistingCharacterPart {
+                                            cut_id,
+                                            cg_id,
+                                            graphic_index,
+                                        },
+                                    });
+                                },
+                            ))
+                        },
+                        ScreenGraphic::Image(_) => None,
+                    }
+                    .into_iter();
 
                     self.context_menu = Some(context_menu::ContextMenu::new(
                         global_xy,
                         fit_items
                             .into_iter()
                             .chain(spread_as_background)
-                            .chain(once(context_menu::Item::Divider))
-                            .chain(once(edit_character_button)),
+                            .chain(edit_character_button_group),
                     ));
                 }
             })

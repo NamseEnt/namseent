@@ -53,7 +53,7 @@ pub enum Event {
 
 enum InternalEvent {
     EscapeKeyDown,
-    MouseRightButtonDown { global_xy: Xy<Px> },
+    MouseRightButtonDown { global_xy: Xy<Px>, cut_id: Uuid },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

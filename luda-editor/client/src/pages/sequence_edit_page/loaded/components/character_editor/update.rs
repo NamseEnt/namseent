@@ -14,7 +14,17 @@ impl CharacterEditor {
                     self.tooltip = None;
                 }
                 InternalEvent::CgChangeButtonClicked => {
-                    self.edit_target = EditTarget::ExistingCharacter
+                    if let EditTarget::ExistingCharacterPart {
+                        cut_id,
+                        graphic_index,
+                        ..
+                    } = self.edit_target
+                    {
+                        self.edit_target = EditTarget::ExistingCharacter {
+                            cut_id,
+                            graphic_index,
+                        };
+                    }
                 }
                 InternalEvent::CgFileLoadStateChanged(cg_file_load_state) => {
                     self.cg_file_load_state = cg_file_load_state.clone();

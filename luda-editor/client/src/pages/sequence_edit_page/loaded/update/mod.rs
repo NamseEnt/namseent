@@ -28,6 +28,12 @@ impl LoadedSequenceEditorPage {
                             .push(ScreenGraphic::Image(ScreenImage::new(image_id)))
                     });
                 }
+                &InternalEvent::CgUploaded { cut_id, cg_id } => {
+                    self.character_editor = Some(character_editor::CharacterEditor::new(
+                        self.project_id(),
+                        character_editor::EditTarget::NewCharacterPart { cut_id, cg_id },
+                    ))
+                }
             })
             .is::<crate::components::sync::Event>(|event| match event {
                 crate::components::sync::Event::UpdateReceived { patch, id } => {
@@ -145,16 +151,16 @@ impl LoadedSequenceEditorPage {
                 cut_editor::Event::AddNewCg {
                     psd_name,
                     psd_bytes,
-                    cut_id: _cut_id,
+                    cut_id,
                 } => {
                     let project_id = self.project_id();
                     let psd_bytes = psd_bytes.clone();
                     let psd_name = psd_name.clone();
+                    let cut_id = cut_id.clone();
                     spawn_local(async move {
                         match create_cg(project_id, psd_name, psd_bytes).await {
-                            Ok(_) => {
-                                // TODO: update cut
-                                namui::log!("create_cg success")
+                            Ok(cg_id) => {
+                                namui::event::send(InternalEvent::CgUploaded { cut_id, cg_id })
                             }
                             Err(error) => {
                                 namui::event::send(InternalEvent::Error(format!(
