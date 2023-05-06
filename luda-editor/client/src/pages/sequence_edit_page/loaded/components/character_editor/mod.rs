@@ -2,7 +2,7 @@ mod render;
 mod update;
 use namui::prelude::*;
 use namui_prebuilt::scroll_view::ScrollView;
-use rpc::data::{CgFile, ScreenGraphic};
+use rpc::data::{CgFile, Cut, ScreenGraphic};
 
 pub struct CharacterEditor {
     tooltip: Option<Tooltip>,
@@ -12,9 +12,10 @@ pub struct CharacterEditor {
 }
 
 #[derive(Clone, Copy)]
-pub struct Props {
+pub struct Props<'a> {
     pub wh: Wh<Px>,
     pub project_id: Uuid,
+    pub cut: Option<&'a Cut>,
 }
 
 pub enum Event {

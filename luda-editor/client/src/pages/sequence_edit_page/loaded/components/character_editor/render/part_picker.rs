@@ -5,7 +5,7 @@ use namui_prebuilt::{
     typography::{center_text, center_text_full_height},
     *,
 };
-use rpc::data::{CgFile, CgPart, CgPartVariant};
+use rpc::data::{CgFile, CgPart, CgPartVariant, ScreenCg};
 use std::iter::once;
 use tooltip::*;
 
@@ -19,6 +19,9 @@ impl CharacterEditor {
         wh: Wh<Px>,
         cg_file: &CgFile,
         project_id: Uuid,
+        cut_id: Uuid,
+        graphic_index: usize,
+        screen_cg: &ScreenCg,
     ) -> namui::RenderingTree {
         table::padding(OUTER_PADDING, |wh| {
             table::vertical([
@@ -29,7 +32,14 @@ impl CharacterEditor {
                         xy: Xy::zero(),
                         height: wh.height,
                         scroll_bar_width: 4.px(),
-                        content: render_cg_part_group_list(wh, cg_file, project_id),
+                        content: render_cg_part_group_list(
+                            wh,
+                            cg_file,
+                            project_id,
+                            cut_id,
+                            graphic_index,
+                            screen_cg,
+                        ),
                     })
                 }),
             ])(wh)
@@ -52,32 +62,65 @@ fn render_cg_select_button(wh: Wh<Px>) -> RenderingTree {
     })(wh)
 }
 
-fn render_cg_part_group_list(wh: Wh<Px>, cg_file: &CgFile, project_id: Uuid) -> RenderingTree {
+fn render_cg_part_group_list(
+    wh: Wh<Px>,
+    cg_file: &CgFile,
+    project_id: Uuid,
+    cut_id: Uuid,
+    graphic_index: usize,
+    screen_cg: &ScreenCg,
+) -> RenderingTree {
     let cg_id = cg_file.id;
-    table::vertical(
-        cg_file
-            .parts
-            .iter()
-            .flat_map(|cg_part| render_cg_part_group(wh.width, cg_part, project_id, cg_id)),
-    )(wh)
+    table::vertical(cg_file.parts.iter().flat_map(|cg_part| {
+        render_cg_part_group(
+            wh.width,
+            cg_part,
+            project_id,
+            cg_id,
+            cut_id,
+            graphic_index,
+            screen_cg,
+        )
+    }))(wh)
 }
 
-fn render_cg_part_group(
+fn render_cg_part_group<'a>(
     width: Px,
-    cg_part: &CgPart,
+    cg_part: &'a CgPart,
     project_id: Uuid,
     cg_id: Uuid,
-) -> Vec<TableCell> {
+    cut_id: Uuid,
+    graphic_index: usize,
+    screen_cg: &'a ScreenCg,
+) -> Vec<TableCell<'a>> {
     const THUMBNAIL_WH: Wh<Px> = Wh {
         width: px(96.0),
         height: px(96.0),
     };
+    let no_selection = !screen_cg
+        .part_variants
+        .iter()
+        .any(|(selected_variant_id, _)| {
+            cg_part
+                .variants
+                .iter()
+                .any(|variant| variant.id == *selected_variant_id)
+        });
 
-    fn render_thumbnail(
-        cg_part_variant: &CgPartVariant,
+    fn render_thumbnail<'a>(
+        cg_part: &'a CgPart,
+        cg_part_variant: &'a CgPartVariant,
         project_id: Uuid,
         cg_id: Uuid,
-    ) -> TableCell {
+        cut_id: Uuid,
+        graphic_index: usize,
+        screen_cg: &'a ScreenCg,
+    ) -> TableCell<'a> {
+        let selected = screen_cg
+            .part_variants
+            .iter()
+            .any(|(cg_part_variant_id, _)| *cg_part_variant_id == cg_part_variant.id);
+
         table::fixed(THUMBNAIL_WH.width, move |wh| {
             table::padding(INNER_PADDING, |wh| {
                 render([
@@ -94,7 +137,62 @@ fn render_cg_part_group(
                                 },
                             })
                         }),
-                    simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT),
+                    simple_rect(
+                        wh,
+                        match selected {
+                            true => color::STROKE_SELECTED,
+                            false => color::STROKE_NORMAL,
+                        },
+                        1.px(),
+                        Color::TRANSPARENT,
+                    )
+                    .attach_event(|builder| {
+                        let selection_type = cg_part.selection_type;
+                        let cg_part_variant = cg_part_variant.clone();
+                        let cg_part_variant_ids = cg_part
+                            .variants
+                            .iter()
+                            .map(|variant| variant.id)
+                            .collect::<Vec<_>>();
+                        builder.on_mouse_down_in(move |_| {
+                            namui::event::send(Event::UpdateCutGraphics {
+                                cut_id,
+                                callback: {
+                                    let cg_part_variant_ids = cg_part_variant_ids.clone();
+                                    Box::new(move |graphics| {
+                                        if let ScreenGraphic::Cg(cg) = &mut graphics[graphic_index]
+                                        {
+                                            match (selected, selection_type) {
+                                                (true, _) => {
+                                                    cg.part_variants.retain(|(variant_id, _)| {
+                                                        variant_id != &cg_part_variant.id
+                                                    })
+                                                }
+                                                (false, rpc::data::PartSelectionType::Single) => {
+                                                    cg.part_variants.retain(|(variant_id, _)| {
+                                                        !cg_part_variant_ids.contains(variant_id)
+                                                    });
+                                                    cg.part_variants.push((
+                                                        cg_part_variant.id,
+                                                        cg_part_variant.rect,
+                                                    ));
+                                                }
+                                                (false, rpc::data::PartSelectionType::Multi) => {
+                                                    cg.part_variants.retain(|(variant_id, _)| {
+                                                        variant_id != &cg_part_variant.id
+                                                    });
+                                                    cg.part_variants.push((
+                                                        cg_part_variant.id,
+                                                        cg_part_variant.rect,
+                                                    ));
+                                                }
+                                            }
+                                        };
+                                    })
+                                },
+                            })
+                        });
+                    }),
                 ])
                 .with_tooltip(cg_part_variant.name.clone())
             })(wh)
@@ -110,12 +208,43 @@ fn render_cg_part_group(
         })(wh)
     });
 
-    let no_selection_thumbnail = table::fixed(THUMBNAIL_WH.width, |wh| {
+    let no_selection_thumbnail = table::fixed(THUMBNAIL_WH.width, move |wh| {
         table::padding(INNER_PADDING, |wh| {
             render([
-                center_text(wh, "No Selection", color::STROKE_NORMAL, 12.int_px()),
+                center_text(
+                    wh,
+                    "No Selection",
+                    match no_selection {
+                        true => color::STROKE_SELECTED,
+                        false => color::STROKE_NORMAL,
+                    },
+                    12.int_px(),
+                ),
                 simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
-                    .with_mouse_cursor(MouseCursor::Pointer),
+                    .with_mouse_cursor(MouseCursor::Pointer)
+                    .attach_event(move |builder| {
+                        let cg_part_variant_ids = cg_part
+                            .variants
+                            .iter()
+                            .map(|variant| variant.id)
+                            .collect::<Vec<_>>();
+                        builder.on_mouse_down_in(move |_| {
+                            namui::event::send(Event::UpdateCutGraphics {
+                                cut_id,
+                                callback: {
+                                    let cg_part_variant_ids = cg_part_variant_ids.clone();
+                                    Box::new(move |graphics| {
+                                        if let ScreenGraphic::Cg(cg) = &mut graphics[graphic_index]
+                                        {
+                                            cg.part_variants.retain(|(variant_id, _)| {
+                                                !cg_part_variant_ids.contains(variant_id)
+                                            });
+                                        };
+                                    })
+                                },
+                            });
+                        });
+                    }),
             ])
         })(wh)
     });
@@ -127,16 +256,33 @@ fn render_cg_part_group(
         table::horizontal(
             chunk_remainder
                 .iter()
-                .map(|variant| render_thumbnail(variant, project_id, cg_id))
+                .map(|variant| {
+                    render_thumbnail(
+                        cg_part,
+                        variant,
+                        project_id,
+                        cg_id,
+                        cut_id,
+                        graphic_index,
+                        screen_cg,
+                    )
+                })
                 .chain(once(no_selection_thumbnail)),
         )(wh)
     });
     let variant_rows = chunks.map(|row| {
         table::fixed(THUMBNAIL_WH.height, move |wh| {
-            table::horizontal(
-                row.iter()
-                    .map(|variant| render_thumbnail(variant, project_id, cg_id)),
-            )(wh)
+            table::horizontal(row.iter().map(|variant| {
+                render_thumbnail(
+                    cg_part,
+                    variant,
+                    project_id,
+                    cg_id,
+                    cut_id,
+                    graphic_index,
+                    screen_cg,
+                )
+            }))(wh)
         })
     });
 
