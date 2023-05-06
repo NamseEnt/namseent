@@ -138,8 +138,10 @@ impl WysiwygEditor {
                         ScreenGraphic::Cg(cg) => {
                             render(cg.part_variants.iter().filter_map(|(variant_id, rect)| {
                                 let rect = Rect::Xywh {
-                                    x: graphic_rendering_rect.x() * rect.x(),
-                                    y: graphic_rendering_rect.y() * rect.y(),
+                                    x: graphic_rendering_rect.x()
+                                        + graphic_rendering_rect.width() * rect.x(),
+                                    y: graphic_rendering_rect.y()
+                                        + graphic_rendering_rect.height() * rect.y(),
                                     width: graphic_rendering_rect.width() * rect.width(),
                                     height: graphic_rendering_rect.height() * rect.height(),
                                 };

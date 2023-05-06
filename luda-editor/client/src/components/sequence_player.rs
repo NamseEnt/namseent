@@ -456,8 +456,8 @@ pub fn render_graphic(
             Some(render(screen_cg.part_variants.iter().filter_map(
                 |(variant_id, rect)| {
                     let rect = Rect::Xywh {
-                        x: outer_rect.x() * rect.x(),
-                        y: outer_rect.y() * rect.y(),
+                        x: outer_rect.x() + outer_rect.width() * rect.x(),
+                        y: outer_rect.y() + outer_rect.height() * rect.y(),
                         width: outer_rect.width() * rect.width(),
                         height: outer_rect.height() * rect.height(),
                     };
