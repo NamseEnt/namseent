@@ -2,7 +2,7 @@ mod render;
 mod update;
 use namui::prelude::*;
 use namui_prebuilt::scroll_view::ScrollView;
-use rpc::data::CgFile;
+use rpc::data::{CgFile, ScreenGraphic};
 
 pub struct CharacterEditor {
     tooltip: Option<Tooltip>,
@@ -19,14 +19,31 @@ pub struct Props {
 
 pub enum Event {
     MouseDownOutsideCharacterEditor,
-    OpenCharacterEditor { target: EditTarget },
+    OpenCharacterEditor {
+        target: EditTarget,
+    },
+    UpdateCutGraphics {
+        cut_id: Uuid,
+        callback: Box<dyn Fn(&mut Vec<ScreenGraphic>) -> () + 'static + Send + Sync>,
+    },
 }
 
 enum InternalEvent {
-    OpenTooltip { global_xy: Xy<Px>, text: String },
+    OpenTooltip {
+        global_xy: Xy<Px>,
+        text: String,
+    },
     CloseTooltip,
     CgChangeButtonClicked,
     CgFileLoadStateChanged(CgFileLoadState),
+    CgThumbnailClicked {
+        cg_id: Uuid,
+    },
+    CgAddedToCut {
+        cut_id: Uuid,
+        cg_id: Uuid,
+        graphic_index: usize,
+    },
 }
 
 impl CharacterEditor {
@@ -79,10 +96,6 @@ pub enum EditTarget {
     ExistingCharacter {
         cut_id: Uuid,
         graphic_index: usize,
-    },
-    NewCharacterPart {
-        cut_id: Uuid,
-        cg_id: Uuid,
     },
     ExistingCharacterPart {
         cut_id: Uuid,

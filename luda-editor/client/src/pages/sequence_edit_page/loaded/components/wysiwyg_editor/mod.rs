@@ -30,7 +30,7 @@ enum Dragging {
 }
 
 pub enum Event {
-    UpdateCutImages {
+    UpdateCutGraphics {
         cut_id: Uuid,
         callback: Box<dyn Fn(&mut Vec<ScreenGraphic>) -> () + 'static + Send + Sync>,
     },

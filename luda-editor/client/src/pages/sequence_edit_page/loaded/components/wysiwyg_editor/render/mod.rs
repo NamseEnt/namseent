@@ -236,7 +236,7 @@ impl WysiwygEditor {
                 },
                 on_resize: {
                     Box::new(move |circumscribed| {
-                        namui::event::send(Event::UpdateCutImages {
+                        namui::event::send(Event::UpdateCutGraphics {
                             cut_id,
                             callback: Box::new(move |graphics| {
                                 match &mut graphics[graphic_index] {

@@ -37,7 +37,17 @@ impl CharacterEditor {
                         ),
                         simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                             .with_mouse_cursor(MouseCursor::Pointer)
-                            .with_tooltip(cg_file.name.clone()),
+                            .with_tooltip(cg_file.name.clone())
+                            .attach_event({
+                                let cg_id = cg_file.id;
+                                move |builder| {
+                                    builder.on_mouse_down_in(move |_| {
+                                        namui::event::send(InternalEvent::CgThumbnailClicked {
+                                            cg_id,
+                                        })
+                                    });
+                                }
+                            }),
                     ])
                 })(wh)
             })

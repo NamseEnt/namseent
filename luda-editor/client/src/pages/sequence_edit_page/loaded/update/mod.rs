@@ -29,9 +29,25 @@ impl LoadedSequenceEditorPage {
                     });
                 }
                 &InternalEvent::CgUploaded { cut_id, cg_id } => {
+                    let new_cg_graphic_index = self
+                        .sequence
+                        .cuts
+                        .iter()
+                        .find(|cut| cut.id() == cut_id)
+                        .unwrap()
+                        .screen_graphics
+                        .len();
+                    self.update_cut(cut_id, |cut| {
+                        cut.screen_graphics
+                            .push(ScreenGraphic::Cg(ScreenCg::new(cut_id, vec![])))
+                    });
                     self.character_editor = Some(character_editor::CharacterEditor::new(
                         self.project_id(),
-                        character_editor::EditTarget::NewCharacterPart { cut_id, cg_id },
+                        character_editor::EditTarget::ExistingCharacterPart {
+                            cut_id,
+                            cg_id,
+                            graphic_index: new_cg_graphic_index,
+                        },
                     ))
                 }
             })
@@ -173,7 +189,7 @@ impl LoadedSequenceEditorPage {
                 }
             })
             .is::<wysiwyg_editor::Event>(|event| match event {
-                &wysiwyg_editor::Event::UpdateCutImages {
+                &wysiwyg_editor::Event::UpdateCutGraphics {
                     cut_id,
                     ref callback,
                 } => {
@@ -196,6 +212,12 @@ impl LoadedSequenceEditorPage {
                         self.project_id(),
                         *target,
                     ));
+                }
+                &character_editor::Event::UpdateCutGraphics {
+                    cut_id,
+                    ref callback,
+                } => {
+                    self.update_cut(cut_id, |cut| callback(&mut cut.screen_graphics));
                 }
             });
 

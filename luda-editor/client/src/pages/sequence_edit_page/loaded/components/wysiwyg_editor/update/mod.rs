@@ -49,7 +49,7 @@ impl WysiwygEditor {
                         context.end_global_xy = global_xy;
                         if let Some(index) = self.editing_image_index {
                             let context = context.clone();
-                            namui::event::send(Event::UpdateCutImages {
+                            namui::event::send(Event::UpdateCutGraphics {
                                 cut_id,
                                 callback: Box::new({
                                     move |graphics| {
@@ -92,7 +92,7 @@ impl WysiwygEditor {
 
                     let fit_items = [
                         context_menu::Item::new_button("Fit - contain", move || {
-                            namui::event::send(Event::UpdateCutImages {
+                            namui::event::send(Event::UpdateCutGraphics {
                                 cut_id,
                                 callback: Box::new(move |graphics| {
                                     let graphic = &mut graphics[graphic_index];
@@ -124,7 +124,7 @@ impl WysiwygEditor {
                             });
                         }),
                         context_menu::Item::new_button("Fit - cover", move || {
-                            namui::event::send(Event::UpdateCutImages {
+                            namui::event::send(Event::UpdateCutGraphics {
                                 cut_id,
                                 callback: Box::new({
                                     move |graphics| {

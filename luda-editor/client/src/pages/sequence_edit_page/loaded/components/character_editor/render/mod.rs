@@ -35,8 +35,7 @@ impl CharacterEditor {
                 EditTarget::NewCharacter { .. } | EditTarget::ExistingCharacter { .. } => {
                     self.render_cg_picker(props.wh, &cg_file_list, props.project_id)
                 }
-                EditTarget::NewCharacterPart { cg_id, .. }
-                | EditTarget::ExistingCharacterPart { cg_id, .. } => {
+                EditTarget::ExistingCharacterPart { cg_id, .. } => {
                     let selected_cg_file = cg_file_list.iter().find(|cg_file| cg_file.id == cg_id);
                     match selected_cg_file {
                         Some(selected_cg_file) => {
