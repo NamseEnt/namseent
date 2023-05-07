@@ -70,10 +70,7 @@ impl WysiwygEditor {
                     };
                     let namui_image = namui::image::try_load_url(&url)?;
                     let graphic_size = namui_image.size();
-                    let circumscribed = match &graphic {
-                        ScreenGraphic::Image(image) => image.circumscribed,
-                        ScreenGraphic::Cg(cg) => cg.circumscribed,
-                    };
+                    let circumscribed = graphic.circumscribed();
 
                     let screen_radius = props.wh.length() / 2;
                     let graphic_radius_px = graphic_size.length() / 2;
@@ -241,12 +238,7 @@ impl WysiwygEditor {
                         namui::event::send(Event::UpdateCutGraphics {
                             cut_id,
                             callback: Box::new(move |graphics| {
-                                match &mut graphics[graphic_index] {
-                                    ScreenGraphic::Image(image) => {
-                                        image.circumscribed = circumscribed
-                                    }
-                                    ScreenGraphic::Cg(cg) => cg.circumscribed = circumscribed,
-                                };
+                                graphics[graphic_index].set_circumscribed(circumscribed);
                             }),
                         });
                     })
@@ -255,10 +247,7 @@ impl WysiwygEditor {
                 image_size: calculate_graphic_wh_on_screen(
                     original_graphic_size,
                     props.wh,
-                    match graphic {
-                        ScreenGraphic::Image(image) => image.circumscribed,
-                        ScreenGraphic::Cg(cg) => cg.circumscribed,
-                    },
+                    graphic.circumscribed(),
                 ),
             }),
             // self.render_cropper(props),

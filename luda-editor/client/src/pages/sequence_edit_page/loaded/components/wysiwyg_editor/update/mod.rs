@@ -54,20 +54,10 @@ impl WysiwygEditor {
                                 callback: Box::new({
                                     move |graphics| {
                                         let graphic = &mut graphics[index];
-                                        let circumscribed = match graphic {
-                                            ScreenGraphic::Image(image) => image.circumscribed,
-                                            ScreenGraphic::Cg(cg) => cg.circumscribed,
-                                        };
+                                        let circumscribed = graphic.circumscribed();
                                         let moved_circumscribed =
                                             context.move_circumscribed(circumscribed);
-                                        match graphic {
-                                            ScreenGraphic::Image(image) => {
-                                                image.circumscribed = moved_circumscribed
-                                            }
-                                            ScreenGraphic::Cg(cg) => {
-                                                cg.circumscribed = moved_circumscribed
-                                            }
-                                        }
+                                        graphic.set_circumscribed(moved_circumscribed);
                                     }
                                 }),
                             });
@@ -109,17 +99,9 @@ impl WysiwygEditor {
                                         Xy::new(width, height).length()
                                     };
 
-                                    match graphic {
-                                        ScreenGraphic::Image(image) => {
-                                            image.circumscribed.center_xy =
-                                                Xy::single(50.percent());
-                                            image.circumscribed.radius = Percent::from(radius);
-                                        }
-                                        ScreenGraphic::Cg(cg) => {
-                                            cg.circumscribed.center_xy = Xy::single(50.percent());
-                                            cg.circumscribed.radius = Percent::from(radius);
-                                        }
-                                    }
+                                    let mut circumscribed = graphic.circumscribed_mut();
+                                    circumscribed.center_xy = Xy::single(50.percent());
+                                    circumscribed.radius = Percent::from(radius);
                                 }),
                             });
                         }),
@@ -142,18 +124,9 @@ impl WysiwygEditor {
                                             Xy::new(width, height).length()
                                         };
 
-                                        match graphic {
-                                            ScreenGraphic::Image(image) => {
-                                                image.circumscribed.center_xy =
-                                                    Xy::single(50.percent());
-                                                image.circumscribed.radius = Percent::from(radius);
-                                            }
-                                            ScreenGraphic::Cg(cg) => {
-                                                cg.circumscribed.center_xy =
-                                                    Xy::single(50.percent());
-                                                cg.circumscribed.radius = Percent::from(radius);
-                                            }
-                                        }
+                                        let mut circumscribed = graphic.circumscribed_mut();
+                                        circumscribed.center_xy = Xy::single(50.percent());
+                                        circumscribed.radius = Percent::from(radius);
                                     }
                                 }),
                             });

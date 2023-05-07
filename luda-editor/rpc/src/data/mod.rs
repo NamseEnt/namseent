@@ -92,6 +92,26 @@ pub enum ScreenGraphic {
     Image(ScreenImage),
     Cg(ScreenCg),
 }
+impl ScreenGraphic {
+    pub fn circumscribed_mut(&mut self) -> &mut Circumscribed<Percent> {
+        match self {
+            Self::Image(screen_image) => &mut screen_image.circumscribed,
+            Self::Cg(screen_cg) => &mut screen_cg.circumscribed,
+        }
+    }
+    pub fn circumscribed(&self) -> Circumscribed<Percent> {
+        match self {
+            Self::Image(screen_image) => screen_image.circumscribed,
+            Self::Cg(screen_cg) => screen_cg.circumscribed,
+        }
+    }
+    pub fn set_circumscribed(&mut self, circumscribed: Circumscribed<Percent>) {
+        match self {
+            Self::Image(screen_image) => screen_image.circumscribed = circumscribed,
+            Self::Cg(screen_cg) => screen_cg.circumscribed = circumscribed,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct ScreenImage {
