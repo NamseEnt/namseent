@@ -37,7 +37,7 @@ impl CharacterEditor {
                             callback: Box::new(move |graphics| {
                                 let graphic_index = graphics.len();
                                 graphics.push(ScreenGraphic::Cg(ScreenCg::new(cg_id, vec![])));
-                                namui::event::send(InternalEvent::CgAddedToCut {
+                                namui::event::send(InternalEvent::FocusCg {
                                     cut_id,
                                     cg_id,
                                     graphic_index,
@@ -57,7 +57,7 @@ impl CharacterEditor {
                     }
                     _ => {}
                 },
-                &InternalEvent::CgAddedToCut {
+                &InternalEvent::FocusCg {
                     cut_id,
                     cg_id,
                     graphic_index,

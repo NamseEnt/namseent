@@ -40,7 +40,7 @@ enum InternalEvent {
     CgThumbnailClicked {
         cg_id: Uuid,
     },
-    CgAddedToCut {
+    FocusCg {
         cut_id: Uuid,
         cg_id: Uuid,
         graphic_index: usize,
