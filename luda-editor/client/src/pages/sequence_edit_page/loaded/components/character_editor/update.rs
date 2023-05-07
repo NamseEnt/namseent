@@ -49,11 +49,20 @@ impl CharacterEditor {
                         cut_id,
                         graphic_index,
                     } => {
-                        self.edit_target = EditTarget::ExistingCharacterPart {
+                        namui::event::send(Event::UpdateCutGraphics {
                             cut_id,
-                            graphic_index,
-                            cg_id,
-                        };
+                            callback: Box::new(move |graphics| {
+                                if let ScreenGraphic::Cg(cg) = &mut graphics[graphic_index] {
+                                    cg.id = cg_id;
+                                    cg.part_variants = vec![];
+                                    namui::event::send(InternalEvent::FocusCg {
+                                        cut_id,
+                                        cg_id,
+                                        graphic_index,
+                                    })
+                                }
+                            }),
+                        });
                     }
                     _ => {}
                 },
