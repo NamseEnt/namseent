@@ -5,7 +5,7 @@ use crate::components::context_menu::ContextMenu;
 
 use super::*;
 use namui::prelude::*;
-use rpc::data::Cut;
+use rpc::data::{Cut, ScreenCg};
 
 pub struct CutEditor {
     selected_target: Option<ClickTarget>,
@@ -48,6 +48,10 @@ pub enum Event {
         psd_bytes: Vec<u8>,
         psd_name: String,
         cut_id: Uuid,
+    },
+    AddCg {
+        cut_id: Uuid,
+        cg: ScreenCg,
     },
 }
 

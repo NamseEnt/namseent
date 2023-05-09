@@ -1,4 +1,5 @@
 use super::*;
+use rpc::data::ScreenCg;
 
 impl CutEditor {
     pub fn background_with_event(&self, props: &Props, cut: &Cut) -> namui::RenderingTree {
@@ -30,11 +31,31 @@ impl CutEditor {
                     .on_key_down(move |event| {
                         if event.code == Code::KeyV && namui::keyboard::ctrl_press() {
                             spawn_local(async move {
-                                let Ok(buffers) = clipboard::read_image_buffers().await else {
-                                    return
-                                };
-                                for png_bytes in buffers {
-                                    namui::event::send(Event::AddNewImage { png_bytes, cut_id })
+                                if let Ok(buffers) = clipboard::read_image_buffers().await {
+                                    for png_bytes in buffers {
+                                        namui::event::send(Event::AddNewImage { png_bytes, cut_id })
+                                    }
+                                }
+
+                                if let Ok(items) = clipboard::read().await {
+                                    for item in items {
+                                        if item.types().iter().any(|type_| {
+                                            type_ == "web application/luda-editor-cg+json"
+                                        }) {
+                                            if let Ok(cg) = item
+                                                .get_type("web application/luda-editor-cg+json")
+                                                .await
+                                                .map(|graphic_bytes| {
+                                                    serde_json::from_slice::<ScreenCg>(
+                                                        &graphic_bytes,
+                                                    )
+                                                    .unwrap()
+                                                })
+                                            {
+                                                namui::event::send(Event::AddCg { cut_id, cg })
+                                            }
+                                        }
+                                    }
                                 }
                             });
                         } else if event.code == Code::ArrowUp

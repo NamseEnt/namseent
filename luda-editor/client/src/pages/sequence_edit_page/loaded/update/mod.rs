@@ -187,6 +187,12 @@ impl LoadedSequenceEditorPage {
                         };
                     });
                 }
+                cut_editor::Event::AddCg { cut_id, cg } => {
+                    let cg = cg.clone();
+                    self.update_cut(*cut_id, |cut| {
+                        cut.screen_graphics.push(ScreenGraphic::Cg(cg))
+                    });
+                }
             })
             .is::<wysiwyg_editor::Event>(|event| match event {
                 &wysiwyg_editor::Event::UpdateCutGraphics {

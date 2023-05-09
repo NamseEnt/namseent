@@ -163,47 +163,75 @@ impl WysiwygEditor {
 
                     Some(render([
                         graphic_rendering_tree.attach_event(move |builder| {
-                            let graphic = graphic.clone();
-                            builder.on_mouse_down_in(move |event| {
+                            builder.on_mouse_down_in({
                                 let graphic = graphic.clone();
-                                event.stop_propagation();
-                                namui::event::send(InternalEvent::SelectImage {
-                                    index: graphic_index,
-                                });
+                                move |event| {
+                                    let graphic = graphic.clone();
+                                    event.stop_propagation();
+                                    namui::event::send(InternalEvent::SelectImage {
+                                        index: graphic_index,
+                                    });
 
-                                if event.button == Some(MouseButton::Right) {
-                                    namui::event::send(InternalEvent::OpenContextMenu {
-                                        global_xy: event.global_xy,
-                                        cut_id,
-                                        graphic_index,
-                                        graphic_wh: graphic_size,
-                                        graphic,
-                                    })
+                                    if event.button == Some(MouseButton::Right) {
+                                        namui::event::send(InternalEvent::OpenContextMenu {
+                                            global_xy: event.global_xy,
+                                            cut_id,
+                                            graphic_index,
+                                            graphic_wh: graphic_size,
+                                            graphic,
+                                        })
+                                    }
                                 }
                             });
 
                             if is_editing_graphic {
                                 let namui_image = namui_image.clone();
+                                let graphic = graphic.clone();
                                 builder.on_key_down(move |event| {
                                     namui::log!("key down: {:?}", event.code);
+                                    let graphic = graphic.clone();
                                     if event.code != Code::KeyC || !namui::keyboard::ctrl_press() {
                                         return;
                                     }
 
-                                    namui::log!("good");
-                                    let namui_image = namui_image.clone();
-                                    spawn_local(async move {
-                                        let result =
-                                            namui::clipboard::write_image(namui_image).await;
-                                        match result {
-                                            Ok(_) => {
-                                                namui::log!("Image copied to clipboard");
-                                            }
-                                            Err(_) => {
-                                                namui::log!("Failed to copy image to clipboard");
-                                            }
+                                    match graphic {
+                                        ScreenGraphic::Image(_) => {
+                                            let namui_image = namui_image.clone();
+                                            spawn_local(async move {
+                                                let result =
+                                                    namui::clipboard::write_image(namui_image)
+                                                        .await;
+                                                match result {
+                                                    Ok(_) => {
+                                                        namui::log!("Image copied to clipboard");
+                                                    }
+                                                    Err(_) => {
+                                                        namui::log!(
+                                                            "Failed to copy image to clipboard"
+                                                        );
+                                                    }
+                                                }
+                                            })
                                         }
-                                    })
+                                        ScreenGraphic::Cg(cg) => {
+                                            let cg = cg.clone();
+                                            spawn_local(async move {
+                                                match clipboard::write([(
+                                                    "web application/luda-editor-cg+json",
+                                                    serde_json::to_string(&cg).unwrap(),
+                                                )])
+                                                .await
+                                                {
+                                                    Ok(_) => namui::log!("Cg copied to clipboard"),
+                                                    Err(_) => {
+                                                        namui::log!(
+                                                            "Failed to copy cg to clipboard"
+                                                        )
+                                                    }
+                                                };
+                                            })
+                                        }
+                                    }
                                 });
                             }
                         }),
