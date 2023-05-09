@@ -2,20 +2,113 @@ use crate::Image;
 use js_sys::{Array, ArrayBuffer, Object, Promise, Reflect, Uint8Array};
 use std::sync::Arc;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
-use web_sys::Blob;
+use web_sys::{Blob, BlobPropertyBag};
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "navigator", "clipboard"])]
     fn writeText(text: &str) -> Promise;
-    #[wasm_bindgen(js_namespace = ["window", "navigator", "clipboard"])]
-    fn write(items: &Array) -> Promise;
-    #[wasm_bindgen(js_namespace = ["window", "navigator", "clipboard"])]
-    fn read() -> Promise;
+    #[wasm_bindgen(js_namespace = ["window", "navigator", "clipboard"], js_name = "write")]
+    fn write_(items: &Array) -> Promise;
+    #[wasm_bindgen(js_namespace = ["window", "navigator", "clipboard"], js_name = "read")]
+    fn read_() -> Promise;
 
-    type ClipboardItem;
+    pub type ClipboardItem;
     #[wasm_bindgen(constructor)]
     fn new(data: Object) -> ClipboardItem;
+
+    #[wasm_bindgen(method, structural, js_name = "getType")]
+    fn get_type_(this: &ClipboardItem, type_: &str) -> Promise;
+}
+
+pub async fn write<Data, Mime, Bytes>(data: Data) -> Result<(), ()>
+where
+    Data: IntoIterator<Item = (Mime, Bytes)>,
+    Mime: AsRef<str>,
+    Bytes: AsRef<[u8]>,
+{
+    let clipboard_item_data = js_sys::Object::new();
+    for (mime, bytes) in data {
+        let uint8_array = {
+            let bytes: &[u8] = bytes.as_ref();
+            let uint8_array = Uint8Array::new_with_length(bytes.len() as u32);
+            uint8_array.copy_from(bytes);
+            uint8_array
+        };
+        let uint8_array_sequence = {
+            let array = js_sys::Array::new();
+            array.push(&uint8_array.into());
+            array
+        };
+        let blob = {
+            let mut option = BlobPropertyBag::new();
+            option.type_(mime.as_ref());
+            Blob::new_with_u8_array_sequence_and_options(&uint8_array_sequence.into(), &option)
+                .unwrap()
+        };
+        Reflect::set(&clipboard_item_data, &mime.as_ref().into(), &blob.into()).unwrap();
+    }
+
+    let clipboard_item = ClipboardItem::new(clipboard_item_data);
+    let clipboard_items = {
+        let array = js_sys::Array::new();
+        array.push(&clipboard_item.into());
+        array
+    };
+    let promise = write_(&clipboard_items);
+    let result = wasm_bindgen_futures::JsFuture::from(promise).await;
+    match result {
+        Ok(_) => Ok(()),
+        Err(error) => {
+            crate::log!("error: failed to write to clipboard {:#?}", error);
+            Err(())
+        }
+    }
+}
+
+pub async fn read() -> Result<Vec<ClipboardItem>, ()> {
+    let promise = read_();
+    let items: Array = wasm_bindgen_futures::JsFuture::from(promise)
+        .await
+        .map_err(|_| ())?
+        .into();
+    Ok(items
+        .iter()
+        .map(|item| item.dyn_into::<ClipboardItem>().unwrap())
+        .collect())
+}
+
+impl ClipboardItem {
+    pub fn types(&self) -> Vec<String> {
+        let types: Array = Reflect::get(&self, &"types".into()).unwrap().into();
+        types
+            .iter()
+            .map(|type_| type_.as_string().unwrap())
+            .collect()
+    }
+
+    pub async fn get_type<Mime>(&self, mime: Mime) -> Result<Vec<u8>, ()>
+    where
+        Mime: AsRef<str>,
+    {
+        let blob: Blob = {
+            let promise = self.get_type_(mime.as_ref());
+            wasm_bindgen_futures::JsFuture::from(promise)
+                .await
+                .map_err(|_| ())?
+                .into()
+        };
+        let array_buffer = {
+            let promise = blob.array_buffer();
+            let array_buffer: ArrayBuffer = wasm_bindgen_futures::JsFuture::from(promise)
+                .await
+                .map_err(|_| ())?
+                .into();
+            Uint8Array::new(&array_buffer)
+        };
+
+        Ok(array_buffer.to_vec())
+    }
 }
 
 pub async fn write_text(text: impl AsRef<str>) -> Result<(), ()> {
@@ -42,7 +135,7 @@ pub async fn write_image(image: Arc<Image>) -> Result<(), ()> {
         array.push(&clipboard_item.into());
         array
     };
-    let promise = write(&clipboard_items);
+    let promise = write_(&clipboard_items);
     let result = wasm_bindgen_futures::JsFuture::from(promise).await;
     match result {
         Ok(_) => Ok(()),
@@ -80,7 +173,7 @@ pub async fn read_image_buffers() -> Result<Vec<Vec<u8>>, ()> {
 async fn read_image_blobs() -> Result<Vec<Blob>, ()> {
     let mut outputs = Vec::new();
 
-    let promise = read();
+    let promise = read_();
     let items: Array = wasm_bindgen_futures::JsFuture::from(promise)
         .await
         .map_err(|_| ())?
