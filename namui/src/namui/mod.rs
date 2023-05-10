@@ -12,6 +12,7 @@ pub mod utils;
 
 pub use self::random::*;
 pub use auto_ops;
+pub use clipboard::ClipboardItem as _;
 pub use common::*;
 pub use draw::{DrawCall, DrawCommand, PathDrawCommand, TextAlign, TextBaseline, TextDrawCommand};
 pub use event::{Event, NamuiEvent};
