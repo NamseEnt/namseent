@@ -39,7 +39,7 @@ impl LoadedSequenceEditorPage {
                         .len();
                     self.update_cut(cut_id, |cut| {
                         cut.screen_graphics
-                            .push(ScreenGraphic::Cg(ScreenCg::new(cut_id, vec![])))
+                            .push(ScreenGraphic::Cg(ScreenCg::new(cg_id, vec![])))
                     });
                     self.character_editor = Some(character_editor::CharacterEditor::new(
                         self.project_id(),
