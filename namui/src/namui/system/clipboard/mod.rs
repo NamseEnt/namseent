@@ -14,11 +14,12 @@ extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "navigator", "clipboard"], js_name = "read")]
     fn read_() -> Promise;
 
+    #[wasm_bindgen(js_name = "ClipboardItem")]
     type ClipboardItem_;
-    #[wasm_bindgen(constructor)]
+    #[wasm_bindgen(constructor, js_class = "ClipboardItem")]
     fn new(data: Object) -> ClipboardItem_;
 
-    #[wasm_bindgen(method, structural, js_name = "getType")]
+    #[wasm_bindgen(method, structural, js_name = "getType", js_class = "ClipboardItem")]
     fn get_type_(this: &ClipboardItem_, type_: &str) -> Promise;
 }
 
