@@ -21,9 +21,9 @@ extern "C" {
     fn get_type_(this: &ClipboardItem, type_: &str) -> Promise;
 }
 
-pub async fn write<Data, Mime, Bytes>(data: Data) -> Result<(), ()>
+pub async fn write<MimeBytesPairs, Mime, Bytes>(data: MimeBytesPairs) -> Result<(), ()>
 where
-    Data: IntoIterator<Item = (Mime, Bytes)>,
+    MimeBytesPairs: IntoIterator<Item = (Mime, Bytes)>,
     Mime: AsRef<str>,
     Bytes: AsRef<[u8]>,
 {
