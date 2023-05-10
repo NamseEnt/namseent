@@ -1,7 +1,6 @@
 use crate::Image;
-use futures::Future;
 use js_sys::{Array, ArrayBuffer, Object, Promise, Reflect, Uint8Array};
-use std::{pin::Pin, sync::Arc};
+use std::sync::Arc;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 use web_sys::{Blob, BlobPropertyBag};
 
@@ -14,12 +13,12 @@ extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "navigator", "clipboard"], js_name = "read")]
     fn read_() -> Promise;
 
-    type ClipboardItem_;
+    pub type ClipboardItem;
     #[wasm_bindgen(constructor)]
-    fn new(data: Object) -> ClipboardItem_;
+    fn new(data: Object) -> ClipboardItem;
 
     #[wasm_bindgen(method, structural, js_name = "getType")]
-    fn get_type_(this: &ClipboardItem_, type_: &str) -> Promise;
+    fn get_type_(this: &ClipboardItem, type_: &str) -> Promise;
 }
 
 pub async fn write<MimeBytesPairs, Mime, Bytes>(data: MimeBytesPairs) -> Result<(), ()>
@@ -50,7 +49,7 @@ where
         Reflect::set(&clipboard_item_data, &mime.as_ref().into(), &blob.into()).unwrap();
     }
 
-    let clipboard_item = ClipboardItem_::new(clipboard_item_data);
+    let clipboard_item = ClipboardItem::new(clipboard_item_data);
     let clipboard_items = {
         let array = js_sys::Array::new();
         array.push(&clipboard_item.into());
@@ -67,7 +66,7 @@ where
     }
 }
 
-pub async fn read() -> Result<Vec<impl ClipboardItem>, ()> {
+pub async fn read() -> Result<Vec<ClipboardItem>, ()> {
     let promise = read_();
     let items: Array = wasm_bindgen_futures::JsFuture::from(promise)
         .await
@@ -75,19 +74,12 @@ pub async fn read() -> Result<Vec<impl ClipboardItem>, ()> {
         .into();
     Ok(items
         .iter()
-        .map(|item| item.dyn_into::<ClipboardItem_>().unwrap())
+        .map(|item| item.dyn_into::<ClipboardItem>().unwrap())
         .collect())
 }
 
-pub trait ClipboardItem {
-    fn types(&self) -> Vec<String>;
-    fn get_type<Mime>(&self, mime: Mime) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, ()>> + '_>>
-    where
-        Mime: ToString;
-}
-
-impl ClipboardItem for ClipboardItem_ {
-    fn types(&self) -> Vec<String> {
+impl ClipboardItem {
+    pub fn types(&self) -> Vec<String> {
         let types: Array = Reflect::get(&self, &"types".into()).unwrap().into();
         types
             .iter()
@@ -95,30 +87,27 @@ impl ClipboardItem for ClipboardItem_ {
             .collect()
     }
 
-    fn get_type<Mime>(&self, mime: Mime) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, ()>> + '_>>
+    pub async fn get_type<Mime>(&self, mime: Mime) -> Result<Vec<u8>, ()>
     where
-        Mime: ToString,
+        Mime: AsRef<str>,
     {
-        let mime = mime.to_string();
-        Box::pin(async move {
-            let blob: Blob = {
-                let promise = self.get_type_(mime.as_ref());
-                wasm_bindgen_futures::JsFuture::from(promise)
-                    .await
-                    .map_err(|_| ())?
-                    .into()
-            };
-            let array_buffer = {
-                let promise = blob.array_buffer();
-                let array_buffer: ArrayBuffer = wasm_bindgen_futures::JsFuture::from(promise)
-                    .await
-                    .map_err(|_| ())?
-                    .into();
-                Uint8Array::new(&array_buffer)
-            };
+        let blob: Blob = {
+            let promise = self.get_type_(mime.as_ref());
+            wasm_bindgen_futures::JsFuture::from(promise)
+                .await
+                .map_err(|_| ())?
+                .into()
+        };
+        let array_buffer = {
+            let promise = blob.array_buffer();
+            let array_buffer: ArrayBuffer = wasm_bindgen_futures::JsFuture::from(promise)
+                .await
+                .map_err(|_| ())?
+                .into();
+            Uint8Array::new(&array_buffer)
+        };
 
-            Ok(array_buffer.to_vec())
-        })
+        Ok(array_buffer.to_vec())
     }
 }
 
@@ -140,7 +129,7 @@ pub async fn write_image(image: Arc<Image>) -> Result<(), ()> {
         Reflect::set(&object, &"image/png".into(), &blob.into()).unwrap();
         object
     };
-    let clipboard_item = ClipboardItem_::new(clipboard_item_data);
+    let clipboard_item = ClipboardItem::new(clipboard_item_data);
     let clipboard_items = {
         let array = js_sys::Array::new();
         array.push(&clipboard_item.into());
