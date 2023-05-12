@@ -17,7 +17,7 @@ impl Cut {
         Self {
             id: previous.id(),
             line: previous.line,
-            character_name: "".to_string(),
+            character_name: previous.character_name,
             screen_graphics: previous
                 .screen_images
                 .into_iter()
