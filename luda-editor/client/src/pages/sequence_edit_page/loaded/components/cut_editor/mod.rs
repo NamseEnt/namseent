@@ -1,15 +1,18 @@
 mod render;
 mod update;
 
+use crate::components::context_menu::ContextMenu;
+
 use super::*;
 use namui::prelude::*;
-use rpc::data::Cut;
+use rpc::data::{Cut, ScreenCg};
 
 pub struct CutEditor {
     selected_target: Option<ClickTarget>,
     character_name_input: auto_complete_text_input::AutoCompleteTextInput,
     text_input: text_input::TextInput,
     image_wysiwyg_editor: wysiwyg_editor::WysiwygEditor,
+    context_menu: Option<ContextMenu>,
 }
 
 pub struct Props<'a> {
@@ -41,10 +44,20 @@ pub enum Event {
         png_bytes: Vec<u8>,
         cut_id: Uuid,
     },
+    AddNewCg {
+        psd_bytes: Vec<u8>,
+        psd_name: String,
+        cut_id: Uuid,
+    },
+    AddCg {
+        cut_id: Uuid,
+        cg: ScreenCg,
+    },
 }
 
 enum InternalEvent {
     EscapeKeyDown,
+    MouseRightButtonDown { global_xy: Xy<Px>, cut_id: Uuid },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -60,6 +73,7 @@ impl CutEditor {
             character_name_input: auto_complete_text_input::AutoCompleteTextInput::new(),
             text_input: text_input::TextInput::new(),
             image_wysiwyg_editor: wysiwyg_editor::WysiwygEditor::new(),
+            context_menu: None,
         }
     }
 

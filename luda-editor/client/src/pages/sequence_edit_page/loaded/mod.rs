@@ -23,6 +23,7 @@ pub struct LoadedSequenceEditorPage {
     cut_clipboard: Option<Cut>,
     focused_component: Option<FocusableComponent>,
     selected_cut_id: Option<Uuid>,
+    character_editor: Option<components::character_editor::CharacterEditor>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,6 +36,7 @@ enum InternalEvent {
     Error(String),
     ListViewContextMenuAddCutClicked,
     ImageUploaded { cut_id: Uuid, image_id: Uuid },
+    CgUploaded { cut_id: Uuid, cg_id: Uuid },
 }
 
 #[derive(Clone, Copy)]
@@ -62,6 +64,7 @@ impl LoadedSequenceEditorPage {
             cut_clipboard: None,
             focused_component: None,
             selected_cut_id: None,
+            character_editor: None,
         }
     }
     fn project_id(&self) -> Uuid {

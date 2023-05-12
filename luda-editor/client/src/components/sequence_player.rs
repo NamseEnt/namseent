@@ -1,4 +1,7 @@
-use crate::storage::get_project_image_url;
+use crate::storage::{
+    get_project_cg_part_variant_image_url, get_project_cg_thumbnail_image_url,
+    get_project_image_url,
+};
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::*;
@@ -58,7 +61,7 @@ impl SequencePlayer {
                 &State::ShowingCut { cut_index } => {
                     let cut = self.sequence.cuts.get(cut_index).unwrap();
                     render([
-                        render_images(
+                        render_graphics(
                             self.project_shared_data.id(),
                             inner_content_rect.wh(),
                             cut,
@@ -147,10 +150,24 @@ impl SequencePlayer {
         });
     }
     fn get_image_urls(&self, cut: &Cut) -> Vec<Url> {
-        cut.screen_images
+        cut.screen_graphics
             .iter()
-            .map(|screen_image| {
-                get_project_image_url(self.project_shared_data.id(), screen_image.id).unwrap()
+            .flat_map(|screen_graphic| match screen_graphic {
+                ScreenGraphic::Image(image) => {
+                    vec![get_project_image_url(self.project_shared_data.id(), image.id).unwrap()]
+                }
+                ScreenGraphic::Cg(cg) => cg
+                    .part_variants
+                    .iter()
+                    .map(|(variant_id, _)| {
+                        get_project_cg_part_variant_image_url(
+                            self.project_shared_data.id(),
+                            cg.id,
+                            *variant_id,
+                        )
+                        .unwrap()
+                    })
+                    .collect::<Vec<_>>(),
             })
             .collect::<Vec<_>>()
     }
@@ -219,14 +236,14 @@ impl SequencePlayer {
         let project_id = self.project_shared_data.id();
 
         if from_cut_image_urls == to_cut_image_urls {
-            render_images(project_id, wh, from_cut, 1.0.one_zero())
+            render_graphics(project_id, wh, from_cut, 1.0.one_zero())
         } else {
             let from_opacity = 1.0.one_zero() - transition_progress;
             let to_opacity = transition_progress;
 
             render([
-                render_images(project_id, wh, from_cut, from_opacity),
-                render_images(project_id, wh, to_cut, to_opacity),
+                render_graphics(project_id, wh, from_cut, from_opacity),
+                render_graphics(project_id, wh, to_cut, to_opacity),
             ])
         }
     }
@@ -318,7 +335,7 @@ pub fn cut_text_style(opacity: OneZero) -> TextStyle {
 }
 
 pub fn render_text(
-    project_shared_data: &ProjectSharedData,
+    _project_shared_data: &ProjectSharedData,
     wh: Wh<Px>,
     cut: &Cut,
     opacity: OneZero,
@@ -369,25 +386,25 @@ pub fn render_over_text(
     ])(wh)
 }
 
-pub fn calculate_image_wh_on_screen(
-    original_image_size: Wh<Px>,
+pub fn calculate_graphic_wh_on_screen(
+    original_graphic_size: Wh<Px>,
     container_wh: Wh<Px>,
     circumscribed: Circumscribed<Percent>,
 ) -> Wh<Px> {
     let screen_radius = container_wh.length() / 2;
-    let image_radius_px = original_image_size.length() / 2;
+    let image_radius_px = original_graphic_size.length() / 2;
     let radius_px = screen_radius * circumscribed.radius;
 
-    let wh = original_image_size * (radius_px / image_radius_px);
+    let wh = original_graphic_size * (radius_px / image_radius_px);
     wh
 }
 
-pub fn calculate_image_rect_on_screen(
-    original_image_size: Wh<Px>,
+pub fn calculate_graphic_rect_on_screen(
+    original_graphic_size: Wh<Px>,
     container_wh: Wh<Px>,
     circumscribed: Circumscribed<Percent>,
 ) -> Rect<Px> {
-    let wh = calculate_image_wh_on_screen(original_image_size, container_wh, circumscribed);
+    let wh = calculate_graphic_wh_on_screen(original_graphic_size, container_wh, circumscribed);
     let center_xy = container_wh.as_xy() * circumscribed.center_xy;
 
     let xy = center_xy - wh.as_xy() / 2.0;
@@ -395,37 +412,72 @@ pub fn calculate_image_rect_on_screen(
     Rect::from_xy_wh(xy, wh)
 }
 
-pub fn render_images(project_id: Uuid, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
+pub fn render_graphics(project_id: Uuid, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
     let paint_builder = namui::PaintBuilder::new().set_color_filter(
         Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
         BlendMode::DstIn,
     );
 
-    let images = cut.screen_images.iter().map(|screen_image| {
-        render_image(project_id, wh, screen_image, Some(paint_builder.clone()))
+    let graphics = cut.screen_graphics.iter().map(|screen_graphic| {
+        render_graphic(project_id, wh, screen_graphic, Some(paint_builder.clone()))
     });
-    render(images)
+    render(graphics)
 }
 
-pub fn render_image(
+pub fn render_graphic(
     project_id: Uuid,
     wh: Wh<Px>,
-    screen_image: &ScreenImage,
+    graphic: &ScreenGraphic,
     paint_builder: Option<PaintBuilder>,
 ) -> RenderingTree {
-    namui::try_render(|| {
-        let url = get_project_image_url(project_id, screen_image.id).unwrap();
-        let image = namui::image::try_load_url(&url)?;
+    namui::try_render(|| match graphic {
+        ScreenGraphic::Image(screen_image) => {
+            let url = get_project_image_url(project_id, screen_image.id).unwrap();
+            let image = namui::image::try_load_url(&url)?;
 
-        let rect = calculate_image_rect_on_screen(image.size(), wh, screen_image.circumscribed);
+            let rect =
+                calculate_graphic_rect_on_screen(image.size(), wh, screen_image.circumscribed);
 
-        Some(namui::image(ImageParam {
-            rect,
-            source: ImageSource::Image(image),
-            style: ImageStyle {
-                fit: ImageFit::Fill,
-                paint_builder,
-            },
-        }))
+            Some(namui::image(ImageParam {
+                rect,
+                source: ImageSource::Image(image),
+                style: ImageStyle {
+                    fit: ImageFit::Fill,
+                    paint_builder,
+                },
+            }))
+        }
+        ScreenGraphic::Cg(screen_cg) => {
+            let url = get_project_cg_thumbnail_image_url(project_id, screen_cg.id).unwrap();
+            let image = namui::image::try_load_url(&url)?;
+            let outer_rect =
+                calculate_graphic_rect_on_screen(image.size(), wh, screen_cg.circumscribed);
+
+            Some(render(screen_cg.part_variants.iter().filter_map(
+                |(variant_id, rect)| {
+                    let rect = Rect::Xywh {
+                        x: outer_rect.x() + outer_rect.width() * rect.x(),
+                        y: outer_rect.y() + outer_rect.height() * rect.y(),
+                        width: outer_rect.width() * rect.width(),
+                        height: outer_rect.height() * rect.height(),
+                    };
+                    let url = get_project_cg_part_variant_image_url(
+                        project_id,
+                        screen_cg.id,
+                        *variant_id,
+                    )
+                    .unwrap();
+                    let image = namui::image::try_load_url(&url)?;
+                    Some(namui::image(ImageParam {
+                        rect,
+                        source: ImageSource::Image(image),
+                        style: ImageStyle {
+                            fit: ImageFit::Fill,
+                            paint_builder: paint_builder.clone(),
+                        },
+                    }))
+                },
+            )))
+        }
     })
 }

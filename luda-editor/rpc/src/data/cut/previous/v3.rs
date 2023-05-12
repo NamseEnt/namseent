@@ -1,6 +1,6 @@
 use super::*;
 use crate::data::ScreenImage;
-use ::uuid::Uuid;
+use crate::Uuid;
 
 #[migration::version(3)]
 #[derive(Debug, Clone, Default)]

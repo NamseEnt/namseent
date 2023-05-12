@@ -11,6 +11,9 @@ impl LoadedSequenceEditorPage {
             Some(context_menu) => context_menu.render(),
             None => RenderingTree::Empty,
         };
+        let selected_cut = self
+            .selected_cut_id
+            .and_then(|id| self.sequence.cuts.iter().find(|c| c.id() == id));
 
         render([
             table::horizontal([
@@ -25,16 +28,30 @@ impl LoadedSequenceEditorPage {
                 table::ratio(4, |wh| {
                     self.cut_editor.render(cut_editor::Props {
                         wh,
-                        cut: self
-                            .selected_cut_id
-                            .and_then(|id| self.sequence.cuts.iter().find(|c| c.id() == id)),
+                        cut: selected_cut,
                         is_focused: self.focused_component == Some(FocusableComponent::CutEditor),
                         cuts: &self.sequence.cuts,
                         project_id: self.project_id(),
                     })
                 }),
+                self.render_character_editor(selected_cut),
             ])(props.wh),
             context_menu,
         ])
+    }
+
+    fn render_character_editor<'a>(&'a self, cut: Option<&'a Cut>) -> table::TableCell {
+        const CHARACTER_EDITOR_WIDTH: Px = px(496.0);
+
+        match &self.character_editor {
+            Some(character_editor) => table::fixed(CHARACTER_EDITOR_WIDTH, move |wh| {
+                character_editor.render(character_editor::Props {
+                    wh,
+                    project_id: self.project_id(),
+                    cut,
+                })
+            }),
+            None => table::fixed(0.px(), |_| RenderingTree::Empty),
+        }
     }
 }

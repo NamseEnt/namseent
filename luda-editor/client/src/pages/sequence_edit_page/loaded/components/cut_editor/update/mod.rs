@@ -1,4 +1,5 @@
 use super::*;
+use crate::{components::context_menu, pages::sequence_edit_page::loaded::components};
 
 impl CutEditor {
     pub fn update(&mut self, event: &namui::Event) {
@@ -22,11 +23,26 @@ impl CutEditor {
                 }
                 Event::ChangeCharacterName { .. }
                 | Event::ChangeCutLine { .. }
-                | Event::AddNewImage { .. } => {}
+                | Event::AddNewImage { .. }
+                | Event::AddNewCg { .. }
+                | Event::AddCg { .. } => {}
             })
             .is::<InternalEvent>(|event| match event {
                 InternalEvent::EscapeKeyDown => {
                     self.blur();
+                }
+                InternalEvent::MouseRightButtonDown { global_xy, cut_id } => {
+                    let cut_id = *cut_id;
+                    self.context_menu = Some(ContextMenu::new(
+                        *global_xy,
+                        [context_menu::Item::new_button("Add Cg", move || {
+                            namui::event::send(
+                                components::character_editor::Event::OpenCharacterEditor {
+                                    target: character_editor::EditTarget::NewCharacter { cut_id },
+                                },
+                            );
+                        })],
+                    ));
                 }
             })
             .is::<text_input::Event>(|event| match event {
@@ -45,6 +61,11 @@ impl CutEditor {
                 | text_input::Event::SelectionUpdated { .. }
                 | text_input::Event::KeyDown { .. }
                 | text_input::Event::Focus { .. } => {}
+            })
+            .is::<context_menu::Event>(|event| match event {
+                context_menu::Event::Close => {
+                    self.context_menu = None;
+                }
             });
 
         self.character_name_input.update(event);

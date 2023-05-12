@@ -1168,7 +1168,6 @@ dependencies = [
  "revert-json-patch",
  "serde",
  "serde_json",
- "uuid",
 ]
 
 [[package]]

@@ -26,6 +26,38 @@ pub fn get_character_main_image_url(character_id: Uuid) -> Result<Url, Box<dyn s
     Ok(url)
 }
 
+pub fn get_project_cg_part_variant_image_url(
+    project_id: Uuid,
+    cg_id: Uuid,
+    part_variant_id: Uuid,
+) -> Result<Url, Box<dyn std::error::Error>> {
+    let file_name = format!("{part_variant_id}.webp");
+    let url_string = crate::append_slash![
+        crate::SETTING.resource_base_url,
+        project_id,
+        "cg",
+        cg_id,
+        file_name,
+    ];
+    let url = Url::parse(&url_string)?;
+    Ok(url)
+}
+
+pub fn get_project_cg_thumbnail_image_url(
+    project_id: Uuid,
+    cg_id: Uuid,
+) -> Result<Url, Box<dyn std::error::Error>> {
+    let url_string = crate::append_slash![
+        crate::SETTING.resource_base_url,
+        project_id,
+        "cg",
+        cg_id,
+        "thumbnail.webp",
+    ];
+    let url = Url::parse(&url_string)?;
+    Ok(url)
+}
+
 #[macro_export]
 macro_rules! append_slash {
     ($($x:expr),+ $(,)?) => {{

@@ -1,8 +1,9 @@
+mod cg;
 mod cut;
 
-use ::uuid::Uuid;
+pub use cg::*;
 pub use cut::*;
-use namui_type::{Percent, PercentExt, Xy};
+use namui_type::{Percent, PercentExt, Rect, Uuid, Xy};
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ProjectSharedData {
@@ -86,6 +87,32 @@ pub struct Circumscribed<T> {
     pub radius: T,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum ScreenGraphic {
+    Image(ScreenImage),
+    Cg(ScreenCg),
+}
+impl ScreenGraphic {
+    pub fn circumscribed_mut(&mut self) -> &mut Circumscribed<Percent> {
+        match self {
+            Self::Image(screen_image) => &mut screen_image.circumscribed,
+            Self::Cg(screen_cg) => &mut screen_cg.circumscribed,
+        }
+    }
+    pub fn circumscribed(&self) -> Circumscribed<Percent> {
+        match self {
+            Self::Image(screen_image) => screen_image.circumscribed,
+            Self::Cg(screen_cg) => screen_cg.circumscribed,
+        }
+    }
+    pub fn set_circumscribed(&mut self, circumscribed: Circumscribed<Percent>) {
+        match self {
+            Self::Image(screen_image) => screen_image.circumscribed = circumscribed,
+            Self::Cg(screen_cg) => screen_cg.circumscribed = circumscribed,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct ScreenImage {
     pub id: Uuid,
@@ -95,6 +122,25 @@ impl ScreenImage {
     pub fn new(id: Uuid) -> Self {
         Self {
             id,
+            circumscribed: Circumscribed {
+                center_xy: Xy::new(50.percent(), 50.percent()),
+                radius: 50.percent(),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ScreenCg {
+    pub id: Uuid,
+    pub part_variants: Vec<(Uuid, Rect<Percent>)>,
+    pub circumscribed: Circumscribed<Percent>,
+}
+impl ScreenCg {
+    pub fn new(id: Uuid, part_variants: Vec<(Uuid, Rect<Percent>)>) -> Self {
+        Self {
+            id,
+            part_variants,
             circumscribed: Circumscribed {
                 center_xy: Xy::new(50.percent(), 50.percent()),
                 radius: 50.percent(),

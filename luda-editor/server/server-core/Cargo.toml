@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 rpc = { path = "../../rpc", features = ["server"] }
+namui-type = { path = "../../../namui-type" }
 lambda-web = { path = "../../lambda-web", features = ["hyper"] }
 tokio = { version = "1.21", features = ["fs"] }
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] }
@@ -19,7 +20,11 @@ aws-sdk-s3 = "0.17"
 futures = "0.3"
 chrono = "0.4"
 log = "0.4"
-env_logger = "0.9"
+env_logger = "0.10"
 aws-smithy-async = "0.47"
 migration = { path = "../../migration" }
 document-macro = { path = "../document-macro" }
+psd = "0.3"
+libwebp-sys = { version = "0.9", features = ["avx2", "sse41", "neon"] }
+rayon = "1.7.0"
+image = "0.24.6"

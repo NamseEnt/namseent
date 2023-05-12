@@ -1,7 +1,10 @@
 mod undo_redo;
 mod update_data;
 
-use super::{components::image_upload::create_image, *};
+use super::{
+    components::{cg_upload::create_cg, image_upload::create_image},
+    *,
+};
 use rpc::data::*;
 
 impl LoadedSequenceEditorPage {
@@ -21,8 +24,31 @@ impl LoadedSequenceEditorPage {
                 }
                 &InternalEvent::ImageUploaded { cut_id, image_id } => {
                     self.update_cut(cut_id, |cut| {
-                        cut.screen_images.push(ScreenImage::new(image_id));
+                        cut.screen_graphics
+                            .push(ScreenGraphic::Image(ScreenImage::new(image_id)))
                     });
+                }
+                &InternalEvent::CgUploaded { cut_id, cg_id } => {
+                    let new_cg_graphic_index = self
+                        .sequence
+                        .cuts
+                        .iter()
+                        .find(|cut| cut.id() == cut_id)
+                        .unwrap()
+                        .screen_graphics
+                        .len();
+                    self.update_cut(cut_id, |cut| {
+                        cut.screen_graphics
+                            .push(ScreenGraphic::Cg(ScreenCg::new(cg_id, vec![])))
+                    });
+                    self.character_editor = Some(character_editor::CharacterEditor::new(
+                        self.project_id(),
+                        character_editor::EditTarget::ExistingCharacterPart {
+                            cut_id,
+                            cg_id,
+                            graphic_index: new_cg_graphic_index,
+                        },
+                    ))
                 }
             })
             .is::<crate::components::sync::Event>(|event| match event {
@@ -138,24 +164,73 @@ impl LoadedSequenceEditorPage {
                         };
                     });
                 }
+                cut_editor::Event::AddNewCg {
+                    psd_name,
+                    psd_bytes,
+                    cut_id,
+                } => {
+                    let project_id = self.project_id();
+                    let psd_bytes = psd_bytes.clone();
+                    let psd_name = psd_name.clone();
+                    let cut_id = cut_id.clone();
+                    spawn_local(async move {
+                        match create_cg(project_id, psd_name, psd_bytes).await {
+                            Ok(cg_id) => {
+                                namui::event::send(InternalEvent::CgUploaded { cut_id, cg_id })
+                            }
+                            Err(error) => {
+                                namui::event::send(InternalEvent::Error(format!(
+                                    "create_cg {}",
+                                    error.to_string()
+                                )));
+                            }
+                        };
+                    });
+                }
+                cut_editor::Event::AddCg { cut_id, cg } => {
+                    let cg = cg.clone();
+                    self.update_cut(*cut_id, |cut| {
+                        cut.screen_graphics.push(ScreenGraphic::Cg(cg))
+                    });
+                }
             })
             .is::<wysiwyg_editor::Event>(|event| match event {
-                &wysiwyg_editor::Event::UpdateCutImages {
+                &wysiwyg_editor::Event::UpdateCutGraphics {
                     cut_id,
                     ref callback,
                 } => {
-                    self.update_cut(cut_id, |cut| callback(&mut cut.screen_images));
+                    self.update_cut(cut_id, |cut| callback(&mut cut.screen_graphics));
                 }
-                wysiwyg_editor::Event::UpdateSequenceImages { callback } => {
+                wysiwyg_editor::Event::UpdateSequenceGraphics { callback } => {
                     self.update_sequence(|sequence| {
                         sequence.cuts.iter_mut().for_each(|cut| {
-                            callback(&mut cut.screen_images);
+                            callback(&mut cut.screen_graphics);
                         });
                     });
+                }
+            })
+            .is::<components::character_editor::Event>(|event| match event {
+                character_editor::Event::MouseDownOutsideCharacterEditor => {
+                    self.character_editor = None;
+                }
+                character_editor::Event::OpenCharacterEditor { target } => {
+                    self.character_editor = Some(character_editor::CharacterEditor::new(
+                        self.project_id(),
+                        *target,
+                    ));
+                }
+                &character_editor::Event::UpdateCutGraphics {
+                    cut_id,
+                    ref callback,
+                } => {
+                    self.update_cut(cut_id, |cut| callback(&mut cut.screen_graphics));
                 }
             });
 
         self.cut_list_view.update(event);
         self.cut_editor.update(event);
+        self.character_editor
+            .as_mut()
+            .map(|editor| editor.update(event));
     }
 }

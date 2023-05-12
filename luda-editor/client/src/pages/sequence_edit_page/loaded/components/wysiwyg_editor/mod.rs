@@ -3,7 +3,7 @@ mod update;
 
 use crate::components::context_menu;
 use namui::prelude::*;
-use rpc::data::ScreenImage;
+use rpc::data::ScreenGraphic;
 
 pub struct WysiwygEditor {
     dragging: Option<Dragging>,
@@ -14,7 +14,7 @@ pub struct WysiwygEditor {
 pub struct Props<'a> {
     pub wh: Wh<Px>,
     pub cut_id: Uuid,
-    pub screen_images: &'a Vec<ScreenImage>,
+    pub screen_graphics: &'a Vec<ScreenGraphic>,
     pub project_id: Uuid,
 }
 
@@ -30,12 +30,12 @@ enum Dragging {
 }
 
 pub enum Event {
-    UpdateCutImages {
+    UpdateCutGraphics {
         cut_id: Uuid,
-        callback: Box<dyn Fn(&mut Vec<ScreenImage>) -> () + 'static + Send + Sync>,
+        callback: Box<dyn Fn(&mut Vec<ScreenGraphic>) -> () + 'static + Send + Sync>,
     },
-    UpdateSequenceImages {
-        callback: Box<dyn Fn(&mut Vec<ScreenImage>) -> () + 'static + Send + Sync>,
+    UpdateSequenceGraphics {
+        callback: Box<dyn Fn(&mut Vec<ScreenGraphic>) -> () + 'static + Send + Sync>,
     },
 }
 
@@ -59,9 +59,9 @@ enum InternalEvent {
     OpenContextMenu {
         global_xy: Xy<Px>,
         cut_id: Uuid,
-        image_index: usize,
-        image_wh: Wh<Px>,
-        image: ScreenImage,
+        graphic_index: usize,
+        graphic_wh: Wh<Px>,
+        graphic: ScreenGraphic,
     },
 }
 

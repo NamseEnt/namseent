@@ -21,6 +21,7 @@ struct Services {
     image_service: services::image::ImageService,
     sequence_service: services::sequence::SequenceService,
     project_service: services::project::ProjectService,
+    cg_service: services::cg::CgService,
 }
 
 static SERVICES: OnceCell<Services> = OnceCell::new();
@@ -45,20 +46,33 @@ pub fn s3<'a>() -> &'a S3 {
 }
 
 pub async fn init() {
-    env_logger::Builder::new()
-        .format(|buf, record| {
+    let server_path = {
+        let item = env!("CARGO_MANIFEST_DIR").split("/").collect::<Vec<_>>();
+        item[..item.len() - 1].join("/") + "/"
+    };
+
+    env_logger::builder()
+        .format(move |buf, record| {
+            let full_file_path = record.file().unwrap_or("unknown-file");
+
+            let short_file_path = full_file_path
+                .strip_prefix(&server_path)
+                .unwrap_or(full_file_path);
+
             writeln!(
                 buf,
-                "{} {}:{} [{}] - {}",
+                "[{}] {} {}:{} - {}",
+                buf.default_level_style(record.level())
+                    .value(record.level()),
                 chrono::Local::now().format("%Y-%m-%dT%H:%M:%S"),
-                record.file().unwrap_or("unknown-file"),
+                short_file_path,
                 record.line().unwrap_or(0),
-                record.level(),
                 record.args()
             )
         })
-        .filter_level(log::LevelFilter::Warn)
+        .write_style(env_logger::WriteStyle::Auto)
         .init();
+
     log::info!("starting up");
 
     SERVICES
@@ -67,6 +81,7 @@ pub async fn init() {
             sequence_service: services::sequence::SequenceService::new(),
             project_service: services::project::ProjectService::new(),
             image_service: services::image::ImageService::new(),
+            cg_service: services::cg::CgService::new(),
         })
         .unwrap();
 
@@ -124,7 +139,10 @@ pub async fn run_server() -> Result<(), LambdaError> {
         let make_svc = make_service_fn(|_conn| async {
             Ok::<_, LambdaError>(service_fn(handle::handle_with_wrapped_error))
         });
-        let server = Server::bind(&addr).serve(make_svc);
+        let server = Server::bind(&addr)
+            .tcp_keepalive(None) // to prevent infinite pending problem on chrome
+            .http1_keepalive(false) // same as above
+            .serve(make_svc);
 
         server.await?;
     }
