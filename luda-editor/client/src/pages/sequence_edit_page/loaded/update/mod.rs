@@ -225,6 +225,17 @@ impl LoadedSequenceEditorPage {
                 } => {
                     self.update_cut(cut_id, |cut| callback(&mut cut.screen_graphics));
                 }
+            })
+            .is::<components::memo_editor::Event>(|event| match event {
+                memo_editor::Event::OpenMemoEditor { cut_id } => {
+                    self.memo_editor = Some(components::memo_editor::MemoEditor::new(*cut_id));
+                }
+                memo_editor::Event::CloseMemoEditor => {
+                    self.memo_editor = None;
+                }
+                memo_editor::Event::AddCutMemo { cut_id, memo } => {
+                    self.update_cut(*cut_id, |cut| cut.memos.push(memo.clone()))
+                }
             });
 
         self.cut_list_view.update(event);
@@ -233,5 +244,6 @@ impl LoadedSequenceEditorPage {
             .as_mut()
             .map(|editor| editor.update(event));
         self.memo_list_view.update(event);
+        self.memo_editor.as_mut().map(|editor| editor.update(event));
     }
 }

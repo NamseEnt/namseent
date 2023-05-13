@@ -38,6 +38,7 @@ impl LoadedSequenceEditorPage {
                 self.render_memo_list_view(selected_cut),
             ])(props.wh),
             context_menu,
+            self.render_memo_editor(),
         ])
     }
 
@@ -70,5 +71,18 @@ impl LoadedSequenceEditorPage {
         }
 
         table::fixed(0.px(), |_| RenderingTree::Empty)
+    }
+
+    fn render_memo_editor(&self) -> RenderingTree {
+        const MEMO_EDITOR_WH: Wh<Px> = Wh {
+            width: px(512.0),
+            height: px(256.0),
+        };
+
+        self.memo_editor
+            .as_ref()
+            .map_or(RenderingTree::Empty, |memo_editor| {
+                memo_editor.render(components::memo_editor::Props { wh: MEMO_EDITOR_WH })
+            })
     }
 }
