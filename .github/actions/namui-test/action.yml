@@ -13,7 +13,7 @@ runs:
       with:
         path: |
           ${{ inputs.path }}/target/
-        key: ${{ runner.os }}-cargo-${{ inputs.path }}-${{ inputs.target }}-${{ hashFiles('${{ inputs.path }}/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-${{ inputs.path }}-${{ inputs.target }}-${{ hashFiles(format('{0}/Cargo.lock', ${{ inputs.path }} )) }}
         restore-keys: |
           ${{ runner.os }}-cargo-${{ inputs.path }}-${{ inputs.target }}-
           ${{ runner.os }}-cargo-${{ inputs.path }}-
