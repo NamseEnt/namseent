@@ -33,24 +33,26 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
         })
         .filter(|(cargo_cache_path, _)| cargo_cache_path.exists());
 
+    let mut bind_directory_tuples: Vec<_> = [(source_root_directory_to_bind, source_bind_path)]
+        .into_iter()
+        .chain(cargo_cache_bind_directory_tuples)
+        .collect();
+
     let sccache_host_path = match std::env::var("SCCACHE_DIR") {
         Ok(sccache_dir) => PathBuf::from_str(&sccache_dir)?,
         Err(_) => PathBuf::from_str("/root/.cache/sccache")?,
     };
-    std::fs::create_dir_all(&sccache_host_path)?;
-    let sccache_bind_directory_tuples = {
-        (
+    if sccache_host_path.exists() {
+        let sccache_bind_directory_tuple = (
             PathBuf::from_str(&format!("{}/.cache/sccache", std::env::var("HOME")?))?,
             sccache_host_path,
-        )
-    };
+        );
 
-    let bind_directory_tuples = [(source_root_directory_to_bind, source_bind_path)]
-        .into_iter()
-        .chain(cargo_cache_bind_directory_tuples)
-        .chain(std::iter::once(sccache_bind_directory_tuples));
+        bind_directory_tuples.push(sccache_bind_directory_tuple);
+    }
 
     let bind_args: Vec<String> = bind_directory_tuples
+        .into_iter()
         .map(|(source, target)| {
             format!("{}:{}", source.to_str().unwrap(), target.to_str().unwrap())
         })
