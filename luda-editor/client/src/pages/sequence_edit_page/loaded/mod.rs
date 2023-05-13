@@ -24,6 +24,7 @@ pub struct LoadedSequenceEditorPage {
     focused_component: Option<FocusableComponent>,
     selected_cut_id: Option<Uuid>,
     character_editor: Option<components::character_editor::CharacterEditor>,
+    memo_list_view: components::memo_list_view::MemoListView,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -65,6 +66,7 @@ impl LoadedSequenceEditorPage {
             focused_component: None,
             selected_cut_id: None,
             character_editor: None,
+            memo_list_view: components::memo_list_view::MemoListView::new(),
         }
     }
     fn project_id(&self) -> Uuid {

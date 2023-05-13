@@ -4,4 +4,5 @@ pub mod character_editor;
 pub mod cut_editor;
 pub mod cut_list_view;
 pub mod image_upload;
+pub mod memo_list_view;
 pub mod wysiwyg_editor;

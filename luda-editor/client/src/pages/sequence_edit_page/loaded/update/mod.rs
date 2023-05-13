@@ -232,5 +232,6 @@ impl LoadedSequenceEditorPage {
         self.character_editor
             .as_mut()
             .map(|editor| editor.update(event));
+        self.memo_list_view.update(event);
     }
 }

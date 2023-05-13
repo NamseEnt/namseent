@@ -35,6 +35,7 @@ impl LoadedSequenceEditorPage {
                     })
                 }),
                 self.render_character_editor(selected_cut),
+                self.render_memo_list_view(selected_cut),
             ])(props.wh),
             context_menu,
         ])
@@ -53,5 +54,21 @@ impl LoadedSequenceEditorPage {
             }),
             None => table::fixed(0.px(), |_| RenderingTree::Empty),
         }
+    }
+
+    fn render_memo_list_view<'a>(&'a self, cut: Option<&'a Cut>) -> table::TableCell {
+        const MEMO_WINDOW_WIDTH: Px = px(256.0);
+        let memos = cut.map(|cut| &cut.memos);
+
+        if let Some(memos) = memos {
+            if !memos.is_empty() {
+                return table::fixed(MEMO_WINDOW_WIDTH, move |wh| {
+                    self.memo_list_view
+                        .render(components::memo_list_view::Props { wh, memos: &memos })
+                });
+            }
+        }
+
+        table::fixed(0.px(), |_| RenderingTree::Empty)
     }
 }
