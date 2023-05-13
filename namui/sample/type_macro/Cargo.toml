@@ -8,7 +8,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 namui = { path = "../.." }
-serde = { version = "1.0", features = ["derive"] }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"

@@ -24,7 +24,6 @@ fs_extra = "1.2.0"
 namui-user-config = { path = "../namui-user-config" }
 tokio-util = { version = "0.7.1", features = ["codec"] }
 urlencoding = "2.1"
-clap_complete = "4.2.0"
 
 [build-dependencies]
 clap = { version = "*", features = ["derive"] }
