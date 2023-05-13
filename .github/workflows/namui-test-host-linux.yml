@@ -78,7 +78,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/init-test-job
-      - run: cargo test --manifest-path namui-cli/Cargo.toml
+      - uses: ./.github/actions/cargo-test
+        with:
+          path: namui-cli
 
   test-namui:
     needs: [check-rebuild]
@@ -99,8 +101,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/init-test-job
-      - run: cargo test --manifest-path luda-editor/rpc/Cargo.toml
-      - run: cargo test --manifest-path luda-editor/server/server-bin/Cargo.toml
+      - uses: ./.github/actions/cargo-test
+        with:
+          path: luda-editor/rpc
+      - uses: ./.github/actions/cargo-test
+        with:
+          path: luda-editor/server/server-bin
       - uses: ./.github/actions/namui-test
         with:
           target: wasm-unknown-web
