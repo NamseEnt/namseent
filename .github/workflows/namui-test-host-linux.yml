@@ -3,6 +3,9 @@ on:
   push:
     branches: master
   pull_request:
+concurrency:
+  group: ${{ github.ref }}-namui-test-host-linux
+  cancel-in-progress: true
 env:
   SCCACHE_GHA_ENABLED: true
   RUSTC_WRAPPER: sccache
