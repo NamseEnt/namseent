@@ -33,13 +33,15 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
         })
         .filter(|(cargo_cache_path, _)| cargo_cache_path.exists());
 
+    let sccache_host_path = match std::env::var("SCCACHE_DIR") {
+        Ok(sccache_dir) => PathBuf::from_str(&sccache_dir)?,
+        Err(_) => PathBuf::from_str("/root/.cache/sccache")?,
+    };
+    std::fs::create_dir_all(&sccache_host_path)?;
     let sccache_bind_directory_tuples = {
         (
             PathBuf::from_str(&format!("{}/.cache/sccache", std::env::var("HOME")?))?,
-            match std::env::var("SCCACHE_DIR") {
-                Ok(sccache_dir) => PathBuf::from_str(&sccache_dir)?,
-                Err(_) => PathBuf::from_str("/root/.cache/sccache")?,
-            },
+            sccache_host_path,
         )
     };
 
