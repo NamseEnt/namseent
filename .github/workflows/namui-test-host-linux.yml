@@ -4,9 +4,9 @@ on:
     branches: master
   pull_request:
 env:
-  INNER_IMAGE_TAG: github-actions-${{ github.run_id }}
-  INNER_IMAGE_NAME: ghcr.io/namseent/namui-test-host:github-actions-${{ github.run_id }}
-  LATEST_IMAGE_NAME: ghcr.io/namseent/namui-test-host:latest
+  SCCACHE_GHA_ENABLED: true
+  RUSTC_WRAPPER: sccache
+  CARGO_INCREMENTAL: 0
 jobs:
   check-rebuild:
     runs-on: ubuntu-latest
@@ -68,29 +68,8 @@ jobs:
               - namui/**
               - docker-images/namui-test-host/linux.Dockerfile
 
-  set-up:
-    needs: check-rebuild
-    permissions:
-      packages: write
-      contents: read
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/prepare-docker-image
-        with:
-          namui-test-host-changed: ${{ needs.check-rebuild.outputs.namui-test-host }}
-
-  update-namui-test-host-image:
-    needs: [check-rebuild, set-up, test-namui-cli, test-namui]
-    if: needs.check-rebuild.outputs.namui-test-host == 'true' && github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/restore-docker-image
-      - uses: ./.github/actions/push-docker-image
-
   test-namui-cli:
-    needs: [check-rebuild, set-up]
+    needs: [check-rebuild]
     if: needs.check-rebuild.outputs.namui-cli == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -99,7 +78,7 @@ jobs:
       - run: cargo test --manifest-path namui-cli/Cargo.toml
 
   test-namui:
-    needs: [check-rebuild, set-up]
+    needs: [check-rebuild]
     if: needs.check-rebuild.outputs.namui == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -111,7 +90,7 @@ jobs:
           path: namui
 
   test-luda-editor:
-    needs: [check-rebuild, set-up]
+    needs: [check-rebuild]
     if: needs.check-rebuild.outputs.luda-editor == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -125,7 +104,7 @@ jobs:
           path: luda-editor/client
 
   test-namui-prebuilt:
-    needs: [check-rebuild, set-up]
+    needs: [check-rebuild]
     if: needs.check-rebuild.outputs.namui-prebuilt == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -137,7 +116,7 @@ jobs:
           path: namui-prebuilt
 
   test-namui-sample:
-    needs: [check-rebuild, set-up]
+    needs: [check-rebuild]
     if: needs.check-rebuild.outputs.namui-sample == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -165,7 +144,7 @@ jobs:
           path: namui/sample/rect
 
   test-image-cropper:
-    needs: [check-rebuild, set-up]
+    needs: [check-rebuild]
     if: needs.check-rebuild.outputs.image-cropper == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -177,7 +156,7 @@ jobs:
           path: image-cropper
 
   test-namui-animation-editor:
-    needs: [check-rebuild, set-up]
+    needs: [check-rebuild]
     if: needs.check-rebuild.outputs.namui-animation-editor == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -193,7 +172,7 @@ jobs:
           path: namui-animation-editor/sample
 
   test-luda-adventure:
-    needs: [check-rebuild, set-up]
+    needs: [check-rebuild]
     if: needs.check-rebuild.outputs.luda-adventure == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -211,8 +190,6 @@ jobs:
     permissions:
       packages: write
     needs:
-      - set-up
-      - update-namui-test-host-image
       # PLEASE ADD ALL TEST HERE!
       - test-namui-cli
       - test-namui
