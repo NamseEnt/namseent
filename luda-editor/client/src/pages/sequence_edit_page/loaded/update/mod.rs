@@ -236,6 +236,11 @@ impl LoadedSequenceEditorPage {
                 memo_editor::Event::AddCutMemo { cut_id, memo } => {
                     self.update_cut(*cut_id, |cut| cut.memos.push(memo.clone()))
                 }
+            })
+            .is::<components::memo_list_view::Event>(|event| match event {
+                memo_list_view::Event::RemoveCutMemo { cut_id, memo_id } => {
+                    self.update_cut(*cut_id, |cut| cut.memos.retain(|memo| memo.id != *memo_id))
+                }
             });
 
         self.cut_list_view.update(event);

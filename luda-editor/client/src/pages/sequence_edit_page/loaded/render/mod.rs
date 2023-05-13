@@ -59,13 +59,16 @@ impl LoadedSequenceEditorPage {
 
     fn render_memo_list_view<'a>(&'a self, cut: Option<&'a Cut>) -> table::TableCell {
         const MEMO_WINDOW_WIDTH: Px = px(256.0);
-        let memos = cut.map(|cut| &cut.memos);
 
-        if let Some(memos) = memos {
-            if !memos.is_empty() {
+        if let Some(cut) = cut {
+            if !cut.memos.is_empty() {
                 return table::fixed(MEMO_WINDOW_WIDTH, move |wh| {
                     self.memo_list_view
-                        .render(components::memo_list_view::Props { wh, memos: &memos })
+                        .render(components::memo_list_view::Props {
+                            wh,
+                            cut_id: cut.id(),
+                            memos: &cut.memos,
+                        })
                 });
             }
         }

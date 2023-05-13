@@ -12,20 +12,24 @@ impl MemoListView {
                 height: props.wh.height,
                 scroll_bar_width: 4.px(),
                 content: table::vertical(props.memos.iter().map(|memo| {
-                    table::fit(table::FitAlign::LeftTop, render_memo(props.wh.width, memo))
+                    table::fit(
+                        table::FitAlign::LeftTop,
+                        render_memo(props.wh.width, props.cut_id, memo),
+                    )
                 }))(props.wh),
             }),
         ])
     }
 }
 
-fn render_memo(width: Px, memo: &Memo) -> RenderingTree {
+fn render_memo(width: Px, cut_id: Uuid, memo: &Memo) -> RenderingTree {
     const MARGIN: Px = px(8.0);
     const PADDING: Px = px(8.0);
     const BUTTON_HEIGHT: Px = px(24.0);
 
     let container_width = width - MARGIN * 2.0;
     let inner_width = container_width - PADDING * 2.0;
+    let memo_id = memo.id;
 
     let done_button = text_button_fit(
         BUTTON_HEIGHT,
@@ -36,7 +40,7 @@ fn render_memo(width: Px, memo: &Memo) -> RenderingTree {
         Color::TRANSPARENT,
         PADDING,
         [MouseButton::Left],
-        |_| todo!("Delete memo"),
+        move |_| namui::event::send(super::Event::RemoveCutMemo { cut_id, memo_id }),
     )
     .with_mouse_cursor(MouseCursor::Pointer);
 
