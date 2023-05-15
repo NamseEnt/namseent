@@ -1,7 +1,5 @@
-name: Run namui test
+name: Run cargo test
 inputs:
-  target:
-    required: true
   path:
     required: true
 env:
@@ -13,15 +11,14 @@ runs:
       with:
         path: |
           ${{ inputs.path }}/target/
-        key: ${{ runner.os }}-cargo-${{ inputs.path }}-${{ inputs.target }}-${{ hashFiles(format('{0}/Cargo.lock', inputs.path)) }}
+        key: ${{ runner.os }}-cargo-test-${{ inputs.path }}-${{ hashFiles(format('{0}/Cargo.lock', inputs.path)) }}
         restore-keys: |
-          ${{ runner.os }}-cargo-${{ inputs.path }}-${{ inputs.target }}-
-          ${{ runner.os }}-cargo-${{ inputs.path }}-
-          ${{ runner.os }}-cargo-
+          ${{ runner.os }}-cargo-test-${{ inputs.path }}-
+          ${{ runner.os }}-cargo-test-
 
     - name: Test
       shell: bash
-      run: time namui test ${{ inputs.target }} -m ${{ inputs.path }}/Cargo.toml
+      run: time cargo test  --manifest-path ${{ inputs.path }}/Cargo.toml
 
     - name: Did you push Cargo.lock
       shell: bash

@@ -2,11 +2,14 @@ name: Init test job
 runs:
   using: composite
   steps:
-    - uses: ./.github/actions/restore-docker-image
-
     - uses: actions-rs/toolchain@v1
       with:
         toolchain: 1.65
+
+    - name: Run sccache-cache
+      uses: mozilla-actions/sccache-action@v0.0.3
+
+    - uses: Swatinem/rust-cache@v2
 
     - name: wasm-pack install
       shell: bash
@@ -16,16 +19,11 @@ runs:
       run: time rustup target add wasm32-unknown-unknown
 
     - uses: actions/cache@v3
-      id: rust-cache
       with:
         path: |
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          ./**/target/
+          namui-cli/target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('namui-cli/Cargo.lock') }}
         restore-keys: ${{ runner.os }}-cargo-
-        
 
     - name: Get npm cache directory
       id: npm-cache-dir

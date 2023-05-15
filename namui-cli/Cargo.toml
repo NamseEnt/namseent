@@ -25,6 +25,7 @@ namui-user-config = { path = "../namui-user-config" }
 tokio-util = { version = "0.7.1", features = ["codec"] }
 urlencoding = "2.1"
 clap_complete = "4.2.0"
+anyhow = "1.0.71"
 
 [build-dependencies]
 clap = { version = "*", features = ["derive"] }
