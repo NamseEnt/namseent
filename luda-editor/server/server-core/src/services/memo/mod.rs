@@ -26,11 +26,8 @@ impl rpc::MemoService<SessionDocument> for MemoService {
                 pk_sequence_id: req.sequence_id,
             }
             .run()
-            .await;
-            if let Err(error) = memo_documents {
-                return Err(rpc::list_sequence_memos::Error::Unknown(error.to_string()));
-            }
-            let memo_documents = memo_documents.unwrap();
+            .await
+            .map_err(|error| rpc::list_sequence_memos::Error::Unknown(error.to_string()))?;
 
             let memos = memo_documents
                 .into_iter()
@@ -57,11 +54,8 @@ impl rpc::MemoService<SessionDocument> for MemoService {
                 pk_id: req.sequence_id,
             }
             .run()
-            .await;
-            if let Err(error) = sequence_document {
-                return Err(rpc::create_memo::Error::Unknown(error.to_string()));
-            }
-            let sequence_document = sequence_document.unwrap();
+            .await
+            .map_err(|error| rpc::create_memo::Error::Unknown(error.to_string()))?;
 
             let is_project_editor = crate::services()
                 .project_service
@@ -116,11 +110,8 @@ impl rpc::MemoService<SessionDocument> for MemoService {
                 pk_id: req.sequence_id,
             }
             .run()
-            .await;
-            if let Err(error) = sequence_document {
-                return Err(rpc::delete_memo::Error::Unknown(error.to_string()));
-            }
-            let sequence_document = sequence_document.unwrap();
+            .await
+            .map_err(|error| rpc::delete_memo::Error::Unknown(error.to_string()))?;
 
             let is_project_editor = crate::services()
                 .project_service
