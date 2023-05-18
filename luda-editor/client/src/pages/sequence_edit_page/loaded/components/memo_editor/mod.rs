@@ -7,6 +7,7 @@ use rpc::data::Memo;
 pub use update::*;
 
 pub struct MemoEditor {
+    sequence_id: Uuid,
     cut_id: Uuid,
     text_input: TextInput,
     text: String,
@@ -19,7 +20,7 @@ pub struct Props {
 pub enum Event {
     OpenMemoEditor { cut_id: Uuid },
     CloseMemoEditor,
-    AddCutMemo { cut_id: Uuid, memo: Memo },
+    MemoCreated { memo: Memo },
 }
 
 enum InternalEvent {
@@ -28,8 +29,9 @@ enum InternalEvent {
 }
 
 impl MemoEditor {
-    pub fn new(cut_id: Uuid) -> Self {
+    pub fn new(sequence_id: Uuid, cut_id: Uuid) -> Self {
         Self {
+            sequence_id,
             cut_id,
             text_input: TextInput::new(),
             text: "".to_string(),

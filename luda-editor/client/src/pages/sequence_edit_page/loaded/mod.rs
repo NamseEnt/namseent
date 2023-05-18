@@ -8,7 +8,7 @@ use namui::prelude::*;
 use namui_prebuilt::*;
 pub use render::Props;
 use rpc::data::*;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 pub struct LoadedSequenceEditorPage {
     project_shared_data: ProjectSharedData,
@@ -26,6 +26,8 @@ pub struct LoadedSequenceEditorPage {
     character_editor: Option<components::character_editor::CharacterEditor>,
     memo_list_view: components::memo_list_view::MemoListView,
     memo_editor: Option<components::memo_editor::MemoEditor>,
+    cut_id_memo_map: HashMap<Uuid, Vec<Memo>>,
+    user_id: Uuid,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,7 +50,12 @@ enum AddCutPosition {
 }
 
 impl LoadedSequenceEditorPage {
-    pub fn new(project_shared_data: ProjectSharedData, sequence: Sequence) -> Self {
+    pub fn new(
+        project_shared_data: ProjectSharedData,
+        sequence: Sequence,
+        cut_id_memo_map: HashMap<Uuid, Vec<Memo>>,
+        user_id: Uuid,
+    ) -> Self {
         let sequence_syncer = new_sequence_syncer(sequence.clone());
         let project_shared_data_syncer =
             new_project_shared_data_syncer_syncer(project_shared_data.clone());
@@ -69,6 +76,8 @@ impl LoadedSequenceEditorPage {
             character_editor: None,
             memo_list_view: components::memo_list_view::MemoListView::new(),
             memo_editor: None,
+            cut_id_memo_map,
+            user_id,
         }
     }
     fn project_id(&self) -> Uuid {

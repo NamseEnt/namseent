@@ -1,6 +1,9 @@
-mod documents;
+pub mod documents;
 
-use super::project::documents::*;
+use super::{
+    memo::documents::{MemoDocumentDelete, MemoDocumentQuery},
+    project::documents::*,
+};
 use crate::session::SessionDocument;
 use documents::*;
 use futures::future::try_join_all;
@@ -290,7 +293,16 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                 return Err(rpc::delete_sequence::Error::Unauthorized);
             }
 
-            crate::dynamo_db()
+            let memo_ids = MemoDocumentQuery {
+                pk_sequence_id: req.sequence_id,
+            }
+            .run()
+            .await
+            .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?
+            .into_iter()
+            .map(|memo| memo.memo_id);
+
+            let transaction = crate::dynamo_db()
                 .transact()
                 .delete_item(SequenceDocumentDelete {
                     pk_id: req.sequence_id,
@@ -298,7 +310,16 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                 .delete_item(ProjectSequenceDocumentDelete {
                     pk_project_id: sequence.project_id,
                     sk_sequence_id: req.sequence_id,
+                });
+
+            let transaction = memo_ids.fold(transaction, |transaction, memo_id| {
+                transaction.delete_item(MemoDocumentDelete {
+                    pk_sequence_id: req.sequence_id,
+                    sk_memo_id: memo_id,
                 })
+            });
+
+            transaction
                 .send()
                 .await
                 .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?;

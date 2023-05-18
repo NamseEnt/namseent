@@ -12,7 +12,8 @@ pub struct MemoListView {
 pub struct Props<'a> {
     pub wh: Wh<Px>,
     pub memos: &'a Vec<Memo>,
-    pub cut_id: Uuid,
+    pub sequence_id: Uuid,
+    pub user_id: Uuid,
 }
 
 impl MemoListView {
@@ -24,5 +25,5 @@ impl MemoListView {
 }
 
 pub enum Event {
-    RemoveCutMemo { cut_id: Uuid, memo_id: Uuid },
+    MemoDeleted { cut_id: Uuid, memo_id: Uuid },
 }

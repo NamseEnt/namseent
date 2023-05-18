@@ -69,6 +69,7 @@ async fn handle(request: Request<Body>) -> Result<Response<Body>, LambdaError> {
         &services.image_service,
         &services.project_service,
         &services.cg_service,
+        &services.memo_service,
         session,
     )
     .await?;

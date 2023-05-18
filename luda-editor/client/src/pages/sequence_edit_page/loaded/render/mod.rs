@@ -15,6 +15,9 @@ impl LoadedSequenceEditorPage {
             .selected_cut_id
             .and_then(|id| self.sequence.cuts.iter().find(|c| c.id() == id));
 
+        let memos_of_selected_cut =
+            selected_cut.and_then(|cut| self.cut_id_memo_map.get(&cut.id()));
+
         render([
             table::horizontal([
                 table::fixed(220.px(), |wh| {
@@ -23,6 +26,7 @@ impl LoadedSequenceEditorPage {
                         cuts: &self.sequence.cuts,
                         is_focused: self.focused_component == Some(FocusableComponent::CutListView),
                         selected_cut_id: self.selected_cut_id,
+                        cut_id_memo_map: &self.cut_id_memo_map,
                     })
                 }),
                 table::ratio(4, |wh| {
@@ -35,7 +39,7 @@ impl LoadedSequenceEditorPage {
                     })
                 }),
                 self.render_character_editor(selected_cut),
-                self.render_memo_list_view(selected_cut),
+                self.render_memo_list_view(memos_of_selected_cut),
             ])(props.wh),
             context_menu,
             self.render_memo_editor(),
@@ -57,17 +61,18 @@ impl LoadedSequenceEditorPage {
         }
     }
 
-    fn render_memo_list_view<'a>(&'a self, cut: Option<&'a Cut>) -> table::TableCell {
+    fn render_memo_list_view<'a>(&'a self, memos: Option<&'a Vec<Memo>>) -> table::TableCell {
         const MEMO_WINDOW_WIDTH: Px = px(256.0);
 
-        if let Some(cut) = cut {
-            if !cut.memos.is_empty() {
+        if let Some(memos) = memos {
+            if !memos.is_empty() {
                 return table::fixed(MEMO_WINDOW_WIDTH, move |wh| {
                     self.memo_list_view
                         .render(components::memo_list_view::Props {
                             wh,
-                            cut_id: cut.id(),
-                            memos: &cut.memos,
+                            memos,
+                            sequence_id: self.sequence.id(),
+                            user_id: self.user_id,
                         })
                 });
             }

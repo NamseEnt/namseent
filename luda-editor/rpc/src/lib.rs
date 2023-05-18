@@ -56,6 +56,16 @@ define_rpc::define_rpc! {
                 Unknown(String),
             }
         },
+        get_user_id: {
+            pub struct Request {}
+            pub struct Response {
+                pub user_id: crate::Uuid,
+            }
+            Error {
+                InvalidSession,
+                Unknown(String)
+            }
+        },
     },
     SequenceService: {
         list_project_sequences: {
@@ -303,6 +313,47 @@ define_rpc::define_rpc! {
             }
             Error {
                 Unauthorized,
+                Unknown(String),
+            }
+        },
+    },
+    MemoService: {
+        list_sequence_memos: {
+            pub struct Request {
+                pub sequence_id: crate::Uuid,
+            }
+            pub struct Response {
+                pub memos: Vec<crate::data::Memo>,
+            }
+            Error {
+                Unauthorized,
+                Unknown(String),
+            }
+        },
+        create_memo: {
+            pub struct Request {
+                pub sequence_id: crate::Uuid,
+                pub cut_id: crate::Uuid,
+                pub content: String,
+            }
+            pub struct Response {
+                pub memo: crate::data::Memo,
+            }
+            Error {
+                Unauthorized,
+                Unknown(String),
+            }
+        },
+        delete_memo: {
+            pub struct Request {
+                pub sequence_id: crate::Uuid,
+                pub memo_id: crate::Uuid,
+            }
+            pub struct Response {
+            }
+            Error {
+                Unauthorized,
+                Forbidden,
                 Unknown(String),
             }
         },
