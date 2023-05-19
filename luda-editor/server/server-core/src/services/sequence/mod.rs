@@ -293,16 +293,26 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                 return Err(rpc::delete_sequence::Error::Unauthorized);
             }
 
-            let memo_ids = MemoDocumentQuery {
-                pk_sequence_id: req.sequence_id,
-            }
-            .run()
+            try_join_all(
+                MemoDocumentQuery {
+                    pk_sequence_id: req.sequence_id,
+                }
+                .run()
+                .await
+                .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?
+                .into_iter()
+                .map(|memo| {
+                    MemoDocumentDelete {
+                        pk_sequence_id: req.sequence_id,
+                        sk_memo_id: memo.memo_id,
+                    }
+                    .run()
+                }),
+            )
             .await
-            .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?
-            .into_iter()
-            .map(|memo| memo.memo_id);
+            .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?;
 
-            let transaction = crate::dynamo_db()
+            crate::dynamo_db()
                 .transact()
                 .delete_item(SequenceDocumentDelete {
                     pk_id: req.sequence_id,
@@ -310,16 +320,7 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                 .delete_item(ProjectSequenceDocumentDelete {
                     pk_project_id: sequence.project_id,
                     sk_sequence_id: req.sequence_id,
-                });
-
-            let transaction = memo_ids.fold(transaction, |transaction, memo_id| {
-                transaction.delete_item(MemoDocumentDelete {
-                    pk_sequence_id: req.sequence_id,
-                    sk_memo_id: memo_id,
                 })
-            });
-
-            transaction
                 .send()
                 .await
                 .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?;
