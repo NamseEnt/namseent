@@ -148,3 +148,29 @@ impl ScreenCg {
         }
     }
 }
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Memo {
+    pub id: Uuid,
+    pub content: String,
+    pub cut_id: Uuid,
+    pub user_id: Uuid,
+    pub user_name: String,
+}
+impl Memo {
+    pub fn new(
+        id: Uuid,
+        content: impl ToString,
+        cut_id: Uuid,
+        user_id: Uuid,
+        user_name: impl ToString,
+    ) -> Self {
+        Self {
+            id,
+            content: content.to_string(),
+            cut_id,
+            user_id,
+            user_name: user_name.to_string(),
+        }
+    }
+}

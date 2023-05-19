@@ -1,6 +1,9 @@
-mod documents;
+pub mod documents;
 
-use super::project::documents::*;
+use super::{
+    memo::documents::{MemoDocumentDelete, MemoDocumentQuery},
+    project::documents::*,
+};
 use crate::session::SessionDocument;
 use documents::*;
 use futures::future::try_join_all;
@@ -289,6 +292,25 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             if !is_project_editor {
                 return Err(rpc::delete_sequence::Error::Unauthorized);
             }
+
+            try_join_all(
+                MemoDocumentQuery {
+                    pk_sequence_id: req.sequence_id,
+                }
+                .run()
+                .await
+                .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?
+                .into_iter()
+                .map(|memo| {
+                    MemoDocumentDelete {
+                        pk_sequence_id: req.sequence_id,
+                        sk_memo_id: memo.memo_id,
+                    }
+                    .run()
+                }),
+            )
+            .await
+            .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?;
 
             crate::dynamo_db()
                 .transact()

@@ -14,8 +14,25 @@ impl CutListView {
                 height: props.wh.height,
                 scroll_bar_width: 12.px(),
                 item_wh: Wh::new(props.wh.width, 128.px()),
-                items: props.cuts.into_iter().enumerate(),
-                item_render: |wh, (index, cut)| self.render_cut_cell(wh, index, cut, &props),
+                items: props
+                    .cuts
+                    .into_iter()
+                    .zip(
+                        props
+                            .cuts
+                            .iter()
+                            .map(|cut| props.cut_id_memo_map.get(&cut.id())),
+                    )
+                    .enumerate(),
+                item_render: |wh, (index, (cut, memos))| {
+                    self.render_cut_cell(
+                        wh,
+                        index,
+                        cut,
+                        memos.map_or(0, |memos| memos.len()),
+                        &props,
+                    )
+                },
             }),
         ])
         .attach_event(move |builder| {
@@ -42,7 +59,14 @@ impl CutListView {
         })
     }
 
-    fn render_cut_cell(&self, wh: Wh<Px>, index: usize, cut: &Cut, props: &Props) -> RenderingTree {
+    fn render_cut_cell(
+        &self,
+        wh: Wh<Px>,
+        index: usize,
+        cut: &Cut,
+        memo_count: usize,
+        props: &Props,
+    ) -> RenderingTree {
         let cut_id = cut.id();
         let is_focused = props.is_focused;
         let is_selected = props.selected_cut_id == Some(cut_id);
@@ -51,7 +75,21 @@ impl CutListView {
             12.px(),
             table::horizontal([
                 table::fixed(24.px(), |wh| {
-                    typography::body::center_top(wh.width, format!("{}", index), stroke_color)
+                    table::vertical([
+                        table::fit(
+                            table::FitAlign::LeftTop,
+                            typography::body::center_top(
+                                wh.width,
+                                format!("{}", index),
+                                stroke_color,
+                            ),
+                        ),
+                        table::fixed(4.px(), |_| RenderingTree::Empty),
+                        table::fit(
+                            table::FitAlign::LeftTop,
+                            render_comment_badge(wh.width, memo_count, stroke_color),
+                        ),
+                    ])(wh)
                 }),
                 table::ratio(1, |wh| {
                     simple_rect(
@@ -123,4 +161,57 @@ fn handle_enter_key(event: &KeyboardEvent, selected_cut_id: Uuid) {
     namui::event::send(Event::PressEnterOnCut {
         cut_id: selected_cut_id,
     })
+}
+
+fn render_comment_badge(width: Px, memo_count: usize, color: Color) -> RenderingTree {
+    if memo_count == 0 {
+        return RenderingTree::Empty;
+    }
+
+    let memo_count = if memo_count > 9 {
+        "9+".to_string()
+    } else {
+        memo_count.to_string()
+    };
+
+    let path_builder = PathBuilder::new()
+        .move_to(0.05.px(), 0.05.px())
+        .line_to(0.95.px(), 0.05.px())
+        .line_to(0.95.px(), 0.7.px())
+        .line_to(0.8.px(), 0.7.px())
+        .line_to(0.9.px(), 0.8.px())
+        .line_to(0.6.px(), 0.7.px())
+        .line_to(0.05.px(), 0.7.px())
+        .line_to(0.05.px(), 0.05.px())
+        .scale(width.as_f32(), width.as_f32());
+
+    let paint_builder = PaintBuilder::new()
+        .set_style(PaintStyle::Fill)
+        .set_color(color);
+
+    render([
+        path(path_builder, paint_builder),
+        text(TextParam {
+            text: memo_count,
+            x: width * 0.5,
+            y: width * 0.35,
+            align: TextAlign::Center,
+            baseline: TextBaseline::Middle,
+            font_type: FontType {
+                serif: false,
+                size: (width * 0.5).into(),
+                language: Language::Ko,
+                font_weight: FontWeight::BOLD,
+            },
+            style: TextStyle {
+                border: None,
+                drop_shadow: None,
+                color: color::BACKGROUND,
+                background: None,
+                line_height_percent: 100.percent(),
+                underline: None,
+            },
+            max_width: width.into(),
+        }),
+    ])
 }

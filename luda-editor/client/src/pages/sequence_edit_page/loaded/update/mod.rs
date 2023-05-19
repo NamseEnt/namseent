@@ -225,6 +225,32 @@ impl LoadedSequenceEditorPage {
                 } => {
                     self.update_cut(cut_id, |cut| callback(&mut cut.screen_graphics));
                 }
+            })
+            .is::<components::memo_editor::Event>(|event| match event {
+                memo_editor::Event::OpenMemoEditor { cut_id } => {
+                    self.memo_editor = Some(components::memo_editor::MemoEditor::new(
+                        self.sequence.id(),
+                        *cut_id,
+                    ));
+                }
+                memo_editor::Event::CloseMemoEditor => {
+                    self.memo_editor = None;
+                }
+                memo_editor::Event::MemoCreated { memo } => {
+                    match self.cut_id_memo_map.get_mut(&memo.cut_id) {
+                        Some(memos) => memos.push(memo.clone()),
+                        None => {
+                            self.cut_id_memo_map.insert(memo.cut_id, vec![memo.clone()]);
+                        }
+                    }
+                }
+            })
+            .is::<components::memo_list_view::Event>(|event| match event {
+                memo_list_view::Event::MemoDeleted { cut_id, memo_id } => {
+                    self.cut_id_memo_map
+                        .get_mut(cut_id)
+                        .map(|memos| memos.retain(|memo| memo.id != *memo_id));
+                }
             });
 
         self.cut_list_view.update(event);
@@ -232,5 +258,7 @@ impl LoadedSequenceEditorPage {
         self.character_editor
             .as_mut()
             .map(|editor| editor.update(event));
+        self.memo_list_view.update(event);
+        self.memo_editor.as_mut().map(|editor| editor.update(event));
     }
 }
