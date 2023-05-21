@@ -22,8 +22,9 @@ pub struct CgPartVariant {
     pub rect: Rect<Percent>,
 }
 
-#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize, PartialEq)]
 pub enum PartSelectionType {
+    AlwaysOn,
     Single,
     Multi,
 }
