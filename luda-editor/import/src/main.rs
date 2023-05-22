@@ -3,7 +3,8 @@ mod psd_parsing;
 use anyhow::Result;
 use include_dir::{include_dir, Dir};
 use namui_type::Uuid;
-use opencv::prelude::*;
+// use opencv::prelude::*;
+use image::imageops::FilterType;
 use psd_parsing::{parse_psd, PsdParsingResult};
 use rayon::prelude::*;
 use rpc::{
@@ -35,12 +36,12 @@ const CHARACTER_NAMES: [&str; 15] = [
     "피디들",
 ];
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 struct CaseMetadata {
     data: BTreeMap<Uuid, PsdCase>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 struct PsdCase {
     case_id: Uuid,
     cg_file: CgFile,
@@ -53,7 +54,20 @@ fn main() -> Result<()> {
     let input: Input = serde_json::from_str(input).unwrap();
 
     let mut sequence = Sequence::new(uuid(), "0주차-0-카페".to_string());
-    let psd_all_cases = get_psd_all_cases();
+    let psd_all_cases = get_psd_all_cases()?;
+
+    // let psd_all_cases = psd_all_cases
+    //     .into_par_iter()
+    //     .map(|(mut case, image)| {
+    //         let case_id = case.case_id;
+    //         let file_path = format!("output/{case_id}.png");
+    //         let hash = get_image_hash(file_path.as_str());
+
+    //         case.image_hash = hash;
+
+    //         (case, image)
+    //     })
+    //     .collect::<Vec<_>>();
 
     {
         let mut image_urls: BTreeSet<String> = BTreeSet::new();
@@ -64,20 +78,78 @@ fn main() -> Result<()> {
             })
         });
 
-        image_urls
-            .into_par_iter()
+        let result = image_urls
+            // .into_par_iter()
+            .into_iter()
             .map(|image_url| {
                 let image_name = image_url.split('/').last().unwrap();
-                let image = IMAGES_DIR
+                let static_image = IMAGES_DIR
                     .get_file(&format!("{image_name}.png"))
                     .or_else(|| IMAGES_DIR.get_file(&format!("{image_name}.jpg")))
                     .or_else(|| IMAGES_DIR.get_file(&format!("{image_name}.gif")))
-                    .expect(&format!("image not found: {image_name}"))
-                    .contents();
+                    .expect(&format!("image not found: {image_name}"));
 
-                find_psd_for_image(image, &psds)
+                // let image_hash =
+                //     get_image_hash(&format!("src/images/{}", image_path.to_str().unwrap()));
+
+                let image = image::load_from_memory_with_format(
+                    static_image.contents(),
+                    match static_image.path().extension().unwrap().to_str().unwrap() {
+                        "png" => image::ImageFormat::Png,
+                        "jpg" => image::ImageFormat::Jpeg,
+                        _ => unreachable!(),
+                    },
+                )
+                .unwrap();
+                let width = 256;
+                let height = 256;
+                let image = image.resize_to_fill(width, height, FilterType::Nearest);
+                let context = dssim::new();
+                let image = context
+                    .create_image(&imgref::ImgVec::new(
+                        image.to_luma32f().into_raw(),
+                        width as usize,
+                        height as usize,
+                    ))
+                    .unwrap();
+
+                let (distance, psd_case) = psd_all_cases
+                    .par_iter()
+                    .map(move |(case, psd_image)| {
+                        let psd_image_dssim = context
+                            .create_image(&imgref::ImgVec::new(
+                                psd_image.to_luma32f().into_raw(),
+                                width as usize,
+                                height as usize,
+                            ))
+                            .unwrap();
+
+                        let (distance, _) = context.compare(&image, &psd_image_dssim);
+
+                        (f64::from(distance), case)
+                    })
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .reduce(|(min_distance, min_case), (distance, case)| {
+                        if distance < min_distance {
+                            (distance, case)
+                        } else {
+                            (min_distance, min_case)
+                        }
+                    })
+                    .unwrap();
+
+                println!(
+                    "{distance}] {case_id} <-> {image_url}",
+                    case_id = psd_case.case_id,
+                );
+                (distance, psd_case, image_url)
             })
             .collect::<Vec<_>>();
+
+        for (distance, PsdCase { case_id, .. }, image_url) in result {
+            println!("{distance}] {case_id} <-> {image_url}");
+        }
     };
 
     // for Page { images, texts } in input.pages {
@@ -98,131 +170,140 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+// fn get_image_hash(path: &str) -> u64 {
+//     let mut hash_output = opencv::core::Mat::default();
+//     let mat =
+//         opencv::imgcodecs::imread(path, 0).expect(format!("failed to read image {path}").as_str());
+//     // opencv::img_hash::block_mean_hash(&mat, &mut hash_output, 0)
+//     //     .expect(format!("failed to hash image {path}").as_str());
+//     opencv::img_hash::p_hash(&mat, &mut hash_output)
+//         .expect(format!("failed to hash image {path}").as_str());
+//     hash_output
+//         .data_bytes()
+//         .unwrap()
+//         .into_iter()
+//         .fold(0, |acc, x| (acc << 8) | *x as u64)
+// }
+
 fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
-    let psds = PSDS_DIR
-        .files()
-        .par_bridge()
-        .map(|psd_file| {
-            parse_psd(
-                psd_file.contents(),
-                psd_file.path().file_name().unwrap().to_str().unwrap(),
-            )
-            .expect(format!("failed to parse psd: {:?}", psd_file.path()).as_str())
-        })
-        .collect::<Vec<_>>();
+    // let psds = PSDS_DIR
+    //     .files()
+    //     .par_bridge()
+    //     .map(|psd_file| {
+    //         parse_psd(
+    //             psd_file.contents(),
+    //             psd_file.path().file_name().unwrap().to_str().unwrap(),
+    //         )
+    //         .expect(format!("failed to parse psd: {:?}", psd_file.path()).as_str())
+    //     })
+    //     .collect::<Vec<_>>();
 
-    for psd in psds.iter() {
-        if psd.variants_images.is_empty() {
-            panic!("psd has no variants: {:?}", psd.cg_file);
-        }
-    }
+    // for psd in psds.iter() {
+    //     if psd.variants_images.is_empty() {
+    //         panic!("psd has no variants: {:?}", psd.cg_file);
+    //     }
+    // }
 
-    fs::create_dir_all("output")?;
+    // fs::create_dir_all("output")?;
 
-    let psd_all_cases: Vec<(PsdCase, image::DynamicImage)> =
-        psds.into_par_iter()
-            .flat_map(
-                |PsdParsingResult {
-                     variants_images,
-                     cg_file,
-                     wh,
-                 }| {
-                    fn generate_all_cases(parts: Vec<CgPart>) -> Vec<Vec<CgPartVariant>> {
-                        if parts.len() == 0 {
-                            return vec![];
-                        }
-                        let (first_part, rest_parts) = parts.split_first().unwrap();
-                        let variant_cases = variant_cases(first_part.clone());
-                        let rest_parts_cases = generate_all_cases(rest_parts.to_vec());
-                        if rest_parts_cases.is_empty() {
-                            return variant_cases.into_iter().map(|x| vec![x]).collect();
-                        }
+    // let psd_all_cases: Vec<(PsdCase, image::DynamicImage)> =
+    //     psds.into_par_iter()
+    //         .flat_map(
+    //             |PsdParsingResult {
+    //                  variants_images,
+    //                  cg_file,
+    //                  wh,
+    //              }| {
+    //                 fn generate_all_cases(parts: Vec<CgPart>) -> Vec<Vec<CgPartVariant>> {
+    //                     if parts.len() == 0 {
+    //                         return vec![];
+    //                     }
+    //                     let (first_part, rest_parts) = parts.split_first().unwrap();
+    //                     let variant_cases = variant_cases(first_part.clone());
+    //                     let rest_parts_cases = generate_all_cases(rest_parts.to_vec());
+    //                     if rest_parts_cases.is_empty() {
+    //                         return variant_cases.into_iter().map(|x| vec![x]).collect();
+    //                     }
 
-                        variant_cases
-                            .into_iter()
-                            .flat_map(|variant| {
-                                rest_parts_cases.clone().into_iter().map(
-                                    move |mut rest_parts_case| {
-                                        rest_parts_case.insert(0, variant.clone());
-                                        rest_parts_case
-                                    },
-                                )
-                            })
-                            .collect::<Vec<_>>()
-                    }
+    //                     variant_cases
+    //                         .into_iter()
+    //                         .flat_map(|variant| {
+    //                             rest_parts_cases.clone().into_iter().map(
+    //                                 move |mut rest_parts_case| {
+    //                                     rest_parts_case.insert(0, variant.clone());
+    //                                     rest_parts_case
+    //                                 },
+    //                             )
+    //                         })
+    //                         .collect::<Vec<_>>()
+    //                 }
 
-                    let all_cases = generate_all_cases(cg_file.parts.clone());
+    //                 let all_cases = generate_all_cases(cg_file.parts.clone());
 
-                    all_cases.into_par_iter().map(move |variants| {
-                        let cg_file = cg_file.clone();
+    //                 all_cases.into_par_iter().map(move |variants| {
+    //                     let cg_file = cg_file.clone();
 
-                        let layer_images = variants
-                            .clone()
-                            .into_par_iter()
-                            .map(|variant| {
-                                variants_images
-                                    .iter()
-                                    .find_map(|variants_image| {
-                                        if variants_image.variant_id == variant.id {
-                                            Some(&variants_image.image_buffer)
-                                        } else {
-                                            None
-                                        }
-                                    })
-                                    .unwrap()
-                            })
-                            .collect::<Vec<_>>();
+    //                     let layer_images = variants
+    //                         .clone()
+    //                         .into_par_iter()
+    //                         .map(|variant| {
+    //                             variants_images
+    //                                 .iter()
+    //                                 .find_map(|variants_image| {
+    //                                     if variants_image.variant_id == variant.id {
+    //                                         Some(&variants_image.image_buffer)
+    //                                     } else {
+    //                                         None
+    //                                     }
+    //                                 })
+    //                                 .unwrap()
+    //                         })
+    //                         .collect::<Vec<_>>();
 
-                        let mut bottom =
-                            image::ImageBuffer::<image::Rgba<u8>, _>::new(wh.width, wh.height);
+    //                     let mut bottom =
+    //                         image::ImageBuffer::<image::Rgba<u8>, _>::new(wh.width, wh.height);
 
-                        for part_image in layer_images.into_iter().rev() {
-                            image::imageops::overlay(&mut bottom, part_image, 0, 0);
-                        }
+    //                     for part_image in layer_images.into_iter().rev() {
+    //                         image::imageops::overlay(&mut bottom, part_image, 0, 0);
+    //                     }
 
-                        let case_id = namui_type::uuid_from_hash(
-                            variants.iter().map(|x| x.id).collect::<Vec<_>>(),
-                        );
+    //                     let case_id = namui_type::uuid_from_hash(
+    //                         variants.iter().map(|x| x.id).collect::<Vec<_>>(),
+    //                     );
 
-                        let file_path = format!("output/{case_id}.png");
-                        bottom.save(&file_path).unwrap();
+    //                     let file_path = format!("output/{case_id}.png");
+    //                     bottom.save(&file_path).unwrap();
 
-                        let mut hash_output = opencv::core::Mat::default();
-                        let mat = opencv::imgcodecs::imread(file_path.as_ref(), 0).unwrap();
-                        opencv::img_hash::block_mean_hash(&mat, &mut hash_output, 0).unwrap();
-                        let image_hash: u64 = hash_output
-                            .data_bytes()
-                            .unwrap()
-                            .into_iter()
-                            .fold(0, |acc, x| (acc << 8) | *x as u64);
+    //                     // let image_hash = get_image_hash(&file_path);
+    //                     let image_hash = 0;
 
-                        (
-                            PsdCase {
-                                cg_file,
-                                image_hash,
-                                variants,
-                                case_id,
-                            },
-                            bottom.into(),
-                        )
-                    })
-                },
-            )
-            .collect::<Vec<_>>();
+    //                     (
+    //                         PsdCase {
+    //                             cg_file,
+    //                             image_hash,
+    //                             variants,
+    //                             case_id,
+    //                         },
+    //                         bottom.into(),
+    //                     )
+    //                 })
+    //             },
+    //         )
+    //         .collect::<Vec<_>>();
 
-    println!("psd_all_cases: {:?}", psd_all_cases.len());
-    let data = psd_all_cases
-        .into_par_iter()
-        .map(|(case, _image)| (case.case_id, case))
-        .collect::<BTreeMap<_, _>>();
+    // println!("psd_all_cases: {:?}", psd_all_cases.len());
+    // let data = psd_all_cases
+    //     .iter()
+    //     .map(|(case, _image)| (case.case_id, case.clone()))
+    //     .collect::<BTreeMap<_, _>>();
 
-    let case_metadata = CaseMetadata { data };
-    fs::write(
-        "output/case_metadata.json",
-        serde_json::to_string_pretty(&case_metadata)?,
-    )?;
+    // let case_metadata = CaseMetadata { data };
+    // fs::write(
+    //     "output/case_metadata.json",
+    //     serde_json::to_string_pretty(&case_metadata)?,
+    // )?;
 
-    panic!("done");
+    // panic!("done");
 
     let metadata: CaseMetadata =
         serde_json::from_str(&fs::read_to_string("output/case_metadata.json")?)?;
@@ -231,8 +312,10 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
         .data
         .into_par_iter()
         .map(|(uuid, case)| {
-            let buffer = image::open(format!("output/{uuid}.png")).unwrap();
-            (case, buffer)
+            let buffer = image::open(format!("output/{uuid}.png"))
+                .unwrap()
+                .resize_to_fill(256, 256, FilterType::Nearest);
+            (case, buffer.to_luma32f().into())
         })
         .collect::<Vec<_>>();
 

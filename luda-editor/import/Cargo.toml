@@ -16,3 +16,7 @@ serde_json = "1.0.96"
 namui-type = { path = "../../namui-type" }
 image = "0.24.6"
 opencv = "0.82.0"
+dhash = "0.1.0"
+dssim = "3.2.4"
+imgref = "1.9.4"
+rgb = "0.8.36"
