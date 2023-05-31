@@ -274,6 +274,7 @@ fn render_thumbnail<'a>(
                                 Box::new(move |graphics| {
                                     if let ScreenGraphic::Cg(cg) = &mut graphics[graphic_index] {
                                         match (selected, selection_type) {
+                                            (true, rpc::data::PartSelectionType::AlwaysOn) => {}
                                             (true, _) => {
                                                 cg.part_variants.retain(|(variant_id, _)| {
                                                     variant_id != &cg_part_variant.id
@@ -291,6 +292,15 @@ fn render_thumbnail<'a>(
                                             (false, rpc::data::PartSelectionType::Multi) => {
                                                 cg.part_variants.retain(|(variant_id, _)| {
                                                     variant_id != &cg_part_variant.id
+                                                });
+                                                cg.part_variants.push((
+                                                    cg_part_variant.id,
+                                                    cg_part_variant.rect,
+                                                ));
+                                            }
+                                            (false, rpc::data::PartSelectionType::AlwaysOn) => {
+                                                cg.part_variants.retain(|(variant_id, _)| {
+                                                    !cg_part_variant_ids.contains(variant_id)
                                                 });
                                                 cg.part_variants.push((
                                                     cg_part_variant.id,
