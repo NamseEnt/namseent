@@ -1,14 +1,9 @@
-use image::Rgba;
+use super::{parse_psd_to_inter_cg_parts::InterCgVariant, *};
+use image::ImageBuffer;
 use libwebp_sys::WebPEncodeLosslessRGBA;
 use namui_type::*;
 use rayon::prelude::*;
 use rpc::data::*;
-
-struct ImageBuffer {
-    id: Uuid,
-    buffer: Vec<u8>,
-    rect: Rect<Px>,
-}
 
 pub(crate) struct PsdParsingResult {
     pub(crate) variants_webps: Vec<(Uuid, Vec<u8>)>,
@@ -16,129 +11,58 @@ pub(crate) struct PsdParsingResult {
     pub(crate) cg_thumbnail_webp: Vec<u8>,
 }
 
+pub(crate) struct VariantImageBuffer {
+    pub(crate) variant_id: Uuid,
+    pub(crate) image_buffer: image::ImageBuffer<image::Rgba<u8>, Vec<u8>>,
+    pub(crate) xy: Xy<Px>,
+}
+
 pub(crate) fn psd_to_webps_and_cg_file(
     psd_bytes: &[u8],
     filename: &str,
 ) -> Result<PsdParsingResult, psd::PsdError> {
     let psd = psd::Psd::from_bytes(psd_bytes)?;
-    let mut parts: Vec<CgPart> = vec![];
 
-    let mut image_buffers = vec![];
+    let inter_cg_parts = parse_psd_to_inter_cg_parts::parse_psd_to_inter_cg_parts(&psd);
 
-    for group_id in psd.group_ids_in_order() {
-        let group = psd.groups().get(group_id).unwrap();
-        let group_name = group.name();
-        let selection_type = if group_name.ends_with("_s") {
-            PartSelectionType::Single
-        } else if group_name.ends_with("_m") {
-            PartSelectionType::Multi
-        } else {
-            continue;
-        };
+    let (parts, image_buffers) = inter_cg_parts
+        .into_par_iter()
+        .map(|inter_cg_part| {
+            let (variants, image_buffers) = inter_cg_part
+                .variants
+                .into_par_iter()
+                .map(|inter_cg_variant| {
+                    inter_cg_variant_to_cg_variant_and_image_buffer(
+                        filename,
+                        &psd,
+                        inter_cg_variant,
+                    )
+                })
+                .unzip::<_, _, Vec<_>, Vec<_>>();
 
-        let mut variants = vec![];
-
-        for layer in psd.layers() {
-            if layer.parent_id() != Some(*group_id) {
-                continue;
-            }
-
-            let layer_name = layer.name().to_string();
-
-            let cropped = crop(
-                layer.rgba(),
-                Wh::new(psd.width() as usize, psd.height() as usize),
-                Rect::Xywh {
-                    x: layer.layer_left() as usize,
-                    y: layer.layer_top() as usize,
-                    width: layer.width() as usize,
-                    height: layer.height() as usize,
+            (
+                CgPart {
+                    name: inter_cg_part.part_name,
+                    selection_type: inter_cg_part.selection_type,
+                    variants,
                 },
-            );
+                image_buffers,
+            )
+        })
+        .unzip::<_, _, Vec<_>, Vec<_>>();
 
-            let id = namui_type::uuid_from_hash(format!(
-                "{filename}.{parent_names}.{layer_name}",
-                parent_names = concat_parent_names(&psd, layer.parent_id())
-            ));
-
-            let image_buffer = ImageBuffer {
-                id,
-                buffer: cropped,
-                rect: Rect::Xywh {
-                    x: layer.layer_left().px(),
-                    y: layer.layer_top().px(),
-                    width: (layer.width() as i32).px(),
-                    height: (layer.height() as i32).px(),
-                },
-            };
-
-            variants.push(CgPartVariant {
-                name: layer_name,
-                id,
-                rect: Rect::Xywh {
-                    x: ((layer.layer_left() as f32 / psd.width() as f32) * 100.0).percent(),
-                    y: ((layer.layer_top() as f32 / psd.height() as f32) * 100.0).percent(),
-                    width: ((layer.width() as f32 / psd.width() as f32) * 100.0).percent(),
-                    height: ((layer.height() as f32 / psd.height() as f32) * 100.0).percent(),
-                },
-            });
-            image_buffers.push(image_buffer);
-        }
-
-        for (group_id, group) in psd.groups() {
-            if group.parent_id() != Some(*group_id) {
-                continue;
-            }
-
-            let name = group.name().to_string();
-
-            let id = namui_type::uuid_from_hash(format!(
-                "{filename}.{parent_names}.{name}",
-                parent_names = concat_parent_names(&psd, group.parent_id())
-            ));
-
-            let image_buffer = ImageBuffer {
-                id,
-                buffer: psd
-                    .flatten_layers_rgba(&|(_, layer)| layer.parent_id() == Some(*group_id))?,
-                rect: Rect::Xywh {
-                    x: 0.px(),
-                    y: 0.px(),
-                    width: (psd.width() as i32).px(),
-                    height: (psd.height() as i32).px(),
-                },
-            };
-
-            variants.push(CgPartVariant {
-                name,
-                id,
-                rect: Rect::Xywh {
-                    x: 0.percent(),
-                    y: 0.percent(),
-                    width: 100.percent(),
-                    height: 100.percent(),
-                },
-            });
-            image_buffers.push(image_buffer);
-        }
-
-        parts.push(CgPart {
-            name: concat_parent_names(&psd, group.parent_id()) + group.name(),
-            selection_type,
-            variants,
-        });
-    }
-
+    let image_buffers = image_buffers.into_iter().flatten().collect::<Vec<_>>();
     let webps = image_buffers
         .par_iter()
         .map(
-            |&ImageBuffer {
-                 id,
-                 ref buffer,
-                 rect,
+            |&VariantImageBuffer {
+                 variant_id,
+                 ref image_buffer,
+                 ..
              }| {
-                let webp = encode_rgba_webp(&buffer, rect.width().into(), rect.height().into());
-                (id, webp)
+                let webp =
+                    encode_rgba_webp(&image_buffer, image_buffer.width(), image_buffer.height());
+                (variant_id, webp)
             },
         )
         .collect::<Vec<_>>();
@@ -152,7 +76,7 @@ pub(crate) fn psd_to_webps_and_cg_file(
                     image_buffers
                         .iter()
                         .find_map(|image_buffer| {
-                            if image_buffer.id == variant.id {
+                            if image_buffer.variant_id == variant.id {
                                 Some(image_buffer)
                             } else {
                                 None
@@ -163,11 +87,7 @@ pub(crate) fn psd_to_webps_and_cg_file(
             })
             .collect();
         let merged_image = merge_images(part_images, psd.width() as usize, psd.height() as usize);
-        encode_rgba_webp(
-            &merged_image,
-            (psd.width() as i32).px(),
-            (psd.height() as i32).px(),
-        )
+        encode_rgba_webp(&merged_image, psd.width(), psd.height())
     };
 
     Ok(PsdParsingResult {
@@ -182,45 +102,42 @@ pub(crate) fn psd_to_webps_and_cg_file(
     })
 }
 
-fn merge_images(part_images: Vec<&ImageBuffer>, psd_width: usize, psd_height: usize) -> Vec<u8> {
+fn merge_images(
+    part_images: Vec<&VariantImageBuffer>,
+    psd_width: usize,
+    psd_height: usize,
+) -> Vec<u8> {
     let mut bottom =
         image::ImageBuffer::<image::Rgba<u8>, _>::new(psd_width as u32, psd_height as u32);
 
     for part_image in part_images.into_iter() {
-        let part_iamge_width = part_image.rect.width().as_f32() as u32;
-        let part_iamge_height = part_image.rect.height().as_f32() as u32;
+        let part_iamge_width = part_image.image_buffer.width();
+        let part_iamge_height = part_image.image_buffer.height();
 
         assert_eq!(
             part_iamge_width * part_iamge_height * 4,
-            part_image.buffer.len() as u32
+            part_image.image_buffer.len() as u32
         );
-
-        let image = image::ImageBuffer::from_vec(
-            part_image.rect.width().as_f32() as u32,
-            part_image.rect.height().as_f32() as u32,
-            part_image.buffer.clone(),
-        )
-        .unwrap();
 
         image::imageops::overlay(
             &mut bottom,
-            &image,
-            part_image.rect.x().as_f32() as i64,
-            part_image.rect.y().as_f32() as i64,
+            &part_image.image_buffer,
+            part_image.xy.x.as_f32() as i64,
+            part_image.xy.y.as_f32() as i64,
         );
     }
 
     bottom.into_raw()
 }
 
-fn encode_rgba_webp(input_image: &[u8], width: Px, height: Px) -> Vec<u8> {
+fn encode_rgba_webp(input_image: &[u8], width: u32, height: u32) -> Vec<u8> {
     unsafe {
         let mut out_buf = std::ptr::null_mut();
-        let stride = width.as_f32() as i32 * 4;
+        let stride = width as i32 * 4;
         let len = WebPEncodeLosslessRGBA(
             input_image.as_ptr(),
-            width.as_f32() as i32,
-            height.as_f32() as i32,
+            width as i32,
+            height as i32,
             stride,
             &mut out_buf,
         );
@@ -228,34 +145,87 @@ fn encode_rgba_webp(input_image: &[u8], width: Px, height: Px) -> Vec<u8> {
     }
 }
 
-pub fn crop(input_image: Vec<u8>, source_wh: Wh<usize>, crop_rect: Rect<usize>) -> Vec<u8> {
-    let mut buffer: image::ImageBuffer<Rgba<u8>, _> =
-        image::ImageBuffer::from_raw(source_wh.width as u32, source_wh.height as u32, input_image)
-            .unwrap();
+fn inter_cg_variant_to_cg_variant_and_image_buffer(
+    filename: &str,
+    psd: &psd::Psd,
+    inter_cg_variant: InterCgVariant,
+) -> (CgPartVariant, VariantImageBuffer) {
+    let id = namui_type::uuid_from_hash(format!(
+        "{filename}.{part_name}.{variant_name}",
+        part_name = inter_cg_variant.part_name,
+        variant_name = inter_cg_variant.variant_name,
+    ));
 
-    let cropped = image::imageops::crop(
-        &mut buffer,
-        crop_rect.x() as u32,
-        crop_rect.y() as u32,
-        crop_rect.width() as u32,
-        crop_rect.height() as u32,
-    );
+    let width = psd.width();
+    let height = psd.height();
 
-    cropped.to_image().into_raw()
-}
+    let rect_in_pixel = {
+        let rect = inter_cg_variant.layers.iter().fold(
+            Rect::<i32>::Ltrb {
+                left: width as i32,
+                top: height as i32,
+                right: 0,
+                bottom: 0,
+            },
+            |acc, layer| {
+                let rect = Rect::Xywh {
+                    x: layer.layer_left(),
+                    y: layer.layer_top(),
+                    width: layer.width() as i32,
+                    height: layer.height() as i32,
+                };
+                acc.get_minimum_rectangle_containing(rect)
+            },
+        );
+        Rect::Xywh {
+            x: rect.x().px(),
+            y: rect.y().px(),
+            width: rect.width().px(),
+            height: rect.height().px(),
+        }
+    };
+    let rect_in_percent: Rect<Percent> = Rect::Xywh {
+        x: (100.0 * rect_in_pixel.x().as_f32() / width as f32).percent(),
+        y: (100.0 * rect_in_pixel.y().as_f32() / height as f32).percent(),
+        width: (100.0 * rect_in_pixel.width().as_f32() / width as f32).percent(),
+        height: (100.0 * rect_in_pixel.height().as_f32() / height as f32).percent(),
+    };
 
-fn concat_parent_names(psd: &psd::Psd, mut parent_group_id: Option<u32>) -> String {
-    let mut parent_names = vec![];
+    let images = inter_cg_variant
+        .layers
+        .into_par_iter()
+        .map(|layer| image::ImageBuffer::from_vec(width, height, layer.rgba()).unwrap())
+        .collect::<Vec<_>>();
 
-    while let Some(group_id) = parent_group_id {
-        let (_, parent_group) = psd
-            .groups()
-            .into_iter()
-            .find(|(x, _)| **x == group_id)
-            .unwrap();
-        parent_names.insert(0, parent_group.name().to_string());
-        parent_group_id = parent_group.parent_id();
+    let mut bottom = image::ImageBuffer::<image::Rgba<u8>, _>::new(width, height);
+    for image in images.into_iter().rev() {
+        image::imageops::overlay(&mut bottom, &image, 0, 0);
     }
 
-    parent_names.join(".")
+    let cropped = {
+        let mut cropped = ImageBuffer::<image::Rgba<u8>, _>::new(
+            rect_in_pixel.width().as_f32() as u32,
+            rect_in_pixel.height().as_f32() as u32,
+        );
+        image::imageops::overlay(
+            &mut cropped,
+            &bottom,
+            -rect_in_pixel.x().as_f32() as i64,
+            -rect_in_pixel.y().as_f32() as i64,
+        );
+        cropped
+    };
+
+    (
+        CgPartVariant {
+            id,
+            name: inter_cg_variant.variant_name,
+            rect: rect_in_percent,
+        },
+        VariantImageBuffer {
+            variant_id: id,
+            image_buffer: cropped,
+            xy: rect_in_pixel.xy(),
+        },
+    )
 }
