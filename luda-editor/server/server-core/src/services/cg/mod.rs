@@ -1,4 +1,5 @@
 pub mod documents;
+mod parse_psd_to_inter_cg_parts;
 mod psd_to_cg_file;
 
 use self::{
