@@ -1678,8 +1678,6 @@ dependencies = [
 [[package]]
 name = "psd"
 version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1316f4ee59cdc95fc98e4e892a7edacaf1575620ca9e96abd421a2766fe45984"
 dependencies = [
  "thiserror",
 ]
