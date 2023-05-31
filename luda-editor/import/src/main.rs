@@ -60,8 +60,7 @@ struct PsdCase {
 
 fn main() -> Result<()> {
     let input = include_str!("input.json");
-    let mut input: Input = serde_json::from_str(input).unwrap();
-    input.pages.splice(20.., std::iter::empty());
+    let input: Input = serde_json::from_str(input).unwrap();
 
     let mut sequence = Sequence::new(uuid(), "0주차-0-카페".to_string());
     let psd_all_cases = get_psd_all_cases()?;
