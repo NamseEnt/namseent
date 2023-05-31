@@ -84,6 +84,31 @@ fn inter_cg_variant_to_cg_variant_and_image_buffer(
     let height = psd.height();
 
     let mut bottom = image::ImageBuffer::<image::Rgba<u8>, _>::new(width, height);
+    let rect: Rect<Percent> = {
+        let rect_in_pixel = inter_cg_variant.layers.iter().fold(
+            Rect::<i32>::Ltrb {
+                left: width as i32,
+                top: height as i32,
+                right: 0,
+                bottom: 0,
+            },
+            |acc, layer| {
+                let rect = Rect::Xywh {
+                    x: layer.layer_left(),
+                    y: layer.layer_top(),
+                    width: layer.width() as i32,
+                    height: layer.height() as i32,
+                };
+                acc.get_minimum_rectangle_containing(rect)
+            },
+        );
+        Rect::Xywh {
+            x: (100.0 * rect_in_pixel.x() as f32 / width as f32).percent(),
+            y: (100.0 * rect_in_pixel.y() as f32 / height as f32).percent(),
+            width: (100.0 * rect_in_pixel.width() as f32 / width as f32).percent(),
+            height: (100.0 * rect_in_pixel.height() as f32 / height as f32).percent(),
+        }
+    };
 
     let images = inter_cg_variant
         .layers
@@ -99,11 +124,27 @@ fn inter_cg_variant_to_cg_variant_and_image_buffer(
         CgPartVariant {
             id,
             name: inter_cg_variant.variant_name,
-            rect: Default::default(), // TODO
+            rect,
         },
         VariantImageBuffer {
             variant_id: id,
             image_buffer: bottom.into(),
         },
     )
+}
+
+fn concat_parent_names(psd: &psd::Psd, mut parent_group_id: Option<u32>) -> String {
+    let mut parent_names = vec![];
+
+    while let Some(group_id) = parent_group_id {
+        let (_, parent_group) = psd
+            .groups()
+            .into_iter()
+            .find(|(x, _)| **x == group_id)
+            .unwrap();
+        parent_names.insert(0, parent_group.name().to_string());
+        parent_group_id = parent_group.parent_id();
+    }
+
+    parent_names.join(".")
 }
