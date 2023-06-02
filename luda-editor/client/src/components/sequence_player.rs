@@ -453,7 +453,7 @@ pub fn render_graphic(
             let outer_rect =
                 calculate_graphic_rect_on_screen(image.size(), wh, screen_cg.circumscribed);
 
-            Some(render(screen_cg.part_variants.iter().filter_map(
+            Some(render(screen_cg.part_variants.iter().rev().filter_map(
                 |(variant_id, rect)| {
                     let rect = Rect::Xywh {
                         x: outer_rect.x() + outer_rect.width() * rect.x(),
