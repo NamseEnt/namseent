@@ -100,7 +100,7 @@ fn main() -> Result<()> {
         image_url_psd_case_map
     };
 
-    let mut used_background_image_names = BTreeSet::<String>::new();
+    let mut used_background_images = HashMap::<Uuid, String>::new();
     let mut used_cg_file_names = BTreeSet::<String>::new();
     for Page { images, texts } in input.pages {
         let mut cut = Cut::new(uuid());
@@ -111,7 +111,7 @@ fn main() -> Result<()> {
             images,
             &image_url_psd_case_map,
             &plain_image_id_set,
-            &mut used_background_image_names,
+            &mut used_background_images,
             &mut used_cg_file_names,
         );
 
@@ -119,7 +119,10 @@ fn main() -> Result<()> {
     }
 
     println!("Used background image urls, please upload them to project as image");
-    let mut used_background_image_names = used_background_image_names.iter().collect::<Vec<_>>();
+    let mut used_background_image_names = used_background_images
+        .iter()
+        .map(|(_, name)| name)
+        .collect::<Vec<_>>();
     used_background_image_names.sort();
     for image_name in used_background_image_names {
         println!("{image_name}");
@@ -541,7 +544,7 @@ fn handle_images(
     images: Vec<Image>,
     image_url_psd_case_map: &HashMap<String, (f64, &PsdCase, Uuid)>,
     plain_image_id_set: &HashSet<Uuid>,
-    used_background_image_names: &mut BTreeSet<String>,
+    used_background_images: &mut HashMap<Uuid, String>,
     used_cg_file_names: &mut BTreeSet<String>,
 ) {
     let mut character_images = vec![];
@@ -552,7 +555,8 @@ fn handle_images(
 
         if plain_image_id_set.contains(image_id) || *distance >= BACKGROUND_IMAGE_DISTANCE_THRESHOLD
         {
-            used_background_image_names.insert(image.url.split('/').last().unwrap().to_string());
+            used_background_images
+                .insert(*image_id, image.url.split('/').last().unwrap().to_string());
             background_images.push((image, psd_case, image_id));
         } else {
             used_cg_file_names.insert(psd_case.cg_file.name.clone());
