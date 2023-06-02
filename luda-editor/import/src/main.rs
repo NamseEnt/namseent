@@ -15,7 +15,7 @@ use rpc::{
     uuid,
 };
 use std::{
-    collections::{BTreeMap, BTreeSet, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap, HashSet},
     fs,
 };
 
@@ -42,8 +42,9 @@ const BACKGROUND_IMAGE_DISTANCE_THRESHOLD: f64 = 0.85;
 ///
 /// 0. Generate psd cases and save them to `output/case_metadata.json`, `output/{case_uuid}`.
 /// 1. Measure distance between psd cases and input image and save them to `src/distance_psd_image_triples.json`.
-/// 2. Generate sequence and save it to `sequence.json`.
-const CHECKPOINT: usize = 2;
+/// 2. Generate plain image ids and save them to `src/definite_plain_image_ids.json`.
+/// 3. Generate sequence and save it to `sequence.json`.
+const CHECKPOINT: usize = 3;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 struct CaseMetadata {
@@ -80,6 +81,8 @@ fn main() -> Result<()> {
 
     let distance_psd_image_triples = get_distance_psd_image_triples(&input, &psd_all_cases);
 
+    let plain_image_id_set = get_plain_image_id_set();
+
     let image_url_psd_case_map = {
         let mut image_url_psd_case_map = HashMap::<String, (f64, &PsdCase, Uuid)>::new();
         for (distance, psd_case, image_url, image_id) in distance_psd_image_triples.into_iter() {
@@ -107,6 +110,7 @@ fn main() -> Result<()> {
             &mut cut,
             images,
             &image_url_psd_case_map,
+            &plain_image_id_set,
             &mut used_background_image_names,
             &mut used_cg_file_names,
         );
@@ -132,6 +136,36 @@ fn main() -> Result<()> {
     fs::write("sequence.json", sequence_json).unwrap();
 
     Ok(())
+}
+
+fn get_plain_image_id_set() -> HashSet<Uuid> {
+    if CHECKPOINT == 2 {
+        let plain_image_names: Vec<String> =
+            serde_json::from_str(include_str!("plain_image_names.json")).unwrap();
+
+        let result =
+            HashSet::<Uuid>::from_par_iter(plain_image_names.into_par_iter().map(|image_name| {
+                let static_image = IMAGES_DIR
+                    .get_file(&format!("{image_name}.png"))
+                    .or_else(|| IMAGES_DIR.get_file(&format!("{image_name}.jpg")))
+                    .or_else(|| IMAGES_DIR.get_file(&format!("{image_name}.gif")))
+                    .expect(&format!("image not found: {image_name}"));
+
+                let image_id = get_image_id(static_image.contents());
+                image_id
+            }));
+
+        let plain_image_ids_json = serde_json::to_string(&result).unwrap();
+
+        fs::write("src/plain_image_ids.json", plain_image_ids_json).unwrap();
+
+        panic!("done");
+    }
+
+    let plain_image_ids: HashSet<Uuid> =
+        serde_json::from_str(&fs::read_to_string("src/plain_image_ids.json").unwrap()).unwrap();
+
+    plain_image_ids
 }
 
 fn get_image_id(bytes: &[u8]) -> Uuid {
@@ -506,6 +540,7 @@ fn handle_images(
     cut: &mut Cut,
     images: Vec<Image>,
     image_url_psd_case_map: &HashMap<String, (f64, &PsdCase, Uuid)>,
+    plain_image_id_set: &HashSet<Uuid>,
     used_background_image_names: &mut BTreeSet<String>,
     used_cg_file_names: &mut BTreeSet<String>,
 ) {
@@ -515,12 +550,13 @@ fn handle_images(
     for image in images {
         let (distance, psd_case, image_id) = image_url_psd_case_map.get(&image.url).unwrap();
 
-        if *distance < BACKGROUND_IMAGE_DISTANCE_THRESHOLD {
-            used_cg_file_names.insert(psd_case.cg_file.name.clone());
-            character_images.push((image, psd_case, image_id));
-        } else {
+        if plain_image_id_set.contains(image_id) || *distance >= BACKGROUND_IMAGE_DISTANCE_THRESHOLD
+        {
             used_background_image_names.insert(image.url.split('/').last().unwrap().to_string());
             background_images.push((image, psd_case, image_id));
+        } else {
+            used_cg_file_names.insert(psd_case.cg_file.name.clone());
+            character_images.push((image, psd_case, image_id));
         }
     }
 
