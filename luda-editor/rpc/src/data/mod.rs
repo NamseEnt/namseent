@@ -135,7 +135,7 @@ impl ScreenImage {
 /// Part variants will be rendered from last.
 ///
 /// Last item of part_variants will be rendered on bottom.
-/// ```rust
+/// ```ignore
 /// fn render() {
 ///     part_variants
 ///         .iter()
