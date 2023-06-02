@@ -16,7 +16,9 @@ use rpc::{
 };
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
-    fs,
+    fs::{self, DirEntry},
+    path::PathBuf,
+    str::FromStr,
 };
 
 static PSDS_DIR: Dir<'_> = include_dir!("src/psds");
@@ -120,16 +122,17 @@ fn main() -> Result<()> {
 
     println!("Used background image urls, please upload them to project as image");
     let mut used_background_image_names = used_background_images
-        .iter()
+        .into_iter()
         .map(|(_, name)| name)
         .collect::<Vec<_>>();
     used_background_image_names.sort();
-    for image_name in used_background_image_names {
+    for image_name in used_background_image_names.iter() {
         println!("{image_name}");
     }
 
     println!("");
     println!("Used cg file names, please upload them to project as cg file");
+    let used_cg_file_names: Vec<_> = used_cg_file_names.into_iter().collect();
     for cg_file_name in used_cg_file_names.iter() {
         println!("{cg_file_name}");
     }
@@ -138,7 +141,54 @@ fn main() -> Result<()> {
 
     fs::write("sequence.json", sequence_json).unwrap();
 
+    copy_used_assets(&used_background_image_names, &used_cg_file_names);
+
     Ok(())
+}
+
+fn copy_used_assets(used_background_image_names: &Vec<String>, used_cg_file_names: &Vec<String>) {
+    copy_assets(
+        used_background_image_names,
+        &PathBuf::from_str("src/images").unwrap(),
+        &PathBuf::from_str("used-assets/images").unwrap(),
+    );
+    copy_assets(
+        used_cg_file_names,
+        &PathBuf::from_str("src/psds").unwrap(),
+        &PathBuf::from_str("used-assets/psds").unwrap(),
+    );
+}
+
+fn copy_assets(asset_names: &Vec<String>, source_dir: &PathBuf, dest_dir_path: &PathBuf) {
+    fs::remove_dir_all(dest_dir_path).unwrap();
+    fs::create_dir_all(dest_dir_path).unwrap();
+    let files = HashMap::<String, DirEntry>::from_iter(
+        source_dir
+            .read_dir()
+            .unwrap()
+            .map(|dirent| dirent.unwrap())
+            .filter(|dirent| dirent.file_type().unwrap().is_file())
+            .map(|file| {
+                (
+                    file.path()
+                        .file_stem()
+                        .unwrap()
+                        .to_string_lossy()
+                        .to_string(),
+                    file,
+                )
+            }),
+    );
+    for asset_name in asset_names {
+        let file = files
+            .get(asset_name)
+            .expect(&format!("Asset not found: {asset_name:}"));
+        fs::copy(
+            source_dir.join(file.path().file_name().unwrap()),
+            dest_dir_path.join(file.path().file_name().unwrap()),
+        )
+        .unwrap();
+    }
 }
 
 fn get_plain_image_id_set() -> HashSet<Uuid> {
