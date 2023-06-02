@@ -97,6 +97,76 @@ fn render_cg_part_group<'a>(
     graphic_index: usize,
     screen_cg: &'a ScreenCg,
 ) -> Vec<TableCell<'a>> {
+    let title_bar = render_title_bar(cg_part);
+
+    let max_thumbnails_per_row = (width / (THUMBNAIL_WH.width)).floor() as usize;
+
+    match cg_part.selection_type {
+        rpc::data::PartSelectionType::AlwaysOn => once(title_bar)
+            .chain(render_thumbnail_rows(
+                cg_part,
+                max_thumbnails_per_row,
+                project_id,
+                cg_id,
+                cut_id,
+                graphic_index,
+                screen_cg,
+            ))
+            .chain(once(render_divider(BUTTON_HEIGHT)))
+            .collect(),
+        _ => once(title_bar)
+            .chain(render_thumbnail_rows_with_no_selection_button(
+                cg_part,
+                max_thumbnails_per_row,
+                project_id,
+                cg_id,
+                cut_id,
+                graphic_index,
+                screen_cg,
+            ))
+            .chain(once(render_divider(BUTTON_HEIGHT)))
+            .collect(),
+    }
+}
+
+fn render_thumbnail_rows<'a>(
+    cg_part: &'a CgPart,
+    max_thumbnails_per_row: usize,
+    project_id: Uuid,
+    cg_id: Uuid,
+    cut_id: Uuid,
+    graphic_index: usize,
+    screen_cg: &'a ScreenCg,
+) -> impl Iterator<Item = TableCell<'a>> {
+    let chunks = cg_part.variants.chunks(max_thumbnails_per_row);
+    let variant_rows = chunks.map(move |row| {
+        table::fixed(THUMBNAIL_WH.height, move |wh| {
+            table::horizontal(row.iter().map(|variant| {
+                render_thumbnail(
+                    cg_part,
+                    variant,
+                    project_id,
+                    cg_id,
+                    cut_id,
+                    graphic_index,
+                    screen_cg,
+                )
+            }))(wh)
+        })
+    });
+
+    variant_rows
+}
+
+fn render_thumbnail_rows_with_no_selection_button<'a>(
+    cg_part: &'a CgPart,
+    max_thumbnails_per_row: usize,
+    project_id: Uuid,
+    cg_id: Uuid,
+    cut_id: Uuid,
+    graphic_index: usize,
+    screen_cg: &'a ScreenCg,
+) -> impl Iterator<Item = TableCell<'a>> {
     let no_selection = !screen_cg
         .part_variants
         .iter()
@@ -107,12 +177,9 @@ fn render_cg_part_group<'a>(
                 .any(|variant| variant.id == *selected_variant_id)
         });
 
-    let title_bar = render_title_bar(cg_part);
-
     let no_selection_button =
         render_no_selection_button(no_selection, cg_part, cut_id, graphic_index);
 
-    let max_thumbnails_per_row = (width / (THUMBNAIL_WH.width)).floor() as usize;
     let chunks = cg_part.variants.chunks_exact(max_thumbnails_per_row);
     let chunk_remainder = chunks.remainder();
     let last_variant_row = table::fixed(THUMBNAIL_WH.height, move |wh| {
@@ -133,7 +200,7 @@ fn render_cg_part_group<'a>(
                 .chain(once(no_selection_button)),
         )(wh)
     });
-    let variant_rows = chunks.map(|row| {
+    let variant_rows = chunks.map(move |row| {
         table::fixed(THUMBNAIL_WH.height, move |wh| {
             table::horizontal(row.iter().map(|variant| {
                 render_thumbnail(
@@ -149,11 +216,7 @@ fn render_cg_part_group<'a>(
         })
     });
 
-    once(title_bar)
-        .chain(variant_rows)
-        .chain(once(last_variant_row))
-        .chain(once(render_divider(BUTTON_HEIGHT)))
-        .collect()
+    variant_rows.chain(once(last_variant_row))
 }
 
 fn render_title_bar(cg_part: &CgPart) -> TableCell {
