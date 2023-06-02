@@ -2,6 +2,7 @@ mod documents;
 
 use super::project::documents::*;
 use crate::session::SessionDocument;
+use anyhow::Result;
 use documents::*;
 use futures::future::try_join_all;
 use rpc::data::Sequence;
@@ -91,6 +92,7 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             }
 
             let sequence_id = rpc::Uuid::new_v4();
+            let sequence = Sequence::new(sequence_id.clone(), req.name.clone());
 
             crate::dynamo_db()
                 .transact()
@@ -98,11 +100,8 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                     id: sequence_id.clone(),
                     project_id: req.project_id.clone(),
                     name: req.name,
-                    json: serde_json::to_string(&rpc::data::Sequence::new(
-                        sequence_id,
-                        "New Sequence".to_string(),
-                    ))
-                    .unwrap(),
+                    json_brotli: compress_serde_using_brotli(&sequence)
+                        .map_err(|error| rpc::create_sequence::Error::Unknown(error.to_string()))?,
                     last_modified: None,
                 })
                 .create_item(ProjectSequenceDocument {
@@ -155,31 +154,10 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                         return Err(rpc::update_server_sequence::Error::Unauthorized);
                     }
 
-                    // to call migration
-                    let sequence =
-                        serde_json::from_str::<Sequence>(&document.json).map_err(|error| {
-                            log::warn!("Error: {}", error);
-                            rpc::update_server_sequence::Error::Unknown(error.to_string())
-                        })?;
-                    let mut sequence_json_value =
-                        serde_json::to_value(&sequence).map_err(|error| {
-                            log::warn!("Error: {}", error);
-                            rpc::update_server_sequence::Error::Unknown(error.to_string())
-                        })?;
-                    rpc::json_patch::patch(&mut sequence_json_value, &req.patch).map_err(
-                        |error| {
-                            log::warn!("Error: {}", error);
-                            rpc::update_server_sequence::Error::Unknown(error.to_string())
-                        },
-                    )?;
+                    apply_sequence_patch(&mut document, &req.patch).map_err(|error| {
+                        rpc::update_server_sequence::Error::Unknown(error.to_string())
+                    })?;
 
-                    document.json =
-                        serde_json::to_string(&sequence_json_value).map_err(|error| {
-                            log::warn!("Error: {}", error);
-                            rpc::update_server_sequence::Error::Unknown(error.to_string())
-                        })?;
-
-                    document.last_modified = Some(chrono::Utc::now().timestamp_nanos());
                     Ok(document)
                 },
             }
@@ -208,14 +186,15 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
         Box<dyn 'a + std::future::Future<Output = rpc::update_client_sequence::Result> + Send>,
     > {
         Box::pin(async move {
-            let sequence = SequenceDocumentGet {
+            let document = SequenceDocumentGet {
                 pk_id: req.sequence_id,
             }
             .run()
             .await
             .map_err(|error| rpc::update_client_sequence::Error::Unknown(error.to_string()))?;
 
-            let sequence_json = serde_json::from_str::<serde_json::Value>(&sequence.json)
+            let sequence_json = document
+                .sequence()
                 .map_err(|err| rpc::update_client_sequence::Error::Unknown(err.to_string()))?;
             let patch = rpc::json_patch::diff(&req.sequence_json, &sequence_json);
 
@@ -254,7 +233,9 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             })?;
 
             Ok(rpc::get_sequence_and_project_shared_data::Response {
-                sequence_json: sequence.json,
+                sequence_json: sequence.sequence().map_err(|error| {
+                    rpc::get_sequence_and_project_shared_data::Error::Unknown(error.to_string())
+                })?,
                 project_shared_data_json: project.shared_data_json,
             })
         })
@@ -359,4 +340,33 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             Ok(rpc::rename_sequence::Response {})
         })
     }
+}
+
+fn apply_sequence_patch(
+    document: &mut SequenceDocument,
+    patch: &rpc::json_patch::Patch,
+) -> Result<()> {
+    let mut sequence_json_value = document.sequence()?;
+
+    rpc::json_patch::patch(&mut sequence_json_value, patch)?;
+
+    document.json_brotli = compress_serde_using_brotli(&sequence_json_value)?;
+    document.last_modified = Some(chrono::Utc::now().timestamp_nanos());
+
+    Ok(())
+}
+
+fn compress_serde_using_brotli<T>(value: &T) -> Result<Vec<u8>, serde_json::Error>
+where
+    T: ?Sized + serde::Serialize,
+{
+    let buffer_size_16_mb = usize::pow(2, 24);
+    let mut output = Vec::new();
+    {
+        let mut brotli_writer =
+            brotli::CompressorWriter::new(&mut output, buffer_size_16_mb, 11, 24);
+        serde_json::to_writer(&mut brotli_writer, value)?;
+    }
+
+    Ok(output)
 }
