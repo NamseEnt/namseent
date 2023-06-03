@@ -12,27 +12,29 @@ impl CutEditor {
             |build| {
                 build
                     .on_file_drop(move |event| {
-                        let file = event.files[0].clone();
-                        spawn_local(async move {
-                            let content = file.content().await;
-                            if file.name() == "sequence.json" {
-                                namui::event::send(Event::UploadSequence {
-                                    sequence: serde_json::from_slice(&content).unwrap(),
-                                });
-                                return;
-                            }
-                            match file.name().ends_with(".psd") {
-                                true => namui::event::send(Event::AddNewCg {
-                                    psd_bytes: content.into(),
-                                    psd_name: file.name().trim_end_matches(".psd").to_string(),
-                                    cut_id,
-                                }),
-                                false => namui::event::send(Event::AddNewImage {
-                                    png_bytes: content.into(),
-                                    cut_id,
-                                }),
-                            }
-                        });
+                        for file in &event.files {
+                            let file = file.clone();
+                            spawn_local(async move {
+                                let content = file.content().await;
+                                if file.name() == "sequence.json" {
+                                    namui::event::send(Event::UploadSequence {
+                                        sequence: serde_json::from_slice(&content).unwrap(),
+                                    });
+                                    return;
+                                }
+                                match file.name().ends_with(".psd") {
+                                    true => namui::event::send(Event::AddNewCg {
+                                        psd_bytes: content.into(),
+                                        psd_name: file.name().trim_end_matches(".psd").to_string(),
+                                        cut_id,
+                                    }),
+                                    false => namui::event::send(Event::AddNewImage {
+                                        png_bytes: content.into(),
+                                        cut_id,
+                                    }),
+                                }
+                            })
+                        }
                     })
                     .on_key_down(move |event| {
                         if event.code == Code::KeyV && namui::keyboard::ctrl_press() {
