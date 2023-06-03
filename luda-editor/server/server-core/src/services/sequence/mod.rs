@@ -233,7 +233,7 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             })?;
 
             Ok(rpc::get_sequence_and_project_shared_data::Response {
-                sequence_json: sequence.sequence().map_err(|error| {
+                sequence_json: sequence.sequence_json_string().map_err(|error| {
                     rpc::get_sequence_and_project_shared_data::Error::Unknown(error.to_string())
                 })?,
                 project_shared_data_json: project.shared_data_json,
