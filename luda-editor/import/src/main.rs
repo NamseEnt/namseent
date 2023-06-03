@@ -17,6 +17,7 @@ use rpc::{
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
     fs::{self, DirEntry},
+    io::ErrorKind,
     path::PathBuf,
     str::FromStr,
 };
@@ -160,7 +161,11 @@ fn copy_used_assets(used_background_image_names: &Vec<String>, used_cg_file_name
 }
 
 fn copy_assets(asset_names: &Vec<String>, source_dir: &PathBuf, dest_dir_path: &PathBuf) {
-    fs::remove_dir_all(dest_dir_path).unwrap();
+    if let Err(error) = fs::remove_dir_all(dest_dir_path) {
+        if error.kind() != ErrorKind::NotFound {
+            panic!("{:?}", error);
+        }
+    };
     fs::create_dir_all(dest_dir_path).unwrap();
     let files = HashMap::<String, DirEntry>::from_iter(
         source_dir
