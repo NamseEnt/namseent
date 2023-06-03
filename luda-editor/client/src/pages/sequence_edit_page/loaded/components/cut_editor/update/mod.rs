@@ -25,7 +25,8 @@ impl CutEditor {
                 | Event::ChangeCutLine { .. }
                 | Event::AddNewImage { .. }
                 | Event::AddNewCg { .. }
-                | Event::AddCg { .. } => {}
+                | Event::AddCg { .. }
+                | Event::UploadSequence { .. } => {}
             })
             .is::<InternalEvent>(|event| match event {
                 InternalEvent::EscapeKeyDown => {

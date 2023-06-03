@@ -15,6 +15,12 @@ impl CutEditor {
                         let file = event.files[0].clone();
                         spawn_local(async move {
                             let content = file.content().await;
+                            if file.name() == "sequence.json" {
+                                namui::event::send(Event::UploadSequence {
+                                    sequence: serde_json::from_slice(&content).unwrap(),
+                                });
+                                return;
+                            }
                             match file.name().ends_with(".psd") {
                                 true => namui::event::send(Event::AddNewCg {
                                     psd_bytes: content.into(),

@@ -193,6 +193,11 @@ impl LoadedSequenceEditorPage {
                         cut.screen_graphics.push(ScreenGraphic::Cg(cg))
                     });
                 }
+                cut_editor::Event::UploadSequence { sequence } => {
+                    self.update_sequence(|current_sequence| {
+                        current_sequence.cuts = sequence.cuts.clone();
+                    })
+                }
             })
             .is::<wysiwyg_editor::Event>(|event| match event {
                 &wysiwyg_editor::Event::UpdateCutGraphics {

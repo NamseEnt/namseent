@@ -5,7 +5,7 @@ use crate::components::context_menu::ContextMenu;
 
 use super::*;
 use namui::prelude::*;
-use rpc::data::{Cut, ScreenCg};
+use rpc::data::{Cut, ScreenCg, Sequence};
 
 pub struct CutEditor {
     selected_target: Option<ClickTarget>,
@@ -52,6 +52,9 @@ pub enum Event {
     AddCg {
         cut_id: Uuid,
         cg: ScreenCg,
+    },
+    UploadSequence {
+        sequence: Sequence,
     },
 }
 
