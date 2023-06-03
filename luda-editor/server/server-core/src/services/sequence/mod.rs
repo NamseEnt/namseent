@@ -364,7 +364,7 @@ where
     let mut output = Vec::new();
     {
         let mut brotli_writer =
-            brotli::CompressorWriter::new(&mut output, buffer_size_16_mb, 11, 24);
+            brotli::CompressorWriter::new(&mut output, buffer_size_16_mb, 9, 24);
         serde_json::to_writer(&mut brotli_writer, value)?;
     }
 
