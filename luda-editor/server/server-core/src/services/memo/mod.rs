@@ -22,7 +22,7 @@ impl rpc::MemoService<SessionDocument> for MemoService {
         Box<dyn 'a + std::future::Future<Output = rpc::list_sequence_memos::Result> + Send>,
     > {
         Box::pin(async move {
-            let memo_documents = MemoDocumentQuery {
+            let memo_query = MemoDocumentQuery {
                 pk_sequence_id: req.sequence_id,
                 last_sk: None, // TODO
             }
@@ -30,7 +30,8 @@ impl rpc::MemoService<SessionDocument> for MemoService {
             .await
             .map_err(|error| rpc::list_sequence_memos::Error::Unknown(error.to_string()))?;
 
-            let memos = memo_documents
+            let memos = memo_query
+                .documents
                 .into_iter()
                 .map(|memo_document| memo_document.into())
                 .collect();

@@ -27,38 +27,34 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
         Box<dyn 'a + std::future::Future<Output = rpc::list_project_sequences::Result> + Send>,
     > {
         Box::pin(async move {
-            let project_sequence_documents = ProjectSequenceDocumentQuery {
+            let project_sequence_query = ProjectSequenceDocumentQuery {
                 pk_project_id: req.project_id,
                 last_sk: None, // TODO
             }
             .run()
-            .await;
-            if let Err(error) = project_sequence_documents {
-                return Err(rpc::list_project_sequences::Error::Unknown(
-                    error.to_string(),
-                ));
-            }
-            let project_sequence_documents = project_sequence_documents.unwrap();
+            .await
+            .map_err(|error| rpc::list_project_sequences::Error::Unknown(error.to_string()))?;
 
-            let sequence_name_and_ids = try_join_all(project_sequence_documents.into_iter().map(
-                |project_sequence_document| async move {
-                    match (SequenceDocumentGet {
-                        pk_id: project_sequence_document.sequence_id,
-                    })
-                    .run()
-                    .await
-                    {
-                        Ok(sequence) => Ok(rpc::list_project_sequences::SequenceNameAndId {
-                            id: sequence.id,
-                            name: sequence.name,
-                        }),
-                        Err(error) => Err(rpc::list_project_sequences::Error::Unknown(
-                            error.to_string(),
-                        )),
-                    }
-                },
-            ))
-            .await;
+            let sequence_name_and_ids =
+                try_join_all(project_sequence_query.documents.into_iter().map(
+                    |project_sequence_document| async move {
+                        match (SequenceDocumentGet {
+                            pk_id: project_sequence_document.sequence_id,
+                        })
+                        .run()
+                        .await
+                        {
+                            Ok(sequence) => Ok(rpc::list_project_sequences::SequenceNameAndId {
+                                id: sequence.id,
+                                name: sequence.name,
+                            }),
+                            Err(error) => Err(rpc::list_project_sequences::Error::Unknown(
+                                error.to_string(),
+                            )),
+                        }
+                    },
+                ))
+                .await;
             if let Err(error) = sequence_name_and_ids {
                 return Err(rpc::list_project_sequences::Error::Unknown(
                     error.to_string(),
@@ -302,6 +298,7 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                 .run()
                 .await
                 .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?
+                .documents
                 .into_iter()
                 .map(|memo| {
                     MemoDocumentDelete {

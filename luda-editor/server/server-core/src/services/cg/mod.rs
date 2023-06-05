@@ -209,6 +209,7 @@ impl rpc::CgService<SessionDocument> for CgService {
             .run()
             .await
             .map_err(|err| rpc::list_cg_files::Error::Unknown(err.to_string()))?
+            .documents
             .into_iter()
             .map(
                 |CgInProject {

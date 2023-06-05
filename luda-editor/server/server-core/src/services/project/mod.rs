@@ -87,20 +87,15 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
                 return Err(rpc::list_editable_projects::Error::Unauthorized);
             }
             let session = session.unwrap();
-            let owner_project_documents = OwnerProjectDocumentQuery {
+            let owner_project_query = OwnerProjectDocumentQuery {
                 pk_owner_id: session.user_id,
                 last_sk: None, // TODO
             }
             .run()
-            .await;
-            if let Err(error) = owner_project_documents {
-                return Err(rpc::list_editable_projects::Error::Unknown(
-                    error.to_string(),
-                ));
-            }
-            let owner_project_documents = owner_project_documents.unwrap();
+            .await
+            .map_err(|error| rpc::list_editable_projects::Error::Unknown(error.to_string()))?;
 
-            let editable_projects = try_join_all(owner_project_documents.into_iter().map(
+            let editable_projects = try_join_all(owner_project_query.documents.into_iter().map(
                 |owner_project_document| async move {
                     match (ProjectDocumentGet {
                         pk_id: owner_project_document.project_id,

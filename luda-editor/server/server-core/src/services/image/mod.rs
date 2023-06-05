@@ -100,7 +100,7 @@ impl rpc::ImageService<SessionDocument> for ImageService {
     ) -> std::pin::Pin<Box<dyn 'a + std::future::Future<Output = rpc::list_images::Result> + Send>>
     {
         Box::pin(async move {
-            let documents = ProjectImageDocumentQuery {
+            let query = ProjectImageDocumentQuery {
                 pk_project_id: req.project_id,
                 last_sk: None, // TODO
             }
@@ -109,7 +109,8 @@ impl rpc::ImageService<SessionDocument> for ImageService {
             .map_err(|error| rpc::list_images::Error::Unknown(error.to_string()))?;
 
             Ok(rpc::list_images::Response {
-                images: documents
+                images: query
+                    .documents
                     .into_iter()
                     .map(|document| ImageWithLabels {
                         id: document.image_id,

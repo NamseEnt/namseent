@@ -182,7 +182,7 @@ impl DynamoDb {
         &self,
         partition_key_without_prefix: impl ToString,
         last_sk: Option<impl ToString>,
-    ) -> Result<Vec<TDocument>, QueryError> {
+    ) -> Result<QueryOutput<TDocument>, QueryError> {
         let partition_key = get_partition_key::<TDocument>(partition_key_without_prefix);
         let query_result = self
             .client
@@ -209,7 +209,10 @@ impl DynamoDb {
                     let document = serde_dynamo::from_item(item).unwrap();
                     documents.push(document);
                 }
-                Ok(documents)
+                Ok(QueryOutput {
+                    documents,
+                    no_more_items: query_output.last_evaluated_key.is_none(),
+                })
             }
             Err(error) => Err(QueryError::Unknown(error.to_string())),
         }
@@ -240,6 +243,12 @@ impl DynamoDb {
             Err(error) => Err(DeleteItemError::Unknown(error.to_string())),
         }
     }
+}
+
+#[derive(Debug)]
+pub struct QueryOutput<TDocument: Document> {
+    pub documents: Vec<TDocument>,
+    pub no_more_items: bool,
 }
 
 #[derive(Debug)]
@@ -367,29 +376,35 @@ mod test {
             crate::dynamo_db().put_item(item).await?;
         }
 
+        let query_output = ItemQuery {
+            pk_pk: 1,
+            last_sk: None,
+        }
+        .run()
+        .await?;
+
         assert_eq!(
-            ItemQuery {
-                pk_pk: 1,
-                last_sk: None,
-            }
-            .run()
-            .await?,
+            query_output.documents,
             vec![
                 Item { pk: 1, sk: 1 },
                 Item { pk: 1, sk: 2 },
                 Item { pk: 1, sk: 3 },
             ]
         );
+        assert_eq!(query_output.no_more_items, true);
+
+        let query_output = ItemQuery {
+            pk_pk: 2,
+            last_sk: Some(ItemSortKey { sk: 2 }),
+        }
+        .run()
+        .await?;
 
         assert_eq!(
-            ItemQuery {
-                pk_pk: 2,
-                last_sk: Some(ItemSortKey { sk: 2 }),
-            }
-            .run()
-            .await?,
+            query_output.documents,
             vec![Item { pk: 2, sk: 3 }, Item { pk: 2, sk: 4 },]
         );
+        assert_eq!(query_output.no_more_items, true);
 
         Ok(())
     }

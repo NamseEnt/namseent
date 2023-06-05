@@ -69,7 +69,7 @@ pub fn document(
                 pub last_sk: Option<#sk_struct_ident>,
             }
             impl #query_struct_ident {
-                pub async fn run(self) -> Result<Vec<#struct_ident>, crate::storage::dynamo_db::QueryError> {
+                pub async fn run(self) -> Result<crate::storage::dynamo_db::QueryOutput<#struct_ident>, crate::storage::dynamo_db::QueryError> {
                     let pk = #prefixed_pk;
                     crate::dynamo_db().query::<#struct_ident>(pk, self.last_sk).await
                 }
