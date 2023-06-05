@@ -1,7 +1,7 @@
 use super::*;
 use aws_sdk_dynamodb::model::AttributeValue;
 use futures::Future;
-use std::{error::Error, fmt::Debug};
+use std::{collections::HashMap, error::Error, fmt::Debug};
 
 /// Do not use this directly.
 impl DynamoDb {
@@ -181,6 +181,7 @@ impl DynamoDb {
     pub async fn query<TDocument: Document>(
         &self,
         partition_key_without_prefix: impl ToString,
+        last_sk: Option<impl ToString>,
     ) -> Result<Vec<TDocument>, QueryError> {
         let partition_key = get_partition_key::<TDocument>(partition_key_without_prefix);
         let query_result = self
@@ -189,7 +190,13 @@ impl DynamoDb {
             .table_name(&self.table_name)
             .key_condition_expression("#PARTITION = :partition")
             .expression_attribute_names("#PARTITION", PARTITION_KEY)
-            .expression_attribute_values(":partition", AttributeValue::S(partition_key))
+            .expression_attribute_values(":partition", AttributeValue::S(partition_key.clone()))
+            .set_exclusive_start_key(last_sk.map(|last_sk| {
+                let mut item = HashMap::new();
+                item.insert(PARTITION_KEY.to_string(), AttributeValue::S(partition_key));
+                item.insert(SORT_KEY.to_string(), AttributeValue::S(last_sk.to_string()));
+                item
+            }))
             .send()
             .await;
 
