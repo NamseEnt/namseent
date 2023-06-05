@@ -5,7 +5,7 @@ use namui_prebuilt::{
     typography::{center_text, center_text_full_height},
     *,
 };
-use rpc::data::{CgFile, CgPart, CgPartVariant, ScreenCg};
+use rpc::data::{CgFile, CgPart, CgPartVariant, PartSelectionType, ScreenCg};
 use std::iter::once;
 use tooltip::*;
 
@@ -75,17 +75,23 @@ fn render_cg_part_group_list(
     screen_cg: &ScreenCg,
 ) -> RenderingTree {
     let cg_id = cg_file.id;
-    table::vertical(cg_file.parts.iter().flat_map(|cg_part| {
-        render_cg_part_group(
-            wh.width,
-            cg_part,
-            project_id,
-            cg_id,
-            cut_id,
-            graphic_index,
-            screen_cg,
-        )
-    }))(wh)
+    table::vertical(
+        cg_file
+            .parts
+            .iter()
+            .filter(|part| part.selection_type != PartSelectionType::AlwaysOn)
+            .flat_map(|cg_part| {
+                render_cg_part_group(
+                    wh.width,
+                    cg_part,
+                    project_id,
+                    cg_id,
+                    cut_id,
+                    graphic_index,
+                    screen_cg,
+                )
+            }),
+    )(wh)
 }
 
 fn render_cg_part_group<'a>(
