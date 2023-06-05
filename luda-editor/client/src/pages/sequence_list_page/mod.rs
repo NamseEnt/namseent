@@ -140,9 +140,11 @@ impl SequenceListPage {
 
                     spawn_local(async move {
                         match crate::RPC
-                            .rename_sequence(rpc::rename_sequence::Request {
+                            .update_sequence(rpc::update_sequence::Request {
                                 sequence_id,
-                                new_name,
+                                action: rpc::data::SequenceUpdateAction::RenameSequence {
+                                    name: new_name,
+                                },
                             })
                             .await
                         {
@@ -241,6 +243,7 @@ impl SequenceListPage {
         sequence: &SequenceNameAndId,
     ) -> namui::RenderingTree {
         let sequence_id = sequence.id;
+        let project_id = self.project_id;
         namui_prebuilt::button::text_button(
             Rect::from_xy_wh(Xy::single(0.px()), wh),
             sequence.name.as_str(),
@@ -251,7 +254,10 @@ impl SequenceListPage {
             [MouseButton::Left, MouseButton::Right],
             move |event| {
                 if event.button == Some(MouseButton::Left) {
-                    Router::move_to(super::router::RoutePath::SequenceEdit(sequence_id));
+                    Router::move_to(super::router::RoutePath::SequenceEdit {
+                        project_id,
+                        sequence_id,
+                    });
                 } else if event.button == Some(MouseButton::Right) {
                     namui::event::send(Event::CellRightClick {
                         click_global_xy: event.global_xy,

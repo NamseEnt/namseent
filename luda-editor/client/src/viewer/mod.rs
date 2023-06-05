@@ -18,16 +18,19 @@ enum Event {
 impl Viewer {
     pub fn new(sequence_id: Uuid, start_index: usize) -> Self {
         spawn_local(async move {
-            let response = crate::RPC
+            let rpc::get_sequence_and_project_shared_data::Response {
+                sequence,
+                project_shared_data_json,
+            }: rpc::get_sequence_and_project_shared_data::Response = crate::RPC
                 .get_sequence_and_project_shared_data(
                     rpc::get_sequence_and_project_shared_data::Request { sequence_id },
                 )
                 .await
                 .unwrap();
+
             namui::event::send(Event::DataForSequencePlayerLoaded {
-                sequence: serde_json::from_str(&response.sequence_json).unwrap(),
-                project_shared_data: serde_json::from_str(&response.project_shared_data_json)
-                    .unwrap(),
+                sequence,
+                project_shared_data: serde_json::from_str(&project_shared_data_json).unwrap(),
             });
         });
         Self {
@@ -50,6 +53,7 @@ impl namui::Entity for Viewer {
                     sequence.clone(),
                     project_shared_data.clone(),
                     self.start_index,
+                    None,
                 ));
             }
         });

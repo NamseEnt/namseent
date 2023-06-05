@@ -1,10 +1,13 @@
+mod cg_files_atom;
 mod loaded;
+mod sequence;
+mod sequence_atom;
 
 use futures::try_join;
 use loaded::LoadedSequenceEditorPage;
 use namui::prelude::*;
 use namui_prebuilt::*;
-use rpc::data::{Memo, ProjectSharedData, Sequence};
+use rpc::data::{CgFile, Memo, ProjectSharedData, Sequence};
 use std::collections::HashMap;
 
 pub enum SequenceEditPage {
@@ -19,6 +22,7 @@ enum Event {
         project_shared_data: ProjectSharedData,
         cut_id_memo_map: HashMap<Uuid, Vec<Memo>>,
         user_id: Uuid,
+        cg_files: Vec<CgFile>,
     },
 }
 pub struct Props {
@@ -26,8 +30,8 @@ pub struct Props {
 }
 
 impl SequenceEditPage {
-    pub fn new(sequence_id: namui::Uuid) -> Self {
-        load_data(sequence_id);
+    pub fn new(project_id: namui::Uuid, sequence_id: namui::Uuid) -> Self {
+        load_data(project_id, sequence_id);
         Self::Loading { error: None }
     }
     pub fn update(&mut self, event: &namui::Event) {
@@ -37,6 +41,7 @@ impl SequenceEditPage {
                 sequence,
                 cut_id_memo_map,
                 user_id,
+                cg_files,
             } => match self {
                 SequenceEditPage::Loading { .. } => {
                     *self = SequenceEditPage::Loaded(LoadedSequenceEditorPage::new(
@@ -44,6 +49,7 @@ impl SequenceEditPage {
                         sequence.clone(),
                         cut_id_memo_map.clone(),
                         *user_id,
+                        cg_files.clone(),
                     ));
                 }
                 SequenceEditPage::Loaded(_) => unreachable!(),
@@ -82,17 +88,19 @@ struct SequenceLocalCache {
     server_state_vector: Vec<u8>,
 }
 
-fn load_data(sequence_id: namui::Uuid) {
+fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) {
     async fn load_sequence_and_project_shared_data(
         sequence_id: namui::Uuid,
     ) -> Result<(Sequence, ProjectSharedData), Box<dyn std::error::Error>> {
-        let response = crate::RPC
+        let rpc::get_sequence_and_project_shared_data::Response {
+            sequence,
+            project_shared_data_json,
+        }: rpc::get_sequence_and_project_shared_data::Response = crate::RPC
             .get_sequence_and_project_shared_data(
                 rpc::get_sequence_and_project_shared_data::Request { sequence_id },
             )
             .await?;
-        let sequence = serde_json::from_str(&response.sequence_json)?;
-        let project_shared_data = serde_json::from_str(&response.project_shared_data_json)?;
+        let project_shared_data = serde_json::from_str(&project_shared_data_json)?;
         Ok((sequence, project_shared_data))
     }
     async fn load_memos(
@@ -120,19 +128,29 @@ fn load_data(sequence_id: namui::Uuid) {
         let response = crate::RPC.get_user_id(rpc::get_user_id::Request {}).await?;
         Ok(response.user_id)
     }
+    async fn get_cg_files(
+        project_id: Uuid,
+    ) -> Result<Vec<rpc::data::CgFile>, Box<dyn std::error::Error>> {
+        let response = crate::RPC
+            .list_cg_files(rpc::list_cg_files::Request { project_id })
+            .await?;
+        Ok(response.cg_files)
+    }
     spawn_local(async move {
         let result = try_join!(
             load_sequence_and_project_shared_data(sequence_id),
             load_memos(sequence_id),
             get_user_id(),
+            get_cg_files(project_id)
         );
         match result {
-            Ok(((sequence, project_shared_data), cut_id_memo_map, user_id)) => {
+            Ok(((sequence, project_shared_data), cut_id_memo_map, user_id, cg_files)) => {
                 namui::event::send(Event::DataLoaded {
                     sequence,
                     project_shared_data,
                     cut_id_memo_map,
                     user_id,
+                    cg_files,
                 });
             }
             Err(error) => {

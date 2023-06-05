@@ -22,8 +22,6 @@ pub struct Props<
     pub on_key_down: OnKeyDown,
 }
 
-pub enum Event {}
-
 enum InternalEvent {
     ArrowUpDown { next_index: Option<usize> },
     UpdateItemIndex { over_item_index: Option<usize> },

@@ -2,26 +2,30 @@ use super::*;
 use crate::data::ScreenGraphic;
 use crate::Uuid;
 
-#[migration::version(4)]
+#[migration::version(5)]
 #[derive(Debug, Clone, Default)]
 pub struct Cut {
-    id: Uuid,
-    /// The text that the character speaks in this cut.
+    pub id: Uuid,
+
+    /// The text that the character speaks in this cut.    
     pub line: String,
     pub character_name: String,
-    pub screen_graphics: Vec<ScreenGraphic>,
+    /// IndexId is not sg's id. it's index id.
+    pub screen_graphics: Vec<(IndexId, ScreenGraphic)>,
 }
 
+type IndexId = Uuid;
+
 impl Cut {
-    pub fn migrate(previous: v3::Cut) -> Self {
+    pub fn migrate(previous: v4::Cut) -> Self {
         Self {
             id: previous.id(),
             line: previous.line,
             character_name: previous.character_name,
             screen_graphics: previous
-                .screen_images
+                .screen_graphics
                 .into_iter()
-                .map(|screen_image| ScreenGraphic::Image(screen_image))
+                .map(|sg| (Uuid::new_v4(), sg))
                 .collect(),
         }
     }
@@ -30,11 +34,8 @@ impl Cut {
             id,
             line: String::new(),
             character_name: String::new(),
-            screen_graphics: Vec::new(),
+            screen_graphics: vec![],
         }
-    }
-    pub fn id(&self) -> Uuid {
-        self.id
     }
     pub fn duplicate(&self, id: Uuid) -> Self {
         Self {

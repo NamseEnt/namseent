@@ -3,7 +3,7 @@ use rpc::data::ScreenCg;
 
 impl CutEditor {
     pub fn background_with_event(&self, props: &Props, cut: &Cut) -> namui::RenderingTree {
-        let cut_id = cut.id();
+        let cut_id = cut.id;
         let selected_target = self.selected_target;
         let prev_cut_id = prev_cut_id(&props, cut_id);
         let next_cut_id = next_cut_id(&props, cut_id);

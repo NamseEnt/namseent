@@ -4,7 +4,7 @@ mod text_content;
 mod tooltip;
 
 use super::*;
-use crate::color;
+use crate::{color, pages::sequence_edit_page::cg_files_atom::CG_FILES_ATOM};
 use namui_prebuilt::*;
 use tooltip::*;
 
@@ -28,34 +28,43 @@ impl CharacterEditor {
     }
 
     fn render_content(&self, props: Props) -> namui::RenderingTree {
-        match &self.cg_file_load_state {
-            CgFileLoadState::Loading => self.render_text_content(props.wh, "Loading..."),
-            CgFileLoadState::Failed { error } => self.render_text_content(props.wh, error),
-            CgFileLoadState::Loaded(cg_file_list) => {
-                match self.edit_target {
-                    EditTarget::NewCharacter { .. } | EditTarget::ExistingCharacter { .. } => {
-                        self.render_cg_picker(props.wh, &cg_file_list, props.project_id)
-                    }
-                    EditTarget::ExistingCharacterPart {
-                        cg_id,
-                        cut_id,
-                        graphic_index,
-                    } => {
-                        let selected_cg_file =
-                            cg_file_list.iter().find(|cg_file| cg_file.id == cg_id);
-                        let selected_screen_graphic =
-                            props.cut.map(|cut| &cut.screen_graphics[graphic_index]);
+        let cg_file_list = CG_FILES_ATOM.get_unwrap();
+        match self.edit_target {
+            EditTarget::NewCharacter { .. } | EditTarget::ExistingCharacter { .. } => {
+                self.render_cg_picker(props.wh, &cg_file_list, props.project_id)
+            }
+            EditTarget::ExistingCharacterPart {
+                cg_id,
+                cut_id,
+                graphic_index,
+            } => {
+                let selected_cg_file = cg_file_list.iter().find(|cg_file| cg_file.id == cg_id);
+                let selected_screen_graphic = props.cut.and_then(|cut| {
+                    cut.screen_graphics
+                        .iter()
+                        .find_map(|(index, screen_graphic)| {
+                            if index == &graphic_index {
+                                Some(screen_graphic)
+                            } else {
+                                None
+                            }
+                        })
+                });
 
-                        match (selected_cg_file, selected_screen_graphic) {
-                        (Some(selected_cg_file), Some(ScreenGraphic::Cg(selected_screen_cg))) => {
-                            self.render_part_picker(props.wh, selected_cg_file, props.project_id, cut_id, graphic_index, selected_screen_cg)
-                        }
-                        _ => self.render_text_content(
+                match (selected_cg_file, selected_screen_graphic) {
+                    (Some(selected_cg_file), Some(ScreenGraphic::Cg(selected_screen_cg))) => self
+                        .render_part_picker(
                             props.wh,
-                            "Selected resource not found. Close character picker and try again.",
+                            selected_cg_file,
+                            props.project_id,
+                            cut_id,
+                            graphic_index,
+                            selected_screen_cg,
                         ),
-                    }
-                    }
+                    _ => self.render_text_content(
+                        props.wh,
+                        "Selected resource not found. Close character picker and try again.",
+                    ),
                 }
             }
         }

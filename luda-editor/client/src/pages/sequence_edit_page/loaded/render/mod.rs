@@ -7,23 +7,24 @@ pub struct Props {
 
 impl LoadedSequenceEditorPage {
     pub fn render(&self, props: Props) -> namui::RenderingTree {
+        let sequence = SEQUENCE_ATOM.get_unwrap();
+        let cg_files = CG_FILES_ATOM.get_unwrap();
         let context_menu = match self.context_menu.as_ref() {
             Some(context_menu) => context_menu.render(),
             None => RenderingTree::Empty,
         };
         let selected_cut = self
             .selected_cut_id
-            .and_then(|id| self.sequence.cuts.iter().find(|c| c.id() == id));
+            .and_then(|id| sequence.cuts.iter().find(|c| c.id == id));
 
-        let memos_of_selected_cut =
-            selected_cut.and_then(|cut| self.cut_id_memo_map.get(&cut.id()));
+        let memos_of_selected_cut = selected_cut.and_then(|cut| self.cut_id_memo_map.get(&cut.id));
 
         render([
             table::horizontal([
                 table::fixed(220.px(), |wh| {
                     self.cut_list_view.render(cut_list_view::Props {
                         wh,
-                        cuts: &self.sequence.cuts,
+                        cuts: &sequence.cuts,
                         is_focused: self.focused_component == Some(FocusableComponent::CutListView),
                         selected_cut_id: self.selected_cut_id,
                         cut_id_memo_map: &self.cut_id_memo_map,
@@ -34,8 +35,9 @@ impl LoadedSequenceEditorPage {
                         wh,
                         cut: selected_cut,
                         is_focused: self.focused_component == Some(FocusableComponent::CutEditor),
-                        cuts: &self.sequence.cuts,
+                        cuts: &sequence.cuts,
                         project_id: self.project_id(),
+                        cg_files: &cg_files,
                     })
                 }),
                 self.render_character_editor(selected_cut),
@@ -63,6 +65,7 @@ impl LoadedSequenceEditorPage {
 
     fn render_memo_list_view<'a>(&'a self, memos: Option<&'a Vec<Memo>>) -> table::TableCell {
         const MEMO_WINDOW_WIDTH: Px = px(256.0);
+        let sequence_id = SEQUENCE_ATOM.get_unwrap().id;
 
         if let Some(memos) = memos {
             if !memos.is_empty() {
@@ -71,7 +74,7 @@ impl LoadedSequenceEditorPage {
                         .render(components::memo_list_view::Props {
                             wh,
                             memos,
-                            sequence_id: self.sequence.id(),
+                            sequence_id,
                             user_id: self.user_id,
                         })
                 });

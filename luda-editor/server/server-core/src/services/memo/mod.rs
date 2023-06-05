@@ -1,6 +1,6 @@
 pub mod documents;
 
-use super::{auth::documents::UserDocumentGet, sequence::documents::SequenceDocumentGet};
+use super::{auth::documents::UserDocumentGet, sequence::documents::SequenceIndexDocumentGet};
 use crate::session::SessionDocument;
 use documents::*;
 
@@ -52,7 +52,7 @@ impl rpc::MemoService<SessionDocument> for MemoService {
             }
             let session = session.unwrap();
 
-            let sequence_document = SequenceDocumentGet {
+            let sequence_document = SequenceIndexDocumentGet {
                 pk_id: req.sequence_id,
             }
             .run()
@@ -108,7 +108,7 @@ impl rpc::MemoService<SessionDocument> for MemoService {
             }
             let session = session.unwrap();
 
-            let sequence_document = SequenceDocumentGet {
+            let sequence_document = SequenceIndexDocumentGet {
                 pk_id: req.sequence_id,
             }
             .run()

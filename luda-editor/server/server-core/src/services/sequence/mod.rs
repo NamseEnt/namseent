@@ -1,13 +1,9 @@
 pub mod documents;
 
-use super::{
-    memo::documents::{MemoDocumentDelete, MemoDocumentQuery},
-    project::documents::*,
-};
+use super::project::documents::*;
 use crate::session::SessionDocument;
 use documents::*;
 use futures::future::try_join_all;
-use rpc::data::Sequence;
 
 #[derive(Debug)]
 pub struct SequenceService {}
@@ -38,29 +34,32 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             let sequence_name_and_ids =
                 try_join_all(project_sequence_query.documents.into_iter().map(
                     |project_sequence_document| async move {
-                        match (SequenceDocumentGet {
+                        let sequence_index_document = SequenceIndexDocumentGet {
                             pk_id: project_sequence_document.sequence_id,
-                        })
+                        }
                         .run()
                         .await
-                        {
-                            Ok(sequence) => Ok(rpc::list_project_sequences::SequenceNameAndId {
-                                id: sequence.id,
-                                name: sequence.name,
-                            }),
-                            Err(error) => Err(rpc::list_project_sequences::Error::Unknown(
-                                error.to_string(),
-                            )),
+                        .map_err(|error| {
+                            rpc::list_project_sequences::Error::Unknown(error.to_string())
+                        })?;
+
+                        let sequence_document = SequenceDocumentGet {
+                            pk_id: project_sequence_document.sequence_id,
+                            sk_index: sequence_index_document.index,
                         }
+                        .run()
+                        .await
+                        .map_err(|error| {
+                            rpc::list_project_sequences::Error::Unknown(error.to_string())
+                        })?;
+
+                        Ok(rpc::list_project_sequences::SequenceNameAndId {
+                            id: sequence_document.id,
+                            name: sequence_document.name,
+                        })
                     },
                 ))
-                .await;
-            if let Err(error) = sequence_name_and_ids {
-                return Err(rpc::list_project_sequences::Error::Unknown(
-                    error.to_string(),
-                ));
-            }
-            let sequence_name_and_ids = sequence_name_and_ids.unwrap();
+                .await?;
 
             Ok(rpc::list_project_sequences::Response {
                 sequence_name_and_ids,
@@ -94,16 +93,19 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
 
             crate::dynamo_db()
                 .transact()
+                .create_item(SequenceIndexDocument {
+                    id: sequence_id,
+                    project_id: req.project_id,
+                    index: CircularIndex::new(),
+                    undoable_count: 0,
+                    redoable_count: 0,
+                })
                 .create_item(SequenceDocument {
-                    id: sequence_id.clone(),
-                    project_id: req.project_id.clone(),
+                    id: sequence_id,
+                    index: CircularIndex::new(),
+                    project_id: req.project_id,
                     name: req.name,
-                    json: serde_json::to_string(&rpc::data::Sequence::new(
-                        sequence_id,
-                        "New Sequence".to_string(),
-                    ))
-                    .unwrap(),
-                    last_modified: None,
+                    cuts: vec![],
                 })
                 .create_item(ProjectSequenceDocument {
                     project_id: req.project_id,
@@ -117,116 +119,285 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
         })
     }
 
-    fn update_server_sequence<'a>(
+    fn undo_update<'a>(
         &'a self,
         session: Option<SessionDocument>,
-        req: rpc::update_server_sequence::Request,
-    ) -> std::pin::Pin<
-        Box<
-            dyn 'a
-                + std::future::Future<
-                    Output = Result<
-                        rpc::update_server_sequence::Response,
-                        rpc::update_server_sequence::Error,
-                    >,
-                >
-                + Send,
-        >,
-    > {
+        rpc::undo_update::Request { sequence_id }: rpc::undo_update::Request,
+    ) -> std::pin::Pin<Box<dyn 'a + std::future::Future<Output = rpc::undo_update::Result> + Send>>
+    {
         Box::pin(async move {
-            if session.is_none() {
-                return Err(rpc::update_server_sequence::Error::Unauthorized);
-            }
-            let session = session.unwrap();
+            let Some(session) = session else {
+                return Err(rpc::undo_update::Error::Unauthorized);
+            };
 
-            SequenceDocumentUpdate {
-                pk_id: req.sequence_id,
-                update: move |mut document: SequenceDocument| async move {
+            SequenceIndexDocumentUpdate {
+                pk_id: sequence_id,
+                update: move |mut document| async move {
                     let is_project_editor = crate::services()
                         .project_service
                         .is_project_editor(session.user_id, document.project_id)
                         .await
-                        .map_err(|error| {
-                            log::warn!("Error: {}", error);
-                            rpc::update_server_sequence::Error::Unknown(error.to_string())
-                        })?;
+                        .map_err(|error| rpc::undo_update::Error::Unknown(error.to_string()))?;
 
                     if !is_project_editor {
-                        return Err(rpc::update_server_sequence::Error::Unauthorized);
+                        return Err(rpc::undo_update::Error::Forbidden);
                     }
 
-                    // to call migration
-                    let sequence =
-                        serde_json::from_str::<Sequence>(&document.json).map_err(|error| {
-                            log::warn!("Error: {}", error);
-                            rpc::update_server_sequence::Error::Unknown(error.to_string())
-                        })?;
-                    let mut sequence_json_value =
-                        serde_json::to_value(&sequence).map_err(|error| {
-                            log::warn!("Error: {}", error);
-                            rpc::update_server_sequence::Error::Unknown(error.to_string())
-                        })?;
-                    rpc::json_patch::patch(&mut sequence_json_value, &req.patch).map_err(
-                        |error| {
-                            log::warn!("Error: {}", error);
-                            rpc::update_server_sequence::Error::Unknown(error.to_string())
-                        },
-                    )?;
+                    if document.undoable_count == 0 {
+                        return Err(rpc::undo_update::Error::NoMoreUndo);
+                    }
+                    document.undoable_count -= 1;
+                    document.redoable_count += 1;
+                    document.index.decrease();
 
-                    document.json =
-                        serde_json::to_string(&sequence_json_value).map_err(|error| {
-                            log::warn!("Error: {}", error);
-                            rpc::update_server_sequence::Error::Unknown(error.to_string())
-                        })?;
-
-                    document.last_modified = Some(chrono::Utc::now().timestamp_nanos());
                     Ok(document)
                 },
             }
             .run()
             .await
             .map_err(|error| match error {
-                crate::storage::dynamo_db::UpdateItemError::Canceled(error) => error,
-                crate::storage::dynamo_db::UpdateItemError::NotFound
-                | crate::storage::dynamo_db::UpdateItemError::SerializationFailed(_)
-                | crate::storage::dynamo_db::UpdateItemError::Conflict
-                | crate::storage::dynamo_db::UpdateItemError::Unknown(_) => {
-                    log::warn!("Error: {}", error);
-                    rpc::update_server_sequence::Error::Unknown(error.to_string())
+                crate::storage::dynamo_db::UpdateItemError::NotFound => {
+                    rpc::undo_update::Error::NotFound
                 }
+                _ => rpc::undo_update::Error::Unknown(error.to_string()),
             })?;
 
-            Ok(rpc::update_server_sequence::Response {})
+            Ok(rpc::undo_update::Response {})
         })
     }
 
-    fn update_client_sequence<'a>(
+    fn redo_update<'a>(
         &'a self,
-        _session: Option<SessionDocument>,
-        req: rpc::update_client_sequence::Request,
-    ) -> std::pin::Pin<
-        Box<dyn 'a + std::future::Future<Output = rpc::update_client_sequence::Result> + Send>,
-    > {
+        session: Option<SessionDocument>,
+        rpc::redo_update::Request { sequence_id }: rpc::redo_update::Request,
+    ) -> std::pin::Pin<Box<dyn 'a + std::future::Future<Output = rpc::redo_update::Result> + Send>>
+    {
         Box::pin(async move {
-            let sequence = SequenceDocumentGet {
-                pk_id: req.sequence_id,
+            let Some(session) = session else {
+                return Err(rpc::redo_update::Error::Unauthorized);
+            };
+
+            SequenceIndexDocumentUpdate {
+                pk_id: sequence_id,
+                update: move |mut document| async move {
+                    let is_project_editor = crate::services()
+                        .project_service
+                        .is_project_editor(session.user_id, document.project_id)
+                        .await
+                        .map_err(|error| rpc::redo_update::Error::Unknown(error.to_string()))?;
+
+                    if !is_project_editor {
+                        return Err(rpc::redo_update::Error::Forbidden);
+                    }
+
+                    if document.redoable_count == 0 {
+                        return Err(rpc::redo_update::Error::NoMoreRedo);
+                    }
+                    document.redoable_count -= 1;
+                    document.undoable_count += 1;
+                    document.index.increase();
+
+                    Ok(document)
+                },
             }
             .run()
             .await
-            .map_err(|error| rpc::update_client_sequence::Error::Unknown(error.to_string()))?;
+            .map_err(|error| match error {
+                crate::storage::dynamo_db::UpdateItemError::NotFound => {
+                    rpc::redo_update::Error::NotFound
+                }
+                _ => rpc::redo_update::Error::Unknown(error.to_string()),
+            })?;
 
-            let sequence_json = serde_json::from_str::<serde_json::Value>(&sequence.json)
-                .map_err(|err| rpc::update_client_sequence::Error::Unknown(err.to_string()))?;
-            let patch = rpc::json_patch::diff(&req.sequence_json, &sequence_json);
+            Ok(rpc::redo_update::Response {})
+        })
+    }
 
-            Ok(rpc::update_client_sequence::Response { patch })
+    fn update_sequence<'a>(
+        &'a self,
+        session: Option<SessionDocument>,
+        rpc::update_sequence::Request {
+            sequence_id,
+            action,
+        }: rpc::update_sequence::Request,
+    ) -> std::pin::Pin<
+        Box<dyn 'a + std::future::Future<Output = rpc::update_sequence::Result> + Send>,
+    > {
+        Box::pin(async move {
+            let Some(session) = session else {
+                return Err(rpc::update_sequence::Error::Unauthorized);
+            };
+
+            let mut sequence_index_document =
+                SequenceIndexDocumentGetWithVersion { pk_id: sequence_id }
+                    .run()
+                    .await
+                    .map_err(|error| match error {
+                        crate::storage::dynamo_db::GetItemError::NotFound => {
+                            rpc::update_sequence::Error::SequenceNotFound
+                        }
+                        _ => rpc::update_sequence::Error::Unknown(error.to_string()),
+                    })?;
+
+            let is_project_editor = crate::services()
+                .project_service
+                .is_project_editor(session.user_id, sequence_index_document.project_id)
+                .await
+                .map_err(|error| rpc::update_sequence::Error::Unknown(error.to_string()))?;
+
+            if !is_project_editor {
+                return Err(rpc::update_sequence::Error::Forbidden);
+            }
+
+            let mut sequence_document = SequenceDocumentGet {
+                pk_id: sequence_id,
+                sk_index: sequence_index_document.index,
+            }
+            .run()
+            .await
+            .map_err(|error| rpc::update_sequence::Error::Unknown(error.to_string()))?;
+
+            sequence_index_document.index.increase();
+            sequence_document.index.increase();
+
+            let transact = crate::dynamo_db()
+                .transact_with_cancel::<rpc::update_sequence::Error>()
+                .manual_update_item(sequence_index_document);
+            match action {
+                rpc::data::SequenceUpdateAction::InsertCut { cut, after_cut_id } => {
+                    let cut_insert_index = match after_cut_id {
+                        Some(after_cut_id) => sequence_document
+                            .cuts
+                            .iter()
+                            .position(|cut| cut.cut_id == after_cut_id)
+                            .ok_or(rpc::update_sequence::Error::CutNotFound)?,
+                        None => sequence_document.cuts.len(),
+                    };
+
+                    sequence_document.cuts.insert(
+                        cut_insert_index,
+                        CutIndex {
+                            cut_id: cut.id,
+                            index: CircularIndex::new(),
+                        },
+                    );
+
+                    transact.create_item(SequenceCutDocument {
+                        sequence_id,
+                        cut_id: cut.id,
+                        cut_index: CircularIndex::new(),
+                        cut,
+                    })
+                }
+                rpc::data::SequenceUpdateAction::RenameSequence { name } => {
+                    sequence_document.name = name;
+                    transact
+                }
+            }
+            .put_item(sequence_document)
+            .send()
+            .await
+            .map_err(|error| match error {
+                crate::storage::dynamo_db::TransactError::Canceled(canceled) => canceled,
+                crate::storage::dynamo_db::TransactError::Unknown(unknown) => {
+                    rpc::update_sequence::Error::Unknown(unknown.to_string())
+                }
+            })?;
+
+            Ok(rpc::update_sequence::Response {})
+        })
+    }
+
+    fn update_sequence_cut<'a>(
+        &'a self,
+        session: Option<SessionDocument>,
+        rpc::update_sequence_cut::Request {
+            sequence_id,
+            cut_id,
+            action,
+        }: rpc::update_sequence_cut::Request,
+    ) -> std::pin::Pin<
+        Box<dyn 'a + std::future::Future<Output = rpc::update_sequence_cut::Result> + Send>,
+    > {
+        Box::pin(async move {
+            let Some(session) = session else {
+                return Err(rpc::update_sequence_cut::Error::Unauthorized);
+            };
+
+            let mut sequence_index_document =
+                SequenceIndexDocumentGetWithVersion { pk_id: sequence_id }
+                    .run()
+                    .await
+                    .map_err(|error| match error {
+                        crate::storage::dynamo_db::GetItemError::NotFound => {
+                            rpc::update_sequence_cut::Error::SequenceNotFound
+                        }
+                        _ => rpc::update_sequence_cut::Error::Unknown(error.to_string()),
+                    })?;
+
+            let is_project_editor = crate::services()
+                .project_service
+                .is_project_editor(session.user_id, sequence_index_document.project_id)
+                .await
+                .map_err(|error| rpc::update_sequence_cut::Error::Unknown(error.to_string()))?;
+
+            if !is_project_editor {
+                return Err(rpc::update_sequence_cut::Error::Forbidden);
+            }
+
+            let mut sequence_document = SequenceDocumentGet {
+                pk_id: sequence_id,
+                sk_index: sequence_index_document.index,
+            }
+            .run()
+            .await
+            .map_err(|error| rpc::update_sequence_cut::Error::Unknown(error.to_string()))?;
+
+            sequence_index_document.index.increase();
+            sequence_document.index.increase();
+
+            let cut = sequence_document
+                .cut_mut(cut_id)
+                .ok_or_else(|| rpc::update_sequence_cut::Error::CutNotFound)?;
+            let cut_index = cut.index;
+
+            let mut cut_document = SequenceCutDocumentGet {
+                pk_sequence_id: sequence_id,
+                pk_cut_id: cut_id,
+                sk_cut_index: cut_index,
+            }
+            .run()
+            .await
+            .map_err(|error| rpc::update_sequence_cut::Error::Unknown(error.to_string()))?;
+
+            cut.index.increase();
+            cut_document.cut_index.increase();
+
+            action.update(&mut cut_document.cut);
+
+            crate::dynamo_db()
+                .transact_with_cancel::<rpc::update_sequence_cut::Error>()
+                .manual_update_item(sequence_index_document)
+                .put_item(sequence_document)
+                .put_item(cut_document)
+                .send()
+                .await
+                .map_err(|error| match error {
+                    crate::storage::dynamo_db::TransactError::Canceled(canceled) => canceled,
+                    crate::storage::dynamo_db::TransactError::Unknown(unknown) => {
+                        rpc::update_sequence_cut::Error::Unknown(unknown.to_string())
+                    }
+                })?;
+
+            Ok(rpc::update_sequence_cut::Response {})
         })
     }
 
     fn get_sequence_and_project_shared_data<'a>(
         &'a self,
         _session: Option<SessionDocument>,
-        req: rpc::get_sequence_and_project_shared_data::Request,
+        rpc::get_sequence_and_project_shared_data::Request { sequence_id }
+        : rpc::get_sequence_and_project_shared_data::Request,
     ) -> std::pin::Pin<
         Box<
             dyn 'a
@@ -235,8 +406,21 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
         >,
     > {
         Box::pin(async move {
-            let sequence = SequenceDocumentGet {
-                pk_id: req.sequence_id,
+            let sequence_index_document = SequenceIndexDocumentGet { pk_id: sequence_id }
+                .run()
+                .await
+                .map_err(|error| match error {
+                    crate::storage::dynamo_db::GetItemError::NotFound => {
+                        rpc::get_sequence_and_project_shared_data::Error::SequenceNotFound
+                    }
+                    _ => {
+                        rpc::get_sequence_and_project_shared_data::Error::Unknown(error.to_string())
+                    }
+                })?;
+
+            let sequence_document = SequenceDocumentGet {
+                pk_id: sequence_id,
+                sk_index: sequence_index_document.index,
             }
             .run()
             .await
@@ -245,7 +429,7 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             })?;
 
             let project = ProjectDocumentGet {
-                pk_id: sequence.project_id,
+                pk_id: sequence_document.project_id,
             }
             .run()
             .await
@@ -253,8 +437,30 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                 rpc::get_sequence_and_project_shared_data::Error::Unknown(error.to_string())
             })?;
 
+            let cut_futures = sequence_document.cuts.iter().map(|cut_index| async move {
+                SequenceCutDocumentGet {
+                    pk_sequence_id: sequence_id,
+                    pk_cut_id: cut_index.cut_id,
+                    sk_cut_index: cut_index.index,
+                }
+                .run()
+                .await
+                .map_err(|error| {
+                    rpc::get_sequence_and_project_shared_data::Error::Unknown(error.to_string())
+                })
+                .map(|document| document.cut)
+            });
+
+            let cuts = futures::future::try_join_all(cut_futures).await?;
+
+            let sequence = rpc::data::Sequence {
+                id: sequence_document.id,
+                name: sequence_document.name,
+                cuts,
+            };
+
             Ok(rpc::get_sequence_and_project_shared_data::Response {
-                sequence_json: sequence.json,
+                sequence,
                 project_shared_data_json: project.shared_data_json,
             })
         })
@@ -263,26 +469,29 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
     fn delete_sequence<'a>(
         &'a self,
         session: Option<SessionDocument>,
-        req: rpc::delete_sequence::Request,
+        rpc::delete_sequence::Request { sequence_id }: rpc::delete_sequence::Request,
     ) -> std::pin::Pin<
         Box<dyn 'a + std::future::Future<Output = rpc::delete_sequence::Result> + Send>,
     > {
         Box::pin(async move {
-            if session.is_none() {
+            let Some(session) = session else  {
                 return Err(rpc::delete_sequence::Error::Unauthorized);
-            }
-            let session = session.unwrap();
+            };
 
-            let sequence = SequenceDocumentGet {
-                pk_id: req.sequence_id,
-            }
-            .run()
-            .await
-            .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?;
+            // TODO: Remove all using queue
 
+            let sequence_index_document = SequenceIndexDocumentGet { pk_id: sequence_id }
+                .run()
+                .await
+                .map_err(|error| match error {
+                    crate::storage::dynamo_db::GetItemError::NotFound => {
+                        rpc::delete_sequence::Error::SequenceNotFound
+                    }
+                    _ => rpc::delete_sequence::Error::Unknown(error.to_string()),
+                })?;
             let is_project_editor = crate::services()
                 .project_service
-                .is_project_editor(session.user_id, sequence.project_id)
+                .is_project_editor(session.user_id, sequence_index_document.project_id)
                 .await
                 .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?;
 
@@ -290,94 +499,18 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                 return Err(rpc::delete_sequence::Error::Unauthorized);
             }
 
-            try_join_all(
-                MemoDocumentQuery {
-                    pk_sequence_id: req.sequence_id,
-                    last_sk: None, // TODO
-                }
-                .run()
-                .await
-                .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?
-                .documents
-                .into_iter()
-                .map(|memo| {
-                    MemoDocumentDelete {
-                        pk_sequence_id: req.sequence_id,
-                        sk_memo_id: memo.memo_id,
-                    }
-                    .run()
-                }),
-            )
-            .await
-            .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?;
-
             crate::dynamo_db()
                 .transact()
-                .delete_item(SequenceDocumentDelete {
-                    pk_id: req.sequence_id,
-                })
+                .delete_item(SequenceIndexDocumentDelete { pk_id: sequence_id })
                 .delete_item(ProjectSequenceDocumentDelete {
-                    pk_project_id: sequence.project_id,
-                    sk_sequence_id: req.sequence_id,
+                    pk_project_id: sequence_index_document.project_id,
+                    sk_sequence_id: sequence_id,
                 })
                 .send()
                 .await
                 .map_err(|error| rpc::delete_sequence::Error::Unknown(error.to_string()))?;
 
             Ok(rpc::delete_sequence::Response {})
-        })
-    }
-
-    fn rename_sequence<'a>(
-        &'a self,
-        session: Option<SessionDocument>,
-        req: rpc::rename_sequence::Request,
-    ) -> std::pin::Pin<
-        Box<dyn 'a + std::future::Future<Output = rpc::rename_sequence::Result> + Send>,
-    > {
-        Box::pin(async move {
-            if session.is_none() {
-                return Err(rpc::rename_sequence::Error::Unauthorized);
-            }
-            let session = session.unwrap();
-
-            let sequence = SequenceDocumentGet {
-                pk_id: req.sequence_id,
-            }
-            .run()
-            .await
-            .map_err(|error| rpc::rename_sequence::Error::Unknown(error.to_string()))?;
-
-            let is_project_editor = crate::services()
-                .project_service
-                .is_project_editor(session.user_id, sequence.project_id)
-                .await
-                .map_err(|error| rpc::rename_sequence::Error::Unknown(error.to_string()))?;
-
-            if !is_project_editor {
-                return Err(rpc::rename_sequence::Error::Unauthorized);
-            }
-
-            SequenceDocumentUpdate {
-                pk_id: req.sequence_id,
-                update: move |mut sequence: SequenceDocument| async move {
-                    sequence.name = req.new_name;
-                    Ok(sequence)
-                },
-            }
-            .run()
-            .await
-            .map_err(|error| match error {
-                crate::storage::dynamo_db::UpdateItemError::Canceled(error) => error,
-                crate::storage::dynamo_db::UpdateItemError::NotFound
-                | crate::storage::dynamo_db::UpdateItemError::SerializationFailed(_)
-                | crate::storage::dynamo_db::UpdateItemError::Conflict
-                | crate::storage::dynamo_db::UpdateItemError::Unknown(_) => {
-                    rpc::rename_sequence::Error::Unknown(error.to_string())
-                }
-            })?;
-
-            Ok(rpc::rename_sequence::Response {})
         })
     }
 }
