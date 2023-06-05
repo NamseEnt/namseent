@@ -4,6 +4,7 @@ mod session;
 pub mod storage;
 mod utils;
 
+use anyhow::Result;
 use aws_smithy_async::rt::sleep::default_async_sleep;
 use lambda_web::{is_running_on_lambda, run_hyper_on_lambda, LambdaError};
 use once_cell::sync::OnceCell;
@@ -102,34 +103,38 @@ pub async fn init() {
         STORAGES.set(Storage { dynamo_db, s3 }).unwrap();
     } else {
         log::info!("not running on lambda");
-        let dynamo_db = DynamoDb::new(
-            &aws_config::SdkConfig::builder()
-                .endpoint_resolver(aws_sdk_dynamodb::Endpoint::immutable(Uri::from_static(
-                    "http://localhost:8000",
-                )))
-                .region(aws_sdk_dynamodb::Region::new("ap-northeast-2"))
-                .credentials_provider(aws_types::credentials::SharedCredentialsProvider::new(
-                    aws_types::Credentials::new("local", "local", None, None, "local"),
-                ))
-                .sleep_impl(default_async_sleep().unwrap())
-                .build(),
-        );
-        let s3 = S3::new(
-            &aws_config::SdkConfig::builder()
-                .endpoint_resolver(aws_sdk_dynamodb::Endpoint::immutable(Uri::from_static(
-                    "http://localhost:9000",
-                )))
-                .region(aws_sdk_dynamodb::Region::new("ap-northeast-2"))
-                .credentials_provider(aws_types::credentials::SharedCredentialsProvider::new(
-                    aws_types::Credentials::new("minio", "minio123", None, None, "local"),
-                ))
-                .sleep_impl(default_async_sleep().unwrap())
-                .build(),
-            "http://localhost:9000".to_string(),
-        );
-
-        STORAGES.set(Storage { dynamo_db, s3 }).unwrap();
+        set_local_storage();
     }
+}
+
+pub(crate) fn set_local_storage() {
+    let dynamo_db = DynamoDb::new(
+        &aws_config::SdkConfig::builder()
+            .endpoint_resolver(aws_sdk_dynamodb::Endpoint::immutable(Uri::from_static(
+                "http://localhost:8000",
+            )))
+            .region(aws_sdk_dynamodb::Region::new("ap-northeast-2"))
+            .credentials_provider(aws_types::credentials::SharedCredentialsProvider::new(
+                aws_types::Credentials::new("local", "local", None, None, "local"),
+            ))
+            .sleep_impl(default_async_sleep().unwrap())
+            .build(),
+    );
+    let s3 = S3::new(
+        &aws_config::SdkConfig::builder()
+            .endpoint_resolver(aws_sdk_dynamodb::Endpoint::immutable(Uri::from_static(
+                "http://localhost:9000",
+            )))
+            .region(aws_sdk_dynamodb::Region::new("ap-northeast-2"))
+            .credentials_provider(aws_types::credentials::SharedCredentialsProvider::new(
+                aws_types::Credentials::new("minio", "minio123", None, None, "local"),
+            ))
+            .sleep_impl(default_async_sleep().unwrap())
+            .build(),
+        "http://localhost:9000".to_string(),
+    );
+
+    STORAGES.set(Storage { dynamo_db, s3 }).unwrap();
 }
 
 pub async fn run_server() -> Result<(), LambdaError> {

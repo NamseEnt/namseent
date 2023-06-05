@@ -89,6 +89,7 @@ impl rpc::ProjectService<SessionDocument> for ProjectService {
             let session = session.unwrap();
             let owner_project_documents = OwnerProjectDocumentQuery {
                 pk_owner_id: session.user_id,
+                last_sk: None, // TODO
             }
             .run()
             .await;

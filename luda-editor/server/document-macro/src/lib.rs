@@ -49,7 +49,7 @@ pub fn document(
         let to_string_rows = sk_fields.iter().map(|field| {
             let field_ident = &field.ident;
             quote! {
-                format!("{}:{}", stringify!(#field_ident), self.#field_ident.to_string()),
+                format!("#{}:{}", stringify!(#field_ident), self.#field_ident.to_string()),
             }
         });
 

@@ -192,6 +192,7 @@ impl DynamoDb {
             .expression_attribute_names("#PARTITION", PARTITION_KEY)
             .expression_attribute_values(":partition", AttributeValue::S(partition_key.clone()))
             .set_exclusive_start_key(last_sk.map(|last_sk| {
+                println!("last_sk: {}", last_sk.to_string());
                 let mut item = HashMap::new();
                 item.insert(PARTITION_KEY.to_string(), AttributeValue::S(partition_key));
                 item.insert(SORT_KEY.to_string(), AttributeValue::S(last_sk.to_string()));
@@ -201,8 +202,8 @@ impl DynamoDb {
             .await;
 
         match query_result {
-            Ok(query_result) => {
-                let items = query_result.items.unwrap();
+            Ok(query_output) => {
+                let items = query_output.items.unwrap();
                 let mut documents = Vec::new();
                 for item in items {
                     let document = serde_dynamo::from_item(item).unwrap();
@@ -334,3 +335,62 @@ pub enum DeleteItemError {
     Unknown(String),
 }
 crate::simple_error_impl!(DeleteItemError);
+
+#[cfg(test)]
+mod test {
+    use anyhow::Result;
+
+    #[tokio::test]
+    async fn test_query() -> Result<()> {
+        crate::set_local_storage();
+
+        #[derive(PartialEq)]
+        #[document_macro::document]
+        pub struct Item {
+            #[pk]
+            pub pk: usize,
+            #[sk]
+            pub sk: usize,
+        }
+
+        let items = vec![
+            Item { pk: 1, sk: 1 },
+            Item { pk: 1, sk: 2 },
+            Item { pk: 1, sk: 3 },
+            Item { pk: 2, sk: 1 },
+            Item { pk: 2, sk: 2 },
+            Item { pk: 2, sk: 3 },
+            Item { pk: 2, sk: 4 },
+        ];
+
+        for item in items {
+            crate::dynamo_db().put_item(item).await?;
+        }
+
+        assert_eq!(
+            ItemQuery {
+                pk_pk: 1,
+                last_sk: None,
+            }
+            .run()
+            .await?,
+            vec![
+                Item { pk: 1, sk: 1 },
+                Item { pk: 1, sk: 2 },
+                Item { pk: 1, sk: 3 },
+            ]
+        );
+
+        assert_eq!(
+            ItemQuery {
+                pk_pk: 2,
+                last_sk: Some(ItemSortKey { sk: 2 }),
+            }
+            .run()
+            .await?,
+            vec![Item { pk: 2, sk: 3 }, Item { pk: 2, sk: 4 },]
+        );
+
+        Ok(())
+    }
+}

@@ -29,6 +29,7 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
         Box::pin(async move {
             let project_sequence_documents = ProjectSequenceDocumentQuery {
                 pk_project_id: req.project_id,
+                last_sk: None, // TODO
             }
             .run()
             .await;
@@ -296,6 +297,7 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
             try_join_all(
                 MemoDocumentQuery {
                     pk_sequence_id: req.sequence_id,
+                    last_sk: None, // TODO
                 }
                 .run()
                 .await

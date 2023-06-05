@@ -24,6 +24,7 @@ impl rpc::MemoService<SessionDocument> for MemoService {
         Box::pin(async move {
             let memo_documents = MemoDocumentQuery {
                 pk_sequence_id: req.sequence_id,
+                last_sk: None, // TODO
             }
             .run()
             .await

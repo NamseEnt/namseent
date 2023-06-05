@@ -102,6 +102,7 @@ impl rpc::ImageService<SessionDocument> for ImageService {
         Box::pin(async move {
             let documents = ProjectImageDocumentQuery {
                 pk_project_id: req.project_id,
+                last_sk: None, // TODO
             }
             .run()
             .await

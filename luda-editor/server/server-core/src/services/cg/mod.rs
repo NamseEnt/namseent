@@ -204,6 +204,7 @@ impl rpc::CgService<SessionDocument> for CgService {
 
             let futures = CgInProjectQuery {
                 pk_project_id: project_id,
+                last_sk: None, // TODO
             }
             .run()
             .await
