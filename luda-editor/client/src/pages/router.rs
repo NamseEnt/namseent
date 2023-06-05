@@ -29,11 +29,15 @@ impl From<RoutePath> for Route {
             RoutePath::ProjectList => {
                 Self::ProjectListPage(project_list_page::ProjectListPage::new())
             }
-            RoutePath::SequenceList(project_id) => {
+            RoutePath::SequenceList { project_id } => {
                 Self::SequenceListPage(sequence_list_page::SequenceListPage::new(project_id))
             }
-            RoutePath::SequenceEdit(sequence_id) => {
+            RoutePath::SequenceEdit {
+                project_id,
+                sequence_id,
+            } => {
                 return Self::SequenceEditPage(sequence_edit_page::SequenceEditPage::new(
+                    project_id,
                     sequence_id,
                 ))
             }
@@ -103,22 +107,34 @@ fn get_path_from_hash() -> RoutePath {
 #[derive(Clone)]
 pub enum RoutePath {
     ProjectList,
-    SequenceList(Uuid),
-    SequenceEdit(Uuid),
+    SequenceList { project_id: Uuid },
+    SequenceEdit { project_id: Uuid, sequence_id: Uuid },
 }
 impl From<String> for RoutePath {
-    fn from(path_string: String) -> Self {
+    fn from(mut path_string: String) -> Self {
         if path_string.starts_with("/sequence_list") {
-            let rest = path_string.clone().split_off("/sequence_list".len());
+            let rest = path_string.split_off("/sequence_list".len());
             if let Ok(project_id) = Uuid::parse_str(rest.trim_matches('/')) {
-                return Self::SequenceList(project_id);
+                return Self::SequenceList { project_id };
             }
         }
 
         if path_string.starts_with("/sequence_edit") {
-            let rest = path_string.clone().split_off("/sequence_edit".len());
-            if let Ok(sequence_id) = Uuid::parse_str(rest.trim_matches('/')) {
-                return Self::SequenceEdit(sequence_id);
+            let rest = path_string.split_off("/sequence_edit".len());
+            let mut items = rest.split('/');
+            items.next();
+            let project_id = items.next();
+            let sequence_id = items.next();
+
+            if let (Some(project_id), Some(sequence_id)) = (project_id, sequence_id) {
+                if let (Ok(project_id), Ok(sequence_id)) =
+                    (Uuid::parse_str(project_id), Uuid::parse_str(sequence_id))
+                {
+                    return Self::SequenceEdit {
+                        project_id,
+                        sequence_id,
+                    };
+                }
             }
         }
 
@@ -129,8 +145,11 @@ impl ToString for RoutePath {
     fn to_string(&self) -> String {
         match self {
             Self::ProjectList => "/".to_string(),
-            Self::SequenceList(project_id) => format!("/sequence_list/{project_id}"),
-            Self::SequenceEdit(sequence_id) => format!("/sequence_edit/{sequence_id}"),
+            Self::SequenceList { project_id } => format!("/sequence_list/{project_id}"),
+            Self::SequenceEdit {
+                project_id,
+                sequence_id,
+            } => format!("/sequence_edit/{project_id}/{sequence_id}"),
         }
     }
 }

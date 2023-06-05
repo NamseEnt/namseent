@@ -5,7 +5,7 @@ use crate::components::context_menu::ContextMenu;
 
 use super::*;
 use namui::prelude::*;
-use rpc::data::{Cut, ScreenCg};
+use rpc::data::{CgFile, Cut, ScreenCg};
 
 pub struct CutEditor {
     selected_target: Option<ClickTarget>,
@@ -21,17 +21,10 @@ pub struct Props<'a> {
     pub cuts: &'a Vec<Cut>,
     pub is_focused: bool,
     pub project_id: Uuid,
+    pub cg_files: &'a Vec<CgFile>,
 }
 
 pub enum Event {
-    ChangeCharacterName {
-        name: String,
-        cut_id: Uuid,
-    },
-    ChangeCutLine {
-        text: String,
-        cut_id: Uuid,
-    },
     MoveCutRequest {
         cut_id: Uuid,
         to_prev: bool,

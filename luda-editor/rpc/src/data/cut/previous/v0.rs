@@ -1,6 +1,7 @@
 use crate::Uuid;
 
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[migration::version(0)]
+#[derive(Debug, Clone, Default)]
 pub struct Cut {
     id: Uuid,
     /// The text that the character speaks in this cut.

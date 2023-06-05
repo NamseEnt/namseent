@@ -12,8 +12,12 @@ pub async fn handle_with_wrapped_error(
 ) -> Result<Response<Body>, LambdaError> {
     let request_id = Uuid::new_v4();
     let method = request.method().clone();
-    let path = request.uri().path().to_string();
-    log::info!("Request[{request_id}] {method} {path}");
+    let path = request
+        .uri()
+        .query()
+        .map(|query| query.to_string())
+        .unwrap_or_default();
+    log::info!("Request[{request_id}] {method} {path:?}");
     let response = handle(request).await;
     match response {
         Ok(response) => {
@@ -24,7 +28,7 @@ pub async fn handle_with_wrapped_error(
             Ok(response)
         }
         Err(error) => {
-            eprintln!("{}", error);
+            eprintln!("{:#?}", error);
             Ok(Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body(Body::from(error.to_string()))

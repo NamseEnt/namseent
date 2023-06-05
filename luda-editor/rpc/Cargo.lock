@@ -568,6 +568,14 @@ checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 name = "migration"
 version = "0.1.0"
 dependencies = [
+ "bincode",
+ "migration-macro",
+]
+
+[[package]]
+name = "migration-macro"
+version = "0.1.0"
+dependencies = [
  "proc-macro2",
  "quote",
  "syn",
@@ -1075,6 +1083,7 @@ dependencies = [
 name = "rpc"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "hyper",
  "migration",
  "namui",

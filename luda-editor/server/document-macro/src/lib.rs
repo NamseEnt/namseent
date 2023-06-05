@@ -10,7 +10,14 @@ pub fn document(
     let attribute_args = parse_macro_input!(attribute_input as syn::AttributeArgs);
     let mut derive_input = parse_macro_input!(input as syn::DeriveInput);
 
-    derive_traits(&mut derive_input, attribute_args);
+    let migration_version = attribute_args
+        .iter()
+        .find_map(|arg| match arg {
+            syn::NestedMeta::Lit(syn::Lit::Int(lit)) => Some(lit.base10_parse::<u64>().unwrap()),
+            _ => None,
+        })
+        .unwrap_or(0);
+    derive_traits(&mut derive_input);
 
     let syn::Data::Struct(struct_input) = &mut derive_input.data else {
         panic!("Document can only be derived on structs");
@@ -23,13 +30,38 @@ pub fn document(
 
     let get_struct_output = {
         let get_struct_ident = Ident::new(&format!("{}Get", struct_ident), struct_ident.span());
-        let get_struct_fields = prefixed_pk_fields.iter().chain(prefixed_sk_fields.iter());
+        let get_struct_fields = prefixed_pk_fields
+            .iter()
+            .chain(prefixed_sk_fields.iter())
+            .collect::<Vec<_>>();
+
+        let get_with_verison_struct_ident = Ident::new(
+            &format!("{}GetWithVersion", struct_ident),
+            struct_ident.span(),
+        );
+
         quote! {
             pub struct #get_struct_ident {
                 #(#get_struct_fields,)*
             }
             impl #get_struct_ident {
                 pub async fn run(self) -> Result<#struct_ident, crate::storage::dynamo_db::GetItemError> {
+                    let pk = #prefixed_pk;
+                    let sk = #prefixed_sk;
+                    crate::dynamo_db()
+                        .get_item::<#struct_ident>(pk, sk)
+                        .await
+                        .map(|with_version| with_version.into_inner())
+                }
+            }
+            pub struct #get_with_verison_struct_ident {
+                #(#get_struct_fields,)*
+            }
+            impl #get_with_verison_struct_ident {
+                pub async fn run(self) -> Result<
+                    crate::storage::dynamo_db::WithVersion<#struct_ident>,
+                    crate::storage::dynamo_db::GetItemError
+                > {
                     let pk = #prefixed_pk;
                     let sk = #prefixed_sk;
                     crate::dynamo_db().get_item::<#struct_ident>(pk, sk).await
@@ -232,6 +264,7 @@ pub fn document(
     };
 
     let output = quote! {
+        #[migration::version(#migration_version)]
         #derive_input
         #impl_document
         #get_struct_output
@@ -357,29 +390,8 @@ fn split_pk_sk_fields(
     (pk_fields, sk_fields)
 }
 
-fn derive_traits(derive_input: &mut syn::DeriveInput, attribute_args: Vec<syn::NestedMeta>) {
-    let no_serialize = attribute_args.iter().any(|arg| {
-        if let syn::NestedMeta::Meta(syn::Meta::Path(path)) = arg {
-            path.is_ident("no_serialize")
-        } else {
-            false
-        }
-    });
-    let no_deserialize = attribute_args.iter().any(|arg| {
-        if let syn::NestedMeta::Meta(syn::Meta::Path(path)) = arg {
-            path.is_ident("no_deserialize")
-        } else {
-            false
-        }
-    });
-
-    let mut derives = vec!["Debug", "Clone"];
-    if !no_serialize {
-        derives.push("serde::Serialize");
-    }
-    if !no_deserialize {
-        derives.push("serde::Deserialize");
-    }
+fn derive_traits(derive_input: &mut syn::DeriveInput) {
+    let derives = vec!["Debug", "Clone"];
     derives.into_iter().for_each(|trait_name| {
         let trait_ident: TokenStream = trait_name.parse().unwrap();
         let is_already_derived = derive_input.attrs.iter().any(|attr| {

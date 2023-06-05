@@ -21,7 +21,7 @@ impl CutListView {
                         props
                             .cuts
                             .iter()
-                            .map(|cut| props.cut_id_memo_map.get(&cut.id())),
+                            .map(|cut| props.cut_id_memo_map.get(&cut.id)),
                     )
                     .enumerate(),
                 item_render: |wh, (index, (cut, memos))| {
@@ -67,7 +67,7 @@ impl CutListView {
         memo_count: usize,
         props: &Props,
     ) -> RenderingTree {
-        let cut_id = cut.id();
+        let cut_id = cut.id;
         let is_focused = props.is_focused;
         let is_selected = props.selected_cut_id == Some(cut_id);
         let stroke_color = color::stroke_color(is_selected, is_focused);
@@ -132,7 +132,7 @@ fn handle_move_key(event: &KeyboardEvent, cuts: &[Cut], selected_cut_id: Uuid) {
 
     let cut_index = cuts
         .iter()
-        .position(|cut| cut.id() == selected_cut_id)
+        .position(|cut| cut.id == selected_cut_id)
         .unwrap();
 
     let next_cut_id = match direction {
@@ -140,13 +140,13 @@ fn handle_move_key(event: &KeyboardEvent, cuts: &[Cut], selected_cut_id: Uuid) {
             if cut_index == 0 {
                 return;
             }
-            cuts[cut_index - 1].id()
+            cuts[cut_index - 1].id
         }
         UpDown::Down => {
             if cut_index == cuts.len() - 1 {
                 return;
             }
-            cuts[cut_index + 1].id()
+            cuts[cut_index + 1].id
         }
     };
 

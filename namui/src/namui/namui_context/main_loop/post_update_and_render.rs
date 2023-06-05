@@ -31,7 +31,9 @@ impl NamuiContext {
                 self.rendering_tree
                     .call_file_drop_event(raw_file_drop_event, &self);
             }
-            NamuiEvent::ScreenResize(_) | NamuiEvent::DeepLinkOpened(_) => {}
+            NamuiEvent::ScreenResize(_)
+            | NamuiEvent::DeepLinkOpened(_)
+            | NamuiEvent::NoUpdateJustRender => {}
         });
         let now = crate::now();
         while let Some(timeout) = pull_timeout(now) {
