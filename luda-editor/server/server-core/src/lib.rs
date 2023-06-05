@@ -141,10 +141,7 @@ pub async fn run_server() -> Result<(), LambdaError> {
         let make_svc = make_service_fn(|_conn| async {
             Ok::<_, LambdaError>(service_fn(handle::handle_with_wrapped_error))
         });
-        let server = Server::bind(&addr)
-            .tcp_keepalive(None) // to prevent infinite pending problem on chrome
-            .http1_keepalive(false) // same as above
-            .serve(make_svc);
+        let server = Server::bind(&addr).serve(make_svc);
 
         server.await?;
     }
