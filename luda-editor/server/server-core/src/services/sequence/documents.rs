@@ -15,16 +15,16 @@ pub struct SequenceDocument {
 
 impl SequenceDocument {
     pub fn sequence_json_string(&self) -> Result<String> {
-        let buffer_size_16_mb = usize::pow(2, 24);
         let decompressor =
-            brotli::Decompressor::new(self.json_brotli.as_slice(), buffer_size_16_mb);
+            brotli::Decompressor::new(self.json_brotli.as_slice(), self.json_brotli.len());
         let sequence_json_string = read_to_string(decompressor)?;
         Ok(sequence_json_string)
     }
 
     pub fn sequence<TSequence: serde::de::DeserializeOwned>(&self) -> Result<TSequence> {
-        let sequence_json_string = self.sequence_json_string()?;
-        let sequence = serde_json::from_str(&sequence_json_string)?;
+        let decompressor =
+            brotli::Decompressor::new(self.json_brotli.as_slice(), self.json_brotli.len());
+        let sequence = serde_json::from_reader(decompressor)?;
         Ok(sequence)
     }
 }

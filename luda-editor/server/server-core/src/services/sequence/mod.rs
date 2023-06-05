@@ -360,11 +360,9 @@ fn compress_serde_using_brotli<T>(value: &T) -> Result<Vec<u8>, serde_json::Erro
 where
     T: ?Sized + serde::Serialize,
 {
-    let buffer_size_16_mb = usize::pow(2, 24);
     let mut output = Vec::new();
     {
-        let mut brotli_writer =
-            brotli::CompressorWriter::new(&mut output, buffer_size_16_mb, 9, 24);
+        let mut brotli_writer = brotli::CompressorWriter::new(&mut output, 0, 9, 24);
         serde_json::to_writer(&mut brotli_writer, value)?;
     }
 
