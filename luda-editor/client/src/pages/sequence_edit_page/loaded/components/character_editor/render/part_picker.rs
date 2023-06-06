@@ -6,7 +6,7 @@ use namui_prebuilt::{
     *,
 };
 use rpc::data::{CgFile, CgPart, CgPartVariant, PartSelectionType, ScreenCg};
-use std::iter::once;
+use std::{collections::HashMap, iter::once};
 use tooltip::*;
 
 const BUTTON_HEIGHT: Px = px(32.0);
@@ -89,6 +89,7 @@ fn render_cg_part_group_list(
                     cut_id,
                     graphic_index,
                     screen_cg,
+                    cg_file,
                 )
             }),
     )(wh)
@@ -102,6 +103,7 @@ fn render_cg_part_group<'a>(
     cut_id: Uuid,
     graphic_index: usize,
     screen_cg: &'a ScreenCg,
+    cg_file: &'a CgFile,
 ) -> Vec<TableCell<'a>> {
     let no_selection = !screen_cg
         .part_variants
@@ -127,6 +129,7 @@ fn render_cg_part_group<'a>(
                 .iter()
                 .map(|variant| {
                     render_thumbnail(
+                        cg_file,
                         cg_part,
                         variant,
                         project_id,
@@ -143,6 +146,7 @@ fn render_cg_part_group<'a>(
         table::fixed(THUMBNAIL_WH.height, move |wh| {
             table::horizontal(row.iter().map(|variant| {
                 render_thumbnail(
+                    cg_file,
                     cg_part,
                     variant,
                     project_id,
@@ -226,6 +230,7 @@ fn render_divider<'a>(height: Px) -> TableCell<'a> {
 }
 
 fn render_thumbnail<'a>(
+    cg_file: &'a CgFile,
     cg_part: &'a CgPart,
     cg_part_variant: &'a CgPartVariant,
     project_id: Uuid,
@@ -272,11 +277,20 @@ fn render_thumbnail<'a>(
                         .iter()
                         .map(|variant| variant.id)
                         .collect::<Vec<_>>();
+                    let cg_variant_id_index_map = HashMap::from_iter(
+                        cg_file
+                            .parts
+                            .iter()
+                            .flat_map(|part| part.variants.iter().map(|variant| variant.id))
+                            .enumerate()
+                            .map(|(index, variant_id)| (variant_id, index)),
+                    );
                     builder.on_mouse_down_in(move |_| {
                         namui::event::send(Event::UpdateCutGraphics {
                             cut_id,
                             callback: {
                                 let cg_part_variant_ids = cg_part_variant_ids.clone();
+                                let cg_variant_id_index_map = cg_variant_id_index_map.clone();
                                 Box::new(move |graphics| {
                                     if let ScreenGraphic::Cg(cg) = &mut graphics[graphic_index] {
                                         match (selected, selection_type) {
@@ -314,6 +328,11 @@ fn render_thumbnail<'a>(
                                                 ));
                                             }
                                         }
+
+                                        sort_variations(
+                                            &mut cg.part_variants,
+                                            &cg_variant_id_index_map,
+                                        );
                                     };
                                 })
                             },
@@ -324,4 +343,15 @@ fn render_thumbnail<'a>(
             .with_tooltip(cg_part_variant.name.clone())
         })(wh)
     })
+}
+
+fn sort_variations(
+    part_variants: &mut Vec<(Uuid, Rect<Percent>)>,
+    cg_variant_id_index_map: &HashMap<Uuid, usize>,
+) {
+    part_variants.sort_by(|(a, _), (b, _)| {
+        let a_index = cg_variant_id_index_map.get(a).unwrap_or(&0);
+        let b_index = cg_variant_id_index_map.get(b).unwrap_or(&0);
+        a_index.cmp(b_index)
+    });
 }
