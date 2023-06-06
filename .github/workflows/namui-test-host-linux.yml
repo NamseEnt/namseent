@@ -107,6 +107,7 @@ jobs:
       - uses: ./.github/actions/cargo-test
         with:
           path: luda-editor/server/server-bin
+      - run: bash luda-editor/server/run_test.sh
       - uses: ./.github/actions/namui-test
         with:
           target: wasm-unknown-web

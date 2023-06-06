@@ -1,7 +1,7 @@
 use super::*;
 use aws_sdk_dynamodb::model::AttributeValue;
 use futures::Future;
-use std::{error::Error, fmt::Debug};
+use std::{collections::HashMap, error::Error, fmt::Debug};
 
 /// Do not use this directly.
 impl DynamoDb {
@@ -181,7 +181,8 @@ impl DynamoDb {
     pub async fn query<TDocument: Document>(
         &self,
         partition_key_without_prefix: impl ToString,
-    ) -> Result<Vec<TDocument>, QueryError> {
+        last_sk: Option<impl ToString>,
+    ) -> Result<QueryOutput<TDocument>, QueryError> {
         let partition_key = get_partition_key::<TDocument>(partition_key_without_prefix);
         let query_result = self
             .client
@@ -189,19 +190,28 @@ impl DynamoDb {
             .table_name(&self.table_name)
             .key_condition_expression("#PARTITION = :partition")
             .expression_attribute_names("#PARTITION", PARTITION_KEY)
-            .expression_attribute_values(":partition", AttributeValue::S(partition_key))
+            .expression_attribute_values(":partition", AttributeValue::S(partition_key.clone()))
+            .set_exclusive_start_key(last_sk.map(|last_sk| {
+                let mut item = HashMap::new();
+                item.insert(PARTITION_KEY.to_string(), AttributeValue::S(partition_key));
+                item.insert(SORT_KEY.to_string(), AttributeValue::S(last_sk.to_string()));
+                item
+            }))
             .send()
             .await;
 
         match query_result {
-            Ok(query_result) => {
-                let items = query_result.items.unwrap();
+            Ok(query_output) => {
+                let items = query_output.items.unwrap();
                 let mut documents = Vec::new();
                 for item in items {
                     let document = serde_dynamo::from_item(item).unwrap();
                     documents.push(document);
                 }
-                Ok(documents)
+                Ok(QueryOutput {
+                    documents,
+                    no_more_items: query_output.last_evaluated_key.is_none(),
+                })
             }
             Err(error) => Err(QueryError::Unknown(error.to_string())),
         }
@@ -232,6 +242,12 @@ impl DynamoDb {
             Err(error) => Err(DeleteItemError::Unknown(error.to_string())),
         }
     }
+}
+
+#[derive(Debug)]
+pub struct QueryOutput<TDocument: Document> {
+    pub documents: Vec<TDocument>,
+    pub no_more_items: bool,
 }
 
 #[derive(Debug)]
@@ -327,3 +343,68 @@ pub enum DeleteItemError {
     Unknown(String),
 }
 crate::simple_error_impl!(DeleteItemError);
+
+#[cfg(test)]
+mod test {
+    use anyhow::Result;
+
+    #[tokio::test]
+    async fn test_query() -> Result<()> {
+        crate::set_local_storage();
+
+        #[derive(PartialEq)]
+        #[document_macro::document]
+        pub struct Item {
+            #[pk]
+            pub pk: usize,
+            #[sk]
+            pub sk: usize,
+        }
+
+        let items = vec![
+            Item { pk: 1, sk: 1 },
+            Item { pk: 1, sk: 2 },
+            Item { pk: 1, sk: 3 },
+            Item { pk: 2, sk: 1 },
+            Item { pk: 2, sk: 2 },
+            Item { pk: 2, sk: 3 },
+            Item { pk: 2, sk: 4 },
+        ];
+
+        for item in items {
+            crate::dynamo_db().put_item(item).await?;
+        }
+
+        let query_output = ItemQuery {
+            pk_pk: 1,
+            last_sk: None,
+        }
+        .run()
+        .await?;
+
+        assert_eq!(
+            query_output.documents,
+            vec![
+                Item { pk: 1, sk: 1 },
+                Item { pk: 1, sk: 2 },
+                Item { pk: 1, sk: 3 },
+            ]
+        );
+        assert_eq!(query_output.no_more_items, true);
+
+        let query_output = ItemQuery {
+            pk_pk: 2,
+            last_sk: Some(ItemSortKey { sk: 2 }),
+        }
+        .run()
+        .await?;
+
+        assert_eq!(
+            query_output.documents,
+            vec![Item { pk: 2, sk: 3 }, Item { pk: 2, sk: 4 },]
+        );
+        assert_eq!(query_output.no_more_items, true);
+
+        Ok(())
+    }
+}

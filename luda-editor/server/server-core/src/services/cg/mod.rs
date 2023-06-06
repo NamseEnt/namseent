@@ -204,10 +204,12 @@ impl rpc::CgService<SessionDocument> for CgService {
 
             let futures = CgInProjectQuery {
                 pk_project_id: project_id,
+                last_sk: None, // TODO
             }
             .run()
             .await
             .map_err(|err| rpc::list_cg_files::Error::Unknown(err.to_string()))?
+            .documents
             .into_iter()
             .map(
                 |CgInProject {
