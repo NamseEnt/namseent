@@ -4,7 +4,7 @@ use anyhow::Result;
 use include_dir::{include_dir, Dir};
 use namui_type::{percent, Percent, Uuid, Xy};
 // use opencv::prelude::*;
-use image::{imageops::FilterType, ImageBuffer, Luma};
+use image::{imageops::FilterType, DynamicImage, ImageBuffer, Luma};
 use psd_parsing::{parse_psd, PsdParsingResult};
 use rayon::prelude::*;
 use rpc::{
@@ -82,6 +82,8 @@ fn main() -> Result<()> {
     //     })
     //     .collect::<Vec<_>>();
 
+    // list_similar_psd_cases(&psd_all_cases, "1");
+
     let distance_psd_image_triples = get_distance_psd_image_triples(&input, &psd_all_cases);
 
     let plain_image_id_set = get_plain_image_id_set();
@@ -145,6 +147,61 @@ fn main() -> Result<()> {
     copy_used_assets(&used_background_image_names, &used_cg_file_names);
 
     Ok(())
+}
+
+fn list_similar_psd_cases(psd_all_cases: &[(PsdCase, DynamicImage)], image_name: &str) {
+    let static_image = IMAGES_DIR
+        .get_file(&format!("{image_name}.png"))
+        .or_else(|| IMAGES_DIR.get_file(&format!("{image_name}.jpg")))
+        .or_else(|| IMAGES_DIR.get_file(&format!("{image_name}.gif")))
+        .expect(&format!("image not found: {image_name}"));
+
+    let image = image::load_from_memory_with_format(
+        static_image.contents(),
+        match static_image.path().extension().unwrap().to_str().unwrap() {
+            "png" => image::ImageFormat::Png,
+            "jpg" => image::ImageFormat::Jpeg,
+            _ => unreachable!(),
+        },
+    )
+    .unwrap();
+    let width = 256;
+    let height = 256;
+    let image = image.resize_to_fill(width, height, FilterType::Nearest);
+    let context = dssim::new();
+    let image = context
+        .create_image(&imgref::ImgVec::new(
+            image.to_luma32f().into_raw(),
+            width as usize,
+            height as usize,
+        ))
+        .unwrap();
+
+    let mut distance_psd_cases = psd_all_cases
+        .par_iter()
+        .map(move |(case, psd_image)| {
+            let psd_image_dssim = context
+                .create_image(&imgref::ImgVec::new(
+                    psd_image.to_luma32f().into_raw(),
+                    width as usize,
+                    height as usize,
+                ))
+                .unwrap();
+
+            let (distance, _) = context.compare(&image, &psd_image_dssim);
+
+            (f64::from(distance), case)
+        })
+        .collect::<Vec<_>>();
+    distance_psd_cases.sort_by(|(a_distance, _), (b_distance, _)| a_distance.total_cmp(b_distance));
+
+    for (index, (_, case)) in distance_psd_cases.iter().enumerate().rev() {
+        println!(
+            "{index}. output/{case_id}.png {case_id}",
+            case_id = case.case_id
+        );
+    }
+    panic!("done");
 }
 
 fn copy_used_assets(used_background_image_names: &Vec<String>, used_cg_file_names: &Vec<String>) {
