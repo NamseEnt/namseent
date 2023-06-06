@@ -132,8 +132,8 @@ impl WysiwygEditor {
                                 paint_builder: None,
                             },
                         }),
-                        ScreenGraphic::Cg(cg) => {
-                            render(cg.part_variants.iter().filter_map(|(variant_id, rect)| {
+                        ScreenGraphic::Cg(cg) => render(cg.part_variants.iter().rev().filter_map(
+                            |(variant_id, rect)| {
                                 let rect = Rect::Xywh {
                                     x: graphic_rendering_rect.x()
                                         + graphic_rendering_rect.width() * rect.x(),
@@ -157,8 +157,8 @@ impl WysiwygEditor {
                                         paint_builder: None,
                                     },
                                 }))
-                            }))
-                        }
+                            },
+                        )),
                     };
 
                     Some(render([

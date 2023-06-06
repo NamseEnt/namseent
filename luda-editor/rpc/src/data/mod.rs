@@ -130,6 +130,19 @@ impl ScreenImage {
     }
 }
 
+///
+/// # part_variants
+/// Part variants will be rendered from last.
+///
+/// Last item of part_variants will be rendered on bottom.
+/// ```ignore
+/// fn render() {
+///     part_variants
+///         .iter()
+///         .rev() // Remember this
+///         .map(|variant| variant.render())
+/// }
+/// ```
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ScreenCg {
     pub id: Uuid,
