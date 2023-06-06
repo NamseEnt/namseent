@@ -192,7 +192,6 @@ impl DynamoDb {
             .expression_attribute_names("#PARTITION", PARTITION_KEY)
             .expression_attribute_values(":partition", AttributeValue::S(partition_key.clone()))
             .set_exclusive_start_key(last_sk.map(|last_sk| {
-                println!("last_sk: {}", last_sk.to_string());
                 let mut item = HashMap::new();
                 item.insert(PARTITION_KEY.to_string(), AttributeValue::S(partition_key));
                 item.insert(SORT_KEY.to_string(), AttributeValue::S(last_sk.to_string()));
