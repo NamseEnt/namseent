@@ -38,17 +38,40 @@ pub fn document(
         }
     };
 
-    let query_struct_output = {
+    let query_struct_output = if sk_fields.is_empty() {
+        quote! {}
+    } else {
         let query_struct_ident = Ident::new(&format!("{}Query", struct_ident), struct_ident.span());
         let query_struct_fields = prefixed_pk_fields.iter();
+
+        let sk_struct_ident = Ident::new(&format!("{}SortKey", struct_ident), struct_ident.span());
+        let sk_struct_fields = sk_fields.iter();
+        let to_string_rows = sk_fields.iter().map(|field| {
+            let field_ident = &field.ident;
+            quote! {
+                format!("#{}:{}", stringify!(#field_ident), self.#field_ident.to_string()),
+            }
+        });
+
         quote! {
+            pub struct #sk_struct_ident {
+                #(#sk_struct_fields,)*
+            }
+            impl ToString for #sk_struct_ident {
+                fn to_string(&self) -> String {
+                    vec![
+                        #(#to_string_rows)*
+                    ].join("&")
+                }
+            }
             pub struct #query_struct_ident {
                 #(#query_struct_fields,)*
+                pub last_sk: Option<#sk_struct_ident>,
             }
             impl #query_struct_ident {
-                pub async fn run(self) -> Result<Vec<#struct_ident>, crate::storage::dynamo_db::QueryError> {
+                pub async fn run(self) -> Result<crate::storage::dynamo_db::QueryOutput<#struct_ident>, crate::storage::dynamo_db::QueryError> {
                     let pk = #prefixed_pk;
-                    crate::dynamo_db().query::<#struct_ident>(pk).await
+                    crate::dynamo_db().query::<#struct_ident>(pk, self.last_sk).await
                 }
             }
         }
