@@ -475,90 +475,92 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
 
         fs::create_dir_all("output")?;
 
-        let psd_all_cases: Vec<(PsdCase, image::DynamicImage)> = psds
-            .into_par_iter()
-            .flat_map(
-                |PsdParsingResult {
-                     variants_images,
-                     cg_file,
-                     wh,
-                 }| {
-                    fn generate_all_cases(parts: Vec<CgPart>) -> Vec<Vec<CgPartVariant>> {
-                        if parts.len() == 0 {
-                            return vec![];
-                        }
-                        let (first_part, rest_parts) = parts.split_first().unwrap();
-                        let variant_cases = variant_cases(first_part.clone());
-                        let rest_parts_cases = generate_all_cases(rest_parts.to_vec());
-                        if rest_parts_cases.is_empty() {
-                            return variant_cases.into_iter().map(|x| vec![x]).collect();
-                        }
+        let psd_all_cases: Vec<(PsdCase, image::DynamicImage)> =
+            psds.into_par_iter()
+                .flat_map(
+                    |PsdParsingResult {
+                         variants_images,
+                         cg_file,
+                         wh,
+                     }| {
+                        fn generate_all_cases(parts: Vec<CgPart>) -> Vec<Vec<CgPartVariant>> {
+                            if parts.len() == 0 {
+                                return vec![];
+                            }
+                            let (first_part, rest_parts) = parts.split_first().unwrap();
+                            let variant_cases = variant_cases(first_part.clone());
+                            let rest_parts_cases = generate_all_cases(rest_parts.to_vec());
+                            if rest_parts_cases.is_empty() {
+                                return variant_cases.into_iter().map(|x| vec![x]).collect();
+                            }
 
-                        variant_cases
-                            .into_iter()
-                            .flat_map(|variant| {
+                            let all_cases = variant_cases.into_iter().flat_map(|variant| {
                                 rest_parts_cases.clone().into_iter().map(
                                     move |mut rest_parts_case| {
                                         rest_parts_case.insert(0, variant.clone());
                                         rest_parts_case
                                     },
                                 )
-                            })
-                            .collect::<Vec<_>>()
-                    }
+                            });
 
-                    let all_cases = generate_all_cases(cg_file.parts.clone());
-
-                    all_cases.into_par_iter().map(move |variants| {
-                        let cg_file = cg_file.clone();
-
-                        let layer_images = variants
-                            .clone()
-                            .into_par_iter()
-                            .map(|variant| {
-                                variants_images
-                                    .iter()
-                                    .find_map(|variants_image| {
-                                        if variants_image.variant_id == variant.id {
-                                            Some(&variants_image.image_buffer)
-                                        } else {
-                                            None
-                                        }
-                                    })
-                                    .unwrap()
-                            })
-                            .collect::<Vec<_>>();
-
-                        let mut bottom =
-                            image::ImageBuffer::<image::Rgba<u8>, _>::new(wh.width, wh.height);
-
-                        for part_image in layer_images.into_iter().rev() {
-                            image::imageops::overlay(&mut bottom, part_image, 0, 0);
+                            match first_part.name.contains("표정.기타") {
+                                true => all_cases.chain(rest_parts_cases.clone()).collect(),
+                                false => all_cases.collect(),
+                            }
                         }
 
-                        let case_id = namui_type::uuid_from_hash(
-                            variants.iter().map(|x| x.id).collect::<Vec<_>>(),
-                        );
+                        let all_cases = generate_all_cases(cg_file.parts.clone());
 
-                        let file_path = format!("output/{case_id}.png");
-                        bottom.save(&file_path).unwrap();
+                        all_cases.into_par_iter().map(move |variants| {
+                            let cg_file = cg_file.clone();
 
-                        // let image_hash = get_image_hash(&file_path);
-                        let image_hash = 0;
+                            let layer_images = variants
+                                .clone()
+                                .into_par_iter()
+                                .map(|variant| {
+                                    variants_images
+                                        .iter()
+                                        .find_map(|variants_image| {
+                                            if variants_image.variant_id == variant.id {
+                                                Some(&variants_image.image_buffer)
+                                            } else {
+                                                None
+                                            }
+                                        })
+                                        .unwrap()
+                                })
+                                .collect::<Vec<_>>();
 
-                        (
-                            PsdCase {
-                                cg_file,
-                                image_hash,
-                                variants,
-                                case_id,
-                            },
-                            bottom.into(),
-                        )
-                    })
-                },
-            )
-            .collect::<Vec<_>>();
+                            let mut bottom =
+                                image::ImageBuffer::<image::Rgba<u8>, _>::new(wh.width, wh.height);
+
+                            for part_image in layer_images.into_iter().rev() {
+                                image::imageops::overlay(&mut bottom, part_image, 0, 0);
+                            }
+
+                            let case_id = namui_type::uuid_from_hash(
+                                variants.iter().map(|x| x.id).collect::<Vec<_>>(),
+                            );
+
+                            let file_path = format!("output/{case_id}.png");
+                            bottom.save(&file_path).unwrap();
+
+                            // let image_hash = get_image_hash(&file_path);
+                            let image_hash = 0;
+
+                            (
+                                PsdCase {
+                                    cg_file,
+                                    image_hash,
+                                    variants,
+                                    case_id,
+                                },
+                                bottom.into(),
+                            )
+                        })
+                    },
+                )
+                .collect::<Vec<_>>();
 
         println!("psd_all_cases: {:?}", psd_all_cases.len());
         let data = psd_all_cases
