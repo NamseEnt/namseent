@@ -448,7 +448,7 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
 
         fs::create_dir_all("output")?;
 
-        let psd_all_cases: Vec<(PsdCase, image::DynamicImage)> =
+        let psd_all_cases: Vec<PsdCase> =
             psds.into_par_iter()
                 .flat_map(
                     |PsdParsingResult {
@@ -485,7 +485,6 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
                         }
 
                         let all_cases = generate_all_cases(cg_file.parts.clone());
-
                         all_cases.into_par_iter().map(move |variants| {
                             let cg_file = cg_file.clone();
 
@@ -528,15 +527,12 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
                             // let image_hash = get_image_hash(&file_path);
                             let image_hash = 0;
 
-                            (
-                                PsdCase {
-                                    cg_file,
-                                    image_hash,
-                                    variants,
-                                    case_id,
-                                },
-                                bottom.into(),
-                            )
+                            PsdCase {
+                                cg_file,
+                                image_hash,
+                                variants,
+                                case_id,
+                            }
                         })
                     },
                 )
@@ -545,7 +541,7 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
         println!("psd_all_cases: {:?}", psd_all_cases.len());
         let data = psd_all_cases
             .iter()
-            .map(|(case, _image)| (case.case_id, case.clone()))
+            .map(|case| (case.case_id, case.clone()))
             .collect::<BTreeMap<_, _>>();
 
         let case_metadata = CaseMetadata { data };
