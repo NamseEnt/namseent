@@ -476,7 +476,9 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
                                 )
                             });
 
-                            match first_part.name.contains("표정.기타") {
+                            match first_part.name.contains("표정.기타")
+                                || first_part.name.contains("표정.코")
+                            {
                                 true => all_cases.chain(rest_parts_cases.clone()).collect(),
                                 false => all_cases.collect(),
                             }
