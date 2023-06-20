@@ -1,3 +1,4 @@
+use super::layer_tree::{make_tree, LayerTree};
 use rpc::data::PartSelectionType;
 
 pub struct InterCgPart<'a> {
@@ -9,80 +10,115 @@ pub struct InterCgPart<'a> {
 pub struct InterCgVariant<'a> {
     pub part_name: String,
     pub variant_name: String,
-    pub layers: Vec<&'a psd::PsdLayer>,
+    pub layer_tree: Vec<LayerTree<'a>>,
 }
 
 pub fn parse_psd_to_inter_cg_parts<'a>(psd: &'a psd::Psd) -> Vec<InterCgPart<'a>> {
-    let mut parts: Vec<InterCgPart<'a>> = vec![];
-    for layer in psd.layers() {
-        let full_names = layer_full_names(psd, layer);
-
-        let (split_index, selection_type) = full_names
-            .iter()
-            .enumerate()
-            .find_map(|(index, name)| {
-                if name.ends_with("_s") {
-                    Some((index, PartSelectionType::Single))
-                } else if name.ends_with("_m") {
-                    Some((index, PartSelectionType::Multi))
-                } else if full_names.len() - 1 == index {
-                    Some((index, PartSelectionType::AlwaysOn))
-                } else {
-                    None
-                }
-            })
-            .expect(format!("fail to parse psd {:?}", full_names).as_str());
-
-        let part_name = full_names[..split_index + 1].join(".");
-        let variant_name = full_names
-            .get(split_index + 1)
-            .unwrap_or(&"".to_string())
-            .to_string();
-
-        if let Some(part) = parts.iter_mut().find(|x| x.part_name == part_name) {
-            if let Some(variant) = part
-                .variants
-                .iter_mut()
-                .find(|x| x.variant_name == variant_name)
-            {
-                variant.layers.push(layer);
-            } else {
-                part.variants.push(InterCgVariant {
-                    part_name,
-                    variant_name,
-                    layers: vec![layer],
-                });
-            }
-        } else {
-            parts.push(InterCgPart {
-                part_name: part_name.clone(),
-                selection_type,
-                variants: vec![InterCgVariant {
-                    part_name,
-                    variant_name,
-                    layers: vec![layer],
-                }],
-            });
-        }
-    }
-
+    let layer_tree = make_tree(psd).expect("Failed to make tree");
+    let parts = create_inter_cg_part_from_layer_tree(layer_tree, vec![]);
     parts
 }
 
-fn layer_full_names(psd: &psd::Psd, layer: &psd::PsdLayer) -> Vec<String> {
-    let mut parent_group_id = layer.parent_id();
-    let mut group_names = vec![layer.name().to_string()];
+fn create_inter_cg_part_from_layer_tree<'psd>(
+    layer_tree: Vec<LayerTree<'psd>>,
+    layer_full_names: Vec<String>,
+) -> Vec<InterCgPart<'psd>> {
+    let mut merging_layer_tree = vec![];
+    let mut parts = vec![];
 
-    while let Some(group_id) = parent_group_id {
-        let (_, parent_group) = psd
-            .groups()
-            .into_iter()
-            .find(|(x, _)| **x == group_id)
-            .unwrap();
-        group_names.push(parent_group.name().to_string());
-        parent_group_id = parent_group.parent_id();
+    fn push_merging_layer_tree_as_always_on_part<'psd>(
+        merging_layer_tree: &mut Vec<LayerTree<'psd>>,
+        parts: &mut Vec<InterCgPart<'psd>>,
+        layer_full_names: &Vec<String>,
+    ) {
+        if merging_layer_tree.is_empty() {
+            return;
+        }
+        let part_name = layer_full_names.join(".");
+        let variant_name = merging_layer_tree
+            .iter()
+            .map(|layer_tree| layer_tree.name())
+            .fold(String::new(), |acc, name| format!("{acc}_{name}"));
+        let layer_tree = {
+            let mut result = vec![];
+            result.append(merging_layer_tree);
+            result
+        };
+        parts.push(InterCgPart {
+            part_name: part_name.clone(),
+            selection_type: PartSelectionType::AlwaysOn,
+            variants: vec![InterCgVariant {
+                part_name,
+                variant_name,
+                layer_tree,
+            }],
+        });
     }
 
-    group_names.reverse();
-    group_names
+    for layer_tree in layer_tree {
+        if layer_tree.has_no_selection() {
+            merging_layer_tree.push(layer_tree);
+            continue;
+        }
+        push_merging_layer_tree_as_always_on_part(
+            &mut merging_layer_tree,
+            &mut parts,
+            &layer_full_names,
+        );
+        match layer_tree {
+            LayerTree::Group { item, children } => {
+                let name = item.name();
+                if name.ends_with("_s") || name.ends_with("_m") {
+                    let selection_type = if name.ends_with("_s") {
+                        PartSelectionType::Single
+                    } else {
+                        PartSelectionType::Multi
+                    };
+                    let mut layer_full_names = layer_full_names.clone();
+                    layer_full_names.push(name.to_string());
+                    let part_name = layer_full_names.join(".");
+                    let mut variants = vec![];
+                    let mut layer_tree = vec![];
+                    for child in children {
+                        let clipping = !child.is_clipping();
+                        let variant_name = child.name().to_string();
+                        layer_tree.push(child);
+                        if clipping {
+                            continue;
+                        }
+                        variants.push(InterCgVariant {
+                            part_name: part_name.clone(),
+                            variant_name,
+                            layer_tree,
+                        });
+                        layer_tree = vec![];
+                    }
+
+                    parts.push(InterCgPart {
+                        part_name,
+                        selection_type,
+                        variants,
+                    });
+                    continue;
+                }
+
+                let mut layer_full_names = layer_full_names.clone();
+                layer_full_names.push(name.to_string());
+                parts.append(&mut create_inter_cg_part_from_layer_tree(
+                    children,
+                    layer_full_names,
+                ));
+            }
+            LayerTree::Layer { .. } => {
+                unreachable!("It might be group")
+            }
+        }
+    }
+    push_merging_layer_tree_as_always_on_part(
+        &mut merging_layer_tree,
+        &mut parts,
+        &layer_full_names,
+    );
+
+    parts
 }

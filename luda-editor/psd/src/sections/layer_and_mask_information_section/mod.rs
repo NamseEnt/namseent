@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::ops::Range;
+use std::vec;
 
 use crate::psd_channel::PsdChannelCompression;
 use crate::psd_channel::PsdChannelKind;
@@ -66,6 +67,7 @@ struct Frame {
     name: String,
     group_id: u32,
     parent_group_id: u32,
+    layer_record: LayerRecord,
 }
 
 impl LayerAndMaskInformationSection {
@@ -136,6 +138,19 @@ impl LayerAndMaskInformationSection {
             name: String::from("root"),
             group_id: 0,
             parent_group_id: 0,
+            layer_record: LayerRecord {
+                name: "root".to_string(),
+                channel_data_lengths: vec![],
+                top: 0,
+                left: 0,
+                bottom: 0,
+                right: 0,
+                visible: false,
+                opacity: 0,
+                clipping_base: true,
+                blend_mode: BlendMode::Normal,
+                divider_type: None,
+            },
         }];
 
         // Viewed group counter
@@ -153,9 +168,10 @@ impl LayerAndMaskInformationSection {
 
                     let frame = Frame {
                         start_idx: layers.len(),
-                        name: layer_record.name,
+                        name: layer_record.name.to_string(),
                         group_id: already_viewed,
                         parent_group_id: current_group_id,
+                        layer_record,
                     };
 
                     stack.push(frame);
@@ -174,7 +190,7 @@ impl LayerAndMaskInformationSection {
                         frame.name,
                         frame.group_id,
                         range,
-                        &layer_record,
+                        &frame.layer_record,
                         psd_size.0,
                         psd_size.1,
                         if frame.parent_group_id > 0 {

@@ -25,6 +25,7 @@ use crate::sections::image_data_section::ImageDataSection;
 pub use crate::sections::image_resources_section::ImageResource;
 use crate::sections::image_resources_section::ImageResourcesSection;
 pub use crate::sections::image_resources_section::{DescriptorField, UnitFloatStructure};
+pub use crate::sections::layer_and_mask_information_section::layer::BlendMode;
 pub use crate::sections::layer_and_mask_information_section::layer::PsdGroup;
 pub use crate::sections::layer_and_mask_information_section::layer::PsdLayer;
 use crate::sections::layer_and_mask_information_section::LayerAndMaskInformationSection;

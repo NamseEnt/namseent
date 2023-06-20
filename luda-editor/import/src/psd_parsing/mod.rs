@@ -1,5 +1,8 @@
+mod layer_tree;
 mod parse_psd_to_inter_cg_parts;
 
+use self::layer_tree::render_layer_tree;
+use self::layer_tree::RenderResult;
 use self::parse_psd_to_inter_cg_parts::InterCgVariant;
 use crate::psd_parsing::parse_psd_to_inter_cg_parts::parse_psd_to_inter_cg_parts;
 use namui_type::*;
@@ -16,6 +19,7 @@ pub(crate) struct PsdParsingResult {
 pub(crate) struct VariantImageBuffer {
     pub(crate) variant_id: Uuid,
     pub(crate) image_buffer: image::ImageBuffer<image::Rgba<u8>, Vec<u8>>,
+    pub(crate) rect: Rect<i32>,
 }
 
 pub(crate) fn parse_psd(
@@ -83,68 +87,29 @@ fn inter_cg_variant_to_cg_variant_and_image_buffer(
     let width = psd.width();
     let height = psd.height();
 
-    let mut bottom = image::ImageBuffer::<image::Rgba<u8>, _>::new(width, height);
-    let rect: Rect<Percent> = {
-        let rect_in_pixel = inter_cg_variant.layers.iter().fold(
-            Rect::<i32>::Ltrb {
-                left: width as i32,
-                top: height as i32,
-                right: 0,
-                bottom: 0,
-            },
-            |acc, layer| {
-                let rect = Rect::Xywh {
-                    x: layer.layer_left(),
-                    y: layer.layer_top(),
-                    width: layer.width() as i32,
-                    height: layer.height() as i32,
-                };
-                acc.get_minimum_rectangle_containing(rect)
-            },
-        );
-        Rect::Xywh {
-            x: (100.0 * rect_in_pixel.x() as f32 / width as f32).percent(),
-            y: (100.0 * rect_in_pixel.y() as f32 / height as f32).percent(),
-            width: (100.0 * rect_in_pixel.width() as f32 / width as f32).percent(),
-            height: (100.0 * rect_in_pixel.height() as f32 / height as f32).percent(),
-        }
-    };
-
-    let images = inter_cg_variant
-        .layers
-        .into_par_iter()
-        .map(|layer| image::ImageBuffer::from_vec(width, height, layer.rgba()).unwrap())
-        .collect::<Vec<_>>();
-
-    for image in images.into_iter().rev() {
-        image::imageops::overlay(&mut bottom, &image, 0, 0);
-    }
+    let RenderResult { x, y, image_buffer } =
+        render_layer_tree(psd, &inter_cg_variant.layer_tree, true);
 
     (
         CgPartVariant {
             id,
             name: inter_cg_variant.variant_name,
-            rect,
+            rect: Rect::Xywh {
+                x: (100.0 * x as f32 / width as f32).percent(),
+                y: (100.0 * y as f32 / height as f32).percent(),
+                width: (100.0 * image_buffer.width() as f32 / width as f32).percent(),
+                height: (100.0 * image_buffer.height() as f32 / height as f32).percent(),
+            },
         },
         VariantImageBuffer {
             variant_id: id,
-            image_buffer: bottom.into(),
+            rect: Rect::Xywh {
+                x,
+                y,
+                width: image_buffer.width() as i32,
+                height: image_buffer.height() as i32,
+            },
+            image_buffer,
         },
     )
-}
-
-fn concat_parent_names(psd: &psd::Psd, mut parent_group_id: Option<u32>) -> String {
-    let mut parent_names = vec![];
-
-    while let Some(group_id) = parent_group_id {
-        let (_, parent_group) = psd
-            .groups()
-            .into_iter()
-            .find(|(x, _)| **x == group_id)
-            .unwrap();
-        parent_names.insert(0, parent_group.name().to_string());
-        parent_group_id = parent_group.parent_id();
-    }
-
-    parent_names.join(".")
 }

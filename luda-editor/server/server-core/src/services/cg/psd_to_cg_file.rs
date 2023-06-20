@@ -1,5 +1,8 @@
-use super::{parse_psd_to_inter_cg_parts::InterCgVariant, *};
-use image::ImageBuffer;
+use super::{
+    layer_tree::{render_layer_tree, RenderResult},
+    parse_psd_to_inter_cg_parts::InterCgVariant,
+    *,
+};
 use libwebp_sys::WebPEncodeLosslessRGBA;
 use namui_type::*;
 use rayon::prelude::*;
@@ -159,73 +162,24 @@ fn inter_cg_variant_to_cg_variant_and_image_buffer(
     let width = psd.width();
     let height = psd.height();
 
-    let rect_in_pixel = {
-        let rect = inter_cg_variant.layers.iter().fold(
-            Rect::<i32>::Ltrb {
-                left: width as i32,
-                top: height as i32,
-                right: 0,
-                bottom: 0,
-            },
-            |acc, layer| {
-                let rect = Rect::Xywh {
-                    x: layer.layer_left(),
-                    y: layer.layer_top(),
-                    width: layer.width() as i32,
-                    height: layer.height() as i32,
-                };
-                acc.get_minimum_rectangle_containing(rect)
-            },
-        );
-        Rect::Xywh {
-            x: rect.x().px(),
-            y: rect.y().px(),
-            width: rect.width().px(),
-            height: rect.height().px(),
-        }
-    };
-    let rect_in_percent: Rect<Percent> = Rect::Xywh {
-        x: (100.0 * rect_in_pixel.x().as_f32() / width as f32).percent(),
-        y: (100.0 * rect_in_pixel.y().as_f32() / height as f32).percent(),
-        width: (100.0 * rect_in_pixel.width().as_f32() / width as f32).percent(),
-        height: (100.0 * rect_in_pixel.height().as_f32() / height as f32).percent(),
-    };
-
-    let images = inter_cg_variant
-        .layers
-        .into_par_iter()
-        .map(|layer| image::ImageBuffer::from_vec(width, height, layer.rgba()).unwrap())
-        .collect::<Vec<_>>();
-
-    let mut bottom = image::ImageBuffer::<image::Rgba<u8>, _>::new(width, height);
-    for image in images.into_iter().rev() {
-        image::imageops::overlay(&mut bottom, &image, 0, 0);
-    }
-
-    let cropped = {
-        let mut cropped = ImageBuffer::<image::Rgba<u8>, _>::new(
-            rect_in_pixel.width().as_f32() as u32,
-            rect_in_pixel.height().as_f32() as u32,
-        );
-        image::imageops::overlay(
-            &mut cropped,
-            &bottom,
-            -rect_in_pixel.x().as_f32() as i64,
-            -rect_in_pixel.y().as_f32() as i64,
-        );
-        cropped
-    };
+    let RenderResult { x, y, image_buffer } =
+        render_layer_tree(psd, &inter_cg_variant.layer_tree, true);
 
     (
         CgPartVariant {
             id,
             name: inter_cg_variant.variant_name,
-            rect: rect_in_percent,
+            rect: Rect::Xywh {
+                x: (100.0 * x as f32 / width as f32).percent(),
+                y: (100.0 * y as f32 / height as f32).percent(),
+                width: (100.0 * image_buffer.width() as f32 / width as f32).percent(),
+                height: (100.0 * image_buffer.height() as f32 / height as f32).percent(),
+            },
         },
         VariantImageBuffer {
             variant_id: id,
-            image_buffer: cropped,
-            xy: rect_in_pixel.xy(),
+            image_buffer,
+            xy: Xy::new(x.px(), y.px()),
         },
     )
 }

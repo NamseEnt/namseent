@@ -522,7 +522,7 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
                                         .iter()
                                         .find_map(|variants_image| {
                                             if variants_image.variant_id == variant.id {
-                                                Some(&variants_image.image_buffer)
+                                                Some(variants_image)
                                             } else {
                                                 None
                                             }
@@ -534,8 +534,13 @@ fn get_psd_all_cases() -> Result<Vec<(PsdCase, image::DynamicImage)>> {
                             let mut bottom =
                                 image::ImageBuffer::<image::Rgba<u8>, _>::new(wh.width, wh.height);
 
-                            for part_image in layer_images.into_iter().rev() {
-                                image::imageops::overlay(&mut bottom, part_image, 0, 0);
+                            for part_image_buffer in layer_images.into_iter().rev() {
+                                image::imageops::overlay(
+                                    &mut bottom,
+                                    &part_image_buffer.image_buffer,
+                                    part_image_buffer.rect.x() as i64,
+                                    part_image_buffer.rect.y() as i64,
+                                );
                             }
 
                             let case_id = namui_type::uuid_from_hash(
