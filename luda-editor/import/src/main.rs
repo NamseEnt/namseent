@@ -1,10 +1,13 @@
+mod predetermined_graphic;
 mod psd_parsing;
 
 use anyhow::Result;
 use include_dir::{include_dir, Dir};
 use namui_type::{percent, Percent, Uuid, Xy};
 // use opencv::prelude::*;
+use crate::predetermined_graphic::get_predetermined_graphic_map;
 use image::{imageops::FilterType, DynamicImage, ImageBuffer, Luma};
+use predetermined_graphic::PredeterminedGraphic;
 use psd_parsing::{parse_psd, PsdParsingResult};
 use rayon::prelude::*;
 use rpc::{
@@ -15,7 +18,7 @@ use rpc::{
     uuid,
 };
 use std::{
-    collections::{BTreeMap, BTreeSet, HashMap, HashSet},
+    collections::{BTreeMap, BTreeSet, HashMap},
     fs::{self, DirEntry},
     io::ErrorKind,
     path::PathBuf,
@@ -45,7 +48,7 @@ const BACKGROUND_IMAGE_DISTANCE_THRESHOLD: f64 = 0.85;
 ///
 /// 0. Generate psd cases and save them to `output/case_metadata.json`, `output/{case_uuid}`.
 /// 1. Measure distance between psd cases and input image and save them to `src/distance_psd_image_triples.json`.
-/// 2. Generate plain image ids and save them to `src/definite_plain_image_ids.json`.
+/// 2. Generate predetermined_graphic_map and save it to `src/predetermined_graphic/predetermined_graphic_map.json`.
 /// 3. Generate sequence and save it to `sequence.json`.
 const CHECKPOINT: usize = 3;
 
@@ -86,7 +89,7 @@ fn main() -> Result<()> {
 
     let distance_psd_image_triples = get_distance_psd_image_triples(&input, &psd_all_cases);
 
-    let plain_image_id_set = get_plain_image_id_set();
+    let predetermined_graphic_map = get_predetermined_graphic_map(&psd_all_cases);
 
     let image_url_psd_case_map = {
         let mut image_url_psd_case_map = HashMap::<String, (f64, &PsdCase, Uuid)>::new();
@@ -115,7 +118,7 @@ fn main() -> Result<()> {
             &mut cut,
             images,
             &image_url_psd_case_map,
-            &plain_image_id_set,
+            &predetermined_graphic_map,
             &mut used_background_images,
             &mut used_cg_file_names,
         );
@@ -251,36 +254,6 @@ fn copy_assets(asset_names: &Vec<String>, source_dir: &PathBuf, dest_dir_path: &
         )
         .unwrap();
     }
-}
-
-fn get_plain_image_id_set() -> HashSet<Uuid> {
-    if CHECKPOINT == 2 {
-        let plain_image_names: Vec<String> =
-            serde_json::from_str(include_str!("plain_image_names.json")).unwrap();
-
-        let result =
-            HashSet::<Uuid>::from_par_iter(plain_image_names.into_par_iter().map(|image_name| {
-                let static_image = IMAGES_DIR
-                    .get_file(&format!("{image_name}.png"))
-                    .or_else(|| IMAGES_DIR.get_file(&format!("{image_name}.jpg")))
-                    .or_else(|| IMAGES_DIR.get_file(&format!("{image_name}.gif")))
-                    .expect(&format!("image not found: {image_name}"));
-
-                let image_id = get_image_id(static_image.contents());
-                image_id
-            }));
-
-        let plain_image_ids_json = serde_json::to_string(&result).unwrap();
-
-        fs::write("src/plain_image_ids.json", plain_image_ids_json).unwrap();
-
-        panic!("done");
-    }
-
-    let plain_image_ids: HashSet<Uuid> =
-        serde_json::from_str(&fs::read_to_string("src/plain_image_ids.json").unwrap()).unwrap();
-
-    plain_image_ids
 }
 
 fn get_image_id(bytes: &[u8]) -> Uuid {
@@ -658,35 +631,72 @@ fn variant_cases(part: CgPart) -> Vec<CgPartVariant> {
     }
 }
 
-fn handle_images(
+fn handle_images<'psd>(
     cut: &mut Cut,
     images: Vec<Image>,
-    image_url_psd_case_map: &HashMap<String, (f64, &PsdCase, Uuid)>,
-    plain_image_id_set: &HashSet<Uuid>,
+    image_url_psd_case_map: &HashMap<String, (f64, &'psd PsdCase, Uuid)>,
+    predetermined_graphic_map: &BTreeMap<Uuid, PredeterminedGraphic<'psd>>,
     used_background_images: &mut HashMap<Uuid, String>,
     used_cg_file_names: &mut BTreeSet<String>,
 ) {
     let mut character_images = vec![];
     let mut background_images = vec![];
 
+    fn insert_image<'psd>(
+        used_background_images: &mut HashMap<Uuid, String>,
+        background_images: &mut Vec<(Image, &'psd PsdCase, Uuid)>,
+        image: Image,
+        psd_case: &'psd PsdCase,
+        image_id: Uuid,
+    ) {
+        used_background_images.insert(image_id, image.url.split('/').last().unwrap().to_string());
+        background_images.push((image, psd_case, image_id));
+    }
+    fn insert_cg<'psd>(
+        used_cg_file_names: &mut BTreeSet<String>,
+        character_images: &mut Vec<(Image, &'psd PsdCase, Uuid)>,
+        image: Image,
+        psd_case: &'psd PsdCase,
+        image_id: Uuid,
+    ) {
+        used_cg_file_names.insert(psd_case.cg_file.name.clone());
+        character_images.push((image, psd_case, image_id));
+    }
+
     for image in images {
         let (distance, psd_case, image_id) = image_url_psd_case_map.get(&image.url).unwrap();
 
-        if plain_image_id_set.contains(image_id) || *distance >= BACKGROUND_IMAGE_DISTANCE_THRESHOLD
-        {
-            used_background_images
-                .insert(*image_id, image.url.split('/').last().unwrap().to_string());
-            background_images.push((image, psd_case, image_id));
-        } else {
-            used_cg_file_names.insert(psd_case.cg_file.name.clone());
-            character_images.push((image, psd_case, image_id));
+        let Some(predetermined_graphic) = predetermined_graphic_map.get(image_id) else {
+            if *distance >= BACKGROUND_IMAGE_DISTANCE_THRESHOLD {
+                insert_image(used_background_images, &mut background_images, image, psd_case, *image_id);
+            } else {
+                insert_cg(used_cg_file_names, &mut character_images, image, psd_case, *image_id);
+            }
+            continue;
+        };
+
+        match predetermined_graphic {
+            PredeterminedGraphic::PlainImage => insert_image(
+                used_background_images,
+                &mut background_images,
+                image,
+                psd_case,
+                *image_id,
+            ),
+            PredeterminedGraphic::Cg { psd_case } => insert_cg(
+                used_cg_file_names,
+                &mut character_images,
+                image,
+                psd_case,
+                *image_id,
+            ),
         }
     }
 
     const ASPECT_RATIO: f64 = 4.0 / 3.0;
     let backgrounds = background_images.into_iter().map(|(image, _, image_id)| {
         ScreenGraphic::Image(ScreenImage {
-            id: *image_id,
+            id: image_id,
             circumscribed: percent_xywh_to_circumscribed(image.xywh, ASPECT_RATIO),
         })
     });
