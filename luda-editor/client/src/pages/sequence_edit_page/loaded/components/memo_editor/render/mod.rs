@@ -81,11 +81,9 @@ impl MemoEditor {
                     ..Default::default()
                 },
             },
-            event_handler: Some(
-                text_input::EventHandler::new().on_text_updated(move |text| {
-                    namui::event::send(InternalEvent::ChangeText(text.to_string()))
-                }),
-            ),
+            event_handler: Some(text_input::EventHandler::new().on_text_updated(
+                move |text: String| namui::event::send(InternalEvent::ChangeText(text)),
+            )),
         })
     }
 }
@@ -98,7 +96,7 @@ fn render_background(wh: Wh<Px>) -> RenderingTree {
         Color::grayscale_alpha_f01(0.0, 0.5),
     )
     .attach_event(|builder| {
-        builder.on_mouse_down_in(|event| {
+        builder.on_mouse_down_in(|event: MouseEvent| {
             event.stop_propagation();
             namui::event::send(Event::CloseMemoEditor)
         });
@@ -108,7 +106,7 @@ fn render_background(wh: Wh<Px>) -> RenderingTree {
 
 fn render_container(wh: Wh<Px>) -> RenderingTree {
     simple_rect(wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND).attach_event(|builder| {
-        builder.on_mouse_down_in(|event| {
+        builder.on_mouse_down_in(|event: MouseEvent| {
             event.stop_propagation();
         });
     })

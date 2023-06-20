@@ -93,27 +93,12 @@ impl Canvas {
         render([
             render_background(props.wh).attach_event(|builder| {
                 builder
-                    .on_wheel(move |event| {
-                        let mouse_position = namui::mouse::position();
-                        let canvas_xy = event
-                            .root
-                            .get_xy_of_child(event.target)
-                            .expect("failed to get canvas xy");
-                        let local_mouse_position = mouse_position - canvas_xy;
-                        let is_mouse_in_canvas = !(local_mouse_position.x < px(0.0)
-                            || local_mouse_position.x > canvas_wh.width
-                            || local_mouse_position.y < px(0.0)
-                            || local_mouse_position.y > canvas_wh.height);
-
-                        if !is_mouse_in_canvas {
-                            return;
-                        }
-
+                    .on_wheel(move |event: WheelEvent| {
                         if namui::keyboard::any_code_press([namui::Code::ControlLeft]) {
                             zoom(
                                 event.delta_xy,
                                 offset,
-                                local_mouse_position,
+                                event.mouse_local_xy,
                                 canvas_wh,
                                 image_size,
                                 scale,
@@ -136,7 +121,7 @@ impl Canvas {
                             )
                         }
                     })
-                    .on_mouse_down_in(move |event| {
+                    .on_mouse_down_in(move |event: MouseEvent| {
                         if event.pressing_buttons.contains(&namui::MouseButton::Left) {
                             let local_xy_on_image = Xy {
                                 x: -offset.x + event.local_xy.x / scale,
@@ -166,7 +151,7 @@ impl Canvas {
                             });
                         }
                     })
-                    .on_mouse_move_in(move |event| {
+                    .on_mouse_move_in(move |event: MouseEvent| {
                         let local_xy_on_image = Xy {
                             x: -offset.x + event.local_xy.x / scale,
                             y: -offset.y + event.local_xy.y / scale,
@@ -200,15 +185,15 @@ impl Canvas {
                         }
                         namui::event::send(CanvasEvent::MouseMoveInCanvas(local_xy_on_image))
                     })
-                    .on_mouse(|event| {
+                    .on_mouse(|event: MouseEvent| {
                         if event.event_type == MouseEventType::Up {
                             namui::event::send(CanvasEvent::DragEnded);
                         }
                     })
-                    .on_key_down(|event| {
+                    .on_key_down(|event: KeyboardEvent| {
                         namui::event::send(CanvasEvent::KeyDown { code: event.code });
                     })
-                    .on_key_up(|event| {
+                    .on_key_up(|event: KeyboardEvent| {
                         if event.code == namui::Code::Space {
                             namui::event::send(CanvasEvent::SpaceKeyUp);
                         }

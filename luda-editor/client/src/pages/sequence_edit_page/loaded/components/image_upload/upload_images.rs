@@ -1,6 +1,6 @@
 use super::*;
 use namui::Uuid;
-use rpc::data::Label;
+
 use std::path::Path;
 
 pub async fn upload_images_using_picker(
@@ -16,7 +16,7 @@ pub async fn upload_images_using_picker(
         .map(|files_in_channel| async move {
             for file in files_in_channel.into_iter() {
                 let filename = file.name();
-                let filename = Path::new(&filename)
+                let _filename = Path::new(&filename)
                     .with_extension("")
                     .to_str()
                     .unwrap()

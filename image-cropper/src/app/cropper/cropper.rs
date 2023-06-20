@@ -132,7 +132,7 @@ impl Cropper {
             ),
         ])
         .attach_event(|build| {
-            build.on_mouse(|event| {
+            build.on_mouse(|event: MouseEvent| {
                 if event.event_type == MouseEventType::Up {
                     namui::event::send(CropperEvent::MouseUp)
                 }

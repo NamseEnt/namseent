@@ -111,7 +111,7 @@ impl SequencePlayer {
             },
         )
         .attach_event(|builder| {
-            builder.on_key_down(|event| {
+            builder.on_key_down(|event: KeyboardEvent| {
                 if event.code == Code::ArrowLeft {
                     namui::event::send(InternalEvent::GoToPrevCut);
                 } else if event.code == Code::ArrowRight {

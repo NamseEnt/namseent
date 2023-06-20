@@ -86,6 +86,31 @@ pub(crate) fn set_up_event_handler() {
             .unchecked_ref(),
         )
         .unwrap();
+
+    canvas_element
+        .add_event_listener_with_callback_and_add_event_listener_options(
+            "wheel",
+            Closure::wrap(Box::new(move |event: web_sys::WheelEvent| {
+                update_mouse_position(&event);
+                if event.ctrl_key() {
+                    event.prevent_default()
+                }
+                let mouse_position = { MOUSE_SYSTEM.mouse_position.read().unwrap().clone() };
+                let rendering_tree = render::last_rendering_tree();
+                rendering_tree.call_wheel_event(&RawWheelEvent {
+                    id: namui::uuid(),
+                    delta_xy: Xy {
+                        x: event.delta_x() as f32,
+                        y: event.delta_y() as f32,
+                    },
+                    mouse_xy: mouse_position,
+                });
+            }) as Box<dyn FnMut(_)>)
+            .into_js_value()
+            .unchecked_ref(),
+            web_sys::AddEventListenerOptions::new().passive(false),
+        )
+        .unwrap();
 }
 
 fn update_mouse_position(event: &web_sys::MouseEvent) {

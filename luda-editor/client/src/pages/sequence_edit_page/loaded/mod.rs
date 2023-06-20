@@ -5,7 +5,7 @@ mod update;
 use crate::components::{sync::Syncer, *};
 use components::*;
 use namui::prelude::*;
-use namui_prebuilt::*;
+
 pub use render::Props;
 use rpc::data::*;
 use std::{collections::HashMap, sync::Arc};

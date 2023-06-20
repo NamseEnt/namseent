@@ -25,8 +25,8 @@ pub struct Props {
 }
 #[derive(Clone, Default)]
 pub struct EventHandler {
-    pub(crate) on_key_down: Option<Arc<dyn Fn(KeyDownEvent) + 'static>>,
-    pub(crate) on_text_updated: Option<Arc<dyn Fn(&str) + 'static>>,
+    pub(crate) on_key_down: Option<ClosurePtr<KeyDownEvent, ()>>,
+    pub(crate) on_text_updated: Option<ClosurePtr<String, ()>>,
 }
 unsafe impl Send for EventHandler {}
 unsafe impl Sync for EventHandler {}
@@ -38,12 +38,12 @@ impl EventHandler {
             on_text_updated: None,
         }
     }
-    pub fn on_key_down(mut self, on_key_down: impl Fn(KeyDownEvent) + 'static) -> Self {
-        self.on_key_down = Some(Arc::new(on_key_down));
+    pub fn on_key_down(mut self, on_key_down: impl Into<ClosurePtr<KeyDownEvent, ()>>) -> Self {
+        self.on_key_down = Some(on_key_down.into());
         self
     }
-    pub fn on_text_updated(mut self, on_text_updated: impl Fn(&str) + 'static) -> Self {
-        self.on_text_updated = Some(Arc::new(on_text_updated));
+    pub fn on_text_updated(mut self, on_text_updated: impl Into<ClosurePtr<String, ()>>) -> Self {
+        self.on_text_updated = Some(on_text_updated.into());
         self
     }
 }
@@ -186,7 +186,7 @@ impl TextInput {
         .with_custom(custom_data.clone())
         .attach_event(|builder| {
             let custom_data = custom_data.clone();
-            builder.on_mouse_down_in(move |event| {
+            builder.on_mouse_down_in(move |event: MouseEvent| {
                 system::text_input::on_mouse_down_in_at_attach_event_calls(
                     event.local_xy,
                     &custom_data,

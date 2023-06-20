@@ -41,7 +41,7 @@ impl CellTrait for ImageCell {
         ClipboardItem::Image(self.image_source.clone())
     }
 
-    fn on_paste(&self) -> Option<Arc<dyn Fn(ClipboardItem)>> {
+    fn on_paste(&self) -> Option<ClosurePtr<ClipboardItem, ()>> {
         None
     }
 }

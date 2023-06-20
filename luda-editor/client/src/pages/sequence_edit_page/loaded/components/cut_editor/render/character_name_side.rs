@@ -67,7 +67,7 @@ impl CutEditor {
             },
         ])
         .attach_event(|builder| {
-            builder.on_mouse_down_in(|event| {
+            builder.on_mouse_down_in(|event: MouseEvent| {
                 if event.button == Some(MouseButton::Left) {
                     namui::event::send(Event::Click {
                         target: ClickTarget::CharacterName,

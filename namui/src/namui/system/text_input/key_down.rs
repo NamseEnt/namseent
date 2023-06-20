@@ -43,7 +43,7 @@ pub(crate) fn on_key_down(code: Code, event: web_sys::KeyboardEvent) {
                     is_prevented_default: is_prevented_default.clone(),
                     is_composing,
                 };
-                on_key_down(key_down_event);
+                on_key_down.invoke(key_down_event);
 
                 if is_prevented_default.load(Ordering::Relaxed) {
                     event.prevent_default();

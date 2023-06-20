@@ -99,28 +99,16 @@ impl ScrollView {
             ..Default::default()
         })
         .attach_event(move |builder| {
-            let width = content_bounding_box.width() + props.scroll_bar_width;
             let height = props.height;
             let button_id = button_id.clone();
-            builder.on_wheel(move |event| {
-                let mouse_position = namui::mouse::position();
-                let whole_rect_xy = event.root.get_xy_of_child(event.target).unwrap();
-
-                let is_mouse_in = mouse_position.x >= whole_rect_xy.x
-                    && mouse_position.x <= whole_rect_xy.x + width
-                    && mouse_position.y >= whole_rect_xy.y
-                    && mouse_position.y <= whole_rect_xy.y + height;
-                if !is_mouse_in {
-                    return;
-                }
-
+            builder.on_wheel(move |event: WheelEvent| {
                 let next_scroll_y = namui::math::num::clamp(
                     scroll_y + px(event.delta_xy.y),
                     px(0.0),
                     (px(0.0)).max(content_bounding_box.height() - height),
                 );
 
-                namui::event::send(Event::Scrolled(button_id.clone(), next_scroll_y));
+                namui::event::send(Event::Scrolled(button_id, next_scroll_y));
 
                 event.stop_propagation();
             });

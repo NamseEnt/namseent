@@ -1,6 +1,6 @@
 use crate::{list_view, simple_rect, typography};
 use namui::prelude::*;
-use std::{any::Any, sync::Arc};
+use std::any::Any;
 
 pub struct Dropdown {
     id: Uuid,
@@ -20,7 +20,7 @@ enum InternalEvent {
 #[derive(Debug, Clone)]
 pub struct Item<TOnSelectItem>
 where
-    TOnSelectItem: Fn() + 'static,
+    TOnSelectItem: Into<ClosurePtr<(), ()>>,
 {
     pub text: String,
     pub is_selected: bool,
@@ -29,7 +29,7 @@ where
 
 pub struct Props<TItems, TOnSelectItem>
 where
-    TOnSelectItem: Fn() + 'static,
+    TOnSelectItem: Into<ClosurePtr<(), ()>>,
     TItems: IntoIterator<Item = Item<TOnSelectItem>>,
 {
     pub rect: Rect<Px>,
@@ -42,7 +42,7 @@ where
 struct InternalItem {
     text: String,
     is_selected: bool,
-    on_select_item: Arc<dyn Fn()>,
+    on_select_item: ClosurePtr<(), ()>,
 }
 
 struct InternalProps {
@@ -56,7 +56,7 @@ struct InternalProps {
 pub fn render<TItems, TOnSelectItem>(props: Props<TItems, TOnSelectItem>) -> RenderingTree
 where
     TItems: IntoIterator<Item = Item<TOnSelectItem>>,
-    TOnSelectItem: Fn() + 'static,
+    TOnSelectItem: Into<ClosurePtr<(), ()>>,
 {
     let internal_props = InternalProps {
         rect: props.rect,
@@ -66,19 +66,19 @@ where
             .map(|item| InternalItem {
                 text: item.text,
                 is_selected: item.is_selected,
-                on_select_item: Arc::new(item.on_select_item),
+                on_select_item: item.on_select_item.into(),
             })
             .collect(),
         visible_item_count: props.visible_item_count,
     };
     react::<Dropdown, _, _>(
-        || {
+        |_| {
             Box::new(Dropdown {
                 id: namui::uuid(),
                 is_opened: false,
                 list_view: list_view::ListView::new(),
                 mouse_over_item_index: None,
-            })
+            }) as Box<dyn React>
         },
         internal_props,
     )
@@ -112,7 +112,7 @@ impl React for Dropdown {
         ])
         .attach_event(move |builder| {
             builder
-                .on_mouse_down_in(move |event| {
+                .on_mouse_down_in(move |event: MouseEvent| {
                     event.stop_propagation();
                     namui::event::send(InternalEvent::ToggleDropdown { id })
                 })
@@ -176,10 +176,10 @@ impl React for Dropdown {
                                 });
 
                                 let on_select_item = on_select_item.clone();
-                                builder.on_mouse_down_in(move |event| {
+                                builder.on_mouse_down_in(move |event: MouseEvent| {
                                     event.stop_propagation();
                                     if !is_selected {
-                                        (on_select_item)();
+                                        on_select_item.invoke(());
                                     }
                                     namui::event::send(InternalEvent::CloseDropdown { id });
                                 });

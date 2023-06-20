@@ -23,7 +23,7 @@ impl RenderSystem {
     }
 }
 
-pub(crate) fn last_rendering_tree() -> RenderingTree {
+pub fn last_rendering_tree() -> RenderingTree {
     RENDER_SYSTEM.rendering_tree.lock().unwrap().clone()
 }
 

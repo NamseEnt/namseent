@@ -218,7 +218,7 @@ pub struct StrokeOptions {
     pub cap: Option<StrokeCap>,
 }
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug, PartialEq)]
 pub enum ClipOp {
     Intersect,
     Difference,

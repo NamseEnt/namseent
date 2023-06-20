@@ -79,13 +79,13 @@ impl Game {
     fn key_handler(&self) -> RenderingTree {
         RenderingTree::Empty.attach_event(|builder| {
             builder
-                .on_key_down(|event| {
+                .on_key_down(|event: KeyboardEvent| {
                     namui::event::send(Event::KeyDown {
                         code: event.code,
                         pressing_codes: event.pressing_codes.clone(),
                     });
                 })
-                .on_key_up(|event| {
+                .on_key_up(|event: KeyboardEvent| {
                     namui::event::send(Event::KeyUp {
                         code: event.code,
                         pressing_codes: event.pressing_codes.clone(),

@@ -38,7 +38,7 @@ impl Tool {
             },
         )
         .attach_event(|build| {
-            build.on_mouse(|event| {
+            build.on_mouse(|event: MouseEvent| {
                 if event.event_type == MouseEventType::Move {
                     namui::event::send(InternalEvent::MouseMove {
                         global_xy: event.global_xy,

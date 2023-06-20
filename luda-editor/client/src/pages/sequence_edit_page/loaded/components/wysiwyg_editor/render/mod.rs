@@ -22,17 +22,17 @@ impl WysiwygEditor {
             simple_rect(props.wh, Color::WHITE, 1.px(), Color::TRANSPARENT).attach_event(
                 |builder| {
                     builder
-                        .on_mouse_move_in(|event| {
+                        .on_mouse_move_in(|event: MouseEvent| {
                             namui::event::send(InternalEvent::MouseMoveContainer {
                                 global_xy: event.global_xy,
                             });
                         })
-                        .on_mouse_down_in(|event| {
+                        .on_mouse_down_in(|event: MouseEvent| {
                             if event.button == Some(MouseButton::Left) {
                                 namui::event::send(InternalEvent::MouseDownContainer);
                             }
                         })
-                        .on_mouse(move |event| {
+                        .on_mouse(move |event: MouseEvent| {
                             if event.event_type == MouseEventType::Up {
                                 namui::event::send(InternalEvent::MouseUp {
                                     global_xy: event.global_xy,
@@ -165,7 +165,7 @@ impl WysiwygEditor {
                         graphic_rendering_tree.attach_event(move |builder| {
                             builder.on_mouse_down_in({
                                 let graphic = graphic.clone();
-                                move |event| {
+                                move |event: MouseEvent| {
                                     let graphic = graphic.clone();
                                     event.stop_propagation();
                                     namui::event::send(InternalEvent::SelectImage {
@@ -187,7 +187,7 @@ impl WysiwygEditor {
                             if is_editing_graphic {
                                 let namui_image = namui_image.clone();
                                 let graphic = graphic.clone();
-                                builder.on_key_down(move |event| {
+                                builder.on_key_down(move |event: KeyboardEvent| {
                                     namui::log!("key down: {:?}", event.code);
                                     let graphic = graphic.clone();
                                     if event.code != Code::KeyC || !namui::keyboard::ctrl_press() {

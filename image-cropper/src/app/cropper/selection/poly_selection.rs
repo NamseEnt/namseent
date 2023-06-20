@@ -79,7 +79,7 @@ impl SelectionTrait for PolySelection {
                 render([
                     namui::path(path, paint).attach_event(|builder| {
                         let id = self.id.clone();
-                        builder.on_mouse_down_in(move |event| {
+                        builder.on_mouse_down_in(move |event: MouseEvent| {
                             if event.pressing_buttons.contains(&namui::MouseButton::Right) {
                                 namui::event::send(SelectionEvent::SelectionRightClicked {
                                     target_id: id.clone(),

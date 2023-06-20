@@ -45,7 +45,7 @@ impl LineEditWindow {
             items: ImageInterpolation::iter().map(|interpolation| dropdown::Item {
                 text: interpolation.as_ref().to_string(),
                 is_selected: discriminant(&interpolation) == discriminant(&line),
-                on_select_item: move || {
+                on_select_item: move |_| {
                     let selected_line = match interpolation {
                         ImageInterpolation::AllLinear => ImageInterpolation::AllLinear,
                         ImageInterpolation::SquashAndStretch { .. } => {
@@ -90,18 +90,19 @@ impl LineEditWindow {
                             items: [60, 30, 24].into_iter().map(|fps| dropdown::Item {
                                 text: fps.to_string(),
                                 is_selected: fps == (frame_per_second as i32),
-                                on_select_item: move || {
+                                on_select_item: move |_: ()| {
                                     namui::event::send(Event::UpdateLine {
                                         layer_id,
                                         point_id,
-                                        func: Arc::new(move |line| {
+                                        func: closure(move |mut line| {
                                             if let ImageInterpolation::SquashAndStretch {
-                                                ref mut frame_per_second,
+                                                frame_per_second,
                                                 ..
-                                            } = line
+                                            } = &mut line
                                             {
                                                 *frame_per_second = fps as f32;
                                             }
+                                            line
                                         }),
                                     });
                                 },

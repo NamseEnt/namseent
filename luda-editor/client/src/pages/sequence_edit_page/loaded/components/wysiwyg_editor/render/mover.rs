@@ -52,7 +52,7 @@ impl WysiwygEditor {
                 }
             })
             .attach_event(move |builder| {
-                builder.on_mouse_down_in(move |event| {
+                builder.on_mouse_down_in(move |event: MouseEvent| {
                     if event.button == Some(MouseButton::Left) {
                         event.stop_propagation();
                         namui::event::send(InternalEvent::ImageMoveStart {

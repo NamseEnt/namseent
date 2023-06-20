@@ -116,10 +116,10 @@ impl AutoCompleteTextInput {
             },
             event_handler: Some(
                 text_input::EventHandler::new()
-                    .on_text_updated(move |text| (on_text_change)(text.to_string()))
+                    .on_text_updated(move |text: String| (on_text_change)(text))
                     .on_key_down({
                         let on_enter_down = on_enter_down.clone();
-                        move |event| {
+                        move |event: KeyDownEvent| {
                             (props.on_key_down)(&event);
                             if event.is_prevented_default() || event.is_composing {
                                 return;
@@ -199,7 +199,7 @@ impl AutoCompleteTextInput {
         };
         namui::render([text_input, body]).attach_event(move |builder| {
             let on_enter_down = on_enter_down.clone();
-            builder.on_key_down(move |event| {
+            builder.on_key_down(move |event: KeyboardEvent| {
                 namui::log!("builder.on_key_down.event.code: {:?}", event.code);
                 match event.code {
                     Code::ArrowUp | Code::ArrowDown => {
