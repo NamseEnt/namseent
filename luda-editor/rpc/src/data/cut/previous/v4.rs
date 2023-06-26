@@ -6,7 +6,7 @@ use crate::Uuid;
 #[derive(Debug, Clone, Default)]
 pub struct Cut {
     id: Uuid,
-    /// The text that the character speaks in this cut.    
+    /// The text that the character speaks in this cut.
     pub line: String,
     pub character_name: String,
     pub screen_graphics: Vec<ScreenGraphic>,
