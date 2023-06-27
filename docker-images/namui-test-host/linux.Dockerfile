@@ -9,7 +9,8 @@ RUN apk add --no-cache \
     chromium-chromedriver \
     curl \
     musl-dev \
-    sccache
+    sccache \
+    openssl
 
 RUN cargo install --version 0.11.1 wasm-pack
 
