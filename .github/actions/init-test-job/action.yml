@@ -13,7 +13,7 @@ runs:
 
     - name: wasm-pack install
       shell: bash
-      run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      run: cargo install --version 0.11.1
 
     - shell: bash
       run: time rustup target add wasm32-unknown-unknown
