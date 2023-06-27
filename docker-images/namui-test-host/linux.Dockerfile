@@ -11,7 +11,7 @@ RUN apk add --no-cache \
     musl-dev \
     sccache
 
-RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+RUN cargo install --version 0.11.1 wasm-pack
 
 RUN rustup target add wasm32-unknown-unknown
 
