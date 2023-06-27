@@ -13,7 +13,7 @@ runs:
 
     - name: wasm-pack install
       shell: bash
-      run: cargo install --version 0.11.1
+      run: cargo install --version 0.11.1 wasm-pack
 
     - shell: bash
       run: time rustup target add wasm32-unknown-unknown
