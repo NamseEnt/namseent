@@ -184,13 +184,13 @@ fn on_text_element_input(input_element: &HtmlTextAreaElement) {
                 .on_text_updated
                 .as_ref()
                 .map(|on_text_updated| {
-                    on_text_updated(&text);
+                    on_text_updated.invoke(text.clone());
                 })
         });
 
     crate::event::send(text_input::Event::TextUpdated {
         id: last_focused_text_input.id.clone(),
-        text: text.to_string(),
+        text,
     })
 }
 fn on_selection_change() {

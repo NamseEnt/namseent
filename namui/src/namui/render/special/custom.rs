@@ -12,6 +12,13 @@ pub struct CustomNode {
     pub data: CustomData,
 }
 
+impl PartialEq for CustomNode {
+    fn eq(&self, _other: &Self) -> bool {
+        // TODO
+        false
+    }
+}
+
 impl RenderingTree {
     pub fn with_custom(self, data: impl std::any::Any) -> RenderingTree {
         RenderingTree::Special(SpecialRenderingNode::Custom(CustomNode {

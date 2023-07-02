@@ -10,11 +10,11 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-#[derive(Serialize, Default, Clone, Debug)]
+#[derive(Serialize, Default, Clone, Debug, PartialEq)]
 pub struct RenderingData {
     pub draw_calls: Vec<DrawCall>,
 }
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug, PartialEq)]
 pub enum RenderingTree {
     Node(RenderingData),
     Children(Vec<RenderingTree>),
@@ -44,12 +44,39 @@ impl SpecialRenderingNode {
         }
     }
 }
+
 /// NOTE
 /// Order of tree traversal is important.
 /// - draw = pre-order dfs (NLR)
 /// - events = Reverse post-order (RLN)
 /// reference: https://en.wikipedia.org/wiki/Tree_traversal
 impl RenderingTree {
+    pub fn iter(&self) -> impl Iterator<Item = &RenderingTree> {
+        let mut vec = vec![];
+        match self {
+            RenderingTree::Children(children) => {
+                vec.extend(children.iter());
+            }
+            RenderingTree::Node(_) | RenderingTree::Special(_) => vec.push(self),
+            RenderingTree::Empty => {}
+        };
+
+        vec.into_iter()
+    }
+
+    pub fn into_iter(self) -> impl Iterator<Item = RenderingTree> {
+        let mut vec = vec![];
+        match self {
+            RenderingTree::Children(children) => {
+                vec.extend(children.into_iter());
+            }
+            RenderingTree::Node(_) | RenderingTree::Special(_) => vec.push(self),
+            RenderingTree::Empty => {}
+        };
+
+        vec.into_iter()
+    }
+
     pub(crate) fn draw(&self) {
         struct DrawContext {
             on_top_node_matrix_tuples: Vec<(OnTopNode, Matrix3x3)>,
@@ -150,29 +177,36 @@ impl RenderingTree {
         }
     }
     pub(crate) fn call_wheel_event(&self, raw_wheel_event: &RawWheelEvent) {
-        self.visit_rln(|node, _| {
-            if let RenderingTree::Special(special) = node {
-                if let SpecialRenderingNode::AttachEvent(attach_event) = special {
-                    // NOTE : Should i check if the mouse is in the attach_event?
-                    if let Some(on_wheel) = &attach_event.on_wheel {
-                        let is_stop_propagation = Arc::new(AtomicBool::new(false));
-
-                        on_wheel(&WheelEvent {
-                            delta_xy: raw_wheel_event.delta_xy,
-                            id: raw_wheel_event.id.clone(),
-                            root: self,
-                            target: node,
-                            is_stop_propagation: is_stop_propagation.clone(),
-                        });
-
-                        if is_stop_propagation.load(Ordering::Relaxed) {
-                            return ControlFlow::Break(());
-                        }
-                    }
+        self.call_event_of_screen(
+            |CallEventOfScreenParam {
+                 attach_event,
+                 utils,
+             }| {
+                let Some(on_wheel) = attach_event.on_wheel.as_ref() else {
+                    return CallEventOfScreenResult {
+                        is_stop_propagation: false,
+                    };
+                };
+                let is_mouse_in = utils.is_xy_in(raw_wheel_event.mouse_xy);
+                if !is_mouse_in {
+                    return CallEventOfScreenResult {
+                        is_stop_propagation: false,
+                    };
                 }
-            }
-            ControlFlow::Continue(())
-        });
+
+                let is_stop_propagation = Arc::new(AtomicBool::new(false));
+                on_wheel.invoke(WheelEvent {
+                    delta_xy: raw_wheel_event.delta_xy,
+                    id: raw_wheel_event.id.clone(),
+                    mouse_local_xy: raw_wheel_event.mouse_xy,
+                    is_stop_propagation: is_stop_propagation.clone(),
+                });
+
+                CallEventOfScreenResult {
+                    is_stop_propagation: is_stop_propagation.load(Ordering::Relaxed),
+                }
+            },
+        );
     }
     pub(crate) fn call_keyboard_event(
         &self,
@@ -187,9 +221,8 @@ impl RenderingTree {
                         DownUp::Up => &attach_event.on_key_up,
                     };
                     if let Some(callback) = &callback {
-                        callback(&KeyboardEvent {
+                        callback.invoke(KeyboardEvent {
                             id: raw_keyboard_event.id.clone(),
-                            target: node,
                             code: raw_keyboard_event.code,
                             pressing_codes: raw_keyboard_event.pressing_codes.clone(),
                         });
@@ -257,7 +290,6 @@ impl RenderingTree {
                 let result = callback(CallEventOfScreenParam {
                     attach_event,
                     utils,
-                    node,
                 });
                 if result.is_stop_propagation {
                     is_stop_propagation = true;
@@ -277,7 +309,6 @@ impl RenderingTree {
         self.call_event_of_screen(
             |CallEventOfScreenParam {
                  attach_event,
-                 node,
                  utils,
              }| {
                 let (in_func, out_func, on_mouse) = match mouse_event_type {
@@ -303,49 +334,43 @@ impl RenderingTree {
                     };
                 }
                 let is_mouse_in = utils.is_xy_in(raw_mouse_event.xy);
+                let is_stop_propagation = Arc::new(AtomicBool::new(false));
                 let mouse_event = MouseEvent {
                     id: raw_mouse_event.id.clone(),
                     global_xy: raw_mouse_event.xy,
                     local_xy: utils.to_local_xy(raw_mouse_event.xy),
                     pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
                     button: raw_mouse_event.button,
-                    target: node,
-                    root: self,
                     event_type: mouse_event_type,
-                    is_stop_propagation: Arc::new(AtomicBool::new(false)),
+                    is_stop_propagation: is_stop_propagation.clone(),
                 };
 
                 if let Some(on_mouse) = &attach_event.on_mouse {
-                    on_mouse(&mouse_event);
+                    on_mouse.invoke(mouse_event.clone());
                 }
                 match is_mouse_in {
                     true => {
                         if let Some(in_func) = in_func {
-                            in_func(&mouse_event);
+                            in_func.invoke(mouse_event);
                         }
                     }
                     false => {
                         if let Some(out_func) = out_func {
-                            out_func(&mouse_event);
+                            out_func.invoke(mouse_event);
                         }
                     }
                 }
 
                 return CallEventOfScreenResult {
-                    is_stop_propagation: mouse_event.is_stop_propagation.load(Ordering::Relaxed),
+                    is_stop_propagation: is_stop_propagation.load(Ordering::Relaxed),
                 };
             },
         );
     }
-    pub(crate) fn call_file_drop_event(
-        &self,
-        file_drop_event: &RawFileDropEvent,
-        namui_context: &NamuiContext,
-    ) {
+    pub(crate) fn call_file_drop_event(&self, file_drop_event: &RawFileDropEvent) {
         self.call_event_of_screen(
             |CallEventOfScreenParam {
                  attach_event,
-                 node,
                  utils,
              }| {
                 let Some(on_file_drop) = &attach_event.on_file_drop else {
@@ -360,18 +385,18 @@ impl RenderingTree {
                     };
                 }
 
+                let is_stop_propagation = Arc::new(AtomicBool::new(false));
+
                 let event = FileDropEvent {
-                    namui_context,
-                    target: node,
                     global_xy: file_drop_event.global_xy,
                     local_xy: utils.to_local_xy(file_drop_event.global_xy),
                     files: file_drop_event.files.clone(),
-                    is_stop_propagation: Arc::new(AtomicBool::new(false)),
+                    is_stop_propagation: is_stop_propagation.clone(),
                 };
-                on_file_drop(&event);
+                on_file_drop.invoke(event);
 
                 return CallEventOfScreenResult {
-                    is_stop_propagation: event.is_stop_propagation.load(Ordering::Relaxed),
+                    is_stop_propagation: is_stop_propagation.load(Ordering::Relaxed),
                 };
             },
         );
@@ -424,7 +449,6 @@ pub(crate) enum DownUp {
     Up,
 }
 struct CallEventOfScreenParam<'a> {
-    node: &'a RenderingTree,
     attach_event: &'a AttachEventNode,
     utils: VisitUtils<'a>,
 }

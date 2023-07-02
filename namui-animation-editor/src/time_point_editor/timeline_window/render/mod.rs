@@ -10,22 +10,7 @@ impl TimelineWindow {
                     let playback_time = self.get_playback_time();
                     let selected_layer_id = props.selected_layer_id.clone();
                     builder
-                        .on_wheel(move |event| {
-                            let mouse_global_xy = namui::mouse::position();
-                            let table_xy = event
-                                .root
-                                .get_xy_of_child(event.target)
-                                .expect("ERROR: fail to get rendering_tree_xy");
-
-                            let mouse_local_xy = mouse_global_xy - table_xy;
-
-                            if mouse_local_xy.x < px(0.0)
-                                || props.wh.width < mouse_local_xy.x
-                                || mouse_local_xy.y < px(0.0)
-                                || props.wh.height < mouse_local_xy.y
-                            {
-                                return;
-                            }
+                        .on_wheel(move |event: WheelEvent| {
                             if namui::keyboard::any_code_press([Code::ShiftLeft, Code::ShiftRight])
                             {
                                 namui::event::send(Event::ShiftWheel {
@@ -37,11 +22,11 @@ impl TimelineWindow {
                             ]) {
                                 namui::event::send(Event::AltWheel {
                                     delta: event.delta_xy.y,
-                                    anchor_xy: mouse_local_xy,
+                                    anchor_xy: event.mouse_local_xy,
                                 });
                             }
                         })
-                        .on_mouse_down_in(move |event| {
+                        .on_mouse_down_in(move |event: MouseEvent| {
                             if event.button.is_none() {
                                 return;
                             }
@@ -61,12 +46,12 @@ impl TimelineWindow {
                                 _ => {}
                             }
                         })
-                        .on_mouse_move_in(|event| {
+                        .on_mouse_move_in(|event: MouseEvent| {
                             namui::event::send(Event::TimelineMouseMoveIn {
                                 mouse_local_xy: event.local_xy,
                             })
                         })
-                        .on_mouse(|event| {
+                        .on_mouse(|event: MouseEvent| {
                             if event.event_type == MouseEventType::Up {
                                 namui::event::send(Event::MouseUp);
                             }
@@ -74,7 +59,7 @@ impl TimelineWindow {
 
                     let selected_layer_id = props.selected_layer_id.clone();
                     let editing_target = props.editing_target.clone();
-                    builder.on_key_down(move |event| {
+                    builder.on_key_down(move |event: KeyboardEvent| {
                         if event.code == Code::Delete {
                             namui::event::send(Event::TimelineDeleteKeyDown {
                                 selected_layer_id: selected_layer_id.clone(),

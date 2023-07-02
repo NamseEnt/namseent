@@ -1,5 +1,5 @@
 use super::SpecialRenderingNode;
-use crate::RenderingTree;
+use crate::{ClosurePtr, RenderingTree};
 use serde::Serialize;
 use std::{
     any::{Any, TypeId},
@@ -18,7 +18,14 @@ pub struct ReactNode {
     #[serde(skip_serializing)]
     react_entity: Mutex<Option<Box<dyn React>>>,
     #[serde(skip_serializing)]
-    create_entity: Arc<dyn Fn() -> Box<dyn React>>,
+    create_entity: ClosurePtr<(), Box<dyn React>>,
+}
+
+impl PartialEq for ReactNode {
+    fn eq(&self, _other: &Self) -> bool {
+        // TODO
+        false
+    }
 }
 
 impl Clone for ReactNode {
@@ -50,7 +57,7 @@ pub fn react<TReact, TCreateEntity, TProps>(
 ) -> RenderingTree
 where
     TReact: React + 'static,
-    TCreateEntity: 'static + Fn() -> Box<dyn React>,
+    TCreateEntity: 'static + Into<ClosurePtr<(), Box<dyn React>>>,
     TProps: Any,
 {
     RenderingTree::Special(SpecialRenderingNode::React(ReactNode {
@@ -58,7 +65,7 @@ where
         props: Arc::new(props),
         rendering_tree: Mutex::new(None),
         react_entity: Mutex::new(None),
-        create_entity: Arc::new(create_entity),
+        create_entity: create_entity.into(),
     }))
 }
 
@@ -79,7 +86,7 @@ impl ReactNode {
             Some(prev_node) if prev_node.type_id == self.type_id => {
                 prev_node.react_entity.lock().unwrap().take().unwrap()
             }
-            _ => (self.create_entity)(),
+            _ => self.create_entity.invoke(()),
         };
 
         if let Some(event) = event {

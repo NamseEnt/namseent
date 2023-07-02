@@ -2,7 +2,7 @@ use super::*;
 use crate::{namui::render::ImageFit, *};
 use std::sync::Arc;
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, PartialEq)]
 pub struct ImageDrawCommand {
     pub rect: Rect<Px>,
     pub source: ImageSource,

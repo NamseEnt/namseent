@@ -16,12 +16,12 @@ impl WysiwygWindow {
             .with_id(self.window_id)
             .attach_event(|builder| {
                 builder
-                    .on_mouse_down_in(|event| {
+                    .on_mouse_down_in(|event: MouseEvent| {
                         namui::event::send(super::Event::BackgroundClicked {
                             mouse_xy: event.local_xy,
                         });
                     })
-                    .on_mouse_move_in(|event| {
+                    .on_mouse_move_in(|event: MouseEvent| {
                         namui::event::send(super::Event::MouseMoveIn {
                             mouse_local_xy: event.local_xy,
                         });
@@ -29,22 +29,7 @@ impl WysiwygWindow {
                     .on_mouse(|_| {
                         namui::event::send(super::Event::MouseUp);
                     })
-                    .on_wheel(move |event| {
-                        let mouse_global_xy = namui::mouse::position();
-                        let row_xy = event
-                            .root
-                            .get_xy_of_child(event.target)
-                            .expect("ERROR: fail to get rendering_tree_xy");
-
-                        let mouse_local_xy = mouse_global_xy - row_xy;
-
-                        if mouse_local_xy.x < px(0.0)
-                            || wh.width < mouse_local_xy.x
-                            || mouse_local_xy.y < px(0.0)
-                            || wh.height < mouse_local_xy.y
-                        {
-                            return;
-                        }
+                    .on_wheel(move |event: WheelEvent| {
                         if namui::keyboard::any_code_press([Code::ShiftLeft, Code::ShiftRight]) {
                             namui::event::send(super::Event::ShiftWheel {
                                 delta: event.delta_xy.y,
@@ -52,7 +37,7 @@ impl WysiwygWindow {
                         } else if namui::keyboard::any_code_press([Code::AltLeft, Code::AltRight]) {
                             namui::event::send(super::Event::AltWheel {
                                 delta: event.delta_xy.y,
-                                mouse_local_xy,
+                                mouse_local_xy: event.mouse_local_xy,
                             });
                         } else {
                             namui::event::send(super::Event::Wheel {
@@ -60,7 +45,7 @@ impl WysiwygWindow {
                             });
                         }
                     })
-                    .on_key_down(move |event| {
+                    .on_key_down(move |event: KeyboardEvent| {
                         if event.code == Code::Home {
                             namui::event::send(super::Event::HomeKeyDown { wh });
                         }

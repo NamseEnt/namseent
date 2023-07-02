@@ -98,7 +98,7 @@ impl RenameModal {
                                 ..Default::default()
                             },
                             event_handler: Some(text_input::EventHandler::new().on_key_down(
-                                move |event| {
+                                move |event: KeyDownEvent| {
                                     if event.code == Code::Enter {
                                         namui::event::send(Event::RenameDone {
                                             sequence_id,

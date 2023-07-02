@@ -52,7 +52,7 @@ impl Entity for ShaderExample {
                         .map(|tab| dropdown::Item {
                             is_selected: self.tab == tab,
                             text: tab.to_string(),
-                            on_select_item: move || namui::event::send(Event::SelectTab { tab }),
+                            on_select_item: move |_| namui::event::send(Event::SelectTab { tab }),
                         }),
                     rect: Rect::from_xy_wh(
                         Xy::single(0.px()),

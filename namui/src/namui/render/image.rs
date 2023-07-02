@@ -3,7 +3,7 @@ use serde::Serialize;
 use std::sync::Arc;
 
 /// Example: https://developer.mozilla.org/ko/docs/Web/CSS/object-fit
-#[derive(Debug, Serialize, Clone, Copy)]
+#[derive(Debug, Serialize, Clone, Copy, PartialEq)]
 pub enum ImageFit {
     /// The replaced content is sized to fill the element's content box.
     /// The entire object will completely fill the box.
@@ -28,7 +28,7 @@ pub struct ImageStyle {
     pub paint_builder: Option<PaintBuilder>,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, PartialEq)]
 pub enum ImageSource {
     Url(Url),
     Image(Arc<Image>),

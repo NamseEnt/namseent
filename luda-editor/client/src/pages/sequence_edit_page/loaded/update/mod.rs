@@ -91,7 +91,7 @@ impl LoadedSequenceEditorPage {
                     self.context_menu = Some(context_menu::ContextMenu::new(
                         *global_xy,
                         [context_menu::Item::new_button("Add Cut", {
-                            move || {
+                            move |_| {
                                 namui::event::send(InternalEvent::ListViewContextMenuAddCutClicked);
                             }
                         })],

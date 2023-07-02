@@ -5,7 +5,7 @@ use crate::RenderingTree;
 use serde::Serialize;
 
 /// `OnTopNode` ignores clip and draw on top of other nodes.
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct OnTopNode {
     pub(crate) rendering_tree: Arc<RenderingTree>,
 }

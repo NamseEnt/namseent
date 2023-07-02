@@ -1,16 +1,15 @@
 use super::SpecialRenderingNode;
-use crate::*;
+use crate::{closure::ClosurePtr, *};
 use serde::Serialize;
 use std::{
     collections::HashSet,
-    ops::ControlFlow,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
 };
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, PartialEq)]
 pub struct AttachEventNode {
     pub(crate) rendering_tree: std::sync::Arc<RenderingTree>,
     #[serde(skip_serializing)]
@@ -38,10 +37,9 @@ pub struct AttachEventNode {
     pub on_file_drop: Option<FileDropEventCallback>,
 }
 
-pub struct MouseEvent<'a> {
+#[derive(Clone)]
+pub struct MouseEvent {
     pub id: crate::Uuid,
-    pub root: &'a RenderingTree,
-    pub target: &'a RenderingTree,
     pub local_xy: Xy<Px>,
     pub global_xy: Xy<Px>,
     pub pressing_buttons: HashSet<MouseButton>,
@@ -49,7 +47,7 @@ pub struct MouseEvent<'a> {
     pub event_type: MouseEventType,
     pub(crate) is_stop_propagation: Arc<AtomicBool>,
 }
-impl MouseEvent<'_> {
+impl MouseEvent {
     pub fn stop_propagation(&self) {
         self.is_stop_propagation.store(true, Ordering::Relaxed);
     }
@@ -60,38 +58,39 @@ pub enum MouseEventType {
     Up,
     Move,
 }
-pub struct WheelEvent<'a> {
+pub struct WheelEvent {
     pub id: crate::Uuid,
-    pub root: &'a RenderingTree,
-    pub target: &'a RenderingTree,
     /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
     pub delta_xy: Xy<f32>,
+    pub mouse_local_xy: Xy<Px>,
     pub(crate) is_stop_propagation: Arc<AtomicBool>,
 }
-impl WheelEvent<'_> {
+impl WheelEvent {
     pub fn stop_propagation(&self) {
         self.is_stop_propagation.store(true, Ordering::Relaxed);
     }
 }
-pub struct KeyboardEvent<'a> {
+pub struct KeyboardEvent {
     pub id: crate::Uuid,
-    pub target: &'a RenderingTree,
     pub code: Code,
     pub pressing_codes: HashSet<Code>,
 }
-pub struct FileDropEvent<'a> {
-    pub namui_context: &'a NamuiContext,
-    pub target: &'a RenderingTree,
+pub struct FileDropEvent {
     pub local_xy: Xy<Px>,
     pub global_xy: Xy<Px>,
     pub files: Vec<File>,
     pub(crate) is_stop_propagation: Arc<AtomicBool>,
 }
+impl FileDropEvent {
+    pub fn stop_propagation(&self) {
+        self.is_stop_propagation.store(true, Ordering::Relaxed);
+    }
+}
 
-pub type MouseEventCallback = Arc<dyn Fn(&MouseEvent)>;
-pub type WheelEventCallback = Arc<dyn Fn(&WheelEvent)>;
-pub type KeyboardEventCallback = Arc<dyn Fn(&KeyboardEvent)>;
-pub type FileDropEventCallback = Arc<dyn Fn(&FileDropEvent)>;
+pub type MouseEventCallback = ClosurePtr<MouseEvent, ()>;
+pub type WheelEventCallback = ClosurePtr<WheelEvent, ()>;
+pub type KeyboardEventCallback = ClosurePtr<KeyboardEvent, ()>;
+pub type FileDropEventCallback = ClosurePtr<FileDropEvent, ()>;
 
 impl std::fmt::Debug for AttachEventNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -128,7 +127,7 @@ pub struct AttachEventBuilder {
 impl RenderingTree {
     pub fn attach_event(
         self,
-        attach_event_build: impl Fn(&mut AttachEventBuilder),
+        attach_event_build: impl FnOnce(&mut AttachEventBuilder),
     ) -> RenderingTree {
         let mut builder = AttachEventBuilder {
             ..Default::default()
@@ -154,87 +153,80 @@ impl RenderingTree {
 impl AttachEventBuilder {
     pub fn on_mouse_move_in(
         &mut self,
-        on_mouse_move_in: impl Fn(&MouseEvent) + 'static,
+        on_mouse_move_in: impl Into<ClosurePtr<MouseEvent, ()>>,
     ) -> &mut Self {
-        self.on_mouse_move_in = Some(Arc::new(on_mouse_move_in));
+        self.on_mouse_move_in = Some(on_mouse_move_in.into());
         self
     }
 
     pub fn on_mouse_move_out(
         &mut self,
-        on_mouse_move_out: impl Fn(&MouseEvent) + 'static,
+        on_mouse_move_out: impl Into<ClosurePtr<MouseEvent, ()>>,
     ) -> &mut Self {
-        self.on_mouse_move_out = Some(Arc::new(on_mouse_move_out));
+        self.on_mouse_move_out = Some(on_mouse_move_out.into());
         self
     }
 
     pub fn on_mouse_down_in(
         &mut self,
-        on_mouse_down_in: impl Fn(&MouseEvent) + 'static,
+        on_mouse_down_in: impl Into<ClosurePtr<MouseEvent, ()>> + 'static,
     ) -> &mut Self {
-        self.on_mouse_down_in = Some(Arc::new(on_mouse_down_in));
+        self.on_mouse_down_in = Some(on_mouse_down_in.into());
         self
     }
 
     pub fn on_mouse_down_out(
         &mut self,
-        on_mouse_down_out: impl Fn(&MouseEvent) + 'static,
+        on_mouse_down_out: impl Into<ClosurePtr<MouseEvent, ()>>,
     ) -> &mut Self {
-        self.on_mouse_down_out = Some(Arc::new(on_mouse_down_out));
+        self.on_mouse_down_out = Some(on_mouse_down_out.into());
         self
     }
 
-    pub fn on_mouse_up_in(&mut self, on_mouse_up_in: impl Fn(&MouseEvent) + 'static) -> &mut Self {
-        self.on_mouse_up_in = Some(Arc::new(on_mouse_up_in));
+    pub fn on_mouse_up_in(
+        &mut self,
+        on_mouse_up_in: impl Into<ClosurePtr<MouseEvent, ()>>,
+    ) -> &mut Self {
+        self.on_mouse_up_in = Some(on_mouse_up_in.into());
         self
     }
 
     pub fn on_mouse_up_out(
         &mut self,
-        on_mouse_up_out: impl Fn(&MouseEvent) + 'static,
+        on_mouse_up_out: impl Into<ClosurePtr<MouseEvent, ()>>,
     ) -> &mut Self {
-        self.on_mouse_up_out = Some(Arc::new(on_mouse_up_out));
+        self.on_mouse_up_out = Some(on_mouse_up_out.into());
         self
     }
 
-    pub fn on_mouse(&mut self, on_mouse: impl Fn(&MouseEvent) + 'static) -> &mut Self {
-        self.on_mouse = Some(Arc::new(on_mouse));
+    pub fn on_mouse(&mut self, on_mouse: impl Into<ClosurePtr<MouseEvent, ()>>) -> &mut Self {
+        self.on_mouse = Some(on_mouse.into());
         self
     }
 
-    pub fn on_wheel(&mut self, on_wheel: impl Fn(&WheelEvent) + 'static) -> &mut Self {
-        self.on_wheel = Some(Arc::new(on_wheel));
+    pub fn on_wheel(&mut self, on_wheel: impl Into<ClosurePtr<WheelEvent, ()>>) -> &mut Self {
+        self.on_wheel = Some(on_wheel.into());
         self
     }
 
-    pub fn on_key_down(&mut self, on_key_down: impl Fn(&KeyboardEvent) + 'static) -> &mut Self {
-        self.on_key_down = Some(Arc::new(on_key_down));
+    pub fn on_key_down(
+        &mut self,
+        on_key_down: impl Into<ClosurePtr<KeyboardEvent, ()>>,
+    ) -> &mut Self {
+        self.on_key_down = Some(on_key_down.into());
         self
     }
 
-    pub fn on_key_up(&mut self, on_key_up: impl Fn(&KeyboardEvent) + 'static) -> &mut Self {
-        self.on_key_up = Some(Arc::new(on_key_up));
+    pub fn on_key_up(&mut self, on_key_up: impl Into<ClosurePtr<KeyboardEvent, ()>>) -> &mut Self {
+        self.on_key_up = Some(on_key_up.into());
         self
     }
 
-    pub fn on_file_drop(&mut self, on_file_drop: impl Fn(&FileDropEvent) + 'static) -> &mut Self {
-        self.on_file_drop = Some(Arc::new(on_file_drop));
+    pub fn on_file_drop(
+        &mut self,
+        on_file_drop: impl Into<ClosurePtr<FileDropEvent, ()>>,
+    ) -> &mut Self {
+        self.on_file_drop = Some(on_file_drop.into());
         self
-    }
-}
-
-impl WheelEvent<'_> {
-    pub fn is_mouse_in(&self) -> bool {
-        let mut result = false;
-        self.root.visit_rln(|node, utils| {
-            if std::ptr::eq(node, self.target) {
-                result = utils.is_xy_in(system::mouse::position());
-                ControlFlow::Break(())
-            } else {
-                ControlFlow::Continue(())
-            }
-        });
-
-        result
     }
 }

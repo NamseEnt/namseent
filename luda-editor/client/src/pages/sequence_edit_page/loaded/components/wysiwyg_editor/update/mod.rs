@@ -81,7 +81,7 @@ impl WysiwygEditor {
                     let screen_width_per_height_ratio = 4.0 / 3.0;
 
                     let fit_items = [
-                        context_menu::Item::new_button("Fit - contain", move || {
+                        context_menu::Item::new_button("Fit - contain", move |_| {
                             namui::event::send(Event::UpdateCutGraphics {
                                 cut_id,
                                 callback: Box::new(move |graphics| {
@@ -105,7 +105,7 @@ impl WysiwygEditor {
                                 }),
                             });
                         }),
-                        context_menu::Item::new_button("Fit - cover", move || {
+                        context_menu::Item::new_button("Fit - cover", move |_| {
                             namui::event::send(Event::UpdateCutGraphics {
                                 cut_id,
                                 callback: Box::new({
@@ -138,7 +138,7 @@ impl WysiwygEditor {
                     } else {
                         [context_menu::Item::new_button("Spread as background", {
                             let graphic = graphic.clone();
-                            move || {
+                            move |_| {
                                 let graphic = graphic.clone();
                                 namui::event::send(Event::UpdateSequenceGraphics {
                                     callback: Box::new({
@@ -185,7 +185,7 @@ impl WysiwygEditor {
                             let cg_id = cg.id;
                             Some(context_menu::Item::new_button(
                                 "Edit character",
-                                move || {
+                                move |_| {
                                     namui::event::send(character_editor::Event::OpenCharacterEditor {
                                         target: character_editor::EditTarget::ExistingCharacterPart {
                                             cut_id,

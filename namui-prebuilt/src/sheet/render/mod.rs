@@ -76,14 +76,14 @@ impl Sheet {
                                 )
                                 .attach_event(|builder| {
                                     let on_mouse_down = cell.on_mouse_down.clone();
-                                    builder.on_mouse_down_in(move |event| {
+                                    builder.on_mouse_down_in(move |event: MouseEvent| {
                                         if event.button == Some(MouseButton::Left) {
                                             namui::event::send(InternalEvent::CellMouseLeftDown {
                                                 cell_index,
                                             })
                                         }
                                         if let Some(on_mouse_down) = on_mouse_down.as_ref() {
-                                            on_mouse_down(event)
+                                            on_mouse_down.invoke(event)
                                         }
                                     });
                                 }),
@@ -232,7 +232,7 @@ impl Sheet {
             let on_paste = on_paste.clone();
             // TODO: Move using arrow key
             // TODO: Select using shift + arrow key
-            builder.on_key_down(move |event| {
+            builder.on_key_down(move |event: KeyboardEvent| {
                 if [Code::ControlLeft, Code::KeyC]
                     .iter()
                     .all(|code| event.pressing_codes.contains(code))
@@ -246,7 +246,7 @@ impl Sheet {
                             .iter()
                             .all(|code| event.pressing_codes.contains(code))
                         {
-                            on_paste(clip_board[0][0].clone())
+                            on_paste.invoke(clip_board[0][0].clone())
                         }
                     }
                 }

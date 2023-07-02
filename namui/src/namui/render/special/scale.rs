@@ -2,7 +2,7 @@ use super::SpecialRenderingNode;
 use crate::{namui::render::Matrix3x3, RenderingTree};
 use serde::Serialize;
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct ScaleNode {
     pub(crate) x: f32,
     pub(crate) y: f32,

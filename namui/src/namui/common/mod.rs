@@ -1,3 +1,4 @@
+pub mod closure;
 mod codes;
 mod file;
 mod open_external;
@@ -8,6 +9,7 @@ pub(crate) mod url;
 
 use super::render::{RenderingData, RenderingTree};
 use crate::*;
+pub use closure::*;
 pub use codes::*;
 pub use file::*;
 pub use open_external::*;
@@ -163,6 +165,7 @@ pub struct RawWheelEvent {
     pub id: crate::Uuid,
     /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
     pub delta_xy: Xy<f32>,
+    pub mouse_xy: Xy<Px>,
 }
 
 #[derive(Debug)]

@@ -53,11 +53,13 @@ impl LineEditWindow {
                 if let Some(ticket) = self.animation_history.try_set_action(UpdateLineAction {
                     layer_id,
                     point_id,
-                    update: move |line| {
+                    update: closure(move |line| {
                         if let ImageInterpolation::SquashAndStretch { .. } = line {
-                            func(line);
+                            func.invoke(line)
+                        } else {
+                            line
                         }
-                    },
+                    }),
                 }) {
                     self.animation_history.act(ticket).unwrap();
                 }
@@ -66,15 +68,12 @@ impl LineEditWindow {
     }
 }
 
-struct UpdateLineAction<TUpdate: Fn(&mut ImageInterpolation)> {
+struct UpdateLineAction {
     layer_id: namui::Uuid,
     point_id: namui::Uuid,
-    update: TUpdate,
+    update: ClosurePtr<ImageInterpolation, ImageInterpolation>,
 }
-impl<TUpdate> Act<Animation> for UpdateLineAction<TUpdate>
-where
-    TUpdate: Fn(&mut ImageInterpolation) + 'static,
-{
+impl Act<Animation> for UpdateLineAction {
     fn act(&self, state: &Animation) -> Result<Animation, Box<dyn std::error::Error>> {
         let mut animation = state.clone();
         let layer = animation
@@ -89,7 +88,7 @@ where
             .get_point_and_line_mut(self.point_id)
             .ok_or("point not found")?;
 
-        (self.update)(line);
+        *line = self.update.invoke(*line);
         Ok(animation)
     }
 }
