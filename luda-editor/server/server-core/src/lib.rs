@@ -61,6 +61,10 @@ pub async fn init() {
                 .strip_prefix(&server_path)
                 .unwrap_or(full_file_path);
 
+            if short_file_path.contains("aws-smithy-http-tower") {
+                return Ok(());
+            }
+
             writeln!(
                 buf,
                 "[{}] {} {}:{} - {}",

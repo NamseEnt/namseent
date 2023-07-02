@@ -521,6 +521,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "604178f6c5c21f02dc555784810edfb88d34ac2c73b2eae109655649ee73ce3d"
 
 [[package]]
+name = "bincode"
+version = "1.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "bit_field"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1479,6 +1488,14 @@ dependencies = [
 name = "migration"
 version = "0.1.0"
 dependencies = [
+ "bincode",
+ "migration-macro",
+]
+
+[[package]]
+name = "migration-macro"
+version = "0.1.0"
+dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
@@ -1877,6 +1894,7 @@ dependencies = [
 name = "rpc"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "hyper",
  "migration",
  "namui-type",
@@ -2073,17 +2091,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_dynamo"
-version = "4.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc10b1304ff6f4f67cffe311f23f5e3abd36f00b2f33813c8fac1a571bd821e3"
-dependencies = [
- "aws-sdk-dynamodb",
- "base64 0.21.2",
- "serde",
-]
-
-[[package]]
 name = "serde_json"
 version = "1.0.99"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2116,6 +2123,7 @@ dependencies = [
  "aws-sdk-s3",
  "aws-smithy-async",
  "aws-types",
+ "bincode",
  "chrono",
  "document-macro",
  "env_logger",
@@ -2132,7 +2140,6 @@ dependencies = [
  "reqwest",
  "rpc",
  "serde",
- "serde_dynamo",
  "serde_json",
  "tokio",
 ]

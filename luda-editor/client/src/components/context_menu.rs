@@ -8,6 +8,8 @@ pub enum Item {
         text: String,
         on_click: ClosurePtr<(), ()>,
     },
+
+    #[allow(dead_code)]
     Divider,
 }
 

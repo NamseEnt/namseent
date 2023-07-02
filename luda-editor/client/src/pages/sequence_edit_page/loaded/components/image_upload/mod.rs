@@ -67,6 +67,7 @@ pub async fn create_image(
     Ok(image_id)
 }
 
+#[allow(dead_code)]
 pub async fn update_image(
     _prev_label_list: Vec<Label>,
     _new_label_list: Vec<Label>,

@@ -44,6 +44,7 @@ pub enum NamuiEvent {
     ScreenResize(namui::Wh<i16>),
     DeepLinkOpened(DeepLinkOpenedEvent),
     FileDrop(RawFileDropEvent),
+    NoUpdateJustRender,
 }
 
 #[cfg(test)]

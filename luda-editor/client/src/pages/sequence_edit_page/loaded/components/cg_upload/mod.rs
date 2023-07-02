@@ -1,11 +1,10 @@
-use namui::{uuid_from_hash, Uuid};
-use rpc::utils::retry_on_error;
+use rpc::{data::CgFile, utils::retry_on_error};
 
 pub async fn create_cg(
     project_id: namui::Uuid,
     psd_file_name: String,
     psd_file: Vec<u8>,
-) -> Result<Uuid, Box<dyn std::error::Error>> {
+) -> Result<CgFile, Box<dyn std::error::Error>> {
     let response = retry_on_error(
         {
             let psd_file_size = psd_file.len();
@@ -49,7 +48,7 @@ pub async fn create_cg(
     )
     .await?;
 
-    retry_on_error(
+    let rpc::complete_put_psd::Response { cg_id } = retry_on_error(
         {
             let psd_file_name = psd_file_name.clone();
             move || {
@@ -65,5 +64,11 @@ pub async fn create_cg(
     )
     .await?;
 
-    Ok(uuid_from_hash(psd_file_name.as_str()))
+    let rpc::get_cg_file::Response { cg_file } = retry_on_error(
+        move || crate::RPC.get_cg_file(rpc::get_cg_file::Request { cg_id, project_id }),
+        10,
+    )
+    .await?;
+
+    Ok(cg_file)
 }

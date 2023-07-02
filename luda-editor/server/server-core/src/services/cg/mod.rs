@@ -3,7 +3,7 @@ mod parse_psd_to_inter_cg_parts;
 mod psd_to_cg_file;
 
 use self::{
-    documents::{CgDocument, CgInProject, CgInProjectQuery},
+    documents::{CgDocument, CgDocumentQuery},
     psd_to_cg_file::{psd_to_webps_and_cg_file, PsdParsingResult},
 };
 use crate::{services::cg::documents::CgDocumentGet, session::SessionDocument};
@@ -167,42 +167,28 @@ impl rpc::CgService<SessionDocument> for CgService {
 
             futures::future::try_join_all(futures).await?;
 
+            let cg_id = psd_id;
             crate::dynamo_db()
-                .transact()
-                .create_item(CgDocument {
-                    id: psd_id,
+                .put_item(CgDocument {
+                    project_id,
+                    cg_id,
                     cg_file,
                 })
-                .create_item(CgInProject {
-                    cg_id: psd_id,
-                    project_id,
-                })
-                .send()
                 .await
                 .map_err(|err| rpc::complete_put_psd::Error::Unknown(err.to_string()))?;
 
-            Ok(rpc::complete_put_psd::Response {})
+            Ok(rpc::complete_put_psd::Response { cg_id })
         })
     }
 
     fn list_cg_files<'a>(
         &'a self,
-        session: Option<SessionDocument>,
+        _session: Option<SessionDocument>,
         rpc::list_cg_files::Request { project_id }: rpc::list_cg_files::Request,
     ) -> std::pin::Pin<Box<dyn 'a + std::future::Future<Output = rpc::list_cg_files::Result> + Send>>
     {
         Box::pin(async move {
-            crate::services()
-                .project_service
-                .check_session_project_editor(
-                    session,
-                    project_id,
-                    || rpc::list_cg_files::Error::Unauthorized,
-                    |err| rpc::list_cg_files::Error::Unknown(err),
-                )
-                .await?;
-
-            let futures = CgInProjectQuery {
+            let cg_files = CgDocumentQuery {
                 pk_project_id: project_id,
                 last_sk: None, // TODO
             }
@@ -212,20 +198,38 @@ impl rpc::CgService<SessionDocument> for CgService {
             .documents
             .into_iter()
             .map(
-                |CgInProject {
+                |CgDocument {
                      project_id: _,
-                     cg_id,
-                 }| { async move { CgDocumentGet { pk_id: cg_id }.run().await } },
-            );
-
-            let cg_files = futures::future::try_join_all(futures)
-                .await
-                .map_err(|err| rpc::list_cg_files::Error::Unknown(err.to_string()))?
-                .into_iter()
-                .map(|cg_document| cg_document.cg_file)
-                .collect::<Vec<_>>();
+                     cg_id: _,
+                     cg_file,
+                 }| cg_file,
+            )
+            .collect();
 
             Ok(rpc::list_cg_files::Response { cg_files })
+        })
+    }
+
+    fn get_cg_file<'a>(
+        &'a self,
+        _session: Option<SessionDocument>,
+        rpc::get_cg_file::Request { cg_id, project_id }: rpc::get_cg_file::Request,
+    ) -> std::pin::Pin<Box<dyn 'a + std::future::Future<Output = rpc::get_cg_file::Result> + Send>>
+    {
+        Box::pin(async move {
+            let CgDocument {
+                cg_file,
+                project_id: _,
+                cg_id: _,
+            } = CgDocumentGet {
+                pk_project_id: project_id,
+                sk_cg_id: cg_id,
+            }
+            .run()
+            .await
+            .map_err(|err| rpc::get_cg_file::Error::Unknown(err.to_string()))?;
+
+            Ok(rpc::get_cg_file::Response { cg_file })
         })
     }
 }

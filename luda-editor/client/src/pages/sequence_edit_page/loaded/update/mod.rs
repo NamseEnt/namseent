@@ -1,6 +1,3 @@
-mod undo_redo;
-mod update_data;
-
 use super::{
     components::{cg_upload::create_cg, image_upload::create_image},
     *,
@@ -14,72 +11,6 @@ impl LoadedSequenceEditorPage {
                 InternalEvent::Error(error) => {
                     todo!("error: {error}")
                 }
-                InternalEvent::ListViewContextMenuAddCutClicked => {
-                    let cut_id = uuid();
-
-                    self.update_sequence(|sequence| {
-                        let new_cut = Cut::new(cut_id);
-                        sequence.cuts.push(new_cut);
-                    });
-                }
-                &InternalEvent::ImageUploaded { cut_id, image_id } => {
-                    self.update_cut(cut_id, |cut| {
-                        cut.screen_graphics
-                            .push(ScreenGraphic::Image(ScreenImage::new(image_id)))
-                    });
-                }
-                &InternalEvent::CgUploaded { cut_id, cg_id } => {
-                    let new_cg_graphic_index = self
-                        .sequence
-                        .cuts
-                        .iter()
-                        .find(|cut| cut.id() == cut_id)
-                        .unwrap()
-                        .screen_graphics
-                        .len();
-                    self.update_cut(cut_id, |cut| {
-                        cut.screen_graphics
-                            .push(ScreenGraphic::Cg(ScreenCg::new(cg_id, vec![])))
-                    });
-                    self.character_editor = Some(character_editor::CharacterEditor::new(
-                        self.project_id(),
-                        character_editor::EditTarget::ExistingCharacterPart {
-                            cut_id,
-                            cg_id,
-                            graphic_index: new_cg_graphic_index,
-                        },
-                    ))
-                }
-            })
-            .is::<crate::components::sync::Event>(|event| match event {
-                crate::components::sync::Event::UpdateReceived { patch, id } => {
-                    if patch.0.len() > 0 {
-                        if self.sequence_syncer.id().eq(id) {
-                            let sequence = std::mem::take(&mut self.sequence);
-                            let mut sequence_json = serde_json::to_value(sequence).unwrap();
-
-                            let result = rpc::json_patch::patch(&mut sequence_json, patch);
-                            if let Err(error) = result {
-                                namui::event::send(InternalEvent::Error(format!(
-                                    "UpdateReceived rpc::json_patch::patch {}",
-                                    error.to_string()
-                                )));
-                                return;
-                            }
-
-                            let result = serde_json::from_value::<Sequence>(sequence_json);
-                            if let Err(error) = result {
-                                namui::event::send(InternalEvent::Error(format!(
-                                    "UpdateReceived serde_json::from_value::<Sequence> {}",
-                                    error.to_string()
-                                )));
-                                return;
-                            }
-
-                            self.sequence = result.unwrap();
-                        }
-                    }
-                }
             })
             .is::<context_menu::Event>(|event| match event {
                 context_menu::Event::Close => {
@@ -92,7 +23,12 @@ impl LoadedSequenceEditorPage {
                         *global_xy,
                         [context_menu::Item::new_button("Add Cut", {
                             move |_| {
-                                namui::event::send(InternalEvent::ListViewContextMenuAddCutClicked);
+                                SEQUENCE_ATOM.update(|sequence| {
+                                    sequence.update(SequenceUpdateAction::InsertCut {
+                                        cut: Cut::new(uuid()),
+                                        after_cut_id: None,
+                                    })
+                                });
                             }
                         })],
                     ));
@@ -121,16 +57,6 @@ impl LoadedSequenceEditorPage {
                 }
             })
             .is::<cut_editor::Event>(|event| match event {
-                cut_editor::Event::ChangeCharacterName { name, cut_id } => {
-                    self.update_cut(*cut_id, |cut| {
-                        cut.character_name = name.clone();
-                    });
-                }
-                cut_editor::Event::ChangeCutLine { text, cut_id } => {
-                    self.update_cut(*cut_id, |cut| {
-                        cut.line = text.clone();
-                    });
-                }
                 &cut_editor::Event::MoveCutRequest {
                     cut_id,
                     to_prev: _,
@@ -150,9 +76,16 @@ impl LoadedSequenceEditorPage {
                     spawn_local(async move {
                         match create_image(project_id, png_bytes).await {
                             Ok(image_id) => {
-                                namui::event::send(InternalEvent::ImageUploaded {
-                                    cut_id,
-                                    image_id,
+                                SEQUENCE_ATOM.update(|sequence| {
+                                    sequence.update_cut(
+                                        cut_id,
+                                        CutUpdateAction::PushScreenGraphic {
+                                            graphic_index: uuid(),
+                                            screen_graphic: ScreenGraphic::Image(ScreenImage::new(
+                                                image_id,
+                                            )),
+                                        },
+                                    )
                                 });
                             }
                             Err(error) => {
@@ -174,38 +107,49 @@ impl LoadedSequenceEditorPage {
                     let psd_name = psd_name.clone();
                     let cut_id = cut_id.clone();
                     spawn_local(async move {
-                        match create_cg(project_id, psd_name, psd_bytes).await {
-                            Ok(cg_id) => {
-                                namui::event::send(InternalEvent::CgUploaded { cut_id, cg_id })
-                            }
-                            Err(error) => {
-                                namui::event::send(InternalEvent::Error(format!(
-                                    "create_cg {}",
-                                    error.to_string()
-                                )));
-                            }
-                        };
-                    });
-                }
-                cut_editor::Event::AddCg { cut_id, cg } => {
-                    let cg = cg.clone();
-                    self.update_cut(*cut_id, |cut| {
-                        cut.screen_graphics.push(ScreenGraphic::Cg(cg))
-                    });
-                }
-            })
-            .is::<wysiwyg_editor::Event>(|event| match event {
-                &wysiwyg_editor::Event::UpdateCutGraphics {
-                    cut_id,
-                    ref callback,
-                } => {
-                    self.update_cut(cut_id, |cut| callback(&mut cut.screen_graphics));
-                }
-                wysiwyg_editor::Event::UpdateSequenceGraphics { callback } => {
-                    self.update_sequence(|sequence| {
-                        sequence.cuts.iter_mut().for_each(|cut| {
-                            callback(&mut cut.screen_graphics);
+                        let Ok(cg_file) =
+                            create_cg(project_id, psd_name, psd_bytes)
+                                .await
+                                .map_err(|error| {
+                                    namui::event::send(InternalEvent::Error(format!(
+                                        "create_cg {}",
+                                        error.to_string()
+                                    )));
+                                }) else { return; };
+                        CG_FILES_ATOM.update(|cg_files| {
+                            cg_files.update_file(cg_file.clone());
                         });
+
+                        let graphic_index = uuid();
+
+                        SEQUENCE_ATOM.update(|sequence| {
+                            sequence.update_cut(
+                                cut_id,
+                                CutUpdateAction::PushScreenGraphic {
+                                    graphic_index,
+                                    screen_graphic: ScreenGraphic::Cg(ScreenCg::new(&cg_file)),
+                                },
+                            )
+                        });
+
+                        namui::event::send(character_editor::Event::OpenCharacterEditor {
+                            target: character_editor::EditTarget::ExistingCharacterPart {
+                                cut_id,
+                                cg_id: cg_file.id,
+                                graphic_index,
+                            },
+                        });
+                    });
+                }
+                &cut_editor::Event::AddCg { cut_id, ref cg } => {
+                    SEQUENCE_ATOM.update(|sequence| {
+                        sequence.update_cut(
+                            cut_id,
+                            CutUpdateAction::PushScreenGraphic {
+                                graphic_index: uuid(),
+                                screen_graphic: ScreenGraphic::Cg(cg.clone()),
+                            },
+                        )
                     });
                 }
             })
@@ -214,22 +158,13 @@ impl LoadedSequenceEditorPage {
                     self.character_editor = None;
                 }
                 character_editor::Event::OpenCharacterEditor { target } => {
-                    self.character_editor = Some(character_editor::CharacterEditor::new(
-                        self.project_id(),
-                        *target,
-                    ));
-                }
-                &character_editor::Event::UpdateCutGraphics {
-                    cut_id,
-                    ref callback,
-                } => {
-                    self.update_cut(cut_id, |cut| callback(&mut cut.screen_graphics));
+                    self.character_editor = Some(character_editor::CharacterEditor::new(*target));
                 }
             })
             .is::<components::memo_editor::Event>(|event| match event {
                 memo_editor::Event::OpenMemoEditor { cut_id } => {
                     self.memo_editor = Some(components::memo_editor::MemoEditor::new(
-                        self.sequence.id(),
+                        SEQUENCE_ATOM.get_unwrap().id,
                         *cut_id,
                     ));
                 }

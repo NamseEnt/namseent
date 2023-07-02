@@ -21,11 +21,7 @@ impl CutEditor {
                 &Event::Click { target } => {
                     self.focus(target);
                 }
-                Event::ChangeCharacterName { .. }
-                | Event::ChangeCutLine { .. }
-                | Event::AddNewImage { .. }
-                | Event::AddNewCg { .. }
-                | Event::AddCg { .. } => {}
+                Event::AddNewImage { .. } | Event::AddNewCg { .. } | Event::AddCg { .. } => {}
             })
             .is::<InternalEvent>(|event| match event {
                 InternalEvent::EscapeKeyDown => {

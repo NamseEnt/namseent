@@ -1,8 +1,7 @@
 use super::*;
 use namui::Uuid;
 
-use std::path::Path;
-
+#[allow(dead_code)]
 pub async fn upload_images_using_picker(
     project_id: Uuid,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -15,13 +14,6 @@ pub async fn upload_images_using_picker(
         .chunks(file_count_per_channel)
         .map(|files_in_channel| async move {
             for file in files_in_channel.into_iter() {
-                let filename = file.name();
-                let _filename = Path::new(&filename)
-                    .with_extension("")
-                    .to_str()
-                    .unwrap()
-                    .to_string();
-
                 let data = file.content().await;
 
                 if let Err(error) = create_image(project_id, data.to_vec()).await {

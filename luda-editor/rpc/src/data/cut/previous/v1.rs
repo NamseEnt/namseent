@@ -62,35 +62,63 @@ mod tests {
     fn test_serialize() {
         let id = Uuid::new_v4();
         let cut = Cut::new(id);
-        let json = serde_json::to_string(&cut).unwrap();
-        assert_eq!(
-            json,
-            format!(
-                r#"{{"_v":1,"id":"{}","line":"","character_id":null,"screen_images":[null,null,null,null,null]}}"#,
-                id
-            )
-        );
+
+        let serialized = bincode::serialize(&cut).unwrap();
+        let expected = std::iter::empty::<u8>()
+            // id (24 bytes): uuid length (8 bytes) + uuid (16 bytes)
+            .chain([16, 0, 0, 0, 0, 0, 0, 0]) // uuid length (8 bytes)
+            .chain(id.as_bytes().clone()) // uuid (16 bytes)
+            // line (8 bytes): string length (8 bytes) + string (0 bytes)
+            .chain([0, 0, 0, 0, 0, 0, 0, 0]) // string length (8 bytes)
+            // character_id (1 bytes): none (1 byte)
+            .chain([0]) // none (1 byte)
+            // screen_images (5 bytes): none (1 byte) * 5
+            .chain([0, 0, 0, 0, 0]) // none * 5
+            .collect::<Vec<_>>();
+
+        assert_eq!(serialized, expected);
     }
 
     #[test]
     fn test_deserialize() {
         let id = Uuid::new_v4();
-        let json = format!(
-            r#"{{"_v":1,"id":"{}","line":"","character_id":null,"screen_images":[null,null,null,null,null]}}"#,
-            id
-        );
-        let cut: Cut = serde_json::from_str(&json).unwrap();
+        let bytes = std::iter::empty::<u8>()
+            // id (24 bytes): uuid length (8 bytes) + uuid (16 bytes)
+            .chain([16, 0, 0, 0, 0, 0, 0, 0]) // uuid length (8 bytes)
+            .chain(id.as_bytes().clone()) // uuid (16 bytes)
+            // line (8 bytes): string length (8 bytes) + string (0 bytes)
+            .chain([0, 0, 0, 0, 0, 0, 0, 0]) // string length (8 bytes)
+            // character_id (1 bytes): none (1 byte)
+            .chain([0]) // none (1 byte)
+            // screen_images (5 bytes): none (1 byte) * 5
+            .chain([0, 0, 0, 0, 0]) // none * 5
+            .collect::<Vec<_>>();
+
+        let cut: Cut = migration::Migration::deserialize(&bytes, 1).unwrap();
         assert_eq!(cut.id(), id);
     }
 
     #[test]
     fn test_deserialize_migrate() {
         let id = Uuid::new_v4();
-        let json = format!(
-            r#"{{"id":"{}","line":"","character_id":null,"screen_image_ids":[null,null,null,null,null]}}"#,
-            id
-        );
-        let cut: Cut = serde_json::from_str(&json).unwrap();
+        // id: Uuid,
+        // /// The text that the character speaks in this cut.
+        // pub line: String,
+        // pub character_id: Option<Uuid>,
+        // pub screen_image_ids: [Option<Uuid>; 5],
+        let bytes = std::iter::empty::<u8>()
+            // id (24 bytes): uuid length (8 bytes) + uuid (16 bytes)
+            .chain([16, 0, 0, 0, 0, 0, 0, 0]) // uuid length (8 bytes)
+            .chain(id.as_bytes().clone()) // uuid (16 bytes)
+            // line (8 bytes): string length (8 bytes) + string (0 bytes)
+            .chain([0, 0, 0, 0, 0, 0, 0, 0]) // string length (8 bytes)
+            // character_id (1 bytes): none (1 byte)
+            .chain([0]) // none (1 byte)
+            // screen_image_ids (5 bytes): none (1 byte) * 5
+            .chain([0, 0, 0, 0, 0]) // none * 5
+            .collect::<Vec<_>>();
+
+        let cut: Cut = migration::Migration::deserialize(&bytes, 0).unwrap();
         assert_eq!(cut.id(), id);
     }
 }

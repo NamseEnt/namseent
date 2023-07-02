@@ -14,7 +14,14 @@ impl NamuiContext {
 
             self.pre_update_and_render(&event);
 
-            state.update(&event);
+            if event
+                .downcast_ref::<NamuiEvent>()
+                .map(|event| matches!(event, NamuiEvent::NoUpdateJustRender))
+                .is_none()
+            {
+                state.update(&event);
+            }
+
             let prev_rendering_tree = self.rendering_tree;
             self.rendering_tree = state.render(props);
             react::reconciliate(&prev_rendering_tree, &self.rendering_tree, Some(&event));

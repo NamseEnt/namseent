@@ -39,6 +39,7 @@ impl SharePreview {
             None
         }
     }
+    #[allow(dead_code)]
     pub fn url(&self) -> String {
         format!(
             "{herf}?view&sequence_id={sequence_id}&index={index}",

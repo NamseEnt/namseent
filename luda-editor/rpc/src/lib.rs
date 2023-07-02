@@ -76,7 +76,7 @@ define_rpc! {
             struct Response {
                 pub sequence_name_and_ids: Vec<SequenceNameAndId>,
             }
-            pub struct SequenceNameAndId {
+            struct SequenceNameAndId {
                 pub name: String,
                 pub id: crate::Uuid,
             }
@@ -96,27 +96,62 @@ define_rpc! {
                 Unknown(String),
             }
         },
-        update_server_sequence: {
+        undo_update: {
             struct Request {
                 pub sequence_id: crate::Uuid,
-                pub patch: revert_json_patch::Patch,
             }
             struct Response {
             }
             enum Error {
                 Unauthorized,
+                Forbidden,
+                NotFound,
+                NoMoreUndo,
                 Unknown(String),
             }
         },
-        update_client_sequence: {
+        redo_update: {
             struct Request {
                 pub sequence_id: crate::Uuid,
-                pub sequence_json: serde_json::Value,
             }
             struct Response {
-                pub patch: revert_json_patch::Patch,
             }
             enum Error {
+                Unauthorized,
+                Forbidden,
+                NotFound,
+                NoMoreRedo,
+                Unknown(String),
+            }
+        },
+        update_sequence: {
+            struct Request {
+                pub sequence_id: crate::Uuid,
+                pub action: crate::data::SequenceUpdateAction,
+            }
+            struct Response {
+            }
+            enum Error {
+                Unauthorized,
+                Forbidden,
+                SequenceNotFound,
+                CutNotFound,
+                Unknown(String),
+            }
+        },
+        update_sequence_cut: {
+            struct Request {
+                pub sequence_id: crate::Uuid,
+                pub cut_id: crate::Uuid,
+                pub action: crate::data::CutUpdateAction,
+            }
+            struct Response {
+            }
+            enum Error {
+                Unauthorized,
+                Forbidden,
+                SequenceNotFound,
+                CutNotFound,
                 Unknown(String),
             }
         },
@@ -125,10 +160,11 @@ define_rpc! {
                 pub sequence_id: crate::Uuid,
             }
             struct Response {
-                pub sequence_json: String,
+                pub sequence: crate::data::Sequence,
                 pub project_shared_data_json: String,
             }
             enum Error {
+                SequenceNotFound,
                 Unknown(String),
             }
         },
@@ -140,18 +176,7 @@ define_rpc! {
             }
             enum Error {
                 Unauthorized,
-                Unknown(String),
-            }
-        },
-        rename_sequence: {
-            struct Request {
-                pub sequence_id: crate::Uuid,
-                pub new_name: String,
-            }
-            struct Response {
-            }
-            enum Error {
-                Unauthorized,
+                SequenceNotFound,
                 Unknown(String),
             }
         },
@@ -220,7 +245,7 @@ define_rpc! {
             }
         },
         list_editable_projects: {
-            pub struct EditableProject {
+            struct EditableProject {
                 pub id: crate::Uuid,
                 pub name: String,
             }
@@ -296,6 +321,7 @@ define_rpc! {
                 pub psd_id: crate::Uuid,
             }
             struct Response {
+                pub cg_id: crate::Uuid,
             }
             enum Error {
                 Unauthorized,
@@ -313,7 +339,19 @@ define_rpc! {
                 pub cg_files: Vec<crate::data::CgFile>,
             }
             enum Error {
-                Unauthorized,
+                Unknown(String),
+            }
+        },
+        get_cg_file: {
+            struct Request {
+                pub project_id: crate::Uuid,
+                pub cg_id: crate::Uuid,
+            }
+            struct Response {
+                pub cg_file: crate::data::CgFile,
+            }
+            enum Error {
+                NotFound,
                 Unknown(String),
             }
         },

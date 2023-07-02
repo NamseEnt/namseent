@@ -1,4 +1,7 @@
 use super::*;
+use crate::pages::sequence_edit_page::{
+    cg_files_atom::CG_FILES_ATOM, sequence_atom::SEQUENCE_ATOM,
+};
 use rpc::data::ScreenCg;
 
 impl CharacterEditor {
@@ -27,41 +30,56 @@ impl CharacterEditor {
                         };
                     }
                 }
-                InternalEvent::CgFileLoadStateChanged(cg_file_load_state) => {
-                    self.cg_file_load_state = cg_file_load_state.clone();
-                }
                 &InternalEvent::CgThumbnailClicked { cg_id } => match self.edit_target {
                     EditTarget::NewCharacter { cut_id } => {
-                        namui::event::send(Event::UpdateCutGraphics {
-                            cut_id,
-                            callback: Box::new(move |graphics| {
-                                let graphic_index = graphics.len();
-                                graphics.push(ScreenGraphic::Cg(ScreenCg::new(cg_id, vec![])));
-                                namui::event::send(InternalEvent::FocusCg {
-                                    cut_id,
-                                    cg_id,
+                        let cg_files = CG_FILES_ATOM.get_unwrap();
+                        let Some(cg_file) = cg_files
+                            .iter()
+                            .find(|file| file.id == cg_id) else {
+                                return;
+                            };
+
+                        let graphic_index: Uuid = Uuid::new_v4();
+
+                        SEQUENCE_ATOM.update(|sequence| {
+                            sequence.update_cut(
+                                cut_id,
+                                CutUpdateAction::PushScreenGraphic {
                                     graphic_index,
-                                })
-                            }),
+                                    screen_graphic: ScreenGraphic::Cg(ScreenCg::new(cg_file)),
+                                },
+                            )
+                        });
+                        namui::event::send(InternalEvent::FocusCg {
+                            cut_id,
+                            cg_id,
+                            graphic_index,
                         });
                     }
                     EditTarget::ExistingCharacter {
                         cut_id,
                         graphic_index,
                     } => {
-                        namui::event::send(Event::UpdateCutGraphics {
+                        let cg_files = CG_FILES_ATOM.get_unwrap();
+                        let Some(cg_file) = cg_files
+                            .iter()
+                            .find(|file| file.id == cg_id) else {
+                                return;
+                            };
+
+                        SEQUENCE_ATOM.update(|sequence| {
+                            sequence.update_cut(
+                                cut_id,
+                                CutUpdateAction::ChangeCgKeepCircumscribed {
+                                    graphic_index,
+                                    cg: ScreenCg::new(cg_file),
+                                },
+                            )
+                        });
+                        namui::event::send(InternalEvent::FocusCg {
                             cut_id,
-                            callback: Box::new(move |graphics| {
-                                if let ScreenGraphic::Cg(cg) = &mut graphics[graphic_index] {
-                                    cg.id = cg_id;
-                                    cg.part_variants = vec![];
-                                    namui::event::send(InternalEvent::FocusCg {
-                                        cut_id,
-                                        cg_id,
-                                        graphic_index,
-                                    })
-                                }
-                            }),
+                            cg_id,
+                            graphic_index,
                         });
                     }
                     _ => {}
