@@ -11,7 +11,7 @@ impl CutEditor {
         simple_rect(props.wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND).attach_event(
             |build| {
                 build
-                    .on_file_drop(move |event| {
+                    .on_file_drop(move |event: FileDropEvent| {
                         let file = event.files[0].clone();
                         spawn_local(async move {
                             let content = file.content().await;
@@ -28,7 +28,7 @@ impl CutEditor {
                             }
                         });
                     })
-                    .on_key_down(move |event| {
+                    .on_key_down(move |event: KeyboardEvent| {
                         if event.code == Code::KeyV && namui::keyboard::ctrl_press() {
                             spawn_local(async move {
                                 if let Ok(buffers) = clipboard::read_image_buffers().await {
@@ -79,7 +79,7 @@ impl CutEditor {
                             })
                         }
                     })
-                    .on_mouse_down_in(move |event| {
+                    .on_mouse_down_in(move |event: MouseEvent| {
                         event.stop_propagation();
                         if event.button == Some(MouseButton::Right) {
                             namui::event::send(InternalEvent::MouseRightButtonDown {

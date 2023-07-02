@@ -8,7 +8,7 @@ impl WithTooltip for namui::RenderingTree {
     fn with_tooltip(self, name: String) -> Self {
         self.attach_event(|builder| {
             let name = name.clone();
-            builder.on_mouse_move_in(move |event| {
+            builder.on_mouse_move_in(move |event: MouseEvent| {
                 event.stop_propagation();
                 namui::event::send(InternalEvent::OpenTooltip {
                     global_xy: event.global_xy,

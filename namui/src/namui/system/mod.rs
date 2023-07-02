@@ -17,10 +17,10 @@ pub mod screen;
 pub mod text_input;
 pub mod time;
 pub(crate) mod typeface;
-mod wheel;
 
 use futures::try_join;
 use platform_utils::*;
+pub use render::last_rendering_tree;
 use std::error::Error;
 
 type InitResult = Result<(), Box<dyn Error>>;
@@ -41,7 +41,6 @@ pub(crate) async fn init() -> InitResult {
         text_input::init(),
         time::init(),
         typeface::init(),
-        wheel::init(),
         deep_link::init(),
         drag_and_drop::init(),
         render::init(),

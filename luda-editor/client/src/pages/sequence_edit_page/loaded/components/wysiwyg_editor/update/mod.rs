@@ -133,7 +133,7 @@ impl WysiwygEditor {
                             let cg_id = cg.id;
                             Some(context_menu::Item::new_button(
                                 "Edit character",
-                                move || {
+                                move |_| {
                                     namui::event::send(character_editor::Event::OpenCharacterEditor {
                                         target: character_editor::EditTarget::ExistingCharacterPart {
                                             cut_id,

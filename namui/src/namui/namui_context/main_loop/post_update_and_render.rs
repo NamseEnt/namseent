@@ -24,12 +24,9 @@ impl NamuiContext {
                     self.event_count = 0;
                 }
             }
-            NamuiEvent::Wheel(raw_wheel_event) => {
-                self.rendering_tree.call_wheel_event(raw_wheel_event);
-            }
             NamuiEvent::FileDrop(raw_file_drop_event) => {
                 self.rendering_tree
-                    .call_file_drop_event(raw_file_drop_event, &self);
+                    .call_file_drop_event(raw_file_drop_event);
             }
             NamuiEvent::ScreenResize(_)
             | NamuiEvent::DeepLinkOpened(_)

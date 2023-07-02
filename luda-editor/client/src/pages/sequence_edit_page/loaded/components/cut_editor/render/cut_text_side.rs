@@ -40,17 +40,17 @@ impl CutEditor {
                     },
                     event_handler: Some(
                         text_input::EventHandler::new()
-                            .on_text_updated(move |text| {
-                                SEQUENCE_ATOM.update(|sequence| {
+                            .on_text_updated(move |text: String| {
+                                SEQUENCE_ATOM.update(move |sequence| {
                                     sequence.update_cut(
                                         cut_id,
                                         CutUpdateAction::ChangeCutLine {
-                                            line: text.to_string(),
+                                            line: text,
                                         },
                                     )
                                 });
                             })
-                            .on_key_down(move |event| {
+                            .on_key_down(move |event: KeyDownEvent| {
                                 if event.code == Code::Tab {
                                     event.prevent_default();
                                     if namui::keyboard::shift_press() {
@@ -87,7 +87,7 @@ impl CutEditor {
             },
         ])
         .attach_event(|builder| {
-            builder.on_mouse_down_in(|event| {
+            builder.on_mouse_down_in(|event: MouseEvent| {
                 if event.button == Some(MouseButton::Left) {
                     namui::event::send(Event::Click {
                         target: ClickTarget::CutText,

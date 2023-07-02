@@ -172,13 +172,11 @@ impl DialCounter {
                 move |builder| {
                     let on_value_changed = on_value_changed.clone();
                     builder.on_wheel({
-                        move |event| {
-                            if event.is_mouse_in() {
-                                let next_value =
-                                    props.value + (props.value_per_px * event.delta_xy.y.px());
+                        move |event: WheelEvent| {
+                            let next_value =
+                                props.value + (props.value_per_px * event.delta_xy.y.px());
 
-                                (on_value_changed)(next_value);
-                            }
+                            (on_value_changed)(next_value);
                         }
                     });
                 },

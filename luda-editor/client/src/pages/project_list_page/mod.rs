@@ -102,13 +102,13 @@ impl ProjectListPage {
             //     .map_or(RenderingTree::Empty, |context_menu| {
             //         context_menu.render().attach_event(|builder| {
             //             builder
-            //                 .on_mouse_down_in(|event| event.stop_propagation())
-            //                 .on_mouse_down_out(|event| {
+            //                 .on_mouse_down_in(|event: MouseEvent| event.stop_propagation())
+            //                 .on_mouse_down_out(|event: MouseEvent| {
             //                     namui::event::send(Event::ContextMenuOutsideClicked);
             //                     event.stop_propagation()
             //                 })
-            //                 .on_mouse_up_in(|event| event.stop_propagation())
-            //                 .on_mouse_up_out(|event| event.stop_propagation());
+            //                 .on_mouse_up_in(|event: MouseEvent| event.stop_propagation())
+            //                 .on_mouse_up_out(|event: MouseEvent| event.stop_propagation());
             //         })
             //     }),
             // self.rename_modal
@@ -116,13 +116,13 @@ impl ProjectListPage {
             //     .map_or(RenderingTree::Empty, |rename_modal| {
             //         rename_modal.render().attach_event(|builder| {
             //             builder
-            //                 .on_mouse_down_in(|event| event.stop_propagation())
-            //                 .on_mouse_down_out(|event| {
+            //                 .on_mouse_down_in(|event: MouseEvent| event.stop_propagation())
+            //                 .on_mouse_down_out(|event: MouseEvent| {
             //                     namui::event::send(Event::ContextMenuOutsideClicked);
             //                     event.stop_propagation()
             //                 })
-            //                 .on_mouse_up_in(|event| event.stop_propagation())
-            //                 .on_mouse_up_out(|event| event.stop_propagation());
+            //                 .on_mouse_up_in(|event: MouseEvent| event.stop_propagation())
+            //                 .on_mouse_up_out(|event: MouseEvent| event.stop_propagation());
             //         })
             //     }),
         ])
@@ -138,7 +138,7 @@ impl ProjectListPage {
             1.px(),
             Color::BLACK,
             [MouseButton::Left],
-            move |event| {
+            move |event: MouseEvent| {
                 if event.button == Some(MouseButton::Left) {
                     Router::move_to(super::router::RoutePath::SequenceList { project_id });
                 } else if event.button == Some(MouseButton::Right) {

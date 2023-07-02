@@ -1,10 +1,9 @@
 use super::*;
 use crate::typography::adjust_font_size;
-use std::sync::Arc;
 
 pub struct TextCell {
     text: String,
-    on_change: Option<Arc<dyn Fn(&str)>>,
+    on_change: Option<ClosurePtr<String, ()>>,
     font_size: Option<IntPx>,
     borders: Borders,
 }
@@ -17,9 +16,9 @@ pub fn text(text: impl AsRef<str>) -> TextCell {
     }
 }
 impl TextCell {
-    pub fn on_change(self, on_change: impl Fn(&str) + 'static) -> Self {
+    pub fn on_change(self, on_change: impl Into<ClosurePtr<String, ()>>) -> Self {
         Self {
-            on_change: Some(Arc::new(on_change)),
+            on_change: Some(on_change.into()),
             ..self
         }
     }
@@ -74,8 +73,8 @@ impl CellTrait for TextCell {
                         ..Default::default()
                     },
                     event_handler: Some(text_input::EventHandler::new().on_text_updated(
-                        move |text| {
-                            text_input_on_change(text);
+                        move |text: String| {
+                            text_input_on_change.invoke(text);
                         },
                     )),
                 })
@@ -109,13 +108,13 @@ impl CellTrait for TextCell {
         ClipboardItem::Text(self.text.clone())
     }
 
-    fn on_paste(&self) -> Option<Arc<dyn Fn(ClipboardItem)>> {
+    fn on_paste(&self) -> Option<ClosurePtr<ClipboardItem, ()>> {
         self.on_change.clone().map(|on_change| {
-            Arc::new(move |clipboard_item| {
+            ClosurePtr::new(move |clipboard_item| {
                 if let ClipboardItem::Text(text) = clipboard_item {
-                    on_change(&text);
+                    on_change.invoke(text);
                 }
-            }) as Arc<dyn Fn(ClipboardItem)>
+            })
         })
     }
 }

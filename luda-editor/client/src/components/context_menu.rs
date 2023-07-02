@@ -1,13 +1,12 @@
 use namui::prelude::*;
 use namui_prebuilt::*;
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub enum Item {
     Button {
         id: namui::Uuid,
         text: String,
-        on_click: Arc<dyn Fn()>,
+        on_click: ClosurePtr<(), ()>,
     },
 
     #[allow(dead_code)]
@@ -15,11 +14,11 @@ pub enum Item {
 }
 
 impl Item {
-    pub fn new_button(text: impl AsRef<str>, on_click: impl Fn() + 'static) -> Self {
+    pub fn new_button(text: impl AsRef<str>, on_click: impl Into<ClosurePtr<(), ()>>) -> Self {
         Self::Button {
             id: uuid(),
             text: text.as_ref().to_string(),
-            on_click: Arc::new(on_click),
+            on_click: on_click.into(),
         }
     }
 }
@@ -95,10 +94,10 @@ impl ContextMenu {
                                     });
                                 }
                                 builder
-                                    .on_mouse_down_in(move |event| {
+                                    .on_mouse_down_in(move |event: MouseEvent| {
                                         if let Some(MouseButton::Left) = event.button {
                                             event.stop_propagation();
-                                            (on_click)();
+                                            on_click.invoke(());
                                             namui::event::send(Event::Close);
                                         }
                                     })

@@ -67,7 +67,7 @@ fn render_resize_handles<OnResize: Fn(Circumscribed<Percent>) + 'static>(
                         if context.handle != handle {
                             return;
                         }
-                        let on_mouse_move = move |event: &MouseEvent| {
+                        let on_mouse_move = move |event: MouseEvent| {
                             namui::event::send(Event::UpdateDraggingContext(Some(
                                 ResizerDraggingContext {
                                     handle,
@@ -81,7 +81,7 @@ fn render_resize_handles<OnResize: Fn(Circumscribed<Percent>) + 'static>(
                         builder.on_mouse_move_out(on_mouse_move);
 
                         let on_mouse_up = |on_resize: Arc<OnResize>| {
-                            move |event: &MouseEvent| {
+                            move |event: MouseEvent| {
                                 let delta_xy = event.global_xy - context.start_global_xy;
                                 namui::event::send(Event::UpdateDraggingContext(None));
                                 (on_resize)(resize_by_center(
@@ -97,7 +97,7 @@ fn render_resize_handles<OnResize: Fn(Circumscribed<Percent>) + 'static>(
                         builder.on_mouse_up_out((on_mouse_up)(on_resize.clone()));
                     }
                     None => {
-                        builder.on_mouse_down_in(move |mouse_event| {
+                        builder.on_mouse_down_in(move |mouse_event: MouseEvent| {
                             if mouse_event.button == Some(MouseButton::Left) {
                                 mouse_event.stop_propagation();
                                 namui::event::send(Event::StartDraggingContext(

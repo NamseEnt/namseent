@@ -58,7 +58,7 @@ pub(super) fn render(props: &Props) -> RenderingTree {
                 .attach_event(|event_builder| {
                     let time_per_px = props.time_per_px;
                     let start_at = props.start_at;
-                    let time_ruler_dragging_closure = move |event: &MouseEvent| {
+                    let time_ruler_dragging_closure = move |event: MouseEvent| {
                         if !event.pressing_buttons.contains(&MouseButton::Left) {
                             return;
                         }

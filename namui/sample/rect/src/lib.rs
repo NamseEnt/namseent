@@ -120,7 +120,9 @@ impl Entity for RectExample {
                 },
             })
             .attach_event(|builder| {
-                builder.on_wheel(|event| namui::event::send(Event::DeltaXy(event.delta_xy)));
+                builder.on_wheel(|event: WheelEvent| {
+                    namui::event::send(Event::DeltaXy(event.delta_xy))
+                });
             }),
         );
 

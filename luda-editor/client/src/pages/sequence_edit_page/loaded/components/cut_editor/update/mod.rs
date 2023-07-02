@@ -32,7 +32,7 @@ impl CutEditor {
                     self.context_menu = Some(ContextMenu::new(
                         *global_xy,
                         [
-                            context_menu::Item::new_button("Add Cg", move || {
+                            context_menu::Item::new_button("Add Cg", move |_| {
                                 namui::event::send(
                                     components::character_editor::Event::OpenCharacterEditor {
                                         target: character_editor::EditTarget::NewCharacter {
@@ -41,7 +41,7 @@ impl CutEditor {
                                     },
                                 );
                             }),
-                            context_menu::Item::new_button("Add Memo", move || {
+                            context_menu::Item::new_button("Add Memo", move |_| {
                                 namui::event::send(
                                     components::memo_editor::Event::OpenMemoEditor { cut_id },
                                 );

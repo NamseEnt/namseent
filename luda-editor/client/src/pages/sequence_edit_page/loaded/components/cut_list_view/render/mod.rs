@@ -38,14 +38,14 @@ impl CutListView {
         .attach_event(move |builder| {
             let cuts = props.cuts.clone();
             builder
-                .on_mouse_down_in(|event| {
+                .on_mouse_down_in(|event: MouseEvent| {
                     if event.button == Some(MouseButton::Right) {
                         namui::event::send(Event::RightClick {
                             global_xy: event.global_xy,
                         })
                     }
                 })
-                .on_key_down(move |event| {
+                .on_key_down(move |event: KeyboardEvent| {
                     if !is_focused {
                         return;
                     }
@@ -53,8 +53,8 @@ impl CutListView {
                     let Some(selected_cut_id) = selected_cut_id else {
                         return;
                     };
-                    handle_enter_key(event, selected_cut_id);
-                    handle_move_key(event, &cuts, selected_cut_id);
+                    handle_enter_key(&event, selected_cut_id);
+                    handle_move_key(&event, &cuts, selected_cut_id);
                 });
         })
     }
@@ -103,7 +103,7 @@ impl CutListView {
             ]),
         )(wh)
         .attach_event(move |builder| {
-            builder.on_mouse_down_in(move |event| {
+            builder.on_mouse_down_in(move |event: MouseEvent| {
                 if event.button == Some(MouseButton::Left) {
                     namui::event::send(Event::ClickCut { cut_id })
                 }

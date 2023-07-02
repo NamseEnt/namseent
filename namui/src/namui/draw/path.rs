@@ -1,7 +1,7 @@
 use super::*;
 use crate::*;
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, PartialEq)]
 pub struct PathDrawCommand {
     pub path_builder: PathBuilder,
     pub paint_builder: PaintBuilder,

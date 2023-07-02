@@ -9,14 +9,13 @@ pub use border::*;
 pub use clipboard_item::*;
 pub use empty_cell::*;
 pub use image_cell::*;
-use std::sync::Arc;
 pub use text_cell::*;
 
 pub trait CellTrait {
     fn render(&self, props: Props) -> RenderingTree;
     fn borders(&self) -> &Borders;
     fn copy(&self) -> ClipboardItem;
-    fn on_paste(&self) -> Option<Arc<dyn Fn(ClipboardItem)>>;
+    fn on_paste(&self) -> Option<ClosurePtr<ClipboardItem, ()>>;
 }
 
 pub struct Props<'a> {
@@ -29,7 +28,7 @@ pub struct Props<'a> {
 
 pub struct Cell {
     pub(crate) inner: Box<dyn CellTrait>,
-    pub(crate) on_mouse_down: Option<Arc<dyn Fn(&MouseEvent)>>,
+    pub(crate) on_mouse_down: Option<ClosurePtr<MouseEvent, ()>>,
 }
 
 impl Cell {
@@ -39,8 +38,8 @@ impl Cell {
             on_mouse_down: None,
         }
     }
-    pub fn on_mouse_down(mut self, on_mouse_down: impl Fn(&MouseEvent) + 'static) -> Self {
-        self.on_mouse_down = Some(Arc::new(on_mouse_down));
+    pub fn on_mouse_down(mut self, on_mouse_down: impl Into<ClosurePtr<MouseEvent, ()>>) -> Self {
+        self.on_mouse_down = Some(on_mouse_down.into());
         self
     }
 }

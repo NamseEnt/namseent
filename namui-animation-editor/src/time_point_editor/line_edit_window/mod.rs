@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use super::EditingTarget;
 use crate::types::AnimationHistory;
 use namui::{
@@ -37,6 +35,6 @@ enum Event {
     UpdateLine {
         layer_id: namui::Uuid,
         point_id: namui::Uuid,
-        func: Arc<dyn Fn(&mut ImageInterpolation) + Send + Sync>,
+        func: ClosurePtr<ImageInterpolation, ImageInterpolation>,
     },
 }

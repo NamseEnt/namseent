@@ -24,17 +24,17 @@ impl WysiwygEditor {
                     let screen_graphics = props.screen_graphics.clone();
                     let editing_image_index = self.editing_image_index;
                     builder
-                        .on_mouse_move_in(|event| {
+                        .on_mouse_move_in(|event: MouseEvent| {
                             namui::event::send(InternalEvent::MouseMoveContainer {
                                 global_xy: event.global_xy,
                             });
                         })
-                        .on_mouse_down_in(|event| {
+                        .on_mouse_down_in(|event: MouseEvent| {
                             if event.button == Some(MouseButton::Left) {
                                 namui::event::send(InternalEvent::MouseDownContainer);
                             }
                         })
-                        .on_mouse(move |event| {
+                        .on_mouse(move |event: MouseEvent| {
                             if event.event_type == MouseEventType::Up {
                                 if let Some(Dragging::Mover { mut context }) = dragging {
                                     if let Some(graphic_index) = editing_image_index {
@@ -205,7 +205,7 @@ impl WysiwygEditor {
                                 if is_editing_graphic {
                                     let namui_image = namui_image.clone();
                                     let graphic = graphic.clone();
-                                    builder.on_key_down(move |event| {
+                                    builder.on_key_down(move |event:KeyboardEvent| {
                                         namui::log!("key down: {:?}", event.code);
                                         let graphic = graphic.clone();
                                         if event.code != Code::KeyC

@@ -2,7 +2,7 @@ use super::*;
 use crate::{namui::skia::*, system::graphics, text::*, *};
 use std::{collections::HashMap, sync::Arc};
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct TextDrawCommand {
     pub text: String,
     pub font: Arc<Font>,
@@ -16,13 +16,13 @@ pub struct TextDrawCommand {
     pub underline: Option<PaintBuilder>,
 }
 
-#[derive(Debug, Serialize, Copy, Clone)]
+#[derive(Debug, Serialize, Copy, Clone, PartialEq)]
 pub enum TextAlign {
     Left,
     Center,
     Right,
 }
-#[derive(Debug, Serialize, Copy, Clone)]
+#[derive(Debug, Serialize, Copy, Clone, PartialEq)]
 pub enum TextBaseline {
     Top,
     Middle,

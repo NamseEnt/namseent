@@ -27,8 +27,9 @@ impl WysiwygWindow {
         .attach_event(move |builder| {
             let window_id = self.window_id.clone();
 
-            builder.on_mouse_down_in(move |event| {
-                let window_global_xy = event.root.get_xy_by_id(window_id).unwrap();
+            builder.on_mouse_down_in(move |event: MouseEvent| {
+                let root = namui::last_rendering_tree();
+                let window_global_xy = root.get_xy_by_id(window_id).unwrap();
                 let anchor_xy = event.global_xy - window_global_xy;
 
                 namui::event::send(super::Event::SelectedLayerMouseDown {
