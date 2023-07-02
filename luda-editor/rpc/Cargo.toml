@@ -15,6 +15,7 @@ migration = { path = "../migration" }
 namui-type = { path = "../../namui-type" }
 tokio = { version = "1.21", optional = true, features = ["time"] }
 rand = { version = "0.8", optional = true }
+rpc-macro = { path = "./rpc-macro" }
 
 [features]
 client = ["dep:namui"]
