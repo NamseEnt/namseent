@@ -1,6 +1,3 @@
-#![feature(fn_traits)]
-#![feature(unboxed_closures)]
-
 mod hooks;
 
 use hooks::Hooks;
