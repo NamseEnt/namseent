@@ -18,15 +18,6 @@ def run():
             print(f"\n\n-- fail cargo metadata on {dir_path}\n\n")
             return
 
-        print(f"cd {dir_path} && cargo fmt")
-        dir_path = os.path.dirname(manifest_path)
-        exit = os.system(
-            f"cd {dir_path} && cargo fmt")
-        if exit != 0:
-            print(f"\n\n-- fail cargo fmt on {dir_path}\n\n")
-            return
-
-
 run()
 if in_wsl():
     os.system("powershell.exe '[console]::beep(261.6,700)'")
