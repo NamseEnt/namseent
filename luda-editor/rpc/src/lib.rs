@@ -5,6 +5,7 @@ pub mod utils;
 pub use define_rpc::RpcFuture;
 pub use namui_type::{uuid, Uuid};
 pub use revert_json_patch as json_patch;
+pub use rpc_macro::define_rpc;
 
 #[macro_export]
 macro_rules! simple_error_impl {
@@ -25,43 +26,43 @@ pub mod types {
     }
 }
 
-define_rpc::define_rpc! {
+define_rpc! {
     AuthService: {
         exchange_google_auth_code_to_access_token: {
-            pub struct Request {
+            struct Request {
                 pub code: String,
             }
-            pub struct Response {}
-            Error {
+            struct Response {}
+            enum Error {
                 Unknown(String)
             }
         },
         log_in_with_github_oauth_code: {
-            pub struct Request {
+            struct Request {
                 pub code: String,
             }
-            pub struct Response {
+            struct Response {
                 pub session_id: crate::Uuid,
             }
-            Error {
+            enum Error {
                 AlreadyLoggedIn,
                 Unknown(String),
             }
         },
         validate_session: {
-            pub struct Request {}
-            pub struct Response {}
-            Error {
+            struct Request {}
+            struct Response {}
+            enum Error {
                 InvalidSession,
                 Unknown(String),
             }
         },
         get_user_id: {
-            pub struct Request {}
-            pub struct Response {
+            struct Request {}
+            struct Response {
                 pub user_id: crate::Uuid,
             }
-            Error {
+            enum Error {
                 InvalidSession,
                 Unknown(String)
             }
@@ -69,87 +70,87 @@ define_rpc::define_rpc! {
     },
     SequenceService: {
         list_project_sequences: {
-            pub struct Request {
+            struct Request {
                 pub project_id: crate::Uuid,
             }
-            pub struct Response {
+            struct Response {
                 pub sequence_name_and_ids: Vec<SequenceNameAndId>,
             }
             pub struct SequenceNameAndId {
                 pub name: String,
                 pub id: crate::Uuid,
             }
-            Error {
+            enum Error {
                 Unknown(String),
             }
         },
         create_sequence: {
-            pub struct Request {
+            struct Request {
                 pub project_id: crate::Uuid,
                 pub name: String,
             }
-            pub struct Response {
+            struct Response {
             }
-            Error {
+            enum Error {
                 Unauthorized,
                 Unknown(String),
             }
         },
         update_server_sequence: {
-            pub struct Request {
+            struct Request {
                 pub sequence_id: crate::Uuid,
                 pub patch: revert_json_patch::Patch,
             }
-            pub struct Response {
+            struct Response {
             }
-            Error {
+            enum Error {
                 Unauthorized,
                 Unknown(String),
             }
         },
         update_client_sequence: {
-            pub struct Request {
+            struct Request {
                 pub sequence_id: crate::Uuid,
                 pub sequence_json: serde_json::Value,
             }
-            pub struct Response {
+            struct Response {
                 pub patch: revert_json_patch::Patch,
             }
-            Error {
+            enum Error {
                 Unknown(String),
             }
         },
         get_sequence_and_project_shared_data: {
-            pub struct Request {
+            struct Request {
                 pub sequence_id: crate::Uuid,
             }
-            pub struct Response {
+            struct Response {
                 pub sequence_json: String,
                 pub project_shared_data_json: String,
             }
-            Error {
+            enum Error {
                 Unknown(String),
             }
         },
         delete_sequence: {
-            pub struct Request {
+            struct Request {
                 pub sequence_id: crate::Uuid,
             }
-            pub struct Response {
+            struct Response {
             }
-            Error {
+            enum Error {
                 Unauthorized,
                 Unknown(String),
             }
         },
         rename_sequence: {
-            pub struct Request {
+            struct Request {
                 pub sequence_id: crate::Uuid,
                 pub new_name: String,
             }
-            pub struct Response {
+            struct Response {
             }
-            Error {
+            enum Error {
                 Unauthorized,
                 Unknown(String),
             }
@@ -157,50 +158,50 @@ define_rpc::define_rpc! {
     },
     ImageService: {
         put_image_meta_data: {
-            pub struct Request {
+            struct Request {
                 pub project_id: crate::Uuid,
                 pub image_id: crate::Uuid,
                 pub labels: Vec<crate::data::Label>,
             }
-            pub struct Response {
+            struct Response {
             }
-            Error {
+            enum Error {
                 Unauthorized,
                 Unknown(String),
             }
         },
         prepare_upload_image: {
-            pub struct Request {
+            struct Request {
                 pub project_id: crate::Uuid,
                 pub image_id: crate::Uuid,
             }
-            pub struct Response {
+            struct Response {
                 pub upload_url: String,
             }
-            Error {
+            enum Error {
                 Unauthorized,
                 Unknown(String),
             }
         },
         list_images: {
-            pub struct Request {
+            struct Request {
                 pub project_id: crate::Uuid,
             }
-            pub struct Response {
+            struct Response {
                 pub images: Vec<crate::data::ImageWithLabels>
             }
-            Error {
+            enum Error {
                 Unknown(String),
             }
         },
         delete_image: {
-            pub struct Request {
+            struct Request {
                 pub project_id: crate::Uuid,
                 pub image_id: crate::Uuid,
             }
-            pub struct Response {
+            struct Response {
             }
-            Error {
+            enum Error {
                 Unauthorized,
                 Unknown(String),
             }
@@ -208,12 +209,12 @@ define_rpc::define_rpc! {
     },
     ProjectService: {
         create_project: {
-            pub struct Request {
+            struct Request {
                 pub name: String,
             }
-            pub struct Response {
+            struct Response {
             }
-            Error {
+            enum Error {
                 Unauthorized,
                 Unknown(String),
             }
@@ -223,80 +224,80 @@ define_rpc::define_rpc! {
                 pub id: crate::Uuid,
                 pub name: String,
             }
-            pub struct Request {
+            struct Request {
                 pub start_after: Option<String>,
             }
-            pub struct Response {
+            struct Response {
                 pub projects: Vec<EditableProject>,
             }
-            Error {
+            enum Error {
                 Unauthorized,
                 Unknown(String),
             }
         },
         edit_user_acl: {
-            pub struct Request {
+            struct Request {
                 pub project_id: crate::Uuid,
                 pub user_id: crate::Uuid,
                 pub permission: Option<crate::types::ProjectAclUserPermission>,
             }
-            pub struct Response {}
-            Error {
+            struct Response {}
+            enum Error {
                 Unauthorized,
                 CannotSetOwnerPermission,
                 Unknown(String),
             }
         },
         update_server_project_shared_data: {
-            pub struct Request {
+            struct Request {
                 pub project_id: crate::Uuid,
                 pub patch: revert_json_patch::Patch,
             }
-            pub struct Response {
+            struct Response {
             }
-            Error {
+            enum Error {
                 Unauthorized,
                 Unknown(String),
             }
         },
         update_client_project_shared_data: {
-            pub struct Request {
+            struct Request {
                 pub project_id: crate::Uuid,
                 pub project_shared_data_json: serde_json::Value,
             }
-            pub struct Response {
+            struct Response {
                 pub patch: revert_json_patch::Patch,
             }
-            Error {
+            enum Error {
                 Unknown(String),
             }
         },
     },
     CgService: {
         request_put_psd_presigned_url: {
-            pub struct Request {
+            struct Request {
                 pub project_id: crate::Uuid,
                 pub psd_file_name: String,
                 pub psd_file_size: usize,
             }
-            pub struct Response {
+            struct Response {
                 pub presigned_url: String,
                 pub psd_id: crate::Uuid,
             }
-            Error {
+            enum Error {
                 Unauthorized,
                 Unknown(String),
             }
         },
         complete_put_psd: {
-            pub struct Request {
+            struct Request {
                 pub project_id: crate::Uuid,
                 pub psd_file_name: String,
                 pub psd_id: crate::Uuid,
             }
-            pub struct Response {
+            struct Response {
             }
-            Error {
+            enum Error {
                 Unauthorized,
                 PsdFileNotFound,
                 WrongPsdFile(String),
@@ -305,13 +306,13 @@ define_rpc::define_rpc! {
             }
         },
         list_cg_files: {
-            pub struct Request {
+            struct Request {
                 pub project_id: crate::Uuid,
             }
-            pub struct Response {
+            struct Response {
                 pub cg_files: Vec<crate::data::CgFile>,
             }
-            Error {
+            enum Error {
                 Unauthorized,
                 Unknown(String),
             }
@@ -319,39 +320,39 @@ define_rpc::define_rpc! {
     },
     MemoService: {
         list_sequence_memos: {
-            pub struct Request {
+            struct Request {
                 pub sequence_id: crate::Uuid,
             }
-            pub struct Response {
+            struct Response {
                 pub memos: Vec<crate::data::Memo>,
             }
-            Error {
+            enum Error {
                 Unauthorized,
                 Unknown(String),
             }
         },
         create_memo: {
-            pub struct Request {
+            struct Request {
                 pub sequence_id: crate::Uuid,
                 pub cut_id: crate::Uuid,
                 pub content: String,
             }
-            pub struct Response {
+            struct Response {
                 pub memo: crate::data::Memo,
             }
-            Error {
+            enum Error {
                 Unauthorized,
                 Unknown(String),
             }
         },
         delete_memo: {
-            pub struct Request {
+            struct Request {
                 pub sequence_id: crate::Uuid,
                 pub memo_id: crate::Uuid,
             }
-            pub struct Response {
+            struct Response {
             }
-            Error {
+            enum Error {
                 Unauthorized,
                 Forbidden,
                 Unknown(String),
