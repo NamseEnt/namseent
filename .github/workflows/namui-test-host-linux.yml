@@ -20,7 +20,6 @@ jobs:
       luda-editor: ${{ steps.filter.outputs.luda-editor }}
       namui-prebuilt: ${{ steps.filter.outputs.namui-prebuilt }}
       namui-sample: ${{ steps.filter.outputs.namui-sample }}
-      image-cropper: ${{ steps.filter.outputs.image-cropper }}
       namui-animation-editor: ${{ steps.filter.outputs.namui-animation-editor }}
       luda-adventure: ${{ steps.filter.outputs.luda-adventure }}
     steps:
@@ -53,11 +52,6 @@ jobs:
               - docker-images/namui-test-host/linux.Dockerfile
             namui-sample:
               - .github/**
-              - namui/**
-              - docker-images/namui-test-host/linux.Dockerfile
-            image-cropper:
-              - .github/**
-              - image-cropper/**
               - namui/**
               - docker-images/namui-test-host/linux.Dockerfile
             namui-animation-editor:
@@ -153,18 +147,6 @@ jobs:
           target: wasm-unknown-web
           path: namui/sample/rect
 
-  test-image-cropper:
-    needs: [check-rebuild]
-    if: needs.check-rebuild.outputs.image-cropper == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/init-test-job
-      - uses: ./.github/actions/namui-test
-        with:
-          target: wasm-unknown-web
-          path: image-cropper
-
   test-namui-animation-editor:
     needs: [check-rebuild]
     if: needs.check-rebuild.outputs.namui-animation-editor == 'true'
@@ -206,7 +188,6 @@ jobs:
       - test-luda-editor
       - test-namui-prebuilt
       - test-namui-sample
-      - test-image-cropper
       - test-namui-animation-editor
       - test-luda-adventure
     steps:
