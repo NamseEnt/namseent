@@ -44,9 +44,7 @@ impl CutEditor {
                                 SEQUENCE_ATOM.update(move |sequence| {
                                     sequence.update_cut(
                                         cut_id,
-                                        CutUpdateAction::ChangeCutLine {
-                                            line: text,
-                                        },
+                                        CutUpdateAction::ChangeCutLine { line: text },
                                     )
                                 });
                             })

@@ -22,7 +22,7 @@ impl LoadedSequenceEditorPage {
                     self.context_menu = Some(context_menu::ContextMenu::new(
                         *global_xy,
                         [context_menu::Item::new_button("Add Cut", {
-                            move || {
+                            move |_| {
                                 SEQUENCE_ATOM.update(|sequence| {
                                     sequence.update(SequenceUpdateAction::InsertCut {
                                         cut: Cut::new(uuid()),

@@ -64,14 +64,14 @@ impl WysiwygEditor {
                     let image_width_per_height_ratio = graphic_wh.width / graphic_wh.height;
 
                     let fit_items = [
-                        context_menu::Item::new_button("Fit - contain", move || {
+                        context_menu::Item::new_button("Fit - contain", move |_| {
                             SEQUENCE_ATOM.update(|sequence| sequence.update_cut(cut_id,  CutUpdateAction::GraphicFitContain {
                                     graphic_index,
                                     image_width_per_height_ratio,
                                 },
                             ));
                         }),
-                        context_menu::Item::new_button("Fit - cover", move || {
+                        context_menu::Item::new_button("Fit - cover", move |_| {
                             SEQUENCE_ATOM.update(|sequence| sequence.update_cut(cut_id,  CutUpdateAction::GraphicFitCover {
                                     graphic_index,
                                     image_width_per_height_ratio,

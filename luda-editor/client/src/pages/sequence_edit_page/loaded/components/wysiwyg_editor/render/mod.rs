@@ -183,7 +183,7 @@ impl WysiwygEditor {
                             graphic_rendering_tree.attach_event(move |builder| {
                                 builder.on_mouse_down_in({
                                     let graphic = graphic.clone();
-                                    move |event| {
+                                    move |event: MouseEvent| {
                                         let graphic = graphic.clone();
                                         event.stop_propagation();
                                         namui::event::send(InternalEvent::SelectImage {
@@ -205,7 +205,7 @@ impl WysiwygEditor {
                                 if is_editing_graphic {
                                     let namui_image = namui_image.clone();
                                     let graphic = graphic.clone();
-                                    builder.on_key_down(move |event:KeyboardEvent| {
+                                    builder.on_key_down(move |event: KeyboardEvent| {
                                         namui::log!("key down: {:?}", event.code);
                                         let graphic = graphic.clone();
                                         if event.code != Code::KeyC
