@@ -1,12 +1,15 @@
 use super::*;
-use crate::{color, storage::get_project_cg_part_variant_image_url};
+use crate::{
+    color, pages::sequence_edit_page::sequence_atom::SEQUENCE_ATOM,
+    storage::get_project_cg_part_variant_image_url,
+};
 use namui_prebuilt::{
     table::TableCell,
     typography::{center_text, center_text_full_height},
     *,
 };
 use rpc::data::{CgFile, CgPart, CgPartVariant, PartSelectionType, ScreenCg};
-use std::{collections::HashMap, iter::once};
+use std::iter::once;
 use tooltip::*;
 
 const BUTTON_HEIGHT: Px = px(32.0);
@@ -24,7 +27,7 @@ impl CharacterEditor {
         cg_file: &CgFile,
         project_id: Uuid,
         cut_id: Uuid,
-        graphic_index: usize,
+        graphic_index: Uuid,
         screen_cg: &ScreenCg,
     ) -> namui::RenderingTree {
         table::padding(OUTER_PADDING, |wh| {
@@ -71,7 +74,7 @@ fn render_cg_part_group_list(
     cg_file: &CgFile,
     project_id: Uuid,
     cut_id: Uuid,
-    graphic_index: usize,
+    graphic_index: Uuid,
     screen_cg: &ScreenCg,
 ) -> RenderingTree {
     let cg_id = cg_file.id;
@@ -89,7 +92,6 @@ fn render_cg_part_group_list(
                     cut_id,
                     graphic_index,
                     screen_cg,
-                    cg_file,
                 )
             }),
     )(wh)
@@ -101,19 +103,10 @@ fn render_cg_part_group<'a>(
     project_id: Uuid,
     cg_id: Uuid,
     cut_id: Uuid,
-    graphic_index: usize,
+    graphic_index: Uuid,
     screen_cg: &'a ScreenCg,
-    cg_file: &'a CgFile,
 ) -> Vec<TableCell<'a>> {
-    let no_selection = !screen_cg
-        .part_variants
-        .iter()
-        .any(|(selected_variant_id, _)| {
-            cg_part
-                .variants
-                .iter()
-                .any(|variant| variant.id == *selected_variant_id)
-        });
+    let no_selection = screen_cg.part(&cg_part.name).unwrap().is_not_selected();
 
     let title_bar = render_title_bar(cg_part);
 
@@ -129,7 +122,6 @@ fn render_cg_part_group<'a>(
                 .iter()
                 .map(|variant| {
                     render_thumbnail(
-                        cg_file,
                         cg_part,
                         variant,
                         project_id,
@@ -146,7 +138,6 @@ fn render_cg_part_group<'a>(
         table::fixed(THUMBNAIL_WH.height, move |wh| {
             table::horizontal(row.iter().map(|variant| {
                 render_thumbnail(
-                    cg_file,
                     cg_part,
                     variant,
                     project_id,
@@ -181,7 +172,7 @@ fn render_no_selection_button(
     no_selection: bool,
     cg_part: &CgPart,
     cut_id: Uuid,
-    graphic_index: usize,
+    graphic_index: Uuid,
 ) -> TableCell {
     table::fixed(THUMBNAIL_WH.width, move |wh| {
         table::padding(INNER_PADDING, |wh| {
@@ -198,25 +189,16 @@ fn render_no_selection_button(
                 simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                     .with_mouse_cursor(MouseCursor::Pointer)
                     .attach_event(move |builder| {
-                        let cg_part_variant_ids = cg_part
-                            .variants
-                            .iter()
-                            .map(|variant| variant.id)
-                            .collect::<Vec<_>>();
+                        let cg_part_name = cg_part.name.clone();
                         builder.on_mouse_down_in(move |_| {
-                            namui::event::send(Event::UpdateCutGraphics {
-                                cut_id,
-                                callback: {
-                                    let cg_part_variant_ids = cg_part_variant_ids.clone();
-                                    Box::new(move |graphics| {
-                                        if let ScreenGraphic::Cg(cg) = &mut graphics[graphic_index]
-                                        {
-                                            cg.part_variants.retain(|(variant_id, _)| {
-                                                !cg_part_variant_ids.contains(variant_id)
-                                            });
-                                        };
-                                    })
-                                },
+                            SEQUENCE_ATOM.update(|sequence| {
+                                sequence.update_cut(
+                                    cut_id,
+                                    CutUpdateAction::UnselectCgPart {
+                                        graphic_index,
+                                        cg_part_name: cg_part_name.clone(),
+                                    },
+                                )
                             });
                         });
                     }),
@@ -230,19 +212,18 @@ fn render_divider<'a>(height: Px) -> TableCell<'a> {
 }
 
 fn render_thumbnail<'a>(
-    cg_file: &'a CgFile,
     cg_part: &'a CgPart,
     cg_part_variant: &'a CgPartVariant,
     project_id: Uuid,
     cg_id: Uuid,
     cut_id: Uuid,
-    graphic_index: usize,
+    graphic_index: Uuid,
     screen_cg: &'a ScreenCg,
 ) -> TableCell<'a> {
-    let selected = screen_cg
-        .part_variants
-        .iter()
-        .any(|(cg_part_variant_id, _)| *cg_part_variant_id == cg_part_variant.id);
+    let variant_selected = screen_cg
+        .part(&cg_part.name)
+        .unwrap()
+        .is_variant_selected(&cg_part_variant.name);
 
     table::fixed(THUMBNAIL_WH.width, move |wh| {
         table::padding(INNER_PADDING, |wh| {
@@ -262,7 +243,7 @@ fn render_thumbnail<'a>(
                     }),
                 simple_rect(
                     wh,
-                    match selected {
+                    match variant_selected {
                         true => color::STROKE_SELECTED,
                         false => color::STROKE_NORMAL,
                     },
@@ -272,86 +253,43 @@ fn render_thumbnail<'a>(
                 .attach_event(|builder| {
                     let selection_type = cg_part.selection_type;
                     let cg_part_variant = cg_part_variant.clone();
-                    let cg_part_variant_ids = cg_part
-                        .variants
-                        .iter()
-                        .map(|variant| variant.id)
-                        .collect::<Vec<_>>();
-                    let cg_variant_id_index_map = HashMap::from_iter(
-                        cg_file
-                            .parts
-                            .iter()
-                            .flat_map(|part| part.variants.iter().map(|variant| variant.id))
-                            .enumerate()
-                            .map(|(index, variant_id)| (variant_id, index)),
-                    );
-                    builder.on_mouse_down_in(move |_| {
-                        namui::event::send(Event::UpdateCutGraphics {
-                            cut_id,
-                            callback: {
-                                let cg_part_variant_ids = cg_part_variant_ids.clone();
-                                let cg_variant_id_index_map = cg_variant_id_index_map.clone();
-                                Box::new(move |graphics| {
-                                    if let ScreenGraphic::Cg(cg) = &mut graphics[graphic_index] {
-                                        match (selected, selection_type) {
-                                            (true, rpc::data::PartSelectionType::AlwaysOn) => {}
-                                            (true, _) => {
-                                                cg.part_variants.retain(|(variant_id, _)| {
-                                                    variant_id != &cg_part_variant.id
-                                                })
-                                            }
-                                            (false, rpc::data::PartSelectionType::Single) => {
-                                                cg.part_variants.retain(|(variant_id, _)| {
-                                                    !cg_part_variant_ids.contains(variant_id)
-                                                });
-                                                cg.part_variants.push((
-                                                    cg_part_variant.id,
-                                                    cg_part_variant.rect,
-                                                ));
-                                            }
-                                            (false, rpc::data::PartSelectionType::Multi) => {
-                                                cg.part_variants.retain(|(variant_id, _)| {
-                                                    variant_id != &cg_part_variant.id
-                                                });
-                                                cg.part_variants.push((
-                                                    cg_part_variant.id,
-                                                    cg_part_variant.rect,
-                                                ));
-                                            }
-                                            (false, rpc::data::PartSelectionType::AlwaysOn) => {
-                                                cg.part_variants.retain(|(variant_id, _)| {
-                                                    !cg_part_variant_ids.contains(variant_id)
-                                                });
-                                                cg.part_variants.push((
-                                                    cg_part_variant.id,
-                                                    cg_part_variant.rect,
-                                                ));
-                                            }
-                                        }
+                    let cg_part_name = cg_part.name.clone();
+                    let cg_part_variant_name = cg_part_variant.name.clone();
 
-                                        sort_variations(
-                                            &mut cg.part_variants,
-                                            &cg_variant_id_index_map,
-                                        );
-                                    };
-                                })
-                            },
-                        })
-                    });
+                    match (variant_selected, selection_type) {
+                        (_, rpc::data::PartSelectionType::AlwaysOn) => {}
+                        (true, _) => {
+                            builder.on_mouse_down_in(move |_| {
+                                SEQUENCE_ATOM.update(|sequence| {
+                                    sequence.update_cut(
+                                        cut_id,
+                                        CutUpdateAction::TurnOffCgPartVariant {
+                                            graphic_index,
+                                            cg_part_name: cg_part_name.clone(),
+                                            cg_part_variant_name: cg_part_variant_name.clone(),
+                                        },
+                                    )
+                                });
+                            });
+                        }
+                        (false, _) => {
+                            builder.on_mouse_down_in(move |_| {
+                                SEQUENCE_ATOM.update(|sequence| {
+                                    sequence.update_cut(
+                                        cut_id,
+                                        CutUpdateAction::TurnOnCgPartVariant {
+                                            graphic_index,
+                                            cg_part_name: cg_part_name.clone(),
+                                            cg_part_variant_name: cg_part_variant_name.clone(),
+                                        },
+                                    )
+                                });
+                            });
+                        }
+                    };
                 }),
             ])
             .with_tooltip(cg_part_variant.name.clone())
         })(wh)
     })
-}
-
-fn sort_variations(
-    part_variants: &mut Vec<(Uuid, Rect<Percent>)>,
-    cg_variant_id_index_map: &HashMap<Uuid, usize>,
-) {
-    part_variants.sort_by(|(a, _), (b, _)| {
-        let a_index = cg_variant_id_index_map.get(a).unwrap_or(&0);
-        let b_index = cg_variant_id_index_map.get(b).unwrap_or(&0);
-        a_index.cmp(b_index)
-    });
 }

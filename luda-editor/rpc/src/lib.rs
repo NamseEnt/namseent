@@ -56,6 +56,16 @@ define_rpc::define_rpc! {
                 Unknown(String),
             }
         },
+        get_user_id: {
+            pub struct Request {}
+            pub struct Response {
+                pub user_id: crate::Uuid,
+            }
+            Error {
+                InvalidSession,
+                Unknown(String)
+            }
+        },
     },
     SequenceService: {
         list_project_sequences: {
@@ -79,33 +89,69 @@ define_rpc::define_rpc! {
                 pub name: String,
             }
             pub struct Response {
+                pub sequence_id: crate::Uuid,
             }
             Error {
                 Unauthorized,
                 Unknown(String),
             }
         },
-        update_server_sequence: {
+        undo_update: {
             pub struct Request {
                 pub sequence_id: crate::Uuid,
-                pub patch: revert_json_patch::Patch,
             }
             pub struct Response {
             }
             Error {
                 Unauthorized,
+                Forbidden,
+                NotFound,
+                NoMoreUndo,
                 Unknown(String),
             }
         },
-        update_client_sequence: {
+        redo_update: {
             pub struct Request {
                 pub sequence_id: crate::Uuid,
-                pub sequence_json: serde_json::Value,
             }
             pub struct Response {
-                pub patch: revert_json_patch::Patch,
             }
             Error {
+                Unauthorized,
+                Forbidden,
+                NotFound,
+                NoMoreRedo,
+                Unknown(String),
+            }
+        },
+        update_sequence: {
+            pub struct Request {
+                pub sequence_id: crate::Uuid,
+                pub action: crate::data::SequenceUpdateAction,
+            }
+            pub struct Response {
+            }
+            Error {
+                Unauthorized,
+                Forbidden,
+                SequenceNotFound,
+                CutNotFound,
+                Unknown(String),
+            }
+        },
+        update_sequence_cut: {
+            pub struct Request {
+                pub sequence_id: crate::Uuid,
+                pub cut_id: crate::Uuid,
+                pub action: crate::data::CutUpdateAction,
+            }
+            pub struct Response {
+            }
+            Error {
+                Unauthorized,
+                Forbidden,
+                SequenceNotFound,
+                CutNotFound,
                 Unknown(String),
             }
         },
@@ -114,10 +160,11 @@ define_rpc::define_rpc! {
                 pub sequence_id: crate::Uuid,
             }
             pub struct Response {
-                pub sequence_json: String,
+                pub sequence: crate::data::Sequence,
                 pub project_shared_data_json: String,
             }
             Error {
+                SequenceNotFound,
                 Unknown(String),
             }
         },
@@ -129,18 +176,7 @@ define_rpc::define_rpc! {
             }
             Error {
                 Unauthorized,
-                Unknown(String),
-            }
-        },
-        rename_sequence: {
-            pub struct Request {
-                pub sequence_id: crate::Uuid,
-                pub new_name: String,
-            }
-            pub struct Response {
-            }
-            Error {
-                Unauthorized,
+                SequenceNotFound,
                 Unknown(String),
             }
         },
@@ -285,6 +321,7 @@ define_rpc::define_rpc! {
                 pub psd_id: crate::Uuid,
             }
             pub struct Response {
+                pub cg_id: crate::Uuid,
             }
             Error {
                 Unauthorized,
@@ -302,7 +339,60 @@ define_rpc::define_rpc! {
                 pub cg_files: Vec<crate::data::CgFile>,
             }
             Error {
+                Unknown(String),
+            }
+        },
+        get_cg_file: {
+            pub struct Request {
+                pub project_id: crate::Uuid,
+                pub cg_id: crate::Uuid,
+            }
+            pub struct Response {
+                pub cg_file: crate::data::CgFile,
+            }
+            Error {
+                NotFound,
+                Unknown(String),
+            }
+        },
+    },
+    MemoService: {
+        list_sequence_memos: {
+            pub struct Request {
+                pub sequence_id: crate::Uuid,
+            }
+            pub struct Response {
+                pub memos: Vec<crate::data::Memo>,
+            }
+            Error {
                 Unauthorized,
+                Unknown(String),
+            }
+        },
+        create_memo: {
+            pub struct Request {
+                pub sequence_id: crate::Uuid,
+                pub cut_id: crate::Uuid,
+                pub content: String,
+            }
+            pub struct Response {
+                pub memo: crate::data::Memo,
+            }
+            Error {
+                Unauthorized,
+                Unknown(String),
+            }
+        },
+        delete_memo: {
+            pub struct Request {
+                pub sequence_id: crate::Uuid,
+                pub memo_id: crate::Uuid,
+            }
+            pub struct Response {
+            }
+            Error {
+                Unauthorized,
+                Forbidden,
                 Unknown(String),
             }
         },

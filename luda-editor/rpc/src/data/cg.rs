@@ -2,6 +2,7 @@ use namui_type::*;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CgFile {
+    /// TODO: Rename id as checksum. real id is name.
     pub id: Uuid,
     pub name: String,
     pub parts: Vec<CgPart>,
@@ -17,6 +18,7 @@ pub struct CgPart {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CgPartVariant {
+    /// TODO: Rename id as checksum. real id is name.
     pub id: Uuid,
     pub name: String,
     pub rect: Rect<Percent>,

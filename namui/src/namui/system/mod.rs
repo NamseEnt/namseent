@@ -1,3 +1,4 @@
+pub mod audio;
 pub mod cache;
 pub mod clipboard;
 pub mod deep_link;
@@ -26,6 +27,7 @@ type InitResult = Result<(), Box<dyn Error>>;
 
 pub(crate) async fn init() -> InitResult {
     try_join!(
+        audio::init(),
         cache::init(),
         file::init(),
         font::init(),

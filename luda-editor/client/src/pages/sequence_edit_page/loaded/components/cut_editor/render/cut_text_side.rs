@@ -1,4 +1,6 @@
 use super::*;
+use crate::pages::sequence_edit_page::sequence_atom::SEQUENCE_ATOM;
+use rpc::data::CutUpdateAction;
 
 impl CutEditor {
     pub fn render_cut_text_side(
@@ -8,7 +10,7 @@ impl CutEditor {
         cut: &Cut,
     ) -> namui::RenderingTree {
         let line_text = cut.line.clone();
-        let cut_id = cut.id();
+        let cut_id = cut.id;
 
         render([
             transparent_rect(wh),
@@ -39,10 +41,14 @@ impl CutEditor {
                     event_handler: Some(
                         text_input::EventHandler::new()
                             .on_text_updated(move |text| {
-                                namui::event::send(Event::ChangeCutLine {
-                                    text: text.to_string(),
-                                    cut_id,
-                                })
+                                SEQUENCE_ATOM.update(|sequence| {
+                                    sequence.update_cut(
+                                        cut_id,
+                                        CutUpdateAction::ChangeCutLine {
+                                            line: text.to_string(),
+                                        },
+                                    )
+                                });
                             })
                             .on_key_down(move |event| {
                                 if event.code == Code::Tab {

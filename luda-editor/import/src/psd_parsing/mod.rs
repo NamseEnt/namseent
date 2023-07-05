@@ -8,7 +8,6 @@ use crate::psd_parsing::parse_psd_to_inter_cg_parts::parse_psd_to_inter_cg_parts
 use namui_type::*;
 use rayon::prelude::*;
 use rpc::data::*;
-use rpc::Uuid;
 
 pub(crate) struct PsdParsingResult {
     pub(crate) variants_images: Vec<VariantImageBuffer>,
@@ -17,7 +16,8 @@ pub(crate) struct PsdParsingResult {
 }
 
 pub(crate) struct VariantImageBuffer {
-    pub(crate) variant_id: Uuid,
+    pub(crate) variant_name: String,
+    pub(crate) part_name: String,
     pub(crate) image_buffer: image::ImageBuffer<image::Rgba<u8>, Vec<u8>>,
     pub(crate) rect: Rect<i32>,
 }
@@ -93,7 +93,7 @@ fn inter_cg_variant_to_cg_variant_and_image_buffer(
     (
         CgPartVariant {
             id,
-            name: inter_cg_variant.variant_name,
+            name: inter_cg_variant.variant_name.clone(),
             rect: Rect::Xywh {
                 x: (100.0 * x as f32 / width as f32).percent(),
                 y: (100.0 * y as f32 / height as f32).percent(),
@@ -102,7 +102,6 @@ fn inter_cg_variant_to_cg_variant_and_image_buffer(
             },
         },
         VariantImageBuffer {
-            variant_id: id,
             rect: Rect::Xywh {
                 x,
                 y,
@@ -110,6 +109,8 @@ fn inter_cg_variant_to_cg_variant_and_image_buffer(
                 height: image_buffer.height() as i32,
             },
             image_buffer,
+            variant_name: inter_cg_variant.variant_name.clone(),
+            part_name: inter_cg_variant.part_name,
         },
     )
 }

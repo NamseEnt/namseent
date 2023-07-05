@@ -36,7 +36,7 @@ pub async fn get_session(req: &Request<Body>) -> Result<Option<SessionDocument>,
             }
             crate::storage::dynamo_db::GetItemError::DeserializeFailed(_)
             | crate::storage::dynamo_db::GetItemError::Unknown(_) => {
-                eprintln!("fail to get session from dynamo db: {:?}", error);
+                eprintln!("fail to get session from dynamo db: {:#?}", error);
                 Err(GetSessionError::Unknown(error.to_string()))
             }
         },

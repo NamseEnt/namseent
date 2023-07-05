@@ -45,6 +45,7 @@ pub enum NamuiEvent {
     Wheel(RawWheelEvent),
     DeepLinkOpened(DeepLinkOpenedEvent),
     FileDrop(RawFileDropEvent),
+    NoUpdateJustRender,
 }
 
 #[cfg(test)]

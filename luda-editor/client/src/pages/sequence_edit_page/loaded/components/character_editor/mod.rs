@@ -2,13 +2,12 @@ mod render;
 mod update;
 use namui::prelude::*;
 use namui_prebuilt::scroll_view::ScrollView;
-use rpc::data::{CgFile, Cut, ScreenGraphic};
+use rpc::data::{Cut, CutUpdateAction, ScreenGraphic};
 
 pub struct CharacterEditor {
     tooltip: Option<Tooltip>,
     scroll_view: ScrollView,
     edit_target: EditTarget,
-    cg_file_load_state: CgFileLoadState,
 }
 
 #[derive(Clone, Copy)]
@@ -20,13 +19,7 @@ pub struct Props<'a> {
 
 pub enum Event {
     MouseDownOutsideCharacterEditor,
-    OpenCharacterEditor {
-        target: EditTarget,
-    },
-    UpdateCutGraphics {
-        cut_id: Uuid,
-        callback: Box<dyn Fn(&mut Vec<ScreenGraphic>) -> () + 'static + Send + Sync>,
-    },
+    OpenCharacterEditor { target: EditTarget },
 }
 
 enum InternalEvent {
@@ -36,51 +29,23 @@ enum InternalEvent {
     },
     CloseTooltip,
     CgChangeButtonClicked,
-    CgFileLoadStateChanged(CgFileLoadState),
     CgThumbnailClicked {
         cg_id: Uuid,
     },
     FocusCg {
         cut_id: Uuid,
         cg_id: Uuid,
-        graphic_index: usize,
+        graphic_index: Uuid,
     },
 }
 
 impl CharacterEditor {
-    pub fn new(project_id: Uuid, edit_target: EditTarget) -> Self {
-        let mut character_editor = Self {
+    pub fn new(edit_target: EditTarget) -> Self {
+        Self {
             tooltip: None,
             scroll_view: ScrollView::new(),
             edit_target,
-            cg_file_load_state: CgFileLoadState::Loading,
-        };
-        character_editor.start_load_cg_files(project_id);
-        character_editor
-    }
-
-    fn start_load_cg_files(&mut self, project_id: Uuid) {
-        self.cg_file_load_state = CgFileLoadState::Loading;
-        spawn_local(async move {
-            let response = crate::RPC
-                .list_cg_files(rpc::list_cg_files::Request { project_id })
-                .await;
-
-            match response {
-                Ok(response) => {
-                    namui::event::send(InternalEvent::CgFileLoadStateChanged(
-                        CgFileLoadState::Loaded(response.cg_files),
-                    ));
-                }
-                Err(error) => {
-                    namui::event::send(InternalEvent::CgFileLoadStateChanged(
-                        CgFileLoadState::Failed {
-                            error: error.to_string(),
-                        },
-                    ));
-                }
-            }
-        });
+        }
     }
 }
 
@@ -96,18 +61,11 @@ pub enum EditTarget {
     },
     ExistingCharacter {
         cut_id: Uuid,
-        graphic_index: usize,
+        graphic_index: Uuid,
     },
     ExistingCharacterPart {
         cut_id: Uuid,
         cg_id: Uuid,
-        graphic_index: usize,
+        graphic_index: Uuid,
     },
-}
-
-#[derive(Clone)]
-enum CgFileLoadState {
-    Loading,
-    Loaded(Vec<CgFile>),
-    Failed { error: String },
 }

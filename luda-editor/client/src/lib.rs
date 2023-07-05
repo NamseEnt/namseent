@@ -1,4 +1,5 @@
 mod app;
+mod atom;
 mod color;
 mod components;
 mod late_init;

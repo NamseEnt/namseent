@@ -1,7 +1,6 @@
-use super::previous;
+use super::*;
 
-#[document_macro::document(no_serialize, no_deserialize)]
-#[migration::version(1)]
+#[document_macro::document(1)]
 pub struct UserDocument {
     #[pk]
     pub id: rpc::Uuid,
@@ -9,7 +8,7 @@ pub struct UserDocument {
 }
 
 impl UserDocument {
-    pub fn migrate(previous: previous::v0::UserDocument) -> Self {
+    pub fn migrate(previous: v0::UserDocument) -> Self {
         Self {
             id: previous.id,
             name: format!("anonymous"),

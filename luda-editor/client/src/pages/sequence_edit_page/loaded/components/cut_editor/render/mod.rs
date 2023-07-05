@@ -32,7 +32,8 @@ impl CutEditor {
                             wh: content_rect.wh(),
                             screen_graphics: &cut.screen_graphics,
                             project_id: props.project_id,
-                            cut_id: cut.id(),
+                            cut_id: cut.id,
+                            cg_files: props.cg_files,
                         })
                     }),
                     sequence_player::render_text_box(content_rect.wh()),
@@ -52,11 +53,11 @@ impl CutEditor {
 
 fn prev_cut_id(props: &Props, cut_id: Uuid) -> Option<Uuid> {
     props.cuts.iter().enumerate().find_map(|(i, cut)| {
-        if cut.id() == cut_id {
+        if cut.id == cut_id {
             if i == 0 {
                 None
             } else {
-                Some(props.cuts[i - 1].id())
+                Some(props.cuts[i - 1].id)
             }
         } else {
             None
@@ -66,11 +67,11 @@ fn prev_cut_id(props: &Props, cut_id: Uuid) -> Option<Uuid> {
 
 fn next_cut_id(props: &Props, cut_id: Uuid) -> Option<Uuid> {
     props.cuts.iter().enumerate().find_map(|(i, cut)| {
-        if cut.id() == cut_id {
+        if cut.id == cut_id {
             if i == props.cuts.len() - 1 {
                 None
             } else {
-                Some(props.cuts[i + 1].id())
+                Some(props.cuts[i + 1].id)
             }
         } else {
             None

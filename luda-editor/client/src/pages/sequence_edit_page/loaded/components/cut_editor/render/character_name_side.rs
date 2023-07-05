@@ -1,4 +1,6 @@
 use super::*;
+use crate::pages::sequence_edit_page::sequence_atom::SEQUENCE_ATOM;
+use rpc::data::CutUpdateAction;
 
 impl CutEditor {
     pub fn render_character_name_side(
@@ -12,7 +14,7 @@ impl CutEditor {
         render([
             transparent_rect(wh),
             if props.is_focused && self.selected_target == Some(ClickTarget::CharacterName) {
-                let cut_id = cut.id();
+                let cut_id = cut.id;
                 let prev_cut_id = prev_cut_id(&props, cut_id);
 
                 self.character_name_input
@@ -21,7 +23,12 @@ impl CutEditor {
                         wh,
                         candidates: get_character_name_candidates(&props.cuts, &cut),
                         on_text_change: move |text| {
-                            namui::event::send(Event::ChangeCharacterName { name: text, cut_id })
+                            SEQUENCE_ATOM.update(|sequence| {
+                                sequence.update_cut(
+                                    cut_id,
+                                    CutUpdateAction::ChangeCharacterName { name: text },
+                                )
+                            });
                         },
                         on_edit_done: move || {
                             namui::event::send(Event::Click {
@@ -92,7 +99,7 @@ fn get_character_name_candidates(cuts: &[Cut], current_cut: &Cut) -> Vec<String>
 
     let cut_index = cuts
         .iter()
-        .position(|cut| cut.id() == current_cut.id())
+        .position(|cut| cut.id == current_cut.id)
         .unwrap();
 
     candidates.sort_by_key(|(index, _)| (cut_index as isize - *index as isize).abs());

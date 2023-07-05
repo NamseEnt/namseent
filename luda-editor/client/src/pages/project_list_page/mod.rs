@@ -140,7 +140,7 @@ impl ProjectListPage {
             [MouseButton::Left],
             move |event| {
                 if event.button == Some(MouseButton::Left) {
-                    Router::move_to(super::router::RoutePath::SequenceList(project_id));
+                    Router::move_to(super::router::RoutePath::SequenceList { project_id });
                 } else if event.button == Some(MouseButton::Right) {
                     // TODO
                     // namui::event::send(Event::CellRightClick {

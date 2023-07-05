@@ -9,6 +9,8 @@ pub enum Item {
         text: String,
         on_click: Arc<dyn Fn()>,
     },
+
+    #[allow(dead_code)]
     Divider,
 }
 

@@ -1,7 +1,5 @@
-use crate::storage::{
-    get_project_cg_part_variant_image_url, get_project_cg_thumbnail_image_url,
-    get_project_image_url,
-};
+use super::cg_render;
+use crate::storage::{get_project_cg_thumbnail_image_url, get_project_image_url};
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::*;
@@ -10,6 +8,7 @@ pub struct SequencePlayer {
     sequence: Sequence,
     project_shared_data: ProjectSharedData,
     state: State,
+    cg_files: Option<Vec<CgFile>>,
 }
 
 pub struct Props {
@@ -20,6 +19,7 @@ enum InternalEvent {
     OnClickScreen,
     GoToPrevCut,
     GoToNextCut,
+    CgFilesLoaded(Vec<CgFile>),
 }
 
 enum State {
@@ -38,19 +38,34 @@ impl SequencePlayer {
         sequence: Sequence,
         project_shared_data: ProjectSharedData,
         start_cut_index: usize,
+        cg_files: Option<Vec<CgFile>>,
     ) -> Self {
+        let project_id = project_shared_data.id();
+        if cg_files.is_none() {
+            spawn_local(async move {
+                let response = crate::RPC
+                    .list_cg_files(rpc::list_cg_files::Request { project_id })
+                    .await
+                    .unwrap();
+                namui::event::send(InternalEvent::CgFilesLoaded(response.cg_files));
+            });
+        }
         Self {
             sequence,
             project_shared_data,
             state: State::ShowingCut {
                 cut_index: start_cut_index,
             },
+            cg_files,
         }
     }
     pub fn render(&self, props: Props) -> RenderingTree {
         if self.sequence.cuts.is_empty() {
             return RenderingTree::Empty;
         }
+        let Some(cg_files) = &self.cg_files else {
+            return RenderingTree::Empty;
+        };
 
         let inner_content_rect = get_inner_content_rect(props.wh);
 
@@ -66,6 +81,7 @@ impl SequencePlayer {
                             inner_content_rect.wh(),
                             cut,
                             1.0.one_zero(),
+                            &cg_files,
                         ),
                         render_text_box(inner_content_rect.wh()),
                         render_text(
@@ -98,6 +114,7 @@ impl SequencePlayer {
                             inner_content_rect.wh(),
                             from_cut_index,
                             transition_progress,
+                            &cg_files,
                         ),
                         render_text_box(inner_content_rect.wh()),
                         render_text(
@@ -147,29 +164,10 @@ impl SequencePlayer {
             }
             InternalEvent::GoToPrevCut => self.go_to_prev_cut(),
             InternalEvent::GoToNextCut => self.go_to_next_cut(false),
+            InternalEvent::CgFilesLoaded(cg_files) => {
+                self.cg_files = Some(cg_files.clone());
+            }
         });
-    }
-    fn get_image_urls(&self, cut: &Cut) -> Vec<Url> {
-        cut.screen_graphics
-            .iter()
-            .flat_map(|screen_graphic| match screen_graphic {
-                ScreenGraphic::Image(image) => {
-                    vec![get_project_image_url(self.project_shared_data.id(), image.id).unwrap()]
-                }
-                ScreenGraphic::Cg(cg) => cg
-                    .part_variants
-                    .iter()
-                    .map(|(variant_id, _)| {
-                        get_project_cg_part_variant_image_url(
-                            self.project_shared_data.id(),
-                            cg.id,
-                            *variant_id,
-                        )
-                        .unwrap()
-                    })
-                    .collect::<Vec<_>>(),
-            })
-            .collect::<Vec<_>>()
     }
 
     fn go_to_next_cut(&mut self, do_transition: bool) {
@@ -227,23 +225,22 @@ impl SequencePlayer {
         wh: Wh<Px>,
         from_cut_index: usize,
         transition_progress: OneZero,
+        cg_files: &Vec<CgFile>,
     ) -> RenderingTree {
         let from_cut = self.sequence.cuts.get(from_cut_index).unwrap();
         let to_cut = self.sequence.cuts.get(from_cut_index + 1).unwrap();
 
-        let from_cut_image_urls = self.get_image_urls(from_cut);
-        let to_cut_image_urls = self.get_image_urls(to_cut);
         let project_id = self.project_shared_data.id();
 
-        if from_cut_image_urls == to_cut_image_urls {
-            render_graphics(project_id, wh, from_cut, 1.0.one_zero())
+        if from_cut.screen_graphics == to_cut.screen_graphics {
+            render_graphics(project_id, wh, from_cut, 1.0.one_zero(), cg_files)
         } else {
             let from_opacity = 1.0.one_zero() - transition_progress;
             let to_opacity = transition_progress;
 
             render([
-                render_graphics(project_id, wh, from_cut, from_opacity),
-                render_graphics(project_id, wh, to_cut, to_opacity),
+                render_graphics(project_id, wh, from_cut, from_opacity, cg_files),
+                render_graphics(project_id, wh, to_cut, to_opacity, cg_files),
             ])
         }
     }
@@ -412,14 +409,26 @@ pub fn calculate_graphic_rect_on_screen(
     Rect::from_xy_wh(xy, wh)
 }
 
-pub fn render_graphics(project_id: Uuid, wh: Wh<Px>, cut: &Cut, opacity: OneZero) -> RenderingTree {
+pub fn render_graphics(
+    project_id: Uuid,
+    wh: Wh<Px>,
+    cut: &Cut,
+    opacity: OneZero,
+    cg_files: &Vec<CgFile>,
+) -> RenderingTree {
     let paint_builder = namui::PaintBuilder::new().set_color_filter(
         Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
         BlendMode::DstIn,
     );
 
-    let graphics = cut.screen_graphics.iter().map(|screen_graphic| {
-        render_graphic(project_id, wh, screen_graphic, Some(paint_builder.clone()))
+    let graphics = cut.screen_graphics.iter().map(|(_, screen_graphic)| {
+        render_graphic(
+            project_id,
+            wh,
+            screen_graphic,
+            Some(paint_builder.clone()),
+            cg_files,
+        )
     });
     render(graphics)
 }
@@ -429,6 +438,7 @@ pub fn render_graphic(
     wh: Wh<Px>,
     graphic: &ScreenGraphic,
     paint_builder: Option<PaintBuilder>,
+    cg_files: &Vec<CgFile>,
 ) -> RenderingTree {
     namui::try_render(|| match graphic {
         ScreenGraphic::Image(screen_image) => {
@@ -453,31 +463,18 @@ pub fn render_graphic(
             let outer_rect =
                 calculate_graphic_rect_on_screen(image.size(), wh, screen_cg.circumscribed);
 
-            Some(render(screen_cg.part_variants.iter().rev().filter_map(
-                |(variant_id, rect)| {
-                    let rect = Rect::Xywh {
-                        x: outer_rect.x() + outer_rect.width() * rect.x(),
-                        y: outer_rect.y() + outer_rect.height() * rect.y(),
-                        width: outer_rect.width() * rect.width(),
-                        height: outer_rect.height() * rect.height(),
-                    };
-                    let url = get_project_cg_part_variant_image_url(
-                        project_id,
-                        screen_cg.id,
-                        *variant_id,
-                    )
-                    .unwrap();
-                    let image = namui::image::try_load_url(&url)?;
-                    Some(namui::image(ImageParam {
-                        rect,
-                        source: ImageSource::Image(image),
-                        style: ImageStyle {
-                            fit: ImageFit::Fill,
-                            paint_builder: paint_builder.clone(),
-                        },
-                    }))
+            let cg_file = cg_files
+                .iter()
+                .find(|cg_file| cg_file.name == screen_cg.name)?;
+            Some(cg_render::render_cg(
+                cg_render::CgRenderProps {
+                    cg_id: screen_cg.id,
+                    project_id,
+                    rect: outer_rect,
                 },
-            )))
+                screen_cg,
+                cg_file,
+            ))
         }
     })
 }

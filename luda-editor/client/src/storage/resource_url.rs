@@ -15,6 +15,7 @@ pub fn get_project_image_url(
     Ok(url)
 }
 
+#[allow(dead_code)]
 pub fn get_character_main_image_url(character_id: Uuid) -> Result<Url, Box<dyn std::error::Error>> {
     let url_string = crate::append_slash![
         crate::SETTING.resource_base_url,

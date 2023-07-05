@@ -1,5 +1,5 @@
 use super::{documents::*, *};
-use crate::storage::dynamo_db::{GetItemError, TransactError};
+use crate::storage::dynamo_db::{GetItemError, NoCancel, TransactError};
 
 pub async fn get_or_create_user(
     user_identity: UserIdentity,
@@ -54,6 +54,6 @@ pub async fn get_or_create_user(
 pub enum GetOrCreateUserError {
     GetIdentityError(GetItemError),
     GetUserError(GetItemError),
-    CreateError(TransactError),
+    CreateError(TransactError<NoCancel>),
 }
 crate::simple_error_impl!(GetOrCreateUserError);

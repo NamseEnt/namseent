@@ -4,7 +4,7 @@ mod rename_modal;
 use super::router::Router;
 use namui::prelude::*;
 use namui_prebuilt::*;
-use rpc::list_project_sequences::SequenceNameAndId;
+use rpc::{data::Cut, list_project_sequences::SequenceNameAndId};
 
 #[derive(Debug, Clone)]
 pub struct SequenceListPage {
@@ -140,9 +140,11 @@ impl SequenceListPage {
 
                     spawn_local(async move {
                         match crate::RPC
-                            .rename_sequence(rpc::rename_sequence::Request {
+                            .update_sequence(rpc::update_sequence::Request {
                                 sequence_id,
-                                new_name,
+                                action: rpc::data::SequenceUpdateAction::RenameSequence {
+                                    name: new_name,
+                                },
                             })
                             .await
                         {
@@ -203,7 +205,18 @@ impl SequenceListPage {
                     ]),
                 ),
                 table::ratio(1.0, |_wh| RenderingTree::Empty),
-            ])(props.wh),
+            ])(props.wh)
+            .attach_event(|builder| {
+                let project_id = self.project_id;
+                builder.on_file_drop(move |event| {
+                    for file in event.files.iter() {
+                        if file.name() != "sequence.json" {
+                            continue;
+                        }
+                        upload_sequence(project_id, file.clone());
+                    }
+                });
+            }),
             self.context_menu
                 .as_ref()
                 .map_or(RenderingTree::Empty, |context_menu| {
@@ -241,6 +254,7 @@ impl SequenceListPage {
         sequence: &SequenceNameAndId,
     ) -> namui::RenderingTree {
         let sequence_id = sequence.id;
+        let project_id = self.project_id;
         namui_prebuilt::button::text_button(
             Rect::from_xy_wh(Xy::single(0.px()), wh),
             sequence.name.as_str(),
@@ -251,7 +265,10 @@ impl SequenceListPage {
             [MouseButton::Left, MouseButton::Right],
             move |event| {
                 if event.button == Some(MouseButton::Left) {
-                    Router::move_to(super::router::RoutePath::SequenceEdit(sequence_id));
+                    Router::move_to(super::router::RoutePath::SequenceEdit {
+                        project_id,
+                        sequence_id,
+                    });
                 } else if event.button == Some(MouseButton::Right) {
                     namui::event::send(Event::CellRightClick {
                         click_global_xy: event.global_xy,
@@ -272,6 +289,53 @@ fn start_fetch_list(project_id: Uuid) {
             Ok(response) => {
                 namui::event::send(Event::SequenceListLoaded(response.sequence_name_and_ids));
             }
+            Err(error) => {
+                namui::event::send(Event::Error(error.to_string()));
+            }
+        }
+    })
+}
+
+fn upload_sequence(project_id: Uuid, sequence_file: File) {
+    async fn inner(project_id: Uuid, sequence: rpc::data::Sequence) -> anyhow::Result<()> {
+        const PROGRESS_PRINT_INTERVAL: namui::Time = namui::Time::Sec(1.0);
+        let sequence_id = create_sequence(project_id, sequence.name.clone()).await?;
+        let cut_len = sequence.cuts.len();
+        let mut last_progress_printed_time = namui::now();
+        for (cut_index, cut) in sequence.cuts.into_iter().enumerate() {
+            insert_cut(sequence_id, cut).await?;
+            let now = namui::now();
+            if now - last_progress_printed_time >= PROGRESS_PRINT_INTERVAL {
+                namui::log!("Uploading sequence... {}/{}", cut_index, cut_len);
+                last_progress_printed_time = now;
+            }
+        }
+        Ok(())
+    }
+    async fn create_sequence(project_id: Uuid, name: String) -> anyhow::Result<Uuid> {
+        let rpc::create_sequence::Response { sequence_id } = crate::RPC
+            .create_sequence(rpc::create_sequence::Request { project_id, name })
+            .await?;
+        Ok(sequence_id)
+    }
+    async fn insert_cut(sequence_id: Uuid, cut: Cut) -> anyhow::Result<Uuid> {
+        let rpc::update_sequence::Response {} = crate::RPC
+            .update_sequence(rpc::update_sequence::Request {
+                sequence_id,
+                action: rpc::data::SequenceUpdateAction::InsertCut {
+                    cut,
+                    after_cut_id: None,
+                },
+            })
+            .await?;
+        Ok(sequence_id)
+    }
+
+    spawn_local(async move {
+        let sequence: rpc::data::Sequence =
+            serde_json::from_slice(&sequence_file.content().await).unwrap();
+        match inner(project_id, sequence).await {
+            Ok(_) => start_fetch_list(project_id),
             Err(error) => {
                 namui::event::send(Event::Error(error.to_string()));
             }

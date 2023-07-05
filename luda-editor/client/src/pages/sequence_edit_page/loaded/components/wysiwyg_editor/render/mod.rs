@@ -4,13 +4,12 @@ pub mod resizer;
 
 use super::*;
 use crate::{
-    components::sequence_player::{
-        calculate_graphic_rect_on_screen, calculate_graphic_wh_on_screen,
+    components::{
+        cg_render,
+        sequence_player::{calculate_graphic_rect_on_screen, calculate_graphic_wh_on_screen},
     },
-    storage::{
-        get_project_cg_part_variant_image_url, get_project_cg_thumbnail_image_url,
-        get_project_image_url,
-    },
+    pages::sequence_edit_page::sequence_atom::SEQUENCE_ATOM,
+    storage::{get_project_cg_thumbnail_image_url, get_project_image_url},
 };
 use namui_prebuilt::*;
 
@@ -21,6 +20,9 @@ impl WysiwygEditor {
         render([
             simple_rect(props.wh, Color::WHITE, 1.px(), Color::TRANSPARENT).attach_event(
                 |builder| {
+                    let dragging = self.dragging.clone();
+                    let screen_graphics = props.screen_graphics.clone();
+                    let editing_image_index = self.editing_image_index;
                     builder
                         .on_mouse_move_in(|event| {
                             namui::event::send(InternalEvent::MouseMoveContainer {
@@ -34,10 +36,30 @@ impl WysiwygEditor {
                         })
                         .on_mouse(move |event| {
                             if event.event_type == MouseEventType::Up {
-                                namui::event::send(InternalEvent::MouseUp {
-                                    global_xy: event.global_xy,
-                                    cut_id,
-                                });
+                                if let Some(Dragging::Mover { mut context }) = dragging {
+                                    if let Some(graphic_index) = editing_image_index {
+                                        context.end_global_xy = event.global_xy;
+
+                                        let (_, graphic) = screen_graphics
+                                            .iter()
+                                            .find(|(index, _)| index == &graphic_index)
+                                            .unwrap();
+                                        let circumscribed =
+                                            context.move_circumscribed(graphic.circumscribed());
+
+                                        SEQUENCE_ATOM.update(|sequence| {
+                                            sequence.update_cut(
+                                                cut_id,
+                                                CutUpdateAction::ChangeGraphicCircumscribed {
+                                                    graphic_index,
+                                                    circumscribed,
+                                                },
+                                            )
+                                        });
+                                    }
+                                }
+
+                                namui::event::send(InternalEvent::MouseUp);
                             }
                         });
                 },
@@ -55,198 +77,200 @@ impl WysiwygEditor {
     }
     fn render_graphic_clip(&self, props: &Props) -> RenderingTree {
         let cut_id = props.cut_id;
-        render(props.screen_graphics.clone().into_iter().enumerate().map(
-            |(graphic_index, graphic)| {
-                let is_editing_graphic = self.editing_image_index == Some(graphic_index);
+        render(
+            props
+                .screen_graphics
+                .clone()
+                .into_iter()
+                .map(|(graphic_index, graphic)| {
+                    let is_editing_graphic = self.editing_image_index == Some(graphic_index);
 
-                namui::try_render(|| {
-                    let url = match &graphic {
-                        ScreenGraphic::Image(image) => {
-                            get_project_image_url(props.project_id, image.id).unwrap()
-                        }
-                        ScreenGraphic::Cg(cg) => {
-                            get_project_cg_thumbnail_image_url(props.project_id, cg.id).unwrap()
-                        }
-                    };
-                    let namui_image = namui::image::try_load_url(&url)?;
-                    let graphic_size = namui_image.size();
-                    let circumscribed = graphic.circumscribed();
-
-                    let screen_radius = props.wh.length() / 2;
-                    let graphic_radius_px = graphic_size.length() / 2;
-                    let radius_px = screen_radius * circumscribed.radius;
-                    let graphic_size_on_screen = graphic_size * (radius_px / graphic_radius_px);
-
-                    let center_xy = props.wh.as_xy() * circumscribed.center_xy;
-
-                    let graphic_rendering_rect = {
-                        match (is_editing_graphic, self.dragging.as_ref()) {
-                            (true, Some(dragging)) => match dragging {
-                                Dragging::Resizer { context } => {
-                                    let circumscribed =
-                                        context.resize(center_xy, graphic_size_on_screen, props.wh);
-                                    calculate_graphic_rect_on_screen(
-                                        graphic_size,
-                                        props.wh,
-                                        circumscribed,
-                                    )
-                                }
-                                // Dragging::Cropper => todo!(),
-                                Dragging::Mover { context } => {
-                                    let circumscribed = context.move_circumscribed(circumscribed);
-
-                                    calculate_graphic_rect_on_screen(
-                                        graphic_size,
-                                        props.wh,
-                                        circumscribed,
-                                    )
-                                }
-                            },
-                            _ => {
-                                let image_left_top_xy =
-                                    center_xy - graphic_size_on_screen.as_xy() / 2.0;
-
-                                Rect::from_xy_wh(image_left_top_xy, graphic_size_on_screen)
+                    namui::try_render(|| {
+                        let url = match &graphic {
+                            ScreenGraphic::Image(image) => {
+                                get_project_image_url(props.project_id, image.id).unwrap()
                             }
-                        }
-                    };
+                            ScreenGraphic::Cg(cg) => {
+                                get_project_cg_thumbnail_image_url(props.project_id, cg.id).unwrap()
+                            }
+                        };
+                        let namui_image = namui::image::try_load_url(&url)?;
+                        let graphic_size = namui_image.size();
+                        let circumscribed = graphic.circumscribed();
 
-                    let wysiwyg_tool = if is_editing_graphic {
-                        self.render_wysiwyg_tool(
-                            props,
-                            graphic_rendering_rect,
-                            graphic_size,
-                            graphic_index,
-                            &graphic,
-                        )
-                    } else {
-                        RenderingTree::Empty
-                    };
+                        let screen_radius = props.wh.length() / 2;
+                        let graphic_radius_px = graphic_size.length() / 2;
+                        let radius_px = screen_radius * circumscribed.radius;
+                        let graphic_size_on_screen = graphic_size * (radius_px / graphic_radius_px);
 
-                    let graphic_rendering_tree = match &graphic {
-                        ScreenGraphic::Image(_image) => namui::image(ImageParam {
-                            rect: graphic_rendering_rect,
-                            source: namui::ImageSource::Image(namui_image.clone()),
-                            style: ImageStyle {
-                                fit: ImageFit::Fill,
-                                paint_builder: None,
-                            },
-                        }),
-                        ScreenGraphic::Cg(cg) => render(cg.part_variants.iter().rev().filter_map(
-                            |(variant_id, rect)| {
-                                let rect = Rect::Xywh {
-                                    x: graphic_rendering_rect.x()
-                                        + graphic_rendering_rect.width() * rect.x(),
-                                    y: graphic_rendering_rect.y()
-                                        + graphic_rendering_rect.height() * rect.y(),
-                                    width: graphic_rendering_rect.width() * rect.width(),
-                                    height: graphic_rendering_rect.height() * rect.height(),
-                                };
-                                let url = get_project_cg_part_variant_image_url(
-                                    props.project_id,
-                                    cg.id,
-                                    *variant_id,
-                                )
-                                .unwrap();
-                                let image = namui::image::try_load_url(&url)?;
-                                Some(namui::image(ImageParam {
-                                    rect,
-                                    source: ImageSource::Image(image),
-                                    style: ImageStyle {
-                                        fit: ImageFit::Fill,
-                                        paint_builder: None,
-                                    },
-                                }))
-                            },
-                        )),
-                    };
+                        let center_xy = props.wh.as_xy() * circumscribed.center_xy;
 
-                    Some(render([
-                        graphic_rendering_tree.attach_event(move |builder| {
-                            builder.on_mouse_down_in({
-                                let graphic = graphic.clone();
-                                move |event| {
-                                    let graphic = graphic.clone();
-                                    event.stop_propagation();
-                                    namui::event::send(InternalEvent::SelectImage {
-                                        index: graphic_index,
-                                    });
-
-                                    if event.button == Some(MouseButton::Right) {
-                                        namui::event::send(InternalEvent::OpenContextMenu {
-                                            global_xy: event.global_xy,
-                                            cut_id,
-                                            graphic_index,
-                                            graphic_wh: graphic_size,
-                                            graphic,
-                                        })
+                        let graphic_rendering_rect = {
+                            match (is_editing_graphic, self.dragging.as_ref()) {
+                                (true, Some(dragging)) => match dragging {
+                                    Dragging::Resizer { context } => {
+                                        let circumscribed = context.resize(
+                                            center_xy,
+                                            graphic_size_on_screen,
+                                            props.wh,
+                                        );
+                                        calculate_graphic_rect_on_screen(
+                                            graphic_size,
+                                            props.wh,
+                                            circumscribed,
+                                        )
                                     }
+                                    // Dragging::Cropper => todo!(),
+                                    Dragging::Mover { context } => {
+                                        let circumscribed =
+                                            context.move_circumscribed(circumscribed);
+
+                                        calculate_graphic_rect_on_screen(
+                                            graphic_size,
+                                            props.wh,
+                                            circumscribed,
+                                        )
+                                    }
+                                },
+                                _ => {
+                                    let image_left_top_xy =
+                                        center_xy - graphic_size_on_screen.as_xy() / 2.0;
+
+                                    Rect::from_xy_wh(image_left_top_xy, graphic_size_on_screen)
                                 }
-                            });
+                            }
+                        };
 
-                            if is_editing_graphic {
-                                let namui_image = namui_image.clone();
-                                let graphic = graphic.clone();
-                                builder.on_key_down(move |event| {
-                                    namui::log!("key down: {:?}", event.code);
+                        let wysiwyg_tool = if is_editing_graphic {
+                            self.render_wysiwyg_tool(
+                                props,
+                                graphic_rendering_rect,
+                                graphic_size,
+                                graphic_index,
+                                &graphic,
+                            )
+                        } else {
+                            RenderingTree::Empty
+                        };
+
+                        let graphic_rendering_tree = match &graphic {
+                            ScreenGraphic::Image(_image) => namui::image(ImageParam {
+                                rect: graphic_rendering_rect,
+                                source: namui::ImageSource::Image(namui_image.clone()),
+                                style: ImageStyle {
+                                    fit: ImageFit::Fill,
+                                    paint_builder: None,
+                                },
+                            }),
+                            ScreenGraphic::Cg(cg) => try_render(|| {
+                                let cg_file = props
+                                    .cg_files
+                                    .iter()
+                                    .find(|cg_file| cg_file.name == cg.name)?;
+                                Some(cg_render::render_cg(
+                                    cg_render::CgRenderProps {
+                                        cg_id: cg.id,
+                                        project_id: props.project_id,
+                                        rect: graphic_rendering_rect,
+                                    },
+                                    cg,
+                                    cg_file,
+                                ))
+                            }),
+                        };
+
+                        Some(render([
+                            graphic_rendering_tree.attach_event(move |builder| {
+                                builder.on_mouse_down_in({
                                     let graphic = graphic.clone();
-                                    if event.code != Code::KeyC || !namui::keyboard::ctrl_press() {
-                                        return;
-                                    }
+                                    move |event| {
+                                        let graphic = graphic.clone();
+                                        event.stop_propagation();
+                                        namui::event::send(InternalEvent::SelectImage {
+                                            index: graphic_index,
+                                        });
 
-                                    match graphic {
-                                        ScreenGraphic::Image(_) => {
-                                            let namui_image = namui_image.clone();
-                                            spawn_local(async move {
-                                                let result =
-                                                    namui::clipboard::write_image(namui_image)
-                                                        .await;
-                                                match result {
-                                                    Ok(_) => {
-                                                        namui::log!("Image copied to clipboard");
-                                                    }
-                                                    Err(_) => {
-                                                        namui::log!(
-                                                            "Failed to copy image to clipboard"
-                                                        );
-                                                    }
-                                                }
-                                            })
-                                        }
-                                        ScreenGraphic::Cg(cg) => {
-                                            let cg = cg.clone();
-                                            spawn_local(async move {
-                                                match clipboard::write([(
-                                                    "web application/luda-editor-cg+json",
-                                                    serde_json::to_string(&cg).unwrap(),
-                                                )])
-                                                .await
-                                                {
-                                                    Ok(_) => namui::log!("Cg copied to clipboard"),
-                                                    Err(_) => {
-                                                        namui::log!(
-                                                            "Failed to copy cg to clipboard"
-                                                        )
-                                                    }
-                                                };
+                                        if event.button == Some(MouseButton::Right) {
+                                            namui::event::send(InternalEvent::OpenContextMenu {
+                                                global_xy: event.global_xy,
+                                                cut_id,
+                                                graphic_index,
+                                                graphic_wh: graphic_size,
+                                                graphic,
                                             })
                                         }
                                     }
                                 });
-                            }
-                        }),
-                        wysiwyg_tool,
-                    ]))
-                })
-            },
-        ))
+
+                                if is_editing_graphic {
+                                    let namui_image = namui_image.clone();
+                                    let graphic = graphic.clone();
+                                    builder.on_key_down(move |event| {
+                                        namui::log!("key down: {:?}", event.code);
+                                        let graphic = graphic.clone();
+                                        if event.code != Code::KeyC
+                                            || !namui::keyboard::ctrl_press()
+                                        {
+                                            return;
+                                        }
+
+                                        match graphic {
+                                            ScreenGraphic::Image(_) => {
+                                                let namui_image = namui_image.clone();
+                                                spawn_local(async move {
+                                                    let result =
+                                                        namui::clipboard::write_image(namui_image)
+                                                            .await;
+                                                    match result {
+                                                        Ok(_) => {
+                                                            namui::log!(
+                                                                "Image copied to clipboard"
+                                                            );
+                                                        }
+                                                        Err(_) => {
+                                                            namui::log!(
+                                                                "Failed to copy image to clipboard"
+                                                            );
+                                                        }
+                                                    }
+                                                })
+                                            }
+                                            ScreenGraphic::Cg(cg) => {
+                                                let cg = cg.clone();
+                                                spawn_local(async move {
+                                                    match clipboard::write([(
+                                                        "web application/luda-editor-cg+json",
+                                                        serde_json::to_string(&cg).unwrap(),
+                                                    )])
+                                                    .await
+                                                    {
+                                                        Ok(_) => {
+                                                            namui::log!("Cg copied to clipboard")
+                                                        }
+                                                        Err(_) => {
+                                                            namui::log!(
+                                                                "Failed to copy cg to clipboard"
+                                                            )
+                                                        }
+                                                    };
+                                                })
+                                            }
+                                        }
+                                    });
+                                }
+                            }),
+                            wysiwyg_tool,
+                        ]))
+                    })
+                }),
+        )
     }
     fn render_wysiwyg_tool(
         &self,
         props: &Props,
         graphic_dest_rect: Rect<Px>,
         original_graphic_size: Wh<Px>,
-        graphic_index: usize,
+        graphic_index: Uuid,
         graphic: &ScreenGraphic,
     ) -> RenderingTree {
         let cut_id = props.cut_id;
@@ -263,11 +287,14 @@ impl WysiwygEditor {
                 },
                 on_resize: {
                     Box::new(move |circumscribed| {
-                        namui::event::send(Event::UpdateCutGraphics {
-                            cut_id,
-                            callback: Box::new(move |graphics| {
-                                graphics[graphic_index].set_circumscribed(circumscribed);
-                            }),
+                        SEQUENCE_ATOM.update(|sequence| {
+                            sequence.update_cut(
+                                cut_id,
+                                CutUpdateAction::UpdateCircumscribed {
+                                    graphic_index,
+                                    circumscribed,
+                                },
+                            )
                         });
                     })
                 },

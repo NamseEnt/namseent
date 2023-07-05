@@ -44,7 +44,7 @@ struct UpdateItem<TCancelError: std::error::Error + Send> {
 }
 
 impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
-    pub async fn send(self) -> Result<(), TransactError> {
+    pub async fn send(self) -> Result<(), TransactError<TCancelError>> {
         let mut items = self.items;
 
         for update_item in self.update_items {
@@ -53,9 +53,14 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
                 Ok(write_item) => {
                     items.push(write_item);
                 }
-                Err(error) => {
-                    return Err(TransactError::Unknown(error.to_string()));
-                }
+                Err(error) => match error {
+                    TransactUpdateError::Canceled(canceled) => {
+                        return Err(TransactError::Canceled(canceled))
+                    }
+                    TransactUpdateError::Unknown(error) => {
+                        return Err(TransactError::Unknown(error.to_string()))
+                    }
+                },
             }
         }
 
@@ -66,27 +71,39 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
             .send()
             .await;
         if let Err(error) = result {
-            eprintln!("error on transact: {:?}", error);
+            eprintln!("error on transact: {:#?}", error);
             return Err(TransactError::Unknown(error.to_string()));
         }
         Ok(())
     }
     pub fn create_item<TDocument: Document>(mut self, item: TDocument) -> Self {
-        let partition_key = item.partition_key();
-        let sort_key = item.sort_key().unwrap_or(DEFAULT_SORT_KEY.to_string());
-
-        let mut item: Item = serde_dynamo::to_item(item).unwrap();
-        item.insert(VERSION_KEY.to_string(), AttributeValue::N("0".to_string()));
-        item.insert(PARTITION_KEY.to_string(), AttributeValue::S(partition_key));
-        item.insert(SORT_KEY.to_string(), AttributeValue::S(sort_key));
+        let mut raw_item = item.as_dynamodb_item().unwrap(); // TODO: Remove unwrap
+        raw_item.insert(
+            LOCK_VERSION_KEY.to_string(),
+            AttributeValue::N("0".to_string()),
+        );
 
         let item = model::TransactWriteItem::builder()
             .put(
                 model::Put::builder()
                     .table_name(&self.table_name)
-                    .set_item(Some(item))
+                    .set_item(Some(raw_item))
                     .condition_expression("attribute_not_exists(#PARTITION)")
                     .expression_attribute_names("#PARTITION", PARTITION_KEY)
+                    .build(),
+            )
+            .build();
+
+        self.items.push(item);
+
+        self
+    }
+    pub fn put_item<TDocument: Document>(mut self, item: TDocument) -> Self {
+        let item = model::TransactWriteItem::builder()
+            .put(
+                model::Put::builder()
+                    .table_name(&self.table_name)
+                    .set_item(Some(item.as_dynamodb_item().unwrap())) // TODO: Remove unwrap
                     .build(),
             )
             .build();
@@ -123,6 +140,12 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
             command.sort_key,
             command.update,
         )
+    }
+    pub fn manual_update_item<TDocument: Document + std::marker::Send>(
+        self,
+        document: WithVersion<TDocument>,
+    ) -> Self {
+        self.manual_update_item_internal(document)
     }
     fn delete_item_internal(
         mut self,
@@ -166,45 +189,47 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
         let table_name = self.table_name.clone();
 
         let future = Box::pin(async move {
-            let item = dynamo_db
-                .get_item_internal(partition_key.clone(), Some(sort_key.clone()))
-                .await;
-            if let Err(error) = item {
-                return Err(TransactUpdateError::Unknown(error.to_string()));
-            }
-            let item = item.unwrap();
+            let raw_item = dynamo_db
+                .get_raw_item(partition_key.clone(), Some(sort_key.clone()))
+                .await
+                .map_err(|error| TransactUpdateError::Unknown(error.to_string()))?;
 
             let version = {
-                let version_value = item.get(VERSION_KEY).unwrap().clone();
+                let version_value = raw_item.get(LOCK_VERSION_KEY).unwrap().clone();
                 let version_n = version_value.as_n().unwrap();
                 str::parse::<u128>(version_n).unwrap()
             };
+            let bytes = raw_item.get(BYTES_KEY).unwrap().as_b().unwrap().as_ref();
+            let migration_version = raw_item
+                .get(MIGRATION_VERSION_KEY)
+                .unwrap()
+                .as_n()
+                .unwrap()
+                .parse::<u64>()
+                .unwrap();
 
-            let document: TDocument = serde_dynamo::from_item(item).unwrap();
-            let result = update(document).await;
-            if let Err(error) = result {
-                return Err(TransactUpdateError::Canceled(error));
-            }
-            let document = result.unwrap();
+            let document: TDocument =
+                migration::Migration::deserialize(bytes, migration_version).unwrap(); // TODO: Remove unwrap
+            let document = update(document)
+                .await
+                .map_err(|error| TransactUpdateError::Canceled(error))?;
 
-            let mut item: Item = serde_dynamo::to_item(document).unwrap();
+            let mut raw_item = document.as_dynamodb_item().unwrap(); // TODO: Remove unwrap
             let next_version = version + 1;
-            item.insert(
-                VERSION_KEY.to_string(),
+            raw_item.insert(
+                LOCK_VERSION_KEY.to_string(),
                 AttributeValue::N(next_version.to_string()),
             );
-            item.insert(PARTITION_KEY.to_string(), AttributeValue::S(partition_key));
-            item.insert(SORT_KEY.to_string(), AttributeValue::S(sort_key));
 
             Ok(model::TransactWriteItem::builder()
                 .put(
                     model::Put::builder()
                         .table_name(table_name)
-                        .set_item(Some(item))
-                        .condition_expression("#VERSION = :version")
-                        .expression_attribute_names("#VERSION", VERSION_KEY)
+                        .set_item(Some(raw_item))
+                        .condition_expression("#LOCK_VERSION = :lock_version")
+                        .expression_attribute_names("#LOCK_VERSION", LOCK_VERSION_KEY)
                         .expression_attribute_values(
-                            ":version",
+                            ":lock_version",
                             AttributeValue::N(version.to_string()),
                         )
                         .build(),
@@ -213,6 +238,39 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
         });
 
         self.update_items.push(UpdateItem { future });
+
+        self
+    }
+
+    fn manual_update_item_internal<TDocument: Document + std::marker::Send>(
+        mut self,
+        document: WithVersion<TDocument>,
+    ) -> Self {
+        let version = document.version();
+
+        let mut raw_item: RawItem = document.into_inner().as_dynamodb_item().unwrap(); // TODO: Remove unwrap
+        let next_version = version + 1;
+        raw_item.insert(
+            LOCK_VERSION_KEY.to_string(),
+            AttributeValue::N(next_version.to_string()),
+        );
+
+        self.items.push(
+            model::TransactWriteItem::builder()
+                .put(
+                    model::Put::builder()
+                        .table_name(&self.table_name)
+                        .set_item(Some(raw_item))
+                        .condition_expression("#LOCK_VERSION = :lock_version")
+                        .expression_attribute_names("#LOCK_VERSION", LOCK_VERSION_KEY)
+                        .expression_attribute_values(
+                            ":lock_version",
+                            AttributeValue::N(version.to_string()),
+                        )
+                        .build(),
+                )
+                .build(),
+        );
 
         self
     }
@@ -238,10 +296,16 @@ where
 }
 
 #[derive(Debug)]
-pub enum TransactError {
+pub enum TransactError<TCancelError: std::error::Error + Send> {
+    Canceled(TCancelError),
     Unknown(String),
 }
-crate::simple_error_impl!(TransactError);
+impl<TCancelError: std::error::Error + Send> std::fmt::Display for TransactError<TCancelError> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+impl<TCancelError: std::error::Error + Send> std::error::Error for TransactError<TCancelError> {}
 
 #[derive(Debug)]
 pub enum TransactUpdateError<TCancelError: std::error::Error + Send> {

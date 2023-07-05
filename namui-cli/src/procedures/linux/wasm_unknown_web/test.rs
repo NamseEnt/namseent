@@ -1,12 +1,13 @@
-use std::{
-    collections::HashSet,
-    path::{Path, PathBuf},
-    process::Command,
-    str::FromStr,
-};
-
+use anyhow::Result;
 use cargo_metadata::MetadataCommand;
 use regex::Regex;
+use std::{
+    collections::HashSet,
+    io::Write,
+    path::{Path, PathBuf},
+    process::{Command, Stdio},
+    str::FromStr,
+};
 
 pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
     let source_root_directory_to_bind =
@@ -32,14 +33,26 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
         })
         .filter(|(cargo_cache_path, _)| cargo_cache_path.exists());
 
-    let bind_directory_tuples = [(
-        source_root_directory_to_bind.clone(),
-        source_bind_path.clone(),
-    )]
-    .into_iter()
-    .chain(cargo_cache_bind_directory_tuples);
+    let mut bind_directory_tuples: Vec<_> = [(source_root_directory_to_bind, source_bind_path)]
+        .into_iter()
+        .chain(cargo_cache_bind_directory_tuples)
+        .collect();
+
+    let sccache_host_path = match std::env::var("SCCACHE_DIR") {
+        Ok(sccache_dir) => PathBuf::from_str(&sccache_dir)?,
+        Err(_) => PathBuf::from_str("/root/.cache/sccache")?,
+    };
+    if sccache_host_path.exists() {
+        let sccache_bind_directory_tuple = (
+            PathBuf::from_str(&format!("{}/.cache/sccache", std::env::var("HOME")?))?,
+            sccache_host_path,
+        );
+
+        bind_directory_tuples.push(sccache_bind_directory_tuple);
+    }
 
     let bind_args: Vec<String> = bind_directory_tuples
+        .into_iter()
         .map(|(source, target)| {
             format!("{}:{}", source.to_str().unwrap(), target.to_str().unwrap())
         })
@@ -69,11 +82,13 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
         .join("; ")
     );
 
+    build_docker_image()?;
+
     let args = ["run", "--rm"]
         .into_iter()
         .chain(bind_args.iter().map(|s| s.as_ref()))
         .chain([
-            "ghcr.io/namseent/namui-test-host:latest",
+            "namui-test-host:latest",
             "sh",
             "-c",
             &command_to_pass_to_podman,
@@ -82,6 +97,28 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
 
     if !result.success() {
         return Err(format!("test failed").into());
+    }
+    Ok(())
+}
+
+fn build_docker_image() -> Result<()> {
+    let dockerfile = include_str!("../../../../../docker-images/namui-test-host/linux.Dockerfile");
+    let args = ["build", "--tag", "namui-test-host:latest", "--quiet", "-"];
+    let mut podman = Command::new("podman")
+        .args(args)
+        .stdin(Stdio::piped())
+        .spawn()?;
+
+    podman
+        .stdin
+        .as_ref()
+        .unwrap()
+        .write_all(dockerfile.as_bytes())?;
+
+    let result = podman.wait()?;
+
+    if !result.success() {
+        anyhow::bail!("build docker image failed");
     }
     Ok(())
 }

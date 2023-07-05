@@ -199,4 +199,20 @@ impl rpc::AuthService<SessionDocument> for AuthService {
             }
         })
     }
+
+    fn get_user_id<'a>(
+        &'a self,
+        session: Option<SessionDocument>,
+        _req: rpc::get_user_id::Request,
+    ) -> std::pin::Pin<Box<dyn 'a + std::future::Future<Output = rpc::get_user_id::Result> + Send>>
+    {
+        Box::pin(async move {
+            match session {
+                Some(session) => Ok(rpc::get_user_id::Response {
+                    user_id: session.user_id,
+                }),
+                None => Err(rpc::get_user_id::Error::InvalidSession),
+            }
+        })
+    }
 }

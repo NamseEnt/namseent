@@ -3,22 +3,23 @@ mod update;
 
 use crate::components::context_menu;
 use namui::prelude::*;
-use rpc::data::ScreenGraphic;
+use rpc::data::{CgFile, CutUpdateAction, ScreenGraphic};
 
 pub struct WysiwygEditor {
     dragging: Option<Dragging>,
-    editing_image_index: Option<usize>,
+    editing_image_index: Option<Uuid>,
     context_menu: Option<context_menu::ContextMenu>,
 }
 
 pub struct Props<'a> {
     pub wh: Wh<Px>,
     pub cut_id: Uuid,
-    pub screen_graphics: &'a Vec<ScreenGraphic>,
+    pub screen_graphics: &'a Vec<(Uuid, ScreenGraphic)>,
     pub project_id: Uuid,
+    pub cg_files: &'a Vec<CgFile>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Dragging {
     Resizer {
         context: render::resizer::ResizerDraggingContext,
@@ -29,19 +30,9 @@ enum Dragging {
     },
 }
 
-pub enum Event {
-    UpdateCutGraphics {
-        cut_id: Uuid,
-        callback: Box<dyn Fn(&mut Vec<ScreenGraphic>) -> () + 'static + Send + Sync>,
-    },
-    UpdateSequenceGraphics {
-        callback: Box<dyn Fn(&mut Vec<ScreenGraphic>) -> () + 'static + Send + Sync>,
-    },
-}
-
 enum InternalEvent {
     SelectImage {
-        index: usize,
+        index: Uuid,
     },
     ImageMoveStart {
         start_global_xy: Xy<Px>,
@@ -52,14 +43,11 @@ enum InternalEvent {
         global_xy: Xy<Px>,
     },
     MouseDownContainer,
-    MouseUp {
-        global_xy: Xy<Px>,
-        cut_id: Uuid,
-    },
+    MouseUp,
     OpenContextMenu {
         global_xy: Xy<Px>,
         cut_id: Uuid,
-        graphic_index: usize,
+        graphic_index: Uuid,
         graphic_wh: Wh<Px>,
         graphic: ScreenGraphic,
     },

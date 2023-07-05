@@ -4,6 +4,7 @@ mod session;
 pub mod storage;
 mod utils;
 
+use anyhow::Result;
 use aws_smithy_async::rt::sleep::default_async_sleep;
 use lambda_web::{is_running_on_lambda, run_hyper_on_lambda, LambdaError};
 use once_cell::sync::OnceCell;
@@ -22,6 +23,7 @@ struct Services {
     sequence_service: services::sequence::SequenceService,
     project_service: services::project::ProjectService,
     cg_service: services::cg::CgService,
+    memo_service: services::memo::MemoService,
 }
 
 static SERVICES: OnceCell<Services> = OnceCell::new();
@@ -59,6 +61,10 @@ pub async fn init() {
                 .strip_prefix(&server_path)
                 .unwrap_or(full_file_path);
 
+            if short_file_path.contains("aws-smithy-http-tower") {
+                return Ok(());
+            }
+
             writeln!(
                 buf,
                 "[{}] {} {}:{} - {}",
@@ -82,6 +88,7 @@ pub async fn init() {
             project_service: services::project::ProjectService::new(),
             image_service: services::image::ImageService::new(),
             cg_service: services::cg::CgService::new(),
+            memo_service: services::memo::MemoService::new(),
         })
         .unwrap();
 
@@ -100,34 +107,38 @@ pub async fn init() {
         STORAGES.set(Storage { dynamo_db, s3 }).unwrap();
     } else {
         log::info!("not running on lambda");
-        let dynamo_db = DynamoDb::new(
-            &aws_config::SdkConfig::builder()
-                .endpoint_resolver(aws_sdk_dynamodb::Endpoint::immutable(Uri::from_static(
-                    "http://localhost:8000",
-                )))
-                .region(aws_sdk_dynamodb::Region::new("ap-northeast-2"))
-                .credentials_provider(aws_types::credentials::SharedCredentialsProvider::new(
-                    aws_types::Credentials::new("local", "local", None, None, "local"),
-                ))
-                .sleep_impl(default_async_sleep().unwrap())
-                .build(),
-        );
-        let s3 = S3::new(
-            &aws_config::SdkConfig::builder()
-                .endpoint_resolver(aws_sdk_dynamodb::Endpoint::immutable(Uri::from_static(
-                    "http://localhost:9000",
-                )))
-                .region(aws_sdk_dynamodb::Region::new("ap-northeast-2"))
-                .credentials_provider(aws_types::credentials::SharedCredentialsProvider::new(
-                    aws_types::Credentials::new("minio", "minio123", None, None, "local"),
-                ))
-                .sleep_impl(default_async_sleep().unwrap())
-                .build(),
-            "http://localhost:9000".to_string(),
-        );
-
-        STORAGES.set(Storage { dynamo_db, s3 }).unwrap();
+        set_local_storage();
     }
+}
+
+pub(crate) fn set_local_storage() {
+    let dynamo_db = DynamoDb::new(
+        &aws_config::SdkConfig::builder()
+            .endpoint_resolver(aws_sdk_dynamodb::Endpoint::immutable(Uri::from_static(
+                "http://localhost:8000",
+            )))
+            .region(aws_sdk_dynamodb::Region::new("ap-northeast-2"))
+            .credentials_provider(aws_types::credentials::SharedCredentialsProvider::new(
+                aws_types::Credentials::new("local", "local", None, None, "local"),
+            ))
+            .sleep_impl(default_async_sleep().unwrap())
+            .build(),
+    );
+    let s3 = S3::new(
+        &aws_config::SdkConfig::builder()
+            .endpoint_resolver(aws_sdk_dynamodb::Endpoint::immutable(Uri::from_static(
+                "http://localhost:9000",
+            )))
+            .region(aws_sdk_dynamodb::Region::new("ap-northeast-2"))
+            .credentials_provider(aws_types::credentials::SharedCredentialsProvider::new(
+                aws_types::Credentials::new("minio", "minio123", None, None, "local"),
+            ))
+            .sleep_impl(default_async_sleep().unwrap())
+            .build(),
+        "http://localhost:9000".to_string(),
+    );
+
+    STORAGES.set(Storage { dynamo_db, s3 }).unwrap();
 }
 
 pub async fn run_server() -> Result<(), LambdaError> {
@@ -139,10 +150,7 @@ pub async fn run_server() -> Result<(), LambdaError> {
         let make_svc = make_service_fn(|_conn| async {
             Ok::<_, LambdaError>(service_fn(handle::handle_with_wrapped_error))
         });
-        let server = Server::bind(&addr)
-            .tcp_keepalive(None) // to prevent infinite pending problem on chrome
-            .http1_keepalive(false) // same as above
-            .serve(make_svc);
+        let server = Server::bind(&addr).serve(make_svc);
 
         server.await?;
     }

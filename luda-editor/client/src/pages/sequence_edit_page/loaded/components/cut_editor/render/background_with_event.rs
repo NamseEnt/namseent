@@ -3,7 +3,7 @@ use rpc::data::ScreenCg;
 
 impl CutEditor {
     pub fn background_with_event(&self, props: &Props, cut: &Cut) -> namui::RenderingTree {
-        let cut_id = cut.id();
+        let cut_id = cut.id;
         let selected_target = self.selected_target;
         let prev_cut_id = prev_cut_id(&props, cut_id);
         let next_cut_id = next_cut_id(&props, cut_id);
@@ -16,12 +16,6 @@ impl CutEditor {
                             let file = file.clone();
                             spawn_local(async move {
                                 let content = file.content().await;
-                                if file.name() == "sequence.json" {
-                                    namui::event::send(Event::UploadSequence {
-                                        sequence: serde_json::from_slice(&content).unwrap(),
-                                    });
-                                    return;
-                                }
                                 match file.name().ends_with(".psd") {
                                     true => namui::event::send(Event::AddNewCg {
                                         psd_bytes: content.into(),

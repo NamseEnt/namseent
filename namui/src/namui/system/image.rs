@@ -1,5 +1,5 @@
 use super::*;
-use crate::{time::delay, File, Image};
+use crate::{time::delay, url::url_to_bytes, File, Image};
 use dashmap::DashMap;
 use namui_type::Time;
 use std::{
@@ -54,17 +54,7 @@ pub fn try_load_url(url: &Url) -> Option<Arc<Image>> {
 fn start_load_url(url: &Url) {
     let url = url.clone();
     spawn_local(async move {
-        let read_url_result: Result<_, Box<dyn std::error::Error>> = match url.scheme() {
-            "http" | "https" => crate::network::http::get_bytes(url.as_str())
-                .await
-                .map_err(|error| error.into())
-                .map(|bytes| bytes.as_ref().to_vec()),
-            "bundle" => crate::file::bundle::read(&url)
-                .await
-                .map_err(|error| error.into())
-                .map(|bytes| bytes.as_ref().to_vec()),
-            _ => Err(format!("unknown scheme: {}", url.scheme()).into()),
-        };
+        let read_url_result = url_to_bytes(&url).await;
 
         match read_url_result {
             Ok(data) => match new_image_from_u8(&data).await {
