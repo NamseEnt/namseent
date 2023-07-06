@@ -1,3 +1,4 @@
+mod additional_graphic;
 mod predetermined_graphic;
 mod psd_parsing;
 
@@ -5,7 +6,10 @@ use anyhow::Result;
 use include_dir::{include_dir, Dir};
 use namui_type::{percent, Percent, Uuid, Xy};
 // use opencv::prelude::*;
-use crate::predetermined_graphic::get_predetermined_graphic_map;
+use crate::{
+    additional_graphic::push_additional_graphic_map,
+    predetermined_graphic::get_predetermined_graphic_map,
+};
 use image::{imageops::FilterType, DynamicImage, ImageBuffer, Luma};
 use predetermined_graphic::PredeterminedGraphic;
 use psd_parsing::{parse_psd, PsdParsingResult};
@@ -125,6 +129,7 @@ fn main() -> Result<()> {
 
         sequence.cuts.push(cut);
     }
+    push_additional_graphic_map(&mut sequence);
 
     println!("Used background image urls, please upload them to project as image");
     let mut used_background_image_names = used_background_images
@@ -217,6 +222,31 @@ fn copy_used_assets(used_background_image_names: &Vec<String>, used_cg_file_name
         used_cg_file_names,
         &PathBuf::from_str("src/psds").unwrap(),
         &PathBuf::from_str("used-assets/psds").unwrap(),
+    );
+    let additional_image_dir = PathBuf::from_str("src/additional_graphic/images").unwrap();
+    let additional_image_names = additional_image_dir
+        .read_dir()
+        .unwrap()
+        .into_iter()
+        .filter_map(|dirent| {
+            let dirent = dirent.unwrap();
+            if !dirent.file_type().unwrap().is_file() {
+                return None;
+            }
+            Some(
+                PathBuf::from_str(dirent.file_name().to_str().unwrap())
+                    .unwrap()
+                    .file_stem()
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_string(),
+            )
+        })
+        .collect::<Vec<_>>();
+    copy_assets(
+        &additional_image_names,
+        &additional_image_dir,
+        &PathBuf::from_str("used-assets/additional_images").unwrap(),
     );
 }
 
