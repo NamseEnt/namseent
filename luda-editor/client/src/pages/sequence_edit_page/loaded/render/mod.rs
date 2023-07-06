@@ -1,4 +1,5 @@
 use super::*;
+use crate::RPC;
 use namui_prebuilt::*;
 
 pub struct Props {
@@ -46,6 +47,43 @@ impl LoadedSequenceEditorPage {
             context_menu,
             self.render_memo_editor(),
         ])
+        .attach_event(|builder| {
+            builder.on_file_drop(move |event| {
+                for file in event.files.iter() {
+                    if file.name() == "memos.json" {
+                        namui::log!("{}", file.name());
+                        let file = file.clone();
+                        spawn_local(async move {
+                            let memos: HashMap<usize, Vec<String>> =
+                                serde_json::from_slice(&file.content().await).unwrap();
+                            let sequence = SEQUENCE_ATOM.get_unwrap();
+                            let total_length = memos.len();
+                            const INFO_PRINT_INTERVAL: namui::Time = Time::Sec(1.0);
+                            let mut last_info_printed_time = namui::now();
+                            for (memos_index, (cut_index, memos)) in memos.into_iter().enumerate() {
+                                let now = namui::now();
+                                if now - last_info_printed_time >= INFO_PRINT_INTERVAL {
+                                    namui::log!("memo uploading {memos_index}/{total_length}");
+                                    last_info_printed_time = now;
+                                }
+                                if let Some(cut) = sequence.cuts.get(cut_index) {
+                                    let cut_id = cut.id;
+                                    for memo in memos {
+                                        RPC.create_memo(rpc::create_memo::Request {
+                                            sequence_id: sequence.id,
+                                            cut_id,
+                                            content: memo,
+                                        })
+                                        .await
+                                        .unwrap();
+                                    }
+                                }
+                            }
+                        })
+                    }
+                }
+            });
+        })
     }
 
     fn render_character_editor<'a>(&'a self, cut: Option<&'a Cut>) -> table::TableCell {

@@ -16,16 +16,19 @@ impl CutEditor {
                             let file = file.clone();
                             spawn_local(async move {
                                 let content = file.content().await;
-                                match file.name().ends_with(".psd") {
-                                    true => namui::event::send(Event::AddNewCg {
+                                let file_name = file.name();
+                                if file_name.ends_with(".psd") {
+                                    namui::event::send(Event::AddNewCg {
                                         psd_bytes: content.into(),
                                         psd_name: file.name().trim_end_matches(".psd").to_string(),
                                         cut_id,
-                                    }),
-                                    false => namui::event::send(Event::AddNewImage {
+                                    })
+                                } else if file_name.ends_with(".png") || file_name.ends_with(".jpg")
+                                {
+                                    namui::event::send(Event::AddNewImage {
                                         png_bytes: content.into(),
                                         cut_id,
-                                    }),
+                                    })
                                 }
                             })
                         }
