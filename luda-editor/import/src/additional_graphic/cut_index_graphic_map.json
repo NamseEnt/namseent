@@ -237,5 +237,45 @@
         }
       }
     }
+  ],
+  "712": [
+    {
+      "Cg": {
+        "id": "5a5ec517-9f14-fa32-02d9-3c313c758929",
+        "name": "오하연-찡찡-사복(test)",
+        "parts": [
+          { "Single": { "name": "표정.눈썹_s", "variant_name": "일반" } },
+          { "Single": { "name": "표정.눈_s", "variant_name": "놀람" } },
+          { "Single": { "name": "표정.코_s", "variant_name": "코" } },
+          { "Single": { "name": "표정.입_s", "variant_name": ":(" } },
+          { "Single": { "name": "표정.기타_s", "variant_name": null } },
+          { "AlwaysOn": { "name": "" } }
+        ],
+        "circumscribed": {
+          "center_xy": { "x": 49.020527, "y": 60.074627 },
+          "radius": 86.87416
+        }
+      }
+    }
+  ],
+  "715": [
+    {
+      "Cg": {
+        "id": "5a5ec517-9f14-fa32-02d9-3c313c758929",
+        "name": "오하연-찡찡-사복(test)",
+        "parts": [
+          { "Single": { "name": "표정.눈썹_s", "variant_name": "일반" } },
+          { "Single": { "name": "표정.눈_s", "variant_name": "놀람" } },
+          { "Single": { "name": "표정.코_s", "variant_name": "코" } },
+          { "Single": { "name": "표정.입_s", "variant_name": ":(" } },
+          { "Single": { "name": "표정.기타_s", "variant_name": null } },
+          { "AlwaysOn": { "name": "" } }
+        ],
+        "circumscribed": {
+          "center_xy": { "x": 49.020527, "y": 60.074627 },
+          "radius": 86.87416
+        }
+      }
+    }
   ]
 }
