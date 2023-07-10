@@ -1,0 +1,54 @@
+name: publish-extension
+on:
+  release:
+    types:
+      - created
+
+concurrency:
+  group: ${{ github.ref }}-publish-extension
+  cancel-in-progress: true
+env:
+  SCCACHE_GHA_ENABLED: true
+  RUSTC_WRAPPER: sccache
+  CARGO_INCREMENTAL: 0
+  VSCE_PAT: ${{ secrets.AZURE_DEV_OPS_MARKETPLACE_MANAGE_KEY }}
+jobs:
+  publish-extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: wasm-pack install
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: rustup wasm32-unknown-unknown
+        run: rustup target add wasm32-unknown-unknown
+
+      - uses: actions/cache@v3
+        id: extension-rust-cache
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            extension/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('extension/Cargo.lock') }}
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        working-directory: extension
+        run: npm install
+
+      - name: publish
+        working-directory: extension
+        run: |
+          npm run publish
