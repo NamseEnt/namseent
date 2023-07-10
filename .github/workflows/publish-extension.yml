@@ -1,5 +1,9 @@
 name: publish-extension
 on:
+  push:
+    branches:
+      - master
+  pull_request:
   release:
     types:
       - created
@@ -44,11 +48,16 @@ jobs:
         with:
           node-version: 18
 
+      - name: Test extension rust part
+        working-directory: extension/in_rust
+        run: cargo test
+
       - name: Install dependencies
         working-directory: extension
         run: npm install
 
       - name: publish
+        if: success() && startsWith(github.ref, 'refs/tags/')
         working-directory: extension
         run: |
           npm run publish
