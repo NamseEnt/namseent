@@ -100,7 +100,6 @@ async function cloneToClosure(
         "borrow of moved value: `".length,
         diagnostic.message.indexOf("\n") - 1,
     );
-    const inputText = document.getText();
     const result = clone_to_closure(
         document.getText(),
         new LineColumn(moveStart.line + 1, moveStart.character),
