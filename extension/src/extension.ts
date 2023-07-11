@@ -110,7 +110,6 @@ async function cloneToClosure(
             diagnostic.range.start.character,
         ),
     );
-    // const formattedOutput = await runRustFmt(output);
 
     const action = JSON.parse(result) as {
         insert: {
@@ -127,12 +126,6 @@ async function cloneToClosure(
             insert.text,
         );
     });
-
-    // textEditor.edit((edit) => {
-    //     // const { range, text } = calculateEditRange(inputText, formattedOutput);
-    //     // console.log("edit", range, text);
-    //     // edit.replace(range, text);
-    // });
 }
 
 function runRustFmt(rustFile: String): Promise<string> {
