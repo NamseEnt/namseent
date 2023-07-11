@@ -1,0 +1,42 @@
+{
+    "name": "rust-helper",
+    "private": true,
+    "displayName": "Rust Helper",
+    "version": "0.0.1",
+    "publisher": "namseent",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/namseent/namseent"
+    },
+    "bugs": {
+        "url": "https://github.com/namseent/namseent/issues"
+    },
+    "engines": {
+        "vscode": "^1.73.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onLanguage:rust"
+    ],
+    "main": "./out/extension.js",
+    "scripts": {
+        "publish": "vsce publish",
+        "vscode:prepublish": "npm run compile",
+        "compile": "(cd ./in_rust && bash ./build.sh) && tsc -p ./",
+        "lint": "eslint \"src/**/*.ts\"",
+        "watch": "tsc -watch -p ./"
+    },
+    "devDependencies": {
+        "@types/node": "^16.18.34",
+        "@types/vscode": "^1.73.0",
+        "@typescript-eslint/eslint-plugin": "^5.42.0",
+        "@typescript-eslint/parser": "^5.42.0",
+        "eslint": "^8.26.0",
+        "typescript": "^5.1.3"
+    },
+    "dependencies": {
+        "vsce": "^2.15.0"
+    }
+}
