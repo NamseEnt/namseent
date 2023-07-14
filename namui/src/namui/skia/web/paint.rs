@@ -20,6 +20,7 @@ impl Paint {
         stroke_cap: Option<StrokeCap>,
         stroke_join: Option<StrokeJoin>,
         color_filter: Option<impl AsRef<ColorFilter>>,
+        blend_mode: Option<BlendMode>,
     ) -> Self {
         let canvas_kit_paint = CanvasKitPaint::new();
         if let Some(color) = color {
@@ -42,6 +43,9 @@ impl Paint {
         }
         if let Some(color_filter) = color_filter {
             canvas_kit_paint.setColorFilter(&color_filter.as_ref().0);
+        }
+        if let Some(blend_mode) = blend_mode {
+            canvas_kit_paint.setBlendMode(blend_mode.into_canvas_kit());
         }
 
         Paint {
