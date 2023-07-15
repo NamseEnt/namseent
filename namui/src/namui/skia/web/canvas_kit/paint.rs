@@ -60,13 +60,13 @@ extern "C" {
     #[wasm_bindgen(method)]
     pub(crate) fn setAntiAlias(this: &CanvasKitPaint, aa: bool);
 
-    // ///
-    // /// Sets the blend mode that is, the mode used to combine source color
-    // /// with destination color.
-    // /// @param mode
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub(crate) fn setBlendMode(this: &CanvasKitPaint, mode: BlendMode);
+    ///
+    /// Sets the blend mode that is, the mode used to combine source color
+    /// with destination color.
+    /// @param mode
+    ///
+    #[wasm_bindgen(method)]
+    pub(crate) fn setBlendMode(this: &CanvasKitPaint, mode: CanvasKitBlendMode);
 
     ///
     /// Sets alpha and RGB used when stroking and filling. The color is four floating

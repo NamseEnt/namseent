@@ -19,6 +19,7 @@ pub struct PaintBuilder {
     stroke_cap: Option<StrokeCap>,
     stroke_join: Option<StrokeJoin>,
     color_filter: Option<(Color, BlendMode)>,
+    blend_mode: Option<BlendMode>,
     shader: Option<Arc<Shader>>,
 }
 
@@ -31,6 +32,7 @@ pub struct PaintBuilderWithoutShader {
     stroke_cap: Option<StrokeCap>,
     stroke_join: Option<StrokeJoin>,
     color_filter: Option<(Color, BlendMode)>,
+    blend_mode: Option<BlendMode>,
 }
 
 static PAINT_CACHE: OnceCell<Mutex<lru::LruCache<PaintBuilderWithoutShader, Arc<Paint>>>> =
@@ -52,6 +54,7 @@ impl PaintBuilder {
             stroke_join: None,
             color_filter: None,
             shader: None,
+            blend_mode: None,
         }
     }
     pub fn set_color(mut self, color: Color) -> Self {
@@ -82,6 +85,10 @@ impl PaintBuilder {
         self.color_filter = Some((color, blend_mode));
         self
     }
+    pub fn set_blend_mode(mut self, blend_mode: BlendMode) -> Self {
+        self.blend_mode = Some(blend_mode);
+        self
+    }
     pub fn set_shader(mut self, make_shader: Arc<Shader>) -> Self {
         self.shader = Some(make_shader);
         self
@@ -96,12 +103,13 @@ impl PaintBuilder {
             stroke_cap: self.stroke_cap,
             stroke_join: self.stroke_join,
             color_filter: self.color_filter,
+            blend_mode: self.blend_mode,
         };
         let mut cache = PAINT_CACHE
             .get_or_init(|| Mutex::new(lru::LruCache::new(1024)))
             .lock()
             .unwrap();
-        let paint = match cache.get(&paint_builder_without_shader) {
+        let paint: Arc<Paint> = match cache.get(&paint_builder_without_shader) {
             Some(paint) => paint.clone(),
             None => {
                 let paint = self.create_paint();
@@ -127,6 +135,7 @@ impl PaintBuilder {
             self.color_filter
                 .as_ref()
                 .map(|(color, blend_mode)| Self::get_or_create_color_filter(*color, *blend_mode)),
+            self.blend_mode,
         );
 
         Arc::new(paint)
@@ -160,6 +169,7 @@ impl PaintBuilder {
             stroke_cap: self.stroke_cap,
             stroke_join: self.stroke_join,
             color_filter: self.color_filter,
+            blend_mode: self.blend_mode,
         }
     }
 }
@@ -174,6 +184,7 @@ impl Hash for PaintBuilderWithoutShader {
             .hash(state);
         self.stroke_cap.hash(state);
         self.color_filter.hash(state);
+        self.blend_mode.hash(state);
     }
 }
 
