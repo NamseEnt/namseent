@@ -99,7 +99,7 @@ impl Image {
         Arc::new(Shader::new(shader))
     }
 
-    pub(crate) fn get_default_shader(&self) -> Arc<Shader> {
+    pub fn get_default_shader(&self) -> Arc<Shader> {
         self.default_shader.clone()
     }
 
