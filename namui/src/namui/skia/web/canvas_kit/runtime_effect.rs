@@ -21,17 +21,14 @@ extern "C" {
 
     /// Returns a shader executed using the given uniform data and the children as inputs.
     /// @param uniforms
-    /// @param isOpaque
     /// @param children: should be CanvasKitShader
     /// @param localMatrix
-    ///
     #[wasm_bindgen(method)]
     pub(crate) fn makeShaderWithChildren(
         this: &CanvasKitRuntimeEffect,
         uniforms: &[f32],
-        isOpaque: Option<bool>,
         children: Option<Vec<JsValue>>,
-        // localMatrix: Option<InputMatrix>
+        // localMatrix: Option<InputMatrix>,
     ) -> CanvasKitShader;
 }
 
