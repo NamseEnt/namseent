@@ -1,0 +1,20 @@
+{
+  "Create hooks component": {
+    "scope": "rust",
+    "prefix": "component",
+    "body": [
+      "#[derive(Debug, PartialEq, Hooks)]",
+      "struct $0 {",
+      "",
+      "}",
+      "",
+      "impl HooksProps for $0 {",
+      "    fn render(&self, render_ctx: &mut RenderCtx) {",
+      "        let &Self {",
+      "",
+      "        } = self;",
+      "    }",
+      "}"
+    ]
+  }
+}
