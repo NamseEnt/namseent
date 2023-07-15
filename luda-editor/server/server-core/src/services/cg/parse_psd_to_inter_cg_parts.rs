@@ -1,4 +1,5 @@
 use super::layer_tree::{make_tree, LayerTree};
+use psd::BlendMode;
 use rpc::data::PartSelectionType;
 
 pub struct InterCgPart<'a> {
@@ -11,17 +12,19 @@ pub struct InterCgVariant<'a> {
     pub part_name: String,
     pub variant_name: String,
     pub layer_tree: Vec<LayerTree<'a>>,
+    pub blend_mode: BlendMode,
 }
 
 pub fn parse_psd_to_inter_cg_parts<'a>(psd: &'a psd::Psd) -> Vec<InterCgPart<'a>> {
     let layer_tree = make_tree(psd).expect("Failed to make tree");
-    let parts = create_inter_cg_part_from_layer_tree(layer_tree, vec![]);
+    let parts = create_inter_cg_part_from_layer_tree(layer_tree, vec![], BlendMode::Normal);
     parts
 }
 
 fn create_inter_cg_part_from_layer_tree<'psd>(
     layer_tree: Vec<LayerTree<'psd>>,
     layer_full_names: Vec<String>,
+    blend_mode: BlendMode,
 ) -> Vec<InterCgPart<'psd>> {
     let mut merging_layer_tree = vec![];
     let mut parts = vec![];
@@ -30,6 +33,7 @@ fn create_inter_cg_part_from_layer_tree<'psd>(
         merging_layer_tree: &mut Vec<LayerTree<'psd>>,
         parts: &mut Vec<InterCgPart<'psd>>,
         layer_full_names: &Vec<String>,
+        blend_mode: BlendMode,
     ) {
         if merging_layer_tree.is_empty() {
             return;
@@ -51,6 +55,7 @@ fn create_inter_cg_part_from_layer_tree<'psd>(
                 part_name,
                 variant_name,
                 layer_tree,
+                blend_mode,
             }],
         });
     }
@@ -64,6 +69,7 @@ fn create_inter_cg_part_from_layer_tree<'psd>(
             &mut merging_layer_tree,
             &mut parts,
             &layer_full_names,
+            blend_mode,
         );
         match layer_tree {
             LayerTree::Group { item, children } => {
@@ -82,6 +88,7 @@ fn create_inter_cg_part_from_layer_tree<'psd>(
                     for child in children {
                         let clipping = !child.is_clipping();
                         let variant_name = child.name().to_string();
+                        let blend_mode = child.blend_mode();
                         layer_tree.push(child);
                         if clipping {
                             continue;
@@ -90,6 +97,7 @@ fn create_inter_cg_part_from_layer_tree<'psd>(
                             part_name: part_name.clone(),
                             variant_name,
                             layer_tree,
+                            blend_mode,
                         });
                         layer_tree = vec![];
                     }
@@ -107,6 +115,7 @@ fn create_inter_cg_part_from_layer_tree<'psd>(
                 parts.append(&mut create_inter_cg_part_from_layer_tree(
                     children,
                     layer_full_names,
+                    blend_mode,
                 ));
             }
             LayerTree::Layer { .. } => {
@@ -118,6 +127,7 @@ fn create_inter_cg_part_from_layer_tree<'psd>(
         &mut merging_layer_tree,
         &mut parts,
         &layer_full_names,
+        blend_mode,
     );
 
     parts
