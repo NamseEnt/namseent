@@ -3,7 +3,6 @@ import {
     clone_to_closure,
     LineColumn,
 } from "../in_rust/pkg/rust_helper_extension";
-import { exec } from "node:child_process";
 
 const CLONE_TO_CLOSURE_COMMAND = "rust-helper.clone-to-closure";
 
@@ -86,7 +85,7 @@ export class RustHelper implements vscode.CodeActionProvider {
 }
 
 async function cloneToClosure(
-    textEditor: vscode.TextEditor,
+    _textEditor: vscode.TextEditor,
     edit: vscode.TextEditorEdit,
     document: vscode.TextDocument,
     diagnostic: vscode.Diagnostic,
@@ -125,95 +124,4 @@ async function cloneToClosure(
             insert.text,
         );
     });
-}
-
-function runRustFmt(rustFile: String): Promise<string> {
-    const child = exec("rustfmt");
-    child.stdout!.setEncoding("utf8");
-    child.stdin!.write(rustFile);
-    child.stdin!.end();
-
-    return new Promise((resolve, reject) => {
-        const chunks: string[] = [];
-        child.stdout!.on("data", (data) => {
-            chunks.push(data);
-        });
-        child.stdout!.on("close", () => {
-            const output = chunks.join("");
-            resolve(output);
-        });
-        child.stdout!.on("error", (err) => {
-            reject(err);
-        });
-    });
-}
-function calculateEditRange(
-    inputText: string,
-    formattedOutput: string,
-): {
-    range: vscode.Range;
-    text: string;
-} {
-    let startLine = 0;
-    let startCharacter = 0;
-    let startIndex = 0;
-
-    const inputLines = inputText.split("\n");
-    let endLine = inputLines.length - 1;
-    let endCharacter = inputLines[endLine].length;
-    let endIndex = 0;
-
-    for (
-        startIndex = 0;
-        startIndex < Math.min(inputText.length, formattedOutput.length);
-        startIndex++
-    ) {
-        const inputChar = inputText[startIndex];
-        const outputChar = formattedOutput[startIndex];
-        if (inputChar !== outputChar) {
-            break;
-        }
-
-        if (inputChar === "\n") {
-            startLine++;
-            startCharacter = 0;
-        } else {
-            startCharacter++;
-        }
-    }
-
-    for (
-        endIndex = 0;
-        endIndex < Math.min(inputText.length, formattedOutput.length);
-        endIndex++
-    ) {
-        const inputChar = inputText[inputText.length - endIndex - 1];
-        const outputChar =
-            formattedOutput[formattedOutput.length - endIndex - 1];
-
-        if (inputChar !== outputChar) {
-            break;
-        }
-
-        if (inputChar === "\n") {
-            endLine--;
-            endCharacter = inputLines[endLine].length;
-        } else {
-            endCharacter--;
-        }
-    }
-
-    const range = new vscode.Range(
-        new vscode.Position(startLine, startCharacter),
-        new vscode.Position(endLine, endCharacter),
-    );
-    const text = formattedOutput.substring(
-        startIndex,
-        formattedOutput.length - endIndex,
-    );
-
-    return {
-        range,
-        text,
-    };
 }
