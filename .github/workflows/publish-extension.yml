@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+  create:
     tags:
       - 'extension-*'
   pull_request:
