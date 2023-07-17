@@ -72,18 +72,14 @@ jobs:
             echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Test
-        id: test
-        run: echo "" >> "$GITHUB_OUTPUT"
-
       - name: create release
-        if: steps.test.outputs.set_tag
+        if: steps.tag.outputs.tag
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
 
       - name: publish
-        if: steps.test.outputs.set_tag
+        if: steps.tag.outputs.tag
         working-directory: extension
         run: |
           npm install -g vsce
