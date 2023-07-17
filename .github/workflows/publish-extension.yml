@@ -62,7 +62,7 @@ jobs:
 
           export TAG="extension/$EXTENSION_VERSION"
           echo "Tag: $TAG"
-
+          echo "tag=123" >> "$GITHUB_OUTPUT"
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "tag already exists";
           else
