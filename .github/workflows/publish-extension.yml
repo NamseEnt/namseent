@@ -51,7 +51,7 @@ jobs:
 
       - name: create tag
         id: tag
-        if: success() && startsWith(github.ref, 'refs/heads/master')
+        # if: success() && startsWith(github.ref, 'refs/heads/master')
         working-directory: extension
         run: |
           git config --local user.email ""
@@ -84,4 +84,4 @@ jobs:
         run: |
           npm install -g vsce
           npm install
-          npm run publish
+          # // npm run publish
