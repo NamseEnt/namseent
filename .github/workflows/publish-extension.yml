@@ -74,7 +74,7 @@ jobs:
 
       - name: Test
         id: test
-        run: echo "set_tag=true" >> "$GITHUB_OUTPUT"
+        run: echo "set_tag=false" >> "$GITHUB_OUTPUT"
 
       - name: create release
         if: steps.test.outputs.set_tag
