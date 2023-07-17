@@ -73,13 +73,13 @@ jobs:
           fi
 
       - name: create release
-        if: success() && ${{ steps.tag.outputs.tag }}
+        if: steps.tag.outputs.tag
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
 
       - name: publish
-        if: success() && ${{ steps.tag.outputs.tag }}
+        if: steps.tag.outputs.tag
         working-directory: extension
         run: |
           npm install -g vsce
