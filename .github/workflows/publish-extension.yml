@@ -3,8 +3,6 @@ on:
   push:
     branches:
       - master
-    tags:
-      - 'extension/*'
   pull_request:
 
 concurrency:
@@ -52,6 +50,7 @@ jobs:
         run: cargo test
 
       - name: create tag
+        id: tag
         if: success() && startsWith(github.ref, 'refs/heads/master')
         working-directory: extension
         run: |
@@ -69,14 +68,18 @@ jobs:
           else
             git tag -a "$TAG" -m "$TAG"
             git push origin "$TAG"
+            
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           fi
 
       - name: create release
-        if: success() && startsWith(github.ref, 'refs/tags/extension/')
+        if: success() && ${{ steps.tag.outputs.tag != '' }}
         uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
 
       - name: publish
-        if: success() && startsWith(github.ref, 'refs/tags/extension/')
+        if: success() && ${{ steps.tag.outputs.tag != '' }}
         working-directory: extension
         run: |
           npm install -g vsce
