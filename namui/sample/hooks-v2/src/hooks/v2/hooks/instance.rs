@@ -14,6 +14,7 @@ pub(crate) struct ComponentInstance {
     pub(crate) memo_value_list: Mutex<Vec<Arc<dyn Value>>>,
     pub(crate) memo_used_signals_list: Mutex<Vec<Vec<SignalId>>>,
     pub(crate) render_used_signals: Mutex<Vec<SignalId>>,
+    pub(crate) map_used_signals_list: Mutex<Vec<Vec<SignalId>>>,
     pub(crate) is_first_render: AtomicBool,
 }
 
@@ -59,6 +60,7 @@ impl ComponentInstance {
             memo_value_list: Default::default(),
             memo_used_signals_list: Default::default(),
             render_used_signals: Default::default(),
+            map_used_signals_list: Default::default(),
             is_first_render: AtomicBool::new(true),
         }
     }

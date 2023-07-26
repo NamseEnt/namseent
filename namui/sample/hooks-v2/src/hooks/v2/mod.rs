@@ -13,17 +13,23 @@ enum Event {
 }
 
 impl Component for MyComponent {
-    fn component<'a>(&'a self, ctx: &'a Context) -> ContextDone {
-        let (count, set_count) = ctx.state(|| 0);
-        let fibo = ctx.memo(|| get_fibo(*count));
-        let text = ctx.memo(|| format!("Count: {}, Fibo: {}", *count, *fibo));
+    fn render(&self) -> RenderDone {
+        let (count, set_count) = use_state(|| 0);
 
-        ctx.render_with_event(
+        // let count_mul_2 = use_map(|| *count * 2);
+
+        // let fibo = use_memo(|| get_fibo(*count));
+        // let fibo2 = use_memo(|| get_fibo(*count_mul_2));
+
+        // let text = use_memo(|| format!("Count: {}, Fibo: {}", *count, *fibo));
+        let text = format!("Count: {}", *count);
+
+        use_render_with_event(
             |event| match event {
                 Event::OnClick => set_count.mutate(|count| *count += 1),
             },
             |ctx| Button {
-                text,
+                text: text.as_signal(),
                 on_click: ctx.event(Event::OnClick),
             },
         )
@@ -47,24 +53,25 @@ fn get_fibo(x: u32) -> u32 {
 }
 
 #[derive(Debug)]
-struct Button {
-    text: Signal<String>,
+struct Button<'a> {
+    // text: Signal<String>,
+    text: Signal<'a, String>,
     on_click: EventCallback,
 }
 
-impl StaticType for Button {
+impl StaticType for Button<'_> {
     fn static_type_id(&self) -> TypeId {
         TypeId::of::<Button>()
     }
 }
 
-impl Component for Button {
-    fn component<'a>(&'a self, ctx: &'a Context) -> ContextDone {
-        ctx.effect("Print text on text effect", || if self.text.on_effect() {});
+impl Component for Button<'_> {
+    fn render(&self) -> RenderDone {
+        // use_effect("Print text on text effect", || if self.text.on_effect() {});
 
-        ctx.effect("On button render", || {});
+        // use_effect("On button render", || {});
 
-        ctx.render(|| {
+        use_render(|| {
             button::text_button(
                 Rect::Xywh {
                     x: 10.px(),

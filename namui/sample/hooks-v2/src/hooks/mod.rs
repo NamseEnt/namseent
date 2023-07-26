@@ -10,7 +10,7 @@ pub(crate) struct Hooks {}
 impl Hooks {
     pub(crate) fn new() -> Hooks {
         RENDERING_TREE.get_or_init(|| Arc::new(Mutex::new(None)));
-        v2::hooks::start(v2::MyComponent {});
+        v2::hooks::start(&v2::MyComponent {});
 
         Hooks {}
     }

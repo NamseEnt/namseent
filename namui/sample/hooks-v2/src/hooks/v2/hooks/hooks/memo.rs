@@ -38,3 +38,7 @@ pub(crate) fn handle_memo<'a, T: 'static + Debug + Send + Sync>(
 
     Signal::new(value, signal_id)
 }
+
+pub fn use_memo<'a, T: 'static + Debug + Send + Sync>(memo: impl FnOnce() -> T) -> Signal<'a, T> {
+    todo!()
+}

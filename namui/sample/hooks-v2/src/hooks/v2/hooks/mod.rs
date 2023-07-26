@@ -1,24 +1,18 @@
 mod channel;
 mod draw;
-mod effect;
 mod event;
+mod hooks;
 mod instance;
-mod memo;
-mod render;
 mod signal;
 mod start;
-mod state;
 mod value;
 
 pub(crate) use channel::*;
-use crossbeam::atomic::AtomicCell;
 pub use draw::*;
-use effect::*;
 pub use event::*;
+pub use hooks::*;
 pub(crate) use instance::*;
-pub(crate) use memo::*;
 use namui::RenderingTree;
-pub(crate) use render::*;
 pub use signal::*;
 pub use start::*;
 pub use state::*;
@@ -60,108 +54,44 @@ impl Debug for ContextFor {
 }
 
 pub struct Context {
-    context_for: ContextFor,
     instance: Arc<ComponentInstance>,
     state_index: AtomicUsize,
     effect_index: AtomicUsize,
     memo_index: AtomicUsize,
+    map_index: AtomicUsize,
+    as_index: AtomicUsize,
 }
+unsafe impl Send for Context {}
+unsafe impl Sync for Context {}
 
 impl Context {
-    pub(crate) fn new(context_for: ContextFor, instance: Arc<ComponentInstance>) -> Self {
+    pub(crate) fn new(instance: Arc<ComponentInstance>) -> Self {
         Self {
-            context_for,
             instance,
-            state_index: AtomicUsize::new(0),
-            effect_index: AtomicUsize::new(0),
-            memo_index: AtomicUsize::new(0),
+            state_index: Default::default(),
+            effect_index: Default::default(),
+            memo_index: Default::default(),
+            map_index: Default::default(),
+            as_index: Default::default(),
         }
     }
+}
 
-    pub fn state<State: Send + Sync + Debug + 'static>(
-        &self,
-        init: impl FnOnce() -> State,
-    ) -> (Signal<State>, SetState<State>) {
-        handle_state(self, init)
-    }
+fn mount_visit(component: &dyn Component) -> ComponentHolder {
+    let component_instance = Arc::new(ComponentInstance::new(
+        new_component_id(),
+        component.static_type_id(),
+        component.static_type_name(),
+    ));
 
-    pub fn effect(&self, name: &'static str, effect: impl FnOnce()) {
-        let _ = name;
-        handle_effect(self, effect);
-    }
+    return render(component_instance.clone(), component).component_holder;
 
-    pub fn render<'a, 'b, C: Component + 'b>(
-        &self,
-        render: impl 'a + FnOnce() -> C,
-    ) -> ContextDone {
-        match &self.context_for {
-            ContextFor::Mount | ContextFor::SetState { .. } => {
-                let child = handle_render(self, render);
-                match child {
-                    Some(child) => ContextDone::Rendered { child },
-                    None => ContextDone::NoRender,
-                }
-            }
-            ContextFor::Event { .. } => {
-                unreachable!()
-            }
-        }
-    }
+    fn render(component_instance: Arc<ComponentInstance>, component: &dyn Component) -> RenderDone {
+        ctx::set_up_before_render(component_instance);
+        let done: RenderDone = component.render();
+        ctx::clear_up_before_render();
 
-    pub fn render_with_event<'me, 'a, 'b, C: Component + 'b, Event: 'static + Send + Sync>(
-        &'me self,
-        on_event: impl 'a + FnOnce(&Event),
-        render: impl 'a + FnOnce(EventContext<Event>) -> C,
-    ) -> ContextDone {
-        match &self.context_for {
-            ContextFor::Mount | ContextFor::SetState { .. } => {
-                let child = handle_render_with_event(self, render);
-                match child {
-                    Some(child) => ContextDone::Rendered { child },
-                    None => ContextDone::NoRender,
-                }
-            }
-            ContextFor::Event { event_callback } => {
-                assert_eq!(event_callback.component_id, self.instance.component_id);
-                on_event(event_callback.event.downcast_ref().unwrap());
-                ContextDone::NoRender
-            }
-        }
-    }
-
-    pub fn memo<T: 'static + Debug + Send + Sync>(&self, memo: impl FnOnce() -> T) -> Signal<T> {
-        handle_memo(self, memo)
-    }
-
-    fn is_set_state_phase(&self) -> bool {
-        match &self.context_for {
-            ContextFor::Mount | ContextFor::Event { .. } => false,
-            ContextFor::SetState { .. } => true,
-        }
-    }
-
-    fn is_used_signal_updated(&self, signal_ids: &Vec<SignalId>) -> bool {
-        let result = match &self.context_for {
-            ContextFor::Mount | ContextFor::Event { .. } => unreachable!(),
-            ContextFor::SetState { updated_signals } => {
-                let updated_signals = updated_signals.lock().unwrap();
-                signal_ids
-                    .into_iter()
-                    .any(|signal_id| updated_signals.contains(&signal_id))
-            }
-        };
-
-        result
-    }
-
-    fn push_used_signal_on_this_ctx(&self, signal_id: SignalId) {
-        match &self.context_for {
-            ContextFor::Mount => {}
-            ContextFor::Event { .. } => unreachable!(),
-            ContextFor::SetState { updated_signals } => {
-                updated_signals.lock().unwrap().insert(signal_id);
-            }
-        }
+        done
     }
 }
 
@@ -186,10 +116,61 @@ impl<Event: 'static + Send + Sync> EventContext<Event> {
 }
 
 #[derive(Debug)]
-pub enum ContextDone {
-    Rendered { child: Box<dyn Component> },
-    NoRender,
+pub struct RenderDone {
+    component_holder: ComponentHolder,
 }
+
+fn new_component_id() -> usize {
+    static COMPONENT_ID: AtomicUsize = AtomicUsize::new(0);
+    COMPONENT_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+}
+
+pub(crate) struct ComponentHolder {
+    pub(crate) component_instance: Arc<ComponentInstance>,
+    pub(crate) children: Vec<ComponentHolder>,
+    pub(crate) rendering_tree: Option<RenderingTree>,
+}
+
+impl Debug for ComponentHolder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ComponentHolder")
+            .field("component_instance", &self.component_instance)
+            .field("children", unsafe { &self.children.as_ptr().as_ref() })
+            .finish()
+    }
+}
+
+// pub enum RenderDone<'a> {
+//     WithEvent {
+//         event_context: Box<dyn 'static + Any>,
+//         on_event: Box<dyn 'a + FnOnce(&dyn Any)>,
+//         render: Box<dyn 'a + FnOnce(&dyn Any) -> Box<dyn 'a + Component>>,
+//     },
+//     WithoutEvent {
+//         render: Box<dyn 'a + FnOnce() -> Box<dyn 'a + Component>>,
+//     },
+//     RenderingTree {
+//         rendering_tree: &'a RenderingTree,
+//     },
+// }
+
+// impl Debug for RenderDone {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         match self {
+//             RenderDone::WithEvent { .. } => write!(f, "RenderDone::WithEvent",),
+//             RenderDone::WithoutEvent { .. } => {
+//                 write!(f, "RenderDone::WithoutEvent",)
+//             }
+//             RenderDone::RenderingTree { rendering_tree } => {
+//                 write!(
+//                     f,
+//                     "RenderDone::RenderingTree {{ rendering_tree: {:?} }}",
+//                     rendering_tree
+//                 )
+//             }
+//         }
+//     }
+// }
 
 impl StaticType for RenderingTree {
     fn static_type_id(&self) -> TypeId {
@@ -198,16 +179,16 @@ impl StaticType for RenderingTree {
 }
 
 impl Component for RenderingTree {
-    fn component<'a>(&'a self, _ctx: &'a Context) -> ContextDone {
-        ContextDone::NoRender
+    fn render(&self) -> RenderDone {
+        use_render_with_rendering_tree(self.clone())
     }
     fn rendering_tree(&self) -> Option<RenderingTree> {
         Some(self.clone())
     }
 }
 
-pub trait Component: StaticType + Debug + 'static {
-    fn component<'a>(&'a self, ctx: &'a Context) -> ContextDone;
+pub trait Component: StaticType + Debug {
+    fn render(&self) -> RenderDone;
     fn rendering_tree(&self) -> Option<RenderingTree> {
         None
     }

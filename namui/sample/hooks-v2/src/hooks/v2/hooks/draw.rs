@@ -2,9 +2,7 @@ use super::*;
 use crate::hooks::RENDERING_TREE;
 
 pub(crate) fn draw(root_holder: &ComponentHolder) {
-    //
     let rendering_tree = holder_to_rendering_tree(root_holder);
-    //
     RENDERING_TREE
         .get()
         .unwrap()
@@ -16,13 +14,9 @@ pub(crate) fn draw(root_holder: &ComponentHolder) {
 }
 
 fn holder_to_rendering_tree(holder: &ComponentHolder) -> RenderingTree {
-    //
-    let component = holder.component.get().unwrap().as_ref();
-    if let Some(rendering_tree) = component.rendering_tree() {
-        //
-        rendering_tree
+    if let Some(rendering_tree) = &holder.rendering_tree {
+        rendering_tree.clone()
     } else {
-        //
         namui::render(
             holder
                 .children

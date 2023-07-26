@@ -2,11 +2,11 @@ use super::*;
 
 pub(crate) enum SetStateItem {
     Set {
-        signal_id: StateSignalId,
+        signal_id: SignalId,
         value: Arc<dyn Value>,
     },
     Mutate {
-        signal_id: StateSignalId,
+        signal_id: SignalId,
         mutate: Box<dyn FnOnce(&mut (dyn Value)) + Send + Sync>,
     },
 }
@@ -29,7 +29,7 @@ impl Debug for SetStateItem {
 }
 
 pub struct SetState<State: 'static + Debug + Send + Sync> {
-    signal_id: StateSignalId,
+    signal_id: SignalId,
     _state: std::marker::PhantomData<State>,
 }
 
@@ -51,10 +51,11 @@ impl<State: 'static + Debug + Send + Sync> SetState<State> {
     }
 }
 
-pub(crate) fn handle_state<'a, State: Send + Sync + Debug + 'static>(
-    ctx: &'a Context,
+pub fn use_state<'a, State: Send + Sync + Debug + 'static>(
     init: impl FnOnce() -> State,
-) -> (Signal<State>, SetState<State>) {
+) -> (Signal<'a, State>, SetState<State>) {
+    let ctx = ctx();
+
     let instance = ctx.instance.as_ref();
     let mut state_list = instance.state_list.lock().unwrap();
 
@@ -70,11 +71,13 @@ pub(crate) fn handle_state<'a, State: Send + Sync + Debug + 'static>(
         update_or_push(&mut state_list, state_index, Arc::new(state));
     }
 
-    let state = Arc::downcast(state_list[state_index].clone().as_arc()).unwrap();
+    let state: Arc<State> = Arc::downcast(state_list[state_index].clone().as_arc()).unwrap();
+    let state: &State = unsafe { &*Arc::as_ptr(&state) };
 
-    let signal_id = StateSignalId {
+    let signal_id = SignalId {
+        id_type: SignalIdType::State,
+        index: state_index,
         component_id: instance.component_id,
-        state_index,
     };
 
     let set_state = SetState {
@@ -82,7 +85,7 @@ pub(crate) fn handle_state<'a, State: Send + Sync + Debug + 'static>(
         _state: std::marker::PhantomData,
     };
 
-    let signal = Signal::new(state, SignalId::State(signal_id));
+    let signal = Signal::new(state, signal_id);
 
     (signal, set_state)
 }
