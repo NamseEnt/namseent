@@ -9,10 +9,13 @@ pub(crate) fn init() {
     }
 }
 
-pub(crate) fn set_up_before_render(component_instance: Arc<ComponentInstance>) {
+pub(crate) fn set_up_before_render(
+    context_for: ContextFor,
+    component_instance: Arc<ComponentInstance>,
+) {
     let ctx = unsafe { CTX.get_mut() }.unwrap();
 
-    ctx.replace(Context::new(component_instance));
+    ctx.replace(Context::new(context_for, component_instance));
 }
 
 pub(crate) fn clear_up_before_render() {

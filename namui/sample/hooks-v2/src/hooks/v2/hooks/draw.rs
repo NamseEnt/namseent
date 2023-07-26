@@ -1,8 +1,8 @@
 use super::*;
 use crate::hooks::RENDERING_TREE;
 
-pub(crate) fn draw(root_holder: &ComponentHolder) {
-    let rendering_tree = holder_to_rendering_tree(root_holder);
+pub(crate) fn draw(root_tree: &ComponentTree) {
+    let rendering_tree = tree_to_rendering_tree(root_tree);
     RENDERING_TREE
         .get()
         .unwrap()
@@ -13,15 +13,14 @@ pub(crate) fn draw(root_holder: &ComponentHolder) {
     namui::event::send(namui::NamuiEvent::NoUpdateJustRender);
 }
 
-fn holder_to_rendering_tree(holder: &ComponentHolder) -> RenderingTree {
-    if let Some(rendering_tree) = &holder.rendering_tree {
+fn tree_to_rendering_tree(tree: &ComponentTree) -> RenderingTree {
+    if let Some(rendering_tree) = &tree.rendering_tree {
         rendering_tree.clone()
     } else {
         namui::render(
-            holder
-                .children
+            tree.children
                 .iter()
-                .map(|child| holder_to_rendering_tree(child)),
+                .map(|child| tree_to_rendering_tree(child)),
         )
     }
 }

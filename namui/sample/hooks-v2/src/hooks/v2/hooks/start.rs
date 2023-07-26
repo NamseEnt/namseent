@@ -4,9 +4,9 @@ pub fn start<T: Component + 'static>(component: &'static T) {
     ctx::init();
     let mut rx = channel::init();
 
-    let mut root_holder: ComponentHolder = mount_visit(component);
+    let mut root_tree: ComponentTree = mount_visit(component);
 
-    draw(&root_holder);
+    draw(&root_tree);
 
     namui::spawn_local(async move {
         while let Some(item) = rx.recv().await {
@@ -20,7 +20,7 @@ pub fn start<T: Component + 'static>(component: &'static T) {
 
                     // {
                     //     let component =
-                    //         find_component_mut_by_id(&mut root_holder, signal_id.component_id);
+                    //         find_component_mut_by_id(&mut root_tree, signal_id.component_id);
 
                     //     if let Some(component) = component {
                     //         let mut state_list =
@@ -42,47 +42,36 @@ pub fn start<T: Component + 'static>(component: &'static T) {
                     //     vec![SignalId::State(signal_id)].into_iter().collect(),
                     // ));
 
-                    // set_state_propagation(&mut root_holder, updated_signals);
+                    // set_state_propagation(&mut root_tree, updated_signals);
                 }
                 Item::EventCallback(event_callback) => {
-                    todo!()
-                    // let holder = find_component_by_id(&root_holder, event_callback.component_id);
-                    // if let Some(holder) = holder {
-                    //     let ctx = Context::new(
-                    //         ContextFor::Event { event_callback },
-                    //         holder.component_instance.clone(),
-                    //     );
-
-                    //     let RenderDone::NoRender = holder.component.get().unwrap().render(&ctx) else {
-                    //                 unreachable!()
-                    //             };
-                    // }
+                    root_tree = event_visit(component, root_tree, event_callback);
                 }
             }
-            draw(&root_holder);
+            draw(&root_tree);
         }
     })
 }
 
 // fn set_state_propagation(
-//     holder: &mut ComponentHolder,
+//     tree: &mut ComponentHolder,
 //     updated_signals: Arc<Mutex<HashSet<SignalId>>>,
 // ) {
 //     let ctx = Context::new(
 //         ContextFor::SetState {
 //             updated_signals: updated_signals.clone(),
 //         },
-//         holder.component_instance.clone(),
+//         tree.component_instance.clone(),
 //     );
-//     let done = holder.component.get().unwrap().render(&ctx);
+//     let done = tree.component.get().unwrap().render(&ctx);
 //     match done {
 //         RenderDone::Rendered { child } => {
 //             let child_object = child.as_ref();
 //             let component_type_id = StaticType::static_type_id(child_object);
-//             let prev_type_id = holder.component.get().unwrap().as_ref().static_type_id();
+//             let prev_type_id = tree.component.get().unwrap().as_ref().static_type_id();
 
 //             if prev_type_id == component_type_id {
-//                 holder.component = OnceCell::from(child);
+//                 tree.component = OnceCell::from(child);
 //             } else {
 //                 let component_instance = Arc::new(ComponentInstance::new(
 //                     new_component_id(),
@@ -90,23 +79,23 @@ pub fn start<T: Component + 'static>(component: &'static T) {
 //                     child_object.static_type_name(),
 //                 ));
 
-//                 let child_holder = ComponentHolder {
+//                 let child_tree = ComponentHolder {
 //                     component: OnceCell::from(child),
 //                     component_instance,
 //                     children: vec![],
 //                 };
-//                 holder.children = vec![child_holder];
+//                 tree.children = vec![child_tree];
 //             }
 //         }
 //         _ => {}
 //     }
 
-//     for child in holder.children.iter_mut() {
+//     for child in tree.children.iter_mut() {
 //         set_state_propagation(child, updated_signals.clone())
 //     }
 
-//     holder.component_instance.push_children_used_signals(
-//         holder
+//     tree.component_instance.push_children_used_signals(
+//         tree
 //             .children
 //             .iter()
 //             .flat_map(|child| child.component_instance.get_all_used_signals())
@@ -118,27 +107,27 @@ pub fn start<T: Component + 'static>(component: &'static T) {
 //     root: &'a ComponentHolder,
 //     component_id: usize,
 // ) -> Option<&'a ComponentHolder> {
-//     find_component(root, &|holder| {
-//         holder.component_instance.component_id == component_id
+//     find_component(root, &|tree| {
+//         tree.component_instance.component_id == component_id
 //     })
 // }
 // fn find_component_mut_by_id<'a>(
 //     root: &'a mut ComponentHolder,
 //     component_id: usize,
 // ) -> Option<&'a mut ComponentHolder> {
-//     find_component_mut(root, &|holder| {
-//         holder.component_instance.component_id == component_id
+//     find_component_mut(root, &|tree| {
+//         tree.component_instance.component_id == component_id
 //     })
 // }
 
 // fn find_component_mut<'a>(
-//     holder: &'a mut ComponentHolder,
+//     tree: &'a mut ComponentHolder,
 //     find: &impl Fn(&ComponentHolder) -> bool,
 // ) -> Option<&'a mut ComponentHolder> {
-//     if find(holder) {
-//         Some(holder)
+//     if find(tree) {
+//         Some(tree)
 //     } else {
-//         match holder {
+//         match tree {
 //             ComponentHolder {
 //                 component: _,
 //                 component_instance: _,
@@ -156,13 +145,13 @@ pub fn start<T: Component + 'static>(component: &'static T) {
 // }
 
 // fn find_component<'a>(
-//     holder: &'a ComponentHolder,
+//     tree: &'a ComponentHolder,
 //     find: &impl Fn(&ComponentHolder) -> bool,
 // ) -> Option<&'a ComponentHolder> {
-//     if find(holder) {
-//         Some(holder)
+//     if find(tree) {
+//         Some(tree)
 //     } else {
-//         match holder {
+//         match tree {
 //             ComponentHolder {
 //                 component: _,
 //                 component_instance: _,
@@ -179,9 +168,9 @@ pub fn start<T: Component + 'static>(component: &'static T) {
 //     }
 // }
 
-// fn visit(holder: &ComponentHolder, on_component: &impl Fn(&ComponentHolder)) {
-//     on_component(holder);
-//     match holder {
+// fn visit(tree: &ComponentHolder, on_component: &impl Fn(&ComponentHolder)) {
+//     on_component(tree);
+//     match tree {
 //         ComponentHolder {
 //             component: _,
 //             component_instance: _,
