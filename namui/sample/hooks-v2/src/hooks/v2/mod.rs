@@ -12,9 +12,12 @@ enum Event {
     OnClick,
 }
 
+static COUNT_ATOM: Atom<usize> = Atom::uninitialized_new();
+
 impl Component for MyComponent {
     fn render(&self) -> RenderDone {
-        let (count, set_count) = use_state(|| 0);
+        let (count, set_count) = use_atom_init(&COUNT_ATOM, || 0);
+        // let (count, set_count) = use_state(|| 0);
         let count_mul_2 = use_memo(|| *count * 2);
 
         let fibo = use_memo(|| get_fibo(*count));
@@ -40,7 +43,7 @@ impl StaticType for MyComponent {
     }
 }
 
-fn get_fibo(x: u32) -> u32 {
+fn get_fibo(x: usize) -> usize {
     if x == 0 {
         return 0;
     }
@@ -52,7 +55,6 @@ fn get_fibo(x: u32) -> u32 {
 
 #[derive(Debug)]
 struct Button<'a> {
-    // text: Signal<String>,
     text: Signal<'a, String>,
     on_click: EventCallback,
 }

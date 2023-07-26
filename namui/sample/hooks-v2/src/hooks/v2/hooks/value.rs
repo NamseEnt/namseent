@@ -5,6 +5,8 @@ pub trait Value: Send + Sync + Any {
     fn as_any(&self) -> &dyn std::any::Any;
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
     fn as_arc(self: Arc<Self>) -> Arc<dyn Send + Sync + Any>;
+    fn as_box(self: Box<Self>) -> Box<dyn Send + Sync + Any>;
+    fn as_value_mut(&mut self) -> &mut dyn Value;
 }
 
 impl<T: Debug + Send + Sync + Any + 'static> Value for T {
@@ -17,8 +19,13 @@ impl<T: Debug + Send + Sync + Any + 'static> Value for T {
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
-
     fn as_arc(self: Arc<Self>) -> Arc<dyn Send + Sync + Any> {
+        self
+    }
+    fn as_box(self: Box<Self>) -> Box<dyn Send + Sync + Any> {
+        self
+    }
+    fn as_value_mut(&mut self) -> &mut dyn Value {
         self
     }
 }

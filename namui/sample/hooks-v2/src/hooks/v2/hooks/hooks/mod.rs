@@ -1,3 +1,4 @@
+pub mod atom;
 pub(crate) mod ctx;
 pub mod effect;
 pub mod memo;
@@ -5,6 +6,7 @@ pub mod render;
 pub mod state;
 
 use super::*;
+pub use atom::*;
 use ctx::*;
 pub use effect::*;
 pub use memo::*;

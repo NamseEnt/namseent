@@ -1,6 +1,6 @@
 use super::*;
 
-pub fn use_effect<'a>(title: &'static str, use_effect: impl FnOnce()) {
+pub fn use_effect(title: &'static str, use_effect: impl FnOnce()) {
     let _ = title;
 
     let ctx = ctx();

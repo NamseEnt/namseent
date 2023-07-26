@@ -32,6 +32,7 @@ pub(crate) enum SignalIdType {
     Memo,
     Map,
     As,
+    Atom, // component_id = 0
 }
 
 #[derive(Clone, Debug)]
