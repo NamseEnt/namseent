@@ -22,7 +22,7 @@ pub fn use_render_with_event<'a, C: Component + 'a, Event: 'static + Send + Sync
 
 fn handle_render_with_component<'a, C: Component + 'a>(child: impl FnOnce() -> C) -> RenderDone {
     let child = child();
-    let ctx = take_ctx_before_clear_up_render();
+    let ctx = take_ctx_and_clear_up();
     let component_instance = ctx.instance;
 
     let children = match ctx.context_for {
@@ -65,7 +65,7 @@ fn handle_render_with_component<'a, C: Component + 'a>(child: impl FnOnce() -> C
 }
 
 pub fn use_render_with_rendering_tree(rendering_tree: RenderingTree) -> RenderDone {
-    let ctx = take_ctx_before_clear_up_render();
+    let ctx = take_ctx_and_clear_up();
     let component_instance = ctx.instance;
     RenderDone {
         component_tree: ComponentTree {

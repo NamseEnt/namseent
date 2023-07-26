@@ -65,7 +65,9 @@ impl StaticType for Button<'_> {
 
 impl Component for Button<'_> {
     fn render(&self) -> RenderDone {
-        // use_effect("Print text on text effect", || if self.text.on_effect() {});
+        use_effect("Print text", || {
+            namui::log!("{}", *self.text);
+        });
 
         // use_effect("On button render", || {});
 

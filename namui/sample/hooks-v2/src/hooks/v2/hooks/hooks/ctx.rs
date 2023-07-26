@@ -19,8 +19,12 @@ pub(crate) fn set_up_before_render(
     assert_eq!(prev.is_none(), true);
 }
 
-pub(crate) fn take_ctx_before_clear_up_render() -> Context {
-    unsafe { CTX.get_mut() }.unwrap().take().unwrap()
+pub(crate) fn take_ctx_and_clear_up() -> Context {
+    let ctx = unsafe { CTX.get_mut() }.unwrap().take().unwrap();
+    ctx.instance
+        .is_first_render
+        .store(false, std::sync::atomic::Ordering::SeqCst);
+    ctx
 }
 
 pub(crate) fn ctx() -> &'static Context {
