@@ -11,7 +11,7 @@ pub(crate) struct ComponentInstance {
     pub(crate) component_type_name: &'static str,
     pub(crate) state_list: Mutex<Vec<Box<dyn Value>>>,
     pub(crate) effect_used_signals_list: Mutex<Vec<Vec<SignalId>>>,
-    pub(crate) memo_value_list: Mutex<Vec<Arc<dyn Value>>>,
+    pub(crate) memo_value_list: Mutex<Vec<Box<dyn Value>>>,
     pub(crate) memo_used_signals_list: Mutex<Vec<Vec<SignalId>>>,
     pub(crate) render_used_signals: Mutex<Vec<SignalId>>,
     pub(crate) map_used_signals_list: Mutex<Vec<Vec<SignalId>>>,

@@ -15,21 +15,19 @@ enum Event {
 impl Component for MyComponent {
     fn render(&self) -> RenderDone {
         let (count, set_count) = use_state(|| 0);
+        let count_mul_2 = use_memo(|| *count * 2);
 
-        // let count_mul_2 = use_map(|| *count * 2);
+        let fibo = use_memo(|| get_fibo(*count));
+        let fibo2 = use_memo(|| get_fibo(*count_mul_2));
 
-        // let fibo = use_memo(|| get_fibo(*count));
-        // let fibo2 = use_memo(|| get_fibo(*count_mul_2));
-
-        // let text = use_memo(|| format!("Count: {}, Fibo: {}", *count, *fibo));
-        let text = format!("Count: {}", *count);
+        let text = use_memo(|| format!("Count: {}, Fibo: {}, Fibo2: {}", *count, *fibo, *fibo2));
 
         use_render_with_event(
             |event| match event {
                 Event::OnClick => set_count.mutate(|count| *count += 1),
             },
             |ctx| Button {
-                text: text.as_signal(),
+                text,
                 on_click: ctx.event(Event::OnClick),
             },
         )
