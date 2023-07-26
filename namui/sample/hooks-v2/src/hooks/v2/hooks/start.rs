@@ -10,7 +10,6 @@ pub fn start<T: Component + 'static>(component: T) {
 
     namui::spawn_local(async move {
         while let Some(item) = rx.recv().await {
-            namui::log!("Channel Recv: {:#?}", item);
             match item {
                 Item::SetStateItem(set_state_item) => {
                     let signal_id = match set_state_item {
@@ -67,11 +66,6 @@ fn set_state_propagation(
     holder: &mut ComponentHolder,
     updated_signals: Arc<Mutex<HashSet<SignalId>>>,
 ) {
-    namui::log!(
-        "set_state_propagation:: holder: {}, updated_signals: {:?}",
-        holder.component_instance.component_type_name,
-        updated_signals.lock().unwrap()
-    );
     let ctx = Context::new(
         ContextFor::SetState {
             updated_signals: updated_signals.clone(),
@@ -85,10 +79,6 @@ fn set_state_propagation(
             let component_type_id = StaticType::static_type_id(child_object);
             let prev_type_id = holder.component.get().unwrap().as_ref().static_type_id();
 
-            namui::log!(
-                "prev_type_id == component_type_id: {}",
-                prev_type_id == component_type_id
-            );
             if prev_type_id == component_type_id {
                 holder.component = OnceCell::from(child);
             } else {

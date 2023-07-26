@@ -45,9 +45,7 @@ impl<State: 'static + Debug + Send + Sync> SetState<State> {
             signal_id: self.signal_id,
             mutate: Box::new(move |state| {
                 let state = state.as_any_mut().downcast_mut::<State>().unwrap();
-                println!("mutate before: {:?}", state);
                 mutate(state);
-                println!("mutate after: {:?}", state);
             }),
         }));
     }
@@ -57,7 +55,6 @@ pub(crate) fn handle_state<'a, State: Send + Sync + Debug + 'static>(
     ctx: &'a Context,
     init: impl FnOnce() -> State,
 ) -> (Signal<State>, SetState<State>) {
-    namui::log!("handle_state");
     let instance = ctx.instance.as_ref();
     let mut state_list = instance.state_list.lock().unwrap();
 
@@ -72,9 +69,6 @@ pub(crate) fn handle_state<'a, State: Send + Sync + Debug + 'static>(
 
         update_or_push(&mut state_list, state_index, Arc::new(state));
     }
-
-    namui::log!("state_list: {:#?}", state_list);
-    namui::log!("state_index: {}", state_index);
 
     let state = Arc::downcast(state_list[state_index].clone().as_arc()).unwrap();
 

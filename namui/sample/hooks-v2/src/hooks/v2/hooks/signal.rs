@@ -47,7 +47,6 @@ impl<T> Signal<T> {
         Self { value, id }
     }
     fn use_it(&self) {
-        namui::log!("use signal: {:?}", self.id);
         USED_SIGNAL_IDS.with(|ids| {
             let mut ids = ids.borrow_mut();
             ids.insert(self.id);

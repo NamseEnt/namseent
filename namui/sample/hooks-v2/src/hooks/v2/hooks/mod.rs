@@ -98,14 +98,8 @@ impl Context {
             ContextFor::Mount | ContextFor::SetState { .. } => {
                 let child = handle_render(self, render);
                 match child {
-                    Some(child) => {
-                        namui::log!("rendered");
-                        ContextDone::Rendered { child }
-                    }
-                    None => {
-                        namui::log!("no render");
-                        ContextDone::NoRender
-                    }
+                    Some(child) => ContextDone::Rendered { child },
+                    None => ContextDone::NoRender,
                 }
             }
             ContextFor::Event { .. } => {
@@ -123,14 +117,8 @@ impl Context {
             ContextFor::Mount | ContextFor::SetState { .. } => {
                 let child = handle_render_with_event(self, render);
                 match child {
-                    Some(child) => {
-                        namui::log!("rendered");
-                        ContextDone::Rendered { child }
-                    }
-                    None => {
-                        namui::log!("no render");
-                        ContextDone::NoRender
-                    }
+                    Some(child) => ContextDone::Rendered { child },
+                    None => ContextDone::NoRender,
                 }
             }
             ContextFor::Event { event_callback } => {
@@ -156,18 +144,13 @@ impl Context {
         let result = match &self.context_for {
             ContextFor::Mount | ContextFor::Event { .. } => unreachable!(),
             ContextFor::SetState { updated_signals } => {
-                namui::log!(
-                    "is_used_signal_updated, updated_signals: {:?}, signal_ids: {:?}",
-                    updated_signals.lock().unwrap(),
-                    signal_ids
-                );
                 let updated_signals = updated_signals.lock().unwrap();
                 signal_ids
                     .into_iter()
                     .any(|signal_id| updated_signals.contains(&signal_id))
             }
         };
-        namui::log!("is_used_signal_updated, result: {}", result);
+
         result
     }
 

@@ -4,7 +4,6 @@ pub(crate) fn handle_memo<'a, T: 'static + Debug + Send + Sync>(
     ctx: &'a Context,
     memo: impl FnOnce() -> T,
 ) -> Signal<T> {
-    namui::log!("handle_memo");
     let instance = ctx.instance.as_ref();
     let mut memo_used_signals_list = instance.memo_used_signals_list.lock().unwrap();
     let memo_index = ctx
@@ -33,11 +32,6 @@ pub(crate) fn handle_memo<'a, T: 'static + Debug + Send + Sync>(
         update_or_push(&mut memo_value_list, memo_index, value);
         update_or_push(&mut memo_used_signals_list, memo_index, used_signal_ids);
 
-        namui::log!(
-            "handle_memo, memo_index: {}, signal_id: {:?}",
-            memo_index,
-            signal_id
-        );
         ctx.push_used_signal_on_this_ctx(signal_id);
     }
     let value = Arc::downcast(memo_value_list[memo_index].clone().as_arc()).unwrap();

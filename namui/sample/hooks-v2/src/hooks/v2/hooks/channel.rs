@@ -19,6 +19,5 @@ pub(crate) fn init() -> UnboundedReceiver<Item> {
 }
 
 pub(crate) fn send(item: Item) {
-    namui::log!("Channel Send: {:#?}", item);
     TX.get().unwrap().send(item).unwrap();
 }

@@ -14,18 +14,13 @@ enum Event {
 
 impl Component for MyComponent {
     fn component<'a>(&'a self, ctx: &'a Context) -> ContextDone {
-        namui::log!("MyComponent");
         let (count, set_count) = ctx.state(|| 0);
         let fibo = ctx.memo(|| get_fibo(*count));
         let text = ctx.memo(|| format!("Count: {}, Fibo: {}", *count, *fibo));
-        namui::log!("MyComponent text: {:?}", text);
 
         ctx.render_with_event(
             |event| match event {
-                Event::OnClick => {
-                    namui::log!("Clicked");
-                    set_count.mutate(|count| *count += 1)
-                }
+                Event::OnClick => set_count.mutate(|count| *count += 1),
             },
             |ctx| Button {
                 text,
@@ -65,20 +60,11 @@ impl StaticType for Button {
 
 impl Component for Button {
     fn component<'a>(&'a self, ctx: &'a Context) -> ContextDone {
-        namui::log!("Button text: {:?}", self.text);
+        ctx.effect("Print text on text effect", || if self.text.on_effect() {});
 
-        ctx.effect("Print text on text effect", || {
-            if self.text.on_effect() {
-                namui::log!("Count changed");
-            }
-        });
-
-        ctx.effect("On button render", || {
-            namui::log!("Button rendered");
-        });
+        ctx.effect("On button render", || {});
 
         ctx.render(|| {
-            namui::log!("Button Render!!");
             button::text_button(
                 Rect::Xywh {
                     x: 10.px(),

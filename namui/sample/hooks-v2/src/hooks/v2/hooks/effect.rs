@@ -1,7 +1,6 @@
 use super::*;
 
 pub(crate) fn handle_effect<'a>(ctx: &'a Context, effect: impl FnOnce()) {
-    namui::log!("handle_effect");
     let instance = ctx.instance.as_ref();
     let mut effect_used_signals_list = instance.effect_used_signals_list.lock().unwrap();
     let effect_index = ctx
