@@ -20,12 +20,10 @@ pub(crate) fn handle_memo<'a, T: 'static + Debug + Send + Sync>(
         ctx.is_used_signal_updated(used_signals)
     };
 
-    let signal_id = SignalId {
+    let signal_id = SignalId::Memo(MemoSignalId {
         component_id: instance.component_id,
-        signal_index: ctx
-            .signal_index
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst),
-    };
+        memo_index,
+    });
 
     if is_first_run() || ctx.is_set_state_phase() && used_signal_updated() {
         clean_used_signals();

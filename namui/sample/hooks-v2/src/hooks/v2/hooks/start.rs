@@ -25,7 +25,7 @@ pub fn start<T: Component + 'static>(component: T) {
                         if let Some(component) = component {
                             let mut state_list =
                                 component.component_instance.state_list.lock().unwrap();
-                            let state = state_list.get_mut(signal_id.signal_index).unwrap();
+                            let state = state_list.get_mut(signal_id.state_index).unwrap();
                             match set_state_item {
                                 SetStateItem::Set { value, .. } => {
                                     *state = value;
@@ -38,8 +38,9 @@ pub fn start<T: Component + 'static>(component: T) {
                         }
                     }
 
-                    let updated_signals =
-                        Arc::new(Mutex::new(vec![signal_id].into_iter().collect()));
+                    let updated_signals = Arc::new(Mutex::new(
+                        vec![SignalId::State(signal_id)].into_iter().collect(),
+                    ));
 
                     set_state_propagation(&mut root_holder, updated_signals);
                 }
@@ -111,6 +112,14 @@ fn set_state_propagation(
     for child in holder.children.iter_mut() {
         set_state_propagation(child, updated_signals.clone())
     }
+
+    holder.component_instance.push_children_used_signals(
+        holder
+            .children
+            .iter()
+            .flat_map(|child| child.component_instance.get_all_used_signals())
+            .collect(),
+    );
 }
 
 fn find_component_by_id<'a>(
@@ -208,13 +217,22 @@ fn mount_visit(component: OnceCell<Box<dyn Component>>) -> ComponentHolder {
 
     let done = component.get().unwrap().component(&context);
 
+    let children = match done {
+        ContextDone::Rendered { child } => vec![mount_visit(child.into())],
+        ContextDone::NoRender => vec![],
+    };
+
+    component_instance.push_children_used_signals(
+        children
+            .iter()
+            .flat_map(|child| child.component_instance.get_all_used_signals())
+            .collect(),
+    );
+
     ComponentHolder {
         component,
         component_instance,
-        children: match done {
-            ContextDone::Rendered { child } => vec![mount_visit(child.into())],
-            ContextDone::NoRender => vec![],
-        },
+        children,
     }
 }
 

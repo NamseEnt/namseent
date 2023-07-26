@@ -78,6 +78,7 @@ impl Component for Button {
         });
 
         ctx.render(|| {
+            namui::log!("Button Render!!");
             button::text_button(
                 Rect::Xywh {
                     x: 10.px(),

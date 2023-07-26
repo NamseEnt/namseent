@@ -62,7 +62,6 @@ impl Debug for ContextFor {
 pub struct Context {
     context_for: ContextFor,
     instance: Arc<ComponentInstance>,
-    signal_index: AtomicUsize,
     state_index: AtomicUsize,
     effect_index: AtomicUsize,
     memo_index: AtomicUsize,
@@ -73,7 +72,6 @@ impl Context {
         Self {
             context_for,
             instance,
-            signal_index: AtomicUsize::new(0),
             state_index: AtomicUsize::new(0),
             effect_index: AtomicUsize::new(0),
             memo_index: AtomicUsize::new(0),

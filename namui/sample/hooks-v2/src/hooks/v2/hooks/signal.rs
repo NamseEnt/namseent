@@ -19,9 +19,21 @@ pub(crate) fn take_used_signals() -> Vec<SignalId> {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub(crate) struct SignalId {
+pub(crate) enum SignalId {
+    State(StateSignalId),
+    Memo(MemoSignalId),
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub(crate) struct StateSignalId {
     pub component_id: usize,
-    pub signal_index: usize,
+    pub state_index: usize,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub(crate) struct MemoSignalId {
+    pub component_id: usize,
+    pub memo_index: usize,
 }
 
 #[derive(Clone, Debug)]

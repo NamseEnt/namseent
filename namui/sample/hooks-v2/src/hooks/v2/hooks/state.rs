@@ -2,11 +2,11 @@ use super::*;
 
 pub(crate) enum SetStateItem {
     Set {
-        signal_id: SignalId,
+        signal_id: StateSignalId,
         value: Arc<dyn Value>,
     },
     Mutate {
-        signal_id: SignalId,
+        signal_id: StateSignalId,
         mutate: Box<dyn FnOnce(&mut (dyn Value)) + Send + Sync>,
     },
 }
@@ -18,13 +18,10 @@ impl Debug for SetStateItem {
                 write!(
                     f,
                     "SetStateItem::Set {{ signal_id: {:?}, value: {:?} }}",
-                    signal_id, value
+                    signal_id, value,
                 )
             }
-            SetStateItem::Mutate {
-                signal_id,
-                mutate: _,
-            } => {
+            SetStateItem::Mutate { signal_id, mutate } => {
                 write!(f, "SetStateItem::Mutate {{ signal_id: {:?} }}", signal_id,)
             }
         }
@@ -32,7 +29,7 @@ impl Debug for SetStateItem {
 }
 
 pub struct SetState<State: 'static + Debug + Send + Sync> {
-    signal_id: SignalId,
+    signal_id: StateSignalId,
     _state: std::marker::PhantomData<State>,
 }
 
@@ -81,11 +78,9 @@ pub(crate) fn handle_state<'a, State: Send + Sync + Debug + 'static>(
 
     let state = Arc::downcast(state_list[state_index].clone().as_arc()).unwrap();
 
-    let signal_id = SignalId {
+    let signal_id = StateSignalId {
         component_id: instance.component_id,
-        signal_index: ctx
-            .signal_index
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst),
+        state_index,
     };
 
     let set_state = SetState {
@@ -93,7 +88,7 @@ pub(crate) fn handle_state<'a, State: Send + Sync + Debug + 'static>(
         _state: std::marker::PhantomData,
     };
 
-    let signal = Signal::new(state, signal_id);
+    let signal = Signal::new(state, SignalId::State(signal_id));
 
     (signal, set_state)
 }
