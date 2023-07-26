@@ -15,11 +15,12 @@ pub(crate) fn set_up_before_render(
 ) {
     let ctx = unsafe { CTX.get_mut() }.unwrap();
 
-    ctx.replace(Context::new(context_for, component_instance));
+    let prev = ctx.replace(Context::new(context_for, component_instance));
+    assert_eq!(prev.is_none(), true);
 }
 
-pub(crate) fn clear_up_before_render() {
-    unsafe { CTX.get_mut() }.unwrap().take();
+pub(crate) fn take_ctx_before_clear_up_render() -> Context {
+    unsafe { CTX.get_mut() }.unwrap().take().unwrap()
 }
 
 pub(crate) fn ctx() -> &'static Context {

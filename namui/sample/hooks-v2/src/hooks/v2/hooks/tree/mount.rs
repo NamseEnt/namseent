@@ -9,7 +9,6 @@ pub(crate) fn mount_visit(component: &dyn Component) -> ComponentTree {
 
     hooks::ctx::set_up_before_render(ContextFor::Mount, component_instance);
     let done: RenderDone = component.render();
-    hooks::ctx::clear_up_before_render();
 
     done.component_tree
 }

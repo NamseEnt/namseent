@@ -1,14 +1,24 @@
 use super::*;
 
+#[derive(Clone)]
 pub(crate) enum SetStateItem {
     Set {
         signal_id: SignalId,
-        value: Arc<dyn Value>,
+        value: Arc<Mutex<Option<Box<dyn Value>>>>,
     },
     Mutate {
         signal_id: SignalId,
-        mutate: Box<dyn FnOnce(&mut (dyn Value)) + Send + Sync>,
+        mutate: Arc<Mutex<Option<Box<dyn FnOnce(&mut (dyn Value)) + Send + Sync>>>>,
     },
+}
+
+impl SetStateItem {
+    pub fn signal_id(&self) -> SignalId {
+        match self {
+            SetStateItem::Set { signal_id, .. } => *signal_id,
+            SetStateItem::Mutate { signal_id, .. } => *signal_id,
+        }
+    }
 }
 
 impl Debug for SetStateItem {
@@ -37,16 +47,16 @@ impl<State: 'static + Debug + Send + Sync> SetState<State> {
     pub fn set(self, state: State) {
         channel::send(channel::Item::SetStateItem(SetStateItem::Set {
             signal_id: self.signal_id,
-            value: Arc::new(state),
+            value: Arc::new(Mutex::new(Some(Box::new(state)))),
         }));
     }
     pub fn mutate(self, mutate: impl FnOnce(&mut State) + Send + Sync + 'static) {
         channel::send(channel::Item::SetStateItem(SetStateItem::Mutate {
             signal_id: self.signal_id,
-            mutate: Box::new(move |state| {
+            mutate: Arc::new(Mutex::new(Some(Box::new(move |state| {
                 let state = state.as_any_mut().downcast_mut::<State>().unwrap();
                 mutate(state);
-            }),
+            })))),
         }));
     }
 }
@@ -68,11 +78,42 @@ pub fn use_state<'a, State: Send + Sync + Debug + 'static>(
     if no_state() {
         let state = init();
 
-        update_or_push(&mut state_list, state_index, Arc::new(state));
+        update_or_push(&mut state_list, state_index, Box::new(state));
+    } else if let ContextFor::SetState { set_state_item, .. } = &ctx.context_for {
+        let signal_id = set_state_item.signal_id();
+
+        if signal_id.component_id == instance.component_id
+            && signal_id.id_type == SignalIdType::State
+            && signal_id.index == state_index
+        {
+            match set_state_item {
+                SetStateItem::Set {
+                    signal_id: _,
+                    value,
+                } => {
+                    let mut_state = state_list.get_mut(state_index).unwrap();
+                    let next_value = value.lock().unwrap().take().unwrap();
+                    *mut_state = next_value;
+                }
+                SetStateItem::Mutate {
+                    signal_id: _,
+                    mutate,
+                } => {
+                    let state = state_list.get_mut(state_index).unwrap();
+                    let mutate = mutate.lock().unwrap().take().unwrap();
+                    mutate(state.as_mut());
+                }
+            }
+        }
     }
 
-    let state: Arc<State> = Arc::downcast(state_list[state_index].clone().as_arc()).unwrap();
-    let state: &State = unsafe { &*Arc::as_ptr(&state) };
+    let state: &State = state_list[state_index]
+        .as_ref()
+        .as_any()
+        .downcast_ref()
+        .unwrap();
+
+    let state: &State = unsafe { std::mem::transmute(state) };
 
     let signal_id = SignalId {
         id_type: SignalIdType::State,

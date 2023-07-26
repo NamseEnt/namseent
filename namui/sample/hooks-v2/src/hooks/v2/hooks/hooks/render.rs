@@ -9,31 +9,64 @@ pub fn use_render_with_event<'a, C: Component + 'a, Event: 'static + Send + Sync
     render: impl 'a + FnOnce(EventContext<Event>) -> C,
 ) -> RenderDone {
     let ctx = ctx();
-    if let ContextFor::Event { event_callback } = &ctx.context_for {
+    if let ContextFor::Event { event_callback, .. } = &ctx.context_for {
         if event_callback.component_id == ctx.instance.component_id {
             on_event(event_callback.event.as_ref().downcast_ref().unwrap());
         }
     }
 
-    handle_render_with_component(|| render(EventContext::new(ctx.instance.component_id)))
+    let component_id = ctx.instance.component_id;
+
+    handle_render_with_component(|| render(EventContext::new(component_id)))
 }
 
 fn handle_render_with_component<'a, C: Component + 'a>(child: impl FnOnce() -> C) -> RenderDone {
-    let ctx = ctx();
-    let component_instance = ctx.instance.clone();
     let child = child();
+    let ctx = take_ctx_before_clear_up_render();
+    let component_instance = ctx.instance;
+
+    let children = match ctx.context_for {
+        ContextFor::Mount => vec![mount_visit(&child)],
+        ContextFor::Event {
+            event_callback,
+            children,
+        } => {
+            // TODO: It's ok to stop visit children if the event is for this component.
+
+            children
+                .into_iter()
+                .map(|child_tree| event_visit(&child, child_tree, event_callback.clone()))
+                .collect()
+        }
+        ContextFor::SetState {
+            set_state_item,
+            updated_signals,
+            children,
+        } => children
+            .into_iter()
+            .map(|child_tree| {
+                set_state_visit(
+                    &child,
+                    child_tree,
+                    set_state_item.clone(),
+                    updated_signals.clone(),
+                )
+            })
+            .collect(),
+    };
+
     RenderDone {
         component_tree: ComponentTree {
             component_instance,
-            children: vec![mount_visit(&child)],
+            children,
             rendering_tree: None,
         },
     }
 }
 
 pub fn use_render_with_rendering_tree(rendering_tree: RenderingTree) -> RenderDone {
-    let ctx = ctx();
-    let component_instance = ctx.instance.clone();
+    let ctx = take_ctx_before_clear_up_render();
+    let component_instance = ctx.instance;
     RenderDone {
         component_tree: ComponentTree {
             component_instance,

@@ -12,37 +12,14 @@ pub fn start<T: Component + 'static>(component: &'static T) {
         while let Some(item) = rx.recv().await {
             match item {
                 Item::SetStateItem(set_state_item) => {
-                    todo!()
-                    // let signal_id = match set_state_item {
-                    //     SetStateItem::Set { signal_id, .. } => signal_id,
-                    //     SetStateItem::Mutate { signal_id, .. } => signal_id,
-                    // };
+                    let signal_id = set_state_item.signal_id();
 
-                    // {
-                    //     let component =
-                    //         find_component_mut_by_id(&mut root_tree, signal_id.component_id);
-
-                    //     if let Some(component) = component {
-                    //         let mut state_list =
-                    //             component.component_instance.state_list.lock().unwrap();
-                    //         let state = state_list.get_mut(signal_id.state_index).unwrap();
-                    //         match set_state_item {
-                    //             SetStateItem::Set { value, .. } => {
-                    //                 *state = value;
-                    //             }
-                    //             SetStateItem::Mutate { mutate, .. } => {
-                    //                 let inner = Arc::get_mut(state).unwrap();
-                    //                 mutate(inner);
-                    //             }
-                    //         }
-                    //     }
-                    // }
-
-                    // let updated_signals = Arc::new(Mutex::new(
-                    //     vec![SignalId::State(signal_id)].into_iter().collect(),
-                    // ));
-
-                    // set_state_propagation(&mut root_tree, updated_signals);
+                    root_tree = set_state_visit(
+                        component,
+                        root_tree,
+                        set_state_item,
+                        Arc::new(Mutex::new(vec![signal_id].into_iter().collect())),
+                    );
                 }
                 Item::EventCallback(event_callback) => {
                     root_tree = event_visit(component, root_tree, event_callback);

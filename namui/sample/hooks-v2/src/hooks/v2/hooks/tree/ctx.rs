@@ -1,13 +1,15 @@
 use super::*;
 
-#[derive(Clone)]
 pub(crate) enum ContextFor {
     Mount,
     Event {
         event_callback: EventCallback,
+        children: Vec<ComponentTree>,
     },
     SetState {
+        set_state_item: SetStateItem,
         updated_signals: Arc<Mutex<HashSet<SignalId>>>,
+        children: Vec<ComponentTree>,
     },
 }
 
@@ -15,15 +17,24 @@ impl Debug for ContextFor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ContextFor::Mount => write!(f, "ContextFor::Mount"),
-            ContextFor::Event { event_callback } => write!(
+            ContextFor::Event {
+                event_callback,
+                children,
+            } => write!(
                 f,
-                "ContextFor::Event {{ event_callback: {:?} }}",
-                event_callback
+                "ContextFor::Event {{ event_callback: {:?}, children: {:?} }}",
+                event_callback, children
             ),
-            ContextFor::SetState { updated_signals } => write!(
+            ContextFor::SetState {
+                updated_signals,
+                set_state_item,
+                children,
+            } => write!(
                 f,
-                "ContextFor::SetState {{ updated_signals: {:?} }}",
-                updated_signals.lock().unwrap()
+                "ContextFor::SetState {{ updated_signals: {:?}, set_state_item: {:?}, children: {:?} }}",
+                updated_signals.lock().unwrap(),
+                set_state_item,
+                children,
             ),
         }
     }

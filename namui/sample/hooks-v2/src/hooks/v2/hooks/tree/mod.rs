@@ -1,12 +1,15 @@
 mod ctx;
 mod event;
 mod mount;
+mod set_state;
 
 use super::*;
 pub use ctx::*;
 pub use event::*;
 pub use mount::*;
+pub use set_state::*;
 
+#[derive(Clone)]
 pub(crate) struct ComponentTree {
     pub(crate) component_instance: Arc<ComponentInstance>,
     pub(crate) children: Vec<ComponentTree>,
