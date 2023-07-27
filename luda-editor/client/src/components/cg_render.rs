@@ -89,51 +89,38 @@ fn get_straight_alpha_image_paint_builder(
     cg_part_variant_blend_mode: CgPartVariantBlendMode,
 ) -> PaintBuilder {
     let paint = PaintBuilder::new();
-    namui::shader!(StraightAlphaShader, {
-        uniform shader image;
-
-        half4 main(float2 coord) {
-            half4 evaluated = image.eval(coord);
-            return evaluated.rgba / evaluated.aaa1;
-        }
-    });
-
     let image_shader = image.get_default_shader();
-    let paint = paint.set_shader(StraightAlphaShader::new(image_shader).make());
-
-    // TODO: blend modes of skia is implemented for premultiplied alpha.
-    // We may need to implement blend modes for straight alpha with custom blender.
-    // Custom blender is not supported yet on canvas-kit. https://groups.google.com/g/skia-discuss/c/6QdgoxoYnv8
-    match cg_part_variant_blend_mode {
-        CgPartVariantBlendMode::Normal => paint.set_blend_mode(BlendMode::SrcOver),
-        CgPartVariantBlendMode::Darken => paint.set_blend_mode(BlendMode::Darken),
-        CgPartVariantBlendMode::Multiply => paint.set_blend_mode(BlendMode::Multiply),
-        CgPartVariantBlendMode::ColorBurn => paint.set_blend_mode(BlendMode::ColorBurn),
-        CgPartVariantBlendMode::Lighten => paint.set_blend_mode(BlendMode::Lighten),
-        CgPartVariantBlendMode::Screen => paint.set_blend_mode(BlendMode::Screen),
-        CgPartVariantBlendMode::ColorDodge => paint.set_blend_mode(BlendMode::ColorDodge),
-        CgPartVariantBlendMode::Overlay => paint.set_blend_mode(BlendMode::Overlay),
-        CgPartVariantBlendMode::SoftLight => paint.set_blend_mode(BlendMode::SoftLight),
-        CgPartVariantBlendMode::HardLight => paint.set_blend_mode(BlendMode::HardLight),
-        CgPartVariantBlendMode::Difference => paint.set_blend_mode(BlendMode::Difference),
-        CgPartVariantBlendMode::Exclusion => paint.set_blend_mode(BlendMode::Exclusion),
-        CgPartVariantBlendMode::Hue => paint.set_blend_mode(BlendMode::Hue),
-        CgPartVariantBlendMode::Saturation => paint.set_blend_mode(BlendMode::Saturation),
-        CgPartVariantBlendMode::Color => paint.set_blend_mode(BlendMode::Color),
-        CgPartVariantBlendMode::Luminosity => paint.set_blend_mode(BlendMode::Luminosity),
-        _ => paint,
-        // TODO: Implement these blend modes
-        // CgPartVariantBlendMode::PassThrough => unimplemented!("PassThrough not supported"),
-        // CgPartVariantBlendMode::Dissolve => unimplemented!("Dissolve not supported"),
-        // CgPartVariantBlendMode::LinearBurn => unimplemented!("LinearBurn not supported"),
-        // CgPartVariantBlendMode::DarkerColor => unimplemented!("DarkerColor not supported"),
-        // CgPartVariantBlendMode::LinearDodge => unimplemented!("LinearDodge not supported"),
-        // CgPartVariantBlendMode::LighterColor => unimplemented!("LighterColor not supported"),
-        // CgPartVariantBlendMode::VividLight => unimplemented!("VividLight not supported"),
-        // CgPartVariantBlendMode::LinearLight => unimplemented!("LinearLight not supported"),
-        // CgPartVariantBlendMode::PinLight => unimplemented!("PinLight not supported"),
-        // CgPartVariantBlendMode::HardMix => unimplemented!("HardMix not supported"),
-        // CgPartVariantBlendMode::Subtract => unimplemented!("Subtract not supported"),
-        // CgPartVariantBlendMode::Divide => unimplemented!("Divide not supported"),
-    }
+    paint
+        .set_shader(image_shader)
+        .set_blend_mode(match cg_part_variant_blend_mode {
+            CgPartVariantBlendMode::Darken => BlendMode::Darken,
+            CgPartVariantBlendMode::Multiply => BlendMode::Multiply,
+            CgPartVariantBlendMode::ColorBurn => BlendMode::ColorBurn,
+            CgPartVariantBlendMode::Lighten => BlendMode::Lighten,
+            CgPartVariantBlendMode::Screen => BlendMode::Screen,
+            CgPartVariantBlendMode::ColorDodge => BlendMode::ColorDodge,
+            CgPartVariantBlendMode::Overlay => BlendMode::Overlay,
+            CgPartVariantBlendMode::SoftLight => BlendMode::SoftLight,
+            CgPartVariantBlendMode::HardLight => BlendMode::HardLight,
+            CgPartVariantBlendMode::Difference => BlendMode::Difference,
+            CgPartVariantBlendMode::Exclusion => BlendMode::Exclusion,
+            CgPartVariantBlendMode::Hue => BlendMode::Hue,
+            CgPartVariantBlendMode::Saturation => BlendMode::Saturation,
+            CgPartVariantBlendMode::Color => BlendMode::Color,
+            CgPartVariantBlendMode::Luminosity => BlendMode::Luminosity,
+            // not supported yet but substitute with src over
+            // CgPartVariantBlendMode::PassThrough => unimplemented!("PassThrough not supported"),
+            CgPartVariantBlendMode::Dissolve => unimplemented!("Dissolve not supported"),
+            CgPartVariantBlendMode::LinearBurn => unimplemented!("LinearBurn not supported"),
+            CgPartVariantBlendMode::DarkerColor => unimplemented!("DarkerColor not supported"),
+            CgPartVariantBlendMode::LinearDodge => unimplemented!("LinearDodge not supported"),
+            CgPartVariantBlendMode::LighterColor => unimplemented!("LighterColor not supported"),
+            CgPartVariantBlendMode::VividLight => unimplemented!("VividLight not supported"),
+            CgPartVariantBlendMode::LinearLight => unimplemented!("LinearLight not supported"),
+            CgPartVariantBlendMode::PinLight => unimplemented!("PinLight not supported"),
+            CgPartVariantBlendMode::HardMix => unimplemented!("HardMix not supported"),
+            CgPartVariantBlendMode::Subtract => unimplemented!("Subtract not supported"),
+            CgPartVariantBlendMode::Divide => unimplemented!("Divide not supported"),
+            _ => BlendMode::SrcOver,
+        })
 }
