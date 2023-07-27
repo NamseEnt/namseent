@@ -63,7 +63,7 @@ impl LayerTree<'_> {
             false => 0.0,
         }
     }
-    fn blend_mode(&self) -> psd::BlendMode {
+    pub(crate) fn blend_mode(&self) -> psd::BlendMode {
         match self {
             LayerTree::Group { item, .. } => item.blend_mode(),
             LayerTree::Layer { item } => item.blend_mode(),

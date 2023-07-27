@@ -4,9 +4,6 @@ on:
     branches:
       - master
   pull_request:
-  release:
-    types:
-      - created
 
 concurrency:
   group: ${{ github.ref }}-publish-extension
@@ -41,8 +38,8 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            extension/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('extension/Cargo.lock') }}
+            extension/in_rust/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('extension/in_rust/Cargo.lock') }}
 
       - uses: actions/setup-node@v3
         with:
@@ -52,12 +49,39 @@ jobs:
         working-directory: extension/in_rust
         run: cargo test
 
-      - name: Install dependencies
-        working-directory: extension
-        run: npm install
-
-      - name: publish
-        if: success() && startsWith(github.ref, 'refs/tags/')
+      - name: create tag
+        id: tag
+        if: success() && startsWith(github.ref, 'refs/heads/master')
         working-directory: extension
         run: |
+          git config --local user.email ""
+          git config --local user.name "GitHub Action"
+
+          export EXTENSION_VERSION=$(node -p "require('./package.json').version")
+          echo "Extension version: $EXTENSION_VERSION"
+
+          export TAG="extension/$EXTENSION_VERSION"
+          echo "Tag: $TAG"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "tag already exists";
+          else
+            git tag -a "$TAG" -m "$TAG"
+            git push origin "$TAG"
+            
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: create release
+        if: steps.tag.outputs.tag
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+
+      - name: publish
+        if: steps.tag.outputs.tag
+        working-directory: extension
+        run: |
+          npm install -g vsce
+          npm install
           npm run publish

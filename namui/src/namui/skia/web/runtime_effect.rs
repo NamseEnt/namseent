@@ -20,11 +20,10 @@ impl RuntimeEffect {
             .into_iter()
             .map(|child| child.as_ref().canvas_kit_shader.clone())
             .collect();
-        Shader::new(self.canvas_kit_runtime_effect.makeShaderWithChildren(
-            uniforms,
-            Option::None,
-            Some(children),
-        ))
+        Shader::new(
+            self.canvas_kit_runtime_effect
+                .makeShaderWithChildren(uniforms, Some(children)),
+        )
     }
 }
 

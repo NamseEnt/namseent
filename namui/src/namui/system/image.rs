@@ -96,7 +96,7 @@ extern "C" {
     pub type ImageBitmap;
 
     #[wasm_bindgen(js_namespace = globalThis, js_name = createImageBitmap)]
-    async fn create_image_bitmap(image: JsValue) -> JsValue;
+    async fn create_image_bitmap_with_option(image: JsValue, options: JsValue) -> JsValue;
 }
 
 unsafe impl Sync for ImageBitmap {}
@@ -118,7 +118,14 @@ pub async fn new_image_from_u8(data: &[u8]) -> Result<Arc<Image>, Box<dyn std::e
 }
 
 pub(crate) async fn blob_to_image(blob: web_sys::Blob) -> Arc<Image> {
-    let image_bitmap: ImageBitmap = create_image_bitmap(blob.into()).await.into();
+    let option = {
+        let option = js_sys::Object::new();
+        js_sys::Reflect::set(&option, &"premultiplyAlpha".into(), &"none".into()).unwrap();
+        option
+    };
+    let image_bitmap: ImageBitmap = create_image_bitmap_with_option(blob.into(), option.into())
+        .await
+        .into();
 
     let image = Image::from_image_bitmap(image_bitmap);
 
