@@ -68,7 +68,7 @@ fn render_cg_variant(props: &CgRenderProps, variant: &rpc::data::CgPartVariant) 
         let image_info = image.get_image_info();
         let src_wh = Wh::new(image_info.width, image_info.height);
 
-        let paint_builder = get_straight_alpha_image_paint_builder(&image, variant.blend_mode);
+        let paint_builder = create_paint_builder(&image, variant.blend_mode);
         let path_builder = PathBuilder::new().add_rect(src_wh.to_rect());
         Some(translate(
             rect.x(),
@@ -82,9 +82,7 @@ fn render_cg_variant(props: &CgRenderProps, variant: &rpc::data::CgPartVariant) 
     })
 }
 
-/// Skia uses premultiplied alpha, but cg part variant webp and photoshop use straight alpha.
-/// So we need to convert premultiplied alpha to straight alpha.
-fn get_straight_alpha_image_paint_builder(
+fn create_paint_builder(
     image: &Image,
     cg_part_variant_blend_mode: CgPartVariantBlendMode,
 ) -> PaintBuilder {
