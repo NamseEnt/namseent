@@ -6,7 +6,6 @@ pub(crate) struct Context {
     pub(crate) state_index: AtomicUsize,
     pub(crate) effect_index: AtomicUsize,
     pub(crate) memo_index: AtomicUsize,
-    pub(crate) map_index: AtomicUsize,
     pub(crate) as_index: AtomicUsize,
 }
 unsafe impl Send for Context {}
@@ -20,7 +19,6 @@ impl Context {
             state_index: Default::default(),
             effect_index: Default::default(),
             memo_index: Default::default(),
-            map_index: Default::default(),
             as_index: Default::default(),
         }
     }

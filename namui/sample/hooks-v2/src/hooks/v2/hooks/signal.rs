@@ -30,7 +30,6 @@ pub(crate) struct SignalId {
 pub(crate) enum SignalIdType {
     State,
     Memo,
-    Map,
     As,
     Atom, // component_id = 0
 }
