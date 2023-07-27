@@ -10,4 +10,3 @@ crate-type = ["cdylib", "rlib"]
 tokio = { version = "1", default-features = false, features = ["sync", "rt"] }
 namui = { path = "../.." }
 namui-prebuilt = { path = "../../../namui-prebuilt" }
-crossbeam = "0.8.2"
