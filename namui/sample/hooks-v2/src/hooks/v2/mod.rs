@@ -130,7 +130,7 @@ impl StaticType for StringText<'_> {
 
 impl<'a> Component for StringText<'_> {
     fn render(&self) -> RenderDone {
-        let (value, set_value) = use_state(|| "hello".to_string());
+        let (value, _set_value) = use_state(|| "hello".to_string());
 
         use_effect("Print text", || {
             namui::log!("StringText: {}", *value);
@@ -169,7 +169,7 @@ impl StaticType for UsizeText<'_> {
 
 impl<'a> Component for UsizeText<'_> {
     fn render(&self) -> RenderDone {
-        let (value, set_value) = use_state(|| 0);
+        let (value, _set_value) = use_state(|| 0);
         use_effect("Print text", || {
             namui::log!("UsizeText: {}", *value);
         });

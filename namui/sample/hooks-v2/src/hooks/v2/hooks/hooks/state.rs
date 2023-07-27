@@ -92,7 +92,7 @@ impl Debug for SetStateItem {
                     sig_id, value,
                 )
             }
-            SetStateItem::Mutate { sig_id, mutate } => {
+            SetStateItem::Mutate { sig_id, mutate: _ } => {
                 write!(f, "SetStateItem::Mutate {{ sig_id: {:?} }}", sig_id,)
             }
         }
