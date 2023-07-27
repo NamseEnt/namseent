@@ -3,6 +3,7 @@ mod draw;
 mod event;
 mod hooks;
 mod instance;
+mod native;
 mod sig;
 mod start;
 mod tree;
@@ -14,6 +15,7 @@ pub use event::*;
 pub use hooks::*;
 pub(crate) use instance::*;
 use namui::RenderingTree;
+pub use native::*;
 pub use sig::*;
 pub use start::*;
 pub use state::*;
@@ -39,12 +41,24 @@ impl StaticType for RenderingTree {
 
 impl Component for RenderingTree {
     fn render(&self) -> RenderDone {
-        use_render_with_rendering_tree(self.clone())
+        let rendering_tree = self.clone();
+        use_render_with_rendering_tree(|_| {}, move |_| rendering_tree.clone())
     }
 }
 
 pub trait Component: StaticType + Debug {
     fn render(&self) -> RenderDone;
+}
+
+impl StaticType for &dyn Component {
+    fn static_type_id(&self) -> TypeId {
+        StaticType::static_type_id(&**self)
+    }
+}
+impl Component for &dyn Component {
+    fn render(&self) -> RenderDone {
+        (**self).render()
+    }
 }
 
 impl<T0: StaticType> StaticType for (T0,) {

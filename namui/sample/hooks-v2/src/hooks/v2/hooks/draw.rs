@@ -14,13 +14,14 @@ pub(crate) fn draw(root_tree: &ComponentTree) {
 }
 
 fn tree_to_rendering_tree(tree: &ComponentTree) -> RenderingTree {
-    if let Some(rendering_tree) = &tree.rendering_tree {
-        rendering_tree.clone()
+    let children = tree
+        .children
+        .iter()
+        .map(|child| tree_to_rendering_tree(child))
+        .collect();
+    if let Some(rendering_tree) = &tree.fn_rendering_tree {
+        rendering_tree(children)
     } else {
-        namui::render(
-            tree.children
-                .iter()
-                .map(|child| tree_to_rendering_tree(child)),
-        )
+        RenderingTree::Children(children)
     }
 }

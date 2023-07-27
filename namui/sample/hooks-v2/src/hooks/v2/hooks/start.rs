@@ -1,6 +1,6 @@
 use super::*;
 
-pub fn start<T: Component + 'static>(component: &'static T) {
+pub fn start<T: Component>(component: &'static T) {
     ctx::init();
     let mut rx = channel::init();
 

@@ -14,7 +14,7 @@ enum Event {
 
 static COUNT_ATOM: Atom<usize> = Atom::uninitialized_new();
 
-impl Component for MyComponent {
+impl<'a> Component for MyComponent {
     fn render(&self) -> RenderDone {
         let (count, set_count) = use_atom_init(&COUNT_ATOM, || 0);
         // let (count, set_count) = use_state(|| 0);
@@ -37,9 +37,13 @@ impl Component for MyComponent {
                 if *count % 2 == 0 {
                     ctx.add(StringText { text });
                 } else {
-                    ctx.add(UsizeText {
-                        usize: count.clone(),
-                    });
+                    ctx.add(hooks::translate(
+                        50.px(),
+                        50.px(),
+                        UsizeText {
+                            usize: count.clone(),
+                        },
+                    ));
                 }
             },
         )
@@ -74,7 +78,7 @@ impl StaticType for Button<'_> {
     }
 }
 
-impl Component for Button<'_> {
+impl<'a> Component for Button<'_> {
     fn render(&self) -> RenderDone {
         use_effect("Print text", || {
             namui::log!("{}", *self.text);
@@ -116,7 +120,7 @@ impl StaticType for StringText<'_> {
     }
 }
 
-impl Component for StringText<'_> {
+impl<'a> Component for StringText<'_> {
     fn render(&self) -> RenderDone {
         let (value, set_value) = use_state(|| "hello".to_string());
 
@@ -155,7 +159,7 @@ impl StaticType for UsizeText<'_> {
     }
 }
 
-impl Component for UsizeText<'_> {
+impl<'a> Component for UsizeText<'_> {
     fn render(&self) -> RenderDone {
         let (value, set_value) = use_state(|| 0);
         use_effect("Print text", || {

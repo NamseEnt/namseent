@@ -3,7 +3,7 @@ use super::*;
 pub fn use_render(render: impl FnOnce(&mut ChildrenContext)) -> RenderDone {
     let mut children_ctx = ChildrenContext::new();
     render(&mut children_ctx);
-    children_ctx.done()
+    children_ctx.done(None)
 }
 
 pub fn use_render_with_event<Event: 'static + Send + Sync>(
@@ -21,19 +21,16 @@ pub fn use_render_with_event<Event: 'static + Send + Sync>(
 
     let mut render_ctx = ChildrenEventContext::new(component_id);
     render(&mut render_ctx);
-    render_ctx.done()
+    render_ctx.done(None)
 }
 
-pub fn use_render_with_rendering_tree(rendering_tree: RenderingTree) -> RenderDone {
-    let ctx = take_ctx_and_clear_up();
-    let component_instance = ctx.instance;
-    RenderDone {
-        component_tree: ComponentTree {
-            component_instance,
-            children: vec![],
-            rendering_tree: Some(rendering_tree),
-        },
-    }
+pub fn use_render_with_rendering_tree(
+    render: impl FnOnce(&mut ChildrenContext),
+    fn_rendering_tree: impl 'static + Fn(Vec<RenderingTree>) -> RenderingTree,
+) -> RenderDone {
+    let mut children_ctx = ChildrenContext::new();
+    render(&mut children_ctx);
+    children_ctx.done(Some(Arc::new(move |children| fn_rendering_tree(children))))
 }
 
 pub struct ChildrenContext {
@@ -45,10 +42,10 @@ impl ChildrenContext {
         Self { children: vec![] }
     }
 
-    pub fn add(
-        &mut self,
-        add: impl Component, // Name 'add' is to prevent showing 'child' text on rust-analyzer with vscode
-    ) -> &mut Self {
+    pub fn add<'a>(
+        &'a mut self,
+        add: impl Component + 'a, // Name 'add' is to prevent showing 'child' text on rust-analyzer with vscode
+    ) -> &'a mut Self {
         let child = add;
         let ctx = ctx();
 
@@ -95,14 +92,14 @@ impl ChildrenContext {
         self
     }
 
-    fn done(self) -> RenderDone {
+    fn done(self, fn_rendering_tree: Option<FnRenderingTree>) -> RenderDone {
         let ctx = take_ctx_and_clear_up();
 
         RenderDone {
             component_tree: ComponentTree {
                 component_instance: ctx.instance,
                 children: self.children,
-                rendering_tree: None,
+                fn_rendering_tree,
             },
         }
     }
@@ -134,7 +131,7 @@ impl<Event: 'static + Send + Sync> ChildrenEventContext<Event> {
         self
     }
 
-    fn done(self) -> RenderDone {
-        self.inner.done()
+    fn done(self, fn_rendering_tree: Option<FnRenderingTree>) -> RenderDone {
+        self.inner.done(fn_rendering_tree)
     }
 }
