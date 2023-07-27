@@ -48,6 +48,15 @@ impl Component for RenderingTree {
 
 pub trait Component: StaticType + Debug {
     fn render(&self) -> RenderDone;
+    fn attach_event<'a>(
+        self,
+        attach_event: impl FnOnce(&mut native::AttachEventBuilder),
+    ) -> AttachEvent<'a>
+    where
+        Self: 'a + Sized,
+    {
+        native::attach_event(self, attach_event)
+    }
 }
 
 impl StaticType for &dyn Component {

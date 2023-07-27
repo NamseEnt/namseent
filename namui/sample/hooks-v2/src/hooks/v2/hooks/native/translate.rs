@@ -1,10 +1,6 @@
 use super::*;
 
-pub(crate) fn translate<'a>(
-    x: namui::Px,
-    y: namui::Px,
-    component: impl Component + 'a,
-) -> impl Component + 'a {
+pub fn translate<'a>(x: namui::Px, y: namui::Px, component: impl Component + 'a) -> Translate<'a> {
     Translate {
         x,
         y,
@@ -13,7 +9,7 @@ pub(crate) fn translate<'a>(
 }
 
 #[derive(Debug)]
-struct Translate<'a> {
+pub struct Translate<'a> {
     x: namui::Px,
     y: namui::Px,
     component: Box<dyn Component + 'a>,

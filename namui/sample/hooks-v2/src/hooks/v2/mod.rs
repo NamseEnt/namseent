@@ -10,6 +10,7 @@ pub struct MyComponent {}
 
 enum Event {
     OnClick,
+    KeyUp { code: namui::Code },
 }
 
 static COUNT_ATOM: Atom<usize> = Atom::uninitialized_new();
@@ -28,6 +29,9 @@ impl<'a> Component for MyComponent {
         use_render_with_event(
             |event| match event {
                 Event::OnClick => set_count.mutate(|count| *count += 1),
+                Event::KeyUp { code } => {
+                    namui::log!("Key up {:?}", code)
+                }
             },
             |ctx| {
                 ctx.add(Button {
@@ -35,7 +39,11 @@ impl<'a> Component for MyComponent {
                     on_click: ctx.event(Event::OnClick),
                 });
                 if *count % 2 == 0 {
-                    ctx.add(StringText { text });
+                    ctx.add(StringText { text }.attach_event(|builder| {
+                        builder.on_key_up(ctx.event_with_param(|event: KeyboardEvent| {
+                            Some(Event::KeyUp { code: event.code })
+                        }));
+                    }));
                 } else {
                     ctx.add(hooks::translate(
                         50.px(),

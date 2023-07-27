@@ -109,7 +109,7 @@ impl std::fmt::Debug for AttachEventNode {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Debug)]
 pub struct AttachEventBuilder {
     pub(crate) on_mouse_move_in: Option<MouseEventCallback>,
     pub(crate) on_mouse_move_out: Option<MouseEventCallback>,
@@ -125,14 +125,11 @@ pub struct AttachEventBuilder {
 }
 
 impl RenderingTree {
-    pub fn attach_event(
-        self,
-        attach_event_build: impl FnOnce(&mut AttachEventBuilder),
-    ) -> RenderingTree {
+    pub fn attach_event(self, attach_event: impl FnOnce(&mut AttachEventBuilder)) -> RenderingTree {
         let mut builder = AttachEventBuilder {
             ..Default::default()
         };
-        attach_event_build(&mut builder);
+        attach_event(&mut builder);
         RenderingTree::Special(SpecialRenderingNode::AttachEvent(AttachEventNode {
             rendering_tree: std::sync::Arc::new(self),
             on_mouse_move_in: builder.on_mouse_move_in,

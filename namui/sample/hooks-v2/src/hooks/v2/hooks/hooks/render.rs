@@ -125,12 +125,24 @@ impl<Event: 'static + Send + Sync> ChildrenEventContext<Event> {
             event: Arc::new(event),
         }
     }
-
+    pub fn event_with_param<Param>(
+        &self,
+        event_with_param: impl 'static + Send + Sync + Fn(Param) -> Option<Event>,
+    ) -> EventCallbackWithParam<Param> {
+        EventCallbackWithParam {
+            component_id: self.component_id,
+            closure: Arc::new(move |param: Param| {
+                let event = event_with_param(param);
+                event.map(|event| {
+                    Arc::new(event) as Arc<(dyn std::any::Any + Send + Sync + 'static)>
+                })
+            }),
+        }
+    }
     pub fn add(&mut self, add: impl Component) -> &mut Self {
         self.inner.add(add);
         self
     }
-
     fn done(self, fn_rendering_tree: Option<FnRenderingTree>) -> RenderDone {
         self.inner.done(fn_rendering_tree)
     }

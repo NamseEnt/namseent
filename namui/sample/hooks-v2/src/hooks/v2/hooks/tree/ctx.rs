@@ -1,7 +1,7 @@
 use super::*;
 use std::collections::VecDeque;
 
-pub(crate) struct Context {
+pub(crate) struct Ctx {
     pub(crate) context_for: ContextFor,
     pub(crate) instance: Arc<ComponentInstance>,
     pub(crate) state_index: AtomicUsize,
@@ -9,10 +9,10 @@ pub(crate) struct Context {
     pub(crate) memo_index: AtomicUsize,
     pub(crate) as_index: AtomicUsize,
 }
-unsafe impl Send for Context {}
-unsafe impl Sync for Context {}
+unsafe impl Send for Ctx {}
+unsafe impl Sync for Ctx {}
 
-impl Context {
+impl Ctx {
     pub(crate) fn new(context_for: ContextFor, instance: Arc<ComponentInstance>) -> Self {
         Self {
             context_for,
