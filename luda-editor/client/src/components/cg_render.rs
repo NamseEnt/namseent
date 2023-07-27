@@ -65,13 +65,60 @@ fn render_cg_variant(props: &CgRenderProps, variant: &rpc::data::CgPartVariant) 
             .unwrap();
 
         let image = namui::image::try_load_url(&url)?;
-        Some(namui::image(ImageParam {
-            rect,
-            source: ImageSource::Image(image),
-            style: ImageStyle {
-                fit: ImageFit::Fill,
-                paint_builder: None,
-            },
-        }))
+        let image_info = image.get_image_info();
+        let src_wh = Wh::new(image_info.width, image_info.height);
+
+        let paint_builder = create_paint_builder(&image, variant.blend_mode);
+        let path_builder = PathBuilder::new().add_rect(src_wh.to_rect());
+        Some(translate(
+            rect.x(),
+            rect.y(),
+            scale(
+                rect.width() / src_wh.width,
+                rect.height() / src_wh.height,
+                path(path_builder, paint_builder),
+            ),
+        ))
     })
+}
+
+fn create_paint_builder(
+    image: &Image,
+    cg_part_variant_blend_mode: CgPartVariantBlendMode,
+) -> PaintBuilder {
+    let paint = PaintBuilder::new();
+    let image_shader = image.get_default_shader();
+    paint
+        .set_shader(image_shader)
+        .set_blend_mode(match cg_part_variant_blend_mode {
+            CgPartVariantBlendMode::Darken => BlendMode::Darken,
+            CgPartVariantBlendMode::Multiply => BlendMode::Multiply,
+            CgPartVariantBlendMode::ColorBurn => BlendMode::ColorBurn,
+            CgPartVariantBlendMode::Lighten => BlendMode::Lighten,
+            CgPartVariantBlendMode::Screen => BlendMode::Screen,
+            CgPartVariantBlendMode::ColorDodge => BlendMode::ColorDodge,
+            CgPartVariantBlendMode::Overlay => BlendMode::Overlay,
+            CgPartVariantBlendMode::SoftLight => BlendMode::SoftLight,
+            CgPartVariantBlendMode::HardLight => BlendMode::HardLight,
+            CgPartVariantBlendMode::Difference => BlendMode::Difference,
+            CgPartVariantBlendMode::Exclusion => BlendMode::Exclusion,
+            CgPartVariantBlendMode::Hue => BlendMode::Hue,
+            CgPartVariantBlendMode::Saturation => BlendMode::Saturation,
+            CgPartVariantBlendMode::Color => BlendMode::Color,
+            CgPartVariantBlendMode::Luminosity => BlendMode::Luminosity,
+            // not supported yet but substitute with src over
+            // CgPartVariantBlendMode::PassThrough => unimplemented!("PassThrough not supported"),
+            CgPartVariantBlendMode::Dissolve => unimplemented!("Dissolve not supported"),
+            CgPartVariantBlendMode::LinearBurn => unimplemented!("LinearBurn not supported"),
+            CgPartVariantBlendMode::DarkerColor => unimplemented!("DarkerColor not supported"),
+            CgPartVariantBlendMode::LinearDodge => unimplemented!("LinearDodge not supported"),
+            CgPartVariantBlendMode::LighterColor => unimplemented!("LighterColor not supported"),
+            CgPartVariantBlendMode::VividLight => unimplemented!("VividLight not supported"),
+            CgPartVariantBlendMode::LinearLight => unimplemented!("LinearLight not supported"),
+            CgPartVariantBlendMode::PinLight => unimplemented!("PinLight not supported"),
+            CgPartVariantBlendMode::HardMix => unimplemented!("HardMix not supported"),
+            CgPartVariantBlendMode::Subtract => unimplemented!("Subtract not supported"),
+            CgPartVariantBlendMode::Divide => unimplemented!("Divide not supported"),
+            _ => BlendMode::SrcOver,
+        })
 }
