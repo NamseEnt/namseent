@@ -54,12 +54,26 @@ pub fn use_atom_init<'a, T: Any + Send + Sync + Debug>(
     init: impl FnOnce() -> T,
 ) -> (Sig<'a, T>, SetState<T>) {
     let mut value_index = atom.value_index.lock().unwrap();
-    let (atom_value, atom_index) = value_index.get_or_insert_with(|| {
+    let value_index = value_index.get_or_insert_with(|| {
         let value = init();
         let index = ATOM_INDEX.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         (value, index)
     });
 
+    use_atom_inner(value_index)
+}
+
+pub fn use_atom<'a, T: Any + Send + Sync + Debug>(
+    atom: &'static Atom<T>,
+) -> (Sig<'a, T>, SetState<T>) {
+    let mut value_index = atom.value_index.lock().unwrap();
+    use_atom_inner(value_index.as_mut().unwrap())
+}
+
+pub fn use_atom_inner<'a, T: Any + Send + Sync + Debug>(
+    value_index: &mut (T, usize),
+) -> (Sig<'a, T>, SetState<T>) {
+    let (atom_value, atom_index) = value_index;
     if let ContextFor::SetState { set_state_item, .. } = &ctx().context_for {
         let sig_id = set_state_item.sig_id();
 
