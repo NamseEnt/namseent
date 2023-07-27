@@ -12,13 +12,13 @@ pub fn start<T: Component + 'static>(component: &'static T) {
         while let Some(item) = rx.recv().await {
             match item {
                 Item::SetStateItem(set_state_item) => {
-                    let signal_id = set_state_item.signal_id();
+                    let sig_id = set_state_item.sig_id();
 
                     root_tree = set_state_visit(
                         component,
                         root_tree,
                         set_state_item,
-                        Arc::new(Mutex::new(vec![signal_id].into_iter().collect())),
+                        Arc::new(Mutex::new(vec![sig_id].into_iter().collect())),
                     );
                 }
                 Item::EventCallback(event_callback) => {

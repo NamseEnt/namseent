@@ -10,7 +10,7 @@ pub(crate) fn event_visit(
     hooks::ctx::set_up_before_render(
         ContextFor::Event {
             event_callback,
-            children: component_tree.children,
+            children_tree: component_tree.children,
         },
         component_tree.component_instance,
     );

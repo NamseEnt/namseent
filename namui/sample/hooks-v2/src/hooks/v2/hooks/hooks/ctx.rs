@@ -1,11 +1,11 @@
 use super::*;
 use std::sync::OnceLock;
 
-static mut CTX: OnceLock<Option<Context>> = OnceLock::new();
+static mut CTX_STACK: OnceLock<Vec<Context>> = OnceLock::new();
 
 pub(crate) fn init() {
     unsafe {
-        let _ = CTX.set(None);
+        let _ = CTX_STACK.set(vec![]);
     }
 }
 
@@ -13,14 +13,14 @@ pub(crate) fn set_up_before_render(
     context_for: ContextFor,
     component_instance: Arc<ComponentInstance>,
 ) {
-    let ctx = unsafe { CTX.get_mut() }.unwrap();
+    let ctx_stack = unsafe { CTX_STACK.get_mut() }.unwrap();
 
-    let prev = ctx.replace(Context::new(context_for, component_instance));
-    assert_eq!(prev.is_none(), true);
+    ctx_stack.push(Context::new(context_for, component_instance));
 }
 
 pub(crate) fn take_ctx_and_clear_up() -> Context {
-    let ctx = unsafe { CTX.get_mut() }.unwrap().take().unwrap();
+    let ctx_stack = unsafe { CTX_STACK.get_mut() }.unwrap();
+    let ctx = ctx_stack.pop().unwrap();
     ctx.instance
         .is_first_render
         .store(false, std::sync::atomic::Ordering::SeqCst);
@@ -28,5 +28,5 @@ pub(crate) fn take_ctx_and_clear_up() -> Context {
 }
 
 pub(crate) fn ctx() -> &'static Context {
-    unsafe { CTX.get() }.unwrap().as_ref().unwrap()
+    unsafe { CTX_STACK.get() }.unwrap().last().unwrap()
 }

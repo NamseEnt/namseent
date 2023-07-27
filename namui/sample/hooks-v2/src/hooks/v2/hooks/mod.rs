@@ -3,7 +3,7 @@ mod draw;
 mod event;
 mod hooks;
 mod instance;
-mod signal;
+mod sig;
 mod start;
 mod tree;
 mod value;
@@ -14,7 +14,7 @@ pub use event::*;
 pub use hooks::*;
 pub(crate) use instance::*;
 use namui::RenderingTree;
-pub use signal::*;
+pub use sig::*;
 pub use start::*;
 pub use state::*;
 use std::{
@@ -45,6 +45,17 @@ impl Component for RenderingTree {
 
 pub trait Component: StaticType + Debug {
     fn render(&self) -> RenderDone;
+}
+
+impl<T0: StaticType> StaticType for (T0,) {
+    fn static_type_id(&self) -> TypeId {
+        StaticType::static_type_id(&self.0)
+    }
+}
+impl<T0: Component> Component for (T0,) {
+    fn render(&self) -> RenderDone {
+        self.0.render()
+    }
 }
 
 pub trait StaticType {

@@ -1,11 +1,11 @@
 use super::*;
 
-pub fn use_memo<'a, T: 'static + Debug + Send + Sync>(memo: impl FnOnce() -> T) -> Signal<'a, T> {
+pub fn use_memo<'a, T: 'static + Debug + Send + Sync>(memo: impl FnOnce() -> T) -> Sig<'a, T> {
     let ctx = ctx();
 
     let instance = ctx.instance.as_ref();
     let mut memo_value_list = instance.memo_value_list.lock().unwrap();
-    let mut memo_used_signals_list = instance.memo_used_signals_list.lock().unwrap();
+    let mut memo_used_sigs_list = instance.memo_used_sigs_list.lock().unwrap();
 
     let memo_index = ctx
         .memo_index
@@ -13,46 +13,43 @@ pub fn use_memo<'a, T: 'static + Debug + Send + Sync>(memo: impl FnOnce() -> T) 
 
     let is_first_run = || memo_value_list.len() <= memo_index;
 
-    let used_signal_updated = || {
+    let used_sig_updated = || {
         if let ContextFor::SetState {
             set_state_item: _,
-            updated_signals,
-            children: _,
+            updated_sigs,
+            children_tree: _,
         } = &ctx.context_for
         {
-            let used_signals = memo_used_signals_list.get(memo_index).unwrap();
-            let updated_signals = updated_signals.lock().unwrap();
+            let used_sigs = memo_used_sigs_list.get(memo_index).unwrap();
+            let updated_sigs = updated_sigs.lock().unwrap();
 
-            used_signals.iter().any(|used_signal_id| {
-                updated_signals
+            used_sigs.iter().any(|used_sig_id| {
+                updated_sigs
                     .iter()
-                    .any(|updated_signal_id| updated_signal_id == used_signal_id)
+                    .any(|updated_sig_id| updated_sig_id == used_sig_id)
             })
         } else {
             false
         }
     };
 
-    let signal_id = SignalId {
-        id_type: SignalIdType::Memo,
+    let sig_id = SigId {
+        id_type: SigIdType::Memo,
         index: memo_index,
         component_id: instance.component_id,
     };
 
-    if is_first_run() || used_signal_updated() {
-        clean_used_signals();
+    if is_first_run() || used_sig_updated() {
+        clean_used_sigs();
         let value = Box::new(memo());
-        let used_signal_ids = take_used_signals();
+        let used_sig_ids = take_used_sigs();
 
         update_or_push(&mut memo_value_list, memo_index, value);
-        update_or_push(&mut memo_used_signals_list, memo_index, used_signal_ids);
+        update_or_push(&mut memo_used_sigs_list, memo_index, used_sig_ids);
 
-        if let ContextFor::SetState {
-            updated_signals, ..
-        } = &ctx.context_for
-        {
-            let mut updated_signals = updated_signals.lock().unwrap();
-            updated_signals.insert(signal_id);
+        if let ContextFor::SetState { updated_sigs, .. } = &ctx.context_for {
+            let mut updated_sigs = updated_sigs.lock().unwrap();
+            updated_sigs.insert(sig_id);
         }
     }
 
@@ -64,5 +61,5 @@ pub fn use_memo<'a, T: 'static + Debug + Send + Sync>(memo: impl FnOnce() -> T) 
 
     let value: &T = unsafe { std::mem::transmute(value) };
 
-    Signal::new(value, signal_id)
+    Sig::new(value, sig_id)
 }

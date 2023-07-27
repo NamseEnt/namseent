@@ -16,6 +16,16 @@ pub(crate) struct ComponentTree {
     pub(crate) rendering_tree: Option<RenderingTree>,
 }
 
+impl ComponentTree {
+    pub(crate) fn new(component: &dyn Component) -> Self {
+        Self {
+            component_instance: Arc::new(ComponentInstance::new(component)),
+            children: Vec::new(),
+            rendering_tree: None,
+        }
+    }
+}
+
 impl Debug for ComponentTree {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ComponentTree")
@@ -23,9 +33,4 @@ impl Debug for ComponentTree {
             .field("children", unsafe { &self.children.as_ptr().as_ref() })
             .finish()
     }
-}
-
-fn new_component_id() -> usize {
-    static COMPONENT_ID: AtomicUsize = AtomicUsize::new(0);
-    COMPONENT_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
 }

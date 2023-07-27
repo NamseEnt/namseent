@@ -1,6 +1,6 @@
 mod v2;
 
-use namui::{spawn_local, RenderingTree};
+use namui::RenderingTree;
 use std::sync::{Arc, Mutex, OnceLock};
 
 static RENDERING_TREE: OnceLock<Arc<Mutex<Option<RenderingTree>>>> = OnceLock::new();

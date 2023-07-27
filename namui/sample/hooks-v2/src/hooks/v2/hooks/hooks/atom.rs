@@ -15,24 +15,24 @@ impl<T: Debug + Send + Sync + 'static> Atom<T> {
             value_index: Mutex::new(Some((value, 0))),
         }
     }
-    fn signal_id(&self) -> SignalId {
+    fn sig_id(&self) -> SigId {
         let value_index = self.value_index.lock().unwrap();
         let (_, index) = value_index.as_ref().unwrap();
-        SignalId {
-            id_type: SignalIdType::Atom,
+        SigId {
+            id_type: SigIdType::Atom,
             index: *index,
             component_id: 0,
         }
     }
     pub fn set(&self, value: T) {
         channel::send(channel::Item::SetStateItem(SetStateItem::Set {
-            signal_id: self.signal_id(),
+            sig_id: self.sig_id(),
             value: Arc::new(Mutex::new(Some(Box::new(value)))),
         }));
     }
     pub fn mutate(&self, mutate: impl FnOnce(&mut T) + Send + Sync + 'static) {
         channel::send(channel::Item::SetStateItem(SetStateItem::Mutate {
-            signal_id: self.signal_id(),
+            sig_id: self.sig_id(),
             mutate: Arc::new(Mutex::new(Some(Box::new(move |value| {
                 let value = value.as_any_mut().downcast_mut::<T>().unwrap();
                 mutate(value);
@@ -52,7 +52,7 @@ static ATOM_INDEX: AtomicUsize = AtomicUsize::new(0);
 pub fn use_atom_init<'a, T: Any + Send + Sync + Debug>(
     atom: &'static Atom<T>,
     init: impl FnOnce() -> T,
-) -> (Signal<'a, T>, SetState<T>) {
+) -> (Sig<'a, T>, SetState<T>) {
     let mut value_index = atom.value_index.lock().unwrap();
     let (atom_value, atom_index) = value_index.get_or_insert_with(|| {
         let value = init();
@@ -61,14 +61,11 @@ pub fn use_atom_init<'a, T: Any + Send + Sync + Debug>(
     });
 
     if let ContextFor::SetState { set_state_item, .. } = &ctx().context_for {
-        let signal_id = set_state_item.signal_id();
+        let sig_id = set_state_item.sig_id();
 
-        if signal_id.id_type == SignalIdType::Atom && signal_id.index == *atom_index {
+        if sig_id.id_type == SigIdType::Atom && sig_id.index == *atom_index {
             match set_state_item {
-                SetStateItem::Set {
-                    signal_id: _,
-                    value,
-                } => {
+                SetStateItem::Set { sig_id: _, value } => {
                     let next_value: Box<T> = value
                         .lock()
                         .unwrap()
@@ -80,10 +77,7 @@ pub fn use_atom_init<'a, T: Any + Send + Sync + Debug>(
                     let next_value: T = *next_value;
                     *atom_value = next_value;
                 }
-                SetStateItem::Mutate {
-                    signal_id: _,
-                    mutate,
-                } => {
+                SetStateItem::Mutate { sig_id: _, mutate } => {
                     let mutate = mutate.lock().unwrap().take().unwrap();
                     mutate(atom_value.as_value_mut());
                 }
@@ -93,15 +87,15 @@ pub fn use_atom_init<'a, T: Any + Send + Sync + Debug>(
 
     let value: &T = unsafe { std::mem::transmute(atom_value) };
 
-    let signal_id = SignalId {
-        id_type: SignalIdType::Atom,
+    let sig_id = SigId {
+        id_type: SigIdType::Atom,
         index: *atom_index,
         component_id: 0,
     };
 
-    let set_state = SetState::new(signal_id);
+    let set_state = SetState::new(sig_id);
 
-    let signal = Signal::new(value, signal_id);
+    let sig = Sig::new(value, sig_id);
 
-    (signal, set_state)
+    (sig, set_state)
 }

@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::VecDeque;
 
 pub(crate) struct Context {
     pub(crate) context_for: ContextFor,
@@ -28,12 +29,12 @@ pub(crate) enum ContextFor {
     Mount,
     Event {
         event_callback: EventCallback,
-        children: Vec<ComponentTree>,
+        children_tree: Vec<ComponentTree>,
     },
     SetState {
         set_state_item: SetStateItem,
-        updated_signals: Arc<Mutex<HashSet<SignalId>>>,
-        children: Vec<ComponentTree>,
+        updated_sigs: Arc<Mutex<HashSet<SigId>>>,
+        children_tree: VecDeque<ComponentTree>,
     },
 }
 
@@ -43,20 +44,20 @@ impl Debug for ContextFor {
             ContextFor::Mount => write!(f, "ContextFor::Mount"),
             ContextFor::Event {
                 event_callback,
-                children,
+                children_tree: children,
             } => write!(
                 f,
                 "ContextFor::Event {{ event_callback: {:?}, children: {:?} }}",
                 event_callback, children
             ),
             ContextFor::SetState {
-                updated_signals,
+                updated_sigs,
                 set_state_item,
-                children,
+                children_tree: children,
             } => write!(
                 f,
-                "ContextFor::SetState {{ updated_signals: {:?}, set_state_item: {:?}, children: {:?} }}",
-                updated_signals.lock().unwrap(),
+                "ContextFor::SetState {{ updated_sigs: {:?}, set_state_item: {:?}, children: {:?} }}",
+                updated_sigs.lock().unwrap(),
                 set_state_item,
                 children,
             ),

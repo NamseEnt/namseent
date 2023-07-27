@@ -2,7 +2,7 @@ use super::*;
 
 pub fn use_state<'a, State: Send + Sync + Debug + 'static>(
     init: impl FnOnce() -> State,
-) -> (Signal<'a, State>, SetState<State>) {
+) -> (Sig<'a, State>, SetState<State>) {
     let ctx = ctx();
 
     let instance = ctx.instance.as_ref();
@@ -19,25 +19,19 @@ pub fn use_state<'a, State: Send + Sync + Debug + 'static>(
 
         update_or_push(&mut state_list, state_index, Box::new(state));
     } else if let ContextFor::SetState { set_state_item, .. } = &ctx.context_for {
-        let signal_id = set_state_item.signal_id();
+        let sig_id = set_state_item.sig_id();
 
-        if signal_id.component_id == instance.component_id
-            && signal_id.id_type == SignalIdType::State
-            && signal_id.index == state_index
+        if sig_id.component_id == instance.component_id
+            && sig_id.id_type == SigIdType::State
+            && sig_id.index == state_index
         {
             match set_state_item {
-                SetStateItem::Set {
-                    signal_id: _,
-                    value,
-                } => {
+                SetStateItem::Set { sig_id: _, value } => {
                     let mut_state = state_list.get_mut(state_index).unwrap();
                     let next_value = value.lock().unwrap().take().unwrap();
                     *mut_state = next_value;
                 }
-                SetStateItem::Mutate {
-                    signal_id: _,
-                    mutate,
-                } => {
+                SetStateItem::Mutate { sig_id: _, mutate } => {
                     let state = state_list.get_mut(state_index).unwrap();
                     let mutate = mutate.lock().unwrap().take().unwrap();
                     mutate(state.as_mut());
@@ -54,36 +48,36 @@ pub fn use_state<'a, State: Send + Sync + Debug + 'static>(
 
     let state: &State = unsafe { std::mem::transmute(state) };
 
-    let signal_id = SignalId {
-        id_type: SignalIdType::State,
+    let sig_id = SigId {
+        id_type: SigIdType::State,
         index: state_index,
         component_id: instance.component_id,
     };
 
-    let set_state = SetState::new(signal_id);
+    let set_state = SetState::new(sig_id);
 
-    let signal = Signal::new(state, signal_id);
+    let sig = Sig::new(state, sig_id);
 
-    (signal, set_state)
+    (sig, set_state)
 }
 
 #[derive(Clone)]
 pub(crate) enum SetStateItem {
     Set {
-        signal_id: SignalId,
+        sig_id: SigId,
         value: Arc<Mutex<Option<Box<dyn Value>>>>,
     },
     Mutate {
-        signal_id: SignalId,
+        sig_id: SigId,
         mutate: Arc<Mutex<Option<Box<dyn FnOnce(&mut (dyn Value)) + Send + Sync>>>>,
     },
 }
 
 impl SetStateItem {
-    pub fn signal_id(&self) -> SignalId {
+    pub fn sig_id(&self) -> SigId {
         match self {
-            SetStateItem::Set { signal_id, .. } => *signal_id,
-            SetStateItem::Mutate { signal_id, .. } => *signal_id,
+            SetStateItem::Set { sig_id, .. } => *sig_id,
+            SetStateItem::Mutate { sig_id, .. } => *sig_id,
         }
     }
 }
@@ -91,41 +85,41 @@ impl SetStateItem {
 impl Debug for SetStateItem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SetStateItem::Set { signal_id, value } => {
+            SetStateItem::Set { sig_id, value } => {
                 write!(
                     f,
-                    "SetStateItem::Set {{ signal_id: {:?}, value: {:?} }}",
-                    signal_id, value,
+                    "SetStateItem::Set {{ sig_id: {:?}, value: {:?} }}",
+                    sig_id, value,
                 )
             }
-            SetStateItem::Mutate { signal_id, mutate } => {
-                write!(f, "SetStateItem::Mutate {{ signal_id: {:?} }}", signal_id,)
+            SetStateItem::Mutate { sig_id, mutate } => {
+                write!(f, "SetStateItem::Mutate {{ sig_id: {:?} }}", sig_id,)
             }
         }
     }
 }
 
 pub struct SetState<State: 'static + Debug + Send + Sync> {
-    signal_id: SignalId,
+    sig_id: SigId,
     _state: std::marker::PhantomData<State>,
 }
 
 impl<State: 'static + Debug + Send + Sync> SetState<State> {
-    pub(crate) fn new(signal_id: SignalId) -> Self {
+    pub(crate) fn new(sig_id: SigId) -> Self {
         Self {
-            signal_id,
+            sig_id,
             _state: std::marker::PhantomData,
         }
     }
     pub fn set(self, state: State) {
         channel::send(channel::Item::SetStateItem(SetStateItem::Set {
-            signal_id: self.signal_id,
+            sig_id: self.sig_id,
             value: Arc::new(Mutex::new(Some(Box::new(state)))),
         }));
     }
     pub fn mutate(self, mutate: impl FnOnce(&mut State) + Send + Sync + 'static) {
         channel::send(channel::Item::SetStateItem(SetStateItem::Mutate {
-            signal_id: self.signal_id,
+            sig_id: self.sig_id,
             mutate: Arc::new(Mutex::new(Some(Box::new(move |state| {
                 let state = state.as_any_mut().downcast_mut::<State>().unwrap();
                 mutate(state);

@@ -29,9 +29,18 @@ impl Component for MyComponent {
             |event| match event {
                 Event::OnClick => set_count.mutate(|count| *count += 1),
             },
-            |ctx| Button {
-                text,
-                on_click: ctx.event(Event::OnClick),
+            |ctx| {
+                ctx.add(Button {
+                    text,
+                    on_click: ctx.event(Event::OnClick),
+                });
+                if *count % 2 == 0 {
+                    ctx.add(StringText { text });
+                } else {
+                    ctx.add(UsizeText {
+                        usize: count.clone(),
+                    });
+                }
             },
         )
     }
@@ -55,7 +64,7 @@ fn get_fibo(x: usize) -> usize {
 
 #[derive(Debug)]
 struct Button<'a> {
-    text: Signal<'a, String>,
+    text: Sig<'a, String>,
     on_click: EventCallback,
 }
 
@@ -71,10 +80,10 @@ impl Component for Button<'_> {
             namui::log!("{}", *self.text);
         });
 
-        // use_effect("On button render", || {});
+        use_effect("On button render", || {});
 
-        use_render(|| {
-            button::text_button(
+        use_render(|ctx| {
+            ctx.add(button::text_button(
                 Rect::Xywh {
                     x: 10.px(),
                     y: 10.px(),
@@ -91,7 +100,84 @@ impl Component for Button<'_> {
                     let on_click = self.on_click.clone();
                     move |_| on_click.call()
                 }),
-            )
+            ));
+        })
+    }
+}
+
+#[derive(Debug)]
+struct StringText<'a> {
+    text: Sig<'a, String>,
+}
+
+impl StaticType for StringText<'_> {
+    fn static_type_id(&self) -> TypeId {
+        TypeId::of::<StringText>()
+    }
+}
+
+impl Component for StringText<'_> {
+    fn render(&self) -> RenderDone {
+        let (value, set_value) = use_state(|| "hello".to_string());
+
+        use_effect("Print text", || {
+            namui::log!("StringText: {}", *value);
+        });
+
+        use_render(|ctx| {
+            ctx.add(button::text_button(
+                Rect::Xywh {
+                    x: 10.px(),
+                    y: 110.px(),
+                    width: 100.px(),
+                    height: 50.px(),
+                },
+                &value,
+                Color::BLACK,
+                Color::BLACK,
+                1.px(),
+                Color::RED,
+                [MouseButton::Left],
+                closure(move |_| {}),
+            ));
+        })
+    }
+}
+
+#[derive(Debug)]
+struct UsizeText<'a> {
+    usize: Sig<'a, usize>,
+}
+
+impl StaticType for UsizeText<'_> {
+    fn static_type_id(&self) -> TypeId {
+        TypeId::of::<UsizeText>()
+    }
+}
+
+impl Component for UsizeText<'_> {
+    fn render(&self) -> RenderDone {
+        let (value, set_value) = use_state(|| 0);
+        use_effect("Print text", || {
+            namui::log!("UsizeText: {}", *value);
+        });
+
+        use_render(|ctx| {
+            ctx.add(button::text_button(
+                Rect::Xywh {
+                    x: 10.px(),
+                    y: 210.px(),
+                    width: 100.px(),
+                    height: 50.px(),
+                },
+                &value.to_string(),
+                Color::BLACK,
+                Color::BLACK,
+                1.px(),
+                Color::RED,
+                [MouseButton::Left],
+                closure(move |_| {}),
+            ));
         })
     }
 }

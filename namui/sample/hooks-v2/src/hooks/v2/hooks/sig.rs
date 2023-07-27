@@ -2,50 +2,61 @@ use super::*;
 use std::{cell::RefCell, collections::HashSet};
 
 thread_local! {
-    pub(crate) static USED_SIGNAL_IDS: RefCell<HashSet<SignalId>> = RefCell::new(HashSet::new());
+    pub(crate) static USED_SIG_IDS: RefCell<HashSet<SigId>> = RefCell::new(HashSet::new());
 }
 
-pub(crate) fn clean_used_signals() {
-    USED_SIGNAL_IDS.with(|ids| {
+pub(crate) fn clean_used_sigs() {
+    USED_SIG_IDS.with(|ids| {
         let mut ids = ids.borrow_mut();
         ids.clear();
     })
 }
 
-pub(crate) fn take_used_signals() -> Vec<SignalId> {
-    USED_SIGNAL_IDS.with(|ids| {
+pub(crate) fn take_used_sigs() -> Vec<SigId> {
+    USED_SIG_IDS.with(|ids| {
         let mut ids = ids.borrow_mut();
         ids.drain().collect()
     })
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub(crate) struct SignalId {
-    pub id_type: SignalIdType,
+pub(crate) struct SigId {
+    pub id_type: SigIdType,
     pub component_id: usize,
     pub index: usize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub(crate) enum SignalIdType {
+pub(crate) enum SigIdType {
     State,
     Memo,
     As,
     Atom, // component_id = 0
 }
 
-#[derive(Clone, Debug)]
-pub struct Signal<'a, T: ?Sized> {
-    id: SignalId,
+#[derive(Debug)]
+pub struct Sig<'a, T: ?Sized> {
+    id: SigId,
     value: &'a T,
 }
 
-impl<'a, T> Signal<'a, T> {
-    pub(crate) fn new(value: &'a T, id: SignalId) -> Self {
+impl<T: ?Sized> Clone for Sig<'_, T> {
+    fn clone(&self) -> Self {
+        Self {
+            id: self.id,
+            value: self.value,
+        }
+    }
+}
+
+impl<T: ?Sized> Copy for Sig<'_, T> {}
+
+impl<'a, T> Sig<'a, T> {
+    pub(crate) fn new(value: &'a T, id: SigId) -> Self {
         Self { value, id }
     }
     fn use_it(&self) {
-        USED_SIGNAL_IDS.with(|ids| {
+        USED_SIG_IDS.with(|ids| {
             let mut ids = ids.borrow_mut();
             ids.insert(self.id);
         });
@@ -56,7 +67,7 @@ impl<'a, T> Signal<'a, T> {
     }
 }
 
-impl<T> std::ops::Deref for Signal<'_, T> {
+impl<T> std::ops::Deref for Sig<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -65,17 +76,17 @@ impl<T> std::ops::Deref for Signal<'_, T> {
     }
 }
 
-pub trait AsSignal {
-    fn as_signal<'a>(&'a self) -> Signal<'a, Self>;
+pub trait AsSig {
+    fn as_sig<'a>(&'a self) -> Sig<'a, Self>;
 }
 
-impl<T> AsSignal for T {
-    fn as_signal<'a>(&'a self) -> Signal<'a, Self> {
+impl<T> AsSig for T {
+    fn as_sig<'a>(&'a self) -> Sig<'a, Self> {
         let ctx = ctx::ctx();
-        Signal::new(
+        Sig::new(
             self,
-            SignalId {
-                id_type: SignalIdType::As,
+            SigId {
+                id_type: SigIdType::As,
                 component_id: ctx.instance.as_ref().component_id,
                 index: ctx
                     .as_index
