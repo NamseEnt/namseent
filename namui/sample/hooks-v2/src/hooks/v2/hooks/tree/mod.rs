@@ -1,31 +1,33 @@
 mod ctx;
-mod event;
+mod render_ctx;
+// mod event;
 mod mount;
-mod set_state;
+// mod set_state;
 
 use super::*;
 pub use ctx::*;
-pub use event::*;
+pub use render_ctx::*;
+// pub use event::*;
 pub use mount::*;
-pub use set_state::*;
+// pub use set_state::*;
 
 #[derive(Clone)]
 pub(crate) struct ComponentTree {
     pub(crate) component_instance: Arc<ComponentInstance>,
     pub(crate) children: Vec<ComponentTree>,
-    /// args
-    /// - children: `Vec<RenderingTree>`
-    pub(crate) fn_rendering_tree: Option<FnRenderingTree>,
+    // args
+    // - children: `Vec<RenderingTree>`
+    // pub(crate) fn_rendering_tree: Option<FnRenderingTree>,
 }
 
-pub(crate) type FnRenderingTree = Arc<dyn Fn(Vec<RenderingTree>) -> RenderingTree>;
+// pub(crate) type FnRenderingTree = Arc<dyn FnOnce(Vec<RenderingTree>) -> RenderingTree>;
 
 impl ComponentTree {
     pub(crate) fn new(component: &dyn Component) -> Self {
         Self {
             component_instance: Arc::new(ComponentInstance::new(component)),
             children: Vec::new(),
-            fn_rendering_tree: None,
+            // fn_rendering_tree: None,
         }
     }
 }

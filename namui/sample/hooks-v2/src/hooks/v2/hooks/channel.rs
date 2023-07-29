@@ -3,6 +3,7 @@ use std::sync::OnceLock;
 use tokio::sync::mpsc::UnboundedReceiver;
 
 pub(crate) static TX: OnceLock<tokio::sync::mpsc::UnboundedSender<Item>> = OnceLock::new();
+pub(crate) type Receiver = UnboundedReceiver<Item>;
 
 #[derive(Debug)]
 pub(crate) enum Item {

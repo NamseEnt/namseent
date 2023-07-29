@@ -17,7 +17,7 @@ impl StaticType for OnTop<'_> {
 }
 
 impl<'a> Component for OnTop<'a> {
-    fn render(&self) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         use_render_with_rendering_tree(
             move |ctx| {
                 ctx.add(self.component.as_ref());

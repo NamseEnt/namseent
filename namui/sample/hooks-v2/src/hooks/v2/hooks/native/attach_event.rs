@@ -24,7 +24,7 @@ impl StaticType for AttachEvent<'_> {
 }
 
 impl<'a> Component for AttachEvent<'a> {
-    fn render(&self) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             ref attach_event_builder,
             ref component,

@@ -1,10 +1,9 @@
 use super::*;
 
-pub fn use_state<'a, State: Send + Sync + Debug + 'static>(
+pub(crate) fn handle_use_state<'a, State: Send + Sync + Debug + 'static>(
+    ctx: &'a RenderCtx,
     init: impl FnOnce() -> State,
 ) -> (Sig<'a, State>, SetState<State>) {
-    let ctx = ctx();
-
     let instance = ctx.instance.as_ref();
     let mut state_list = instance.state_list.lock().unwrap();
 
@@ -18,27 +17,28 @@ pub fn use_state<'a, State: Send + Sync + Debug + 'static>(
         let state = init();
 
         update_or_push(&mut state_list, state_index, Box::new(state));
-    } else if let ContextFor::SetState { set_state_item, .. } = &ctx.context_for {
-        let sig_id = set_state_item.sig_id();
-
-        if sig_id.component_id == instance.component_id
-            && sig_id.id_type == SigIdType::State
-            && sig_id.index == state_index
-        {
-            match set_state_item {
-                SetStateItem::Set { sig_id: _, value } => {
-                    let mut_state = state_list.get_mut(state_index).unwrap();
-                    let next_value = value.lock().unwrap().take().unwrap();
-                    *mut_state = next_value;
-                }
-                SetStateItem::Mutate { sig_id: _, mutate } => {
-                    let state = state_list.get_mut(state_index).unwrap();
-                    let mutate = mutate.lock().unwrap().take().unwrap();
-                    mutate(state.as_mut());
-                }
-            }
-        }
     }
+    // else if let ContextFor::SetState { set_state_item, .. } = &ctx.context_for {
+    //     let sig_id = set_state_item.sig_id();
+
+    //     if sig_id.component_id == instance.component_id
+    //         && sig_id.id_type == SigIdType::State
+    //         && sig_id.index == state_index
+    //     {
+    //         match set_state_item {
+    //             SetStateItem::Set { sig_id: _, value } => {
+    //                 let mut_state = state_list.get_mut(state_index).unwrap();
+    //                 let next_value = value.lock().unwrap().take().unwrap();
+    //                 *mut_state = next_value;
+    //             }
+    //             SetStateItem::Mutate { sig_id: _, mutate } => {
+    //                 let state = state_list.get_mut(state_index).unwrap();
+    //                 let mutate = mutate.lock().unwrap().take().unwrap();
+    //                 mutate(state.as_mut());
+    //             }
+    //         }
+    //     }
+    // }
 
     let state: &State = state_list[state_index]
         .as_ref()
@@ -99,12 +99,12 @@ impl Debug for SetStateItem {
     }
 }
 
-pub struct SetState<State: 'static + Debug + Send + Sync> {
+pub struct SetState<State: 'static + Debug> {
     sig_id: SigId,
     _state: std::marker::PhantomData<State>,
 }
 
-impl<State: 'static + Debug + Send + Sync> SetState<State> {
+impl<State: 'static + Debug> SetState<State> {
     pub(crate) fn new(sig_id: SigId) -> Self {
         Self {
             sig_id,
@@ -112,18 +112,20 @@ impl<State: 'static + Debug + Send + Sync> SetState<State> {
         }
     }
     pub fn set(self, state: State) {
-        channel::send(channel::Item::SetStateItem(SetStateItem::Set {
-            sig_id: self.sig_id,
-            value: Arc::new(Mutex::new(Some(Box::new(state)))),
-        }));
+        todo!()
+        // channel::send(channel::Item::SetStateItem(SetStateItem::Set {
+        //     sig_id: self.sig_id,
+        //     value: Arc::new(Mutex::new(Some(Box::new(state)))),
+        // }));
     }
     pub fn mutate(self, mutate: impl FnOnce(&mut State) + Send + Sync + 'static) {
-        channel::send(channel::Item::SetStateItem(SetStateItem::Mutate {
-            sig_id: self.sig_id,
-            mutate: Arc::new(Mutex::new(Some(Box::new(move |state| {
-                let state = state.as_any_mut().downcast_mut::<State>().unwrap();
-                mutate(state);
-            })))),
-        }));
+        todo!()
+        // channel::send(channel::Item::SetStateItem(SetStateItem::Mutate {
+        //     sig_id: self.sig_id,
+        //     mutate: Arc::new(Mutex::new(Some(Box::new(move |state| {
+        //         let state = state.as_any_mut().downcast_mut::<State>().unwrap();
+        //         mutate(state);
+        //     })))),
+        // }));
     }
 }

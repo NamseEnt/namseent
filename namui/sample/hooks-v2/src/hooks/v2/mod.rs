@@ -8,53 +8,63 @@ use std::{any::TypeId, fmt::Debug};
 #[derive(Debug)]
 pub struct MyComponent {}
 
-enum Event {
-    OnClick,
-    KeyUp { code: namui::Code },
-}
+// static COUNT_ATOM: Atom<usize> = Atom::uninitialized_new();
 
-static COUNT_ATOM: Atom<usize> = Atom::uninitialized_new();
+impl Component for MyComponent {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        // let (count, set_count) = ctx.use_atom_init(&COUNT_ATOM, || 0);
+        let (count, set_count) = ctx.use_state(|| 0);
+        let count_mul_2 = ctx.use_memo(|| *count * 2);
 
-impl<'a> Component for MyComponent {
-    fn render(&self) -> RenderDone {
-        let (count, set_count) = use_atom_init(&COUNT_ATOM, || 0);
-        // let (count, set_count) = use_state(|| 0);
-        let count_mul_2 = use_memo(|| *count * 2);
+        let fibo = ctx.use_memo(|| get_fibo(*count));
+        let fibo2 = ctx.use_memo(|| get_fibo(*count_mul_2));
 
-        let fibo = use_memo(|| get_fibo(*count));
-        let fibo2 = use_memo(|| get_fibo(*count_mul_2));
+        let text =
+            ctx.use_memo(|| format!("Count: {}, Fibo: {}, Fibo2: {}", *count, *fibo, *fibo2));
 
-        let text = use_memo(|| format!("Count: {}, Fibo: {}, Fibo2: {}", *count, *fibo, *fibo2));
+        ctx.use_effect("Print text", || {
+            namui::log!("{}", *text);
+        });
 
-        use_render_with_event(
-            |event| match event {
-                Event::OnClick => set_count.mutate(|count| *count += 1),
-                Event::KeyUp { code } => {
-                    namui::log!("Key up {:?}", code)
-                }
-            },
-            |ctx| {
-                ctx.add(Button {
-                    text,
-                    on_click: ctx.event(Event::OnClick),
-                });
-                if *count % 2 == 0 {
-                    ctx.add(StringText { text }.attach_event(|builder| {
-                        builder.on_key_up(ctx.event_with_param(|event: KeyboardEvent| {
-                            Some(Event::KeyUp { code: event.code })
-                        }));
-                    }));
-                } else {
-                    ctx.add(hooks::translate(
-                        50.px(),
-                        50.px(),
-                        UsizeText {
-                            usize: count.clone(),
-                        },
-                    ));
-                }
-            },
-        )
+        #[derive(Debug)]
+        enum InternalEvent {
+            OnClick,
+            KeyUp { code: namui::Code },
+        }
+
+        // ctx.use_children_with_event(
+        //     |event| match event {
+        //         InternalEvent::OnClick => set_count.mutate(|count| *count += 1),
+        //         InternalEvent::KeyUp { code } => {
+        //             namui::log!("Key up {:?}", code)
+        //         }
+        //     },
+        ctx.use_children(|ctx| {
+            ctx.add(Button {
+                text,
+                // on_click: ctx.event(InternalEvent::OnClick),
+            });
+            if *count % 2 == 0 {
+                ctx.add(
+                    StringText { text }, // .attach_event(|builder| {
+                                         // builder.on_key_up(ctx.event_with_param(|event: KeyboardEvent| {
+                                         //     Some(InternalEvent::KeyUp { code: event.code })
+                                         // }));
+                                         // })
+                );
+            } else {
+                ctx.add(
+                    // hooks::translate(
+                    // 50.px(),
+                    // 50.px(),
+                    UsizeText {
+                        usize: count.clone(),
+                    },
+                    // )
+                );
+            }
+            ctx.children_done()
+        })
     }
 }
 
@@ -77,7 +87,7 @@ fn get_fibo(x: usize) -> usize {
 #[derive(Debug)]
 struct Button<'a> {
     text: Sig<'a, String>,
-    on_click: EventCallback,
+    // on_click: EventCallback,
 }
 
 impl StaticType for Button<'_> {
@@ -86,15 +96,15 @@ impl StaticType for Button<'_> {
     }
 }
 
-impl<'a> Component for Button<'_> {
-    fn render(&self) -> RenderDone {
-        use_effect("Print text", || {
+impl Component for Button<'_> {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        ctx.use_effect("Print text", || {
             namui::log!("{}", *self.text);
         });
 
-        use_effect("On button render", || {});
+        ctx.use_effect("On button render", || {});
 
-        use_render(|ctx| {
+        ctx.use_children(|ctx| {
             ctx.add(button::text_button(
                 Rect::Xywh {
                     x: 10.px(),
@@ -109,10 +119,13 @@ impl<'a> Component for Button<'_> {
                 Color::RED,
                 [MouseButton::Left],
                 closure({
-                    let on_click = self.on_click.clone();
-                    move |_| on_click.call()
+                    // let on_click = self.on_click.clone();
+                    // move |_| on_click.call()
+                    |_| {}
                 }),
             ));
+
+            ctx.children_done()
         })
     }
 }
@@ -128,15 +141,15 @@ impl StaticType for StringText<'_> {
     }
 }
 
-impl<'a> Component for StringText<'_> {
-    fn render(&self) -> RenderDone {
-        let (value, _set_value) = use_state(|| "hello".to_string());
+impl Component for StringText<'_> {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        let (value, _set_value) = ctx.use_state(|| "hello".to_string());
 
-        use_effect("Print text", || {
+        ctx.use_effect("Print text", || {
             namui::log!("StringText: {}", *value);
         });
 
-        use_render(|ctx| {
+        ctx.use_children(|ctx| {
             ctx.add(button::text_button(
                 Rect::Xywh {
                     x: 10.px(),
@@ -152,6 +165,8 @@ impl<'a> Component for StringText<'_> {
                 [MouseButton::Left],
                 closure(move |_| {}),
             ));
+
+            ctx.children_done()
         })
     }
 }
@@ -167,14 +182,14 @@ impl StaticType for UsizeText<'_> {
     }
 }
 
-impl<'a> Component for UsizeText<'_> {
-    fn render(&self) -> RenderDone {
-        let (value, _set_value) = use_state(|| 0);
-        use_effect("Print text", || {
+impl Component for UsizeText<'_> {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        let (value, _set_value) = ctx.use_state(|| 0);
+        ctx.use_effect("Print text", || {
             namui::log!("UsizeText: {}", *value);
         });
 
-        use_render(|ctx| {
+        ctx.use_children(|ctx| {
             ctx.add(button::text_button(
                 Rect::Xywh {
                     x: 10.px(),
@@ -190,6 +205,8 @@ impl<'a> Component for UsizeText<'_> {
                 [MouseButton::Left],
                 closure(move |_| {}),
             ));
+
+            ctx.children_done()
         })
     }
 }

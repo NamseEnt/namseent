@@ -1,36 +1,36 @@
-mod channel;
-mod draw;
-mod event;
+// mod channel;
+// mod draw;
+// mod event;
 mod hooks;
 mod instance;
-mod native;
+// mod native;
 mod sig;
 mod start;
 mod tree;
 mod value;
 
-pub(crate) use channel::*;
-pub use draw::*;
-pub use event::*;
+// pub(crate) use channel::*;
+// pub use draw::*;
+// pub use event::*;
 pub use hooks::*;
 pub(crate) use instance::*;
 use namui::RenderingTree;
-pub use native::*;
+// pub use native::*;
 pub use sig::*;
 pub use start::*;
-pub use state::*;
+// pub use state::*;
 use std::{
     any::{Any, TypeId},
     collections::HashSet,
     fmt::Debug,
     sync::{atomic::AtomicUsize, Arc, Mutex},
 };
-use tree::*;
+pub use tree::*;
 pub use value::*;
 
 #[derive(Debug)]
 pub struct RenderDone {
-    component_tree: ComponentTree,
+    // component_tree: ComponentTree,
 }
 
 impl StaticType for RenderingTree {
@@ -40,23 +40,25 @@ impl StaticType for RenderingTree {
 }
 
 impl Component for RenderingTree {
-    fn render(&self) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let rendering_tree = self.clone();
-        use_render_with_rendering_tree(|_| {}, move |_| rendering_tree.clone())
+        // use_render_with_rendering_tree(|_| {}, move |_| rendering_tree.clone())
+
+        ctx.use_children_with_rendering_tree(|ctx| ctx.children_done(), |_| rendering_tree)
     }
 }
 
 pub trait Component: StaticType + Debug {
-    fn render(&self) -> RenderDone;
-    fn attach_event<'a>(
-        self,
-        attach_event: impl FnOnce(&mut native::AttachEventBuilder),
-    ) -> AttachEvent<'a>
-    where
-        Self: 'a + Sized,
-    {
-        native::attach_event(self, attach_event)
-    }
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone;
+    // fn attach_event<'a>(
+    //     self,
+    //     attach_event: impl FnOnce(&mut native::AttachEventBuilder),
+    // ) -> AttachEvent<'a>
+    // where
+    //     Self: 'a + Sized,
+    // {
+    //     native::attach_event(self, attach_event)
+    // }
 }
 
 impl StaticType for &dyn Component {
@@ -65,8 +67,8 @@ impl StaticType for &dyn Component {
     }
 }
 impl Component for &dyn Component {
-    fn render(&self) -> RenderDone {
-        (**self).render()
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        (**self).render(ctx)
     }
 }
 
@@ -76,8 +78,8 @@ impl<T0: StaticType> StaticType for (T0,) {
     }
 }
 impl<T0: Component> Component for (T0,) {
-    fn render(&self) -> RenderDone {
-        self.0.render()
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        self.0.render(ctx)
     }
 }
 

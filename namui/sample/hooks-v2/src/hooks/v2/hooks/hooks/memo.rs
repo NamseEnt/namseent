@@ -1,8 +1,9 @@
 use super::*;
 
-pub fn use_memo<'a, T: 'static + Debug + Send + Sync>(memo: impl FnOnce() -> T) -> Sig<'a, T> {
-    let ctx = ctx();
-
+pub fn handle_use_memo<'a, T: 'static + Debug + Send + Sync>(
+    ctx: &'a RenderCtx,
+    memo: impl FnOnce() -> T,
+) -> Sig<'a, T> {
     let instance = ctx.instance.as_ref();
     let mut memo_value_list = instance.memo_value_list.lock().unwrap();
     let mut memo_used_sigs_list = instance.memo_used_sigs_list.lock().unwrap();
@@ -14,23 +15,23 @@ pub fn use_memo<'a, T: 'static + Debug + Send + Sync>(memo: impl FnOnce() -> T) 
     let is_first_run = || memo_value_list.len() <= memo_index;
 
     let used_sig_updated = || {
-        if let ContextFor::SetState {
-            set_state_item: _,
-            updated_sigs,
-            children_tree: _,
-        } = &ctx.context_for
-        {
-            let used_sigs = memo_used_sigs_list.get(memo_index).unwrap();
-            let updated_sigs = updated_sigs.lock().unwrap();
+        // if let ContextFor::SetState {
+        //     set_state_item: _,
+        //     updated_sigs,
+        //     children_tree: _,
+        // } = &ctx.context_for
+        // {
+        //     let used_sigs = memo_used_sigs_list.get(memo_index).unwrap();
+        //     let updated_sigs = updated_sigs.lock().unwrap();
 
-            used_sigs.iter().any(|used_sig_id| {
-                updated_sigs
-                    .iter()
-                    .any(|updated_sig_id| updated_sig_id == used_sig_id)
-            })
-        } else {
-            false
-        }
+        //     used_sigs.iter().any(|used_sig_id| {
+        //         updated_sigs
+        //             .iter()
+        //             .any(|updated_sig_id| updated_sig_id == used_sig_id)
+        //     })
+        // } else {
+        false
+        // }
     };
 
     let sig_id = SigId {
@@ -47,10 +48,10 @@ pub fn use_memo<'a, T: 'static + Debug + Send + Sync>(memo: impl FnOnce() -> T) 
         update_or_push(&mut memo_value_list, memo_index, value);
         update_or_push(&mut memo_used_sigs_list, memo_index, used_sig_ids);
 
-        if let ContextFor::SetState { updated_sigs, .. } = &ctx.context_for {
-            let mut updated_sigs = updated_sigs.lock().unwrap();
-            updated_sigs.insert(sig_id);
-        }
+        // if let ContextFor::SetState { updated_sigs, .. } = &ctx.context_for {
+        //     let mut updated_sigs = updated_sigs.lock().unwrap();
+        //     updated_sigs.insert(sig_id);
+        // }
     }
 
     let value: &T = memo_value_list[memo_index]

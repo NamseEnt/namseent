@@ -21,7 +21,7 @@ impl StaticType for Translate<'_> {
 }
 
 impl<'a> Component for Translate<'a> {
-    fn render(&self) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let x = self.x;
         let y = self.y;
         use_render_with_rendering_tree(
