@@ -17,6 +17,7 @@ struct Inner {
     tree_id_map: HashMap<usize, VecDeque<usize>>,
     fn_rendering_tree_map: RefCell<HashMap<usize, Option<FnRenderingTree>>>,
     component_instance_map: HashMap<usize, Arc<ComponentInstance>>,
+    updated_sigs: HashSet<SigId>,
 
     last_render_component_instance_map: HashMap<usize, Arc<ComponentInstance>>,
     last_tree_id_map: HashMap<usize, VecDeque<usize>>,
@@ -66,6 +67,7 @@ impl TreeContext {
                 component_instance_map: Default::default(),
                 last_render_component_instance_map: Default::default(),
                 last_tree_id_map: Default::default(),
+                updated_sigs: Default::default(),
             })),
         }
     }
@@ -83,6 +85,7 @@ impl TreeContext {
             result.component_instance.component_id,
             result.fn_rendering_tree,
         );
+        inner.flush_updated_sigs();
 
         if let Some(child) = inner.pop_child().as_ref() {
             inner.current_component_parent_id = child.parent_component_id;
@@ -104,7 +107,7 @@ impl TreeContext {
         }
     }
     fn flush_channel(&mut self, is_need_to_re_render: &mut bool) {
-        let inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap();
 
         // TODO: Remove this loop, just call once. this loop is for event_callback.
         loop {
@@ -120,6 +123,7 @@ impl TreeContext {
 
                         match item {
                             SetStateItem::Set { sig_id, value } => {
+                                inner.add_updated_sig(sig_id);
                                 let component_instance =
                                     inner.get_component_instance(sig_id.component_id);
 
@@ -137,6 +141,7 @@ impl TreeContext {
                                 }
                             }
                             SetStateItem::Mutate { sig_id, mutate } => {
+                                inner.add_updated_sig(sig_id);
                                 let component_instance =
                                     inner.get_component_instance(sig_id.component_id);
 
@@ -173,6 +178,14 @@ impl TreeContext {
             .lock()
             .unwrap()
             .get_last_component_instance(static_type_id)
+    }
+
+    pub(crate) fn is_sig_updated(&self, sig_id: &SigId) -> bool {
+        self.inner.lock().unwrap().is_sig_updated(sig_id)
+    }
+
+    pub(crate) fn add_sig_updated(&self, sig_id: SigId) {
+        self.inner.lock().unwrap().add_updated_sig(sig_id);
     }
 }
 
@@ -253,6 +266,7 @@ impl Inner {
         &mut self,
         static_type_id: TypeId,
     ) -> Option<Arc<ComponentInstance>> {
+        // TODO: This is not efficient, need to improve
         let Some(children_ids) = self
             .last_tree_id_map
             .get_mut(&self.current_component_parent_id) else {
@@ -267,6 +281,15 @@ impl Inner {
         }
 
         None
+    }
+    fn flush_updated_sigs(&mut self) {
+        self.updated_sigs.clear();
+    }
+    fn is_sig_updated(&self, sig_id: &SigId) -> bool {
+        self.updated_sigs.contains(sig_id)
+    }
+    fn add_updated_sig(&mut self, sig_id: SigId) {
+        self.updated_sigs.insert(sig_id);
     }
 }
 

@@ -17,23 +17,10 @@ pub fn handle_use_effect(ctx: &RenderCtx, title: &'static str, use_effect: impl 
     };
 
     let used_sig_updated = || {
-        // if let ContextFor::SetState {
-        //     set_state_item: _,
-        //     updated_sigs,
-        //     children_tree: _,
-        // } = &ctx.context_for
-        // {
-        //     let used_sigs = effect_used_sigs_list.get(effect_index).unwrap();
-        //     let updated_sigs = updated_sigs.lock().unwrap();
-
-        //     used_sigs.iter().any(|used_sig_id| {
-        //         updated_sigs
-        //             .iter()
-        //             .any(|updated_sig_id| updated_sig_id == used_sig_id)
-        //     })
-        // } else {
-        false
-        // }
+        let used_sigs = effect_used_sigs_list.get(effect_index).unwrap();
+        used_sigs
+            .iter()
+            .any(|used_sig_id| ctx.is_sig_updated(used_sig_id))
     };
 
     if is_first_run() || used_sig_updated() {

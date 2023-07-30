@@ -1,7 +1,6 @@
 use super::*;
 
 pub struct RenderCtx {
-    pub(crate) context_for: ContextFor,
     pub(crate) instance: Arc<ComponentInstance>,
     pub(crate) state_index: AtomicUsize,
     pub(crate) effect_index: AtomicUsize,
@@ -11,13 +10,8 @@ pub struct RenderCtx {
 }
 
 impl<'a> RenderCtx {
-    pub(crate) fn new(
-        context_for: ContextFor,
-        instance: Arc<ComponentInstance>,
-        tree_ctx: TreeContext,
-    ) -> Self {
+    pub(crate) fn new(instance: Arc<ComponentInstance>, tree_ctx: TreeContext) -> Self {
         Self {
-            context_for,
             instance,
             state_index: Default::default(),
             effect_index: Default::default(),
@@ -95,6 +89,14 @@ impl<'a> RenderCtx {
         let done = children(children_ctx);
 
         done.to_render_done()
+    }
+
+    pub(crate) fn is_sig_updated(&self, sig_id: &SigId) -> bool {
+        self.tree_ctx.is_sig_updated(sig_id)
+    }
+
+    pub(crate) fn add_sig_updated(&self, sig_id: SigId) {
+        self.tree_ctx.add_sig_updated(sig_id)
     }
 }
 
