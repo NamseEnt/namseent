@@ -93,3 +93,116 @@ impl ExprType {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        position_is_in_async_block, position_is_in_closure,
+        wrap_code_with_block::{wrap_code_in_block_internal, ExprType},
+        EditAction, EditInsertAction, LineColumn,
+    };
+
+    const FILE_TEXT: &str = r#"
+fn main() {
+    let async_block = async {
+        let closure = || {
+        };
+    };
+}
+"#;
+
+    #[test]
+    fn test_position_is_in_async_block_outside() {
+        let actual =
+            position_is_in_async_block(FILE_TEXT, LineColumn { line: 1, column: 0 }).unwrap();
+        assert_eq!(actual, false);
+    }
+
+    #[test]
+    fn test_position_is_in_async_block_inside() {
+        let actual = position_is_in_async_block(
+            FILE_TEXT,
+            LineColumn {
+                line: 3,
+                column: 28,
+            },
+        )
+        .unwrap();
+        assert_eq!(actual, true);
+    }
+
+    #[test]
+    fn test_position_is_in_closure_outside() {
+        let actual = position_is_in_closure(FILE_TEXT, LineColumn { line: 3, column: 0 }).unwrap();
+        assert_eq!(actual, false);
+    }
+
+    #[test]
+    fn test_position_is_in_closure_inside() {
+        let actual = position_is_in_closure(
+            FILE_TEXT,
+            LineColumn {
+                line: 4,
+                column: 26,
+            },
+        )
+        .unwrap();
+        assert_eq!(actual, true);
+    }
+
+    #[test]
+    fn test_wrap_async_block_in_block() {
+        let expected_action = EditAction {
+            insert: vec![
+                EditInsertAction {
+                    line: 6,
+                    column: 5,
+                    text: "}".to_string(),
+                },
+                EditInsertAction {
+                    line: 3,
+                    column: 22,
+                    text: "{".to_string(),
+                },
+            ],
+        };
+        let actual_action = wrap_code_in_block_internal(
+            FILE_TEXT,
+            LineColumn {
+                line: 3,
+                column: 28,
+            },
+            ExprType::Async,
+        )
+        .unwrap();
+        assert_eq!(expected_action, actual_action);
+    }
+
+    #[test]
+    fn test_wrap_closure_in_block() {
+        let expected_action = EditAction {
+            insert: vec![
+                EditInsertAction {
+                    line: 5,
+                    column: 9,
+                    text: "}".to_string(),
+                },
+                EditInsertAction {
+                    line: 4,
+                    column: 22,
+                    text: "{".to_string(),
+                },
+            ],
+        };
+        let actual_action = wrap_code_in_block_internal(
+            FILE_TEXT,
+            LineColumn {
+                line: 4,
+                column: 27,
+            },
+            ExprType::Closure,
+        )
+        .unwrap();
+        assert_eq!(expected_action, actual_action);
+    }
+}
