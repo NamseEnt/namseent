@@ -1,9 +1,11 @@
 #[cfg(test)]
 mod test;
+mod wrap_code_with_block;
 
 use anyhow::Result;
 use syn::{spanned::Spanned, visit::Visit};
 use wasm_bindgen::prelude::*;
+pub use wrap_code_with_block::*;
 
 #[wasm_bindgen]
 #[derive(Debug, Clone, Copy)]
@@ -131,6 +133,21 @@ fn action_to_create_block_and_put_clone(
             syn::visit::visit_expr(self, node);
         }
     }
+}
+
+pub fn action_to_create_block(expr_span: proc_macro2::Span) -> Result<EditAction> {
+    let mut edit_action = EditAction { insert: vec![] };
+    edit_action.insert.push(EditInsertAction {
+        line: expr_span.end().line,
+        column: expr_span.end().column,
+        text: format!("}}"),
+    });
+    edit_action.insert.push(EditInsertAction {
+        line: expr_span.start().line,
+        column: expr_span.start().column,
+        text: format!("{{"),
+    });
+    return Ok(edit_action);
 }
 
 fn find_parent_block_span(file: &syn::File, lc: LineColumn) -> Result<proc_macro2::Span> {
