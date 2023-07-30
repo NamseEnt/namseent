@@ -1,9 +1,7 @@
 use super::*;
 use std::sync::OnceLock;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-pub(crate) static TX: OnceLock<UnboundedSender<Item>> = OnceLock::new();
-pub(crate) static mut RX: OnceLock<UnboundedReceiver<Item>> = OnceLock::new();
+static CHANNEL: OnceLock<Mutex<Vec<Item>>> = OnceLock::new();
 
 #[derive(Debug)]
 pub(crate) enum Item {
@@ -12,12 +10,14 @@ pub(crate) enum Item {
 }
 
 pub(crate) fn init() {
-    let (tx, rx) = unbounded_channel();
-
-    TX.set(tx).unwrap();
-    unsafe { RX.set(rx).unwrap() };
+    CHANNEL.set(Default::default()).unwrap();
 }
 
 pub(crate) fn send(item: Item) {
-    TX.get().unwrap().send(item).unwrap();
+    CHANNEL.get().unwrap().lock().unwrap().push(item);
+}
+
+pub(crate) fn drain() -> Vec<Item> {
+    let mut channel = CHANNEL.get().unwrap().lock().unwrap();
+    channel.drain(..).collect()
 }

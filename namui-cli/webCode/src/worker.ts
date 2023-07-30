@@ -1,4 +1,4 @@
-import { runAsyncMessageLoop } from "./asyncMessage.js";
+import { runAsyncMessageLoop, sendAsyncRequest } from "./asyncMessage.js";
 import { blockingRequest } from "./messageLoop.js";
 import { cacheGet, cacheSet } from "./cache.js";
 
@@ -19,8 +19,19 @@ runAsyncMessageLoop(self, async (message) => {
                 const {
                     workerToMainBufferSab,
                     mainToWorkerBufferSab,
-                    offscreenCanvas,
+                    windowWidth,
+                    windowHeight,
+                }: {
+                    workerToMainBufferSab: SharedArrayBuffer;
+                    mainToWorkerBufferSab: SharedArrayBuffer;
+                    windowWidth: number;
+                    windowHeight: number;
                 } = message;
+
+                const cavnasElement = new OffscreenCanvas(
+                    windowWidth,
+                    windowHeight,
+                );
 
                 const anyGlobalThis = globalThis as any;
 
@@ -34,11 +45,30 @@ runAsyncMessageLoop(self, async (message) => {
                     return baseUrl;
                 };
                 anyGlobalThis.canvasElement = () => {
-                    return offscreenCanvas;
+                    return cavnasElement;
                 };
 
                 anyGlobalThis.cacheGet = cacheGet;
                 anyGlobalThis.cacheSet = cacheSet;
+
+                anyGlobalThis.waitEvent = () => {
+                    const bitmap = cavnasElement.transferToImageBitmap();
+                    sendAsyncRequest(
+                        self,
+                        {
+                            type: "imageBitmap",
+                            imageBitmap: bitmap,
+                        },
+                        [bitmap],
+                    );
+                    const { webEvent } = blockingRequest(
+                        {
+                            type: "webEvent",
+                        },
+                        workerToMainBufferSab,
+                    );
+                    return webEvent;
+                };
 
                 await run();
             }
@@ -53,8 +83,6 @@ async function run() {
             locateFile: (file: string) => "./canvaskit-wasm/" + file,
         }),
     ]);
-
-    console.log("hi");
 
     (globalThis as any).CanvasKit = CanvasKit;
     (globalThis as any).getCanvasKit = () => CanvasKit;

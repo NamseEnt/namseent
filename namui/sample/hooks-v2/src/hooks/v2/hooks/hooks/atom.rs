@@ -1,8 +1,12 @@
 use super::*;
 
 pub struct Atom<T: Debug + Send + Sync + 'static> {
-    value_index: Mutex<Option<(T, usize)>>,
+    _t: std::marker::PhantomData<T>,
+    value_index: Mutex<Option<(Box<dyn Value>, usize)>>,
 }
+
+pub(crate) static ATOM_VALUE_INDEXES: OnceLock<Mutex<Vec<Atom<()>>>> =
+    OnceLock::new(|| Mutex::new(Vec::new()));
 
 impl<T: Debug + Send + Sync + 'static> Atom<T> {
     pub const fn uninitialized_new() -> Self {
@@ -11,8 +15,10 @@ impl<T: Debug + Send + Sync + 'static> Atom<T> {
         }
     }
     pub const fn new(value: T) -> Self {
+        static ATOM_INDEX: AtomicUsize = AtomicUsize::new(0);
+        let index = ATOM_INDEX.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         Self {
-            value_index: Mutex::new(Some((value, 0))),
+            value_index: Mutex::new(Some((value, index))),
         }
     }
     fn sig_id(&self) -> SigId {
@@ -42,7 +48,9 @@ impl<T: Debug + Send + Sync + 'static> Atom<T> {
     pub fn get(&self) -> &T {
         let value_index = self.value_index.lock().unwrap();
         let (atom_value, _) = value_index.as_ref().unwrap();
-        let value: &T = unsafe { std::mem::transmute(atom_value) };
+        let value: &T = atom_value.as_ref().as_any().downcast_ref().unwrap();
+
+        let value: &T = unsafe { std::mem::transmute(value) };
         value
     }
 }

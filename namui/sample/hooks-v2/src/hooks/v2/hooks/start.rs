@@ -23,9 +23,12 @@ pub fn start<T: Component>(component: &'static T) {
 
     // tree_visit_ctx.mount_visit(component);
 
-    let tree_ctx = TreeContext::new();
+    let mut tree_ctx = TreeContext::new();
     // let mut root_tree: ComponentTree =
-    mount_visit(component, tree_ctx);
+    loop {
+        tree_ctx = mount_visit(component, tree_ctx);
+        tree_ctx.before_re_render();
+    }
 
     // draw(&root_tree);
 

@@ -58,9 +58,9 @@ impl<'a> RenderCtx {
         use_children: impl 'a + FnOnce(ChildrenContext) -> ChildrenDone,
     ) -> RenderDone {
         let children_ctx = ChildrenContext::new(self.tree_ctx.clone(), self.instance.clone(), None);
-        use_children(children_ctx);
+        let done = use_children(children_ctx);
 
-        RenderDone {}
+        done.to_render_done()
     }
 
     pub fn use_children_with_event<Event: 'static + Debug + Send + Sync>(
@@ -70,9 +70,10 @@ impl<'a> RenderCtx {
     ) -> RenderDone {
         let children_ctx =
             ChildrenEventContext::new(self.tree_ctx.clone(), self.instance.clone(), None);
-        children(children_ctx);
 
-        RenderDone {}
+        let done = children(children_ctx);
+
+        done.to_render_done()
     }
 
     pub fn use_children_with_rendering_tree(
@@ -91,13 +92,22 @@ impl<'a> RenderCtx {
             self.instance.clone(),
             Some(fn_rendering_tree),
         );
-        children(children_ctx);
+        let done = children(children_ctx);
 
-        RenderDone {}
+        done.to_render_done()
     }
 }
 
-pub struct ChildrenDone {}
+pub struct ChildrenDone {
+    pub(crate) tree_ctx: TreeContext,
+}
+impl ChildrenDone {
+    fn to_render_done(&self) -> RenderDone {
+        RenderDone {
+            tree_ctx: self.tree_ctx.clone(),
+        }
+    }
+}
 
 pub(crate) enum ContextFor {
     Mount,

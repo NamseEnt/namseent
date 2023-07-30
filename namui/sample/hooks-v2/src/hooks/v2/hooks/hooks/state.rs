@@ -1,4 +1,5 @@
 use super::*;
+use std::sync::OnceLock;
 
 pub(crate) fn handle_use_state<'a, State: Send + Sync + Debug + 'static>(
     ctx: &'a RenderCtx,
@@ -99,12 +100,23 @@ impl Debug for SetStateItem {
     }
 }
 
-pub struct SetState<State: 'static + Debug> {
+pub struct SetState<State: 'static + Debug + Send + Sync> {
     sig_id: SigId,
     _state: std::marker::PhantomData<State>,
 }
 
-impl<State: 'static + Debug> SetState<State> {
+impl<State: 'static + Debug + Send + Sync> Clone for SetState<State> {
+    fn clone(&self) -> Self {
+        Self {
+            sig_id: self.sig_id,
+            _state: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<State: 'static + Debug + Send + Sync> Copy for SetState<State> {}
+
+impl<State: 'static + Debug + Send + Sync> SetState<State> {
     pub(crate) fn new(sig_id: SigId) -> Self {
         Self {
             sig_id,
@@ -112,20 +124,18 @@ impl<State: 'static + Debug> SetState<State> {
         }
     }
     pub fn set(self, state: State) {
-        todo!()
-        // channel::send(channel::Item::SetStateItem(SetStateItem::Set {
-        //     sig_id: self.sig_id,
-        //     value: Arc::new(Mutex::new(Some(Box::new(state)))),
-        // }));
+        channel::send(channel::Item::SetStateItem(SetStateItem::Set {
+            sig_id: self.sig_id,
+            value: Arc::new(Mutex::new(Some(Box::new(state)))),
+        }));
     }
     pub fn mutate(self, mutate: impl FnOnce(&mut State) + Send + Sync + 'static) {
-        todo!()
-        // channel::send(channel::Item::SetStateItem(SetStateItem::Mutate {
-        //     sig_id: self.sig_id,
-        //     mutate: Arc::new(Mutex::new(Some(Box::new(move |state| {
-        //         let state = state.as_any_mut().downcast_mut::<State>().unwrap();
-        //         mutate(state);
-        //     })))),
-        // }));
+        channel::send(channel::Item::SetStateItem(SetStateItem::Mutate {
+            sig_id: self.sig_id,
+            mutate: Arc::new(Mutex::new(Some(Box::new(move |state| {
+                let state = state.as_any_mut().downcast_mut::<State>().unwrap();
+                mutate(state);
+            })))),
+        }));
     }
 }

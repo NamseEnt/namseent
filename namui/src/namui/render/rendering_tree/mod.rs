@@ -9,6 +9,8 @@ use std::{
     ops::ControlFlow,
     sync::atomic::{AtomicBool, Ordering},
 };
+use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::JsValue;
 
 #[derive(Serialize, Default, Clone, Debug, PartialEq)]
 pub struct RenderingData {
@@ -43,6 +45,48 @@ impl SpecialRenderingNode {
             SpecialRenderingNode::OnTop(node) => node.rendering_tree.clone(),
         }
     }
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub enum WebEvent {
+    MouseDown { x: usize, y: usize },
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = globalThis)]
+    fn waitEvent() -> JsValue;
+}
+
+fn wait_web_event() -> WebEvent {
+    let event = waitEvent();
+    let event: WebEvent = serde_wasm_bindgen::from_value(event).expect("failed to parse web event");
+    event
+}
+
+pub fn handle_web_event(rendering_tree: &RenderingTree) {
+    let web_event = wait_web_event();
+    match web_event {
+        WebEvent::MouseDown { x, y } => rendering_tree.call_mouse_event(
+            MouseEventType::Up, // TODO
+            &RawMouseEvent {
+                id: uuid(),
+                xy: Xy::new(px(x as f32), px(y as f32)),
+                pressing_buttons: vec![].into_iter().collect(),
+                button: Some(MouseButton::Left),
+            },
+        ),
+    }
+}
+
+pub fn draw_rendering_tree(rendering_tree: &RenderingTree) {
+    crate::graphics::surface()
+        .canvas()
+        .clear(Color::TRANSPARENT);
+
+    rendering_tree.draw();
+
+    crate::graphics::surface().flush();
 }
 
 /// NOTE
@@ -328,6 +372,7 @@ impl RenderingTree {
                         &attach_event.on_mouse,
                     ),
                 };
+
                 if in_func.is_none() && out_func.is_none() && on_mouse.is_none() {
                     return CallEventOfScreenResult {
                         is_stop_propagation: false,

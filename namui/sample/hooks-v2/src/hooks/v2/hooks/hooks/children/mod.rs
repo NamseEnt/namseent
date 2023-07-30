@@ -35,13 +35,16 @@ impl<'a> ChildrenContext {
 
     pub fn done(self) -> ChildrenDone {
         self.tree_ctx
+            .clone()
             .end_up_one_component_rendering(ComponentRenderResult {
                 children: self.direct_children.into_inner(),
                 component_instance: self.component_instance,
                 fn_rendering_tree: self.fn_rendering_tree,
             });
 
-        ChildrenDone {}
+        ChildrenDone {
+            tree_ctx: self.tree_ctx,
+        }
     }
 
     pub(crate) fn closure<T: 'static>(&'a self, call: impl 'a + Fn(T)) -> ClosurePtr<T, ()> {

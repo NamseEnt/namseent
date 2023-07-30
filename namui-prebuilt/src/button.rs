@@ -10,6 +10,7 @@ fn attach_text_button_event(
     let on_mouse_up_in = on_mouse_up_in.into();
     button.attach_event(move |builder| {
         builder.on_mouse_up_in(move |event: MouseEvent| {
+            namui::log!("on_mouse_up_in, button: {:?}", event.button);
             let Some(button) = event.button else {
                 return;
             };

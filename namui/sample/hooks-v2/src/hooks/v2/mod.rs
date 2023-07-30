@@ -34,7 +34,7 @@ impl Component for MyComponent {
 
         ctx.use_children_with_event(
             |event| match event {
-                InternalEvent::OnClick => set_count.mutate(|count| *count += 1),
+                InternalEvent::OnClick => {}
                 InternalEvent::KeyUp { code } => {
                     namui::log!("Key up {:?}", code)
                 }
@@ -42,7 +42,9 @@ impl Component for MyComponent {
             |ctx| {
                 ctx.add(Button {
                     text,
-                    on_click: ctx.event(InternalEvent::OnClick),
+                    on_click: &|| {
+                        set_count.mutate(|count| *count += 1);
+                    },
                 });
                 if *count % 2 == 0 {
                     ctx.add(
@@ -85,10 +87,14 @@ fn get_fibo(x: usize) -> usize {
     get_fibo(x - 1) + get_fibo(x - 2)
 }
 
-#[derive(Debug)]
 struct Button<'a> {
     text: Sig<'a, String>,
-    on_click: EventCallback,
+    on_click: &'a dyn Fn(),
+}
+impl<'a> Debug for Button<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Button").field("text", &self.text).finish()
+    }
 }
 
 impl StaticType for Button<'_> {
@@ -119,7 +125,10 @@ impl Component for Button<'_> {
                 1.px(),
                 Color::RED,
                 [MouseButton::Left],
-                ctx.closure(|_| self.on_click.call()),
+                ctx.closure(|_| {
+                    namui::log!("Button clicked");
+                    (self.on_click)()
+                }),
             ));
 
             ctx.done()
@@ -160,7 +169,9 @@ impl Component for StringText<'_> {
                 1.px(),
                 Color::RED,
                 [MouseButton::Left],
-                closure(move |_| {}),
+                closure(move |_| {
+                    namui::log!("StringText clicked");
+                }),
             ));
 
             ctx.done()
@@ -200,7 +211,9 @@ impl Component for UsizeText<'_> {
                 1.px(),
                 Color::RED,
                 [MouseButton::Left],
-                closure(move |_| {}),
+                closure(move |_| {
+                    namui::log!("UsizeText clicked");
+                }),
             ));
 
             ctx.done()

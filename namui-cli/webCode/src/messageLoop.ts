@@ -2,9 +2,9 @@
 // sab i32 [1] = message length
 // sab u8 [8~] = message body
 
-export async function runMessageLoop(
+export async function runMessageLoopForMain(
     sab: SharedArrayBuffer,
-    handleMessage: (request: any) => any,
+    handleMessage: (request: any) => Promise<any>,
 ) {
     const i32Buf = new Int32Array(sab);
     while (true) {
@@ -15,7 +15,7 @@ export async function runMessageLoop(
         }
 
         const message = readMessage(sab);
-        const response = handleMessage(message);
+        const response = await handleMessage(message);
         writeMessage(response, i32Buf);
         Atomics.notify(i32Buf, 0);
     }
@@ -38,7 +38,6 @@ export function writeMessage(message: any, i32Buf: Int32Array) {
     const textEncoder = new TextEncoder();
     const messageBuf = textEncoder.encode(JSON.stringify(message));
     const messageLength = messageBuf.length;
-    console.log("messageLength", messageLength);
 
     i32Buf[1] = messageLength;
     const buffer = new Uint8Array(i32Buf.buffer, 8, messageLength);

@@ -95,6 +95,7 @@ pub type FileDropEventCallback = ClosurePtr<FileDropEvent, ()>;
 impl std::fmt::Debug for AttachEventNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AttachEventNode")
+            .field("rendering_tree", &self.rendering_tree)
             .field("on_mouse_move_in", &self.on_mouse_move_in.is_some())
             .field("on_mouse_move_out", &self.on_mouse_move_out.is_some())
             .field("on_mouse_down_in", &self.on_mouse_down_in.is_some())

@@ -31,6 +31,7 @@ pub use value::*;
 #[derive(Debug)]
 pub struct RenderDone {
     // component_tree: ComponentTree,
+    tree_ctx: TreeContext,
 }
 
 impl StaticType for RenderingTree {
@@ -42,7 +43,6 @@ impl StaticType for RenderingTree {
 impl Component for RenderingTree {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let rendering_tree = self.clone();
-        // use_render_with_rendering_tree(|_| {}, move |_| rendering_tree.clone())
 
         ctx.use_children_with_rendering_tree(|ctx| ctx.done(), |_| rendering_tree)
     }

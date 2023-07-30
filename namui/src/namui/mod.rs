@@ -24,10 +24,11 @@ pub use namui_context::NamuiContext;
 pub use namui_type as types;
 pub use namui_type::*;
 pub use render::{
-    absolute, clip, image::*, on_top, path::*, react, rect::*, rotate, scale, text::*, text_input,
-    transform, translate, AttachEventBuilder, FileDropEvent, ImageSource, KeyDownEvent,
-    KeyboardEvent, Matrix3x3, MouseCursor, MouseEvent, MouseEventCallback, MouseEventType, React,
-    RenderingData, RenderingTree, TextInput, WheelEvent, WheelEventCallback,
+    absolute, clip, draw_rendering_tree, handle_web_event, image::*, on_top, path::*, react,
+    rect::*, rotate, scale, text::*, text_input, transform, translate, AttachEventBuilder,
+    FileDropEvent, ImageSource, KeyDownEvent, KeyboardEvent, Matrix3x3, MouseCursor, MouseEvent,
+    MouseEventCallback, MouseEventType, React, RenderingData, RenderingTree, TextInput, WheelEvent,
+    WheelEventCallback,
 };
 pub use serde;
 pub use shader_macro::shader;

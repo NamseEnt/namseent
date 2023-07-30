@@ -5,6 +5,5 @@ pub(crate) async fn init() -> InitResult {
 }
 
 pub fn now() -> Time {
-    todo!()
-    // Time::Ms(window().performance().unwrap().now() as f32)
+    Time::Ms(0 as f32)
 }
