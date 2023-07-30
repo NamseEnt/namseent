@@ -1,6 +1,6 @@
-// mod channel;
+mod channel;
 // mod draw;
-// mod event;
+mod event;
 mod hooks;
 mod instance;
 // mod native;
@@ -9,9 +9,9 @@ mod start;
 mod tree;
 mod value;
 
-// pub(crate) use channel::*;
+pub(crate) use channel::*;
 // pub use draw::*;
-// pub use event::*;
+pub use event::*;
 pub use hooks::*;
 pub(crate) use instance::*;
 use namui::RenderingTree;
@@ -44,7 +44,7 @@ impl Component for RenderingTree {
         let rendering_tree = self.clone();
         // use_render_with_rendering_tree(|_| {}, move |_| rendering_tree.clone())
 
-        ctx.use_children_with_rendering_tree(|ctx| ctx.children_done(), |_| rendering_tree)
+        ctx.use_children_with_rendering_tree(|ctx| ctx.done(), |_| rendering_tree)
     }
 }
 

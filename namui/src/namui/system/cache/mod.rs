@@ -1,7 +1,7 @@
 use super::InitResult;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 
-#[wasm_bindgen(raw_module = "./cache.js")]
+#[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(catch)]
     async fn cacheGet(key: &str) -> Result<JsValue, JsValue>;

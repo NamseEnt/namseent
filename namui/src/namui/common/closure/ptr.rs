@@ -41,7 +41,7 @@ impl<Param, Return> PartialEq for ClosurePtr<Param, Return> {
 }
 
 impl<Param, Return> ClosurePtr<Param, Return> {
-    pub fn new(closure: impl Fn(Param) -> Return + 'static) -> Self {
+    pub fn new(closure: impl 'static + Fn(Param) -> Return) -> Self {
         Self {
             inner: Arc::new(Mutex::new(Arc::new(ClosurePtrInner::new(Arc::new(
                 closure,

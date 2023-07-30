@@ -78,8 +78,8 @@ features = [
     "DataTransferItemList",
     "DataTransferItem",
     "OffscreenCanvas",
-    "AudioContext",
-    "AudioBufferSourceNode",
-    "AudioBuffer",
-    "AudioDestinationNode",
+    # "AudioContext",
+    # "AudioBufferSourceNode",
+    # "AudioBuffer",
+    # "AudioDestinationNode",
 ]

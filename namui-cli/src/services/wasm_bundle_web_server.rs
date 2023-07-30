@@ -118,7 +118,16 @@ impl WasmBundleWebServer {
             .or(bundle_metadata_static)
             .or(bundle_static)
             .or(handle_websocket)
-            .map(|reply| warp::reply::with_header(reply, "cache-control", "no-cache"));
+            .map(|reply| warp::reply::with_header(reply, "cache-control", "no-cache"))
+            .map(|reply| {
+                warp::reply::with_header(reply, "Cross-Origin-Resource-Policy", "cross-origin")
+            })
+            .map(|reply| {
+                warp::reply::with_header(reply, "Cross-Origin-Opener-Policy", "same-origin")
+            })
+            .map(|reply| {
+                warp::reply::with_header(reply, "Cross-Origin-Embedder-Policy", "require-corp")
+            });
 
         let _ = tokio::spawn(warp::serve(routes).run(([0, 0, 0, 0], port)));
 

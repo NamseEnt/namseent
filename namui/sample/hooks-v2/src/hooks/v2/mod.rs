@@ -32,39 +32,40 @@ impl Component for MyComponent {
             KeyUp { code: namui::Code },
         }
 
-        // ctx.use_children_with_event(
-        //     |event| match event {
-        //         InternalEvent::OnClick => set_count.mutate(|count| *count += 1),
-        //         InternalEvent::KeyUp { code } => {
-        //             namui::log!("Key up {:?}", code)
-        //         }
-        //     },
-        ctx.use_children(|ctx| {
-            ctx.add(Button {
-                text,
-                // on_click: ctx.event(InternalEvent::OnClick),
-            });
-            if *count % 2 == 0 {
-                ctx.add(
-                    StringText { text }, // .attach_event(|builder| {
-                                         // builder.on_key_up(ctx.event_with_param(|event: KeyboardEvent| {
-                                         //     Some(InternalEvent::KeyUp { code: event.code })
-                                         // }));
-                                         // })
-                );
-            } else {
-                ctx.add(
-                    // hooks::translate(
-                    // 50.px(),
-                    // 50.px(),
-                    UsizeText {
-                        usize: count.clone(),
-                    },
-                    // )
-                );
-            }
-            ctx.children_done()
-        })
+        ctx.use_children_with_event(
+            |event| match event {
+                InternalEvent::OnClick => set_count.mutate(|count| *count += 1),
+                InternalEvent::KeyUp { code } => {
+                    namui::log!("Key up {:?}", code)
+                }
+            },
+            |ctx| {
+                ctx.add(Button {
+                    text,
+                    on_click: ctx.event(InternalEvent::OnClick),
+                });
+                if *count % 2 == 0 {
+                    ctx.add(
+                        StringText { text }, // .attach_event(|builder| {
+                                             // builder.on_key_up(ctx.event_with_param(|event: KeyboardEvent| {
+                                             //     Some(InternalEvent::KeyUp { code: event.code })
+                                             // }));
+                                             // })
+                    );
+                } else {
+                    ctx.add(
+                        // hooks::translate(
+                        // 50.px(),
+                        // 50.px(),
+                        UsizeText {
+                            usize: count.clone(),
+                        },
+                        // )
+                    );
+                }
+                ctx.done()
+            },
+        )
     }
 }
 
@@ -87,7 +88,7 @@ fn get_fibo(x: usize) -> usize {
 #[derive(Debug)]
 struct Button<'a> {
     text: Sig<'a, String>,
-    // on_click: EventCallback,
+    on_click: EventCallback,
 }
 
 impl StaticType for Button<'_> {
@@ -118,14 +119,10 @@ impl Component for Button<'_> {
                 1.px(),
                 Color::RED,
                 [MouseButton::Left],
-                closure({
-                    // let on_click = self.on_click.clone();
-                    // move |_| on_click.call()
-                    |_| {}
-                }),
+                ctx.closure(|_| self.on_click.call()),
             ));
 
-            ctx.children_done()
+            ctx.done()
         })
     }
 }
@@ -166,7 +163,7 @@ impl Component for StringText<'_> {
                 closure(move |_| {}),
             ));
 
-            ctx.children_done()
+            ctx.done()
         })
     }
 }
@@ -206,7 +203,7 @@ impl Component for UsizeText<'_> {
                 closure(move |_| {}),
             ));
 
-            ctx.children_done()
+            ctx.done()
         })
     }
 }

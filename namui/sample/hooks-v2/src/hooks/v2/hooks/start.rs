@@ -17,7 +17,7 @@ use super::*;
 
 pub fn start<T: Component>(component: &'static T) {
     // ctx::init();
-    // let mut rx = channel::init();
+    channel::init();
 
     // let mut tree_visit_ctx = TreeVisitCtx { event_rx: rx };
 

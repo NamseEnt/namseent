@@ -53,13 +53,27 @@ impl<'a> RenderCtx {
         handle_use_effect(self, title, effect)
     }
 
-    // pub fn use_children_with_event<'a, Event: 'static + Debug>(
-    //     &'a self,
-    //     on_event: impl FnOnce(Event),
-    //     children: impl FnOnce(ChildrenEventContext<Event>) -> ChildrenDone,
-    // ) -> RenderDone {
-    //     todo!()
-    // }
+    pub fn use_children(
+        &'a self,
+        use_children: impl 'a + FnOnce(ChildrenContext) -> ChildrenDone,
+    ) -> RenderDone {
+        let children_ctx = ChildrenContext::new(self.tree_ctx.clone(), self.instance.clone(), None);
+        use_children(children_ctx);
+
+        RenderDone {}
+    }
+
+    pub fn use_children_with_event<Event: 'static + Debug + Send + Sync>(
+        &'a self,
+        on_event: impl FnOnce(Event),
+        children: impl FnOnce(ChildrenEventContext<Event>) -> ChildrenDone,
+    ) -> RenderDone {
+        let children_ctx =
+            ChildrenEventContext::new(self.tree_ctx.clone(), self.instance.clone(), None);
+        children(children_ctx);
+
+        RenderDone {}
+    }
 
     pub fn use_children_with_rendering_tree(
         &'a self,
@@ -78,16 +92,6 @@ impl<'a> RenderCtx {
             Some(fn_rendering_tree),
         );
         children(children_ctx);
-
-        RenderDone {}
-    }
-
-    pub fn use_children(
-        &'a self,
-        use_children: impl 'a + FnOnce(ChildrenContext) -> ChildrenDone,
-    ) -> RenderDone {
-        let children_ctx = ChildrenContext::new(self.tree_ctx.clone(), self.instance.clone(), None);
-        use_children(children_ctx);
 
         RenderDone {}
     }

@@ -8,6 +8,7 @@ pub use reqwest::Method;
 pub use response::*;
 pub use simple::*;
 use url::*;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 pub async fn fetch(
     url: impl IntoUrl,
@@ -57,6 +58,12 @@ pub async fn fetch_json<T: serde::de::DeserializeOwned>(
     fetch_serde(url, method, build, |slice| serde_json::from_slice(slice)).await
 }
 
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = ["globalThis"])]
+    fn getBaseUrl() -> String;
+}
+
 fn resolve_relative_url(url: impl IntoUrl) -> Result<Url, HttpError> {
     let url_string = url.as_str().to_string();
     let result = url.into_url();
@@ -65,14 +72,7 @@ fn resolve_relative_url(url: impl IntoUrl) -> Result<Url, HttpError> {
         Err(ParseError::RelativeUrlWithoutBase) => {
             #[cfg(target_arch = "wasm32")]
             fn get_base_url() -> Option<String> {
-                Some(
-                    web_sys::window()
-                        .unwrap()
-                        .document()
-                        .unwrap()
-                        .url()
-                        .unwrap(),
-                )
+                Some(getBaseUrl())
             }
             #[cfg(not(target_arch = "wasm32"))]
             fn get_base_url() -> Option<String> {

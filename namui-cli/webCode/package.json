@@ -1,0 +1,17 @@
+{
+  "name": "webcode",
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c -w"
+  },
+  "dependencies": {
+    "idb-keyval": "^6.2.1"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^11.1.2",
+    "rollup": "^3.27.0",
+    "tslib": "^2.6.1",
+    "typescript": "^5.1.6"
+  }
+}

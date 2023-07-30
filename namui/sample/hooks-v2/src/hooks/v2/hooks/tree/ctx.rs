@@ -60,6 +60,7 @@ impl TreeContext {
                 .lock()
                 .unwrap()
                 .replace(rendering_tree);
+
             // Combine for showing on monitor
             // Wait for event
             // Check if the event is for this component
