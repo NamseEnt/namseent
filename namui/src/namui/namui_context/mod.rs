@@ -36,10 +36,10 @@ impl NamuiContext {
         fn on_frame() {
             crate::event::send(crate::NamuiEvent::AnimationFrame);
 
-            crate::graphics::request_animation_frame(on_frame);
+            // crate::graphics::request_animation_frame(on_frame);
         }
 
-        crate::graphics::request_animation_frame(on_frame);
+        // crate::graphics::request_animation_frame(on_frame);
         self.run_main_loop(state, props).await;
     }
 }

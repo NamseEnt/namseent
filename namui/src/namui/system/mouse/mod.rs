@@ -39,11 +39,12 @@ impl MouseSystem {
 }
 
 pub fn set_mouse_cursor(cursor: &MouseCursor) {
-    let element = document().body().unwrap();
-    element
-        .style()
-        .set_property("cursor", &cursor.to_css_cursor_value())
-        .unwrap();
+    todo!()
+    // let element = document().body().unwrap();
+    // element
+    //     .style()
+    //     .set_property("cursor", &cursor.to_css_cursor_value())
+    //     .unwrap();
 }
 
 pub fn position() -> Xy<Px> {

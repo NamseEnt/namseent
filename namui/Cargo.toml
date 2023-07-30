@@ -46,8 +46,6 @@ float-cmp = "0.9"
 [dependencies.web-sys]
 version = "0.3"
 features = [
-    "Window",
-    "Document",
     "HtmlCanvasElement",
     "console",
     "Performance",

@@ -83,7 +83,6 @@ async fn get_typeface_files(
     let iter = try_join_all(typeface_file_urls.iter().map(
         |(typeface_type, font_file_url)| async move {
             let url = crate::Url::parse(font_file_url)?;
-
             let result: Result<_, Box<dyn std::error::Error>> =
                 match get_file_from_bundle_with_cached(&url).await {
                     Ok(bytes) => Ok((*typeface_type, bytes)),

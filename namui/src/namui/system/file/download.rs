@@ -1,5 +1,5 @@
-use crate::system::platform_utils::web::document;
-use wasm_bindgen::JsCast;
+// use crate::system::platform_utils::web::document;
+// use wasm_bindgen::JsCast;
 use web_sys::Blob;
 
 pub trait Downloadable {
@@ -27,26 +27,27 @@ pub async fn download(
     let object_url = web_sys::Url::create_object_url_with_blob(&blob)
         .map_err(|e| format!("Failed to create object URL for blob: {:?}", e))?;
 
-    let a_tag = document()
-        .create_element("a")
-        .map_err(|e| format!("Failed to create <a> tag: {:?}", e))?
-        .dyn_into::<web_sys::HtmlAnchorElement>()
-        .map_err(|e| format!("Failed to cast <a> tag to HtmlAnchorElement: {:?}", e))?;
+    todo!();
+    // let a_tag = document()
+    //     .create_element("a")
+    //     .map_err(|e| format!("Failed to create <a> tag: {:?}", e))?
+    //     .dyn_into::<web_sys::HtmlAnchorElement>()
+    //     .map_err(|e| format!("Failed to cast <a> tag to HtmlAnchorElement: {:?}", e))?;
 
-    a_tag.set_href(&object_url);
-    a_tag.set_download(filename.as_ref());
+    // a_tag.set_href(&object_url);
+    // a_tag.set_download(filename.as_ref());
 
-    document()
-        .body()
-        .unwrap()
-        .append_child(&a_tag)
-        .map_err(|e| format!("Failed to append <a> tag to body: {:?}", e))?;
+    // document()
+    //     .body()
+    //     .unwrap()
+    //     .append_child(&a_tag)
+    //     .map_err(|e| format!("Failed to append <a> tag to body: {:?}", e))?;
 
-    a_tag.click();
+    // a_tag.click();
 
-    a_tag.remove();
-    web_sys::Url::revoke_object_url(&object_url)
-        .map_err(|e| format!("Failed to revoke object URL: {:?}", e))?;
+    // a_tag.remove();
+    // web_sys::Url::revoke_object_url(&object_url)
+    //     .map_err(|e| format!("Failed to revoke object URL: {:?}", e))?;
 
     Ok(())
 }

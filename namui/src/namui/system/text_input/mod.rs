@@ -35,80 +35,80 @@ pub(super) async fn init() -> InitResult {
 
 impl TextInputSystem {
     fn new() -> Self {
-        let document = web_sys::window().unwrap().document().unwrap();
+        // let document = web_sys::window().unwrap().document().unwrap();
 
-        let element = document.create_element("textarea").unwrap();
-        document.body().unwrap().append_child(&element).unwrap();
+        // let element = document.create_element("textarea").unwrap();
+        // document.body().unwrap().append_child(&element).unwrap();
 
-        let input_element = wasm_bindgen::JsCast::dyn_into::<HtmlTextAreaElement>(element).unwrap();
-        input_element.set_id(TEXT_INPUT_ELEMENT_ID);
+        // let input_element = wasm_bindgen::JsCast::dyn_into::<HtmlTextAreaElement>(element).unwrap();
+        // input_element.set_id(TEXT_INPUT_ELEMENT_ID);
 
-        input_element
-            .add_event_listener_with_callback(
-                "input",
-                Closure::wrap(Box::new(move |event: web_sys::InputEvent| {
-                    let target = wasm_bindgen::JsCast::dyn_into::<HtmlTextAreaElement>(
-                        event.target().unwrap(),
-                    )
-                    .unwrap();
+        // input_element
+        //     .add_event_listener_with_callback(
+        //         "input",
+        //         Closure::wrap(Box::new(move |event: web_sys::InputEvent| {
+        //             let target = wasm_bindgen::JsCast::dyn_into::<HtmlTextAreaElement>(
+        //                 event.target().unwrap(),
+        //             )
+        //             .unwrap();
 
-                    system::text_input::on_text_element_input(&target);
-                }) as Box<dyn FnMut(_)>)
-                .into_js_value()
-                .unchecked_ref(),
-            )
-            .unwrap();
+        //             system::text_input::on_text_element_input(&target);
+        //         }) as Box<dyn FnMut(_)>)
+        //         .into_js_value()
+        //         .unchecked_ref(),
+        //     )
+        //     .unwrap();
 
-        input_element
-            .add_event_listener_with_callback(
-                "keydown",
-                Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
-                    event.stop_immediate_propagation();
-                    let code = Code::from_str(&event.code()).unwrap();
-                    crate::keyboard::record_key_down(code);
+        // input_element
+        //     .add_event_listener_with_callback(
+        //         "keydown",
+        //         Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
+        //             event.stop_immediate_propagation();
+        //             let code = Code::from_str(&event.code()).unwrap();
+        //             crate::keyboard::record_key_down(code);
 
-                    // NOTE: Not support page up/down yet.
-                    if [
-                        Code::ArrowUp,
-                        Code::ArrowDown,
-                        Code::Home,
-                        Code::End,
-                        Code::PageUp,
-                        Code::PageDown,
-                    ]
-                    .contains(&code)
-                    {
-                        event.prevent_default();
-                    }
-                    on_key_down(code, event);
-                }) as Box<dyn FnMut(_)>)
-                .into_js_value()
-                .unchecked_ref(),
-            )
-            .unwrap();
+        //             // NOTE: Not support page up/down yet.
+        //             if [
+        //                 Code::ArrowUp,
+        //                 Code::ArrowDown,
+        //                 Code::Home,
+        //                 Code::End,
+        //                 Code::PageUp,
+        //                 Code::PageDown,
+        //             ]
+        //             .contains(&code)
+        //             {
+        //                 event.prevent_default();
+        //             }
+        //             on_key_down(code, event);
+        //         }) as Box<dyn FnMut(_)>)
+        //         .into_js_value()
+        //         .unchecked_ref(),
+        //     )
+        //     .unwrap();
 
-        {
-            // NOTE: Below codes from https://github.com/goldfire/CanvasInput/blob/5adbaf00bd42665f3c691796881c7a7a9cf7036c/CanvasInput.js#L126
-            let style = input_element.style();
-            style.set_property("position", "absolute").unwrap();
-            style.set_property("opacity", "0").unwrap();
-            style.set_property("pointerEvents", "none").unwrap();
-            style.set_property("zIndex", "0").unwrap();
-            style.set_property("top", "0px").unwrap();
-            // hide native blue text cursor on iOS
-            style.set_property("transform", "scale(0)").unwrap();
-        }
+        // {
+        //     // NOTE: Below codes from https://github.com/goldfire/CanvasInput/blob/5adbaf00bd42665f3c691796881c7a7a9cf7036c/CanvasInput.js#L126
+        //     let style = input_element.style();
+        //     style.set_property("position", "absolute").unwrap();
+        //     style.set_property("opacity", "0").unwrap();
+        //     style.set_property("pointerEvents", "none").unwrap();
+        //     style.set_property("zIndex", "0").unwrap();
+        //     style.set_property("top", "0px").unwrap();
+        //     // hide native blue text cursor on iOS
+        //     style.set_property("transform", "scale(0)").unwrap();
+        // }
 
-        document
-            .add_event_listener_with_callback(
-                "selectionchange",
-                Closure::wrap(Box::new(move |_: Event| {
-                    on_selection_change();
-                }) as Box<dyn FnMut(_)>)
-                .into_js_value()
-                .unchecked_ref(),
-            )
-            .unwrap();
+        // document
+        //     .add_event_listener_with_callback(
+        //         "selectionchange",
+        //         Closure::wrap(Box::new(move |_: Event| {
+        //             on_selection_change();
+        //         }) as Box<dyn FnMut(_)>)
+        //         .into_js_value()
+        //         .unchecked_ref(),
+        //     )
+        //     .unwrap();
 
         Self {
             last_focused_text_input: Mutex::new(None),
@@ -118,9 +118,10 @@ impl TextInputSystem {
     }
 }
 fn get_input_element() -> HtmlTextAreaElement {
-    let document = web_sys::window().unwrap().document().unwrap();
-    let element = document.get_element_by_id(TEXT_INPUT_ELEMENT_ID).unwrap();
-    wasm_bindgen::JsCast::dyn_into::<HtmlTextAreaElement>(element).unwrap()
+    todo!()
+    // let document = web_sys::window().unwrap().document().unwrap();
+    // let element = document.get_element_by_id(TEXT_INPUT_ELEMENT_ID).unwrap();
+    // wasm_bindgen::JsCast::dyn_into::<HtmlTextAreaElement>(element).unwrap()
 }
 pub fn is_focused(text_input_id: crate::Uuid) -> bool {
     let last_focused_text_input = TEXT_INPUT_SYSTEM.last_focused_text_input.lock().unwrap();

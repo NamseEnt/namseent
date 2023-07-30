@@ -19,7 +19,7 @@ pub mod time;
 pub(crate) mod typeface;
 
 use futures::try_join;
-use platform_utils::*;
+// use platform_utils::*;
 pub use render::last_rendering_tree;
 use std::error::Error;
 
