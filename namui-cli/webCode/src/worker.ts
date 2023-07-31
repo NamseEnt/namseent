@@ -125,6 +125,7 @@ runAsyncMessageLoop<AsyncMessageFromMain>(self, async (message) => {
                 };
                 anyGlobalThis.getAsyncFunctionResult = (id: number) => {
                     const result = asyncFunctionResultMap.get(id);
+                    asyncFunctionResultMap.delete(id);
                     return result;
                 };
 
