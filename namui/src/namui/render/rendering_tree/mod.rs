@@ -101,6 +101,8 @@ pub enum WebEvent {
 extern "C" {
     #[wasm_bindgen(js_namespace = globalThis)]
     fn waitEvent() -> JsValue;
+    #[wasm_bindgen(js_namespace = globalThis)]
+    fn flushCanvas();
 }
 
 fn wait_web_event() -> WebEvent {
@@ -185,6 +187,8 @@ pub fn draw_rendering_tree(rendering_tree: &RenderingTree) {
     rendering_tree.draw();
 
     crate::graphics::surface().flush();
+
+    flushCanvas();
 }
 
 /// NOTE

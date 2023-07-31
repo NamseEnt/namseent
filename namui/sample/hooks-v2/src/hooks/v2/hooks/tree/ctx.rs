@@ -96,6 +96,7 @@ impl TreeContext {
             let rendering_tree = inner.combine_rendering_tree(ROOT_COMPONENT_ID);
             drop(inner);
 
+            namui::log!("rendering_tree: {:#?}", rendering_tree);
             namui::draw_rendering_tree(&rendering_tree);
 
             let mut is_need_to_re_render = false;

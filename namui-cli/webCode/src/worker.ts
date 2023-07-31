@@ -52,6 +52,16 @@ runAsyncMessageLoop(self, async (message) => {
                 anyGlobalThis.cacheSet = cacheSet;
 
                 anyGlobalThis.waitEvent = () => {
+                    const { webEvent } = blockingRequest(
+                        {
+                            type: "webEvent",
+                        },
+                        workerToMainBufferSab,
+                    );
+                    return webEvent;
+                };
+
+                anyGlobalThis.flushCanvas = () => {
                     const bitmap = cavnasElement.transferToImageBitmap();
                     sendAsyncRequest(
                         self,
@@ -61,13 +71,7 @@ runAsyncMessageLoop(self, async (message) => {
                         },
                         [bitmap],
                     );
-                    const { webEvent } = blockingRequest(
-                        {
-                            type: "webEvent",
-                        },
-                        workerToMainBufferSab,
-                    );
-                    return webEvent;
+                    return;
                 };
 
                 await run();
