@@ -7,6 +7,7 @@ pub use into_url::*;
 pub use reqwest::Method;
 pub use response::*;
 pub use simple::*;
+use std::collections::HashMap;
 use url::*;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -15,10 +16,41 @@ pub async fn fetch(
     method: Method,
     build: impl FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
 ) -> Result<Response, HttpError> {
+    crate::log!("fetching");
     let url = resolve_relative_url(url)?;
 
     let builder = reqwest::Client::new().request(method, url);
-    Ok(Response::new(build(builder).send().await?))
+    let request = build(builder).build().unwrap();
+
+    crate::web::execute_async_function(
+        "
+    const response = await fetch(url, {
+        method,
+        headers,
+        body,
+    })",
+    )
+    .arg("method", request.method().as_str())
+    .arg(
+        "headers",
+        request
+            .headers()
+            .into_iter()
+            .map(|(key, value)| (key.to_string(), value.to_str().unwrap().to_string()))
+            .collect::<HashMap<String, String>>(),
+    )
+    .arg(
+        "body",
+        serde_bytes::Bytes::new(request.body().unwrap().as_bytes().unwrap()),
+    )
+    .run()
+    .await;
+
+    let response = Response::new(build(builder).send().await?);
+
+    crate::log!("fetched");
+
+    Ok(response)
 }
 
 pub async fn fetch_bytes(

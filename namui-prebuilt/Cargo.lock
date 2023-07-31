@@ -660,6 +660,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde-wasm-bindgen",
+ "serde_bytes",
  "serde_json",
  "serde_repr",
  "shader-macro",
@@ -1143,9 +1144,9 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.152"
+version = "1.0.168"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb7d1f0d3021d347a83e556fc4683dea2ea09d87bccdf88ff5c12545d89d5efb"
+checksum = "d614f89548720367ded108b3c843be93f3a341e22d5674ca0dd5cd57f34926af"
 dependencies = [
  "serde_derive",
 ]
@@ -1162,14 +1163,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_derive"
-version = "1.0.152"
+name = "serde_bytes"
+version = "0.11.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af487d118eecd09402d70a5d72551860e788df87b464af30e5ea6a38c75c541e"
+checksum = "ab33ec92f677585af6d88c65593ae2375adde54efdbf16d597f2cbc7a6d368ff"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.168"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4fe589678c688e44177da4f27152ee2d190757271dc7f1d5b6b9f68d869d641"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.22",
 ]
 
 [[package]]

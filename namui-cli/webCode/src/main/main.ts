@@ -1,6 +1,11 @@
-import { runAsyncMessageLoop, sendAsyncRequest } from "./asyncMessage.js";
-import { waitWebEvent } from "./main/webEvent.js";
-import { runMessageLoopForMain } from "./messageLoop.js";
+import { runAsyncMessageLoop, sendAsyncRequest } from "../asyncMessage";
+import { enqueueWebEvent, shiftWebEvent } from "./webEvent";
+import { runMessageLoopForMain } from "../messageLoop";
+import { AsyncMessageFromWorker } from "../type";
+import { cacheGet, cacheSet } from "../cache";
+
+(window as any).cacheGet = cacheGet;
+(window as any).cacheSet = cacheSet;
 
 const workerToMainBufferSab = new SharedArrayBuffer(16 * 1024 * 1024);
 const mainToWorkerBufferSab = new SharedArrayBuffer(16 * 1024 * 1024);
@@ -13,15 +18,26 @@ runMessageLoopForMain(workerToMainBufferSab, async (message) => {
             };
         }
         case "webEvent": {
-            const webEvent = await waitWebEvent();
+            const webEvent = await shiftWebEvent();
             return {
                 webEvent,
             };
         }
-        case "locationSearch": {
+        case "executeFunctionSyncOnMain": {
+            const { args_names, code, args } = message;
+            return Function(...args_names, code)(...args);
+        }
+        case "cacheGet": {
+            const { key } = message;
+            const value = await cacheGet(key);
             return {
-                locationSearch: window.location.search,
+                value,
             };
+        }
+        case "cacheSet": {
+            const { key, value } = message;
+            await cacheSet(key, value);
+            return {};
         }
     }
 });
@@ -50,18 +66,24 @@ const myWorker = new Worker("worker.js", {
     type: "classic",
 });
 
-runAsyncMessageLoop(myWorker, async (message) => {
+runAsyncMessageLoop<AsyncMessageFromWorker>(myWorker, async (message) => {
     switch (message.type) {
         case "imageBitmap": {
-            const {
-                imageBitmap,
-            }: {
-                imageBitmap: ImageBitmap;
-            } = message;
+            const { imageBitmap } = message;
 
             bitmapRendererCtx.transferFromImageBitmap(imageBitmap);
 
             return {};
+        }
+        case "executeAsyncFunction": {
+            const { id, argsNames, code, args } = message;
+            const result = await Function(...argsNames, code)(...args);
+            enqueueWebEvent({
+                AsyncFunction: {
+                    id,
+                    result: result,
+                },
+            });
         }
     }
 });
@@ -84,7 +106,7 @@ myWorker.onerror = (e) => {
 };
 
 myWorker.onmessageerror = (e) => {
-    console.log("message error from worker", e);
+    console.error(e, "message error from worker");
 };
 
 document.oncontextmenu = (event) => {

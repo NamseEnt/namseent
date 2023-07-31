@@ -40,7 +40,7 @@ const defaultConfig = {
     ],
 };
 
-const inputs = ["src/main.ts", "src/worker.ts"];
+const inputs = ["src/main/main.ts", "src/worker.ts"];
 export default inputs.map((input) => ({
     ...defaultConfig,
     input,

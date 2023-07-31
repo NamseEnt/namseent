@@ -33,9 +33,12 @@ async fn is_session_id_valid(session_id: Uuid) -> Result<bool> {
 
 async fn request_github_auth_code() -> Result<String> {
     let client_id = CLIENT_ID.unwrap_or(DEV_CLIENT_ID);
+
+    let redirect_uri = namui::web::location_herf();
+    namui::log!("redirect_uri: {}", redirect_uri);
+    let url = format!("https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri=https://sslwiheugl5ojmqlecerzhng740cekqc.lambda-url.ap-northeast-2.on.aws/{redirect_uri}");
+
     todo!()
-    // let redirect_uri = web_sys::window().unwrap().location().href().unwrap();
-    // let url = format!("https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri=https://sslwiheugl5ojmqlecerzhng740cekqc.lambda-url.ap-northeast-2.on.aws/{redirect_uri}");
 
     // let auth_code_window = web_sys::window()
     //     .unwrap()

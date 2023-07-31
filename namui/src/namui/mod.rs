@@ -10,11 +10,12 @@ mod skia;
 pub mod system;
 pub mod utils;
 
+pub use self::futures::*;
 pub use self::random::*;
 pub use ::url::Url;
 pub use hooks::*;
 // pub use audio::Audio;
-use anyhow::Result;
+pub use anyhow::Result;
 pub use auto_ops;
 pub use clipboard::ClipboardItem as _;
 pub use common::*;
@@ -37,18 +38,31 @@ pub use skia::{
     PaintBuilder, PaintStyle, PathBuilder, Shader, StrokeCap, StrokeJoin, TileMode, Typeface,
 };
 pub(crate) use skia::{ColorFilter, Paint, Path};
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 pub use system::*;
 
-#[cfg(target_family = "wasm")]
-pub use wasm_bindgen_futures::spawn_local;
-
-pub async fn init() -> NamuiContext {
+pub fn init() -> NamuiContext {
     let namui_context = NamuiContext::new();
 
-    system::init()
-        .await
-        .expect("Failed to initialize namui system");
+    system::pre_init().expect("Failed to pre-initialize namui system");
+
+    let inited = Arc::new(AtomicBool::new(false));
+    spawn_local({
+        let inited = inited.clone();
+        async move {
+            system::init()
+                .await
+                .expect("Failed to initialize namui system");
+
+            inited.store(true, std::sync::atomic::Ordering::Relaxed);
+            crate::log!("Namui system initialized")
+        }
+    });
+
+    while inited.load(std::sync::atomic::Ordering::Relaxed) == false {
+        system::futures::execute_async_tasks()
+    }
 
     namui_context
 }

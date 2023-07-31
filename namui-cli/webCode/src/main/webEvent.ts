@@ -1,4 +1,4 @@
-type WebEvent =
+export type WebEvent =
     | {
           MouseDown: {
               x: number;
@@ -68,20 +68,27 @@ type WebEvent =
               width: number;
               height: number;
           };
+      }
+    | {
+          AsyncFunction: {
+              result: any; // this is saved in worker as JsValue.
+              id: number;
+          };
       };
 
 const queue: WebEvent[] = [];
 
-export async function waitWebEvent(): Promise<WebEvent> {
-    while (queue.length === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
-    }
-    return queue.shift()!;
+export async function shiftWebEvent(): Promise<WebEvent | undefined> {
+    return queue.shift();
+}
+
+export function enqueueWebEvent(event: WebEvent) {
+    queue.push(event);
 }
 
 document.addEventListener("mousedown", (e) => {
     e.preventDefault();
-    queue.push({
+    enqueueWebEvent({
         MouseDown: {
             x: e.clientX,
             y: e.clientY,
@@ -93,7 +100,7 @@ document.addEventListener("mousedown", (e) => {
 
 document.addEventListener("mousemove", (e) => {
     e.preventDefault();
-    queue.push({
+    enqueueWebEvent({
         MouseMove: {
             x: e.clientX,
             y: e.clientY,
@@ -105,7 +112,7 @@ document.addEventListener("mousemove", (e) => {
 
 document.addEventListener("mouseup", (e) => {
     e.preventDefault();
-    queue.push({
+    enqueueWebEvent({
         MouseUp: {
             x: e.clientX,
             y: e.clientY,
@@ -117,7 +124,7 @@ document.addEventListener("mouseup", (e) => {
 
 document.addEventListener("wheel", (e) => {
     e.preventDefault();
-    queue.push({
+    enqueueWebEvent({
         Wheel: {
             x: e.clientX,
             y: e.clientY,
@@ -128,7 +135,7 @@ document.addEventListener("wheel", (e) => {
 });
 
 window.addEventListener("hashchange", (e) => {
-    queue.push({
+    enqueueWebEvent({
         HashChange: {
             newURL: e.newURL,
             oldURL: e.oldURL,
@@ -138,7 +145,7 @@ window.addEventListener("hashchange", (e) => {
 
 document.addEventListener("dragover", (e) => {
     e.preventDefault();
-    queue.push({
+    enqueueWebEvent({
         DragOver: {
             x: e.clientX,
             y: e.clientY,
@@ -148,7 +155,7 @@ document.addEventListener("dragover", (e) => {
 
 // document.addEventListener("drop", (e) => {
 //     e.preventDefault();
-//     queue.push({
+//     enqueueWebEvent({
 //         Drop: {
 //             dataTransfer: e.dataTransfer,
 //             x: e.clientX,
@@ -158,7 +165,7 @@ document.addEventListener("dragover", (e) => {
 // });
 
 document.addEventListener("selectionchange", (_e) => {
-    queue.push("SelectionChange");
+    enqueueWebEvent("SelectionChange");
 });
 
 document.addEventListener("keydown", (e) => {
@@ -180,7 +187,7 @@ document.addEventListener("keydown", (e) => {
     if (!isDevToolOpenCalled && !isRefreshCalled && !isJumpToTabCalled) {
         e.preventDefault();
     }
-    queue.push({
+    enqueueWebEvent({
         KeyDown: {
             code: e.code,
         },
@@ -188,7 +195,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 document.addEventListener("keyup", (e) => {
-    queue.push({
+    enqueueWebEvent({
         KeyUp: {
             code: e.code,
         },
@@ -196,19 +203,19 @@ document.addEventListener("keyup", (e) => {
 });
 
 document.addEventListener("blur", (_e) => {
-    queue.push("Blur");
+    enqueueWebEvent("Blur");
 });
 
 document.addEventListener("visibilitychange", (_e) => {
-    queue.push("VisibilityChange");
+    enqueueWebEvent("VisibilityChange");
 });
 
 window.addEventListener("blur", (_e) => {
-    queue.push("Blur");
+    enqueueWebEvent("Blur");
 });
 
 window.addEventListener("resize", (_e) => {
-    queue.push({
+    enqueueWebEvent({
         Resize: {
             width: window.innerWidth,
             height: window.innerHeight,

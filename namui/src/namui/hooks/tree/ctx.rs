@@ -102,8 +102,11 @@ impl TreeContext {
             let mut is_need_to_re_render = false;
             while !is_need_to_re_render {
                 crate::handle_web_event(&rendering_tree);
+                crate::system::futures::execute_async_tasks();
 
                 self.flush_channel(&mut is_need_to_re_render);
+
+                // TODO: This would be busy loop. Need to sleep.
             }
         }
     }

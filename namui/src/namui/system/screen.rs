@@ -7,7 +7,7 @@ static SCREEN_SIZE: OnceLock<Mutex<Wh<Px>>> = OnceLock::new();
 
 pub(super) async fn init() -> InitResult {
     SCREEN_SIZE
-        .set(Mutex::new(web::get_initial_window_size()))
+        .set(Mutex::new(web::initial_window_size()))
         .unwrap();
 
     Ok(())

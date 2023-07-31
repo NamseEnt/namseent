@@ -5,6 +5,7 @@ pub mod deep_link;
 pub mod drag_and_drop;
 pub mod file;
 pub mod font;
+pub mod futures;
 pub(crate) mod graphics;
 pub mod image;
 pub mod keyboard;
@@ -19,12 +20,16 @@ pub mod time;
 pub(crate) mod typeface;
 pub mod web;
 
-use futures::try_join;
+use ::futures::try_join;
 // use platform_utils::*;
 pub use render::last_rendering_tree;
 use std::error::Error;
 
 type InitResult = Result<(), Box<dyn Error>>;
+
+pub(crate) fn pre_init() -> InitResult {
+    futures::init().and(web::init())
+}
 
 pub(crate) async fn init() -> InitResult {
     try_join!(

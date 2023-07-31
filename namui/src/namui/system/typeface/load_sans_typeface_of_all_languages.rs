@@ -1,5 +1,5 @@
 use crate::*;
-use futures::{future::try_join_all, try_join};
+use ::futures::{future::try_join_all, try_join};
 use std::{collections::HashMap, sync::Arc};
 
 const DEFAULT_FONT_SIZE: IntPx = int_px(12);

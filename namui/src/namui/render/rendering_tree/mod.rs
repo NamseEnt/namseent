@@ -4,7 +4,6 @@ mod visit;
 use self::visit::VisitUtils;
 use super::*;
 use crate::{drag_and_drop::RawFileDropEvent, namui::*};
-use serde::Serialize;
 use std::{
     ops::ControlFlow,
     sync::atomic::{AtomicBool, Ordering},
@@ -94,6 +93,9 @@ pub enum WebEvent {
         width: usize,
         height: usize,
     },
+    AsyncFunction {
+        id: usize,
+    },
 }
 
 #[wasm_bindgen]
@@ -104,14 +106,17 @@ extern "C" {
     fn flushCanvas();
 }
 
-fn wait_web_event() -> WebEvent {
+fn wait_web_event() -> Option<WebEvent> {
     let event = waitEvent();
-    let event: WebEvent = serde_wasm_bindgen::from_value(event).expect("failed to parse web event");
+    let event: Option<WebEvent> =
+        serde_wasm_bindgen::from_value(event).expect("failed to parse web event");
     event
 }
 
 pub fn handle_web_event(rendering_tree: &RenderingTree) {
-    let web_event = wait_web_event();
+    let Some(web_event) = wait_web_event() else {
+        return;
+    };
     match web_event {
         WebEvent::MouseDown {
             x,
@@ -176,6 +181,9 @@ pub fn handle_web_event(rendering_tree: &RenderingTree) {
         WebEvent::VisibilityChange => crate::keyboard::reset_pressing_code_set(),
         WebEvent::Resize { width, height } => {
             system::screen::resize(Wh::new(px(width as f32), px(height as f32)));
+        }
+        WebEvent::AsyncFunction { id } => {
+            crate::system::web::on_async_function_executed(id);
         }
     }
 }

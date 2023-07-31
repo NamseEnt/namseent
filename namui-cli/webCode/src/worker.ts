@@ -1,7 +1,8 @@
-import { runAsyncMessageLoop, sendAsyncRequest } from "./asyncMessage.js";
-import { blockingRequest } from "./messageLoop.js";
-import { cacheGet, cacheSet } from "./cache.js";
-import { MessateFromMain } from "./type.js";
+import { runAsyncMessageLoop, sendAsyncRequest } from "./asyncMessage";
+import { cacheGet, cacheSet } from "./cache";
+import { WebEvent } from "./main/webEvent";
+import { blockingRequest } from "./messageLoop";
+import { AsyncMessageFromMain } from "./type";
 
 importScripts("./bundle.js");
 importScripts("./canvaskit-wasm/canvaskit.js");
@@ -10,7 +11,7 @@ declare var wasm_bindgen: any;
 const { start } = wasm_bindgen;
 declare var CanvasKitInit: any;
 
-runAsyncMessageLoop<MessateFromMain>(self, async (message) => {
+runAsyncMessageLoop<AsyncMessageFromMain>(self, async (message) => {
     switch (message.type) {
         case "init":
             {
@@ -41,16 +42,38 @@ runAsyncMessageLoop<MessateFromMain>(self, async (message) => {
                     return cavnasElement;
                 };
 
-                anyGlobalThis.cacheGet = cacheGet;
-                anyGlobalThis.cacheSet = cacheSet;
+                // anyGlobalThis.cacheGet = async (key: string) => {
+                //     const value = await cacheGet(key);
+                //     return value;
+                // };
+
+                // anyGlobalThis.cacheSet = async (key: string, value: any) => {
+                //     console.log("before cacheSet");
+                //     await cacheSet(key, value);
+                //     console.log("after cacheSet");
+                // };
 
                 anyGlobalThis.waitEvent = () => {
-                    const { webEvent } = blockingRequest(
-                        {
-                            type: "webEvent",
-                        },
-                        workerToMainBufferSab,
-                    );
+                    const { webEvent }: { webEvent: WebEvent | undefined } =
+                        blockingRequest(
+                            {
+                                type: "webEvent",
+                            },
+                            workerToMainBufferSab,
+                        );
+
+                    if (
+                        webEvent &&
+                        webEvent instanceof Object &&
+                        "AsyncFunction" in webEvent
+                    ) {
+                        storeAsyncFunctionResult(
+                            webEvent.AsyncFunction.id,
+                            webEvent.AsyncFunction.result,
+                        );
+                        delete webEvent.AsyncFunction.result;
+                    }
+
                     return webEvent;
                 };
 
@@ -67,14 +90,42 @@ runAsyncMessageLoop<MessateFromMain>(self, async (message) => {
                     return;
                 };
 
-                anyGlobalThis.getLocationSearch = () => {
-                    const { locationSearch } = blockingRequest(
+                anyGlobalThis.executeFunctionSyncOnMain = (
+                    args_names: string[],
+                    code: string,
+                    args: any[],
+                ) => {
+                    const response = blockingRequest(
                         {
-                            type: "locationSearch",
+                            type: "executeFunctionSyncOnMain",
+                            args_names,
+                            code,
+                            args,
                         },
                         workerToMainBufferSab,
                     );
-                    return locationSearch;
+                    return response;
+                };
+
+                let executeAsyncFunctionId = 0;
+                anyGlobalThis.startExecuteAsyncFunction = (
+                    argsNames: string[],
+                    code: string,
+                    args: any[],
+                ) => {
+                    const id = executeAsyncFunctionId++;
+                    sendAsyncRequest(self, {
+                        type: "executeAsyncFunction",
+                        argsNames,
+                        code,
+                        args,
+                        id,
+                    });
+                    return id;
+                };
+                anyGlobalThis.getAsyncFunctionResult = (id: number) => {
+                    const result = asyncFunctionResultMap.get(id);
+                    return result;
                 };
 
                 anyGlobalThis.getInitialWindowSize = () => {
@@ -106,4 +157,9 @@ async function run() {
 
 async function initWasm() {
     await wasm_bindgen("./bundle_bg.wasm");
+}
+
+const asyncFunctionResultMap = new Map<number, any>();
+function storeAsyncFunctionResult(id: number, result: any) {
+    asyncFunctionResultMap.set(id, result);
 }

@@ -17,13 +17,13 @@ static SETTING: late_init::LateInit<setting::Setting> =
 static RPC: late_init::LateInit<rpc::Rpc> = late_init::LateInit::<rpc::Rpc>::new();
 
 pub async fn main() {
-    let search = namui::web::get_location_search();
+    let namui_context = namui::init();
+
+    let search = namui::web::location_search();
     let is_auth_callback = search.starts_with("?code=");
     if is_auth_callback {
         return;
     }
-
-    let namui_context = namui::init().await;
 
     let setting = {
         match namui::file::bundle::read("setting.json").await {

@@ -1,6 +1,29 @@
-// sab i32 [0] = notification flag. 0: request, 1: response
-// sab i32 [1] = message length
-// sab u8 [8~] = message body
+import { TypedArray } from "./type";
+import { encode, decode } from "@msgpack/msgpack";
+
+/*
+    [ ] Notification flag
+    [ ] ..
+    [ ] ..
+    [ ] ..
+    
+    [ ] message type
+    [ ] Nothing
+    [ ] Nothing
+    [ ] Nothing
+
+    [ ] message length
+    [ ] ..
+    [ ] ..
+    [ ] ..
+
+    [ ] message body
+    ..
+*/
+
+const indexNotificationFlagI32 = 0; // 0: request, 1: response
+const indexMessageLengthI32 = 1;
+const indexMessageBodyU8 = 8;
 
 export async function runMessageLoopForMain(
     sab: SharedArrayBuffer,
@@ -16,45 +39,50 @@ export async function runMessageLoopForMain(
 
         const message = readMessage(sab);
         const response = await handleMessage(message);
-        writeMessage(response, i32Buf);
-        Atomics.notify(i32Buf, 0);
+        writeMessage(response, sab);
+
+        Atomics.notify(i32Buf, indexNotificationFlagI32);
     }
 }
 
 function readMessage(sab: SharedArrayBuffer): any {
-    const messageLength = new Int32Array(sab)[1];
-    const messageBuf = new Uint8Array(sab, 8, messageLength);
+    const messageLength = new Int32Array(sab)[indexMessageLengthI32];
+    const messageBuf = new Uint8Array(sab, indexMessageBodyU8, messageLength);
 
     // NOTE: this is for error "The provided ArrayBufferView value must not be shared."
     const cloned = new ArrayBuffer(messageBuf.byteLength);
     new Uint8Array(cloned).set(new Uint8Array(messageBuf));
 
-    const textDecoder = new TextDecoder();
-    const message = textDecoder.decode(cloned);
-    return JSON.parse(message);
+    return decode(cloned);
 }
 
-export function writeMessage(message: any, i32Buf: Int32Array) {
-    const textEncoder = new TextEncoder();
-    const messageBuf = textEncoder.encode(JSON.stringify(message));
-    const messageLength = messageBuf.length;
+export function writeMessage(message: any, sab: SharedArrayBuffer) {
+    const encoded = encode(message);
 
-    i32Buf[1] = messageLength;
-    const buffer = new Uint8Array(i32Buf.buffer, 8, messageLength);
-    buffer.set(messageBuf);
+    const i32Buf = new Int32Array(sab);
+
+    const messageLength = encoded.length;
+
+    i32Buf[indexMessageLengthI32] = messageLength;
+    const buffer = new Uint8Array(
+        i32Buf.buffer,
+        indexMessageBodyU8,
+        messageLength,
+    );
+    buffer.set(encoded);
 }
 
 export function blockingRequest(
     request: any,
     requestSab: SharedArrayBuffer,
 ): any {
+    writeMessage(request, requestSab);
+
     const i32Buf = new Int32Array(requestSab);
 
-    writeMessage(request, i32Buf);
-
-    i32Buf[0] = 0;
-    Atomics.notify(i32Buf, 0);
-    Atomics.wait(i32Buf, 0, 0);
+    i32Buf[indexNotificationFlagI32] = 0;
+    Atomics.notify(i32Buf, indexNotificationFlagI32);
+    Atomics.wait(i32Buf, indexNotificationFlagI32, 0);
 
     const response = readMessage(requestSab);
 

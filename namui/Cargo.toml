@@ -17,7 +17,7 @@ futures = "0.3.17"
 lazy_static = "1.4.0"
 once_cell = "1.8.0"
 serde_repr = "0.1"
-tokio = { version = "1", default-features = false, features = ["sync"] }
+tokio = { version = "1", default-features = false, features = ["sync", "rt"] }
 dashmap = "4"
 num = { version = "0.4.0", features = ["std"] }
 bincode = "1.3"
@@ -40,6 +40,7 @@ unicode-segmentation = "1.9"
 namui-type = { path = "../namui-type" }
 serde-wasm-bindgen = "0.5.0"
 anyhow = "1.0.72"
+serde_bytes = "0.11.12"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"
