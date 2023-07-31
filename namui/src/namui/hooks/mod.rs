@@ -23,7 +23,7 @@ use std::{
     fmt::Debug,
     sync::{atomic::AtomicUsize, Arc, Mutex},
 };
-pub(crate) use tree::*;
+pub use tree::*;
 pub use value::*;
 
 fn update_or_push<T>(vector: &mut Vec<T>, index: usize, value: T) {

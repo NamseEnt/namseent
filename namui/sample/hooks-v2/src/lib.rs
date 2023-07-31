@@ -9,7 +9,7 @@ use std::{any::TypeId, fmt::Debug};
 pub async fn main() {
     let namui_context = namui::init().await;
 
-    namui::start(namui_context, &v2::MyComponent {})
+    namui::start(namui_context, &MyComponent {})
 }
 
 #[derive(Debug)]
@@ -39,48 +39,40 @@ impl Component for MyComponent {
             KeyUp { code: namui::Code },
         }
 
-        ctx.use_children_with_event(
-            |event| match event {
-                InternalEvent::OnClick => {}
-                InternalEvent::KeyUp { code } => {
-                    namui::log!("Key up {:?}", code)
-                }
-            },
-            |ctx| {
-                ctx.add(Button {
-                    text,
-                    on_click: &|| {
-                        set_count.mutate(|count| *count += 1);
+        ctx.use_children(|ctx| {
+            ctx.add(Button {
+                text,
+                on_click: &|| {
+                    set_count.mutate(|count| *count += 1);
+                },
+            });
+            if *count % 2 == 0 {
+                ctx.add(
+                    StringText { text }, // .attach_event(|builder| {
+                                         // builder.on_key_up(ctx.event_with_param(|event: KeyboardEvent| {
+                                         //     Some(InternalEvent::KeyUp { code: event.code })
+                                         // }));
+                                         // })
+                );
+            } else {
+                ctx.add(
+                    // hooks::translate(
+                    // 50.px(),
+                    // 50.px(),
+                    UsizeText {
+                        usize: count.clone(),
                     },
-                });
-                if *count % 2 == 0 {
-                    ctx.add(
-                        StringText { text }, // .attach_event(|builder| {
-                                             // builder.on_key_up(ctx.event_with_param(|event: KeyboardEvent| {
-                                             //     Some(InternalEvent::KeyUp { code: event.code })
-                                             // }));
-                                             // })
-                    );
-                } else {
-                    ctx.add(
-                        // hooks::translate(
-                        // 50.px(),
-                        // 50.px(),
-                        UsizeText {
-                            usize: count.clone(),
-                        },
-                        // )
-                    );
-                }
-                ctx.done()
-            },
-        )
+                    // )
+                );
+            }
+            ctx.done()
+        })
     }
 }
 
 impl StaticType for MyComponent {
-    fn static_type_id(&self) -> TypeId {
-        TypeId::of::<MyComponent>()
+    fn static_type_id(&self) -> StaticTypeId {
+        StaticTypeId::Single(TypeId::of::<MyComponent>())
     }
 }
 
@@ -105,8 +97,8 @@ impl<'a> Debug for Button<'a> {
 }
 
 impl StaticType for Button<'_> {
-    fn static_type_id(&self) -> TypeId {
-        TypeId::of::<Button>()
+    fn static_type_id(&self) -> StaticTypeId {
+        StaticTypeId::Single(TypeId::of::<Button>())
     }
 }
 
@@ -132,10 +124,10 @@ impl Component for Button<'_> {
                 1.px(),
                 Color::RED,
                 [MouseButton::Left],
-                ctx.closure(|_| {
+                |_| {
                     namui::log!("Button clicked");
                     (self.on_click)()
-                }),
+                },
             ));
 
             ctx.done()
@@ -149,8 +141,8 @@ struct StringText<'a> {
 }
 
 impl StaticType for StringText<'_> {
-    fn static_type_id(&self) -> TypeId {
-        TypeId::of::<StringText>()
+    fn static_type_id(&self) -> StaticTypeId {
+        StaticTypeId::Single(TypeId::of::<StringText>())
     }
 }
 
@@ -176,9 +168,9 @@ impl Component for StringText<'_> {
                 1.px(),
                 Color::RED,
                 [MouseButton::Left],
-                closure(move |_| {
+                |_| {
                     namui::log!("StringText clicked");
-                }),
+                },
             ));
 
             ctx.done()
@@ -192,8 +184,8 @@ struct UsizeText<'a> {
 }
 
 impl StaticType for UsizeText<'_> {
-    fn static_type_id(&self) -> TypeId {
-        TypeId::of::<UsizeText>()
+    fn static_type_id(&self) -> StaticTypeId {
+        StaticTypeId::Single(TypeId::of::<UsizeText>())
     }
 }
 
@@ -218,9 +210,9 @@ impl Component for UsizeText<'_> {
                 1.px(),
                 Color::RED,
                 [MouseButton::Left],
-                closure(move |_| {
+                |_| {
                     namui::log!("UsizeText clicked");
-                }),
+                },
             ));
 
             ctx.done()

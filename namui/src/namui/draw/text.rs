@@ -2,7 +2,7 @@ use super::*;
 use crate::{namui::skia::*, system::graphics, text::*, *};
 use std::{collections::HashMap, sync::Arc};
 
-#[derive(Serialize, Clone, Debug, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct TextDrawCommand {
     pub text: String,
     pub font: Arc<Font>,

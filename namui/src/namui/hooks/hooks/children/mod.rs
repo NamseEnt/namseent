@@ -46,12 +46,6 @@ impl<'a> ChildrenContext {
             tree_ctx: self.tree_ctx,
         }
     }
-
-    pub fn closure<T: 'static>(&'a self, call: impl 'a + Fn(T)) -> ClosurePtr<T, ()> {
-        ClosurePtr::new(unsafe {
-            std::mem::transmute::<Box<dyn Fn(T)>, Box<dyn Fn(T)>>(Box::new(call))
-        })
-    }
 }
 
 pub struct ChildrenEventContext<Event: 'static> {

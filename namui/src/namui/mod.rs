@@ -45,10 +45,14 @@ pub use wasm_bindgen_futures::spawn_local;
 pub async fn init() -> NamuiContext {
     let namui_context = NamuiContext::new();
 
+    system::init()
+        .await
+        .expect("Failed to initialize namui system");
+
     namui_context
 }
 
-pub fn start<TProps>(namui_context: NamuiContext, component: &dyn Component) {
+pub fn start(namui_context: NamuiContext, component: &dyn Component) {
     namui_context.start(component);
 }
 

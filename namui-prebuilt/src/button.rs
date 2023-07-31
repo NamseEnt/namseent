@@ -4,11 +4,10 @@ use namui::prelude::*;
 fn attach_text_button_event(
     button: RenderingTree,
     mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl IntoClosure<dyn Fn(MouseEvent)>,
+    on_mouse_up_in: impl Fn(MouseEvent),
 ) -> RenderingTree {
     let mouse_buttons = mouse_buttons.into_iter().collect::<Vec<_>>();
     button.attach_event(|builder| {
-        let on_mouse_up_in = on_mouse_up_in.into_arc();
         builder.on_mouse_up_in(move |event: MouseEvent| {
             let Some(button) = event.button else {
                 return;
@@ -28,7 +27,7 @@ pub fn text_button(
     stroke_width: Px,
     fill_color: Color,
     mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl IntoClosure<dyn Fn(MouseEvent)>,
+    on_mouse_up_in: impl Fn(MouseEvent),
 ) -> namui::RenderingTree {
     attach_text_button_event(
         translate(
@@ -53,7 +52,7 @@ pub fn text_button_fit(
     fill_color: Color,
     side_padding: Px,
     mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl IntoClosure<dyn Fn(MouseEvent)>,
+    on_mouse_up_in: impl Fn(MouseEvent) + 'static,
 ) -> namui::RenderingTree {
     let mouse_buttons = mouse_buttons.into_iter().collect::<Vec<_>>();
     let center_text = center_text_full_height(Wh::new(0.px(), height), text, text_color);
@@ -86,7 +85,7 @@ pub fn body_text_button(
     fill_color: Color,
     text_align: TextAlign,
     mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl IntoClosure<dyn Fn(MouseEvent)>,
+    on_mouse_up_in: impl Fn(MouseEvent) + 'static,
 ) -> namui::RenderingTree {
     attach_text_button_event(
         translate(

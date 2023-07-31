@@ -48,25 +48,17 @@ impl<'a> RenderCtx {
         handle_use_effect(self, title, effect)
     }
 
+    pub fn use_no_children(&'a self) -> RenderDone {
+        let children_ctx = ChildrenContext::new(self.tree_ctx.clone(), self.instance.clone(), None);
+        children_ctx.done().to_render_done()
+    }
+
     pub fn use_children(
         &'a self,
         use_children: impl 'a + FnOnce(ChildrenContext) -> ChildrenDone,
     ) -> RenderDone {
         let children_ctx = ChildrenContext::new(self.tree_ctx.clone(), self.instance.clone(), None);
         let done = use_children(children_ctx);
-
-        done.to_render_done()
-    }
-
-    pub fn use_children_with_event<Event: 'static + Debug + Send + Sync>(
-        &'a self,
-        on_event: impl FnOnce(Event),
-        children: impl FnOnce(ChildrenEventContext<Event>) -> ChildrenDone,
-    ) -> RenderDone {
-        let children_ctx =
-            ChildrenEventContext::new(self.tree_ctx.clone(), self.instance.clone(), None);
-
-        let done = children(children_ctx);
 
         done.to_render_done()
     }

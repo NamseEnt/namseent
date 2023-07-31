@@ -1,8 +1,7 @@
 use super::SpecialRenderingNode;
 use crate::{namui::render::Matrix3x3, Angle, RenderingTree};
-use serde::Serialize;
 
-#[derive(Serialize, Clone, Debug, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct RotateNode {
     pub(crate) angle: Angle,
     pub(crate) rendering_tree: std::sync::Arc<RenderingTree>,

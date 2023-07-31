@@ -41,9 +41,19 @@ impl StaticType for RenderingTree {
 
 impl Component for RenderingTree {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let rendering_tree = self.clone();
+        ctx.use_children_with_rendering_tree(|ctx| ctx.done(), |_| self.clone())
+    }
+}
 
-        ctx.use_children_with_rendering_tree(|ctx| ctx.done(), |_| rendering_tree)
+impl StaticType for &dyn Component {
+    fn static_type_id(&self) -> StaticTypeId {
+        (*self).static_type_id()
+    }
+}
+
+impl Component for &dyn Component {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        (*self).render(ctx)
     }
 }
 

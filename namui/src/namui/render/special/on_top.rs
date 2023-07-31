@@ -2,10 +2,9 @@ use std::sync::Arc;
 
 use super::SpecialRenderingNode;
 use crate::RenderingTree;
-use serde::Serialize;
 
 /// `OnTopNode` ignores clip and draw on top of other nodes.
-#[derive(Serialize, Clone, Debug, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct OnTopNode {
     pub(crate) rendering_tree: Arc<RenderingTree>,
 }

@@ -1,80 +1,50 @@
 use namui::prelude::*;
-use std::{fmt::Debug, sync::Arc};
+use std::{any::TypeId, fmt::Debug};
 
-pub struct Props2<Content: Component>
-where
-    Content: Debug + Component + 'static,
-{
+pub struct ScrollView<'a> {
     pub xy: Xy<Px>,
     pub scroll_bar_width: Px,
     pub height: Px,
-    pub content: Content,
-}
-
-pub struct UseScrollView {
-    pub scroll_view: ScrollView2,
-    pub set_scroll_y: SetState<Px>,
-}
-
-pub fn use_scroll_view<Content>(props: Props2<Content>) -> UseScrollView
-where
-    Content: Debug + Component + 'static,
-{
-    let (scroll_y, set_scroll_y) = use_state(|| 0.px());
-
-    UseScrollView {
-        scroll_view: ScrollView2 {
-            xy: props.xy,
-            scroll_bar_width: props.scroll_bar_width,
-            height: props.height,
-            content: Arc::new(props.content),
-            scroll_y: *scroll_y,
-            set_scroll_y,
-        },
-        set_scroll_y,
-    }
-}
-
-pub fn scroll_view_auto_scroll<Content>(props: Props2<Content>) -> ScrollView2
-where
-    Content: Debug + Component + 'static,
-{
-    let (scroll_y, set_scroll_y) = use_state(|| 0.px());
-
-    ScrollView2 {
-        xy: props.xy,
-        scroll_bar_width: props.scroll_bar_width,
-        height: props.height,
-        content: Arc::new(props.content),
-        scroll_y: *scroll_y,
-        set_scroll_y,
-    }
-}
-
-#[component]
-pub struct ScrollView2 {
-    pub xy: Xy<Px>,
-    pub scroll_bar_width: Px,
-    pub height: Px,
-    pub content: Arc<dyn Component>,
+    pub content: Box<dyn Component + 'a>,
     pub scroll_y: Px,
     pub set_scroll_y: SetState<Px>,
 }
 
-impl Component for ScrollView2 {
-    fn render(&self) -> RenderDone {
+impl StaticType for ScrollView<'_> {
+    fn static_type_id(&self) -> StaticTypeId {
+        StaticTypeId::Single(TypeId::of::<ScrollView<'static>>())
+    }
+}
+
+impl Debug for ScrollView<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ScrollView")
+            .field("xy", &self.xy)
+            .field("scroll_bar_width", &self.scroll_bar_width)
+            .field("height", &self.height)
+            .field("content", &self.content)
+            .field("scroll_y", &self.scroll_y)
+            .field("set_scroll_y", &self.set_scroll_y)
+            .finish()
+    }
+}
+
+impl Component for ScrollView<'_> {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             xy,
             scroll_bar_width,
             height,
+            ref content,
             scroll_y,
             set_scroll_y,
-            ..
         } = self;
 
-        use_render_with_rendering_tree(
+        ctx.use_children_with_rendering_tree(
             |ctx| {
-                ctx.add(&self.content);
+                ctx.add(content.as_ref());
+
+                ctx.done()
             },
             move |children| {
                 let content = namui::render(children);
@@ -156,127 +126,6 @@ impl Component for ScrollView2 {
                 });
                 translate(xy.x, xy.y, namui::render([whole_rect, inner, scroll_bar]))
             },
-        )
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ScrollView {
-    pub id: Uuid,
-    pub scroll_y: Px,
-}
-
-pub struct Props {
-    pub xy: Xy<Px>,
-    pub scroll_bar_width: Px,
-    pub height: Px,
-    pub content: RenderingTree,
-}
-
-pub enum Event {
-    Scrolled(Uuid, Px),
-}
-
-impl ScrollView {
-    pub fn new() -> Self {
-        Self {
-            id: namui::uuid(),
-            scroll_y: px(0.0),
-        }
-    }
-    pub fn update(&mut self, event: &namui::Event) {
-        event.is::<Event>(|event| match *event {
-            Event::Scrolled(id, scroll_y) => {
-                if id != self.id {
-                    return;
-                }
-                self.scroll_y = scroll_y;
-            }
-        });
-    }
-    pub fn render(&self, props: &Props) -> RenderingTree {
-        let button_id = self.id.clone();
-        let content_bounding_box = props.content.get_bounding_box();
-        if content_bounding_box.is_none() {
-            return RenderingTree::Empty;
-        }
-        let content_bounding_box = content_bounding_box.unwrap();
-
-        let scroll_y = namui::math::num::clamp(
-            self.scroll_y,
-            px(0.0),
-            px(0.0).max(content_bounding_box.height() - props.height),
-        );
-
-        let inner = namui::clip(
-            namui::PathBuilder::new().add_rect(Rect::Xywh {
-                x: content_bounding_box.x(),
-                y: content_bounding_box.y(),
-                width: content_bounding_box.width(),
-                height: props.height,
-            }),
-            namui::ClipOp::Intersect,
-            namui::translate(px(0.0), -scroll_y.floor(), props.content.clone()),
-        );
-
-        let scroll_bar_handle_height =
-            props.height * (props.height / content_bounding_box.height());
-
-        let scroll_bar_y = (props.height - scroll_bar_handle_height)
-            * (scroll_y / (content_bounding_box.height() - props.height));
-
-        let scroll_bar = match content_bounding_box.height() > props.height {
-            true => rect(RectParam {
-                rect: Rect::Xywh {
-                    x: content_bounding_box.width() - props.scroll_bar_width, // iOS Style!
-                    y: scroll_bar_y,
-                    width: props.scroll_bar_width,
-                    height: scroll_bar_handle_height,
-                },
-                style: RectStyle {
-                    fill: Some(RectFill {
-                        color: Color::grayscale_f01(0.5),
-                    }),
-                    ..Default::default()
-                },
-                ..Default::default()
-            }),
-            false => RenderingTree::Empty,
-        };
-        let whole_rect = rect(RectParam {
-            rect: Rect::Xywh {
-                x: px(0.0),
-                y: px(0.0),
-                width: content_bounding_box.width(),
-                height: props.height,
-            },
-            style: RectStyle {
-                fill: Some(RectFill {
-                    color: Color::TRANSPARENT,
-                }),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .attach_event(move |builder| {
-            let height = props.height;
-            let button_id = button_id.clone();
-            builder.on_wheel(move |event: WheelEvent| {
-                let next_scroll_y = namui::math::num::clamp(
-                    scroll_y + px(event.delta_xy.y),
-                    px(0.0),
-                    (px(0.0)).max(content_bounding_box.height() - height),
-                );
-
-                namui::event::send(Event::Scrolled(button_id, next_scroll_y));
-
-                event.stop_propagation();
-            });
-        });
-        translate(
-            props.xy.x,
-            props.xy.y,
-            namui::render([whole_rect, inner, scroll_bar]),
         )
     }
 }

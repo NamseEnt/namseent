@@ -12,11 +12,11 @@ use std::{
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
-#[derive(Serialize, Default, Clone, Debug, PartialEq)]
+#[derive(Default, Debug, Clone)]
 pub struct RenderingData {
     pub draw_calls: Vec<DrawCall>,
 }
-#[derive(Serialize, Clone, Debug, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum RenderingTree {
     Node(RenderingData),
     Children(Vec<RenderingTree>),
@@ -339,7 +339,7 @@ impl RenderingTree {
                 }
 
                 let is_stop_propagation = Arc::new(AtomicBool::new(false));
-                on_wheel.invoke(WheelEvent {
+                on_wheel(WheelEvent {
                     delta_xy: raw_wheel_event.delta_xy,
                     id: raw_wheel_event.id.clone(),
                     mouse_local_xy: raw_wheel_event.mouse_xy,
@@ -365,7 +365,7 @@ impl RenderingTree {
                         DownUp::Up => &attach_event.on_key_up,
                     };
                     if let Some(callback) = &callback {
-                        callback.invoke(KeyboardEvent {
+                        callback(KeyboardEvent {
                             id: raw_keyboard_event.id.clone(),
                             code: raw_keyboard_event.code,
                             pressing_codes: raw_keyboard_event.pressing_codes.clone(),
@@ -376,21 +376,22 @@ impl RenderingTree {
             ControlFlow::Continue(())
         });
     }
-    pub(crate) fn get_mouse_cursor(&self, xy: Xy<Px>) -> Option<MouseCursor> {
-        let mut result = None;
-        self.visit_rln(|node, utils| {
-            if let RenderingTree::Special(special) = node {
-                if let SpecialRenderingNode::MouseCursor(mouse_cursor) = special {
-                    if utils.is_xy_in(xy) {
-                        result = Some(*(mouse_cursor.cursor.clone()));
-                        return ControlFlow::Break(());
-                    }
-                }
-            }
-            ControlFlow::Continue(())
-        });
-        result
-    }
+    // TODO
+    // pub(crate) fn get_mouse_cursor(&self, xy: Xy<Px>) -> Option<MouseCursor> {
+    //     let mut result = None;
+    //     self.visit_rln(|node, utils| {
+    //         if let RenderingTree::Special(special) = node {
+    //             if let SpecialRenderingNode::MouseCursor(mouse_cursor) = special {
+    //                 if utils.is_xy_in(xy) {
+    //                     result = Some(*(mouse_cursor.cursor.clone()));
+    //                     return ControlFlow::Break(());
+    //                 }
+    //             }
+    //         }
+    //         ControlFlow::Continue(())
+    //     });
+    //     result
+    // }
     fn call_event_of_screen(
         &self,
         callback: impl Fn(CallEventOfScreenParam) -> CallEventOfScreenResult,
@@ -491,17 +492,17 @@ impl RenderingTree {
                 };
 
                 if let Some(on_mouse) = &attach_event.on_mouse {
-                    on_mouse.invoke(mouse_event.clone());
+                    on_mouse(mouse_event.clone());
                 }
                 match is_mouse_in {
                     true => {
                         if let Some(in_func) = in_func {
-                            in_func.invoke(mouse_event);
+                            in_func(mouse_event);
                         }
                     }
                     false => {
                         if let Some(out_func) = out_func {
-                            out_func.invoke(mouse_event);
+                            out_func(mouse_event);
                         }
                     }
                 }
@@ -538,7 +539,7 @@ impl RenderingTree {
                     files: file_drop_event.files.clone(),
                     is_stop_propagation: is_stop_propagation.clone(),
                 };
-                on_file_drop.invoke(event);
+                on_file_drop(event);
 
                 return CallEventOfScreenResult {
                     is_stop_propagation: is_stop_propagation.load(Ordering::Relaxed),

@@ -1,14 +1,12 @@
 use super::SpecialRenderingNode;
 use crate::RenderingTree;
-use serde::Serialize;
 use std::sync::Arc;
 
 type CustomData = Arc<dyn std::any::Any>;
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct CustomNode {
     pub(crate) rendering_tree: std::sync::Arc<RenderingTree>,
-    #[serde(skip_serializing)]
     pub data: CustomData,
 }
 

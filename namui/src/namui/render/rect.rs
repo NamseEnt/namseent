@@ -142,10 +142,9 @@ pub fn rect(param: RectParam) -> RenderingTree {
         translate_xy.x,
         translate_xy.y,
         RenderingTree::Node(RenderingData {
-            draw_calls: [DrawCall {
+            draw_calls: vec![DrawCall {
                 commands: draw_commands,
-            }]
-            .to_vec(),
+            }],
         }),
     )
 }

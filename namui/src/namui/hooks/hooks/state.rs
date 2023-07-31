@@ -84,6 +84,12 @@ pub struct SetState<State: 'static + Debug + Send + Sync> {
     _state: std::marker::PhantomData<State>,
 }
 
+impl<State: 'static + Debug + Send + Sync> Debug for SetState<State> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "SetState {{ sig_id: {:?} }}", self.sig_id,)
+    }
+}
+
 impl<State: 'static + Debug + Send + Sync> Clone for SetState<State> {
     fn clone(&self) -> Self {
         Self {

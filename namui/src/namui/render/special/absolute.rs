@@ -1,8 +1,7 @@
 use super::SpecialRenderingNode;
 use crate::{Px, RenderingTree};
-use serde::Serialize;
 
-#[derive(Serialize, Clone, Debug, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct AbsoluteNode {
     pub(crate) x: Px,
     pub(crate) y: Px,

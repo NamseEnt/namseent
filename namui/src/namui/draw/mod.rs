@@ -8,14 +8,14 @@ pub use path::PathDrawCommand;
 use serde::Serialize;
 pub use text::{TextAlign, TextBaseline, TextDrawCommand};
 
-#[derive(Serialize, Clone, Debug, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum DrawCommand {
     Path(PathDrawCommand),
     Image(ImageDrawCommand),
     Text(TextDrawCommand),
 }
 
-#[derive(Serialize, Clone, Debug, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct DrawCall {
     pub commands: Vec<DrawCommand>,
 }

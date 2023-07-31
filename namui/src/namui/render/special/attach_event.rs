@@ -1,39 +1,27 @@
 use super::SpecialRenderingNode;
-use crate::{closure::ClosurePtr, *};
-use serde::Serialize;
+use crate::*;
 use std::{
     collections::HashSet,
+    fmt::Debug,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
 };
 
-#[derive(Serialize, Clone, PartialEq)]
+#[derive(Clone)]
 pub struct AttachEventNode {
     pub(crate) rendering_tree: std::sync::Arc<RenderingTree>,
-    #[serde(skip_serializing)]
     pub on_mouse_move_in: Option<MouseEventCallback>,
-    #[serde(skip_serializing)]
     pub on_mouse_move_out: Option<MouseEventCallback>,
-    // onMouseIn?: () => void;
-    #[serde(skip_serializing)]
     pub on_mouse_down_in: Option<MouseEventCallback>,
-    #[serde(skip_serializing)]
     pub on_mouse_down_out: Option<MouseEventCallback>,
-    #[serde(skip_serializing)]
     pub on_mouse_up_in: Option<MouseEventCallback>,
-    #[serde(skip_serializing)]
     pub on_mouse_up_out: Option<MouseEventCallback>,
-    #[serde(skip_serializing)]
     pub on_mouse: Option<MouseEventCallback>,
-    #[serde(skip_serializing)]
     pub on_wheel: Option<WheelEventCallback>,
-    #[serde(skip_serializing)]
     pub on_key_down: Option<KeyboardEventCallback>,
-    #[serde(skip_serializing)]
     pub on_key_up: Option<KeyboardEventCallback>,
-    #[serde(skip_serializing)]
     pub on_file_drop: Option<FileDropEventCallback>,
 }
 
@@ -87,10 +75,10 @@ impl FileDropEvent {
     }
 }
 
-pub type MouseEventCallback = ClosurePtr<MouseEvent, ()>;
-pub type WheelEventCallback = ClosurePtr<WheelEvent, ()>;
-pub type KeyboardEventCallback = ClosurePtr<KeyboardEvent, ()>;
-pub type FileDropEventCallback = ClosurePtr<FileDropEvent, ()>;
+pub type MouseEventCallback = Arc<dyn Fn(MouseEvent)>;
+pub type WheelEventCallback = Arc<dyn Fn(WheelEvent)>;
+pub type KeyboardEventCallback = Arc<dyn Fn(KeyboardEvent)>;
+pub type FileDropEventCallback = Arc<dyn Fn(FileDropEvent)>;
 
 impl std::fmt::Debug for AttachEventNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -110,7 +98,7 @@ impl std::fmt::Debug for AttachEventNode {
     }
 }
 
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone)]
 pub struct AttachEventBuilder {
     pub(crate) on_mouse_move_in: Option<MouseEventCallback>,
     pub(crate) on_mouse_move_out: Option<MouseEventCallback>,
@@ -123,6 +111,24 @@ pub struct AttachEventBuilder {
     pub(crate) on_key_down: Option<KeyboardEventCallback>,
     pub(crate) on_key_up: Option<KeyboardEventCallback>,
     pub(crate) on_file_drop: Option<FileDropEventCallback>,
+}
+
+impl Debug for AttachEventBuilder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AttachEventBuilder")
+            .field("on_mouse_move_in", &self.on_mouse_move_in.is_some())
+            .field("on_mouse_move_out", &self.on_mouse_move_out.is_some())
+            .field("on_mouse_down_in", &self.on_mouse_down_in.is_some())
+            .field("on_mouse_down_out", &self.on_mouse_down_out.is_some())
+            .field("on_mouse_up_in", &self.on_mouse_up_in.is_some())
+            .field("on_mouse_up_out", &self.on_mouse_up_out.is_some())
+            .field("on_mouse", &self.on_mouse.is_some())
+            .field("on_wheel", &self.on_wheel.is_some())
+            .field("on_key_down", &self.on_key_down.is_some())
+            .field("on_key_up", &self.on_key_up.is_some())
+            .field("on_file_drop", &self.on_file_drop.is_some())
+            .finish()
+    }
 }
 
 impl RenderingTree {
@@ -149,82 +155,91 @@ impl RenderingTree {
 }
 
 impl AttachEventBuilder {
-    pub fn on_mouse_move_in(
-        &mut self,
-        on_mouse_move_in: impl Into<ClosurePtr<MouseEvent, ()>>,
-    ) -> &mut Self {
-        self.on_mouse_move_in = Some(on_mouse_move_in.into());
+    pub fn on_mouse_move_in(&mut self, on_mouse_move_in: impl Fn(MouseEvent)) -> &mut Self {
+        let func = on_mouse_move_in;
+        let func =
+            unsafe { std::mem::transmute::<Arc<dyn Fn(MouseEvent)>, Arc<_>>(Arc::new(func)) };
+        self.on_mouse_move_in = Some(func);
         self
     }
 
-    pub fn on_mouse_move_out(
-        &mut self,
-        on_mouse_move_out: impl Into<ClosurePtr<MouseEvent, ()>>,
-    ) -> &mut Self {
-        self.on_mouse_move_out = Some(on_mouse_move_out.into());
+    pub fn on_mouse_move_out(&mut self, on_mouse_move_out: impl Fn(MouseEvent)) -> &mut Self {
+        let func = on_mouse_move_out;
+        let func =
+            unsafe { std::mem::transmute::<Arc<dyn Fn(MouseEvent)>, Arc<_>>(Arc::new(func)) };
+        self.on_mouse_move_out = Some(func);
         self
     }
 
-    pub fn on_mouse_down_in(
-        &mut self,
-        on_mouse_down_in: impl Into<ClosurePtr<MouseEvent, ()>> + 'static,
-    ) -> &mut Self {
-        self.on_mouse_down_in = Some(on_mouse_down_in.into());
+    pub fn on_mouse_down_in(&mut self, on_mouse_down_in: impl Fn(MouseEvent)) -> &mut Self {
+        let func = on_mouse_down_in;
+        let func =
+            unsafe { std::mem::transmute::<Arc<dyn Fn(MouseEvent)>, Arc<_>>(Arc::new(func)) };
+        self.on_mouse_down_in = Some(func);
         self
     }
 
-    pub fn on_mouse_down_out(
-        &mut self,
-        on_mouse_down_out: impl Into<ClosurePtr<MouseEvent, ()>>,
-    ) -> &mut Self {
-        self.on_mouse_down_out = Some(on_mouse_down_out.into());
+    pub fn on_mouse_down_out(&mut self, on_mouse_down_out: impl Fn(MouseEvent)) -> &mut Self {
+        let func = on_mouse_down_out;
+        let func =
+            unsafe { std::mem::transmute::<Arc<dyn Fn(MouseEvent)>, Arc<_>>(Arc::new(func)) };
+        self.on_mouse_down_out = Some(func);
         self
     }
 
-    pub fn on_mouse_up_in(
-        &mut self,
-        on_mouse_up_in: impl Into<ClosurePtr<MouseEvent, ()>>,
-    ) -> &mut Self {
-        self.on_mouse_up_in = Some(on_mouse_up_in.into());
+    pub fn on_mouse_up_in(&mut self, on_mouse_up_in: impl Fn(MouseEvent)) -> &mut Self {
+        let func = on_mouse_up_in;
+        let func =
+            unsafe { std::mem::transmute::<Arc<dyn Fn(MouseEvent)>, Arc<_>>(Arc::new(func)) };
+        self.on_mouse_up_in = Some(func);
         self
     }
 
-    pub fn on_mouse_up_out(
-        &mut self,
-        on_mouse_up_out: impl Into<ClosurePtr<MouseEvent, ()>>,
-    ) -> &mut Self {
-        self.on_mouse_up_out = Some(on_mouse_up_out.into());
+    pub fn on_mouse_up_out(&mut self, on_mouse_up_out: impl Fn(MouseEvent)) -> &mut Self {
+        let func = on_mouse_up_out;
+        let func =
+            unsafe { std::mem::transmute::<Arc<dyn Fn(MouseEvent)>, Arc<_>>(Arc::new(func)) };
+        self.on_mouse_up_out = Some(func);
         self
     }
 
-    pub fn on_mouse(&mut self, on_mouse: impl Into<ClosurePtr<MouseEvent, ()>>) -> &mut Self {
-        self.on_mouse = Some(on_mouse.into());
+    pub fn on_mouse(&mut self, on_mouse: impl Fn(MouseEvent)) -> &mut Self {
+        let func = on_mouse;
+        let func =
+            unsafe { std::mem::transmute::<Arc<dyn Fn(MouseEvent)>, Arc<_>>(Arc::new(func)) };
+        self.on_mouse = Some(func);
         self
     }
 
-    pub fn on_wheel(&mut self, on_wheel: impl Into<ClosurePtr<WheelEvent, ()>>) -> &mut Self {
-        self.on_wheel = Some(on_wheel.into());
+    pub fn on_wheel(&mut self, on_wheel: impl Fn(WheelEvent)) -> &mut Self {
+        let func = on_wheel;
+        let func =
+            unsafe { std::mem::transmute::<Arc<dyn Fn(WheelEvent)>, Arc<_>>(Arc::new(func)) };
+        self.on_wheel = Some(func);
         self
     }
 
-    pub fn on_key_down(
-        &mut self,
-        on_key_down: impl Into<ClosurePtr<KeyboardEvent, ()>>,
-    ) -> &mut Self {
-        self.on_key_down = Some(on_key_down.into());
+    pub fn on_key_down(&mut self, on_key_down: impl Fn(KeyboardEvent)) -> &mut Self {
+        let func = on_key_down;
+        let func =
+            unsafe { std::mem::transmute::<Arc<dyn Fn(KeyboardEvent)>, Arc<_>>(Arc::new(func)) };
+        self.on_key_down = Some(func);
         self
     }
 
-    pub fn on_key_up(&mut self, on_key_up: impl Into<ClosurePtr<KeyboardEvent, ()>>) -> &mut Self {
-        self.on_key_up = Some(on_key_up.into());
+    pub fn on_key_up(&mut self, on_key_up: impl Fn(KeyboardEvent)) -> &mut Self {
+        let func = on_key_up;
+        let func =
+            unsafe { std::mem::transmute::<Arc<dyn Fn(KeyboardEvent)>, Arc<_>>(Arc::new(func)) };
+        self.on_key_up = Some(func);
         self
     }
 
-    pub fn on_file_drop(
-        &mut self,
-        on_file_drop: impl Into<ClosurePtr<FileDropEvent, ()>>,
-    ) -> &mut Self {
-        self.on_file_drop = Some(on_file_drop.into());
+    pub fn on_file_drop(&mut self, on_file_drop: impl Fn(FileDropEvent)) -> &mut Self {
+        let func = on_file_drop;
+        let func =
+            unsafe { std::mem::transmute::<Arc<dyn Fn(FileDropEvent)>, Arc<_>>(Arc::new(func)) };
+        self.on_file_drop = Some(func);
         self
     }
 }

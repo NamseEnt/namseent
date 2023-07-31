@@ -1,8 +1,7 @@
 use super::SpecialRenderingNode;
 use crate::{namui::ClipOp, *};
-use serde::Serialize;
 
-#[derive(Serialize, Clone, Debug, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct ClipNode {
     pub(crate) path_builder: PathBuilder,
     pub(crate) clip_op: ClipOp,

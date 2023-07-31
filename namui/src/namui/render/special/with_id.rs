@@ -1,8 +1,7 @@
 use super::SpecialRenderingNode;
 use crate::RenderingTree;
-use serde::Serialize;
 
-#[derive(Serialize, Clone, Debug, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct WithIdNode {
     pub(crate) rendering_tree: std::sync::Arc<RenderingTree>,
     pub(crate) id: crate::Uuid,

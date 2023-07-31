@@ -18,12 +18,11 @@ pub use mouse_cursor::*;
 pub use on_top::*;
 pub use rotate::*;
 pub use scale::*;
-use serde::Serialize;
 pub use transform::*;
 pub use translate::*;
 pub use with_id::*;
 
-#[derive(Serialize, Clone, Debug, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum SpecialRenderingNode {
     Translate(TranslateNode),
     Clip(ClipNode),
