@@ -1,3 +1,5 @@
+use namui::spawn_local;
+
 mod app;
 mod color;
 // mod components;
@@ -16,45 +18,80 @@ static SETTING: late_init::LateInit<setting::Setting> =
     late_init::LateInit::<setting::Setting>::new();
 static RPC: late_init::LateInit<rpc::Rpc> = late_init::LateInit::<rpc::Rpc>::new();
 
-pub async fn main() {
+pub fn main() {
     let namui_context = namui::init();
 
-    let search = namui::web::location_search();
-    let is_auth_callback = search.starts_with("?code=");
-    if is_auth_callback {
-        return;
-    }
+    namui_context.start(&Init {});
+}
 
-    let setting = {
-        match namui::file::bundle::read("setting.json").await {
-            Ok(buffer) => serde_json::from_slice::<setting::Setting>(buffer.as_ref())
-                .expect("Failed to parse setting.json"),
-            Err(error) => {
-                if let namui::file::bundle::ReadError::FileNotFound(_) = error {
-                    setting::Setting::default()
-                } else {
-                    panic!("fail to read setting.json, {}", error);
+#[namui::component]
+struct Init {}
+
+impl namui::Component for Init {
+    fn render<'a>(&'a self, ctx: &'a namui::RenderCtx) -> namui::RenderDone {
+        let (loaded, set_loaded) = ctx.use_state(|| false);
+
+        ctx.use_effect("Init", || {
+            spawn_local(async move {
+                let search = namui::web::location_search();
+                let is_auth_callback = search.starts_with("?code=");
+
+                if is_auth_callback {
+                    namui::web::execute_function_sync(
+                        "
+                    console.log('window.opener', window.opener);
+                    window.addEventListener('message', (event) => {
+                        console.log('event', event);
+                        if (event.data.type === 'auth') {
+                            window.opener.postMessage(event.data, '*');
+                        }
+                    });
+                    ",
+                    )
+                    .run::<()>();
+                    return;
                 }
+
+                let setting = {
+                    match namui::file::bundle::read("setting.json").await {
+                        Ok(buffer) => serde_json::from_slice::<setting::Setting>(buffer.as_ref())
+                            .expect("Failed to parse setting.json"),
+                        Err(error) => {
+                            if let namui::file::bundle::ReadError::FileNotFound(_) = error {
+                                setting::Setting::default()
+                            } else {
+                                panic!("fail to read setting.json, {}", error);
+                            }
+                        }
+                    }
+                };
+
+                SETTING.init(setting);
+                RPC.init(rpc::Rpc::new(SETTING.rpc_endpoint.clone()));
+
+                // let share_preview = share_preview::SharePreview::from_search(&search);
+
+                // match share_preview {
+                //     Some(share_preview) => {
+                //         todo!()
+                //         // namui::start(
+                //         //     namui_context,
+                //         //     &mut viewer::Viewer::new(share_preview.sequence_id, share_preview.index),
+                //         //     &(),
+                //         // )
+                //     }
+                //     None => namui_context.start(&app::App),
+                // }
+
+                set_loaded.set(true)
+            })
+        });
+
+        ctx.use_children(|ctx| {
+            if *loaded {
+                ctx.add(app::App {})
             }
-        }
-    };
-
-    SETTING.init(setting);
-    RPC.init(rpc::Rpc::new(SETTING.rpc_endpoint.clone()));
-
-    // let share_preview = share_preview::SharePreview::from_search(&search);
-
-    // match share_preview {
-    //     Some(share_preview) => {
-    //         todo!()
-    //         // namui::start(
-    //         //     namui_context,
-    //         //     &mut viewer::Viewer::new(share_preview.sequence_id, share_preview.index),
-    //         //     &(),
-    //         // )
-    //     }
-    //     None => namui_context.start(&app::App),
-    // }
-
-    namui_context.start(&app::App);
+            ctx.done()
+        })
+    }
 }

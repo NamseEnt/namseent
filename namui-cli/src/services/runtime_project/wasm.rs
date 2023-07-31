@@ -37,10 +37,10 @@ opt-level = 2
         r#"use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub async fn start() {{
+pub fn start() {{
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
-    {project_name_underscored}::main().await;
+    {project_name_underscored}::main();
 }}
 "#,
         project_name_underscored = project_name.replace("-", "_"),

@@ -16,6 +16,10 @@ impl<'a> ChildrenContext {
         component_instance: Arc<ComponentInstance>,
         fn_rendering_tree: Option<FnRenderingTree>,
     ) -> Self {
+        component_instance
+            .is_first_render
+            .store(false, std::sync::atomic::Ordering::SeqCst);
+
         Self {
             direct_children: Default::default(),
             tree_ctx,

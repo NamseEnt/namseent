@@ -113,7 +113,7 @@ fn wait_web_event() -> Option<WebEvent> {
     event
 }
 
-pub fn handle_web_event(rendering_tree: &RenderingTree) {
+pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) {
     let Some(web_event) = wait_web_event() else {
         return;
     };
@@ -123,56 +123,78 @@ pub fn handle_web_event(rendering_tree: &RenderingTree) {
             y,
             button,
             buttons,
-        } => rendering_tree.call_mouse_event(
-            MouseEventType::Down, // TODO
-            &RawMouseEvent {
-                id: uuid(),
-                xy: Xy::new(px(x as f32), px(y as f32)),
-                pressing_buttons: crate::system::mouse::event::get_pressing_buttons(buttons as u16),
-                button: Some(crate::system::mouse::event::get_button(button as u16)),
-            },
-        ),
+        } => {
+            rendering_tree.map(|rendering_tree| {
+                rendering_tree.call_mouse_event(
+                    MouseEventType::Down, // TODO
+                    &RawMouseEvent {
+                        id: uuid(),
+                        xy: Xy::new(px(x as f32), px(y as f32)),
+                        pressing_buttons: crate::system::mouse::event::get_pressing_buttons(
+                            buttons as u16,
+                        ),
+                        button: Some(crate::system::mouse::event::get_button(button as u16)),
+                    },
+                )
+            });
+        }
         WebEvent::MouseMove {
             x,
             y,
             button,
             buttons,
-        } => rendering_tree.call_mouse_event(
-            MouseEventType::Move, // TODO
-            &RawMouseEvent {
-                id: uuid(),
-                xy: Xy::new(px(x as f32), px(y as f32)),
-                pressing_buttons: crate::system::mouse::event::get_pressing_buttons(buttons as u16),
-                button: Some(crate::system::mouse::event::get_button(button as u16)),
-            },
-        ),
+        } => {
+            rendering_tree.map(|rendering_tree| {
+                rendering_tree.call_mouse_event(
+                    MouseEventType::Move, // TODO
+                    &RawMouseEvent {
+                        id: uuid(),
+                        xy: Xy::new(px(x as f32), px(y as f32)),
+                        pressing_buttons: crate::system::mouse::event::get_pressing_buttons(
+                            buttons as u16,
+                        ),
+                        button: Some(crate::system::mouse::event::get_button(button as u16)),
+                    },
+                )
+            });
+        }
         WebEvent::MouseUp {
             x,
             y,
             button,
             buttons,
-        } => rendering_tree.call_mouse_event(
-            MouseEventType::Up, // TODO
-            &RawMouseEvent {
-                id: uuid(),
-                xy: Xy::new(px(x as f32), px(y as f32)),
-                pressing_buttons: crate::system::mouse::event::get_pressing_buttons(buttons as u16),
-                button: Some(crate::system::mouse::event::get_button(button as u16)),
-            },
-        ),
+        } => {
+            rendering_tree.map(|rendering_tree| {
+                rendering_tree.call_mouse_event(
+                    MouseEventType::Up, // TODO
+                    &RawMouseEvent {
+                        id: uuid(),
+                        xy: Xy::new(px(x as f32), px(y as f32)),
+                        pressing_buttons: crate::system::mouse::event::get_pressing_buttons(
+                            buttons as u16,
+                        ),
+                        button: Some(crate::system::mouse::event::get_button(button as u16)),
+                    },
+                )
+            });
+        }
         WebEvent::Wheel {
             x,
             y,
             delta_x,
             delta_y,
-        } => rendering_tree.call_wheel_event(&RawWheelEvent {
-            id: crate::uuid(),
-            delta_xy: Xy {
-                x: delta_x as f32,
-                y: delta_y as f32,
-            },
-            mouse_xy: Xy::new(px(x as f32), px(y as f32)),
-        }),
+        } => {
+            rendering_tree.map(|rendering_tree| {
+                rendering_tree.call_wheel_event(&RawWheelEvent {
+                    id: crate::uuid(),
+                    delta_xy: Xy {
+                        x: delta_x as f32,
+                        y: delta_y as f32,
+                    },
+                    mouse_xy: Xy::new(px(x as f32), px(y as f32)),
+                })
+            });
+        }
         WebEvent::HashChange { .. } => {}
         WebEvent::SelectionChange => todo!("crate::system::text_input::on_selection_change()"),
         WebEvent::KeyDown { code } => crate::keyboard::on_key_down(&code),

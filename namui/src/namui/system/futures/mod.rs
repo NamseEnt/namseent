@@ -67,10 +67,13 @@ impl MiniTokio {
             tasks.drain(..).collect::<Vec<_>>()
         };
 
+        let mut pendings = vec![];
         for mut task in queued {
             if task.as_mut().poll(&mut cx).is_pending() {
-                self.tasks.lock().unwrap().push(task);
+                pendings.push(task);
             }
         }
+
+        self.tasks.lock().unwrap().extend(pendings);
     }
 }

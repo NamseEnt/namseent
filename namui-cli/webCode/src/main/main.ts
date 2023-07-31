@@ -78,6 +78,7 @@ runAsyncMessageLoop<AsyncMessageFromWorker>(myWorker, async (message) => {
         case "executeAsyncFunction": {
             const { id, argsNames, code, args } = message;
             const result = await Function(...argsNames, code)(...args);
+
             enqueueWebEvent({
                 AsyncFunction: {
                     id,

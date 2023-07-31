@@ -72,12 +72,3 @@ pub fn initial_window_size() -> Wh<Px> {
         height: response.height.px(),
     }
 }
-
-pub fn location_herf() -> String {
-    execute_function_sync(
-        "
-        return window.location.href;
-        ",
-    )
-    .run()
-}

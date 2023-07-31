@@ -68,5 +68,12 @@ pub(crate) fn on_async_function_executed(id: usize) {
             .get_mut()
             .unwrap()
             .insert(id, result);
+
+        ASYNC_FUNCTION_RESULT_NOTIFY_MAP
+            .get_mut()
+            .unwrap()
+            .remove(&id)
+            .unwrap()
+            .notify_one();
     };
 }

@@ -6,6 +6,7 @@ use crate::simple_error_impl;
 pub use into_url::*;
 pub use reqwest::Method;
 pub use response::*;
+use serde_bytes::ByteBuf;
 pub use simple::*;
 use std::collections::HashMap;
 use url::*;
@@ -16,20 +17,28 @@ pub async fn fetch(
     method: Method,
     build: impl FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
 ) -> Result<Response, HttpError> {
-    crate::log!("fetching");
     let url = resolve_relative_url(url)?;
 
     let builder = reqwest::Client::new().request(method, url);
     let request = build(builder).build().unwrap();
 
-    crate::web::execute_async_function(
+    let response: FetchResponse = crate::web::execute_async_function(
         "
     const response = await fetch(url, {
         method,
         headers,
         body,
-    })",
+    });
+
+    const arrayBuffer = await response.arrayBuffer();
+    return {
+        status: response.status,
+        headers: response.headers,
+        body: new Uint8Array(arrayBuffer),
+    };
+    ",
     )
+    .arg("url", request.url().as_str())
     .arg("method", request.method().as_str())
     .arg(
         "headers",
@@ -41,16 +50,14 @@ pub async fn fetch(
     )
     .arg(
         "body",
-        serde_bytes::Bytes::new(request.body().unwrap().as_bytes().unwrap()),
+        request
+            .body()
+            .map(|body| serde_bytes::Bytes::new(body.as_bytes().unwrap())),
     )
     .run()
     .await;
 
-    let response = Response::new(build(builder).send().await?);
-
-    crate::log!("fetched");
-
-    Ok(response)
+    Ok(Response::new(response))
 }
 
 pub async fn fetch_bytes(

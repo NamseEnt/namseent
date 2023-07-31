@@ -34,30 +34,49 @@ async fn is_session_id_valid(session_id: Uuid) -> Result<bool> {
 async fn request_github_auth_code() -> Result<String> {
     let client_id = CLIENT_ID.unwrap_or(DEV_CLIENT_ID);
 
-    let redirect_uri = namui::web::location_herf();
+    let redirect_uri: String = namui::web::execute_function_sync(
+        "
+    return window.location.href;",
+    )
+    .run();
+
     namui::log!("redirect_uri: {}", redirect_uri);
-    let url = format!("https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri=https://sslwiheugl5ojmqlecerzhng740cekqc.lambda-url.ap-northeast-2.on.aws/{redirect_uri}");
+    let url = format!(
+        "
+        https://github.com/login/oauth/authorize
+        ?client_id={client_id}
+        &redirect_uri=
+        https://sslwiheugl5ojmqlecerzhng740cekqc.lambda-url.ap-northeast-2.on.aws/{redirect_uri}
+    "
+    )
+    .replace(" ", "")
+    .replace("\n", "");
 
-    todo!()
+    namui::log!("url: {}", url);
 
-    // let auth_code_window = web_sys::window()
-    //     .unwrap()
-    //     .open_with_url(&url)
-    //     .unwrap()
-    //     .unwrap();
+    let code: String = namui::web::execute_async_function(
+        "
+        const authCodeWindow = window.open(url);
 
-    // loop {
-    //     namui::time::delay(100.ms()).await;
-    //     match auth_code_window.location().search() {
-    //         Ok(query) => {
-    //             if query.starts_with("?code=") {
-    //                 auth_code_window.close().unwrap();
-    //                 return Ok(query[6..].to_string());
-    //             }
-    //         }
-    //         Err(_) => continue,
-    //     }
-    // }
+        while (true) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            authCodeWindow.postMessage('Hello', 'http://localhost:8080');
+
+            console.log('authCodeWindow.location', JSON.stringify(authCodeWindow.location));
+            const query = authCodeWindow.location.search;
+            if (query?.startsWith('?code=')) {
+                console.log('close authCodeWindow')
+                authCodeWindow.close();
+                return query.slice(6);
+            }
+        }
+        ",
+    )
+    .arg("url", &url)
+    .run()
+    .await;
+
+    Ok(code)
 }
 async fn login_with_oauth_code(code: String) -> Result<Uuid> {
     let response = crate::RPC

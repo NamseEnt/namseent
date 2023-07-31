@@ -56,13 +56,15 @@ pub fn init() -> NamuiContext {
                 .expect("Failed to initialize namui system");
 
             inited.store(true, std::sync::atomic::Ordering::Relaxed);
-            crate::log!("Namui system initialized")
         }
     });
 
     while inited.load(std::sync::atomic::Ordering::Relaxed) == false {
-        system::futures::execute_async_tasks()
+        system::futures::execute_async_tasks();
+        handle_web_event(None);
     }
+
+    crate::log!("Namui system initialized");
 
     namui_context
 }

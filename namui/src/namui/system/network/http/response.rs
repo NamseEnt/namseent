@@ -1,73 +1,63 @@
 pub use super::*;
-use reqwest::{header::HeaderMap, StatusCode};
+use reqwest::StatusCode;
 
 pub struct Response {
-    reqwest_response: reqwest::Response,
+    inner: FetchResponse,
 }
+
+#[derive(Debug, serde::Deserialize)]
+pub(crate) struct FetchResponse {
+    status: u16,
+    headers: HashMap<String, String>,
+    body: ByteBuf,
+}
+
 impl Response {
-    pub(super) fn new(reqwest_response: reqwest::Response) -> Response {
-        Response { reqwest_response }
+    pub(super) fn new(response: FetchResponse) -> Response {
+        Response { inner: response }
     }
 
     /// Get the `StatusCode` of this `Response`.
     #[inline]
     pub fn status(&self) -> StatusCode {
-        self.reqwest_response.status()
+        StatusCode::from_u16(self.inner.status).unwrap()
     }
 
-    /// Get the `Headers` of this `Response`.
     #[inline]
-    pub fn headers(&self) -> &HeaderMap {
-        &self.reqwest_response.headers()
+    pub fn headers(&self) -> &HashMap<String, String> {
+        &self.inner.headers
     }
 
-    /// Get a mutable reference to the `Headers` of this `Response`.
     #[inline]
-    pub fn headers_mut(&mut self) -> &mut HeaderMap {
-        self.reqwest_response.headers_mut()
+    pub fn headers_mut(&mut self) -> &mut HashMap<String, String> {
+        &mut self.inner.headers
     }
 
-    /// Get the content-length of this response, if known.
-    ///
-    /// Reasons it may not be known:
-    ///
-    /// - The server didn't send a `content-length` header.
-    /// - The response is compressed and automatically decoded (thus changing
-    ///  the actual decoded length).
     pub fn content_length(&self) -> Option<u64> {
-        self.reqwest_response.content_length()
-    }
-
-    /// Get the final `Url` of this `Response`.
-    #[inline]
-    pub fn url(&self) -> &Url {
-        &self.reqwest_response.url()
+        self.inner
+            .headers
+            .get("content-length")
+            .and_then(|s| s.parse().ok())
     }
 
     pub async fn json<T: serde::de::DeserializeOwned>(self) -> Result<T, HttpError> {
-        let full = self.reqwest_response.bytes().await?;
+        let full = self.inner.body.to_vec();
 
         serde_json::from_slice(&full).map_err(|error| HttpError::JsonParseError(error))
     }
 
     /// Get the response text.
     pub async fn text(self) -> Result<String, HttpError> {
-        self.reqwest_response
-            .text()
-            .await
-            .map_err(|error| HttpError::TextParseError {
-                message: error.to_string(),
-            })
+        let full = self.inner.body.to_vec();
+
+        String::from_utf8(full).map_err(|error| HttpError::Decode {
+            message: error.to_string(),
+        })
     }
 
     /// Get the response as bytes
     pub async fn bytes(self) -> Result<impl AsRef<[u8]>, HttpError> {
-        self.reqwest_response
-            .bytes()
-            .await
-            .map_err(|error| HttpError::Decode {
-                message: error.to_string(),
-            })
+        Ok(self.inner.body)
     }
 
     pub async fn error_for_400599(self) -> Result<Self, HttpError> {
