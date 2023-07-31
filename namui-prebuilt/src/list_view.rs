@@ -1,12 +1,182 @@
-use crate::scroll_view;
-use namui::prelude::*;
-use std::sync::{Arc, Mutex};
+use crate::scroll_view::{self, ScrollView2};
+use namui::{
+    hooks::hooks::{use_render, use_render_with_rendering_tree},
+    prelude::*,
+};
+use std::{
+    fmt::Debug,
+    sync::{Arc, Mutex},
+};
+
+pub struct ListViewProps {
+    pub xy: Xy<Px>,
+    pub height: Px,
+    pub scroll_bar_width: Px,
+    pub item_wh: Wh<Px>,
+    pub items: Vec<Arc<dyn Component>>,
+}
+
+pub struct UseListViewReturn {
+    pub list_view: ScrollView2,
+    pub set_scroll_y: SetState<Px>,
+}
+pub fn use_list_view(props: ListViewProps) -> UseListViewReturn {
+    let (scroll_y, set_scroll_y) = use_state(|| 0.px());
+
+    let list_view = scroll_view::ScrollView2 {
+        xy: props.xy,
+        scroll_bar_width: props.scroll_bar_width,
+        height: props.height,
+        content: Arc::new(ListViewInner {
+            height: props.height,
+            item_wh: props.item_wh,
+            items: props.items,
+            scroll_y: *scroll_y,
+        }),
+        scroll_y: *scroll_y,
+        set_scroll_y,
+    };
+
+    UseListViewReturn {
+        list_view,
+        set_scroll_y,
+    }
+}
+
+#[namui::component]
+pub struct ListView2 {
+    pub xy: Xy<Px>,
+    pub height: Px,
+    pub scroll_bar_width: Px,
+    pub item_wh: Wh<Px>,
+    pub items: Vec<Arc<dyn Component>>,
+}
+
+impl Component for ListView2 {
+    fn render(&self) -> RenderDone {
+        let &Self {
+            xy,
+            height,
+            scroll_bar_width,
+            item_wh,
+            ref items,
+        } = self;
+        let (scroll_y, set_scroll_y) = use_state(|| 0.px());
+
+        let scroll_view = scroll_view::ScrollView2 {
+            xy,
+            scroll_bar_width,
+            height,
+            content: Arc::new(ListViewInner {
+                height,
+                item_wh,
+                items: items.clone(),
+                scroll_y: *scroll_y,
+            }),
+            scroll_y: *scroll_y,
+            set_scroll_y,
+        };
+
+        use_render(|ctx| ctx.add(scroll_view))
+    }
+}
+
+#[namui::component]
+pub struct ListViewInner {
+    height: Px,
+    item_wh: Wh<Px>,
+    items: Vec<Arc<dyn Component>>,
+    scroll_y: Px,
+}
+
+impl Component for ListViewInner {
+    fn render(&self) -> RenderDone {
+        let &Self {
+            height,
+            item_wh,
+            ref items,
+            scroll_y,
+        } = self;
+
+        let item_len = items.len();
+
+        if item_len == 0 {
+            return use_render_nothing();
+        }
+        let max_scroll_y = item_wh.height * item_len - height;
+
+        let scroll_y = scroll_y.min(max_scroll_y);
+
+        let visible_item_start_index = (scroll_y / item_wh.height).floor() as usize;
+        let visible_item_end_index = ((scroll_y + height) / item_wh.height).ceil() as usize;
+        let visible_item_count = visible_item_end_index - visible_item_start_index + 1;
+
+        let visible_items = items
+            .iter()
+            .skip(visible_item_start_index)
+            .take(visible_item_count);
+
+        use_render_with_rendering_tree(
+            |ctx| {
+                for visible_item in visible_items {
+                    ctx.add(visible_item.as_ref())
+                }
+            },
+            move |children| {
+                let max_scroll_y = item_wh.height * item_len - height;
+
+                let scroll_y = scroll_y.min(max_scroll_y);
+
+                let visible_item_start_index = (scroll_y / item_wh.height).floor() as usize;
+
+                let visible_rendering_tree =
+                    namui::render(children.into_iter().enumerate().map(|(index, child)| {
+                        translate(
+                            px(0.0),
+                            item_wh.height * (index + visible_item_start_index),
+                            child,
+                        )
+                    }));
+
+                let content_height = item_wh.height * item_len;
+
+                let transparent_pillar = rect(RectParam {
+                    rect: Rect::Xywh {
+                        x: px(0.0),
+                        y: px(0.0),
+                        width: item_wh.width,
+                        height: content_height,
+                    },
+                    style: RectStyle {
+                        fill: Some(RectFill {
+                            color: Color::TRANSPARENT,
+                        }),
+                        ..Default::default()
+                    },
+                });
+
+                namui::render![transparent_pillar, visible_rendering_tree]
+            },
+        )
+    }
+}
 
 /// ListView is a vertical list view with fixed height items.
 #[derive(Debug, Clone)]
 pub struct ListView {
     scroll_view: scroll_view::ScrollView,
     requested_scroll_index: Arc<Mutex<Option<usize>>>,
+}
+
+impl PartialEq for ListView {
+    fn eq(&self, other: &Self) -> bool {
+        self.scroll_view == other.scroll_view
+            && self
+                .requested_scroll_index
+                .lock()
+                .unwrap()
+                .eq(&other.requested_scroll_index.lock().unwrap())
+    }
 }
 
 pub struct Props<TItem, TIterator, TItems, TItemRender>

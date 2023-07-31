@@ -4,18 +4,17 @@ use namui::prelude::*;
 fn attach_text_button_event(
     button: RenderingTree,
     mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl Into<ClosurePtr<MouseEvent, ()>>,
+    on_mouse_up_in: impl IntoClosure<dyn Fn(MouseEvent)>,
 ) -> RenderingTree {
     let mouse_buttons = mouse_buttons.into_iter().collect::<Vec<_>>();
-    let on_mouse_up_in = on_mouse_up_in.into();
-    button.attach_event(move |builder| {
+    button.attach_event(|builder| {
+        let on_mouse_up_in = on_mouse_up_in.into_arc();
         builder.on_mouse_up_in(move |event: MouseEvent| {
-            namui::log!("on_mouse_up_in, button: {:?}", event.button);
             let Some(button) = event.button else {
                 return;
             };
             if mouse_buttons.contains(&button) {
-                on_mouse_up_in.invoke(event);
+                on_mouse_up_in(event);
             }
         });
     })
@@ -29,7 +28,7 @@ pub fn text_button(
     stroke_width: Px,
     fill_color: Color,
     mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl Into<ClosurePtr<MouseEvent, ()>>,
+    on_mouse_up_in: impl IntoClosure<dyn Fn(MouseEvent)>,
 ) -> namui::RenderingTree {
     attach_text_button_event(
         translate(
@@ -54,7 +53,7 @@ pub fn text_button_fit(
     fill_color: Color,
     side_padding: Px,
     mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl Into<ClosurePtr<MouseEvent, ()>>,
+    on_mouse_up_in: impl IntoClosure<dyn Fn(MouseEvent)>,
 ) -> namui::RenderingTree {
     let mouse_buttons = mouse_buttons.into_iter().collect::<Vec<_>>();
     let center_text = center_text_full_height(Wh::new(0.px(), height), text, text_color);
@@ -87,7 +86,7 @@ pub fn body_text_button(
     fill_color: Color,
     text_align: TextAlign,
     mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl Into<ClosurePtr<MouseEvent, ()>>,
+    on_mouse_up_in: impl IntoClosure<dyn Fn(MouseEvent)>,
 ) -> namui::RenderingTree {
     attach_text_button_event(
         translate(

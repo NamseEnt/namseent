@@ -9,10 +9,7 @@ declare var wasm_bindgen: any;
 const { start } = wasm_bindgen;
 declare var CanvasKitInit: any;
 
-console.log(performance.now());
-
 runAsyncMessageLoop(self, async (message) => {
-    console.log("message from main", message);
     switch (message.type) {
         case "init":
             {

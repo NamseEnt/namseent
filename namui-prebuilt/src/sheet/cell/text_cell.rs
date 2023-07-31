@@ -3,7 +3,7 @@ use crate::typography::adjust_font_size;
 
 pub struct TextCell {
     text: String,
-    on_change: Option<ClosurePtr<String, ()>>,
+    on_change: Option<Closure<dyn Fn(&String)>>,
     font_size: Option<IntPx>,
     borders: Borders,
 }
@@ -16,9 +16,9 @@ pub fn text(text: impl AsRef<str>) -> TextCell {
     }
 }
 impl TextCell {
-    pub fn on_change(self, on_change: impl Into<ClosurePtr<String, ()>>) -> Self {
+    pub fn on_change(self, on_change: impl IntoClosure<dyn Fn(&String)>) -> Self {
         Self {
-            on_change: Some(on_change.into()),
+            on_change: Some(on_change.into_arc()),
             ..self
         }
     }
@@ -73,8 +73,8 @@ impl CellTrait for TextCell {
                         ..Default::default()
                     },
                     event_handler: Some(text_input::EventHandler::new().on_text_updated(
-                        move |text: String| {
-                            text_input_on_change.invoke(text);
+                        move |text| {
+                            text_input_on_change(text);
                         },
                     )),
                 })
@@ -108,13 +108,15 @@ impl CellTrait for TextCell {
         ClipboardItem::Text(self.text.clone())
     }
 
-    fn on_paste(&self) -> Option<ClosurePtr<ClipboardItem, ()>> {
-        self.on_change.clone().map(|on_change| {
-            ClosurePtr::new(move |clipboard_item| {
+    fn on_paste(&self) -> Option<Closure<dyn Fn(ClipboardItem)>> {
+        if let Some(on_change) = self.on_change.clone() {
+            Some(closure(move |clipboard_item: ClipboardItem| {
                 if let ClipboardItem::Text(text) = clipboard_item {
-                    on_change.invoke(text);
+                    on_change(&text);
                 }
-            })
-        })
+            }))
+        } else {
+            None
+        }
     }
 }

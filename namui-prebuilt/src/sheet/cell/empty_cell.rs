@@ -21,7 +21,7 @@ impl CellTrait for EmptyCell {
         ClipboardItem::Empty
     }
 
-    fn on_paste(&self) -> Option<ClosurePtr<ClipboardItem, ()>> {
+    fn on_paste(&self) -> Option<Closure<dyn Fn(ClipboardItem)>> {
         None
     }
 }

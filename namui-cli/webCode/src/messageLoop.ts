@@ -50,7 +50,6 @@ export function blockingRequest(
 ): any {
     const i32Buf = new Int32Array(requestSab);
 
-    console.log("request", request);
     writeMessage(request, i32Buf);
 
     i32Buf[0] = 0;
@@ -58,7 +57,6 @@ export function blockingRequest(
     Atomics.wait(i32Buf, 0, 0);
 
     const response = readMessage(requestSab);
-    console.log("response", response);
 
     return response;
 }

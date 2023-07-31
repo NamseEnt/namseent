@@ -83,7 +83,7 @@ impl Sheet {
                                             })
                                         }
                                         if let Some(on_mouse_down) = on_mouse_down.as_ref() {
-                                            on_mouse_down.invoke(event)
+                                            on_mouse_down(event)
                                         }
                                     });
                                 }),
@@ -246,7 +246,7 @@ impl Sheet {
                             .iter()
                             .all(|code| event.pressing_codes.contains(code))
                         {
-                            on_paste.invoke(clip_board[0][0].clone())
+                            on_paste(clip_board[0][0].clone())
                         }
                     }
                 }
