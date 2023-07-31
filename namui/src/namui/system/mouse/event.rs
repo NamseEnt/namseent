@@ -120,9 +120,7 @@ fn update_mouse_position(event: &web_sys::MouseEvent) {
     mouse_position.y = px(event.client_y() as f32);
 }
 
-fn get_pressing_buttons(mouse_event: &web_sys::MouseEvent) -> HashSet<crate::MouseButton> {
-    let mouse_event_buttons = mouse_event.buttons();
-
+pub(crate) fn get_pressing_buttons(mouse_event_buttons: u16) -> HashSet<crate::MouseButton> {
     const MOUSE_BUTTONS_CONVERTING_TUPLES: [(u16, crate::MouseButton); 3] = [
         (1 << 0, crate::MouseButton::Left),
         (1 << 1, crate::MouseButton::Right),
@@ -141,9 +139,7 @@ fn get_pressing_buttons(mouse_event: &web_sys::MouseEvent) -> HashSet<crate::Mou
             }),
     )
 }
-fn get_button(mouse_event: &web_sys::MouseEvent) -> crate::MouseButton {
-    let mouse_event_button = mouse_event.button() as u16;
-
+pub(crate) fn get_button(mouse_event_button: u16) -> crate::MouseButton {
     const MOUSE_BUTTON_CONVERTING_TUPLES: [(u16, crate::MouseButton); 3] = [
         (0, crate::MouseButton::Left),
         (1, crate::MouseButton::Middle),

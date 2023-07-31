@@ -1,4 +1,4 @@
-mod event;
+pub(crate) mod event;
 
 use self::event::set_up_event_handler;
 use super::*;

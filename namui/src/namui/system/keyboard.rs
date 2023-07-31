@@ -157,3 +157,43 @@ pub fn ctrl_press() -> bool {
 pub fn alt_press() -> bool {
     any_code_press([Code::AltLeft, Code::AltRight])
 }
+
+pub(crate) fn on_key_down(key_down_event_code: &str) {
+    let pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.clone();
+    let code = Code::from_str(key_down_event_code).unwrap();
+    record_key_down(code);
+
+    let rendering_tree = crate::system::render::last_rendering_tree();
+
+    rendering_tree.call_keyboard_event(
+        &crate::RawKeyboardEvent {
+            id: crate::uuid(),
+            code,
+            pressing_codes: pressing_code_set.read().unwrap().clone(),
+        },
+        DownUp::Down,
+    );
+}
+
+pub(crate) fn on_key_up(key_up_event_code: &str) {
+    let pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.clone();
+    let code = Code::from_str(key_up_event_code).unwrap();
+    let mut pressing_code_set = pressing_code_set.write().unwrap();
+    pressing_code_set.remove(&code);
+
+    let rendering_tree = crate::system::render::last_rendering_tree();
+
+    rendering_tree.call_keyboard_event(
+        &crate::RawKeyboardEvent {
+            id: crate::uuid(),
+            code,
+            pressing_codes: pressing_code_set.clone(),
+        },
+        DownUp::Up,
+    );
+}
+
+pub(crate) fn reset_pressing_code_set() {
+    let pressing_code_set = KEYBOARD_SYSTEM.pressing_code_set.clone();
+    pressing_code_set.write().unwrap().clear();
+}

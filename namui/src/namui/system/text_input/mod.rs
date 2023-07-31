@@ -194,7 +194,7 @@ fn on_text_element_input(input_element: &HtmlTextAreaElement) {
         text,
     })
 }
-fn on_selection_change() {
+pub(crate) fn on_selection_change() {
     let last_focused_text_input = TEXT_INPUT_SYSTEM.last_focused_text_input.lock().unwrap();
     if last_focused_text_input.is_none() {
         return;

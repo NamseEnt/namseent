@@ -49,7 +49,52 @@ impl SpecialRenderingNode {
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub enum WebEvent {
-    MouseDown { x: usize, y: usize },
+    MouseDown {
+        x: usize,
+        y: usize,
+        button: usize,
+        buttons: usize,
+    },
+    MouseMove {
+        x: usize,
+        y: usize,
+        button: usize,
+        buttons: usize,
+    },
+    MouseUp {
+        x: usize,
+        y: usize,
+        button: usize,
+        buttons: usize,
+    },
+    Wheel {
+        x: usize,
+        y: usize,
+        delta_x: isize,
+        delta_y: isize,
+    },
+    HashChange {
+        newURL: String,
+        oldURL: String,
+    },
+    // Drop {
+    //     dataTransfer: Option<web_sys::DataTransfer>,
+    //     x: usize,
+    //     y: usize,
+    // },
+    SelectionChange,
+    KeyDown {
+        code: String,
+    },
+    KeyUp {
+        code: String,
+    },
+    Blur,
+    VisibilityChange,
+    Resize {
+        width: usize,
+        height: usize,
+    },
 }
 
 #[wasm_bindgen]
@@ -67,15 +112,68 @@ fn wait_web_event() -> WebEvent {
 pub fn handle_web_event(rendering_tree: &RenderingTree) {
     let web_event = wait_web_event();
     match web_event {
-        WebEvent::MouseDown { x, y } => rendering_tree.call_mouse_event(
+        WebEvent::MouseDown {
+            x,
+            y,
+            button,
+            buttons,
+        } => rendering_tree.call_mouse_event(
+            MouseEventType::Down, // TODO
+            &RawMouseEvent {
+                id: uuid(),
+                xy: Xy::new(px(x as f32), px(y as f32)),
+                pressing_buttons: crate::system::mouse::event::get_pressing_buttons(buttons as u16),
+                button: Some(crate::system::mouse::event::get_button(button as u16)),
+            },
+        ),
+        WebEvent::MouseMove {
+            x,
+            y,
+            button,
+            buttons,
+        } => rendering_tree.call_mouse_event(
+            MouseEventType::Move, // TODO
+            &RawMouseEvent {
+                id: uuid(),
+                xy: Xy::new(px(x as f32), px(y as f32)),
+                pressing_buttons: crate::system::mouse::event::get_pressing_buttons(buttons as u16),
+                button: Some(crate::system::mouse::event::get_button(button as u16)),
+            },
+        ),
+        WebEvent::MouseUp {
+            x,
+            y,
+            button,
+            buttons,
+        } => rendering_tree.call_mouse_event(
             MouseEventType::Up, // TODO
             &RawMouseEvent {
                 id: uuid(),
                 xy: Xy::new(px(x as f32), px(y as f32)),
-                pressing_buttons: vec![].into_iter().collect(),
-                button: Some(MouseButton::Left),
+                pressing_buttons: crate::system::mouse::event::get_pressing_buttons(buttons as u16),
+                button: Some(crate::system::mouse::event::get_button(button as u16)),
             },
         ),
+        WebEvent::Wheel {
+            x,
+            y,
+            delta_x,
+            delta_y,
+        } => rendering_tree.call_wheel_event(&RawWheelEvent {
+            id: crate::uuid(),
+            delta_xy: Xy {
+                x: delta_x as f32,
+                y: delta_y as f32,
+            },
+            mouse_xy: Xy::new(px(x as f32), px(y as f32)),
+        }),
+        WebEvent::HashChange { .. } => {}
+        WebEvent::SelectionChange => crate::system::text_input::on_selection_change(),
+        WebEvent::KeyDown { code } => crate::keyboard::on_key_down(&code),
+        WebEvent::KeyUp { code } => crate::keyboard::on_key_up(&code),
+        WebEvent::Blur => crate::keyboard::reset_pressing_code_set(),
+        WebEvent::VisibilityChange => crate::keyboard::reset_pressing_code_set(),
+        WebEvent::Resize { .. } => todo!(),
     }
 }
 
