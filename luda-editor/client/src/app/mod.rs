@@ -1,53 +1,59 @@
 mod login;
 
-use crate::pages::router;
+use crate::pages::router::Router;
+use anyhow::Result;
 use namui::prelude::*;
 use namui_prebuilt::*;
 
-pub enum App {
-    LoggingIn,
-    LoggedIn { router: router::Router },
-}
-impl App {
-    pub fn new() -> Self {
-        login::check_session_id();
-        App::LoggingIn
-    }
-}
+#[namui::component]
+pub struct App;
 
-enum Event {
-    LoggedIn,
+#[derive(Debug, PartialEq)]
+enum LoadingState {
+    Loading,
+    Loaded,
+    Error(String),
 }
 
-impl namui::Entity for App {
-    type Props = ();
+impl Component for App {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        let (loading_state, set_loading_state) = ctx.use_state(|| LoadingState::Loading);
 
-    fn update(&mut self, event: &namui::Event) {
-        event.is::<Event>(|event| match event {
-            Event::LoggedIn => {
-                *self = App::LoggedIn {
-                    router: router::Router::new(),
-                };
-            }
+        ctx.use_effect("Try login", || {
+            namui::log!("use effect?");
+            spawn_local(async move {
+                let result: Result<()> = async move {
+                    namui::log!("here?");
+                    let session_id = login::get_session_id().await?;
+                    crate::RPC.set_session_id(session_id);
+
+                    Ok(())
+                }
+                .await;
+                set_loading_state.mutate(|x| {
+                    *x = match result {
+                        Ok(_) => LoadingState::Loaded,
+                        Err(err) => LoadingState::Error(err.to_string()),
+                    }
+                });
+            });
         });
 
-        self.update_login(event);
-
-        match self {
-            App::LoggingIn => {}
-            App::LoggedIn { router, .. } => {
-                router.update(event);
-            }
-        }
-    }
-    fn render(&self, _: &Self::Props) -> namui::RenderingTree {
         let wh = namui::screen::size();
-        render([
-            simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK),
-            match &self {
-                App::LoggingIn => typography::body::center(wh, "Logging in...", Color::BLACK),
-                App::LoggedIn { router } => router.render(router::Props { wh }),
-            },
-        ])
+
+        ctx.use_children(|ctx| {
+            ctx.add(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK));
+            match &*loading_state {
+                LoadingState::Loading => {
+                    ctx.add(typography::body::center(wh, "Logging in...", Color::WHITE))
+                }
+                LoadingState::Loaded => ctx.add(Router { wh }),
+                LoadingState::Error(error) => {
+                    ctx.add(typography::body::center(wh, &error, Color::WHITE))
+                }
+            };
+
+            ctx.done()
+        })
     }
 }

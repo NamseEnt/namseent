@@ -17,7 +17,7 @@ impl LoadedSequenceEditorPage {
             .selected_cut_id
             .and_then(|id| sequence.cuts.iter().find(|c| c.id == id));
 
-        let memos_of_selected_cut = selected_cut.and_then(|cut| self.cut_id_memo_map.get(&cut.id));
+        let memos_of_selected_cut = selected_cut.and_then(|cut| self.cut_id_memos_map.get(&cut.id));
 
         render([
             table::horizontal([
@@ -27,7 +27,7 @@ impl LoadedSequenceEditorPage {
                         cuts: &sequence.cuts,
                         is_focused: self.focused_component == Some(FocusableComponent::CutListView),
                         selected_cut_id: self.selected_cut_id,
-                        cut_id_memo_map: &self.cut_id_memo_map,
+                        cut_id_memos_map: &self.cut_id_memos_map,
                     })
                 }),
                 table::ratio(4, |wh| {

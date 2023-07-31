@@ -1,4 +1,5 @@
 use super::InitResult;
+use anyhow::Result;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 
 #[wasm_bindgen]
@@ -13,7 +14,7 @@ pub(crate) async fn init() -> InitResult {
     Ok(())
 }
 
-pub async fn get(key: &str) -> Result<Option<Box<[u8]>>, Box<dyn std::error::Error>> {
+pub async fn get(key: &str) -> Result<Option<Box<[u8]>>> {
     let value = cacheGet(key).await;
     if value.is_undefined() {
         Ok(None)
@@ -28,9 +29,7 @@ pub async fn get(key: &str) -> Result<Option<Box<[u8]>>, Box<dyn std::error::Err
     }
 }
 
-pub async fn get_serde<T: serde::de::DeserializeOwned>(
-    key: &str,
-) -> Result<Option<T>, Box<dyn std::error::Error>> {
+pub async fn get_serde<T: serde::de::DeserializeOwned>(key: &str) -> Result<Option<T>> {
     let value = cacheGet(key).await;
     if value.is_undefined() {
         Ok(None)
@@ -41,24 +40,21 @@ pub async fn get_serde<T: serde::de::DeserializeOwned>(
     }
 }
 
-pub async fn set(key: &str, value: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn set(key: &str, value: &[u8]) -> Result<()> {
     let data = js_sys::Uint8Array::from(value);
     cacheSet(key, data.into()).await;
 
     Ok(())
 }
 
-pub async fn set_serde<T: serde::Serialize>(
-    key: &str,
-    value: &T,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn set_serde<T: serde::Serialize>(key: &str, value: &T) -> Result<()> {
     let data = serde_json::to_vec(value)?;
     cacheSet(key, js_sys::Uint8Array::from(data.as_slice()).into()).await;
 
     Ok(())
 }
 
-pub async fn delete(key: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn delete(key: &str) -> Result<()> {
     cacheSet(key, JsValue::UNDEFINED).await;
 
     Ok(())

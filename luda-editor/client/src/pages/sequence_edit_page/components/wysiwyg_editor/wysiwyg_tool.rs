@@ -1,0 +1,58 @@
+use super::*;
+
+#[namui::component]
+pub struct WysiwygTool {
+    pub graphic_dest_rect: Rect<Px>,
+    pub original_graphic_size: Wh<Px>,
+    pub graphic_index: Uuid,
+    pub graphic: ScreenGraphic,
+    pub dragging: Option<Dragging>,
+    pub wh: Wh<Px>,
+    pub on_event: CallbackWithParam<Event>,
+}
+
+pub enum Event {
+    Mover { event: mover::Event },
+    Resizer { event: resizer::Event },
+}
+
+impl Component for WysiwygTool {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        let &Self {
+            graphic_dest_rect,
+            original_graphic_size,
+            graphic_index,
+            ref graphic,
+            ref dragging,
+            wh,
+            ref on_event,
+        } = self;
+        ctx.use_children(|ctx| {
+            ctx.add(Mover {
+                image_dest_rect: graphic_dest_rect,
+                dragging: dragging.clone(),
+                container_wh: wh,
+                on_event: self.on_event.map(|event| Some(Event::Mover { event })),
+            });
+
+            ctx.add(Resizer {
+                rect: graphic_dest_rect,
+                dragging_context: if let Some(Dragging::Resizer { context }) =
+                    self.dragging.as_ref()
+                {
+                    Some(*context)
+                } else {
+                    None
+                },
+                container_size: wh,
+                image_size: calculate_graphic_wh_on_screen(
+                    original_graphic_size,
+                    wh,
+                    graphic.circumscribed(),
+                ),
+                graphic_index,
+                on_event: self.on_event.map(|event| Some(Event::Resizer { event })),
+            });
+        })
+    }
+}

@@ -1,13 +1,12 @@
 mod app;
-mod atom;
 mod color;
-mod components;
+// mod components;
 mod late_init;
 mod pages;
 mod setting;
-mod share_preview;
+// mod share_preview;
 mod storage;
-mod viewer;
+// mod viewer;
 
 #[cfg(test)]
 #[cfg(target_family = "wasm")]
@@ -18,7 +17,7 @@ static SETTING: late_init::LateInit<setting::Setting> =
 static RPC: late_init::LateInit<rpc::Rpc> = late_init::LateInit::<rpc::Rpc>::new();
 
 pub async fn main() {
-    let search = web_sys::window().unwrap().location().search().unwrap();
+    let search = namui::web::get_location_search();
     let is_auth_callback = search.starts_with("?code=");
     if is_auth_callback {
         return;
@@ -43,17 +42,19 @@ pub async fn main() {
     SETTING.init(setting);
     RPC.init(rpc::Rpc::new(SETTING.rpc_endpoint.clone()));
 
-    let share_preview = share_preview::SharePreview::from_search(&search);
+    // let share_preview = share_preview::SharePreview::from_search(&search);
 
-    match share_preview {
-        Some(share_preview) => {
-            namui::start(
-                namui_context,
-                &mut viewer::Viewer::new(share_preview.sequence_id, share_preview.index),
-                &(),
-            )
-            .await
-        }
-        None => namui::start(namui_context, &mut app::App::new(), &()).await,
-    }
+    // match share_preview {
+    //     Some(share_preview) => {
+    //         todo!()
+    //         // namui::start(
+    //         //     namui_context,
+    //         //     &mut viewer::Viewer::new(share_preview.sequence_id, share_preview.index),
+    //         //     &(),
+    //         // )
+    //     }
+    //     None => namui_context.start(&app::App),
+    // }
+
+    namui_context.start(&app::App);
 }

@@ -7,6 +7,7 @@ use rpc::data::{CutUpdateAction, Sequence};
 
 const MAX_EDIT_HISTORY: usize = 8;
 
+#[derive(Debug, PartialEq)]
 pub struct SequenceWrapped {
     history: History<MAX_EDIT_HISTORY, Sequence>,
     syncer: Syncer,

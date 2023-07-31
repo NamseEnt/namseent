@@ -26,17 +26,29 @@ pub enum StaticTypeId {
     Tuple(Vec<StaticTypeId>),
 }
 pub trait StaticType {
-    fn static_type_id(&self) -> StaticTypeId;
+    // fn static_type_id(&self) -> StaticTypeId;
     /// This would be not 'static
     fn static_type_name(&self) -> &'static str {
         std::any::type_name::<Self>()
     }
 }
 
-impl StaticType for RenderingTree {
-    fn static_type_id(&self) -> StaticTypeId {
-        StaticTypeId::Single(TypeId::of::<RenderingTree>())
+impl<T: Component> StaticType for &T {
+    // fn static_type_id(&self) -> StaticTypeId {
+    //     (*self).static_type_id()
+    // }
+}
+
+impl<T: Component> Component for &T {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        (*self).render(ctx)
     }
+}
+
+impl StaticType for RenderingTree {
+    // fn static_type_id(&self) -> StaticTypeId {
+    //     StaticTypeId::Single(TypeId::of::<RenderingTree>())
+    // }
 }
 
 impl Component for RenderingTree {
@@ -46,14 +58,26 @@ impl Component for RenderingTree {
 }
 
 impl StaticType for &dyn Component {
-    fn static_type_id(&self) -> StaticTypeId {
-        (*self).static_type_id()
-    }
+    // fn static_type_id(&self) -> StaticTypeId {
+    //     (*self).static_type_id()
+    // }
 }
 
 impl Component for &dyn Component {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         (*self).render(ctx)
+    }
+}
+
+impl StaticType for Arc<dyn Component> {
+    // fn static_type_id(&self) -> StaticTypeId {
+    //     self.as_ref().static_type_id()
+    // }
+}
+
+impl Component for Arc<dyn Component> {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        self.as_ref().render(ctx)
     }
 }
 
@@ -93,7 +117,7 @@ impl Component for &dyn Component {
 //             }
 //             impl<$($T: Component),*> Component for ($($T,)*) {
 //                 fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-//                     use_render(|ctx| {
+//                     ctx.use_render(|ctx| {
 //                         $(ctx.add(&self.$i as &dyn Component);)*
 //                     })
 //                 }

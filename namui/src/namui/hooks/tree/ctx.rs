@@ -113,7 +113,6 @@ impl TreeContext {
         // TODO: Remove this loop, just call once. this loop is for event_callback.
         loop {
             let channel_items = channel::drain();
-            crate::log!("channel_items.len(): {}", channel_items.len());
             if channel_items.len() == 0 {
                 break;
             }
@@ -173,12 +172,12 @@ impl TreeContext {
 
     pub(crate) fn get_last_component_instance(
         &self,
-        static_type_id: StaticTypeId,
+        static_type_name: &'static str,
     ) -> Option<Arc<ComponentInstance>> {
         self.inner
             .lock()
             .unwrap()
-            .get_last_component_instance(static_type_id)
+            .get_last_component_instance(static_type_name)
     }
 
     pub(crate) fn is_sig_updated(&self, sig_id: &SigId) -> bool {
@@ -265,7 +264,7 @@ impl Inner {
     }
     fn get_last_component_instance(
         &mut self,
-        static_type_id: StaticTypeId,
+        static_type_name: &'static str,
     ) -> Option<Arc<ComponentInstance>> {
         // TODO: This is not efficient, need to improve
         let Some(children_ids) = self
@@ -276,7 +275,7 @@ impl Inner {
 
         while let Some(id) = children_ids.pop_front() {
             let last_instance = self.last_render_component_instance_map.remove(&id).unwrap();
-            if last_instance.component_type_id == static_type_id {
+            if last_instance.component_type_name == static_type_name {
                 return Some(last_instance);
             }
         }

@@ -1,77 +1,82 @@
-use super::router::Router;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::list_editable_projects::EditableProject;
 
-#[derive(Debug, Clone)]
-pub struct ProjectListPage {
-    list_view: list_view::ListView,
-    project_list: Vec<EditableProject>,
-    is_loading: bool,
-    error_message: Option<String>,
-}
-
-pub struct Props {
+#[namui::component]
+pub struct ProjectListPage2 {
     pub wh: Wh<Px>,
 }
 
-enum Event {
-    AddButtonClicked,
-    ProjectListLoaded(Vec<EditableProject>),
-    Error(String),
-}
+impl Component for ProjectListPage2 {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        let &Self { wh } = self;
+        let (error_message, set_error_message) = ctx.use_state::<Option<String>>(|| None);
+        let (is_loading, set_is_loading) = ctx.use_state(|| true);
+        let (project_list, set_project_list) = ctx.use_state::<Vec<EditableProject>>(|| vec![]);
 
-impl ProjectListPage {
-    pub fn new() -> Self {
-        start_fetch_list();
-        Self {
-            list_view: list_view::ListView::new(),
-            project_list: vec![],
-            is_loading: true,
-            error_message: None,
-        }
-    }
-    pub fn update(&mut self, event: &namui::Event) {
-        event.is::<Event>(|event| match event {
-            Event::AddButtonClicked => spawn_local(async move {
-                match crate::RPC
+        let start_fetch_list = move || {
+            set_is_loading.set(true);
+            spawn_local(async move {
+                let response = crate::RPC
+                    .list_editable_projects(rpc::list_editable_projects::Request {
+                        start_after: None,
+                    })
+                    .await;
+
+                set_is_loading.set(false);
+
+                match response {
+                    Ok(response) => {
+                        set_project_list.set(response.projects);
+                    }
+                    Err(error) => {
+                        set_error_message.set(Some(error.to_string()));
+                    }
+                }
+            })
+        };
+
+        let on_add_button_clicked = move || {
+            set_is_loading.set(true);
+            spawn_local(async move {
+                let response = crate::RPC
                     .create_project(rpc::create_project::Request {
                         name: "new project".to_string(),
                     })
-                    .await
-                {
+                    .await;
+                set_is_loading.set(false);
+                match response {
                     Ok(_) => {
                         start_fetch_list();
                     }
                     Err(error) => {
-                        namui::event::send(Event::Error(error.to_string()));
+                        set_error_message.set(Some(error.to_string()));
                     }
                 }
-            }),
-            Event::ProjectListLoaded(projects) => {
-                self.project_list = projects.to_vec();
-                self.is_loading = false;
-            }
-            Event::Error(message) => {
-                namui::log!("error: {}", message);
-                self.error_message = Some(message.to_string());
-            }
+            })
+        };
+
+        ctx.use_effect("Fetch project list on mount", || {
+            start_fetch_list();
         });
-    }
-    pub fn render(&self, props: Props) -> namui::RenderingTree {
-        if let Some(error_message) = &self.error_message {
-            return typography::body::center(props.wh, error_message, Color::RED);
-        }
-        if self.is_loading {
-            return typography::body::center(props.wh, "loading...", Color::WHITE);
-        }
-        render([
-            table::horizontal([
-                table::ratio(1.0, |_wh| RenderingTree::Empty),
-                table::ratio(
+
+        ctx.use_children(|ctx| {
+            if let Some(error_message) = &*error_message {
+                ctx.add(typography::body::center(wh, error_message, Color::RED));
+                return ctx.done();
+            }
+
+            if *is_loading {
+                ctx.add(typography::body::center(wh, "loading...123", Color::WHITE));
+                return ctx.done();
+            }
+
+            ctx.add(table::hooks::horizontal([
+                table::hooks::ratio(1.0, |_wh| RenderingTree::Empty),
+                table::hooks::ratio(
                     2.0,
-                    table::vertical([
-                        table::fixed(40.px(), |wh| {
+                    table::hooks::vertical([
+                        table::hooks::fixed(40.px(), |wh| {
                             namui_prebuilt::button::text_button(
                                 Rect::from_xy_wh(Xy::single(0.px()), wh),
                                 "[+] Add Project",
@@ -80,23 +85,31 @@ impl ProjectListPage {
                                 1.px(),
                                 Color::BLACK,
                                 [MouseButton::Left],
-                                |_| namui::event::send(Event::AddButtonClicked),
+                                move |_| on_add_button_clicked(),
                             )
                         }),
-                        table::ratio(1.0, |wh| {
-                            self.list_view.render(list_view::Props {
+                        table::hooks::ratio(1.0, |wh| {
+                            let item_wh = Wh::new(wh.width, 40.px());
+                            list_view::ListView {
                                 xy: Xy::single(0.px()),
                                 height: wh.height,
                                 scroll_bar_width: 10.px(),
-                                item_wh: Wh::new(wh.width, 40.px()),
-                                items: self.project_list.iter(),
-                                item_render: |wh, project| self.render_project_cell(wh, project),
-                            })
+                                item_wh,
+                                items: project_list
+                                    .iter()
+                                    .map(|project| ProjectCell {
+                                        wh: item_wh,
+                                        project: project.clone(),
+                                    })
+                                    .collect(),
+                            }
                         }),
                     ]),
                 ),
-                table::ratio(1.0, |_wh| RenderingTree::Empty),
-            ])(props.wh),
+                table::hooks::ratio(1.0, |_wh| RenderingTree::Empty),
+            ])(wh));
+
+            // TODO
             // self.context_menu
             //     .as_ref()
             //     .map_or(RenderingTree::Empty, |context_menu| {
@@ -125,46 +138,46 @@ impl ProjectListPage {
             //                 .on_mouse_up_out(|event: MouseEvent| event.stop_propagation());
             //         })
             //     }),
-        ])
-    }
 
-    fn render_project_cell(&self, wh: Wh<Px>, project: &EditableProject) -> namui::RenderingTree {
-        let project_id = project.id;
-        namui_prebuilt::button::text_button(
-            Rect::from_xy_wh(Xy::single(0.px()), wh),
-            project.name.as_str(),
-            Color::WHITE,
-            Color::grayscale_f01(0.3),
-            1.px(),
-            Color::BLACK,
-            [MouseButton::Left],
-            move |event: MouseEvent| {
-                if event.button == Some(MouseButton::Left) {
-                    Router::move_to(super::router::RoutePath::SequenceList { project_id });
-                } else if event.button == Some(MouseButton::Right) {
-                    // TODO
-                    // namui::event::send(Event::CellRightClick {
-                    //     click_global_xy: event.global_xy,
-                    //     project_id,
-                    // });
-                }
-            },
-        )
+            ctx.done()
+        })
     }
 }
 
-fn start_fetch_list() {
-    spawn_local(async move {
-        match crate::RPC
-            .list_editable_projects(rpc::list_editable_projects::Request { start_after: None })
-            .await
-        {
-            Ok(response) => {
-                namui::event::send(Event::ProjectListLoaded(response.projects));
-            }
-            Err(error) => {
-                namui::event::send(Event::Error(error.to_string()));
-            }
-        }
-    })
+#[namui::component]
+pub struct ProjectCell {
+    wh: Wh<Px>,
+    project: EditableProject,
+}
+
+impl Component for ProjectCell {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        let project_id = self.project.id;
+        ctx.use_children(|ctx| {
+            ctx.add(namui_prebuilt::button::text_button(
+                Rect::from_xy_wh(Xy::single(0.px()), self.wh),
+                self.project.name.as_str(),
+                Color::WHITE,
+                Color::grayscale_f01(0.3),
+                1.px(),
+                Color::BLACK,
+                [MouseButton::Left],
+                move |event: MouseEvent| {
+                    if event.button == Some(MouseButton::Left) {
+                        super::router::move_to(super::router::RoutePath::SequenceList {
+                            project_id,
+                        });
+                    } else if event.button == Some(MouseButton::Right) {
+                        // TODO
+                        // namui::event::send(Event::CellRightClick {
+                        //     click_global_xy: event.global_xy,
+                        //     project_id,
+                        // });
+                    }
+                },
+            ));
+
+            ctx.done()
+        })
+    }
 }

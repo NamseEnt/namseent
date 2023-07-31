@@ -17,6 +17,7 @@ pub mod screen;
 pub mod text_input;
 pub mod time;
 pub(crate) mod typeface;
+pub mod web;
 
 use futures::try_join;
 // use platform_utils::*;

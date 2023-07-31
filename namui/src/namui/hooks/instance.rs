@@ -7,7 +7,7 @@ use std::{
 
 pub(crate) struct ComponentInstance {
     pub(crate) component_id: usize,
-    pub(crate) component_type_id: StaticTypeId,
+    // pub(crate) component_type_id: StaticTypeId,
     pub(crate) component_type_name: &'static str,
     pub(crate) state_list: Mutex<Vec<Box<dyn Value>>>,
     pub(crate) effect_used_sigs_list: Mutex<Vec<Vec<SigId>>>,
@@ -21,7 +21,7 @@ impl Debug for ComponentInstance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ComponentInstance")
             .field("component_id", &self.component_id)
-            .field("component_type_id", &self.component_type_id)
+            // .field("component_type_id", &self.component_type_id)
             .field("component_type_name", &self.component_type_name)
             .field("state_list", &self.state_list.lock())
             .field(
@@ -43,7 +43,7 @@ impl ComponentInstance {
     pub(crate) fn new(component: &dyn Component) -> Self {
         Self {
             component_id: new_component_id(),
-            component_type_id: component.static_type_id(),
+            // component_type_id: component.static_type_id(),
             component_type_name: component.static_type_name(),
             state_list: Default::default(),
             effect_used_sigs_list: Default::default(),

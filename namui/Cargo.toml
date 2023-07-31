@@ -39,6 +39,7 @@ textwrap = "0.15"
 unicode-segmentation = "1.9"
 namui-type = { path = "../namui-type" }
 serde-wasm-bindgen = "0.5.0"
+anyhow = "1.0.72"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"

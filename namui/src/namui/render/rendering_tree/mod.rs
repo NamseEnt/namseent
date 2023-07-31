@@ -174,7 +174,9 @@ pub fn handle_web_event(rendering_tree: &RenderingTree) {
         WebEvent::KeyUp { code } => crate::keyboard::on_key_up(&code),
         WebEvent::Blur => crate::keyboard::reset_pressing_code_set(),
         WebEvent::VisibilityChange => crate::keyboard::reset_pressing_code_set(),
-        WebEvent::Resize { .. } => todo!(),
+        WebEvent::Resize { width, height } => {
+            system::screen::resize(Wh::new(px(width as f32), px(height as f32)));
+        }
     }
 }
 

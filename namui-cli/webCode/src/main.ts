@@ -18,6 +18,11 @@ runMessageLoopForMain(workerToMainBufferSab, async (message) => {
                 webEvent,
             };
         }
+        case "locationSearch": {
+            return {
+                locationSearch: window.location.search,
+            };
+        }
     }
 });
 

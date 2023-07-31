@@ -1,51 +1,16 @@
-use crate::scroll_view::{self, ScrollView};
+use crate::scroll_view::{self};
 use namui::prelude::*;
 
-pub struct ListViewProps<'a> {
-    pub xy: Xy<Px>,
-    pub height: Px,
-    pub scroll_bar_width: Px,
-    pub item_wh: Wh<Px>,
-    pub items: Vec<&'a dyn Component>,
-}
-
-pub struct UseListViewReturn<'a> {
-    pub list_view: ScrollView<'a>,
-    pub set_scroll_y: SetState<Px>,
-}
-pub fn use_list_view<'a>(ctx: &'a RenderCtx, props: ListViewProps<'a>) -> UseListViewReturn<'a> {
-    let (scroll_y, set_scroll_y) = ctx.use_state(|| 0.px());
-
-    let list_view = scroll_view::ScrollView {
-        xy: props.xy,
-        scroll_bar_width: props.scroll_bar_width,
-        height: props.height,
-        content: Box::new(ListViewInner {
-            height: props.height,
-            item_wh: props.item_wh,
-            items: props.items,
-            scroll_y: *scroll_y,
-        }),
-        scroll_y: *scroll_y,
-        set_scroll_y,
-    };
-
-    UseListViewReturn {
-        list_view,
-        set_scroll_y,
-    }
-}
-
 #[namui::component]
-pub struct ListView<'a> {
+pub struct ListView<C: Component> {
     pub xy: Xy<Px>,
     pub height: Px,
     pub scroll_bar_width: Px,
     pub item_wh: Wh<Px>,
-    pub items: Vec<&'a dyn Component>,
+    pub items: Vec<C>,
 }
 
-impl Component for ListView<'_> {
+impl<C: Component> Component for ListView<C> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             xy,
@@ -77,14 +42,14 @@ impl Component for ListView<'_> {
 }
 
 #[namui::component]
-pub struct ListViewInner<'a> {
+struct ListViewInner<'a, C: Component> {
     height: Px,
     item_wh: Wh<Px>,
-    items: Vec<&'a dyn Component>,
+    items: &'a Vec<C>,
     scroll_y: Px,
 }
 
-impl Component for ListViewInner<'_> {
+impl<C: Component> Component for ListViewInner<'_, C> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             height,
@@ -114,7 +79,7 @@ impl Component for ListViewInner<'_> {
         ctx.use_children_with_rendering_tree(
             |ctx| {
                 for visible_item in visible_items.into_iter() {
-                    ctx.add(*visible_item)
+                    ctx.add(visible_item)
                 }
 
                 ctx.done()

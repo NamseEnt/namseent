@@ -1,7 +1,3 @@
-// mod hooks;
-
-// use hooks::Hooks;
-// use hooks::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use std::{any::TypeId, fmt::Debug};

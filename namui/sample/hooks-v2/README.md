@@ -41,7 +41,7 @@ enum Event {
 }
 
 impl Component for Mycomponent {
-    fn render(&self) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         // ...
 
         use_render_with_event(
@@ -64,9 +64,9 @@ If there are no events to connect to the component, you don't have to connect th
 
 ```rust
 impl Component for Mycomponent {
-    fn render(&self) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let text = "I don't have event!";
-        use_render(
+        ctx.use_render(
             |ctx| {
                 Text {
                     text: text.as_sig()

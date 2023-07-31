@@ -1,6 +1,7 @@
 use namui::prelude::*;
-use std::{any::TypeId, fmt::Debug};
+use std::fmt::Debug;
 
+#[component]
 pub struct ScrollView<'a> {
     pub xy: Xy<Px>,
     pub scroll_bar_width: Px,
@@ -8,25 +9,6 @@ pub struct ScrollView<'a> {
     pub content: Box<dyn Component + 'a>,
     pub scroll_y: Px,
     pub set_scroll_y: SetState<Px>,
-}
-
-impl StaticType for ScrollView<'_> {
-    fn static_type_id(&self) -> StaticTypeId {
-        StaticTypeId::Single(TypeId::of::<ScrollView<'static>>())
-    }
-}
-
-impl Debug for ScrollView<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ScrollView")
-            .field("xy", &self.xy)
-            .field("scroll_bar_width", &self.scroll_bar_width)
-            .field("height", &self.height)
-            .field("content", &self.content)
-            .field("scroll_y", &self.scroll_y)
-            .field("set_scroll_y", &self.set_scroll_y)
-            .finish()
-    }
 }
 
 impl Component for ScrollView<'_> {

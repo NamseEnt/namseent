@@ -42,7 +42,7 @@ enum Event {
     Hello
 }
 impl Component for Mycomponent {
-    fn render(&self) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         // ...
 
         use_render_with_event(
@@ -65,9 +65,9 @@ impl Component for Mycomponent {
 
 ```rust
 impl Component for Mycomponent {
-    fn render(&self) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let text = "I don't have event!";
-        use_render(
+        ctx.use_render(
             |ctx| {
                 Text {
                     text: text.as_sig()

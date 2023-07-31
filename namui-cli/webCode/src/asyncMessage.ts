@@ -4,12 +4,12 @@ type MetaMessage = {
     inner: any;
 };
 
-export function runAsyncMessageLoop(
+export function runAsyncMessageLoop<Message>(
     target: {
         onmessage: ((request: any) => any) | null;
         postMessage: (response: any) => void;
     },
-    handleRequest: (request: any) => Promise<any>,
+    handleRequest: (request: Message) => Promise<any>,
 ) {
     target.onmessage = async ({ data }: { data: MetaMessage }) => {
         switch (data.type) {

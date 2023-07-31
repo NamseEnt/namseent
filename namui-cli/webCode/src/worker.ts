@@ -1,6 +1,7 @@
 import { runAsyncMessageLoop, sendAsyncRequest } from "./asyncMessage.js";
 import { blockingRequest } from "./messageLoop.js";
 import { cacheGet, cacheSet } from "./cache.js";
+import { MessateFromMain } from "./type.js";
 
 importScripts("./bundle.js");
 importScripts("./canvaskit-wasm/canvaskit.js");
@@ -9,7 +10,7 @@ declare var wasm_bindgen: any;
 const { start } = wasm_bindgen;
 declare var CanvasKitInit: any;
 
-runAsyncMessageLoop(self, async (message) => {
+runAsyncMessageLoop<MessateFromMain>(self, async (message) => {
     switch (message.type) {
         case "init":
             {
@@ -18,11 +19,6 @@ runAsyncMessageLoop(self, async (message) => {
                     mainToWorkerBufferSab,
                     windowWidth,
                     windowHeight,
-                }: {
-                    workerToMainBufferSab: SharedArrayBuffer;
-                    mainToWorkerBufferSab: SharedArrayBuffer;
-                    windowWidth: number;
-                    windowHeight: number;
                 } = message;
 
                 const cavnasElement = new OffscreenCanvas(
@@ -69,6 +65,23 @@ runAsyncMessageLoop(self, async (message) => {
                         [bitmap],
                     );
                     return;
+                };
+
+                anyGlobalThis.getLocationSearch = () => {
+                    const { locationSearch } = blockingRequest(
+                        {
+                            type: "locationSearch",
+                        },
+                        workerToMainBufferSab,
+                    );
+                    return locationSearch;
+                };
+
+                anyGlobalThis.getInitialWindowSize = () => {
+                    return {
+                        width: windowWidth,
+                        height: windowHeight,
+                    };
                 };
 
                 await run();

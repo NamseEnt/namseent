@@ -7,7 +7,7 @@ pub(crate) fn mount_visit<'a>(
 ) -> TreeContext {
     let component_instance = {
         tree_ctx
-            .get_last_component_instance(component.static_type_id())
+            .get_last_component_instance(component.static_type_name())
             .unwrap_or_else(|| Arc::new(ComponentInstance::new(component)))
     };
     let render_ctx = RenderCtx::new(component_instance, tree_ctx);

@@ -1,107 +1,94 @@
 use super::*;
 use namui::prelude::*;
-use std::sync::Once;
-use wasm_bindgen::prelude::*;
-use web_sys::HashChangeEvent;
 
-static HASH_CHANGE_EVENT_LISTENER: Once = Once::new();
-
+#[namui::component]
 pub struct Router {
-    route: Route,
-}
-
-pub struct Props {
     pub wh: Wh<Px>,
 }
 
-enum InternalEvent {
-    PathChanged(RoutePath),
+impl Component for Router {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        let (route, set_route) = ctx.use_state(|| Route::from(get_path_from_hash()));
+
+        ctx.use_effect("Register hash change", move || {
+            todo!()
+            // web_sys::window()
+            //     .unwrap()
+            //     .add_event_listener_with_callback(
+            //         "hashchange",
+            //         wasm_bindgen::prelude::Closure::wrap(Box::new(
+            //             move |_event: web_sys::HashChangeEvent| {
+            //                 set_route.set(Route::from(get_path_from_hash()));
+            //             },
+            //         )
+            //             as Box<dyn FnMut(_)>)
+            //         .into_js_value()
+            //         .unchecked_ref(),
+            //     )
+            //     .unwrap();
+        });
+
+        let wh = self.wh;
+
+        ctx.use_children(|ctx| {
+            match *route {
+                Route::ProjectListPage => ctx.add(project_list_page::ProjectListPage2 { wh }),
+                Route::SequenceListPage { project_id } => {
+                    // ctx.add(sequence_list_page::SequenceListPage { wh, project_id })
+                }
+                Route::SequenceEditPage {
+                    project_id,
+                    sequence_id,
+                } => {
+                    //     ctx.add(sequence_edit_page::SequenceEditPage {
+                    //     wh,
+                    //     project_id,
+                    //     sequence_id,
+                    // })
+                }
+            }
+
+            ctx.done()
+        })
+    }
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Route {
-    ProjectListPage(project_list_page::ProjectListPage),
-    SequenceListPage(sequence_list_page::SequenceListPage),
-    SequenceEditPage(sequence_edit_page::SequenceEditPage),
+    ProjectListPage,
+    SequenceListPage { project_id: Uuid },
+    SequenceEditPage { project_id: Uuid, sequence_id: Uuid },
 }
 impl From<RoutePath> for Route {
     fn from(path: RoutePath) -> Self {
         match path {
-            RoutePath::ProjectList => {
-                Self::ProjectListPage(project_list_page::ProjectListPage::new())
-            }
-            RoutePath::SequenceList { project_id } => {
-                Self::SequenceListPage(sequence_list_page::SequenceListPage::new(project_id))
-            }
+            RoutePath::ProjectList => Self::ProjectListPage,
+            RoutePath::SequenceList { project_id } => Self::SequenceListPage { project_id },
             RoutePath::SequenceEdit {
                 project_id,
                 sequence_id,
             } => {
-                return Self::SequenceEditPage(sequence_edit_page::SequenceEditPage::new(
+                return Self::SequenceEditPage {
                     project_id,
                     sequence_id,
-                ))
+                }
             }
         }
     }
 }
 
-impl Router {
-    pub fn new() -> Self {
-        Self::register_hash_change_event_listener();
-        let path = get_path_from_hash();
-        let route = Route::from(path);
-        Self { route }
-    }
-    pub fn update(&mut self, event: &namui::Event) {
-        event.is::<InternalEvent>(|event| match event {
-            InternalEvent::PathChanged(path) => self.route = Route::from(path.clone()),
-        });
-        match &mut self.route {
-            Route::ProjectListPage(project_list_page) => project_list_page.update(event),
-            Route::SequenceListPage(sequence_list_page) => sequence_list_page.update(event),
-            Route::SequenceEditPage(sequence_edit_page) => sequence_edit_page.update(event),
-        }
-    }
-    pub fn render(&self, props: Props) -> namui::RenderingTree {
-        match &self.route {
-            Route::ProjectListPage(project_list_page) => {
-                project_list_page.render(project_list_page::Props { wh: props.wh })
-            }
-            Route::SequenceListPage(sequence_list_page) => {
-                sequence_list_page.render(sequence_list_page::Props { wh: props.wh })
-            }
-            Route::SequenceEditPage(sequence_edit_page) => {
-                sequence_edit_page.render(sequence_edit_page::Props { wh: props.wh })
-            }
-        }
-    }
-
-    fn register_hash_change_event_listener() {
-        HASH_CHANGE_EVENT_LISTENER.call_once(|| {
-            let window = web_sys::window().unwrap();
-            let listener = Closure::<dyn FnMut(_)>::new(move |_: HashChangeEvent| {
-                namui::event::send(InternalEvent::PathChanged(get_path_from_hash()));
-            });
-
-            window
-                .add_event_listener_with_callback("hashchange", listener.as_ref().unchecked_ref())
-                .unwrap();
-
-            listener.forget();
-        })
-    }
-
-    pub fn move_to(path: RoutePath) {
-        let window = web_sys::window().unwrap();
-        window.location().set_hash(&path.to_string()).unwrap();
-    }
+pub fn move_to(path: RoutePath) {
+    todo!()
+    // let window = web_sys::window().unwrap();
+    // window.location().set_hash(&path.to_string()).unwrap();
 }
 
 fn get_path_from_hash() -> RoutePath {
-    let window = web_sys::window().unwrap();
-    let hash = window.location().hash().unwrap_or("#".to_string());
-    let path = hash.trim_start_matches('#');
-    RoutePath::from(path.to_string())
+    todo!()
+    // let window = web_sys::window().unwrap();
+    // let hash = window.location().hash().unwrap_or("#".to_string());
+    // let path = hash.trim_start_matches('#');
+    // RoutePath::from(path.to_string())
 }
 
 #[derive(Clone)]
