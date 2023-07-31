@@ -1,14 +1,43 @@
 import typescript from "@rollup/plugin-typescript";
 import resolve from "@rollup/plugin-node-resolve";
+import { babel } from "@rollup/plugin-babel";
+import commonjs from "@rollup/plugin-commonjs";
+import nodePolyfills from "rollup-plugin-polyfill-node";
+import copy from "rollup-plugin-copy";
 
 /** @type {import('rollup').RollupOptions} */
 const defaultConfig = {
     output: {
         dir: "../www",
         format: "iife",
-        sourcemap: "inline",
+        sourcemap: true,
     },
-    plugins: [typescript(), resolve()],
+    plugins: [
+        nodePolyfills(),
+        typescript({
+            sourceMap: true,
+            tsconfig: "./tsconfig.json",
+        }),
+        commonjs({
+            sourceMap: true,
+            esmExternals: true,
+        }),
+        resolve({
+            browser: true,
+        }),
+        babel({
+            babelHelpers: "bundled",
+            sourceMaps: true,
+        }),
+        copy({
+            targets: [
+                {
+                    src: "node_modules/canvaskit-wasm/bin/*",
+                    dest: "../www/canvaskit-wasm",
+                },
+            ],
+        }),
+    ],
 };
 
 const inputs = ["src/main.ts", "src/worker.ts"];

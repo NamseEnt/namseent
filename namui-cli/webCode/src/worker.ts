@@ -1,10 +1,9 @@
 import { runAsyncMessageLoop, sendAsyncRequest } from "./asyncMessage.js";
 import { blockingRequest } from "./messageLoop.js";
 import { cacheGet, cacheSet } from "./cache.js";
-import "canvaskit-wasm/bin/full/canvaskit.js";
 
 importScripts("./bundle.js");
-// importScripts("./canvaskit-wasm/canvaskit.js");
+importScripts("./canvaskit-wasm/canvaskit.js");
 
 declare var wasm_bindgen: any;
 const { start } = wasm_bindgen;

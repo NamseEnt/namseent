@@ -22,8 +22,6 @@ function main() {
 
     make_cli_symlink $cargo_bin_dir_path $cli_path
 
-    install_npm_packages $cli_root_path
-
     install_electron $electron_root_path
     if [ $(is_os_wsl) -eq 1 ]; then
         export WSL_INTEROP=
@@ -137,19 +135,6 @@ function install_electron() {
     if [ $? -ne 0 ]; then
         echo "npm package install failed"
         exit $EXIT_ELECTRON_INSTALL_FAILED
-    fi
-}
-
-#######################################
-# Arguments:
-#   cli_root_path: string
-#######################################
-function install_npm_packages() {
-    cli_path=$1
-    cd $cli_path && npm i
-    if [ $? -ne 0 ]; then
-        echo "npm package install failed"
-        exit $EXIT_NPM_INSTALL_FAILED
     fi
 }
 
