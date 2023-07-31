@@ -28,7 +28,7 @@ pub fn watch_browser_runtime() -> Result<(), crate::Error> {
     cmd.arg("run");
     cmd.arg("watch");
     cmd.current_dir(get_cli_root_path().join("webCode"));
-    let watch = cmd.spawn()?;
+    cmd.spawn()?;
 
     Ok(())
 }
