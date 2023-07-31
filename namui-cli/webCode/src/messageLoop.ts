@@ -1,4 +1,3 @@
-import { TypedArray } from "./type";
 import { encode, decode } from "@msgpack/msgpack";
 
 /*
@@ -21,9 +20,12 @@ import { encode, decode } from "@msgpack/msgpack";
     ..
 */
 
-const indexNotificationFlagI32 = 0; // 0: request, 1: response
+const indexNotificationFlagI32 = 0;
 const indexMessageLengthI32 = 1;
 const indexMessageBodyU8 = 8;
+
+const notificationFlagIdle = 0;
+const notificationFlagReqSent = 1;
 
 export async function runMessageLoopForMain(
     sab: SharedArrayBuffer,
@@ -31,16 +33,20 @@ export async function runMessageLoopForMain(
 ) {
     const i32Buf = new Int32Array(sab);
     while (true) {
-        // TODO: Check if the message already sent by the worker. maybe timeout and retry?
-        const wait = Atomics.waitAsync(i32Buf, 0, 0);
-        if (wait.async) {
-            await wait.value;
+        const value = await Atomics.waitAsync(i32Buf, 0, notificationFlagIdle)
+            .value;
+        if (
+            Atomics.load(i32Buf, indexNotificationFlagI32) !==
+            notificationFlagReqSent
+        ) {
+            throw new Error(`Wrong Atomics.waitAsync, ${value}`);
         }
 
         const message = readMessage(sab);
         const response = await handleMessage(message);
         writeMessage(response, sab);
 
+        i32Buf[indexNotificationFlagI32] = notificationFlagIdle;
         Atomics.notify(i32Buf, indexNotificationFlagI32);
     }
 }
@@ -80,9 +86,22 @@ export function blockingRequest(
 
     const i32Buf = new Int32Array(requestSab);
 
-    i32Buf[indexNotificationFlagI32] = 0;
+    if (
+        Atomics.load(i32Buf, indexNotificationFlagI32) !== notificationFlagIdle
+    ) {
+        throw new Error("wrong flag");
+    }
+
+    i32Buf[indexNotificationFlagI32] = notificationFlagReqSent;
     Atomics.notify(i32Buf, indexNotificationFlagI32);
-    Atomics.wait(i32Buf, indexNotificationFlagI32, 0);
+
+    Atomics.wait(i32Buf, indexNotificationFlagI32, notificationFlagReqSent);
+    if (
+        Atomics.load(i32Buf, indexNotificationFlagI32) ===
+        notificationFlagReqSent
+    ) {
+        throw new Error("wrong waiting code");
+    }
 
     const response = readMessage(requestSab);
 

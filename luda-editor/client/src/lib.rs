@@ -37,18 +37,6 @@ impl namui::Component for Init {
                 let is_auth_callback = search.starts_with("?code=");
 
                 if is_auth_callback {
-                    namui::web::execute_function_sync(
-                        "
-                    console.log('window.opener', window.opener);
-                    window.addEventListener('message', (event) => {
-                        console.log('event', event);
-                        if (event.data.type === 'auth') {
-                            window.opener.postMessage(event.data, '*');
-                        }
-                    });
-                    ",
-                    )
-                    .run::<()>();
                     return;
                 }
 

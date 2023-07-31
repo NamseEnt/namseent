@@ -18,7 +18,7 @@ runMessageLoopForMain(workerToMainBufferSab, async (message) => {
             };
         }
         case "webEvent": {
-            const webEvent = await shiftWebEvent();
+            const webEvent = shiftWebEvent();
             return {
                 webEvent,
             };

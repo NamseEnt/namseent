@@ -40,7 +40,6 @@ async fn request_github_auth_code() -> Result<String> {
     )
     .run();
 
-    namui::log!("redirect_uri: {}", redirect_uri);
     let url = format!(
         "
         https://github.com/login/oauth/authorize
@@ -52,22 +51,18 @@ async fn request_github_auth_code() -> Result<String> {
     .replace(" ", "")
     .replace("\n", "");
 
-    namui::log!("url: {}", url);
-
     let code: String = namui::web::execute_async_function(
         "
         const authCodeWindow = window.open(url);
 
         while (true) {
             await new Promise(resolve => setTimeout(resolve, 100));
-            authCodeWindow.postMessage('Hello', 'http://localhost:8080');
 
-            console.log('authCodeWindow.location', JSON.stringify(authCodeWindow.location));
             const query = authCodeWindow.location.search;
             if (query?.startsWith('?code=')) {
-                console.log('close authCodeWindow')
+                const code = query.slice(6);
                 authCodeWindow.close();
-                return query.slice(6);
+                return code;
             }
         }
         ",
@@ -75,6 +70,8 @@ async fn request_github_auth_code() -> Result<String> {
     .arg("url", &url)
     .run()
     .await;
+
+    namui::log!("code: {}", code);
 
     Ok(code)
 }

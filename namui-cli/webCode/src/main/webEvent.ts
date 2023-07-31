@@ -78,7 +78,7 @@ export type WebEvent =
 
 const queue: WebEvent[] = [];
 
-export async function shiftWebEvent(): Promise<WebEvent | undefined> {
+export function shiftWebEvent(): WebEvent | undefined {
     return queue.shift();
 }
 
