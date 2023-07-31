@@ -5,6 +5,7 @@
     "watch": "rollup -c -w"
   },
   "dependencies": {
+    "canvaskit-wasm": "=0.38.0",
     "idb-keyval": "^6.2.1"
   },
   "type": "module",
