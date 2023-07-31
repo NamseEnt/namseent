@@ -15,7 +15,7 @@ pub fn build(manifest_path: &Path) -> Result<(), crate::Error> {
         .join("namui")
         .join("wasm_unknown_web");
 
-    wasm_web_runtime_prepare_service::preapre()?;
+    wasm_web_runtime_prepare_service::build_browser_runtime()?;
     WasmWatchBuildService::just_build(project_root_path.clone(), Target::WasmUnknownWeb)?;
 
     let bundle_manifest =

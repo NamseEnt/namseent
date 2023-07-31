@@ -14,7 +14,7 @@ pub fn start(manifest_path: &Path) -> Result<(), crate::Error> {
     let wasm_bundle_web_server_url = format!("http://localhost:{}", PORT);
     println!("server is running on {}", wasm_bundle_web_server_url);
 
-    wasm_web_runtime_prepare_service::preapre()?;
+    wasm_web_runtime_prepare_service::watch_browser_runtime()?;
     WasmWatchBuildService::watch_and_build(WatchAndBuildArgs {
         project_root_path,
         port: PORT,
