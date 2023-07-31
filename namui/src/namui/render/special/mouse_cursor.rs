@@ -1,7 +1,7 @@
 use super::SpecialRenderingNode;
 use crate::RenderingTree;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub enum MouseCursor {
     TopBottomResize,
     LeftRightResize,
@@ -15,7 +15,7 @@ pub enum MouseCursor {
     Custom(RenderingTree),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct MouseCursorNode {
     pub(crate) rendering_tree: std::sync::Arc<RenderingTree>,
     pub cursor: Box<MouseCursor>,

@@ -22,7 +22,7 @@ pub use transform::*;
 pub use translate::*;
 pub use with_id::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub enum SpecialRenderingNode {
     Translate(TranslateNode),
     Clip(ClipNode),

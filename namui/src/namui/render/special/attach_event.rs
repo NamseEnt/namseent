@@ -9,19 +9,30 @@ use std::{
     },
 };
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize)]
 pub struct AttachEventNode {
     pub(crate) rendering_tree: std::sync::Arc<RenderingTree>,
+    #[serde(skip)]
     pub on_mouse_move_in: Option<MouseEventCallback>,
+    #[serde(skip)]
     pub on_mouse_move_out: Option<MouseEventCallback>,
+    #[serde(skip)]
     pub on_mouse_down_in: Option<MouseEventCallback>,
+    #[serde(skip)]
     pub on_mouse_down_out: Option<MouseEventCallback>,
+    #[serde(skip)]
     pub on_mouse_up_in: Option<MouseEventCallback>,
+    #[serde(skip)]
     pub on_mouse_up_out: Option<MouseEventCallback>,
+    #[serde(skip)]
     pub on_mouse: Option<MouseEventCallback>,
+    #[serde(skip)]
     pub on_wheel: Option<WheelEventCallback>,
+    #[serde(skip)]
     pub on_key_down: Option<KeyboardEventCallback>,
+    #[serde(skip)]
     pub on_key_up: Option<KeyboardEventCallback>,
+    #[serde(skip)]
     pub on_file_drop: Option<FileDropEventCallback>,
 }
 

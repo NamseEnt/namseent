@@ -11,11 +11,11 @@ use std::{
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, serde::Serialize)]
 pub struct RenderingData {
     pub draw_calls: Vec<DrawCall>,
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub enum RenderingTree {
     Node(RenderingData),
     Children(Vec<RenderingTree>),
@@ -45,7 +45,7 @@ impl SpecialRenderingNode {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub enum WebEvent {
     MouseDown {
         x: usize,
@@ -113,12 +113,12 @@ fn wait_web_event() -> Option<WebEvent> {
     event
 }
 
-pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) {
+pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) -> Option<WebEvent> {
     let Some(web_event) = wait_web_event() else {
-        return;
+        return None;
     };
-    match web_event {
-        WebEvent::MouseDown {
+    match &web_event {
+        &WebEvent::MouseDown {
             x,
             y,
             button,
@@ -126,7 +126,7 @@ pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) {
         } => {
             rendering_tree.map(|rendering_tree| {
                 rendering_tree.call_mouse_event(
-                    MouseEventType::Down, // TODO
+                    MouseEventType::Down,
                     &RawMouseEvent {
                         id: uuid(),
                         xy: Xy::new(px(x as f32), px(y as f32)),
@@ -138,7 +138,7 @@ pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) {
                 )
             });
         }
-        WebEvent::MouseMove {
+        &WebEvent::MouseMove {
             x,
             y,
             button,
@@ -146,7 +146,7 @@ pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) {
         } => {
             rendering_tree.map(|rendering_tree| {
                 rendering_tree.call_mouse_event(
-                    MouseEventType::Move, // TODO
+                    MouseEventType::Move,
                     &RawMouseEvent {
                         id: uuid(),
                         xy: Xy::new(px(x as f32), px(y as f32)),
@@ -158,7 +158,7 @@ pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) {
                 )
             });
         }
-        WebEvent::MouseUp {
+        &WebEvent::MouseUp {
             x,
             y,
             button,
@@ -166,7 +166,7 @@ pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) {
         } => {
             rendering_tree.map(|rendering_tree| {
                 rendering_tree.call_mouse_event(
-                    MouseEventType::Up, // TODO
+                    MouseEventType::Up,
                     &RawMouseEvent {
                         id: uuid(),
                         xy: Xy::new(px(x as f32), px(y as f32)),
@@ -178,7 +178,7 @@ pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) {
                 )
             });
         }
-        WebEvent::Wheel {
+        &WebEvent::Wheel {
             x,
             y,
             delta_x,
@@ -195,19 +195,21 @@ pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) {
                 })
             });
         }
-        WebEvent::HashChange { .. } => {}
-        WebEvent::SelectionChange => todo!("crate::system::text_input::on_selection_change()"),
-        WebEvent::KeyDown { code } => crate::keyboard::on_key_down(&code),
-        WebEvent::KeyUp { code } => crate::keyboard::on_key_up(&code),
-        WebEvent::Blur => crate::keyboard::reset_pressing_code_set(),
-        WebEvent::VisibilityChange => crate::keyboard::reset_pressing_code_set(),
-        WebEvent::Resize { width, height } => {
+        &WebEvent::HashChange { .. } => {}
+        &WebEvent::SelectionChange => todo!("crate::system::text_input::on_selection_change()"),
+        &WebEvent::KeyDown { ref code } => crate::keyboard::on_key_down(&code),
+        &WebEvent::KeyUp { ref code } => crate::keyboard::on_key_up(&code),
+        &WebEvent::Blur => crate::keyboard::reset_pressing_code_set(),
+        &WebEvent::VisibilityChange => crate::keyboard::reset_pressing_code_set(),
+        &WebEvent::Resize { width, height } => {
             system::screen::resize(Wh::new(px(width as f32), px(height as f32)));
         }
-        WebEvent::AsyncFunction { id } => {
+        &WebEvent::AsyncFunction { id } => {
             crate::system::web::on_async_function_executed(id);
         }
     }
+
+    Some(web_event)
 }
 
 pub fn draw_rendering_tree(rendering_tree: &RenderingTree) {

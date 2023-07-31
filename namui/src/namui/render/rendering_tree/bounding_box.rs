@@ -220,7 +220,6 @@ impl RenderingTree {
     }
 
     fn get_bounding_box_cache_key(&self) -> CacheKey {
-        todo!()
-        // bincode::serialize(self).unwrap().into()
+        bincode::serialize(self).unwrap().into()
     }
 }

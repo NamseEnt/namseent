@@ -1,7 +1,7 @@
 use super::SpecialRenderingNode;
 use crate::{Px, RenderingTree};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct TranslateNode {
     pub(crate) x: Px,
     pub(crate) y: Px,

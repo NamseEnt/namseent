@@ -10,22 +10,11 @@ impl Component for Router {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let (route, set_route) = ctx.use_state(|| Route::from(get_path_from_hash()));
 
-        ctx.use_effect("Register hash change", move || {
-            todo!()
-            // web_sys::window()
-            //     .unwrap()
-            //     .add_event_listener_with_callback(
-            //         "hashchange",
-            //         wasm_bindgen::prelude::Closure::wrap(Box::new(
-            //             move |_event: web_sys::HashChangeEvent| {
-            //                 set_route.set(Route::from(get_path_from_hash()));
-            //             },
-            //         )
-            //             as Box<dyn FnMut(_)>)
-            //         .into_js_value()
-            //         .unchecked_ref(),
-            //     )
-            //     .unwrap();
+        ctx.use_web_event(move |web_event| {
+            if let namui::WebEvent::HashChange { .. } = web_event {
+                namui::log!("Hash change");
+                set_route.set(Route::from(get_path_from_hash()));
+            }
         });
 
         let wh = self.wh;
@@ -78,17 +67,24 @@ impl From<RoutePath> for Route {
 }
 
 pub fn move_to(path: RoutePath) {
-    todo!()
-    // let window = web_sys::window().unwrap();
-    // window.location().set_hash(&path.to_string()).unwrap();
+    web::execute_function_sync(
+        "
+        window.location.hash = hash;
+    ",
+    )
+    .arg("hash", &path.to_string())
+    .run::<()>();
 }
 
 fn get_path_from_hash() -> RoutePath {
-    todo!()
-    // let window = web_sys::window().unwrap();
-    // let hash = window.location().hash().unwrap_or("#".to_string());
-    // let path = hash.trim_start_matches('#');
-    // RoutePath::from(path.to_string())
+    let hash: String = web::execute_function_sync(
+        "
+        return window.location.hash;
+    ",
+    )
+    .run();
+    let path = hash.trim_start_matches('#');
+    RoutePath::from(path.to_string())
 }
 
 #[derive(Clone)]

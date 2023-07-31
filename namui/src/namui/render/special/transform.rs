@@ -1,7 +1,7 @@
 use super::SpecialRenderingNode;
 use crate::{namui::render::Matrix3x3, RenderingTree};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct TransformNode {
     pub(crate) matrix: Matrix3x3,
     pub(crate) rendering_tree: std::sync::Arc<RenderingTree>,

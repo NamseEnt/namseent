@@ -1,5 +1,5 @@
 use super::*;
-use crate::RenderingTree;
+use crate::{RenderingTree, WebEvent};
 use std::{
     cell::RefCell,
     collections::{HashMap, VecDeque},
@@ -101,7 +101,12 @@ impl TreeContext {
 
             let mut is_need_to_re_render = false;
             while !is_need_to_re_render {
-                crate::handle_web_event(Some(&rendering_tree));
+                let web_event = crate::handle_web_event(Some(&rendering_tree));
+
+                if let Some(web_event) = web_event {
+                    self.propgate_web_event(web_event);
+                }
+
                 crate::system::futures::execute_async_tasks();
 
                 self.flush_channel(&mut is_need_to_re_render);
@@ -189,6 +194,10 @@ impl TreeContext {
 
     pub(crate) fn add_sig_updated(&self, sig_id: SigId) {
         self.inner.lock().unwrap().add_updated_sig(sig_id);
+    }
+
+    fn propgate_web_event(&self, web_event: WebEvent) {
+        self.inner.lock().unwrap().propgate_web_event(web_event);
     }
 }
 
@@ -293,6 +302,16 @@ impl Inner {
     }
     fn add_updated_sig(&mut self, sig_id: SigId) {
         self.updated_sigs.insert(sig_id);
+    }
+    fn propgate_web_event(&mut self, web_event: WebEvent) {
+        self.component_instance_map
+            .values()
+            .for_each(|component_instance| {
+                let web_event_listener = component_instance.web_event_listener.lock().unwrap();
+                if let Some(web_event_listener) = web_event_listener.as_ref() {
+                    web_event_listener(&web_event);
+                }
+            });
     }
 }
 

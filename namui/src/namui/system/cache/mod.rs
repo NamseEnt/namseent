@@ -46,8 +46,7 @@ pub async fn set(key: &str, value: &[u8]) -> Result<()> {
 }
 
 pub async fn set_serde<T: serde::Serialize>(key: &str, value: &T) -> Result<()> {
-    let data = serde_json::to_vec(value)?;
-    set_cache_internal(key, ByteBuf::from(data)).await;
+    set_cache_internal(key, value).await;
 
     Ok(())
 }

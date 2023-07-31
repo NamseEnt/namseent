@@ -4,9 +4,10 @@ use std::sync::Arc;
 
 type CustomData = Arc<dyn std::any::Any>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct CustomNode {
     pub(crate) rendering_tree: std::sync::Arc<RenderingTree>,
+    #[serde(skip)]
     pub data: CustomData,
 }
 

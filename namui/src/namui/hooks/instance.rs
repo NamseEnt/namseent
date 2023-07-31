@@ -15,6 +15,7 @@ pub(crate) struct ComponentInstance {
     pub(crate) memo_used_sigs_list: Mutex<Vec<Vec<SigId>>>,
     pub(crate) render_used_sigs: Mutex<Vec<SigId>>,
     pub(crate) is_first_render: AtomicBool,
+    pub(crate) web_event_listener: Mutex<Option<Box<dyn Fn(&crate::WebEvent)>>>,
 }
 
 impl Debug for ComponentInstance {
@@ -35,6 +36,10 @@ impl Debug for ComponentInstance {
             )
             .field("render_used_sigs", &self.render_used_sigs.lock().unwrap())
             .field("is_first_render", &self.is_first_render)
+            .field(
+                "web_event_listener",
+                &self.web_event_listener.lock().unwrap().is_some(),
+            )
             .finish()
     }
 }
@@ -51,6 +56,7 @@ impl ComponentInstance {
             memo_used_sigs_list: Default::default(),
             render_used_sigs: Default::default(),
             is_first_render: AtomicBool::new(true),
+            web_event_listener: Default::default(),
         }
     }
 }
