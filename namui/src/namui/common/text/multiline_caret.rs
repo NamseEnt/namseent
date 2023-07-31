@@ -1,8 +1,4 @@
-use crate::{
-    system::text_input::{ArrowUpDown, KeyInInterest},
-    text::*,
-    *,
-};
+use crate::{text::*, *};
 
 #[derive(Debug, Clone)]
 pub struct MultilineCaret {
@@ -63,49 +59,50 @@ pub(crate) fn get_multiline_caret(selection_index: usize, line_texts: LineTexts)
 }
 
 impl MultilineCaret {
-    pub(crate) fn get_caret_on_key(&self, key: KeyInInterest) -> MultilineCaret {
-        let (line_index, x) = match key {
-            KeyInInterest::ArrowUpDown(up_down) => match up_down {
-                ArrowUpDown::Up => {
-                    if self.line_index == 0 {
-                        return MultilineCaret {
-                            line_index: 0,
-                            caret_index_in_line: 0,
-                            line_texts: self.line_texts.clone(),
-                        };
-                    }
-                    (self.line_index - 1, self.get_x())
-                }
-                ArrowUpDown::Down => {
-                    if self.is_at_bottom() {
-                        return MultilineCaret {
-                            line_index: self.line_index,
-                            caret_index_in_line: self
-                                .line_texts
-                                .iter_chars()
-                                .nth(self.line_index)
-                                .unwrap()
-                                .len(),
-                            line_texts: self.line_texts.clone(),
-                        };
-                    }
-                    (self.line_index + 1, self.get_x())
-                }
-            },
-            KeyInInterest::HomeEnd(home_end) => match home_end {
-                system::text_input::HomeEnd::Home => (self.line_index, 0.px()),
-                system::text_input::HomeEnd::End => (self.line_index, f32::MAX.px()),
-            },
-        };
+    // TODO
+    // pub(crate) fn get_caret_on_key(&self, key: KeyInInterest) -> MultilineCaret {
+    //     let (line_index, x) = match key {
+    //         KeyInInterest::ArrowUpDown(up_down) => match up_down {
+    //             ArrowUpDown::Up => {
+    //                 if self.line_index == 0 {
+    //                     return MultilineCaret {
+    //                         line_index: 0,
+    //                         caret_index_in_line: 0,
+    //                         line_texts: self.line_texts.clone(),
+    //                     };
+    //                 }
+    //                 (self.line_index - 1, self.get_x())
+    //             }
+    //             ArrowUpDown::Down => {
+    //                 if self.is_at_bottom() {
+    //                     return MultilineCaret {
+    //                         line_index: self.line_index,
+    //                         caret_index_in_line: self
+    //                             .line_texts
+    //                             .iter_chars()
+    //                             .nth(self.line_index)
+    //                             .unwrap()
+    //                             .len(),
+    //                         line_texts: self.line_texts.clone(),
+    //                     };
+    //                 }
+    //                 (self.line_index + 1, self.get_x())
+    //             }
+    //         },
+    //         KeyInInterest::HomeEnd(home_end) => match home_end {
+    //             system::text_input::HomeEnd::Home => (self.line_index, 0.px()),
+    //             system::text_input::HomeEnd::End => (self.line_index, f32::MAX.px()),
+    //         },
+    //     };
 
-        let caret_index_on_direction = self.get_caret_index_on_x(x, line_index);
+    //     let caret_index_on_direction = self.get_caret_index_on_x(x, line_index);
 
-        MultilineCaret {
-            line_index,
-            caret_index_in_line: caret_index_on_direction,
-            line_texts: self.line_texts.clone(),
-        }
-    }
+    //     MultilineCaret {
+    //         line_index,
+    //         caret_index_in_line: caret_index_on_direction,
+    //         line_texts: self.line_texts.clone(),
+    //     }
+    // }
 
     pub(crate) fn to_selection_index(&self) -> usize {
         let index_before_line = self.line_texts.char_index_before_line(self.line_index);

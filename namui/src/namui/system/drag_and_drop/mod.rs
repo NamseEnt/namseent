@@ -1,5 +1,5 @@
 use super::InitResult;
-use crate::{File, NamuiEvent};
+use crate::File;
 use namui_type::*;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::window;

@@ -41,7 +41,6 @@ impl SpecialRenderingNode {
             SpecialRenderingNode::Custom(node) => node.rendering_tree.clone(),
             SpecialRenderingNode::Scale(node) => node.rendering_tree.clone(),
             SpecialRenderingNode::Transform(node) => node.rendering_tree.clone(),
-            SpecialRenderingNode::React(node) => node.render(),
             SpecialRenderingNode::OnTop(node) => node.rendering_tree.clone(),
         }
     }
@@ -170,7 +169,7 @@ pub fn handle_web_event(rendering_tree: &RenderingTree) {
             mouse_xy: Xy::new(px(x as f32), px(y as f32)),
         }),
         WebEvent::HashChange { .. } => {}
-        WebEvent::SelectionChange => crate::system::text_input::on_selection_change(),
+        WebEvent::SelectionChange => todo!("crate::system::text_input::on_selection_change()"),
         WebEvent::KeyDown { code } => crate::keyboard::on_key_down(&code),
         WebEvent::KeyUp { code } => crate::keyboard::on_key_up(&code),
         WebEvent::Blur => crate::keyboard::reset_pressing_code_set(),
@@ -301,8 +300,7 @@ impl RenderingTree {
                     SpecialRenderingNode::AttachEvent(_)
                     | SpecialRenderingNode::MouseCursor(_)
                     | SpecialRenderingNode::WithId(_)
-                    | SpecialRenderingNode::Custom(_)
-                    | SpecialRenderingNode::React(_) => {
+                    | SpecialRenderingNode::Custom(_) => {
                         draw_internal(&special.get_rendering_tree(), draw_context);
                     }
                 },

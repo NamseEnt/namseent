@@ -376,6 +376,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fed44880c466736ef9a5c5b5facefb5ed0785676d0c02d612db14e54f0d84286"
 
 [[package]]
+name = "hooks-macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.22",
+]
+
+[[package]]
 name = "hooks-v2"
 version = "0.1.0"
 dependencies = [
@@ -631,6 +640,7 @@ dependencies = [
  "dashmap",
  "fluvio-wasm-timer",
  "futures",
+ "hooks-macro",
  "js-sys",
  "lazy_static",
  "lru",

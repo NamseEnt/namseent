@@ -25,6 +25,7 @@ lru = "0.7"
 ordered-float = "2.10"
 namui-cfg = { path = "../namui-cfg" }
 shader-macro = { path = "./shader-macro" }
+hooks-macro = { path = "./hooks-macro" }
 parking_lot = "0.12"
 auto_ops = "0.3"
 url = { version = "2", features = ["serde"] }

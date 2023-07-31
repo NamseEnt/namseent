@@ -189,8 +189,7 @@ impl RenderingTree {
                     SpecialRenderingNode::AttachEvent(_)
                     | SpecialRenderingNode::MouseCursor(_)
                     | SpecialRenderingNode::WithId(_)
-                    | SpecialRenderingNode::Custom(_)
-                    | SpecialRenderingNode::React(_) => {
+                    | SpecialRenderingNode::Custom(_) => {
                         get_bounding_box_with_matrix_of_rendering_trees(
                             [special.get_rendering_tree()],
                             &matrix,
