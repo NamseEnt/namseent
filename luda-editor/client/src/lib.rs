@@ -2,7 +2,7 @@ use namui::spawn_local;
 
 mod app;
 mod color;
-// mod components;
+mod components;
 mod late_init;
 mod pages;
 mod setting;
