@@ -4,7 +4,6 @@ use crate::{
         resource_collect_service, wasm_watch_build_service::WasmWatchBuildService,
         wasm_web_runtime_prepare_service,
     },
-    util::overwrite_hot_reload_script_with_empty_file,
 };
 use std::path::Path;
 
@@ -28,8 +27,6 @@ pub fn build(manifest_path: &Path) -> Result<(), crate::Error> {
         bundle_manifest,
         None,
     )?;
-
-    overwrite_hot_reload_script_with_empty_file(&release_path)?;
 
     Ok(())
 }

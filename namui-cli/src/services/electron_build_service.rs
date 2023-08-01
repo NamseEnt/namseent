@@ -2,7 +2,7 @@ use super::{
     electron_package_service::{Arch, ElectronPackageService, Platform},
     wasm_watch_build_service::WasmWatchBuildService,
 };
-use crate::{cli::Target, util::overwrite_hot_reload_script_with_empty_file};
+use crate::cli::Target;
 use std::path::Path;
 
 pub fn build(
@@ -40,8 +40,6 @@ pub fn build(
         namui_bundle_manifest,
         Some(&package_result.output_path.into()),
     )?;
-
-    overwrite_hot_reload_script_with_empty_file(&release_path)?;
 
     Ok(())
 }
