@@ -1,23 +1,16 @@
 use namui::prelude::*;
 
-pub async fn main() {
-    let namui_context = namui::init().await;
+pub fn main() {
+    let namui_context = namui::init();
 
-    namui::start(namui_context, &mut MultilineTextExample::new(), &()).await
+    namui::start(namui_context, &mut MultilineTextExample {})
 }
 
+#[namui::component]
 struct MultilineTextExample {}
 
-impl MultilineTextExample {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Entity for MultilineTextExample {
-    type Props = ();
-
-    fn render(&self, _props: &Self::Props) -> RenderingTree {
+impl Component for MultilineTextExample {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let wh = namui::screen::size();
         let mut trees = vec![];
 
@@ -180,8 +173,10 @@ impl Entity for MultilineTextExample {
             }
         }
 
-        render(trees)
-    }
+        ctx.use_children(|ctx| {
+            ctx.add(render(trees));
 
-    fn update(&mut self, _event: &namui::Event) {}
+            ctx.done()
+        })
+    }
 }
