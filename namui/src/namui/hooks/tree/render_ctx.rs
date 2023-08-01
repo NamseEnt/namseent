@@ -92,7 +92,7 @@ impl<'a> RenderCtx {
         self.tree_ctx.add_sig_updated(sig_id)
     }
 
-    pub fn use_web_event(&self, use_web_event: impl 'static + Fn(&crate::WebEvent)) {
+    pub fn use_web_event(&self, use_web_event: impl 'static + Fn(&crate::web::WebEvent)) {
         *self.instance.web_event_listener.lock().unwrap() = Some(Box::new(use_web_event));
     }
 }
