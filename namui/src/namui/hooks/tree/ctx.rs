@@ -1,5 +1,5 @@
 use super::*;
-use crate::{RenderingTree, WebEvent};
+use crate::{web::WebEvent, RenderingTree};
 use std::{
     cell::RefCell,
     collections::{HashMap, VecDeque},
@@ -101,7 +101,7 @@ impl TreeContext {
 
             let mut is_need_to_re_render = false;
             while !is_need_to_re_render {
-                let web_event = crate::handle_web_event(Some(&rendering_tree));
+                let web_event = crate::web::handle_web_event(Some(&rendering_tree));
 
                 if let Some(web_event) = web_event {
                     self.propgate_web_event(web_event);

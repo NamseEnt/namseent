@@ -9,7 +9,7 @@ mod render;
 mod skia;
 pub mod system;
 pub mod utils;
-mod web_event;
+use crate::web::handle_web_event;
 
 pub use self::futures::*;
 pub use self::random::*;
@@ -42,7 +42,6 @@ pub(crate) use skia::{ColorFilter, Paint, Path};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 pub use system::*;
-pub use web_event::{handle_web_event, WebEvent};
 
 pub fn init() -> NamuiContext {
     let namui_context = NamuiContext::new();

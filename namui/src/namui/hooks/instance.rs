@@ -15,7 +15,7 @@ pub(crate) struct ComponentInstance {
     pub(crate) memo_used_sigs_list: Mutex<Vec<Vec<SigId>>>,
     pub(crate) render_used_sigs: Mutex<Vec<SigId>>,
     pub(crate) is_first_render: AtomicBool,
-    pub(crate) web_event_listener: Mutex<Option<Box<dyn Fn(&crate::WebEvent)>>>,
+    pub(crate) web_event_listener: Mutex<Option<Box<dyn Fn(&crate::web::WebEvent)>>>,
 }
 
 impl Debug for ComponentInstance {

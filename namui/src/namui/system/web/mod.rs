@@ -1,9 +1,11 @@
 mod async_func;
+mod event;
 mod sync_func;
 
 use super::*;
 use crate::*;
 pub use async_func::*;
+pub use event::{handle_web_event, WebEvent};
 use serde::de::DeserializeOwned;
 use std::{
     collections::HashMap,
