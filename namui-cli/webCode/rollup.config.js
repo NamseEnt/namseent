@@ -11,6 +11,7 @@ const defaultConfig = {
         dir: "../www",
         format: "iife",
         sourcemap: true,
+        intro: `const NAMUI_ENV = "${process.env.NAMUI_ENV}";`,
     },
     plugins: [
         nodePolyfills(),

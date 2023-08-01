@@ -3,6 +3,15 @@ import { enqueueWebEvent, shiftWebEvent } from "./webEvent";
 import { runMessageLoopForMain } from "../messageLoop";
 import { AsyncMessageFromWorker } from "../type";
 import { cacheGet, cacheSet } from "../cache";
+import { initHotReload } from "../hotReload";
+
+declare global {
+    const NAMUI_ENV: "production" | "development";
+}
+
+if (NAMUI_ENV === "development") {
+    initHotReload();
+}
 
 (window as any).cacheGet = cacheGet;
 (window as any).cacheSet = cacheSet;

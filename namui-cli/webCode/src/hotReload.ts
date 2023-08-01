@@ -1,5 +1,8 @@
 const errorMessagesElement = createElement();
-createWebSocket();
+
+export function initHotReload() {
+    createWebSocket();
+}
 
 function createElement() {
     const element = document.createElement("div");
