@@ -38,6 +38,12 @@ Hooks v2는 부분 재렌더링 기능을 가지고 있지 않습니다. 이유�
 
 1. `pub enum Event` 를 애용해라.
 
+`Fn(...)` 타입은 파라미터가 무엇을 의미하는지 알 수 없습니다. 첫번째 인자가 뭔지 알 수 없다는 것입니다. rust는 named parameter를 지원하지 않기 때문이죠.
+
+enum을 이용하면 이 문제를 해결할 수 있습니다. rust의 enum은 단순히 이름뿐만 아니라 값 또한 가지기 때문에, 훌륭한 named paramter가 되어줍니다.
+
+또한 하나의 `on_event`로 여러 이벤트를 처리할 수 있다는 것도 장점입니다.
+
 ```rust
 #[namui::component]
 pub struct MyComponent<'a> {
@@ -46,6 +52,48 @@ pub struct MyComponent<'a> {
 }
 
 pub enum Event {
-    ...
+    Hello {
+        world: string,
+    }
+    Other {
+        another: string,
+    }
 }
 ```
+
+2. `enum InternalEvent` 를 애용해라.
+
+`pub enum Event`와 마찬가지로, component 내부에서 사용하는 이벤트 핸들러들도 enum을 이용하면 쉽게 정리할 수 있습니다.
+
+```rust
+impl Component for MyComponent<'_> {
+    fn render<'a>(&'a self, ctx: &RenderCtx) -> RenderDone {
+        ...
+
+        ctx.use_children(|ctx| {
+
+            enum InternalEvent {
+                Hello
+            }
+
+            let on_internal_event = |event: InternalEvent| {
+                match event {
+                    ...
+                }
+            };
+
+            ctx.add(Button {
+                on_click: &|| on_internal_event(InternalEvent::Hello),
+            })
+
+            ctx.done()
+        })
+    }
+}
+```
+
+3. struct field에 `&'a Type` 혹은 `Arc<dyn 'a + Trait>` 를 이용해라.
+
+금방 종료될 함수에서 일시적으로 빌린 값을 자식 컴포넌트에 넣어야 할 경우, `Arc`를 사용하면 된다.
+
+`trait Component`는 `fn arc(&self) -> Arc<Self>`를 지원한다. 그래서 맨 뒤에 `.arc()`만 쳐도 쉽게 `Arc`로 캐스팅할 수 있다.
