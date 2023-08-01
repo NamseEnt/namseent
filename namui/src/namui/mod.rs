@@ -9,6 +9,7 @@ mod render;
 mod skia;
 pub mod system;
 pub mod utils;
+mod web_event;
 
 pub use self::futures::*;
 pub use self::random::*;
@@ -26,10 +27,10 @@ pub use namui_context::NamuiContext;
 pub use namui_type as types;
 pub use namui_type::*;
 pub use render::{
-    absolute, clip, draw_rendering_tree, handle_web_event, image::*, on_top, path::*, rect::*,
-    rotate, scale, text::*, text_input, transform, translate, AttachEventBuilder, FileDropEvent,
-    ImageSource, KeyboardEvent, Matrix3x3, MouseCursor, MouseEvent, MouseEventCallback,
-    MouseEventType, RenderingData, RenderingTree, WebEvent, WheelEvent, WheelEventCallback,
+    absolute, clip, draw_rendering_tree, image::*, on_top, path::*, rect::*, rotate, scale,
+    text::*, text_input, transform, translate, AttachEventBuilder, FileDropEvent, ImageSource,
+    KeyboardEvent, Matrix3x3, MouseCursor, MouseEvent, MouseEventCallback, MouseEventType,
+    RenderingData, RenderingTree, WheelEvent, WheelEventCallback,
 };
 pub use serde;
 pub use shader_macro::shader;
@@ -41,6 +42,7 @@ pub(crate) use skia::{ColorFilter, Paint, Path};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 pub use system::*;
+pub use web_event::{handle_web_event, WebEvent};
 
 pub fn init() -> NamuiContext {
     let namui_context = NamuiContext::new();
