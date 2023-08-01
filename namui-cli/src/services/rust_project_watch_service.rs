@@ -1,4 +1,3 @@
-use crate::{debug_println, util::get_cli_root_path};
 use cargo_metadata::MetadataCommand;
 use notify::{DebouncedEvent, PollWatcher, Watcher};
 use regex::Regex;
@@ -8,6 +7,8 @@ use std::{
     str::FromStr,
     time::Duration,
 };
+
+use crate::debug_println;
 
 pub struct RustProjectWatchService {}
 
@@ -67,7 +68,6 @@ impl RustProjectWatchService {
     ) -> Result<(), crate::Error> {
         let local_path_in_repr = Regex::new(r"\(path\+file://([^\)]+)\)$").unwrap();
         let project_root_path = manifest_path.parent().unwrap();
-        let static_root_path = get_cli_root_path().join("www");
         let mut local_dependencies_root_paths = HashSet::new();
 
         let metadata = MetadataCommand::new()
@@ -97,7 +97,6 @@ impl RustProjectWatchService {
                     .iter()
                     .map(|watching_item| root_path.join(watching_item))
             })
-            .chain(std::iter::once(static_root_path))
             .collect::<HashSet<_>>();
 
         let unwatch_paths = watched_paths
