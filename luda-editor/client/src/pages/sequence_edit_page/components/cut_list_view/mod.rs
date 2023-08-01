@@ -13,7 +13,7 @@ pub struct CutListView {
     pub selected_cut_id: Option<Uuid>,
     pub is_focused: bool,
     pub cut_id_memos_map: HashMap<Uuid, Vec<Memo>>,
-    pub on_event: CallbackWithParam<Event>,
+    pub on_event: &'a dyn Fn(Event),
 }
 
 pub enum Event {

@@ -10,7 +10,7 @@ pub struct BackgroundWithEvent {
     pub is_selecting_target: bool,
     pub prev_cut_id: Option<Uuid>,
     pub next_cut_id: Option<Uuid>,
-    pub on_event: CallbackWithParam<Event>,
+    pub on_event: &'a dyn Fn(Event),
 }
 
 pub enum Event {

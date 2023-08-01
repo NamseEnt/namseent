@@ -1,5 +1,6 @@
 use crate::scroll_view::{self};
 use namui::prelude::*;
+use std::sync::Arc;
 
 #[namui::component]
 pub struct ListView<C: Component> {
@@ -26,7 +27,7 @@ impl<C: Component> Component for ListView<C> {
                 xy,
                 scroll_bar_width,
                 height,
-                content: Box::new(ListViewInner {
+                content: Arc::new(ListViewInner {
                     height,
                     item_wh,
                     items: items.clone(),

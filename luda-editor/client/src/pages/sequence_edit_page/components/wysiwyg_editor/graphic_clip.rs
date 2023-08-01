@@ -10,7 +10,7 @@ pub struct GraphicClip {
     pub wh: Wh<Px>,
     pub dragging: Option<Dragging>,
     pub cg_files: Vec<CgFile>,
-    pub on_event: CallbackWithParam<Event>,
+    pub on_event: &'a dyn Fn(Event),
 }
 
 pub enum Event {

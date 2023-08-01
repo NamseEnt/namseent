@@ -8,7 +8,7 @@ pub struct MemoEditor {
     pub wh: Wh<Px>,
     pub sequence_id: Uuid,
     pub cut_id: Uuid,
-    pub on_event: CallbackWithParam<Event>,
+    pub on_event: &'a dyn Fn(Event),
 }
 
 pub enum Event {

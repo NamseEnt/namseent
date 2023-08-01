@@ -143,7 +143,12 @@ impl TreeContext {
                                         state_list[sig_id.index] =
                                             value.lock().unwrap().take().unwrap();
                                     }
-                                    SigIdType::Atom => todo!(),
+                                    SigIdType::Atom => {
+                                        crate::hooks::atom::set_atom_value(
+                                            sig_id.index,
+                                            value.lock().unwrap().take().unwrap(),
+                                        );
+                                    }
                                     SigIdType::Memo => unreachable!(),
                                     SigIdType::As => unreachable!(),
                                 }
@@ -163,7 +168,10 @@ impl TreeContext {
                                         let mutate = mutate.lock().unwrap().take().unwrap();
                                         mutate(state);
                                     }
-                                    SigIdType::Atom => todo!(),
+                                    SigIdType::Atom => {
+                                        let mutate = mutate.lock().unwrap().take().unwrap();
+                                        crate::hooks::atom::mutate_atom_value(sig_id.index, mutate);
+                                    }
                                     SigIdType::Memo => unreachable!(),
                                     SigIdType::As => unreachable!(),
                                 }

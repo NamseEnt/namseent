@@ -11,7 +11,7 @@ pub struct CutCell {
     pub memo_count: usize,
     pub is_selected: bool,
     pub is_focused: bool,
-    pub on_click: CallbackWithParam<Uuid>,
+    pub on_click: &'a dyn Fn(Uuid),
 }
 
 impl Component for CutCell {

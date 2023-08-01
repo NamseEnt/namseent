@@ -28,7 +28,7 @@ pub struct WysiwygEditor {
     pub screen_graphics: Vec<(Uuid, ScreenGraphic)>,
     pub project_id: Uuid,
     pub cg_files: Vec<CgFile>,
-    pub on_click_character_edit: CallbackWithParam<character_editor::EditTarget>,
+    pub on_click_character_edit: &'a dyn Fn(character_editor::EditTarget),
 }
 
 impl Component for WysiwygEditor {

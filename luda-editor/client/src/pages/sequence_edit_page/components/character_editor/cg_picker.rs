@@ -1,6 +1,6 @@
 use super::*;
 use crate::{color, storage::get_project_cg_thumbnail_image_url};
-use namui_prebuilt::{scroll_view::scroll_view_auto_scroll, table::hooks::TableCell, *};
+use namui_prebuilt::{table::hooks::TableCell, *};
 use rpc::data::CgFile;
 
 const OUTER_PADDING: Px = px(8.0);
@@ -11,20 +11,23 @@ const CHARACTER_THUMBNAIL_WH: Wh<Px> = Wh {
 };
 
 #[namui::component]
-pub struct CgPicker {
+pub struct CgPicker<'a> {
     pub wh: Wh<Px>,
     pub project_id: Uuid,
-    pub on_move_in_cg_file_thumbnail: CallbackWithParam<OnMoveInCgFileThumbnail>,
-    pub on_click_cg_file_thumbnail: CallbackWithParam<Uuid>,
+    pub on_event: &'a dyn Fn(Event),
 }
 
-impl Component for CgPicker {
+pub enum Event {
+    MoveInCgFileThumbnail { global_xy: Xy<Px>, name: String },
+    ClickCgFileThumbnail { cg_id: Uuid },
+}
+
+impl Component for CgPicker<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             wh,
             project_id,
-            ref on_move_in_cg_file_thumbnail,
-            ref on_click_cg_file_thumbnail,
+            on_event,
         } = self;
         let (cg_file_list, _) = use_atom(&CG_FILES_ATOM);
 
@@ -32,36 +35,35 @@ impl Component for CgPicker {
             ctx.add(table::hooks::padding(OUTER_PADDING, |wh| {
                 let max_items_per_row =
                     (wh.width / (CHARACTER_THUMBNAIL_WH.width)).floor() as usize;
-                scroll_view_auto_scroll(scroll_view::Props2 {
+                scroll_view::AutoScrollView {
                     xy: Xy::zero(),
                     scroll_bar_width: 4.px(),
                     height: wh.height,
                     content: table::hooks::vertical(cg_file_list.chunks(max_items_per_row).map(
                         |cg_files| {
                             table::hooks::fixed(CHARACTER_THUMBNAIL_WH.height, |wh| {
-                                table::hooks::horizontal(cg_files.iter().map(|cg_file| {
-                                    render_thumbnail(
-                                        cg_file,
-                                        project_id,
-                                        on_move_in_cg_file_thumbnail.clone(),
-                                        on_click_cg_file_thumbnail.clone(),
-                                    )
-                                }))(wh)
+                                table::hooks::horizontal(
+                                    cg_files.iter().map(|cg_file| {
+                                        render_thumbnail(cg_file, project_id, on_event)
+                                    }),
+                                )(wh)
                             })
                         },
-                    ))(wh),
-                })
-            })(wh))
+                    ))(wh)
+                    .arc(),
+                }
+            })(wh));
+
+            ctx.done()
         })
     }
 }
 
-fn render_thumbnail(
-    cg_file: &CgFile,
+fn render_thumbnail<'a>(
+    cg_file: &'a CgFile,
     project_id: Uuid,
-    on_move_in_cg_file_thumbnail: CallbackWithParam<OnMoveInCgFileThumbnail>,
-    on_click_cg_file_thumbnail: CallbackWithParam<Uuid>,
-) -> TableCell {
+    on_event: &'a dyn Fn(Event),
+) -> TableCell<'a> {
     table::hooks::fixed(CHARACTER_THUMBNAIL_WH.width, move |wh| {
         table::hooks::padding(INNER_PADDING, |wh| {
             render([
@@ -87,12 +89,14 @@ fn render_thumbnail(
                         move |builder| {
                             builder
                                 .on_mouse_move_in(move |e: MouseEvent| {
-                                    on_move_in_cg_file_thumbnail.call(OnMoveInCgFileThumbnail {
+                                    on_event(Event::MoveInCgFileThumbnail {
                                         global_xy: e.global_xy,
                                         name: cg_file_name.clone(),
                                     })
                                 })
-                                .on_mouse_down_in(move |_| on_click_cg_file_thumbnail.call(cg_id));
+                                .on_mouse_down_in(move |_| {
+                                    on_event(Event::ClickCgFileThumbnail { cg_id })
+                                });
                         }
                     }),
             ])

@@ -21,64 +21,31 @@ set_state등을 이용해서 Sig를 변경할 수 있습니다. Sig가 변경되
 예를 들면 다음과 같습니다,
 
 ```rust
-let (a, set_a) = use_state(|| 0);
+let (a, set_a) = ctx.use_state(|| 0);
 
-use_effect("When 'a' changed", || {
+ctx.use_effect("When 'a' changed", || {
     println!("a: {}", *a);  // <- a를 Deref(*)했기 때문에, 이 use_effect는 'a'라는 Sig를 사용했다는 것을 저장합니다.
 });                         //    그래서 'a'가 set_a 로 변경되면 이 effect는 재실행됩니다.
                             //    'a'가 변경되지 않았으면, 이 effect는 실행되지 않습니다.
-```
-
-## Event는 1 컴포넌트당 1개씩!
-
-컴포넌트가 처리할 Event를 연결할 수 있습니다. 그런 컴포넌트의 경우, EventCallback을 만들 수 있는 EventContext를 render할 때 매개변수로 받게 됩니다.
-
-EventCallback는 매우 가볍고 Clone이 가능하기 때문에, 자식, 손자에게 깊게 전달해도 괜찮습니다.
-
-EventCallback에는 Component Id가 저장되어 있습니다. 그래서 그 정보를 통해 재렌더링때 대상 컴포넌트의 event 핸들러를 실행합니다.
-
-```rust
-enum Event {
-    Hello
-}
-impl Component for Mycomponent {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        // ...
-
-        use_render_with_event(
-            |event: Event| {
-                match event {
-                    Event::Hello => println!("World!"),
-                }
-            },
-            |ctx| {
-                Button {
-                    on_click: ctx.event(Event::Hello),
-                },
-            },
-        )
-    }
-}
-```
-
-만약 컴포넌트에 연결할 Event가 없다면 굳이 연결하지 않아도 됩니다!
-
-```rust
-impl Component for Mycomponent {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let text = "I don't have event!";
-        ctx.use_render(
-            |ctx| {
-                Text {
-                    text: text.as_sig()
-                },
-            },
-        )
-    }
-}
 ```
 
 ## 무조건 재렌더
 
 Hooks v2는 부분 재렌더링 기능을 가지고 있지 않습니다. 이유는 단순합니다: 그렇게 하면 더 단순하고 안전하게 코드를 짤 수 있기 때문입니다.
 앞으로 점점 최적화가 될 수도 있기 때문에, 영원히 부분 재렌더링 기능이 없을 것이라고는 말씀드릴 수 없습니다. 다만, 현재는 성능의 이슈가 심하게 나타나지 않는 이상, 지금의 심플한 코드 형태를 가져가는데 집중할 것입니다.
+
+## Hooks 10계명
+
+1. `pub enum Event` 를 애용해라.
+
+```rust
+#[namui::component]
+pub struct MyComponent<'a> {
+    ...
+    pub on_event: &'a dyn Fn(Event),
+}
+
+pub enum Event {
+    ...
+}
+```

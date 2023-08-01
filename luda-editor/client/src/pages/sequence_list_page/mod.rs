@@ -209,7 +209,6 @@ impl Component for SequenceListPage {
                 });
             }
 
-            namui::log!("rename_modal: {:?}", rename_modal);
             if let Some((sequence_id, ref initial_sequence_name)) = *rename_modal {
                 namui::log!("render rename modal");
                 ctx.add(RenameModal {

@@ -13,7 +13,7 @@ pub struct AutoCompleteTextInput {
     pub wh: Wh<Px>,
     pub text: String,
     pub candidates: Arc<Vec<String>>,
-    pub on_event: CallbackWithParam<Event>,
+    pub on_event: &'a dyn Fn(Event),
     pub req_queue: VecDeque<Request>,
 }
 

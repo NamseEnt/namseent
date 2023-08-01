@@ -1,25 +1,6 @@
 use namui::prelude::*;
 use namui_prebuilt::*;
 
-enum Item<'a> {
-    Button {
-        text: String,
-        on_click: Box<dyn 'a + Fn() + Send + Sync>,
-    },
-
-    #[allow(dead_code)]
-    Divider,
-}
-
-impl std::fmt::Debug for Item<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Item::Button { text, .. } => f.debug_struct("Button").field("text", text).finish(),
-            Item::Divider => f.debug_struct("Divider").finish(),
-        }
-    }
-}
-
 pub fn use_context_menu<'a>(global_xy: Xy<Px>, close: impl 'a + Fn()) -> ContextMenuBuilder<'a> {
     ContextMenuBuilder {
         global_xy,
@@ -55,25 +36,30 @@ impl<'a> ContextMenuBuilder<'a> {
     }
 }
 
+enum Item<'a> {
+    Button {
+        text: String,
+        on_click: Box<dyn 'a + Fn() + Send + Sync>,
+    },
+
+    #[allow(dead_code)]
+    Divider,
+}
+
+impl std::fmt::Debug for Item<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Item::Button { text, .. } => f.debug_struct("Button").field("text", text).finish(),
+            Item::Divider => f.debug_struct("Divider").finish(),
+        }
+    }
+}
+
 #[namui::component]
 pub struct ContextMenu<'a> {
     global_xy: Xy<Px>,
     items: Vec<Item<'a>>,
     close: Box<dyn 'a + Fn()>,
-}
-
-impl<'a> ContextMenu<'a> {
-    pub fn new(
-        global_xy: Xy<Px>,
-        items: impl IntoIterator<Item = Item<'a>>,
-        close: impl 'a + Fn(),
-    ) -> Self {
-        Self {
-            global_xy,
-            items: items.into_iter().collect(),
-            close: Box::new(close),
-        }
-    }
 }
 
 impl Component for ContextMenu<'_> {

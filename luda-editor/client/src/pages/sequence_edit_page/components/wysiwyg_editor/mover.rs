@@ -6,7 +6,7 @@ pub struct Mover {
     pub image_dest_rect: Rect<Px>,
     pub dragging: Option<Dragging>,
     pub container_wh: Wh<Px>,
-    pub on_event: CallbackWithParam<Event>,
+    pub on_event: &'a dyn Fn(Event),
 }
 
 pub enum Event {

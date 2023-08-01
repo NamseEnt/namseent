@@ -3,7 +3,6 @@ use crate::{
     pages::sequence_edit_page::atom::SEQUENCE_ATOM, storage::get_project_cg_part_variant_image_url,
 };
 use namui_prebuilt::{
-    scroll_view::scroll_view_auto_scroll,
     table::hooks::TableCell,
     typography::{center_text, center_text_full_height},
     *,
@@ -20,14 +19,14 @@ const THUMBNAIL_WH: Wh<Px> = Wh {
 };
 
 #[namui::component]
-pub struct PartPicker {
+pub struct PartPicker<'a> {
     pub wh: Wh<Px>,
-    pub cg_file: CgFile,
+    pub cg_file: &'a CgFile,
     pub project_id: Uuid,
     pub cut_id: Uuid,
     pub graphic_index: Uuid,
-    pub screen_cg: ScreenCg,
-    pub on_event: CallbackWithParam<Event>,
+    pub screen_cg: &'a ScreenCg,
+    pub on_event: &'a dyn Fn(Event),
 }
 
 pub enum Event {
@@ -35,16 +34,16 @@ pub enum Event {
     CgChangeButtonClicked,
 }
 
-impl Component for PartPicker {
+impl Component for PartPicker<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             wh,
-            ref cg_file,
+            cg_file,
             project_id,
             cut_id,
             graphic_index,
-            ref screen_cg,
-            ref on_event,
+            screen_cg,
+            on_event,
         } = self;
         let on_event = on_event.clone();
 
@@ -57,7 +56,7 @@ impl Component for PartPicker {
                     .with_mouse_cursor(MouseCursor::Pointer)
                     .attach_event(|builder| {
                         builder.on_mouse_down_in(move |_| {
-                            on_event.call(Event::CgChangeButtonClicked);
+                            on_event(Event::CgChangeButtonClicked);
                         });
                     }),
             ])
@@ -86,16 +85,16 @@ impl Component for PartPicker {
                 table::hooks::vertical([
                     table::hooks::fixed(BUTTON_HEIGHT, |wh| cg_select_button(wh)),
                     render_divider(BUTTON_HEIGHT),
-                    table::hooks::ratio(1, |wh| {
-                        scroll_view_auto_scroll(scroll_view::Props2 {
-                            xy: Xy::zero(),
-                            height: wh.height,
-                            scroll_bar_width: 4.px(),
-                            content: cg_part_group_list(wh),
-                        })
+                    table::hooks::ratio(1, |wh| scroll_view::AutoScrollView {
+                        xy: Xy::zero(),
+                        height: wh.height,
+                        scroll_bar_width: 4.px(),
+                        content: cg_part_group_list(wh).arc(),
                     }),
                 ])(wh)
             })(wh));
+
+            ctx.done()
         })
     }
 }
@@ -108,7 +107,7 @@ fn render_cg_part_group<'a>(
     cut_id: Uuid,
     graphic_index: Uuid,
     screen_cg: &'a ScreenCg,
-    on_event: CallbackWithParam<Event>,
+    on_event: &'a dyn Fn(Event),
 ) -> Vec<TableCell<'a>> {
     let no_selection = screen_cg.part(&cg_part.name).unwrap().is_not_selected();
 
@@ -199,9 +198,9 @@ fn render_no_selection_button(
                 simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                     .with_mouse_cursor(MouseCursor::Pointer)
                     .attach_event(move |builder| {
-                        let cg_part_name = cg_part.name.clone();
                         builder.on_mouse_down_in(move |_| {
-                            SEQUENCE_ATOM.mutate(|sequence| {
+                            let cg_part_name = cg_part.name.clone();
+                            SEQUENCE_ATOM.mutate(move |sequence| {
                                 sequence.update_cut(
                                     cut_id,
                                     CutUpdateAction::UnselectCgPart {
@@ -229,7 +228,7 @@ fn render_thumbnail<'a>(
     cut_id: Uuid,
     graphic_index: Uuid,
     screen_cg: &'a ScreenCg,
-    on_event: CallbackWithParam<Event>,
+    on_event: &'a dyn Fn(Event),
 ) -> TableCell<'a> {
     let variant_selected = screen_cg
         .part(&cg_part.name)
@@ -264,14 +263,14 @@ fn render_thumbnail<'a>(
                 .attach_event(|builder| {
                     let selection_type = cg_part.selection_type;
                     let cg_part_variant = cg_part_variant.clone();
-                    let cg_part_name = cg_part.name.clone();
-                    let cg_part_variant_name = cg_part_variant.name.clone();
 
                     match (variant_selected, selection_type) {
                         (_, rpc::data::PartSelectionType::AlwaysOn) => {}
                         (true, _) => {
-                            builder.on_mouse_down_in(move |_| {
-                                SEQUENCE_ATOM.mutate(|sequence| {
+                            builder.on_mouse_down_in(|_| {
+                                let cg_part_name = cg_part.name.clone();
+                                let cg_part_variant_name = cg_part_variant.name.clone();
+                                SEQUENCE_ATOM.mutate(move |sequence| {
                                     sequence.update_cut(
                                         cut_id,
                                         CutUpdateAction::TurnOffCgPartVariant {
@@ -284,8 +283,10 @@ fn render_thumbnail<'a>(
                             });
                         }
                         (false, _) => {
-                            builder.on_mouse_down_in(move |_| {
-                                SEQUENCE_ATOM.mutate(|sequence| {
+                            builder.on_mouse_down_in(|_| {
+                                let cg_part_name = cg_part.name.clone();
+                                let cg_part_variant_name = cg_part_variant.name.clone();
+                                SEQUENCE_ATOM.mutate(move |sequence| {
                                     sequence.update_cut(
                                         cut_id,
                                         CutUpdateAction::TurnOnCgPartVariant {
@@ -299,8 +300,8 @@ fn render_thumbnail<'a>(
                         }
                     };
 
-                    builder.on_mouse_move_in(move |e: MouseEvent| {
-                        on_event.call(Event::MoveInCgFileThumbnail {
+                    builder.on_mouse_move_in(|e: MouseEvent| {
+                        on_event(Event::MoveInCgFileThumbnail {
                             global_xy: e.global_xy,
                             name: cg_part_variant.name.clone(),
                         })

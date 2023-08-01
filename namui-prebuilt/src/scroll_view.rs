@@ -1,14 +1,41 @@
 use namui::prelude::*;
-use std::fmt::Debug;
+use std::sync::Arc;
 
 #[component]
 pub struct ScrollView<'a> {
     pub xy: Xy<Px>,
     pub scroll_bar_width: Px,
     pub height: Px,
-    pub content: Box<dyn Component + 'a>,
+    pub content: Arc<dyn 'a + Component>,
     pub scroll_y: Px,
     pub set_scroll_y: SetState<Px>,
+}
+
+#[component]
+pub struct AutoScrollView<'a> {
+    pub xy: Xy<Px>,
+    pub scroll_bar_width: Px,
+    pub height: Px,
+    pub content: Arc<dyn 'a + Component>,
+}
+
+impl Component for AutoScrollView<'_> {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        let (scroll_y, set_scroll_y) = ctx.use_state(|| 0.px());
+
+        ctx.use_children(|ctx| {
+            ctx.add(ScrollView {
+                xy: self.xy,
+                scroll_bar_width: self.scroll_bar_width,
+                height: self.height,
+                content: self.content.clone(),
+                scroll_y: *scroll_y,
+                set_scroll_y,
+            });
+
+            ctx.done()
+        })
+    }
 }
 
 impl Component for ScrollView<'_> {

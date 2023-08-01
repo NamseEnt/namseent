@@ -37,6 +37,12 @@ impl<'a> ChildrenContext {
         })
     }
 
+    pub fn try_add<C: Component + 'a>(&'a self, try_add: Option<C>) {
+        if let Some(component) = try_add {
+            self.add(component)
+        }
+    }
+
     pub fn done(self) -> ChildrenDone {
         self.tree_ctx
             .clone()

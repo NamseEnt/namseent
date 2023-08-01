@@ -9,6 +9,7 @@ pub struct Router {
 impl Component for Router {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let (route, set_route) = ctx.use_state(|| Route::from(get_path_from_hash()));
+        namui::log!("route: {:?}", route);
 
         ctx.use_web_event(move |web_event| {
             if let namui::WebEvent::HashChange { .. } = web_event {
@@ -28,13 +29,11 @@ impl Component for Router {
                 Route::SequenceEditPage {
                     project_id,
                     sequence_id,
-                } => {
-                    //     ctx.add(sequence_edit_page::SequenceEditPage {
-                    //     wh,
-                    //     project_id,
-                    //     sequence_id,
-                    // })
-                }
+                } => ctx.add(sequence_edit_page::SequenceEditPage {
+                    wh,
+                    project_id,
+                    sequence_id,
+                }),
             }
 
             ctx.done()
@@ -42,7 +41,7 @@ impl Component for Router {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum Route {
     ProjectListPage,
     SequenceListPage { project_id: Uuid },

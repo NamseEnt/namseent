@@ -48,7 +48,7 @@ impl Component for ToolTip {
         });
 
         let Some(tooltip_bounding_box) = tooltip.get_bounding_box() else {
-            return use_render_nothing();
+            return ctx.use_no_children();
         };
 
         let screen_size = screen::size();
@@ -59,6 +59,7 @@ impl Component for ToolTip {
                 (global_xy.y + OFFSET).min(max_xy.y).max(0.px()),
                 tooltip,
             )));
+            ctx.done()
         })
     }
 }
