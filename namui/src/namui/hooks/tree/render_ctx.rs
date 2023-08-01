@@ -22,13 +22,20 @@ impl<'a> RenderCtx {
         }
     }
 
-    // pub fn use_atom_init< T: Debug + Send + Sync + 'static>(
-    //     &'a self,
-    //     atom: &'static Atom<T>,
-    //     init: impl FnOnce() -> T,
-    // ) -> (Sig<'a, T>, SetState<T>) {
-    //     todo!()
-    // }
+    pub fn use_atom_init<T: Debug + Send + Sync + 'static>(
+        &'a self,
+        atom: &'static Atom<T>,
+        init: impl FnOnce() -> T,
+    ) -> (Sig<'a, T>, SetState<T>) {
+        handle_use_atom_init(atom, init)
+    }
+
+    pub fn use_atom<T: Debug + Send + Sync + 'static>(
+        &'a self,
+        atom: &'static Atom<T>,
+    ) -> (Sig<'a, T>, SetState<T>) {
+        handle_use_atom(atom)
+    }
 
     pub fn use_state<T: 'static + Debug + Send + Sync>(
         &'a self,

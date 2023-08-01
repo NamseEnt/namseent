@@ -40,7 +40,7 @@ impl Component for SequenceEditPage {
         ctx.use_children(|ctx| {
             match data.as_ref() {
                 Some(result) => match result {
-                    Ok(data) => 
+                    Ok(data) => {}
                     // ctx.add(LoadedSequenceEditorPage {
                     //     cut_id_memos_map: data.cut_id_memos_map.clone(),
                     //     project_shared_data: data.project_shared_data.clone(),

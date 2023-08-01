@@ -29,15 +29,23 @@ pub enum WebEvent {
         delta_y: isize,
     },
     HashChange {
-        newURL: String,
-        oldURL: String,
+        new_url: String,
+        old_url: String,
     },
     // Drop {
     //     dataTransfer: Option<web_sys::DataTransfer>,
     //     x: usize,
     //     y: usize,
     // },
-    SelectionChange,
+    SelectionChange {
+        #[serde(rename = "selectionDirection")]
+        selection_direction: String,
+        #[serde(rename = "selectionStart")]
+        selection_start: usize,
+        #[serde(rename = "selectionEnd")]
+        selection_end: usize,
+        text: String,
+    },
     KeyDown {
         code: String,
     },
@@ -53,6 +61,39 @@ pub enum WebEvent {
     AsyncFunction {
         id: usize,
     },
+    TextInputTextUpdated {
+        text: String,
+    },
+    TextInputKeyDown {
+        code: String,
+        text: String,
+        #[serde(rename = "selectionDirection")]
+        selection_direction: String,
+        #[serde(rename = "selectionStart")]
+        selection_start: usize,
+        #[serde(rename = "selectionEnd")]
+        selection_end: usize,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum SelectionDirection {
+    Forward,
+    Backward,
+    None,
+}
+
+impl TryFrom<&str> for SelectionDirection {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "forward" => Ok(SelectionDirection::Forward),
+            "backward" => Ok(SelectionDirection::Backward),
+            "none" => Ok(SelectionDirection::None),
+            _ => Err(()),
+        }
+    }
 }
 
 #[wasm_bindgen]
@@ -151,7 +192,17 @@ pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) -> Option<WebEve
             });
         }
         &WebEvent::HashChange { .. } => {}
-        &WebEvent::SelectionChange => todo!("crate::system::text_input::on_selection_change()"),
+        &WebEvent::SelectionChange {
+            ref selection_direction,
+            selection_start,
+            selection_end,
+            ref text,
+        } => crate::system::text_input::on_selection_change(
+            SelectionDirection::try_from(selection_direction.as_str()).unwrap(),
+            selection_start,
+            selection_end,
+            text,
+        ),
         &WebEvent::KeyDown { ref code } => crate::keyboard::on_key_down(&code),
         &WebEvent::KeyUp { ref code } => crate::keyboard::on_key_up(&code),
         &WebEvent::Blur => crate::keyboard::reset_pressing_code_set(),
@@ -162,6 +213,14 @@ pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) -> Option<WebEve
         &WebEvent::AsyncFunction { id } => {
             crate::system::web::on_async_function_executed(id);
         }
+        &WebEvent::TextInputTextUpdated { ref text } => {}
+        &WebEvent::TextInputKeyDown {
+            ref code,
+            ref text,
+            ref selection_direction,
+            selection_end,
+            selection_start,
+        } => {}
     }
 
     Some(web_event)

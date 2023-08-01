@@ -3,26 +3,33 @@ use crate::text::*;
 use std::ops::Range;
 
 pub(crate) fn on_mouse_down_in_before_attach_event_calls() {
-    *TEXT_INPUT_SYSTEM.dragging_text_input.lock().unwrap() = None;
+    text_input_system_mutate(|text_input_system| {
+        text_input_system.dragging_text_input = None;
+    });
 }
 
 pub(crate) fn on_mouse_down_in_after_attach_event_calls() {
-    if TEXT_INPUT_SYSTEM
-        .dragging_text_input
-        .lock()
-        .unwrap()
-        .is_none()
-    {
-        let input_element = get_input_element();
-        input_element.blur().unwrap();
+    if text_input_system().dragging_text_input.is_none() {
+        web::execute_function_sync(
+            "
+            textArea.blur();
+        ",
+        )
+        .run::<()>();
 
-        let mut last_focused_text_input = TEXT_INPUT_SYSTEM.last_focused_text_input.lock().unwrap();
-        if let Some(last_focused_text_input) = last_focused_text_input.as_ref() {
-            crate::event::send(text_input::Event::Blur {
-                id: last_focused_text_input.id.clone(),
-            });
-        }
-        *last_focused_text_input = None;
+        // text_input_system_mutate(|text_input_system| {
+        //     text_input_system.last_focused_text_input = None;
+        // });
+
+        TEXT_INPUT_ATOM.mutate(|x| {
+            x.last_focused_text_input = None;
+        });
+
+        // if let Some(last_focused_text_input) = last_focused_text_input.as_ref() {
+        //     crate::event::send(text_input::Event::Blur {
+        //         id: last_focused_text_input.id.clone(),
+        //     });
+        // }
     }
 }
 
@@ -30,60 +37,54 @@ pub(crate) fn on_mouse_down_in_at_attach_event_calls(
     local_xy: Xy<Px>,
     custom_data: &TextInputCustomData,
 ) {
-    let input_element = get_input_element();
-    let mut last_focused_text_input = TEXT_INPUT_SYSTEM.last_focused_text_input.lock().unwrap();
-
-    *TEXT_INPUT_SYSTEM.dragging_text_input.lock().unwrap() = Some(custom_data.clone());
-
-    if let Some(last_focused_text_input) = &*last_focused_text_input {
-        if last_focused_text_input.id.ne(&custom_data.id) {
-            crate::event::send(text_input::Event::Blur {
-                id: last_focused_text_input.id.clone(),
-            });
-        }
+    text_input_system_mutate(|text_input_system| {
+        text_input_system.dragging_text_input = Some(custom_data.clone());
+        // text_input_system.last_focused_text_input = Some(custom_data.clone());
+    });
+    {
+        let custom_data = custom_data.clone();
+        TEXT_INPUT_ATOM.mutate(move |x| {
+            x.last_focused_text_input = Some(custom_data.clone());
+        });
     }
 
-    *last_focused_text_input = Some(custom_data.clone());
+    // if let Some(last_focused_text_input) = &*last_focused_text_input {
+    //     if last_focused_text_input.id.ne(&custom_data.id) {
+    //         crate::event::send(text_input::Event::Blur {
+    //             id: last_focused_text_input.id.clone(),
+    //         });
+    //     }
+    // }
 
-    update_focus_with_mouse_movement(&custom_data, input_element, local_xy, false);
+    update_focus_with_mouse_movement(&custom_data, local_xy, false);
 }
-pub(crate) fn on_mouse_move(rendering_tree: &RenderingTree) {
-    let dragging_text_input = TEXT_INPUT_SYSTEM.dragging_text_input.lock().unwrap();
-    if dragging_text_input.is_none() {
-        return;
-    }
-    let dragging_text_input = dragging_text_input.as_ref().unwrap();
+pub(crate) fn on_mouse_move(rendering_tree: &RenderingTree, mouse_xy: Xy<Px>) {
+    let text_input_system = text_input_system();
+    let Some(dragging_text_input) = &text_input_system.dragging_text_input else {return};
 
-    let custom_data = find_text_input_by_id(rendering_tree, dragging_text_input.id);
-    if custom_data.is_none() {
-        return;
-    }
-    let custom_data = custom_data.unwrap();
+    let Some(custom_data) = find_text_input_by_id(rendering_tree, dragging_text_input.id) else {return};
 
     let local_xy = get_text_input_xy(rendering_tree, custom_data.id).unwrap();
-    let mouse_local_xy = system::mouse::position() - local_xy;
+    let mouse_local_xy = mouse_xy - local_xy;
 
-    update_focus_with_mouse_movement(&custom_data, get_input_element(), mouse_local_xy, true);
+    update_focus_with_mouse_movement(&custom_data, mouse_local_xy, true);
 }
-pub(crate) fn on_mouse_up_in() {
-    *TEXT_INPUT_SYSTEM.dragging_text_input.lock().unwrap() = None;
+pub(crate) fn on_mouse_up() {
+    text_input_system_mutate(|text_input_system| {
+        text_input_system.dragging_text_input = None;
+    });
 }
 
 fn update_focus_with_mouse_movement(
     custom_data: &TextInputCustomData,
-    input_element: HtmlTextAreaElement,
     local_mouse_xy: Xy<Px>,
     is_mouse_move: bool,
 ) {
     let local_text_xy =
         local_mouse_xy - Xy::new(custom_data.props.text_x(), custom_data.props.text_y());
 
-    let selection = get_selection_on_mouse_movement(
-        &input_element,
-        &custom_data.props,
-        local_text_xy,
-        is_mouse_move,
-    );
+    let selection =
+        get_selection_on_mouse_movement(&custom_data.props, local_text_xy, is_mouse_move);
 
     let selection_direction = match &selection {
         Selection::Range(range) => {
@@ -96,37 +97,35 @@ fn update_focus_with_mouse_movement(
         Selection::None => "none",
     };
 
+    // prev: let utf16_selection = selection.as_utf16(input_element.value());
+    let utf16_selection = selection.as_utf16(&custom_data.props.text);
+    let selection_start = utf16_selection
+        .as_ref()
+        .map_or(0, |selection| selection.start.min(selection.end) as u32);
+    let selection_end = utf16_selection
+        .as_ref()
+        .map_or(0, |selection| selection.start.max(selection.end) as u32);
+
     let width = custom_data.props.rect.width().as_f32();
-    input_element
-        .style()
-        .set_property("width", &format!("{width}px"))
-        .unwrap();
 
-    input_element.set_value(&custom_data.props.text);
-
-    let utf16_selection = selection.as_utf16(input_element.value());
-
-    input_element
-        .set_selection_range_with_direction(
-            utf16_selection
-                .as_ref()
-                .map_or(0, |selection| selection.start.min(selection.end) as u32),
-            utf16_selection
-                .as_ref()
-                .map_or(0, |selection| selection.start.max(selection.end) as u32),
-            selection_direction,
-        )
-        .unwrap();
-
-    input_element.focus().unwrap();
-    crate::event::send(text_input::Event::Focus {
-        id: custom_data.id.clone(),
-    });
+    web::execute_function_sync(
+        "
+        textArea.style.width = `${width}px`;
+        textArea.value = text;
+        textArea.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
+        textArea.focus();
+    ",
+    )
+    .arg("width", width)
+    .arg("text", &custom_data.props.text)
+    .arg("selectionStart", selection_start)
+    .arg("selectionEnd", selection_end)
+    .arg("selectionDirection", selection_direction)
+    .run::<()>();
 }
 
 fn get_selection_on_mouse_movement(
-    input_element: &HtmlTextAreaElement,
-    props: &Props,
+    props: &TextInput,
     click_local_xy: Xy<Px>,
     is_dragging_by_mouse: bool,
 ) -> Selection {
@@ -161,7 +160,7 @@ fn get_selection_on_mouse_movement(
 
     let is_dragging = is_shift_key_pressed || is_dragging_by_mouse;
 
-    let selection = super::get_input_element_selection(input_element);
+    let selection = super::get_input_element_selection_sync();
 
     Selection::Range(get_one_click_selection(
         props,
@@ -175,7 +174,7 @@ fn get_selection_on_mouse_movement(
 }
 
 fn get_one_click_selection(
-    text_input_props: &Props,
+    text_input_props: &TextInput,
     fonts: &Vec<Arc<Font>>,
     line_texts: &LineTexts,
     click_local_xy: Xy<Px>,
@@ -201,7 +200,7 @@ fn get_one_click_selection(
 }
 
 fn get_selection_index_of_xy(
-    text_input_props: &Props,
+    text_input_props: &TextInput,
     fonts: &Vec<Arc<Font>>,
     line_texts: &LineTexts,
     click_local_xy: Xy<Px>,

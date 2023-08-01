@@ -1,3 +1,5 @@
+import { textArea } from "./textInput";
+
 export type WebEvent =
     | {
           MouseDown: {
@@ -33,8 +35,8 @@ export type WebEvent =
       }
     | {
           HashChange: {
-              newURL: string;
-              oldURL: string;
+              new_url: string;
+              old_url: string;
           };
       }
     | {
@@ -50,7 +52,14 @@ export type WebEvent =
     //           y: number;
     //       };
     //   }
-    | "SelectionChange"
+    | {
+          SelectionChange: {
+              selectionDirection: "forward" | "backward" | "none";
+              selectionEnd: number;
+              selectionStart: number;
+              text: string;
+          };
+      }
     | {
           KeyDown: {
               code: string;
@@ -73,6 +82,20 @@ export type WebEvent =
           AsyncFunction: {
               result: any; // this is saved in worker as JsValue.
               id: number;
+          };
+      }
+    | {
+          TextInputTextUpdated: {
+              text: string;
+          };
+      }
+    | {
+          TextInputKeyDown: {
+              code: string;
+              text: string;
+              selectionDirection: "forward" | "backward" | "none";
+              selectionEnd: number;
+              selectionStart: number;
           };
       };
 
@@ -137,8 +160,8 @@ document.addEventListener("wheel", (e) => {
 window.addEventListener("hashchange", (e) => {
     enqueueWebEvent({
         HashChange: {
-            newURL: e.newURL,
-            oldURL: e.oldURL,
+            new_url: e.newURL,
+            old_url: e.oldURL,
         },
     });
 });
@@ -165,7 +188,14 @@ document.addEventListener("dragover", (e) => {
 // });
 
 document.addEventListener("selectionchange", (_e) => {
-    enqueueWebEvent("SelectionChange");
+    enqueueWebEvent({
+        SelectionChange: {
+            selectionDirection: textArea.selectionDirection,
+            selectionEnd: textArea.selectionEnd,
+            selectionStart: textArea.selectionStart,
+            text: textArea.value,
+        },
+    });
 });
 
 document.addEventListener("keydown", (e) => {
@@ -219,6 +249,35 @@ window.addEventListener("resize", (_e) => {
         Resize: {
             width: window.innerWidth,
             height: window.innerHeight,
+        },
+    });
+});
+
+textArea.addEventListener("input", (_e) => {
+    enqueueWebEvent({
+        TextInputTextUpdated: {
+            text: textArea.value,
+        },
+    });
+});
+
+textArea.addEventListener("keydown", (e) => {
+    e.stopImmediatePropagation();
+    if (
+        ["ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(
+            e.code,
+        )
+    ) {
+        e.preventDefault();
+    }
+
+    enqueueWebEvent({
+        TextInputKeyDown: {
+            code: e.code,
+            text: textArea.value,
+            selectionDirection: textArea.selectionDirection,
+            selectionEnd: textArea.selectionEnd,
+            selectionStart: textArea.selectionStart,
         },
     });
 });

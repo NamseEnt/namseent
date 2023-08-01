@@ -30,7 +30,7 @@ pub use render::{
     absolute, clip, draw_rendering_tree, image::*, on_top, path::*, rect::*, rotate, scale,
     text::*, text_input, transform, translate, AttachEventBuilder, FileDropEvent, ImageSource,
     KeyboardEvent, Matrix3x3, MouseCursor, MouseEvent, MouseEventCallback, MouseEventType,
-    RenderingData, RenderingTree, WheelEvent, WheelEventCallback,
+    RenderingData, RenderingTree, TextInput, WheelEvent, WheelEventCallback,
 };
 pub use serde;
 pub use shader_macro::shader;

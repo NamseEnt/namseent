@@ -20,15 +20,20 @@ pub enum KeyInInterest {
     HomeEnd(HomeEnd),
 }
 
-pub(crate) fn on_key_down(code: Code, event: web_sys::KeyboardEvent) {
-    let input_element = get_input_element();
-    let last_focused_text_input = TEXT_INPUT_SYSTEM.last_focused_text_input.lock().unwrap();
+pub struct TextInputKeyDownEvent {
+    selection_start: usize,
+    selection_end: usize,
+    selection_direction: SelectionDirection,
+    code: Code,
+    is_composing: bool,
+    text: String,
+}
 
-    if last_focused_text_input.is_none() {
-        return;
-    }
-    let is_composing = event.is_composing();
-    let last_focused_text_input = last_focused_text_input.as_ref().unwrap();
+pub(crate) fn on_key_down(event: TextInputKeyDownEvent) {
+    let atom = TEXT_INPUT_ATOM.get();
+    let Some(last_focused_text_input) = &atom.last_focused_text_input else {return};
+
+    let is_composing = event.is_composing;
 
     last_focused_text_input
         .props
@@ -39,26 +44,27 @@ pub(crate) fn on_key_down(code: Code, event: web_sys::KeyboardEvent) {
                 let is_prevented_default = Arc::new(AtomicBool::new(false));
 
                 let key_down_event = KeyDownEvent {
-                    code,
+                    code: event.code,
                     is_prevented_default: is_prevented_default.clone(),
                     is_composing,
                 };
                 on_key_down.invoke(key_down_event);
 
                 if is_prevented_default.load(Ordering::Relaxed) {
-                    event.prevent_default();
+                    todo!()
+                    // event.prevent_default();
                 }
             })
         });
 
-    crate::event::send(text_input::Event::KeyDown {
-        id: last_focused_text_input.id.clone(),
-        code,
-    });
-    handle_selection_change(&last_focused_text_input, input_element, code);
+    // crate::event::send(text_input::Event::KeyDown {
+    //     id: last_focused_text_input.id.clone(),
+    //     code,
+    // });
+    handle_selection_change(&last_focused_text_input, event);
 }
 
-fn get_line_texts(props: &text_input::Props) -> Option<LineTexts> {
+fn get_line_texts(props: &text_input::TextInput) -> Option<LineTexts> {
     let font = crate::font::get_font(props.font_type)?;
     let fonts = crate::font::with_fallbacks(font);
     let paint = get_text_paint(props.style.text.color).build();
@@ -70,12 +76,8 @@ fn get_line_texts(props: &text_input::Props) -> Option<LineTexts> {
     ))
 }
 
-fn handle_selection_change(
-    text_input: &TextInputCustomData,
-    input_element: HtmlTextAreaElement,
-    code: Code,
-) {
-    let key_in_interest = match code {
+fn handle_selection_change(text_input: &TextInputCustomData, event: TextInputKeyDownEvent) {
+    let key_in_interest = match event.code {
         Code::ArrowUp => KeyInInterest::ArrowUpDown(ArrowUpDown::Up),
         Code::ArrowDown => KeyInInterest::ArrowUpDown(ArrowUpDown::Down),
         Code::Home => KeyInInterest::HomeEnd(HomeEnd::Home),
@@ -83,10 +85,9 @@ fn handle_selection_change(
         _ => return,
     };
 
-    let selection =
-        get_selection_on_keyboard_down(&input_element, &text_input.props, key_in_interest);
+    let selection = get_selection_on_keyboard_down(&text_input.props, key_in_interest, &event);
 
-    let Some(utf16_selection) = selection.as_utf16(input_element.value()) else {
+    let Some(utf16_selection) = selection.as_utf16(&event.text) else {
         return;
     };
 
@@ -96,21 +97,38 @@ fn handle_selection_change(
         "backward"
     };
 
-    input_element
-        .set_selection_range_with_direction(
-            utf16_selection.start.min(utf16_selection.end) as u32,
-            utf16_selection.start.max(utf16_selection.end) as u32,
-            selection_direction,
+    web::execute_function_sync(
+        "
+        textArea.setSelectionRange(
+            selectionStart,
+            selectionEnd,
+            selectionDirection,
         )
-        .unwrap();
+    ",
+    )
+    .arg(
+        "selectionStart",
+        utf16_selection.start.min(utf16_selection.end) as u32,
+    )
+    .arg(
+        "selectionEnd",
+        utf16_selection.start.max(utf16_selection.end) as u32,
+    )
+    .arg("selectionDirection", selection_direction)
+    .run::<()>();
 }
 
 fn get_selection_on_keyboard_down(
-    input_element: &HtmlTextAreaElement,
-    props: &text_input::Props,
+    props: &text_input::TextInput,
     key: KeyInInterest,
+    event: &TextInputKeyDownEvent,
 ) -> Selection {
-    let selection = super::get_input_element_selection(input_element);
+    let selection = super::get_input_element_selection(
+        event.selection_direction,
+        event.selection_start,
+        event.selection_end,
+        &event.text,
+    );
     let Selection::Range(range) = selection else {
         return Selection::None;
     };

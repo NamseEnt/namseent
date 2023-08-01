@@ -5,7 +5,7 @@ impl TextInput {
     /// Caret is drawn at the end of the text.
     pub(crate) fn draw_caret(
         &self,
-        props: &Props,
+        props: &TextInput,
         line_texts: &LineTexts,
         selection: &Selection,
         paint: Arc<Paint>,

@@ -1,21 +1,13 @@
 use super::*;
 use std::sync::OnceLock;
 
+#[derive(Debug)]
 pub struct Atom<T: Debug + Send + Sync + 'static> {
     _t: std::marker::PhantomData<T>,
     value_index: OnceLock<Arc<Mutex<(Box<dyn Value>, usize)>>>,
 }
 
-impl<T: Debug + Send + Sync + 'static> Clone for Atom<T> {
-    fn clone(&self) -> Self {
-        Self {
-            _t: Default::default(),
-            value_index: self.value_index.clone(),
-        }
-    }
-}
-
-static ATOMS: OnceLock<Arc<Mutex<Vec<Atom<()>>>>> = OnceLock::new();
+static ATOMS: OnceLock<Mutex<Vec<&'static Atom<()>>>> = OnceLock::new();
 
 impl<T: Debug + Send + Sync + 'static> Atom<T> {
     pub const fn uninitialized_new() -> Self {
@@ -25,16 +17,21 @@ impl<T: Debug + Send + Sync + 'static> Atom<T> {
         }
     }
     pub fn get_or_init(&self, init: impl FnOnce() -> T) -> &T {
-        let value_index = self.value_index.get_or_init(|| {
-            let mut atoms = ATOMS.get_or_init(|| Default::default()).lock().unwrap();
+        self.init(init());
+        self.get()
+    }
+    pub fn init(&self, init: T) {
+        self.value_index
+            .set({
+                let mut atoms = ATOMS.get_or_init(|| Default::default()).lock().unwrap();
 
-            atoms.push(self.as_no_generic());
+                atoms.push(self.as_no_generic());
 
-            let index = atoms.len() - 1;
+                let index = atoms.len() - 1;
 
-            Arc::new(Mutex::new((Box::new(init()), index)))
-        });
-        self.value_to_ref(&value_index.lock().unwrap().0)
+                Arc::new(Mutex::new((Box::new(init), index)))
+            })
+            .unwrap();
     }
     pub fn get(&self) -> &T {
         let value_index = self.value_index.get().unwrap().lock().unwrap();
@@ -71,15 +68,12 @@ impl<T: Debug + Send + Sync + 'static> Atom<T> {
             component_id: 0,
         }
     }
-    fn as_no_generic(&self) -> Atom<()> {
-        Atom {
-            _t: std::marker::PhantomData,
-            value_index: self.value_index.clone(),
-        }
+    fn as_no_generic(&self) -> &'static Atom<()> {
+        unsafe { std::mem::transmute(self) }
     }
 }
 
-pub fn use_atom_init<'a, T: Any + Send + Sync + Debug>(
+pub(crate) fn handle_use_atom_init<'a, T: Any + Send + Sync + Debug>(
     atom: &'static Atom<T>,
     init: impl FnOnce() -> T,
 ) -> (Sig<'a, T>, SetState<T>) {
@@ -89,7 +83,7 @@ pub fn use_atom_init<'a, T: Any + Send + Sync + Debug>(
     )
 }
 
-pub fn use_atom<'a, T: Any + Send + Sync + Debug>(
+pub(crate) fn handle_use_atom<'a, T: Any + Send + Sync + Debug>(
     atom: &'static Atom<T>,
 ) -> (Sig<'a, T>, SetState<T>) {
     (

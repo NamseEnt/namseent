@@ -1,6 +1,6 @@
-use super::Props;
+use super::TextInput;
 use crate::{
-    namui::{self, RenderingTree, TextInput},
+    namui::{self, RenderingTree},
     render,
     system::text_input::Selection,
     text::*,
@@ -11,7 +11,7 @@ use std::sync::Arc;
 impl TextInput {
     pub(crate) fn draw_texts_divided_by_selection(
         &self,
-        props: &Props,
+        props: &TextInput,
         fonts: &Vec<Arc<Font>>,
         paint: Arc<Paint>,
         line_texts: &LineTexts,
@@ -74,6 +74,7 @@ impl TextInput {
                 let is_single_line = left_caret.line_index == right_caret.line_index;
                 let selected_lines = if is_single_line {
                     let y = y_of_line(left_caret.line_index);
+                    crate::log!("here? 0");
                     self.render_single_line(
                         &props,
                         &fonts,
@@ -95,6 +96,7 @@ impl TextInput {
                         let first_line_text_with_newline =
                             line_texts.iter_chars().nth(left_caret.line_index).unwrap();
 
+                        crate::log!("here?1");
                         self.render_single_line(
                             &props,
                             &fonts,
@@ -114,6 +116,7 @@ impl TextInput {
                         let line_text_with_newline =
                             line_texts.iter_chars().nth(line_index).unwrap();
 
+                        crate::log!("here? 2");
                         self.render_single_line(
                             &props,
                             &fonts,
@@ -130,16 +133,18 @@ impl TextInput {
                     let last_line = {
                         let y = y_of_line(right_caret.line_index);
 
-                        let text = if line_texts.line_len() == right_caret.line_index {
-                            "".chars().collect()
-                        } else {
-                            line_texts
-                                .iter_chars()
-                                .nth(right_caret.line_index)
-                                .unwrap()
-                                .clone()
-                        };
+                        let default = vec![];
 
+                        let text = line_texts
+                            .iter_chars()
+                            .nth(right_caret.line_index)
+                            .unwrap_or(&default);
+
+                        crate::log!(
+                            "here? 3, line_texts: {:#?}\nright_caret: {:#?}",
+                            line_texts,
+                            right_caret
+                        );
                         self.render_single_line(
                             &props,
                             &fonts,
@@ -187,7 +192,7 @@ impl TextInput {
 
     fn render_single_line(
         &self,
-        props: &Props,
+        props: &TextInput,
         fonts: &Vec<Arc<Font>>,
         chars: &Vec<char>,
         y: Px,
@@ -197,6 +202,9 @@ impl TextInput {
         with_newline_background: bool,
         paint: Arc<Paint>,
     ) -> RenderingTree {
+        crate::log!("chars: {:?}", chars);
+        crate::log!("left_caret_index: {:?}", left_caret_index);
+        crate::log!("right_caret_index: {:?}", right_caret_index);
         let (left_text_string, selected_text_string, right_text_string) = (
             &chars[..left_caret_index].iter().collect::<String>(),
             &chars[left_caret_index..right_caret_index]
@@ -284,7 +292,7 @@ impl TextInput {
 
     fn get_text_lefts(
         &self,
-        props: &Props,
+        props: &TextInput,
         fonts: &Vec<Arc<Font>>,
         left_text_string: &str,
         selected_text_string: &str,

@@ -34,7 +34,12 @@ runMessageLoopForMain(workerToMainBufferSab, async (message) => {
         }
         case "executeFunctionSyncOnMain": {
             const { args_names, code, args } = message;
-            return Function(...args_names, code)(...args);
+            try {
+                return Function(...args_names, code)(...args);
+            } catch (error) {
+                console.error(error);
+                console.log("code: ", code);
+            }
         }
         case "cacheGet": {
             const { key } = message;
@@ -63,14 +68,6 @@ if (!bitmapRendererCtx) {
     throw new Error("no bitmapRendererCtx");
 }
 
-window.addEventListener("resize", () => {
-    myWorker.postMessage({
-        type: "windowResize",
-        width: window.innerWidth,
-        height: window.innerHeight,
-    });
-});
-
 const myWorker = new Worker("worker.js", {
     type: "classic",
 });
@@ -86,7 +83,13 @@ runAsyncMessageLoop<AsyncMessageFromWorker>(myWorker, async (message) => {
         }
         case "executeAsyncFunction": {
             const { id, argsNames, code, args } = message;
-            const result = await Function(...argsNames, code)(...args);
+            let result;
+            try {
+                result = await Function(...argsNames, code)(...args);
+            } catch (error) {
+                console.error(error);
+                console.log("code: ", code);
+            }
 
             enqueueWebEvent({
                 AsyncFunction: {

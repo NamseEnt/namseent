@@ -1,274 +1,240 @@
-// mod find;
-// mod key_down;
-// mod mouse_event;
-// mod post_render;
-// mod selection;
+mod find;
+pub(crate) mod key_down;
+mod mouse_event;
+mod post_render;
+mod selection;
 
-// use super::InitResult;
-// use crate::namui::render::text_input::*;
-// use crate::namui::*;
-// pub(crate) use find::*;
-// pub(crate) use key_down::*;
-// pub(crate) use mouse_event::*;
-// pub(crate) use post_render::*;
-// pub use selection::*;
-// use std::str::FromStr;
-// use std::{ops::ControlFlow, sync::Mutex};
-// use wasm_bindgen::{prelude::Closure, JsCast};
-// use web_sys::{Event, HtmlTextAreaElement};
+use super::InitResult;
+use crate::namui::*;
+use crate::{namui::render::text_input::*, web::SelectionDirection};
+pub(crate) use find::*;
+pub(crate) use mouse_event::*;
+pub use selection::*;
+use std::sync::{MutexGuard, OnceLock};
+use std::{ops::ControlFlow, sync::Mutex};
 
-// struct TextInputSystem {
-//     last_focused_text_input: Mutex<Option<TextInputCustomData>>,
-//     dragging_text_input: Mutex<Option<TextInputCustomData>>,
-//     focus_requested_text_input_id: Mutex<Option<Uuid>>,
-// }
-// const TEXT_INPUT_ELEMENT_ID: &str = "text-input";
+#[derive(Debug)]
+struct TextInputSystem {
+    // last_focused_text_input: Option<TextInputCustomData>,
+    dragging_text_input: Option<TextInputCustomData>,
+    focus_requested_text_input_id: Option<Uuid>,
+}
 
-// lazy_static::lazy_static! {
-//     static ref TEXT_INPUT_SYSTEM: Arc<TextInputSystem> = Arc::new(TextInputSystem::new());
-// }
+static TEXT_INPUT_SYSTEM: OnceLock<Mutex<TextInputSystem>> = OnceLock::new();
 
-// pub(super) async fn init() -> InitResult {
-//     lazy_static::initialize(&TEXT_INPUT_SYSTEM);
-//     Ok(())
-// }
+pub(super) async fn init() -> InitResult {
+    TEXT_INPUT_SYSTEM
+        .set(Mutex::new(TextInputSystem {
+            // last_focused_text_input: None,
+            dragging_text_input: None,
+            focus_requested_text_input_id: None,
+        }))
+        .unwrap();
 
-// impl TextInputSystem {
-//     fn new() -> Self {
-//         // let document = web_sys::window().unwrap().document().unwrap();
+    TEXT_INPUT_ATOM.init(TextInputCtx {
+        last_focused_text_input: None,
+        selection: Selection::None,
+    });
 
-//         // let element = document.create_element("textarea").unwrap();
-//         // document.body().unwrap().append_child(&element).unwrap();
+    Ok(())
+}
 
-//         // let input_element = wasm_bindgen::JsCast::dyn_into::<HtmlTextAreaElement>(element).unwrap();
-//         // input_element.set_id(TEXT_INPUT_ELEMENT_ID);
+#[derive(Debug)]
+pub(crate) struct TextInputCtx {
+    last_focused_text_input: Option<TextInputCustomData>,
+    selection: Selection,
+}
 
-//         // input_element
-//         //     .add_event_listener_with_callback(
-//         //         "input",
-//         //         Closure::wrap(Box::new(move |event: web_sys::InputEvent| {
-//         //             let target = wasm_bindgen::JsCast::dyn_into::<HtmlTextAreaElement>(
-//         //                 event.target().unwrap(),
-//         //             )
-//         //             .unwrap();
+pub(crate) static TEXT_INPUT_ATOM: crate::Atom<TextInputCtx> = crate::Atom::uninitialized_new();
 
-//         //             system::text_input::on_text_element_input(&target);
-//         //         }) as Box<dyn FnMut(_)>)
-//         //         .into_js_value()
-//         //         .unchecked_ref(),
-//         //     )
-//         //     .unwrap();
+impl TextInputCtx {
+    pub(crate) fn get_selection_of_text_input(&self, text_input_id: Uuid) -> Selection {
+        if let Some(last_focused_text_input) = &self.last_focused_text_input {
+            if last_focused_text_input.id == text_input_id {
+                return self.selection.clone();
+            }
+        }
+        Selection::None
+    }
+}
 
-//         // input_element
-//         //     .add_event_listener_with_callback(
-//         //         "keydown",
-//         //         Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
-//         //             event.stop_immediate_propagation();
-//         //             let code = Code::from_str(&event.code()).unwrap();
-//         //             crate::keyboard::record_key_down(code);
+fn text_input_system<'a>() -> MutexGuard<'a, TextInputSystem> {
+    TEXT_INPUT_SYSTEM.get().unwrap().lock().unwrap()
+}
 
-//         //             // NOTE: Not support page up/down yet.
-//         //             if [
-//         //                 Code::ArrowUp,
-//         //                 Code::ArrowDown,
-//         //                 Code::Home,
-//         //                 Code::End,
-//         //                 Code::PageUp,
-//         //                 Code::PageDown,
-//         //             ]
-//         //             .contains(&code)
-//         //             {
-//         //                 event.prevent_default();
-//         //             }
-//         //             on_key_down(code, event);
-//         //         }) as Box<dyn FnMut(_)>)
-//         //         .into_js_value()
-//         //         .unchecked_ref(),
-//         //     )
-//         //     .unwrap();
+fn text_input_system_mutate<T>(mutate: impl FnOnce(&mut TextInputSystem) -> T) -> T {
+    let mut text_input_system = TEXT_INPUT_SYSTEM.get().unwrap().lock().unwrap();
+    mutate(&mut text_input_system)
+}
 
-//         // {
-//         //     // NOTE: Below codes from https://github.com/goldfire/CanvasInput/blob/5adbaf00bd42665f3c691796881c7a7a9cf7036c/CanvasInput.js#L126
-//         //     let style = input_element.style();
-//         //     style.set_property("position", "absolute").unwrap();
-//         //     style.set_property("opacity", "0").unwrap();
-//         //     style.set_property("pointerEvents", "none").unwrap();
-//         //     style.set_property("zIndex", "0").unwrap();
-//         //     style.set_property("top", "0px").unwrap();
-//         //     // hide native blue text cursor on iOS
-//         //     style.set_property("transform", "scale(0)").unwrap();
-//         // }
+pub fn is_focused(text_input_id: crate::Uuid) -> bool {
+    TEXT_INPUT_ATOM
+        .get()
+        .last_focused_text_input
+        .as_ref()
+        .map(|text_input| text_input.id == (text_input_id))
+        .unwrap_or(false)
+}
+pub fn focused_text_input_id() -> Option<Uuid> {
+    TEXT_INPUT_ATOM
+        .get()
+        .last_focused_text_input
+        .as_ref()
+        .map(|text_input| text_input.id)
+}
+pub fn last_focus_requested_text_input_id() -> Option<Uuid> {
+    text_input_system().focus_requested_text_input_id
+}
+fn get_text_input_xy(rendering_tree: &RenderingTree, id: crate::Uuid) -> Option<Xy<Px>> {
+    let mut return_value = None;
 
-//         // document
-//         //     .add_event_listener_with_callback(
-//         //         "selectionchange",
-//         //         Closure::wrap(Box::new(move |_: Event| {
-//         //             on_selection_change();
-//         //         }) as Box<dyn FnMut(_)>)
-//         //         .into_js_value()
-//         //         .unchecked_ref(),
-//         //     )
-//         //     .unwrap();
+    rendering_tree.visit_rln(|rendering_tree, util| {
+        match rendering_tree {
+            RenderingTree::Special(special) => match special {
+                render::SpecialRenderingNode::Custom(custom) => {
+                    if let Some(custom_data) = custom.data.downcast_ref::<TextInputCustomData>() {
+                        if custom_data.id == id {
+                            return_value = Some(util.get_xy());
+                            return ControlFlow::Break(());
+                        }
+                    }
+                }
+                _ => {}
+            },
+            _ => {}
+        };
+        ControlFlow::Continue(())
+    });
 
-//         Self {
-//             last_focused_text_input: Mutex::new(None),
-//             dragging_text_input: Mutex::new(None),
-//             focus_requested_text_input_id: Mutex::new(None),
-//         }
-//     }
-// }
-// fn get_input_element() -> HtmlTextAreaElement {
-//     todo!()
-//     // let document = web_sys::window().unwrap().document().unwrap();
-//     // let element = document.get_element_by_id(TEXT_INPUT_ELEMENT_ID).unwrap();
-//     // wasm_bindgen::JsCast::dyn_into::<HtmlTextAreaElement>(element).unwrap()
-// }
-// pub fn is_focused(text_input_id: crate::Uuid) -> bool {
-//     let last_focused_text_input = TEXT_INPUT_SYSTEM.last_focused_text_input.lock().unwrap();
-//     last_focused_text_input
-//         .as_ref()
-//         .map(|text_input| text_input.id == (text_input_id))
-//         .unwrap_or(false)
-// }
-// pub fn focused_text_input_id() -> Option<Uuid> {
-//     TEXT_INPUT_SYSTEM
-//         .last_focused_text_input
-//         .lock()
-//         .unwrap()
-//         .as_ref()
-//         .map(|text_input| text_input.id)
-// }
-// pub fn last_focus_requested_text_input_id() -> Option<Uuid> {
-//     TEXT_INPUT_SYSTEM
-//         .focus_requested_text_input_id
-//         .lock()
-//         .unwrap()
-//         .clone()
-// }
-// fn get_text_input_xy(rendering_tree: &RenderingTree, id: crate::Uuid) -> Option<Xy<Px>> {
-//     let mut return_value = None;
+    return_value
+}
+pub(crate) fn on_text_element_input(text: String) {
+    let atom = TEXT_INPUT_ATOM.get();
+    let Some(last_focused_text_input) = &atom.last_focused_text_input else {
+        return;
+    };
 
-//     rendering_tree.visit_rln(|rendering_tree, util| {
-//         match rendering_tree {
-//             RenderingTree::Special(special) => match special {
-//                 render::SpecialRenderingNode::Custom(custom) => {
-//                     if let Some(custom_data) = custom.data.downcast_ref::<TextInputCustomData>() {
-//                         if custom_data.id == id {
-//                             return_value = Some(util.get_xy());
-//                             return ControlFlow::Break(());
-//                         }
-//                     }
-//                 }
-//                 _ => {}
-//             },
-//             _ => {}
-//         };
-//         ControlFlow::Continue(())
-//     });
+    last_focused_text_input
+        .props
+        .event_handler
+        .as_ref()
+        .map(|event_handler| {
+            event_handler
+                .on_text_updated
+                .as_ref()
+                .map(|on_text_updated| {
+                    on_text_updated.invoke(text.clone());
+                })
+        });
+}
+pub(crate) fn on_selection_change(
+    selection_direction: SelectionDirection,
+    selection_start: usize,
+    selection_end: usize,
+    text: &str,
+) {
+    let atom = TEXT_INPUT_ATOM.get();
+    let Some(last_focused_text_input) = &atom.last_focused_text_input else {
+        return;
+    };
+    let selection =
+        get_input_element_selection(selection_direction, selection_start, selection_end, text).map(
+            |range| {
+                let chars_count = last_focused_text_input.props.text.chars().count();
+                range.start.min(chars_count)..range.end.min(chars_count)
+            },
+        );
 
-//     return_value
-// }
-// fn on_text_element_input(input_element: &HtmlTextAreaElement) {
-//     let text = input_element.value();
-//     let last_focused_text_input = TEXT_INPUT_SYSTEM.last_focused_text_input.lock().unwrap();
-//     if last_focused_text_input.is_none() {
-//         return;
-//     }
-//     let last_focused_text_input = last_focused_text_input.as_ref().unwrap();
+    TEXT_INPUT_ATOM.mutate(move |text_input_ctx| {
+        text_input_ctx.selection = selection;
+    });
+}
 
-//     last_focused_text_input
-//         .props
-//         .event_handler
-//         .as_ref()
-//         .map(|event_handler| {
-//             event_handler
-//                 .on_text_updated
-//                 .as_ref()
-//                 .map(|on_text_updated| {
-//                     on_text_updated.invoke(text.clone());
-//                 })
-//         });
+pub fn focus(text_input_id: crate::Uuid) {
+    web::execute_function_sync(
+        "
+        textArea.focus();
+    ",
+    )
+    .run::<()>();
+    text_input_system()
+        .focus_requested_text_input_id
+        .replace(text_input_id);
+}
 
-//     crate::event::send(text_input::Event::TextUpdated {
-//         id: last_focused_text_input.id.clone(),
-//         text,
-//     })
-// }
-// pub(crate) fn on_selection_change() {
-//     let last_focused_text_input = TEXT_INPUT_SYSTEM.last_focused_text_input.lock().unwrap();
-//     if last_focused_text_input.is_none() {
-//         return;
-//     }
-//     let last_focused_text_input = last_focused_text_input.as_ref().unwrap();
+/// If you have a problem with blur not working, Make sure that you call blur on the composing text input
+pub fn blur() {
+    web::execute_function_sync(
+        "
+        textArea.blur();
+    ",
+    )
+    .run::<()>();
 
-//     let input_element = get_input_element();
-//     let selection = get_input_element_selection(&input_element).map(|selection| {
-//         let chars_count = last_focused_text_input.props.text.chars().count();
-//         selection.start.min(chars_count)..selection.end.min(chars_count)
-//     });
+    text_input_system_mutate(|text_input_system| {
+        text_input_system.focus_requested_text_input_id.take();
+        // text_input_system.last_focused_text_input.take();
+    });
 
-//     crate::event::send(text_input::Event::SelectionUpdated {
-//         id: last_focused_text_input.id.clone(),
-//         selection,
-//     });
-// }
+    TEXT_INPUT_ATOM.mutate(|x| {
+        x.last_focused_text_input = None;
+    });
+}
 
-// pub fn focus(text_input_id: crate::Uuid) {
-//     let input_element = get_input_element();
-//     input_element.focus().unwrap();
-//     TEXT_INPUT_SYSTEM
-//         .focus_requested_text_input_id
-//         .lock()
-//         .unwrap()
-//         .replace(text_input_id);
-// }
+fn get_input_element_selection(
+    selection_direction: SelectionDirection,
+    selection_start: usize,
+    selection_end: usize,
+    text: &str,
+) -> Selection {
+    let utf16_code_unit_selection = {
+        if selection_direction == SelectionDirection::Backward {
+            selection_end..selection_start
+        } else {
+            selection_start..selection_end
+        }
+    };
 
-// /// If you have a problem with blur not working, Make sure that you call blur on the composing text input
-// pub fn blur() {
-//     let input_element = get_input_element();
-//     input_element.blur().unwrap();
-//     TEXT_INPUT_SYSTEM
-//         .focus_requested_text_input_id
-//         .lock()
-//         .unwrap()
-//         .take();
-//     TEXT_INPUT_SYSTEM
-//         .last_focused_text_input
-//         .lock()
-//         .unwrap()
-//         .take();
-// }
+    Selection::from_utf16(Some(utf16_code_unit_selection), text)
+}
 
-// fn get_input_element_selection(input_element: &HtmlTextAreaElement) -> Selection {
-//     let utf16_code_unit_selection = {
-//         let selection_start = input_element.selection_start().unwrap();
-//         if selection_start.is_none() {
-//             None
-//         } else {
-//             let selection_start = selection_start.unwrap() as usize;
-//             let selection_end = input_element.selection_end().unwrap().unwrap() as usize;
-//             let selection_direction = input_element.selection_direction().unwrap().unwrap();
+fn get_input_element_selection_sync() -> Selection {
+    #[derive(serde::Deserialize)]
+    struct Output {
+        selection_direction: String,
+        selection_start: usize,
+        selection_end: usize,
+        text: String,
+    }
+    let output = web::execute_function_sync(
+        "
+        return {
+            selection_direction: textArea.selectionDirection,
+            selection_start: textArea.selectionStart,
+            selection_end: textArea.selectionEnd,
+            text: textArea.value,
+        };
+    ",
+    )
+    .run::<Output>();
 
-//             if selection_direction.eq("backward") {
-//                 Some(selection_end..selection_start)
-//             } else {
-//                 Some(selection_start..selection_end)
-//             }
-//         }
-//     };
-
-//     Selection::from_utf16(utf16_code_unit_selection, input_element.value().as_str())
-// }
+    get_input_element_selection(
+        SelectionDirection::try_from(output.selection_direction.as_str()).unwrap(),
+        output.selection_start,
+        output.selection_end,
+        &output.text,
+    )
+}
 
 // pub(crate) fn get_selection(id: crate::Uuid, text: &str) -> Selection {
-//     let input_element = get_input_element();
-//     let selection = get_input_element_selection(&input_element);
+//     let text_input_system = text_input_system();
+//     let selection = &text_input_system.selection;
 //     let Selection::Range(range) = selection else {
 //         return Selection::None;
 //     };
 
 //     {
-//         let last_focused_text_input = TEXT_INPUT_SYSTEM.last_focused_text_input.lock().unwrap();
+//         let last_focused_text_input = &text_input_system.last_focused_text_input;
 
 //         if last_focused_text_input.is_none() {
 //             return Selection::None;
