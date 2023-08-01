@@ -179,3 +179,8 @@ pub struct RawKeyboardEvent {
 pub struct DeepLinkOpenedEvent {
     pub url: String,
 }
+
+pub(crate) enum DownUp {
+    Down,
+    Up,
+}

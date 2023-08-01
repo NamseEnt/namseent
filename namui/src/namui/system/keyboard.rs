@@ -1,5 +1,5 @@
 use super::InitResult;
-use crate::{namui::render::DownUp, Code};
+use crate::{Code, DownUp};
 use std::{
     collections::HashSet,
     str::FromStr,

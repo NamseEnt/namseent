@@ -250,8 +250,3 @@ impl RenderingData {
             .any(|draw_call| draw_call.is_xy_in(xy))
     }
 }
-
-pub(crate) enum DownUp {
-    Down,
-    Up,
-}
