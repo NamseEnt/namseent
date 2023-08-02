@@ -70,7 +70,7 @@ impl Component for MyComponent<'_> {
     fn render<'a>(&'a self, ctx: &RenderCtx) -> RenderDone {
         ...
 
-        ctx.use_children(|ctx| {
+
 
             enum InternalEvent {
                 Hello
@@ -87,7 +87,6 @@ impl Component for MyComponent<'_> {
             })
 
             ctx.done()
-        })
     }
 }
 ```

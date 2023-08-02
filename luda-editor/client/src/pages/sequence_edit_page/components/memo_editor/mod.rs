@@ -21,7 +21,7 @@ pub enum Event {
 }
 
 impl Component for MemoEditor {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let &Self {
             wh,
             sequence_id,
@@ -183,15 +183,15 @@ impl Component for MemoEditor {
                 )
             }),
         ])(wh);
-        ctx.use_children(|ctx| {
-            ctx.add(hooks::on_top((
-                background,
-                hooks::translate(
-                    (screen_wh.width - wh.width) / 2.0,
-                    (screen_wh.height - wh.height) / 2.0,
-                    (container, content),
-                ),
-            )));
-        })
+
+        ctx.add(hooks::on_top((
+            background,
+            hooks::translate(
+                (screen_wh.width - wh.width) / 2.0,
+                (screen_wh.height - wh.height) / 2.0,
+                (container, content),
+            ),
+        )));
+        ctx.done()
     }
 }

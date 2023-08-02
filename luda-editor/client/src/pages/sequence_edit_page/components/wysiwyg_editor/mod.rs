@@ -32,7 +32,7 @@ pub struct WysiwygEditor {
 }
 
 impl Component for WysiwygEditor {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let &Self {
             wh,
             cut_id,
@@ -255,31 +255,31 @@ impl Component for WysiwygEditor {
                 }
             }
         });
-        ctx.use_children(|ctx| {
-            ctx.add(background);
-            ctx.add(hooks::clip(
-                PathBuilder::new().add_rect(Rect::from_xy_wh(Xy::zero(), wh)),
-                ClipOp::Intersect,
-                Zip::from_iter(screen_graphics.into_iter().map(
-                    move |&(graphic_index, ref screen_graphic)| graphic_clip::GraphicClip {
-                        cut_id,
-                        graphic_index,
-                        graphic: screen_graphic.clone(),
-                        is_editing_graphic: editing_image_index == &Some(graphic_index),
-                        project_id,
-                        wh,
-                        dragging: dragging.clone(),
-                        cg_files: cg_files.clone(),
-                        on_event: graphic_clip_on_event.clone(),
-                    },
-                )),
-            ));
 
-            ctx.add(render_grid_guide(wh));
-            if let Some(context_menu) = context_menu.clone() {
-                ctx.add(context_menu);
-            }
-        })
+        ctx.add(background);
+        ctx.add(hooks::clip(
+            PathBuilder::new().add_rect(Rect::from_xy_wh(Xy::zero(), wh)),
+            ClipOp::Intersect,
+            Zip::from_iter(screen_graphics.into_iter().map(
+                move |&(graphic_index, ref screen_graphic)| graphic_clip::GraphicClip {
+                    cut_id,
+                    graphic_index,
+                    graphic: screen_graphic.clone(),
+                    is_editing_graphic: editing_image_index == &Some(graphic_index),
+                    project_id,
+                    wh,
+                    dragging: dragging.clone(),
+                    cg_files: cg_files.clone(),
+                    on_event: graphic_clip_on_event.clone(),
+                },
+            )),
+        ));
+
+        ctx.add(render_grid_guide(wh));
+        if let Some(context_menu) = context_menu.clone() {
+            ctx.add(context_menu);
+        }
+        ctx.done()
     }
 }
 

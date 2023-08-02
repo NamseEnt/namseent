@@ -15,7 +15,7 @@ pub struct CutCell<'a> {
 }
 
 impl Component for CutCell<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let &Self {
             wh,
             index,
@@ -26,10 +26,10 @@ impl Component for CutCell<'_> {
             on_click,
         } = self;
 
-        ctx.use_children(|ctx| ctx.done())
+        ctx.done()
         // let stroke_color = color::stroke_color(is_selected, is_focused);
         // let cut_id = cut.id;
-        // ctx.use_children(|ctx| {
+        //
         //     ctx.add(transparent_rect(wh).attach_event(|builder| {
         //         let on_click = on_click.clone();
         //         builder.on_mouse_down_in(move |event: MouseEvent| {

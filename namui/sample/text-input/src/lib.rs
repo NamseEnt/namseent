@@ -16,7 +16,7 @@ impl TextInputExample {
 }
 
 impl Component for TextInputExample {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let (text_3x3, set_text_3x3) = ctx.use_state(|| {
             [
                 [
@@ -37,57 +37,55 @@ impl Component for TextInputExample {
             ]
         });
 
-        ctx.use_children(|ctx| {
-            for x in 0..3 {
-                for y in 0..3 {
-                    ctx.add(text_input::TextInput {
-                        rect: Rect::Xywh {
-                            x: (x as f32 * 300.0 + 100.0).px(),
-                            y: (y as f32 * 300.0 + 100.0).px(),
-                            width: px(200.0),
-                            height: px(200.0),
-                        },
-                        text_align: match x {
-                            x if x == 0 => TextAlign::Left,
-                            x if x == 1 => TextAlign::Center,
-                            x if x == 2 => TextAlign::Right,
-                            _ => unreachable!(),
-                        },
-                        text_baseline: match y {
-                            y if y == 0 => TextBaseline::Top,
-                            y if y == 1 => TextBaseline::Middle,
-                            y if y == 2 => TextBaseline::Bottom,
-                            _ => unreachable!(),
-                        },
-                        text: (*text_3x3)[x][y].clone(),
-                        font_type: namui::FontType {
-                            font_weight: namui::FontWeight::REGULAR,
-                            language: namui::Language::Ko,
-                            serif: false,
-                            size: int_px(20),
-                        },
-                        style: text_input::Style {
-                            rect: RectStyle {
-                                stroke: Some(RectStroke {
-                                    border_position: BorderPosition::Inside,
-                                    color: Color::BLACK,
-                                    width: px(1.0),
-                                }),
-                                ..Default::default()
-                            },
-                            text: namui::TextStyle {
-                                color: namui::Color::BLACK,
-                                ..Default::default()
-                            },
+        for x in 0..3 {
+            for y in 0..3 {
+                ctx.add(text_input::TextInput {
+                    rect: Rect::Xywh {
+                        x: (x as f32 * 300.0 + 100.0).px(),
+                        y: (y as f32 * 300.0 + 100.0).px(),
+                        width: px(200.0),
+                        height: px(200.0),
+                    },
+                    text_align: match x {
+                        x if x == 0 => TextAlign::Left,
+                        x if x == 1 => TextAlign::Center,
+                        x if x == 2 => TextAlign::Right,
+                        _ => unreachable!(),
+                    },
+                    text_baseline: match y {
+                        y if y == 0 => TextBaseline::Top,
+                        y if y == 1 => TextBaseline::Middle,
+                        y if y == 2 => TextBaseline::Bottom,
+                        _ => unreachable!(),
+                    },
+                    text: (*text_3x3)[x][y].clone(),
+                    font_type: namui::FontType {
+                        font_weight: namui::FontWeight::REGULAR,
+                        language: namui::Language::Ko,
+                        serif: false,
+                        size: int_px(20),
+                    },
+                    style: text_input::Style {
+                        rect: RectStyle {
+                            stroke: Some(RectStroke {
+                                border_position: BorderPosition::Inside,
+                                color: Color::BLACK,
+                                width: px(1.0),
+                            }),
                             ..Default::default()
                         },
-                        event_handler: None,
-                    });
-                }
+                        text: namui::TextStyle {
+                            color: namui::Color::BLACK,
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    event_handler: None,
+                });
             }
+        }
 
-            ctx.done()
-        })
+        ctx.done()
     }
 
     // fn update(&mut self, event: &namui::Event) {

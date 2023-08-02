@@ -18,7 +18,7 @@ pub struct SequenceEditPage {
 }
 
 impl Component for SequenceEditPage {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let &Self {
             wh,
             project_id,
@@ -37,28 +37,26 @@ impl Component for SequenceEditPage {
             })
         });
 
-        ctx.use_children(|ctx| {
-            match data.as_ref() {
-                Some(result) => match result {
-                    Ok(data) => {}
-                    // ctx.add(LoadedSequenceEditorPage {
-                    //     cut_id_memos_map: data.cut_id_memos_map.clone(),
-                    //     project_shared_data: data.project_shared_data.clone(),
-                    //     sequence: data.sequence.clone(),
-                    //     user_id: data.user_id,
-                    //     wh,
-                    //     cg_files: data.cg_files.clone(),
-                    // }),
-                    Err(err) => ctx.add(typography::body::center(
-                        wh,
-                        &format!("Error: {}", err),
-                        Color::WHITE,
-                    )),
-                },
-                None => ctx.add(typography::body::center(wh, "loading...", Color::WHITE)),
-            };
-            ctx.done()
-        })
+        match data.as_ref() {
+            Some(result) => match result {
+                Ok(data) => {}
+                // ctx.add(LoadedSequenceEditorPage {
+                //     cut_id_memos_map: data.cut_id_memos_map.clone(),
+                //     project_shared_data: data.project_shared_data.clone(),
+                //     sequence: data.sequence.clone(),
+                //     user_id: data.user_id,
+                //     wh,
+                //     cg_files: data.cg_files.clone(),
+                // }),
+                Err(err) => ctx.add(typography::body::center(
+                    wh,
+                    &format!("Error: {}", err),
+                    Color::WHITE,
+                )),
+            },
+            None => ctx.add(typography::body::center(wh, "loading...", Color::WHITE)),
+        };
+        ctx.done()
     }
 }
 

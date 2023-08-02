@@ -23,7 +23,7 @@ pub enum Event {
 }
 
 impl Component for CgPicker<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let &Self {
             wh,
             project_id,
@@ -31,31 +31,28 @@ impl Component for CgPicker<'_> {
         } = self;
         let (cg_file_list, _) = ctx.use_atom(&CG_FILES_ATOM);
 
-        ctx.use_children(|ctx| {
-            ctx.add(table::hooks::padding(OUTER_PADDING, |wh| {
-                let max_items_per_row =
-                    (wh.width / (CHARACTER_THUMBNAIL_WH.width)).floor() as usize;
-                scroll_view::AutoScrollView {
-                    xy: Xy::zero(),
-                    scroll_bar_width: 4.px(),
-                    height: wh.height,
-                    content: table::hooks::vertical(cg_file_list.chunks(max_items_per_row).map(
-                        |cg_files| {
-                            table::hooks::fixed(CHARACTER_THUMBNAIL_WH.height, |wh| {
-                                table::hooks::horizontal(
-                                    cg_files.iter().map(|cg_file| {
-                                        render_thumbnail(cg_file, project_id, on_event)
-                                    }),
-                                )(wh)
-                            })
-                        },
-                    ))(wh)
-                    .arc(),
-                }
-            })(wh));
+        ctx.add(table::hooks::padding(OUTER_PADDING, |wh| {
+            let max_items_per_row = (wh.width / (CHARACTER_THUMBNAIL_WH.width)).floor() as usize;
+            scroll_view::AutoScrollView {
+                xy: Xy::zero(),
+                scroll_bar_width: 4.px(),
+                height: wh.height,
+                content: table::hooks::vertical(cg_file_list.chunks(max_items_per_row).map(
+                    |cg_files| {
+                        table::hooks::fixed(CHARACTER_THUMBNAIL_WH.height, |wh| {
+                            table::hooks::horizontal(
+                                cg_files
+                                    .iter()
+                                    .map(|cg_file| render_thumbnail(cg_file, project_id, on_event)),
+                            )(wh)
+                        })
+                    },
+                ))(wh)
+                .arc(),
+            }
+        })(wh));
 
-            ctx.done()
-        })
+        ctx.done()
     }
 }
 

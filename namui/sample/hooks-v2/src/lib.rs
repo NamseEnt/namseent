@@ -14,7 +14,7 @@ pub struct MyComponent {}
 // static COUNT_ATOM: Atom<usize> = Atom::uninitialized_new();
 
 impl Component for MyComponent {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         // let (count, set_count) = ctx.use_atom_init(&COUNT_ATOM, || 0);
         let (count, set_count) = ctx.use_state(|| 0);
         let count_mul_2 = ctx.use_memo(|| *count * 2);
@@ -35,34 +35,32 @@ impl Component for MyComponent {
             KeyUp { code: namui::Code },
         }
 
-        ctx.use_children(|ctx| {
-            ctx.add(Button {
-                text,
-                on_click: &|| {
-                    set_count.mutate(|count| *count += 1);
+        ctx.add(Button {
+            text,
+            on_click: &|| {
+                set_count.mutate(|count| *count += 1);
+            },
+        });
+        if *count % 2 == 0 {
+            ctx.add(
+                StringText { text }, // .attach_event(|builder| {
+                                     // builder.on_key_up(ctx.event_with_param(|event: KeyboardEvent| {
+                                     //     Some(InternalEvent::KeyUp { code: event.code })
+                                     // }));
+                                     // })
+            );
+        } else {
+            ctx.add(
+                // hooks::translate(
+                // 50.px(),
+                // 50.px(),
+                UsizeText {
+                    usize: count.clone(),
                 },
-            });
-            if *count % 2 == 0 {
-                ctx.add(
-                    StringText { text }, // .attach_event(|builder| {
-                                         // builder.on_key_up(ctx.event_with_param(|event: KeyboardEvent| {
-                                         //     Some(InternalEvent::KeyUp { code: event.code })
-                                         // }));
-                                         // })
-                );
-            } else {
-                ctx.add(
-                    // hooks::translate(
-                    // 50.px(),
-                    // 50.px(),
-                    UsizeText {
-                        usize: count.clone(),
-                    },
-                    // )
-                );
-            }
-            ctx.done()
-        })
+                // )
+            );
+        }
+        ctx.done()
     }
 }
 
@@ -99,35 +97,33 @@ impl StaticType for Button<'_> {
 }
 
 impl Component for Button<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         ctx.use_effect("Print text", || {
             namui::log!("{}", *self.text);
         });
 
         ctx.use_effect("On button render", || {});
 
-        ctx.use_children(|ctx| {
-            ctx.add(button::text_button(
-                Rect::Xywh {
-                    x: 10.px(),
-                    y: 10.px(),
-                    width: 100.px(),
-                    height: 50.px(),
-                },
-                &self.text,
-                Color::BLACK,
-                Color::BLACK,
-                1.px(),
-                Color::RED,
-                [MouseButton::Left],
-                |_| {
-                    namui::log!("Button clicked");
-                    (self.on_click)()
-                },
-            ));
+        ctx.add(button::text_button(
+            Rect::Xywh {
+                x: 10.px(),
+                y: 10.px(),
+                width: 100.px(),
+                height: 50.px(),
+            },
+            &self.text,
+            Color::BLACK,
+            Color::BLACK,
+            1.px(),
+            Color::RED,
+            [MouseButton::Left],
+            |_| {
+                namui::log!("Button clicked");
+                (self.on_click)()
+            },
+        ));
 
-            ctx.done()
-        })
+        ctx.done()
     }
 }
 
@@ -143,34 +139,32 @@ impl StaticType for StringText<'_> {
 }
 
 impl Component for StringText<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let (value, _set_value) = ctx.use_state(|| "hello".to_string());
 
         ctx.use_effect("Print text", || {
             namui::log!("StringText: {}", *value);
         });
 
-        ctx.use_children(|ctx| {
-            ctx.add(button::text_button(
-                Rect::Xywh {
-                    x: 10.px(),
-                    y: 110.px(),
-                    width: 100.px(),
-                    height: 50.px(),
-                },
-                &value,
-                Color::BLACK,
-                Color::BLACK,
-                1.px(),
-                Color::RED,
-                [MouseButton::Left],
-                |_| {
-                    namui::log!("StringText clicked");
-                },
-            ));
+        ctx.add(button::text_button(
+            Rect::Xywh {
+                x: 10.px(),
+                y: 110.px(),
+                width: 100.px(),
+                height: 50.px(),
+            },
+            &value,
+            Color::BLACK,
+            Color::BLACK,
+            1.px(),
+            Color::RED,
+            [MouseButton::Left],
+            |_| {
+                namui::log!("StringText clicked");
+            },
+        ));
 
-            ctx.done()
-        })
+        ctx.done()
     }
 }
 
@@ -186,32 +180,30 @@ impl StaticType for UsizeText<'_> {
 }
 
 impl Component for UsizeText<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let (value, _set_value) = ctx.use_state(|| 0);
         ctx.use_effect("Print text", || {
             namui::log!("UsizeText: {}", *value);
         });
 
-        ctx.use_children(|ctx| {
-            ctx.add(button::text_button(
-                Rect::Xywh {
-                    x: 10.px(),
-                    y: 210.px(),
-                    width: 100.px(),
-                    height: 50.px(),
-                },
-                &value.to_string(),
-                Color::BLACK,
-                Color::BLACK,
-                1.px(),
-                Color::RED,
-                [MouseButton::Left],
-                |_| {
-                    namui::log!("UsizeText clicked");
-                },
-            ));
+        ctx.add(button::text_button(
+            Rect::Xywh {
+                x: 10.px(),
+                y: 210.px(),
+                width: 100.px(),
+                height: 50.px(),
+            },
+            &value.to_string(),
+            Color::BLACK,
+            Color::BLACK,
+            1.px(),
+            Color::RED,
+            [MouseButton::Left],
+            |_| {
+                namui::log!("UsizeText clicked");
+            },
+        ));
 
-            ctx.done()
-        })
+        ctx.done()
     }
 }

@@ -18,7 +18,7 @@ pub enum Event {
 }
 
 impl Component for MemoListView {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let &Self {
             wh,
             ref memos,
@@ -26,25 +26,25 @@ impl Component for MemoListView {
             // ref on_done_clicked,
             ref on_event,
         } = self;
-        ctx.use_children(|ctx| {
-            ctx.add(simple_rect(
-                wh,
-                color::STROKE_NORMAL,
-                1.px(),
-                color::BACKGROUND,
-            ));
-            ctx.add(scroll_view_auto_scroll(scroll_view::Props2 {
-                xy: Xy::zero(),
-                height: wh.height,
-                scroll_bar_width: 4.px(),
-                content: table::vertical(memos.iter().map(|memo| {
-                    table::fit(
-                        table::FitAlign::LeftTop,
-                        render_memo(wh.width, memo, user_id, on_event.clone()),
-                    )
-                }))(wh),
-            }));
-        })
+
+        ctx.add(simple_rect(
+            wh,
+            color::STROKE_NORMAL,
+            1.px(),
+            color::BACKGROUND,
+        ));
+        ctx.add(scroll_view_auto_scroll(scroll_view::Props2 {
+            xy: Xy::zero(),
+            height: wh.height,
+            scroll_bar_width: 4.px(),
+            content: table::vertical(memos.iter().map(|memo| {
+                table::fit(
+                    table::FitAlign::LeftTop,
+                    render_memo(wh.width, memo, user_id, on_event.clone()),
+                )
+            }))(wh),
+        }));
+        ctx.done()
     }
 }
 

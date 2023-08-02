@@ -25,7 +25,7 @@ impl StaticType for Clip<'_> {
 }
 
 impl<'a> Component for Clip<'a> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let &Self {
             ref path_builder,
             clip_op,

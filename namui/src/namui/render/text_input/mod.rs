@@ -136,7 +136,7 @@ impl TextInput {
 }
 
 impl Component for TextInput {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         // let id = ctx.use_memo(|| self.id.unwrap_or_else(|| namui::uuid()));
         let id = self.instance.id;
         let (atom, set_atom) = ctx.use_atom(&TEXT_INPUT_ATOM);
@@ -233,49 +233,50 @@ impl Component for TextInput {
             id,
             props: self.clone(),
         };
-        ctx.use_children(|ctx| {
-            let selection = atom.get_selection_of_text_input(id);
+        //
+        //     let selection = atom.get_selection_of_text_input(id);
 
-            ctx.add(
-                render([
-                    namui::rect(RectParam {
-                        rect: self.rect,
-                        style: RectStyle {
-                            stroke: if self.style.rect.stroke.is_some()
-                                || self.style.rect.fill.is_some()
-                            {
-                                self.style.rect.stroke
-                            } else {
-                                Some(RectStroke {
-                                    color: Color::TRANSPARENT,
-                                    width: 0.px(),
-                                    border_position: BorderPosition::Inside,
-                                })
-                            },
-                            ..self.style.rect
-                        },
-                    }),
-                    self.draw_texts_divided_by_selection(
-                        &self,
-                        &fonts,
-                        paint.clone(),
-                        &line_texts,
-                        &selection,
-                    ),
-                    self.draw_caret(&self, &line_texts, &selection, paint.clone()),
-                ])
-                .with_custom(custom_data.clone())
-                .attach_event(|builder| {
-                    builder.on_mouse_down_in(move |event: MouseEvent| {
-                        system::text_input::on_mouse_down_in_at_attach_event_calls(
-                            event.local_xy,
-                            &custom_data,
-                        )
-                    });
-                }),
-            );
-            ctx.done()
-        })
+        //     ctx.add(
+        //         render([
+        //             namui::rect(RectParam {
+        //                 rect: self.rect,
+        //                 style: RectStyle {
+        //                     stroke: if self.style.rect.stroke.is_some()
+        //                         || self.style.rect.fill.is_some()
+        //                     {
+        //                         self.style.rect.stroke
+        //                     } else {
+        //                         Some(RectStroke {
+        //                             color: Color::TRANSPARENT,
+        //                             width: 0.px(),
+        //                             border_position: BorderPosition::Inside,
+        //                         })
+        //                     },
+        //                     ..self.style.rect
+        //                 },
+        //             }),
+        //             self.draw_texts_divided_by_selection(
+        //                 &self,
+        //                 &fonts,
+        //                 paint.clone(),
+        //                 &line_texts,
+        //                 &selection,
+        //             ),
+        //             self.draw_caret(&self, &line_texts, &selection, paint.clone()),
+        //         ])
+        //         .with_custom(custom_data.clone())
+        //         .attach_event(|builder| {
+        //             builder.on_mouse_down_in(move |event: MouseEvent| {
+        //                 system::text_input::on_mouse_down_in_at_attach_event_calls(
+        //                     event.local_xy,
+        //                     &custom_data,
+        //                 )
+        //             });
+        //         }),
+        //     );
+        //     ctx.done()
+        // })
+        ctx.done()
     }
 }
 

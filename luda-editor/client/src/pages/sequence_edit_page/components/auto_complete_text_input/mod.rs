@@ -31,7 +31,7 @@ pub enum Event {
 }
 
 impl Component for AutoCompleteTextInput<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let &Self {
             wh,
             ref text,
@@ -145,144 +145,139 @@ impl Component for AutoCompleteTextInput<'_> {
                 on_event(Event::EditDone)
             }
         };
-        ctx.use_children(|ctx| {
-            let body = {
-                let body_height = wh.height * suggestions.len();
-                on_top(translate(
-                    0.px(),
-                    wh.height,
-                    namui::render(
-                        suggestions
-                            .into_iter()
-                            .enumerate()
-                            .map(|(index, suggestion)| {
-                                let is_cursor_over = over_item_index == Some(index);
-                                let background = simple_rect(
-                                    wh,
-                                    Color::WHITE,
-                                    0.px(),
-                                    if is_cursor_over {
-                                        Color::from_u8(0x5C, 0x5C, 255, 255)
-                                    } else {
-                                        Color::WHITE
-                                    },
-                                );
-                                let text = translate(
-                                    LEFT_PADDING,
-                                    0.px(),
-                                    typography::body::left(
-                                        wh.height,
-                                        suggestion,
-                                        if is_cursor_over {
-                                            Color::WHITE
-                                        } else {
-                                            Color::BLACK
-                                        },
-                                    ),
-                                );
-                                translate(
-                                    0.px(),
-                                    wh.height * index,
-                                    namui::render([background, text]),
-                                )
-                            })
-                            .into_iter()
-                            .chain([simple_rect(
-                                Wh {
-                                    width: wh.width,
-                                    height: body_height,
-                                },
-                                Color::BLACK,
-                                1.px(),
-                                Color::TRANSPARENT,
-                            )]),
-                    ),
-                ))
-            };
 
-            ctx.add(namui::TextInput {
-                instance: text_input_instance,
-                rect: wh.to_rect(),
-                text: text.clone(),
-                text_align: TextAlign::Left,
-                text_baseline: TextBaseline::Top,
-                font_type: sequence_player::CUT_TEXT_FONT,
-                style: text_input::Style {
-                    text: sequence_player::cut_text_style(1.one_zero()),
-                    rect: RectStyle {
-                        stroke: Some(RectStroke {
-                            color: color::STROKE_FOCUS,
-                            width: 2.px(),
-                            border_position: BorderPosition::Middle,
-                        }),
-                        fill: Some(RectFill {
-                            color: color::BACKGROUND,
-                        }),
-                        ..Default::default()
-                    },
+        let body = {
+            let body_height = wh.height * suggestions.len();
+            on_top(translate(
+                0.px(),
+                wh.height,
+                namui::render(
+                    suggestions
+                        .into_iter()
+                        .enumerate()
+                        .map(|(index, suggestion)| {
+                            let is_cursor_over = over_item_index == Some(index);
+                            let background = simple_rect(
+                                wh,
+                                Color::WHITE,
+                                0.px(),
+                                if is_cursor_over {
+                                    Color::from_u8(0x5C, 0x5C, 255, 255)
+                                } else {
+                                    Color::WHITE
+                                },
+                            );
+                            let text = translate(
+                                LEFT_PADDING,
+                                0.px(),
+                                typography::body::left(
+                                    wh.height,
+                                    suggestion,
+                                    if is_cursor_over {
+                                        Color::WHITE
+                                    } else {
+                                        Color::BLACK
+                                    },
+                                ),
+                            );
+                            translate(0.px(), wh.height * index, namui::render([background, text]))
+                        })
+                        .into_iter()
+                        .chain([simple_rect(
+                            Wh {
+                                width: wh.width,
+                                height: body_height,
+                            },
+                            Color::BLACK,
+                            1.px(),
+                            Color::TRANSPARENT,
+                        )]),
+                ),
+            ))
+        };
+
+        ctx.add(namui::TextInput {
+            instance: text_input_instance,
+            rect: wh.to_rect(),
+            text: text.clone(),
+            text_align: TextAlign::Left,
+            text_baseline: TextBaseline::Top,
+            font_type: sequence_player::CUT_TEXT_FONT,
+            style: text_input::Style {
+                text: sequence_player::cut_text_style(1.one_zero()),
+                rect: RectStyle {
+                    stroke: Some(RectStroke {
+                        color: color::STROKE_FOCUS,
+                        width: 2.px(),
+                        border_position: BorderPosition::Middle,
+                    }),
+                    fill: Some(RectFill {
+                        color: color::BACKGROUND,
+                    }),
                     ..Default::default()
                 },
-                event_handler: Some(
-                    text_input::EventHandler::new()
-                        .on_text_updated({
-                            let on_event = on_event.clone();
-                            move |text: String| {
-                                on_event(Event::TextChange { text });
+                ..Default::default()
+            },
+            event_handler: Some(
+                text_input::EventHandler::new()
+                    .on_text_updated({
+                        let on_event = on_event.clone();
+                        move |text: String| {
+                            on_event(Event::TextChange { text });
+                        }
+                    })
+                    .on_key_down({
+                        let on_enter_down = on_enter_down.clone();
+                        let on_arrow_up_down_key = on_arrow_up_down_key.clone();
+                        move |event: KeyDownEvent| {
+                            on_event(Event::KeyDown { event });
+                            if event.is_prevented_default() || event.is_composing {
+                                return;
                             }
-                        })
-                        .on_key_down({
-                            let on_enter_down = on_enter_down.clone();
-                            let on_arrow_up_down_key = on_arrow_up_down_key.clone();
-                            move |event: KeyDownEvent| {
-                                on_event(Event::KeyDown { event });
-                                if event.is_prevented_default() || event.is_composing {
-                                    return;
-                                }
 
-                                match event.code {
-                                    Code::Tab => {
-                                        event.prevent_default();
-                                    }
-                                    Code::Enter => {
-                                        on_enter_down(event.code);
-                                        event.prevent_default();
-                                    }
-                                    Code::ArrowUp | Code::ArrowDown => {
-                                        on_arrow_up_down_key(event.code);
-                                        event.prevent_default();
-                                    }
-                                    _ => {}
+                            match event.code {
+                                Code::Tab => {
+                                    event.prevent_default();
                                 }
+                                Code::Enter => {
+                                    on_enter_down(event.code);
+                                    event.prevent_default();
+                                }
+                                Code::ArrowUp | Code::ArrowDown => {
+                                    on_arrow_up_down_key(event.code);
+                                    event.prevent_default();
+                                }
+                                _ => {}
                             }
-                        }),
-                ),
-            });
-            // ctx.add(
-            //     namui::render([
-            //         text_input.render(text_input::Props {
-            //
-            //         }),
-            //         body,
-            //     ])
-            //     .attach_event(move |builder| {
-            //         let on_enter_down = on_enter_down.clone();
-            //         builder.on_key_down(move |event: KeyboardEvent| {
-            //             namui::log!("builder.on_key_down.event.code: {:?}", event.code);
-            //             match event.code {
-            //                 Code::ArrowUp | Code::ArrowDown => {
-            //                     on_arrow_up_down_key(event.code);
-            //                 }
-            //                 Code::Enter => {
-            //                     on_enter_down(event.code);
-            //                 }
-            //                 _ => {}
-            //             }
-            //         });
-            //     }),
-            // );
+                        }
+                    }),
+            ),
+        });
+        // ctx.add(
+        //     namui::render([
+        //         text_input.render(text_input::Props {
+        //
+        //         }),
+        //         body,
+        //     ])
+        //     .attach_event(move |builder| {
+        //         let on_enter_down = on_enter_down.clone();
+        //         builder.on_key_down(move |event: KeyboardEvent| {
+        //             namui::log!("builder.on_key_down.event.code: {:?}", event.code);
+        //             match event.code {
+        //                 Code::ArrowUp | Code::ArrowDown => {
+        //                     on_arrow_up_down_key(event.code);
+        //                 }
+        //                 Code::Enter => {
+        //                     on_enter_down(event.code);
+        //                 }
+        //                 _ => {}
+        //             }
+        //         });
+        //     }),
+        // );
 
-            ctx.done()
-        })
+        ctx.done()
     }
 }
 

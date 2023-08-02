@@ -18,7 +18,7 @@ pub enum Event {
 }
 
 impl Component for Mover {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let &Self {
             image_dest_rect,
             ref dragging,
@@ -26,41 +26,41 @@ impl Component for Mover {
             ref on_event,
         } = self;
         let on_event = on_event.clone();
-        ctx.use_children(|ctx| {
-            ctx.add(translate(
-                image_dest_rect.x(),
-                image_dest_rect.y(),
-                simple_rect(
-                    Wh {
-                        width: image_dest_rect.width(),
-                        height: image_dest_rect.height(),
-                    },
-                    Color::grayscale_f01(0.2),
-                    px(2.0),
-                    Color::TRANSPARENT,
-                )
-                .with_mouse_cursor({
-                    let is_dragging = matches!(dragging, Some(Dragging::Mover { .. }));
-                    if is_dragging {
-                        namui::MouseCursor::Move
-                    } else {
-                        namui::MouseCursor::Pointer
+
+        ctx.add(translate(
+            image_dest_rect.x(),
+            image_dest_rect.y(),
+            simple_rect(
+                Wh {
+                    width: image_dest_rect.width(),
+                    height: image_dest_rect.height(),
+                },
+                Color::grayscale_f01(0.2),
+                px(2.0),
+                Color::TRANSPARENT,
+            )
+            .with_mouse_cursor({
+                let is_dragging = matches!(dragging, Some(Dragging::Mover { .. }));
+                if is_dragging {
+                    namui::MouseCursor::Move
+                } else {
+                    namui::MouseCursor::Pointer
+                }
+            })
+            .attach_event(move |builder| {
+                builder.on_mouse_down_in(move |event: MouseEvent| {
+                    if event.button == Some(MouseButton::Left) {
+                        event.stop_propagation();
+                        on_event.call(Event::MoveStart {
+                            start_global_xy: event.global_xy,
+                            end_global_xy: event.global_xy,
+                            container_wh,
+                        });
                     }
-                })
-                .attach_event(move |builder| {
-                    builder.on_mouse_down_in(move |event: MouseEvent| {
-                        if event.button == Some(MouseButton::Left) {
-                            event.stop_propagation();
-                            on_event.call(Event::MoveStart {
-                                start_global_xy: event.global_xy,
-                                end_global_xy: event.global_xy,
-                                container_wh,
-                            });
-                        }
-                    });
-                }),
-            ));
-        })
+                });
+            }),
+        ));
+        ctx.done()
     }
 }
 

@@ -22,7 +22,7 @@ pub enum Event {
 }
 
 impl Component for Resizer {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let &Self {
             rect,
             dragging_context,
@@ -34,96 +34,95 @@ impl Component for Resizer {
         let on_event = on_event.clone();
 
         const HANDLE_RADIUS: Px = px(5.0);
-        ctx.use_children(|ctx| {
-            ctx.add(RenderingTree::Children(
-                HANDLES
-                    .into_iter()
-                    .map(|handle| {
-                        let handle_xy = handle.xy(rect);
-                        let path = namui::PathBuilder::new().add_oval(Rect::Ltrb {
-                            left: handle_xy.x - HANDLE_RADIUS,
-                            top: handle_xy.y - HANDLE_RADIUS,
-                            right: handle_xy.x + HANDLE_RADIUS,
-                            bottom: handle_xy.y + HANDLE_RADIUS,
-                        });
 
-                        let fill_paint = namui::PaintBuilder::new()
-                            .set_style(namui::PaintStyle::Fill)
-                            .set_color(Color::WHITE);
+        ctx.add(RenderingTree::Children(
+            HANDLES
+                .into_iter()
+                .map(|handle| {
+                    let handle_xy = handle.xy(rect);
+                    let path = namui::PathBuilder::new().add_oval(Rect::Ltrb {
+                        left: handle_xy.x - HANDLE_RADIUS,
+                        top: handle_xy.y - HANDLE_RADIUS,
+                        right: handle_xy.x + HANDLE_RADIUS,
+                        bottom: handle_xy.y + HANDLE_RADIUS,
+                    });
 
-                        let stroke_paint = namui::PaintBuilder::new()
-                            .set_style(namui::PaintStyle::Stroke)
-                            .set_color(Color::grayscale_f01(0.5))
-                            .set_stroke_width(px(2.0))
-                            .set_anti_alias(true);
+                    let fill_paint = namui::PaintBuilder::new()
+                        .set_style(namui::PaintStyle::Fill)
+                        .set_color(Color::WHITE);
 
-                        render([
-                            namui::path(path.clone(), fill_paint),
-                            namui::path(path, stroke_paint),
-                        ])
-                        .with_mouse_cursor(handle.cursor())
-                        .attach_event(|builder| match dragging_context {
-                            Some(context) => {
-                                if context.handle != handle {
-                                    return;
-                                }
-                                let on_mouse_move = {
-                                    let on_event = on_event.clone();
-                                    move |event: MouseEvent| {
-                                        on_event.call(Event::OnUpdateDraggingContext {
-                                            context: Some(ResizerDraggingContext {
-                                                handle,
-                                                start_global_xy: context.start_global_xy,
-                                                end_global_xy: event.global_xy,
-                                            }),
-                                        });
-                                    }
-                                };
+                    let stroke_paint = namui::PaintBuilder::new()
+                        .set_style(namui::PaintStyle::Stroke)
+                        .set_color(Color::grayscale_f01(0.5))
+                        .set_stroke_width(px(2.0))
+                        .set_anti_alias(true);
 
-                                builder.on_mouse_move_in(on_mouse_move.clone());
-                                builder.on_mouse_move_out(on_mouse_move.clone());
-
-                                let on_mouse_up = {
-                                    let on_event = on_event.clone();
-                                    move |event: MouseEvent| {
-                                        let delta_xy = event.global_xy - context.start_global_xy;
-                                        on_event
-                                            .call(Event::OnUpdateDraggingContext { context: None });
-                                        on_event.call(Event::OnResize {
-                                            circumscribed: resize_by_center(
-                                                handle,
-                                                rect.center(),
-                                                delta_xy,
-                                                container_size,
-                                                image_size,
-                                            ),
-                                            graphic_index,
-                                        });
-                                    }
-                                };
-                                builder.on_mouse_up_in(on_mouse_up.clone());
-                                builder.on_mouse_up_out(on_mouse_up.clone());
+                    render([
+                        namui::path(path.clone(), fill_paint),
+                        namui::path(path, stroke_paint),
+                    ])
+                    .with_mouse_cursor(handle.cursor())
+                    .attach_event(|builder| match dragging_context {
+                        Some(context) => {
+                            if context.handle != handle {
+                                return;
                             }
-                            None => {
+                            let on_mouse_move = {
                                 let on_event = on_event.clone();
-                                builder.on_mouse_down_in(move |mouse_event: MouseEvent| {
-                                    if mouse_event.button == Some(MouseButton::Left) {
-                                        mouse_event.stop_propagation();
-                                        on_event.call(Event::OnUpdateDraggingContext {
-                                            context: Some(ResizerDraggingContext {
-                                                handle,
-                                                start_global_xy: mouse_event.global_xy,
-                                                end_global_xy: mouse_event.global_xy,
-                                            }),
-                                        });
-                                    }
-                                });
-                            }
-                        })
+                                move |event: MouseEvent| {
+                                    on_event.call(Event::OnUpdateDraggingContext {
+                                        context: Some(ResizerDraggingContext {
+                                            handle,
+                                            start_global_xy: context.start_global_xy,
+                                            end_global_xy: event.global_xy,
+                                        }),
+                                    });
+                                }
+                            };
+
+                            builder.on_mouse_move_in(on_mouse_move.clone());
+                            builder.on_mouse_move_out(on_mouse_move.clone());
+
+                            let on_mouse_up = {
+                                let on_event = on_event.clone();
+                                move |event: MouseEvent| {
+                                    let delta_xy = event.global_xy - context.start_global_xy;
+                                    on_event.call(Event::OnUpdateDraggingContext { context: None });
+                                    on_event.call(Event::OnResize {
+                                        circumscribed: resize_by_center(
+                                            handle,
+                                            rect.center(),
+                                            delta_xy,
+                                            container_size,
+                                            image_size,
+                                        ),
+                                        graphic_index,
+                                    });
+                                }
+                            };
+                            builder.on_mouse_up_in(on_mouse_up.clone());
+                            builder.on_mouse_up_out(on_mouse_up.clone());
+                        }
+                        None => {
+                            let on_event = on_event.clone();
+                            builder.on_mouse_down_in(move |mouse_event: MouseEvent| {
+                                if mouse_event.button == Some(MouseButton::Left) {
+                                    mouse_event.stop_propagation();
+                                    on_event.call(Event::OnUpdateDraggingContext {
+                                        context: Some(ResizerDraggingContext {
+                                            handle,
+                                            start_global_xy: mouse_event.global_xy,
+                                            end_global_xy: mouse_event.global_xy,
+                                        }),
+                                    });
+                                }
+                            });
+                        }
                     })
-                    .collect::<Vec<RenderingTree>>(),
-            ));
-        })
+                })
+                .collect::<Vec<RenderingTree>>(),
+        ));
+        ctx.done()
     }
 }
 

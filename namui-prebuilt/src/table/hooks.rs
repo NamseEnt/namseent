@@ -126,47 +126,43 @@ pub struct Table {
 }
 
 impl Component for Table {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let rect_need_clip_tuples = self
             .items
             .iter()
             .map(|(rect, _, need_clip)| (*rect, *need_clip))
             .collect::<Vec<_>>();
-        ctx.use_children_with_rendering_tree(
-            |ctx| {
-                for (_, item, _) in &self.items {
-                    ctx.add(item.as_ref());
-                }
-                ctx.done()
-            },
-            move |children| {
-                namui::render(
-                    children
-                        .into_iter()
-                        .zip(rect_need_clip_tuples.clone().into_iter())
-                        .map(|(child, (rect, need_clip))| {
-                            namui::translate(
-                                rect.x(),
-                                rect.y(),
-                                if need_clip {
-                                    namui::clip(
-                                        PathBuilder::new().add_rect(Rect::Xywh {
-                                            x: px(0.0),
-                                            y: px(0.0),
-                                            width: rect.width(),
-                                            height: rect.height(),
-                                        }),
-                                        ClipOp::Intersect,
-                                        child,
-                                    )
-                                } else {
-                                    child
-                                },
-                            )
-                        }),
-                )
-            },
-        )
+
+        for (_, item, _) in &self.items {
+            ctx.add(item.as_ref());
+        }
+        ctx.done_with_rendering_tree(move |children| {
+            namui::render(
+                children
+                    .into_iter()
+                    .zip(rect_need_clip_tuples.clone().into_iter())
+                    .map(|(child, (rect, need_clip))| {
+                        namui::translate(
+                            rect.x(),
+                            rect.y(),
+                            if need_clip {
+                                namui::clip(
+                                    PathBuilder::new().add_rect(Rect::Xywh {
+                                        x: px(0.0),
+                                        y: px(0.0),
+                                        width: rect.width(),
+                                        height: rect.height(),
+                                    }),
+                                    ClipOp::Intersect,
+                                    child,
+                                )
+                            } else {
+                                child
+                            },
+                        )
+                    }),
+            )
+        })
     }
 }
 

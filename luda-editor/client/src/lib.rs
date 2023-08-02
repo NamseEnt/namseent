@@ -1,4 +1,4 @@
-use namui::spawn_local;
+use namui::prelude::*;
 
 mod app;
 mod color;
@@ -28,7 +28,7 @@ pub fn main() {
 struct Init {}
 
 impl namui::Component for Init {
-    fn render<'a>(&'a self, ctx: &'a namui::RenderCtx) -> namui::RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let (loaded, set_loaded) = ctx.use_state(|| false);
 
         ctx.use_effect("Init", || {
@@ -75,11 +75,9 @@ impl namui::Component for Init {
             })
         });
 
-        ctx.use_children(|ctx| {
-            if *loaded {
-                ctx.add(app::App {})
-            }
-            ctx.done()
-        })
+        if *loaded {
+            ctx.add(app::App {})
+        }
+        ctx.done()
     }
 }

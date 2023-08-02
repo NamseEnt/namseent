@@ -9,7 +9,7 @@ pub struct RenameModal<'a> {
 }
 
 impl Component for RenameModal<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let Self {
             init_sequence_name,
             on_rename_done,
@@ -38,7 +38,7 @@ impl Component for RenameModal<'_> {
         //     height: 20.px(),
         // };
 
-        // ctx.use_children(|ctx| {
+        //
         //     let sequence_name = sequence_name.to_string();
         //     ctx.add(
         //         absolute(

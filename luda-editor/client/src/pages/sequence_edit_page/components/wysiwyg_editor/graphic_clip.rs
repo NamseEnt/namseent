@@ -28,7 +28,7 @@ pub enum Event {
 }
 
 impl Component for GraphicClip {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let &Self {
             cut_id,
             graphic_index,
@@ -171,20 +171,20 @@ impl Component for GraphicClip {
                 });
             }
         });
-        ctx.use_children(|ctx| {
-            ctx.add(graphic_rendering_tree);
 
-            if is_editing_graphic {
-                ctx.add(WysiwygTool {
-                    graphic_dest_rect: graphic_rendering_rect,
-                    original_graphic_size: graphic_size,
-                    graphic_index,
-                    graphic: graphic.clone(),
-                    dragging: dragging.clone(),
-                    wh,
-                    on_event: on_event.map(move |e| Some(Event::WysiwygTool(e))),
-                });
-            }
-        })
+        ctx.add(graphic_rendering_tree);
+
+        if is_editing_graphic {
+            ctx.add(WysiwygTool {
+                graphic_dest_rect: graphic_rendering_rect,
+                original_graphic_size: graphic_size,
+                graphic_index,
+                graphic: graphic.clone(),
+                dragging: dragging.clone(),
+                wh,
+                on_event: on_event.map(move |e| Some(Event::WysiwygTool(e))),
+            });
+        }
+        ctx.done()
     }
 }

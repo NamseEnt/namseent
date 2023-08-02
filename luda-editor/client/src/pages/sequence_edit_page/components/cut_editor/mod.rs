@@ -30,7 +30,7 @@ pub enum Event2 {
 }
 
 impl Component for CutEditor<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let &Self {
             wh,
             ref cut,
@@ -102,203 +102,199 @@ impl Component for CutEditor<'_> {
             }
         });
 
-        ctx.use_children(|ctx| {
-            ctx.add(BackgroundWithEvent {
-                cut: cut.clone(),
-                wh,
-                is_selecting_target: selected_target.is_some(),
-                prev_cut_id,
-                next_cut_id,
-                on_event: on_event.map(move |e| match e {
-                    background_with_event::Event::MoveCutRequest { up_down } => {
-                        move_cut_request(up_down)
-                    }
-                }),
-            });
+        ctx.add(BackgroundWithEvent {
+            cut: cut.clone(),
+            wh,
+            is_selecting_target: selected_target.is_some(),
+            prev_cut_id,
+            next_cut_id,
+            on_event: on_event.map(move |e| match e {
+                background_with_event::Event::MoveCutRequest { up_down } => {
+                    move_cut_request(up_down)
+                }
+            }),
+        });
 
-            let character_name_side = |wh| {
-                let content: Box<dyn Component> = {
-                    let character_name = cut.character_name.clone();
-                    if is_focused && *selected_target == Some(ClickTarget::CharacterName) {
-                        let focus = focus.clone();
-                        let move_cut_request = move_cut_request.clone();
-                        Box::new(auto_complete_text_input::AutoCompleteTextInput {
-                            text: character_name,
-                            wh,
-                            candidates: character_name_candidates.clone(),
-                            on_event: closure(move |e| match e {
-                                auto_complete_text_input::Event::TextChange { text } => {
-                                    SEQUENCE_ATOM.mutate(|sequence| {
+        let character_name_side = |wh| {
+            let content: Box<dyn Component> = {
+                let character_name = cut.character_name.clone();
+                if is_focused && *selected_target == Some(ClickTarget::CharacterName) {
+                    let focus = focus.clone();
+                    let move_cut_request = move_cut_request.clone();
+                    Box::new(auto_complete_text_input::AutoCompleteTextInput {
+                        text: character_name,
+                        wh,
+                        candidates: character_name_candidates.clone(),
+                        on_event: closure(move |e| match e {
+                            auto_complete_text_input::Event::TextChange { text } => {
+                                SEQUENCE_ATOM.mutate(|sequence| {
+                                    sequence.update_cut(
+                                        cut_id,
+                                        CutUpdateAction::ChangeCharacterName { name: text.clone() },
+                                    )
+                                });
+                            }
+                            auto_complete_text_input::Event::EditDone => {
+                                focus(ClickTarget::CutText)
+                            }
+                            auto_complete_text_input::Event::KeyDown { event } => {
+                                if event.code == Code::Tab && !event.is_composing {
+                                    event.prevent_default();
+                                    if namui::keyboard::any_code_press([
+                                        Code::ShiftLeft,
+                                        Code::ShiftRight,
+                                    ]) {
+                                        move_cut_request(UpDown::Up)
+                                    } else {
+                                        focus(ClickTarget::CutText)
+                                    }
+                                } else if event.code == Code::Escape {
+                                    namui::event::send(InternalEvent::EscapeKeyDown)
+                                }
+                            }
+                            auto_complete_text_input::Event::ReqQueuePopFront => {
+                                set_input_req_queue.invoke(|x| {
+                                    x.pop_front();
+                                });
+                            }
+                        }),
+                        req_queue: input_req_queue.clone(),
+                    })
+                } else {
+                    Box::new(text(TextParam {
+                        text: character_name,
+                        x: 0.px(),
+                        y: wh.height / 2.0,
+                        align: TextAlign::Left,
+                        baseline: TextBaseline::Middle,
+                        font_type: sequence_player::CHARACTER_NAME_FONT,
+                        style: sequence_player::character_name_text_style(1.one_zero()),
+                        max_width: Some(wh.width),
+                    }))
+                }
+            };
+            (transparent_rect(wh), content).attach_event(|builder| {
+                let focus = focus.clone();
+                builder.on_mouse_down_in(move |event: MouseEvent| {
+                    if event.button == Some(MouseButton::Left) {
+                        focus(ClickTarget::CharacterName)
+                    }
+                });
+            })
+        };
+
+        let cut_text_side = |wh: Wh<Px>| {
+            let line_text = cut.line.clone();
+            let cut_id = cut.id;
+            let content: Box<dyn Component> = if is_focused
+                && *selected_target == Some(ClickTarget::CutText)
+            {
+                let focus = focus.clone();
+                let move_cut_request = move_cut_request.clone();
+                Box::new(
+                    text_input.render(text_input::Props {
+                        rect: wh.to_rect(),
+                        text: line_text,
+                        text_align: TextAlign::Left,
+                        text_baseline: TextBaseline::Top,
+                        font_type: sequence_player::CUT_TEXT_FONT,
+                        style: text_input::Style {
+                            text: sequence_player::cut_text_style(1.one_zero()),
+                            rect: RectStyle {
+                                stroke: Some(RectStroke {
+                                    color: color::STROKE_FOCUS,
+                                    width: 2.px(),
+                                    border_position: BorderPosition::Middle,
+                                }),
+                                fill: Some(RectFill {
+                                    color: color::BACKGROUND,
+                                }),
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        },
+                        event_handler: Some(
+                            text_input::EventHandler::new()
+                                .on_text_updated(move |text| {
+                                    SEQUENCE_ATOM.mutate(move |sequence| {
                                         sequence.update_cut(
                                             cut_id,
-                                            CutUpdateAction::ChangeCharacterName {
-                                                name: text.clone(),
-                                            },
+                                            CutUpdateAction::ChangeCutLine { line: text.clone() },
                                         )
                                     });
-                                }
-                                auto_complete_text_input::Event::EditDone => {
-                                    focus(ClickTarget::CutText)
-                                }
-                                auto_complete_text_input::Event::KeyDown { event } => {
-                                    if event.code == Code::Tab && !event.is_composing {
+                                })
+                                .on_key_down(move |event: KeyDownEvent| {
+                                    if event.code == Code::Tab {
                                         event.prevent_default();
-                                        if namui::keyboard::any_code_press([
-                                            Code::ShiftLeft,
-                                            Code::ShiftRight,
-                                        ]) {
-                                            move_cut_request(UpDown::Up)
+                                        if namui::keyboard::shift_press() {
+                                            focus(ClickTarget::CharacterName)
                                         } else {
-                                            focus(ClickTarget::CutText)
+                                            move_cut_request(UpDown::Down)
                                         }
                                     } else if event.code == Code::Escape {
                                         namui::event::send(InternalEvent::EscapeKeyDown)
                                     }
-                                }
-                                auto_complete_text_input::Event::ReqQueuePopFront => {
-                                    set_input_req_queue.invoke(|x| {
-                                        x.pop_front();
-                                    });
-                                }
-                            }),
-                            req_queue: input_req_queue.clone(),
-                        })
-                    } else {
-                        Box::new(text(TextParam {
-                            text: character_name,
-                            x: 0.px(),
-                            y: wh.height / 2.0,
-                            align: TextAlign::Left,
-                            baseline: TextBaseline::Middle,
-                            font_type: sequence_player::CHARACTER_NAME_FONT,
-                            style: sequence_player::character_name_text_style(1.one_zero()),
-                            max_width: Some(wh.width),
-                        }))
+                                }),
+                        ),
+                    }),
+                )
+            } else {
+                Box::new(text(TextParam {
+                    text: line_text,
+                    x: 0.px(),
+                    y: 0.px(),
+                    align: TextAlign::Left,
+                    baseline: TextBaseline::Top,
+                    font_type: sequence_player::CUT_TEXT_FONT,
+                    style: sequence_player::cut_text_style(1.one_zero()),
+                    max_width: Some(wh.width),
+                }))
+            };
+
+            (transparent_rect(wh), content).attach_event(|builder| {
+                let focus = focus.clone();
+                builder.on_mouse_down_in(move |event: MouseEvent| {
+                    if event.button == Some(MouseButton::Left) {
+                        focus(ClickTarget::CutText)
                     }
-                };
-                (transparent_rect(wh), content).attach_event(|builder| {
-                    let focus = focus.clone();
-                    builder.on_mouse_down_in(move |event: MouseEvent| {
-                        if event.button == Some(MouseButton::Left) {
-                            focus(ClickTarget::CharacterName)
-                        }
-                    });
-                })
-            };
+                });
+            })
+        };
 
-            let cut_text_side = |wh: Wh<Px>| {
-                let line_text = cut.line.clone();
-                let cut_id = cut.id;
-                let content: Box<dyn Component> =
-                    if is_focused && *selected_target == Some(ClickTarget::CutText) {
-                        let focus = focus.clone();
-                        let move_cut_request = move_cut_request.clone();
-                        Box::new(
-                            text_input.render(text_input::Props {
-                                rect: wh.to_rect(),
-                                text: line_text,
-                                text_align: TextAlign::Left,
-                                text_baseline: TextBaseline::Top,
-                                font_type: sequence_player::CUT_TEXT_FONT,
-                                style: text_input::Style {
-                                    text: sequence_player::cut_text_style(1.one_zero()),
-                                    rect: RectStyle {
-                                        stroke: Some(RectStroke {
-                                            color: color::STROKE_FOCUS,
-                                            width: 2.px(),
-                                            border_position: BorderPosition::Middle,
-                                        }),
-                                        fill: Some(RectFill {
-                                            color: color::BACKGROUND,
-                                        }),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                },
-                                event_handler: Some(
-                                    text_input::EventHandler::new()
-                                        .on_text_updated(move |text| {
-                                            SEQUENCE_ATOM.mutate(move |sequence| {
-                                                sequence.update_cut(
-                                                    cut_id,
-                                                    CutUpdateAction::ChangeCutLine {
-                                                        line: text.clone(),
-                                                    },
-                                                )
-                                            });
-                                        })
-                                        .on_key_down(move |event: KeyDownEvent| {
-                                            if event.code == Code::Tab {
-                                                event.prevent_default();
-                                                if namui::keyboard::shift_press() {
-                                                    focus(ClickTarget::CharacterName)
-                                                } else {
-                                                    move_cut_request(UpDown::Down)
-                                                }
-                                            } else if event.code == Code::Escape {
-                                                namui::event::send(InternalEvent::EscapeKeyDown)
-                                            }
-                                        }),
-                                ),
-                            }),
-                        )
-                    } else {
-                        Box::new(text(TextParam {
-                            text: line_text,
-                            x: 0.px(),
-                            y: 0.px(),
-                            align: TextAlign::Left,
-                            baseline: TextBaseline::Top,
-                            font_type: sequence_player::CUT_TEXT_FONT,
-                            style: sequence_player::cut_text_style(1.one_zero()),
-                            max_width: Some(wh.width),
-                        }))
-                    };
-
-                (transparent_rect(wh), content).attach_event(|builder| {
-                    let focus = focus.clone();
-                    builder.on_mouse_down_in(move |event: MouseEvent| {
-                        if event.button == Some(MouseButton::Left) {
-                            focus(ClickTarget::CutText)
-                        }
-                    });
-                })
-            };
-
-            ctx.add(hooks::translate(
-                content_rect.x(),
-                content_rect.y(),
-                (
-                    simple_rect(
-                        content_rect.wh(),
-                        color::STROKE_NORMAL,
-                        1.px(),
-                        color::BACKGROUND,
-                    ),
-                    wysiwyg_editor::WysiwygEditor {
-                        wh: content_rect.wh(),
-                        screen_graphics: cut.screen_graphics.clone(),
-                        project_id,
-                        cut_id,
-                        cg_files: cg_files.clone(),
-                        on_click_character_edit: on_click_character_edit.clone(),
-                    },
-                    sequence_player::render_text_box(content_rect.wh()),
-                    sequence_player::render_over_text_hooks(
-                        content_rect.wh(),
-                        character_name_side,
-                        cut_text_side,
-                    ),
+        ctx.add(hooks::translate(
+            content_rect.x(),
+            content_rect.y(),
+            (
+                simple_rect(
+                    content_rect.wh(),
+                    color::STROKE_NORMAL,
+                    1.px(),
+                    color::BACKGROUND,
                 ),
-            ));
+                wysiwyg_editor::WysiwygEditor {
+                    wh: content_rect.wh(),
+                    screen_graphics: cut.screen_graphics.clone(),
+                    project_id,
+                    cut_id,
+                    cg_files: cg_files.clone(),
+                    on_click_character_edit: on_click_character_edit.clone(),
+                },
+                sequence_player::render_text_box(content_rect.wh()),
+                sequence_player::render_over_text_hooks(
+                    content_rect.wh(),
+                    character_name_side,
+                    cut_text_side,
+                ),
+            ),
+        ));
 
-            // render([
+        // render([
 
-            //     context_menu
-            //         .as_ref()
-            //         .map_or(RenderingTree::Empty, |context_menu| context_menu.render()),
-            // ])})
-        })
+        //     context_menu
+        //         .as_ref()
+        //         .map_or(RenderingTree::Empty, |context_menu| context_menu.render()),
+        // ])})
+        ctx.done()
     }
 }
 

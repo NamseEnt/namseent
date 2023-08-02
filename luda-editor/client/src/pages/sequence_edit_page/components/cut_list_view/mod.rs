@@ -23,7 +23,7 @@ pub enum Event {
     OnRightClickEvent { global_xy: Xy<Px> },
 }
 impl Component for CutListView<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
         let &Self {
             wh,
             ref cuts,
@@ -34,7 +34,7 @@ impl Component for CutListView<'_> {
         } = self;
         let cuts = cuts.clone();
 
-        ctx.use_children(|ctx| ctx.done())
+        ctx.done()
         // let on_key_down: Arc<dyn Fn(KeyboardEvent)> = closure({
         //     let cuts = cuts.clone();
         //     move |event: KeyboardEvent| {
@@ -86,7 +86,7 @@ impl Component for CutListView<'_> {
         //         }
         //     }
         // });
-        // ctx.use_children(|ctx| {
+        //
         //     ctx.add(
         //         render([simple_rect(
         //             wh,
