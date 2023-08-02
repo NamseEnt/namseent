@@ -1,5 +1,4 @@
 use super::*;
-use crate::*;
 
 pub(crate) fn mount_visit<'a>(
     component: &'a (dyn Component + 'a),

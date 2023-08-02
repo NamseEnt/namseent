@@ -178,9 +178,6 @@ impl TreeContext {
                             }
                         }
                     }
-                    Item::EventCallback(event_callback) => {
-                        todo!("Remove event callback, just use &dyn Fn closure")
-                    }
                 }
             }
         }

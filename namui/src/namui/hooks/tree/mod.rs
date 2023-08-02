@@ -5,10 +5,10 @@ mod mount;
 // mod set_state;
 
 use super::*;
-pub use ctx::*;
+pub(crate) use ctx::*;
 pub use render_ctx::*;
 // pub use event::*;
-pub use mount::*;
+pub(crate) use mount::*;
 // pub use set_state::*;
 
 #[derive(Clone)]

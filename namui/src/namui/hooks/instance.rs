@@ -1,6 +1,5 @@
 use super::*;
 use std::{
-    any::TypeId,
     fmt::Debug,
     sync::{atomic::AtomicBool, Mutex},
 };
