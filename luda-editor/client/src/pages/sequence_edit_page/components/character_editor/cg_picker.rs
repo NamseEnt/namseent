@@ -29,7 +29,7 @@ impl Component for CgPicker<'_> {
             project_id,
             on_event,
         } = self;
-        let (cg_file_list, _) = use_atom(&CG_FILES_ATOM);
+        let (cg_file_list, _) = ctx.use_atom(&CG_FILES_ATOM);
 
         ctx.use_children(|ctx| {
             ctx.add(table::hooks::padding(OUTER_PADDING, |wh| {
