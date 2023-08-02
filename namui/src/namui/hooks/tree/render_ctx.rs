@@ -113,11 +113,6 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
-    pub fn use_no_children(&'a self) -> RenderDone {
-        let children_ctx = ChildrenContext::new(self.tree_ctx.clone(), self.instance.clone(), None);
-        children_ctx.done().to_render_done()
-    }
-
     pub(crate) fn is_sig_updated(&self, sig_id: &SigId) -> bool {
         self.tree_ctx.is_sig_updated(sig_id)
     }

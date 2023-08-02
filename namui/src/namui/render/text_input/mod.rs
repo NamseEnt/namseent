@@ -214,7 +214,7 @@ impl Component for TextInput {
 
         let font = namui::font::get_font(self.font_type);
         if font.is_none() {
-            return ctx.use_no_children();
+            return ctx.done();
         }
         let font = font.unwrap();
 
