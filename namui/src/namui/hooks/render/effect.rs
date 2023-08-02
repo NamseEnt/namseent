@@ -1,6 +1,6 @@
 use super::*;
 
-pub fn handle_use_effect(ctx: &RenderCtx, title: &'static str, use_effect: impl FnOnce()) {
+pub(crate) fn handle_use_effect(ctx: &RenderCtx, title: &'static str, use_effect: impl FnOnce()) {
     let _ = title;
 
     let instance = ctx.instance.as_ref();

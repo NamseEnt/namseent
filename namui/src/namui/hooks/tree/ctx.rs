@@ -173,7 +173,7 @@ impl TreeContext {
                                             value.lock().unwrap().take().unwrap();
                                     }
                                     SigIdType::Atom => {
-                                        crate::hooks::atom::set_atom_value(
+                                        set_atom_value(
                                             sig_id.index,
                                             value.lock().unwrap().take().unwrap(),
                                         );
@@ -199,7 +199,7 @@ impl TreeContext {
                                     }
                                     SigIdType::Atom => {
                                         let mutate = mutate.lock().unwrap().take().unwrap();
-                                        crate::hooks::atom::mutate_atom_value(sig_id.index, mutate);
+                                        mutate_atom_value(sig_id.index, mutate);
                                     }
                                     SigIdType::Memo => unreachable!(),
                                     SigIdType::As => unreachable!(),
