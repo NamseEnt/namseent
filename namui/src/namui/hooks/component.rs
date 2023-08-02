@@ -104,41 +104,39 @@ impl Component for Arc<dyn Component> {
 //     }
 // }
 
-// macro_rules! component_impl {
-//     (
-//         $(
-//             ($
-//                 ($T:ident, $i:tt),
-//             *),
-//         )*
-//     ) => {
-//         $(
-//             impl<$($T: StaticType),*> StaticType for ($($T,)*) {
-//                 fn static_type_id(&self) -> StaticTypeId {
-//                     StaticTypeId::Tuple(vec![
-//                         $(
-//                             self.$i.static_type_id()
-//                         ),*])
-//                 }
-//             }
-//             impl<$($T: Component),*> Component for ($($T,)*) {
-//                 fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-//                     ctx.use_render(|ctx| {
-//                         $(ctx.add(&self.$i as &dyn Component);)*
-//                     })
-//                 }
-//             }
-//         )*
-//     };
-// }
+macro_rules! component_impl {
+    (
+        $(
+            ($
+                ($T:ident, $i:tt),
+            *),
+        )*
+    ) => {
+        $(
+            impl<$($T: StaticType),*> StaticType for ($($T,)*) {
+                fn static_type_name(&self) -> &'static str {
+                    std::any::type_name::<Self>()
+                }
+            }
+            impl<$($T: Component),*> Component for ($($T,)*) {
+                fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+                    ctx.use_children(|ctx| {
+                        $(ctx.add(&self.$i as &dyn Component);)*
+                        ctx.done()
+                    })
+                }
+            }
+        )*
+    };
+}
 
-// component_impl!(
-//     (T0, 0),
-//     (T0, 0, T1, 1),
-//     (T0, 0, T1, 1, T2, 2),
-//     (T0, 0, T1, 1, T2, 2, T3, 3),
-//     (T0, 0, T1, 1, T2, 2, T3, 3, T4, 4),
-//     (T0, 0, T1, 1, T2, 2, T3, 3, T4, 4, T5, 5),
-//     (T0, 0, T1, 1, T2, 2, T3, 3, T4, 4, T5, 5, T6, 6),
-//     (T0, 0, T1, 1, T2, 2, T3, 3, T4, 4, T5, 5, T6, 6, T7, 7),
-// );
+component_impl!(
+    (T0, 0),
+    (T0, 0, T1, 1),
+    (T0, 0, T1, 1, T2, 2),
+    (T0, 0, T1, 1, T2, 2, T3, 3),
+    (T0, 0, T1, 1, T2, 2, T3, 3, T4, 4),
+    (T0, 0, T1, 1, T2, 2, T3, 3, T4, 4, T5, 5),
+    (T0, 0, T1, 1, T2, 2, T3, 3, T4, 4, T5, 5, T6, 6),
+    (T0, 0, T1, 1, T2, 2, T3, 3, T4, 4, T5, 5, T6, 6, T7, 7),
+);
