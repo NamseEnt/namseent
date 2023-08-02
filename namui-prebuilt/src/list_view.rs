@@ -60,7 +60,7 @@ impl<C: Component> Component for ListViewInner<'_, C> {
         let item_len = items.len();
 
         if item_len == 0 {
-            return ctx.use_no_children();
+            return ctx.done();
         }
         let max_scroll_y = item_wh.height * item_len - height;
 
