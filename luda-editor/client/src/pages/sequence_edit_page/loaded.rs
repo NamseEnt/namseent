@@ -49,7 +49,7 @@ impl Component for LoadedSequenceEditorPage {
             CutListViewEvent { event: cut_list_view::Event },
             // CutEditorEvent { event: cut_editor::Event2 },
             CharacterEdtiorEvent { event: character_editor::Event },
-            // MemoListViewEvent { event: memo_list_view::Event },
+            MemoListViewEvent { event: memo_list_view::Event },
             MemoEditorEvent { event: memo_editor::Event },
         }
         let on_internal_event = |event: InternalEvent| match event {
@@ -106,31 +106,31 @@ impl Component for LoadedSequenceEditorPage {
                     set_character_editor_target.set(Some(edit_target));
                 }
             },
-            // InternalEvent::MemoListViewEvent { event } => match event {
-            //     memo_list_view::Event::DoneClicked { cut_id, memo_id } => {
-            //         spawn_local(async move {
-            //             match crate::RPC
-            //                 .delete_memo(rpc::delete_memo::Request {
-            //                     sequence_id,
-            //                     memo_id,
-            //                 })
-            //                 .await
-            //             {
-            //                 Ok(_) => {
-            //                     set_cut_id_memos_map.mutate(move |cut_id_memos_map| {
-            //                         cut_id_memos_map
-            //                             .get_mut(&cut_id)
-            //                             .unwrap()
-            //                             .retain(|memo| memo.id != memo_id);
-            //                     });
-            //                 }
-            //                 Err(error) => {
-            //                     namui::log!("Failed to delete memo: {:?}", error)
-            //                 }
-            //             };
-            //         });
-            //     }
-            // },
+            InternalEvent::MemoListViewEvent { event } => match event {
+                memo_list_view::Event::DoneClicked { cut_id, memo_id } => {
+                    spawn_local(async move {
+                        match crate::RPC
+                            .delete_memo(rpc::delete_memo::Request {
+                                sequence_id,
+                                memo_id,
+                            })
+                            .await
+                        {
+                            Ok(_) => {
+                                set_cut_id_memos_map.mutate(move |cut_id_memos_map| {
+                                    cut_id_memos_map
+                                        .get_mut(&cut_id)
+                                        .unwrap()
+                                        .retain(|memo| memo.id != memo_id);
+                                });
+                            }
+                            Err(error) => {
+                                namui::log!("Failed to delete memo: {:?}", error)
+                            }
+                        };
+                    });
+                }
+            },
             InternalEvent::MemoEditorEvent { event } => match event {
                 memo_editor::Event::Close => set_editing_memo.set(None),
                 memo_editor::Event::SaveButtonClicked {
