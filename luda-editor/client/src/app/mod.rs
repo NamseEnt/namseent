@@ -17,9 +17,9 @@ enum LoadingState {
 
 impl Component for App {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let (loading_state, set_loading_state) = ctx.use_state(|| LoadingState::Loading);
+        let (loading_state, set_loading_state) = ctx.state(|| LoadingState::Loading);
 
-        ctx.use_effect("Try login", || {
+        ctx.effect("Try login", || {
             namui::log!("before spawn_local");
             spawn_local(async move {
                 let result: Result<()> = async move {

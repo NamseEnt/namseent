@@ -1,13 +1,13 @@
 use crate::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct TextInputInstance {
     pub(crate) id: Uuid,
 }
 
 impl TextInputInstance {
     pub fn new(ctx: &RenderCtx) -> Self {
-        let id = ctx.use_memo(|| uuid());
+        let id = ctx.memo(|| uuid());
 
         TextInputInstance { id: *id }
     }

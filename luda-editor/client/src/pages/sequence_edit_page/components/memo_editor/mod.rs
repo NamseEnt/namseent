@@ -29,7 +29,7 @@ impl Component for MemoEditor {
             ref on_event,
         } = self;
 
-        let (text, set_text) = ctx.use_state(|| "".to_string());
+        let (text, set_text) = ctx.state(|| "".to_string());
 
         const PADDING: Px = px(8.0);
         const TITLE_HEIGHT: Px = px(48.0);

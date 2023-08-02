@@ -24,37 +24,37 @@ impl<'a> RenderCtx {
         }
     }
 
-    pub fn use_atom_init<T: Debug + Send + Sync + 'static>(
+    pub fn atom_init<T: Debug + Send + Sync + 'static>(
         &'a self,
         atom: &'static Atom<T>,
         init: impl FnOnce() -> T,
     ) -> (Sig<'a, T>, SetState<T>) {
-        handle_use_atom_init(atom, init)
+        handle_atom_init(atom, init)
     }
 
-    pub fn use_atom<T: Debug + Send + Sync + 'static>(
+    pub fn atom<T: Debug + Send + Sync + 'static>(
         &'a self,
         atom: &'static Atom<T>,
     ) -> (Sig<'a, T>, SetState<T>) {
-        handle_use_atom(atom)
+        handle_atom(atom)
     }
 
-    pub fn use_state<T: 'static + Debug + Send + Sync>(
+    pub fn state<T: 'static + Debug + Send + Sync>(
         &'a self,
         init: impl FnOnce() -> T,
     ) -> (Sig<'a, T>, SetState<T>) {
-        handle_use_state(self, init)
+        handle_state(self, init)
     }
 
-    pub fn use_memo<T: 'static + Debug + Send + Sync>(
+    pub fn memo<T: 'static + Debug + Send + Sync>(
         &'a self,
-        use_memo: impl FnOnce() -> T,
+        memo: impl FnOnce() -> T,
     ) -> Sig<'a, T> {
-        handle_use_memo(self, use_memo)
+        handle_memo(self, memo)
     }
 
-    pub fn use_effect(&'a self, title: &'static str, effect: impl FnOnce()) {
-        handle_use_effect(self, title, effect)
+    pub fn effect(&'a self, title: &'static str, effect: impl FnOnce()) {
+        handle_effect(self, title, effect)
     }
 
     pub fn add(
@@ -111,12 +111,12 @@ impl<'a> RenderCtx {
         self.tree_ctx.add_sig_updated(sig_id)
     }
 
-    pub fn use_web_event(&'a self, use_web_event: impl 'a + Fn(&crate::web::WebEvent)) {
+    pub fn web_event(&'a self, web_event: impl 'a + Fn(&crate::web::WebEvent)) {
         let unsafe_casted = unsafe {
             std::mem::transmute::<
                 Box<dyn Fn(&crate::web::WebEvent)>,
                 Box<dyn Fn(&crate::web::WebEvent)>,
-            >(Box::new(use_web_event))
+            >(Box::new(web_event))
         };
         *self.instance.web_event_listener.lock().unwrap() = Some(unsafe_casted);
     }

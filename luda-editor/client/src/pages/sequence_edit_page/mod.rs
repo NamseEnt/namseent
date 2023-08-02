@@ -24,9 +24,9 @@ impl Component for SequenceEditPage {
             project_id,
             sequence_id,
         } = self;
-        let (data, set_data) = ctx.use_state::<Option<Result<LoadData, String>>>(|| None);
+        let (data, set_data) = ctx.state::<Option<Result<LoadData, String>>>(|| None);
 
-        ctx.use_effect("Load data", || {
+        ctx.effect("Load data", || {
             spawn_local(async move {
                 match load_data(project_id, sequence_id).await {
                     Ok(data) => set_data.set(Some(Ok(data))),

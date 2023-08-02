@@ -1,6 +1,6 @@
 use super::*;
 
-pub(crate) fn handle_use_memo<'a, T: 'static + Debug + Send + Sync>(
+pub(crate) fn handle_memo<'a, T: 'static + Debug + Send + Sync>(
     ctx: &'a RenderCtx,
     memo: impl FnOnce() -> T,
 ) -> Sig<'a, T> {

@@ -32,3 +32,7 @@ fn update_or_push<T>(vector: &mut Vec<T>, index: usize, value: T) {
         vector.insert(index, value);
     }
 }
+
+pub fn boxed<T>(value: T) -> Box<T> {
+    Box::new(value)
+}

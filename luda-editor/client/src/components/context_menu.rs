@@ -69,8 +69,8 @@ impl Component for ContextMenu<'_> {
             ref close,
             ..
         } = self;
-        let (mouse_over_item_idx, set_mouse_over_item_idx) = ctx.use_state(|| None);
-        let (a, set_a) = ctx.use_state::<Option<String>>(|| None);
+        let (mouse_over_item_idx, set_mouse_over_item_idx) = ctx.state(|| None);
+        let (a, set_a) = ctx.state::<Option<String>>(|| None);
         let cell_wh = Wh::new(160.px(), 24.px());
 
         let divider_height = 16.px();

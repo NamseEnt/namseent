@@ -23,11 +23,11 @@ enum ContextMenuType {
 impl Component for SequenceListPage {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self { wh, project_id } = self;
-        let (error_message, set_error_message) = ctx.use_state::<Option<String>>(|| None);
-        let (is_loading, set_is_loading) = ctx.use_state(|| true);
-        let (sequence_list, set_sequence_list) = ctx.use_state::<Vec<SequenceNameAndId>>(|| vec![]);
-        let (context_menu_type, set_context_menu_type) = ctx.use_state(|| None);
-        let (rename_modal, set_rename_modal) = ctx.use_state(|| None);
+        let (error_message, set_error_message) = ctx.state::<Option<String>>(|| None);
+        let (is_loading, set_is_loading) = ctx.state(|| true);
+        let (sequence_list, set_sequence_list) = ctx.state::<Vec<SequenceNameAndId>>(|| vec![]);
+        let (context_menu_type, set_context_menu_type) = ctx.state(|| None);
+        let (rename_modal, set_rename_modal) = ctx.state(|| None);
 
         let start_fetch_list = move || {
             set_is_loading.set(true);
@@ -68,7 +68,7 @@ impl Component for SequenceListPage {
             })
         };
 
-        ctx.use_effect("Fetch list on mount", || {
+        ctx.effect("Fetch list on mount", || {
             start_fetch_list();
         });
 

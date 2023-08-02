@@ -213,12 +213,7 @@ pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) -> Option<WebEve
             selection_start,
             selection_end,
             ref text,
-        } => crate::system::text_input::on_selection_change(
-            selection_direction,
-            selection_start,
-            selection_end,
-            text,
-        ),
+        } => {}
         &WebEvent::KeyDown { ref code } => crate::keyboard::on_key_down(&code),
         &WebEvent::KeyUp { ref code } => crate::keyboard::on_key_up(&code),
         &WebEvent::Blur => crate::keyboard::reset_pressing_code_set(),

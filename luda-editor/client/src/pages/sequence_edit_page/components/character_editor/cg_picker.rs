@@ -29,7 +29,7 @@ impl Component for CgPicker<'_> {
             project_id,
             on_event,
         } = self;
-        let (cg_file_list, _) = ctx.use_atom(&CG_FILES_ATOM);
+        let (cg_file_list, _) = ctx.atom(&CG_FILES_ATOM);
 
         ctx.add(table::hooks::padding(OUTER_PADDING, |wh| {
             let max_items_per_row = (wh.width / (CHARACTER_THUMBNAIL_WH.width)).floor() as usize;

@@ -43,12 +43,12 @@ impl Component for AutoCompleteTextInput<'_> {
 
         //     text_input: TextInput,
         // over_item_index: Option<usize>,
-        // let (over_item_index, set_over_item_index) = ctx.use_state(|| None);
-        let (over_item_text, set_over_item_text) = ctx.use_state::<Option<String>>(|| None);
-        // let (text_input, set_text_input) = ctx.use_state(|| TextInput::new());
+        // let (over_item_index, set_over_item_index) = ctx.state(|| None);
+        let (over_item_text, set_over_item_text) = ctx.state::<Option<String>>(|| None);
+        // let (text_input, set_text_input) = ctx.state(|| TextInput::new());
         let text_input_instance = namui::text_input::TextInputInstance::new(ctx);
 
-        ctx.use_effect("handle req_queue", || {
+        ctx.effect("handle req_queue", || {
             if let Some(req) = req_queue.front() {
                 match req {
                     Request::Focus => {

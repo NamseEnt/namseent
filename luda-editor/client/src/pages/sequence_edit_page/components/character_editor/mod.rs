@@ -37,8 +37,8 @@ impl Component for CharacterEditor<'_> {
             ref cut,
             ref on_event,
         } = self;
-        let (tool_tip, set_tool_tip) = ctx.use_state::<Option<ToolTip>>(|| None);
-        let (cg_file_list, _) = ctx.use_atom(&CG_FILES_ATOM);
+        let (tool_tip, set_tool_tip) = ctx.state::<Option<ToolTip>>(|| None);
+        let (cg_file_list, _) = ctx.atom(&CG_FILES_ATOM);
 
         enum InternalEvent {
             MoveInCgFileThumbnail { global_xy: Xy<Px>, text: String },

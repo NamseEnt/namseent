@@ -10,9 +10,9 @@ pub struct ProjectListPage2 {
 impl Component for ProjectListPage2 {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self { wh } = self;
-        let (error_message, set_error_message) = ctx.use_state::<Option<String>>(|| None);
-        let (is_loading, set_is_loading) = ctx.use_state(|| true);
-        let (project_list, set_project_list) = ctx.use_state::<Vec<EditableProject>>(|| vec![]);
+        let (error_message, set_error_message) = ctx.state::<Option<String>>(|| None);
+        let (is_loading, set_is_loading) = ctx.state(|| true);
+        let (project_list, set_project_list) = ctx.state::<Vec<EditableProject>>(|| vec![]);
 
         let start_fetch_list = move || {
             set_is_loading.set(true);
@@ -56,7 +56,7 @@ impl Component for ProjectListPage2 {
             })
         };
 
-        ctx.use_effect("Fetch project list on mount", || {
+        ctx.effect("Fetch project list on mount", || {
             start_fetch_list();
         });
 

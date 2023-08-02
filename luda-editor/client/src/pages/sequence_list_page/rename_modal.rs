@@ -16,8 +16,8 @@ impl Component for RenameModal<'_> {
             close_modal,
         } = self;
         todo!()
-        // let (text_input, _) = ctx.use_state(|| TextInput::new());
-        // let (sequence_name, set_sequence_name) = ctx.use_state(|| init_sequence_name.clone());
+        // let (text_input, _) = ctx.state(|| TextInput::new());
+        // let (sequence_name, set_sequence_name) = ctx.state(|| init_sequence_name.clone());
 
         // let close_modal = close_modal.clone();
         // let on_rename_done = on_rename_done.clone();

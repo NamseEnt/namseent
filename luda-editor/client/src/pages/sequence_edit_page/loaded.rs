@@ -26,17 +26,17 @@ impl Component for LoadedSequenceEditorPage {
             ref cg_files,
         } = self;
         let (sequence, set_seuqnece) =
-            ctx.use_atom_init(&SEQUENCE_ATOM, || SequenceWrapped::new(sequence.clone()));
-        // let (cg_files, _set_cg_files) = use_atom_init(&CG_FILES_ATOM, || cg_files.clone());
+            ctx.atom_init(&SEQUENCE_ATOM, || SequenceWrapped::new(sequence.clone()));
+        // let (cg_files, _set_cg_files) = atom_init(&CG_FILES_ATOM, || cg_files.clone());
 
-        let (selected_cut_id, set_selected_cut_id) = ctx.use_state::<Option<Uuid>>(|| None);
-        // let (focused_component, set_focused_component) = ctx.use_state(|| None);
+        let (selected_cut_id, set_selected_cut_id) = ctx.state::<Option<Uuid>>(|| None);
+        // let (focused_component, set_focused_component) = ctx.state(|| None);
         // let (context_menu, set_context_menu) =
-        //     ctx.use_state::<Option<context_menu::ContextMenu2>>(|| None);
+        //     ctx.state::<Option<context_menu::ContextMenu2>>(|| None);
         // let (character_editor_target, set_character_editor_target) =
-        //     ctx.use_state::<Option<EditTarget>>(|| None);
-        // let (cut_id_memos_map, set_cut_id_memos_map) = ctx.use_state(|| cut_id_memos_map.clone());
-        // let (editing_memo, set_editing_memo) = ctx.use_state(|| None);
+        //     ctx.state::<Option<EditTarget>>(|| None);
+        // let (cut_id_memos_map, set_cut_id_memos_map) = ctx.state(|| cut_id_memos_map.clone());
+        // let (editing_memo, set_editing_memo) = ctx.state(|| None);
 
         let selected_cut = selected_cut_id.and_then(|id| sequence.cuts.iter().find(|c| c.id == id));
         // let project_id = project_shared_data.id();

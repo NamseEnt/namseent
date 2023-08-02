@@ -1,6 +1,6 @@
 use super::*;
 
-pub(crate) fn handle_use_state<'a, State: Send + Sync + Debug + 'static>(
+pub(crate) fn handle_state<'a, State: Send + Sync + Debug + 'static>(
     ctx: &'a RenderCtx,
     init: impl FnOnce() -> State,
 ) -> (Sig<'a, State>, SetState<State>) {

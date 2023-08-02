@@ -1,5 +1,5 @@
 use super::*;
-use crate::{font::with_fallbacks, namui::*, system::text_input::Selection, text::*};
+use crate::{font::with_fallbacks, namui::*, text::*};
 
 impl TextInput {
     /// Caret is drawn at the end of the text.

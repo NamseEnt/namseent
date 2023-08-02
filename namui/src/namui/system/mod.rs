@@ -44,7 +44,7 @@ pub(crate) async fn init() -> InitResult {
         mouse::init(),
         network::init(),
         screen::init(),
-        text_input::init(),
+        // text_input::init(),
         time::init(),
         typeface::init(),
         deep_link::init(),

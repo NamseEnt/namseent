@@ -41,12 +41,12 @@ impl Component for CutEditor<'_> {
             ref on_event,
         } = self;
         let on_event = on_event.clone();
-        let (selected_target, set_selected_target) = ctx.use_state::<Option<ClickTarget>>(|| None);
-        let (input_req_queue, set_input_req_queue) = ctx.use_state(|| VecDeque::new());
-        let (text_input, set_text_input) = ctx.use_state(|| TextInput::new());
+        let (selected_target, set_selected_target) = ctx.state::<Option<ClickTarget>>(|| None);
+        let (input_req_queue, set_input_req_queue) = ctx.state(|| VecDeque::new());
+        let (text_input, set_text_input) = ctx.state(|| TextInput::new());
         // image_wysiwyg_editor: wysiwyg_editor::WysiwygEditor,
         // context_menu: Option<ContextMenu>,
-        let character_name_candidates = use_memo(|| get_character_name_candidates(cuts, cut));
+        let character_name_candidates = memo(|| get_character_name_candidates(cuts, cut));
 
         let content_rect = sequence_player::get_inner_content_rect(wh);
         let cut_id = cut.id;

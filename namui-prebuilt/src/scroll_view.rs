@@ -21,7 +21,7 @@ pub struct AutoScrollView<'a> {
 
 impl Component for AutoScrollView<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let (scroll_y, set_scroll_y) = ctx.use_state(|| 0.px());
+        let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
         ctx.add(ScrollView {
             xy: self.xy,

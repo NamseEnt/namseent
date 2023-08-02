@@ -17,7 +17,7 @@ impl TextInputExample {
 
 impl Component for TextInputExample {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let (text_3x3, set_text_3x3) = ctx.use_state(|| {
+        let (text_3x3, set_text_3x3) = ctx.state(|| {
             [
                 [
                     "Left Top\nHel🔗lo you!\nmamama mimimi mo".to_string(),
@@ -36,10 +36,28 @@ impl Component for TextInputExample {
                 ],
             ]
         });
+        let text_input_instances_3x3 = [
+            [
+                TextInputInstance::new(ctx),
+                TextInputInstance::new(ctx),
+                TextInputInstance::new(ctx),
+            ],
+            [
+                TextInputInstance::new(ctx),
+                TextInputInstance::new(ctx),
+                TextInputInstance::new(ctx),
+            ],
+            [
+                TextInputInstance::new(ctx),
+                TextInputInstance::new(ctx),
+                TextInputInstance::new(ctx),
+            ],
+        ];
 
         for x in 0..3 {
             for y in 0..3 {
                 ctx.add(text_input::TextInput {
+                    instance: text_input_instances_3x3[x][y],
                     rect: Rect::Xywh {
                         x: (x as f32 * 300.0 + 100.0).px(),
                         y: (y as f32 * 300.0 + 100.0).px(),

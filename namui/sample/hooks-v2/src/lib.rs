@@ -15,17 +15,16 @@ pub struct MyComponent {}
 
 impl Component for MyComponent {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        // let (count, set_count) = ctx.use_atom_init(&COUNT_ATOM, || 0);
-        let (count, set_count) = ctx.use_state(|| 0);
-        let count_mul_2 = ctx.use_memo(|| *count * 2);
+        // let (count, set_count) = ctx.atom_init(&COUNT_ATOM, || 0);
+        let (count, set_count) = ctx.state(|| 0);
+        let count_mul_2 = ctx.memo(|| *count * 2);
 
-        let fibo = ctx.use_memo(|| get_fibo(*count));
-        let fibo2 = ctx.use_memo(|| get_fibo(*count_mul_2));
+        let fibo = ctx.memo(|| get_fibo(*count));
+        let fibo2 = ctx.memo(|| get_fibo(*count_mul_2));
 
-        let text =
-            ctx.use_memo(|| format!("Count: {}, Fibo: {}, Fibo2: {}", *count, *fibo, *fibo2));
+        let text = ctx.memo(|| format!("Count: {}, Fibo: {}, Fibo2: {}", *count, *fibo, *fibo2));
 
-        ctx.use_effect("Print text", || {
+        ctx.effect("Print text", || {
             namui::log!("{}", *text);
         });
 
@@ -98,11 +97,11 @@ impl StaticType for Button<'_> {
 
 impl Component for Button<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        ctx.use_effect("Print text", || {
+        ctx.effect("Print text", || {
             namui::log!("{}", *self.text);
         });
 
-        ctx.use_effect("On button render", || {});
+        ctx.effect("On button render", || {});
 
         ctx.add(button::text_button(
             Rect::Xywh {
@@ -140,9 +139,9 @@ impl StaticType for StringText<'_> {
 
 impl Component for StringText<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let (value, _set_value) = ctx.use_state(|| "hello".to_string());
+        let (value, _set_value) = ctx.state(|| "hello".to_string());
 
-        ctx.use_effect("Print text", || {
+        ctx.effect("Print text", || {
             namui::log!("StringText: {}", *value);
         });
 
@@ -181,8 +180,8 @@ impl StaticType for UsizeText<'_> {
 
 impl Component for UsizeText<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let (value, _set_value) = ctx.use_state(|| 0);
-        ctx.use_effect("Print text", || {
+        let (value, _set_value) = ctx.state(|| 0);
+        ctx.effect("Print text", || {
             namui::log!("UsizeText: {}", *value);
         });
 

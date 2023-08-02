@@ -20,7 +20,7 @@ impl<C: Component> Component for ListView<C> {
             item_wh,
             ref items,
         } = self;
-        let (scroll_y, set_scroll_y) = ctx.use_state(|| 0.px());
+        let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
         ctx.add(scroll_view::ScrollView {
             xy,

@@ -43,8 +43,8 @@ impl Component for WysiwygEditor {
         } = self;
         let on_click_character_edit = on_click_character_edit.clone();
 
-        let (dragging, set_dragging) = ctx.use_state(|| None);
-        let (editing_image_index, set_editing_image_index) = ctx.use_state(|| None);
+        let (dragging, set_dragging) = ctx.state(|| None);
+        let (editing_image_index, set_editing_image_index) = ctx.state(|| None);
         let (context_menu, set_context_menu) = use_context_menu();
 
         let background =

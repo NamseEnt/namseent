@@ -8,10 +8,10 @@ pub struct Router {
 
 impl Component for Router {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let (route, set_route) = ctx.use_state(|| Route::from(get_path_from_hash()));
+        let (route, set_route) = ctx.state(|| Route::from(get_path_from_hash()));
         namui::log!("route: {:?}", route);
 
-        ctx.use_web_event(move |web_event| {
+        ctx.web_event(move |web_event| {
             if let namui::web::WebEvent::HashChange { .. } = web_event {
                 namui::log!("Hash change");
                 set_route.set(Route::from(get_path_from_hash()));
