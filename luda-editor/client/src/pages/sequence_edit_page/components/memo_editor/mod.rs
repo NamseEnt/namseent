@@ -4,7 +4,7 @@ use namui::text_input::Style;
 use namui_prebuilt::*;
 
 #[namui::component]
-pub struct MemoEditor {
+pub struct MemoEditor<'a> {
     pub wh: Wh<Px>,
     pub sequence_id: Uuid,
     pub cut_id: Uuid,
@@ -20,7 +20,7 @@ pub enum Event {
     },
 }
 
-impl Component for MemoEditor {
+impl Component for MemoEditor<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             wh,
@@ -47,7 +47,7 @@ impl Component for MemoEditor {
                 let on_event = on_event.clone();
                 builder.on_mouse_down_in(move |event: MouseEvent| {
                     event.stop_propagation();
-                    on_event.call(Event::Close);
+                    on_event(Event::Close);
                 });
             })
             .with_mouse_cursor(MouseCursor::Default)
@@ -75,7 +75,7 @@ impl Component for MemoEditor {
                     {
                         let on_event = on_event.clone();
                         move |_event| {
-                            on_event.call(Event::Close);
+                            on_event(Event::Close);
                         }
                     },
                 )
@@ -120,7 +120,7 @@ impl Component for MemoEditor {
                     {
                         let on_event = on_event.clone();
                         move |_event| {
-                            on_event.call(Event::SaveButtonClicked {
+                            on_event(Event::SaveButtonClicked {
                                 sequence_id,
                                 cut_id,
                                 content: text.to_string(),
@@ -160,7 +160,14 @@ impl Component for MemoEditor {
                             font_weight: FontWeight::REGULAR,
                         },
                         style: Style {
-                            padding: Ltrb::single(PADDING),
+                            // TODO: Declare Ltrb with vector_types! macro
+                            // padding: Ltrb::single(PADDING),
+                            padding: Ltrb {
+                                left: PADDING,
+                                top: PADDING,
+                                right: PADDING,
+                                bottom: PADDING,
+                            },
                             rect: RectStyle {
                                 stroke: Some(RectStroke {
                                     color: color::STROKE_NORMAL,
@@ -192,6 +199,7 @@ impl Component for MemoEditor {
                     (container, content),
                 ),
             )));
+            ctx.done()
         })
     }
 }
