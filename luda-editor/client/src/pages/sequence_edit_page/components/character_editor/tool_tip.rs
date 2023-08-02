@@ -8,7 +8,7 @@ pub struct ToolTip {
 }
 
 impl Component for ToolTip {
-    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             global_xy,
             ref text,

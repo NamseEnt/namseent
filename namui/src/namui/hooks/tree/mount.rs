@@ -10,7 +10,7 @@ pub(crate) fn mount_visit<'a>(
             .unwrap_or_else(|| Arc::new(ComponentInstance::new(component)))
     };
     let render_ctx = RenderCtx::new(component_instance, tree_ctx);
-    let done = component.render(render_ctx);
+    let done = component.render(&render_ctx);
 
     done.tree_ctx
 }

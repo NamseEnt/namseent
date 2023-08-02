@@ -7,7 +7,7 @@ pub struct RenderDone {
 }
 
 pub trait Component: StaticType + Debug {
-    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone;
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone;
     fn arc<'a>(self) -> Arc<dyn 'a + Component>
     where
         Self: Sized + 'a,
@@ -46,7 +46,7 @@ impl<T: Component> StaticType for &T {
 }
 
 impl<T: Component> Component for &T {
-    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         (*self).render(ctx)
     }
 }
@@ -58,7 +58,7 @@ impl StaticType for RenderingTree {
 }
 
 impl Component for RenderingTree {
-    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         ctx.done_with_rendering_tree(|_| self.clone())
     }
 }
@@ -70,7 +70,7 @@ impl StaticType for &dyn Component {
 }
 
 impl Component for &dyn Component {
-    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         (*self).render(ctx)
     }
 }
@@ -82,7 +82,7 @@ impl StaticType for Arc<dyn Component> {
 }
 
 impl Component for Arc<dyn Component> {
-    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         self.as_ref().render(ctx)
     }
 }
@@ -95,7 +95,7 @@ impl Component for Arc<dyn Component> {
 //     }
 // }
 // impl<T: Component> Component for Option<T> {
-//     fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
+//     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
 //         if let Some(v) = self {
 //             v.render(ctx)
 //         } else {
@@ -122,7 +122,7 @@ impl Component for Arc<dyn Component> {
 //                 }
 //             }
 //             impl<$($T: Component),*> Component for ($($T,)*) {
-//                 fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
+//                 fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
 //                     ctx.use_render(|ctx| {
 //                         $(ctx.add(&self.$i as &dyn Component);)*
 //                     })

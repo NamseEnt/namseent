@@ -136,7 +136,7 @@ impl TextInput {
 }
 
 impl Component for TextInput {
-    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         // let id = ctx.use_memo(|| self.id.unwrap_or_else(|| namui::uuid()));
         let id = self.instance.id;
         let (atom, set_atom) = ctx.use_atom(&TEXT_INPUT_ATOM);

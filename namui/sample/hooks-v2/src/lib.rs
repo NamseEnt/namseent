@@ -14,7 +14,7 @@ pub struct MyComponent {}
 // static COUNT_ATOM: Atom<usize> = Atom::uninitialized_new();
 
 impl Component for MyComponent {
-    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         // let (count, set_count) = ctx.use_atom_init(&COUNT_ATOM, || 0);
         let (count, set_count) = ctx.use_state(|| 0);
         let count_mul_2 = ctx.use_memo(|| *count * 2);
@@ -97,7 +97,7 @@ impl StaticType for Button<'_> {
 }
 
 impl Component for Button<'_> {
-    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         ctx.use_effect("Print text", || {
             namui::log!("{}", *self.text);
         });
@@ -139,7 +139,7 @@ impl StaticType for StringText<'_> {
 }
 
 impl Component for StringText<'_> {
-    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let (value, _set_value) = ctx.use_state(|| "hello".to_string());
 
         ctx.use_effect("Print text", || {
@@ -180,7 +180,7 @@ impl StaticType for UsizeText<'_> {
 }
 
 impl Component for UsizeText<'_> {
-    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let (value, _set_value) = ctx.use_state(|| 0);
         ctx.use_effect("Print text", || {
             namui::log!("UsizeText: {}", *value);

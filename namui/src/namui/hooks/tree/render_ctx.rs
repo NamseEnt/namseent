@@ -1,9 +1,7 @@
 use super::*;
 use crate::RenderingTree;
-use std::marker::PhantomData;
 
-pub struct RenderCtx<'a> {
-    _a: PhantomData<&'a ()>,
+pub struct RenderCtx {
     pub(crate) instance: Arc<ComponentInstance>,
     pub(crate) state_index: AtomicUsize,
     pub(crate) effect_index: AtomicUsize,
@@ -13,10 +11,9 @@ pub struct RenderCtx<'a> {
     direct_children: Mutex<Vec<Box<dyn Component>>>,
 }
 
-impl<'a> RenderCtx<'a> {
+impl<'a> RenderCtx {
     pub(crate) fn new(instance: Arc<ComponentInstance>, tree_ctx: TreeContext) -> Self {
         Self {
-            _a: Default::default(),
             instance,
             state_index: Default::default(),
             effect_index: Default::default(),
@@ -75,22 +72,12 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
-    pub fn done(self) -> RenderDone {
-        self.tree_ctx
-            .clone()
-            .end_up_one_component_rendering(ComponentRenderResult {
-                children: self.direct_children.into_inner().unwrap(),
-                component_instance: self.instance,
-                fn_rendering_tree: None,
-            });
-
-        RenderDone {
-            tree_ctx: self.tree_ctx,
-        }
+    pub fn done(&'a self) -> RenderDone {
+        self.done_inner(None)
     }
 
     pub fn done_with_rendering_tree(
-        self,
+        &'a self,
         fn_rendering_tree: impl 'a + FnOnce(Vec<RenderingTree>) -> RenderingTree,
     ) -> RenderDone {
         let fn_rendering_tree = unsafe {
@@ -99,17 +86,20 @@ impl<'a> RenderCtx<'a> {
                 Box<dyn FnOnce(Vec<RenderingTree>) -> RenderingTree>,
             >(Box::new(fn_rendering_tree))
         };
+        self.done_inner(Some(fn_rendering_tree))
+    }
 
+    fn done_inner(&'a self, fn_rendering_tree: Option<FnRenderingTree>) -> RenderDone {
         self.tree_ctx
             .clone()
             .end_up_one_component_rendering(ComponentRenderResult {
-                children: self.direct_children.into_inner().unwrap(),
-                component_instance: self.instance,
-                fn_rendering_tree: Some(fn_rendering_tree),
+                children: std::mem::take(&mut self.direct_children.lock().unwrap()),
+                component_instance: self.instance.clone(),
+                fn_rendering_tree: fn_rendering_tree,
             });
 
         RenderDone {
-            tree_ctx: self.tree_ctx,
+            tree_ctx: self.tree_ctx.clone(),
         }
     }
 

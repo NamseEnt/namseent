@@ -16,7 +16,7 @@ enum LoadingState {
 }
 
 impl Component for App {
-    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let (loading_state, set_loading_state) = ctx.use_state(|| LoadingState::Loading);
 
         ctx.use_effect("Try login", || {

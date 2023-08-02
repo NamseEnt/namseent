@@ -28,7 +28,7 @@ pub fn main() {
 struct Init {}
 
 impl namui::Component for Init {
-    fn render<'a>(&'a self, ctx: RenderCtx<'a>) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let (loaded, set_loaded) = ctx.use_state(|| false);
 
         ctx.use_effect("Init", || {
