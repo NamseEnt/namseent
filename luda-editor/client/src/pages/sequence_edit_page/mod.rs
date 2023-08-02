@@ -1,10 +1,10 @@
 mod atom;
 mod components;
-// mod loaded;
+mod loaded;
 mod sequence;
 
 use ::futures::try_join;
-// use loaded::LoadedSequenceEditorPage;
+use loaded::LoadedSequenceEditorPage;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::{CgFile, Memo, ProjectSharedData, Sequence};
@@ -40,15 +40,14 @@ impl Component for SequenceEditPage {
         ctx.use_children(|ctx| {
             match data.as_ref() {
                 Some(result) => match result {
-                    Ok(data) => {}
-                    // ctx.add(LoadedSequenceEditorPage {
-                    //     cut_id_memos_map: data.cut_id_memos_map.clone(),
-                    //     project_shared_data: data.project_shared_data.clone(),
-                    //     sequence: data.sequence.clone(),
-                    //     user_id: data.user_id,
-                    //     wh,
-                    //     cg_files: data.cg_files.clone(),
-                    // }),
+                    Ok(data) => ctx.add(LoadedSequenceEditorPage {
+                        cut_id_memos_map: data.cut_id_memos_map.clone(),
+                        project_shared_data: data.project_shared_data.clone(),
+                        sequence: data.sequence.clone(),
+                        user_id: data.user_id,
+                        wh,
+                        cg_files: data.cg_files.clone(),
+                    }),
                     Err(err) => ctx.add(typography::body::center(
                         wh,
                         &format!("Error: {}", err),

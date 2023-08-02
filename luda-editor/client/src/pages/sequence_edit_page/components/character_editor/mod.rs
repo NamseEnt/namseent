@@ -18,7 +18,7 @@ pub struct CharacterEditor<'a> {
     pub edit_target: EditTarget,
     pub wh: Wh<Px>,
     pub project_id: Uuid,
-    pub cut: Option<&'a Cut>,
+    pub cut: Sig<'a, Option<&'a Cut>>,
     pub on_event: &'a dyn Fn(Event),
 }
 
