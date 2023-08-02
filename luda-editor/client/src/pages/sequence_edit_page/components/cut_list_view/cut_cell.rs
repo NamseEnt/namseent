@@ -4,7 +4,7 @@ use namui::prelude::*;
 use namui_prebuilt::*;
 
 #[namui::component]
-pub struct CutCell {
+pub struct CutCell<'a> {
     pub wh: Wh<Px>,
     pub index: usize,
     pub cut: Cut,
@@ -14,7 +14,7 @@ pub struct CutCell {
     pub on_click: &'a dyn Fn(Uuid),
 }
 
-impl Component for CutCell {
+impl Component for CutCell<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             wh,
@@ -33,7 +33,7 @@ impl Component for CutCell {
                 let on_click = on_click.clone();
                 builder.on_mouse_down_in(move |event: MouseEvent| {
                     if event.button == Some(MouseButton::Left) {
-                        on_click.call(cut_id);
+                        on_click(cut_id);
                     }
                 });
             }));
@@ -68,7 +68,8 @@ impl Component for CutCell {
                     }),
                     table::hooks::fixed(8.px(), |_wh| RenderingTree::Empty),
                 ]),
-            )(wh))
+            )(wh));
+            ctx.done()
         })
     }
 }

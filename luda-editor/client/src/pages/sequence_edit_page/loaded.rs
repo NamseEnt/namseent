@@ -1,9 +1,12 @@
 use super::{atom::*, components::*, sequence::SequenceWrapped};
-use crate::{components::*, pages::sequence_edit_page::components::character_editor::EditTarget};
+use crate::{
+    components::{context_menu::use_context_menu, *},
+    pages::sequence_edit_page::components::character_editor::EditTarget,
+};
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::*;
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Deref};
 
 #[namui::component]
 pub struct LoadedSequenceEditorPage {
@@ -30,9 +33,9 @@ impl Component for LoadedSequenceEditorPage {
         let (cg_files, _set_cg_files) = ctx.use_atom_init(&CG_FILES_ATOM, || cg_files.clone());
 
         let (selected_cut_id, set_selected_cut_id) = ctx.use_state::<Option<Uuid>>(|| None);
-        // let (focused_component, set_focused_component) = ctx.use_state(|| None);
-        // let (context_menu, set_context_menu) =
-        //     ctx.use_state::<Option<context_menu::ContextMenu2>>(|| None);
+        let (focused_component, set_focused_component) = ctx.use_state(|| None);
+        let (context_menu, set_context_menu) =
+            ctx.use_state::<Option<context_menu::ContextMenu>>(|| None);
         let (character_editor_target, set_character_editor_target) =
             ctx.use_state::<Option<EditTarget>>(|| None);
         // let (cut_id_memos_map, set_cut_id_memos_map) = ctx.use_state(|| cut_id_memos_map.clone());
@@ -43,47 +46,46 @@ impl Component for LoadedSequenceEditorPage {
         let sequence_id = sequence.id;
 
         enum InternalEvent {
-            // CutListViewEvent { event: cut_list_view::Event },
+            CutListViewEvent { event: cut_list_view::Event },
             // CutEditorEvent { event: cut_editor::Event2 },
             CharacterEdtiorEvent { event: character_editor::Event },
             // MemoListViewEvent { event: memo_list_view::Event },
             // MemoEditorEvent { event: memo_editor::Event },
         }
         let on_internal_event = |event: InternalEvent| match event {
-            // InternalEvent::CutListViewEvent { event } => match event {
-            //     cut_list_view::Event::OnPressEnterOnCut { cut_id } => {
-            //         assert_eq!(*focused_component, Some(FocusableComponent::CutListView));
-            //         assert_eq!(*selected_cut_id, Some(cut_id));
+            InternalEvent::CutListViewEvent { event } => match event {
+                cut_list_view::Event::OnPressEnterOnCut { cut_id } => {
+                    assert_eq!(*focused_component, Some(FocusableComponent::CutListView));
+                    assert_eq!(*selected_cut_id, Some(cut_id));
 
-            //         set_focused_component.set(Some(FocusableComponent::CutEditor));
-            //         todo!("self.cut_editor.focus_character_name();")
-            //     }
-            //     cut_list_view::Event::OnMoveToNextCutByKeyboard { next_cut_id } => {
-            //         assert_eq!(*focused_component, Some(FocusableComponent::CutListView));
+                    set_focused_component.set(Some(FocusableComponent::CutEditor));
+                    todo!("self.cut_editor.focus_character_name();")
+                }
+                cut_list_view::Event::OnMoveToNextCutByKeyboard { next_cut_id } => {
+                    assert_eq!(*focused_component, Some(FocusableComponent::CutListView));
 
-            //         set_selected_cut_id.set(Some(next_cut_id));
-            //     }
-            //     cut_list_view::Event::OnClickCutEvent { cut_id } => {
-            //         set_selected_cut_id.set(Some(cut_id));
-            //         set_focused_component.set(Some(FocusableComponent::CutListView));
-            //     }
-            //     cut_list_view::Event::OnRightClickEvent { global_xy } => {
-            //         set_context_menu.set(Some(context_menu::ContextMenu2::new(
-            //             global_xy,
-            //             [context_menu::Item::new_button(
-            //                 "Add Cut",
-            //                 set_seuqnece.map_mutate_callback(|sequence| {
-            //                     sequence.update(SequenceUpdateAction::InsertCut {
-            //                         cut: Cut::new(uuid()),
-            //                         after_cut_id: None,
-            //                     })
-            //                 }),
-            //             )],
-            //             set_context_menu.map_set_callback(None),
-            //         )));
-            //         set_focused_component.set(Some(FocusableComponent::CutListView));
-            //     }
-            // },
+                    set_selected_cut_id.set(Some(next_cut_id));
+                }
+                cut_list_view::Event::OnClickCutEvent { cut_id } => {
+                    set_selected_cut_id.set(Some(cut_id));
+                    set_focused_component.set(Some(FocusableComponent::CutListView));
+                }
+                cut_list_view::Event::OnRightClickEvent { global_xy } => {
+                    set_context_menu.set(Some(
+                        use_context_menu(global_xy, || set_context_menu.set(None))
+                            .add_button("Add Cut", || {
+                                set_seuqnece.mutate(|sequence| {
+                                    sequence.update(SequenceUpdateAction::InsertCut {
+                                        cut: Cut::new(uuid()),
+                                        after_cut_id: None,
+                                    })
+                                })
+                            })
+                            .build(),
+                    ));
+                    set_focused_component.set(Some(FocusableComponent::CutListView));
+                }
+            },
             // InternalEvent::CutEditorEvent { event } => todo!(),
             InternalEvent::CharacterEdtiorEvent { event } => match event {
                 character_editor::Event::Close => set_character_editor_target.set(None),
@@ -210,15 +212,14 @@ impl Component for LoadedSequenceEditorPage {
                 }
             };
 
-            // let cut_list_view_cell = |wh| cut_list_view::CutListView {
-            //     wh,
-            //     cuts: sequence.cuts.clone(),
-            //     selected_cut_id: *selected_cut_id,
-            //     is_focused: *focused_component == Some(FocusableComponent::CutListView),
-            //     cut_id_memos_map: *cut_id_memos_map.clone(),
-            //     on_event: ctx
-            //         .event_with_param(|event| Some(InternalEvent::CutListViewEvent { event })),
-            // };
+            let cut_list_view_cell = |wh| cut_list_view::CutListView {
+                wh,
+                cuts: sequence.cuts.clone(),
+                selected_cut_id: *selected_cut_id,
+                is_focused: *focused_component == Some(FocusableComponent::CutListView),
+                cut_id_memos_map: cut_id_memos_map.deref().clone(),
+                on_event: &|event| on_internal_event(InternalEvent::CutListViewEvent { event }),
+            };
 
             // let cut_editor_cell = |wh| {
             //     selected_cut.map(|selected_cut| cut_editor::CutEditor {
@@ -233,12 +234,12 @@ impl Component for LoadedSequenceEditorPage {
             //     })
             // };
 
-            // ctx.add(table::hooks::horizontal([
-            //     table::hooks::fixed(220.px(), cut_list_view_cell),
-            //     table::hooks::ratio(4, cut_editor_cell),
-            //     character_editor_cell,
-            //     memo_list_view_cell,
-            // ])(wh));
+            ctx.add(table::hooks::horizontal([
+                table::hooks::fixed(220.px(), cut_list_view_cell),
+                // table::hooks::ratio(4, cut_editor_cell),
+                character_editor_cell,
+                memo_list_view_cell,
+            ])(wh));
 
             // if let Some(SequenceIdCutId {
             //     sequence_id,

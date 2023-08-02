@@ -7,7 +7,7 @@ use rpc::data::{Cut, Memo};
 use std::{collections::HashMap, sync::Arc};
 
 #[namui::component]
-pub struct CutListView {
+pub struct CutListView<'a> {
     pub wh: Wh<Px>,
     pub cuts: Vec<Cut>,
     pub selected_cut_id: Option<Uuid>,
@@ -22,7 +22,7 @@ pub enum Event {
     OnClickCutEvent { cut_id: Uuid },
     OnRightClickEvent { global_xy: Xy<Px> },
 }
-impl Component for CutListView {
+impl Component for CutListView<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             wh,
@@ -34,7 +34,7 @@ impl Component for CutListView {
         } = self;
         let cuts = cuts.clone();
 
-        let on_key_down: Arc<dyn Fn(KeyboardEvent)> = closure({
+        let on_key_down = {
             let cuts = cuts.clone();
             move |event: KeyboardEvent| {
                 if !is_focused {
@@ -42,7 +42,7 @@ impl Component for CutListView {
                 }
                 let Some (selected_cut_id) = selected_cut_id else { return ; } ;
                 if event.code == Code::Enter {
-                    on_event.call(Event::OnPressEnterOnCut {
+                    on_event(Event::OnPressEnterOnCut {
                         cut_id: selected_cut_id,
                     });
                 } else {
@@ -81,10 +81,10 @@ impl Component for CutListView {
                             cuts[cut_index + 1].id
                         }
                     };
-                    on_event.call(Event::OnMoveToNextCutByKeyboard { next_cut_id });
+                    on_event(Event::OnMoveToNextCutByKeyboard { next_cut_id });
                 }
             }
-        });
+        };
         ctx.use_children(|ctx| {
             ctx.add(
                 render([simple_rect(
@@ -97,7 +97,7 @@ impl Component for CutListView {
                     builder
                         .on_mouse_down_in(move |event: MouseEvent| {
                             if event.button == Some(MouseButton::Right) {
-                                on_event.call(Event::OnRightClickEvent {
+                                on_event(Event::OnRightClickEvent {
                                     global_xy: event.global_xy,
                                 });
                             }
@@ -106,7 +106,7 @@ impl Component for CutListView {
                 }),
             );
             let item_wh = Wh::new(wh.width, 128.px());
-            ctx.add(list_view::ListView2 {
+            ctx.add(list_view::ListView {
                 xy: Xy::zero(),
                 height: wh.height,
                 scroll_bar_width: 12.px(),
@@ -123,12 +123,12 @@ impl Component for CutListView {
                             memo_count: memos.map_or(0, |memos| memos.len()),
                             is_selected: selected_cut_id == Some(cut.id),
                             is_focused,
-                            on_click: on_event
-                                .map(|cut_id: Uuid| Some(Event::OnClickCutEvent { cut_id })),
+                            on_click: &|cut_id: Uuid| on_event(Event::OnClickCutEvent { cut_id }),
                         }) as Arc<dyn Component>
                     })
                     .collect(),
             });
+            ctx.done()
         })
     }
 }

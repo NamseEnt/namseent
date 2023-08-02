@@ -1,7 +1,10 @@
 use namui::prelude::*;
 use namui_prebuilt::*;
 
-pub fn use_context_menu<'a>(global_xy: Xy<Px>, close: impl 'a + Fn()) -> ContextMenuBuilder<'a> {
+pub fn use_context_menu<'a>(
+    global_xy: Xy<Px>,
+    close: impl 'a + Fn() + Send + Sync,
+) -> ContextMenuBuilder<'a> {
     ContextMenuBuilder {
         global_xy,
         items: Default::default(),
@@ -12,7 +15,7 @@ pub fn use_context_menu<'a>(global_xy: Xy<Px>, close: impl 'a + Fn()) -> Context
 pub struct ContextMenuBuilder<'a> {
     global_xy: Xy<Px>,
     items: Vec<Item<'a>>,
-    close: Box<dyn 'a + Fn()>,
+    close: Box<dyn 'a + Fn() + Send + Sync>,
 }
 
 impl<'a> ContextMenuBuilder<'a> {
@@ -59,7 +62,7 @@ impl std::fmt::Debug for Item<'_> {
 pub struct ContextMenu<'a> {
     global_xy: Xy<Px>,
     items: Vec<Item<'a>>,
-    close: Box<dyn 'a + Fn()>,
+    close: Box<dyn 'a + Fn() + Send + Sync>,
 }
 
 impl Component for ContextMenu<'_> {
