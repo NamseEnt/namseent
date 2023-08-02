@@ -1,5 +1,4 @@
 use super::*;
-use std::sync::OnceLock;
 
 pub(crate) fn handle_use_state<'a, State: Send + Sync + Debug + 'static>(
     ctx: &'a RenderCtx,
@@ -51,15 +50,6 @@ pub(crate) enum SetStateItem {
         sig_id: SigId,
         mutate: Arc<Mutex<Option<Box<dyn FnOnce(&mut (dyn Value)) + Send + Sync>>>>,
     },
-}
-
-impl SetStateItem {
-    pub fn sig_id(&self) -> SigId {
-        match self {
-            SetStateItem::Set { sig_id, .. } => *sig_id,
-            SetStateItem::Mutate { sig_id, .. } => *sig_id,
-        }
-    }
 }
 
 impl Debug for SetStateItem {

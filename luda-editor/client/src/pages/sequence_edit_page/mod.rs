@@ -1,6 +1,6 @@
 mod atom;
 mod components;
-// mod loaded;
+mod loaded;
 mod sequence;
 
 use ::futures::try_join;

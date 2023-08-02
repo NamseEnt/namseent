@@ -41,8 +41,8 @@ pub(super) async fn init() -> InitResult {
 
 #[derive(Debug)]
 pub(crate) struct TextInputCtx {
-    last_focused_text_input: Option<TextInputCustomData>,
-    selection: Selection,
+    pub last_focused_text_input: Option<TextInputCustomData>,
+    pub selection: Selection,
 }
 
 pub(crate) static TEXT_INPUT_ATOM: crate::Atom<TextInputCtx> = crate::Atom::uninitialized_new();
@@ -181,7 +181,7 @@ pub fn blur() {
     });
 }
 
-fn get_input_element_selection(
+pub(crate) fn get_input_element_selection(
     selection_direction: SelectionDirection,
     selection_start: usize,
     selection_end: usize,

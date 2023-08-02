@@ -1,17 +1,24 @@
 mod draw_caret;
 mod draw_texts_divided_by_selection;
+mod instance;
 
 use crate::{
     namui::{self, *},
     system::text_input::*,
     text::LineTexts,
+    web::SelectionDirection,
     RectParam,
 };
-use std::sync::atomic::{AtomicBool, Ordering};
+pub use instance::*;
+use std::{
+    fmt::Debug,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 #[derive(Clone)]
 #[component]
 pub struct TextInput {
+    pub instance: TextInputInstance,
     pub rect: Rect<Px>,
     pub text: String,
     pub text_align: TextAlign,
@@ -20,6 +27,7 @@ pub struct TextInput {
     pub style: Style,
     pub event_handler: Option<EventHandler>,
 }
+
 #[derive(Clone, Default)]
 pub struct EventHandler {
     pub(crate) on_key_down: Option<ClosurePtr<KeyDownEvent, ()>>,
@@ -129,8 +137,80 @@ impl TextInput {
 
 impl Component for TextInput {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let id = ctx.use_memo(|| namui::uuid());
-        let (text_input_atom, _) = ctx.use_atom(&TEXT_INPUT_ATOM);
+        // let id = ctx.use_memo(|| self.id.unwrap_or_else(|| namui::uuid()));
+        let id = self.instance.id;
+        let (atom, set_atom) = ctx.use_atom(&TEXT_INPUT_ATOM);
+
+        ctx.use_web_event(|web_event| match web_event {
+            web::WebEvent::MouseDown {
+                x,
+                y,
+                button,
+                buttons,
+            } => {}
+            web::WebEvent::MouseMove {
+                x,
+                y,
+                button,
+                buttons,
+            } => {}
+            web::WebEvent::MouseUp {
+                x,
+                y,
+                button,
+                buttons,
+            } => {}
+            web::WebEvent::Wheel {
+                x,
+                y,
+                delta_x,
+                delta_y,
+            } => {}
+            web::WebEvent::HashChange { new_url, old_url } => {}
+            &web::WebEvent::SelectionChange {
+                selection_direction,
+                selection_start,
+                selection_end,
+                ref text,
+            } => {
+                todo!("내가 포커스면 아래를 처리해라. 아니면 무시하고.");
+                // let atom = TEXT_INPUT_ATOM.get();
+                let Some(last_focused_text_input) = &atom.last_focused_text_input else {
+                    return;
+                };
+                let selection = get_input_element_selection(
+                    selection_direction,
+                    selection_start,
+                    selection_end,
+                    text,
+                )
+                .map(|range| {
+                    let chars_count = last_focused_text_input.props.text.chars().count();
+                    range.start.min(chars_count)..range.end.min(chars_count)
+                });
+
+                todo!();
+                // set_atom.set(state)
+
+                // TEXT_INPUT_ATOM.mutate(move |text_input_ctx| {
+                //     text_input_ctx.selection = selection;
+                // });
+            }
+            web::WebEvent::KeyDown { code } => {}
+            web::WebEvent::KeyUp { code } => {}
+            web::WebEvent::Blur => {}
+            web::WebEvent::VisibilityChange => {}
+            web::WebEvent::Resize { width, height } => {}
+            web::WebEvent::AsyncFunction { id } => {}
+            web::WebEvent::TextInputTextUpdated { text } => {}
+            web::WebEvent::TextInputKeyDown {
+                code,
+                text,
+                selection_direction,
+                selection_start,
+                selection_end,
+            } => {}
+        });
 
         let font = namui::font::get_font(self.font_type);
         if font.is_none() {
@@ -150,11 +230,11 @@ impl Component for TextInput {
         );
 
         let custom_data = TextInputCustomData {
-            id: *id.clone(),
+            id,
             props: self.clone(),
         };
         ctx.use_children(|ctx| {
-            let selection = text_input_atom.get_selection_of_text_input(*id);
+            let selection = atom.get_selection_of_text_input(id);
 
             ctx.add(
                 render([

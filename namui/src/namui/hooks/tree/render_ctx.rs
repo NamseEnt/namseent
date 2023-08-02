@@ -99,8 +99,14 @@ impl<'a> RenderCtx {
         self.tree_ctx.add_sig_updated(sig_id)
     }
 
-    pub fn use_web_event(&self, use_web_event: impl 'static + Fn(&crate::web::WebEvent)) {
-        *self.instance.web_event_listener.lock().unwrap() = Some(Box::new(use_web_event));
+    pub fn use_web_event(&'a self, use_web_event: impl 'a + Fn(&crate::web::WebEvent)) {
+        let unsafe_casted = unsafe {
+            std::mem::transmute::<
+                Box<dyn Fn(&crate::web::WebEvent)>,
+                Box<dyn Fn(&crate::web::WebEvent)>,
+            >(Box::new(use_web_event))
+        };
+        *self.instance.web_event_listener.lock().unwrap() = Some(unsafe_casted);
     }
 }
 

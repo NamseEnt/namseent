@@ -11,51 +11,12 @@ struct TextInputExample {}
 
 impl TextInputExample {
     fn new() -> Self {
-        Self {
-            // text_input_3x3: [
-            //     [
-            //         namui::TextInput::new(),
-            //         namui::TextInput::new(),
-            //         namui::TextInput::new(),
-            //     ],
-            //     [
-            //         namui::TextInput::new(),
-            //         namui::TextInput::new(),
-            //         namui::TextInput::new(),
-            //     ],
-            //     [
-            //         namui::TextInput::new(),
-            //         namui::TextInput::new(),
-            //         namui::TextInput::new(),
-            //     ],
-            // ],
-            // text_3x3: [
-            //     [
-            //         "Left Top\nHel🔗lo you!\nmamama mimimi mo".to_string(),
-            //         "Center Top\nHello yo🔗u!\nmamama mimimi mo".to_string(),
-            //         "Right Top\nHello you!\nmamama mimimi mo".to_string(),
-            //     ],
-            //     [
-            //         "Left Center\nHello you!\nmamama mimimi mo".to_string(),
-            //         "Center Center\nHello you!🔗\nmamama mimimi mo".to_string(),
-            //         "Right Center\nHe🔗llo you!\nmamama mimimi mo".to_string(),
-            //     ],
-            //     [
-            //         "Left Bottom\nHello you!\nmama🔗ma mimimi mo".to_string(),
-            //         "Center Bottom\n🔗Hello you!\nmamama mimimi mo".to_string(),
-            //         "Right Bottom\nHell🔗o you!\nmamama mimimi mo".to_string(),
-            //     ],
-            // ],
-            // left_top_value: None,
-        }
+        Self {}
     }
 }
 
 impl Component for TextInputExample {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        // text_input_3x3: [[namui::TextInput; 3]; 3],
-        // text_3x3: [[String; 3]; 3],
-        // left_top_value: Option<f32>,
         let (text_3x3, set_text_3x3) = ctx.use_state(|| {
             [
                 [

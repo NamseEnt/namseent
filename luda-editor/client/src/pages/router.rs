@@ -12,7 +12,7 @@ impl Component for Router {
         namui::log!("route: {:?}", route);
 
         ctx.use_web_event(move |web_event| {
-            if let namui::WebEvent::HashChange { .. } = web_event {
+            if let namui::web::WebEvent::HashChange { .. } = web_event {
                 namui::log!("Hash change");
                 set_route.set(Route::from(get_path_from_hash()));
             }

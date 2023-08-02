@@ -4,7 +4,7 @@ use namui::prelude::*;
 use namui_prebuilt::*;
 
 #[namui::component]
-pub struct CutCell {
+pub struct CutCell<'a> {
     pub wh: Wh<Px>,
     pub index: usize,
     pub cut: Cut,
@@ -14,7 +14,7 @@ pub struct CutCell {
     pub on_click: &'a dyn Fn(Uuid),
 }
 
-impl Component for CutCell {
+impl Component for CutCell<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             wh,
@@ -26,50 +26,51 @@ impl Component for CutCell {
             on_click,
         } = self;
 
-        let stroke_color = color::stroke_color(is_selected, is_focused);
-        let cut_id = cut.id;
-        ctx.use_children(|ctx| {
-            ctx.add(transparent_rect(wh).attach_event(|builder| {
-                let on_click = on_click.clone();
-                builder.on_mouse_down_in(move |event: MouseEvent| {
-                    if event.button == Some(MouseButton::Left) {
-                        on_click.call(cut_id);
-                    }
-                });
-            }));
+        ctx.use_children(|ctx| ctx.done())
+        // let stroke_color = color::stroke_color(is_selected, is_focused);
+        // let cut_id = cut.id;
+        // ctx.use_children(|ctx| {
+        //     ctx.add(transparent_rect(wh).attach_event(|builder| {
+        //         let on_click = on_click.clone();
+        //         builder.on_mouse_down_in(move |event: MouseEvent| {
+        //             if event.button == Some(MouseButton::Left) {
+        //                 on_click.call(cut_id);
+        //             }
+        //         });
+        //     }));
 
-            ctx.add(table::hooks::padding(
-                12.px(),
-                table::hooks::horizontal([
-                    table::hooks::fixed(24.px(), |wh| {
-                        table::hooks::vertical([
-                            table::hooks::fit(
-                                table::hooks::FitAlign::LeftTop,
-                                typography::body::center_top(
-                                    wh.width,
-                                    format!("{}", index),
-                                    stroke_color,
-                                ),
-                            ),
-                            table::hooks::fixed(4.px(), |_| RenderingTree::Empty),
-                            table::hooks::fit(
-                                table::hooks::FitAlign::LeftTop,
-                                render_comment_badge(wh.width, memo_count, stroke_color),
-                            ),
-                        ])(wh)
-                    }),
-                    table::hooks::ratio(1, |wh| {
-                        simple_rect(
-                            wh,
-                            stroke_color,
-                            if is_selected { 2.px() } else { 1.px() },
-                            Color::BLACK,
-                        )
-                    }),
-                    table::hooks::fixed(8.px(), |_wh| RenderingTree::Empty),
-                ]),
-            )(wh))
-        })
+        //     ctx.add(table::hooks::padding(
+        //         12.px(),
+        //         table::hooks::horizontal([
+        //             table::hooks::fixed(24.px(), |wh| {
+        //                 table::hooks::vertical([
+        //                     table::hooks::fit(
+        //                         table::hooks::FitAlign::LeftTop,
+        //                         typography::body::center_top(
+        //                             wh.width,
+        //                             format!("{}", index),
+        //                             stroke_color,
+        //                         ),
+        //                     ),
+        //                     table::hooks::fixed(4.px(), |_| RenderingTree::Empty),
+        //                     table::hooks::fit(
+        //                         table::hooks::FitAlign::LeftTop,
+        //                         render_comment_badge(wh.width, memo_count, stroke_color),
+        //                     ),
+        //                 ])(wh)
+        //             }),
+        //             table::hooks::ratio(1, |wh| {
+        //                 simple_rect(
+        //                     wh,
+        //                     stroke_color,
+        //                     if is_selected { 2.px() } else { 1.px() },
+        //                     Color::BLACK,
+        //                 )
+        //             }),
+        //             table::hooks::fixed(8.px(), |_wh| RenderingTree::Empty),
+        //         ]),
+        //     )(wh))
+        // })
     }
 }
 

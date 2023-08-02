@@ -82,15 +82,12 @@ pub trait AsSig {
 
 // impl<T> AsSig for T {
 //     fn as_sig<'a>(&'a self) -> Sig<'a, Self> {
-//         let ctx = ctx::ctx();
 //         Sig::new(
 //             self,
 //             SigId {
 //                 id_type: SigIdType::As,
-//                 component_id: ctx.instance.as_ref().component_id,
-//                 index: ctx
-//                     .as_index
-//                     .fetch_add(1, std::sync::atomic::Ordering::SeqCst),
+//                 component_id: 0,
+//                 index: 0,
 //             },
 //         )
 //     }
