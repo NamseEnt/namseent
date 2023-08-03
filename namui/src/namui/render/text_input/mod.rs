@@ -19,9 +19,8 @@ use std::{
     },
 };
 
-#[derive(Clone)]
 #[component]
-pub struct TextInput {
+pub struct TextInput<'a> {
     pub instance: TextInputInstance,
     pub rect: Rect<Px>,
     pub text: String,
@@ -29,7 +28,15 @@ pub struct TextInput {
     pub text_baseline: TextBaseline,
     pub font_type: FontType,
     pub style: Style,
-    pub event_handler: Option<EventHandler>,
+    pub on_event: Box<dyn 'a + Fn(Event)>,
+}
+
+pub enum Event<'a> {
+    Focus,
+    Blur,
+    TextUpdated { text: &'a str },
+    SelectionUpdated { selection: Selection },
+    KeyDown { code: Code },
 }
 
 #[derive(Debug)]
@@ -58,8 +65,9 @@ struct TextInputMouseEvent {
     local_xy: Xy<Px>,
 }
 
-impl Component for TextInput {
+impl Component for TextInput<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self { on_event, .. } = self;
         let id = self.instance.id;
         let (atom, set_atom) = ctx.atom_init(&TEXT_INPUT_ATOM, || TextInputCtx {
             focused_id: None,
@@ -256,6 +264,24 @@ textArea.focus();
                 .run::<()>();
             };
 
+            let update_selection = |selection_direction: SelectionDirection,
+                                    selection_start: usize,
+                                    selection_end: usize,
+                                    text: &str| {
+                let selection = get_input_element_selection(
+                    selection_direction,
+                    selection_start,
+                    selection_end,
+                    text,
+                )
+                .map(|range| {
+                    let chars_count = self.text.chars().count();
+                    range.start.min(chars_count)..range.end.min(chars_count)
+                });
+
+                TEXT_INPUT_ATOM.mutate(move |text_input_ctx| text_input_ctx.selection = selection);
+            };
+
             match web_event {
                 &web::WebEvent::MouseDown { .. } => {
                     let mut last_mouse_downed = LAST_MOUSE_DOWNED
@@ -305,28 +331,142 @@ textArea.focus();
                         return;
                     };
 
-                    let selection = get_input_element_selection(
-                        selection_direction,
-                        selection_start,
-                        selection_end,
-                        text,
-                    )
-                    .map(|range| {
-                        let chars_count = self.text.chars().count();
-                        range.start.min(chars_count)..range.end.min(chars_count)
-                    });
-
-                    TEXT_INPUT_ATOM
-                        .mutate(move |text_input_ctx| text_input_ctx.selection = selection);
+                    update_selection(selection_direction, selection_start, selection_end, text);
                 }
-                web::WebEvent::TextInputTextUpdated { text } => {}
-                web::WebEvent::TextInputKeyDown {
-                    code,
-                    text,
+                &web::WebEvent::TextInputTextUpdated {
+                    ref text,
                     selection_direction,
                     selection_start,
                     selection_end,
-                } => {}
+                } => {
+                    crate::log!("TextInputTextUpdated, {text}");
+                    if !is_focused {
+                        return;
+                    }
+
+                    update_selection(selection_direction, selection_start, selection_end, text);
+
+                    on_event(Event::TextUpdated {
+                        text: text.as_str(),
+                    });
+                }
+                &web::WebEvent::TextInputKeyDown {
+                    code,
+                    ref text,
+                    selection_direction,
+                    selection_start,
+                    selection_end,
+                    is_composing,
+                } => {
+                    crate::log!("TextInputKeyDown, {code:?}");
+
+                    if !is_focused {
+                        return;
+                    }
+
+                    on_event(Event::KeyDown { code });
+
+                    // self.event_handler.as_ref().map(|event_handler| {
+                    //     event_handler.on_key_down.as_ref().map(|on_key_down| {
+                    //         let is_prevented_default = Arc::new(AtomicBool::new(false));
+
+                    //         let key_down_event = KeyDownEvent {
+                    //             code,
+                    //             is_prevented_default: is_prevented_default.clone(),
+                    //             is_composing,
+                    //         };
+                    //         on_key_down.invoke(key_down_event);
+
+                    //         if is_prevented_default.load(Ordering::Relaxed) {
+                    //             todo!()
+                    //             // event.prevent_default();
+                    //         }
+                    //     })
+                    // });
+
+                    let get_selection_on_keyboard_down = |key: KeyInInterest| -> Selection {
+                        let selection = get_input_element_selection(
+                            selection_direction,
+                            selection_start,
+                            selection_end,
+                            &text,
+                        );
+                        let Selection::Range(range) = selection else {
+                            return Selection::None;
+                        };
+
+                        let Some(line_texts) = self.get_line_texts() else {
+                            return Selection::None;
+                        };
+
+                        let next_selection_end =
+                            get_caret_index_after_apply_key_movement(key, line_texts, &range);
+
+                        let is_shift_key_pressed = crate::keyboard::any_code_press([
+                            crate::Code::ShiftLeft,
+                            crate::Code::ShiftRight,
+                        ]);
+                        let is_dragging = is_shift_key_pressed;
+
+                        return match is_dragging {
+                            true => Selection::Range(range.start..next_selection_end),
+                            false => Selection::Range(next_selection_end..next_selection_end),
+                        };
+
+                        fn get_caret_index_after_apply_key_movement(
+                            key: KeyInInterest,
+                            line_texts: LineTexts,
+                            selection: &Range<usize>,
+                        ) -> usize {
+                            let multiline_caret = line_texts.into_multiline_caret(selection.end);
+
+                            let caret_after_move = multiline_caret.get_caret_on_key(key);
+
+                            let next_selection_end = caret_after_move.to_selection_index();
+                            next_selection_end
+                        }
+                    };
+
+                    let key_in_interest = match code {
+                        Code::ArrowUp => KeyInInterest::ArrowUpDown(ArrowUpDown::Up),
+                        Code::ArrowDown => KeyInInterest::ArrowUpDown(ArrowUpDown::Down),
+                        Code::Home => KeyInInterest::HomeEnd(HomeEnd::Home),
+                        Code::End => KeyInInterest::HomeEnd(HomeEnd::End),
+                        _ => return,
+                    };
+
+                    let selection = get_selection_on_keyboard_down(key_in_interest);
+
+                    let Some(utf16_selection) = selection.as_utf16(&text) else {
+                        return;
+                    };
+
+                    let selection_direction = if utf16_selection.start <= utf16_selection.end {
+                        "forward"
+                    } else {
+                        "backward"
+                    };
+
+                    web::execute_function_sync(
+                        "
+                                textArea.setSelectionRange(
+                                    selectionStart,
+                                    selectionEnd,
+                                    selectionDirection,
+                                )
+                            ",
+                    )
+                    .arg(
+                        "selectionStart",
+                        utf16_selection.start.min(utf16_selection.end) as u32,
+                    )
+                    .arg(
+                        "selectionEnd",
+                        utf16_selection.start.max(utf16_selection.end) as u32,
+                    )
+                    .arg("selectionDirection", selection_direction)
+                    .run::<()>();
+                }
                 _ => {}
             }
         });
@@ -348,11 +488,6 @@ textArea.focus();
             self.text_param().max_width,
         );
 
-        let custom_data = TextInputCustomData {
-            id,
-            props: self.clone(),
-        };
-        //
         let selection = atom.get_selection_of_text_input(id);
 
         ctx.add(
@@ -383,7 +518,6 @@ textArea.focus();
                 ),
                 self.draw_caret(&self, &line_texts, &selection, paint.clone()),
             ])
-            .with_custom(custom_data.clone())
             .attach_event(|builder| {
                 builder
                     .on_mouse_down_in(move |event: MouseEvent| {
@@ -420,7 +554,7 @@ textArea.focus();
     }
 }
 
-impl TextInput {
+impl TextInput<'_> {
     pub fn is_focused(&self) -> bool {
         todo!()
         // crate::system::text_input::is_focused(self.id)
@@ -463,6 +597,17 @@ impl TextInput {
     pub fn line_height_px(&self) -> Px {
         self.font_type.size.into_px() * self.style.text.line_height_percent
     }
+    fn get_line_texts(&self) -> Option<LineTexts> {
+        let font = crate::font::get_font(self.font_type)?;
+        let fonts = crate::font::with_fallbacks(font);
+        let paint = get_text_paint(self.style.text.color).build();
+        Some(LineTexts::new(
+            &self.text,
+            fonts,
+            paint.clone(),
+            Some(self.rect.width()),
+        ))
+    }
 }
 
 fn get_input_element_selection(
@@ -480,38 +625,6 @@ fn get_input_element_selection(
     };
 
     Selection::from_utf16(Some(utf16_code_unit_selection), text)
-}
-
-#[derive(Clone, Default)]
-pub struct EventHandler {
-    pub(crate) on_key_down: Option<ClosurePtr<KeyDownEvent, ()>>,
-    pub(crate) on_text_updated: Option<ClosurePtr<String, ()>>,
-}
-unsafe impl Send for EventHandler {}
-unsafe impl Sync for EventHandler {}
-
-impl EventHandler {
-    pub fn new() -> Self {
-        Self {
-            on_key_down: None,
-            on_text_updated: None,
-        }
-    }
-    pub fn on_key_down(mut self, on_key_down: impl Into<ClosurePtr<KeyDownEvent, ()>>) -> Self {
-        self.on_key_down = Some(on_key_down.into());
-        self
-    }
-    pub fn on_text_updated(mut self, on_text_updated: impl Into<ClosurePtr<String, ()>>) -> Self {
-        self.on_text_updated = Some(on_text_updated.into());
-        self
-    }
-}
-impl std::fmt::Debug for EventHandler {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("EventHandler")
-            .field("on_key_down", &self.on_key_down.is_some())
-            .finish()
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -553,39 +666,6 @@ impl KeyDownEvent {
     }
     pub fn is_prevented_default(&self) -> bool {
         self.is_prevented_default.load(Ordering::Relaxed)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct TextInputCustomData {
-    pub id: Uuid,
-    pub props: TextInput,
-}
-pub enum Event {
-    Focus {
-        id: crate::Uuid,
-    },
-    Blur {
-        id: crate::Uuid,
-    },
-    TextUpdated {
-        id: crate::Uuid,
-        text: String,
-    },
-    SelectionUpdated {
-        id: crate::Uuid,
-        selection: Selection,
-    },
-    KeyDown {
-        id: crate::Uuid,
-        code: Code,
-    },
-}
-
-impl TextInput {
-    pub fn get_id(&self) -> crate::Uuid {
-        todo!()
-        // self.id
     }
 }
 

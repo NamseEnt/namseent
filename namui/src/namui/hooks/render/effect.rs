@@ -23,12 +23,9 @@ pub(crate) fn handle_effect(ctx: &RenderCtx, title: &'static str, effect: impl F
     };
 
     if is_first_run || used_sig_updated() {
-        crate::log!("effect: {title}, is_first_run: {is_first_run}");
         clean_used_sigs();
         effect();
         let used_sig_ids = take_used_sigs();
-
-        crate::log!("effect: {title}, used_sig_ids: {:?}", used_sig_ids);
 
         update_or_push(&mut effect_used_sigs_list, effect_index, used_sig_ids);
     }

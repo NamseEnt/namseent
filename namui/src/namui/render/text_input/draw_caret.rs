@@ -1,7 +1,7 @@
 use super::*;
 use crate::{font::with_fallbacks, namui::*, text::*};
 
-impl TextInput {
+impl TextInput<'_> {
     /// Caret is drawn at the end of the text.
     pub(crate) fn draw_caret(
         &self,

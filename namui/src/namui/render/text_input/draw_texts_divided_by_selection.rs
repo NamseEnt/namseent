@@ -3,11 +3,10 @@ use crate::{
     namui::{self, RenderingTree},
     render,
     text::*,
-    *,
 };
 use std::sync::Arc;
 
-impl TextInput {
+impl TextInput<'_> {
     pub(crate) fn draw_texts_divided_by_selection(
         &self,
         props: &TextInput,
@@ -32,6 +31,7 @@ impl TextInput {
         } else {
             (selection.end, selection.start)
         };
+        crate::log!("selection: {:#?}", selection);
 
         let left_caret = line_texts
             .clone()
@@ -39,6 +39,10 @@ impl TextInput {
         let right_caret = line_texts
             .clone()
             .into_multiline_caret(right_selection_index);
+
+        crate::log!("line_texts: {:#?}", line_texts);
+        crate::log!("left_caret: {:#?}", left_caret);
+        crate::log!("right_caret: {:#?}", right_caret);
 
         let y_of_line = |line_index: usize| {
             let line_height = props.line_height_px();
@@ -73,7 +77,6 @@ impl TextInput {
                 let is_single_line = left_caret.line_index == right_caret.line_index;
                 let selected_lines = if is_single_line {
                     let y = y_of_line(left_caret.line_index);
-                    crate::log!("here? 0");
                     self.render_single_line(
                         &props,
                         &fonts,
@@ -95,7 +98,6 @@ impl TextInput {
                         let first_line_text_with_newline =
                             line_texts.iter_chars().nth(left_caret.line_index).unwrap();
 
-                        crate::log!("here?1");
                         self.render_single_line(
                             &props,
                             &fonts,
@@ -115,7 +117,6 @@ impl TextInput {
                         let line_text_with_newline =
                             line_texts.iter_chars().nth(line_index).unwrap();
 
-                        crate::log!("here? 2");
                         self.render_single_line(
                             &props,
                             &fonts,
@@ -139,11 +140,6 @@ impl TextInput {
                             .nth(right_caret.line_index)
                             .unwrap_or(&default);
 
-                        crate::log!(
-                            "here? 3, line_texts: {:#?}\nright_caret: {:#?}",
-                            line_texts,
-                            right_caret
-                        );
                         self.render_single_line(
                             &props,
                             &fonts,

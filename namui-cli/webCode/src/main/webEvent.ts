@@ -87,6 +87,9 @@ export type WebEvent =
     | {
           TextInputTextUpdated: {
               text: string;
+              selectionDirection: "forward" | "backward" | "none";
+              selectionEnd: number;
+              selectionStart: number;
           };
       }
     | {
@@ -96,6 +99,7 @@ export type WebEvent =
               selectionDirection: "forward" | "backward" | "none";
               selectionEnd: number;
               selectionStart: number;
+              isComposing: boolean;
           };
       };
 
@@ -257,6 +261,9 @@ textArea.addEventListener("input", (_e) => {
     enqueueWebEvent({
         TextInputTextUpdated: {
             text: textArea.value,
+            selectionDirection: textArea.selectionDirection,
+            selectionEnd: textArea.selectionEnd,
+            selectionStart: textArea.selectionStart,
         },
     });
 });
@@ -278,6 +285,7 @@ textArea.addEventListener("keydown", (e) => {
             selectionDirection: textArea.selectionDirection,
             selectionEnd: textArea.selectionEnd,
             selectionStart: textArea.selectionStart,
+            isComposing: e.isComposing,
         },
     });
 });

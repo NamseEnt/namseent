@@ -1,6 +1,7 @@
-use crate::{system, MouseEventType, RawMouseEvent, RawWheelEvent, RenderingTree};
+use crate::{system, Code, MouseEventType, RawMouseEvent, RawWheelEvent, RenderingTree};
 use namui_type::{px, uuid, Wh, Xy};
 use serde::Deserialize;
+use std::str::FromStr;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 #[derive(serde::Deserialize, Debug, Clone)]
@@ -67,10 +68,6 @@ pub enum WebEvent {
     },
     TextInputTextUpdated {
         text: String,
-    },
-    TextInputKeyDown {
-        code: String,
-        text: String,
         #[serde(
             rename = "selectionDirection",
             deserialize_with = "deserialize_selection_direction"
@@ -81,6 +78,30 @@ pub enum WebEvent {
         #[serde(rename = "selectionEnd")]
         selection_end: usize,
     },
+    TextInputKeyDown {
+        #[serde(deserialize_with = "deserialize_code")]
+        code: Code,
+        text: String,
+        #[serde(
+            rename = "selectionDirection",
+            deserialize_with = "deserialize_selection_direction"
+        )]
+        selection_direction: SelectionDirection,
+        #[serde(rename = "selectionStart")]
+        selection_start: usize,
+        #[serde(rename = "selectionEnd")]
+        selection_end: usize,
+        #[serde(rename = "isComposing")]
+        is_composing: bool,
+    },
+}
+
+fn deserialize_code<'de, D>(deserializer: D) -> Result<Code, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    Code::from_str(s.as_str()).map_err(|err| serde::de::Error::custom("fail to deserialize code"))
 }
 
 fn deserialize_selection_direction<'de, D>(deserializer: D) -> Result<SelectionDirection, D::Error>
@@ -208,12 +229,7 @@ pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) -> Option<WebEve
             });
         }
         &WebEvent::HashChange { .. } => {}
-        &WebEvent::SelectionChange {
-            selection_direction,
-            selection_start,
-            selection_end,
-            ref text,
-        } => {}
+        &WebEvent::SelectionChange { .. } => {}
         &WebEvent::KeyDown { ref code } => crate::keyboard::on_key_down(&code),
         &WebEvent::KeyUp { ref code } => crate::keyboard::on_key_up(&code),
         &WebEvent::Blur => crate::keyboard::reset_pressing_code_set(),
@@ -224,14 +240,8 @@ pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) -> Option<WebEve
         &WebEvent::AsyncFunction { id } => {
             crate::system::web::on_async_function_executed(id);
         }
-        &WebEvent::TextInputTextUpdated { ref text } => {}
-        &WebEvent::TextInputKeyDown {
-            ref code,
-            ref text,
-            ref selection_direction,
-            selection_end,
-            selection_start,
-        } => {}
+        &WebEvent::TextInputTextUpdated { .. } => {}
+        &WebEvent::TextInputKeyDown { .. } => {}
     }
 
     Some(web_event)

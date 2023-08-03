@@ -54,8 +54,8 @@ impl Component for TextInputExample {
             ],
         ];
 
-        for x in 0..3 {
-            for y in 0..3 {
+        for x in 0..1 {
+            for y in 0..1 {
                 ctx.add(text_input::TextInput {
                     instance: text_input_instances_3x3[x][y],
                     rect: Rect::Xywh {
@@ -98,7 +98,18 @@ impl Component for TextInputExample {
                         },
                         ..Default::default()
                     },
-                    event_handler: None,
+                    on_event: boxed(move |event| {
+                        namui::log!("x: {}, y: {}", x, y);
+                        match event {
+                            text_input::Event::TextUpdated { text } => {
+                                let text = text.to_string();
+                                set_text_3x3.mutate(move |text_3x3| {
+                                    text_3x3[x][y] = text;
+                                });
+                            }
+                            _ => {}
+                        }
+                    }),
                 });
             }
         }
