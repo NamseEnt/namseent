@@ -6,7 +6,6 @@ static CHANNEL: OnceLock<Mutex<Vec<Item>>> = OnceLock::new();
 #[derive(Debug)]
 pub(crate) enum Item {
     SetStateItem(SetStateItem),
-    EventCallback(EventCallback),
 }
 
 pub(crate) fn init() {

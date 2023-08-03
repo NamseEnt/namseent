@@ -80,22 +80,21 @@ impl Component for PartPicker<'_> {
                     )
                 }),
         );
-        ctx.use_children(|ctx| {
-            ctx.add(table::hooks::padding(OUTER_PADDING, |wh| {
-                table::hooks::vertical([
-                    table::hooks::fixed(BUTTON_HEIGHT, |wh| cg_select_button(wh)),
-                    render_divider(BUTTON_HEIGHT),
-                    table::hooks::ratio(1, |wh| scroll_view::AutoScrollView {
-                        xy: Xy::zero(),
-                        height: wh.height,
-                        scroll_bar_width: 4.px(),
-                        content: cg_part_group_list(wh).arc(),
-                    }),
-                ])(wh)
-            })(wh));
 
-            ctx.done()
-        })
+        ctx.add(table::hooks::padding(OUTER_PADDING, |wh| {
+            table::hooks::vertical([
+                table::hooks::fixed(BUTTON_HEIGHT, |wh| cg_select_button(wh)),
+                render_divider(BUTTON_HEIGHT),
+                table::hooks::ratio(1, |wh| scroll_view::AutoScrollView {
+                    xy: Xy::zero(),
+                    height: wh.height,
+                    scroll_bar_width: 4.px(),
+                    content: cg_part_group_list(wh).arc(),
+                }),
+            ])(wh)
+        })(wh));
+
+        ctx.done()
     }
 }
 

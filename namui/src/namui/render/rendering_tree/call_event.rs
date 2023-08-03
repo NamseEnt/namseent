@@ -117,17 +117,17 @@ impl RenderingTree {
         mouse_event_type: MouseEventType,
         raw_mouse_event: &RawMouseEvent,
     ) {
-        match mouse_event_type {
-            MouseEventType::Down => {
-                system::text_input::on_mouse_down_in_before_attach_event_calls();
-            }
-            MouseEventType::Up => {
-                system::text_input::on_mouse_up();
-            }
-            MouseEventType::Move => {
-                system::text_input::on_mouse_move(self, raw_mouse_event.xy);
-            }
-        }
+        // match mouse_event_type {
+        //     MouseEventType::Down => {
+        //         system::text_input::on_mouse_down_in_before_attach_event_calls();
+        //     }
+        //     MouseEventType::Up => {
+        //         system::text_input::on_mouse_up();
+        //     }
+        //     MouseEventType::Move => {
+        //         system::text_input::on_mouse_move(self, raw_mouse_event.xy);
+        //     }
+        // }
 
         self.call_event_of_screen(
             |CallEventOfScreenParam {
@@ -190,9 +190,9 @@ impl RenderingTree {
                 };
             },
         );
-        if mouse_event_type == MouseEventType::Down {
-            system::text_input::on_mouse_down_in_after_attach_event_calls();
-        }
+        // if mouse_event_type == MouseEventType::Down {
+        //     system::text_input::on_mouse_down_in_after_attach_event_calls();
+        // }
     }
     pub(crate) fn call_file_drop_event(&self, file_drop_event: &RawFileDropEvent) {
         self.call_event_of_screen(

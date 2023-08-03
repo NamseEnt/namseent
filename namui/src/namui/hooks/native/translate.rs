@@ -20,12 +20,9 @@ impl Component for Translate<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let x = self.x;
         let y = self.y;
-        ctx.use_children_with_rendering_tree(
-            |ctx| {
-                ctx.add(self.component.as_ref());
-                ctx.done()
-            },
-            |children| crate::translate(x, y, RenderingTree::Children(children)),
-        )
+        ctx.add(self.component.as_ref());
+        ctx.done_with_rendering_tree(|children| {
+            crate::translate(x, y, RenderingTree::Children(children))
+        })
     }
 }

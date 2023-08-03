@@ -47,7 +47,8 @@ impl SequencePlayer {
                     .list_cg_files(rpc::list_cg_files::Request { project_id })
                     .await
                     .unwrap();
-                namui::event::send(InternalEvent::CgFilesLoaded(response.cg_files));
+                todo!()
+                // namui::event::send(InternalEvent::CgFilesLoaded(response.cg_files));
             });
         }
         Self {
@@ -98,7 +99,8 @@ impl SequencePlayer {
                         )
                         .attach_event(|builder| {
                             builder.on_mouse_down_in(|_| {
-                                namui::event::send(InternalEvent::OnClickScreen);
+                                todo!()
+                                // namui::event::send(InternalEvent::OnClickScreen);
                             });
                         }),
                     ])
@@ -130,45 +132,47 @@ impl SequencePlayer {
         .attach_event(|builder| {
             builder.on_key_down(|event: KeyboardEvent| {
                 if event.code == Code::ArrowLeft {
-                    namui::event::send(InternalEvent::GoToPrevCut);
+                    todo!()
+                    // namui::event::send(InternalEvent::GoToPrevCut);
                 } else if event.code == Code::ArrowRight {
-                    namui::event::send(InternalEvent::GoToNextCut);
+                    todo!()
+                    // namui::event::send(InternalEvent::GoToNextCut);
                 }
             });
         })
     }
-    pub fn update(&mut self, event: &namui::Event) {
-        match &mut self.state {
-            State::ShowingCut { .. } => {}
-            State::Transitioning {
-                from_cut_index,
-                transition_progress,
-                start_time,
-            } => {
-                let transition_duration = 500.ms();
+    // pub fn update(&mut self, event: &namui::Event) {
+    //     match &mut self.state {
+    //         State::ShowingCut { .. } => {}
+    //         State::Transitioning {
+    //             from_cut_index,
+    //             transition_progress,
+    //             start_time,
+    //         } => {
+    //             let transition_duration = 500.ms();
 
-                let delta_time = namui::now() - *start_time;
-                if delta_time > transition_duration {
-                    self.state = State::ShowingCut {
-                        cut_index: *from_cut_index + 1,
-                    };
-                } else {
-                    *transition_progress = (delta_time / transition_duration).one_zero();
-                }
-            }
-        }
+    //             let delta_time = namui::now() - *start_time;
+    //             if delta_time > transition_duration {
+    //                 self.state = State::ShowingCut {
+    //                     cut_index: *from_cut_index + 1,
+    //                 };
+    //             } else {
+    //                 *transition_progress = (delta_time / transition_duration).one_zero();
+    //             }
+    //         }
+    //     }
 
-        event.is::<InternalEvent>(|event| match event {
-            InternalEvent::OnClickScreen => {
-                self.go_to_next_cut(true);
-            }
-            InternalEvent::GoToPrevCut => self.go_to_prev_cut(),
-            InternalEvent::GoToNextCut => self.go_to_next_cut(false),
-            InternalEvent::CgFilesLoaded(cg_files) => {
-                self.cg_files = Some(cg_files.clone());
-            }
-        });
-    }
+    //     event.is::<InternalEvent>(|event| match event {
+    //         InternalEvent::OnClickScreen => {
+    //             self.go_to_next_cut(true);
+    //         }
+    //         InternalEvent::GoToPrevCut => self.go_to_prev_cut(),
+    //         InternalEvent::GoToNextCut => self.go_to_next_cut(false),
+    //         InternalEvent::CgFilesLoaded(cg_files) => {
+    //             self.cg_files = Some(cg_files.clone());
+    //         }
+    //     });
+    // }
 
     fn go_to_next_cut(&mut self, do_transition: bool) {
         if self.sequence.cuts.len() == 0 {

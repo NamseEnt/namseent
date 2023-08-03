@@ -1,6 +1,6 @@
 use crate::{
-    system::text_input::key_down::{ArrowUpDown, HomeEnd, KeyInInterest},
     text::*,
+    text_input::{ArrowUpDown, HomeEnd, KeyInInterest},
     *,
 };
 

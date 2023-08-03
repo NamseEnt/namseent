@@ -26,51 +26,51 @@ impl Component for CutCell<'_> {
             on_click,
         } = self;
 
-        let stroke_color = color::stroke_color(is_selected, is_focused);
-        let cut_id = cut.id;
-        ctx.use_children(|ctx| {
-            ctx.add(transparent_rect(wh).attach_event(|builder| {
-                let on_click = on_click.clone();
-                builder.on_mouse_down_in(move |event: MouseEvent| {
-                    if event.button == Some(MouseButton::Left) {
-                        on_click(cut_id);
-                    }
-                });
-            }));
+        ctx.done()
+        // let stroke_color = color::stroke_color(is_selected, is_focused);
+        // let cut_id = cut.id;
+        //
+        //     ctx.add(transparent_rect(wh).attach_event(|builder| {
+        //         let on_click = on_click.clone();
+        //         builder.on_mouse_down_in(move |event: MouseEvent| {
+        //             if event.button == Some(MouseButton::Left) {
+        //                 on_click.call(cut_id);
+        //             }
+        //         });
+        //     }));
 
-            ctx.add(table::hooks::padding(
-                12.px(),
-                table::hooks::horizontal([
-                    table::hooks::fixed(24.px(), |wh| {
-                        table::hooks::vertical([
-                            table::hooks::fit(
-                                table::hooks::FitAlign::LeftTop,
-                                typography::body::center_top(
-                                    wh.width,
-                                    format!("{}", index),
-                                    stroke_color,
-                                ),
-                            ),
-                            table::hooks::fixed(4.px(), |_| RenderingTree::Empty),
-                            table::hooks::fit(
-                                table::hooks::FitAlign::LeftTop,
-                                render_comment_badge(wh.width, memo_count, stroke_color),
-                            ),
-                        ])(wh)
-                    }),
-                    table::hooks::ratio(1, |wh| {
-                        simple_rect(
-                            wh,
-                            stroke_color,
-                            if is_selected { 2.px() } else { 1.px() },
-                            Color::BLACK,
-                        )
-                    }),
-                    table::hooks::fixed(8.px(), |_wh| RenderingTree::Empty),
-                ]),
-            )(wh));
-            ctx.done()
-        })
+        //     ctx.add(table::hooks::padding(
+        //         12.px(),
+        //         table::hooks::horizontal([
+        //             table::hooks::fixed(24.px(), |wh| {
+        //                 table::hooks::vertical([
+        //                     table::hooks::fit(
+        //                         table::hooks::FitAlign::LeftTop,
+        //                         typography::body::center_top(
+        //                             wh.width,
+        //                             format!("{}", index),
+        //                             stroke_color,
+        //                         ),
+        //                     ),
+        //                     table::hooks::fixed(4.px(), |_| RenderingTree::Empty),
+        //                     table::hooks::fit(
+        //                         table::hooks::FitAlign::LeftTop,
+        //                         render_comment_badge(wh.width, memo_count, stroke_color),
+        //                     ),
+        //                 ])(wh)
+        //             }),
+        //             table::hooks::ratio(1, |wh| {
+        //                 simple_rect(
+        //                     wh,
+        //                     stroke_color,
+        //                     if is_selected { 2.px() } else { 1.px() },
+        //                     Color::BLACK,
+        //                 )
+        //             }),
+        //             table::hooks::fixed(8.px(), |_wh| RenderingTree::Empty),
+        //         ]),
+        //     )(wh))
+        // })
     }
 }
 

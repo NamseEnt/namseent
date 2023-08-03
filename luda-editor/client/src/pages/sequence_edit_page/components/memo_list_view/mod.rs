@@ -26,28 +26,26 @@ impl Component for MemoListView<'_> {
             // ref on_done_clicked,
             ref on_event,
         } = self;
-        ctx.use_children(|ctx| {
-            ctx.add(simple_rect(
-                wh,
-                color::STROKE_NORMAL,
-                1.px(),
-                color::BACKGROUND,
-            ));
 
-            ctx.add(scroll_view::AutoScrollView {
-                xy: Xy::zero(),
-                scroll_bar_width: 4.px(),
-                height: wh.height,
-                content: table::hooks::vertical(memos.iter().map(|memo| {
-                    table::hooks::fit(
-                        table::hooks::FitAlign::LeftTop,
-                        render_memo(wh.width, memo, user_id, on_event.clone()),
-                    )
-                }))(wh)
-                .arc(),
-            });
-            ctx.done()
-        })
+        ctx.add(simple_rect(
+            wh,
+            color::STROKE_NORMAL,
+            1.px(),
+            color::BACKGROUND,
+        ));
+        ctx.add(scroll_view::AutoScrollView {
+            xy: Xy::zero(),
+            scroll_bar_width: 4.px(),
+            height: wh.height,
+            content: table::vertical(memos.iter().map(|memo| {
+                table::fit(
+                    table::FitAlign::LeftTop,
+                    render_memo(wh.width, memo, user_id, on_event.clone()),
+                )
+            }))(wh)
+            .arc(),
+        });
+        ctx.done()
     }
 }
 

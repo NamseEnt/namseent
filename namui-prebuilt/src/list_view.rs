@@ -20,25 +20,23 @@ impl<C: Component> Component for ListView<C> {
             item_wh,
             ref items,
         } = self;
-        let (scroll_y, set_scroll_y) = ctx.use_state(|| 0.px());
+        let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
-        ctx.use_children(|ctx| {
-            ctx.add(scroll_view::ScrollView {
-                xy,
-                scroll_bar_width,
+        ctx.add(scroll_view::ScrollView {
+            xy,
+            scroll_bar_width,
+            height,
+            content: Arc::new(ListViewInner {
                 height,
-                content: Arc::new(ListViewInner {
-                    height,
-                    item_wh,
-                    items: items.clone(),
-                    scroll_y: *scroll_y,
-                }),
+                item_wh,
+                items: items.clone(),
                 scroll_y: *scroll_y,
-                set_scroll_y,
-            });
+            }),
+            scroll_y: *scroll_y,
+            set_scroll_y,
+        });
 
-            ctx.done()
-        })
+        ctx.done()
     }
 }
 
@@ -62,7 +60,7 @@ impl<C: Component> Component for ListViewInner<'_, C> {
         let item_len = items.len();
 
         if item_len == 0 {
-            return ctx.use_no_children();
+            return ctx.done();
         }
         let max_scroll_y = item_wh.height * item_len - height;
 
@@ -77,50 +75,45 @@ impl<C: Component> Component for ListViewInner<'_, C> {
             .skip(visible_item_start_index)
             .take(visible_item_count);
 
-        ctx.use_children_with_rendering_tree(
-            |ctx| {
-                for visible_item in visible_items.into_iter() {
-                    ctx.add(visible_item)
-                }
+        for visible_item in visible_items.into_iter() {
+            ctx.add(visible_item)
+        }
 
-                ctx.done()
-            },
-            move |children| {
-                let max_scroll_y = item_wh.height * item_len - height;
+        ctx.done_with_rendering_tree(move |children| {
+            let max_scroll_y = item_wh.height * item_len - height;
 
-                let scroll_y = scroll_y.min(max_scroll_y);
+            let scroll_y = scroll_y.min(max_scroll_y);
 
-                let visible_item_start_index = (scroll_y / item_wh.height).floor() as usize;
+            let visible_item_start_index = (scroll_y / item_wh.height).floor() as usize;
 
-                let visible_rendering_tree =
-                    namui::render(children.into_iter().enumerate().map(|(index, child)| {
-                        translate(
-                            px(0.0),
-                            item_wh.height * (index + visible_item_start_index),
-                            child,
-                        )
-                    }));
+            let visible_rendering_tree =
+                namui::render(children.into_iter().enumerate().map(|(index, child)| {
+                    translate(
+                        px(0.0),
+                        item_wh.height * (index + visible_item_start_index),
+                        child,
+                    )
+                }));
 
-                let content_height = item_wh.height * item_len;
+            let content_height = item_wh.height * item_len;
 
-                let transparent_pillar = rect(RectParam {
-                    rect: Rect::Xywh {
-                        x: px(0.0),
-                        y: px(0.0),
-                        width: item_wh.width,
-                        height: content_height,
-                    },
-                    style: RectStyle {
-                        fill: Some(RectFill {
-                            color: Color::TRANSPARENT,
-                        }),
-                        ..Default::default()
-                    },
-                });
+            let transparent_pillar = rect(RectParam {
+                rect: Rect::Xywh {
+                    x: px(0.0),
+                    y: px(0.0),
+                    width: item_wh.width,
+                    height: content_height,
+                },
+                style: RectStyle {
+                    fill: Some(RectFill {
+                        color: Color::TRANSPARENT,
+                    }),
+                    ..Default::default()
+                },
+            });
 
-                namui::render![transparent_pillar, visible_rendering_tree]
-            },
-        )
+            namui::render![transparent_pillar, visible_rendering_tree]
+        })
     }
 }
 

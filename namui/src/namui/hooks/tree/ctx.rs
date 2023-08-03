@@ -3,6 +3,7 @@ use crate::{web::WebEvent, RenderingTree};
 use std::{
     cell::RefCell,
     collections::{HashMap, VecDeque},
+    sync::OnceLock,
 };
 
 #[derive(Clone, Debug)]
@@ -54,6 +55,8 @@ struct ComponentRenderQueueItem {
     component: Box<dyn Component>,
     parent_component_id: usize,
 }
+unsafe impl Send for ComponentRenderQueueItem {}
+unsafe impl Sync for ComponentRenderQueueItem {}
 
 const ROOT_COMPONENT_ID: usize = usize::MAX;
 
@@ -77,10 +80,11 @@ impl TreeContext {
         self.inner.lock().unwrap().before_re_render();
     }
 
-    pub(crate) fn end_up_one_component_rendering(mut self, result: ComponentRenderResult) {
+    pub(crate) fn end_up_one_component_rendering<'a>(mut self, result: ComponentRenderResult<'a>) {
         let mut inner = self.inner.lock().unwrap();
         inner.store_component_instance(result.component_instance.clone());
-        inner.push_children(result.children, result.component_instance.component_id);
+        enqueue_children(result.children, result.component_instance.component_id);
+
         inner.put_tree_id(result.component_instance.component_id);
         inner.save_fn_rendering_tree(
             result.component_instance.component_id,
@@ -88,7 +92,7 @@ impl TreeContext {
         );
         inner.flush_updated_sigs();
 
-        if let Some(child) = inner.pop_child().as_ref() {
+        if let Some(child) = dequeue_child().as_ref() {
             inner.current_component_parent_id = child.parent_component_id;
             drop(inner);
 
@@ -113,6 +117,31 @@ impl TreeContext {
 
                 // TODO: This would be busy loop. Need to sleep.
             }
+        }
+
+        static mut COMPONENT_RENDER_QUEUE: OnceLock<VecDeque<ComponentRenderQueueItem>> =
+            OnceLock::new();
+
+        fn enqueue_children<'a>(
+            mut children: Vec<Box<dyn 'a + Component>>,
+            parent_component_id: usize,
+        ) {
+            unsafe {
+                let queue = {
+                    let _ = COMPONENT_RENDER_QUEUE.get_or_init(Default::default);
+                    COMPONENT_RENDER_QUEUE.get_mut().unwrap()
+                };
+
+                while let Some(child) = children.pop() {
+                    queue.push_front(ComponentRenderQueueItem {
+                        component: std::mem::transmute(child),
+                        parent_component_id,
+                    })
+                }
+            };
+        }
+        fn dequeue_child() -> Option<ComponentRenderQueueItem> {
+            unsafe { COMPONENT_RENDER_QUEUE.get_mut().unwrap().pop_front() }
         }
     }
     fn flush_channel(&mut self, is_need_to_re_render: &mut bool) {
@@ -144,7 +173,7 @@ impl TreeContext {
                                             value.lock().unwrap().take().unwrap();
                                     }
                                     SigIdType::Atom => {
-                                        crate::hooks::atom::set_atom_value(
+                                        set_atom_value(
                                             sig_id.index,
                                             value.lock().unwrap().take().unwrap(),
                                         );
@@ -170,16 +199,13 @@ impl TreeContext {
                                     }
                                     SigIdType::Atom => {
                                         let mutate = mutate.lock().unwrap().take().unwrap();
-                                        crate::hooks::atom::mutate_atom_value(sig_id.index, mutate);
+                                        mutate_atom_value(sig_id.index, mutate);
                                     }
                                     SigIdType::Memo => unreachable!(),
                                     SigIdType::As => unreachable!(),
                                 }
                             }
                         }
-                    }
-                    Item::EventCallback(event_callback) => {
-                        todo!("Remove event callback, just use &dyn Fn closure")
                     }
                 }
             }
@@ -210,19 +236,6 @@ impl TreeContext {
 }
 
 impl Inner {
-    fn push_children(&mut self, mut children: Vec<Box<dyn Component>>, parent_component_id: usize) {
-        while let Some(child) = children.pop() {
-            self.component_render_queue
-                .push_front(ComponentRenderQueueItem {
-                    component: child,
-                    parent_component_id,
-                })
-        }
-    }
-
-    fn pop_child(&mut self) -> Option<ComponentRenderQueueItem> {
-        self.component_render_queue.pop_front()
-    }
     fn put_tree_id(&mut self, component_id: usize) {
         if let Some(tree_ids) = self.tree_id_map.get_mut(&self.current_component_parent_id) {
             tree_ids.push_back(component_id);
@@ -323,8 +336,8 @@ impl Inner {
     }
 }
 
-pub(crate) struct ComponentRenderResult {
-    pub(crate) children: Vec<Box<dyn Component>>,
+pub(crate) struct ComponentRenderResult<'a> {
+    pub(crate) children: Vec<Box<dyn 'a + Component>>,
     pub(crate) component_instance: Arc<ComponentInstance>,
     pub(crate) fn_rendering_tree: Option<FnRenderingTree>,
 }

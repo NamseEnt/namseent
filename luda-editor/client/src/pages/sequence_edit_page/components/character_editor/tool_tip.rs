@@ -48,18 +48,17 @@ impl Component for ToolTip {
         });
 
         let Some(tooltip_bounding_box) = tooltip.get_bounding_box() else {
-            return ctx.use_no_children();
+            return ctx.done();
         };
 
         let screen_size = screen::size();
         let max_xy = (screen_size - tooltip_bounding_box.wh()).as_xy();
-        ctx.use_children(|ctx| {
-            ctx.add(on_top(absolute(
-                (global_xy.x + OFFSET).min(max_xy.x).max(0.px()),
-                (global_xy.y + OFFSET).min(max_xy.y).max(0.px()),
-                tooltip,
-            )));
-            ctx.done()
-        })
+
+        ctx.add(on_top(absolute(
+            (global_xy.x + OFFSET).min(max_xy.x).max(0.px()),
+            (global_xy.y + OFFSET).min(max_xy.y).max(0.px()),
+            tooltip,
+        )));
+        ctx.done()
     }
 }

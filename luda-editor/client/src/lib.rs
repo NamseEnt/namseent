@@ -1,4 +1,4 @@
-use namui::spawn_local;
+use namui::prelude::*;
 
 mod app;
 mod color;
@@ -28,10 +28,10 @@ pub fn main() {
 struct Init {}
 
 impl namui::Component for Init {
-    fn render<'a>(&'a self, ctx: &'a namui::RenderCtx) -> namui::RenderDone {
-        let (loaded, set_loaded) = ctx.use_state(|| false);
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        let (loaded, set_loaded) = ctx.state(|| false);
 
-        ctx.use_effect("Init", || {
+        ctx.effect("Init", || {
             spawn_local(async move {
                 let search = namui::web::location_search();
                 let is_auth_callback = search.starts_with("?code=");
@@ -75,11 +75,9 @@ impl namui::Component for Init {
             })
         });
 
-        ctx.use_children(|ctx| {
-            if *loaded {
-                ctx.add(app::App {})
-            }
-            ctx.done()
-        })
+        if *loaded {
+            ctx.add(app::App {})
+        }
+        ctx.done()
     }
 }

@@ -16,22 +16,31 @@ impl<T: Debug + Send + Sync + 'static> Atom<T> {
             value_index: OnceLock::new(),
         }
     }
-    pub fn get_or_init(&self, init: impl FnOnce() -> T) -> &T {
-        self.init(init());
-        self.get()
-    }
     pub fn init(&self, init: T) {
-        self.value_index
-            .set({
-                let mut atoms = ATOMS.get_or_init(|| Default::default()).lock().unwrap();
-
-                atoms.push(self.as_no_generic());
-
-                let index = atoms.len() - 1;
-
-                Arc::new(Mutex::new((Box::new(init), index)))
-            })
+        self.value_index.set(self.initing(|| init)()).unwrap();
+    }
+    pub fn get_or_init(&self, init: impl FnOnce() -> T) -> &T {
+        let value_index = self
+            .value_index
+            .get_or_init(self.initing(init))
+            .lock()
             .unwrap();
+
+        self.value_to_ref(&value_index.0)
+    }
+    fn initing<'a>(
+        &'a self,
+        init: impl FnOnce() -> T + 'a,
+    ) -> impl FnOnce() -> Arc<Mutex<(Box<dyn Value>, usize)>> + 'a {
+        || {
+            let mut atoms = ATOMS.get_or_init(|| Default::default()).lock().unwrap();
+
+            atoms.push(self.as_no_generic());
+
+            let index = atoms.len() - 1;
+
+            Arc::new(Mutex::new((Box::new(init()), index)))
+        }
     }
     pub fn get(&self) -> &T {
         let value_index = self.value_index.get().unwrap().lock().unwrap();
@@ -73,7 +82,7 @@ impl<T: Debug + Send + Sync + 'static> Atom<T> {
     }
 }
 
-pub(crate) fn handle_use_atom_init<'a, T: Any + Send + Sync + Debug>(
+pub(crate) fn handle_atom_init<'a, T: Any + Send + Sync + Debug>(
     atom: &'static Atom<T>,
     init: impl FnOnce() -> T,
 ) -> (Sig<'a, T>, SetState<T>) {
@@ -83,7 +92,7 @@ pub(crate) fn handle_use_atom_init<'a, T: Any + Send + Sync + Debug>(
     )
 }
 
-pub(crate) fn handle_use_atom<'a, T: Any + Send + Sync + Debug>(
+pub(crate) fn handle_atom<'a, T: Any + Send + Sync + Debug>(
     atom: &'static Atom<T>,
 ) -> (Sig<'a, T>, SetState<T>) {
     (

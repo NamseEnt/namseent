@@ -59,7 +59,7 @@ impl StaticType for RenderingTree {
 
 impl Component for RenderingTree {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        ctx.use_children_with_rendering_tree(|ctx| ctx.done(), |_| self.clone())
+        ctx.done_with_rendering_tree(|_| self.clone())
     }
 }
 
@@ -120,10 +120,8 @@ macro_rules! component_impl {
             }
             impl<$($T: Component),*> Component for ($($T,)*) {
                 fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-                    ctx.use_children(|ctx| {
-                        $(ctx.add(&self.$i as &dyn Component);)*
-                        ctx.done()
-                    })
+                    $(ctx.add(&self.$i as &dyn Component);)*
+                    ctx.done()
                 }
             }
         )*

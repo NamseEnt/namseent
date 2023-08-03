@@ -1,6 +1,6 @@
 use super::*;
 
-pub fn handle_use_effect(ctx: &RenderCtx, title: &'static str, use_effect: impl FnOnce()) {
+pub(crate) fn handle_effect(ctx: &RenderCtx, title: &'static str, effect: impl FnOnce()) {
     let _ = title;
 
     let instance = ctx.instance.as_ref();
@@ -25,7 +25,7 @@ pub fn handle_use_effect(ctx: &RenderCtx, title: &'static str, use_effect: impl 
     if is_first_run || used_sig_updated() {
         crate::log!("effect: {title}, is_first_run: {is_first_run}");
         clean_used_sigs();
-        use_effect();
+        effect();
         let used_sig_ids = take_used_sigs();
 
         crate::log!("effect: {title}, used_sig_ids: {:?}", used_sig_ids);

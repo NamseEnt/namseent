@@ -72,8 +72,8 @@ impl Component for ContextMenu<'_> {
             ref close,
             ..
         } = self;
-        let (mouse_over_item_idx, set_mouse_over_item_idx) = ctx.use_state(|| None);
-        let (a, set_a) = ctx.use_state::<Option<String>>(|| None);
+        let (mouse_over_item_idx, set_mouse_over_item_idx) = ctx.state(|| None);
+        let (a, set_a) = ctx.state::<Option<String>>(|| None);
         let cell_wh = Wh::new(160.px(), 24.px());
 
         let divider_height = 16.px();
@@ -87,106 +87,105 @@ impl Component for ContextMenu<'_> {
             .set_stroke_width(1.px())
             .set_style(PaintStyle::Stroke);
 
-        ctx.use_children(|ctx| {
-            let mut menus = vec![];
+        let mut menus = vec![];
 
-            for (index, item) in items.iter().enumerate() {
-                let y = next_y;
-                let menu = match item {
-                    &Item::Button {
-                        ref text,
-                        ref on_click,
-                    } => {
-                        next_y += cell_wh.height;
-                        let is_mouse_over = *mouse_over_item_idx == Some(index);
-                        let background_with_event_handler = {
-                            let fill_color = if is_mouse_over {
-                                Color::from_u8(129, 198, 232, 255)
-                            } else {
-                                Color::TRANSPARENT
-                            };
-
-                            let close = close.clone();
-                            simple_rect(cell_wh, Color::TRANSPARENT, 0.px(), fill_color)
-                                .attach_event(move |builder| {
-                                    if is_mouse_over {
-                                        builder.on_mouse_move_out(move |_| {
-                                            if *mouse_over_item_idx == Some(index)
-                                                && *a == Some("Hello".to_string())
-                                            {
-                                                set_mouse_over_item_idx.set(None);
-                                            }
-                                        });
-                                    } else {
-                                        builder.on_mouse_move_in(move |_| {
-                                            set_mouse_over_item_idx.set(Some(index));
-                                        });
-                                    }
-                                    builder
-                                        .on_mouse_down_in({
-                                            let on_click = on_click.clone();
-                                            let close = close.clone();
-                                            move |event: MouseEvent| {
-                                                if let Some(MouseButton::Left) = event.button {
-                                                    event.stop_propagation();
-                                                    on_click;
-                                                    close;
-                                                }
-                                            }
-                                        })
-                                        .on_mouse_down_out(move |_| {
-                                            close;
-                                        });
-                                })
-                        };
-                        let text_color = if is_mouse_over {
-                            Color::BLACK
+        for (index, item) in items.iter().enumerate() {
+            let y = next_y;
+            let menu = match item {
+                &Item::Button {
+                    ref text,
+                    ref on_click,
+                } => {
+                    next_y += cell_wh.height;
+                    let is_mouse_over = *mouse_over_item_idx == Some(index);
+                    let background_with_event_handler = {
+                        let fill_color = if is_mouse_over {
+                            Color::from_u8(129, 198, 232, 255)
                         } else {
-                            Color::WHITE
+                            Color::TRANSPARENT
                         };
 
-                        translate(
-                            0.px(),
-                            y,
-                            render([
-                                background_with_event_handler,
-                                typography::body::left(
-                                    cell_wh.height,
-                                    format!("  {}", text),
-                                    text_color,
-                                ),
-                            ]),
+                        let close = close.clone();
+                        simple_rect(cell_wh, Color::TRANSPARENT, 0.px(), fill_color).attach_event(
+                            move |builder| {
+                                if is_mouse_over {
+                                    builder.on_mouse_move_out(move |_| {
+                                        if *mouse_over_item_idx == Some(index)
+                                            && *a == Some("Hello".to_string())
+                                        {
+                                            set_mouse_over_item_idx.set(None);
+                                        }
+                                    });
+                                } else {
+                                    builder.on_mouse_move_in(move |_| {
+                                        set_mouse_over_item_idx.set(Some(index));
+                                    });
+                                }
+                                builder
+                                    .on_mouse_down_in({
+                                        let on_click = on_click.clone();
+                                        let close = close.clone();
+                                        move |event: MouseEvent| {
+                                            if let Some(MouseButton::Left) = event.button {
+                                                event.stop_propagation();
+                                                on_click;
+                                                close;
+                                            }
+                                        }
+                                    })
+                                    .on_mouse_down_out(move |_| {
+                                        close;
+                                    });
+                            },
                         )
-                    }
-                    Item::Divider => {
-                        next_y += divider_height;
-                        translate(0.px(), y, path(divider_path.clone(), divider_paint.clone()))
-                    }
-                };
-                menus.push(menu);
-            }
+                    };
+                    let text_color = if is_mouse_over {
+                        Color::BLACK
+                    } else {
+                        Color::WHITE
+                    };
 
-            let context_menu_wh = Wh::new(cell_wh.width, next_y);
+                    translate(
+                        0.px(),
+                        y,
+                        render([
+                            background_with_event_handler,
+                            typography::body::left(
+                                cell_wh.height,
+                                format!("  {}", text),
+                                text_color,
+                            ),
+                        ]),
+                    )
+                }
+                Item::Divider => {
+                    next_y += divider_height;
+                    translate(0.px(), y, path(divider_path.clone(), divider_paint.clone()))
+                }
+            };
+            menus.push(menu);
+        }
 
-            let background = simple_rect(
-                context_menu_wh,
-                Color::TRANSPARENT,
-                0.px(),
-                Color::grayscale_f01(0.2),
-            );
+        let context_menu_wh = Wh::new(cell_wh.width, next_y);
 
-            let global_xy_within_screen = self.global_xy_within_screen(context_menu_wh);
+        let background = simple_rect(
+            context_menu_wh,
+            Color::TRANSPARENT,
+            0.px(),
+            Color::grayscale_f01(0.2),
+        );
 
-            ctx.add(on_top(absolute(
-                global_xy_within_screen.x,
-                global_xy_within_screen.y,
-                render([background, render(menus)]).attach_event(move |builder| {
-                    builder.on_mouse_move_out(move |_| set_mouse_over_item_idx.set(None));
-                }),
-            )));
+        let global_xy_within_screen = self.global_xy_within_screen(context_menu_wh);
 
-            ctx.done()
-        })
+        ctx.add(on_top(absolute(
+            global_xy_within_screen.x,
+            global_xy_within_screen.y,
+            render([background, render(menus)]).attach_event(move |builder| {
+                builder.on_mouse_move_out(move |_| set_mouse_over_item_idx.set(None));
+            }),
+        )));
+
+        ctx.done()
     }
 }
 

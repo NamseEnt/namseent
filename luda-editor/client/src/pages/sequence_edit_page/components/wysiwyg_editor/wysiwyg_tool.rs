@@ -27,32 +27,30 @@ impl Component for WysiwygTool {
             wh,
             ref on_event,
         } = self;
-        ctx.use_children(|ctx| {
-            ctx.add(Mover {
-                image_dest_rect: graphic_dest_rect,
-                dragging: dragging.clone(),
-                container_wh: wh,
-                on_event: self.on_event.map(|event| Some(Event::Mover { event })),
-            });
 
-            ctx.add(Resizer {
-                rect: graphic_dest_rect,
-                dragging_context: if let Some(Dragging::Resizer { context }) =
-                    self.dragging.as_ref()
-                {
-                    Some(*context)
-                } else {
-                    None
-                },
-                container_size: wh,
-                image_size: calculate_graphic_wh_on_screen(
-                    original_graphic_size,
-                    wh,
-                    graphic.circumscribed(),
-                ),
-                graphic_index,
-                on_event: self.on_event.map(|event| Some(Event::Resizer { event })),
-            });
-        })
+        ctx.add(Mover {
+            image_dest_rect: graphic_dest_rect,
+            dragging: dragging.clone(),
+            container_wh: wh,
+            on_event: self.on_event.map(|event| Some(Event::Mover { event })),
+        });
+
+        ctx.add(Resizer {
+            rect: graphic_dest_rect,
+            dragging_context: if let Some(Dragging::Resizer { context }) = self.dragging.as_ref() {
+                Some(*context)
+            } else {
+                None
+            },
+            container_size: wh,
+            image_size: calculate_graphic_wh_on_screen(
+                original_graphic_size,
+                wh,
+                graphic.circumscribed(),
+            ),
+            graphic_index,
+            on_event: self.on_event.map(|event| Some(Event::Resizer { event })),
+        });
+        ctx.done()
     }
 }

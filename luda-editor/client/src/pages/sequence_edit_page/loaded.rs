@@ -29,17 +29,17 @@ impl Component for LoadedSequenceEditorPage {
             ref cg_files,
         } = self;
         let (sequence, set_seuqnece) =
-            ctx.use_atom_init(&SEQUENCE_ATOM, || SequenceWrapped::new(sequence.clone()));
-        let (cg_files, _set_cg_files) = ctx.use_atom_init(&CG_FILES_ATOM, || cg_files.clone());
+            ctx.atom_init(&SEQUENCE_ATOM, || SequenceWrapped::new(sequence.clone()));
+        let (cg_files, _set_cg_files) = ctx.atom_init(&CG_FILES_ATOM, || cg_files.clone());
 
-        let (selected_cut_id, set_selected_cut_id) = ctx.use_state::<Option<Uuid>>(|| None);
-        let (focused_component, set_focused_component) = ctx.use_state(|| None);
+        let (selected_cut_id, set_selected_cut_id) = ctx.state::<Option<Uuid>>(|| None);
+        let (focused_component, set_focused_component) = ctx.state(|| None);
         let (context_menu, set_context_menu) =
-            ctx.use_state::<Option<context_menu::ContextMenu>>(|| None);
+            ctx.state::<Option<context_menu::ContextMenu>>(|| None);
         let (character_editor_target, set_character_editor_target) =
-            ctx.use_state::<Option<EditTarget>>(|| None);
-        let (cut_id_memos_map, set_cut_id_memos_map) = ctx.use_state(|| cut_id_memos_map.clone());
-        let (editing_memo, set_editing_memo) = ctx.use_state(|| None);
+            ctx.state::<Option<EditTarget>>(|| None);
+        let (cut_id_memos_map, set_cut_id_memos_map) = ctx.state(|| cut_id_memos_map.clone());
+        let (editing_memo, set_editing_memo) = ctx.state(|| None);
 
         let selected_cut = selected_cut_id.and_then(|id| sequence.cuts.iter().find(|c| c.id == id));
         let project_id = project_shared_data.id();
@@ -167,99 +167,97 @@ impl Component for LoadedSequenceEditorPage {
                 }
             },
         };
-        ctx.use_children(|ctx| {
-            let memo_list_view_cell: table::hooks::TableCell = {
-                const MEMO_WINDOW_WIDTH: Px = px(256.0);
+        let memo_list_view_cell: table::hooks::TableCell = {
+            const MEMO_WINDOW_WIDTH: Px = px(256.0);
 
-                let memos = selected_cut.and_then(|cut| self.cut_id_memos_map.get(&cut.id));
+            let memos = selected_cut.and_then(|cut| self.cut_id_memos_map.get(&cut.id));
 
-                // match memos {
-                //     Some(memos) if !memos.is_empty() => {
-                //         table::hooks::fixed(MEMO_WINDOW_WIDTH, move |wh| {
-                //             memo_list_view::MemoListView {
-                //                 wh,
-                //                 memos: memos.clone(),
-                //                 user_id,
-                //                 on_event: on_internal_event(InternalEvent::MemoListViewEvent {
-                //                     event,
-                //                 }),
-                //             }
-                //         })
-                //     }
-                //     _ => table::hooks::empty(),
-                // }
-                table::hooks::empty()
-            };
+            // match memos {
+            //     Some(memos) if !memos.is_empty() => {
+            //         table::hooks::fixed(MEMO_WINDOW_WIDTH, move |wh| {
+            //             memo_list_view::MemoListView {
+            //                 wh,
+            //                 memos: memos.clone(),
+            //                 user_id,
+            //                 on_event: on_internal_event(InternalEvent::MemoListViewEvent {
+            //                     event,
+            //                 }),
+            //             }
+            //         })
+            //     }
+            //     _ => table::hooks::empty(),
+            // }
+            table::hooks::empty()
+        };
 
-            let character_editor_cell: table::hooks::TableCell = {
-                const CHARACTER_EDITOR_WIDTH: Px = px(496.0);
+        let character_editor_cell: table::hooks::TableCell = {
+            const CHARACTER_EDITOR_WIDTH: Px = px(496.0);
 
-                match *character_editor_target {
-                    Some(character_editor_target) => {
-                        table::hooks::fixed(CHARACTER_EDITOR_WIDTH, |wh| {
-                            character_editor::CharacterEditor {
-                                wh,
-                                project_id,
-                                edit_target: character_editor_target,
-                                cut: selected_cut,
-                                on_event: &|event| {
-                                    on_internal_event(InternalEvent::CharacterEdtiorEvent { event })
-                                },
-                            }
-                        })
-                    }
-                    None => table::hooks::empty(),
+            match *character_editor_target {
+                Some(character_editor_target) => {
+                    table::hooks::fixed(CHARACTER_EDITOR_WIDTH, |wh| {
+                        character_editor::CharacterEditor {
+                            wh,
+                            project_id,
+                            edit_target: character_editor_target,
+                            cut: selected_cut,
+                            on_event: &|event| {
+                                on_internal_event(InternalEvent::CharacterEdtiorEvent { event })
+                            },
+                        }
+                    })
                 }
-            };
+                None => table::hooks::empty(),
+            }
+        };
 
-            let cut_list_view_cell = |wh| cut_list_view::CutListView {
-                wh,
-                cuts: sequence.cuts.clone(),
-                selected_cut_id: *selected_cut_id,
-                is_focused: *focused_component == Some(FocusableComponent::CutListView),
-                cut_id_memos_map: cut_id_memos_map.deref().clone(),
-                on_event: &|event| on_internal_event(InternalEvent::CutListViewEvent { event }),
-            };
+        let cut_list_view_cell = |wh| cut_list_view::CutListView {
+            wh,
+            cuts: sequence.cuts.clone(),
+            selected_cut_id: *selected_cut_id,
+            is_focused: *focused_component == Some(FocusableComponent::CutListView),
+            cut_id_memos_map: cut_id_memos_map.deref().clone(),
+            on_event: &|event| on_internal_event(InternalEvent::CutListViewEvent { event }),
+        };
 
-            // let cut_editor_cell = |wh| {
-            //     selected_cut.map(|selected_cut| cut_editor::CutEditor {
-            //         wh,
-            //         cut: selected_cut,
-            //         cuts: &sequence.cuts,
-            //         is_focused: *focused_component == Some(FocusableComponent::CutEditor),
-            //         project_id,
-            //         cg_files: &cg_files,
-            //         on_event: ctx
-            //             .event_with_param(|event| Some(InternalEvent::CutEditorEvent { event })),
-            //     })
-            // };
+        // let cut_editor_cell = |wh| {
+        //     selected_cut.map(|selected_cut| cut_editor::CutEditor {
+        //         wh,
+        //         cut: selected_cut,
+        //         cuts: &sequence.cuts,
+        //         is_focused: *focused_component == Some(FocusableComponent::CutEditor),
+        //         project_id,
+        //         cg_files: &cg_files,
+        //         on_event: ctx
+        //             .event_with_param(|event| Some(InternalEvent::CutEditorEvent { event })),
+        //     })
+        // };
 
-            ctx.add(table::hooks::horizontal([
-                table::hooks::fixed(220.px(), cut_list_view_cell),
-                // table::hooks::ratio(4, cut_editor_cell),
-                character_editor_cell,
-                memo_list_view_cell,
-            ])(wh));
+        ctx.add(table::hooks::horizontal([
+            table::hooks::fixed(220.px(), cut_list_view_cell),
+            // table::hooks::ratio(4, cut_editor_cell),
+            character_editor_cell,
+            memo_list_view_cell,
+        ])(wh));
 
-            // if let Some(SequenceIdCutId {
-            //     sequence_id,
-            //     cut_id,
-            // }) = *editing_memo
-            // {
-            //     ctx.add(memo_editor::MemoEditor {
-            //         wh,
-            //         sequence_id,
-            //         cut_id,
-            //         on_event: ctx
-            //             .event_with_param(|event| Some(InternalEvent::MemoEditorEvent { event })),
-            //     })
-            // }
+        // if let Some(SequenceIdCutId {
+        //     sequence_id,
+        //     cut_id,
+        // }) = *editing_memo
+        // {
+        //     ctx.add(memo_editor::MemoEditor {
+        //         wh,
+        //         sequence_id,
+        //         cut_id,
+        //         on_event: ctx
+        //             .event_with_param(|event| Some(InternalEvent::MemoEditorEvent { event })),
+        //     })
+        // }
 
-            // if let Some(context_menu) = *context_menu {
-            //     ctx.add(context_menu);
-            // }
-            ctx.done()
-        })
+        // if let Some(context_menu) = *context_menu {
+        //     ctx.add(context_menu);
+        // }
+        ctx.done()
     }
 }
 

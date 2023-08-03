@@ -85,50 +85,48 @@ impl Component for CutListView<'_> {
                 }
             }
         };
-        ctx.use_children(|ctx| {
-            ctx.add(
-                render([simple_rect(
-                    wh,
-                    color::STROKE_NORMAL,
-                    1.px(),
-                    color::BACKGROUND,
-                )])
-                .attach_event(move |builder| {
-                    builder
-                        .on_mouse_down_in(move |event: MouseEvent| {
-                            if event.button == Some(MouseButton::Right) {
-                                on_event(Event::OnRightClickEvent {
-                                    global_xy: event.global_xy,
-                                });
-                            }
-                        })
-                        .on_key_down(on_key_down);
-                }),
-            );
-            let item_wh = Wh::new(wh.width, 128.px());
-            ctx.add(list_view::ListView {
-                xy: Xy::zero(),
-                height: wh.height,
-                scroll_bar_width: 12.px(),
-                item_wh,
-                items: cuts
-                    .iter()
-                    .zip(cuts.iter().map(|cut| cut_id_memos_map.get(&cut.id)))
-                    .enumerate()
-                    .map(|(index, (cut, memos))| {
-                        Arc::new(CutCell {
-                            wh,
-                            index,
-                            cut: cut.clone(),
-                            memo_count: memos.map_or(0, |memos| memos.len()),
-                            is_selected: selected_cut_id == Some(cut.id),
-                            is_focused,
-                            on_click: &|cut_id: Uuid| on_event(Event::OnClickCutEvent { cut_id }),
-                        }) as Arc<dyn Component>
+        ctx.add(
+            render([simple_rect(
+                wh,
+                color::STROKE_NORMAL,
+                1.px(),
+                color::BACKGROUND,
+            )])
+            .attach_event(move |builder| {
+                builder
+                    .on_mouse_down_in(move |event: MouseEvent| {
+                        if event.button == Some(MouseButton::Right) {
+                            on_event(Event::OnRightClickEvent {
+                                global_xy: event.global_xy,
+                            });
+                        }
                     })
-                    .collect(),
-            });
-            ctx.done()
-        })
+                    .on_key_down(on_key_down);
+            }),
+        );
+        let item_wh = Wh::new(wh.width, 128.px());
+        ctx.add(list_view::ListView {
+            xy: Xy::zero(),
+            height: wh.height,
+            scroll_bar_width: 12.px(),
+            item_wh,
+            items: cuts
+                .iter()
+                .zip(cuts.iter().map(|cut| cut_id_memos_map.get(&cut.id)))
+                .enumerate()
+                .map(|(index, (cut, memos))| {
+                    Arc::new(CutCell {
+                        wh,
+                        index,
+                        cut: cut.clone(),
+                        memo_count: memos.map_or(0, |memos| memos.len()),
+                        is_selected: selected_cut_id == Some(cut.id),
+                        is_focused,
+                        on_click: &|cut_id: Uuid| on_event(Event::OnClickCutEvent { cut_id }),
+                    }) as Arc<dyn Component>
+                })
+                .collect(),
+        });
+        ctx.done()
     }
 }

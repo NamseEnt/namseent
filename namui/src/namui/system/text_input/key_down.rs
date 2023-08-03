@@ -5,21 +5,6 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-pub enum ArrowUpDown {
-    Up,
-    Down,
-}
-
-pub enum HomeEnd {
-    Home,
-    End,
-}
-
-pub enum KeyInInterest {
-    ArrowUpDown(ArrowUpDown),
-    HomeEnd(HomeEnd),
-}
-
 pub struct TextInputKeyDownEvent {
     selection_start: usize,
     selection_end: usize,

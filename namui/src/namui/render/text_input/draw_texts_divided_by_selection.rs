@@ -1,8 +1,7 @@
-use super::TextInput;
+use super::*;
 use crate::{
     namui::{self, RenderingTree},
     render,
-    system::text_input::Selection,
     text::*,
     *,
 };

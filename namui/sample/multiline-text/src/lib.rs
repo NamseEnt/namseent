@@ -173,10 +173,8 @@ impl Component for MultilineTextExample {
             }
         }
 
-        ctx.use_children(|ctx| {
-            ctx.add(render(trees));
+        ctx.add(render(trees));
 
-            ctx.done()
-        })
+        ctx.done()
     }
 }

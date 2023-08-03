@@ -1,8 +1,9 @@
 use crate::{system, MouseEventType, RawMouseEvent, RawWheelEvent, RenderingTree};
 use namui_type::{px, uuid, Wh, Xy};
+use serde::Deserialize;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+#[derive(serde::Deserialize, Debug, Clone)]
 pub enum WebEvent {
     MouseDown {
         x: usize,
@@ -38,8 +39,11 @@ pub enum WebEvent {
     //     y: usize,
     // },
     SelectionChange {
-        #[serde(rename = "selectionDirection")]
-        selection_direction: String,
+        #[serde(
+            rename = "selectionDirection",
+            deserialize_with = "deserialize_selection_direction"
+        )]
+        selection_direction: SelectionDirection,
         #[serde(rename = "selectionStart")]
         selection_start: usize,
         #[serde(rename = "selectionEnd")]
@@ -67,13 +71,25 @@ pub enum WebEvent {
     TextInputKeyDown {
         code: String,
         text: String,
-        #[serde(rename = "selectionDirection")]
-        selection_direction: String,
+        #[serde(
+            rename = "selectionDirection",
+            deserialize_with = "deserialize_selection_direction"
+        )]
+        selection_direction: SelectionDirection,
         #[serde(rename = "selectionStart")]
         selection_start: usize,
         #[serde(rename = "selectionEnd")]
         selection_end: usize,
     },
+}
+
+fn deserialize_selection_direction<'de, D>(deserializer: D) -> Result<SelectionDirection, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    SelectionDirection::try_from(s.as_str())
+        .map_err(|err| serde::de::Error::custom("fail to deserialize selection direction"))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -193,16 +209,11 @@ pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) -> Option<WebEve
         }
         &WebEvent::HashChange { .. } => {}
         &WebEvent::SelectionChange {
-            ref selection_direction,
+            selection_direction,
             selection_start,
             selection_end,
             ref text,
-        } => crate::system::text_input::on_selection_change(
-            SelectionDirection::try_from(selection_direction.as_str()).unwrap(),
-            selection_start,
-            selection_end,
-            text,
-        ),
+        } => {}
         &WebEvent::KeyDown { ref code } => crate::keyboard::on_key_down(&code),
         &WebEvent::KeyUp { ref code } => crate::keyboard::on_key_up(&code),
         &WebEvent::Blur => crate::keyboard::reset_pressing_code_set(),
