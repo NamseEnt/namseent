@@ -90,7 +90,6 @@ impl TreeContext {
             result.component_instance.component_id,
             result.fn_rendering_tree,
         );
-        inner.flush_updated_sigs();
 
         if let Some(child) = dequeue_child().as_ref() {
             inner.current_component_parent_id = child.parent_component_id;
@@ -98,6 +97,7 @@ impl TreeContext {
 
             mount_visit(child.component.as_ref(), self);
         } else {
+            inner.flush_updated_sigs();
             let rendering_tree = inner.combine_rendering_tree(ROOT_COMPONENT_ID);
             drop(inner);
 

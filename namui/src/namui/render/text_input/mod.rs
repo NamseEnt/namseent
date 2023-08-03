@@ -328,7 +328,6 @@ textArea.focus();
                 }
                 &web::WebEvent::MouseUp { .. } => {
                     if *is_focused && atom.mouse_dragging {
-                        crate::log!("mouse up");
                         set_atom.mutate(|x| x.mouse_dragging = false);
                     }
                 }
@@ -362,7 +361,6 @@ textArea.focus();
                     selection_start,
                     selection_end,
                 } => {
-                    crate::log!("TextInputTextUpdated, {text}");
                     if !*is_focused {
                         return;
                     }
@@ -381,8 +379,6 @@ textArea.focus();
                     selection_end,
                     is_composing,
                 } => {
-                    crate::log!("TextInputKeyDown, {code:?}");
-
                     if !*is_focused {
                         return;
                     }

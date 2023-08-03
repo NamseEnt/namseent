@@ -1,5 +1,5 @@
 use super::*;
-use std::{cell::RefCell, collections::HashSet};
+use std::{cell::RefCell, collections::HashSet, fmt::Display};
 
 thread_local! {
     pub(crate) static USED_SIG_IDS: RefCell<HashSet<SigId>> = RefCell::new(HashSet::new());
@@ -34,7 +34,6 @@ pub(crate) enum SigIdType {
     Atom, // component_id = 0
 }
 
-#[derive(Debug)]
 pub struct Sig<'a, T: ?Sized> {
     id: SigId,
     value: &'a T,
@@ -50,6 +49,21 @@ impl<T: ?Sized> Clone for Sig<'_, T> {
 }
 
 impl<T: ?Sized> Copy for Sig<'_, T> {}
+
+impl<T: ?Sized + Debug> Debug for Sig<'_, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Sig")
+            .field("id", &self.id)
+            .field("value", &self.value)
+            .finish()
+    }
+}
+
+impl<T: ?Sized + Display> Display for Sig<'_, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.value.fmt(f)
+    }
+}
 
 impl<'a, T> Sig<'a, T> {
     pub(crate) fn new(value: &'a T, id: SigId) -> Self {

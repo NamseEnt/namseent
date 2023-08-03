@@ -31,7 +31,6 @@ impl TextInput<'_> {
         } else {
             (selection.end, selection.start)
         };
-        crate::log!("selection: {:#?}", selection);
 
         let left_caret = line_texts
             .clone()
@@ -39,10 +38,6 @@ impl TextInput<'_> {
         let right_caret = line_texts
             .clone()
             .into_multiline_caret(right_selection_index);
-
-        crate::log!("line_texts: {:#?}", line_texts);
-        crate::log!("left_caret: {:#?}", left_caret);
-        crate::log!("right_caret: {:#?}", right_caret);
 
         let y_of_line = |line_index: usize| {
             let line_height = props.line_height_px();
@@ -197,9 +192,6 @@ impl TextInput<'_> {
         with_newline_background: bool,
         paint: Arc<Paint>,
     ) -> RenderingTree {
-        crate::log!("chars: {:?}", chars);
-        crate::log!("left_caret_index: {:?}", left_caret_index);
-        crate::log!("right_caret_index: {:?}", right_caret_index);
         let (left_text_string, selected_text_string, right_text_string) = (
             &chars[..left_caret_index].iter().collect::<String>(),
             &chars[left_caret_index..right_caret_index]

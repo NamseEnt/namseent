@@ -14,10 +14,12 @@ pub(crate) fn handle_memo<'a, T: 'static + Debug + Send + Sync>(
 
     let is_first_run = memo_value_list.len() <= memo_index;
 
-    let last_used_sigs = memo_used_sigs_list.get(memo_index);
-
     let used_sig_updated = || {
-        last_used_sigs.is_some_and(|x| x.iter().any(|used_sig_id| ctx.is_sig_updated(used_sig_id)))
+        memo_used_sigs_list
+            .get(memo_index)
+            .unwrap()
+            .iter()
+            .any(|used_sig_id| ctx.is_sig_updated(used_sig_id))
     };
 
     let sig_id = SigId {
@@ -31,22 +33,10 @@ pub(crate) fn handle_memo<'a, T: 'static + Debug + Send + Sync>(
         let value = Box::new(memo());
         let used_sig_ids = take_used_sigs();
 
-        let is_used_sig_updated = match last_used_sigs {
-            Some(last_used_sigs) => {
-                last_used_sigs.len() != used_sig_ids.len()
-                    || last_used_sigs
-                        .iter()
-                        .any(|last_used_sig_id| !used_sig_ids.contains(last_used_sig_id))
-            }
-            None => true,
-        };
-
         update_or_push(&mut memo_value_list, memo_index, value);
         update_or_push(&mut memo_used_sigs_list, memo_index, used_sig_ids);
 
-        if is_used_sig_updated {
-            ctx.add_sig_updated(sig_id);
-        }
+        ctx.add_sig_updated(sig_id);
     }
 
     let value: &T = memo_value_list[memo_index]

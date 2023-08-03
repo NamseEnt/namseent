@@ -54,8 +54,8 @@ impl Component for TextInputExample {
             ],
         ];
 
-        for x in 0..1 {
-            for y in 0..1 {
+        for x in 0..3 {
+            for y in 0..3 {
                 ctx.add(text_input::TextInput {
                     instance: text_input_instances_3x3[x][y],
                     rect: Rect::Xywh {
