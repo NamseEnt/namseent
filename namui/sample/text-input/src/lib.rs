@@ -110,6 +110,7 @@ impl Component for TextInputExample {
                             _ => {}
                         }
                     }),
+                    prevent_default_codes: vec![],
                 });
             }
         }
