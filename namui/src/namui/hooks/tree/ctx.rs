@@ -179,7 +179,7 @@ impl TreeContext {
                                         );
                                     }
                                     SigIdType::Memo => unreachable!(),
-                                    SigIdType::As => unreachable!(),
+                                    SigIdType::TrackEq => unreachable!(),
                                 }
                             }
                             SetStateItem::Mutate { sig_id, mutate } => {
@@ -202,7 +202,7 @@ impl TreeContext {
                                         mutate_atom_value(sig_id.index, mutate);
                                     }
                                     SigIdType::Memo => unreachable!(),
-                                    SigIdType::As => unreachable!(),
+                                    SigIdType::TrackEq => unreachable!(),
                                 }
                             }
                         }

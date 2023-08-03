@@ -6,7 +6,7 @@ pub struct RenderCtx {
     pub(crate) state_index: AtomicUsize,
     pub(crate) effect_index: AtomicUsize,
     pub(crate) memo_index: AtomicUsize,
-    pub(crate) as_index: AtomicUsize,
+    pub(crate) track_eq_index: AtomicUsize,
     tree_ctx: TreeContext,
     direct_children: Mutex<Vec<Box<dyn Component>>>,
 }
@@ -18,7 +18,7 @@ impl<'a> RenderCtx {
             state_index: Default::default(),
             effect_index: Default::default(),
             memo_index: Default::default(),
-            as_index: Default::default(),
+            track_eq_index: Default::default(),
             tree_ctx,
             direct_children: Default::default(),
         }
@@ -51,6 +51,13 @@ impl<'a> RenderCtx {
         memo: impl FnOnce() -> T,
     ) -> Sig<'a, T> {
         handle_memo(self, memo)
+    }
+
+    pub fn track_eq<T: 'static + Debug + Send + Sync + PartialEq + Clone>(
+        &'a self,
+        track_eq: &T,
+    ) -> Sig<'a, T> {
+        handle_track_eq(self, track_eq)
     }
 
     pub fn effect(&'a self, title: &'static str, effect: impl FnOnce()) {

@@ -268,12 +268,22 @@ textArea.addEventListener("input", (_e) => {
     });
 });
 
+declare global {
+    var textAreaKeydownPreventDefaultCodes: string[];
+}
+globalThis.textAreaKeydownPreventDefaultCodes = [];
 textArea.addEventListener("keydown", (e) => {
     e.stopImmediatePropagation();
     if (
-        ["ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(
-            e.code,
-        )
+        [
+            "ArrowUp",
+            "ArrowDown",
+            "Home",
+            "End",
+            "PageUp",
+            "PageDown",
+            ...globalThis.textAreaKeydownPreventDefaultCodes,
+        ].includes(e.code)
     ) {
         e.preventDefault();
     }

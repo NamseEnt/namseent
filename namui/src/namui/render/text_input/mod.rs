@@ -28,6 +28,7 @@ pub struct TextInput<'a> {
     pub text_baseline: TextBaseline,
     pub font_type: FontType,
     pub style: Style,
+    pub prevent_default_codes: Vec<Code>,
     pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
@@ -75,7 +76,8 @@ impl Component for TextInput<'_> {
             selection: Selection::None,
         });
 
-        let is_focused = atom.is_focused(id);
+        let is_focused = ctx.memo(|| atom.is_focused(id));
+        let prevent_default_codes = ctx.track_eq(&self.prevent_default_codes);
 
         static LAST_MOUSE_DOWNED: OnceLock<Mutex<Option<TextInputMouseEvent>>> = OnceLock::new();
         static LAST_MOUSE_MOVED: OnceLock<Mutex<Option<TextInputMouseEvent>>> = OnceLock::new();
@@ -85,6 +87,27 @@ impl Component for TextInput<'_> {
             MOUSE_DOWN_FIRST_CALL
                 .get_or_init(Default::default)
                 .store(true, Ordering::Relaxed)
+        });
+
+        ctx.effect("Update prevent default codes", || {
+            if !*is_focused {
+                return;
+            }
+            if prevent_default_codes.on_effect() {
+                web::execute_function_sync(
+                    "
+                    globalThis.textAreaKeydownPreventDefaultCodes = preventDefaultcodes;
+                    ",
+                )
+                .arg(
+                    "preventDefaultcodes",
+                    prevent_default_codes
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>(),
+                )
+                .run::<()>();
+            }
         });
 
         // TODO: blur on unmount if focused
@@ -304,13 +327,13 @@ textArea.focus();
                     update_focus_with_mouse_movement(last_mouse_downed.local_xy, false);
                 }
                 &web::WebEvent::MouseUp { .. } => {
-                    if is_focused && atom.mouse_dragging {
+                    if *is_focused && atom.mouse_dragging {
                         crate::log!("mouse up");
                         set_atom.mutate(|x| x.mouse_dragging = false);
                     }
                 }
                 &web::WebEvent::MouseMove { .. } => {
-                    if is_focused && atom.mouse_dragging {
+                    if *is_focused && atom.mouse_dragging {
                         let last_mouse_downed = LAST_MOUSE_MOVED
                             .get_or_init(Default::default)
                             .lock()
@@ -327,7 +350,7 @@ textArea.focus();
                     selection_end,
                     ref text,
                 } => {
-                    if !atom.is_focused(id) {
+                    if !*is_focused {
                         return;
                     };
 
@@ -340,7 +363,7 @@ textArea.focus();
                     selection_end,
                 } => {
                     crate::log!("TextInputTextUpdated, {text}");
-                    if !is_focused {
+                    if !*is_focused {
                         return;
                     }
 
@@ -360,7 +383,7 @@ textArea.focus();
                 } => {
                     crate::log!("TextInputKeyDown, {code:?}");
 
-                    if !is_focused {
+                    if !*is_focused {
                         return;
                     }
 
@@ -534,7 +557,7 @@ textArea.focus();
                         MouseEventType::Down => {}
                         MouseEventType::Up => {}
                         MouseEventType::Move => {
-                            if !is_focused {
+                            if !*is_focused {
                                 return;
                             }
 

@@ -30,7 +30,7 @@ pub(crate) struct SigId {
 pub(crate) enum SigIdType {
     State,
     Memo,
-    As,
+    TrackEq,
     Atom, // component_id = 0
 }
 
@@ -75,20 +75,3 @@ impl<T> std::ops::Deref for Sig<'_, T> {
         self.value
     }
 }
-
-pub trait AsSig {
-    fn as_sig<'a>(&'a self) -> Sig<'a, Self>;
-}
-
-// impl<T> AsSig for T {
-//     fn as_sig<'a>(&'a self) -> Sig<'a, Self> {
-//         Sig::new(
-//             self,
-//             SigId {
-//                 id_type: SigIdType::As,
-//                 component_id: 0,
-//                 index: 0,
-//             },
-//         )
-//     }
-// }
