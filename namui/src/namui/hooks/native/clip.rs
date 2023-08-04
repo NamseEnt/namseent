@@ -1,4 +1,4 @@
-use super::*;
+use crate::*;
 
 pub fn clip<'a>(
     path_builder: crate::PathBuilder,
@@ -18,13 +18,9 @@ pub struct Clip<'a> {
     clip_op: crate::ClipOp,
     component: Box<dyn Component + 'a>,
 }
-impl StaticType for Clip<'_> {
-    fn static_type_id(&self) -> TypeId {
-        TypeId::of::<Clip>()
-    }
-}
+impl StaticType for Clip<'_> {}
 
-impl<'a> Component for Clip<'a> {
+impl Component for Clip<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             ref path_builder,
@@ -32,18 +28,13 @@ impl<'a> Component for Clip<'a> {
             ref component,
         } = self;
         let path_builder = path_builder.clone();
-
-        use_render_with_rendering_tree(
-            move |ctx| {
-                ctx.add(component.as_ref());
-            },
-            move |children| {
-                crate::clip(
-                    path_builder.clone(),
-                    clip_op,
-                    RenderingTree::Children(children),
-                )
-            },
-        )
+        ctx.add(component.as_ref());
+        ctx.done_with_rendering_tree(move |children| {
+            crate::clip(
+                path_builder.clone(),
+                clip_op,
+                RenderingTree::Children(children),
+            )
+        })
     }
 }

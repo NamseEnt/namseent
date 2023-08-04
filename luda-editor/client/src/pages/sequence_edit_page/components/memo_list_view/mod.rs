@@ -1,30 +1,30 @@
 use crate::color;
 use namui::prelude::*;
-use namui_prebuilt::scroll_view::{self, scroll_view_auto_scroll};
+use namui_prebuilt::scroll_view::{self};
 use namui_prebuilt::{button::text_button_fit, simple_rect, table};
 use rpc::data::Memo;
 
 #[namui::component]
-pub struct MemoListView {
+pub struct MemoListView<'a> {
     pub wh: Wh<Px>,
     pub memos: Vec<Memo>,
     pub user_id: Uuid,
     // pub on_done_clicked: &'a dyn Fn(CutIdMemoId),
-    pub on_event: &'a dyn Fn(Event),
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
     DoneClicked { cut_id: Uuid, memo_id: Uuid },
 }
 
-impl Component for MemoListView {
+impl Component for MemoListView<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             wh,
             ref memos,
             user_id,
             // ref on_done_clicked,
-            ref on_event,
+            on_event,
         } = self;
 
         ctx.add(simple_rect(
@@ -33,26 +33,27 @@ impl Component for MemoListView {
             1.px(),
             color::BACKGROUND,
         ));
-        ctx.add(scroll_view_auto_scroll(scroll_view::Props2 {
+        ctx.add(scroll_view::AutoScrollView {
             xy: Xy::zero(),
-            height: wh.height,
             scroll_bar_width: 4.px(),
+            height: wh.height,
             content: table::vertical(memos.iter().map(|memo| {
                 table::fit(
                     table::FitAlign::LeftTop,
-                    render_memo(wh.width, memo, user_id, on_event.clone()),
+                    render_memo(wh.width, memo, user_id, on_event),
                 )
-            }))(wh),
-        }));
+            }))(wh)
+            .arc(),
+        });
         ctx.done()
     }
 }
 
-fn render_memo(
+fn render_memo<'a>(
     width: Px,
     memo: &Memo,
     user_id: Uuid,
-    on_event: &'a dyn Fn(Event),
+    on_event: Box<dyn 'a + Fn(Event)>,
 ) -> RenderingTree {
     const MARGIN: Px = px(8.0);
     const PADDING: Px = px(8.0);
@@ -97,7 +98,7 @@ fn render_memo(
             PADDING,
             [MouseButton::Left],
             move |_| {
-                on_event.call(Event::DoneClicked { cut_id, memo_id });
+                on_event(Event::DoneClicked { cut_id, memo_id });
             },
         )
         .with_mouse_cursor(MouseCursor::Pointer),

@@ -18,8 +18,8 @@ pub struct CharacterEditor<'a> {
     pub edit_target: EditTarget,
     pub wh: Wh<Px>,
     pub project_id: Uuid,
-    pub cut: Option<&'a Cut>,
-    pub on_event: &'a dyn Fn(Event),
+    pub cut: Sig<'a, Option<&'a Cut>>,
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
@@ -69,7 +69,7 @@ impl Component for CharacterEditor<'_> {
                 ctx.add(CgPicker {
                     wh,
                     project_id,
-                    on_event: &|event| match event {
+                    on_event: Box::new(|event| match event {
                         cg_picker::Event::MoveInCgFileThumbnail { global_xy, name } => {
                             on_internal_event(InternalEvent::MoveInCgFileThumbnail {
                                 global_xy,
@@ -136,7 +136,7 @@ impl Component for CharacterEditor<'_> {
                             }
                             _ => {}
                         },
-                    },
+                    }),
                 });
             }
             EditTarget::ExistingCharacterPart {
@@ -166,7 +166,7 @@ impl Component for CharacterEditor<'_> {
                             cut_id,
                             graphic_index,
                             screen_cg: selected_screen_cg,
-                            on_event: &|event| match event {
+                            on_event: Box::new(|event| match event {
                                 part_picker::Event::MoveInCgFileThumbnail { global_xy, name } => {
                                     on_internal_event(InternalEvent::MoveInCgFileThumbnail {
                                         global_xy,
@@ -176,7 +176,7 @@ impl Component for CharacterEditor<'_> {
                                 part_picker::Event::CgChangeButtonClicked => {
                                     on_event(Event::CgChangeButtonClicked)
                                 }
-                            },
+                            }),
                         });
                     }
                     _ => ctx.add(table::padding(8.px(), |wh| {

@@ -1,4 +1,4 @@
-use super::*;
+use crate::*;
 
 pub fn translate<'a>(x: crate::Px, y: crate::Px, component: impl Component + 'a) -> Translate<'a> {
     Translate {
@@ -14,21 +14,15 @@ pub struct Translate<'a> {
     y: crate::Px,
     component: Box<dyn Component + 'a>,
 }
-impl StaticType for Translate<'_> {
-    fn static_type_id(&self) -> TypeId {
-        TypeId::of::<Translate>()
-    }
-}
+impl StaticType for Translate<'_> {}
 
-impl<'a> Component for Translate<'a> {
+impl Component for Translate<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let x = self.x;
         let y = self.y;
-        use_render_with_rendering_tree(
-            move |ctx| {
-                ctx.add(self.component.as_ref());
-            },
-            move |children| crate::translate(x, y, RenderingTree::Children(children)),
-        )
+        ctx.add(self.component.as_ref());
+        ctx.done_with_rendering_tree(|children| {
+            crate::translate(x, y, RenderingTree::Children(children))
+        })
     }
 }

@@ -1,4 +1,4 @@
-use super::*;
+use crate::*;
 
 pub fn on_top<'a>(component: impl Component + 'a) -> OnTop<'a> {
     OnTop {
@@ -11,18 +11,14 @@ pub struct OnTop<'a> {
     component: Box<dyn Component + 'a>,
 }
 impl StaticType for OnTop<'_> {
-    fn static_type_id(&self) -> TypeId {
-        TypeId::of::<OnTop>()
+    fn static_type_name(&self) -> &'static str {
+        std::any::type_name::<Self>()
     }
 }
 
-impl<'a> Component for OnTop<'a> {
+impl Component for OnTop<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        use_render_with_rendering_tree(
-            move |ctx| {
-                ctx.add(self.component.as_ref());
-            },
-            move |children| crate::on_top(RenderingTree::Children(children)),
-        )
+        ctx.add(self.component.as_ref());
+        ctx.done_with_rendering_tree(|children| crate::on_top(RenderingTree::Children(children)))
     }
 }

@@ -1,14 +1,13 @@
 use crate::color;
 use namui::prelude::*;
-use namui::text_input::Style;
 use namui_prebuilt::*;
 
 #[namui::component]
-pub struct MemoEditor {
+pub struct MemoEditor<'a> {
     pub wh: Wh<Px>,
     pub sequence_id: Uuid,
     pub cut_id: Uuid,
-    pub on_event: &'a dyn Fn(Event),
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
@@ -20,7 +19,7 @@ pub enum Event {
     },
 }
 
-impl Component for MemoEditor {
+impl Component for MemoEditor<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             wh,
@@ -47,7 +46,7 @@ impl Component for MemoEditor {
                 let on_event = on_event.clone();
                 builder.on_mouse_down_in(move |event: MouseEvent| {
                     event.stop_propagation();
-                    on_event.call(Event::Close);
+                    on_event(Event::Close);
                 });
             })
             .with_mouse_cursor(MouseCursor::Default)
@@ -75,7 +74,7 @@ impl Component for MemoEditor {
                     {
                         let on_event = on_event.clone();
                         move |_event| {
-                            on_event.call(Event::Close);
+                            on_event(Event::Close);
                         }
                     },
                 )
@@ -120,7 +119,7 @@ impl Component for MemoEditor {
                     {
                         let on_event = on_event.clone();
                         move |_event| {
-                            on_event.call(Event::SaveButtonClicked {
+                            on_event(Event::SaveButtonClicked {
                                 sequence_id,
                                 cut_id,
                                 content: text.to_string(),
@@ -148,38 +147,45 @@ impl Component for MemoEditor {
             table::hooks::ratio(1, |wh| {
                 (
                     simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT),
-                    table::hooks::padding(PADDING, |wh| text_input::Props {
-                        rect: Rect::from_xy_wh(Xy::zero(), wh),
-                        text: text.to_string(),
-                        text_align: TextAlign::Left,
-                        text_baseline: TextBaseline::Top,
-                        font_type: FontType {
-                            serif: false,
-                            size: 14.int_px(),
-                            language: Language::Ko,
-                            font_weight: FontWeight::REGULAR,
-                        },
-                        style: Style {
-                            padding: Ltrb::single(PADDING),
-                            rect: RectStyle {
-                                stroke: Some(RectStroke {
-                                    color: color::STROKE_NORMAL,
-                                    width: 1.px(),
-                                    border_position: BorderPosition::Inside,
-                                }),
-                                fill: None,
-                                round: None,
-                            },
-                            text: TextStyle {
-                                color: color::STROKE_NORMAL,
-                                ..Default::default()
-                            },
-                        },
-                        event_handler: Some(
-                            text_input::EventHandler::new()
-                                .on_text_updated(move |text| set_text.set(text.clone())),
-                        ),
-                    })(wh),
+                    // table::hooks::padding(PADDING, |wh| text_input::TextInput {
+                    //     rect: Rect::from_xy_wh(Xy::zero(), wh),
+                    //     text: text.to_string(),
+                    //     text_align: TextAlign::Left,
+                    //     text_baseline: TextBaseline::Top,
+                    //     font_type: FontType {
+                    //         serif: false,
+                    //         size: 14.int_px(),
+                    //         language: Language::Ko,
+                    //         font_weight: FontWeight::REGULAR,
+                    //     },
+                    //     style: Style {
+                    //         // TODO: Declare Ltrb with vector_types! macro
+                    //         // padding: Ltrb::single(PADDING),
+                    //         padding: Ltrb {
+                    //             left: PADDING,
+                    //             top: PADDING,
+                    //             right: PADDING,
+                    //             bottom: PADDING,
+                    //         },
+                    //         rect: RectStyle {
+                    //             stroke: Some(RectStroke {
+                    //                 color: color::STROKE_NORMAL,
+                    //                 width: 1.px(),
+                    //                 border_position: BorderPosition::Inside,
+                    //             }),
+                    //             fill: None,
+                    //             round: None,
+                    //         },
+                    //         text: TextStyle {
+                    //             color: color::STROKE_NORMAL,
+                    //             ..Default::default()
+                    //         },
+                    //     },
+                    //     event_handler: Some(
+                    //         text_input::EventHandler::new()
+                    //             .on_text_updated(move |text| set_text.set(text.clone())),
+                    //     ),
+                    // })(wh),
                 )
             }),
         ])(wh);

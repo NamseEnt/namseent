@@ -4,12 +4,14 @@ mod mover;
 mod resizer;
 mod wysiwyg_tool;
 
+use std::ops::Deref;
+
 use self::grid_guide::render_grid_guide;
 use super::character_editor;
 use crate::{
     components::{
         cg_render,
-        context_menu::{self, use_context_menu},
+        context_menu::use_context_menu,
         sequence_player::{calculate_graphic_rect_on_screen, calculate_graphic_wh_on_screen},
     },
     pages::sequence_edit_page::atom::SEQUENCE_ATOM,
@@ -22,16 +24,16 @@ use resizer::Resizer;
 use rpc::data::{CgFile, CutUpdateAction, ScreenGraphic};
 
 #[namui::component]
-pub struct WysiwygEditor {
+pub struct WysiwygEditor<'a> {
     pub wh: Wh<Px>,
     pub cut_id: Uuid,
     pub screen_graphics: Vec<(Uuid, ScreenGraphic)>,
     pub project_id: Uuid,
     pub cg_files: Vec<CgFile>,
-    pub on_click_character_edit: &'a dyn Fn(character_editor::EditTarget),
+    pub on_click_character_edit: Box<dyn 'a + Fn(character_editor::EditTarget)>,
 }
 
-impl Component for WysiwygEditor {
+impl Component for WysiwygEditor<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             wh,
@@ -45,7 +47,7 @@ impl Component for WysiwygEditor {
 
         let (dragging, set_dragging) = ctx.state(|| None);
         let (editing_image_index, set_editing_image_index) = ctx.state(|| None);
-        let (context_menu, set_context_menu) = use_context_menu();
+        let (context_menu, set_context_menu) = ctx.state(|| None);
 
         let background =
             simple_rect(wh, Color::WHITE, 1.px(), Color::TRANSPARENT).attach_event(|builder| {
@@ -67,7 +69,7 @@ impl Component for WysiwygEditor {
                     })
                     .on_mouse(move |event: MouseEvent| {
                         if event.event_type == MouseEventType::Up {
-                            if let Some(Dragging::Mover { mut context }) = dragging {
+                            if let Some(Dragging::Mover { mut context }) = dragging.deref() {
                                 if let Some(graphic_index) = editing_image_index {
                                     context.end_global_xy = event.global_xy;
 
@@ -94,10 +96,10 @@ impl Component for WysiwygEditor {
                     });
             });
 
-        let graphic_clip_on_event = closure(move |e: graphic_clip::Event| {
+        let graphic_clip_on_event = Box::new(move |e: graphic_clip::Event| {
             match e {
                 graphic_clip::Event::WysiwygTool(e) => match e {
-                    wysiwyg_tool::Event::Mover(e) => match e {
+                    wysiwyg_tool::Event::Mover { event } => match event {
                         mover::Event::MoveStart {
                             start_global_xy,
                             end_global_xy,
@@ -112,7 +114,7 @@ impl Component for WysiwygEditor {
                             }));
                         }
                     },
-                    wysiwyg_tool::Event::Resizer(e) => match e {
+                    wysiwyg_tool::Event::Resizer { event } => match event {
                         resizer::Event::OnResize {
                             circumscribed,
                             graphic_index,
@@ -143,37 +145,6 @@ impl Component for WysiwygEditor {
                     graphic,
                 } => {
                     let image_width_per_height_ratio = graphic_wh.width / graphic_wh.height;
-
-                    let fit_items = [
-                        context_menu::Item::new_button(
-                            "Fit - contain",
-                            closure(move || {
-                                SEQUENCE_ATOM.mutate(|sequence| {
-                                    sequence.update_cut(
-                                        cut_id,
-                                        CutUpdateAction::GraphicFitContain {
-                                            graphic_index,
-                                            image_width_per_height_ratio,
-                                        },
-                                    )
-                                });
-                            }),
-                        ),
-                        context_menu::Item::new_button(
-                            "Fit - cover",
-                            closure(move || {
-                                SEQUENCE_ATOM.mutate(|sequence| {
-                                    sequence.update_cut(
-                                        cut_id,
-                                        CutUpdateAction::GraphicFitCover {
-                                            graphic_index,
-                                            image_width_per_height_ratio,
-                                        },
-                                    )
-                                });
-                            }),
-                        ),
-                    ];
 
                     // TODO: This is not re-implemented yet. Should think about strategy about editing multiple cuts.
                     // let spread_as_background = if graphic_index != 0 {
@@ -223,60 +194,88 @@ impl Component for WysiwygEditor {
                     //     })]
                     //     .to_vec()
                     // };
-                    let edit_character_button_group = match graphic {
-                        ScreenGraphic::Cg(cg) => {
-                            let cg_id = cg.id;
-                            let on_click_character_edit = on_click_character_edit.clone();
-                            Some(context_menu::Item::new_button(
-                                "Edit character",
-                                closure(move || {
-                                    on_click_character_edit.call(
-                                        character_editor::EditTarget::ExistingCharacterPart {
-                                            cut_id,
-                                            cg_id,
-                                            graphic_index,
-                                        },
-                                    );
-                                }),
-                            ))
-                        }
-                        ScreenGraphic::Image(_) => None,
-                    }
-                    .into_iter();
 
-                    set_context_menu.set(Some((
-                        global_xy,
-                        fit_items
-                            .into_iter()
-                            // .chain(spread_as_background)
-                            .chain(edit_character_button_group)
-                            .collect(),
-                    )));
+                    set_context_menu.set(Some({
+                        let context_menu_builder =
+                            use_context_menu(global_xy, Box::new(|| set_context_menu.set(None)));
+
+                        context_menu_builder.add_button(
+                            "Fit - contain",
+                            Box::new(|| {
+                                SEQUENCE_ATOM.mutate(|sequence| {
+                                    sequence.update_cut(
+                                        cut_id,
+                                        CutUpdateAction::GraphicFitContain {
+                                            graphic_index,
+                                            image_width_per_height_ratio,
+                                        },
+                                    )
+                                });
+                            }),
+                        );
+
+                        context_menu_builder.add_button(
+                            "Fit - cover",
+                            Box::new(|| {
+                                SEQUENCE_ATOM.mutate(|sequence| {
+                                    sequence.update_cut(
+                                        cut_id,
+                                        CutUpdateAction::GraphicFitCover {
+                                            graphic_index,
+                                            image_width_per_height_ratio,
+                                        },
+                                    )
+                                });
+                            }),
+                        );
+
+                        match graphic {
+                            ScreenGraphic::Cg(cg) => {
+                                let cg_id = cg.id;
+                                let on_click_character_edit = on_click_character_edit.clone();
+                                context_menu_builder.add_button(
+                                    "Edit character",
+                                    Box::new(|| {
+                                        on_click_character_edit(
+                                            character_editor::EditTarget::ExistingCharacterPart {
+                                                cut_id,
+                                                cg_id,
+                                                graphic_index,
+                                            },
+                                        );
+                                    }),
+                                );
+                            }
+                            ScreenGraphic::Image(_) => {}
+                        }
+
+                        context_menu_builder.build()
+                    }));
                 }
             }
         });
 
         ctx.add(background);
-        ctx.add(hooks::clip(
-            PathBuilder::new().add_rect(Rect::from_xy_wh(Xy::zero(), wh)),
-            ClipOp::Intersect,
-            Zip::from_iter(screen_graphics.into_iter().map(
-                move |&(graphic_index, ref screen_graphic)| graphic_clip::GraphicClip {
-                    cut_id,
-                    graphic_index,
-                    graphic: screen_graphic.clone(),
-                    is_editing_graphic: editing_image_index == &Some(graphic_index),
-                    project_id,
-                    wh,
-                    dragging: dragging.clone(),
-                    cg_files: cg_files.clone(),
-                    on_event: graphic_clip_on_event.clone(),
-                },
-            )),
-        ));
+        // ctx.add(hooks::clip(
+        //     PathBuilder::new().add_rect(Rect::from_xy_wh(Xy::zero(), wh)),
+        //     ClipOp::Intersect,
+        //     Zip::from_iter(screen_graphics.into_iter().map(
+        //         move |&(graphic_index, ref screen_graphic)| graphic_clip::GraphicClip {
+        //             cut_id,
+        //             graphic_index,
+        //             graphic: screen_graphic.clone(),
+        //             is_editing_graphic: editing_image_index == &Some(graphic_index),
+        //             project_id,
+        //             wh,
+        //             dragging: dragging.clone(),
+        //             cg_files: cg_files.clone(),
+        //             on_event: graphic_clip_on_event.clone(),
+        //         },
+        //     )),
+        // ));
 
         ctx.add(render_grid_guide(wh));
-        if let Some(context_menu) = context_menu.clone() {
+        if let Some(context_menu) = context_menu.deref() {
             ctx.add(context_menu);
         }
         ctx.done()

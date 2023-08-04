@@ -14,7 +14,7 @@ const CHARACTER_THUMBNAIL_WH: Wh<Px> = Wh {
 pub struct CgPicker<'a> {
     pub wh: Wh<Px>,
     pub project_id: Uuid,
-    pub on_event: &'a dyn Fn(Event),
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
@@ -59,7 +59,7 @@ impl Component for CgPicker<'_> {
 fn render_thumbnail<'a>(
     cg_file: &'a CgFile,
     project_id: Uuid,
-    on_event: &'a dyn Fn(Event),
+    on_event: Box<dyn 'a + Fn(Event)>,
 ) -> TableCell<'a> {
     table::hooks::fixed(CHARACTER_THUMBNAIL_WH.width, move |wh| {
         table::hooks::padding(INNER_PADDING, |wh| {
