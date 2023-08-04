@@ -6,4 +6,4 @@ pub mod cut_list_view;
 // pub mod image_upload;
 pub mod memo_editor;
 pub mod memo_list_view;
-// pub mod wysiwyg_editor;
+pub mod wysiwyg_editor;

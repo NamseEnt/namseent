@@ -6,7 +6,7 @@ pub struct Mover {
     pub image_dest_rect: Rect<Px>,
     pub dragging: Option<Dragging>,
     pub container_wh: Wh<Px>,
-    pub on_event: &'a dyn Fn(Event),
+    pub on_event: Box<dyn Fn(Event)>,
 }
 
 pub enum Event {
@@ -51,7 +51,7 @@ impl Component for Mover {
                 builder.on_mouse_down_in(move |event: MouseEvent| {
                     if event.button == Some(MouseButton::Left) {
                         event.stop_propagation();
-                        on_event.call(Event::MoveStart {
+                        on_event(Event::MoveStart {
                             start_global_xy: event.global_xy,
                             end_global_xy: event.global_xy,
                             container_wh,

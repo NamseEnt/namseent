@@ -22,7 +22,6 @@ pub struct CutEditor<'a> {
     pub is_focused: bool,
     pub project_id: Uuid,
     pub cg_files: &'a Vec<CgFile>,
-    // pub on_click_character_edit: &'a dyn Fn(character_editor::EditTarget),
     pub on_event: Box<dyn Fn(Event2) + Send + Sync>,
 }
 
@@ -46,7 +45,7 @@ impl Component for CutEditor<'_> {
             cuts,
             is_focused,
             project_id,
-            ref cg_files,
+            cg_files,
             ref on_event,
         } = self;
         let (context_menu, set_context_menu) =
@@ -55,7 +54,6 @@ impl Component for CutEditor<'_> {
         let (selected_target, set_selected_target) = ctx.state::<Option<ClickTarget>>(|| None);
         // let (input_req_queue, set_input_req_queue) = ctx.state(|| VecDeque::new());
         // let (text_input, set_text_input) = ctx.state(|| TextInput::new());
-        // image_wysiwyg_editor: wysiwyg_editor::WysiwygEditor,
         // context_menu: Option<ContextMenu>,
         let character_name_candidates = ctx.memo(|| get_character_name_candidates(cuts, cut));
 
@@ -310,14 +308,16 @@ impl Component for CutEditor<'_> {
                     1.px(),
                     color::BACKGROUND,
                 ),
-                // wysiwyg_editor::WysiwygEditor {
-                //     wh: content_rect.wh(),
-                //     screen_graphics: cut.screen_graphics.clone(),
-                //     project_id,
-                //     cut_id,
-                //     cg_files: cg_files.clone(),
-                //     on_click_character_edit: on_click_character_edit.clone(),
-                // },
+                wysiwyg_editor::WysiwygEditor {
+                    wh: content_rect.wh(),
+                    screen_graphics: cut.screen_graphics.clone(),
+                    project_id,
+                    cut_id,
+                    cg_files: cg_files.clone(),
+                    on_click_character_edit: Box::new(|edit_target| {
+                        on_event(Event2::ClickCharacterEdit { edit_target })
+                    }),
+                },
                 sequence_player::render_text_box(content_rect.wh()),
                 // sequence_player::render_over_text_hooks(
                 //     content_rect.wh(),

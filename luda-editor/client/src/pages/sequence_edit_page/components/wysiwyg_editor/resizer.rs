@@ -8,7 +8,7 @@ pub struct Resizer {
     pub container_size: Wh<Px>,
     pub image_size: Wh<Px>,
     pub graphic_index: Uuid,
-    pub on_event: &'a dyn Fn(Event),
+    pub on_event: Box<dyn Fn(Event)>,
 }
 
 pub enum Event {
@@ -70,7 +70,7 @@ impl Component for Resizer {
                             let on_mouse_move = {
                                 let on_event = on_event.clone();
                                 move |event: MouseEvent| {
-                                    on_event.call(Event::OnUpdateDraggingContext {
+                                    on_event(Event::OnUpdateDraggingContext {
                                         context: Some(ResizerDraggingContext {
                                             handle,
                                             start_global_xy: context.start_global_xy,
@@ -87,8 +87,8 @@ impl Component for Resizer {
                                 let on_event = on_event.clone();
                                 move |event: MouseEvent| {
                                     let delta_xy = event.global_xy - context.start_global_xy;
-                                    on_event.call(Event::OnUpdateDraggingContext { context: None });
-                                    on_event.call(Event::OnResize {
+                                    on_event(Event::OnUpdateDraggingContext { context: None });
+                                    on_event(Event::OnResize {
                                         circumscribed: resize_by_center(
                                             handle,
                                             rect.center(),
@@ -108,7 +108,7 @@ impl Component for Resizer {
                             builder.on_mouse_down_in(move |mouse_event: MouseEvent| {
                                 if mouse_event.button == Some(MouseButton::Left) {
                                     mouse_event.stop_propagation();
-                                    on_event.call(Event::OnUpdateDraggingContext {
+                                    on_event(Event::OnUpdateDraggingContext {
                                         context: Some(ResizerDraggingContext {
                                             handle,
                                             start_global_xy: mouse_event.global_xy,

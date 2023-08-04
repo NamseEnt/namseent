@@ -10,7 +10,7 @@ pub struct GraphicClip {
     pub wh: Wh<Px>,
     pub dragging: Option<Dragging>,
     pub cg_files: Vec<CgFile>,
-    pub on_event: &'a dyn Fn(Event),
+    pub on_event: Box<dyn Fn(Event)>,
 }
 
 pub enum Event {
@@ -47,7 +47,8 @@ impl Component for GraphicClip {
             ScreenGraphic::Cg(cg) => get_project_cg_thumbnail_image_url(project_id, cg.id).unwrap(),
         };
         let Some(namui_image) = namui::image::try_load_url(&url) else {
-            return use_render_nothing();
+            unimplemented!("use_render_nothing");
+            // return use_render_nothing();
         };
         let graphic_size = namui_image.size();
         let circumscribed = graphic.circumscribed();
@@ -110,10 +111,10 @@ impl Component for GraphicClip {
                 move |event: MouseEvent| {
                     let graphic = graphic.clone();
                     event.stop_propagation();
-                    on_event.call(Event::SelectImage { graphic_index });
+                    on_event(Event::SelectImage { graphic_index });
 
                     if event.button == Some(MouseButton::Right) {
-                        on_event.call(Event::GraphicRightClick {
+                        on_event(Event::GraphicRightClick {
                             global_xy: event.global_xy,
                             cut_id,
                             graphic_index,
@@ -182,7 +183,7 @@ impl Component for GraphicClip {
                 graphic: graphic.clone(),
                 dragging: dragging.clone(),
                 wh,
-                on_event: on_event.map(move |e| Some(Event::WysiwygTool(e))),
+                on_event: Box::new(|event| on_event(Event::WysiwygTool(event))),
             });
         }
         ctx.done()
