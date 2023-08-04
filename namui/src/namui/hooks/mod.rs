@@ -36,3 +36,77 @@ fn update_or_push<T>(vector: &mut Vec<T>, index: usize, value: T) {
 pub fn boxed<T>(value: T) -> Box<T> {
     Box::new(value)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn single_param() {
+        let name_of_a = {
+            struct A<'a> {
+                _a: callback!(i32),
+            }
+            std::any::type_name::<A<'static>>()
+        };
+
+        struct A<'a> {
+            _a: Box<dyn 'a + Send + Sync + Fn(i32)>,
+        }
+
+        assert_eq!(name_of_a, std::any::type_name::<A<'static>>());
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn single_param_with_return() {
+        let name_of_a = {
+            struct A<'a> {
+                _a: callback!(i32 -> i32),
+            }
+            std::any::type_name::<A<'static>>()
+        };
+
+        struct A<'a> {
+            _a: Box<dyn 'a + Send + Sync + Fn(i32) -> i32>,
+        }
+
+        assert_eq!(name_of_a, std::any::type_name::<A<'static>>());
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn multiple_params() {
+        let name_of_a = {
+            struct A<'a> {
+                _a: callback!(i32, i32),
+            }
+            std::any::type_name::<A<'static>>()
+        };
+
+        struct A<'a> {
+            _a: Box<dyn 'a + Send + Sync + Fn((i32, i32))>,
+        }
+
+        assert_eq!(name_of_a, std::any::type_name::<A<'static>>());
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn multiple_params_with_return() {
+        let name_of_a = {
+            struct A<'a> {
+                _a: callback!(i32, i32 -> i32),
+            }
+            std::any::type_name::<A<'static>>()
+        };
+
+        struct A<'a> {
+            _a: Box<dyn 'a + Send + Sync + Fn((i32, i32)) -> i32>,
+        }
+
+        assert_eq!(name_of_a, std::any::type_name::<A<'static>>());
+    }
+}

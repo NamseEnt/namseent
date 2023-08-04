@@ -1,4 +1,4 @@
-use quote::{format_ident, quote, ToTokens};
+use quote::{quote, ToTokens};
 use syn::parse_macro_input;
 
 ///
@@ -31,10 +31,6 @@ use syn::parse_macro_input;
 ///             .finish()
 ///
 /// impl<'a, C: Abc> namui::StaticType for MyComponent<'a, C> {
-///     fn static_type_id(&self) -> StaticTypeId {
-///         // 'a become 'static
-///         StaticTypeId::Single(TypeId::of::<MyComponent<'static, C>>())
-///     }
 /// }
 /// ```
 #[proc_macro_attribute]
@@ -76,25 +72,6 @@ pub fn component(
 
     let where_clause = &struct_generics.where_clause;
 
-    // Abc<'a, 'b, 'c, D, E> -> Abc<'static, 'static, 'static, D, E>
-    let struct_type_with_static_lifetime = {
-        let static_struct_generics = if struct_generics.lt_token.is_none() {
-            None
-        } else {
-            let static_ed = struct_generics.params.iter().map(|param| match param {
-                syn::GenericParam::Lifetime(_) => quote! { 'static },
-                syn::GenericParam::Type(generic_type) => generic_type.ident.to_token_stream(),
-                syn::GenericParam::Const(generic_const) => generic_const.ident.to_token_stream(),
-            });
-
-            Some(quote! {<#(#static_ed),*>})
-        };
-
-        quote! {
-            #struct_name #static_struct_generics
-        }
-    };
-
     let struct_generics_next_to_for_struct = {
         if struct_generics.lt_token.is_none() {
             quote! {}
@@ -125,124 +102,72 @@ pub fn component(
         impl<#(#generic_next_to_impl_except_lifetime),*> namui::StaticType for #struct_name #struct_generics_next_to_for_struct
         #where_clause
         {
-            // fn static_type_id(&self) -> namui::StaticTypeId {
-            //     // 'a become 'static
-            //     namui::StaticTypeId::Single(std::any::TypeId::of::<#struct_type_with_static_lifetime>())
-            // }
         }
     };
 
     proc_macro::TokenStream::from(expanded)
 }
 
-#[proc_macro_attribute]
-pub fn component_debug(
-    _attr: proc_macro::TokenStream,
-    item: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    let item = parse_macro_input!(item as syn::ItemStruct);
+///
+/// callback!(A)
+/// -> Box<dyn 'a + Send + Sync + Fn(A)>
+///
+/// callback!(A -> B)
+/// -> Box<dyn 'a + Send + Sync + Fn(A) -> B>
+///
+/// callback!(A, B)
+/// -> Box<dyn 'a + Send + Sync + Fn((A, B))>
+///
+/// callback!(A, B -> C)
+/// -> Box<dyn 'a + Send + Sync + Fn((A, B)) -> C>
+///
+#[proc_macro]
+pub fn callback(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    struct Input {
+        params: Vec<(syn::Type, Option<syn::token::Comma>)>,
+        arrow_token: Option<syn::token::RArrow>,
+        return_type: Option<syn::Type>,
+    }
 
-    let struct_name = &item.ident;
-    let struct_generics = &item.generics;
+    impl syn::parse::Parse for Input {
+        fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+            let mut params = Vec::new();
 
-    let debug_struct_fields = item
-        .fields
+            while !input.is_empty() && !input.peek(syn::token::RArrow) {
+                let ty = input.parse()?;
+                let comma = input.parse()?;
+                params.push((ty, comma));
+            }
+
+            let arrow_token: Option<syn::Token![->]> = input.parse()?;
+            let return_type = if arrow_token.is_some() {
+                Some(input.parse()?)
+            } else {
+                None
+            };
+
+            Ok(Self {
+                params,
+                arrow_token,
+                return_type,
+            })
+        }
+    }
+
+    let Input {
+        params,
+        arrow_token,
+        return_type,
+    } = parse_macro_input!(item as Input);
+
+    let param_list = params
         .iter()
-        .filter(|field| {
-            let ty = &field.ty;
-            let ty = ty.to_token_stream().to_string();
-            !(ty.contains(" Fn(") || ty.contains(" FnMut(") || ty.contains(" FnOnce("))
-        })
-        // .map(|field| {
-        //     let ident = &field.ident;
-        //     quote! {
-        //         .field(stringify!(#ident), &self.#ident)
-        //     }
-        // })
+        .map(|(ty, comma)| quote! { #ty #comma })
         .collect::<Vec<_>>();
 
-    panic!(
-        "{}",
-        quote! {
-            #(#debug_struct_fields)*
-        }
-    );
+    let expanded = quote! {
+        Box<dyn 'a + Send + Sync + Fn(#(#param_list)*) #arrow_token #return_type>
+    };
 
-    proc_macro::TokenStream::from(quote! {
-        #item
-
-        // #(#debug_struct_fields)*
-    })
-
-    // let generic_next_to_impl_except_lifetime = struct_generics
-    //     .params
-    //     .iter()
-    //     .filter(|param| match param {
-    //         syn::GenericParam::Lifetime(_) => false,
-    //         _ => true,
-    //     })
-    //     .map(|param| {
-    //         quote! { #param }
-    //     })
-    //     .collect::<Vec<_>>();
-
-    // let where_clause = &struct_generics.where_clause;
-
-    // // Abc<'a, 'b, 'c, D, E> -> Abc<'static, 'static, 'static, D, E>
-    // let struct_type_with_static_lifetime = {
-    //     let static_struct_generics = if struct_generics.lt_token.is_none() {
-    //         None
-    //     } else {
-    //         let static_ed = struct_generics.params.iter().map(|param| match param {
-    //             syn::GenericParam::Lifetime(_) => quote! { 'static },
-    //             syn::GenericParam::Type(generic_type) => generic_type.ident.to_token_stream(),
-    //             syn::GenericParam::Const(generic_const) => generic_const.ident.to_token_stream(),
-    //         });
-
-    //         Some(quote! {<#(#static_ed),*>})
-    //     };
-
-    //     quote! {
-    //         #struct_name #static_struct_generics
-    //     }
-    // };
-
-    // let struct_generics_next_to_for_struct = {
-    //     if struct_generics.lt_token.is_none() {
-    //         quote! {}
-    //     } else {
-    //         let idents = struct_generics.params.iter().map(|param| match param {
-    //             syn::GenericParam::Lifetime(_) => quote! { '_ },
-    //             syn::GenericParam::Type(generic_type) => generic_type.ident.to_token_stream(),
-    //             syn::GenericParam::Const(generic_const) => generic_const.ident.to_token_stream(),
-    //         });
-
-    //         quote! {<#(#idents),*>}
-    //     }
-    // };
-
-    // let expanded = quote! {
-    //     #item
-
-    //     impl<#(#generic_next_to_impl_except_lifetime),*> std::fmt::Debug for #struct_name #struct_generics_next_to_for_struct
-    //     #where_clause
-    //     {
-    //         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    //             f.debug_struct(stringify!(#struct_name))
-    //                 #(#debug_struct_fields)*
-    //                 .finish()
-    //         }
-    //     }
-
-    //     impl<#(#generic_next_to_impl_except_lifetime),*> namui::StaticType for #struct_name #struct_generics_next_to_for_struct
-    //     #where_clause
-    //     {
-    //         // fn static_type_id(&self) -> namui::StaticTypeId {
-    //         //     // 'a become 'static
-    //         //     namui::StaticTypeId::Single(std::any::TypeId::of::<#struct_type_with_static_lifetime>())
-    //         // }
-    //     }
-    // };
-
-    // proc_macro::TokenStream::from(expanded)
+    proc_macro::TokenStream::from(expanded)
 }
