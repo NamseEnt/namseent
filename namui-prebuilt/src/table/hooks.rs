@@ -5,7 +5,7 @@ pub enum TableCell<'a> {
     Empty,
     Some {
         unit: Unit,
-        render: Box<dyn FnOnce(Direction, Wh<Px>) -> Arc<dyn Component> + 'a>,
+        render: Box<dyn FnOnce(Direction, Wh<Px>) -> Arc<dyn 'a + Component> + 'a>,
         need_clip: bool,
     },
 }
@@ -55,9 +55,9 @@ pub fn ratio_no_clip<'a, C: Component + 'static>(
     }
 }
 
-pub fn fixed<'a, C: Component + 'static>(
+pub fn fixed<'a, C: Component + 'a>(
     pixel: Px,
-    cell_render_closure: impl FnOnce(Wh<Px>) -> C + 'a,
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>) -> C,
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Fixed(pixel),
@@ -245,9 +245,9 @@ fn slice_internal<'a>(
                 },
             };
 
-            let component = render_fn(direction, xywh.wh());
-            items.push((xywh, component, need_clip));
-            advanced_pixel_size += pixel_size;
+            // let component = render_fn(direction, xywh.wh());
+            // items.push((xywh, component, need_clip));
+            // advanced_pixel_size += pixel_size;
         }
 
         Table { items }

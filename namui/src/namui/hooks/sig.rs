@@ -89,3 +89,10 @@ impl<T> std::ops::Deref for Sig<'_, T> {
         self.value
     }
 }
+
+impl<T> AsRef<T> for Sig<'_, T> {
+    fn as_ref(&self) -> &T {
+        self.use_it();
+        self.value
+    }
+}

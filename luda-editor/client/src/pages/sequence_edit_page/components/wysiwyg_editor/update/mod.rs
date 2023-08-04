@@ -100,7 +100,7 @@
 // =======
 //                             namui::event::send(Event::UpdateCutGraphics {
 //                                 cut_id,
-//                                 callback: Box::new(move |graphics| {
+//                                 callback: arc(move |graphics| {
 //                                     let graphic = &mut graphics[graphic_index];
 
 //                                     let radius = if image_width_per_height_ratio

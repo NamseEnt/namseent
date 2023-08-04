@@ -229,7 +229,8 @@ pub struct SequenceCell<'a> {
     wh: Wh<Px>,
     project_id: Uuid,
     sequence: SequenceNameAndId,
-    on_right_click: Box<dyn 'a + Fn(MouseEvent)>,
+    // on_right_click: callback!('a, MouseEvent),
+    on_right_click: Box<dyn Fn(MouseEvent) + 'a>,
 }
 
 impl Component for SequenceCell<'_> {

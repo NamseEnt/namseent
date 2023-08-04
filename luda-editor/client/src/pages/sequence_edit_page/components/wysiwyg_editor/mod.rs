@@ -30,7 +30,7 @@ pub struct WysiwygEditor<'a> {
     pub screen_graphics: Vec<(Uuid, ScreenGraphic)>,
     pub project_id: Uuid,
     pub cg_files: Vec<CgFile>,
-    pub on_click_character_edit: Box<dyn 'a + Fn(character_editor::EditTarget)>,
+    pub on_click_character_edit: callback!('a, character_editor::EditTarget),
 }
 
 impl Component for WysiwygEditor<'_> {
@@ -96,7 +96,7 @@ impl Component for WysiwygEditor<'_> {
                     });
             });
 
-        let graphic_clip_on_event = Box::new(move |e: graphic_clip::Event| {
+        let graphic_clip_on_event = arc(move |e: graphic_clip::Event| {
             match e {
                 graphic_clip::Event::WysiwygTool(e) => match e {
                     wysiwyg_tool::Event::Mover { event } => match event {
@@ -197,11 +197,11 @@ impl Component for WysiwygEditor<'_> {
 
                     set_context_menu.set(Some({
                         let context_menu_builder =
-                            use_context_menu(global_xy, Box::new(|| set_context_menu.set(None)));
+                            use_context_menu(global_xy, arc(|| set_context_menu.set(None)));
 
                         context_menu_builder.add_button(
                             "Fit - contain",
-                            Box::new(|| {
+                            arc(|| {
                                 SEQUENCE_ATOM.mutate(|sequence| {
                                     sequence.update_cut(
                                         cut_id,
@@ -216,7 +216,7 @@ impl Component for WysiwygEditor<'_> {
 
                         context_menu_builder.add_button(
                             "Fit - cover",
-                            Box::new(|| {
+                            arc(|| {
                                 SEQUENCE_ATOM.mutate(|sequence| {
                                     sequence.update_cut(
                                         cut_id,
@@ -235,7 +235,7 @@ impl Component for WysiwygEditor<'_> {
                                 let on_click_character_edit = on_click_character_edit.clone();
                                 context_menu_builder.add_button(
                                     "Edit character",
-                                    Box::new(|| {
+                                    arc(|| {
                                         on_click_character_edit(
                                             character_editor::EditTarget::ExistingCharacterPart {
                                                 cut_id,

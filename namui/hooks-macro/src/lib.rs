@@ -48,7 +48,10 @@ pub fn component(
         .iter()
         .filter(|field| {
             let ty = &field.ty.to_token_stream().to_string();
-            !(ty.contains(" Fn(") || ty.contains(" FnMut(") || ty.contains(" FnOnce("))
+            !(ty.contains("callback!")
+                || ty.contains(" Fn(")
+                || ty.contains(" FnMut(")
+                || ty.contains(" FnOnce("))
         })
         .map(|field| {
             let ident = &field.ident;
@@ -108,66 +111,67 @@ pub fn component(
     proc_macro::TokenStream::from(expanded)
 }
 
-///
-/// callback!(A)
-/// -> Box<dyn 'a + Send + Sync + Fn(A)>
-///
-/// callback!(A -> B)
-/// -> Box<dyn 'a + Send + Sync + Fn(A) -> B>
-///
-/// callback!(A, B)
-/// -> Box<dyn 'a + Send + Sync + Fn((A, B))>
-///
-/// callback!(A, B -> C)
-/// -> Box<dyn 'a + Send + Sync + Fn((A, B)) -> C>
-///
-#[proc_macro]
-pub fn callback(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    struct Input {
-        params: Vec<(syn::Type, Option<syn::token::Comma>)>,
-        arrow_token: Option<syn::token::RArrow>,
-        return_type: Option<syn::Type>,
-    }
+// ///
+// /// callback!(A)
+// /// -> std::sync::Arc<dyn 'a + Send + Sync + Fn(A)>
+// ///
+// /// callback!(A -> B)
+// /// -> std::sync::Arc<dyn 'a + Send + Sync + Fn(A) -> B>
+// ///
+// /// callback!(A, B)
+// /// -> std::sync::Arc<dyn 'a + Send + Sync + Fn((A, B))>
+// ///
+// /// callback!(A, B -> C)
+// /// -> std::sync::Arc<dyn 'a + Send + Sync + Fn((A, B)) -> C>
+// ///
+// #[proc_macro]
+// pub fn callback(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+//     struct Input {
+//         params: Vec<(syn::Type, Option<syn::token::Comma>)>,
+//         arrow_token: Option<syn::token::RArrow>,
+//         return_type: Option<syn::Type>,
+//     }
 
-    impl syn::parse::Parse for Input {
-        fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-            let mut params = Vec::new();
+//     impl syn::parse::Parse for Input {
+//         fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+//             let mut params = Vec::new();
 
-            while !input.is_empty() && !input.peek(syn::token::RArrow) {
-                let ty = input.parse()?;
-                let comma = input.parse()?;
-                params.push((ty, comma));
-            }
+//             while !input.is_empty() && !input.peek(syn::token::RArrow) {
+//                 let ty = input.parse()?;
+//                 let comma = input.parse()?;
+//                 params.push((ty, comma));
+//             }
 
-            let arrow_token: Option<syn::Token![->]> = input.parse()?;
-            let return_type = if arrow_token.is_some() {
-                Some(input.parse()?)
-            } else {
-                None
-            };
+//             let arrow_token: Option<syn::Token![->]> = input.parse()?;
+//             let return_type = if arrow_token.is_some() {
+//                 Some(input.parse()?)
+//             } else {
+//                 None
+//             };
 
-            Ok(Self {
-                params,
-                arrow_token,
-                return_type,
-            })
-        }
-    }
+//             Ok(Self {
+//                 params,
+//                 arrow_token,
+//                 return_type,
+//             })
+//         }
+//     }
 
-    let Input {
-        params,
-        arrow_token,
-        return_type,
-    } = parse_macro_input!(item as Input);
+//     let Input {
+//         params,
+//         arrow_token,
+//         return_type,
+//     } = parse_macro_input!(item as Input);
 
-    let param_list = params
-        .iter()
-        .map(|(ty, comma)| quote! { #ty #comma })
-        .collect::<Vec<_>>();
+//     let param_list = params
+//         .iter()
+//         .map(|(ty, comma)| quote! { #ty #comma })
+//         .collect::<Vec<_>>();
 
-    let expanded = quote! {
-        Box<dyn 'a + Send + Sync + Fn(#(#param_list)*) #arrow_token #return_type>
-    };
+//     let expanded = quote! {
+//         // std::sync::Arc<dyn 'a + Send + Sync + Fn(#(#param_list)*) #arrow_token #return_type>
+//         &'a (dyn 'a + Fn(#(#param_list)*) #arrow_token #return_type)
+//     };
 
-    proc_macro::TokenStream::from(expanded)
-}
+//     proc_macro::TokenStream::from(expanded)
+// }

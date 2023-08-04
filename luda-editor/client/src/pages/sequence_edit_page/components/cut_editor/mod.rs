@@ -1,4 +1,4 @@
-mod background_with_event;
+// mod background_with_event;
 
 use super::*;
 use crate::{
@@ -8,7 +8,7 @@ use crate::{
         sequence_player,
     },
 };
-use background_with_event::*;
+// use background_with_event::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::{CgFile, Cut, ScreenCg};
@@ -22,7 +22,7 @@ pub struct CutEditor<'a> {
     pub is_focused: bool,
     pub project_id: Uuid,
     pub cg_files: &'a Vec<CgFile>,
-    pub on_event: Box<dyn 'a + Fn(Event2)>,
+    pub on_event: callback!('a, Event2),
 }
 
 pub enum Event2 {
@@ -48,9 +48,8 @@ impl Component for CutEditor<'_> {
             cg_files,
             ref on_event,
         } = self;
-        let (context_menu, set_context_menu) =
-            ctx.state::<Option<context_menu::ContextMenu<'_>>>(|| None);
-        let on_event = on_event.clone();
+        // let (context_menu, set_context_menu) =
+        //     ctx.state::<Option<context_menu::ContextMenu<'_>>>(|| None);
         let (selected_target, set_selected_target) = ctx.state::<Option<ClickTarget>>(|| None);
         // let (input_req_queue, set_input_req_queue) = ctx.state(|| VecDeque::new());
         // let (text_input, set_text_input) = ctx.state(|| TextInput::new());
@@ -62,7 +61,7 @@ impl Component for CutEditor<'_> {
         let prev_cut_id = prev_cut_id(&cuts, cut_id);
         let next_cut_id = next_cut_id(&cuts, cut_id);
 
-        let focus = Box::new(move |target: ClickTarget| {
+        let focus = &move |target: ClickTarget| {
             set_selected_target.set(Some(target));
             match target {
                 ClickTarget::CharacterName => {
@@ -73,16 +72,16 @@ impl Component for CutEditor<'_> {
                     // text_input.focus();
                 }
             }
-        });
+        };
 
-        let blur = Box::new(|| {
+        let blur = arc(|| {
             namui::log!("blur");
             // set_input_req_queue.mutate(|x| x.push_back(auto_complete_text_input::Request::Blur));
             // text_input.blur();
             set_selected_target.set(None);
         });
 
-        let move_cut_request = Box::new(move |up_down: UpDown| {
+        let move_cut_request = arc(move |up_down: UpDown| {
             if !is_focused {
                 return;
             }
@@ -111,37 +110,34 @@ impl Component for CutEditor<'_> {
             }
         });
 
-        let on_internal_event = Box::new(|event| match event {
+        let on_internal_event = |event| match event {
             InternalEvent::EscapeKeyDown => {
                 blur();
             }
             InternalEvent::MouseRightButtonDown { global_xy, cut_id } => {
-                set_context_menu.set(Some(
-                    use_context_menu(global_xy, Box::new(|| set_context_menu.set(None)))
-                        .add_button("Add Cg", Box::new(|| {}))
-                        .add_button(
-                            "Add Memo",
-                            Box::new(|| on_event(Event2::AddMemo { cut_id })),
-                        )
-                        .build(),
-                ));
+                // set_context_menu.set(Some(
+                //     use_context_menu(global_xy, arc(|| set_context_menu.set(None)))
+                //         .add_button("Add Cg", arc(|| {}))
+                //         .add_button("Add Memo", arc(|| on_event(Event2::AddMemo { cut_id })))
+                //         .build(),
+                // ));
             }
-        });
+        };
 
-        ctx.add(BackgroundWithEvent {
-            cut: cut.clone(),
-            wh,
-            is_selecting_target: selected_target.is_some(),
-            prev_cut_id,
-            next_cut_id,
-            on_event: Box::new(|event| match event {
-                background_with_event::Event::MoveCutRequest { up_down } => {
-                    move_cut_request(up_down)
-                }
-                _ => {}
-            }),
-            on_internal_event,
-        });
+        // ctx.add(BackgroundWithEvent {
+        //     cut,
+        //     wh,
+        //     is_selecting_target: selected_target.is_some(),
+        //     prev_cut_id,
+        //     next_cut_id,
+        //     on_event: &|event| match event {
+        //         background_with_event::Event::MoveCutRequest { up_down } => {
+        //             move_cut_request(up_down)
+        //         }
+        //         _ => {}
+        //     },
+        //     on_internal_event: &on_internal_event,
+        // });
 
         // let character_name_side = |wh| {
         //     let content: Box<dyn Component> = {
@@ -286,7 +282,6 @@ impl Component for CutEditor<'_> {
 
             (
                 transparent_rect(wh).attach_event(|builder| {
-                    let focus = focus.clone();
                     builder.on_mouse_down_in(move |event: MouseEvent| {
                         if event.button == Some(MouseButton::Left) {
                             focus(ClickTarget::CutText)
@@ -307,16 +302,16 @@ impl Component for CutEditor<'_> {
                     1.px(),
                     color::BACKGROUND,
                 ),
-                wysiwyg_editor::WysiwygEditor {
-                    wh: content_rect.wh(),
-                    screen_graphics: cut.screen_graphics.clone(),
-                    project_id,
-                    cut_id,
-                    cg_files: cg_files.clone(),
-                    on_click_character_edit: Box::new(|edit_target| {
-                        on_event(Event2::ClickCharacterEdit { edit_target })
-                    }),
-                },
+                // wysiwyg_editor::WysiwygEditor {
+                //     wh: content_rect.wh(),
+                //     screen_graphics: cut.screen_graphics.clone(),
+                //     project_id,
+                //     cut_id,
+                //     cg_files: cg_files.clone(),
+                //     on_click_character_edit: arc(|edit_target| {
+                //         on_event(Event2::ClickCharacterEdit { edit_target })
+                //     }),
+                // },
                 sequence_player::render_text_box(content_rect.wh()),
                 // sequence_player::render_over_text_hooks(
                 //     content_rect.wh(),
@@ -326,7 +321,7 @@ impl Component for CutEditor<'_> {
             ),
         ));
 
-        context_menu.map(|context_menu| ctx.add(context_menu));
+        // context_menu.map(|context_menu| ctx.add(context_menu));
 
         ctx.done()
     }

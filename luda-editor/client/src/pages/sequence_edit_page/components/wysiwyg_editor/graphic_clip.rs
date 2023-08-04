@@ -10,7 +10,7 @@ pub struct GraphicClip<'a> {
     pub wh: Wh<Px>,
     pub dragging: Option<Dragging>,
     pub cg_files: Vec<CgFile>,
-    pub on_event: Box<dyn 'a + Fn(Event)>,
+    pub on_event: callback!('a, Event),
 }
 
 pub enum Event {
@@ -183,7 +183,7 @@ impl Component for GraphicClip<'_> {
                 graphic: graphic.clone(),
                 dragging: dragging.clone(),
                 wh,
-                on_event: Box::new(|event| on_event(Event::WysiwygTool(event))),
+                on_event: arc(|event| on_event(Event::WysiwygTool(event))),
             });
         }
         ctx.done()

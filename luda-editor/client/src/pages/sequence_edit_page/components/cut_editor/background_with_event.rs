@@ -5,13 +5,13 @@ use rpc::data::ScreenCg;
 
 #[namui::component]
 pub struct BackgroundWithEvent<'a> {
-    pub cut: Cut,
+    pub cut: &'a Cut,
     pub wh: Wh<Px>,
     pub is_selecting_target: bool,
     pub prev_cut_id: Option<Uuid>,
     pub next_cut_id: Option<Uuid>,
-    pub on_event: Box<dyn 'a + Fn(Event)>,
-    pub on_internal_event: Box<dyn 'a + Fn(InternalEvent)>,
+    pub on_event: callback!('a, Event),
+    pub on_internal_event: callback!('a, InternalEvent),
 }
 
 pub enum Event {
@@ -36,16 +36,15 @@ pub enum Event {
 impl Component for BackgroundWithEvent<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
-            ref cut,
+            cut,
             wh,
             is_selecting_target,
             prev_cut_id,
             next_cut_id,
-            ref on_event,
-            ref on_internal_event,
+            on_event,
+            on_internal_event,
         } = self;
         let cut_id = cut.id;
-        let on_event = on_event.clone();
 
         ctx.add(
             simple_rect(wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND).attach_event(

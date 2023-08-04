@@ -1,5 +1,5 @@
 use namui::prelude::*;
-use namui_prebuilt::*;
+
 
 #[namui::component]
 pub struct RenameModal<'a> {

@@ -1,7 +1,5 @@
 use super::*;
 use crate::*;
-use namui::prelude::*;
-use namui_prebuilt::*;
 
 #[namui::component]
 pub struct CutCell<'a> {
@@ -11,7 +9,7 @@ pub struct CutCell<'a> {
     pub memo_count: usize,
     pub is_selected: bool,
     pub is_focused: bool,
-    pub on_click: Box<dyn 'a + Fn(Uuid)>,
+    pub on_click: callback!('a, Uuid),
 }
 
 impl Component for CutCell<'_> {
@@ -23,7 +21,7 @@ impl Component for CutCell<'_> {
             memo_count,
             is_selected,
             is_focused,
-            on_click,
+            ref on_click,
         } = self;
 
         ctx.done()

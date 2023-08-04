@@ -10,7 +10,7 @@ pub struct MemoListView<'a> {
     pub memos: Vec<Memo>,
     pub user_id: Uuid,
     // pub on_done_clicked: &'a dyn Fn(CutIdMemoId),
-    pub on_event: Box<dyn 'a + Fn(Event)>,
+    pub on_event: callback!('a, Event),
 }
 
 pub enum Event {
@@ -53,7 +53,7 @@ fn render_memo<'a>(
     width: Px,
     memo: &Memo,
     user_id: Uuid,
-    on_event: Box<dyn 'a + Fn(Event)>,
+    on_event: callback!('a, Event),
 ) -> RenderingTree {
     const MARGIN: Px = px(8.0);
     const PADDING: Px = px(8.0);

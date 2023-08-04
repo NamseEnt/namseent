@@ -1,10 +1,7 @@
 use namui::prelude::*;
 use namui_prebuilt::*;
 
-pub fn use_context_menu<'a>(
-    global_xy: Xy<Px>,
-    close: Box<dyn 'a + Fn()>,
-) -> ContextMenuBuilder<'a> {
+pub fn use_context_menu<'a>(global_xy: Xy<Px>, close: impl Fn() + 'a) -> ContextMenuBuilder<'a> {
     ContextMenuBuilder {
         global_xy,
         items: Default::default(),
@@ -15,14 +12,15 @@ pub fn use_context_menu<'a>(
 pub struct ContextMenuBuilder<'a> {
     global_xy: Xy<Px>,
     items: Vec<Item<'a>>,
-    close: Box<dyn 'a + Fn()>,
+    // close: callback!('a),
+    close: Box<dyn Fn() + 'a>,
 }
 
 impl<'a> ContextMenuBuilder<'a> {
-    pub fn add_button(mut self, text: impl AsRef<str>, on_click: Box<dyn 'a + Fn()>) -> Self {
+    pub fn add_button(mut self, text: impl AsRef<str>, on_click: impl Fn() + 'a) -> Self {
         self.items.push(Item::Button {
             text: text.as_ref().to_string(),
-            on_click,
+            on_click: Box::new(on_click),
         });
         self
     }
@@ -38,7 +36,8 @@ impl<'a> ContextMenuBuilder<'a> {
 enum Item<'a> {
     Button {
         text: String,
-        on_click: Box<dyn 'a + Fn()>,
+        // on_click: callback!('a),
+        on_click: Box<dyn Fn() + 'a>,
     },
 
     #[allow(dead_code)]
@@ -58,7 +57,8 @@ impl std::fmt::Debug for Item<'_> {
 pub struct ContextMenu<'a> {
     global_xy: Xy<Px>,
     items: Vec<Item<'a>>,
-    close: Box<dyn 'a + Fn()>,
+    // close: callback!('a),
+    close: Box<dyn Fn() + 'a>,
 }
 
 impl Component for ContextMenu<'_> {
@@ -119,18 +119,21 @@ impl Component for ContextMenu<'_> {
                                 }
                                 builder
                                     .on_mouse_down_in({
-                                        let on_click = on_click.clone();
-                                        let close = close.clone();
-                                        move |event: MouseEvent| {
+                                        |event: MouseEvent| {
+                                            let on_click = on_click.clone();
+                                            let close = close.clone();
                                             if let Some(MouseButton::Left) = event.button {
                                                 event.stop_propagation();
-                                                on_click;
-                                                close;
+                                                on_click();
+                                                close();
                                             }
                                         }
                                     })
-                                    .on_mouse_down_out(move |_| {
-                                        close;
+                                    .on_mouse_down_out({
+                                        let close = close.clone();
+                                        move |_| {
+                                            close();
+                                        }
                                     });
                             },
                         )

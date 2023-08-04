@@ -14,7 +14,7 @@ const CHARACTER_THUMBNAIL_WH: Wh<Px> = Wh {
 pub struct CgPicker<'a> {
     pub wh: Wh<Px>,
     pub project_id: Uuid,
-    pub on_event: Box<dyn 'a + Fn(Event)>,
+    pub on_event: &'a (dyn 'a + Fn(Event)),
 }
 
 pub enum Event {
@@ -27,7 +27,7 @@ impl Component for CgPicker<'_> {
         let &Self {
             wh,
             project_id,
-            on_event,
+            ref on_event,
         } = self;
         let (cg_file_list, _) = ctx.atom(&CG_FILES_ATOM);
 
@@ -40,11 +40,9 @@ impl Component for CgPicker<'_> {
                 content: table::hooks::vertical(cg_file_list.chunks(max_items_per_row).map(
                     |cg_files| {
                         table::hooks::fixed(CHARACTER_THUMBNAIL_WH.height, |wh| {
-                            table::hooks::horizontal(
-                                cg_files
-                                    .iter()
-                                    .map(|cg_file| render_thumbnail(cg_file, project_id, on_event)),
-                            )(wh)
+                            table::hooks::horizontal(cg_files.iter().map(|cg_file| {
+                                render_thumbnail(cg_file, project_id, on_event.clone())
+                            }))(wh)
                         })
                     },
                 ))(wh)
@@ -59,7 +57,7 @@ impl Component for CgPicker<'_> {
 fn render_thumbnail<'a>(
     cg_file: &'a CgFile,
     project_id: Uuid,
-    on_event: Box<dyn 'a + Fn(Event)>,
+    on_event: &'a (dyn 'a + Fn(Event)),
 ) -> TableCell<'a> {
     table::hooks::fixed(CHARACTER_THUMBNAIL_WH.width, move |wh| {
         table::hooks::padding(INNER_PADDING, |wh| {

@@ -4,15 +4,16 @@ use cut_cell::*;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::{Cut, Memo};
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 #[namui::component]
 pub struct CutListView<'a> {
     pub wh: Wh<Px>,
-    pub cuts: Vec<Cut>,
+    pub cuts: &'a Vec<Cut>,
     pub selected_cut_id: Option<Uuid>,
     pub is_focused: bool,
-    pub cut_id_memos_map: HashMap<Uuid, Vec<Memo>>,
+    pub cut_id_memos_map: &'a HashMap<Uuid, Vec<Memo>>,
+    // pub on_event: callback!('a, Event),
     pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
@@ -30,7 +31,7 @@ impl Component for CutListView<'_> {
             selected_cut_id,
             is_focused,
             ref cut_id_memos_map,
-            on_event,
+            ref on_event,
         } = self;
         let cuts = cuts.clone();
 
@@ -114,18 +115,14 @@ impl Component for CutListView<'_> {
                 .iter()
                 .zip(cuts.iter().map(|cut| cut_id_memos_map.get(&cut.id)))
                 .enumerate()
-                .map(|(index, (cut, memos))| {
-                    Arc::new(CutCell {
-                        wh,
-                        index,
-                        cut: cut.clone(),
-                        memo_count: memos.map_or(0, |memos| memos.len()),
-                        is_selected: selected_cut_id == Some(cut.id),
-                        is_focused,
-                        on_click: Box::new(|cut_id: Uuid| {
-                            on_event(Event::OnClickCutEvent { cut_id })
-                        }),
-                    }) as Arc<dyn Component>
+                .map(|(index, (cut, memos))| CutCell {
+                    wh,
+                    index,
+                    cut: cut.clone(),
+                    memo_count: memos.map_or(0, |memos| memos.len()),
+                    is_selected: selected_cut_id == Some(cut.id),
+                    is_focused,
+                    on_click: boxed(|cut_id: Uuid| on_event(Event::OnClickCutEvent { cut_id })),
                 })
                 .collect(),
         });

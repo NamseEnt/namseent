@@ -8,7 +8,7 @@ pub struct Resizer<'a> {
     pub container_size: Wh<Px>,
     pub image_size: Wh<Px>,
     pub graphic_index: Uuid,
-    pub on_event: Box<dyn 'a + Fn(Event)>,
+    pub on_event: callback!('a, Event),
 }
 
 pub enum Event {

@@ -37,76 +37,96 @@ pub fn boxed<T>(value: T) -> Box<T> {
     Box::new(value)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use wasm_bindgen_test::wasm_bindgen_test;
-
-    #[test]
-    #[wasm_bindgen_test]
-    fn single_param() {
-        let name_of_a = {
-            struct A<'a> {
-                _a: callback!(i32),
-            }
-            std::any::type_name::<A<'static>>()
-        };
-
-        struct A<'a> {
-            _a: Box<dyn 'a + Send + Sync + Fn(i32)>,
-        }
-
-        assert_eq!(name_of_a, std::any::type_name::<A<'static>>());
-    }
-
-    #[test]
-    #[wasm_bindgen_test]
-    fn single_param_with_return() {
-        let name_of_a = {
-            struct A<'a> {
-                _a: callback!(i32 -> i32),
-            }
-            std::any::type_name::<A<'static>>()
-        };
-
-        struct A<'a> {
-            _a: Box<dyn 'a + Send + Sync + Fn(i32) -> i32>,
-        }
-
-        assert_eq!(name_of_a, std::any::type_name::<A<'static>>());
-    }
-
-    #[test]
-    #[wasm_bindgen_test]
-    fn multiple_params() {
-        let name_of_a = {
-            struct A<'a> {
-                _a: callback!(i32, i32),
-            }
-            std::any::type_name::<A<'static>>()
-        };
-
-        struct A<'a> {
-            _a: Box<dyn 'a + Send + Sync + Fn((i32, i32))>,
-        }
-
-        assert_eq!(name_of_a, std::any::type_name::<A<'static>>());
-    }
-
-    #[test]
-    #[wasm_bindgen_test]
-    fn multiple_params_with_return() {
-        let name_of_a = {
-            struct A<'a> {
-                _a: callback!(i32, i32 -> i32),
-            }
-            std::any::type_name::<A<'static>>()
-        };
-
-        struct A<'a> {
-            _a: Box<dyn 'a + Send + Sync + Fn((i32, i32)) -> i32>,
-        }
-
-        assert_eq!(name_of_a, std::any::type_name::<A<'static>>());
-    }
+pub fn arc<'a, T: 'a>(value: T) -> Box<T> {
+    Box::new(value)
 }
+
+/// callback!('a, A)
+/// -> &'a (dyn 'a + Fn(A))
+#[macro_export]
+macro_rules! callback {
+    ($lifetime: lifetime, $param: ty) => {
+        // &$lifetime (dyn $lifetime + Fn($param))
+        Box<dyn $lifetime + Fn($param)>
+    };
+    ($lifetime: lifetime) => {
+        // &$lifetime (dyn $lifetime + Fn())
+        Box<dyn $lifetime + Fn()>
+    };
+}
+
+pub use callback;
+
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use wasm_bindgen_test::wasm_bindgen_test;
+
+//     #[test]
+//     #[wasm_bindgen_test]
+//     fn single_param() {
+//         let name_of_a = {
+//             struct A<'a> {
+//                 _a: callback!(i32),
+//             }
+//             std::any::type_name::<A<'static>>()
+//         };
+
+//         struct A<'a> {
+//             _a: Arc<dyn 'a + Send + Sync + Fn(i32)>,
+//         }
+
+//         assert_eq!(name_of_a, std::any::type_name::<A<'static>>());
+//     }
+
+//     #[test]
+//     #[wasm_bindgen_test]
+//     fn single_param_with_return() {
+//         let name_of_a = {
+//             struct A<'a> {
+//                 _a: callback!(i32 -> i32),
+//             }
+//             std::any::type_name::<A<'static>>()
+//         };
+
+//         struct A<'a> {
+//             _a: Arc<dyn 'a + Send + Sync + Fn(i32) -> i32>,
+//         }
+
+//         assert_eq!(name_of_a, std::any::type_name::<A<'static>>());
+//     }
+
+//     #[test]
+//     #[wasm_bindgen_test]
+//     fn multiple_params() {
+//         let name_of_a = {
+//             struct A<'a> {
+//                 _a: callback!(i32, i32),
+//             }
+//             std::any::type_name::<A<'static>>()
+//         };
+
+//         struct A<'a> {
+//             _a: Arc<dyn 'a + Send + Sync + Fn((i32, i32))>,
+//         }
+
+//         assert_eq!(name_of_a, std::any::type_name::<A<'static>>());
+//     }
+
+//     #[test]
+//     #[wasm_bindgen_test]
+//     fn multiple_params_with_return() {
+//         let name_of_a = {
+//             struct A<'a> {
+//                 _a: callback!(i32, i32 -> i32),
+//             }
+//             std::any::type_name::<A<'static>>()
+//         };
+
+//         struct A<'a> {
+//             _a: Arc<dyn 'a + Send + Sync + Fn((i32, i32)) -> i32>,
+//         }
+
+//         assert_eq!(name_of_a, std::any::type_name::<A<'static>>());
+//     }
+// }

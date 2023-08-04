@@ -87,6 +87,22 @@ impl Component for Arc<dyn Component> {
     }
 }
 
+impl<T: StaticType> StaticType for Option<T> {
+    // fn static_type_id(&self) -> StaticTypeId {
+    //     self.as_ref().static_type_id()
+    // }
+}
+
+impl<T: Component> Component for Option<T> {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        if let Some(v) = self {
+            v.render(ctx)
+        } else {
+            ctx.done()
+        }
+    }
+}
+
 // TODO
 
 // impl<T: StaticType> StaticType for Option<T> {

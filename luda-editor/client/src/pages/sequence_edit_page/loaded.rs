@@ -1,12 +1,12 @@
 use super::{atom::*, components::*, sequence::SequenceWrapped};
 use crate::{
-    components::{context_menu::use_context_menu, *},
+    components::context_menu::use_context_menu,
     pages::sequence_edit_page::components::character_editor::EditTarget,
 };
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::*;
-use std::{collections::HashMap, ops::Deref};
+use std::collections::HashMap;
 
 #[namui::component]
 pub struct LoadedSequenceEditorPage {
@@ -28,18 +28,22 @@ impl Component for LoadedSequenceEditorPage {
             wh,
             ref cg_files,
         } = self;
-        let (sequence, set_seuqnece) =
+        let (sequence, set_seqenece) =
             ctx.atom_init(&SEQUENCE_ATOM, || SequenceWrapped::new(sequence.clone()));
         let (cg_files, _set_cg_files) = ctx.atom_init(&CG_FILES_ATOM, || cg_files.clone());
 
         let (selected_cut_id, set_selected_cut_id) = ctx.state::<Option<Uuid>>(|| None);
         let (focused_component, set_focused_component) = ctx.state(|| None);
-        let (context_menu, set_context_menu) =
-            ctx.state::<Option<context_menu::ContextMenu>>(|| None);
         let (character_editor_target, set_character_editor_target) =
             ctx.state::<Option<EditTarget>>(|| None);
         let (cut_id_memos_map, set_cut_id_memos_map) = ctx.state(|| cut_id_memos_map.clone());
         let (editing_memo, set_editing_memo) = ctx.state(|| None);
+
+        #[derive(Debug)]
+        enum ContextMenu {
+            CutListView { global_xy: Xy<Px> },
+        }
+        let (context_menu, set_context_menu) = ctx.state::<Option<ContextMenu>>(|| None);
 
         let selected_cut = selected_cut_id.and_then(|id| sequence.cuts.iter().find(|c| c.id == id));
         let project_id = project_shared_data.id();
@@ -49,10 +53,10 @@ impl Component for LoadedSequenceEditorPage {
             CutListViewEvent { event: cut_list_view::Event },
             CutEditorEvent { event: cut_editor::Event2 },
             CharacterEdtiorEvent { event: character_editor::Event },
-            MemoListViewEvent { event: memo_list_view::Event },
-            MemoEditorEvent { event: memo_editor::Event },
+            // MemoListViewEvent { event: memo_list_view::Event },
+            // MemoEditorEvent { event: memo_editor::Event },
         }
-        let on_internal_event = |event: InternalEvent| match event {
+        let on_internal_event = &|event: InternalEvent| match event {
             InternalEvent::CutListViewEvent { event } => match event {
                 cut_list_view::Event::OnPressEnterOnCut { cut_id } => {
                     assert_eq!(*focused_component, Some(FocusableComponent::CutListView));
@@ -71,21 +75,7 @@ impl Component for LoadedSequenceEditorPage {
                     set_focused_component.set(Some(FocusableComponent::CutListView));
                 }
                 cut_list_view::Event::OnRightClickEvent { global_xy } => {
-                    set_context_menu.set(Some(
-                        use_context_menu(global_xy, || set_context_menu.set(None))
-                            .add_button(
-                                "Add Cut",
-                                Box::new(|| {
-                                    set_seuqnece.mutate(|sequence| {
-                                        sequence.update(SequenceUpdateAction::InsertCut {
-                                            cut: Cut::new(uuid()),
-                                            after_cut_id: None,
-                                        })
-                                    })
-                                }),
-                            )
-                            .build(),
-                    ));
+                    set_context_menu.set(Some(ContextMenu::CutListView { global_xy }));
                     set_focused_component.set(Some(FocusableComponent::CutListView));
                 }
             },
@@ -117,66 +107,66 @@ impl Component for LoadedSequenceEditorPage {
                     set_character_editor_target.set(Some(edit_target));
                 }
             },
-            InternalEvent::MemoListViewEvent { event } => match event {
-                memo_list_view::Event::DoneClicked { cut_id, memo_id } => {
-                    spawn_local(async move {
-                        match crate::RPC
-                            .delete_memo(rpc::delete_memo::Request {
-                                sequence_id,
-                                memo_id,
-                            })
-                            .await
-                        {
-                            Ok(_) => {
-                                set_cut_id_memos_map.mutate(move |cut_id_memos_map| {
-                                    cut_id_memos_map
-                                        .get_mut(&cut_id)
-                                        .unwrap()
-                                        .retain(|memo| memo.id != memo_id);
-                                });
-                            }
-                            Err(error) => {
-                                namui::log!("Failed to delete memo: {:?}", error)
-                            }
-                        };
-                    });
-                }
-            },
-            InternalEvent::MemoEditorEvent { event } => match event {
-                memo_editor::Event::Close => set_editing_memo.set(None),
-                memo_editor::Event::SaveButtonClicked {
-                    sequence_id,
-                    cut_id,
-                    content,
-                } => {
-                    spawn_local(async move {
-                        match crate::RPC
-                            .create_memo(rpc::create_memo::Request {
-                                sequence_id,
-                                cut_id,
-                                content,
-                            })
-                            .await
-                        {
-                            Ok(response) => {
-                                let memo = response.memo;
-                                set_cut_id_memos_map.mutate(move |cut_id_memos_map| {
-                                    match cut_id_memos_map.get_mut(&cut_id) {
-                                        Some(memos) => memos.push(memo),
-                                        None => {
-                                            cut_id_memos_map.insert(memo.cut_id, vec![memo]);
-                                        }
-                                    }
-                                });
-                                set_editing_memo.set(None);
-                            }
-                            Err(error) => {
-                                namui::log!("Failed to create memo: {:?}", error)
-                            }
-                        };
-                    });
-                }
-            },
+            // InternalEvent::MemoListViewEvent { event } => match event {
+            //     memo_list_view::Event::DoneClicked { cut_id, memo_id } => {
+            //         spawn_local(async move {
+            //             match crate::RPC
+            //                 .delete_memo(rpc::delete_memo::Request {
+            //                     sequence_id,
+            //                     memo_id,
+            //                 })
+            //                 .await
+            //             {
+            //                 Ok(_) => {
+            //                     set_cut_id_memos_map.mutate(move |cut_id_memos_map| {
+            //                         cut_id_memos_map
+            //                             .get_mut(&cut_id)
+            //                             .unwrap()
+            //                             .retain(|memo| memo.id != memo_id);
+            //                     });
+            //                 }
+            //                 Err(error) => {
+            //                     namui::log!("Failed to delete memo: {:?}", error)
+            //                 }
+            //             };
+            //         });
+            //     }
+            // },
+            //     InternalEvent::MemoEditorEvent { event } => match event {
+            //         memo_editor::Event::Close => set_editing_memo.set(None),
+            //         memo_editor::Event::SaveButtonClicked {
+            //             sequence_id,
+            //             cut_id,
+            //             content,
+            //         } => {
+            //             spawn_local(async move {
+            //                 match crate::RPC
+            //                     .create_memo(rpc::create_memo::Request {
+            //                         sequence_id,
+            //                         cut_id,
+            //                         content,
+            //                     })
+            //                     .await
+            //                 {
+            //                     Ok(response) => {
+            //                         let memo = response.memo;
+            //                         set_cut_id_memos_map.mutate(move |cut_id_memos_map| {
+            //                             match cut_id_memos_map.get_mut(&cut_id) {
+            //                                 Some(memos) => memos.push(memo),
+            //                                 None => {
+            //                                     cut_id_memos_map.insert(memo.cut_id, vec![memo]);
+            //                                 }
+            //                             }
+            //                         });
+            //                         set_editing_memo.set(None);
+            //                     }
+            //                     Err(error) => {
+            //                         namui::log!("Failed to create memo: {:?}", error)
+            //                     }
+            //                 };
+            //             });
+            //         }
+            //     },
         };
         let memo_list_view_cell: table::hooks::TableCell = {
             const MEMO_WINDOW_WIDTH: Px = px(256.0);
@@ -200,19 +190,18 @@ impl Component for LoadedSequenceEditorPage {
             // }
             table::hooks::empty()
         };
-
-        let character_editor_cell: table::hooks::TableCell = {
+        let character_editor_cell = {
             const CHARACTER_EDITOR_WIDTH: Px = px(496.0);
 
             match *character_editor_target {
                 Some(character_editor_target) => {
-                    table::hooks::fixed(CHARACTER_EDITOR_WIDTH, |wh| {
+                    table::hooks::fixed(CHARACTER_EDITOR_WIDTH, move |wh| {
                         character_editor::CharacterEditor {
                             wh,
                             project_id,
                             edit_target: character_editor_target,
                             cut: selected_cut,
-                            on_event: Box::new(|event| {
+                            on_event: boxed(|event: character_editor::Event| {
                                 on_internal_event(InternalEvent::CharacterEdtiorEvent { event })
                             }),
                         }
@@ -224,55 +213,63 @@ impl Component for LoadedSequenceEditorPage {
 
         let cut_list_view_cell = |wh| cut_list_view::CutListView {
             wh,
-            cuts: sequence.cuts.clone(),
+            cuts: &sequence.cuts,
             selected_cut_id: *selected_cut_id,
             is_focused: *focused_component == Some(FocusableComponent::CutListView),
-            cut_id_memos_map: cut_id_memos_map.deref().clone(),
+            cut_id_memos_map: cut_id_memos_map.as_ref(),
             on_event: Box::new(|event| {
                 on_internal_event(InternalEvent::CutListViewEvent { event })
             }),
         };
 
-        let on_event = Box::new(|event| Some(InternalEvent::CutEditorEvent { event }).as_ref());
-        let cut_editor_cell = |wh| {
-            selected_cut.map(|selected_cut| cut_editor::CutEditor {
+        let cut_editor_cell = move |wh| {
+            selected_cut.map(move |selected_cut| cut_editor::CutEditor {
                 wh,
                 cut: selected_cut,
                 cuts: &sequence.cuts,
                 is_focused: *focused_component == Some(FocusableComponent::CutEditor),
                 project_id,
                 cg_files: &cg_files,
-                on_event: Box::new(|event| {
-                    on_internal_event(InternalEvent::CutEditorEvent { event })
-                }),
+                on_event: arc(|event| on_internal_event(InternalEvent::CutEditorEvent { event })),
             })
         };
 
         ctx.add(table::hooks::horizontal([
             table::hooks::fixed(220.px(), cut_list_view_cell),
-            // table::hooks::ratio(4, cut_editor_cell),
-            character_editor_cell,
-            memo_list_view_cell,
+            table::hooks::ratio(4, cut_editor_cell),
+            // character_editor_cell,
+            // memo_list_view_cell,
         ])(wh));
 
-        if let Some(SequenceIdCutId {
-            sequence_id,
-            cut_id,
-        }) = *editing_memo
-        {
-            ctx.add(memo_editor::MemoEditor {
-                wh,
-                sequence_id,
-                cut_id,
-                on_event: Box::new(|event| {
-                    on_internal_event(InternalEvent::MemoEditorEvent { event })
-                }),
-            })
-        }
-
-        // if let Some(context_menu) = *context_menu {
-        //     ctx.add(context_menu);
+        // if let Some(SequenceIdCutId {
+        //     sequence_id,
+        //     cut_id,
+        // }) = *editing_memo
+        // {
+        //     ctx.add(memo_editor::MemoEditor {
+        //         wh,
+        //         sequence_id,
+        //         cut_id,
+        //         on_event: arc(|event| on_internal_event(InternalEvent::MemoEditorEvent { event })),
+        //     })
         // }
+
+        if let Some(context_menu) = context_menu.as_ref() {
+            match context_menu {
+                &ContextMenu::CutListView { global_xy } => ctx.add(
+                    use_context_menu(global_xy, &|| set_context_menu.set(None))
+                        .add_button("Add Cut", &|| {
+                            set_seqenece.mutate(|sequence| {
+                                sequence.update(SequenceUpdateAction::InsertCut {
+                                    cut: Cut::new(uuid()),
+                                    after_cut_id: None,
+                                })
+                            })
+                        })
+                        .build(),
+                ),
+            }
+        }
         ctx.done()
     }
 }

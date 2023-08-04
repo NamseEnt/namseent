@@ -316,7 +316,7 @@
 //                     None
 //                 },
 //                 on_resize: {
-//                     Box::new(move |circumscribed| {
+//                     arc(move |circumscribed| {
 //                         SEQUENCE_ATOM.mutate(|sequence| {
 //                             sequence.update_cut(
 //                                 cut_id,

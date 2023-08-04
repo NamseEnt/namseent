@@ -127,4 +127,8 @@ impl<'a> RenderCtx {
         };
         *self.instance.web_event_listener.lock().unwrap() = Some(unsafe_casted);
     }
+
+    pub fn arc<T: 'a>(&'a self, value: T) -> Arc<T> {
+        Arc::new(value)
+    }
 }

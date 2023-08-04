@@ -29,7 +29,7 @@ pub struct TextInput<'a> {
     pub font_type: FontType,
     pub style: Style,
     pub prevent_default_codes: Vec<Code>,
-    pub on_event: Box<dyn 'a + Fn(Event)>,
+    pub on_event: callback!('a, Event),
 }
 
 pub enum Event<'a> {

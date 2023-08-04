@@ -286,7 +286,7 @@ impl WysiwygEditor {
                     None
                 },
                 on_resize: {
-                    Box::new(move |circumscribed| {
+                    arc(move |circumscribed| {
                         SEQUENCE_ATOM.update(|sequence| {
                             sequence.update_cut(
                                 cut_id,

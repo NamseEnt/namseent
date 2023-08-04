@@ -26,7 +26,7 @@ pub struct PartPicker<'a> {
     pub cut_id: Uuid,
     pub graphic_index: Uuid,
     pub screen_cg: &'a ScreenCg,
-    pub on_event: Box<dyn 'a + Fn(Event)>,
+    pub on_event: callback!('a, Event),
 }
 
 pub enum Event {
@@ -43,7 +43,7 @@ impl Component for PartPicker<'_> {
             cut_id,
             graphic_index,
             screen_cg,
-            on_event,
+            ref on_event,
         } = self;
 
         let cg_id = cg_file.id;
@@ -105,7 +105,7 @@ fn render_cg_part_group<'a>(
     cut_id: Uuid,
     graphic_index: Uuid,
     screen_cg: &'a ScreenCg,
-    on_event: Box<dyn 'a + Fn(Event)>,
+    on_event: &'a (dyn 'a + Fn(Event)),
 ) -> Vec<TableCell<'a>> {
     let no_selection = screen_cg.part(&cg_part.name).unwrap().is_not_selected();
 
@@ -122,7 +122,7 @@ fn render_cg_part_group<'a>(
             table::hooks::horizontal(
                 chunk_remainder
                     .iter()
-                    .map(|variant| {
+                    .map(move |variant| {
                         render_thumbnail(
                             cg_part,
                             variant,
@@ -224,7 +224,7 @@ fn render_thumbnail<'a>(
     cut_id: Uuid,
     graphic_index: Uuid,
     screen_cg: &'a ScreenCg,
-    on_event: Box<dyn 'a + Fn(Event)>,
+    on_event: &'a (dyn 'a + Fn(Event)),
 ) -> TableCell<'a> {
     let variant_selected = screen_cg
         .part(&cg_part.name)
