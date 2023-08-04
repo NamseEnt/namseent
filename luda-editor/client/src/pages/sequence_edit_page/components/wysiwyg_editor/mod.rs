@@ -24,16 +24,16 @@ use resizer::Resizer;
 use rpc::data::{CgFile, CutUpdateAction, ScreenGraphic};
 
 #[namui::component]
-pub struct WysiwygEditor {
+pub struct WysiwygEditor<'a> {
     pub wh: Wh<Px>,
     pub cut_id: Uuid,
     pub screen_graphics: Vec<(Uuid, ScreenGraphic)>,
     pub project_id: Uuid,
     pub cg_files: Vec<CgFile>,
-    pub on_click_character_edit: Box<dyn Fn(character_editor::EditTarget) + Send + Sync>,
+    pub on_click_character_edit: Box<dyn 'a + Fn(character_editor::EditTarget)>,
 }
 
-impl Component for WysiwygEditor {
+impl Component for WysiwygEditor<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             wh,
@@ -197,45 +197,54 @@ impl Component for WysiwygEditor {
 
                     set_context_menu.set(Some({
                         let context_menu_builder =
-                            use_context_menu(global_xy, || set_context_menu.set(None));
+                            use_context_menu(global_xy, Box::new(|| set_context_menu.set(None)));
 
-                        context_menu_builder.add_button("Fit - contain", move || {
-                            SEQUENCE_ATOM.mutate(|sequence| {
-                                sequence.update_cut(
-                                    cut_id,
-                                    CutUpdateAction::GraphicFitContain {
-                                        graphic_index,
-                                        image_width_per_height_ratio,
-                                    },
-                                )
-                            });
-                        });
+                        context_menu_builder.add_button(
+                            "Fit - contain",
+                            Box::new(|| {
+                                SEQUENCE_ATOM.mutate(|sequence| {
+                                    sequence.update_cut(
+                                        cut_id,
+                                        CutUpdateAction::GraphicFitContain {
+                                            graphic_index,
+                                            image_width_per_height_ratio,
+                                        },
+                                    )
+                                });
+                            }),
+                        );
 
-                        context_menu_builder.add_button("Fit - cover", move || {
-                            SEQUENCE_ATOM.mutate(|sequence| {
-                                sequence.update_cut(
-                                    cut_id,
-                                    CutUpdateAction::GraphicFitCover {
-                                        graphic_index,
-                                        image_width_per_height_ratio,
-                                    },
-                                )
-                            });
-                        });
+                        context_menu_builder.add_button(
+                            "Fit - cover",
+                            Box::new(|| {
+                                SEQUENCE_ATOM.mutate(|sequence| {
+                                    sequence.update_cut(
+                                        cut_id,
+                                        CutUpdateAction::GraphicFitCover {
+                                            graphic_index,
+                                            image_width_per_height_ratio,
+                                        },
+                                    )
+                                });
+                            }),
+                        );
 
                         match graphic {
                             ScreenGraphic::Cg(cg) => {
                                 let cg_id = cg.id;
                                 let on_click_character_edit = on_click_character_edit.clone();
-                                context_menu_builder.add_button("Edit character", move || {
-                                    on_click_character_edit(
-                                        character_editor::EditTarget::ExistingCharacterPart {
-                                            cut_id,
-                                            cg_id,
-                                            graphic_index,
-                                        },
-                                    );
-                                });
+                                context_menu_builder.add_button(
+                                    "Edit character",
+                                    Box::new(|| {
+                                        on_click_character_edit(
+                                            character_editor::EditTarget::ExistingCharacterPart {
+                                                cut_id,
+                                                cg_id,
+                                                graphic_index,
+                                            },
+                                        );
+                                    }),
+                                );
                             }
                             ScreenGraphic::Image(_) => {}
                         }

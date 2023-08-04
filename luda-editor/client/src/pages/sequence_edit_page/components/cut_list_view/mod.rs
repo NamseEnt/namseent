@@ -13,7 +13,7 @@ pub struct CutListView<'a> {
     pub selected_cut_id: Option<Uuid>,
     pub is_focused: bool,
     pub cut_id_memos_map: HashMap<Uuid, Vec<Memo>>,
-    pub on_event: &'a dyn Fn(Event),
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
@@ -122,7 +122,9 @@ impl Component for CutListView<'_> {
                         memo_count: memos.map_or(0, |memos| memos.len()),
                         is_selected: selected_cut_id == Some(cut.id),
                         is_focused,
-                        on_click: &|cut_id: Uuid| on_event(Event::OnClickCutEvent { cut_id }),
+                        on_click: Box::new(|cut_id: Uuid| {
+                            on_event(Event::OnClickCutEvent { cut_id })
+                        }),
                     }) as Arc<dyn Component>
                 })
                 .collect(),

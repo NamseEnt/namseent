@@ -3,11 +3,11 @@ use namui::prelude::*;
 use namui_prebuilt::*;
 
 #[namui::component]
-pub struct MemoEditor {
+pub struct MemoEditor<'a> {
     pub wh: Wh<Px>,
     pub sequence_id: Uuid,
     pub cut_id: Uuid,
-    pub on_event: Box<dyn Fn(Event)>,
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
@@ -19,7 +19,7 @@ pub enum Event {
     },
 }
 
-impl Component for MemoEditor {
+impl Component for MemoEditor<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             wh,

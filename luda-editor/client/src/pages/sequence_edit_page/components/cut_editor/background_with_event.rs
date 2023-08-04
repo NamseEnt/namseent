@@ -4,14 +4,14 @@ use namui_prebuilt::*;
 use rpc::data::ScreenCg;
 
 #[namui::component]
-pub struct BackgroundWithEvent {
+pub struct BackgroundWithEvent<'a> {
     pub cut: Cut,
     pub wh: Wh<Px>,
     pub is_selecting_target: bool,
     pub prev_cut_id: Option<Uuid>,
     pub next_cut_id: Option<Uuid>,
-    pub on_event: Box<dyn Fn(Event)>,
-    pub on_internal_event: Box<dyn Fn(InternalEvent)>,
+    pub on_event: Box<dyn 'a + Fn(Event)>,
+    pub on_internal_event: Box<dyn 'a + Fn(InternalEvent)>,
 }
 
 pub enum Event {
@@ -33,7 +33,7 @@ pub enum Event {
     },
 }
 
-impl Component for BackgroundWithEvent {
+impl Component for BackgroundWithEvent<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             ref cut,

@@ -10,7 +10,7 @@ pub struct MemoListView<'a> {
     pub memos: Vec<Memo>,
     pub user_id: Uuid,
     // pub on_done_clicked: &'a dyn Fn(CutIdMemoId),
-    pub on_event: &'a dyn Fn(Event),
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
@@ -24,7 +24,7 @@ impl Component for MemoListView<'_> {
             ref memos,
             user_id,
             // ref on_done_clicked,
-            ref on_event,
+            on_event,
         } = self;
 
         ctx.add(simple_rect(
@@ -40,7 +40,7 @@ impl Component for MemoListView<'_> {
             content: table::vertical(memos.iter().map(|memo| {
                 table::fit(
                     table::FitAlign::LeftTop,
-                    render_memo(wh.width, memo, user_id, on_event.clone()),
+                    render_memo(wh.width, memo, user_id, on_event),
                 )
             }))(wh)
             .arc(),
@@ -53,7 +53,7 @@ fn render_memo<'a>(
     width: Px,
     memo: &Memo,
     user_id: Uuid,
-    on_event: &'a dyn Fn(Event),
+    on_event: Box<dyn 'a + Fn(Event)>,
 ) -> RenderingTree {
     const MARGIN: Px = px(8.0);
     const PADDING: Px = px(8.0);

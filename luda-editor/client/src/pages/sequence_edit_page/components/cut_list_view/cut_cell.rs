@@ -11,7 +11,7 @@ pub struct CutCell<'a> {
     pub memo_count: usize,
     pub is_selected: bool,
     pub is_focused: bool,
-    pub on_click: &'a dyn Fn(Uuid),
+    pub on_click: Box<dyn 'a + Fn(Uuid)>,
 }
 
 impl Component for CutCell<'_> {

@@ -2,13 +2,13 @@ use namui::prelude::*;
 use rpc::data::Circumscribed;
 
 #[namui::component]
-pub struct Resizer {
+pub struct Resizer<'a> {
     pub rect: Rect<Px>,
     pub dragging_context: Option<ResizerDraggingContext>,
     pub container_size: Wh<Px>,
     pub image_size: Wh<Px>,
     pub graphic_index: Uuid,
-    pub on_event: Box<dyn Fn(Event)>,
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
@@ -21,7 +21,7 @@ pub enum Event {
     },
 }
 
-impl Component for Resizer {
+impl Component for Resizer<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             rect,

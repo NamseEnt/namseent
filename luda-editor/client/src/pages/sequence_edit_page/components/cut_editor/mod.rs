@@ -22,7 +22,7 @@ pub struct CutEditor<'a> {
     pub is_focused: bool,
     pub project_id: Uuid,
     pub cg_files: &'a Vec<CgFile>,
-    pub on_event: Box<dyn Fn(Event2) + Send + Sync>,
+    pub on_event: Box<dyn 'a + Fn(Event2)>,
 }
 
 pub enum Event2 {
@@ -49,7 +49,7 @@ impl Component for CutEditor<'_> {
             ref on_event,
         } = self;
         let (context_menu, set_context_menu) =
-            ctx.state::<Option<context_menu::ContextMenu>>(|| None);
+            ctx.state::<Option<context_menu::ContextMenu<'_>>>(|| None);
         let on_event = on_event.clone();
         let (selected_target, set_selected_target) = ctx.state::<Option<ClickTarget>>(|| None);
         // let (input_req_queue, set_input_req_queue) = ctx.state(|| VecDeque::new());
@@ -117,13 +117,12 @@ impl Component for CutEditor<'_> {
             }
             InternalEvent::MouseRightButtonDown { global_xy, cut_id } => {
                 set_context_menu.set(Some(
-                    use_context_menu(global_xy, || set_context_menu.set(None))
-                        .add_button("Add Cg", || {
-                            on_event(Event2::ClickCharacterEdit {
-                                edit_target: character_editor::EditTarget::NewCharacter { cut_id },
-                            })
-                        })
-                        .add_button("Add Memo", || on_event(Event2::AddMemo { cut_id }))
+                    use_context_menu(global_xy, Box::new(|| set_context_menu.set(None)))
+                        .add_button("Add Cg", Box::new(|| {}))
+                        .add_button(
+                            "Add Memo",
+                            Box::new(|| on_event(Event2::AddMemo { cut_id })),
+                        )
                         .build(),
                 ));
             }

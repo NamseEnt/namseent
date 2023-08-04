@@ -26,7 +26,7 @@ pub struct PartPicker<'a> {
     pub cut_id: Uuid,
     pub graphic_index: Uuid,
     pub screen_cg: &'a ScreenCg,
-    pub on_event: &'a dyn Fn(Event),
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
@@ -45,7 +45,6 @@ impl Component for PartPicker<'_> {
             screen_cg,
             on_event,
         } = self;
-        let on_event = on_event.clone();
 
         let cg_id = cg_file.id;
 
@@ -76,7 +75,7 @@ impl Component for PartPicker<'_> {
                         cut_id,
                         graphic_index,
                         screen_cg,
-                        on_event.clone(),
+                        on_event,
                     )
                 }),
         );
@@ -106,7 +105,7 @@ fn render_cg_part_group<'a>(
     cut_id: Uuid,
     graphic_index: Uuid,
     screen_cg: &'a ScreenCg,
-    on_event: &'a dyn Fn(Event),
+    on_event: Box<dyn 'a + Fn(Event)>,
 ) -> Vec<TableCell<'a>> {
     let no_selection = screen_cg.part(&cg_part.name).unwrap().is_not_selected();
 
@@ -119,7 +118,6 @@ fn render_cg_part_group<'a>(
     let chunks = cg_part.variants.chunks_exact(max_thumbnails_per_row);
     let chunk_remainder = chunks.remainder();
     let last_variant_row = table::hooks::fixed(THUMBNAIL_WH.height, {
-        let on_event = on_event.clone();
         move |wh| {
             table::hooks::horizontal(
                 chunk_remainder
@@ -133,7 +131,7 @@ fn render_cg_part_group<'a>(
                             cut_id,
                             graphic_index,
                             screen_cg,
-                            on_event.clone(),
+                            on_event,
                         )
                     })
                     .chain(once(no_selection_button)),
@@ -141,7 +139,6 @@ fn render_cg_part_group<'a>(
         }
     });
     let variant_rows = chunks.map(|row| {
-        let on_event = on_event.clone();
         table::hooks::fixed(THUMBNAIL_WH.height, move |wh| {
             table::hooks::horizontal(row.iter().map(|variant| {
                 render_thumbnail(
@@ -152,7 +149,7 @@ fn render_cg_part_group<'a>(
                     cut_id,
                     graphic_index,
                     screen_cg,
-                    on_event.clone(),
+                    on_event,
                 )
             }))(wh)
         })
@@ -227,7 +224,7 @@ fn render_thumbnail<'a>(
     cut_id: Uuid,
     graphic_index: Uuid,
     screen_cg: &'a ScreenCg,
-    on_event: &'a dyn Fn(Event),
+    on_event: Box<dyn 'a + Fn(Event)>,
 ) -> TableCell<'a> {
     let variant_selected = screen_cg
         .part(&cg_part.name)

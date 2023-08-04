@@ -3,7 +3,7 @@ use namui_prebuilt::*;
 
 pub fn use_context_menu<'a>(
     global_xy: Xy<Px>,
-    close: impl 'a + Fn() + Send + Sync,
+    close: Box<dyn 'a + Fn()>,
 ) -> ContextMenuBuilder<'a> {
     ContextMenuBuilder {
         global_xy,
@@ -15,18 +15,14 @@ pub fn use_context_menu<'a>(
 pub struct ContextMenuBuilder<'a> {
     global_xy: Xy<Px>,
     items: Vec<Item<'a>>,
-    close: Box<dyn 'a + Fn() + Send + Sync>,
+    close: Box<dyn 'a + Fn()>,
 }
 
 impl<'a> ContextMenuBuilder<'a> {
-    pub fn add_button(
-        mut self,
-        text: impl AsRef<str>,
-        on_click: impl 'a + Fn() + Send + Sync,
-    ) -> Self {
+    pub fn add_button(mut self, text: impl AsRef<str>, on_click: Box<dyn 'a + Fn()>) -> Self {
         self.items.push(Item::Button {
             text: text.as_ref().to_string(),
-            on_click: Box::new(on_click),
+            on_click,
         });
         self
     }
@@ -42,7 +38,7 @@ impl<'a> ContextMenuBuilder<'a> {
 enum Item<'a> {
     Button {
         text: String,
-        on_click: Box<dyn 'a + Fn() + Send + Sync>,
+        on_click: Box<dyn 'a + Fn()>,
     },
 
     #[allow(dead_code)]
@@ -62,7 +58,7 @@ impl std::fmt::Debug for Item<'_> {
 pub struct ContextMenu<'a> {
     global_xy: Xy<Px>,
     items: Vec<Item<'a>>,
-    close: Box<dyn 'a + Fn() + Send + Sync>,
+    close: Box<dyn 'a + Fn()>,
 }
 
 impl Component for ContextMenu<'_> {

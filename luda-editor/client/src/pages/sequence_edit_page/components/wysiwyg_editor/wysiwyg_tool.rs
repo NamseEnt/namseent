@@ -1,14 +1,14 @@
 use super::*;
 
 #[namui::component]
-pub struct WysiwygTool {
+pub struct WysiwygTool<'a> {
     pub graphic_dest_rect: Rect<Px>,
     pub original_graphic_size: Wh<Px>,
     pub graphic_index: Uuid,
     pub graphic: ScreenGraphic,
     pub dragging: Option<Dragging>,
     pub wh: Wh<Px>,
-    pub on_event: Box<dyn Fn(Event)>,
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
@@ -16,7 +16,7 @@ pub enum Event {
     Resizer { event: resizer::Event },
 }
 
-impl Component for WysiwygTool {
+impl Component for WysiwygTool<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             graphic_dest_rect,

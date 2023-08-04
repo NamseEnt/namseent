@@ -1,7 +1,7 @@
 use super::{wysiwyg_tool::WysiwygTool, *};
 
 #[namui::component]
-pub struct GraphicClip {
+pub struct GraphicClip<'a> {
     pub cut_id: Uuid,
     pub graphic_index: Uuid,
     pub graphic: ScreenGraphic,
@@ -10,7 +10,7 @@ pub struct GraphicClip {
     pub wh: Wh<Px>,
     pub dragging: Option<Dragging>,
     pub cg_files: Vec<CgFile>,
-    pub on_event: Box<dyn Fn(Event)>,
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
@@ -27,7 +27,7 @@ pub enum Event {
     },
 }
 
-impl Component for GraphicClip {
+impl Component for GraphicClip<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             cut_id,
