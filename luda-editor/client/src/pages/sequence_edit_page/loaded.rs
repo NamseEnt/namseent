@@ -73,14 +73,17 @@ impl Component for LoadedSequenceEditorPage {
                 cut_list_view::Event::OnRightClickEvent { global_xy } => {
                     set_context_menu.set(Some(
                         use_context_menu(global_xy, || set_context_menu.set(None))
-                            .add_button("Add Cut", || {
-                                set_seuqnece.mutate(|sequence| {
-                                    sequence.update(SequenceUpdateAction::InsertCut {
-                                        cut: Cut::new(uuid()),
-                                        after_cut_id: None,
+                            .add_button(
+                                "Add Cut",
+                                Box::new(|| {
+                                    set_seuqnece.mutate(|sequence| {
+                                        sequence.update(SequenceUpdateAction::InsertCut {
+                                            cut: Cut::new(uuid()),
+                                            after_cut_id: None,
+                                        })
                                     })
-                                })
-                            })
+                                }),
+                            )
                             .build(),
                     ));
                     set_focused_component.set(Some(FocusableComponent::CutListView));
@@ -209,9 +212,9 @@ impl Component for LoadedSequenceEditorPage {
                             project_id,
                             edit_target: character_editor_target,
                             cut: selected_cut,
-                            on_event: &|event| {
+                            on_event: Box::new(|event| {
                                 on_internal_event(InternalEvent::CharacterEdtiorEvent { event })
-                            },
+                            }),
                         }
                     })
                 }
@@ -225,7 +228,9 @@ impl Component for LoadedSequenceEditorPage {
             selected_cut_id: *selected_cut_id,
             is_focused: *focused_component == Some(FocusableComponent::CutListView),
             cut_id_memos_map: cut_id_memos_map.deref().clone(),
-            on_event: &|event| on_internal_event(InternalEvent::CutListViewEvent { event }),
+            on_event: Box::new(|event| {
+                on_internal_event(InternalEvent::CutListViewEvent { event })
+            }),
         };
 
         let on_event = Box::new(|event| Some(InternalEvent::CutEditorEvent { event }).as_ref());
