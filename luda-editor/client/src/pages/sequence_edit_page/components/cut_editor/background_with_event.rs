@@ -10,7 +10,8 @@ pub struct BackgroundWithEvent {
     pub is_selecting_target: bool,
     pub prev_cut_id: Option<Uuid>,
     pub next_cut_id: Option<Uuid>,
-    pub on_event: &'a dyn Fn(Event),
+    pub on_event: Box<dyn Fn(Event)>,
+    pub on_internal_event: Box<dyn Fn(InternalEvent)>,
 }
 
 pub enum Event {
@@ -41,6 +42,7 @@ impl Component for BackgroundWithEvent {
             prev_cut_id,
             next_cut_id,
             ref on_event,
+            ref on_internal_event,
         } = self;
         let cut_id = cut.id;
         let on_event = on_event.clone();
@@ -54,12 +56,12 @@ impl Component for BackgroundWithEvent {
                             spawn_local(async move {
                                 let content = file.content().await;
                                 match file.name().ends_with(".psd") {
-                                    true => on_event.call(Event::AddNewCg {
+                                    true => on_event(Event::AddNewCg {
                                         psd_bytes: content.into(),
                                         psd_name: file.name().trim_end_matches(".psd").to_string(),
                                         cut_id,
                                     }),
-                                    false => on_event.call(Event::AddNewImage {
+                                    false => on_event(Event::AddNewImage {
                                         png_bytes: content.into(),
                                         cut_id,
                                     }),
@@ -71,7 +73,7 @@ impl Component for BackgroundWithEvent {
                                 spawn_local(async move {
                                     if let Ok(buffers) = clipboard::read_image_buffers().await {
                                         for png_bytes in buffers {
-                                            on_event.call(Event::AddNewImage { png_bytes, cut_id })
+                                            on_event(Event::AddNewImage { png_bytes, cut_id })
                                         }
                                     }
 
@@ -90,7 +92,7 @@ impl Component for BackgroundWithEvent {
                                                         .unwrap()
                                                     })
                                                 {
-                                                    on_event.call(Event::AddCg { cut_id, cg })
+                                                    on_event(Event::AddCg { cut_id, cg })
                                                 }
                                             }
                                         }
@@ -103,11 +105,11 @@ impl Component for BackgroundWithEvent {
                                 if event.code == Code::ArrowUp
                                     || (namui::keyboard::shift_press() && event.code == Code::Tab)
                                 {
-                                    on_event.call(Event::MoveCutRequest {
+                                    on_event(Event::MoveCutRequest {
                                         up_down: UpDown::Up,
                                     })
                                 } else {
-                                    on_event.call(Event::MoveCutRequest {
+                                    on_event(Event::MoveCutRequest {
                                         up_down: UpDown::Down,
                                     })
                                 };
@@ -116,7 +118,7 @@ impl Component for BackgroundWithEvent {
                         .on_mouse_down_in(move |event: MouseEvent| {
                             event.stop_propagation();
                             if event.button == Some(MouseButton::Right) {
-                                on_event.call(InternalEvent::MouseRightButtonDown {
+                                on_internal_event(InternalEvent::MouseRightButtonDown {
                                     global_xy: event.global_xy,
                                     cut_id,
                                 })

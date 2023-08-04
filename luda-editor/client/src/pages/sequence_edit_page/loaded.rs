@@ -47,7 +47,7 @@ impl Component for LoadedSequenceEditorPage {
 
         enum InternalEvent {
             CutListViewEvent { event: cut_list_view::Event },
-            // CutEditorEvent { event: cut_editor::Event2 },
+            CutEditorEvent { event: cut_editor::Event2 },
             CharacterEdtiorEvent { event: character_editor::Event },
             MemoListViewEvent { event: memo_list_view::Event },
             MemoEditorEvent { event: memo_editor::Event },
@@ -86,7 +86,15 @@ impl Component for LoadedSequenceEditorPage {
                     set_focused_component.set(Some(FocusableComponent::CutListView));
                 }
             },
-            // InternalEvent::CutEditorEvent { event } => todo!(),
+            InternalEvent::CutEditorEvent { event } => match event {
+                cut_editor::Event2::AddMemo { cut_id } => {
+                    set_editing_memo.set(Some(SequenceIdCutId {
+                        sequence_id,
+                        cut_id,
+                    }))
+                }
+                _ => {}
+            },
             InternalEvent::CharacterEdtiorEvent { event } => match event {
                 character_editor::Event::Close => set_character_editor_target.set(None),
                 character_editor::Event::CgChangeButtonClicked => {
@@ -220,18 +228,20 @@ impl Component for LoadedSequenceEditorPage {
             on_event: &|event| on_internal_event(InternalEvent::CutListViewEvent { event }),
         };
 
-        // let cut_editor_cell = |wh| {
-        //     selected_cut.map(|selected_cut| cut_editor::CutEditor {
-        //         wh,
-        //         cut: selected_cut,
-        //         cuts: &sequence.cuts,
-        //         is_focused: *focused_component == Some(FocusableComponent::CutEditor),
-        //         project_id,
-        //         cg_files: &cg_files,
-        //         on_event: ctx
-        //             .event_with_param(|event| Some(InternalEvent::CutEditorEvent { event })),
-        //     })
-        // };
+        let on_event = Box::new(|event| Some(InternalEvent::CutEditorEvent { event }).as_ref());
+        let cut_editor_cell = |wh| {
+            selected_cut.map(|selected_cut| cut_editor::CutEditor {
+                wh,
+                cut: selected_cut,
+                cuts: &sequence.cuts,
+                is_focused: *focused_component == Some(FocusableComponent::CutEditor),
+                project_id,
+                cg_files: &cg_files,
+                on_event: Box::new(|event| {
+                    on_internal_event(InternalEvent::CutEditorEvent { event })
+                }),
+            })
+        };
 
         ctx.add(table::hooks::horizontal([
             table::hooks::fixed(220.px(), cut_list_view_cell),
@@ -240,19 +250,20 @@ impl Component for LoadedSequenceEditorPage {
             memo_list_view_cell,
         ])(wh));
 
-        // if let Some(SequenceIdCutId {
-        //     sequence_id,
-        //     cut_id,
-        // }) = *editing_memo
-        // {
-        //     ctx.add(memo_editor::MemoEditor {
-        //         wh,
-        //         sequence_id,
-        //         cut_id,
-        //         on_event: ctx
-        //             .event_with_param(|event| Some(InternalEvent::MemoEditorEvent { event })),
-        //     })
-        // }
+        if let Some(SequenceIdCutId {
+            sequence_id,
+            cut_id,
+        }) = *editing_memo
+        {
+            ctx.add(memo_editor::MemoEditor {
+                wh,
+                sequence_id,
+                cut_id,
+                on_event: Box::new(|event| {
+                    on_internal_event(InternalEvent::MemoEditorEvent { event })
+                }),
+            })
+        }
 
         // if let Some(context_menu) = *context_menu {
         //     ctx.add(context_menu);
