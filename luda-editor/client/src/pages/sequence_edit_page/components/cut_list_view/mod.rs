@@ -24,7 +24,7 @@ pub enum Event {
     OnRightClickEvent { global_xy: Xy<Px> },
 }
 impl Component for CutListView<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             wh,
             ref cuts,

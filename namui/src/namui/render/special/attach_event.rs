@@ -1,4 +1,4 @@
-use crate::{web::WebEvent, *};
+use crate::*;
 use std::{
     collections::HashSet,
     fmt::Debug,
@@ -8,18 +8,24 @@ use std::{
     },
 };
 
-#[derive(Clone)]
-pub struct MouseEvent {
-    pub local_xy: Xy<Px>,
+pub struct MouseEvent<'a> {
+    pub(crate) local_xy: Box<dyn 'a + Fn() -> Xy<Px>>,
+    pub(crate) is_local_xy_in: Box<dyn 'a + Fn() -> bool>,
     pub global_xy: Xy<Px>,
     pub pressing_buttons: HashSet<MouseButton>,
     pub button: Option<MouseButton>,
     pub event_type: MouseEventType,
     pub(crate) is_stop_propagation: Arc<AtomicBool>,
 }
-impl MouseEvent {
+impl MouseEvent<'_> {
     pub fn stop_propagation(&self) {
         self.is_stop_propagation.store(true, Ordering::Relaxed);
+    }
+    pub fn local_xy(&self) -> Xy<Px> {
+        (self.local_xy)()
+    }
+    pub fn is_local_xy_in(&self) -> bool {
+        (self.is_local_xy_in)()
     }
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]

@@ -5,6 +5,14 @@ pub struct Matrix3x3 {
     values: nalgebra::Matrix3<f32>,
 }
 
+impl Default for Matrix3x3 {
+    fn default() -> Self {
+        Matrix3x3 {
+            values: nalgebra::Matrix3::identity(),
+        }
+    }
+}
+
 impl Matrix3x3 {
     pub fn new(a: f32, b: f32, c: f32, d: f32, e: f32, f: f32, g: f32, h: f32, i: f32) -> Self {
         Matrix3x3 {

@@ -17,7 +17,7 @@ impl StaticType for OnTop<'_> {
 }
 
 impl Component for OnTop<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         ctx.add(self.component.as_ref());
         ctx.done_with_rendering_tree(|children| crate::on_top(RenderingTree::Children(children)))
     }

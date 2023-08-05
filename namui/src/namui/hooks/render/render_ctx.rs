@@ -1,6 +1,5 @@
 use super::*;
 use crate::{Matrix3x3, RenderingTree};
-use namui_type::*;
 
 pub struct RenderCtx {
     pub(crate) instance: Arc<ComponentInstance>,
@@ -11,6 +10,8 @@ pub struct RenderCtx {
     pub(crate) updated_sigs: Mutex<HashSet<SigId>>,
     tree_ctx: Arc<TreeContext>,
     children: Arc<Mutex<Vec<RenderingTree>>>,
+    pub(crate) matrix: Mutex<Matrix3x3>,
+    force_render_index: AtomicUsize,
 }
 
 impl<'a> RenderCtx {
@@ -28,6 +29,8 @@ impl<'a> RenderCtx {
             updated_sigs: Mutex::new(updated_sigs),
             tree_ctx,
             children: Default::default(),
+            matrix: Default::default(),
+            force_render_index: Default::default(),
         }
     }
 
@@ -71,25 +74,13 @@ impl<'a> RenderCtx {
         handle_effect(self, title, effect)
     }
 
-    pub fn add(
-        &'a self,
-        add: impl Component, // Name 'add' is to prevent showing 'child' text on rust-analyzer with vscode
-    ) -> AddingCtx {
-        let matrix = Matrix3x3::identity(); // TODO
-        let mut ctx = AddingCtx::new(self.tree_ctx.clone(), self.children.clone(), matrix);
-        ctx.add(add);
-        ctx
+    pub(crate) fn add(&'a self, key: String, component: impl Component) {
+        let rendering_tree = self.render(key, component);
+        self.push_rendering_tree(rendering_tree);
     }
 
-    pub(crate) fn add_rendering_tree(&'a self, rendering_tree: RenderingTree) {
+    pub(crate) fn push_rendering_tree(&'a self, rendering_tree: RenderingTree) {
         self.children.lock().unwrap().push(rendering_tree);
-    }
-
-    pub fn try_add<C: Component>(&'a self, try_add: Option<C>) -> &'a Self {
-        if let Some(component) = try_add {
-            self.add(component);
-        }
-        self
     }
 
     pub(crate) fn is_sig_updated(&self, sig_id: &SigId) -> bool {
@@ -110,78 +101,81 @@ impl<'a> RenderCtx {
         Arc::new(value)
     }
 
-    pub(crate) fn done(self) -> RenderDone {
+    pub fn return_(&self, component: impl Component) -> RenderDone {
+        self.add("".to_string(), component);
+        self.return_internal()
+    }
+
+    pub fn return_no(&self) -> RenderDone {
         RenderDone {
-            rendering_tree: RenderingTree::Children(
-                Arc::into_inner(self.children)
-                    .unwrap()
-                    .into_inner()
-                    .unwrap(),
-            ),
+            rendering_tree: RenderingTree::Empty,
         }
     }
 
-    pub fn test_bounding_box(
-        &self,
-        component: impl Component,
-    ) -> (Option<Rect<Px>>, Arc<ComponentInstance>) {
-        todo!()
-    }
-
-    pub fn translate(&self, xy: Xy<Px>) -> MatrixCtx {
-        MatrixCtx {
-            ctx: self,
-            matrix: Matrix3x3::from_translate(xy.x.as_f32(), xy.y.as_f32()),
+    pub(crate) fn return_internal(&self) -> RenderDone {
+        RenderDone {
+            rendering_tree: RenderingTree::Children(std::mem::take(
+                &mut self.children.lock().unwrap(),
+            )),
         }
     }
 
-    pub fn later_once(&'a self, later_once: impl 'a + FnOnce(&Self)) -> impl 'a + Component {
-        RenderBox::new(later_once)
+    pub fn ghost_render(&self, component: impl Component) -> RenderingTree {
+        let index = self
+            .force_render_index
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let key = format!("force_render_{index}");
+        self.render(key, component)
     }
 
-    pub fn clip(&self, path: crate::PathBuilder, clip_op: crate::ClipOp) -> MatrixCtx {
-        todo!()
-    }
-}
-
-#[derive(Clone)]
-pub struct MatrixCtx<'a> {
-    pub(crate) ctx: &'a RenderCtx,
-    pub(crate) matrix: Matrix3x3,
-}
-
-impl<'a> MatrixCtx<'a> {
-    pub fn translate(&mut self, xy: Xy<Px>) -> &mut Self {
-        self.matrix.translate(xy.x.as_f32(), xy.y.as_f32());
-        self
-    }
-
-    pub fn branch(&mut self, branch: impl FnOnce(&mut Self)) -> &mut Self {
-        branch(&mut self.clone());
-        self
-    }
-
-    pub fn add(&mut self, add: impl Component) -> AddingCtx {
-        let mut ctx = self.create_adding_ctx();
-        ctx.add(add);
-        ctx
-    }
-
-    pub fn add_with_instance(
-        &self,
-        component: impl Component,
-        instance: Arc<ComponentInstance>,
-    ) -> AddingCtx {
-        let mut ctx = self.create_adding_ctx();
-        ctx.add_with_instance(component, instance);
-        ctx
-    }
-
-    fn create_adding_ctx(&self) -> AddingCtx {
-        AddingCtx::new(
-            self.ctx.tree_ctx.clone(),
-            self.ctx.children.clone(),
-            self.matrix,
+    fn render(&self, key: String, component: impl Component) -> RenderingTree {
+        let child_instance = self.instance.get_or_create_child_instance(key, &component);
+        self.tree_ctx.render(
+            component,
+            child_instance,
+            self.updated_sigs.lock().unwrap().clone(),
         )
     }
 }
+
+// #[derive(Clone)]
+// pub struct MatrixCtx<'a> {
+//     pub(crate) ctx: &'a RenderCtx,
+//     pub(crate) matrix: Matrix3x3,
+// }
+
+// impl<'a> MatrixCtx<'a> {
+//     pub fn translate(&mut self, xy: Xy<Px>) -> &mut Self {
+//         self.matrix.translate(xy.x.as_f32(), xy.y.as_f32());
+//         self
+//     }
+
+//     pub fn branch(&mut self, branch: impl FnOnce(&mut Self)) -> &mut Self {
+//         branch(&mut self.clone());
+//         self
+//     }
+
+//     pub fn add(&mut self, add: impl Component) -> AddingCtx {
+//         let mut ctx = self.create_adding_ctx();
+//         ctx.add(add);
+//         ctx
+//     }
+
+//     pub fn add_with_instance(
+//         &self,
+//         component: impl Component,
+//         instance: Arc<ComponentInstance>,
+//     ) -> AddingCtx {
+//         let mut ctx = self.create_adding_ctx();
+//         ctx.add_with_instance(component, instance);
+//         ctx
+//     }
+
+//     fn create_adding_ctx(&self) -> AddingCtx {
+//         AddingCtx::new(
+//             self.ctx.tree_ctx.clone(),
+//             self.ctx.children.clone(),
+//             self.matrix,
+//         )
+//     }
+// }

@@ -131,6 +131,7 @@ impl<State: 'static + Debug + Send + Sync> SetState<State> {
             value: Arc::new(Mutex::new(Some(Box::new(state)))),
         }));
     }
+    // TODO: Maybe not 'static?
     pub fn mutate(self, mutate: impl FnOnce(&mut State) + Send + Sync + 'static) {
         channel::send(channel::Item::SetStateItem(SetStateItem::Mutate {
             sig_id: self.sig_id,

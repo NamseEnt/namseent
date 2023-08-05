@@ -15,7 +15,7 @@ use std::{
     ops::Range,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Mutex, OnceLock,
+        OnceLock,
     },
 };
 
@@ -67,7 +67,7 @@ struct TextInputMouseEvent {
 }
 
 impl Component for TextInput<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let on_event = &self.on_event;
         let id = self.instance.id;
         let (atom, set_atom) = ctx.atom_init(&TEXT_INPUT_ATOM, || TextInputCtx {
@@ -77,11 +77,8 @@ impl Component for TextInput<'_> {
         });
 
         let is_focused = ctx.memo(|| atom.is_focused(id));
-        crate::log!("is_focused: {:?}", is_focused);
         let prevent_default_codes = ctx.track_eq(&self.prevent_default_codes);
 
-        static LAST_MOUSE_DOWNED: OnceLock<Mutex<Option<TextInputMouseEvent>>> = OnceLock::new();
-        static LAST_MOUSE_MOVED: OnceLock<Mutex<Option<TextInputMouseEvent>>> = OnceLock::new();
         static MOUSE_DOWN_FIRST_CALL: OnceLock<AtomicBool> = OnceLock::new();
 
         ctx.effect("Set WebEvent first call", || {
@@ -113,386 +110,199 @@ impl Component for TextInput<'_> {
 
         // TODO: blur on unmount if focused
 
-        ctx.web_event(|web_event| {
-            let get_selection_index_of_xy = |fonts: &Vec<Arc<Font>>,
-                                             line_texts: &LineTexts,
-                                             click_local_xy: Xy<Px>,
-                                             paint: Arc<Paint>|
-             -> usize {
-                let line_len = line_texts.line_len();
-                if line_len == 0 {
-                    return 0;
-                }
+        let get_selection_index_of_xy = |fonts: &Vec<Arc<Font>>,
+                                         line_texts: &LineTexts,
+                                         click_local_xy: Xy<Px>,
+                                         paint: Arc<Paint>|
+         -> usize {
+            let line_len = line_texts.line_len();
+            if line_len == 0 {
+                return 0;
+            }
 
-                let line_index = {
-                    let line_height = self.line_height_px();
+            let line_index = {
+                let line_height = self.line_height_px();
 
-                    let top_y = click_local_xy.y
-                        + line_height
-                            * match self.text_baseline {
-                                TextBaseline::Top => 0.0,
-                                TextBaseline::Middle => line_len as f32 / 2.0,
-                                TextBaseline::Bottom => line_len as f32,
-                            };
+                let top_y = click_local_xy.y
+                    + line_height
+                        * match self.text_baseline {
+                            TextBaseline::Top => 0.0,
+                            TextBaseline::Middle => line_len as f32 / 2.0,
+                            TextBaseline::Bottom => line_len as f32,
+                        };
 
-                    let line_index = if top_y <= 0.px() {
-                        0
+                let line_index = if top_y <= 0.px() {
+                    0
+                } else {
+                    (top_y / line_height).floor() as usize
+                };
+
+                let line_max_index = line_len - 1;
+                line_index.min(line_max_index)
+            };
+
+            let str_index_before_line = line_texts.char_index_before_line(line_index);
+
+            let line_text = line_texts.iter_str().nth(line_index).unwrap();
+
+            let glyph_widths = get_text_widths(&line_text, &fonts, paint);
+
+            let line_width = glyph_widths.iter().sum::<Px>();
+
+            let aligned_x = match self.text_align {
+                TextAlign::Left => click_local_xy.x,
+                TextAlign::Center => click_local_xy.x + line_width / 2.0,
+                TextAlign::Right => click_local_xy.x + line_width,
+            };
+
+            let mut left = px(0.0);
+            let index = glyph_widths
+                .iter()
+                .position(|width| {
+                    let center = left + width / 2.0;
+                    if aligned_x < center {
+                        return true;
+                    }
+                    left += *width;
+                    return false;
+                })
+                .unwrap_or(line_text.chars().count());
+
+            str_index_before_line + index
+        };
+
+        let get_one_click_selection = |fonts: &Vec<Arc<Font>>,
+                                       line_texts: &LineTexts,
+                                       click_local_xy: Xy<Px>,
+                                       is_dragging: bool,
+                                       last_selection: &Selection,
+                                       paint: Arc<Paint>|
+         -> Range<usize> {
+            let selection_index_of_xy =
+                get_selection_index_of_xy(fonts, line_texts, click_local_xy, paint);
+
+            let start = match last_selection {
+                Selection::Range(range) => {
+                    if !is_dragging {
+                        selection_index_of_xy
                     } else {
-                        (top_y / line_height).floor() as usize
-                    };
-
-                    let line_max_index = line_len - 1;
-                    line_index.min(line_max_index)
-                };
-
-                let str_index_before_line = line_texts.char_index_before_line(line_index);
-
-                let line_text = line_texts.iter_str().nth(line_index).unwrap();
-
-                let glyph_widths = get_text_widths(&line_text, &fonts, paint);
-
-                let line_width = glyph_widths.iter().sum::<Px>();
-
-                let aligned_x = match self.text_align {
-                    TextAlign::Left => click_local_xy.x,
-                    TextAlign::Center => click_local_xy.x + line_width / 2.0,
-                    TextAlign::Right => click_local_xy.x + line_width,
-                };
-
-                let mut left = px(0.0);
-                let index = glyph_widths
-                    .iter()
-                    .position(|width| {
-                        let center = left + width / 2.0;
-                        if aligned_x < center {
-                            return true;
-                        }
-                        left += *width;
-                        return false;
-                    })
-                    .unwrap_or(line_text.chars().count());
-
-                str_index_before_line + index
+                        range.start
+                    }
+                }
+                Selection::None => selection_index_of_xy,
             };
 
-            let get_one_click_selection = |fonts: &Vec<Arc<Font>>,
-                                           line_texts: &LineTexts,
-                                           click_local_xy: Xy<Px>,
-                                           is_dragging: bool,
-                                           last_selection: &Selection,
-                                           paint: Arc<Paint>|
-             -> Range<usize> {
-                let selection_index_of_xy =
-                    get_selection_index_of_xy(fonts, line_texts, click_local_xy, paint);
+            start..selection_index_of_xy
+        };
 
-                let start = match last_selection {
-                    Selection::Range(range) => {
-                        if !is_dragging {
-                            selection_index_of_xy
-                        } else {
-                            range.start
-                        }
+        let get_selection_on_mouse_movement = |click_local_xy: Xy<Px>,
+                                               is_dragging_by_mouse: bool|
+         -> Selection {
+            let font = crate::font::get_font(self.font_type);
+
+            if font.is_none() {
+                return Selection::None;
+            };
+            let font = font.unwrap();
+            let fonts = crate::font::with_fallbacks(font);
+
+            let is_shift_key_pressed =
+                crate::keyboard::any_code_press([crate::Code::ShiftLeft, crate::Code::ShiftRight]);
+
+            let paint = get_text_paint(self.style.text.color).build();
+
+            let line_texts = LineTexts::new(
+                &self.text,
+                fonts.clone(),
+                paint.clone(),
+                Some(self.rect.width()),
+            );
+
+            // const continouslyFastClickCount: number;
+
+            // if (continouslyFastClickCount >= 3) {
+            //   return getMoreTripleClickSelection({ text });
+            // }
+            // if (continouslyFastClickCount === 2) {
+            //   return getDoubleClickSelection({ text, font, x: localX });
+            // }
+
+            let is_dragging = is_shift_key_pressed || is_dragging_by_mouse;
+
+            Selection::Range(get_one_click_selection(
+                &fonts,
+                &line_texts,
+                click_local_xy,
+                is_dragging,
+                &atom.selection,
+                paint,
+            ))
+        };
+
+        let update_focus_with_mouse_movement = |local_mouse_xy: Xy<Px>, is_mouse_move: bool| {
+            let local_text_xy = local_mouse_xy - Xy::new(self.text_x(), self.text_y());
+
+            let selection: Selection =
+                get_selection_on_mouse_movement(local_text_xy, is_mouse_move);
+
+            let selection_direction = match &selection {
+                Selection::Range(range) => {
+                    if range.start <= range.end {
+                        "forward"
+                    } else {
+                        "backward"
                     }
-                    Selection::None => selection_index_of_xy,
-                };
-
-                start..selection_index_of_xy
+                }
+                Selection::None => "none",
             };
 
-            let get_selection_on_mouse_movement =
-                |click_local_xy: Xy<Px>, is_dragging_by_mouse: bool| -> Selection {
-                    let font = crate::font::get_font(self.font_type);
+            // prev: let utf16_selection = selection.as_utf16(input_element.value());
+            let utf16_selection = selection.as_utf16(&self.text);
+            let selection_start = utf16_selection
+                .as_ref()
+                .map_or(0, |selection| selection.start.min(selection.end) as u32);
+            let selection_end = utf16_selection
+                .as_ref()
+                .map_or(0, |selection| selection.start.max(selection.end) as u32);
 
-                    if font.is_none() {
-                        return Selection::None;
-                    };
-                    let font = font.unwrap();
-                    let fonts = crate::font::with_fallbacks(font);
+            let width = self.rect.width().as_f32();
 
-                    let is_shift_key_pressed = crate::keyboard::any_code_press([
-                        crate::Code::ShiftLeft,
-                        crate::Code::ShiftRight,
-                    ]);
-
-                    let paint = get_text_paint(self.style.text.color).build();
-
-                    let line_texts = LineTexts::new(
-                        &self.text,
-                        fonts.clone(),
-                        paint.clone(),
-                        Some(self.rect.width()),
-                    );
-
-                    // const continouslyFastClickCount: number;
-
-                    // if (continouslyFastClickCount >= 3) {
-                    //   return getMoreTripleClickSelection({ text });
-                    // }
-                    // if (continouslyFastClickCount === 2) {
-                    //   return getDoubleClickSelection({ text, font, x: localX });
-                    // }
-
-                    let is_dragging = is_shift_key_pressed || is_dragging_by_mouse;
-
-                    Selection::Range(get_one_click_selection(
-                        &fonts,
-                        &line_texts,
-                        click_local_xy,
-                        is_dragging,
-                        &atom.selection,
-                        paint,
-                    ))
-                };
-
-            let update_focus_with_mouse_movement = |local_mouse_xy: Xy<Px>, is_mouse_move: bool| {
-                let local_text_xy = local_mouse_xy - Xy::new(self.text_x(), self.text_y());
-
-                let selection: Selection =
-                    get_selection_on_mouse_movement(local_text_xy, is_mouse_move);
-
-                let selection_direction = match &selection {
-                    Selection::Range(range) => {
-                        if range.start <= range.end {
-                            "forward"
-                        } else {
-                            "backward"
-                        }
-                    }
-                    Selection::None => "none",
-                };
-
-                // prev: let utf16_selection = selection.as_utf16(input_element.value());
-                let utf16_selection = selection.as_utf16(&self.text);
-                let selection_start = utf16_selection
-                    .as_ref()
-                    .map_or(0, |selection| selection.start.min(selection.end) as u32);
-                let selection_end = utf16_selection
-                    .as_ref()
-                    .map_or(0, |selection| selection.start.max(selection.end) as u32);
-
-                let width = self.rect.width().as_f32();
-
-                web::execute_function_sync(
-                    "
+            web::execute_function_sync(
+                "
         textArea.style.width = `${width}px`;
         textArea.value = text;
         textArea.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
         textArea.focus();
         ",
-                )
-                .arg("width", width)
-                .arg("text", &self.text)
-                .arg("selectionStart", selection_start)
-                .arg("selectionEnd", selection_end)
-                .arg("selectionDirection", selection_direction)
-                .run::<()>();
-            };
+            )
+            .arg("width", width)
+            .arg("text", &self.text)
+            .arg("selectionStart", selection_start)
+            .arg("selectionEnd", selection_end)
+            .arg("selectionDirection", selection_direction)
+            .run::<()>();
+        };
 
-            let update_selection = |selection_direction: SelectionDirection,
-                                    selection_start: usize,
-                                    selection_end: usize,
-                                    text: &str| {
-                let selection = get_input_element_selection(
-                    selection_direction,
-                    selection_start,
-                    selection_end,
-                    text,
-                )
-                .map(|range| {
-                    let chars_count = self.text.chars().count();
-                    range.start.min(chars_count)..range.end.min(chars_count)
-                });
+        let update_selection = |selection_direction: SelectionDirection,
+                                selection_start: usize,
+                                selection_end: usize,
+                                text: &str| {
+            let selection = get_input_element_selection(
+                selection_direction,
+                selection_start,
+                selection_end,
+                text,
+            )
+            .map(|range| {
+                let chars_count = self.text.chars().count();
+                range.start.min(chars_count)..range.end.min(chars_count)
+            });
 
-                TEXT_INPUT_ATOM.mutate(move |text_input_ctx| text_input_ctx.selection = selection);
-            };
-
-            match web_event {
-                &web::WebEvent::MouseDown { .. } => {
-                    let mut last_mouse_downed = LAST_MOUSE_DOWNED
-                        .get_or_init(Default::default)
-                        .lock()
-                        .unwrap();
-
-                    let is_me = last_mouse_downed.as_ref().is_some_and(|x| x.id == id);
-                    if !is_me {
-                        return;
-                    }
-
-                    let last_mouse_downed = last_mouse_downed.take().unwrap();
-
-                    set_atom.mutate(move |x| {
-                        x.focused_id = Some(last_mouse_downed.id);
-                        x.mouse_dragging = true;
-                    });
-
-                    update_focus_with_mouse_movement(last_mouse_downed.local_xy, false);
-                }
-                &web::WebEvent::MouseUp { .. } => {
-                    if *is_focused && atom.mouse_dragging {
-                        set_atom.mutate(|x| x.mouse_dragging = false);
-                    }
-                }
-                &web::WebEvent::MouseMove { .. } => {
-                    if *is_focused && atom.mouse_dragging {
-                        let last_mouse_downed = LAST_MOUSE_MOVED
-                            .get_or_init(Default::default)
-                            .lock()
-                            .unwrap()
-                            .take()
-                            .unwrap();
-
-                        update_focus_with_mouse_movement(last_mouse_downed.local_xy, true);
-                    }
-                }
-                &web::WebEvent::SelectionChange {
-                    selection_direction,
-                    selection_start,
-                    selection_end,
-                    ref text,
-                } => {
-                    if !*is_focused {
-                        return;
-                    };
-
-                    update_selection(selection_direction, selection_start, selection_end, text);
-                }
-                &web::WebEvent::TextInputTextUpdated {
-                    ref text,
-                    selection_direction,
-                    selection_start,
-                    selection_end,
-                } => {
-                    if !*is_focused {
-                        return;
-                    }
-
-                    update_selection(selection_direction, selection_start, selection_end, text);
-
-                    on_event(Event::TextUpdated {
-                        text: text.as_str(),
-                    });
-                }
-                &web::WebEvent::TextInputKeyDown {
-                    code,
-                    ref text,
-                    selection_direction,
-                    selection_start,
-                    selection_end,
-                    is_composing,
-                } => {
-                    if !*is_focused {
-                        return;
-                    }
-
-                    on_event(Event::KeyDown { code });
-
-                    // self.event_handler.as_ref().map(|event_handler| {
-                    //     event_handler.on_key_down.as_ref().map(|on_key_down| {
-                    //         let is_prevented_default = Arc::new(AtomicBool::new(false));
-
-                    //         let key_down_event = KeyDownEvent {
-                    //             code,
-                    //             is_prevented_default: is_prevented_default.clone(),
-                    //             is_composing,
-                    //         };
-                    //         on_key_down.invoke(key_down_event);
-
-                    //         if is_prevented_default.load(Ordering::Relaxed) {
-                    //             todo!()
-                    //             // event.prevent_default();
-                    //         }
-                    //     })
-                    // });
-
-                    let get_selection_on_keyboard_down = |key: KeyInInterest| -> Selection {
-                        let selection = get_input_element_selection(
-                            selection_direction,
-                            selection_start,
-                            selection_end,
-                            &text,
-                        );
-                        let Selection::Range(range) = selection else {
-                                    return Selection::None;
-                                };
-
-                        let Some(line_texts) = self.get_line_texts() else {
-                                    return Selection::None;
-                                };
-
-                        let next_selection_end =
-                            get_caret_index_after_apply_key_movement(key, line_texts, &range);
-
-                        let is_shift_key_pressed = crate::keyboard::any_code_press([
-                            crate::Code::ShiftLeft,
-                            crate::Code::ShiftRight,
-                        ]);
-                        let is_dragging = is_shift_key_pressed;
-
-                        return match is_dragging {
-                            true => Selection::Range(range.start..next_selection_end),
-                            false => Selection::Range(next_selection_end..next_selection_end),
-                        };
-
-                        fn get_caret_index_after_apply_key_movement(
-                            key: KeyInInterest,
-                            line_texts: LineTexts,
-                            selection: &Range<usize>,
-                        ) -> usize {
-                            let multiline_caret = line_texts.into_multiline_caret(selection.end);
-
-                            let caret_after_move = multiline_caret.get_caret_on_key(key);
-
-                            let next_selection_end = caret_after_move.to_selection_index();
-                            next_selection_end
-                        }
-                    };
-
-                    let key_in_interest = match code {
-                        Code::ArrowUp => KeyInInterest::ArrowUpDown(ArrowUpDown::Up),
-                        Code::ArrowDown => KeyInInterest::ArrowUpDown(ArrowUpDown::Down),
-                        Code::Home => KeyInInterest::HomeEnd(HomeEnd::Home),
-                        Code::End => KeyInInterest::HomeEnd(HomeEnd::End),
-                        _ => return,
-                    };
-
-                    let selection = get_selection_on_keyboard_down(key_in_interest);
-
-                    let Some(utf16_selection) = selection.as_utf16(&text) else {
-                                return;
-                            };
-
-                    let selection_direction = if utf16_selection.start <= utf16_selection.end {
-                        "forward"
-                    } else {
-                        "backward"
-                    };
-
-                    web::execute_function_sync(
-                        "
-                                        textArea.setSelectionRange(
-                                            selectionStart,
-                                            selectionEnd,
-                                            selectionDirection,
-                                        )
-                                    ",
-                    )
-                    .arg(
-                        "selectionStart",
-                        utf16_selection.start.min(utf16_selection.end) as u32,
-                    )
-                    .arg(
-                        "selectionEnd",
-                        utf16_selection.start.max(utf16_selection.end) as u32,
-                    )
-                    .arg("selectionDirection", selection_direction)
-                    .run::<()>();
-                }
-                _ => {}
-            }
-        });
+            TEXT_INPUT_ATOM.mutate(move |text_input_ctx| text_input_ctx.selection = selection);
+        };
 
         let Some(font) = namui::font::get_font(self.font_type) else {
-            return;
+            return ctx.return_no();
         };
 
         let fonts = crate::font::with_fallbacks(font);
@@ -508,7 +318,7 @@ impl Component for TextInput<'_> {
 
         let selection = atom.get_selection_of_text_input(id);
 
-        ctx.add(render([
+        ctx.return_((
             namui::rect(RectParam {
                 rect: self.rect,
                 style: RectStyle {
@@ -523,6 +333,178 @@ impl Component for TextInput<'_> {
                     },
                     ..self.style.rect
                 },
+            })
+            .on_event(|event| {
+                match event {
+                    crate::Event::MouseDown { event } => {
+                        if !event.is_local_xy_in() {
+                            return;
+                        }
+
+                        let id = id.clone();
+                        set_atom.mutate(move |atom| {
+                            atom.focused_id = Some(id);
+                            atom.mouse_dragging = true;
+                        });
+
+                        update_focus_with_mouse_movement(event.local_xy(), false);
+                    }
+                    crate::Event::MouseUp { .. } => {
+                        if *is_focused && atom.mouse_dragging {
+                            set_atom.mutate(|x| x.mouse_dragging = false);
+                        }
+                    }
+                    crate::Event::MouseMove { event } => {
+                        if *is_focused && atom.mouse_dragging {
+                            update_focus_with_mouse_movement(event.local_xy(), true);
+                        }
+                    }
+                    crate::Event::SelectionChange {
+                        selection_direction,
+                        selection_start,
+                        selection_end,
+                        ref text,
+                    } => {
+                        if !*is_focused {
+                            return;
+                        };
+
+                        update_selection(selection_direction, selection_start, selection_end, text);
+                    }
+                    crate::Event::TextInputTextUpdated {
+                        ref text,
+                        selection_direction,
+                        selection_start,
+                        selection_end,
+                    } => {
+                        if !*is_focused {
+                            return;
+                        }
+
+                        update_selection(selection_direction, selection_start, selection_end, text);
+
+                        on_event(Event::TextUpdated {
+                            text: text.as_str(),
+                        });
+                    }
+                    crate::Event::TextInputKeyDown {
+                        code,
+                        ref text,
+                        selection_direction,
+                        selection_start,
+                        selection_end,
+                        is_composing,
+                    } => {
+                        if !*is_focused {
+                            return;
+                        }
+
+                        on_event(Event::KeyDown { code });
+
+                        // self.event_handler.as_ref().map(|event_handler| {
+                        //     event_handler.on_key_down.as_ref().map(|on_key_down| {
+                        //         let is_prevented_default = Arc::new(AtomicBool::new(false));
+
+                        //         let key_down_event = KeyDownEvent {
+                        //             code,
+                        //             is_prevented_default: is_prevented_default.clone(),
+                        //             is_composing,
+                        //         };
+                        //         on_key_down.invoke(key_down_event);
+
+                        //         if is_prevented_default.load(Ordering::Relaxed) {
+                        //             todo!()
+                        //             // event.prevent_default();
+                        //         }
+                        //     })
+                        // });
+
+                        let get_selection_on_keyboard_down = |key: KeyInInterest| -> Selection {
+                            let selection = get_input_element_selection(
+                                selection_direction,
+                                selection_start,
+                                selection_end,
+                                &text,
+                            );
+                            let Selection::Range(range) = selection else {
+                                    return Selection::None;
+                                };
+
+                            let Some(line_texts) = self.get_line_texts() else {
+                                    return Selection::None;
+                                };
+
+                            let next_selection_end =
+                                get_caret_index_after_apply_key_movement(key, line_texts, &range);
+
+                            let is_shift_key_pressed = crate::keyboard::any_code_press([
+                                crate::Code::ShiftLeft,
+                                crate::Code::ShiftRight,
+                            ]);
+                            let is_dragging = is_shift_key_pressed;
+
+                            return match is_dragging {
+                                true => Selection::Range(range.start..next_selection_end),
+                                false => Selection::Range(next_selection_end..next_selection_end),
+                            };
+
+                            fn get_caret_index_after_apply_key_movement(
+                                key: KeyInInterest,
+                                line_texts: LineTexts,
+                                selection: &Range<usize>,
+                            ) -> usize {
+                                let multiline_caret =
+                                    line_texts.into_multiline_caret(selection.end);
+
+                                let caret_after_move = multiline_caret.get_caret_on_key(key);
+
+                                let next_selection_end = caret_after_move.to_selection_index();
+                                next_selection_end
+                            }
+                        };
+
+                        let key_in_interest = match code {
+                            Code::ArrowUp => KeyInInterest::ArrowUpDown(ArrowUpDown::Up),
+                            Code::ArrowDown => KeyInInterest::ArrowUpDown(ArrowUpDown::Down),
+                            Code::Home => KeyInInterest::HomeEnd(HomeEnd::Home),
+                            Code::End => KeyInInterest::HomeEnd(HomeEnd::End),
+                            _ => return,
+                        };
+
+                        let selection = get_selection_on_keyboard_down(key_in_interest);
+
+                        let Some(utf16_selection) = selection.as_utf16(&text) else {
+                                return;
+                            };
+
+                        let selection_direction = if utf16_selection.start <= utf16_selection.end {
+                            "forward"
+                        } else {
+                            "backward"
+                        };
+
+                        web::execute_function_sync(
+                            "
+                                        textArea.setSelectionRange(
+                                            selectionStart,
+                                            selectionEnd,
+                                            selectionDirection,
+                                        )
+                                    ",
+                        )
+                        .arg(
+                            "selectionStart",
+                            utf16_selection.start.min(utf16_selection.end) as u32,
+                        )
+                        .arg(
+                            "selectionEnd",
+                            utf16_selection.start.max(utf16_selection.end) as u32,
+                        )
+                        .arg("selectionDirection", selection_direction)
+                        .run::<()>();
+                    }
+                    _ => {}
+                }
             }),
             self.draw_texts_divided_by_selection(
                 &self,
@@ -532,35 +514,7 @@ impl Component for TextInput<'_> {
                 &selection,
             ),
             self.draw_caret(&self, &line_texts, &selection, paint.clone()),
-        ]))
-        .on_mouse_down_in(|event: MouseEvent| {
-            LAST_MOUSE_DOWNED
-                .get_or_init(Default::default)
-                .lock()
-                .unwrap()
-                .replace(TextInputMouseEvent {
-                    id,
-                    local_xy: event.local_xy,
-                });
-        })
-        .on_mouse(|event| match event.event_type {
-            MouseEventType::Down => {}
-            MouseEventType::Up => {}
-            MouseEventType::Move => {
-                if !*is_focused {
-                    return;
-                }
-
-                LAST_MOUSE_MOVED
-                    .get_or_init(Default::default)
-                    .lock()
-                    .unwrap()
-                    .replace(TextInputMouseEvent {
-                        id,
-                        local_xy: event.local_xy,
-                    });
-            }
-        });
+        ))
     }
 }
 

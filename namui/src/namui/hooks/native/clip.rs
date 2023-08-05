@@ -21,7 +21,7 @@ pub struct Clip<'a> {
 impl StaticType for Clip<'_> {}
 
 impl Component for Clip<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             ref path_builder,
             clip_op,

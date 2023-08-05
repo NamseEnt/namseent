@@ -17,41 +17,22 @@ pub(crate) struct TreeContext {
 
 struct Inner {
     render_event: RenderEvent,
-    current_component_parent_id: usize,
-    /// order: parent -> left -> right
-    component_render_queue: VecDeque<ComponentRenderQueueItem>,
+    // current_component_parent_id: usize,
+    // /// order: parent -> left -> right
+    // component_render_queue: VecDeque<ComponentRenderQueueItem>,
 
-    tree_id_map: HashMap<usize, VecDeque<usize>>,
-    fn_rendering_tree_map: RefCell<HashMap<usize, Option<FnRenderingTree>>>,
-    component_instance_map: HashMap<usize, Arc<ComponentInstance>>,
-    updated_sigs: HashSet<SigId>,
+    // tree_id_map: HashMap<usize, VecDeque<usize>>,
+    // fn_rendering_tree_map: RefCell<HashMap<usize, Option<FnRenderingTree>>>,
+    // component_instance_map: HashMap<usize, Arc<ComponentInstance>>,
+    // updated_sigs: HashSet<SigId>,
 
-    last_render_component_instance_map: HashMap<usize, Arc<ComponentInstance>>,
-    last_tree_id_map: HashMap<usize, VecDeque<usize>>,
+    // last_render_component_instance_map: HashMap<usize, Arc<ComponentInstance>>,
+    // last_tree_id_map: HashMap<usize, VecDeque<usize>>,
 }
 
 impl Debug for Inner {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Inner")
-            .field(
-                "current_component_parent_id",
-                &self.current_component_parent_id,
-            )
-            .field("component_render_queue", &self.component_render_queue.len())
-            .field("tree_id_map", &self.tree_id_map)
-            .field(
-                "fn_rendering_tree_map",
-                &self.fn_rendering_tree_map.borrow().keys(),
-            )
-            .field(
-                "component_instance_map",
-                &self
-                    .component_instance_map
-                    .iter()
-                    .map(|(k, v)| (k, v.component_id))
-                    .collect::<HashMap<_, _>>(),
-            )
-            .finish()
+        f.debug_struct("Inner").finish()
     }
 }
 
@@ -70,20 +51,20 @@ impl TreeContext {
         Self {
             inner: Arc::new(Mutex::new(Inner {
                 render_event: RenderEvent::Mount,
-                current_component_parent_id: ROOT_COMPONENT_ID,
-                component_render_queue: Default::default(),
-                tree_id_map: Default::default(),
-                fn_rendering_tree_map: Default::default(),
-                component_instance_map: Default::default(),
-                last_render_component_instance_map: Default::default(),
-                last_tree_id_map: Default::default(),
-                updated_sigs: Default::default(),
+                // current_component_parent_id: ROOT_COMPONENT_ID,
+                // component_render_queue: Default::default(),
+                // tree_id_map: Default::default(),
+                // fn_rendering_tree_map: Default::default(),
+                // component_instance_map: Default::default(),
+                // last_render_component_instance_map: Default::default(),
+                // last_tree_id_map: Default::default(),
+                // updated_sigs: Default::default(),
             })),
         }
     }
 
     pub(crate) fn before_re_render(&self) {
-        self.inner.lock().unwrap().before_re_render();
+        // self.inner.lock().unwrap().before_re_render();
     }
 
     pub(crate) fn end_up_one_component_rendering<'a>(mut self, result: ComponentRenderResult<'a>) {
@@ -125,98 +106,104 @@ impl TreeContext {
         //     }
         // }
     }
-    fn flush_channel(&mut self, is_need_to_re_render: &mut bool) {
-        let mut inner = self.inner.lock().unwrap();
+    // fn flush_channel(&mut self, is_need_to_re_render: &mut bool) {
+    //     let mut inner = self.inner.lock().unwrap();
 
-        // TODO: Remove this loop, just call once. this loop is for event_callback.
-        loop {
-            let channel_items = channel::drain();
-            if channel_items.len() == 0 {
-                break;
-            }
-            for channel_item in channel_items {
-                match channel_item {
-                    Item::SetStateItem(item) => {
-                        *is_need_to_re_render = true;
+    //     // TODO: Remove this loop, just call once. this loop is for event_callback.
+    //     loop {
+    //         let channel_items = channel::drain();
+    //         if channel_items.len() == 0 {
+    //             break;
+    //         }
+    //         for channel_item in channel_items {
+    //             match channel_item {
+    //                 Item::SetStateItem(item) => {
+    //                     *is_need_to_re_render = true;
 
-                        match item {
-                            SetStateItem::Set { sig_id, value } => {
-                                inner.add_updated_sig(sig_id);
-                                let component_instance =
-                                    inner.get_component_instance(sig_id.component_id);
+    //                     match item {
+    //                         SetStateItem::Set { sig_id, value } => {
+    //                             inner.add_updated_sig(sig_id);
+    //                             let component_instance =
+    //                                 inner.get_component_instance(sig_id.component_id);
 
-                                match sig_id.id_type {
-                                    SigIdType::State => {
-                                        let mut state_list =
-                                            component_instance.state_list.lock().unwrap();
+    //                             match sig_id.id_type {
+    //                                 SigIdType::State => {
+    //                                     let mut state_list =
+    //                                         component_instance.state_list.lock().unwrap();
 
-                                        state_list[sig_id.index] =
-                                            value.lock().unwrap().take().unwrap();
-                                    }
-                                    SigIdType::Atom => {
-                                        set_atom_value(
-                                            sig_id.index,
-                                            value.lock().unwrap().take().unwrap(),
-                                        );
-                                    }
-                                    SigIdType::Memo => unreachable!(),
-                                    SigIdType::TrackEq => unreachable!(),
-                                }
-                            }
-                            SetStateItem::Mutate { sig_id, mutate } => {
-                                inner.add_updated_sig(sig_id);
-                                let component_instance =
-                                    inner.get_component_instance(sig_id.component_id);
+    //                                     state_list[sig_id.index] =
+    //                                         value.lock().unwrap().take().unwrap();
+    //                                 }
+    //                                 SigIdType::Atom => {
+    //                                     set_atom_value(
+    //                                         sig_id.index,
+    //                                         value.lock().unwrap().take().unwrap(),
+    //                                     );
+    //                                 }
+    //                                 SigIdType::Memo => unreachable!(),
+    //                                 SigIdType::TrackEq => unreachable!(),
+    //                             }
+    //                         }
+    //                         SetStateItem::Mutate { sig_id, mutate } => {
+    //                             inner.add_updated_sig(sig_id);
+    //                             let component_instance =
+    //                                 inner.get_component_instance(sig_id.component_id);
 
-                                match sig_id.id_type {
-                                    SigIdType::State => {
-                                        let mut state_list =
-                                            component_instance.state_list.lock().unwrap();
+    //                             match sig_id.id_type {
+    //                                 SigIdType::State => {
+    //                                     let mut state_list =
+    //                                         component_instance.state_list.lock().unwrap();
 
-                                        let state =
-                                            state_list.get_mut(sig_id.index).unwrap().as_mut();
-                                        let mutate = mutate.lock().unwrap().take().unwrap();
-                                        mutate(state);
-                                    }
-                                    SigIdType::Atom => {
-                                        let mutate = mutate.lock().unwrap().take().unwrap();
-                                        mutate_atom_value(sig_id.index, mutate);
-                                    }
-                                    SigIdType::Memo => unreachable!(),
-                                    SigIdType::TrackEq => unreachable!(),
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    //                                     let state =
+    //                                         state_list.get_mut(sig_id.index).unwrap().as_mut();
+    //                                     let mutate = mutate.lock().unwrap().take().unwrap();
+    //                                     mutate(state);
+    //                                 }
+    //                                 SigIdType::Atom => {
+    //                                     let mutate = mutate.lock().unwrap().take().unwrap();
+    //                                     mutate_atom_value(sig_id.index, mutate);
+    //                                 }
+    //                                 SigIdType::Memo => unreachable!(),
+    //                                 SigIdType::TrackEq => unreachable!(),
+    //                             }
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 
-    pub(crate) fn get_last_component_instance(
-        &self,
-        static_type_name: &'static str,
-    ) -> Option<Arc<ComponentInstance>> {
-        self.inner
-            .lock()
-            .unwrap()
-            .get_last_component_instance(static_type_name)
-    }
+    // pub(crate) fn get_last_component_instance(
+    //     &self,
+    //     static_type_name: &'static str,
+    // ) -> Option<Arc<ComponentInstance>> {
+    //     self.inner
+    //         .lock()
+    //         .unwrap()
+    //         .get_last_component_instance(static_type_name)
+    // }
 
-    pub(crate) fn is_sig_updated(&self, sig_id: &SigId) -> bool {
-        self.inner.lock().unwrap().is_sig_updated(sig_id)
-    }
+    // pub(crate) fn is_sig_updated(&self, sig_id: &SigId) -> bool {
+    //     self.inner.lock().unwrap().is_sig_updated(sig_id)
+    // }
 
-    pub(crate) fn add_sig_updated(&self, sig_id: SigId) {
-        self.inner.lock().unwrap().add_updated_sig(sig_id);
-    }
+    // pub(crate) fn add_sig_updated(&self, sig_id: SigId) {
+    //     self.inner.lock().unwrap().add_updated_sig(sig_id);
+    // }
 
     pub(crate) fn start<C: Component>(self, component: impl Fn() -> C) {
         let this = Arc::new(self);
         init_render_event(RenderEvent::Mount);
+        let root_instance = Arc::new(ComponentInstance::new(&component()));
+        let mut updated_sigs = None;
 
         loop {
-            let rendering_tree = this.render(component(), None);
+            let rendering_tree = this.render(
+                component(),
+                root_instance.clone(),
+                updated_sigs.take().unwrap_or_default(),
+            );
             draw_rendering_tree(&rendering_tree);
 
             // TODO: Maybe use web_event & channel event at once..?
@@ -224,7 +211,11 @@ impl TreeContext {
             let mut channel_events = channel::drain();
             if !channel_events.is_empty() {
                 crate::log!("channel_events: {:?}", channel_events);
-                handle_atom_events(&mut channel_events);
+                updated_sigs = {
+                    let mut updated_sigs = Default::default();
+                    handle_atom_events(&mut channel_events, &mut updated_sigs);
+                    Some(updated_sigs)
+                };
                 set_render_event(RenderEvent::ChannelEvents { channel_events });
                 continue;
             }
@@ -237,23 +228,22 @@ impl TreeContext {
     pub(crate) fn render(
         self: &Arc<Self>,
         component: impl Component,
-        instance: Option<Arc<ComponentInstance>>,
+        instance: Arc<ComponentInstance>,
+        updated_sigs: HashSet<SigId>,
     ) -> RenderingTree {
-        let instance = instance.unwrap_or_else(|| Arc::new(ComponentInstance::new(&component))); // TODO: Reuse
-        let updated_sigs = Default::default(); // TODO
         let render_ctx = RenderCtx::new(instance, updated_sigs, self.clone());
-        component.render(&render_ctx);
 
-        let render_done = render_ctx.done();
+        let render_done = component.render(&render_ctx);
 
         render_done.rendering_tree
     }
 }
 
-fn handle_atom_events(channel_events: &mut Vec<Item>) {
+fn handle_atom_events(channel_events: &mut Vec<Item>, updated_sigs: &mut HashSet<SigId>) {
     channel_events.retain(|x| match x {
         Item::SetStateItem(x) => {
             if x.sig_id().id_type == SigIdType::Atom {
+                updated_sigs.insert(x.sig_id());
                 match x {
                     SetStateItem::Set { sig_id, value } => {
                         set_atom_value(sig_id.index, value.lock().unwrap().take().unwrap());
@@ -273,94 +263,94 @@ fn handle_atom_events(channel_events: &mut Vec<Item>) {
 }
 
 impl Inner {
-    fn put_tree_id(&mut self, component_id: usize) {
-        if let Some(tree_ids) = self.tree_id_map.get_mut(&self.current_component_parent_id) {
-            tree_ids.push_back(component_id);
-        } else {
-            self.tree_id_map.insert(
-                self.current_component_parent_id,
-                vec![component_id].into_iter().collect(),
-            );
-        }
-    }
-    fn save_fn_rendering_tree(
-        &mut self,
-        component_id: usize,
-        fn_rendering_tree: Option<FnRenderingTree>,
-    ) {
-        self.fn_rendering_tree_map
-            .borrow_mut()
-            .insert(component_id, fn_rendering_tree);
-    }
-    fn combine_rendering_tree(&self, component_id: usize) -> RenderingTree {
-        let children = match self.tree_id_map.get(&component_id) {
-            Some(children_ids) => children_ids
-                .iter()
-                .map(|child_id| self.combine_rendering_tree(*child_id))
-                .collect::<Vec<_>>(),
-            None => vec![],
-        };
+    // fn put_tree_id(&mut self, component_id: usize) {
+    //     if let Some(tree_ids) = self.tree_id_map.get_mut(&self.current_component_parent_id) {
+    //         tree_ids.push_back(component_id);
+    //     } else {
+    //         self.tree_id_map.insert(
+    //             self.current_component_parent_id,
+    //             vec![component_id].into_iter().collect(),
+    //         );
+    //     }
+    // }
+    // fn save_fn_rendering_tree(
+    //     &mut self,
+    //     component_id: usize,
+    //     fn_rendering_tree: Option<FnRenderingTree>,
+    // ) {
+    //     self.fn_rendering_tree_map
+    //         .borrow_mut()
+    //         .insert(component_id, fn_rendering_tree);
+    // }
+    // fn combine_rendering_tree(&self, component_id: usize) -> RenderingTree {
+    //     let children = match self.tree_id_map.get(&component_id) {
+    //         Some(children_ids) => children_ids
+    //             .iter()
+    //             .map(|child_id| self.combine_rendering_tree(*child_id))
+    //             .collect::<Vec<_>>(),
+    //         None => vec![],
+    //     };
 
-        if component_id == ROOT_COMPONENT_ID {
-            return RenderingTree::Children(children);
-        }
+    //     if component_id == ROOT_COMPONENT_ID {
+    //         return RenderingTree::Children(children);
+    //     }
 
-        let fn_rendering_tree = self
-            .fn_rendering_tree_map
-            .borrow_mut()
-            .remove(&component_id)
-            .unwrap();
-        if let Some(fn_rendering_tree) = fn_rendering_tree {
-            fn_rendering_tree(children)
-        } else {
-            RenderingTree::Children(children)
-        }
-    }
-    fn store_component_instance(&mut self, component_instance: Arc<ComponentInstance>) {
-        self.component_instance_map
-            .insert(component_instance.component_id, component_instance);
-    }
-    fn get_component_instance(&self, component_id: usize) -> Arc<ComponentInstance> {
-        self.component_instance_map
-            .get(&component_id)
-            .unwrap()
-            .clone()
-    }
-    fn before_re_render(&mut self) {
-        self.current_component_parent_id = ROOT_COMPONENT_ID;
-        self.last_render_component_instance_map = std::mem::take(&mut self.component_instance_map);
-        self.last_tree_id_map = std::mem::take(&mut self.tree_id_map);
-        self.fn_rendering_tree_map.borrow_mut().clear();
-    }
-    fn get_last_component_instance(
-        &mut self,
-        static_type_name: &'static str,
-    ) -> Option<Arc<ComponentInstance>> {
-        // TODO: This is not efficient, need to improve
-        let Some(children_ids) = self
-            .last_tree_id_map
-            .get_mut(&self.current_component_parent_id) else {
-                return None;
-            };
+    //     let fn_rendering_tree = self
+    //         .fn_rendering_tree_map
+    //         .borrow_mut()
+    //         .remove(&component_id)
+    //         .unwrap();
+    //     if let Some(fn_rendering_tree) = fn_rendering_tree {
+    //         fn_rendering_tree(children)
+    //     } else {
+    //         RenderingTree::Children(children)
+    //     }
+    // }
+    // fn store_component_instance(&mut self, component_instance: Arc<ComponentInstance>) {
+    //     self.component_instance_map
+    //         .insert(component_instance.component_id, component_instance);
+    // }
+    // fn get_component_instance(&self, component_id: usize) -> Arc<ComponentInstance> {
+    //     self.component_instance_map
+    //         .get(&component_id)
+    //         .unwrap()
+    //         .clone()
+    // }
+    // fn before_re_render(&mut self) {
+    //     self.current_component_parent_id = ROOT_COMPONENT_ID;
+    //     self.last_render_component_instance_map = std::mem::take(&mut self.component_instance_map);
+    //     self.last_tree_id_map = std::mem::take(&mut self.tree_id_map);
+    //     self.fn_rendering_tree_map.borrow_mut().clear();
+    // }
+    // fn get_last_component_instance(
+    //     &mut self,
+    //     static_type_name: &'static str,
+    // ) -> Option<Arc<ComponentInstance>> {
+    //     // TODO: This is not efficient, need to improve
+    //     let Some(children_ids) = self
+    //         .last_tree_id_map
+    //         .get_mut(&self.current_component_parent_id) else {
+    //             return None;
+    //         };
 
-        while let Some(id) = children_ids.pop_front() {
-            let last_instance = self.last_render_component_instance_map.remove(&id).unwrap();
-            if last_instance.component_type_name == static_type_name {
-                return Some(last_instance);
-            }
-        }
+    //     while let Some(id) = children_ids.pop_front() {
+    //         let last_instance = self.last_render_component_instance_map.remove(&id).unwrap();
+    //         if last_instance.component_type_name == static_type_name {
+    //             return Some(last_instance);
+    //         }
+    //     }
 
-        None
-    }
-    fn flush_updated_sigs(&mut self) {
-        self.updated_sigs.clear();
-    }
-    fn is_sig_updated(&self, sig_id: &SigId) -> bool {
-        self.updated_sigs.contains(sig_id)
-    }
-    fn add_updated_sig(&mut self, sig_id: SigId) {
-        self.updated_sigs.insert(sig_id);
-    }
+    //     None
+    // }
+    // fn flush_updated_sigs(&mut self) {
+    //     self.updated_sigs.clear();
+    // }
+    // fn is_sig_updated(&self, sig_id: &SigId) -> bool {
+    //     self.updated_sigs.contains(sig_id)
+    // }
+    // fn add_updated_sig(&mut self, sig_id: SigId) {
+    //     self.updated_sigs.insert(sig_id);
+    // }
 }
 
 pub(crate) struct ComponentRenderResult<'a> {

@@ -126,7 +126,7 @@ pub struct Table {
 }
 
 impl Component for Table {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let rect_need_clip_tuples = self
             .items
             .iter()

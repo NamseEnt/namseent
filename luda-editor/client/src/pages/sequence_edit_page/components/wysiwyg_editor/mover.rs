@@ -18,7 +18,7 @@ pub enum Event {
 }
 
 impl Component for Mover<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             image_dest_rect,
             ref dragging,

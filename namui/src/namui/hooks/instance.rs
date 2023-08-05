@@ -1,5 +1,6 @@
 use super::*;
 use std::{
+    collections::HashMap,
     fmt::Debug,
     sync::{atomic::AtomicBool, Mutex},
 };
@@ -15,6 +16,7 @@ pub struct ComponentInstance {
     pub(crate) render_used_sigs: Mutex<Vec<SigId>>,
     pub(crate) track_eq_value_list: Mutex<Vec<Box<dyn Value>>>,
     pub(crate) is_first_render: AtomicBool,
+    children_instances: Mutex<HashMap<String, Arc<ComponentInstance>>>,
 }
 
 impl Debug for ComponentInstance {
@@ -56,7 +58,22 @@ impl ComponentInstance {
             render_used_sigs: Default::default(),
             track_eq_value_list: Default::default(),
             is_first_render: AtomicBool::new(true),
+            children_instances: Default::default(),
         }
+    }
+    pub(crate) fn get_or_create_child_instance(
+        &self,
+        key: String,
+        component: &dyn Component,
+    ) -> Arc<ComponentInstance> {
+        // TODO: Remove unused key's children instances
+
+        self.children_instances
+            .lock()
+            .unwrap()
+            .entry(key)
+            .or_insert_with(|| Arc::new(ComponentInstance::new(component)))
+            .clone()
     }
 }
 

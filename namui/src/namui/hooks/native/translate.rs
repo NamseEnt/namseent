@@ -17,12 +17,12 @@ pub struct Translate<'a> {
 impl StaticType for Translate<'_> {}
 
 impl Component for Translate<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
-        let x = self.x;
-        let y = self.y;
-        ctx.add(self.component.as_ref());
-        ctx.done_with_rendering_tree(|children| {
-            crate::translate(x, y, RenderingTree::Children(children))
-        })
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        ctx.matrix
+            .lock()
+            .unwrap()
+            .translate(self.x.as_f32(), self.y.as_f32());
+
+        ctx.return_(self.component.as_ref())
     }
 }
