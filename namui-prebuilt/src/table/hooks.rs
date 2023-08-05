@@ -204,17 +204,6 @@ impl Component for Table<'_> {
     }
 }
 
-#[namui::component]
-struct Slice<'a> {
-    direction: Direction,
-    items: Vec<(Rect<Px>, Box<dyn 'a + Component>, bool)>,
-}
-impl Component for Slice<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        todo!()
-    }
-}
-
 pub trait ToKeyCell<'a> {
     fn to_key_cell(self, index: String) -> (String, TableCell<'a>);
 }

@@ -86,9 +86,9 @@ impl<'b> Component for Arc<dyn 'b + Component> {
     }
 }
 
-impl StaticType for Box<dyn Component> {}
+impl<'b> StaticType for Box<dyn 'b + Component> {}
 
-impl Component for Box<dyn Component> {
+impl<'b> Component for Box<dyn 'b + Component> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
         self.as_ref().render(ctx)
     }

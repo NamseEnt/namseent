@@ -1,25 +1,30 @@
 use crate::{simple_rect, typography::center_text_full_height};
 use namui::prelude::*;
 
-fn attach_text_button_event(
-    button: RenderingTree,
+fn attach_text_button_event<'a>(
+    button: impl 'a + Component,
     mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl Fn(MouseEvent),
-) -> RenderingTree {
+    on_mouse_up_in: impl 'a + FnOnce(MouseEvent),
+) -> impl 'a + Component {
     let mouse_buttons = mouse_buttons.into_iter().collect::<Vec<_>>();
-    button.attach_event(|builder| {
-        builder.on_mouse_up_in(move |event: MouseEvent| {
+
+    button.on_event(move |event| match event {
+        Event::MouseUp { event } => {
+            if !event.is_local_xy_in() {
+                return;
+            }
             let Some(button) = event.button else {
                 return;
             };
             if mouse_buttons.contains(&button) {
                 on_mouse_up_in(event);
             }
-        });
+        }
+        _ => {}
     })
 }
 
-pub fn text_button(
+pub fn text_button<'a>(
     rect: Rect<Px>,
     text: &str,
     text_color: Color,
@@ -27,8 +32,8 @@ pub fn text_button(
     stroke_width: Px,
     fill_color: Color,
     mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl Fn(MouseEvent),
-) -> namui::RenderingTree {
+    on_mouse_up_in: impl 'a + FnOnce(MouseEvent),
+) -> impl 'a + Component {
     attach_text_button_event(
         translate(
             rect.x(),
@@ -43,7 +48,7 @@ pub fn text_button(
     )
 }
 
-pub fn text_button_fit(
+pub fn text_button_fit<'a>(
     height: Px,
     text: &str,
     text_color: Color,
@@ -52,16 +57,16 @@ pub fn text_button_fit(
     fill_color: Color,
     side_padding: Px,
     mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl Fn(MouseEvent) + 'static,
-) -> namui::RenderingTree {
+    on_mouse_up_in: impl 'a + FnOnce(MouseEvent),
+) -> impl 'a + Component {
     let mouse_buttons = mouse_buttons.into_iter().collect::<Vec<_>>();
     let center_text = center_text_full_height(Wh::new(0.px(), height), text, text_color);
     let width = match center_text.get_bounding_box() {
         Some(bounding_box) => bounding_box.width(),
-        None => return RenderingTree::Empty,
+        None => return Box::new(RenderingTree::Empty) as Box<dyn 'a + Component>,
     };
 
-    attach_text_button_event(
+    Box::new(attach_text_button_event(
         render([
             simple_rect(
                 Wh::new(width + side_padding * 2, height),
@@ -73,10 +78,10 @@ pub fn text_button_fit(
         ]),
         mouse_buttons,
         on_mouse_up_in,
-    )
+    )) as Box<dyn Component>
 }
 
-pub fn body_text_button(
+pub fn body_text_button<'a>(
     rect: Rect<Px>,
     text: &str,
     text_color: Color,
@@ -85,8 +90,8 @@ pub fn body_text_button(
     fill_color: Color,
     text_align: TextAlign,
     mouse_buttons: impl IntoIterator<Item = MouseButton>,
-    on_mouse_up_in: impl Fn(MouseEvent) + 'static,
-) -> namui::RenderingTree {
+    on_mouse_up_in: impl 'a + FnOnce(MouseEvent),
+) -> impl 'a + Component {
     attach_text_button_event(
         translate(
             rect.x(),
