@@ -14,30 +14,6 @@ pub trait Component: StaticType + Debug {
     {
         Arc::new(self)
     }
-    // fn attach_event<'a>(
-    //     self,
-    //     attach_event: impl FnOnce(&mut native::AttachEventBuilder),
-    // ) -> AttachEvent<'a>
-    // where
-    //     Self: 'a + Sized,
-    // {
-    //     native::attach_event(self, attach_event)
-    // }
-    // fn on_mouse_down_in<'a>(
-    //     self,
-    //     on_mouse_down_in: impl 'a + FnOnce(MouseEvent),
-    // ) -> OnMouseDownIn<'a>
-    // where
-    //     Self: 'a + Sized,
-    // {
-    //     native::on_mouse_down_in(self, on_mouse_down_in)
-    // }
-    // fn on_mouse<'a>(self, on_mouse: impl 'a + FnOnce(MouseEvent)) -> OnMouse<'a>
-    // where
-    //     Self: 'a + Sized,
-    // {
-    //     native::on_mouse(self, on_mouse)
-    // }
     fn on_event<'a>(self, on_event: impl 'a + FnOnce(Event)) -> OnEvent<'a>
     where
         Self: 'a + Sized,
@@ -98,17 +74,25 @@ impl Component for &dyn Component {
     }
 }
 
-// impl StaticType for Arc<dyn Component> {
-//     // fn static_type_id(&self) -> StaticTypeId {
-//     //     self.as_ref().static_type_id()
-//     // }
-// }
+impl<'a> StaticType for Arc<dyn 'a + Component> {
+    // fn static_type_id(&self) -> StaticTypeId {
+    //     self.as_ref().static_type_id()
+    // }
+}
 
-// impl Component for Arc<dyn Component> {
-//     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-//         self.as_ref().render(ctx)
-//     }
-// }
+impl<'b> Component for Arc<dyn 'b + Component> {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        self.as_ref().render(ctx)
+    }
+}
+
+impl StaticType for Box<dyn Component> {}
+
+impl Component for Box<dyn Component> {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+        self.as_ref().render(ctx)
+    }
+}
 
 impl<T: StaticType> StaticType for Option<T> {
     // fn static_type_id(&self) -> StaticTypeId {

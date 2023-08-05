@@ -2,7 +2,7 @@ use namui::prelude::*;
 
 mod app;
 mod color;
-mod components;
+// mod components;
 mod late_init;
 mod pages;
 mod setting;
@@ -75,8 +75,6 @@ impl namui::Component for Init {
             })
         });
 
-        if *loaded {
-            ctx.add(app::App {})
-        }
+        ctx.return_(loaded.then(|| app::App {}))
     }
 }

@@ -4,13 +4,13 @@
 // pub mod list_view;
 pub mod scroll_view;
 // pub mod sheet;
-// mod simple_rect;
-// pub mod table;
-// pub mod typography;
+mod simple_rect;
+pub mod table;
+pub mod typography;
 // pub mod vh_list_view;
 
 // pub use event_trap::*;
-// pub use simple_rect::*;
+pub use simple_rect::*;
 
 #[cfg(test)]
 #[cfg(target_family = "wasm")]

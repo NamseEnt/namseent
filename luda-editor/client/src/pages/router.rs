@@ -20,20 +20,20 @@ impl Component for Router {
 
         let wh = self.wh;
 
-        match *route {
-            Route::ProjectListPage => ctx.add(project_list_page::ProjectListPage2 { wh }),
+        ctx.return_(match *route {
+            Route::ProjectListPage => &project_list_page::ProjectListPage2 { wh } as &dyn Component,
             Route::SequenceListPage { project_id } => {
-                ctx.add(sequence_list_page::SequenceListPage { wh, project_id })
+                &sequence_list_page::SequenceListPage { wh, project_id }
             }
             Route::SequenceEditPage {
                 project_id,
                 sequence_id,
-            } => ctx.add(sequence_edit_page::SequenceEditPage {
+            } => &sequence_edit_page::SequenceEditPage {
                 wh,
                 project_id,
                 sequence_id,
-            }),
-        }
+            },
+        })
     }
 }
 

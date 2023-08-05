@@ -42,15 +42,15 @@ impl Component for App {
 
         let wh = namui::screen::size();
 
-        ctx.add(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK));
-        match &*loading_state {
-            LoadingState::Loading => {
-                ctx.add(typography::body::center(wh, "Logging in...", Color::WHITE))
-            }
-            LoadingState::Loaded => ctx.add(Router { wh }),
-            LoadingState::Error(error) => {
-                ctx.add(typography::body::center(wh, &error, Color::WHITE))
-            }
-        };
+        ctx.return_((
+            simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK),
+            match &*loading_state {
+                LoadingState::Loading => {
+                    &typography::body::center(wh, "Logging in...", Color::WHITE) as &dyn Component
+                }
+                LoadingState::Loaded => &Router { wh },
+                LoadingState::Error(error) => &typography::body::center(wh, &error, Color::WHITE),
+            },
+        ))
     }
 }

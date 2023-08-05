@@ -27,14 +27,7 @@ impl Component for Clip<'_> {
             clip_op,
             ref component,
         } = self;
-        let path_builder = path_builder.clone();
-        ctx.add(component.as_ref());
-        ctx.done_with_rendering_tree(move |children| {
-            crate::clip(
-                path_builder.clone(),
-                clip_op,
-                RenderingTree::Children(children),
-            )
-        })
+        let rendering_tree = ctx.ghost_render(component.as_ref());
+        ctx.return_(crate::clip(path_builder.clone(), clip_op, rendering_tree))
     }
 }

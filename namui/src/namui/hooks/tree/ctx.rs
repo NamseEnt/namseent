@@ -192,15 +192,15 @@ impl TreeContext {
     //     self.inner.lock().unwrap().add_updated_sig(sig_id);
     // }
 
-    pub(crate) fn start<C: Component>(self, component: impl Fn() -> C) {
+    pub(crate) fn start(self, component: impl Component) {
         let this = Arc::new(self);
         init_render_event(RenderEvent::Mount);
-        let root_instance = Arc::new(ComponentInstance::new(&component()));
+        let root_instance = Arc::new(ComponentInstance::new(&component));
         let mut updated_sigs = None;
 
         loop {
             let rendering_tree = this.render(
-                component(),
+                &component,
                 root_instance.clone(),
                 updated_sigs.take().unwrap_or_default(),
             );

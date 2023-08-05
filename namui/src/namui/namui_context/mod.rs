@@ -6,7 +6,7 @@ impl NamuiContext {
     pub(crate) fn new() -> Self {
         Self {}
     }
-    pub fn start<C: Component>(self, component: impl Fn() -> C) {
+    pub fn start(self, component: impl Component) {
         crate::hooks::channel::init();
 
         let tree_ctx = crate::hooks::TreeContext::new();

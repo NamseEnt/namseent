@@ -61,16 +61,14 @@ impl Component for ProjectListPage2 {
         });
 
         if let Some(error_message) = &*error_message {
-            ctx.add(typography::body::center(wh, error_message, Color::RED));
-            return ctx.done();
+            return ctx.return_(typography::body::center(wh, error_message, Color::RED));
         }
 
         if *is_loading {
-            ctx.add(typography::body::center(wh, "loading...123", Color::WHITE));
-            return ctx.done();
+            return ctx.return_(typography::body::center(wh, "loading...123", Color::WHITE));
         }
 
-        ctx.add(table::hooks::horizontal([
+        ctx.return_(table::hooks::horizontal([
             table::hooks::ratio(1.0, |_wh| RenderingTree::Empty),
             table::hooks::ratio(
                 2.0,
