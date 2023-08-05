@@ -26,7 +26,6 @@ pub use with_id::*;
 pub enum SpecialRenderingNode {
     Translate(TranslateNode),
     Clip(ClipNode),
-    AttachEvent(AttachEventNode),
     MouseCursor(MouseCursorNode),
     WithId(WithIdNode),
     Absolute(AbsoluteNode),

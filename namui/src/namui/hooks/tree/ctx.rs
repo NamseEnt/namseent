@@ -1,5 +1,9 @@
 use super::*;
-use crate::{web::WebEvent, RenderingTree};
+use crate::{
+    draw_rendering_tree,
+    web::{wait_web_event, WebEvent},
+    RenderingTree,
+};
 use std::{
     cell::RefCell,
     collections::{HashMap, VecDeque},
@@ -12,6 +16,7 @@ pub(crate) struct TreeContext {
 }
 
 struct Inner {
+    render_event: RenderEvent,
     current_component_parent_id: usize,
     /// order: parent -> left -> right
     component_render_queue: VecDeque<ComponentRenderQueueItem>,
@@ -64,6 +69,7 @@ impl TreeContext {
     pub(crate) fn new() -> Self {
         Self {
             inner: Arc::new(Mutex::new(Inner {
+                render_event: RenderEvent::Mount,
                 current_component_parent_id: ROOT_COMPONENT_ID,
                 component_render_queue: Default::default(),
                 tree_id_map: Default::default(),
@@ -81,68 +87,43 @@ impl TreeContext {
     }
 
     pub(crate) fn end_up_one_component_rendering<'a>(mut self, result: ComponentRenderResult<'a>) {
-        let mut inner = self.inner.lock().unwrap();
-        inner.store_component_instance(result.component_instance.clone());
-        enqueue_children(result.children, result.component_instance.component_id);
+        // let mut inner = self.inner.lock().unwrap();
+        // inner.store_component_instance(result.component_instance.clone());
 
-        inner.put_tree_id(result.component_instance.component_id);
-        inner.save_fn_rendering_tree(
-            result.component_instance.component_id,
-            result.fn_rendering_tree,
-        );
+        // inner.put_tree_id(result.component_instance.component_id);
+        // inner.save_fn_rendering_tree(
+        //     result.component_instance.component_id,
+        //     result.fn_rendering_tree,
+        // );
 
-        if let Some(child) = dequeue_child().as_ref() {
-            inner.current_component_parent_id = child.parent_component_id;
-            drop(inner);
+        // if let Some(child) = dequeue_child().as_ref() {
+        //     inner.current_component_parent_id = child.parent_component_id;
+        //     drop(inner);
 
-            mount_visit(child.component.as_ref(), self);
-        } else {
-            inner.flush_updated_sigs();
-            let rendering_tree = inner.combine_rendering_tree(ROOT_COMPONENT_ID);
-            drop(inner);
+        //     todo!();
+        //     // mount_visit(child.component.as_ref(), self);
+        // } else {
+        //     inner.flush_updated_sigs();
+        //     let rendering_tree = inner.combine_rendering_tree(ROOT_COMPONENT_ID);
+        //     drop(inner);
 
-            crate::draw_rendering_tree(&rendering_tree);
+        //     crate::draw_rendering_tree(&rendering_tree);
 
-            let mut is_need_to_re_render = false;
-            while !is_need_to_re_render {
-                let web_event = crate::web::handle_web_event(Some(&rendering_tree));
+        //     let mut is_need_to_re_render = false;
+        //     while !is_need_to_re_render {
+        //         let web_event = crate::web::handle_web_event(Some(&rendering_tree));
 
-                if let Some(web_event) = web_event {
-                    self.propgate_web_event(web_event);
-                }
+        //         if let Some(web_event) = web_event {
+        //             self.propgate_web_event(web_event);
+        //         }
 
-                crate::system::futures::execute_async_tasks();
+        //         crate::system::futures::execute_async_tasks();
 
-                self.flush_channel(&mut is_need_to_re_render);
+        //         self.flush_channel(&mut is_need_to_re_render);
 
-                // TODO: This would be busy loop. Need to sleep.
-            }
-        }
-
-        static mut COMPONENT_RENDER_QUEUE: OnceLock<VecDeque<ComponentRenderQueueItem>> =
-            OnceLock::new();
-
-        fn enqueue_children<'a>(
-            mut children: Vec<Box<dyn 'a + Component>>,
-            parent_component_id: usize,
-        ) {
-            unsafe {
-                let queue = {
-                    let _ = COMPONENT_RENDER_QUEUE.get_or_init(Default::default);
-                    COMPONENT_RENDER_QUEUE.get_mut().unwrap()
-                };
-
-                while let Some(child) = children.pop() {
-                    queue.push_front(ComponentRenderQueueItem {
-                        component: std::mem::transmute(child),
-                        parent_component_id,
-                    })
-                }
-            };
-        }
-        fn dequeue_child() -> Option<ComponentRenderQueueItem> {
-            unsafe { COMPONENT_RENDER_QUEUE.get_mut().unwrap().pop_front() }
-        }
+        //         // TODO: This would be busy loop. Need to sleep.
+        //     }
+        // }
     }
     fn flush_channel(&mut self, is_need_to_re_render: &mut bool) {
         let mut inner = self.inner.lock().unwrap();
@@ -230,9 +211,65 @@ impl TreeContext {
         self.inner.lock().unwrap().add_updated_sig(sig_id);
     }
 
-    fn propgate_web_event(&self, web_event: WebEvent) {
-        self.inner.lock().unwrap().propgate_web_event(web_event);
+    pub(crate) fn start<C: Component>(self, component: impl Fn() -> C) {
+        let this = Arc::new(self);
+        init_render_event(RenderEvent::Mount);
+
+        loop {
+            let rendering_tree = this.render(component(), None);
+            draw_rendering_tree(&rendering_tree);
+
+            // TODO: Maybe use web_event & channel event at once..?
+
+            let mut channel_events = channel::drain();
+            if !channel_events.is_empty() {
+                crate::log!("channel_events: {:?}", channel_events);
+                handle_atom_events(&mut channel_events);
+                set_render_event(RenderEvent::ChannelEvents { channel_events });
+                continue;
+            }
+
+            let web_event = wait_web_event();
+            set_render_event(RenderEvent::WebEvent { web_event });
+        }
     }
+
+    pub(crate) fn render(
+        self: &Arc<Self>,
+        component: impl Component,
+        instance: Option<Arc<ComponentInstance>>,
+    ) -> RenderingTree {
+        let instance = instance.unwrap_or_else(|| Arc::new(ComponentInstance::new(&component))); // TODO: Reuse
+        let updated_sigs = Default::default(); // TODO
+        let render_ctx = RenderCtx::new(instance, updated_sigs, self.clone());
+        component.render(&render_ctx);
+
+        let render_done = render_ctx.done();
+
+        render_done.rendering_tree
+    }
+}
+
+fn handle_atom_events(channel_events: &mut Vec<Item>) {
+    channel_events.retain(|x| match x {
+        Item::SetStateItem(x) => {
+            if x.sig_id().id_type == SigIdType::Atom {
+                match x {
+                    SetStateItem::Set { sig_id, value } => {
+                        set_atom_value(sig_id.index, value.lock().unwrap().take().unwrap());
+                    }
+                    SetStateItem::Mutate { sig_id, mutate } => {
+                        let mutate = mutate.lock().unwrap().take().unwrap();
+                        mutate_atom_value(sig_id.index, mutate);
+                    }
+                }
+
+                false
+            } else {
+                true
+            }
+        }
+    });
 }
 
 impl Inner {
@@ -323,16 +360,6 @@ impl Inner {
     }
     fn add_updated_sig(&mut self, sig_id: SigId) {
         self.updated_sigs.insert(sig_id);
-    }
-    fn propgate_web_event(&mut self, web_event: WebEvent) {
-        self.component_instance_map
-            .values()
-            .for_each(|component_instance| {
-                let web_event_listener = component_instance.web_event_listener.lock().unwrap();
-                if let Some(web_event_listener) = web_event_listener.as_ref() {
-                    web_event_listener(&web_event);
-                }
-            });
     }
 }
 

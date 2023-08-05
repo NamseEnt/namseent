@@ -20,7 +20,7 @@ pub enum Event {
 }
 
 impl Component for MemoEditor<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let &Self {
             wh,
             sequence_id,
@@ -198,6 +198,5 @@ impl Component for MemoEditor<'_> {
                 (container, content),
             ),
         )));
-        ctx.done()
     }
 }

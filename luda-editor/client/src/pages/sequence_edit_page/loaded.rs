@@ -19,7 +19,7 @@ pub struct LoadedSequenceEditorPage {
 }
 
 impl Component for LoadedSequenceEditorPage {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let &Self {
             ref project_shared_data,
             ref cut_id_memos_map,
@@ -270,7 +270,6 @@ impl Component for LoadedSequenceEditorPage {
                 ),
             }
         }
-        ctx.done()
     }
 }
 

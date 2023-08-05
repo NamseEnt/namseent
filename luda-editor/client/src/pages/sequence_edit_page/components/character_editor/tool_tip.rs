@@ -8,7 +8,7 @@ pub struct ToolTip {
 }
 
 impl Component for ToolTip {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let &Self {
             global_xy,
             ref text,
@@ -59,6 +59,5 @@ impl Component for ToolTip {
             (global_xy.y + OFFSET).min(max_xy.y).max(0.px()),
             tooltip,
         )));
-        ctx.done()
     }
 }

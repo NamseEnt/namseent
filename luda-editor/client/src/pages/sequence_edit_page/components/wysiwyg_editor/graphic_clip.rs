@@ -28,7 +28,7 @@ pub enum Event {
 }
 
 impl Component for GraphicClip<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let &Self {
             cut_id,
             graphic_index,
@@ -186,6 +186,5 @@ impl Component for GraphicClip<'_> {
                 on_event: arc(|event| on_event(Event::WysiwygTool(event))),
             });
         }
-        ctx.done()
     }
 }

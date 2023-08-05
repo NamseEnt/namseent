@@ -23,6 +23,25 @@ pub(crate) fn handle_state<'a, State: Send + Sync + Debug + 'static>(
         let state = init();
 
         update_or_push(&mut state_list, state_index, Box::new(state));
+    } else if let RenderEvent::ChannelEvents { channel_events } = get_render_event().as_ref() {
+        if let Some(item) = channel_events.into_iter().find(|x| x.sig_id() == sig_id) {
+            crate::log!("state updated");
+            match item {
+                Item::SetStateItem(set_state) => match set_state {
+                    SetStateItem::Set { sig_id, value } => {
+                        ctx.add_sig_updated(*sig_id);
+                        let value = value.lock().unwrap().take().unwrap();
+                        update_or_push(&mut state_list, state_index, value);
+                    }
+                    SetStateItem::Mutate { sig_id, mutate } => {
+                        ctx.add_sig_updated(*sig_id);
+                        let mutate = mutate.lock().unwrap().take().unwrap();
+                        let state = state_list.get_mut(sig_id.index).unwrap().as_mut();
+                        mutate(state);
+                    }
+                },
+            }
+        }
     }
 
     let state: &State = state_list[state_index]
@@ -50,6 +69,14 @@ pub(crate) enum SetStateItem {
         sig_id: SigId,
         mutate: Arc<Mutex<Option<Box<dyn FnOnce(&mut (dyn Value)) + Send + Sync>>>>,
     },
+}
+impl SetStateItem {
+    pub(crate) fn sig_id(&self) -> SigId {
+        match self {
+            SetStateItem::Set { sig_id, value: _ } => *sig_id,
+            SetStateItem::Mutate { sig_id, mutate: _ } => *sig_id,
+        }
+    }
 }
 
 impl Debug for SetStateItem {

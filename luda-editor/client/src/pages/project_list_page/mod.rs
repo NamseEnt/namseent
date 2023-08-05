@@ -8,7 +8,7 @@ pub struct ProjectListPage2 {
 }
 
 impl Component for ProjectListPage2 {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let &Self { wh } = self;
         let (error_message, set_error_message) = ctx.state::<Option<String>>(|| None);
         let (is_loading, set_is_loading) = ctx.state(|| true);
@@ -137,8 +137,6 @@ impl Component for ProjectListPage2 {
         //                 .on_mouse_up_out(|event: MouseEvent| event.stop_propagation());
         //         })
         //     }),
-
-        ctx.done()
     }
 }
 
@@ -149,7 +147,7 @@ pub struct ProjectCell {
 }
 
 impl Component for ProjectCell {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let project_id = self.project.id;
 
         ctx.add(namui_prebuilt::button::text_button(
@@ -172,7 +170,5 @@ impl Component for ProjectCell {
                 }
             },
         ));
-
-        ctx.done()
     }
 }

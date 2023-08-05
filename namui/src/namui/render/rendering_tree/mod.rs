@@ -29,7 +29,6 @@ impl SpecialRenderingNode {
         match self {
             SpecialRenderingNode::Translate(node) => node.rendering_tree.clone(),
             SpecialRenderingNode::Clip(node) => node.rendering_tree.clone(),
-            SpecialRenderingNode::AttachEvent(node) => node.rendering_tree.clone(),
             SpecialRenderingNode::MouseCursor(node) => node.rendering_tree.clone(),
             SpecialRenderingNode::WithId(node) => node.rendering_tree.clone(),
             SpecialRenderingNode::Absolute(node) => node.rendering_tree.clone(),
@@ -167,8 +166,7 @@ impl RenderingTree {
                             .on_top_node_matrix_tuples
                             .push((on_top.clone(), matrix));
                     }
-                    SpecialRenderingNode::AttachEvent(_)
-                    | SpecialRenderingNode::MouseCursor(_)
+                    SpecialRenderingNode::MouseCursor(_)
                     | SpecialRenderingNode::WithId(_)
                     | SpecialRenderingNode::Custom(_) => {
                         draw_internal(&special.get_rendering_tree(), draw_context);

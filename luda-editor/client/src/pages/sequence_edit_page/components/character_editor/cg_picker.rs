@@ -23,7 +23,7 @@ pub enum Event {
 }
 
 impl Component for CgPicker<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let &Self {
             wh,
             project_id,
@@ -49,8 +49,6 @@ impl Component for CgPicker<'_> {
                 .arc(),
             }
         })(wh));
-
-        ctx.done()
     }
 }
 

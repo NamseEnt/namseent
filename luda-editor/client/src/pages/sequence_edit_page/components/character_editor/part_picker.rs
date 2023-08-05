@@ -35,7 +35,7 @@ pub enum Event {
 }
 
 impl Component for PartPicker<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let &Self {
             wh,
             cg_file,
@@ -92,8 +92,6 @@ impl Component for PartPicker<'_> {
                 }),
             ])(wh)
         })(wh));
-
-        ctx.done()
     }
 }
 

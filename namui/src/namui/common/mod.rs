@@ -154,7 +154,6 @@ pub enum MouseButton {
 
 #[derive(Debug)]
 pub struct RawMouseEvent {
-    pub id: crate::Uuid,
     pub xy: Xy<Px>,
     pub pressing_buttons: HashSet<MouseButton>,
     pub button: Option<MouseButton>,
@@ -162,7 +161,6 @@ pub struct RawMouseEvent {
 
 #[derive(Debug)]
 pub struct RawWheelEvent {
-    pub id: crate::Uuid,
     /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
     pub delta_xy: Xy<f32>,
     pub mouse_xy: Xy<Px>,

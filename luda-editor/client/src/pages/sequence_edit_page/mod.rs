@@ -18,7 +18,7 @@ pub struct SequenceEditPage {
 }
 
 impl Component for SequenceEditPage {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(&self, ctx: &mut RenderCtx) -> RenderDone {
         let &Self {
             wh,
             project_id,
@@ -55,7 +55,6 @@ impl Component for SequenceEditPage {
             },
             None => ctx.add(typography::body::center(wh, "loading...", Color::WHITE)),
         };
-        ctx.done()
     }
 }
 

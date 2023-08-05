@@ -28,7 +28,7 @@ pub fn main() {
 struct Init {}
 
 impl namui::Component for Init {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let (loaded, set_loaded) = ctx.state(|| false);
 
         ctx.effect("Init", || {
@@ -78,6 +78,5 @@ impl namui::Component for Init {
         if *loaded {
             ctx.add(app::App {})
         }
-        ctx.done()
     }
 }

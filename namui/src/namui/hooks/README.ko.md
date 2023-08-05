@@ -86,7 +86,7 @@ impl Component for MyComponent<'_> {
                 on_click: &|| on_internal_event(InternalEvent::Hello),
             })
 
-            ctx.done()
+
     }
 }
 ```

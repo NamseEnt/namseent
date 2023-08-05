@@ -20,7 +20,7 @@ pub struct AutoScrollView<'a> {
 }
 
 impl Component for AutoScrollView<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
         ctx.add(ScrollView {
@@ -31,13 +31,11 @@ impl Component for AutoScrollView<'_> {
             scroll_y: *scroll_y,
             set_scroll_y,
         });
-
-        ctx.done()
     }
 }
 
 impl Component for ScrollView<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let &Self {
             xy,
             scroll_bar_width,
@@ -47,87 +45,104 @@ impl Component for ScrollView<'_> {
             set_scroll_y,
         } = self;
 
-        ctx.add(content.as_ref());
+        let (bounding_box, instance) = ctx.test_bounding_box(content.as_ref());
+        let Some(bounding_box) = bounding_box else {
+            return;
+        };
 
-        ctx.done_with_rendering_tree(move |children| {
-            let content = namui::render(children);
+        let scroll_y = namui::math::num::clamp(
+            scroll_y,
+            px(0.0),
+            px(0.0).max(bounding_box.height() - height),
+        );
 
-            let content_bounding_box = content.get_bounding_box();
-            if content_bounding_box.is_none() {
-                return RenderingTree::Empty;
-            }
-            let content_bounding_box = content_bounding_box.unwrap();
-
-            let scroll_y = namui::math::num::clamp(
-                scroll_y,
-                px(0.0),
-                px(0.0).max(content_bounding_box.height() - height),
-            );
-
-            let inner = namui::clip(
+        let inner = ctx.later_once(|ctx| {
+            ctx.clip(
                 namui::PathBuilder::new().add_rect(Rect::Xywh {
-                    x: content_bounding_box.x(),
-                    y: content_bounding_box.y(),
-                    width: content_bounding_box.width(),
+                    x: bounding_box.x(),
+                    y: bounding_box.y(),
+                    width: bounding_box.width(),
                     height,
                 }),
                 namui::ClipOp::Intersect,
-                namui::translate(px(0.0), -scroll_y.floor(), content.clone()),
-            );
+            )
+            .translate(Xy::new(0.px(), -scroll_y.floor()))
+            .add_with_instance(content.as_ref(), instance);
+        });
 
-            let scroll_bar_handle_height = height * (height / content_bounding_box.height());
+        let scroll_bar_handle_height = height * (height / bounding_box.height());
 
-            let scroll_bar_y = (height - scroll_bar_handle_height)
-                * (scroll_y / (content_bounding_box.height() - height));
+        let scroll_bar_y =
+            (height - scroll_bar_handle_height) * (scroll_y / (bounding_box.height() - height));
 
-            let scroll_bar = match content_bounding_box.height() > height {
-                true => rect(RectParam {
-                    rect: Rect::Xywh {
-                        x: content_bounding_box.width() - scroll_bar_width, // iOS Style!
-                        y: scroll_bar_y,
-                        width: scroll_bar_width,
-                        height: scroll_bar_handle_height,
-                    },
-                    style: RectStyle {
-                        fill: Some(RectFill {
-                            color: Color::grayscale_f01(0.5),
-                        }),
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                }),
-                false => RenderingTree::Empty,
-            };
-            let whole_rect = rect(RectParam {
+        let scroll_bar = match bounding_box.height() > height {
+            true => rect(RectParam {
                 rect: Rect::Xywh {
-                    x: px(0.0),
-                    y: px(0.0),
-                    width: content_bounding_box.width(),
-                    height,
+                    x: bounding_box.width() - scroll_bar_width, // iOS Style!
+                    y: scroll_bar_y,
+                    width: scroll_bar_width,
+                    height: scroll_bar_handle_height,
                 },
                 style: RectStyle {
                     fill: Some(RectFill {
-                        color: Color::TRANSPARENT,
+                        color: Color::grayscale_f01(0.5),
                     }),
                     ..Default::default()
                 },
                 ..Default::default()
-            })
-            .attach_event(move |builder| {
-                let height = height;
-                builder.on_wheel(move |event: WheelEvent| {
+            }),
+            false => RenderingTree::Empty,
+        };
+        let whole_rect = rect(RectParam {
+            rect: Rect::Xywh {
+                x: px(0.0),
+                y: px(0.0),
+                width: bounding_box.width(),
+                height,
+            },
+            style: RectStyle {
+                fill: Some(RectFill {
+                    color: Color::TRANSPARENT,
+                }),
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+
+        ctx.translate(xy)
+            .branch(|ctx| {
+                ctx.add(whole_rect).on_wheel(move |event: WheelEvent| {
                     let next_scroll_y = namui::math::num::clamp(
                         scroll_y + px(event.delta_xy.y),
                         px(0.0),
-                        (px(0.0)).max(content_bounding_box.height() - height),
+                        (px(0.0)).max(bounding_box.height() - height),
                     );
 
                     set_scroll_y.set(next_scroll_y);
 
                     event.stop_propagation();
                 });
-            });
-            translate(xy.x, xy.y, namui::render([whole_rect, inner, scroll_bar]))
-        })
+            })
+            .add(inner)
+            .add(scroll_bar);
+
+        // ctx.return_(translate(
+        //     xy,
+        //     (
+        //         whole_rect.on_wheel(move |event: WheelEvent| {
+        //             let next_scroll_y = namui::math::num::clamp(
+        //                 scroll_y + px(event.delta_xy.y),
+        //                 px(0.0),
+        //                 (px(0.0)).max(bounding_box.height() - height),
+        //             );
+
+        //             set_scroll_y.set(next_scroll_y);
+
+        //             event.stop_propagation();
+        //         }),
+        //         inner,
+        //         scroll_bar,
+        //     ),
+        // ));
     }
 }

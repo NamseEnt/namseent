@@ -1,5 +1,6 @@
 pub(crate) mod channel;
 mod component;
+mod event;
 mod instance;
 mod native;
 mod render;
@@ -9,6 +10,7 @@ mod value;
 
 pub(crate) use channel::*;
 pub use component::*;
+pub(crate) use event::*;
 pub use hooks_macro::*;
 pub(crate) use instance::*;
 pub use native::*;
@@ -56,77 +58,3 @@ macro_rules! callback {
 }
 
 pub use callback;
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use wasm_bindgen_test::wasm_bindgen_test;
-
-//     #[test]
-//     #[wasm_bindgen_test]
-//     fn single_param() {
-//         let name_of_a = {
-//             struct A<'a> {
-//                 _a: callback!(i32),
-//             }
-//             std::any::type_name::<A<'static>>()
-//         };
-
-//         struct A<'a> {
-//             _a: Arc<dyn 'a + Send + Sync + Fn(i32)>,
-//         }
-
-//         assert_eq!(name_of_a, std::any::type_name::<A<'static>>());
-//     }
-
-//     #[test]
-//     #[wasm_bindgen_test]
-//     fn single_param_with_return() {
-//         let name_of_a = {
-//             struct A<'a> {
-//                 _a: callback!(i32 -> i32),
-//             }
-//             std::any::type_name::<A<'static>>()
-//         };
-
-//         struct A<'a> {
-//             _a: Arc<dyn 'a + Send + Sync + Fn(i32) -> i32>,
-//         }
-
-//         assert_eq!(name_of_a, std::any::type_name::<A<'static>>());
-//     }
-
-//     #[test]
-//     #[wasm_bindgen_test]
-//     fn multiple_params() {
-//         let name_of_a = {
-//             struct A<'a> {
-//                 _a: callback!(i32, i32),
-//             }
-//             std::any::type_name::<A<'static>>()
-//         };
-
-//         struct A<'a> {
-//             _a: Arc<dyn 'a + Send + Sync + Fn((i32, i32))>,
-//         }
-
-//         assert_eq!(name_of_a, std::any::type_name::<A<'static>>());
-//     }
-
-//     #[test]
-//     #[wasm_bindgen_test]
-//     fn multiple_params_with_return() {
-//         let name_of_a = {
-//             struct A<'a> {
-//                 _a: callback!(i32, i32 -> i32),
-//             }
-//             std::any::type_name::<A<'static>>()
-//         };
-
-//         struct A<'a> {
-//             _a: Arc<dyn 'a + Send + Sync + Fn((i32, i32)) -> i32>,
-//         }
-
-//         assert_eq!(name_of_a, std::any::type_name::<A<'static>>());
-//     }
-// }

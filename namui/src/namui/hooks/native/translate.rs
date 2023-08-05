@@ -17,7 +17,7 @@ pub struct Translate<'a> {
 impl StaticType for Translate<'_> {}
 
 impl Component for Translate<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let x = self.x;
         let y = self.y;
         ctx.add(self.component.as_ref());

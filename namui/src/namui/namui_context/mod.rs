@@ -6,13 +6,10 @@ impl NamuiContext {
     pub(crate) fn new() -> Self {
         Self {}
     }
-    pub fn start(self, component: &dyn crate::Component) {
+    pub fn start<C: Component>(self, component: impl Fn() -> C) {
         crate::hooks::channel::init();
 
-        let mut tree_ctx = crate::hooks::TreeContext::new();
-        loop {
-            tree_ctx = mount_visit(component, tree_ctx);
-            tree_ctx.before_re_render();
-        }
+        let tree_ctx = crate::hooks::TreeContext::new();
+        tree_ctx.start(component);
     }
 }

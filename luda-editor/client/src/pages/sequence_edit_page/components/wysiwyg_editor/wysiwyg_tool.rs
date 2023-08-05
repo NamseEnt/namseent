@@ -17,7 +17,7 @@ pub enum Event {
 }
 
 impl Component for WysiwygTool<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let &Self {
             graphic_dest_rect,
             original_graphic_size,
@@ -51,6 +51,5 @@ impl Component for WysiwygTool<'_> {
             graphic_index,
             on_event: arc(|event| on_event(Event::Resizer { event })),
         });
-        ctx.done()
     }
 }

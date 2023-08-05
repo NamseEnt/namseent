@@ -1,34 +1,25 @@
-use crate::{system, Code, MouseEventType, RawMouseEvent, RawWheelEvent, RenderingTree};
-use namui_type::{px, uuid, Wh, Xy};
+use crate::*;
 use serde::Deserialize;
 use std::str::FromStr;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
-#[derive(serde::Deserialize, Debug, Clone)]
+#[derive(serde::Deserialize, Debug)]
 pub enum WebEvent {
+    #[serde(deserialize_with = "deserialize_raw_mouse_event")]
     MouseDown {
-        x: usize,
-        y: usize,
-        button: usize,
-        buttons: usize,
+        event: RawMouseEvent,
     },
+    #[serde(deserialize_with = "deserialize_raw_mouse_event")]
     MouseMove {
-        x: usize,
-        y: usize,
-        button: usize,
-        buttons: usize,
+        event: RawMouseEvent,
     },
+    #[serde(deserialize_with = "deserialize_raw_mouse_event")]
     MouseUp {
-        x: usize,
-        y: usize,
-        button: usize,
-        buttons: usize,
+        event: RawMouseEvent,
     },
+    #[serde(deserialize_with = "deserialize_raw_wheel_event")]
     Wheel {
-        x: usize,
-        y: usize,
-        delta_x: isize,
-        delta_y: isize,
+        event: RawWheelEvent,
     },
     HashChange {
         new_url: String,
@@ -113,6 +104,45 @@ where
         .map_err(|err| serde::de::Error::custom("fail to deserialize selection direction"))
 }
 
+fn deserialize_raw_mouse_event<'de, D>(deserializer: D) -> Result<RawMouseEvent, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    struct Input {
+        x: f32,
+        y: f32,
+        button: u16,
+        buttons: u16,
+    }
+
+    let input = Input::deserialize(deserializer)?;
+    Ok(RawMouseEvent {
+        xy: Xy::new(input.x.px(), input.y.px()),
+        pressing_buttons: system::mouse::event::get_pressing_buttons(input.buttons),
+        button: Some(system::mouse::event::get_button(input.button)),
+    })
+}
+
+fn deserialize_raw_wheel_event<'de, D>(deserializer: D) -> Result<RawWheelEvent, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    struct Input {
+        x: f32,
+        y: f32,
+        delta_x: f32,
+        delta_y: f32,
+    }
+
+    let input = Input::deserialize(deserializer)?;
+    Ok(RawWheelEvent {
+        delta_xy: Xy::new(input.delta_x, input.delta_y),
+        mouse_xy: Xy::new(input.x.px(), input.y.px()),
+    })
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SelectionDirection {
     Forward,
@@ -139,99 +169,101 @@ extern "C" {
     fn waitEvent() -> JsValue;
 }
 
-fn wait_web_event() -> Option<WebEvent> {
-    let event = waitEvent();
-    let event: Option<WebEvent> =
-        serde_wasm_bindgen::from_value(event).expect("failed to parse web event");
-    event
+pub(crate) fn wait_web_event() -> WebEvent {
+    loop {
+        let event = waitEvent();
+        let event: Option<WebEvent> =
+            serde_wasm_bindgen::from_value(event).expect("failed to parse web event");
+        if let Some(event) = event {
+            return event;
+        }
+    }
 }
 
-pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) -> Option<WebEvent> {
-    let Some(web_event) = wait_web_event() else {
-        return None;
-    };
+pub(crate) fn handle_web_event(rendering_tree: Option<&RenderingTree>) -> WebEvent {
+    let web_event = wait_web_event();
     match &web_event {
-        &WebEvent::MouseDown {
-            x,
-            y,
-            button,
-            buttons,
-        } => {
-            rendering_tree.map(|rendering_tree| {
-                rendering_tree.call_mouse_event(
-                    MouseEventType::Down,
-                    &RawMouseEvent {
-                        id: uuid(),
-                        xy: Xy::new(px(x as f32), px(y as f32)),
-                        pressing_buttons: crate::system::mouse::event::get_pressing_buttons(
-                            buttons as u16,
-                        ),
-                        button: Some(crate::system::mouse::event::get_button(button as u16)),
-                    },
-                )
-            });
-        }
-        &WebEvent::MouseMove {
-            x,
-            y,
-            button,
-            buttons,
-        } => {
-            rendering_tree.map(|rendering_tree| {
-                rendering_tree.call_mouse_event(
-                    MouseEventType::Move,
-                    &RawMouseEvent {
-                        id: uuid(),
-                        xy: Xy::new(px(x as f32), px(y as f32)),
-                        pressing_buttons: crate::system::mouse::event::get_pressing_buttons(
-                            buttons as u16,
-                        ),
-                        button: Some(crate::system::mouse::event::get_button(button as u16)),
-                    },
-                )
-            });
-        }
-        &WebEvent::MouseUp {
-            x,
-            y,
-            button,
-            buttons,
-        } => {
-            rendering_tree.map(|rendering_tree| {
-                rendering_tree.call_mouse_event(
-                    MouseEventType::Up,
-                    &RawMouseEvent {
-                        id: uuid(),
-                        xy: Xy::new(px(x as f32), px(y as f32)),
-                        pressing_buttons: crate::system::mouse::event::get_pressing_buttons(
-                            buttons as u16,
-                        ),
-                        button: Some(crate::system::mouse::event::get_button(button as u16)),
-                    },
-                )
-            });
-        }
-        &WebEvent::Wheel {
-            x,
-            y,
-            delta_x,
-            delta_y,
-        } => {
-            rendering_tree.map(|rendering_tree| {
-                rendering_tree.call_wheel_event(&RawWheelEvent {
-                    id: crate::uuid(),
-                    delta_xy: Xy {
-                        x: delta_x as f32,
-                        y: delta_y as f32,
-                    },
-                    mouse_xy: Xy::new(px(x as f32), px(y as f32)),
-                })
-            });
-        }
+        // &WebEvent::MouseDown {
+        //     x,
+        //     y,
+        //     button,
+        //     buttons,
+        // } => {
+        //     // rendering_tree.map(|rendering_tree| {
+        //     //     rendering_tree.call_mouse_event(
+        //     //         MouseEventType::Down,
+        //     //         &RawMouseEvent {
+        //     //             id: uuid(),
+        //     //             xy: Xy::new(px(x as f32), px(y as f32)),
+        //     //             pressing_buttons: crate::system::mouse::event::get_pressing_buttons(
+        //     //                 buttons as u16,
+        //     //             ),
+        //     //             button: Some(crate::system::mouse::event::get_button(button as u16)),
+        //     //         },
+        //     //     )
+        //     // });
+        // }
+        // &WebEvent::MouseMove {
+        //     x,
+        //     y,
+        //     button,
+        //     buttons,
+        // } => {
+        //     // rendering_tree.map(|rendering_tree| {
+        //     //     rendering_tree.call_mouse_event(
+        //     //         MouseEventType::Move,
+        //     //         &RawMouseEvent {
+        //     //             id: uuid(),
+        //     //             xy: Xy::new(px(x as f32), px(y as f32)),
+        //     //             pressing_buttons: crate::system::mouse::event::get_pressing_buttons(
+        //     //                 buttons as u16,
+        //     //             ),
+        //     //             button: Some(crate::system::mouse::event::get_button(button as u16)),
+        //     //         },
+        //     //     )
+        //     // });
+        // }
+        // &WebEvent::MouseUp {
+        //     x,
+        //     y,
+        //     button,
+        //     buttons,
+        // } => {
+        //     // rendering_tree.map(|rendering_tree| {
+        //     //     rendering_tree.call_mouse_event(
+        //     //         MouseEventType::Up,
+        //     //         &RawMouseEvent {
+        //     //             id: uuid(),
+        //     //             xy: Xy::new(px(x as f32), px(y as f32)),
+        //     //             pressing_buttons: crate::system::mouse::event::get_pressing_buttons(
+        //     //                 buttons as u16,
+        //     //             ),
+        //     //             button: Some(crate::system::mouse::event::get_button(button as u16)),
+        //     //         },
+        //     //     )
+        //     // });
+        // }
+        // &WebEvent::Wheel {
+        //     x,
+        //     y,
+        //     delta_x,
+        //     delta_y,
+        // } => {
+        //     // rendering_tree.map(|rendering_tree| {
+        //     //     rendering_tree.call_wheel_event(&RawWheelEvent {
+        //     //         id: crate::uuid(),
+        //     //         delta_xy: Xy {
+        //     //             x: delta_x as f32,
+        //     //             y: delta_y as f32,
+        //     //         },
+        //     //         mouse_xy: Xy::new(px(x as f32), px(y as f32)),
+        //     //     })
+        //     // });
+        // }
         &WebEvent::HashChange { .. } => {}
         &WebEvent::SelectionChange { .. } => {}
-        &WebEvent::KeyDown { ref code } => crate::keyboard::on_key_down(&code),
-        &WebEvent::KeyUp { ref code } => crate::keyboard::on_key_up(&code),
+        &WebEvent::KeyDown { ref code } => {} // crate::keyboard::on_key_down(&code),
+        &WebEvent::KeyUp { ref code } => {}   //crate::keyboard::on_key_up(&code),
         &WebEvent::Blur => crate::keyboard::reset_pressing_code_set(),
         &WebEvent::VisibilityChange => crate::keyboard::reset_pressing_code_set(),
         &WebEvent::Resize { width, height } => {
@@ -242,7 +274,8 @@ pub fn handle_web_event(rendering_tree: Option<&RenderingTree>) -> Option<WebEve
         }
         &WebEvent::TextInputTextUpdated { .. } => {}
         &WebEvent::TextInputKeyDown { .. } => {}
+        _ => {}
     }
 
-    Some(web_event)
+    web_event
 }

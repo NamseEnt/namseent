@@ -7,7 +7,7 @@ pub struct Router {
 }
 
 impl Component for Router {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let (route, set_route) = ctx.state(|| Route::from(get_path_from_hash()));
         namui::log!("route: {:?}", route);
 
@@ -34,8 +34,6 @@ impl Component for Router {
                 sequence_id,
             }),
         }
-
-        ctx.done()
     }
 }
 

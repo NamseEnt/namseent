@@ -70,7 +70,7 @@ pub fn init() -> NamuiContext {
     namui_context
 }
 
-pub fn start(namui_context: NamuiContext, component: &dyn Component) {
+pub fn start<C: Component>(namui_context: NamuiContext, component: impl Fn() -> C) {
     namui_context.start(component);
 }
 

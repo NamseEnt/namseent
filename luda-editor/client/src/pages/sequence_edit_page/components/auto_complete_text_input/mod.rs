@@ -31,7 +31,7 @@ pub enum Event {
 }
 
 impl Component for AutoCompleteTextInput<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let &Self {
             wh,
             ref text,
@@ -276,8 +276,6 @@ impl Component for AutoCompleteTextInput<'_> {
         //         });
         //     }),
         // );
-
-        ctx.done()
     }
 }
 

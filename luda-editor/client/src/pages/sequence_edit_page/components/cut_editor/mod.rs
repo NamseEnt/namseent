@@ -38,7 +38,7 @@ pub enum Event2 {
 }
 
 impl Component for CutEditor<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let &Self {
             wh,
             cut,
@@ -322,8 +322,6 @@ impl Component for CutEditor<'_> {
         ));
 
         // context_menu.map(|context_menu| ctx.add(context_menu));
-
-        ctx.done()
     }
 }
 

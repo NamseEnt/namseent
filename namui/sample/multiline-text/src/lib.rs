@@ -10,7 +10,7 @@ pub fn main() {
 struct MultilineTextExample {}
 
 impl Component for MultilineTextExample {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let wh = namui::screen::size();
         let mut trees = vec![];
 
@@ -174,7 +174,5 @@ impl Component for MultilineTextExample {
         }
 
         ctx.add(render(trees));
-
-        ctx.done()
     }
 }

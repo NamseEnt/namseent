@@ -16,7 +16,7 @@ enum LoadingState {
 }
 
 impl Component for App {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let (loading_state, set_loading_state) = ctx.state(|| LoadingState::Loading);
 
         ctx.effect("Try login", || {
@@ -52,7 +52,5 @@ impl Component for App {
                 ctx.add(typography::body::center(wh, &error, Color::WHITE))
             }
         };
-
-        ctx.done()
     }
 }

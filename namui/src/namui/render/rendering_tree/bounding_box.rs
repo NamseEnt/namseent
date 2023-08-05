@@ -1,10 +1,12 @@
 use super::*;
 use crate::namui::*;
-use once_cell::sync::OnceCell;
-use std::{borrow::Borrow, sync::Mutex};
+use std::{
+    borrow::Borrow,
+    sync::{Mutex, OnceLock},
+};
 
 type CacheKey = Box<[u8]>;
-static CACHE: OnceCell<Mutex<lru::LruCache<CacheKey, Option<Rect<Px>>>>> = OnceCell::new();
+static CACHE: OnceLock<Mutex<lru::LruCache<CacheKey, Option<Rect<Px>>>>> = OnceLock::new();
 
 impl RenderingTree {
     pub fn get_bounding_box(&self) -> Option<Rect<Px>> {
@@ -186,8 +188,7 @@ impl RenderingTree {
                             .push(bounding_box);
                         bounding_box
                     }
-                    SpecialRenderingNode::AttachEvent(_)
-                    | SpecialRenderingNode::MouseCursor(_)
+                    SpecialRenderingNode::MouseCursor(_)
                     | SpecialRenderingNode::WithId(_)
                     | SpecialRenderingNode::Custom(_) => {
                         get_bounding_box_with_matrix_of_rendering_trees(

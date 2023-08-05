@@ -3,7 +3,7 @@ use namui::prelude::*;
 pub fn main() {
     let namui_context = namui::init();
 
-    namui::start(namui_context, &mut TextInputExample::new())
+    namui::start(namui_context, || TextInputExample::new())
 }
 
 #[namui::component]
@@ -16,7 +16,7 @@ impl TextInputExample {
 }
 
 impl Component for TextInputExample {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let (text_3x3, set_text_3x3) = ctx.state(|| {
             [
                 [
@@ -114,8 +114,6 @@ impl Component for TextInputExample {
                 });
             }
         }
-
-        ctx.done()
     }
 
     // fn update(&mut self, event: &namui::Event) {

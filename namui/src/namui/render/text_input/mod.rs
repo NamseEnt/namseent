@@ -67,8 +67,8 @@ struct TextInputMouseEvent {
 }
 
 impl Component for TextInput<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let Self { on_event, .. } = self;
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
+        let on_event = &self.on_event;
         let id = self.instance.id;
         let (atom, set_atom) = ctx.atom_init(&TEXT_INPUT_ATOM, || TextInputCtx {
             focused_id: None,
@@ -77,6 +77,7 @@ impl Component for TextInput<'_> {
         });
 
         let is_focused = ctx.memo(|| atom.is_focused(id));
+        crate::log!("is_focused: {:?}", is_focused);
         let prevent_default_codes = ctx.track_eq(&self.prevent_default_codes);
 
         static LAST_MOUSE_DOWNED: OnceLock<Mutex<Option<TextInputMouseEvent>>> = OnceLock::new();
@@ -273,11 +274,11 @@ impl Component for TextInput<'_> {
 
                 web::execute_function_sync(
                     "
-textArea.style.width = `${width}px`;
-textArea.value = text;
-textArea.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
-textArea.focus();
-",
+        textArea.style.width = `${width}px`;
+        textArea.value = text;
+        textArea.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
+        textArea.focus();
+        ",
                 )
                 .arg("width", width)
                 .arg("text", &self.text)
@@ -411,12 +412,12 @@ textArea.focus();
                             &text,
                         );
                         let Selection::Range(range) = selection else {
-                            return Selection::None;
-                        };
+                                    return Selection::None;
+                                };
 
                         let Some(line_texts) = self.get_line_texts() else {
-                            return Selection::None;
-                        };
+                                    return Selection::None;
+                                };
 
                         let next_selection_end =
                             get_caret_index_after_apply_key_movement(key, line_texts, &range);
@@ -457,8 +458,8 @@ textArea.focus();
                     let selection = get_selection_on_keyboard_down(key_in_interest);
 
                     let Some(utf16_selection) = selection.as_utf16(&text) else {
-                        return;
-                    };
+                                return;
+                            };
 
                     let selection_direction = if utf16_selection.start <= utf16_selection.end {
                         "forward"
@@ -468,12 +469,12 @@ textArea.focus();
 
                     web::execute_function_sync(
                         "
-                                textArea.setSelectionRange(
-                                    selectionStart,
-                                    selectionEnd,
-                                    selectionDirection,
-                                )
-                            ",
+                                        textArea.setSelectionRange(
+                                            selectionStart,
+                                            selectionEnd,
+                                            selectionDirection,
+                                        )
+                                    ",
                     )
                     .arg(
                         "selectionStart",
@@ -490,11 +491,9 @@ textArea.focus();
             }
         });
 
-        let font = namui::font::get_font(self.font_type);
-        if font.is_none() {
-            return ctx.done();
-        }
-        let font = font.unwrap();
+        let Some(font) = namui::font::get_font(self.font_type) else {
+            return;
+        };
 
         let fonts = crate::font::with_fallbacks(font);
 
@@ -509,67 +508,59 @@ textArea.focus();
 
         let selection = atom.get_selection_of_text_input(id);
 
-        ctx.add(
-            render([
-                namui::rect(RectParam {
-                    rect: self.rect,
-                    style: RectStyle {
-                        stroke: if self.style.rect.stroke.is_some()
-                            || self.style.rect.fill.is_some()
-                        {
-                            self.style.rect.stroke
-                        } else {
-                            Some(RectStroke {
-                                color: Color::TRANSPARENT,
-                                width: 0.px(),
-                                border_position: BorderPosition::Inside,
-                            })
-                        },
-                        ..self.style.rect
+        ctx.add(render([
+            namui::rect(RectParam {
+                rect: self.rect,
+                style: RectStyle {
+                    stroke: if self.style.rect.stroke.is_some() || self.style.rect.fill.is_some() {
+                        self.style.rect.stroke
+                    } else {
+                        Some(RectStroke {
+                            color: Color::TRANSPARENT,
+                            width: 0.px(),
+                            border_position: BorderPosition::Inside,
+                        })
                     },
-                }),
-                self.draw_texts_divided_by_selection(
-                    &self,
-                    &fonts,
-                    paint.clone(),
-                    &line_texts,
-                    &selection,
-                ),
-                self.draw_caret(&self, &line_texts, &selection, paint.clone()),
-            ])
-            .attach_event(|builder| {
-                builder
-                    .on_mouse_down_in(move |event: MouseEvent| {
-                        LAST_MOUSE_DOWNED
-                            .get_or_init(Default::default)
-                            .lock()
-                            .unwrap()
-                            .replace(TextInputMouseEvent {
-                                id,
-                                local_xy: event.local_xy,
-                            });
-                    })
-                    .on_mouse(move |event| match event.event_type {
-                        MouseEventType::Down => {}
-                        MouseEventType::Up => {}
-                        MouseEventType::Move => {
-                            if !*is_focused {
-                                return;
-                            }
-
-                            LAST_MOUSE_MOVED
-                                .get_or_init(Default::default)
-                                .lock()
-                                .unwrap()
-                                .replace(TextInputMouseEvent {
-                                    id,
-                                    local_xy: event.local_xy,
-                                });
-                        }
-                    });
+                    ..self.style.rect
+                },
             }),
-        );
-        ctx.done()
+            self.draw_texts_divided_by_selection(
+                &self,
+                &fonts,
+                paint.clone(),
+                &line_texts,
+                &selection,
+            ),
+            self.draw_caret(&self, &line_texts, &selection, paint.clone()),
+        ]))
+        .on_mouse_down_in(|event: MouseEvent| {
+            LAST_MOUSE_DOWNED
+                .get_or_init(Default::default)
+                .lock()
+                .unwrap()
+                .replace(TextInputMouseEvent {
+                    id,
+                    local_xy: event.local_xy,
+                });
+        })
+        .on_mouse(|event| match event.event_type {
+            MouseEventType::Down => {}
+            MouseEventType::Up => {}
+            MouseEventType::Move => {
+                if !*is_focused {
+                    return;
+                }
+
+                LAST_MOUSE_MOVED
+                    .get_or_init(Default::default)
+                    .lock()
+                    .unwrap()
+                    .replace(TextInputMouseEvent {
+                        id,
+                        local_xy: event.local_xy,
+                    });
+            }
+        });
     }
 }
 

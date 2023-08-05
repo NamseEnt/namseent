@@ -62,7 +62,7 @@ pub struct ContextMenu<'a> {
 }
 
 impl Component for ContextMenu<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let &Self {
             ref items,
             ref close,
@@ -183,8 +183,6 @@ impl Component for ContextMenu<'_> {
                 builder.on_mouse_move_out(move |_| set_mouse_over_item_idx.set(None));
             }),
         )));
-
-        ctx.done()
     }
 }
 

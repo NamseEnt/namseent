@@ -4,7 +4,7 @@ use std::{
     sync::{atomic::AtomicBool, Mutex},
 };
 
-pub(crate) struct ComponentInstance {
+pub struct ComponentInstance {
     pub(crate) component_id: usize,
     // pub(crate) component_type_id: StaticTypeId,
     pub(crate) component_type_name: &'static str,
@@ -15,7 +15,6 @@ pub(crate) struct ComponentInstance {
     pub(crate) render_used_sigs: Mutex<Vec<SigId>>,
     pub(crate) track_eq_value_list: Mutex<Vec<Box<dyn Value>>>,
     pub(crate) is_first_render: AtomicBool,
-    pub(crate) web_event_listener: Mutex<Option<Box<dyn Fn(&crate::web::WebEvent)>>>,
 }
 
 impl Debug for ComponentInstance {
@@ -40,10 +39,6 @@ impl Debug for ComponentInstance {
                 &self.track_eq_value_list.lock().unwrap(),
             )
             .field("is_first_render", &self.is_first_render)
-            .field(
-                "web_event_listener",
-                &self.web_event_listener.lock().unwrap().is_some(),
-            )
             .finish()
     }
 }
@@ -61,7 +56,6 @@ impl ComponentInstance {
             render_used_sigs: Default::default(),
             track_eq_value_list: Default::default(),
             is_first_render: AtomicBool::new(true),
-            web_event_listener: Default::default(),
         }
     }
 }

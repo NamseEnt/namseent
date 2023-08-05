@@ -83,7 +83,6 @@ impl RenderingTree {
                         result_xy = transform.matrix.inverse().unwrap().transform_xy(result_xy);
                     }
                     SpecialRenderingNode::Clip(_)
-                    | SpecialRenderingNode::AttachEvent(_)
                     | SpecialRenderingNode::MouseCursor(_)
                     | SpecialRenderingNode::WithId(_)
                     | SpecialRenderingNode::Custom(_)
@@ -94,7 +93,7 @@ impl RenderingTree {
         }
         result_xy
     }
-    fn is_xy_in(&self, xy: Xy<Px>, ancestors: &[&Self]) -> bool {
+    pub(crate) fn is_xy_in(&self, xy: Xy<Px>, ancestors: &[&Self]) -> bool {
         let mut result = false;
         self.try_visit_rln(
             &mut |node, utils| {
@@ -144,7 +143,6 @@ impl RenderingTree {
                         xy = transform.matrix.transform_xy(xy);
                     }
                     SpecialRenderingNode::Clip(_)
-                    | SpecialRenderingNode::AttachEvent(_)
                     | SpecialRenderingNode::MouseCursor(_)
                     | SpecialRenderingNode::WithId(_)
                     | SpecialRenderingNode::Custom(_)

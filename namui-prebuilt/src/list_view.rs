@@ -12,7 +12,7 @@ pub struct ListView<C: Component> {
 }
 
 impl<C: Component> Component for ListView<C> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let &Self {
             xy,
             height,
@@ -35,8 +35,6 @@ impl<C: Component> Component for ListView<C> {
             scroll_y: *scroll_y,
             set_scroll_y,
         });
-
-        ctx.done()
     }
 }
 
@@ -49,7 +47,7 @@ struct ListViewInner<'a, C: Component> {
 }
 
 impl<C: Component> Component for ListViewInner<'_, C> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let &Self {
             height,
             item_wh,
@@ -60,7 +58,7 @@ impl<C: Component> Component for ListViewInner<'_, C> {
         let item_len = items.len();
 
         if item_len == 0 {
-            return ctx.done();
+            return;
         }
         let max_scroll_y = item_wh.height * item_len - height;
 
@@ -75,45 +73,37 @@ impl<C: Component> Component for ListViewInner<'_, C> {
             .skip(visible_item_start_index)
             .take(visible_item_count);
 
-        for visible_item in visible_items.into_iter() {
-            ctx.add(visible_item)
+        let content_height = item_wh.height * item_len;
+
+        let transparent_pillar = rect(RectParam {
+            rect: Rect::Xywh {
+                x: px(0.0),
+                y: px(0.0),
+                width: item_wh.width,
+                height: content_height,
+            },
+            style: RectStyle {
+                fill: Some(RectFill {
+                    color: Color::TRANSPARENT,
+                }),
+                ..Default::default()
+            },
+        });
+        ctx.add(transparent_pillar);
+
+        let max_scroll_y = item_wh.height * item_len - height;
+
+        let scroll_y = scroll_y.min(max_scroll_y);
+
+        let visible_item_start_index = (scroll_y / item_wh.height).floor() as usize;
+
+        for (index, visible_item) in visible_items.into_iter().enumerate() {
+            ctx.translate(Xy::new(
+                0.px(),
+                item_wh.height * (index + visible_item_start_index),
+            ))
+            .add(visible_item);
         }
-
-        ctx.done_with_rendering_tree(move |children| {
-            let max_scroll_y = item_wh.height * item_len - height;
-
-            let scroll_y = scroll_y.min(max_scroll_y);
-
-            let visible_item_start_index = (scroll_y / item_wh.height).floor() as usize;
-
-            let visible_rendering_tree =
-                namui::render(children.into_iter().enumerate().map(|(index, child)| {
-                    translate(
-                        px(0.0),
-                        item_wh.height * (index + visible_item_start_index),
-                        child,
-                    )
-                }));
-
-            let content_height = item_wh.height * item_len;
-
-            let transparent_pillar = rect(RectParam {
-                rect: Rect::Xywh {
-                    x: px(0.0),
-                    y: px(0.0),
-                    width: item_wh.width,
-                    height: content_height,
-                },
-                style: RectStyle {
-                    fill: Some(RectFill {
-                        color: Color::TRANSPARENT,
-                    }),
-                    ..Default::default()
-                },
-            });
-
-            namui::render![transparent_pillar, visible_rendering_tree]
-        })
     }
 }
 

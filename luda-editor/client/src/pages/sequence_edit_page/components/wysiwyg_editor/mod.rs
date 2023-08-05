@@ -34,7 +34,7 @@ pub struct WysiwygEditor<'a> {
 }
 
 impl Component for WysiwygEditor<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(&'a self, ctx: &'a RenderCtx) {
         let &Self {
             wh,
             cut_id,
@@ -278,7 +278,6 @@ impl Component for WysiwygEditor<'_> {
         if let Some(context_menu) = context_menu.deref() {
             ctx.add(context_menu);
         }
-        ctx.done()
     }
 }
 
