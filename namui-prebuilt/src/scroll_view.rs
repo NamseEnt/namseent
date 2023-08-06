@@ -45,12 +45,15 @@ impl<C: Component> Component for ScrollView<C> {
             scroll_y,
             set_scroll_y,
         } = self;
+        let (bounding_box, set_bounding_box) = ctx.state(|| None);
 
-        let content = ctx.ghost_render(content);
-        todo!("ghost_render 안에 attach_event가 있다면? 잘못된 matrix를 가지고 렌더링하지 않을까?");
+        let Some(bounding_box) = *bounding_box else  {
+            let content = ctx.ghost_render(content);
 
-        let Some(bounding_box) = content.get_bounding_box() else {
-            return ctx.return_no();
+            if let Some(bounding_box) = content.get_bounding_box() {
+                set_bounding_box.set(Some(bounding_box));
+            };
+            return ctx.done();
         };
 
         let scroll_y = namui::math::num::clamp(
@@ -59,7 +62,7 @@ impl<C: Component> Component for ScrollView<C> {
             px(0.0).max(bounding_box.height() - height),
         );
 
-        let inner = clip(
+        let inner = hooks::clip(
             namui::PathBuilder::new().add_rect(Rect::Xywh {
                 x: bounding_box.x(),
                 y: bounding_box.y(),
@@ -67,7 +70,7 @@ impl<C: Component> Component for ScrollView<C> {
                 height,
             }),
             namui::ClipOp::Intersect,
-            translate(0.px(), -scroll_y.floor(), content),
+            hooks::translate(0.px(), -scroll_y.floor(), content),
         );
 
         let scroll_bar_handle_height = height * (height / bounding_box.height());
@@ -109,29 +112,162 @@ impl<C: Component> Component for ScrollView<C> {
             ..Default::default()
         });
 
-        ctx.component(hooks::translate(
-            xy.x,
-            xy.y,
-            (
-                whole_rect.attach_event(move |event| match event {
-                    Event::Wheel { event } => {
-                        let next_scroll_y = namui::math::num::clamp(
-                            scroll_y + px(event.delta_xy.y),
-                            px(0.0),
-                            (px(0.0)).max(bounding_box.height() - height),
-                        );
+        ctx.translate(xy)
+            .component(whole_rect.attach_event(move |event| match event {
+                Event::Wheel { event } => {
+                    let next_scroll_y = namui::math::num::clamp(
+                        scroll_y + px(event.delta_xy.y),
+                        px(0.0),
+                        (px(0.0)).max(bounding_box.height() - height),
+                    );
 
-                        set_scroll_y.set(next_scroll_y);
+                    set_scroll_y.set(next_scroll_y);
 
-                        event.stop_propagation();
-                    }
-                    _ => {}
-                }),
-                inner,
-                scroll_bar,
-            ),
-        ));
+                    event.stop_propagation();
+                }
+                _ => {}
+            }))
+            .component(inner)
+            .component(scroll_bar)
+            .done()
+    }
+}
+
+#[component]
+pub struct AutoScrollViewWithCtx<Func: FnOnce(ComposeCtx)> {
+    pub xy: Xy<Px>,
+    pub scroll_bar_width: Px,
+    pub height: Px,
+    #[skip_debug]
+    pub content: Func,
+}
+
+impl<Func: FnOnce(ComposeCtx)> Component for AutoScrollViewWithCtx<Func> {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
+
+        ctx.component(ScrollViewWithCtx {
+            xy: self.xy,
+            scroll_bar_width: self.scroll_bar_width,
+            height: self.height,
+            content: self.content,
+            scroll_y: *scroll_y,
+            set_scroll_y,
+        });
 
         ctx.done()
+    }
+}
+
+#[component]
+pub struct ScrollViewWithCtx<Func: FnOnce(ComposeCtx)> {
+    pub xy: Xy<Px>,
+    pub scroll_bar_width: Px,
+    pub height: Px,
+    #[skip_debug]
+    pub content: Func,
+    pub scroll_y: Px,
+    pub set_scroll_y: SetState<Px>,
+}
+
+impl<Func: FnOnce(ComposeCtx)> Component for ScrollViewWithCtx<Func> {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self {
+            xy,
+            scroll_bar_width,
+            height,
+            content,
+            scroll_y,
+            set_scroll_y,
+        } = self;
+        let (bounding_box, set_bounding_box) = ctx.state(|| None);
+
+        let Some(bounding_box) = *bounding_box else  {
+            let content = ctx.ghost_render_with_ctx(content);
+
+            if let Some(bounding_box) = content.get_bounding_box() {
+                set_bounding_box.set(Some(bounding_box));
+            };
+            return ctx.done();
+        };
+
+        let scroll_y = namui::math::num::clamp(
+            scroll_y,
+            px(0.0),
+            px(0.0).max(bounding_box.height() - height),
+        );
+
+        let inner = |ctx: ComposeCtx| {
+            content(
+                ctx.clip(
+                    namui::PathBuilder::new().add_rect(Rect::Xywh {
+                        x: bounding_box.x(),
+                        y: bounding_box.y(),
+                        width: bounding_box.width(),
+                        height,
+                    }),
+                    namui::ClipOp::Intersect,
+                )
+                .translate(0.px(), -scroll_y.floor()),
+            );
+        };
+
+        let scroll_bar_handle_height = height * (height / bounding_box.height());
+
+        let scroll_bar_y =
+            (height - scroll_bar_handle_height) * (scroll_y / (bounding_box.height() - height));
+
+        let scroll_bar = match bounding_box.height() > height {
+            true => rect(RectParam {
+                rect: Rect::Xywh {
+                    x: bounding_box.width() - scroll_bar_width, // iOS Style!
+                    y: scroll_bar_y,
+                    width: scroll_bar_width,
+                    height: scroll_bar_handle_height,
+                },
+                style: RectStyle {
+                    fill: Some(RectFill {
+                        color: Color::grayscale_f01(0.5),
+                    }),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }),
+            false => RenderingTree::Empty,
+        };
+        let whole_rect = rect(RectParam {
+            rect: Rect::Xywh {
+                x: px(0.0),
+                y: px(0.0),
+                width: bounding_box.width(),
+                height,
+            },
+            style: RectStyle {
+                fill: Some(RectFill {
+                    color: Color::TRANSPARENT,
+                }),
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+
+        ctx.translate(xy)
+            .component(whole_rect.attach_event(|event| match event {
+                Event::Wheel { event } => {
+                    let next_scroll_y = namui::math::num::clamp(
+                        scroll_y + px(event.delta_xy.y),
+                        px(0.0),
+                        (px(0.0)).max(bounding_box.height() - height),
+                    );
+
+                    set_scroll_y.set(next_scroll_y);
+
+                    event.stop_propagation();
+                }
+                _ => {}
+            }))
+            .compose(inner)
+            .component(scroll_bar)
+            .done()
     }
 }

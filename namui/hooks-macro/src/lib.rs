@@ -10,6 +10,8 @@ use syn::parse_macro_input;
 ///     pub _b: &'a str,
 ///     pub c: Abc,
 ///     pub d: &dyn Fn(),
+///     #[skip_debug]
+///     pub e: &dyn FnMut(),
 /// }
 /// ```
 ///
@@ -19,6 +21,8 @@ use syn::parse_macro_input;
 ///     pub a: A,
 ///     pub _b: &'a str,
 ///     pub c: Abc,
+///     pub d: &dyn Fn(),
+///     pub e: &dyn FnMut(),
 /// }
 ///
 /// impl<'a, C: Abc> Debug for MyComponent<'a, C> {
@@ -28,6 +32,7 @@ use syn::parse_macro_input;
 ///             .field("_b", &self._b)
 ///             .field("c", &self.c)
 ///             // ignore Fn series
+///             // ignore by attribute #[skip_debug]
 ///             .finish()
 ///
 /// impl<'a, C: Abc> namui::StaticType for MyComponent<'a, C> {
@@ -52,6 +57,12 @@ pub fn component(
                 || ty.contains(" Fn(")
                 || ty.contains(" FnMut(")
                 || ty.contains(" FnOnce("))
+        })
+        .filter(|field| {
+            !field
+                .attrs
+                .iter()
+                .any(|attr| attr.path().is_ident("skip_debug"))
         })
         .map(|field| {
             let ident = &field.ident;
@@ -89,8 +100,18 @@ pub fn component(
         }
     };
 
+    let attribute_removed_item = {
+        let mut item = item.clone();
+        item.fields.iter_mut().for_each(|field| {
+            field
+                .attrs
+                .retain(|attr| !attr.path().is_ident("skip_debug"));
+        });
+        item
+    };
+
     let expanded = quote! {
-        #item
+        #attribute_removed_item
 
         impl<#(#generic_next_to_impl_except_lifetime),*> std::fmt::Debug for #struct_name #struct_generics_next_to_for_struct
         #where_clause

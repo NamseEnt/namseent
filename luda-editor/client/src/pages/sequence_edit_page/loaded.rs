@@ -171,7 +171,7 @@ impl Component for LoadedSequenceEditorPage {
         let memo_list_view_cell: table::hooks::TableCell = {
             const MEMO_WINDOW_WIDTH: Px = px(256.0);
 
-            let memos = selected_cut.and_then(|cut| self.cut_id_memos_map.get(&cut.id));
+            let memos = selected_cut.and_then(|cut| cut_id_memos_map.get(&cut.id));
 
             // match memos {
             //     Some(memos) if !memos.is_empty() => {
@@ -225,15 +225,19 @@ impl Component for LoadedSequenceEditorPage {
         };
 
         let cut_editor_cell = move |wh, ctx: ComposeCtx| {
-            ctx.add(selected_cut.map(move |selected_cut| cut_editor::CutEditor {
-                wh,
-                cut: selected_cut,
-                cuts: &sequence.cuts,
-                is_focused: *focused_component == Some(FocusableComponent::CutEditor),
-                project_id,
-                cg_files: &cg_files,
-                on_event: arc(|event| on_internal_event(InternalEvent::CutEditorEvent { event })),
-            }));
+            if let Some(selected_cut) = selected_cut {
+                ctx.add(cut_editor::CutEditor {
+                    wh,
+                    cut: selected_cut,
+                    cuts: &sequence.cuts,
+                    is_focused: *focused_component == Some(FocusableComponent::CutEditor),
+                    project_id,
+                    cg_files: &cg_files,
+                    on_event: arc(|event| {
+                        on_internal_event(InternalEvent::CutEditorEvent { event })
+                    }),
+                });
+            }
         };
 
         ctx.compose(|ctx| {

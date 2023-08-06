@@ -1,6 +1,6 @@
 use super::*;
 use crate::{Matrix3x3, RenderingTree};
-use namui_type::Px;
+use namui_type::*;
 
 pub struct RenderCtx {
     pub(crate) instance: Arc<ComponentInstance>,
@@ -125,6 +125,7 @@ impl<'a> RenderCtx {
     }
 
     pub fn ghost_render(&self, component: impl Component) -> RenderingTree {
+        // TODO: Prevent event handling for ghost render
         let index = self
             .force_render_index
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -178,6 +179,28 @@ impl<'a> RenderCtx {
     pub fn compose(&self, ctx: impl FnOnce(ComposeCtx)) -> &Self {
         todo!()
     }
+
+    pub fn translate(&self, xy: impl AsXyPx) -> MatrixCtx {
+        todo!()
+    }
+
+    pub fn ghost_render_with_ctx<Func: FnOnce(ComposeCtx)>(&self, content: Func) -> RenderingTree {
+        todo!()
+    }
+}
+
+pub trait AsXyPx {
+    fn as_xy_px(self) -> Xy<Px>;
+}
+impl AsXyPx for (Px, Px) {
+    fn as_xy_px(self) -> Xy<Px> {
+        Xy::new(self.0, self.1)
+    }
+}
+impl AsXyPx for Xy<Px> {
+    fn as_xy_px(self) -> Xy<Px> {
+        self.clone()
+    }
 }
 
 pub struct GroupCtx {}
@@ -223,11 +246,19 @@ impl MatrixCtx {
         todo!()
     }
 
-    pub fn component_group(&self, func: impl FnOnce(GroupCtx)) -> Self {
+    pub fn component_group(self, func: impl FnOnce(GroupCtx)) -> Self {
         todo!()
     }
 
-    pub fn attach_event(&self, attach_event: impl Fn(Event<'_>)) {
+    pub fn attach_event(self, attach_event: impl Fn(Event<'_>)) {
+        todo!()
+    }
+
+    pub fn done(self) -> RenderDone {
+        todo!()
+    }
+
+    pub fn compose<Func: FnOnce(ComposeCtx)>(self, inner: Func) -> Self {
         todo!()
     }
 }

@@ -34,6 +34,7 @@ impl Component for CutListView<'_> {
             on_event,
         } = self;
         let cuts = cuts.clone();
+        let on_event = on_event.as_ref();
 
         let on_key_down = {
             let cuts = cuts.clone();

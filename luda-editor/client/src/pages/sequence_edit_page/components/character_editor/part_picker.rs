@@ -94,11 +94,11 @@ impl Component for PartPicker<'_> {
                     table::hooks::fixed(BUTTON_HEIGHT, cg_select_button),
                     render_divider(BUTTON_HEIGHT),
                     table::hooks::ratio(1, |wh, ctx| {
-                        ctx.add(scroll_view::AutoScrollView {
+                        ctx.add(scroll_view::AutoScrollViewWithCtx {
                             xy: Xy::zero(),
                             height: wh.height,
                             scroll_bar_width: 4.px(),
-                            content: cg_part_group_list(wh),
+                            content: |ctx| cg_part_group_list(wh, ctx),
                         });
                     }),
                 ]),
@@ -148,10 +148,10 @@ fn render_cg_part_group<'a>(
                 .chain(once(no_selection_button)),
         )
     });
-    let variant_rows = chunks.map(|row| {
+    let variant_rows = chunks.map(move |row| {
         table::hooks::fixed(
             THUMBNAIL_WH.height,
-            table::hooks::horizontal(row.iter().map(|variant| {
+            table::hooks::horizontal(row.iter().map(move |variant| {
                 render_thumbnail(
                     cg_part,
                     variant,
@@ -192,7 +192,7 @@ fn render_no_selection_button(
 ) -> TableCell {
     table::hooks::fixed(
         THUMBNAIL_WH.width,
-        table::hooks::padding(INNER_PADDING, |wh, ctx| {
+        table::hooks::padding(INNER_PADDING, move |wh, ctx| {
             ctx.add(center_text(
                 wh,
                 "No Selection",
@@ -248,7 +248,7 @@ fn render_thumbnail<'a>(
 
     table::hooks::fixed(
         THUMBNAIL_WH.width,
-        table::hooks::padding(INNER_PADDING, |wh, ctx| {
+        table::hooks::padding(INNER_PADDING, move |wh, ctx| {
             ctx.add(render([
                 simple_rect(wh, Color::TRANSPARENT, 0.px(), color::BACKGROUND)
                     .with_mouse_cursor(MouseCursor::Pointer),

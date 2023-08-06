@@ -30,12 +30,12 @@ pub enum Event {
 
 impl Component for CharacterEditor<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
+        let Self {
             edit_target,
             wh,
             project_id,
-            ref cut,
-            ref on_event,
+            cut,
+            on_event,
         } = self;
         let (tool_tip, set_tool_tip) = ctx.state::<Option<ToolTip>>(|| None);
         let (cg_file_list, _) = ctx.atom(&CG_FILES_ATOM);
@@ -44,19 +44,19 @@ impl Component for CharacterEditor<'_> {
             MoveInCgFileThumbnail { global_xy: Xy<Px>, text: String },
         }
 
-        let background = simple_rect(wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND)
-            .attach_event(|builder| {
-                builder.on_mouse_down_out(move |_| {
-                    on_event(Event::Close);
-                });
-                if tool_tip.is_some() {
-                    builder
-                        .on_mouse_move_in(move |_event| set_tool_tip.set(None))
-                        .on_mouse_move_out(move |_event| set_tool_tip.set(None));
-                }
-            });
+        // let background = simple_rect(wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND)
+        //     .attach_event(|builder| {
+        //         builder.on_mouse_down_out(move |_| {
+        //             on_event(Event::Close);
+        //         });
+        //         if tool_tip.is_some() {
+        //             builder
+        //                 .on_mouse_move_in(move |_event| set_tool_tip.set(None))
+        //                 .on_mouse_move_out(move |_event| set_tool_tip.set(None));
+        //         }
+        //     });
 
-        ctx.add(background);
+        // ctx.add(background);
 
         let on_internal_event = |event: InternalEvent| match event {
             InternalEvent::MoveInCgFileThumbnail { global_xy, text } => {
@@ -189,6 +189,7 @@ impl Component for CharacterEditor<'_> {
         // };
 
         // ctx.try_add(tool_tip.as_ref());
+        ctx.done()
     }
 }
 
