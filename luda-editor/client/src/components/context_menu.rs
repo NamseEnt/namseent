@@ -69,7 +69,6 @@ impl Component for ContextMenu<'_> {
             ..
         } = self;
         let (mouse_over_item_idx, set_mouse_over_item_idx) = ctx.state(|| None);
-        let (a, set_a) = ctx.state::<Option<String>>(|| None);
         let cell_wh = Wh::new(160.px(), 24.px());
 
         let divider_height = 16.px();
@@ -94,49 +93,14 @@ impl Component for ContextMenu<'_> {
                 } => {
                     next_y += cell_wh.height;
                     let is_mouse_over = *mouse_over_item_idx == Some(index);
-                    let background_with_event_handler = {
+                    let background = {
                         let fill_color = if is_mouse_over {
                             Color::from_u8(129, 198, 232, 255)
                         } else {
                             Color::TRANSPARENT
                         };
 
-                        let close = close.clone();
-                        simple_rect(cell_wh, Color::TRANSPARENT, 0.px(), fill_color).attach_event(
-                            move |builder| {
-                                if is_mouse_over {
-                                    builder.on_mouse_move_out(move |_| {
-                                        if *mouse_over_item_idx == Some(index)
-                                            && *a == Some("Hello".to_string())
-                                        {
-                                            set_mouse_over_item_idx.set(None);
-                                        }
-                                    });
-                                } else {
-                                    builder.on_mouse_move_in(move |_| {
-                                        set_mouse_over_item_idx.set(Some(index));
-                                    });
-                                }
-                                builder
-                                    .on_mouse_down_in({
-                                        |event: MouseEvent| {
-                                            let on_click = on_click.clone();
-                                            let close = close.clone();
-                                            if let Some(MouseButton::Left) = event.button {
-                                                event.stop_propagation();
-                                                on_click();
-                                                close();
-                                            }
-                                        }
-                                    })
-                                    .on_mouse_down_out({
-                                        let close = close.clone();
-                                        move |_| {
-                                            close();
-                                        }
-                                    });
-                            },
-                        )
+                        simple_rect(cell_wh, Color::TRANSPARENT, 0.px(), fill_color)
                     };
                     let text_color = if is_mouse_over {
                         Color::BLACK
@@ -148,7 +112,7 @@ impl Component for ContextMenu<'_> {
                         0.px(),
                         y,
                         render([
-                            background_with_event_handler,
+                            background,
                             typography::body::left(
                                 cell_wh.height,
                                 format!("  {}", text),
@@ -156,6 +120,33 @@ impl Component for ContextMenu<'_> {
                             ),
                         ]),
                     )
+                    .on_event(move |event| match event {
+                        Event::MouseUp { event } => {
+                            if event.is_local_xy_in() {
+                                if let Some(MouseButton::Left) = event.button {
+                                    event.stop_propagation();
+                                    on_click();
+                                    close();
+                                }
+                            } else {
+                                close();
+                            }
+                        }
+                        Event::MouseMove { event } => {
+                            if is_mouse_over {
+                                if !event.is_local_xy_in() {
+                                    if *mouse_over_item_idx == Some(index) {
+                                        set_mouse_over_item_idx.set(None);
+                                    }
+                                }
+                            } else {
+                                if event.is_local_xy_in() {
+                                    set_mouse_over_item_idx.set(Some(index));
+                                }
+                            }
+                        }
+                        _ => {}
+                    })
                 }
                 Item::Divider => {
                     next_y += divider_height;
@@ -176,13 +167,20 @@ impl Component for ContextMenu<'_> {
 
         let global_xy_within_screen = self.global_xy_within_screen(context_menu_wh);
 
-        ctx.add(on_top(absolute(
-            global_xy_within_screen.x,
-            global_xy_within_screen.y,
-            render([background, render(menus)]).attach_event(move |builder| {
-                builder.on_mouse_move_out(move |_| set_mouse_over_item_idx.set(None));
+        ctx.return_(
+            on_top(absolute(
+                global_xy_within_screen.x,
+                global_xy_within_screen.y,
+                render([background, render(menus)]),
+            ))
+            .on_event(|event| {
+                if let namui::Event::MouseDown { event } = event {
+                    if !event.is_local_xy_in() {
+                        set_mouse_over_item_idx.set(None);
+                    }
+                }
             }),
-        )));
+        )
     }
 }
 

@@ -8,7 +8,7 @@ pub struct ListView<C: Component> {
     pub height: Px,
     pub scroll_bar_width: Px,
     pub item_wh: Wh<Px>,
-    pub items: Vec<C>,
+    pub items: Vec<(String, C)>,
 }
 
 impl<C: Component> Component for ListView<C> {
@@ -22,7 +22,7 @@ impl<C: Component> Component for ListView<C> {
         } = self;
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
-        ctx.add(scroll_view::ScrollView {
+        ctx.return_(scroll_view::ScrollView {
             xy,
             scroll_bar_width,
             height,
@@ -34,7 +34,7 @@ impl<C: Component> Component for ListView<C> {
             }),
             scroll_y: *scroll_y,
             set_scroll_y,
-        });
+        })
     }
 }
 
@@ -42,7 +42,7 @@ impl<C: Component> Component for ListView<C> {
 struct ListViewInner<'a, C: Component> {
     height: Px,
     item_wh: Wh<Px>,
-    items: &'a Vec<C>,
+    items: &'a Vec<(String, C)>,
     scroll_y: Px,
 }
 
@@ -58,7 +58,7 @@ impl<C: Component> Component for ListViewInner<'_, C> {
         let item_len = items.len();
 
         if item_len == 0 {
-            return;
+            return ctx.return_no();
         }
         let max_scroll_y = item_wh.height * item_len - height;
 
@@ -89,21 +89,38 @@ impl<C: Component> Component for ListViewInner<'_, C> {
                 ..Default::default()
             },
         });
-        ctx.add(transparent_pillar);
+        ctx.return_((
+            transparent_pillar,
+            visible_items
+                .into_iter()
+                .enumerate()
+                .map(|(index, (key, visible_item))| {
+                    (
+                        key.clone(),
+                        hooks::translate(
+                            0.px(),
+                            item_wh.height * (index + visible_item_start_index),
+                            visible_item,
+                        ),
+                    )
+                })
+                .collect(),
+        ))
+        // ctx.add(transparent_pillar);
 
-        let max_scroll_y = item_wh.height * item_len - height;
+        // let max_scroll_y = item_wh.height * item_len - height;
 
-        let scroll_y = scroll_y.min(max_scroll_y);
+        // let scroll_y = scroll_y.min(max_scroll_y);
 
-        let visible_item_start_index = (scroll_y / item_wh.height).floor() as usize;
+        // let visible_item_start_index = (scroll_y / item_wh.height).floor() as usize;
 
-        for (index, visible_item) in visible_items.into_iter().enumerate() {
-            ctx.translate(Xy::new(
-                0.px(),
-                item_wh.height * (index + visible_item_start_index),
-            ))
-            .add(visible_item);
-        }
+        // for (index, visible_item) in visible_items.into_iter().enumerate() {
+        //     ctx.translate(Xy::new(
+        //         0.px(),
+        //         item_wh.height * (index + visible_item_start_index),
+        //     ))
+        //     .add(visible_item);
+        // }
     }
 }
 
