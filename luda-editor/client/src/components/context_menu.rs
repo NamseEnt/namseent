@@ -1,7 +1,11 @@
 use namui::prelude::*;
 use namui_prebuilt::*;
+use std::sync::{Arc, Mutex};
 
-pub fn use_context_menu<'a>(global_xy: Xy<Px>, close: impl Fn() + 'a) -> ContextMenuBuilder<'a> {
+pub fn use_context_menu<'a>(
+    global_xy: Xy<Px>,
+    close: impl FnOnce() + 'a,
+) -> ContextMenuBuilder<'a> {
     ContextMenuBuilder {
         global_xy,
         items: Default::default(),
@@ -13,11 +17,11 @@ pub struct ContextMenuBuilder<'a> {
     global_xy: Xy<Px>,
     items: Vec<Item<'a>>,
     // close: callback!('a),
-    close: Box<dyn Fn() + 'a>,
+    close: Box<dyn FnOnce() + 'a>,
 }
 
 impl<'a> ContextMenuBuilder<'a> {
-    pub fn add_button(mut self, text: impl AsRef<str>, on_click: impl Fn() + 'a) -> Self {
+    pub fn add_button(mut self, text: impl AsRef<str>, on_click: impl FnOnce() + 'a) -> Self {
         self.items.push(Item::Button {
             text: text.as_ref().to_string(),
             on_click: Box::new(on_click),
@@ -37,7 +41,7 @@ enum Item<'a> {
     Button {
         text: String,
         // on_click: callback!('a),
-        on_click: Box<dyn Fn() + 'a>,
+        on_click: Box<dyn FnOnce() + 'a>,
     },
 
     #[allow(dead_code)]
@@ -58,16 +62,11 @@ pub struct ContextMenu<'a> {
     global_xy: Xy<Px>,
     items: Vec<Item<'a>>,
     // close: callback!('a),
-    close: Box<dyn Fn() + 'a>,
+    close: Box<dyn FnOnce() + 'a>,
 }
 
 impl Component for ContextMenu<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
-            ref items,
-            ref close,
-            ..
-        } = self;
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let (mouse_over_item_idx, set_mouse_over_item_idx) = ctx.state(|| None);
         let cell_wh = Wh::new(160.px(), 24.px());
 
@@ -82,32 +81,44 @@ impl Component for ContextMenu<'_> {
             .set_stroke_width(1.px())
             .set_style(PaintStyle::Stroke);
 
-        let menus = itered(items.iter().enumerate().map(|(index, item)| {
-            let y = next_y;
-            match item {
-                &Item::Button {
-                    ref text,
-                    ref on_click,
-                } => {
-                    next_y += cell_wh.height;
-                    let is_mouse_over = *mouse_over_item_idx == Some(index);
-                    let background = {
-                        let fill_color = if is_mouse_over {
-                            Color::from_u8(129, 198, 232, 255)
-                        } else {
-                            Color::TRANSPARENT
-                        };
+        let ys = self
+            .items
+            .iter()
+            .map(|item| {
+                let y = next_y;
 
-                        simple_rect(cell_wh, Color::TRANSPARENT, 0.px(), fill_color)
-                    };
-                    let text_color = if is_mouse_over {
-                        Color::BLACK
-                    } else {
-                        Color::WHITE
-                    };
-                    (
-                        index.to_string(),
-                        boxed(
+                next_y += match item {
+                    Item::Button { .. } => cell_wh.height,
+                    Item::Divider => divider_height,
+                };
+
+                y
+            })
+            .collect::<Vec<_>>();
+
+        let close = Arc::new(Mutex::new(Some(self.close)));
+
+        let menus = |ctx: GroupCtx| {
+            for ((index, item), y) in self.items.into_iter().enumerate().zip(ys) {
+                match item {
+                    Item::Button { text, on_click } => {
+                        let is_mouse_over = *mouse_over_item_idx == Some(index);
+                        let background = {
+                            let fill_color = if is_mouse_over {
+                                Color::from_u8(129, 198, 232, 255)
+                            } else {
+                                Color::TRANSPARENT
+                            };
+
+                            simple_rect(cell_wh, Color::TRANSPARENT, 0.px(), fill_color)
+                        };
+                        let text_color = if is_mouse_over {
+                            Color::BLACK
+                        } else {
+                            Color::WHITE
+                        };
+                        ctx.add(
+                            index.to_string(),
                             translate(
                                 0.px(),
                                 y,
@@ -120,16 +131,14 @@ impl Component for ContextMenu<'_> {
                                     ),
                                 ]),
                             )
-                            .on_event(move |event| match event {
+                            .attach_event(|event| match event {
                                 Event::MouseUp { event } => {
                                     if event.is_local_xy_in() {
                                         if let Some(MouseButton::Left) = event.button {
                                             event.stop_propagation();
                                             on_click();
-                                            close();
+                                            close.lock().unwrap().take().unwrap()();
                                         }
-                                    } else {
-                                        close();
                                     }
                                 }
                                 Event::MouseMove { event } => {
@@ -147,22 +156,15 @@ impl Component for ContextMenu<'_> {
                                 }
                                 _ => {}
                             }),
-                        ),
-                    )
-                }
-                Item::Divider => {
-                    next_y += divider_height;
-                    (
+                        )
+                    }
+                    Item::Divider => ctx.add(
                         index.to_string(),
-                        boxed(translate(
-                            0.px(),
-                            y,
-                            path(divider_path.clone(), divider_paint.clone()),
-                        )),
-                    )
+                        translate(0.px(), y, path(divider_path.clone(), divider_paint.clone())),
+                    ),
                 }
             }
-        }));
+        };
 
         let context_menu_wh = Wh::new(cell_wh.width, next_y);
 
@@ -173,31 +175,28 @@ impl Component for ContextMenu<'_> {
             Color::grayscale_f01(0.2),
         );
 
-        let global_xy_within_screen = self.global_xy_within_screen(context_menu_wh);
+        let global_xy_within_screen = global_xy_within_screen(self.global_xy, context_menu_wh);
 
-        ctx.return_(
-            hooks::on_top(hooks::absolute(
-                global_xy_within_screen.x,
-                global_xy_within_screen.y,
-                (background, menus),
-            ))
-            .on_event(|event| {
+        ctx.on_top()
+            .absolute(global_xy_within_screen.x, global_xy_within_screen.y)
+            .component(background)
+            .component_group(menus)
+            .attach_event(|event| {
                 if let namui::Event::MouseDown { event } = event {
                     if !event.is_local_xy_in() {
                         set_mouse_over_item_idx.set(None);
                     }
                 }
-            }),
-        )
+            });
+
+        ctx.done()
     }
 }
 
-impl ContextMenu<'_> {
-    fn global_xy_within_screen(&self, context_menu_wh: Wh<Px>) -> Xy<Px> {
-        let screen_wh = namui::screen::size();
-        Xy {
-            x: (screen_wh.width - context_menu_wh.width).min(self.global_xy.x),
-            y: (screen_wh.height - context_menu_wh.height).min(self.global_xy.y),
-        }
+fn global_xy_within_screen(global_xy: Xy<Px>, context_menu_wh: Wh<Px>) -> Xy<Px> {
+    let screen_wh = namui::screen::size();
+    Xy {
+        x: (screen_wh.width - context_menu_wh.width).min(global_xy.x),
+        y: (screen_wh.height - context_menu_wh.height).min(global_xy.y),
     }
 }

@@ -8,11 +8,8 @@ pub struct ToolTip {
 }
 
 impl Component for ToolTip {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
-            global_xy,
-            ref text,
-        } = self;
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self { global_xy, text } = self;
 
         const OFFSET: Px = px(16.0);
 
@@ -54,10 +51,11 @@ impl Component for ToolTip {
         let screen_size = screen::size();
         let max_xy = (screen_size - tooltip_bounding_box.wh()).as_xy();
 
-        ctx.add(on_top(absolute(
+        ctx.component(on_top(absolute(
             (global_xy.x + OFFSET).min(max_xy.x).max(0.px()),
             (global_xy.y + OFFSET).min(max_xy.y).max(0.px()),
             tooltip,
-        )));
+        )))
+        .done()
     }
 }

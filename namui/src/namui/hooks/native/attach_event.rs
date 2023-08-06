@@ -24,7 +24,7 @@ impl StaticType for AttachEvent<'_> {
 }
 
 impl<'a> Component for AttachEvent<'a> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             ref attach_event_builder,
             ref component,
@@ -33,7 +33,7 @@ impl<'a> Component for AttachEvent<'a> {
 
         use_render_with_rendering_tree(
             move |ctx| {
-                ctx.add(component.as_ref());
+                ctx.add(component);
             },
             move |children| {
                 RenderingTree::Children(children).attach_event(|builder| {

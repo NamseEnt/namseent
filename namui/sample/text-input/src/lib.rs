@@ -16,7 +16,7 @@ impl TextInputExample {
 }
 
 impl Component for TextInputExample {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let (text_3x3, set_text_3x3) = ctx.state(|| {
             [
                 [

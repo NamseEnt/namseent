@@ -1,128 +1,32 @@
 use super::*;
 use crate::{web::SelectionDirection, *};
 
-// pub(crate) fn on_mouse_down_in<'a>(
-//     component: impl 'a + Component,
-//     on_mouse_down_in: impl 'a + FnOnce(MouseEvent),
-// ) -> OnMouseDownIn<'a> {
-//     OnMouseDownIn {
-//         component: Box::new(component),
-//         on_mouse_down_in: Mutex::new(Some(Box::new(on_mouse_down_in))),
-//     }
-// }
-
-// pub struct OnMouseDownIn<'a> {
-//     component: Box<dyn 'a + Component>,
-//     on_mouse_down_in: Mutex<Option<Box<dyn 'a + FnOnce(MouseEvent)>>>,
-// }
-// impl StaticType for OnMouseDownIn<'_> {}
-// impl Debug for OnMouseDownIn<'_> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         f.debug_struct("OnMouseDownIn")
-//             .field("component", &self.component)
-//             .finish()
-//     }
-// }
-// impl Component for OnMouseDownIn<'_> {
-//     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-//         let done = ctx.return_(self.component.as_ref());
-
-//         ctx.web_event(|event| {
-//             if let crate::web::WebEvent::MouseDown { event } = event {
-//                 let local_xy = ctx.matrix.transform_xy(event.xy);
-//                 if done.rendering_tree.is_xy_in(
-//                     local_xy,
-//                     &[
-//                     //TODO
-//                 ],
-//                 ) {
-//                     let on_mouse_down_in = self.on_mouse_down_in.lock().unwrap().take().unwrap();
-//                     on_mouse_down_in(MouseEvent {
-//                         local_xy: Box::new(|| local_xy),
-//                         global_xy: event.xy,
-//                         pressing_buttons: event.pressing_buttons.clone(),
-//                         button: event.button,
-//                         event_type: MouseEventType::Down,
-//                         is_stop_propagation: Default::default(), // TODO
-//                     })
-//                 }
-//             }
-//         });
-
-//         done
-//     }
-// }
-
-// pub(crate) fn on_mouse<'a>(
-//     component: impl 'a + Component,
-//     on_mouse: impl 'a + FnOnce(MouseEvent),
-// ) -> OnMouse<'a> {
-//     OnMouse {
-//         component: Box::new(component),
-//         on_mouse: Mutex::new(Some(Box::new(on_mouse))),
-//     }
-// }
-
-// pub struct OnMouse<'a> {
-//     component: Box<dyn 'a + Component>,
-//     on_mouse: Mutex<Option<Box<dyn 'a + FnOnce(MouseEvent)>>>,
-// }
-// impl StaticType for OnMouse<'_> {}
-// impl Debug for OnMouse<'_> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         f.debug_struct("OnMouse")
-//             .field("component", &self.component)
-//             .finish()
-//     }
-// }
-// impl Component for OnMouse<'_> {
-//     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-//         let done = ctx.return_(self.component.as_ref());
-
-//         ctx.web_event(|event| {
-//             if let crate::web::WebEvent::MouseDown { event } = event {
-//                 let local_xy = ctx.matrix.transform_xy(event.xy);
-//                 let on_mouse = self.on_mouse.lock().unwrap().take().unwrap();
-//                 on_mouse(MouseEvent {
-//                     local_xy: Box::new(|| local_xy),
-//                     global_xy: event.xy,
-//                     pressing_buttons: event.pressing_buttons.clone(),
-//                     button: event.button,
-//                     event_type: MouseEventType::Down,
-//                     is_stop_propagation: Default::default(), // TODO
-//                 })
-//             }
-//         });
-
-//         done
-//     }
-// }
-
-pub(crate) fn on_event<'a>(
-    component: impl 'a + Component,
+pub(crate) fn attach_event<'a, C: 'a + Component>(
+    component: C,
     on_event: impl 'a + FnOnce(Event),
-) -> OnEvent<'a> {
-    OnEvent {
-        component: Box::new(component),
+) -> AttachEvent<'a, C> {
+    AttachEvent {
+        component,
         on_event: Mutex::new(Some(Box::new(on_event))),
     }
 }
 
-pub struct OnEvent<'a> {
-    component: Box<dyn 'a + Component>,
+pub struct AttachEvent<'a, C: Component> {
+    component: C,
     on_event: Mutex<Option<Box<dyn 'a + FnOnce(Event)>>>,
 }
-impl StaticType for OnEvent<'_> {}
-impl Debug for OnEvent<'_> {
+impl<'a, C: 'a + Component> StaticType for AttachEvent<'a, C> {}
+impl<'a, C: 'a + Component> Debug for AttachEvent<'a, C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("OnEvent")
+        f.debug_struct("AttachEvent")
             .field("component", &self.component)
             .finish()
     }
 }
-impl Component for OnEvent<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let done = ctx.return_(self.component.as_ref());
+impl<'b, C: 'b + Component> Component for AttachEvent<'b, C> {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        ctx.component(self.component);
+        let done = ctx.done();
 
         ctx.web_event(|event| {
             let on_event = self.on_event.lock().unwrap().take().unwrap();
@@ -171,10 +75,20 @@ impl Component for OnEvent<'_> {
                     });
                 }
                 web::WebEvent::KeyDown { code } => {
-                    on_event(Event::KeyDown { code: code.clone() });
+                    on_event(Event::KeyDown {
+                        event: KeyboardEvent {
+                            code: todo!(),
+                            pressing_codes: todo!(),
+                        },
+                    });
                 }
                 web::WebEvent::KeyUp { code } => {
-                    on_event(Event::KeyUp { code: code.clone() });
+                    on_event(Event::KeyUp {
+                        event: KeyboardEvent {
+                            code: todo!(),
+                            pressing_codes: todo!(),
+                        },
+                    });
                 }
                 web::WebEvent::Blur => {
                     on_event(Event::Blur);
@@ -278,10 +192,10 @@ pub enum Event<'a> {
         text: String,
     },
     KeyDown {
-        code: String,
+        event: KeyboardEvent,
     },
     KeyUp {
-        code: String,
+        event: KeyboardEvent,
     },
     Blur,
     VisibilityChange,

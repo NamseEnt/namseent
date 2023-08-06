@@ -1,11 +1,10 @@
 use namui::prelude::*;
-use std::sync::Arc;
 
 pub enum TableCell<'a> {
     Empty,
     Some {
         unit: Unit<'a>,
-        render: Box<dyn 'a + FnOnce(Direction, Wh<Px>) -> Arc<dyn 'a + Component>>,
+        render: Box<dyn 'a + FnOnce(Direction, Wh<Px>, ComposeCtx)>,
         need_clip: bool,
     },
 }
@@ -33,68 +32,80 @@ impl F32OrI32 for f32 {
     }
 }
 
-pub fn ratio<'a, C: Component + 'a>(
+pub fn ratio<'a>(
     ratio: impl F32OrI32,
-    cell_render_closure: impl FnOnce(Wh<Px>) -> C + 'a,
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Ratio(ratio.as_f32()),
-        render: Box::new(|_direction, wh| Arc::new(cell_render_closure(wh))),
+        render: Box::new(|_direction, wh, ctx| {
+            cell_render_closure(wh, ctx);
+        }),
         need_clip: true,
     }
 }
 
-pub fn ratio_no_clip<'a, C: Component + 'a>(
+pub fn ratio_no_clip<'a>(
     ratio: impl F32OrI32,
-    cell_render_closure: impl FnOnce(Wh<Px>) -> C + 'a,
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Ratio(ratio.as_f32()),
-        render: Box::new(|_direction, wh| Arc::new(cell_render_closure(wh))),
+        render: Box::new(|_direction, wh, ctx| {
+            cell_render_closure(wh, ctx);
+        }),
         need_clip: false,
     }
 }
 
-pub fn fixed<'a, C: Component + 'a>(
+pub fn fixed<'a>(
     pixel: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>) -> C,
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Fixed(pixel),
-        render: Box::new(|_direction, wh| Arc::new(cell_render_closure(wh))),
+        render: Box::new(|_direction, wh, ctx| {
+            cell_render_closure(wh, ctx);
+        }),
         need_clip: true,
     }
 }
 
-pub fn fixed_no_clip<'a, C: Component + 'a>(
+pub fn fixed_no_clip<'a>(
     pixel: Px,
-    cell_render_closure: impl FnOnce(Wh<Px>) -> C + 'a,
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Fixed(pixel),
-        render: Box::new(|_direction, wh| Arc::new(cell_render_closure(wh))),
+        render: Box::new(|_direction, wh, ctx| {
+            cell_render_closure(wh, ctx);
+        }),
         need_clip: false,
     }
 }
 
-pub fn calculative<'a, C: Component + 'a>(
+pub fn calculative<'a>(
     from_parent_wh: impl FnOnce(Wh<Px>) -> Px + 'a,
-    cell_render_closure: impl FnOnce(Wh<Px>) -> C + 'a,
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Calculative(Box::new(from_parent_wh)),
-        render: Box::new(|_direction, wh| Arc::new(cell_render_closure(wh))),
+        render: Box::new(|_direction, wh, ctx| {
+            cell_render_closure(wh, ctx);
+        }),
         need_clip: true,
     }
 }
 
-pub fn calculative_no_clip<'a, C: Component + 'a>(
+pub fn calculative_no_clip<'a>(
     from_parent_wh: impl FnOnce(Wh<Px>) -> Px + 'a,
-    cell_render_closure: impl FnOnce(Wh<Px>) -> C + 'a,
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Calculative(Box::new(from_parent_wh)),
-        render: Box::new(|_direction, wh| Arc::new(cell_render_closure(wh))),
+        render: Box::new(|_direction, wh, ctx| {
+            cell_render_closure(wh, ctx);
+        }),
         need_clip: false,
     }
 }
@@ -105,13 +116,13 @@ pub fn empty<'a>() -> TableCell<'a> {
 
 pub fn vertical<'a, Item: ToKeyCell<'a>>(
     items: impl 'a + IntoIterator<Item = Item>,
-) -> impl FnOnce(Wh<Px>) -> Table<'a> + 'a {
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     slice_internal(Direction::Vertical, items)
 }
 
 pub fn horizontal<'a, Item: ToKeyCell<'a>>(
     items: impl 'a + IntoIterator<Item = Item>,
-) -> impl FnOnce(Wh<Px>) -> Table<'a> + 'a {
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     slice_internal(Direction::Horizontal, items)
 }
 
@@ -119,89 +130,6 @@ pub fn horizontal<'a, Item: ToKeyCell<'a>>(
 pub enum Direction {
     Vertical,
     Horizontal,
-}
-#[namui::component]
-pub struct Table<'a> {
-    items: Vec<TableItem<'a>>,
-}
-
-#[derive(Debug)]
-struct TableItem<'a> {
-    key: String,
-    rect: Rect<Px>,
-    component: Arc<dyn 'a + Component>,
-    need_clip: bool,
-}
-
-impl Component for Table<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        ctx.return_(
-            self.items
-                .iter()
-                .map(
-                    |TableItem {
-                         key,
-                         rect,
-                         component,
-                         need_clip,
-                     }: &TableItem<'_>| {
-                        (
-                            key.to_string(),
-                            namui::hooks::translate(
-                                rect.x(),
-                                rect.y(),
-                                if *need_clip {
-                                    Arc::new(namui::hooks::clip(
-                                        PathBuilder::new().add_rect(Rect::Xywh {
-                                            x: px(0.0),
-                                            y: px(0.0),
-                                            width: rect.width(),
-                                            height: rect.height(),
-                                        }),
-                                        ClipOp::Intersect,
-                                        component.as_ref(),
-                                    )) as Arc<dyn Component>
-                                } else {
-                                    component.clone()
-                                },
-                            ),
-                        )
-                    },
-                )
-                .collect::<Vec<_>>(),
-        )
-
-        // for (key, _, item, _) in &self.items {
-        //     ctx.add(item.as_ref());
-        // }
-        // ctx.done_with_rendering_tree(move |children| {
-        //     namui::render(
-        //         children
-        //             .into_iter()
-        //             .zip(rect_need_clip_tuples.clone().into_iter())
-        //             .map(|(child, (rect, need_clip))| {
-        //                 namui::translate(
-        //                     rect.x(),
-        //                     rect.y(),
-        //                     if need_clip {
-        //                         namui::clip(
-        //                             PathBuilder::new().add_rect(Rect::Xywh {
-        //                                 x: px(0.0),
-        //                                 y: px(0.0),
-        //                                 width: rect.width(),
-        //                                 height: rect.height(),
-        //                             }),
-        //                             ClipOp::Intersect,
-        //                             child,
-        //                         )
-        //                     } else {
-        //                         child
-        //                     },
-        //                 )
-        //             }),
-        //     )
-        // })
-    }
 }
 
 pub trait ToKeyCell<'a> {
@@ -221,7 +149,7 @@ impl<'a> ToKeyCell<'a> for (&'a str, TableCell<'a>) {
 fn slice_internal<'a, Item: ToKeyCell<'a>>(
     direction: Direction,
     items: impl 'a + IntoIterator<Item = Item>,
-) -> impl 'a + FnOnce(Wh<Px>) -> Table<'a> {
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     let mut units = Vec::new();
     let mut for_renders = std::collections::VecDeque::new();
 
@@ -240,7 +168,7 @@ fn slice_internal<'a, Item: ToKeyCell<'a>>(
         }
     }
 
-    move |wh: Wh<Px>| {
+    move |wh: Wh<Px>, ctx: ComposeCtx| {
         let direction_pixel_size = match direction {
             Direction::Vertical => wh.height,
             Direction::Horizontal => wh.width,
@@ -279,8 +207,6 @@ fn slice_internal<'a, Item: ToKeyCell<'a>>(
 
         let mut advanced_pixel_size = px(0.0);
 
-        let mut items = Vec::new();
-
         for pixel_size in pixel_sizes {
             let (key, render_fn, need_clip) = for_renders.pop_front().unwrap();
             let xywh = match direction {
@@ -298,78 +224,84 @@ fn slice_internal<'a, Item: ToKeyCell<'a>>(
                 },
             };
 
-            let component = render_fn(direction, xywh.wh());
-            items.push(TableItem {
-                key,
-                rect: xywh,
-                component,
-                need_clip,
-            });
+            let mut ctx = ctx.group_by(key).translate(xywh.x(), xywh.y());
+            if need_clip {
+                ctx = ctx.clip(
+                    PathBuilder::new().add_rect(Rect::Xywh {
+                        x: px(0.0),
+                        y: px(0.0),
+                        width: xywh.width(),
+                        height: xywh.height(),
+                    }),
+                    ClipOp::Intersect,
+                );
+            }
+
+            render_fn(direction, xywh.wh(), ctx);
+
             advanced_pixel_size += pixel_size;
         }
-
-        Table { items }
     }
 }
 
-pub fn padding<'a, C: Component + 'a>(
+pub fn padding<'a>(
     padding: Px,
-    cell_render_closure: impl FnOnce(Wh<Px>) -> C + 'a,
-) -> impl FnOnce(Wh<Px>) -> Table<'a> + 'a {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     horizontal_padding(padding, vertical_padding(padding, cell_render_closure))
 }
 
-pub fn padding_no_clip<'a, C: Component + 'a>(
+pub fn padding_no_clip<'a>(
     padding: Px,
-    cell_render_closure: impl FnOnce(Wh<Px>) -> C + 'a,
-) -> impl FnOnce(Wh<Px>) -> Table<'a> + 'a {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     horizontal_padding_no_clip(
         padding,
         vertical_padding_no_clip(padding, cell_render_closure),
     )
 }
 
-pub fn horizontal_padding<'a, C: Component + 'a>(
+pub fn horizontal_padding<'a>(
     padding: Px,
-    cell_render_closure: impl FnOnce(Wh<Px>) -> C + 'a,
-) -> impl FnOnce(Wh<Px>) -> Table<'a> + 'a {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     horizontal([
-        ("0", fixed(padding, |_| RenderingTree::Empty)),
+        ("0", fixed(padding, |_, _| {})),
         ("1", ratio(1, cell_render_closure)),
-        ("2", fixed(padding, |_| RenderingTree::Empty)),
+        ("2", fixed(padding, |_, _| {})),
     ])
 }
 
-pub fn vertical_padding<'a, C: Component + 'a>(
+pub fn vertical_padding<'a>(
     padding: Px,
-    cell_render_closure: impl FnOnce(Wh<Px>) -> C + 'a,
-) -> impl FnOnce(Wh<Px>) -> Table<'a> + 'a {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     vertical([
-        ("0", fixed(padding, |_| RenderingTree::Empty)),
+        ("0", fixed(padding, |_, _| {})),
         ("1", ratio(1, cell_render_closure)),
-        ("2", fixed(padding, |_| RenderingTree::Empty)),
+        ("2", fixed(padding, |_, _| {})),
     ])
 }
 
-pub fn horizontal_padding_no_clip<'a, C: Component + 'a>(
+pub fn horizontal_padding_no_clip<'a>(
     padding: Px,
-    cell_render_closure: impl FnOnce(Wh<Px>) -> C + 'a,
-) -> impl FnOnce(Wh<Px>) -> Table<'a> + 'a {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     horizontal([
-        ("0", fixed(padding, |_| RenderingTree::Empty)),
+        ("0", fixed(padding, |_, _| {})),
         ("1", ratio_no_clip(1, cell_render_closure)),
-        ("2", fixed(padding, |_| RenderingTree::Empty)),
+        ("2", fixed(padding, |_, _| {})),
     ])
 }
 
-pub fn vertical_padding_no_clip<'a, C: Component + 'a>(
+pub fn vertical_padding_no_clip<'a>(
     padding: Px,
-    cell_render_closure: impl FnOnce(Wh<Px>) -> C + 'a,
-) -> impl FnOnce(Wh<Px>) -> Table<'a> + 'a {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     vertical([
-        ("0", fixed(padding, |_| RenderingTree::Empty)),
+        ("0", fixed(padding, |_, _| {})),
         ("1", ratio_no_clip(1, cell_render_closure)),
-        ("2", fixed(padding, |_| RenderingTree::Empty)),
+        ("2", fixed(padding, |_, _| {})),
     ])
 }
 
@@ -378,14 +310,15 @@ pub enum FitAlign {
     CenterMiddle,
     RightBottom,
 }
-pub fn fit<'a>(align: FitAlign, rendering_tree: RenderingTree) -> TableCell<'a> {
+pub fn fit<'a>(align: FitAlign, component: impl Component, ctx: &ComposeCtx) -> TableCell<'a> {
+    let rendering_tree = ctx.ghost_render(component);
     match rendering_tree.get_bounding_box() {
         Some(bounding_box) => TableCell::Some {
             unit: Unit::Responsive(Box::new(move |direction| match direction {
                 Direction::Vertical => bounding_box.y() + bounding_box.height(),
                 Direction::Horizontal => bounding_box.x() + bounding_box.width(),
             })),
-            render: Box::new(move |direction, wh| {
+            render: Box::new(move |direction, wh, ctx| {
                 let x = match direction {
                     Direction::Vertical => match align {
                         FitAlign::LeftTop => 0.px(),
@@ -402,11 +335,11 @@ pub fn fit<'a>(align: FitAlign, rendering_tree: RenderingTree) -> TableCell<'a> 
                         FitAlign::RightBottom => wh.height - bounding_box.height(),
                     },
                 };
-                Arc::new(translate(x, y, rendering_tree))
+                ctx.translate(x, y).add(rendering_tree);
             }),
             need_clip: true,
         },
-        None => ratio(0, |_| rendering_tree),
+        None => ratio(0, |_, _| {}),
     }
 }
 
@@ -426,24 +359,22 @@ mod tests {
 
         let button = calculative(
             |parent_wh| parent_wh.height,
-            |wh| {
+            |wh, ctx| {
                 button_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
                 assert_eq!(px(20.0), wh.width);
                 assert_eq!(px(20.0), wh.height);
-                RenderingTree::Empty
             },
         );
 
-        let label = ratio(1, |wh| {
+        let label = ratio(1, |wh, ctx| {
             label_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
             assert_eq!(px(280.0), wh.width);
             assert_eq!(px(20.0), wh.height);
-            RenderingTree::Empty
         });
 
         let header = fixed(px(20.0), horizontal([("button", button), ("label", label)]));
 
-        let body = ratio(1.0, |wh| {
+        let body = ratio(1.0, |wh, ctx| {
             body_render_called.store(true, std::sync::atomic::Ordering::Relaxed);
             assert_eq!(px(300.0), wh.width);
             assert_eq!(px(480.0), wh.height);
@@ -452,24 +383,28 @@ mod tests {
                     "0",
                     ratio(
                         1,
-                        padding(5.px(), |wh| {
+                        padding(5.px(), |wh, ctx| {
                             body_inner_render_called
                                 .store(true, std::sync::atomic::Ordering::Relaxed);
                             assert_eq!(px(290.0), wh.width);
                             assert_eq!(px(470.0), wh.height);
-                            RenderingTree::Empty
                         }),
                     ),
                 ),
                 // Note: RenderingTree is not testable yet, So you cannot test fit well now.
-                ("empty", fit(FitAlign::LeftTop, RenderingTree::Empty)),
-            ])(wh)
+                ("empty", fit(FitAlign::LeftTop, RenderingTree::Empty, &ctx)),
+            ])(wh, ctx)
         });
 
-        vertical([header, body])(Wh {
-            width: px(300.0),
-            height: px(500.0),
-        });
+        let ctx = todo!();
+
+        vertical([header, body])(
+            Wh {
+                width: px(300.0),
+                height: px(500.0),
+            },
+            ctx,
+        );
 
         assert_eq!(
             true,

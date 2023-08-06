@@ -34,7 +34,7 @@ pub enum Event {
 }
 
 impl Component for BackgroundWithEvent<'_> {
-    fn render(&self, ctx: &mut RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             cut,
             wh,

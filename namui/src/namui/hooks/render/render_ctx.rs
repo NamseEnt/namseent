@@ -1,5 +1,6 @@
 use super::*;
 use crate::{Matrix3x3, RenderingTree};
+use namui_type::Px;
 
 pub struct RenderCtx {
     pub(crate) instance: Arc<ComponentInstance>,
@@ -12,6 +13,7 @@ pub struct RenderCtx {
     children: Arc<Mutex<Vec<RenderingTree>>>,
     pub(crate) matrix: Mutex<Matrix3x3>,
     force_render_index: AtomicUsize,
+    component_index: AtomicUsize,
 }
 
 impl<'a> RenderCtx {
@@ -32,6 +34,7 @@ impl<'a> RenderCtx {
             children: Default::default(),
             matrix: Mutex::new(matrix),
             force_render_index: Default::default(),
+            component_index: Default::default(),
         }
     }
 
@@ -102,10 +105,10 @@ impl<'a> RenderCtx {
         Arc::new(value)
     }
 
-    pub fn return_(&self, component: impl Component) -> RenderDone {
-        self.add("".to_string(), component);
-        self.return_internal()
-    }
+    // pub fn return_(&self, component: impl Component) -> RenderDone {
+    //     self.add("".to_string(), component);
+    //     self.return_internal()
+    // }
 
     pub fn return_no(&self) -> RenderDone {
         RenderDone {
@@ -137,5 +140,117 @@ impl<'a> RenderCtx {
             self.updated_sigs.lock().unwrap().clone(),
             self.matrix.lock().unwrap().clone(),
         )
+    }
+
+    pub fn component(&self, component: impl Component) -> &Self {
+        let index = self
+            .component_index
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let key = format!("component_{index}");
+        self.add(key, component);
+        self
+    }
+
+    pub fn done(&self) -> RenderDone {
+        todo!()
+    }
+
+    pub fn component_group(&self, func: impl FnOnce(GroupCtx)) -> &Self {
+        todo!()
+    }
+
+    pub fn component_branch(&self, func: impl FnOnce(BranchCtx)) -> &Self {
+        todo!()
+    }
+
+    pub fn on_top(&self) -> MatrixCtx {
+        todo!()
+    }
+
+    pub fn absolute(&self, x: namui_type::Px, y: namui_type::Px) -> MatrixCtx {
+        todo!()
+    }
+
+    pub fn as_compose(&self) -> ComposeCtx {
+        todo!()
+    }
+
+    pub fn compose(&self, ctx: impl FnOnce(ComposeCtx)) -> &Self {
+        todo!()
+    }
+}
+
+pub struct GroupCtx {}
+
+impl GroupCtx {
+    pub fn add(&self, key: impl AsRef<str>, component: impl Component) {
+        todo!()
+    }
+
+    pub fn translate(self, x: namui_type::Px, y: namui_type::Px) -> Self {
+        todo!()
+    }
+
+    pub fn clip(self, height: crate::PathBuilder, intersect: crate::ClipOp) -> Self {
+        todo!()
+    }
+
+    pub fn as_branch(self) -> BranchCtx {
+        todo!()
+    }
+}
+
+pub struct BranchCtx {}
+
+impl BranchCtx {
+    pub fn add(self, component: impl Component) {
+        todo!()
+    }
+}
+
+pub struct MatrixCtx {}
+
+impl MatrixCtx {
+    pub fn on_top(self) -> Self {
+        todo!()
+    }
+
+    pub fn absolute(self, x: namui_type::Px, y: namui_type::Px) -> Self {
+        todo!()
+    }
+
+    pub fn component(self, component: impl Component) -> Self {
+        todo!()
+    }
+
+    pub fn component_group(&self, func: impl FnOnce(GroupCtx)) -> Self {
+        todo!()
+    }
+
+    pub fn attach_event(&self, attach_event: impl Fn(Event<'_>)) {
+        todo!()
+    }
+}
+
+pub struct ComposeCtx {}
+impl ComposeCtx {
+    pub fn translate(&self, x: Px, y: Px) -> Self {
+        todo!()
+    }
+
+    pub fn clip(&self, height: crate::PathBuilder, intersect: crate::ClipOp) -> Self {
+        todo!()
+    }
+
+    pub fn group_by(&self, key: String) -> Self {
+        todo!()
+    }
+
+    pub fn ghost_render(&self, component: impl Component) -> RenderingTree {
+        todo!()
+    }
+
+    pub fn add(&self, component: impl Component) -> &Self {
+        todo!()
     }
 }

@@ -8,8 +8,8 @@ pub struct ProjectListPage2 {
 }
 
 impl Component for ProjectListPage2 {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self { wh } = self;
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self { wh } = self;
         let (error_message, set_error_message) = ctx.state::<Option<String>>(|| None);
         let (is_loading, set_is_loading) = ctx.state(|| true);
         let (project_list, set_project_list) = ctx.state::<Vec<EditableProject>>(|| vec![]);
@@ -61,50 +61,61 @@ impl Component for ProjectListPage2 {
         });
 
         if let Some(error_message) = &*error_message {
-            return ctx.return_(typography::body::center(wh, error_message, Color::RED));
+            return ctx
+                .component(typography::body::center(wh, error_message, Color::RED))
+                .done();
         }
 
         if *is_loading {
-            return ctx.return_(typography::body::center(wh, "loading...123", Color::WHITE));
+            return ctx
+                .component(typography::body::center(wh, "loading...123", Color::WHITE))
+                .done();
         }
 
-        ctx.return_(table::hooks::horizontal([
-            table::hooks::ratio(1.0, |_wh| RenderingTree::Empty),
-            table::hooks::ratio(
-                2.0,
-                table::hooks::vertical([
-                    table::hooks::fixed(40.px(), |wh| {
-                        namui_prebuilt::button::text_button(
-                            Rect::from_xy_wh(Xy::single(0.px()), wh),
-                            "[+] Add Project",
-                            Color::WHITE,
-                            Color::grayscale_f01(0.5),
-                            1.px(),
-                            Color::BLACK,
-                            [MouseButton::Left],
-                            move |_| on_add_button_clicked(),
-                        )
-                    }),
-                    table::hooks::ratio(1.0, |wh| {
-                        let item_wh = Wh::new(wh.width, 40.px());
-                        list_view::ListView {
-                            xy: Xy::single(0.px()),
-                            height: wh.height,
-                            scroll_bar_width: 10.px(),
-                            item_wh,
-                            items: project_list
-                                .iter()
-                                .map(|project| ProjectCell {
-                                    wh: item_wh,
-                                    project: project.clone(),
-                                })
-                                .collect(),
-                        }
-                    }),
-                ]),
-            ),
-            table::hooks::ratio(1.0, |_wh| RenderingTree::Empty),
-        ])(wh));
+        ctx.compose(|ctx| {
+            table::hooks::horizontal([
+                table::hooks::ratio(1.0, |_wh, _ctx| {}),
+                table::hooks::ratio(
+                    2.0,
+                    table::hooks::vertical([
+                        table::hooks::fixed(40.px(), |wh, ctx| {
+                            ctx.add(namui_prebuilt::button::text_button(
+                                Rect::from_xy_wh(Xy::single(0.px()), wh),
+                                "[+] Add Project",
+                                Color::WHITE,
+                                Color::grayscale_f01(0.5),
+                                1.px(),
+                                Color::BLACK,
+                                [MouseButton::Left],
+                                move |_| on_add_button_clicked(),
+                            ));
+                        }),
+                        table::hooks::ratio(1.0, |wh, ctx| {
+                            let item_wh = Wh::new(wh.width, 40.px());
+                            ctx.add(list_view::ListView {
+                                xy: Xy::single(0.px()),
+                                height: wh.height,
+                                scroll_bar_width: 10.px(),
+                                item_wh,
+                                items: project_list
+                                    .iter()
+                                    .map(|project| {
+                                        (
+                                            project.id.to_string(),
+                                            ProjectCell {
+                                                wh: item_wh,
+                                                project: project.clone(),
+                                            },
+                                        )
+                                    })
+                                    .collect(),
+                            });
+                        }),
+                    ]),
+                ),
+                table::hooks::ratio(1.0, |_wh, _ctx| {}),
+            ])(wh, ctx)
+        });
 
         // TODO
         // self.context_menu
@@ -135,6 +146,8 @@ impl Component for ProjectListPage2 {
         //                 .on_mouse_up_out(|event: MouseEvent| event.stop_propagation());
         //         })
         //     }),
+
+        ctx.done()
     }
 }
 
@@ -145,10 +158,10 @@ pub struct ProjectCell {
 }
 
 impl Component for ProjectCell {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let project_id = self.project.id;
 
-        ctx.add(namui_prebuilt::button::text_button(
+        ctx.component(namui_prebuilt::button::text_button(
             Rect::from_xy_wh(Xy::single(0.px()), self.wh),
             self.project.name.as_str(),
             Color::WHITE,
@@ -167,6 +180,7 @@ impl Component for ProjectCell {
                     // });
                 }
             },
-        ));
+        ))
+        .done()
     }
 }

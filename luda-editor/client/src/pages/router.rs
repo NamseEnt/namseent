@@ -7,7 +7,7 @@ pub struct Router {
 }
 
 impl Component for Router {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let (route, set_route) = ctx.state(|| Route::from(get_path_from_hash()));
         namui::log!("route: {:?}", route);
 
@@ -20,20 +20,24 @@ impl Component for Router {
 
         let wh = self.wh;
 
-        ctx.return_(match *route {
-            Route::ProjectListPage => &project_list_page::ProjectListPage2 { wh } as &dyn Component,
+        ctx.component_branch(|ctx| match *route {
+            Route::ProjectListPage => ctx.add(project_list_page::ProjectListPage2 { wh }),
             Route::SequenceListPage { project_id } => {
-                &sequence_list_page::SequenceListPage { wh, project_id }
+                // ctx.add(sequence_list_page::SequenceListPage { wh, project_id })
             }
             Route::SequenceEditPage {
                 project_id,
                 sequence_id,
-            } => &sequence_edit_page::SequenceEditPage {
-                wh,
-                project_id,
-                sequence_id,
-            },
-        })
+            } => {
+                ctx.add(sequence_edit_page::SequenceEditPage {
+                    wh,
+                    project_id,
+                    sequence_id,
+                });
+            }
+        });
+
+        ctx.done()
     }
 }
 

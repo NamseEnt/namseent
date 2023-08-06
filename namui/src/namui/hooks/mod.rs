@@ -35,7 +35,7 @@ fn update_or_push<T>(vector: &mut Vec<T>, index: usize, value: T) {
     }
 }
 
-pub fn boxed<'a, T: Component + 'a>(value: T) -> Box<dyn 'a + Component> {
+pub fn boxed<'a, T: 'a>(value: T) -> Box<T> {
     Box::new(value)
 }
 

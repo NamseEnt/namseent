@@ -46,7 +46,6 @@ impl WheelEvent {
     }
 }
 pub struct KeyboardEvent {
-    pub id: crate::Uuid,
     pub code: Code,
     pub pressing_codes: HashSet<Code>,
 }

@@ -13,15 +13,15 @@ pub struct CutCell<'a> {
 }
 
 impl Component for CutCell<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self {
             wh,
             index,
-            ref cut,
+            cut,
             memo_count,
             is_selected,
             is_focused,
-            ref on_click,
+            on_click,
         } = self;
 
         // let stroke_color = color::stroke_color(is_selected, is_focused);
@@ -68,6 +68,8 @@ impl Component for CutCell<'_> {
         //         ]),
         //     )(wh))
         // })
+
+        ctx.done()
     }
 }
 

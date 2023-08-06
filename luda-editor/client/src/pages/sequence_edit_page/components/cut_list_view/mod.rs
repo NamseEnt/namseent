@@ -24,14 +24,14 @@ pub enum Event {
     OnRightClickEvent { global_xy: Xy<Px> },
 }
 impl Component for CutListView<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self {
             wh,
-            ref cuts,
+            cuts,
             selected_cut_id,
             is_focused,
-            ref cut_id_memos_map,
-            ref on_event,
+            cut_id_memos_map,
+            on_event,
         } = self;
         let cuts = cuts.clone();
 
@@ -86,27 +86,29 @@ impl Component for CutListView<'_> {
                 }
             }
         };
-        ctx.add(
+        ctx.component(
             render([simple_rect(
                 wh,
                 color::STROKE_NORMAL,
                 1.px(),
                 color::BACKGROUND,
             )])
-            .attach_event(move |builder| {
-                builder
-                    .on_mouse_down_in(move |event: MouseEvent| {
-                        if event.button == Some(MouseButton::Right) {
-                            on_event(Event::OnRightClickEvent {
-                                global_xy: event.global_xy,
-                            });
-                        }
-                    })
-                    .on_key_down(on_key_down);
+            .attach_event(move |event| match event {
+                namui::Event::MouseDown { event } => {
+                    if event.is_local_xy_in() && event.button == Some(MouseButton::Right) {
+                        on_event(Event::OnRightClickEvent {
+                            global_xy: event.global_xy,
+                        });
+                    }
+                }
+                namui::Event::KeyDown { event } => {
+                    on_key_down(event);
+                }
+                _ => {}
             }),
         );
         let item_wh = Wh::new(wh.width, 128.px());
-        ctx.add(list_view::ListView {
+        ctx.component(list_view::ListView {
             xy: Xy::zero(),
             height: wh.height,
             scroll_bar_width: 12.px(),
@@ -115,16 +117,24 @@ impl Component for CutListView<'_> {
                 .iter()
                 .zip(cuts.iter().map(|cut| cut_id_memos_map.get(&cut.id)))
                 .enumerate()
-                .map(|(index, (cut, memos))| CutCell {
-                    wh,
-                    index,
-                    cut: cut.clone(),
-                    memo_count: memos.map_or(0, |memos| memos.len()),
-                    is_selected: selected_cut_id == Some(cut.id),
-                    is_focused,
-                    on_click: boxed(|cut_id: Uuid| on_event(Event::OnClickCutEvent { cut_id })),
+                .map(|(index, (cut, memos))| {
+                    (
+                        cut.id.to_string(),
+                        CutCell {
+                            wh,
+                            index,
+                            cut: cut.clone(),
+                            memo_count: memos.map_or(0, |memos| memos.len()),
+                            is_selected: selected_cut_id == Some(cut.id),
+                            is_focused,
+                            on_click: boxed(|cut_id: Uuid| {
+                                on_event(Event::OnClickCutEvent { cut_id })
+                            }),
+                        },
+                    )
                 })
                 .collect(),
         });
+        ctx.done()
     }
 }

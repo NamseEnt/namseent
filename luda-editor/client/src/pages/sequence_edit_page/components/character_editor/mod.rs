@@ -29,7 +29,7 @@ pub enum Event {
 }
 
 impl Component for CharacterEditor<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             edit_target,
             wh,

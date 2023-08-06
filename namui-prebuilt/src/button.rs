@@ -8,7 +8,7 @@ fn attach_text_button_event<'a>(
 ) -> impl 'a + Component {
     let mouse_buttons = mouse_buttons.into_iter().collect::<Vec<_>>();
 
-    button.on_event(move |event| match event {
+    button.attach_event(move |event| match event {
         Event::MouseUp { event } => {
             if !event.is_local_xy_in() {
                 return;
@@ -63,10 +63,10 @@ pub fn text_button_fit<'a>(
     let center_text = center_text_full_height(Wh::new(0.px(), height), text, text_color);
     let width = match center_text.get_bounding_box() {
         Some(bounding_box) => bounding_box.width(),
-        None => return Box::new(RenderingTree::Empty) as Box<dyn 'a + Component>,
+        None => return None,
     };
 
-    Box::new(attach_text_button_event(
+    Some(attach_text_button_event(
         render([
             simple_rect(
                 Wh::new(width + side_padding * 2, height),
@@ -78,7 +78,7 @@ pub fn text_button_fit<'a>(
         ]),
         mouse_buttons,
         on_mouse_up_in,
-    )) as Box<dyn Component>
+    ))
 }
 
 pub fn body_text_button<'a>(

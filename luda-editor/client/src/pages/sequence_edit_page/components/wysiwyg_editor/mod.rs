@@ -34,7 +34,7 @@ pub struct WysiwygEditor<'a> {
 }
 
 impl Component for WysiwygEditor<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             wh,
             cut_id,

@@ -28,7 +28,7 @@ pub enum Event {
 }
 
 impl Component for GraphicClip<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             cut_id,
             graphic_index,

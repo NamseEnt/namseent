@@ -23,15 +23,15 @@ impl TreeContext {
         }
     }
 
-    pub(crate) fn start(self, component: impl Component) {
+    pub(crate) fn start<C: Component>(self, component: impl Fn() -> C) {
         let this = Arc::new(self);
         init_render_event(RenderEvent::Mount);
-        let root_instance = Arc::new(ComponentInstance::new(&component));
+        let root_instance = Arc::new(ComponentInstance::new(&component()));
         let mut updated_sigs = None;
 
         loop {
             let rendering_tree = this.render(
-                &component,
+                component(),
                 root_instance.clone(),
                 updated_sigs.take().unwrap_or_default(),
                 Matrix3x3::identity(),
@@ -66,7 +66,7 @@ impl TreeContext {
     ) -> RenderingTree {
         let render_ctx = RenderCtx::new(instance, updated_sigs, self.clone(), matrix);
 
-        let render_done = component.render(&render_ctx);
+        let render_done = Box::new(component).render(&render_ctx);
 
         render_done.rendering_tree
     }

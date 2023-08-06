@@ -21,7 +21,7 @@ enum ContextMenuType {
 }
 
 impl Component for SequenceListPage {
-    fn render(&self, ctx: &mut RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self { wh, project_id } = self;
         let (error_message, set_error_message) = ctx.state::<Option<String>>(|| None);
         let (is_loading, set_is_loading) = ctx.state(|| true);
@@ -232,7 +232,7 @@ pub struct SequenceCell<'a> {
 }
 
 impl Component for SequenceCell<'_> {
-    fn render(&self, ctx: &mut RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let &Self {
             wh,
             project_id,

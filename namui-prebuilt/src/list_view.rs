@@ -1,6 +1,5 @@
 use crate::scroll_view::{self};
 use namui::prelude::*;
-use std::sync::Arc;
 
 #[namui::component]
 pub struct ListView<C: Component> {
@@ -12,46 +11,48 @@ pub struct ListView<C: Component> {
 }
 
 impl<C: Component> Component for ListView<C> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self {
             xy,
             height,
             scroll_bar_width,
             item_wh,
-            ref items,
+            items,
         } = self;
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
-        ctx.return_(scroll_view::ScrollView {
+        ctx.component(scroll_view::ScrollView {
             xy,
             scroll_bar_width,
             height,
-            content: Arc::new(ListViewInner {
+            content: ListViewInner {
                 height,
                 item_wh,
-                items: items.clone(),
+                items,
                 scroll_y: *scroll_y,
-            }),
+            },
             scroll_y: *scroll_y,
             set_scroll_y,
-        })
+        });
+
+        ctx.done()
     }
 }
 
 #[namui::component]
-struct ListViewInner<'a, C: Component> {
+struct ListViewInner<C: Component> {
     height: Px,
     item_wh: Wh<Px>,
-    items: &'a Vec<(String, C)>,
+    items: Vec<(String, C)>,
     scroll_y: Px,
 }
 
-impl<C: Component> Component for ListViewInner<'_, C> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
+impl<C: Component> Component for ListViewInner<C> {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self {
             height,
             item_wh,
-            ref items,
+            items,
             scroll_y,
         } = self;
 
@@ -89,39 +90,29 @@ impl<C: Component> Component for ListViewInner<'_, C> {
                 ..Default::default()
             },
         });
-        ctx.return_((
-            transparent_pillar,
-            itered(
-                visible_items
-                    .into_iter()
-                    .enumerate()
-                    .map(|(index, (key, visible_item))| {
-                        (
-                            key.clone(),
-                            hooks::translate(
-                                0.px(),
-                                item_wh.height * (index + visible_item_start_index),
-                                visible_item,
-                            ),
-                        )
-                    }),
-            ),
-        ))
-        // ctx.add(transparent_pillar);
 
-        // let max_scroll_y = item_wh.height * item_len - height;
+        ctx.component(transparent_pillar);
 
-        // let scroll_y = scroll_y.min(max_scroll_y);
+        let max_scroll_y = item_wh.height * item_len - height;
 
-        // let visible_item_start_index = (scroll_y / item_wh.height).floor() as usize;
+        let scroll_y = scroll_y.min(max_scroll_y);
 
-        // for (index, visible_item) in visible_items.into_iter().enumerate() {
-        //     ctx.translate(Xy::new(
-        //         0.px(),
-        //         item_wh.height * (index + visible_item_start_index),
-        //     ))
-        //     .add(visible_item);
-        // }
+        let visible_item_start_index = (scroll_y / item_wh.height).floor() as usize;
+
+        ctx.component_group(|ctx| {
+            for (index, (key, visible_item)) in visible_items.into_iter().enumerate() {
+                ctx.add(
+                    key,
+                    hooks::translate(
+                        0.px(),
+                        item_wh.height * (index + visible_item_start_index),
+                        visible_item,
+                    ),
+                )
+            }
+        });
+
+        ctx.done()
     }
 }
 

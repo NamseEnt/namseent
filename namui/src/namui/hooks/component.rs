@@ -7,18 +7,18 @@ pub struct RenderDone {
 }
 
 pub trait Component: StaticType + Debug {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone;
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone;
     fn arc<'a>(self) -> Arc<dyn 'a + Component>
     where
         Self: Sized + 'a,
     {
         Arc::new(self)
     }
-    fn on_event<'a>(self, on_event: impl 'a + FnOnce(Event)) -> OnEvent<'a>
+    fn attach_event<'a>(self, on_event: impl 'a + FnOnce(Event)) -> AttachEvent<'a, Self>
     where
         Self: 'a + Sized,
     {
-        native::on_event(self, on_event)
+        native::attach_event(self, on_event)
     }
 }
 
@@ -36,17 +36,17 @@ pub trait StaticType {
     }
 }
 
-impl<T: Component> StaticType for &T {
-    // fn static_type_id(&self) -> StaticTypeId {
-    //     (*self).static_type_id()
-    // }
-}
+// impl<T: Component> StaticType for &T {
+//     // fn static_type_id(&self) -> StaticTypeId {
+//     //     (*self).static_type_id()
+//     // }
+// }
 
-impl<T: Component> Component for &T {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        (*self).render(ctx)
-    }
-}
+// impl<T: Component> Component for &T {
+//     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+//         (*self).render(ctx)
+//     }
+// }
 
 impl StaticType for RenderingTree {
     // fn static_type_id(&self) -> StaticTypeId {
@@ -55,44 +55,59 @@ impl StaticType for RenderingTree {
 }
 
 impl Component for RenderingTree {
-    fn render<'a>(&'a self, _ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(self, _ctx: &'a RenderCtx) -> RenderDone {
         RenderDone {
-            rendering_tree: self.clone(),
+            rendering_tree: self,
         }
     }
 }
 
-impl StaticType for &dyn Component {
-    // fn static_type_id(&self) -> StaticTypeId {
-    //     (*self).static_type_id()
-    // }
-}
+// impl StaticType for &dyn Component {
+//     // fn static_type_id(&self) -> StaticTypeId {
+//     //     (*self).static_type_id()
+//     // }
+// }
 
-impl Component for &dyn Component {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        (*self).render(ctx)
-    }
-}
+// impl Component for &dyn Component {
+//     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+//         (*self).render(ctx)
+//     }
+// }
 
-impl<'a> StaticType for Arc<dyn 'a + Component> {
-    // fn static_type_id(&self) -> StaticTypeId {
-    //     self.as_ref().static_type_id()
-    // }
-}
+// impl<'a> StaticType for Arc<dyn 'a + Component> {
+//     // fn static_type_id(&self) -> StaticTypeId {
+//     //     self.as_ref().static_type_id()
+//     // }
+// }
 
-impl<'b> Component for Arc<dyn 'b + Component> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        self.as_ref().render(ctx)
-    }
-}
+// impl<'b> Component for Arc<dyn 'b + Component> {
+//     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+//         self.as_ref().render(ctx)
+//     }
+// }
 
-impl<'b> StaticType for Box<dyn 'b + Component> {}
+// impl<'b> StaticType for Box<dyn 'b + Component> {}
 
-impl<'b> Component for Box<dyn 'b + Component> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        self.as_ref().render(ctx)
-    }
-}
+// impl<'b> Component for Box<dyn 'b + Component> {
+//     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+
+//     }
+// }
+
+// impl<T: StaticType> StaticType for Box<T> {
+//     // fn static_type_id(&self) -> StaticTypeId {
+//     //     self.as_ref().static_type_id()
+//     // }
+// }
+
+// impl<T: Component> Component for Box<T> {
+//     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+//         self.render(ctx)
+//         // if let Some(v) = self {
+//         //     v.render(ctx)
+//         // }
+//     }
+// }
 
 impl<T: StaticType> StaticType for Option<T> {
     // fn static_type_id(&self) -> StaticTypeId {
@@ -101,7 +116,7 @@ impl<T: StaticType> StaticType for Option<T> {
 }
 
 impl<T: Component> Component for Option<T> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         todo!()
         // if let Some(v) = self {
         //     v.render(ctx)
@@ -132,7 +147,7 @@ impl<T: Component> Component for Option<T> {
 // }
 
 // impl Component for RenderBox<'_> {
-//     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+//     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
 //         let mut render = self.render.lock().unwrap();
 //         let render = render.take().unwrap();
 //         render(ctx)
@@ -147,7 +162,7 @@ impl<T: Component> Component for Option<T> {
 //     }
 // }
 // impl<T: Component> Component for Option<T> {
-//     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+//     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
 //         if let Some(v) = self {
 //             v.render(ctx)
 //         } else {
@@ -158,7 +173,7 @@ impl<T: Component> Component for Option<T> {
 
 impl<T: StaticType> StaticType for Vec<(String, T)> {}
 impl<T: Component> Component for Vec<(String, T)> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         for (k, v) in self {
             ctx.add(k.to_string(), v);
         }
@@ -181,8 +196,8 @@ macro_rules! component_impl {
                 }
             }
             impl<$($T: Component),*> Component for ($($T,)*) {
-                fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-                    $(ctx.add($i.to_string(), &self.$i);)*
+                fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+                    $(ctx.add($i.to_string(), self.$i);)*
                     ctx.return_internal()
                 }
             }

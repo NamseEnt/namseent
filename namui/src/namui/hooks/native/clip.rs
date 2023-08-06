@@ -21,13 +21,13 @@ pub struct Clip<'a> {
 impl StaticType for Clip<'_> {}
 
 impl Component for Clip<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
-            ref path_builder,
-            clip_op,
-            ref component,
-        } = self;
-        let rendering_tree = ctx.ghost_render(component.as_ref());
-        ctx.return_(crate::clip(path_builder.clone(), clip_op, rendering_tree))
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        todo!()
+        // let rendering_tree = ctx.ghost_render(self.component);
+        // ctx.return_(crate::clip(
+        //     self.path_builder.clone(),
+        //     self.clip_op,
+        //     rendering_tree,
+        // ))
     }
 }

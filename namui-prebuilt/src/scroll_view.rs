@@ -1,51 +1,53 @@
 use namui::prelude::*;
-use std::sync::Arc;
 
 #[component]
-pub struct ScrollView<'a> {
+pub struct ScrollView<C: Component> {
     pub xy: Xy<Px>,
     pub scroll_bar_width: Px,
     pub height: Px,
-    pub content: Arc<dyn 'a + Component>,
+    pub content: C,
     pub scroll_y: Px,
     pub set_scroll_y: SetState<Px>,
 }
 
 #[component]
-pub struct AutoScrollView<'a> {
+pub struct AutoScrollView<C: Component> {
     pub xy: Xy<Px>,
     pub scroll_bar_width: Px,
     pub height: Px,
-    pub content: Arc<dyn 'a + Component>,
+    pub content: C,
 }
 
-impl Component for AutoScrollView<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+impl<C: Component> Component for AutoScrollView<C> {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
-        ctx.return_(ScrollView {
+        ctx.component(ScrollView {
             xy: self.xy,
             scroll_bar_width: self.scroll_bar_width,
             height: self.height,
-            content: self.content.clone(),
+            content: self.content,
             scroll_y: *scroll_y,
             set_scroll_y,
-        })
+        });
+
+        ctx.done()
     }
 }
 
-impl Component for ScrollView<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
+impl<C: Component> Component for ScrollView<C> {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self {
             xy,
             scroll_bar_width,
             height,
-            ref content,
+            content,
             scroll_y,
             set_scroll_y,
         } = self;
 
-        let content = ctx.ghost_render(content.as_ref());
+        let content = ctx.ghost_render(content);
+        todo!("ghost_render 안에 attach_event가 있다면? 잘못된 matrix를 가지고 렌더링하지 않을까?");
 
         let Some(bounding_box) = content.get_bounding_box() else {
             return ctx.return_no();
@@ -107,11 +109,11 @@ impl Component for ScrollView<'_> {
             ..Default::default()
         });
 
-        ctx.return_(hooks::translate(
+        ctx.component(hooks::translate(
             xy.x,
             xy.y,
             (
-                whole_rect.on_event(move |event| match event {
+                whole_rect.attach_event(move |event| match event {
                     Event::Wheel { event } => {
                         let next_scroll_y = namui::math::num::clamp(
                             scroll_y + px(event.delta_xy.y),
@@ -128,6 +130,8 @@ impl Component for ScrollView<'_> {
                 inner,
                 scroll_bar,
             ),
-        ))
+        ));
+
+        ctx.done()
     }
 }

@@ -18,8 +18,8 @@ pub struct SequenceEditPage {
 }
 
 impl Component for SequenceEditPage {
-    fn render(&self, ctx: &mut RenderCtx) -> RenderDone {
-        let &Self {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self {
             wh,
             project_id,
             sequence_id,
@@ -37,24 +37,27 @@ impl Component for SequenceEditPage {
             })
         });
 
-        match data.as_ref() {
-            Some(result) => match result {
-                Ok(data) => ctx.add(LoadedSequenceEditorPage {
-                    cut_id_memos_map: data.cut_id_memos_map.clone(),
-                    project_shared_data: data.project_shared_data.clone(),
-                    sequence: data.sequence.clone(),
-                    user_id: data.user_id,
-                    wh,
-                    cg_files: data.cg_files.clone(),
-                }),
-                Err(err) => ctx.add(typography::body::center(
-                    wh,
-                    &format!("Error: {}", err),
-                    Color::WHITE,
-                )),
-            },
-            None => ctx.add(typography::body::center(wh, "loading...", Color::WHITE)),
-        };
+        ctx.component_branch(|ctx| {
+            match data.as_ref() {
+                Some(result) => match result {
+                    Ok(data) => ctx.add(LoadedSequenceEditorPage {
+                        cut_id_memos_map: data.cut_id_memos_map.clone(),
+                        project_shared_data: data.project_shared_data.clone(),
+                        sequence: data.sequence.clone(),
+                        user_id: data.user_id,
+                        wh,
+                        cg_files: data.cg_files.clone(),
+                    }),
+                    Err(err) => ctx.add(typography::body::center(
+                        wh,
+                        &format!("Error: {}", err),
+                        Color::WHITE,
+                    )),
+                },
+                None => ctx.add(typography::body::center(wh, "loading...", Color::WHITE)),
+            };
+        })
+        .done()
     }
 }
 

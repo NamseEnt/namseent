@@ -29,7 +29,7 @@ pub struct TextInput<'a> {
     pub font_type: FontType,
     pub style: Style,
     pub prevent_default_codes: Vec<Code>,
-    pub on_event: callback!('a, Event),
+    pub on_event: Box<dyn 'a + for<'b> Fn(Event<'b>)>,
 }
 
 pub enum Event<'a> {
@@ -67,8 +67,7 @@ struct TextInputMouseEvent {
 }
 
 impl Component for TextInput<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let on_event = &self.on_event;
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let id = self.instance.id;
         let (atom, set_atom) = ctx.atom_init(&TEXT_INPUT_ATOM, || TextInputCtx {
             focused_id: None,
@@ -318,7 +317,7 @@ impl Component for TextInput<'_> {
 
         let selection = atom.get_selection_of_text_input(id);
 
-        ctx.return_((
+        ctx.component(
             namui::rect(RectParam {
                 rect: self.rect,
                 style: RectStyle {
@@ -334,7 +333,7 @@ impl Component for TextInput<'_> {
                     ..self.style.rect
                 },
             })
-            .on_event(|event| {
+            .attach_event(|event| {
                 match event {
                     crate::Event::MouseDown { event } => {
                         if !event.is_local_xy_in() {
@@ -383,7 +382,7 @@ impl Component for TextInput<'_> {
 
                         update_selection(selection_direction, selection_start, selection_end, text);
 
-                        on_event(Event::TextUpdated {
+                        (self.on_event)(Event::TextUpdated {
                             text: text.as_str(),
                         });
                     }
@@ -399,7 +398,7 @@ impl Component for TextInput<'_> {
                             return;
                         }
 
-                        on_event(Event::KeyDown { code });
+                        (self.on_event)(Event::KeyDown { code });
 
                         // self.event_handler.as_ref().map(|event_handler| {
                         //     event_handler.on_key_down.as_ref().map(|on_key_down| {
@@ -427,12 +426,12 @@ impl Component for TextInput<'_> {
                                 &text,
                             );
                             let Selection::Range(range) = selection else {
-                                    return Selection::None;
-                                };
+                                return Selection::None;
+                            };
 
                             let Some(line_texts) = self.get_line_texts() else {
-                                    return Selection::None;
-                                };
+                                return Selection::None;
+                            };
 
                             let next_selection_end =
                                 get_caret_index_after_apply_key_movement(key, line_texts, &range);
@@ -474,8 +473,8 @@ impl Component for TextInput<'_> {
                         let selection = get_selection_on_keyboard_down(key_in_interest);
 
                         let Some(utf16_selection) = selection.as_utf16(&text) else {
-                                return;
-                            };
+                            return;
+                        };
 
                         let selection_direction = if utf16_selection.start <= utf16_selection.end {
                             "forward"
@@ -485,12 +484,12 @@ impl Component for TextInput<'_> {
 
                         web::execute_function_sync(
                             "
-                                        textArea.setSelectionRange(
-                                            selectionStart,
-                                            selectionEnd,
-                                            selectionDirection,
-                                        )
-                                    ",
+                                    textArea.setSelectionRange(
+                                        selectionStart,
+                                        selectionEnd,
+                                        selectionDirection,
+                                    )
+                                ",
                         )
                         .arg(
                             "selectionStart",
@@ -506,15 +505,19 @@ impl Component for TextInput<'_> {
                     _ => {}
                 }
             }),
-            self.draw_texts_divided_by_selection(
-                &self,
-                &fonts,
-                paint.clone(),
-                &line_texts,
-                &selection,
-            ),
-            self.draw_caret(&self, &line_texts, &selection, paint.clone()),
-        ))
+        );
+
+        ctx.component(self.draw_texts_divided_by_selection(
+            &self,
+            &fonts,
+            paint.clone(),
+            &line_texts,
+            &selection,
+        ));
+
+        ctx.component(self.draw_caret(&self, &line_texts, &selection, paint.clone()));
+
+        ctx.done()
     }
 }
 

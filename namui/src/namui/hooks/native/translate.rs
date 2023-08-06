@@ -1,32 +1,25 @@
 use crate::*;
 
-pub fn translate<'a>(
-    x: crate::Px,
-    y: crate::Px,
-    component: impl Component + 'a,
-) -> Box<dyn Component + 'a> {
-    boxed(Translate {
-        x,
-        y,
-        component: Box::new(component),
-    })
+pub fn translate<'a, C: Component + 'a>(x: crate::Px, y: crate::Px, component: C) -> Translate<C> {
+    Translate { x, y, component }
 }
 
 #[derive(Debug)]
-pub struct Translate<'a> {
+pub struct Translate<C: Component> {
     x: crate::Px,
     y: crate::Px,
-    component: Box<dyn Component + 'a>,
+    component: C,
 }
-impl StaticType for Translate<'_> {}
+impl<C: Component> StaticType for Translate<C> {}
 
-impl Component for Translate<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+impl<C: Component> Component for Translate<C> {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         ctx.matrix
             .lock()
             .unwrap()
             .translate(self.x.as_f32(), self.y.as_f32());
 
-        ctx.return_(self.component.as_ref())
+        ctx.component(self.component);
+        ctx.done()
     }
 }

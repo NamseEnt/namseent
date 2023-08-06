@@ -38,15 +38,15 @@ pub enum Event2 {
 }
 
 impl Component for CutEditor<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self {
             wh,
             cut,
             cuts,
             is_focused,
             project_id,
             cg_files,
-            ref on_event,
+            on_event,
         } = self;
         // let (context_menu, set_context_menu) =
         //     ctx.state::<Option<context_menu::ContextMenu<'_>>>(|| None);
@@ -281,18 +281,19 @@ impl Component for CutEditor<'_> {
             };
 
             (
-                transparent_rect(wh).attach_event(|builder| {
-                    builder.on_mouse_down_in(move |event: MouseEvent| {
-                        if event.button == Some(MouseButton::Left) {
+                transparent_rect(wh).attach_event(|event| match event {
+                    namui::Event::MouseDown { event } => {
+                        if event.is_local_xy_in() && event.button == Some(MouseButton::Left) {
                             focus(ClickTarget::CutText)
                         }
-                    });
+                    }
+                    _ => {}
                 }),
                 content,
             )
         };
 
-        ctx.add(hooks::translate(
+        ctx.component(hooks::translate(
             content_rect.x(),
             content_rect.y(),
             (
@@ -322,6 +323,8 @@ impl Component for CutEditor<'_> {
         ));
 
         // context_menu.map(|context_menu| ctx.add(context_menu));
+
+        ctx.done()
     }
 }
 

@@ -16,7 +16,7 @@ enum LoadingState {
 }
 
 impl Component for App {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let (loading_state, set_loading_state) = ctx.state(|| LoadingState::Loading);
 
         ctx.effect("Try login", || {
@@ -42,15 +42,17 @@ impl Component for App {
 
         let wh = namui::screen::size();
 
-        ctx.return_((
-            simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK),
-            match &*loading_state {
-                LoadingState::Loading => {
-                    &typography::body::center(wh, "Logging in...", Color::WHITE) as &dyn Component
-                }
-                LoadingState::Loaded => &Router { wh },
-                LoadingState::Error(error) => &typography::body::center(wh, &error, Color::WHITE),
-            },
-        ))
+        ctx.component(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK));
+        ctx.component_branch(|ctx| match &*loading_state {
+            LoadingState::Loading => {
+                ctx.add(typography::body::center(wh, "Logging in...", Color::WHITE))
+            }
+            LoadingState::Loaded => ctx.add(Router { wh }),
+            LoadingState::Error(error) => {
+                ctx.add(typography::body::center(wh, &error, Color::WHITE))
+            }
+        });
+
+        ctx.done()
     }
 }

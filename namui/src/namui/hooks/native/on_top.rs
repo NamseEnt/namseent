@@ -17,9 +17,10 @@ impl StaticType for OnTop<'_> {
 }
 
 impl Component for OnTop<'_> {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         *ctx.matrix.lock().unwrap() = Matrix3x3::identity();
 
-        ctx.return_(self.component.as_ref())
+        // ctx.return_(self.component)
+        todo!()
     }
 }

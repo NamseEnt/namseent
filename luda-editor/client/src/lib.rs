@@ -21,14 +21,14 @@ static RPC: late_init::LateInit<rpc::Rpc> = late_init::LateInit::<rpc::Rpc>::new
 pub fn main() {
     let namui_context = namui::init();
 
-    namui_context.start(&Init {});
+    namui_context.start(|| Init {});
 }
 
 #[namui::component]
 struct Init {}
 
 impl namui::Component for Init {
-    fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let (loaded, set_loaded) = ctx.state(|| false);
 
         ctx.effect("Init", || {
@@ -75,6 +75,7 @@ impl namui::Component for Init {
             })
         });
 
-        ctx.return_(loaded.then(|| app::App {}))
+        ctx.component(loaded.then(|| app::App {}));
+        ctx.done()
     }
 }
