@@ -35,8 +35,14 @@ fn update_or_push<T>(vector: &mut Vec<T>, index: usize, value: T) {
     }
 }
 
-pub fn boxed<T>(value: T) -> Box<T> {
+pub fn boxed<'a, T: Component + 'a>(value: T) -> Box<dyn 'a + Component> {
     Box::new(value)
+}
+
+pub fn itered<'a, T: Component + 'a>(
+    iter: impl Iterator<Item = (String, T)>,
+) -> Box<dyn 'a + Component> {
+    Box::new(iter.into_iter().collect::<Vec<_>>())
 }
 
 pub fn arc<'a, T: 'a>(value: T) -> Box<T> {
@@ -49,11 +55,11 @@ pub fn arc<'a, T: 'a>(value: T) -> Box<T> {
 macro_rules! callback {
     ($lifetime: lifetime, $param: ty) => {
         // &$lifetime (dyn $lifetime + Fn($param))
-        Box<dyn $lifetime + Fn($param)>
+        Box<dyn $lifetime + FnOnce($param)>
     };
     ($lifetime: lifetime) => {
         // &$lifetime (dyn $lifetime + Fn())
-        Box<dyn $lifetime + Fn()>
+        Box<dyn $lifetime + FnOnce()>
     };
 }
 

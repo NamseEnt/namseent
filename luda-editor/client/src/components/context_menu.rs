@@ -82,11 +82,9 @@ impl Component for ContextMenu<'_> {
             .set_stroke_width(1.px())
             .set_style(PaintStyle::Stroke);
 
-        let mut menus = vec![];
-
-        for (index, item) in items.iter().enumerate() {
+        let menus = itered(items.iter().enumerate().map(|(index, item)| {
             let y = next_y;
-            let menu = match item {
+            match item {
                 &Item::Button {
                     ref text,
                     ref on_click,
@@ -107,54 +105,64 @@ impl Component for ContextMenu<'_> {
                     } else {
                         Color::WHITE
                     };
-
-                    translate(
-                        0.px(),
-                        y,
-                        render([
-                            background,
-                            typography::body::left(
-                                cell_wh.height,
-                                format!("  {}", text),
-                                text_color,
-                            ),
-                        ]),
-                    )
-                    .on_event(move |event| match event {
-                        Event::MouseUp { event } => {
-                            if event.is_local_xy_in() {
-                                if let Some(MouseButton::Left) = event.button {
-                                    event.stop_propagation();
-                                    on_click();
-                                    close();
-                                }
-                            } else {
-                                close();
-                            }
-                        }
-                        Event::MouseMove { event } => {
-                            if is_mouse_over {
-                                if !event.is_local_xy_in() {
-                                    if *mouse_over_item_idx == Some(index) {
-                                        set_mouse_over_item_idx.set(None);
+                    (
+                        index.to_string(),
+                        boxed(
+                            translate(
+                                0.px(),
+                                y,
+                                render([
+                                    background,
+                                    typography::body::left(
+                                        cell_wh.height,
+                                        format!("  {}", text),
+                                        text_color,
+                                    ),
+                                ]),
+                            )
+                            .on_event(move |event| match event {
+                                Event::MouseUp { event } => {
+                                    if event.is_local_xy_in() {
+                                        if let Some(MouseButton::Left) = event.button {
+                                            event.stop_propagation();
+                                            on_click();
+                                            close();
+                                        }
+                                    } else {
+                                        close();
                                     }
                                 }
-                            } else {
-                                if event.is_local_xy_in() {
-                                    set_mouse_over_item_idx.set(Some(index));
+                                Event::MouseMove { event } => {
+                                    if is_mouse_over {
+                                        if !event.is_local_xy_in() {
+                                            if *mouse_over_item_idx == Some(index) {
+                                                set_mouse_over_item_idx.set(None);
+                                            }
+                                        }
+                                    } else {
+                                        if event.is_local_xy_in() {
+                                            set_mouse_over_item_idx.set(Some(index));
+                                        }
+                                    }
                                 }
-                            }
-                        }
-                        _ => {}
-                    })
+                                _ => {}
+                            }),
+                        ),
+                    )
                 }
                 Item::Divider => {
                     next_y += divider_height;
-                    translate(0.px(), y, path(divider_path.clone(), divider_paint.clone()))
+                    (
+                        index.to_string(),
+                        boxed(translate(
+                            0.px(),
+                            y,
+                            path(divider_path.clone(), divider_paint.clone()),
+                        )),
+                    )
                 }
-            };
-            menus.push(menu);
-        }
+            }
+        }));
 
         let context_menu_wh = Wh::new(cell_wh.width, next_y);
 
@@ -168,10 +176,10 @@ impl Component for ContextMenu<'_> {
         let global_xy_within_screen = self.global_xy_within_screen(context_menu_wh);
 
         ctx.return_(
-            on_top(absolute(
+            hooks::on_top(hooks::absolute(
                 global_xy_within_screen.x,
                 global_xy_within_screen.y,
-                render([background, render(menus)]),
+                (background, menus),
             ))
             .on_event(|event| {
                 if let namui::Event::MouseDown { event } = event {

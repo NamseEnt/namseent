@@ -19,6 +19,7 @@ impl<'a> RenderCtx {
         instance: Arc<ComponentInstance>,
         updated_sigs: HashSet<SigId>,
         tree_ctx: Arc<TreeContext>,
+        matrix: Matrix3x3,
     ) -> Self {
         Self {
             instance,
@@ -29,7 +30,7 @@ impl<'a> RenderCtx {
             updated_sigs: Mutex::new(updated_sigs),
             tree_ctx,
             children: Default::default(),
-            matrix: Default::default(),
+            matrix: Mutex::new(matrix),
             force_render_index: Default::default(),
         }
     }
@@ -75,7 +76,7 @@ impl<'a> RenderCtx {
     }
 
     pub(crate) fn add(&'a self, key: String, component: impl Component) {
-        let rendering_tree = self.render(key, component);
+        let rendering_tree = self.render_children(key, component);
         self.push_rendering_tree(rendering_tree);
     }
 
@@ -125,57 +126,16 @@ impl<'a> RenderCtx {
             .force_render_index
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let key = format!("force_render_{index}");
-        self.render(key, component)
+        self.render_children(key, component)
     }
 
-    fn render(&self, key: String, component: impl Component) -> RenderingTree {
+    fn render_children(&self, key: String, component: impl Component) -> RenderingTree {
         let child_instance = self.instance.get_or_create_child_instance(key, &component);
         self.tree_ctx.render(
             component,
             child_instance,
             self.updated_sigs.lock().unwrap().clone(),
+            self.matrix.lock().unwrap().clone(),
         )
     }
 }
-
-// #[derive(Clone)]
-// pub struct MatrixCtx<'a> {
-//     pub(crate) ctx: &'a RenderCtx,
-//     pub(crate) matrix: Matrix3x3,
-// }
-
-// impl<'a> MatrixCtx<'a> {
-//     pub fn translate(&mut self, xy: Xy<Px>) -> &mut Self {
-//         self.matrix.translate(xy.x.as_f32(), xy.y.as_f32());
-//         self
-//     }
-
-//     pub fn branch(&mut self, branch: impl FnOnce(&mut Self)) -> &mut Self {
-//         branch(&mut self.clone());
-//         self
-//     }
-
-//     pub fn add(&mut self, add: impl Component) -> AddingCtx {
-//         let mut ctx = self.create_adding_ctx();
-//         ctx.add(add);
-//         ctx
-//     }
-
-//     pub fn add_with_instance(
-//         &self,
-//         component: impl Component,
-//         instance: Arc<ComponentInstance>,
-//     ) -> AddingCtx {
-//         let mut ctx = self.create_adding_ctx();
-//         ctx.add_with_instance(component, instance);
-//         ctx
-//     }
-
-//     fn create_adding_ctx(&self) -> AddingCtx {
-//         AddingCtx::new(
-//             self.ctx.tree_ctx.clone(),
-//             self.ctx.children.clone(),
-//             self.matrix,
-//         )
-//     }
-// }

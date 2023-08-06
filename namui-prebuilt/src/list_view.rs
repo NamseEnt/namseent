@@ -91,20 +91,21 @@ impl<C: Component> Component for ListViewInner<'_, C> {
         });
         ctx.return_((
             transparent_pillar,
-            visible_items
-                .into_iter()
-                .enumerate()
-                .map(|(index, (key, visible_item))| {
-                    (
-                        key.clone(),
-                        hooks::translate(
-                            0.px(),
-                            item_wh.height * (index + visible_item_start_index),
-                            visible_item,
-                        ),
-                    )
-                })
-                .collect(),
+            itered(
+                visible_items
+                    .into_iter()
+                    .enumerate()
+                    .map(|(index, (key, visible_item))| {
+                        (
+                            key.clone(),
+                            hooks::translate(
+                                0.px(),
+                                item_wh.height * (index + visible_item_start_index),
+                                visible_item,
+                            ),
+                        )
+                    }),
+            ),
         ))
         // ctx.add(transparent_pillar);
 

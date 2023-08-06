@@ -1,11 +1,15 @@
 use crate::*;
 
-pub fn translate<'a>(x: crate::Px, y: crate::Px, component: impl Component + 'a) -> Translate<'a> {
-    Translate {
+pub fn translate<'a>(
+    x: crate::Px,
+    y: crate::Px,
+    component: impl Component + 'a,
+) -> Box<dyn Component + 'a> {
+    boxed(Translate {
         x,
         y,
         component: Box::new(component),
-    }
+    })
 }
 
 #[derive(Debug)]

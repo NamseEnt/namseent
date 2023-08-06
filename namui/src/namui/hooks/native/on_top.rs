@@ -1,9 +1,9 @@
 use crate::*;
 
-pub fn on_top<'a>(component: impl Component + 'a) -> OnTop<'a> {
-    OnTop {
+pub fn on_top<'a>(component: impl Component + 'a) -> Box<dyn Component + 'a> {
+    boxed(OnTop {
         component: Box::new(component),
-    }
+    })
 }
 
 #[derive(Debug)]
@@ -18,7 +18,8 @@ impl StaticType for OnTop<'_> {
 
 impl Component for OnTop<'_> {
     fn render<'a>(&'a self, ctx: &'a RenderCtx) -> RenderDone {
-        ctx.add(self.component.as_ref());
-        ctx.done_with_rendering_tree(|children| crate::on_top(RenderingTree::Children(children)))
+        *ctx.matrix.lock().unwrap() = Matrix3x3::identity();
+
+        ctx.return_(self.component.as_ref())
     }
 }
