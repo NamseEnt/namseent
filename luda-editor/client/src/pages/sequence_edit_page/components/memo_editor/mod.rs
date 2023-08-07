@@ -7,7 +7,7 @@ pub struct MemoEditor<'a> {
     pub wh: Wh<Px>,
     pub sequence_id: Uuid,
     pub cut_id: Uuid,
-    pub on_event: callback!('a, Event),
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
@@ -21,7 +21,7 @@ pub enum Event {
 
 impl Component for MemoEditor<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
+        let Self {
             wh,
             sequence_id,
             cut_id,
@@ -42,24 +42,28 @@ impl Component for MemoEditor<'_> {
                 0.px(),
                 Color::grayscale_alpha_f01(0.0, 0.5),
             )
-            .attach_event(|builder| {
-                let on_event = on_event.clone();
-                builder.on_mouse_down_in(move |event: MouseEvent| {
-                    event.stop_propagation();
-                    on_event(Event::Close);
-                });
-            })
             .with_mouse_cursor(MouseCursor::Default)
+            .attach_event(|event| {
+                let on_event = on_event.clone();
+                match event {
+                    namui::Event::MouseDown { event } => {
+                        event.stop_propagation();
+                        on_event(Event::Close);
+                    }
+                    _ => {}
+                }
+            })
         };
 
         let container = simple_rect(wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND)
-            .attach_event(|builder| {
-                builder.on_mouse_down_in(|event: MouseEvent| {
+            .attach_event(|event| match event {
+                namui::Event::MouseDown { event } => {
                     event.stop_propagation();
-                });
+                }
+                _ => {}
             });
 
-        let close_button_cell = move |wh: Wh<Px>| {
+        let close_button_cell = move |wh: Wh<Px>, ctx: &ComposeCtx| {
             table::hooks::fit(
                 table::hooks::FitAlign::LeftTop,
                 button::text_button_fit(
@@ -77,8 +81,9 @@ impl Component for MemoEditor<'_> {
                             on_event(Event::Close);
                         }
                     },
-                )
-                .with_mouse_cursor(MouseCursor::Pointer),
+                ),
+                // .with_mouse_cursor(MouseCursor::Pointer),
+                ctx,
             )
         };
 
@@ -104,7 +109,7 @@ impl Component for MemoEditor<'_> {
         //     });
         // };
 
-        let save_button_cell = move |wh: Wh<Px>| {
+        let save_button_cell = move |wh: Wh<Px>, ctx: &ComposeCtx| {
             table::hooks::fit(
                 table::hooks::FitAlign::RightBottom,
                 button::text_button_fit(
@@ -118,7 +123,7 @@ impl Component for MemoEditor<'_> {
                     [MouseButton::Left],
                     {
                         let on_event = on_event.clone();
-                        move |_event| {
+                        |_event| {
                             on_event(Event::SaveButtonClicked {
                                 sequence_id,
                                 cut_id,
@@ -126,77 +131,88 @@ impl Component for MemoEditor<'_> {
                             });
                         }
                     },
-                )
-                .with_mouse_cursor(MouseCursor::Pointer),
+                ),
+                // .with_mouse_cursor(MouseCursor::Pointer)
+                ctx,
             )
         };
 
         let content = table::hooks::vertical([
-            table::hooks::fixed(TITLE_HEIGHT, |wh| {
-                (
-                    simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT),
-                    table::hooks::padding(PADDING, |wh: Wh<Px>| {
-                        table::hooks::horizontal([
-                            close_button_cell(wh),
-                            table::hooks::ratio(1, |_| RenderingTree::Empty),
-                            save_button_cell(wh),
-                        ])(wh)
-                    })(wh),
-                )
-            }),
-            table::hooks::ratio(1, |wh| {
-                (
-                    simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT),
-                    // table::hooks::padding(PADDING, |wh| text_input::TextInput {
-                    //     rect: Rect::from_xy_wh(Xy::zero(), wh),
-                    //     text: text.to_string(),
-                    //     text_align: TextAlign::Left,
-                    //     text_baseline: TextBaseline::Top,
-                    //     font_type: FontType {
-                    //         serif: false,
-                    //         size: 14.int_px(),
-                    //         language: Language::Ko,
-                    //         font_weight: FontWeight::REGULAR,
-                    //     },
-                    //     style: Style {
-                    //         // TODO: Declare Ltrb with vector_types! macro
-                    //         // padding: Ltrb::single(PADDING),
-                    //         padding: Ltrb {
-                    //             left: PADDING,
-                    //             top: PADDING,
-                    //             right: PADDING,
-                    //             bottom: PADDING,
-                    //         },
-                    //         rect: RectStyle {
-                    //             stroke: Some(RectStroke {
-                    //                 color: color::STROKE_NORMAL,
-                    //                 width: 1.px(),
-                    //                 border_position: BorderPosition::Inside,
-                    //             }),
-                    //             fill: None,
-                    //             round: None,
-                    //         },
-                    //         text: TextStyle {
-                    //             color: color::STROKE_NORMAL,
-                    //             ..Default::default()
-                    //         },
-                    //     },
-                    //     event_handler: Some(
-                    //         text_input::EventHandler::new()
-                    //             .on_text_updated(move |text| set_text.set(text.clone())),
-                    //     ),
-                    // })(wh),
-                )
-            }),
-        ])(wh);
+            table::hooks::fixed(TITLE_HEIGHT, |wh, ctx| {
+                ctx.add(simple_rect(
+                    wh,
+                    color::STROKE_NORMAL,
+                    1.px(),
+                    Color::TRANSPARENT,
+                ));
 
-        ctx.add(hooks::on_top((
-            background,
-            hooks::translate(
-                (screen_wh.width - wh.width) / 2.0,
-                (screen_wh.height - wh.height) / 2.0,
-                (container, content),
-            ),
-        )));
+                table::hooks::padding(PADDING, |wh, ctx| {
+                    table::hooks::horizontal([
+                        close_button_cell(wh, ctx),
+                        table::hooks::ratio(1, |_, _| {}),
+                        save_button_cell(wh, ctx),
+                    ])(wh, ctx)
+                })(wh, ctx);
+            }),
+            table::hooks::ratio(1, |wh, ctx| {
+                ctx.add(simple_rect(
+                    wh,
+                    color::STROKE_NORMAL,
+                    1.px(),
+                    Color::TRANSPARENT,
+                ));
+                // table::hooks::padding(PADDING, |wh| text_input::TextInput {
+                //     rect: Rect::from_xy_wh(Xy::zero(), wh),
+                //     text: text.to_string(),
+                //     text_align: TextAlign::Left,
+                //     text_baseline: TextBaseline::Top,
+                //     font_type: FontType {
+                //         serif: false,
+                //         size: 14.int_px(),
+                //         language: Language::Ko,
+                //         font_weight: FontWeight::REGULAR,
+                //     },
+                //     style: Style {
+                //         // TODO: Declare Ltrb with vector_types! macro
+                //         // padding: Ltrb::single(PADDING),
+                //         padding: Ltrb {
+                //             left: PADDING,
+                //             top: PADDING,
+                //             right: PADDING,
+                //             bottom: PADDING,
+                //         },
+                //         rect: RectStyle {
+                //             stroke: Some(RectStroke {
+                //                 color: color::STROKE_NORMAL,
+                //                 width: 1.px(),
+                //                 border_position: BorderPosition::Inside,
+                //             }),
+                //             fill: None,
+                //             round: None,
+                //         },
+                //         text: TextStyle {
+                //             color: color::STROKE_NORMAL,
+                //             ..Default::default()
+                //         },
+                //     },
+                //     event_handler: Some(
+                //         text_input::EventHandler::new()
+                //             .on_text_updated(move |text| set_text.set(text.clone())),
+                //     ),
+                // })(wh),
+            }),
+        ]);
+
+        ctx.compose(|ctx| {
+            ctx.on_top()
+                .add(background)
+                .translate((
+                    (screen_wh.width - wh.width) / 2.0,
+                    (screen_wh.height - wh.height) / 2.0,
+                ))
+                .add(container);
+            content(wh, ctx);
+        })
+        .done()
     }
 }

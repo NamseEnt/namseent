@@ -53,8 +53,8 @@ impl Component for LoadedSequenceEditorPage {
             CutListViewEvent { event: cut_list_view::Event },
             CutEditorEvent { event: cut_editor::Event2 },
             CharacterEdtiorEvent { event: character_editor::Event },
-            // MemoListViewEvent { event: memo_list_view::Event },
-            // MemoEditorEvent { event: memo_editor::Event },
+            MemoListViewEvent { event: memo_list_view::Event },
+            MemoEditorEvent { event: memo_editor::Event },
         }
         let on_internal_event = &|event: InternalEvent| match event {
             InternalEvent::CutListViewEvent { event } => match event {
@@ -107,88 +107,87 @@ impl Component for LoadedSequenceEditorPage {
                     set_character_editor_target.set(Some(edit_target));
                 }
             },
-            // InternalEvent::MemoListViewEvent { event } => match event {
-            //     memo_list_view::Event::DoneClicked { cut_id, memo_id } => {
-            //         spawn_local(async move {
-            //             match crate::RPC
-            //                 .delete_memo(rpc::delete_memo::Request {
-            //                     sequence_id,
-            //                     memo_id,
-            //                 })
-            //                 .await
-            //             {
-            //                 Ok(_) => {
-            //                     set_cut_id_memos_map.mutate(move |cut_id_memos_map| {
-            //                         cut_id_memos_map
-            //                             .get_mut(&cut_id)
-            //                             .unwrap()
-            //                             .retain(|memo| memo.id != memo_id);
-            //                     });
-            //                 }
-            //                 Err(error) => {
-            //                     namui::log!("Failed to delete memo: {:?}", error)
-            //                 }
-            //             };
-            //         });
-            //     }
-            // },
-            //     InternalEvent::MemoEditorEvent { event } => match event {
-            //         memo_editor::Event::Close => set_editing_memo.set(None),
-            //         memo_editor::Event::SaveButtonClicked {
-            //             sequence_id,
-            //             cut_id,
-            //             content,
-            //         } => {
-            //             spawn_local(async move {
-            //                 match crate::RPC
-            //                     .create_memo(rpc::create_memo::Request {
-            //                         sequence_id,
-            //                         cut_id,
-            //                         content,
-            //                     })
-            //                     .await
-            //                 {
-            //                     Ok(response) => {
-            //                         let memo = response.memo;
-            //                         set_cut_id_memos_map.mutate(move |cut_id_memos_map| {
-            //                             match cut_id_memos_map.get_mut(&cut_id) {
-            //                                 Some(memos) => memos.push(memo),
-            //                                 None => {
-            //                                     cut_id_memos_map.insert(memo.cut_id, vec![memo]);
-            //                                 }
-            //                             }
-            //                         });
-            //                         set_editing_memo.set(None);
-            //                     }
-            //                     Err(error) => {
-            //                         namui::log!("Failed to create memo: {:?}", error)
-            //                     }
-            //                 };
-            //             });
-            //         }
-            //     },
+            InternalEvent::MemoListViewEvent { event } => match event {
+                memo_list_view::Event::DoneClicked { cut_id, memo_id } => {
+                    spawn_local(async move {
+                        match crate::RPC
+                            .delete_memo(rpc::delete_memo::Request {
+                                sequence_id,
+                                memo_id,
+                            })
+                            .await
+                        {
+                            Ok(_) => {
+                                set_cut_id_memos_map.mutate(move |cut_id_memos_map| {
+                                    cut_id_memos_map
+                                        .get_mut(&cut_id)
+                                        .unwrap()
+                                        .retain(|memo| memo.id != memo_id);
+                                });
+                            }
+                            Err(error) => {
+                                namui::log!("Failed to delete memo: {:?}", error)
+                            }
+                        };
+                    });
+                }
+            },
+            InternalEvent::MemoEditorEvent { event } => match event {
+                memo_editor::Event::Close => set_editing_memo.set(None),
+                memo_editor::Event::SaveButtonClicked {
+                    sequence_id,
+                    cut_id,
+                    content,
+                } => {
+                    spawn_local(async move {
+                        match crate::RPC
+                            .create_memo(rpc::create_memo::Request {
+                                sequence_id,
+                                cut_id,
+                                content,
+                            })
+                            .await
+                        {
+                            Ok(response) => {
+                                let memo = response.memo;
+                                set_cut_id_memos_map.mutate(move |cut_id_memos_map| {
+                                    match cut_id_memos_map.get_mut(&cut_id) {
+                                        Some(memos) => memos.push(memo),
+                                        None => {
+                                            cut_id_memos_map.insert(memo.cut_id, vec![memo]);
+                                        }
+                                    }
+                                });
+                                set_editing_memo.set(None);
+                            }
+                            Err(error) => {
+                                namui::log!("Failed to create memo: {:?}", error)
+                            }
+                        };
+                    });
+                }
+            },
         };
         let memo_list_view_cell: table::hooks::TableCell = {
             const MEMO_WINDOW_WIDTH: Px = px(256.0);
 
             let memos = selected_cut.and_then(|cut| cut_id_memos_map.get(&cut.id));
 
-            // match memos {
-            //     Some(memos) if !memos.is_empty() => {
-            //         table::hooks::fixed(MEMO_WINDOW_WIDTH, move |wh| {
-            //             memo_list_view::MemoListView {
-            //                 wh,
-            //                 memos: memos.clone(),
-            //                 user_id,
-            //                 on_event: on_internal_event(InternalEvent::MemoListViewEvent {
-            //                     event,
-            //                 }),
-            //             }
-            //         })
-            //     }
-            //     _ => table::hooks::empty(),
-            // }
-            table::hooks::empty()
+            match memos {
+                Some(memos) if !memos.is_empty() => {
+                    table::hooks::fixed(MEMO_WINDOW_WIDTH, move |wh, ctx| {
+                        ctx.add(memo_list_view::MemoListView {
+                            wh,
+                            memos: memos.clone(),
+                            user_id,
+                            on_event: Box::new(|event| {
+                                on_internal_event(InternalEvent::MemoListViewEvent { event })
+                            }),
+                        });
+                    })
+                }
+                _ => table::hooks::empty(),
+            }
         };
         let character_editor_cell = {
             const CHARACTER_EDITOR_WIDTH: Px = px(496.0);
@@ -245,22 +244,26 @@ impl Component for LoadedSequenceEditorPage {
                 table::hooks::fixed(220.px(), cut_list_view_cell),
                 table::hooks::ratio(4, cut_editor_cell),
                 // character_editor_cell,
-                // memo_list_view_cell,
+                memo_list_view_cell,
             ])(wh, ctx)
         });
 
-        // if let Some(SequenceIdCutId {
-        //     sequence_id,
-        //     cut_id,
-        // }) = *editing_memo
-        // {
-        //     ctx.add(memo_editor::MemoEditor {
-        //         wh,
-        //         sequence_id,
-        //         cut_id,
-        //         on_event: arc(|event| on_internal_event(InternalEvent::MemoEditorEvent { event })),
-        //     })
-        // }
+        ctx.compose(|ctx| {
+            if let Some(SequenceIdCutId {
+                sequence_id,
+                cut_id,
+            }) = *editing_memo
+            {
+                ctx.add(memo_editor::MemoEditor {
+                    wh,
+                    sequence_id,
+                    cut_id,
+                    on_event: arc(|event| {
+                        on_internal_event(InternalEvent::MemoEditorEvent { event })
+                    }),
+                });
+            }
+        });
 
         ctx.compose(|ctx| {
             if let Some(context_menu) = context_menu.as_ref() {

@@ -10,7 +10,7 @@ pub struct MemoListView<'a> {
     pub memos: Vec<Memo>,
     pub user_id: Uuid,
     // pub on_done_clicked: &'a dyn Fn(CutIdMemoId),
-    pub on_event: callback!('a, Event),
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
@@ -19,7 +19,7 @@ pub enum Event {
 
 impl Component for MemoListView<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
+        let Self {
             wh,
             ref memos,
             user_id,
@@ -27,131 +27,189 @@ impl Component for MemoListView<'_> {
             on_event,
         } = self;
 
-        ctx.add(simple_rect(
+        ctx.component(simple_rect(
             wh,
             color::STROKE_NORMAL,
             1.px(),
             color::BACKGROUND,
         ));
-        ctx.add(scroll_view::AutoScrollView {
+
+        ctx.component(scroll_view::AutoScrollViewWithCtx {
             xy: Xy::zero(),
             scroll_bar_width: 4.px(),
             height: wh.height,
-            content: table::vertical(memos.iter().map(|memo| {
-                table::fit(
-                    table::FitAlign::LeftTop,
-                    render_memo(wh.width, memo, user_id, on_event),
-                )
-            }))(wh)
-            .arc(),
+            content: |ctx| {
+                table::hooks::vertical(memos.iter().map(|memo| {
+                    table::hooks::fit(
+                        table::hooks::FitAlign::LeftTop,
+                        MemoComponent {
+                            width: wh.width,
+                            memo,
+                            user_id,
+                            on_event: Box::new(|event| on_event(event)),
+                        },
+                        ctx,
+                    )
+                }));
+            },
         });
+        ctx.done()
     }
 }
 
-fn render_memo<'a>(
+#[namui::component]
+struct MemoComponent<'a> {
     width: Px,
-    memo: &Memo,
+    memo: &'a Memo,
     user_id: Uuid,
     on_event: callback!('a, Event),
-) -> RenderingTree {
-    const MARGIN: Px = px(8.0);
-    const PADDING: Px = px(8.0);
-    const BUTTON_HEIGHT: Px = px(24.0);
+}
+impl Component for MemoComponent<'_> {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        const MARGIN: Px = px(8.0);
+        const PADDING: Px = px(8.0);
+        const BUTTON_HEIGHT: Px = px(24.0);
 
-    let container_width = width - MARGIN * 2.0;
-    let inner_width = container_width - PADDING * 2.0;
-    let memo_id = memo.id;
-    let cut_id = memo.cut_id;
+        let Self {
+            width,
+            memo,
+            user_id,
+            on_event,
+        } = self;
 
-    let user_name_label = text(TextParam {
-        text: memo.user_name.clone(),
-        x: 0.px(),
-        y: BUTTON_HEIGHT * 0.5,
-        align: TextAlign::Left,
-        baseline: TextBaseline::Middle,
-        font_type: FontType {
-            serif: false,
-            size: 16.int_px(),
-            language: Language::Ko,
-            font_weight: FontWeight::BOLD,
-        },
-        style: TextStyle {
-            border: None,
-            color: color::STROKE_NORMAL,
-            drop_shadow: None,
-            background: None,
-            line_height_percent: 100.percent(),
-            underline: None,
-        },
-        max_width: None,
-    });
+        let container_width = width - MARGIN * 2.0;
 
-    let done_button = match memo.user_id == user_id {
-        true => text_button_fit(
-            BUTTON_HEIGHT,
-            "완료",
-            color::STROKE_NORMAL,
+        let content = MemoContent {
+            width,
+            memo,
+            user_id,
+            on_event,
+        };
+        let container_height = ctx
+            .ghost_render(content)
+            .get_bounding_box()
+            .map_or(0.px(), |bounding_box| bounding_box.height())
+            + PADDING * 2.0;
+
+        let container = simple_rect(
+            Wh::new(container_width, container_height),
             color::STROKE_NORMAL,
             1.px(),
-            Color::TRANSPARENT,
-            PADDING,
-            [MouseButton::Left],
-            move |_| {
-                on_event(Event::DoneClicked { cut_id, memo_id });
+            color::BACKGROUND,
+        );
+
+        ctx.compose(|ctx| {
+            ctx.translate((MARGIN, MARGIN))
+                .add(container)
+                .compose(|ctx| {
+                    // ctx.translate((PADDING, PADDING)).add(content);
+                });
+        })
+        .done()
+    }
+}
+
+#[namui::component]
+struct MemoContent<'a> {
+    width: Px,
+    memo: &'a Memo,
+    user_id: Uuid,
+    on_event: callback!('a, Event),
+}
+impl Component for MemoContent<'_> {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        const MARGIN: Px = px(8.0);
+        const PADDING: Px = px(8.0);
+        const BUTTON_HEIGHT: Px = px(24.0);
+        let Self {
+            width,
+            memo,
+            user_id,
+            on_event,
+        } = self;
+
+        let container_width = width - MARGIN * 2.0;
+        let inner_width = container_width - PADDING * 2.0;
+        let memo_id = memo.id;
+        let cut_id = memo.cut_id;
+
+        let user_name_label = text(TextParam {
+            text: memo.user_name.clone(),
+            x: 0.px(),
+            y: BUTTON_HEIGHT * 0.5,
+            align: TextAlign::Left,
+            baseline: TextBaseline::Middle,
+            font_type: FontType {
+                serif: false,
+                size: 16.int_px(),
+                language: Language::Ko,
+                font_weight: FontWeight::BOLD,
             },
-        )
-        .with_mouse_cursor(MouseCursor::Pointer),
-        false => RenderingTree::Empty,
-    };
+            style: TextStyle {
+                border: None,
+                color: color::STROKE_NORMAL,
+                drop_shadow: None,
+                background: None,
+                line_height_percent: 100.percent(),
+                underline: None,
+            },
+            max_width: None,
+        });
 
-    let content_text = text(TextParam {
-        text: memo.content.clone(),
-        x: 0.px(),
-        y: 0.px(),
-        align: TextAlign::Left,
-        baseline: TextBaseline::Top,
-        font_type: FontType {
-            serif: false,
-            size: 16.int_px(),
-            language: Language::Ko,
-            font_weight: FontWeight::REGULAR,
-        },
-        style: TextStyle {
-            border: None,
-            drop_shadow: None,
-            color: color::STROKE_NORMAL,
-            background: None,
-            line_height_percent: 175.percent(),
-            underline: None,
-        },
-        max_width: Some(inner_width),
-    });
+        let done_button = match memo.user_id == user_id {
+            true => Some(text_button_fit(
+                BUTTON_HEIGHT,
+                "완료",
+                color::STROKE_NORMAL,
+                color::STROKE_NORMAL,
+                1.px(),
+                Color::TRANSPARENT,
+                PADDING,
+                [MouseButton::Left],
+                move |_| {
+                    on_event(Event::DoneClicked { cut_id, memo_id });
+                },
+            )),
+            // .with_mouse_cursor(MouseCursor::Pointer),
+            false => None,
+        };
+        let done_button_width = done_button
+            .and_then(|done_button| ctx.ghost_render(done_button).get_bounding_box())
+            .map_or(0.px(), |bounding_box| bounding_box.width());
 
-    let content = render([
-        user_name_label,
-        translate(
-            inner_width
-                - done_button
-                    .get_bounding_box()
-                    .map_or(0.px(), |bounding_box| bounding_box.width()),
-            0.px(),
-            done_button,
-        ),
-        translate(0.px(), BUTTON_HEIGHT + MARGIN, content_text),
-    ]);
+        let content_text = text(TextParam {
+            text: memo.content.clone(),
+            x: 0.px(),
+            y: 0.px(),
+            align: TextAlign::Left,
+            baseline: TextBaseline::Top,
+            font_type: FontType {
+                serif: false,
+                size: 16.int_px(),
+                language: Language::Ko,
+                font_weight: FontWeight::REGULAR,
+            },
+            style: TextStyle {
+                border: None,
+                drop_shadow: None,
+                color: color::STROKE_NORMAL,
+                background: None,
+                line_height_percent: 175.percent(),
+                underline: None,
+            },
+            max_width: Some(inner_width),
+        });
 
-    let container_height = content.get_bounding_box().unwrap().height() + PADDING * 2.0;
-
-    let container = simple_rect(
-        Wh::new(container_width, container_height),
-        color::STROKE_NORMAL,
-        1.px(),
-        color::BACKGROUND,
-    );
-
-    translate(
-        MARGIN,
-        MARGIN,
-        render([container, translate(PADDING, PADDING, content)]),
-    )
+        ctx.compose(|ctx| {
+            // ctx.translate((MARGIN, MARGIN))
+            //     .add(user_name_label)
+            //     .translate((inner_width - done_button_width, 0.px()))
+            //     .add(done_button);
+        })
+        .compose(|ctx| {
+            ctx.translate((0.px(), BUTTON_HEIGHT + MARGIN))
+                .add(content_text);
+        })
+        .done()
+    }
 }
