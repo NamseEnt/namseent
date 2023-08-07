@@ -1,6 +1,5 @@
 use super::*;
-use crate::{Matrix3x3, RenderingTree};
-use namui_type::*;
+use crate::{AsXyPx, Matrix3x3, RenderingTree};
 
 pub struct RenderCtx {
     pub(crate) instance: Arc<ComponentInstance>,
@@ -12,8 +11,13 @@ pub struct RenderCtx {
     tree_ctx: Arc<TreeContext>,
     children: Arc<Mutex<Vec<RenderingTree>>>,
     pub(crate) matrix: Mutex<Matrix3x3>,
-    force_render_index: AtomicUsize,
     component_index: AtomicUsize,
+}
+
+impl Drop for RenderCtx {
+    fn drop(&mut self) {
+        self.instance.after_render();
+    }
 }
 
 impl<'a> RenderCtx {
@@ -33,7 +37,6 @@ impl<'a> RenderCtx {
             tree_ctx,
             children: Default::default(),
             matrix: Mutex::new(matrix),
-            force_render_index: Default::default(),
             component_index: Default::default(),
         }
     }
@@ -78,15 +81,6 @@ impl<'a> RenderCtx {
         handle_effect(self, title, effect)
     }
 
-    pub(crate) fn add(&'a self, key: String, component: impl Component) {
-        let rendering_tree = self.render_children(key, component);
-        self.push_rendering_tree(rendering_tree);
-    }
-
-    pub(crate) fn push_rendering_tree(&'a self, rendering_tree: RenderingTree) {
-        self.children.lock().unwrap().push(rendering_tree);
-    }
-
     pub(crate) fn is_sig_updated(&self, sig_id: &SigId) -> bool {
         self.updated_sigs.lock().unwrap().contains(sig_id)
     }
@@ -117,171 +111,275 @@ impl<'a> RenderCtx {
     }
 
     pub(crate) fn return_internal(&self) -> RenderDone {
+        let mut vec = vec![];
+        std::mem::swap(self.children.lock().unwrap().as_mut(), &mut vec);
+
         RenderDone {
-            rendering_tree: RenderingTree::Children(std::mem::take(
-                &mut self.children.lock().unwrap(),
-            )),
+            rendering_tree: crate::render(vec),
         }
     }
 
     pub fn ghost_render(&self, component: impl Component) -> RenderingTree {
         // TODO: Prevent event handling for ghost render
-        let index = self
-            .force_render_index
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        let key = format!("force_render_{index}");
-        self.render_children(key, component)
-    }
-
-    fn render_children(&self, key: String, component: impl Component) -> RenderingTree {
-        let child_instance = self.instance.get_or_create_child_instance(key, &component);
-        self.tree_ctx.render(
+        self.render_children(
+            KeyVec::new_child(self.get_next_component_index()),
             component,
-            child_instance,
-            self.updated_sigs.lock().unwrap().clone(),
-            self.matrix.lock().unwrap().clone(),
         )
     }
 
-    pub fn component(&self, component: impl Component) -> &Self {
-        let index = self
-            .component_index
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        let key = format!("component_{index}");
-        self.add(key, component);
-        self
+    fn renderer(&self) -> Renderer {
+        Renderer {
+            instance: self.instance.clone(),
+            updated_sigs: self.updated_sigs.lock().unwrap().clone(),
+            tree_ctx: self.tree_ctx.clone(),
+        }
+    }
+
+    fn render_children(&self, key_vec: KeyVec, component: impl Component) -> RenderingTree {
+        self.renderer()
+            .render(key_vec, component, self.matrix.lock().unwrap().clone())
+    }
+
+    fn get_next_component_index(&self) -> usize {
+        self.component_index
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
     }
 
     pub fn done(&self) -> RenderDone {
-        todo!()
+        self.return_internal()
     }
 
-    pub fn component_group(&self, func: impl FnOnce(GroupCtx)) -> &Self {
+    pub fn ghost_render_with_ctx<Func: FnOnce(&mut ComposeCtx)>(
+        &self,
+        content: Func,
+    ) -> RenderingTree {
         todo!()
     }
-
-    pub fn component_branch(&self, func: impl FnOnce(BranchCtx)) -> &Self {
-        todo!()
-    }
-
-    pub fn on_top(&self) -> MatrixCtx {
-        todo!()
-    }
-
-    pub fn absolute(&self, x: namui_type::Px, y: namui_type::Px) -> MatrixCtx {
-        todo!()
-    }
-
-    pub fn as_compose(&self) -> ComposeCtx {
-        todo!()
-    }
-
-    pub fn compose(&self, ctx: impl FnOnce(ComposeCtx)) -> &Self {
-        todo!()
-    }
-
-    pub fn translate(&self, xy: impl AsXyPx) -> MatrixCtx {
-        todo!()
-    }
-
-    pub fn ghost_render_with_ctx<Func: FnOnce(ComposeCtx)>(&self, content: Func) -> RenderingTree {
-        todo!()
+    pub(crate) fn add(&'a self, key: KeyVec, component: impl Component) {
+        let rendering_tree = self.render_children(key, component);
+        self.children.lock().unwrap().push(rendering_tree);
     }
 }
 
-pub trait AsXyPx {
-    fn as_xy_px(self) -> Xy<Px>;
-}
-impl AsXyPx for (Px, Px) {
-    fn as_xy_px(self) -> Xy<Px> {
-        Xy::new(self.0, self.1)
+impl RenderCtx {
+    pub fn component(&self, component: impl Component) -> &Self {
+        self.add(
+            KeyVec::new_child(self.get_next_component_index()),
+            component,
+        );
+        self
     }
-}
-impl AsXyPx for Xy<Px> {
-    fn as_xy_px(self) -> Xy<Px> {
-        self.clone()
-    }
-}
+    pub fn compose(&self, compose: impl FnOnce(&mut ComposeCtx)) -> &Self {
+        crate::log!(
+            "compose before len: {}",
+            self.children.lock().unwrap().len()
+        );
+        let mut compose_ctx = ComposeCtx::new(
+            KeyVec::new_child(self.get_next_component_index()),
+            self.matrix.lock().unwrap().clone(),
+            self.renderer(),
+            self.children.clone(),
+        );
 
-pub struct GroupCtx {}
+        compose(&mut compose_ctx);
+        drop(compose_ctx);
+        crate::log!(
+            "compose after len: {}\n\n",
+            self.children.lock().unwrap().len()
+        );
 
-impl GroupCtx {
-    pub fn add(&self, key: impl AsRef<str>, component: impl Component) {
-        todo!()
-    }
-
-    pub fn translate(self, x: namui_type::Px, y: namui_type::Px) -> Self {
-        todo!()
-    }
-
-    pub fn clip(self, height: crate::PathBuilder, intersect: crate::ClipOp) -> Self {
-        todo!()
-    }
-
-    pub fn as_branch(self) -> BranchCtx {
-        todo!()
+        self
     }
 }
 
-pub struct BranchCtx {}
+#[derive(Clone)]
+struct Renderer {
+    instance: Arc<ComponentInstance>,
+    updated_sigs: HashSet<SigId>,
+    tree_ctx: Arc<TreeContext>,
+}
 
-impl BranchCtx {
-    pub fn add(self, component: impl Component) {
-        todo!()
+impl Renderer {
+    fn render(
+        &self,
+        key_vec: KeyVec,
+        component: impl Component,
+        matrix: Matrix3x3,
+    ) -> RenderingTree {
+        let child_instance = self
+            .instance
+            .get_or_create_child_instance(key_vec, &component);
+        self.tree_ctx.render(
+            component,
+            child_instance.clone(),
+            self.updated_sigs.clone(),
+            matrix,
+        )
     }
 }
 
-pub struct MatrixCtx {}
+pub struct ComposeCtx {
+    matrix: Matrix3x3,
+    children_index: usize,
+    pre_key_vec: KeyVec,
+    renderer: Renderer,
+    children: Arc<Mutex<Vec<RenderingTree>>>,
+    push_on_drop: Arc<Mutex<Vec<RenderingTree>>>,
+}
+impl Drop for ComposeCtx {
+    fn drop(&mut self) {
+        let mut children = vec![];
+        std::mem::swap(self.children.lock().unwrap().as_mut(), &mut children);
 
-impl MatrixCtx {
-    pub fn on_top(self) -> Self {
-        todo!()
-    }
+        let rendering_tree = {
+            if children.len() == 0 {
+                crate::log!("ComposeCtx Drop No Len");
+                return;
+            } else if children.len() == 1 {
+                children.remove(0)
+            } else {
+                RenderingTree::Children(children)
+            }
+        };
 
-    pub fn absolute(self, x: namui_type::Px, y: namui_type::Px) -> Self {
-        todo!()
-    }
-
-    pub fn component(self, component: impl Component) -> Self {
-        todo!()
-    }
-
-    pub fn component_group(self, func: impl FnOnce(GroupCtx)) -> Self {
-        todo!()
-    }
-
-    pub fn attach_event(self, attach_event: impl Fn(Event<'_>)) {
-        todo!()
-    }
-
-    pub fn done(self) -> RenderDone {
-        todo!()
-    }
-
-    pub fn compose<Func: FnOnce(ComposeCtx)>(self, inner: Func) -> Self {
-        todo!()
+        self.push_on_drop.lock().unwrap().push(rendering_tree);
     }
 }
-
-pub struct ComposeCtx {}
 impl ComposeCtx {
-    pub fn translate(&self, x: Px, y: Px) -> Self {
-        todo!()
+    fn new(
+        pre_key_vec: KeyVec,
+        matrix: Matrix3x3,
+        renderer: Renderer,
+        push_on_drop: Arc<Mutex<Vec<RenderingTree>>>,
+    ) -> Self {
+        ComposeCtx {
+            matrix,
+            children_index: Default::default(),
+            pre_key_vec,
+            renderer,
+            children: Default::default(),
+            push_on_drop,
+        }
+    }
+    fn next_children_index(&mut self) -> usize {
+        let index = self.children_index;
+        self.children_index += 1;
+        index
+    }
+    fn next_child_key_vec(&mut self) -> KeyVec {
+        let index = self.next_children_index();
+        self.pre_key_vec.child(index)
     }
 
-    pub fn clip(&self, height: crate::PathBuilder, intersect: crate::ClipOp) -> Self {
-        todo!()
+    pub fn debug(&self) {
+        // crate::log!(
+        //     "Debug ComposeCtx: children: {:#?}",
+        //     self.children.lock().unwrap()
+        // );
     }
-
-    pub fn group_by(&self, key: String) -> Self {
-        todo!()
+}
+// Nesting
+impl ComposeCtx {
+    pub fn translate(&mut self, xy: impl AsXyPx) -> Self {
+        let xy = xy.as_xy_px();
+        let matrix = self.matrix * Matrix3x3::from_translate(xy.x.as_f32(), xy.y.as_f32());
+        ComposeCtx::new(
+            self.next_child_key_vec(),
+            matrix,
+            self.renderer.clone(),
+            self.children.clone(),
+        )
     }
+    pub fn absolute(&mut self, xy: impl AsXyPx) -> Self {
+        let xy = xy.as_xy_px();
+        let matrix = Matrix3x3::from_translate(xy.x.as_f32(), xy.y.as_f32());
+        ComposeCtx::new(
+            self.next_child_key_vec(),
+            matrix,
+            self.renderer.clone(),
+            self.children.clone(),
+        )
+    }
+    pub fn clip(&mut self, height: crate::PathBuilder, intersect: crate::ClipOp) -> Self {
+        // TODO: Cliping
 
+        ComposeCtx::new(
+            self.next_child_key_vec(),
+            self.matrix,
+            self.renderer.clone(),
+            self.children.clone(),
+        )
+    }
+    pub fn group_by(&mut self, key: impl Into<Key>) -> Self {
+        ComposeCtx::new(
+            self.pre_key_vec.group(key),
+            self.matrix,
+            self.renderer.clone(),
+            self.children.clone(),
+        )
+    }
+    pub fn on_top(&mut self) -> Self {
+        let matrix = Matrix3x3::identity();
+        ComposeCtx::new(
+            self.next_child_key_vec(),
+            matrix,
+            self.renderer.clone(),
+            self.children.clone(),
+        )
+    }
+}
+impl ComposeCtx {
     pub fn ghost_render(&self, component: impl Component) -> RenderingTree {
         todo!()
     }
 
-    pub fn add(&self, component: impl Component) -> &Self {
+    pub fn add(&mut self, component: impl Component) -> &mut Self {
+        let key_vec = self.next_child_key_vec();
+        let rendering_tree = self.renderer.render(key_vec, component, self.matrix);
+        self.children.lock().unwrap().push(rendering_tree);
+        self
+    }
+
+    pub fn add_with_key(&mut self, key: impl Into<Key>, component: impl Component) -> &mut Self {
+        let key_vec = self.pre_key_vec.custom_key(key);
+        let rendering_tree = self.renderer.render(key_vec, component, self.matrix);
+        self.children.lock().unwrap().push(rendering_tree);
+        self
+    }
+
+    pub fn compose(&mut self, compose: impl FnOnce(&mut ComposeCtx)) -> &mut Self {
+        let key_vec = self.next_child_key_vec();
+        let mut child_compose_ctx = ComposeCtx::new(
+            key_vec,
+            self.matrix,
+            self.renderer.clone(),
+            self.children.clone(),
+        );
+        compose(&mut child_compose_ctx);
+        drop(child_compose_ctx);
+
+        self
+    }
+
+    pub fn compose_with_key(
+        &mut self,
+        key: impl Into<Key>,
+        compose: impl FnOnce(&mut ComposeCtx),
+    ) -> &mut Self {
+        let key_vec = self.pre_key_vec.custom_key(key);
+        let mut child_compose_ctx = ComposeCtx::new(
+            key_vec,
+            self.matrix,
+            self.renderer.clone(),
+            self.children.clone(),
+        );
+        compose(&mut child_compose_ctx);
+        drop(child_compose_ctx);
+
+        self
+    }
+
+    pub fn attach_event(&self, attach_event: impl Fn(Event<'_>)) -> &Self {
         todo!()
     }
 }

@@ -20,6 +20,12 @@ pub enum RenderingTree {
     Empty,
 }
 
+impl Default for RenderingTree {
+    fn default() -> Self {
+        RenderingTree::Empty
+    }
+}
+
 // NOTE : to support putting MouseCursor into event.
 unsafe impl Send for RenderingTree {}
 unsafe impl Sync for RenderingTree {}

@@ -175,13 +175,12 @@ pub(crate) fn wait_web_event() -> WebEvent {
         let event: Option<WebEvent> =
             serde_wasm_bindgen::from_value(event).expect("failed to parse web event");
         if let Some(event) = event {
-            return event;
+            return handle_web_event(event);
         }
     }
 }
 
-pub(crate) fn handle_web_event(rendering_tree: Option<&RenderingTree>) -> WebEvent {
-    let web_event = wait_web_event();
+fn handle_web_event(web_event: WebEvent) -> WebEvent {
     match &web_event {
         // &WebEvent::MouseDown {
         //     x,

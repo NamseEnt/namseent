@@ -211,7 +211,7 @@ impl Component for LoadedSequenceEditorPage {
             }
         };
 
-        let cut_list_view_cell = |wh, ctx: ComposeCtx| {
+        let cut_list_view_cell = |wh, ctx: &mut ComposeCtx| {
             ctx.add(cut_list_view::CutListView {
                 wh,
                 cuts: &sequence.cuts,
@@ -224,7 +224,7 @@ impl Component for LoadedSequenceEditorPage {
             });
         };
 
-        let cut_editor_cell = move |wh, ctx: ComposeCtx| {
+        let cut_editor_cell = move |wh, ctx: &mut ComposeCtx| {
             if let Some(selected_cut) = selected_cut {
                 ctx.add(cut_editor::CutEditor {
                     wh,
@@ -262,21 +262,23 @@ impl Component for LoadedSequenceEditorPage {
         //     })
         // }
 
-        ctx.component_branch(|ctx| {
+        ctx.compose(|ctx| {
             if let Some(context_menu) = context_menu.as_ref() {
                 match context_menu {
-                    &ContextMenu::CutListView { global_xy } => ctx.add(
-                        use_context_menu(global_xy, &|| set_context_menu.set(None))
-                            .add_button("Add Cut", &|| {
-                                set_seqenece.mutate(|sequence| {
-                                    sequence.update(SequenceUpdateAction::InsertCut {
-                                        cut: Cut::new(uuid()),
-                                        after_cut_id: None,
+                    &ContextMenu::CutListView { global_xy } => {
+                        ctx.add(
+                            use_context_menu(global_xy, &|| set_context_menu.set(None))
+                                .add_button("Add Cut", &|| {
+                                    set_seqenece.mutate(|sequence| {
+                                        sequence.update(SequenceUpdateAction::InsertCut {
+                                            cut: Cut::new(uuid()),
+                                            after_cut_id: None,
+                                        })
                                     })
                                 })
-                            })
-                            .build(),
-                    ),
+                                .build(),
+                        );
+                    }
                 }
             }
         });

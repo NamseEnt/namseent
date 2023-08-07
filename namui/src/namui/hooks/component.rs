@@ -117,10 +117,12 @@ impl<T: StaticType> StaticType for Option<T> {
 
 impl<T: Component> Component for Option<T> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-        todo!()
-        // if let Some(v) = self {
-        //     v.render(ctx)
-        // }
+        ctx.compose(|ctx| {
+            if let Some(v) = self {
+                ctx.add(v);
+            }
+        })
+        .done()
     }
 }
 
@@ -171,15 +173,15 @@ impl<T: Component> Component for Option<T> {
 //     }
 // }
 
-impl<T: StaticType> StaticType for Vec<(String, T)> {}
-impl<T: Component> Component for Vec<(String, T)> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-        for (k, v) in self {
-            ctx.add(k.to_string(), v);
-        }
-        ctx.return_internal()
-    }
-}
+// impl<T: StaticType> StaticType for Vec<(String, T)> {}
+// impl<T: Component> Component for Vec<(String, T)> {
+//     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+//         for (k, v) in self {
+//             ctx.add(k.to_string(), v);
+//         }
+//         ctx.return_internal()
+//     }
+// }
 
 macro_rules! component_impl {
     (
@@ -197,7 +199,7 @@ macro_rules! component_impl {
             }
             impl<$($T: Component),*> Component for ($($T,)*) {
                 fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-                    $(ctx.add($i.to_string(), self.$i);)*
+                    $(ctx.component(self.$i);)*
                     ctx.return_internal()
                 }
             }

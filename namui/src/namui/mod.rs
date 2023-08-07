@@ -9,13 +9,13 @@ mod render;
 mod skia;
 pub mod system;
 pub mod utils;
-use crate::web::handle_web_event;
 
 pub use self::futures::*;
 pub use self::random::*;
 pub use ::url::Url;
 pub use hooks::*;
 // pub use audio::Audio;
+use crate::web::wait_web_event;
 pub use anyhow::Result;
 pub use auto_ops;
 pub use clipboard::ClipboardItem as _;
@@ -62,7 +62,7 @@ pub fn init() -> NamuiContext {
 
     while inited.load(std::sync::atomic::Ordering::Relaxed) == false {
         system::futures::execute_async_tasks();
-        handle_web_event(None);
+        wait_web_event();
     }
 
     crate::log!("Namui system initialized");

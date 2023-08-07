@@ -205,7 +205,7 @@ fn slice_internal<'a>(
             rendering_tree_list.push(rendering_tree);
             advanced_pixel_size += pixel_size;
         }
-        RenderingTree::Children(rendering_tree_list)
+        render(rendering_tree_list)
     }
 }
 

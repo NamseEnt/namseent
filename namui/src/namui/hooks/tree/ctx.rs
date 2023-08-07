@@ -30,6 +30,9 @@ impl TreeContext {
         let mut updated_sigs = None;
 
         loop {
+            crate::log!("---------------------------------------");
+            crate::system::futures::execute_async_tasks();
+
             let rendering_tree = this.render(
                 component(),
                 root_instance.clone(),

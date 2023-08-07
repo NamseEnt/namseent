@@ -293,34 +293,35 @@ impl Component for CutEditor<'_> {
             )
         };
 
-        ctx.component(hooks::translate(
-            content_rect.x(),
-            content_rect.y(),
-            (
-                simple_rect(
-                    content_rect.wh(),
-                    color::STROKE_NORMAL,
-                    1.px(),
-                    color::BACKGROUND,
-                ),
-                // wysiwyg_editor::WysiwygEditor {
-                //     wh: content_rect.wh(),
-                //     screen_graphics: cut.screen_graphics.clone(),
-                //     project_id,
-                //     cut_id,
-                //     cg_files: cg_files.clone(),
-                //     on_click_character_edit: arc(|edit_target| {
-                //         on_event(Event2::ClickCharacterEdit { edit_target })
-                //     }),
-                // },
-                sequence_player::render_text_box(content_rect.wh()),
-                // sequence_player::render_over_text_hooks(
-                //     content_rect.wh(),
-                //     character_name_side,
-                //     cut_text_side,
-                // ),
-            ),
-        ));
+        ctx.compose(|ctx| {
+            ctx.translate(content_rect.xy())
+                .add(
+                    simple_rect(
+                        content_rect.wh(),
+                        color::STROKE_NORMAL,
+                        1.px(),
+                        color::BACKGROUND,
+                    ),
+                    // wysiwyg_editor::WysiwygEditor {
+                    //     wh: content_rect.wh(),
+                    //     screen_graphics: cut.screen_graphics.clone(),
+                    //     project_id,
+                    //     cut_id,
+                    //     cg_files: cg_files.clone(),
+                    //     on_click_character_edit: arc(|edit_target| {
+                    //         on_event(Event2::ClickCharacterEdit { edit_target })
+                    //     }),
+                    // },
+                )
+                .add(
+                    sequence_player::render_text_box(content_rect.wh()),
+                    // sequence_player::render_over_text_hooks(
+                    //     content_rect.wh(),
+                    //     character_name_side,
+                    //     cut_text_side,
+                    // ),
+                );
+        });
 
         // context_menu.map(|context_menu| ctx.add(context_menu));
 

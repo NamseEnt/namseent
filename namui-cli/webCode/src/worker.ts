@@ -114,6 +114,7 @@ runAsyncMessageLoop<AsyncMessageFromMain>(self, async (message) => {
                     args: any[],
                 ) => {
                     const id = executeAsyncFunctionId++;
+
                     sendAsyncRequest(self, {
                         type: "executeAsyncFunction",
                         argsNames,

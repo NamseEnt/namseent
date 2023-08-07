@@ -27,7 +27,7 @@ impl std::convert::From<RenderingData> for RenderingTree {
 
 impl std::convert::From<Vec<RenderingTree>> for RenderingTree {
     fn from(vector: Vec<RenderingTree>) -> Self {
-        RenderingTree::Children(vector)
+        render(vector)
     }
 }
 
@@ -67,7 +67,15 @@ macro_rules! render_macro {
 pub use render_macro as render;
 
 pub fn render(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> RenderingTree {
-    RenderingTree::Children(rendering_trees.into_iter().collect())
+    let vec: Vec<_> = rendering_trees.into_iter().collect();
+
+    if vec.is_empty() {
+        RenderingTree::Empty
+    } else if vec.len() == 1 {
+        vec.into_iter().next().unwrap()
+    } else {
+        RenderingTree::Children(vec)
+    }
 }
 
 impl From<Option<RenderingTree>> for RenderingTree {
@@ -181,4 +189,18 @@ pub struct DeepLinkOpenedEvent {
 pub(crate) enum DownUp {
     Down,
     Up,
+}
+
+pub trait AsXyPx {
+    fn as_xy_px(self) -> Xy<Px>;
+}
+impl AsXyPx for (Px, Px) {
+    fn as_xy_px(self) -> Xy<Px> {
+        Xy::new(self.0, self.1)
+    }
+}
+impl AsXyPx for Xy<Px> {
+    fn as_xy_px(self) -> Xy<Px> {
+        self.clone()
+    }
 }

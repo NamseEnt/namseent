@@ -98,7 +98,7 @@ impl Component for ContextMenu<'_> {
 
         let close = Arc::new(Mutex::new(Some(self.close)));
 
-        let menus = |ctx: GroupCtx| {
+        let menus = |ctx: &mut ComposeCtx| {
             for ((index, item), y) in self.items.into_iter().enumerate().zip(ys) {
                 match item {
                     Item::Button { text, on_click } => {
@@ -117,7 +117,7 @@ impl Component for ContextMenu<'_> {
                         } else {
                             Color::WHITE
                         };
-                        ctx.add(
+                        ctx.add_with_key(
                             index.to_string(),
                             translate(
                                 0.px(),
@@ -156,12 +156,14 @@ impl Component for ContextMenu<'_> {
                                 }
                                 _ => {}
                             }),
-                        )
+                        );
                     }
-                    Item::Divider => ctx.add(
-                        index.to_string(),
-                        translate(0.px(), y, path(divider_path.clone(), divider_paint.clone())),
-                    ),
+                    Item::Divider => {
+                        ctx.add_with_key(
+                            index.to_string(),
+                            translate(0.px(), y, path(divider_path.clone(), divider_paint.clone())),
+                        );
+                    }
                 }
             }
         };
@@ -177,17 +179,19 @@ impl Component for ContextMenu<'_> {
 
         let global_xy_within_screen = global_xy_within_screen(self.global_xy, context_menu_wh);
 
-        ctx.on_top()
-            .absolute(global_xy_within_screen.x, global_xy_within_screen.y)
-            .component(background)
-            .component_group(menus)
-            .attach_event(|event| {
-                if let namui::Event::MouseDown { event } = event {
-                    if !event.is_local_xy_in() {
-                        set_mouse_over_item_idx.set(None);
+        ctx.compose(|ctx| {
+            ctx.on_top()
+                .absolute(global_xy_within_screen)
+                .add(background)
+                .compose(menus)
+                .attach_event(|event| {
+                    if let namui::Event::MouseDown { event } = event {
+                        if !event.is_local_xy_in() {
+                            set_mouse_over_item_idx.set(None);
+                        }
                     }
-                }
-            });
+                });
+        });
 
         ctx.done()
     }

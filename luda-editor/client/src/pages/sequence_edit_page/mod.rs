@@ -37,7 +37,7 @@ impl Component for SequenceEditPage {
             })
         });
 
-        ctx.component_branch(|ctx| {
+        ctx.compose(|ctx| {
             match data.as_ref() {
                 Some(result) => match result {
                     Ok(data) => ctx.add(LoadedSequenceEditorPage {

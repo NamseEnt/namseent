@@ -2,6 +2,7 @@ pub(crate) mod channel;
 mod component;
 mod event;
 mod instance;
+mod key;
 mod native;
 mod render;
 mod sig;
@@ -13,6 +14,7 @@ pub use component::*;
 pub(crate) use event::*;
 pub use hooks_macro::*;
 pub(crate) use instance::*;
+use key::*;
 pub use native::*;
 pub use render::*;
 pub use render::*;
@@ -39,11 +41,11 @@ pub fn boxed<'a, T: 'a>(value: T) -> Box<T> {
     Box::new(value)
 }
 
-pub fn itered<'a, T: Component + 'a>(
-    iter: impl Iterator<Item = (String, T)>,
-) -> Box<dyn 'a + Component> {
-    Box::new(iter.into_iter().collect::<Vec<_>>())
-}
+// pub fn itered<'a, T: Component + 'a>(
+//     iter: impl Iterator<Item = (String, T)>,
+// ) -> Box<dyn 'a + Component> {
+//     Box::new(iter.into_iter().collect::<Vec<_>>())
+// }
 
 pub fn arc<'a, T: 'a>(value: T) -> Box<T> {
     Box::new(value)

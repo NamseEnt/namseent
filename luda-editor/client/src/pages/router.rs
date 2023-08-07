@@ -9,7 +9,6 @@ pub struct Router {
 impl Component for Router {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let (route, set_route) = ctx.state(|| Route::from(get_path_from_hash()));
-        namui::log!("route: {:?}", route);
 
         ctx.web_event(move |web_event| {
             if let namui::web::WebEvent::HashChange { .. } = web_event {
@@ -20,8 +19,10 @@ impl Component for Router {
 
         let wh = self.wh;
 
-        ctx.component_branch(|ctx| match *route {
-            Route::ProjectListPage => ctx.add(project_list_page::ProjectListPage2 { wh }),
+        ctx.compose(|ctx| match *route {
+            Route::ProjectListPage => {
+                ctx.add(project_list_page::ProjectListPage2 { wh });
+            }
             Route::SequenceListPage { project_id } => {
                 // ctx.add(sequence_list_page::SequenceListPage { wh, project_id })
             }
