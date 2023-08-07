@@ -99,9 +99,9 @@ impl<C: Component> Component for ListViewInner<C> {
 
         let visible_item_start_index = (scroll_y / item_wh.height).floor() as usize;
 
-        ctx.compose(|mut ctx| {
+        ctx.compose(|ctx| {
             for (index, (key, visible_item)) in visible_items.into_iter().enumerate() {
-                ctx = ctx.compose_with_key(key, |ctx| {
+                ctx.compose_with_key(key, |ctx| {
                     ctx.translate((0.px(), item_wh.height * (index + visible_item_start_index)))
                         .add(visible_item);
                 });

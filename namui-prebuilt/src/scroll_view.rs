@@ -62,7 +62,7 @@ impl<C: Component> Component for ScrollView<C> {
             px(0.0).max(bounding_box.height() - height),
         );
 
-        let inner = |ctx: ComposeCtx| {
+        let inner = |ctx: &mut ComposeCtx| {
             ctx.clip(
                 namui::PathBuilder::new().add_rect(Rect::Xywh {
                     x: bounding_box.x(),
@@ -139,7 +139,7 @@ impl<C: Component> Component for ScrollView<C> {
 }
 
 #[component]
-pub struct AutoScrollViewWithCtx<Func: FnOnce(ComposeCtx)> {
+pub struct AutoScrollViewWithCtx<Func: FnOnce(&mut ComposeCtx)> {
     pub xy: Xy<Px>,
     pub scroll_bar_width: Px,
     pub height: Px,
@@ -147,7 +147,7 @@ pub struct AutoScrollViewWithCtx<Func: FnOnce(ComposeCtx)> {
     pub content: Func,
 }
 
-impl<Func: FnOnce(ComposeCtx)> Component for AutoScrollViewWithCtx<Func> {
+impl<Func: FnOnce(&mut ComposeCtx)> Component for AutoScrollViewWithCtx<Func> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
@@ -165,7 +165,7 @@ impl<Func: FnOnce(ComposeCtx)> Component for AutoScrollViewWithCtx<Func> {
 }
 
 #[component]
-pub struct ScrollViewWithCtx<Func: FnOnce(ComposeCtx)> {
+pub struct ScrollViewWithCtx<Func: FnOnce(&mut ComposeCtx)> {
     pub xy: Xy<Px>,
     pub scroll_bar_width: Px,
     pub height: Px,
@@ -175,7 +175,7 @@ pub struct ScrollViewWithCtx<Func: FnOnce(ComposeCtx)> {
     pub set_scroll_y: SetState<Px>,
 }
 
-impl<Func: FnOnce(ComposeCtx)> Component for ScrollViewWithCtx<Func> {
+impl<Func: FnOnce(&mut ComposeCtx)> Component for ScrollViewWithCtx<Func> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let Self {
             xy,
@@ -202,18 +202,19 @@ impl<Func: FnOnce(ComposeCtx)> Component for ScrollViewWithCtx<Func> {
             px(0.0).max(bounding_box.height() - height),
         );
 
-        let inner = |ctx: ComposeCtx| {
+        let inner = |ctx: &mut ComposeCtx| {
             content(
-                ctx.clip(
-                    namui::PathBuilder::new().add_rect(Rect::Xywh {
-                        x: bounding_box.x(),
-                        y: bounding_box.y(),
-                        width: bounding_box.width(),
-                        height,
-                    }),
-                    namui::ClipOp::Intersect,
-                )
-                .translate((0.px(), -scroll_y.floor())),
+                &mut ctx
+                    .clip(
+                        namui::PathBuilder::new().add_rect(Rect::Xywh {
+                            x: bounding_box.x(),
+                            y: bounding_box.y(),
+                            width: bounding_box.width(),
+                            height,
+                        }),
+                        namui::ClipOp::Intersect,
+                    )
+                    .translate((0.px(), -scroll_y.floor())),
             );
         };
 

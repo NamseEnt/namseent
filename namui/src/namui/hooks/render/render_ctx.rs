@@ -149,7 +149,10 @@ impl<'a> RenderCtx {
         self.return_internal()
     }
 
-    pub fn ghost_render_with_ctx<Func: FnOnce(ComposeCtx)>(&self, content: Func) -> RenderingTree {
+    pub fn ghost_render_with_ctx<Func: FnOnce(&mut ComposeCtx)>(
+        &self,
+        content: Func,
+    ) -> RenderingTree {
         todo!()
     }
     pub(crate) fn add(&'a self, key: KeyVec, component: impl Component) {
@@ -166,19 +169,20 @@ impl RenderCtx {
         );
         self
     }
-    pub fn compose(&self, compose: impl FnOnce(ComposeCtx)) -> &Self {
+    pub fn compose(&self, compose: impl FnOnce(&mut ComposeCtx)) -> &Self {
         crate::log!(
             "compose before len: {}",
             self.children.lock().unwrap().len()
         );
-        let compose_ctx = ComposeCtx::new(
+        let mut compose_ctx = ComposeCtx::new(
             KeyVec::new_child(self.get_next_component_index()),
             self.matrix.lock().unwrap().clone(),
             self.renderer(),
             self.children.clone(),
         );
 
-        compose(compose_ctx);
+        compose(&mut compose_ctx);
+        drop(compose_ctx);
         crate::log!(
             "compose after len: {}\n\n",
             self.children.lock().unwrap().len()
@@ -277,42 +281,52 @@ impl ComposeCtx {
 }
 // Nesting
 impl ComposeCtx {
-    pub fn translate(mut self, xy: impl AsXyPx) -> Self {
+    pub fn translate(&mut self, xy: impl AsXyPx) -> Self {
         let xy = xy.as_xy_px();
-        self.matrix.translate(xy.x.as_f32(), xy.y.as_f32());
-        self
-        // ComposeCtx::new(
-        //     self.next_child_key_vec(),
-        //     matrix,
-        //     self.renderer.clone(),
-        //     self.children.clone(),
-        // )
+        let matrix = self.matrix * Matrix3x3::from_translate(xy.x.as_f32(), xy.y.as_f32());
+        ComposeCtx::new(
+            self.next_child_key_vec(),
+            matrix,
+            self.renderer.clone(),
+            self.children.clone(),
+        )
     }
-    pub fn absolute(mut self, xy: impl AsXyPx) -> Self {
+    pub fn absolute(&mut self, xy: impl AsXyPx) -> Self {
         let xy = xy.as_xy_px();
-        self.matrix = Matrix3x3::from_translate(xy.x.as_f32(), xy.y.as_f32());
-        self
-        // ComposeCtx::new(
-        //     self.next_child_key_vec(),
-        //     matrix,
-        //     self.renderer.clone(),
-        //     self.children.clone(),
-        // )
+        let matrix = Matrix3x3::from_translate(xy.x.as_f32(), xy.y.as_f32());
+        ComposeCtx::new(
+            self.next_child_key_vec(),
+            matrix,
+            self.renderer.clone(),
+            self.children.clone(),
+        )
     }
-    pub fn clip(mut self, height: crate::PathBuilder, intersect: crate::ClipOp) -> Self {
+    pub fn clip(&mut self, height: crate::PathBuilder, intersect: crate::ClipOp) -> Self {
         // TODO: Cliping
 
-        self
+        ComposeCtx::new(
+            self.next_child_key_vec(),
+            self.matrix,
+            self.renderer.clone(),
+            self.children.clone(),
+        )
     }
-    pub fn on_top(mut self) -> Self {
-        self.matrix = Matrix3x3::identity();
-        self
-        // ComposeCtx::new(
-        //     self.next_child_key_vec(),
-        //     matrix,
-        //     self.renderer.clone(),
-        //     self.children.clone(),
-        // )
+    pub fn group_by(&mut self, key: impl Into<Key>) -> Self {
+        ComposeCtx::new(
+            self.pre_key_vec.group(key),
+            self.matrix,
+            self.renderer.clone(),
+            self.children.clone(),
+        )
+    }
+    pub fn on_top(&mut self) -> Self {
+        let matrix = Matrix3x3::identity();
+        ComposeCtx::new(
+            self.next_child_key_vec(),
+            matrix,
+            self.renderer.clone(),
+            self.children.clone(),
+        )
     }
 }
 impl ComposeCtx {
@@ -320,46 +334,48 @@ impl ComposeCtx {
         todo!()
     }
 
-    pub fn add(mut self, component: impl Component) -> Self {
+    pub fn add(&mut self, component: impl Component) -> &mut Self {
         let key_vec = self.next_child_key_vec();
         let rendering_tree = self.renderer.render(key_vec, component, self.matrix);
         self.children.lock().unwrap().push(rendering_tree);
         self
     }
 
-    pub fn add_with_key(mut self, key: impl Into<Key>, component: impl Component) -> Self {
+    pub fn add_with_key(&mut self, key: impl Into<Key>, component: impl Component) -> &mut Self {
         let key_vec = self.pre_key_vec.custom_key(key);
         let rendering_tree = self.renderer.render(key_vec, component, self.matrix);
         self.children.lock().unwrap().push(rendering_tree);
         self
     }
 
-    pub fn compose(mut self, compose: impl FnOnce(ComposeCtx)) -> Self {
+    pub fn compose(&mut self, compose: impl FnOnce(&mut ComposeCtx)) -> &mut Self {
         let key_vec = self.next_child_key_vec();
-        let child_compose_ctx = ComposeCtx::new(
+        let mut child_compose_ctx = ComposeCtx::new(
             key_vec,
             self.matrix,
             self.renderer.clone(),
             self.children.clone(),
         );
-        compose(child_compose_ctx);
+        compose(&mut child_compose_ctx);
+        drop(child_compose_ctx);
 
         self
     }
 
     pub fn compose_with_key(
-        mut self,
+        &mut self,
         key: impl Into<Key>,
-        compose: impl FnOnce(ComposeCtx),
-    ) -> Self {
+        compose: impl FnOnce(&mut ComposeCtx),
+    ) -> &mut Self {
         let key_vec = self.pre_key_vec.custom_key(key);
-        let child_compose_ctx = ComposeCtx::new(
+        let mut child_compose_ctx = ComposeCtx::new(
             key_vec,
             self.matrix,
             self.renderer.clone(),
             self.children.clone(),
         );
-        compose(child_compose_ctx);
+        compose(&mut child_compose_ctx);
+        drop(child_compose_ctx);
 
         self
     }

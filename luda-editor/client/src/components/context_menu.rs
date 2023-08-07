@@ -98,7 +98,7 @@ impl Component for ContextMenu<'_> {
 
         let close = Arc::new(Mutex::new(Some(self.close)));
 
-        let menus = |mut ctx: ComposeCtx| {
+        let menus = |ctx: &mut ComposeCtx| {
             for ((index, item), y) in self.items.into_iter().enumerate().zip(ys) {
                 match item {
                     Item::Button { text, on_click } => {
@@ -117,7 +117,7 @@ impl Component for ContextMenu<'_> {
                         } else {
                             Color::WHITE
                         };
-                        ctx = ctx.add_with_key(
+                        ctx.add_with_key(
                             index.to_string(),
                             translate(
                                 0.px(),
@@ -159,7 +159,7 @@ impl Component for ContextMenu<'_> {
                         );
                     }
                     Item::Divider => {
-                        ctx = ctx.add_with_key(
+                        ctx.add_with_key(
                             index.to_string(),
                             translate(0.px(), y, path(divider_path.clone(), divider_paint.clone())),
                         );
