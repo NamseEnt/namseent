@@ -46,11 +46,11 @@ impl Debug for ComponentInstance {
 }
 
 impl ComponentInstance {
-    pub(crate) fn new(component: &dyn Component) -> Self {
+    pub(crate) fn new(component_type_name: &'static str) -> Self {
         Self {
             component_id: new_component_id(),
             // component_type_id: component.static_type_id(),
-            component_type_name: component.static_type_name(),
+            component_type_name,
             state_list: Default::default(),
             effect_used_sigs_list: Default::default(),
             memo_value_list: Default::default(),
@@ -64,7 +64,7 @@ impl ComponentInstance {
     pub(crate) fn get_or_create_child_instance(
         &self,
         key: KeyVec,
-        component: &dyn Component,
+        component_type_name: &'static str,
     ) -> Arc<ComponentInstance> {
         // TODO: Remove unused key's children instances
 
@@ -72,7 +72,7 @@ impl ComponentInstance {
             .lock()
             .unwrap()
             .entry(key)
-            .or_insert_with(|| Arc::new(ComponentInstance::new(component)))
+            .or_insert_with(|| Arc::new(ComponentInstance::new(component_type_name)))
             .clone()
     }
 

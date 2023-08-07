@@ -26,7 +26,7 @@ impl TreeContext {
     pub(crate) fn start<C: Component>(self, component: impl Fn() -> C) {
         let this = Arc::new(self);
         init_render_event(RenderEvent::Mount);
-        let root_instance = Arc::new(ComponentInstance::new(&component()));
+        let root_instance = Arc::new(ComponentInstance::new(component().static_type_name()));
         let mut updated_sigs = None;
 
         loop {
@@ -66,11 +66,19 @@ impl TreeContext {
         updated_sigs: HashSet<SigId>,
         matrix: Matrix3x3,
     ) -> RenderingTree {
-        let render_ctx = RenderCtx::new(instance, updated_sigs, self.clone(), matrix);
+        let render_ctx = self.spawn_render_ctx(instance, updated_sigs, matrix);
 
         let render_done = Box::new(component).render(&render_ctx);
 
         render_done.rendering_tree
+    }
+    pub(crate) fn spawn_render_ctx(
+        self: &Arc<Self>,
+        instance: Arc<ComponentInstance>,
+        updated_sigs: HashSet<SigId>,
+        matrix: Matrix3x3,
+    ) -> RenderCtx {
+        RenderCtx::new(instance, updated_sigs, self.clone(), matrix)
     }
 }
 

@@ -28,6 +28,10 @@ impl<'b, C: 'b + Component> Component for AttachEvent<'b, C> {
         ctx.component(self.component);
         let done = ctx.done();
 
+        if ctx.event_handling_disabled() {
+            return done;
+        }
+
         ctx.web_event(|event| {
             let on_event = self.on_event.lock().unwrap().take().unwrap();
             match event {

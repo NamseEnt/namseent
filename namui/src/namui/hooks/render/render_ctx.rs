@@ -1,6 +1,7 @@
 use super::*;
 use crate::{AsXyPx, Matrix3x3, RenderingTree};
 use namui_type::*;
+use std::sync::atomic::AtomicBool;
 
 pub struct RenderCtx {
     pub(crate) instance: Arc<ComponentInstance>,
@@ -13,6 +14,7 @@ pub struct RenderCtx {
     children: Arc<Mutex<Vec<RenderingTree>>>,
     pub(crate) matrix: Mutex<Matrix3x3>,
     component_index: AtomicUsize,
+    event_handling_disabled: AtomicBool,
 }
 
 impl Drop for RenderCtx {
@@ -39,6 +41,7 @@ impl<'a> RenderCtx {
             children: Default::default(),
             matrix: Mutex::new(matrix),
             component_index: Default::default(),
+            event_handling_disabled: Default::default(),
         }
     }
 
@@ -166,6 +169,15 @@ impl<'a> RenderCtx {
     pub(crate) fn local_xy(&self, xy: Xy<Px>) -> Xy<Px> {
         self.inverse_matrix().transform_xy(xy)
     }
+
+    fn disable_event_handling(&mut self) {
+        self.event_handling_disabled
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+    pub(crate) fn event_handling_disabled(&self) -> bool {
+        self.event_handling_disabled
+            .load(std::sync::atomic::Ordering::SeqCst)
+    }
 }
 
 impl RenderCtx {
@@ -211,13 +223,22 @@ impl Renderer {
     ) -> RenderingTree {
         let child_instance = self
             .instance
-            .get_or_create_child_instance(key_vec, &component);
-        self.tree_ctx.render(
-            component,
-            child_instance.clone(),
-            self.updated_sigs.clone(),
-            matrix,
-        )
+            .get_or_create_child_instance(key_vec, component.static_type_name());
+        self.tree_ctx
+            .render(component, child_instance, self.updated_sigs.clone(), matrix)
+    }
+
+    fn spawn_render_ctx(
+        &self,
+        key_vec: KeyVec,
+        component_type_name: &'static str,
+        matrix: Matrix3x3,
+    ) -> RenderCtx {
+        let child_instance = self
+            .instance
+            .get_or_create_child_instance(key_vec, component_type_name);
+        self.tree_ctx
+            .spawn_render_ctx(child_instance, self.updated_sigs.clone(), matrix)
     }
 }
 
@@ -338,8 +359,23 @@ impl ComposeCtx {
     }
 }
 impl ComposeCtx {
-    pub fn ghost_render(&self, component: impl Component) -> RenderingTree {
-        todo!()
+    pub fn ghost_render<IntoKey: Into<Key>>(
+        &mut self,
+        key: Option<IntoKey>,
+        component_type_name: &'static str,
+        func: impl FnOnce(&RenderCtx) -> RenderDone,
+    ) -> RenderingTree {
+        let key_vec = if let Some(key) = key {
+            self.pre_key_vec.custom_key(key)
+        } else {
+            self.next_child_key_vec()
+        };
+        let mut ctx = self
+            .renderer
+            .spawn_render_ctx(key_vec, component_type_name, self.matrix);
+        ctx.disable_event_handling();
+        let done = func(&ctx);
+        done.rendering_tree
     }
 
     pub fn add(&mut self, component: impl Component) -> &mut Self {
