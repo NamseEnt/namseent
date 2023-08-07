@@ -47,8 +47,10 @@ impl Component for MemoEditor<'_> {
                 let on_event = on_event.clone();
                 match event {
                     namui::Event::MouseDown { event } => {
-                        event.stop_propagation();
-                        on_event(Event::Close);
+                        if event.is_local_xy_in() {
+                            event.stop_propagation();
+                            on_event(Event::Close);
+                        }
                     }
                     _ => {}
                 }
@@ -58,7 +60,9 @@ impl Component for MemoEditor<'_> {
         let container = simple_rect(wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND)
             .attach_event(|event| match event {
                 namui::Event::MouseDown { event } => {
-                    event.stop_propagation();
+                    if event.is_local_xy_in() {
+                        event.stop_propagation();
+                    }
                 }
                 _ => {}
             });

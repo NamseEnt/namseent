@@ -6,7 +6,7 @@ pub struct Mover<'a> {
     pub image_dest_rect: Rect<Px>,
     pub dragging: Option<Dragging>,
     pub container_wh: Wh<Px>,
-    pub on_event: callback!('a, Event),
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
@@ -19,7 +19,7 @@ pub enum Event {
 
 impl Component for Mover<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
+        let Self {
             image_dest_rect,
             ref dragging,
             container_wh,
@@ -27,39 +27,45 @@ impl Component for Mover<'_> {
         } = self;
         let on_event = on_event.clone();
 
-        ctx.add(translate(
-            image_dest_rect.x(),
-            image_dest_rect.y(),
-            simple_rect(
-                Wh {
-                    width: image_dest_rect.width(),
-                    height: image_dest_rect.height(),
-                },
-                Color::grayscale_f01(0.2),
-                px(2.0),
-                Color::TRANSPARENT,
-            )
-            .with_mouse_cursor({
-                let is_dragging = matches!(dragging, Some(Dragging::Mover { .. }));
-                if is_dragging {
-                    namui::MouseCursor::Move
-                } else {
-                    namui::MouseCursor::Pointer
-                }
-            })
-            .attach_event(move |builder| {
-                builder.on_mouse_down_in(move |event: MouseEvent| {
-                    if event.button == Some(MouseButton::Left) {
-                        event.stop_propagation();
-                        on_event(Event::MoveStart {
-                            start_global_xy: event.global_xy,
-                            end_global_xy: event.global_xy,
-                            container_wh,
-                        });
-                    }
-                });
-            }),
-        ));
+        ctx.compose(|ctx| {
+            ctx.translate((image_dest_rect.x(), image_dest_rect.y()))
+                .add(
+                    simple_rect(
+                        Wh {
+                            width: image_dest_rect.width(),
+                            height: image_dest_rect.height(),
+                        },
+                        Color::grayscale_f01(0.2),
+                        px(2.0),
+                        Color::TRANSPARENT,
+                    )
+                    .with_mouse_cursor({
+                        let is_dragging = matches!(dragging, Some(Dragging::Mover { .. }));
+                        if is_dragging {
+                            namui::MouseCursor::Move
+                        } else {
+                            namui::MouseCursor::Pointer
+                        }
+                    })
+                    .attach_event(|event| match event {
+                        namui::Event::MouseDown { event } => {
+                            if event.is_local_xy_in() {
+                                if event.button == Some(MouseButton::Left) {
+                                    event.stop_propagation();
+                                    on_event(Event::MoveStart {
+                                        start_global_xy: event.global_xy,
+                                        end_global_xy: event.global_xy,
+                                        container_wh,
+                                    });
+                                }
+                            }
+                        }
+                        _ => {}
+                    }),
+                );
+        });
+
+        ctx.done()
     }
 }
 

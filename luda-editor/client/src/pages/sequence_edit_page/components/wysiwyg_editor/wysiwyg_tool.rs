@@ -8,7 +8,7 @@ pub struct WysiwygTool<'a> {
     pub graphic: ScreenGraphic,
     pub dragging: Option<Dragging>,
     pub wh: Wh<Px>,
-    pub on_event: callback!('a, Event),
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
@@ -18,7 +18,7 @@ pub enum Event {
 
 impl Component for WysiwygTool<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
+        let Self {
             graphic_dest_rect,
             original_graphic_size,
             graphic_index,
@@ -28,14 +28,14 @@ impl Component for WysiwygTool<'_> {
             ref on_event,
         } = self;
 
-        ctx.add(Mover {
+        ctx.component(Mover {
             image_dest_rect: graphic_dest_rect,
             dragging: dragging.clone(),
             container_wh: wh,
             on_event: arc(|event| on_event(Event::Mover { event })),
         });
 
-        ctx.add(Resizer {
+        ctx.component(Resizer {
             rect: graphic_dest_rect,
             dragging_context: if let Some(Dragging::Resizer { context }) = self.dragging.as_ref() {
                 Some(*context)
@@ -51,5 +51,7 @@ impl Component for WysiwygTool<'_> {
             graphic_index,
             on_event: arc(|event| on_event(Event::Resizer { event })),
         });
+
+        ctx.done()
     }
 }

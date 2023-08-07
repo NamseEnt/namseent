@@ -35,7 +35,7 @@ pub struct WysiwygEditor<'a> {
 
 impl Component for WysiwygEditor<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
+        let Self {
             wh,
             cut_id,
             ref screen_graphics,
@@ -47,54 +47,59 @@ impl Component for WysiwygEditor<'_> {
 
         let (dragging, set_dragging) = ctx.state(|| None);
         let (editing_image_index, set_editing_image_index) = ctx.state(|| None);
-        let (context_menu, set_context_menu) = ctx.state(|| None);
+        // let (context_menu, set_context_menu) = ctx.state(|| None);
 
-        let background =
-            simple_rect(wh, Color::WHITE, 1.px(), Color::TRANSPARENT).attach_event(|builder| {
+        let background = simple_rect(wh, Color::WHITE, 1.px(), Color::TRANSPARENT).attach_event(
+            |event: Event<'_>| {
                 let dragging = dragging.clone();
                 let screen_graphics = screen_graphics.clone();
                 let editing_image_index = *editing_image_index;
-                builder
-                    .on_mouse_move_in(move |event: MouseEvent| {
-                        set_dragging.mutate(|dragging| {
-                            if let Some(Dragging::Mover { context }) = dragging {
-                                context.end_global_xy = event.global_xy;
+                match event {
+                    Event::MouseDown { event } => {
+                        if event.is_local_xy_in() {
+                            if event.button == Some(MouseButton::Left) {
+                                set_editing_image_index.set(None);
                             }
-                        });
-                    })
-                    .on_mouse_down_in(move |event: MouseEvent| {
-                        if event.button == Some(MouseButton::Left) {
-                            set_editing_image_index.set(None);
                         }
-                    })
-                    .on_mouse(move |event: MouseEvent| {
-                        if event.event_type == MouseEventType::Up {
-                            if let Some(Dragging::Mover { mut context }) = dragging.deref() {
-                                if let Some(graphic_index) = editing_image_index {
+                    }
+                    Event::MouseMove { event } => {
+                        if event.is_local_xy_in() {
+                            set_dragging.mutate(move |dragging| {
+                                if let Some(Dragging::Mover { context }) = dragging {
                                     context.end_global_xy = event.global_xy;
-
-                                    let (_, graphic) = screen_graphics
-                                        .iter()
-                                        .find(|(index, _)| index == &graphic_index)
-                                        .unwrap();
-                                    let circumscribed =
-                                        context.move_circumscribed(graphic.circumscribed());
-
-                                    SEQUENCE_ATOM.mutate(|sequence| {
-                                        sequence.update_cut(
-                                            cut_id,
-                                            CutUpdateAction::ChangeGraphicCircumscribed {
-                                                graphic_index,
-                                                circumscribed,
-                                            },
-                                        )
-                                    });
                                 }
-                            }
-                            set_dragging.set(None);
+                            });
                         }
-                    });
-            });
+                    }
+                    Event::MouseUp { event } => {
+                        if let Some(Dragging::Mover { mut context }) = dragging.deref() {
+                            if let Some(graphic_index) = editing_image_index {
+                                context.end_global_xy = event.global_xy;
+
+                                let (_, graphic) = screen_graphics
+                                    .iter()
+                                    .find(|(index, _)| index == &graphic_index)
+                                    .unwrap();
+                                let circumscribed =
+                                    context.move_circumscribed(graphic.circumscribed());
+
+                                SEQUENCE_ATOM.mutate(move |sequence| {
+                                    sequence.update_cut(
+                                        cut_id,
+                                        CutUpdateAction::ChangeGraphicCircumscribed {
+                                            graphic_index,
+                                            circumscribed,
+                                        },
+                                    )
+                                });
+                            }
+                        }
+                        set_dragging.set(None);
+                    }
+                    _ => {}
+                }
+            },
+        );
 
         let graphic_clip_on_event = arc(move |e: graphic_clip::Event| {
             match e {
@@ -119,7 +124,7 @@ impl Component for WysiwygEditor<'_> {
                             circumscribed,
                             graphic_index,
                         } => {
-                            SEQUENCE_ATOM.mutate(|sequence| {
+                            SEQUENCE_ATOM.mutate(move |sequence| {
                                 sequence.update_cut(
                                     cut_id,
                                     CutUpdateAction::UpdateCircumscribed {
@@ -195,67 +200,67 @@ impl Component for WysiwygEditor<'_> {
                     //     .to_vec()
                     // };
 
-                    set_context_menu.set(Some({
-                        let context_menu_builder =
-                            use_context_menu(global_xy, arc(|| set_context_menu.set(None)));
+                    // set_context_menu.set(Some({
+                    //     let context_menu_builder =
+                    //         use_context_menu(global_xy, arc(|| set_context_menu.set(None)));
 
-                        context_menu_builder.add_button(
-                            "Fit - contain",
-                            arc(|| {
-                                SEQUENCE_ATOM.mutate(|sequence| {
-                                    sequence.update_cut(
-                                        cut_id,
-                                        CutUpdateAction::GraphicFitContain {
-                                            graphic_index,
-                                            image_width_per_height_ratio,
-                                        },
-                                    )
-                                });
-                            }),
-                        );
+                    //     context_menu_builder.add_button(
+                    //         "Fit - contain",
+                    //         arc(|| {
+                    //             SEQUENCE_ATOM.mutate(|sequence| {
+                    //                 sequence.update_cut(
+                    //                     cut_id,
+                    //                     CutUpdateAction::GraphicFitContain {
+                    //                         graphic_index,
+                    //                         image_width_per_height_ratio,
+                    //                     },
+                    //                 )
+                    //             });
+                    //         }),
+                    //     );
 
-                        context_menu_builder.add_button(
-                            "Fit - cover",
-                            arc(|| {
-                                SEQUENCE_ATOM.mutate(|sequence| {
-                                    sequence.update_cut(
-                                        cut_id,
-                                        CutUpdateAction::GraphicFitCover {
-                                            graphic_index,
-                                            image_width_per_height_ratio,
-                                        },
-                                    )
-                                });
-                            }),
-                        );
+                    //     context_menu_builder.add_button(
+                    //         "Fit - cover",
+                    //         arc(|| {
+                    //             SEQUENCE_ATOM.mutate(|sequence| {
+                    //                 sequence.update_cut(
+                    //                     cut_id,
+                    //                     CutUpdateAction::GraphicFitCover {
+                    //                         graphic_index,
+                    //                         image_width_per_height_ratio,
+                    //                     },
+                    //                 )
+                    //             });
+                    //         }),
+                    //     );
 
-                        match graphic {
-                            ScreenGraphic::Cg(cg) => {
-                                let cg_id = cg.id;
-                                let on_click_character_edit = on_click_character_edit.clone();
-                                context_menu_builder.add_button(
-                                    "Edit character",
-                                    arc(|| {
-                                        on_click_character_edit(
-                                            character_editor::EditTarget::ExistingCharacterPart {
-                                                cut_id,
-                                                cg_id,
-                                                graphic_index,
-                                            },
-                                        );
-                                    }),
-                                );
-                            }
-                            ScreenGraphic::Image(_) => {}
-                        }
+                    //     match graphic {
+                    //         ScreenGraphic::Cg(cg) => {
+                    //             let cg_id = cg.id;
+                    //             let on_click_character_edit = on_click_character_edit.clone();
+                    //             context_menu_builder.add_button(
+                    //                 "Edit character",
+                    //                 arc(|| {
+                    //                     on_click_character_edit(
+                    //                         character_editor::EditTarget::ExistingCharacterPart {
+                    //                             cut_id,
+                    //                             cg_id,
+                    //                             graphic_index,
+                    //                         },
+                    //                     );
+                    //                 }),
+                    //             );
+                    //         }
+                    //         ScreenGraphic::Image(_) => {}
+                    //     }
 
-                        context_menu_builder.build()
-                    }));
+                    //     context_menu_builder.build()
+                    // }));
                 }
             }
         });
 
-        ctx.add(background);
+        ctx.component(background);
         // ctx.add(hooks::clip(
         //     PathBuilder::new().add_rect(Rect::from_xy_wh(Xy::zero(), wh)),
         //     ClipOp::Intersect,
@@ -274,10 +279,14 @@ impl Component for WysiwygEditor<'_> {
         //     )),
         // ));
 
-        ctx.add(render_grid_guide(wh));
-        if let Some(context_menu) = context_menu.deref() {
-            ctx.add(context_menu);
-        }
+        ctx.component(render_grid_guide(wh));
+        ctx.compose(|ctx| {
+            // if let Some(context_menu) = context_menu.deref() {
+            //     ctx.add(context_menu);
+            // }
+        });
+
+        ctx.done()
     }
 }
 

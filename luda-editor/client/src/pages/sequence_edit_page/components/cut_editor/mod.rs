@@ -22,7 +22,7 @@ pub struct CutEditor<'a> {
     pub is_focused: bool,
     pub project_id: Uuid,
     pub cg_files: &'a Vec<CgFile>,
-    pub on_event: callback!('a, Event2),
+    pub on_event: Box<dyn 'a + Fn(Event2)>,
 }
 
 pub enum Event2 {
@@ -81,7 +81,7 @@ impl Component for CutEditor<'_> {
             set_selected_target.set(None);
         });
 
-        let move_cut_request = arc(move |up_down: UpDown| {
+        let move_cut_request = arc(|up_down: UpDown| {
             if !is_focused {
                 return;
             }
@@ -295,24 +295,22 @@ impl Component for CutEditor<'_> {
 
         ctx.compose(|ctx| {
             ctx.translate(content_rect.xy())
-                .add(
-                    simple_rect(
-                        content_rect.wh(),
-                        color::STROKE_NORMAL,
-                        1.px(),
-                        color::BACKGROUND,
-                    ),
-                    // wysiwyg_editor::WysiwygEditor {
-                    //     wh: content_rect.wh(),
-                    //     screen_graphics: cut.screen_graphics.clone(),
-                    //     project_id,
-                    //     cut_id,
-                    //     cg_files: cg_files.clone(),
-                    //     on_click_character_edit: arc(|edit_target| {
-                    //         on_event(Event2::ClickCharacterEdit { edit_target })
-                    //     }),
-                    // },
-                )
+                .add(simple_rect(
+                    content_rect.wh(),
+                    color::STROKE_NORMAL,
+                    1.px(),
+                    color::BACKGROUND,
+                ))
+                .add(wysiwyg_editor::WysiwygEditor {
+                    wh: content_rect.wh(),
+                    screen_graphics: cut.screen_graphics.clone(),
+                    project_id,
+                    cut_id,
+                    cg_files: cg_files.clone(),
+                    on_click_character_edit: arc(|edit_target| {
+                        on_event(Event2::ClickCharacterEdit { edit_target })
+                    }),
+                })
                 .add(
                     sequence_player::render_text_box(content_rect.wh()),
                     // sequence_player::render_over_text_hooks(

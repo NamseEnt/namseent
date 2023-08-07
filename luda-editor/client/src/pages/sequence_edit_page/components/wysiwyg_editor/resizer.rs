@@ -8,7 +8,7 @@ pub struct Resizer<'a> {
     pub container_size: Wh<Px>,
     pub image_size: Wh<Px>,
     pub graphic_index: Uuid,
-    pub on_event: callback!('a, Event),
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
@@ -23,7 +23,7 @@ pub enum Event {
 
 impl Component for Resizer<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
+        let Self {
             rect,
             dragging_context,
             container_size,
@@ -35,7 +35,7 @@ impl Component for Resizer<'_> {
 
         const HANDLE_RADIUS: Px = px(5.0);
 
-        ctx.add(RenderingTree::Children(
+        ctx.compose(|ctx| {
             HANDLES
                 .into_iter()
                 .map(|handle| {
@@ -62,14 +62,14 @@ impl Component for Resizer<'_> {
                         namui::path(path, stroke_paint),
                     ])
                     .with_mouse_cursor(handle.cursor())
-                    .attach_event(|builder| match dragging_context {
+                    .attach_event(move |event| match dragging_context {
                         Some(context) => {
                             if context.handle != handle {
                                 return;
                             }
-                            let on_mouse_move = {
-                                let on_event = on_event.clone();
-                                move |event: MouseEvent| {
+
+                            match event {
+                                namui::Event::MouseMove { event } => {
                                     on_event(Event::OnUpdateDraggingContext {
                                         context: Some(ResizerDraggingContext {
                                             handle,
@@ -78,14 +78,7 @@ impl Component for Resizer<'_> {
                                         }),
                                     });
                                 }
-                            };
-
-                            builder.on_mouse_move_in(on_mouse_move.clone());
-                            builder.on_mouse_move_out(on_mouse_move.clone());
-
-                            let on_mouse_up = {
-                                let on_event = on_event.clone();
-                                move |event: MouseEvent| {
+                                namui::Event::MouseUp { event } => {
                                     let delta_xy = event.global_xy - context.start_global_xy;
                                     on_event(Event::OnUpdateDraggingContext { context: None });
                                     on_event(Event::OnResize {
@@ -99,29 +92,34 @@ impl Component for Resizer<'_> {
                                         graphic_index,
                                     });
                                 }
-                            };
-                            builder.on_mouse_up_in(on_mouse_up.clone());
-                            builder.on_mouse_up_out(on_mouse_up.clone());
+                                _ => {}
+                            }
                         }
-                        None => {
-                            let on_event = on_event.clone();
-                            builder.on_mouse_down_in(move |mouse_event: MouseEvent| {
-                                if mouse_event.button == Some(MouseButton::Left) {
-                                    mouse_event.stop_propagation();
-                                    on_event(Event::OnUpdateDraggingContext {
-                                        context: Some(ResizerDraggingContext {
-                                            handle,
-                                            start_global_xy: mouse_event.global_xy,
-                                            end_global_xy: mouse_event.global_xy,
-                                        }),
-                                    });
+                        None => match event {
+                            namui::Event::MouseDown { event } => {
+                                if event.is_local_xy_in() {
+                                    if event.button == Some(MouseButton::Left) {
+                                        event.stop_propagation();
+                                        on_event(Event::OnUpdateDraggingContext {
+                                            context: Some(ResizerDraggingContext {
+                                                handle,
+                                                start_global_xy: event.global_xy,
+                                                end_global_xy: event.global_xy,
+                                            }),
+                                        });
+                                    }
                                 }
-                            });
-                        }
+                            }
+                            _ => {}
+                        },
                     })
                 })
-                .collect::<Vec<RenderingTree>>(),
-        ));
+                .for_each(|handle| {
+                    ctx.add(handle);
+                });
+        });
+
+        ctx.done()
     }
 }
 

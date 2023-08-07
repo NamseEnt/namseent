@@ -10,7 +10,7 @@ pub struct GraphicClip<'a> {
     pub wh: Wh<Px>,
     pub dragging: Option<Dragging>,
     pub cg_files: Vec<CgFile>,
-    pub on_event: callback!('a, Event),
+    pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
 pub enum Event {
@@ -29,7 +29,7 @@ pub enum Event {
 
 impl Component for GraphicClip<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
+        let Self {
             cut_id,
             graphic_index,
             ref graphic,
@@ -104,11 +104,11 @@ impl Component for GraphicClip<'_> {
                 ))
             }),
         }
-        .attach_event(|builder| {
-            builder.on_mouse_down_in({
-                let graphic = graphic.clone();
-                let on_event = on_event.clone();
-                move |event: MouseEvent| {
+        .attach_event(|event| match event {
+            namui::Event::MouseDown { event } => {
+                if event.is_local_xy_in() {
+                    let graphic = graphic.clone();
+                    let on_event = on_event.clone();
                     let graphic = graphic.clone();
                     event.stop_propagation();
                     on_event(Event::SelectImage { graphic_index });
@@ -123,12 +123,11 @@ impl Component for GraphicClip<'_> {
                         });
                     }
                 }
-            });
-
-            if is_editing_graphic {
-                let namui_image = namui_image.clone();
-                let graphic = graphic.clone();
-                builder.on_key_down(move |event: KeyboardEvent| {
+            }
+            namui::Event::KeyDown { event } => {
+                if is_editing_graphic {
+                    let namui_image = namui_image.clone();
+                    let graphic = graphic.clone();
                     namui::log!("key down: {:?}", event.code);
                     let graphic = graphic.clone();
                     if event.code != Code::KeyC || !namui::keyboard::ctrl_press() {
@@ -169,22 +168,27 @@ impl Component for GraphicClip<'_> {
                             })
                         }
                     }
+                }
+            }
+            _ => {}
+        });
+
+        ctx.component(graphic_rendering_tree);
+
+        ctx.compose(|ctx| {
+            if is_editing_graphic {
+                ctx.add(WysiwygTool {
+                    graphic_dest_rect: graphic_rendering_rect,
+                    original_graphic_size: graphic_size,
+                    graphic_index,
+                    graphic: graphic.clone(),
+                    dragging: dragging.clone(),
+                    wh,
+                    on_event: arc(|event| on_event(Event::WysiwygTool(event))),
                 });
             }
         });
 
-        ctx.add(graphic_rendering_tree);
-
-        if is_editing_graphic {
-            ctx.add(WysiwygTool {
-                graphic_dest_rect: graphic_rendering_rect,
-                original_graphic_size: graphic_size,
-                graphic_index,
-                graphic: graphic.clone(),
-                dragging: dragging.clone(),
-                wh,
-                on_event: arc(|event| on_event(Event::WysiwygTool(event))),
-            });
-        }
+        ctx.done()
     }
 }
