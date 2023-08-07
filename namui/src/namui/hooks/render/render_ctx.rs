@@ -228,6 +228,7 @@ pub struct ComposeCtx {
 }
 impl Drop for ComposeCtx {
     fn drop(&mut self) {
+        crate::log!("drop ComposeCtx: {:?}", self.pre_key_vec);
         let mut children = vec![];
         std::mem::swap(self.children.lock().unwrap().as_mut(), &mut children);
 

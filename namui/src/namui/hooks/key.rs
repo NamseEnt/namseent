@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 #[derive(Clone, Hash, PartialEq, Eq)]
 pub struct KeyVec {
     chunks: Vec<KeyChunk>,
@@ -25,6 +27,12 @@ impl KeyVec {
     }
 }
 
+impl Debug for KeyVec {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(self.chunks.iter()).finish()
+    }
+}
+
 #[derive(Clone, Hash, PartialEq, Eq)]
 enum KeyChunk {
     Child(Key),
@@ -32,10 +40,29 @@ enum KeyChunk {
     Custom(Key),
 }
 
+impl Debug for KeyChunk {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            KeyChunk::Child(key) => write!(f, "Child->{:?}", key),
+            KeyChunk::Group(key) => write!(f, "Group->{:?}", key),
+            KeyChunk::Custom(key) => write!(f, "Custom->{:?}", key),
+        }
+    }
+}
+
 #[derive(Clone, Hash, PartialEq, Eq)]
 pub enum Key {
     Usize(usize),
     String(String),
+}
+
+impl Debug for Key {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Key::Usize(value) => write!(f, "Usize({})", value),
+            Key::String(value) => write!(f, "String({})", value),
+        }
+    }
 }
 
 impl From<String> for Key {
