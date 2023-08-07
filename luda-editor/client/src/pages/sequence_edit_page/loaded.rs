@@ -211,7 +211,7 @@ impl Component for LoadedSequenceEditorPage {
             }
         };
 
-        let cut_list_view_cell = |wh, ctx: &mut ComposeCtx| {
+        let cut_list_view_cell = |wh, ctx: ComposeCtx| {
             ctx.add(cut_list_view::CutListView {
                 wh,
                 cuts: &sequence.cuts,
@@ -224,7 +224,7 @@ impl Component for LoadedSequenceEditorPage {
             });
         };
 
-        let cut_editor_cell = move |wh, ctx: &mut ComposeCtx| {
+        let cut_editor_cell = move |wh, ctx: ComposeCtx| {
             if let Some(selected_cut) = selected_cut {
                 ctx.add(cut_editor::CutEditor {
                     wh,

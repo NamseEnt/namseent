@@ -53,8 +53,8 @@ impl Component for PartPicker<'_> {
                 wh,
                 "Change Cg",
                 color::STROKE_NORMAL,
-            ));
-            ctx.add(
+            ))
+            .add(
                 simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                     .with_mouse_cursor(MouseCursor::Pointer)
                     .attach_event(|event| match event {
@@ -201,8 +201,8 @@ fn render_no_selection_button(
                     false => color::STROKE_NORMAL,
                 },
                 12.int_px(),
-            ));
-            ctx.add(
+            ))
+            .add(
                 simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                     .with_mouse_cursor(MouseCursor::Pointer)
                     .attach_event(move |event| match event {
@@ -263,8 +263,8 @@ fn render_thumbnail<'a>(
                             },
                         })
                     }),
-            ]));
-            ctx.add(
+            ]))
+            .add(
                 simple_rect(
                     wh,
                     match variant_selected {

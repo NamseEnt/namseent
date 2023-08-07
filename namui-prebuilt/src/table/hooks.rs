@@ -4,7 +4,7 @@ pub enum TableCell<'a> {
     Empty,
     Some {
         unit: Unit<'a>,
-        render: Box<dyn 'a + FnOnce(Direction, Wh<Px>, &mut ComposeCtx)>,
+        render: Box<dyn 'a + FnOnce(Direction, Wh<Px>, ComposeCtx)>,
         need_clip: bool,
     },
 }
@@ -34,7 +34,7 @@ impl F32OrI32 for f32 {
 
 pub fn ratio<'a>(
     ratio: impl F32OrI32,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Ratio(ratio.as_f32()),
@@ -47,7 +47,7 @@ pub fn ratio<'a>(
 
 pub fn ratio_no_clip<'a>(
     ratio: impl F32OrI32,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Ratio(ratio.as_f32()),
@@ -60,7 +60,7 @@ pub fn ratio_no_clip<'a>(
 
 pub fn fixed<'a>(
     pixel: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Fixed(pixel),
@@ -73,7 +73,7 @@ pub fn fixed<'a>(
 
 pub fn fixed_no_clip<'a>(
     pixel: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Fixed(pixel),
@@ -86,7 +86,7 @@ pub fn fixed_no_clip<'a>(
 
 pub fn calculative<'a>(
     from_parent_wh: impl FnOnce(Wh<Px>) -> Px + 'a,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Calculative(Box::new(from_parent_wh)),
@@ -99,7 +99,7 @@ pub fn calculative<'a>(
 
 pub fn calculative_no_clip<'a>(
     from_parent_wh: impl FnOnce(Wh<Px>) -> Px + 'a,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
 ) -> TableCell<'a> {
     TableCell::Some {
         unit: Unit::Calculative(Box::new(from_parent_wh)),
@@ -116,13 +116,13 @@ pub fn empty<'a>() -> TableCell<'a> {
 
 pub fn vertical<'a, Item: ToKeyCell<'a>>(
     items: impl 'a + IntoIterator<Item = Item>,
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     slice_internal(Direction::Vertical, items)
 }
 
 pub fn horizontal<'a, Item: ToKeyCell<'a>>(
     items: impl 'a + IntoIterator<Item = Item>,
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     slice_internal(Direction::Horizontal, items)
 }
 
@@ -149,7 +149,7 @@ impl<'a> ToKeyCell<'a> for (&'a str, TableCell<'a>) {
 fn slice_internal<'a, Item: ToKeyCell<'a>>(
     direction: Direction,
     items: impl 'a + IntoIterator<Item = Item>,
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     let mut units = Vec::new();
     let mut for_renders = std::collections::VecDeque::new();
 
@@ -168,7 +168,7 @@ fn slice_internal<'a, Item: ToKeyCell<'a>>(
         }
     }
 
-    move |wh: Wh<Px>, ctx: &mut ComposeCtx| {
+    move |wh: Wh<Px>, mut ctx: ComposeCtx| {
         let direction_pixel_size = match direction {
             Direction::Vertical => wh.height,
             Direction::Horizontal => wh.width,
@@ -224,7 +224,7 @@ fn slice_internal<'a, Item: ToKeyCell<'a>>(
                 },
             };
 
-            ctx.compose_with_key(key, |ctx| {
+            ctx = ctx.compose_with_key(key, |ctx| {
                 let mut ctx = ctx.translate((xywh.x(), xywh.y()));
                 if need_clip {
                     ctx = ctx.clip(
@@ -237,8 +237,7 @@ fn slice_internal<'a, Item: ToKeyCell<'a>>(
                         ClipOp::Intersect,
                     );
                 }
-                render_fn(direction, xywh.wh(), &mut ctx);
-                ctx.debug();
+                render_fn(direction, xywh.wh(), ctx);
             });
 
             advanced_pixel_size += pixel_size;
@@ -248,15 +247,15 @@ fn slice_internal<'a, Item: ToKeyCell<'a>>(
 
 pub fn padding<'a>(
     padding: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     horizontal_padding(padding, vertical_padding(padding, cell_render_closure))
 }
 
 pub fn padding_no_clip<'a>(
     padding: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     horizontal_padding_no_clip(
         padding,
         vertical_padding_no_clip(padding, cell_render_closure),
@@ -265,8 +264,8 @@ pub fn padding_no_clip<'a>(
 
 pub fn horizontal_padding<'a>(
     padding: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     horizontal([
         ("0", fixed(padding, |_, _| {})),
         ("1", ratio(1, cell_render_closure)),
@@ -276,8 +275,8 @@ pub fn horizontal_padding<'a>(
 
 pub fn vertical_padding<'a>(
     padding: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     vertical([
         ("0", fixed(padding, |_, _| {})),
         ("1", ratio(1, cell_render_closure)),
@@ -287,8 +286,8 @@ pub fn vertical_padding<'a>(
 
 pub fn horizontal_padding_no_clip<'a>(
     padding: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     horizontal([
         ("0", fixed(padding, |_, _| {})),
         ("1", ratio_no_clip(1, cell_render_closure)),
@@ -298,8 +297,8 @@ pub fn horizontal_padding_no_clip<'a>(
 
 pub fn vertical_padding_no_clip<'a>(
     padding: Px,
-    cell_render_closure: impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx),
-) -> impl 'a + FnOnce(Wh<Px>, &mut ComposeCtx) {
+    cell_render_closure: impl 'a + FnOnce(Wh<Px>, ComposeCtx),
+) -> impl 'a + FnOnce(Wh<Px>, ComposeCtx) {
     vertical([
         ("0", fixed(padding, |_, _| {})),
         ("1", ratio_no_clip(1, cell_render_closure)),
