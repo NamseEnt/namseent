@@ -24,7 +24,7 @@ impl Component for Router {
                 ctx.add(project_list_page::ProjectListPage2 { wh });
             }
             Route::SequenceListPage { project_id } => {
-                // ctx.add(sequence_list_page::SequenceListPage { wh, project_id })
+                ctx.add(sequence_list_page::SequenceListPage { wh, project_id });
             }
             Route::SequenceEditPage {
                 project_id,

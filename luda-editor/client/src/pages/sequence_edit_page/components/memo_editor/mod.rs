@@ -67,29 +67,26 @@ impl Component for MemoEditor<'_> {
                 _ => {}
             });
 
-        let close_button_cell = move |wh: Wh<Px>, ctx: &ComposeCtx| {
-            table::hooks::fit(
-                table::hooks::FitAlign::LeftTop,
-                button::text_button_fit(
-                    wh.height,
-                    "취소",
-                    color::STROKE_NORMAL,
-                    color::STROKE_NORMAL,
-                    1.px(),
-                    color::BACKGROUND,
-                    PADDING,
-                    [MouseButton::Left],
-                    {
-                        let on_event = on_event.clone();
-                        move |_event| {
-                            on_event(Event::Close);
-                        }
-                    },
-                ),
-                // .with_mouse_cursor(MouseCursor::Pointer),
-                ctx,
-            )
-        };
+        let close_button_cell = table::hooks::fit(
+            table::hooks::FitAlign::LeftTop,
+            button::text_button_fit(
+                wh.height,
+                "취소",
+                color::STROKE_NORMAL,
+                color::STROKE_NORMAL,
+                1.px(),
+                color::BACKGROUND,
+                PADDING,
+                [MouseButton::Left],
+                {
+                    let on_event = on_event.clone();
+                    move |_event| {
+                        on_event(Event::Close);
+                    }
+                },
+            ),
+            // .with_mouse_cursor(MouseCursor::Pointer),
+        );
 
         // let on_save_button_clicked = || {
         //     let content = text.clone();
@@ -113,33 +110,30 @@ impl Component for MemoEditor<'_> {
         //     });
         // };
 
-        let save_button_cell = move |wh: Wh<Px>, ctx: &ComposeCtx| {
-            table::hooks::fit(
-                table::hooks::FitAlign::RightBottom,
-                button::text_button_fit(
-                    wh.height,
-                    "저장",
-                    color::BACKGROUND,
-                    color::STROKE_NORMAL,
-                    1.px(),
-                    color::STROKE_NORMAL,
-                    PADDING,
-                    [MouseButton::Left],
-                    {
-                        let on_event = on_event.clone();
-                        |_event| {
-                            on_event(Event::SaveButtonClicked {
-                                sequence_id,
-                                cut_id,
-                                content: text.to_string(),
-                            });
-                        }
-                    },
-                ),
-                // .with_mouse_cursor(MouseCursor::Pointer)
-                ctx,
-            )
-        };
+        let save_button_cell = table::hooks::fit(
+            table::hooks::FitAlign::RightBottom,
+            button::text_button_fit(
+                wh.height,
+                "저장",
+                color::BACKGROUND,
+                color::STROKE_NORMAL,
+                1.px(),
+                color::STROKE_NORMAL,
+                PADDING,
+                [MouseButton::Left],
+                {
+                    let on_event = on_event.clone();
+                    |_event| {
+                        on_event(Event::SaveButtonClicked {
+                            sequence_id,
+                            cut_id,
+                            content: text.to_string(),
+                        });
+                    }
+                },
+            ),
+            // .with_mouse_cursor(MouseCursor::Pointer)
+        );
 
         let content = table::hooks::vertical([
             table::hooks::fixed(TITLE_HEIGHT, |wh, ctx| {
@@ -150,12 +144,12 @@ impl Component for MemoEditor<'_> {
                     Color::TRANSPARENT,
                 ));
 
-                table::hooks::padding(PADDING, |wh, ctx| {
+                table::hooks::padding(PADDING, {
                     table::hooks::horizontal([
-                        close_button_cell(wh, ctx),
+                        close_button_cell,
                         table::hooks::ratio(1, |_, _| {}),
-                        save_button_cell(wh, ctx),
-                    ])(wh, ctx)
+                        save_button_cell,
+                    ])
                 })(wh, ctx);
             }),
             table::hooks::ratio(1, |wh, ctx| {

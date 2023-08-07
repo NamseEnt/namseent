@@ -124,11 +124,13 @@ impl<'a> RenderCtx {
     }
 
     pub fn ghost_render(&self, component: impl Component) -> RenderingTree {
-        // TODO: Prevent event handling for ghost render
-        self.render_children(
+        self.disable_event_handling();
+        let rendering_tree = self.render_children(
             KeyVec::new_child(self.get_next_component_index()),
             component,
-        )
+        );
+        self.enable_event_handling();
+        rendering_tree
     }
 
     fn renderer(&self) -> Renderer {
@@ -170,13 +172,18 @@ impl<'a> RenderCtx {
         self.inverse_matrix().transform_xy(xy)
     }
 
-    fn disable_event_handling(&mut self) {
+    fn disable_event_handling(&self) {
         self.event_handling_disabled
             .store(true, std::sync::atomic::Ordering::SeqCst);
     }
     pub(crate) fn event_handling_disabled(&self) -> bool {
         self.event_handling_disabled
             .load(std::sync::atomic::Ordering::SeqCst)
+    }
+
+    fn enable_event_handling(&self) {
+        self.event_handling_disabled
+            .store(false, std::sync::atomic::Ordering::SeqCst);
     }
 }
 
@@ -427,10 +434,6 @@ impl ComposeCtx {
         ))));
 
         self
-    }
-
-    pub fn attach_event(&self, attach_event: impl Fn(Event<'_>)) -> &Self {
-        todo!()
     }
 }
 

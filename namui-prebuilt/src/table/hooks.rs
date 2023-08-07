@@ -343,6 +343,7 @@ pub fn fit<'a>(align: FitAlign, component: impl 'a + Component) -> TableCell<'a>
         component_type_name: component.static_type_name(),
         func: Box::new(|ctx| {
             let (bounding_box, set_bounding_box) = ctx.state::<Option<Rect<Px>>>(|| None);
+            namui::log!("bounding_box: {:?}", *bounding_box);
 
             if let Some(bounding_box) = *bounding_box {
                 TableCell::Some {
@@ -374,7 +375,10 @@ pub fn fit<'a>(align: FitAlign, component: impl 'a + Component) -> TableCell<'a>
             } else {
                 let rendering_tree = ctx.ghost_render(component);
                 let bounding_box = rendering_tree.get_bounding_box();
-                set_bounding_box.set(bounding_box);
+                namui::log!("bounding_box: {bounding_box:#?}, rendering_tree: {rendering_tree:#?}");
+                if bounding_box.is_some() {
+                    set_bounding_box.set(bounding_box);
+                }
 
                 TableCell::Empty
             }

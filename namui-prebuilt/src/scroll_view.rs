@@ -49,9 +49,10 @@ impl<C: Component> Component for ScrollView<C> {
 
         let Some(bounding_box) = *bounding_box else  {
             let content = ctx.ghost_render(content);
+            let bounding_box = content.get_bounding_box();
 
-            if let Some(bounding_box) = content.get_bounding_box() {
-                set_bounding_box.set(Some(bounding_box));
+            if bounding_box.is_some()  {
+                set_bounding_box.set(bounding_box);
             };
             return ctx.done();
         };

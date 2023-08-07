@@ -44,6 +44,7 @@ impl Component for LoadedSequenceEditorPage {
             CutListView { global_xy: Xy<Px> },
         }
         let (context_menu, set_context_menu) = ctx.state::<Option<ContextMenu>>(|| None);
+        namui::log!("context_menu: {:#?}", context_menu);
 
         let selected_cut = selected_cut_id.and_then(|id| sequence.cuts.iter().find(|c| c.id == id));
         let project_id = project_shared_data.id();
@@ -243,7 +244,7 @@ impl Component for LoadedSequenceEditorPage {
             table::hooks::horizontal([
                 table::hooks::fixed(220.px(), cut_list_view_cell),
                 table::hooks::ratio(4, cut_editor_cell),
-                // character_editor_cell,
+                // // character_editor_cell,
                 memo_list_view_cell,
             ])(wh, ctx)
         });

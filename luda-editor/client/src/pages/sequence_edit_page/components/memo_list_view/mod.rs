@@ -48,9 +48,8 @@ impl Component for MemoListView<'_> {
                             user_id,
                             on_event: Box::new(|event| on_event(event)),
                         },
-                        ctx,
                     )
-                }));
+                }))(wh, ctx);
             },
         });
         ctx.done()

@@ -22,7 +22,7 @@ enum ContextMenuType {
 
 impl Component for SequenceListPage {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self { wh, project_id } = self;
+        let Self { wh, project_id } = self;
         let (error_message, set_error_message) = ctx.state::<Option<String>>(|| None);
         let (is_loading, set_is_loading) = ctx.state(|| true);
         let (sequence_list, set_sequence_list) = ctx.state::<Vec<SequenceNameAndId>>(|| vec![]);
@@ -111,72 +111,84 @@ impl Component for SequenceListPage {
         };
 
         if let Some(error_message) = &*error_message {
-            ctx.add(typography::body::center(wh, error_message, Color::RED));
-            return ctx.done();
+            return ctx
+                .component(typography::body::center(wh, error_message, Color::RED))
+                .done();
         }
 
         if *is_loading {
-            ctx.add(typography::body::center(wh, "loading...123", Color::WHITE));
-            return ctx.done();
+            return ctx
+                .component(typography::body::center(wh, "loading...123", Color::WHITE))
+                .done();
         }
 
-        ctx.add(table::hooks::horizontal([
-            table::hooks::ratio(1.0, |_wh| RenderingTree::Empty),
-            table::hooks::ratio(
-                2.0,
-                table::hooks::vertical([
-                    table::hooks::fixed(40.px(), |wh| {
-                        namui_prebuilt::button::text_button(
-                            Rect::from_xy_wh(Xy::single(0.px()), wh),
-                            "[+] Add Sequence",
-                            Color::WHITE,
-                            Color::grayscale_f01(0.5),
-                            1.px(),
-                            Color::BLACK,
-                            [MouseButton::Left],
-                            move |_| on_add_button_click(),
-                        )
-                    }),
-                    table::hooks::ratio(1.0, |wh| {
-                        let item_wh = Wh::new(wh.width, 40.px());
+        ctx.compose(|ctx| {
+            table::hooks::horizontal([
+                table::hooks::ratio(1.0, |_wh, _ctx| {}),
+                table::hooks::ratio(
+                    2.0,
+                    table::hooks::vertical([
+                        table::hooks::fixed(40.px(), |wh, ctx| {
+                            ctx.add(namui_prebuilt::button::text_button(
+                                Rect::from_xy_wh(Xy::single(0.px()), wh),
+                                "[+] Add Sequence",
+                                Color::WHITE,
+                                Color::grayscale_f01(0.5),
+                                1.px(),
+                                Color::BLACK,
+                                [MouseButton::Left],
+                                move |_| on_add_button_click(),
+                            ));
+                        }),
+                        table::hooks::ratio(1.0, |wh, ctx| {
+                            let item_wh = Wh::new(wh.width, 40.px());
 
-                        list_view::ListView {
-                            xy: Xy::single(0.px()),
-                            height: wh.height,
-                            scroll_bar_width: 10.px(),
-                            item_wh,
-                            items: sequence_list
-                                .iter()
-                                .map(|sequence| SequenceCell {
-                                    wh: item_wh,
-                                    project_id,
-                                    sequence: sequence.clone(),
-                                    on_right_click: Box::new({
-                                        let sequence_id = sequence.id;
-                                        move |mouse_event| {
-                                            set_context_menu_type.set(Some(
-                                                ContextMenuType::SequenceCellRightClick {
-                                                    global_xy: mouse_event.global_xy,
-                                                    sequence_id,
-                                                },
-                                            ))
-                                        }
-                                    }),
-                                })
-                                .collect(),
-                        }
-                    }),
-                ]),
-            ),
-            table::hooks::ratio(1.0, |_wh| RenderingTree::Empty),
-        ])(wh));
+                            ctx.add(list_view::ListView {
+                                xy: Xy::single(0.px()),
+                                height: wh.height,
+                                scroll_bar_width: 10.px(),
+                                item_wh,
+                                items: sequence_list
+                                    .iter()
+                                    .map(|sequence| {
+                                        (
+                                            sequence.name.clone(),
+                                            SequenceCell {
+                                                wh: item_wh,
+                                                project_id,
+                                                sequence: sequence.clone(),
+                                                on_right_click: Box::new({
+                                                    let sequence_id = sequence.id;
+                                                    move |mouse_event| {
+                                                        set_context_menu_type.set(Some(
+                                                    ContextMenuType::SequenceCellRightClick {
+                                                        global_xy: mouse_event.global_xy,
+                                                        sequence_id,
+                                                    },
+                                                ))
+                                                    }
+                                                }),
+                                            },
+                                        )
+                                    })
+                                    .collect(),
+                            });
+                        }),
+                    ]),
+                ),
+                table::hooks::ratio(1.0, |_wh, _ctx| {}),
+            ])(wh, ctx)
+        });
 
-        if let Some(context_menu_type) = &*context_menu_type {
-            ctx.add(match context_menu_type {
-                &ContextMenuType::SequenceCellRightClick {
-                    global_xy,
-                    sequence_id,
-                } => context_menu::use_context_menu(global_xy, || set_context_menu_type.set(None))
+        ctx.compose(|ctx| {
+            if let Some(context_menu_type) = &*context_menu_type {
+                ctx.add(match context_menu_type {
+                    &ContextMenuType::SequenceCellRightClick {
+                        global_xy,
+                        sequence_id,
+                    } => context_menu::use_context_menu(global_xy, || {
+                        set_context_menu_type.set(None)
+                    })
                     .add_button("Delete", move || {
                         spawn_local(async move {
                             match crate::RPC
@@ -203,22 +215,27 @@ impl Component for SequenceListPage {
                         }
                     })
                     .build(),
-            });
-        }
+                });
+            }
+        });
 
-        if let Some((sequence_id, ref initial_sequence_name)) = *rename_modal {
-            namui::log!("render rename modal");
-            ctx.add(RenameModal {
-                init_sequence_name: initial_sequence_name.clone(),
-                on_rename_done: &|new_name| {
-                    on_internal_event(InternalEvent::OnRenameDone {
-                        sequence_id,
-                        new_name,
-                    })
-                },
-                close_modal: &|| on_internal_event(InternalEvent::CloseRenameModal),
-            });
-        }
+        ctx.compose(|ctx| {
+            if let Some((sequence_id, ref initial_sequence_name)) = *rename_modal {
+                namui::log!("render rename modal");
+                ctx.add(RenameModal {
+                    init_sequence_name: initial_sequence_name.clone(),
+                    on_rename_done: &|new_name| {
+                        on_internal_event(InternalEvent::OnRenameDone {
+                            sequence_id,
+                            new_name,
+                        })
+                    },
+                    close_modal: &|| on_internal_event(InternalEvent::CloseRenameModal),
+                });
+            }
+        });
+
+        ctx.done()
     }
 }
 
@@ -233,16 +250,15 @@ pub struct SequenceCell<'a> {
 
 impl Component for SequenceCell<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
+        let Self {
             wh,
             project_id,
-            ref sequence,
-            ref on_right_click,
+            sequence,
+            on_right_click,
         } = self;
         let sequence_id = sequence.id;
-        let on_right_click = on_right_click.clone();
 
-        ctx.add(namui_prebuilt::button::text_button(
+        ctx.component(namui_prebuilt::button::text_button(
             Rect::from_xy_wh(Xy::single(0.px()), wh),
             sequence.name.as_str(),
             Color::WHITE,
@@ -260,6 +276,7 @@ impl Component for SequenceCell<'_> {
                     on_right_click(event);
                 }
             },
-        ));
+        ))
+        .done()
     }
 }

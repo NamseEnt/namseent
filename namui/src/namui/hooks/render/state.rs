@@ -24,8 +24,7 @@ pub(crate) fn handle_state<'a, State: Send + Sync + Debug + 'static>(
 
         update_or_push(&mut state_list, state_index, Box::new(state));
     } else if let RenderEvent::ChannelEvents { channel_events } = get_render_event().as_ref() {
-        if let Some(item) = channel_events.into_iter().find(|x| x.sig_id() == sig_id) {
-            crate::log!("state updated");
+        for item in channel_events.into_iter().filter(|x| x.sig_id() == sig_id) {
             match item {
                 Item::SetStateItem(set_state) => match set_state {
                     SetStateItem::Set { sig_id, value } => {

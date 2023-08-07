@@ -182,15 +182,14 @@ impl Component for ContextMenu<'_> {
         ctx.compose(|ctx| {
             ctx.on_top()
                 .absolute(global_xy_within_screen)
-                .add(background)
-                .compose(menus)
-                .attach_event(|event| {
+                .add(background.attach_event(|event| {
                     if let namui::Event::MouseDown { event } = event {
                         if !event.is_local_xy_in() {
                             set_mouse_over_item_idx.set(None);
                         }
                     }
-                });
+                }))
+                .compose(menus);
         });
 
         ctx.done()
