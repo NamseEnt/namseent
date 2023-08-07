@@ -1,5 +1,6 @@
 use super::*;
 use crate::{AsXyPx, Matrix3x3, RenderingTree};
+use namui_type::*;
 
 pub struct RenderCtx {
     pub(crate) instance: Arc<ComponentInstance>,
@@ -159,6 +160,12 @@ impl<'a> RenderCtx {
         let rendering_tree = self.render_children(key, component);
         self.children.lock().unwrap().push(rendering_tree);
     }
+    pub(crate) fn inverse_matrix(&self) -> Matrix3x3 {
+        self.matrix.lock().unwrap().inverse().unwrap()
+    }
+    pub(crate) fn local_xy(&self, xy: Xy<Px>) -> Xy<Px> {
+        self.inverse_matrix().transform_xy(xy)
+    }
 }
 
 impl RenderCtx {
@@ -170,23 +177,19 @@ impl RenderCtx {
         self
     }
     pub fn compose(&self, compose: impl FnOnce(&mut ComposeCtx)) -> &Self {
-        crate::log!(
-            "compose before len: {}",
-            self.children.lock().unwrap().len()
-        );
-        let mut compose_ctx = ComposeCtx::new(
-            KeyVec::new_child(self.get_next_component_index()),
-            self.matrix.lock().unwrap().clone(),
-            self.renderer(),
-            self.children.clone(),
-        );
+        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        {
+            let mut compose_ctx = ComposeCtx::new(
+                KeyVec::new_child(self.get_next_component_index()),
+                self.matrix.lock().unwrap().clone(),
+                self.renderer(),
+                lazy.clone(),
+            );
 
-        compose(&mut compose_ctx);
-        drop(compose_ctx);
-        crate::log!(
-            "compose after len: {}\n\n",
-            self.children.lock().unwrap().len()
-        );
+            compose(&mut compose_ctx);
+        }
+        let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
+        self.children.lock().unwrap().push(rendering_tree);
 
         self
     }
@@ -223,27 +226,19 @@ pub struct ComposeCtx {
     children_index: usize,
     pre_key_vec: KeyVec,
     renderer: Renderer,
-    children: Arc<Mutex<Vec<RenderingTree>>>,
-    push_on_drop: Arc<Mutex<Vec<RenderingTree>>>,
+    // set_on_drop: Arc<Mutex<Option<RenderingTree>>>,
+    children: Vec<Arc<Mutex<Option<LazyRenderingTree>>>>,
+    lazy: Arc<Mutex<Option<LazyRenderingTree>>>,
 }
 impl Drop for ComposeCtx {
     fn drop(&mut self) {
-        crate::log!("drop ComposeCtx: {:?}", self.pre_key_vec);
         let mut children = vec![];
-        std::mem::swap(self.children.lock().unwrap().as_mut(), &mut children);
+        std::mem::swap(&mut self.children, &mut children);
 
-        let rendering_tree = {
-            if children.len() == 0 {
-                crate::log!("ComposeCtx Drop No Len");
-                return;
-            } else if children.len() == 1 {
-                children.remove(0)
-            } else {
-                RenderingTree::Children(children)
-            }
-        };
-
-        self.push_on_drop.lock().unwrap().push(rendering_tree);
+        self.lazy
+            .lock()
+            .unwrap()
+            .replace(LazyRenderingTree::Children { children });
     }
 }
 impl ComposeCtx {
@@ -251,7 +246,7 @@ impl ComposeCtx {
         pre_key_vec: KeyVec,
         matrix: Matrix3x3,
         renderer: Renderer,
-        push_on_drop: Arc<Mutex<Vec<RenderingTree>>>,
+        lazy: Arc<Mutex<Option<LazyRenderingTree>>>,
     ) -> Self {
         ComposeCtx {
             matrix,
@@ -259,7 +254,7 @@ impl ComposeCtx {
             pre_key_vec,
             renderer,
             children: Default::default(),
-            push_on_drop,
+            lazy,
         }
     }
     fn next_children_index(&mut self) -> usize {
@@ -272,60 +267,73 @@ impl ComposeCtx {
         self.pre_key_vec.child(index)
     }
 
-    pub fn debug(&self) {
-        // crate::log!(
-        //     "Debug ComposeCtx: children: {:#?}",
-        //     self.children.lock().unwrap()
-        // );
+    pub fn debug(&self) {}
+
+    fn add_lazy(&mut self, lazy: LazyRenderingTree) {
+        self.children.push(Arc::new(Mutex::new(Some(lazy))));
     }
 }
 // Nesting
 impl ComposeCtx {
     pub fn translate(&mut self, xy: impl AsXyPx) -> Self {
         let xy = xy.as_xy_px();
+        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        self.add_lazy(LazyRenderingTree::Translate {
+            xy,
+            lazy: lazy.clone(),
+        });
+
         let matrix = self.matrix * Matrix3x3::from_translate(xy.x.as_f32(), xy.y.as_f32());
         ComposeCtx::new(
             self.next_child_key_vec(),
             matrix,
             self.renderer.clone(),
-            self.children.clone(),
+            lazy,
         )
     }
     pub fn absolute(&mut self, xy: impl AsXyPx) -> Self {
         let xy = xy.as_xy_px();
+        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        self.add_lazy(LazyRenderingTree::Absolute {
+            xy,
+            lazy: lazy.clone(),
+        });
+
         let matrix = Matrix3x3::from_translate(xy.x.as_f32(), xy.y.as_f32());
         ComposeCtx::new(
             self.next_child_key_vec(),
             matrix,
             self.renderer.clone(),
-            self.children.clone(),
+            lazy,
         )
     }
-    pub fn clip(&mut self, height: crate::PathBuilder, intersect: crate::ClipOp) -> Self {
+    pub fn clip(&mut self, path: crate::PathBuilder, clip_op: crate::ClipOp) -> Self {
+        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        self.add_lazy(LazyRenderingTree::Clip {
+            path,
+            clip_op,
+            lazy: lazy.clone(),
+        });
+
         // TODO: Cliping
 
         ComposeCtx::new(
             self.next_child_key_vec(),
             self.matrix,
             self.renderer.clone(),
-            self.children.clone(),
-        )
-    }
-    pub fn group_by(&mut self, key: impl Into<Key>) -> Self {
-        ComposeCtx::new(
-            self.pre_key_vec.group(key),
-            self.matrix,
-            self.renderer.clone(),
-            self.children.clone(),
+            lazy,
         )
     }
     pub fn on_top(&mut self) -> Self {
-        let matrix = Matrix3x3::identity();
+        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        self.add_lazy(LazyRenderingTree::OnTop { lazy: lazy.clone() });
+
+        let matrix = self.matrix;
         ComposeCtx::new(
             self.next_child_key_vec(),
             matrix,
             self.renderer.clone(),
-            self.children.clone(),
+            lazy,
         )
     }
 }
@@ -336,30 +344,25 @@ impl ComposeCtx {
 
     pub fn add(&mut self, component: impl Component) -> &mut Self {
         let key_vec = self.next_child_key_vec();
-        let rendering_tree = self.renderer.render(key_vec, component, self.matrix);
-        self.children.lock().unwrap().push(rendering_tree);
-        self
+        self.add_inner(key_vec, component)
     }
 
     pub fn add_with_key(&mut self, key: impl Into<Key>, component: impl Component) -> &mut Self {
         let key_vec = self.pre_key_vec.custom_key(key);
+        self.add_inner(key_vec, component)
+    }
+
+    fn add_inner(&mut self, key_vec: KeyVec, component: impl Component) -> &mut Self {
         let rendering_tree = self.renderer.render(key_vec, component, self.matrix);
-        self.children.lock().unwrap().push(rendering_tree);
+        self.children.push(Arc::new(Mutex::new(Some(
+            LazyRenderingTree::RenderingTree { rendering_tree },
+        ))));
         self
     }
 
     pub fn compose(&mut self, compose: impl FnOnce(&mut ComposeCtx)) -> &mut Self {
         let key_vec = self.next_child_key_vec();
-        let mut child_compose_ctx = ComposeCtx::new(
-            key_vec,
-            self.matrix,
-            self.renderer.clone(),
-            self.children.clone(),
-        );
-        compose(&mut child_compose_ctx);
-        drop(child_compose_ctx);
-
-        self
+        self.compose_inner(key_vec, compose)
     }
 
     pub fn compose_with_key(
@@ -368,19 +371,86 @@ impl ComposeCtx {
         compose: impl FnOnce(&mut ComposeCtx),
     ) -> &mut Self {
         let key_vec = self.pre_key_vec.custom_key(key);
-        let mut child_compose_ctx = ComposeCtx::new(
-            key_vec,
-            self.matrix,
-            self.renderer.clone(),
-            self.children.clone(),
-        );
-        compose(&mut child_compose_ctx);
-        drop(child_compose_ctx);
+        self.compose_inner(key_vec, compose)
+    }
+
+    fn compose_inner(
+        &mut self,
+        key_vec: KeyVec,
+        compose: impl FnOnce(&mut ComposeCtx),
+    ) -> &mut Self {
+        let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
+        {
+            let mut child_compose_ctx =
+                ComposeCtx::new(key_vec, self.matrix, self.renderer.clone(), lazy.clone());
+            compose(&mut child_compose_ctx);
+        }
+        let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
+        self.children.push(Arc::new(Mutex::new(Some(
+            LazyRenderingTree::RenderingTree { rendering_tree },
+        ))));
 
         self
     }
 
     pub fn attach_event(&self, attach_event: impl Fn(Event<'_>)) -> &Self {
         todo!()
+    }
+}
+
+enum LazyRenderingTree {
+    Translate {
+        xy: Xy<Px>,
+        lazy: Arc<Mutex<Option<LazyRenderingTree>>>,
+    },
+    Absolute {
+        xy: Xy<Px>,
+        lazy: Arc<Mutex<Option<LazyRenderingTree>>>,
+    },
+    Clip {
+        path: crate::PathBuilder,
+        clip_op: crate::ClipOp,
+        lazy: Arc<Mutex<Option<LazyRenderingTree>>>,
+    },
+    OnTop {
+        lazy: Arc<Mutex<Option<LazyRenderingTree>>>,
+    },
+    Children {
+        children: Vec<Arc<Mutex<Option<LazyRenderingTree>>>>,
+    },
+    RenderingTree {
+        rendering_tree: RenderingTree,
+    },
+}
+impl LazyRenderingTree {
+    fn into_rendering_tree(self) -> RenderingTree {
+        match self {
+            LazyRenderingTree::Translate { xy, lazy } => {
+                let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
+                crate::translate(xy.x, xy.y, rendering_tree)
+            }
+            LazyRenderingTree::Absolute { xy, lazy } => {
+                let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
+                crate::absolute(xy.x, xy.y, rendering_tree)
+            }
+            LazyRenderingTree::Clip {
+                path,
+                clip_op,
+                lazy,
+            } => {
+                let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
+                crate::clip(path, clip_op, rendering_tree)
+            }
+            LazyRenderingTree::OnTop { lazy } => {
+                let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
+                crate::on_top(rendering_tree)
+            }
+            LazyRenderingTree::Children { children } => crate::render(
+                children
+                    .into_iter()
+                    .map(|child| child.lock().unwrap().take().unwrap().into_rendering_tree()),
+            ),
+            LazyRenderingTree::RenderingTree { rendering_tree } => rendering_tree,
+        }
     }
 }

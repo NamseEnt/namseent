@@ -72,13 +72,6 @@ impl Component for ProjectListPage2 {
                 .done();
         }
 
-        ctx.component(simple_rect(
-            Wh::new(100.px(), 100.px()),
-            Color::RED,
-            5.px(),
-            Color::WHITE,
-        ));
-
         ctx.compose(|ctx| {
             table::hooks::horizontal([
                 table::hooks::ratio(1.0, |_wh, _ctx| {}),
@@ -86,7 +79,6 @@ impl Component for ProjectListPage2 {
                     2.0,
                     table::hooks::vertical([
                         table::hooks::fixed(40.px(), |wh, ctx| {
-                            namui::log!("Add Project");
                             ctx.add(namui_prebuilt::button::text_button(
                                 Rect::from_xy_wh(Xy::single(0.px()), wh),
                                 "[+] Add Project",

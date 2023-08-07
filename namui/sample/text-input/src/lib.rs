@@ -102,17 +102,14 @@ impl Component for TextInputExample {
                             },
                             ..Default::default()
                         },
-                        on_event: boxed(move |event| {
-                            namui::log!("x: {}, y: {}", x, y);
-                            match event {
-                                text_input::Event::TextUpdated { text } => {
-                                    let text = text.to_string();
-                                    set_text_3x3.mutate(move |text_3x3| {
-                                        text_3x3[x][y] = text;
-                                    });
-                                }
-                                _ => {}
+                        on_event: boxed(move |event| match event {
+                            text_input::Event::TextUpdated { text } => {
+                                let text = text.to_string();
+                                set_text_3x3.mutate(move |text_3x3| {
+                                    text_3x3[x][y] = text;
+                                });
                             }
+                            _ => {}
                         }),
                         prevent_default_codes: vec![],
                     },
