@@ -26,6 +26,8 @@ const { waiter: initWaiter, resolve: finishInit } = createWaiter();
     finishInit();
 })();
 
+let lastRequestedDrawInput: ArrayBuffer;
+
 self.onmessage = async (event) => {
     await initWaiter;
 
@@ -40,8 +42,7 @@ self.onmessage = async (event) => {
         case "requestDraw":
             {
                 const { buffer } = event.data as { buffer: ArrayBuffer };
-                console.log("requestDraw", buffer.byteLength);
-                draw(new Uint8Array(buffer));
+                lastRequestedDrawInput = buffer;
             }
             break;
         case "loadTypeface":
@@ -94,134 +95,29 @@ self.onmessage = async (event) => {
     return new Uint8Array(arrayBuffer);
 };
 
-// runAsyncMessageLoop<AsyncMessageFromMain>(self, async (message) => {
-//     switch (message.type) {
-//         case "init":
-//             {
-//                 const {
-//                     workerToMainBufferSab,
-//                     mainToWorkerBufferSab,
-//                     windowWidth,
-//                     windowHeight,
-//                 } = message;
+let lastDrawnInput: ArrayBuffer;
+let frameCount = 0;
 
-//                 const cavnasElement = new OffscreenCanvas(
-//                     windowWidth,
-//                     windowHeight,
-//                 );
+requestAnimationFrame(function onAnimationFrame() {
+    try {
+        if (!lastRequestedDrawInput) {
+            return;
+        }
 
-//                 const anyGlobalThis = globalThis as any;
+        frameCount++;
 
-//                 anyGlobalThis.getBaseUrl = () => {
-//                     const { baseUrl } = blockingRequest(
-//                         {
-//                             type: "getBaseUrl",
-//                         },
-//                         workerToMainBufferSab,
-//                     );
-//                     return baseUrl;
-//                 };
-//                 anyGlobalThis.canvasElement = () => {
-//                     return cavnasElement;
-//                 };
+        if (lastRequestedDrawInput === lastDrawnInput) {
+            return;
+        }
 
-//                 // anyGlobalThis.cacheGet = async (key: string) => {
-//                 //     const value = await cacheGet(key);
-//                 //     return value;
-//                 // };
+        draw(new Uint8Array(lastRequestedDrawInput));
+        lastDrawnInput = lastRequestedDrawInput;
+    } finally {
+        requestAnimationFrame(onAnimationFrame);
+    }
+});
 
-//                 // anyGlobalThis.cacheSet = async (key: string, value: any) => {
-//                 //     console.log("before cacheSet");
-//                 //     await cacheSet(key, value);
-//                 //     console.log("after cacheSet");
-//                 // };
-
-//                 anyGlobalThis.waitEvent = () => {
-//                     const { webEvent }: { webEvent: WebEvent | undefined } =
-//                         blockingRequest(
-//                             {
-//                                 type: "webEvent",
-//                             },
-//                             workerToMainBufferSab,
-//                         );
-
-//                     if (
-//                         webEvent &&
-//                         webEvent instanceof Object &&
-//                         "AsyncFunction" in webEvent
-//                     ) {
-//                         storeAsyncFunctionResult(
-//                             webEvent.AsyncFunction.id,
-//                             webEvent.AsyncFunction.result,
-//                         );
-//                         delete webEvent.AsyncFunction.result;
-//                     }
-
-//                     return webEvent;
-//                 };
-
-//                 anyGlobalThis.flushCanvas = () => {
-//                     const bitmap = cavnasElement.transferToImageBitmap();
-//                     sendAsyncRequest(
-//                         self,
-//                         {
-//                             type: "imageBitmap",
-//                             imageBitmap: bitmap,
-//                         },
-//                         [bitmap],
-//                     );
-//                     return;
-//                 };
-
-//                 anyGlobalThis.executeFunctionSyncOnMain = (
-//                     args_names: string[],
-//                     code: string,
-//                     args: any[],
-//                 ) => {
-//                     const response = blockingRequest(
-//                         {
-//                             type: "executeFunctionSyncOnMain",
-//                             args_names,
-//                             code,
-//                             args,
-//                         },
-//                         workerToMainBufferSab,
-//                     );
-//                     return response;
-//                 };
-
-//                 let executeAsyncFunctionId = 0;
-//                 anyGlobalThis.startExecuteAsyncFunction = (
-//                     argsNames: string[],
-//                     code: string,
-//                     args: any[],
-//                 ) => {
-//                     const id = executeAsyncFunctionId++;
-
-//                     sendAsyncRequest(self, {
-//                         type: "executeAsyncFunction",
-//                         argsNames,
-//                         code,
-//                         args,
-//                         id,
-//                     });
-//                     return id;
-//                 };
-//                 anyGlobalThis.getAsyncFunctionResult = (id: number) => {
-//                     const result = asyncFunctionResultMap.get(id);
-//                     asyncFunctionResultMap.delete(id);
-//                     return result;
-//                 };
-
-//                 anyGlobalThis.getInitialWindowSize = () => {
-//                     return {
-//                         width: windowWidth,
-//                         height: windowHeight,
-//                     };
-//                 };
-
-//                 await run();
-//             }
-//             break;
-//     }
-// });
+setInterval(() => {
+    console.log("fps", frameCount);
+    frameCount = 0;
+}, 1000);
