@@ -40,6 +40,7 @@ self.onmessage = async (event) => {
         case "requestDraw":
             {
                 const { buffer } = event.data as { buffer: ArrayBuffer };
+                console.log("requestDraw", buffer.byteLength);
                 draw(new Uint8Array(buffer));
             }
             break;
@@ -56,7 +57,9 @@ self.onmessage = async (event) => {
     }
 };
 
-(globalThis as any).loadImageBitmap = async (url: string) => {
+(globalThis as any).loadImageBitmap = async (
+    url: string,
+): Promise<ImageBitmap> => {
     if (url.startsWith("bundle:")) {
         url = url.replace(
             "bundle:",
@@ -72,6 +75,25 @@ self.onmessage = async (event) => {
     const bitmap = await createImageBitmap(blob);
     return bitmap;
 };
+
+(globalThis as any).loadImageBitmap2 = async (
+    url: string,
+): Promise<Uint8Array> => {
+    if (url.startsWith("bundle:")) {
+        url = url.replace(
+            "bundle:",
+            self.location.origin +
+                self.location.pathname.replace("worker.js", "bundle/"),
+        );
+    }
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error("failed to load image");
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    return new Uint8Array(arrayBuffer);
+};
+
 // runAsyncMessageLoop<AsyncMessageFromMain>(self, async (message) => {
 //     switch (message.type) {
 //         case "init":

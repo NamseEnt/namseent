@@ -2,22 +2,19 @@ use super::*;
 use std::sync::Arc;
 
 pub(crate) struct CkPaint {
-    // last_set_shader: Arc<Mutex<Option<Arc<CkShader>>>>,
     canvas_kit_paint: CanvasKitPaint,
 }
 impl CkPaint {
     pub(crate) fn get(paint: &Paint) -> Arc<Self> {
-        static CACHE: SerdeLruCache<Paint, CkPaint> = SerdeLruCache::new();
-        CACHE.get_or_create(paint, |paint| CkPaint::new(paint))
+        static CK_PAINT_CACHE: SerdeLruCache<Paint, CkPaint> = SerdeLruCache::new();
+        CK_PAINT_CACHE.get_or_create(paint, |paint| Self::new(paint))
     }
-    pub fn new(paint: &Paint) -> Self {
+    fn new(paint: &Paint) -> Self {
+        crate::log!("new paint");
         let canvas_kit_paint = CanvasKitPaint::new();
         apply_paint_to_canvas_kit(&canvas_kit_paint, paint);
 
-        CkPaint {
-            // last_set_shader: Arc::new(Mutex::new(None)),
-            canvas_kit_paint,
-        }
+        CkPaint { canvas_kit_paint }
     }
     // pub(crate) fn set_shader(&self, shader: Option<&Arc<CkShader>>) {
     //     if self.last_set_shader.lock().unwrap().as_ref() == shader {
@@ -71,6 +68,7 @@ fn apply_paint_to_canvas_kit(canvas_kit_paint: &CanvasKitPaint, paint: &Paint) {
         stroke_join,
         // color_filter,
         blend_mode,
+        ref shader,
     } = paint;
     if let Some(color) = color {
         canvas_kit_paint.setColor(&color.into_float32_array());
@@ -95,6 +93,10 @@ fn apply_paint_to_canvas_kit(canvas_kit_paint: &CanvasKitPaint, paint: &Paint) {
     // }
     if let Some(blend_mode) = blend_mode {
         canvas_kit_paint.setBlendMode(blend_mode.into());
+    }
+    if let Some(shader) = shader {
+        let ck_shader = CkShader::get(shader);
+        canvas_kit_paint.setShader(Some(&ck_shader.canvas_kit()));
     }
 }
 

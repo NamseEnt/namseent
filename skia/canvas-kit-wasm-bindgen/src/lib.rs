@@ -58,3 +58,14 @@ impl IntoFloat32Array for Color {
         array
     }
 }
+impl IntoFloat32Array for Ltrb<Px> {
+    fn into_float32_array(&self) -> Float32Array {
+        let array = Float32Array::new_with_length(4);
+        array.set_index(0, self.left.as_f32());
+        array.set_index(1, self.top.as_f32());
+        array.set_index(2, self.right.as_f32());
+        array.set_index(3, self.bottom.as_f32());
+
+        array
+    }
+}

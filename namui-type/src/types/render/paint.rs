@@ -10,7 +10,7 @@ pub struct Paint {
     pub stroke_join: Option<StrokeJoin>,
     // pub color_filter: Option<(Color, BlendMode)>,
     pub blend_mode: Option<BlendMode>,
-    // shader: Option<Shader>, // TODO
+    pub shader: Option<Shader>,
 }
 
 impl Paint {
@@ -24,7 +24,7 @@ impl Paint {
             stroke_join: None,
             // color_filter: None,
             blend_mode: None,
-            // shader: None,
+            shader: None,
         }
     }
     pub fn set_color(mut self, color: Color) -> Self {
@@ -59,8 +59,8 @@ impl Paint {
         self.blend_mode = Some(blend_mode);
         self
     }
-    // pub fn set_shader(mut self, make_shader: Arc<Shader>) -> Self {
-    //     self.shader = Some(make_shader);
-    //     self
-    // }
+    pub fn set_shader(mut self, shader: Shader) -> Self {
+        self.shader = Some(shader);
+        self
+    }
 }

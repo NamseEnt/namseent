@@ -8,6 +8,7 @@ pub trait SkSkia {
     fn font_metrics(&self, font: &Font) -> Option<FontMetrics>;
     fn load_typeface(&self, typeface_name: &str, bytes: &[u8]);
     fn load_image(&self, image_source: &ImageSource, image_bitmap: ImageBitmap);
+    fn load_image2(&self, image_source: &ImageSource, bytes: &[u8]);
     fn image(&self, image_source: &ImageSource) -> Option<Image>;
 }
 
@@ -21,7 +22,7 @@ pub trait SkCanvas {
     fn draw_text_blob(&self, glyph_ids: Vec<usize>, xy: Xy<Px>, font: &Font, paint: &Paint);
     fn draw_path(&self, path: &Path, paint: &Paint);
     fn draw_line(&self, from: Xy<Px>, to: Xy<Px>, paint: &Paint);
-    fn draw_image(&self, image_source: &ImageSource, path: &Path, paint: &Option<Paint>);
+    fn draw_image(&self, image_source: &ImageSource, rect: Rect<Px>, paint: &Option<Paint>);
     fn translate(&self, dx: Px, dy: Px);
     fn save(&self);
     fn clip_path(&self, path: &Path, clip_op: ClipOp, do_anti_alias: bool);

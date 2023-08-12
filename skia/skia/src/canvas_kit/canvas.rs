@@ -83,23 +83,43 @@ impl SkCanvas for CkCanvas {
         self.canvas_kit_canvas.scale(sx, sy);
     }
 
-    fn draw_image(&self, image_source: &ImageSource, path: &Path, paint: &Option<Paint>) {
+    fn draw_image(&self, image_source: &ImageSource, rect: Rect<Px>, paint: &Option<Paint>) {
         let Some(image) = CkImage::get(image_source) else {
             return;
         };
 
-        let paint = paint.as_ref().unwrap_or(&Paint::new());
+        let mut paint = paint.clone().unwrap_or(Paint::new());
 
-        // let image_shader = image.get_default_shader();
+        let image_shader = image.get_default_shader(rect);
 
-        // let next_shader = if let Some(super_shader) = paint.get_shader() {
-        //     Arc::new(super_shader.blend(BlendMode::Plus, &image_shader))
-        // } else {
-        //     image_shader
-        // };
+        let next_shader = if let Some(super_shader) = &paint.shader {
+            super_shader.blend(BlendMode::Plus, &image_shader)
+        } else {
+            image_shader
+        };
 
-        // paint.set_shader(Some(next_shader));
+        paint = paint.set_shader(next_shader);
 
-        // self.draw_path(path, paint);
+        self.draw_path(&Path::new().add_rect(rect), &paint);
+        // let ck_paint = paint.as_ref().map(|paint| CkPaint::get(paint));
+        // self.canvas_kit_canvas.drawImageRectOptions(
+        //     image.canvas_kit(),
+        //     Ltrb {
+        //         left: 0.px(),
+        //         top: 0.px(),
+        //         right: image.size().width,
+        //         bottom: image.size().height,
+        //     }
+        //     .into_float32_array(),
+        //     rect.as_ltrb().into_float32_array(),
+        //     FilterMode::Linear.into(),
+        //     MipmapMode::Linear.into(),
+        //     None,
+        //     // if let Some(ck_paint) = ck_paint {
+        //     //     Some(ck_paint.canvas_kit())
+        //     // } else {
+        //     //     None
+        //     // },
+        // );
     }
 }

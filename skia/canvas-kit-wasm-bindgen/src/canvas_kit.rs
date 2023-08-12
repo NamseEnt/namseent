@@ -49,17 +49,18 @@ extern "C" {
     // #[wasm_bindgen(js_namespace = CanvasKit)]
     // fn MakeImage(info: ImageInfo, bytes: &[u8], bytesPerRow: u32) -> Option<Image>;
 
-    // /// NOTE: This function load image in blocking way, So it is not recommended to use it.
-    // ///
-    // /// Return an Image backed by the encoded data, but attempt to defer decoding until the image
-    // /// is actually used/drawn. This deferral allows the system to cache the result, either on the
-    // /// CPU or on the GPU, depending on where the image is drawn.
-    // /// This decoding uses the codecs that have been compiled into CanvasKit. If the bytes are
-    // /// invalid (or an unrecognized codec), null will be returned. See Image.h for more details.
-    // /// @param bytes
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn MakeImageFromEncoded(this: &CanvasKit, bytes: &[u8]) -> Option<CanvasKitImage>;
+    ///
+    /// NOTE: This function load image in blocking way, So it is not recommended to use it.
+    ///
+    /// Return an Image backed by the encoded data, but attempt to defer decoding until the image
+    /// is actually used/drawn. This deferral allows the system to cache the result, either on the
+    /// CPU or on the GPU, depending on where the image is drawn.
+    /// This decoding uses the codecs that have been compiled into CanvasKit. If the bytes are
+    /// invalid (or an unrecognized codec), null will be returned. See Image.h for more details.
+    /// @param bytes
+    ///
+    #[wasm_bindgen(method)]
+    pub fn MakeImageFromEncoded(this: &CanvasKit, bytes: &[u8]) -> Option<CanvasKitImage>;
 
     ///
     /// Returns a texture-backed image based on the content in src. It assumes the image is
@@ -139,6 +140,7 @@ impl CanvasKit {
         let info = info.map(|info| info.into_js_object());
         let image = self.MakeLazyImageFromTextureSource(src, info, src_is_premul);
         image.makeCopyWithDefaultMipmaps()
+        // self.MakeLazyImageFromTextureSource(src, info, src_is_premul)
     }
 }
 

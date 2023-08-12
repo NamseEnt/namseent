@@ -1,50 +1,73 @@
 use super::*;
-use namui_type::{BlendMode, Uuid};
-use wasm_bindgen::{JsCast, JsValue};
+use std::sync::Arc;
 
 pub struct CkShader {
-    id: Uuid,
     pub(crate) canvas_kit_shader: CanvasKitShader,
 }
+
 unsafe impl Send for CkShader {}
 unsafe impl Sync for CkShader {}
 impl CkShader {
-    pub(crate) fn new(canvas_kit_shader: CanvasKitShader) -> CkShader {
-        CkShader {
-            id: Uuid::new_v4(),
-            canvas_kit_shader,
-        }
+    pub(crate) fn get(shader: &Shader) -> Arc<Self> {
+        static CK_SHADER_MAP: SerdeMap<Shader, CkShader> = SerdeMap::new();
+
+        CK_SHADER_MAP.get_or_create(shader, |shader| match shader {
+            Shader::Image { src, dest_rect } => {
+                let ck_image = CkImage::get(src).unwrap();
+                crate::log!("new image shader");
+                // let matrix = canvas_kit().Matrix().scaled(
+                //     dest_rect.width().as_f32(),
+                //     dest_rect.height().as_f32(),
+                //     None,
+                //     None,
+                // );
+                // let matrix = canvas_kit()
+                //     .Matrix()
+                //     .translated(-dest_rect.x().as_f32(), -dest_rect.y().as_f32());
+                let matrix =
+                    Matrix3x3::from_translate(dest_rect.x().as_f32(), dest_rect.y().as_f32())
+                        * Matrix3x3::from_scale(
+                            dest_rect.width().as_f32() / ck_image.size().width.as_f32() * 4.0,
+                            dest_rect.height().as_f32() / ck_image.size().height.as_f32() * 4.0,
+                        );
+                // crate::log!("matrix: {:?}", matrix);
+                CkShader {
+                    canvas_kit_shader: ck_image.canvas_kit().makeShaderOptions(
+                        TileMode::Clamp.into(),
+                        TileMode::Clamp.into(),
+                        FilterMode::Linear.into(),
+                        MipmapMode::Linear.into(),
+                        &matrix.into_linear_slice(),
+                    ),
+                }
+            }
+            Shader::Blend {
+                blend_mode,
+                src,
+                dest,
+            } => {
+                let ck_src = CkShader::get(src);
+                let ck_dest = CkShader::get(dest);
+
+                let blended = canvas_kit().Shader().MakeBlend(
+                    (*blend_mode).into(),
+                    &ck_src.canvas_kit_shader,
+                    &ck_dest.canvas_kit_shader,
+                );
+                CkShader {
+                    canvas_kit_shader: blended,
+                }
+            }
+        })
     }
 
-    pub(crate) fn blend(&self, mode: BlendMode, other: &CkShader) -> CkShader {
-        let shader = canvas_kit().Shader().MakeBlend(
-            mode.into(),
-            &self.canvas_kit_shader,
-            &other.canvas_kit_shader,
-        );
-        CkShader::new(shader)
+    pub(crate) fn canvas_kit(&self) -> &CanvasKitShader {
+        &self.canvas_kit_shader
     }
 }
 
 impl Drop for CkShader {
     fn drop(&mut self) {
         self.canvas_kit_shader.delete();
-    }
-}
-
-impl PartialEq for CkShader {
-    fn eq(&self, other: &Self) -> bool {
-        self.canvas_kit_shader.unchecked_ref::<JsValue>()
-            == other.canvas_kit_shader.unchecked_ref::<JsValue>()
-    }
-}
-
-impl std::fmt::Debug for shader::CkShader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Shader: {:?}",
-            self.canvas_kit_shader.unchecked_ref::<JsValue>()
-        )
     }
 }

@@ -27,7 +27,6 @@ pub fn init(canvas: web_sys::HtmlCanvasElement) {
 pub fn draw(bytes: &[u8]) {
     let input = DrawInput::from_bytes(bytes);
     let rendering_tree = input.rendering_tree;
-    crate::log!("rendering_tree: {:#?}", rendering_tree);
 
     let ctx = DrawContext::new(SKIA.get().unwrap().clone());
 

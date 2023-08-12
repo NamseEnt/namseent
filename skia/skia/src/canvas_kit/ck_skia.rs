@@ -41,6 +41,10 @@ impl SkSkia for CkSkia {
         CkImage::load(image_source, image_bitmap)
     }
 
+    fn load_image2(&self, image_source: &ImageSource, bytes: &[u8]) {
+        CkImage::load2(image_source, bytes)
+    }
+
     fn image(&self, image_source: &ImageSource) -> Option<Image> {
         CkImage::get(image_source).map(|x| x.image())
     }

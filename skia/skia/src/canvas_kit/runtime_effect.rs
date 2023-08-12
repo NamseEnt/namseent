@@ -16,14 +16,15 @@ impl CkRuntimeEffect {
         uniforms: &[f32],
         children: impl IntoIterator<Item = impl AsRef<CkShader>>,
     ) -> CkShader {
-        let children = children
-            .into_iter()
-            .map(|child| child.as_ref().canvas_kit_shader.clone())
-            .collect();
-        CkShader::new(
-            self.canvas_kit_runtime_effect
-                .makeShaderWithChildren(uniforms, Some(children)),
-        )
+        todo!()
+        // let children = children
+        //     .into_iter()
+        //     .map(|child| child.as_ref().canvas_kit_shader.clone())
+        //     .collect();
+        // CkShader::new(
+        //     self.canvas_kit_runtime_effect
+        //         .makeShaderWithChildren(uniforms, Some(children)),
+        // )
     }
 }
 

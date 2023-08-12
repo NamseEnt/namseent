@@ -1,17 +1,12 @@
 use super::*;
 use crate::*;
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-};
+use std::sync::Arc;
 use web_sys::ImageBitmap;
 
 pub struct CkImage {
     pub(crate) canvas_kit_image: CanvasKitImage,
     image_info: ImageInfo,
     src: ImageSource,
-    // default_shader: Arc<Shader>,
-    image_bitmap: ImageBitmap,
 }
 
 unsafe impl Send for CkImage {}
@@ -23,7 +18,20 @@ impl CkImage {
     pub(crate) fn load(image_source: &ImageSource, image_bitmap: ImageBitmap) {
         IMAGE_MAP.insert(
             image_source.clone(),
-            CkImage::new(image_source.clone(), image_bitmap),
+            CkImage::new(
+                image_source.clone(),
+                canvas_kit().make_lazy_image_from_texture_source(&image_bitmap, None, None),
+            ),
+        );
+    }
+
+    pub(crate) fn load2(image_source: &ImageSource, bytes: &[u8]) {
+        IMAGE_MAP.insert(
+            image_source.clone(),
+            CkImage::new(
+                image_source.clone(),
+                canvas_kit().MakeImageFromEncoded(bytes).unwrap(),
+            ),
         );
     }
 
@@ -38,10 +46,7 @@ impl CkImage {
         }
     }
 
-    fn new(src: ImageSource, image_bitmap: ImageBitmap) -> Self {
-        let canvas_kit_image =
-            canvas_kit().make_lazy_image_from_texture_source(&image_bitmap, None, None);
-
+    fn new(src: ImageSource, canvas_kit_image: CanvasKitImage) -> Self {
         let image_info = {
             let canvas_kit_image_info = canvas_kit_image.getImageInfo();
             let alpha_type = canvas_kit_image_info.alphaType().value();
@@ -69,18 +74,12 @@ impl CkImage {
                 },
             }
         };
-        // let default_shader = Arc::new(Shader::new(canvas_kit_image.makeShaderOptions(
-        //     TileMode::Clamp.into(),
-        //     TileMode::Clamp.into(),
-        //     FilterMode::Linear.into(),
-        //     MipmapMode::Linear.into(),
-        // )));
+
+        crate::log!("wh: {:?}", image_info);
 
         CkImage {
             canvas_kit_image,
             image_info,
-            // default_shader,
-            image_bitmap,
             src,
         }
     }
@@ -91,26 +90,33 @@ impl CkImage {
             height: canvas_kit_image_info.height,
         }
     }
-    pub fn make_shader(
-        &self,
-        tile_x: TileMode,
-        tile_y: TileMode,
-        filter: FilterMode,
-        mipmap: MipmapMode,
-    ) -> Arc<CkShader> {
-        let shader = self.canvas_kit_image.makeShaderOptions(
-            tile_x.into(),
-            tile_y.into(),
-            filter.into(),
-            mipmap.into(),
-        );
+    // pub fn make_shader(
+    //     &self,
+    //     tile_x: TileMode,
+    //     tile_y: TileMode,
+    //     filter: FilterMode,
+    //     mipmap: MipmapMode,
+    // ) -> Arc<CkShader> {
+    //     let shader = self.canvas_kit_image.makeShaderOptions(
+    //         tile_x.into(),
+    //         tile_y.into(),
+    //         filter.into(),
+    //         mipmap.into(),
+    //     );
 
-        Arc::new(CkShader::new(shader))
+    //     Arc::new(CkShader::new(shader))
+    // }
+
+    pub(crate) fn get_default_shader(&self, dest_rect: Rect<Px>) -> Shader {
+        Shader::Image {
+            src: self.src.clone(),
+            dest_rect,
+        }
     }
 
-    // pub fn get_default_shader(&self) -> Arc<Shader> {
-    //     self.default_shader.clone()
-    // }
+    pub(crate) fn canvas_kit(&self) -> &CanvasKitImage {
+        &self.canvas_kit_image
+    }
 }
 
 impl SkImage for CkImage {

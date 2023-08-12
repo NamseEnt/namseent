@@ -1,3 +1,4 @@
+use js_sys::Uint8Array;
 use namui_type::*;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use wasm_bindgen_futures::spawn_local;
@@ -7,6 +8,8 @@ use web_sys::ImageBitmap;
 extern "C" {
     #[wasm_bindgen(js_namespace = ["globalThis"], catch)]
     async fn loadImageBitmap(url: &str) -> Result<JsValue, JsValue>; // Result<ImageBitmap, String>
+    #[wasm_bindgen(js_namespace = ["globalThis"], catch)]
+    async fn loadImageBitmap2(url: &str) -> Result<JsValue, JsValue>; // Result<ImageBitmap, String>
 }
 
 pub(crate) fn start_load_image(src: &ImageSource) {
@@ -29,6 +32,19 @@ pub(crate) fn start_load_image(src: &ImageSource) {
                         crate::log!("Failed to load image: {}", url);
                     }
                 };
+                // match loadImageBitmap2(url.as_str()).await {
+                //     Ok(bytes) => {
+                //         let bytes: Uint8Array = bytes.into();
+
+                //         crate::SKIA
+                //             .get()
+                //             .unwrap()
+                //             .load_image2(&src, &bytes.to_vec());
+                //     }
+                //     Err(_) => {
+                //         crate::log!("Failed to load image: {}", url);
+                //     }
+                // };
             }
         }
     });

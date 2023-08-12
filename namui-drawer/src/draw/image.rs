@@ -24,21 +24,19 @@ impl Draw for ImageDrawCommand {
 
         ctx.canvas().save();
 
-        ctx.canvas().transform(
-            Matrix3x3::from_translate(dest_rect.x().as_f32(), dest_rect.y().as_f32())
-                * Matrix3x3::from_scale(
-                    dest_rect.width() / src_rect.width(),
-                    dest_rect.height() / src_rect.height(),
-                ),
-        );
+        // ctx.canvas().transform(
+        //     Matrix3x3::from_translate(dest_rect.x().as_f32(), dest_rect.y().as_f32()),
+        //      // * Matrix3x3::from_scale(
+        //                                                                                //     dest_rect.width() / src_rect.width(),
+        //                                                                                //     dest_rect.height() / src_rect.height(),
+        //                                                                                // ),
+        // );
 
-        ctx.canvas()
-            .draw_image(&image.src, &Path::new().add_rect(src_rect), &self.paint);
+        ctx.canvas().draw_image(&image.src, dest_rect, &self.paint);
 
         ctx.canvas().restore();
     }
 }
-
 
 // impl ImageDrawCommand {
 //     pub fn draw(&self) {

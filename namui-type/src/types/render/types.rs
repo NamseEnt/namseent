@@ -252,7 +252,7 @@ pub enum MipmapMode {
     Linear,
 }
 
-#[type_derives(Copy)]
+#[type_derives(Copy, Eq, Hash)]
 pub enum BlendMode {
     Clear,
     Src,

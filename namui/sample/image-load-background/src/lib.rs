@@ -18,13 +18,8 @@ impl App {
 impl Component for App {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let size = namui::screen::size();
-        let now = namui::now();
 
-        if now < 5.sec() {
-            return ctx.done();
-        }
-
-        let jpg_length = 14;
+        let jpg_length = 0; //14;
         let png_length = 42;
         let jpgs = (0..jpg_length)
             .map(|index| Url::parse(&format!("bundle:resources/{index}.jpg")).unwrap());
