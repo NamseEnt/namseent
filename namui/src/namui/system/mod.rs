@@ -17,6 +17,7 @@ pub(crate) mod skia;
 pub(crate) mod text_input;
 pub mod time;
 pub(crate) mod typeface;
+pub mod web;
 
 use crate::*;
 use futures::try_join;
@@ -42,6 +43,7 @@ pub(crate) async fn init() -> InitResult {
         drag_and_drop::init(),
         drawer::init(),
         text_input::init(),
+        web::init(),
     )?;
 
     try_join!(typeface::init(),)?;
