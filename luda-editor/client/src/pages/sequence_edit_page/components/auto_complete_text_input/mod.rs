@@ -4,16 +4,16 @@ mod decomposed_string;
 
 use crate::{color, components::sequence_player};
 use decomposed_string::DecomposedString;
-use namui::{prelude::*, text_input::KeyDownEvent};
+use namui::prelude::*;
 use namui_prebuilt::*;
-use std::{collections::VecDeque, fmt::Debug, sync::Arc};
+use std::{collections::VecDeque, fmt::Debug};
 
 #[namui::component]
 pub struct AutoCompleteTextInput<'a> {
     pub wh: Wh<Px>,
     pub text: String,
-    pub candidates: Arc<Vec<String>>,
-    pub on_event: &'a dyn Fn(Event),
+    pub candidates: Sig<'a, Vec<std::string::String>>,
+    pub on_event: Box<dyn 'a + Fn(Event)>,
     pub req_queue: VecDeque<Request>,
 }
 
@@ -26,13 +26,13 @@ pub enum Request {
 pub enum Event {
     TextChange { text: String },
     EditDone,
-    KeyDown { event: KeyDownEvent },
+    KeyDown { event: KeyboardEvent },
     ReqQueuePopFront,
 }
 
 impl Component for AutoCompleteTextInput<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-        let &Self {
+        let Self {
             wh,
             ref text,
             ref candidates,
@@ -41,11 +41,7 @@ impl Component for AutoCompleteTextInput<'_> {
         } = self;
         let on_event = on_event.clone();
 
-        //     text_input: TextInput,
-        // over_item_index: Option<usize>,
-        // let (over_item_index, set_over_item_index) = ctx.state(|| None);
         let (over_item_text, set_over_item_text) = ctx.state::<Option<String>>(|| None);
-        // let (text_input, set_text_input) = ctx.state(|| TextInput::new());
         let text_input_instance = namui::text_input::TextInputInstance::new(ctx);
 
         ctx.effect("handle req_queue", || {
@@ -146,136 +142,99 @@ impl Component for AutoCompleteTextInput<'_> {
             }
         };
 
-        let body = {
-            let body_height = wh.height * suggestions.len();
-            on_top(translate(
-                0.px(),
-                wh.height,
-                namui::render(
-                    suggestions
-                        .into_iter()
-                        .enumerate()
-                        .map(|(index, suggestion)| {
-                            let is_cursor_over = over_item_index == Some(index);
-                            let background = simple_rect(
-                                wh,
-                                Color::WHITE,
-                                0.px(),
-                                if is_cursor_over {
-                                    Color::from_u8(0x5C, 0x5C, 255, 255)
-                                } else {
-                                    Color::WHITE
-                                },
-                            );
-                            let text = translate(
-                                LEFT_PADDING,
-                                0.px(),
-                                typography::body::left(
-                                    wh.height,
-                                    suggestion,
-                                    if is_cursor_over {
-                                        Color::WHITE
-                                    } else {
-                                        Color::BLACK
-                                    },
-                                ),
-                            );
-                            translate(0.px(), wh.height * index, namui::render([background, text]))
-                        })
-                        .into_iter()
-                        .chain([simple_rect(
-                            Wh {
-                                width: wh.width,
-                                height: body_height,
-                            },
-                            Color::BLACK,
-                            1.px(),
-                            Color::TRANSPARENT,
-                        )]),
-                ),
-            ))
-        };
-
-        ctx.add(namui::TextInput {
-            instance: text_input_instance,
-            rect: wh.to_rect(),
-            text: text.clone(),
-            text_align: TextAlign::Left,
-            text_baseline: TextBaseline::Top,
-            font_type: sequence_player::CUT_TEXT_FONT,
-            style: text_input::Style {
-                text: sequence_player::cut_text_style(1.one_zero()),
-                rect: RectStyle {
-                    stroke: Some(RectStroke {
-                        color: color::STROKE_FOCUS,
-                        width: 2.px(),
-                        border_position: BorderPosition::Middle,
-                    }),
-                    fill: Some(RectFill {
-                        color: color::BACKGROUND,
-                    }),
+        ctx.component(
+            namui::TextInput {
+                instance: text_input_instance,
+                rect: wh.to_rect(),
+                text: text.clone(),
+                text_align: TextAlign::Left,
+                text_baseline: TextBaseline::Top,
+                font_type: sequence_player::CUT_TEXT_FONT,
+                style: text_input::Style {
+                    text: sequence_player::cut_text_style(1.one_zero()),
+                    rect: RectStyle {
+                        stroke: Some(RectStroke {
+                            color: color::STROKE_FOCUS,
+                            width: 2.px(),
+                            border_position: BorderPosition::Middle,
+                        }),
+                        fill: Some(RectFill {
+                            color: color::BACKGROUND,
+                        }),
+                        ..Default::default()
+                    },
                     ..Default::default()
                 },
-                ..Default::default()
-            },
-            event_handler: Some(
-                text_input::EventHandler::new()
-                    .on_text_updated({
-                        let on_event = on_event.clone();
-                        move |text: String| {
-                            on_event(Event::TextChange { text });
+                prevent_default_codes: vec![Code::Tab, Code::Enter, Code::ArrowUp, Code::ArrowDown],
+                on_event: Box::new(|event| match event {
+                    text_input::Event::Focus => todo!(),
+                    text_input::Event::Blur => todo!(),
+                    text_input::Event::TextUpdated { text } => {
+                        on_event(Event::TextChange {
+                            text: text.to_string(),
+                        });
+                    }
+                    text_input::Event::SelectionUpdated { selection } => todo!(),
+                    text_input::Event::KeyDown { code } => match code {
+                        Code::Tab => {}
+                        Code::Enter => {
+                            on_enter_down(code);
                         }
-                    })
-                    .on_key_down({
-                        let on_enter_down = on_enter_down.clone();
-                        let on_arrow_up_down_key = on_arrow_up_down_key.clone();
-                        move |event: KeyDownEvent| {
-                            on_event(Event::KeyDown { event });
-                            if event.is_prevented_default() || event.is_composing {
-                                return;
-                            }
-
-                            match event.code {
-                                Code::Tab => {
-                                    event.prevent_default();
-                                }
-                                Code::Enter => {
-                                    on_enter_down(event.code);
-                                    event.prevent_default();
-                                }
-                                Code::ArrowUp | Code::ArrowDown => {
-                                    on_arrow_up_down_key(event.code);
-                                    event.prevent_default();
-                                }
-                                _ => {}
-                            }
+                        Code::ArrowUp | Code::ArrowDown => {
+                            on_arrow_up_down_key(code);
                         }
-                    }),
-            ),
+                        _ => {}
+                    },
+                }),
+            }
+            .attach_event(|event| match event {
+                namui::Event::KeyDown { event } => {
+                    on_event(Event::KeyDown { event });
+                }
+                _ => {}
+            }),
+        );
+        ctx.compose(|ctx| {
+            let mut ctx = ctx.on_top().translate((0.px(), wh.height));
+            let body_height = wh.height * suggestions.len();
+            for (index, suggestion) in suggestions.into_iter().enumerate() {
+                let is_cursor_over = over_item_index == Some(index);
+                let background = simple_rect(
+                    wh,
+                    Color::WHITE,
+                    0.px(),
+                    if is_cursor_over {
+                        Color::from_u8(0x5C, 0x5C, 255, 255)
+                    } else {
+                        Color::WHITE
+                    },
+                );
+                let text = typography::body::left(
+                    wh.height,
+                    suggestion,
+                    if is_cursor_over {
+                        Color::WHITE
+                    } else {
+                        Color::BLACK
+                    },
+                );
+                ctx.translate((0.px(), wh.height * index))
+                    .add(background)
+                    .translate((LEFT_PADDING, 0.px()))
+                    .add(text);
+            }
+            ctx.add(simple_rect(
+                Wh {
+                    width: wh.width,
+                    height: body_height,
+                },
+                Color::BLACK,
+                1.px(),
+                Color::TRANSPARENT,
+            ));
         });
-        // ctx.add(
-        //     namui::render([
-        //         text_input.render(text_input::Props {
-        //
-        //         }),
-        //         body,
-        //     ])
-        //     .attach_event(move |builder| {
-        //         let on_enter_down = on_enter_down.clone();
-        //         builder.on_key_down(move |event: KeyboardEvent| {
-        //             namui::log!("builder.on_key_down.event.code: {:?}", event.code);
-        //             match event.code {
-        //                 Code::ArrowUp | Code::ArrowDown => {
-        //                     on_arrow_up_down_key(event.code);
-        //                 }
-        //                 Code::Enter => {
-        //                     on_enter_down(event.code);
-        //                 }
-        //                 _ => {}
-        //             }
-        //         });
-        //     }),
-        // );
+
+        ctx.done()
     }
 }
 

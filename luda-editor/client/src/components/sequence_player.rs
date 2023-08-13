@@ -387,28 +387,26 @@ pub fn render_over_text(
     ])(wh)
 }
 
-// pub fn render_over_text_hooks<
-//     CharacterNameSide: Component + 'static,
-//     CutTextSide: Component + 'static,
-// >(
-//     wh: Wh<Px>,
-//     character_name_side: impl FnOnce(Wh<Px>) -> CharacterNameSide,
-//     cut_text_side: impl FnOnce(Wh<Px>) -> CutTextSide,
-// ) -> table::hooks::Table {
-//     table::hooks::vertical([
-//         table::hooks::ratio(3, |_wh| RenderingTree::Empty),
-//         table::hooks::ratio(
-//             1,
-//             table::hooks::vertical([
-//                 table::hooks::ratio(
-//                     1,
-//                     table::hooks::horizontal_padding(32.px(), character_name_side),
-//                 ),
-//                 table::hooks::ratio(3, table::hooks::padding_no_clip(32.px(), cut_text_side)),
-//             ]),
-//         ),
-//     ])(wh)
-// }
+pub fn render_over_text_hooks<'a>(
+    ctx: &mut ComposeCtx,
+    wh: Wh<Px>,
+    character_name_side: impl 'a + Fn(Wh<Px>, &mut ComposeCtx),
+    cut_text_side: impl 'a + Fn(Wh<Px>, &mut ComposeCtx),
+) {
+    table::hooks::vertical([
+        table::hooks::ratio(3, |_wh, _ctx| {}),
+        table::hooks::ratio(
+            1,
+            table::hooks::vertical([
+                table::hooks::ratio(
+                    1,
+                    table::hooks::horizontal_padding(32.px(), character_name_side),
+                ),
+                table::hooks::ratio(3, table::hooks::padding_no_clip(32.px(), cut_text_side)),
+            ]),
+        ),
+    ])(wh, ctx);
+}
 
 pub fn calculate_graphic_wh_on_screen(
     original_graphic_size: Wh<Px>,

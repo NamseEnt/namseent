@@ -1,6 +1,7 @@
 use super::*;
 use namui::prelude::*;
 
+#[derive(Clone)]
 #[component]
 pub struct ToolTip {
     pub global_xy: Xy<Px>,

@@ -1,5 +1,5 @@
 use crate::color;
-use namui::prelude::*;
+use namui::{prelude::*, text_input::Style};
 use namui_prebuilt::*;
 
 #[namui::component]
@@ -29,6 +29,7 @@ impl Component for MemoEditor<'_> {
         } = self;
 
         let (text, set_text) = ctx.state(|| "".to_string());
+        let text_input_instance = namui::text_input::TextInputInstance::new(ctx);
 
         const PADDING: Px = px(8.0);
         const TITLE_HEIGHT: Px = px(48.0);
@@ -88,28 +89,6 @@ impl Component for MemoEditor<'_> {
             // .with_mouse_cursor(MouseCursor::Pointer),
         );
 
-        // let on_save_button_clicked = || {
-        //     let content = text.clone();
-        //     spawn_local(async move {
-        //         match crate::RPC
-        //             .create_memo(rpc::create_memo::Request {
-        //                 sequence_id,
-        //                 cut_id,
-        //                 content,
-        //             })
-        //             .await
-        //         {
-        //             Ok(response) => {
-        //                 namui::event::send(Event::MemoCreated {
-        //                     memo: response.memo,
-        //                 });
-        //                 namui::event::send(Event::CloseMemoEditor);
-        //             }
-        //             Err(error) => namui::log!("Failed to create memo: {:?}", error),
-        //         };
-        //     });
-        // };
-
         let save_button_cell = table::hooks::fit(
             table::hooks::FitAlign::RightBottom,
             button::text_button_fit(
@@ -159,45 +138,52 @@ impl Component for MemoEditor<'_> {
                     1.px(),
                     Color::TRANSPARENT,
                 ));
-                // table::hooks::padding(PADDING, |wh| text_input::TextInput {
-                //     rect: Rect::from_xy_wh(Xy::zero(), wh),
-                //     text: text.to_string(),
-                //     text_align: TextAlign::Left,
-                //     text_baseline: TextBaseline::Top,
-                //     font_type: FontType {
-                //         serif: false,
-                //         size: 14.int_px(),
-                //         language: Language::Ko,
-                //         font_weight: FontWeight::REGULAR,
-                //     },
-                //     style: Style {
-                //         // TODO: Declare Ltrb with vector_types! macro
-                //         // padding: Ltrb::single(PADDING),
-                //         padding: Ltrb {
-                //             left: PADDING,
-                //             top: PADDING,
-                //             right: PADDING,
-                //             bottom: PADDING,
-                //         },
-                //         rect: RectStyle {
-                //             stroke: Some(RectStroke {
-                //                 color: color::STROKE_NORMAL,
-                //                 width: 1.px(),
-                //                 border_position: BorderPosition::Inside,
-                //             }),
-                //             fill: None,
-                //             round: None,
-                //         },
-                //         text: TextStyle {
-                //             color: color::STROKE_NORMAL,
-                //             ..Default::default()
-                //         },
-                //     },
-                //     event_handler: Some(
-                //         text_input::EventHandler::new()
-                //             .on_text_updated(move |text| set_text.set(text.clone())),
-                //     ),
-                // })(wh),
+
+                table::hooks::padding(PADDING, |wh, ctx| {
+                    ctx.add(text_input::TextInput {
+                        instance: text_input_instance,
+                        rect: Rect::from_xy_wh(Xy::zero(), wh),
+                        text: text.to_string(),
+                        text_align: TextAlign::Left,
+                        text_baseline: TextBaseline::Top,
+                        font_type: FontType {
+                            serif: false,
+                            size: 14.int_px(),
+                            language: Language::Ko,
+                            font_weight: FontWeight::REGULAR,
+                        },
+                        style: Style {
+                            // TODO: Declare Ltrb with vector_types! macro
+                            // padding: Ltrb::single(PADDING),
+                            padding: Ltrb {
+                                left: PADDING,
+                                top: PADDING,
+                                right: PADDING,
+                                bottom: PADDING,
+                            },
+                            rect: RectStyle {
+                                stroke: Some(RectStroke {
+                                    color: color::STROKE_NORMAL,
+                                    width: 1.px(),
+                                    border_position: BorderPosition::Inside,
+                                }),
+                                fill: None,
+                                round: None,
+                            },
+                            text: TextStyle {
+                                color: color::STROKE_NORMAL,
+                                ..Default::default()
+                            },
+                        },
+                        prevent_default_codes: vec![],
+                        on_event: Box::new(|event| match event {
+                            text_input::Event::TextUpdated { text } => {
+                                set_text.set(text.to_string())
+                            }
+                            _ => {}
+                        }),
+                    });
+                })(wh, ctx);
             }),
         ]);
 

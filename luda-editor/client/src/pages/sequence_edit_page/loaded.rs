@@ -18,6 +18,11 @@ pub struct LoadedSequenceEditorPage {
     pub cg_files: Vec<CgFile>,
 }
 
+#[derive(Debug)]
+enum ContextMenu {
+    CutListView { global_xy: Xy<Px> },
+}
+
 impl Component for LoadedSequenceEditorPage {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let Self {
@@ -39,12 +44,7 @@ impl Component for LoadedSequenceEditorPage {
         let (cut_id_memos_map, set_cut_id_memos_map) = ctx.state(|| cut_id_memos_map.clone());
         let (editing_memo, set_editing_memo) = ctx.state(|| None);
 
-        #[derive(Debug)]
-        enum ContextMenu {
-            CutListView { global_xy: Xy<Px> },
-        }
         let (context_menu, set_context_menu) = ctx.state::<Option<ContextMenu>>(|| None);
-        namui::log!("context_menu: {:#?}", context_menu);
 
         let selected_cut = selected_cut_id.and_then(|id| sequence.cuts.iter().find(|c| c.id == id));
         let project_id = project_shared_data.id();
@@ -244,7 +244,7 @@ impl Component for LoadedSequenceEditorPage {
             table::hooks::horizontal([
                 table::hooks::fixed(220.px(), cut_list_view_cell),
                 table::hooks::ratio(4, cut_editor_cell),
-                // // character_editor_cell,
+                character_editor_cell,
                 memo_list_view_cell,
             ])(wh, ctx)
         });
@@ -267,22 +267,24 @@ impl Component for LoadedSequenceEditorPage {
         });
 
         ctx.compose(|ctx| {
-            if let Some(context_menu) = context_menu.as_ref() {
-                match context_menu {
-                    &ContextMenu::CutListView { global_xy } => {
-                        ctx.add(
-                            use_context_menu(global_xy, &|| set_context_menu.set(None))
-                                .add_button("Add Cut", &|| {
-                                    set_seqenece.mutate(|sequence| {
-                                        sequence.update(SequenceUpdateAction::InsertCut {
-                                            cut: Cut::new(uuid()),
-                                            after_cut_id: None,
-                                        })
+            let Some(context_menu) = context_menu.as_ref() else {
+                return;
+            };
+
+            match context_menu {
+                &ContextMenu::CutListView { global_xy } => {
+                    ctx.add(
+                        use_context_menu(global_xy, &|| set_context_menu.set(None))
+                            .add_button("Add Cut", &|| {
+                                set_seqenece.mutate(|sequence| {
+                                    sequence.update(SequenceUpdateAction::InsertCut {
+                                        cut: Cut::new(uuid()),
+                                        after_cut_id: None,
                                     })
                                 })
-                                .build(),
-                        );
-                    }
+                            })
+                            .build(),
+                    );
                 }
             }
         });

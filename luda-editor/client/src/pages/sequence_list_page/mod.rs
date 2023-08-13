@@ -13,8 +13,8 @@ pub struct SequenceListPage {
 }
 
 #[derive(Debug)]
-enum ContextMenuType {
-    SequenceCellRightClick {
+enum ContextMenu {
+    SequenceCell {
         global_xy: Xy<Px>,
         sequence_id: Uuid,
     },
@@ -26,7 +26,7 @@ impl Component for SequenceListPage {
         let (error_message, set_error_message) = ctx.state::<Option<String>>(|| None);
         let (is_loading, set_is_loading) = ctx.state(|| true);
         let (sequence_list, set_sequence_list) = ctx.state::<Vec<SequenceNameAndId>>(|| vec![]);
-        let (context_menu_type, set_context_menu_type) = ctx.state(|| None);
+        let (context_menu, set_context_menu) = ctx.state(|| None);
         let (rename_modal, set_rename_modal) = ctx.state(|| None);
 
         let start_fetch_list = move || {
@@ -160,12 +160,12 @@ impl Component for SequenceListPage {
                                                 on_right_click: Box::new({
                                                     let sequence_id = sequence.id;
                                                     move |mouse_event| {
-                                                        set_context_menu_type.set(Some(
-                                                    ContextMenuType::SequenceCellRightClick {
-                                                        global_xy: mouse_event.global_xy,
-                                                        sequence_id,
-                                                    },
-                                                ))
+                                                        set_context_menu.set(Some(
+                                                            ContextMenu::SequenceCell {
+                                                                global_xy: mouse_event.global_xy,
+                                                                sequence_id,
+                                                            },
+                                                        ))
                                                     }
                                                 }),
                                             },
@@ -181,40 +181,38 @@ impl Component for SequenceListPage {
         });
 
         ctx.compose(|ctx| {
-            if let Some(context_menu_type) = &*context_menu_type {
+            if let Some(context_menu_type) = &*context_menu {
                 ctx.add(match context_menu_type {
-                    &ContextMenuType::SequenceCellRightClick {
+                    &ContextMenu::SequenceCell {
                         global_xy,
                         sequence_id,
-                    } => context_menu::use_context_menu(global_xy, || {
-                        set_context_menu_type.set(None)
-                    })
-                    .add_button("Delete", move || {
-                        spawn_local(async move {
-                            match crate::RPC
-                                .delete_sequence(rpc::delete_sequence::Request { sequence_id })
-                                .await
-                            {
-                                Ok(_) => {
-                                    start_fetch_list();
+                    } => context_menu::use_context_menu(global_xy, || set_context_menu.set(None))
+                        .add_button("Delete", move || {
+                            spawn_local(async move {
+                                match crate::RPC
+                                    .delete_sequence(rpc::delete_sequence::Request { sequence_id })
+                                    .await
+                                {
+                                    Ok(_) => {
+                                        start_fetch_list();
+                                    }
+                                    Err(error) => {
+                                        set_error_message.set(Some(error.to_string()));
+                                    }
                                 }
-                                Err(error) => {
-                                    set_error_message.set(Some(error.to_string()));
-                                }
-                            }
-                        });
-                    })
-                    .add_button("Rename", move || {
-                        let sequence_name = sequence_list
-                            .iter()
-                            .find(|x| x.id == sequence_id)
-                            .map(|x| x.name.clone());
+                            });
+                        })
+                        .add_button("Rename", move || {
+                            let sequence_name = sequence_list
+                                .iter()
+                                .find(|x| x.id == sequence_id)
+                                .map(|x| x.name.clone());
 
-                        if let Some(sequence_name) = sequence_name {
-                            set_rename_modal.set(Some((sequence_id, sequence_name)));
-                        }
-                    })
-                    .build(),
+                            if let Some(sequence_name) = sequence_name {
+                                set_rename_modal.set(Some((sequence_id, sequence_name)));
+                            }
+                        })
+                        .build(),
                 });
             }
         });

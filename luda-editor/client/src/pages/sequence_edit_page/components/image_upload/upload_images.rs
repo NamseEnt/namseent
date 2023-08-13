@@ -1,4 +1,5 @@
 use super::*;
+use ::futures::future::try_join_all;
 use namui::Uuid;
 
 #[allow(dead_code)]
@@ -23,7 +24,7 @@ pub async fn upload_images_using_picker(
             Ok(())
         });
 
-    futures::future::try_join_all(futures).await?;
+    try_join_all(futures).await?;
 
     Ok(())
 }
