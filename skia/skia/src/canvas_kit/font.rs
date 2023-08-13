@@ -1,14 +1,16 @@
 use super::*;
 use std::sync::Arc;
 
+type GlyphIds = Vec<usize>;
+
 pub struct CkFont {
     // pub(crate) id: String,
     pub(crate) canvas_kit_font: CanvasKitFont,
     // pub(crate) size: IntPx,
     pub(crate) metrics: FontMetrics,
-    glyph_ids_caches: SerdeLruCache<String, Vec<usize>>,
-    glyph_widths_caches: SerdeLruCache<(Vec<usize>, Paint), Vec<Px>>,
-    // glyph_bounds_caches: SerdeLruCache<(GlyphIds, super::CkPaint), Vec<Rect<Px>>>,
+    glyph_ids_caches: SerdeLruCache<String, GlyphIds>,
+    glyph_widths_caches: SerdeLruCache<(GlyphIds, Paint), Vec<Px>>,
+    glyph_bounds_caches: SerdeLruCache<(GlyphIds, Paint), Vec<Rect<Px>>>,
 }
 impl CkFont {
     pub(crate) fn get(font: &Font) -> Option<Arc<Self>> {
@@ -35,6 +37,7 @@ impl CkFont {
                 metrics,
                 glyph_ids_caches: Default::default(),
                 glyph_widths_caches: Default::default(),
+                glyph_bounds_caches: Default::default(),
             })
         })
     }
@@ -44,31 +47,7 @@ impl CkFont {
 }
 
 impl CkFont {
-    //     pub fn generate_id(typeface: &CkTypeface, size: IntPx) -> String {
-    //         format!("{}-{}", typeface.id, size)
-    //     }
-    //     pub fn new(typeface: &CkTypeface, size: IntPx) -> Self {
-    //         let canvas_kit_font =
-    //             CanvasKitFont::new(&typeface.canvas_kit_typeface, size.as_i32() as i16);
-    //         CkFont {
-    //             id: Self::generate_id(typeface, size),
-    //             size,
-    //             metrics: {
-    //                 let canvas_kit_font_metrics = &canvas_kit_font.getMetrics();
-
-    //                 FontMetrics {
-    //                     ascent: canvas_kit_font_metrics.ascent().into(),
-    //                     descent: canvas_kit_font_metrics.descent().into(),
-    //                     leading: canvas_kit_font_metrics.leading().into(),
-    //                 }
-    //             },
-    //             canvas_kit_font,
-    //             glyph_ids_caches: Mutex::new(lru::LruCache::new(NonZeroUsize::new(1024).unwrap())),
-    //             glyph_widths_caches: Mutex::new(lru::LruCache::new(NonZeroUsize::new(1024).unwrap())),
-    //             glyph_bounds_caches: Mutex::new(lru::LruCache::new(NonZeroUsize::new(1024).unwrap())),
-    //         }
-    //     }
-    pub(crate) fn glyph_ids(&self, text: impl AsRef<str>) -> Vec<usize> {
+    pub(crate) fn glyph_ids(&self, text: impl AsRef<str>) -> GlyphIds {
         let text = text.as_ref().to_string();
         if text.len() == 0 {
             return vec![];
@@ -80,8 +59,8 @@ impl CkFont {
             })
             .to_vec()
     }
-    pub(crate) fn glyph_widths(&self, glyph_ids: Vec<usize>, paint: &Paint) -> Vec<Px> {
-        if glyph_ids.len() == 0 {
+    pub(crate) fn glyph_widths(&self, glyph_ids: GlyphIds, paint: &Paint) -> Vec<Px> {
+        if glyph_ids.is_empty() {
             return vec![];
         }
         self.glyph_widths_caches
@@ -100,40 +79,36 @@ impl CkFont {
             })
             .to_vec()
     }
-    //     pub(crate) fn get_glyph_bounds(
-    //         &self,
-    //         glyph_ids: GlyphIds,
-    //         paint: &super::CkPaint,
-    //     ) -> Vec<Rect<Px>> {
-    //         let mut caches = self.glyph_bounds_caches.lock().unwrap();
+    pub(crate) fn glyph_bounds(&self, glyph_ids: GlyphIds, paint: &Paint) -> Vec<Rect<Px>> {
+        if glyph_ids.is_empty() {
+            return vec![];
+        }
 
-    //         let key = (glyph_ids.clone(), paint.clone());
-    //         match caches.get(&key) {
-    //             Some(glyph_bounds) => glyph_bounds.clone(),
-    //             None => {
-    //                 let bound_items = self
-    //                     .canvas_kit_font
-    //                     .getGlyphBounds(glyph_ids, Some(&paint.canvas_kit_paint))
-    //                     .to_vec();
+        self.glyph_bounds_caches
+            .get_or_create(&(glyph_ids, paint.clone()), |(glyph_ids, paint)| {
+                let ck_paint = CkPaint::get(paint);
 
-    //                 let mut iter = bound_items.iter().peekable();
-    //                 let mut bounds = Vec::new();
+                let bound_ltrbs = self
+                    .canvas_kit_font
+                    .getGlyphBounds(glyph_ids.clone(), Some(ck_paint.canvas_kit()))
+                    .to_vec();
 
-    //                 while iter.peek().is_some() {
-    //                     bounds.push(Rect::Ltrb {
-    //                         left: px(*iter.next().unwrap()),
-    //                         top: px(*iter.next().unwrap()),
-    //                         right: px(*iter.next().unwrap()),
-    //                         bottom: px(*iter.next().unwrap()),
-    //                     });
-    //                 }
+                let mut iter = bound_ltrbs.into_iter().peekable();
 
-    //                 caches.put(key, bounds.clone());
+                let mut bounds = Vec::new();
 
-    //                 bounds
-    //             }
-    //         }
-    //     }
+                while iter.peek().is_some() {
+                    bounds.push(Rect::Ltrb {
+                        left: px(iter.next().unwrap()),
+                        top: px(iter.next().unwrap()),
+                        right: px(iter.next().unwrap()),
+                        bottom: px(iter.next().unwrap()),
+                    });
+                }
+                bounds
+            })
+            .to_vec()
+    }
 }
 
 // impl Drop for CkFont {

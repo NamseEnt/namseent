@@ -13,3 +13,9 @@ pub struct TextDrawCommand {
     pub line_height_percent: Percent,
     pub underline: Option<Paint>,
 }
+
+impl TextDrawCommand {
+    pub fn line_height_px(&self) -> Px {
+        self.font.size.into_px() * self.line_height_percent
+    }
+}

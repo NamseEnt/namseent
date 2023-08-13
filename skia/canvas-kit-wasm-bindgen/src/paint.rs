@@ -152,12 +152,12 @@ extern "C" {
     #[wasm_bindgen(method)]
     pub fn setStrokeJoin(this: &CanvasKitPaint, join: CanvasKitStrokeJoin);
 
-    // ///
-    // /// Sets the limit at which a sharp corner is drawn beveled.
-    // /// @param limit
-    // ///
-    // #[wasm_bindgen(method)]
-    // pub fn setStrokeMiter(this: &CanvasKitPaint, limit: number);
+    ///
+    /// Sets the limit at which a sharp corner is drawn beveled.
+    /// @param limit
+    ///
+    #[wasm_bindgen(method)]
+    pub fn setStrokeMiter(this: &CanvasKitPaint, limit: f32);
 
     ///
     /// Sets the thickness of the pen used to outline the shape.

@@ -70,6 +70,15 @@ impl GroupGlyph for CkGroupGlyph {
             None => FontMetrics::default(),
         }
     }
+
+    fn bounds(&self, text: &str) -> Vec<Rect<Px>> {
+        let Some(ck_font) = CkFont::get(&self.font) else {
+            return vec![];
+        };
+
+        let glyph_ids = ck_font.glyph_ids(text);
+        ck_font.glyph_bounds(glyph_ids.clone(), &self.paint)
+    }
 }
 
 unsafe impl Send for CkGroupGlyph {}

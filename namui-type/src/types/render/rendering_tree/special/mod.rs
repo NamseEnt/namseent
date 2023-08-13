@@ -33,17 +33,17 @@ pub enum SpecialRenderingNode {
 }
 
 impl SpecialRenderingNode {
-    pub fn get_rendering_tree(self) -> RenderingTree {
+    pub fn get_rendering_tree(&self) -> &RenderingTree {
         match self {
-            SpecialRenderingNode::Translate(node) => *node.rendering_tree,
-            SpecialRenderingNode::Clip(node) => *node.rendering_tree,
-            SpecialRenderingNode::MouseCursor(node) => *node.rendering_tree,
-            SpecialRenderingNode::WithId(node) => *node.rendering_tree,
-            SpecialRenderingNode::Absolute(node) => *node.rendering_tree,
-            SpecialRenderingNode::Rotate(node) => *node.rendering_tree,
-            SpecialRenderingNode::Scale(node) => *node.rendering_tree,
-            SpecialRenderingNode::Transform(node) => *node.rendering_tree,
-            SpecialRenderingNode::OnTop(node) => *node.rendering_tree,
+            SpecialRenderingNode::Translate(node) => node.rendering_tree.as_ref(),
+            SpecialRenderingNode::Clip(node) => node.rendering_tree.as_ref(),
+            SpecialRenderingNode::MouseCursor(node) => node.rendering_tree.as_ref(),
+            SpecialRenderingNode::WithId(node) => node.rendering_tree.as_ref(),
+            SpecialRenderingNode::Absolute(node) => node.rendering_tree.as_ref(),
+            SpecialRenderingNode::Rotate(node) => node.rendering_tree.as_ref(),
+            SpecialRenderingNode::Scale(node) => node.rendering_tree.as_ref(),
+            SpecialRenderingNode::Transform(node) => node.rendering_tree.as_ref(),
+            SpecialRenderingNode::OnTop(node) => node.rendering_tree.as_ref(),
         }
     }
 }

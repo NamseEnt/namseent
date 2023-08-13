@@ -50,6 +50,28 @@ impl<Key: serde::Serialize, Value, const CAPACITY: usize> SerdeLruCache<Key, Val
             Err(_) => None,
         }
     }
+
+    pub fn get(&self, key: &Key) -> Option<Arc<Value>> {
+        let map = self
+            .map
+            .get_or_init(|| Mutex::new(lru::LruCache::new(NonZeroUsize::new(CAPACITY).unwrap())));
+
+        let mut map = map.lock().unwrap();
+        let hash_key = SerdeHash::new(key);
+
+        map.get(&hash_key).map(|value| value.clone())
+    }
+
+    pub fn put(&self, key: &Key, value: Value) {
+        let map = self
+            .map
+            .get_or_init(|| Mutex::new(lru::LruCache::new(NonZeroUsize::new(CAPACITY).unwrap())));
+
+        let mut map = map.lock().unwrap();
+        let hash_key = SerdeHash::new(key);
+
+        map.put(hash_key, Arc::new(value));
+    }
 }
 
 impl<Key: serde::Serialize, Value, const CAPACITY: usize> Default

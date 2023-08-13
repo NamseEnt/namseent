@@ -66,6 +66,7 @@ fn apply_paint_to_canvas_kit(canvas_kit_paint: &CanvasKitPaint, paint: &Paint) {
         stroke_width,
         stroke_cap,
         stroke_join,
+        stroke_miter,
         // color_filter,
         blend_mode,
         ref shader,
@@ -87,6 +88,9 @@ fn apply_paint_to_canvas_kit(canvas_kit_paint: &CanvasKitPaint, paint: &Paint) {
     }
     if let Some(stroke_join) = stroke_join {
         canvas_kit_paint.setStrokeJoin(stroke_join.into());
+    }
+    if let Some(stroke_miter) = stroke_miter {
+        canvas_kit_paint.setStrokeMiter(stroke_miter.as_f32());
     }
     // if let Some(color_filter) = color_filter {
     //     canvas_kit_paint.setColorFilter(&color_filter.0);

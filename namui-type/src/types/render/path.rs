@@ -22,11 +22,11 @@ impl Path {
         self.commands.push(PathCommand::AddRrect { rect, rx, ry });
         self
     }
-    pub fn stroke(&mut self, options: StrokeOptions) -> Result<(), ()> {
+    pub fn stroke(mut self, options: StrokeOptions) -> Self {
         self.commands.push(PathCommand::Stroke {
             stroke_options: options,
         });
-        Ok(()) // TODO: This is false Ok. Make it sure with stroke execution.
+        self
     }
     pub fn move_to(mut self, x: Px, y: Px) -> Self {
         self.commands.push(PathCommand::MoveTo { xy: Xy { x, y } });

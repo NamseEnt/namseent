@@ -10,6 +10,8 @@ pub trait SkSkia {
     fn load_image(&self, image_source: &ImageSource, image_bitmap: ImageBitmap);
     fn load_image2(&self, image_source: &ImageSource, bytes: &[u8]);
     fn image(&self, image_source: &ImageSource) -> Option<Image>;
+    fn path_contains_xy(&self, path: &Path, paint: Option<&Paint>, xy: Xy<Px>) -> bool;
+    fn path_bounding_box(&self, path: &Path, paint: Option<&Paint>) -> Option<Rect<Px>>;
 }
 
 pub trait SkSurface {

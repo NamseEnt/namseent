@@ -3,7 +3,8 @@ use std::sync::Arc;
 use wasm_bindgen::JsValue;
 
 pub(crate) struct CkPath {
-    pub canvas_kit_path: CanvasKitPath,
+    canvas_kit_path: CanvasKitPath,
+    path: Path,
 }
 
 impl CkPath {
@@ -16,22 +17,50 @@ impl CkPath {
 
         apply_command_to_canvas_kit_path(&canvas_kit_path, path);
 
-        CkPath { canvas_kit_path }
+        CkPath {
+            canvas_kit_path,
+            path: path.clone(),
+        }
     }
-    pub fn contains(&self, xy: Xy<Px>) -> bool {
-        self.canvas_kit_path.contains(xy.x.as_f32(), xy.y.as_f32())
+    fn painted_path(path: &Path, paint: &Paint) -> Arc<Self> {
+        let path = path.clone().stroke(StrokeOptions {
+            cap: paint.stroke_cap,
+            join: paint.stroke_join,
+            width: paint.stroke_width,
+            miter_limit: paint.stroke_miter,
+            precision: None,
+        });
+
+        Self::get(&path)
     }
-    pub fn get_bounding_box(&self) -> Option<Rect<Px>> {
-        let bounds = self.canvas_kit_path.getBounds();
-        if bounds[0] == 0.0 && bounds[1] == 0.0 && bounds[2] == 0.0 && bounds[3] == 0.0 {
-            None
+    pub fn contains(&self, paint: Option<&Paint>, xy: Xy<Px>) -> bool {
+        if self.canvas_kit().contains(xy.x.as_f32(), xy.y.as_f32()) {
+            return true;
+        }
+
+        let Some(paint) = paint else {
+            return false;
+        };
+
+        Self::painted_path(&self.path, paint)
+            .canvas_kit()
+            .contains(xy.x.as_f32(), xy.y.as_f32())
+    }
+    pub fn bounding_box(&self, paint: Option<&Paint>) -> Option<Rect<Px>> {
+        if let Some(paint) = paint {
+            Self::painted_path(&self.path, paint).bounding_box(None)
         } else {
-            Some(Rect::Ltrb {
-                left: px(bounds[0]),
-                top: px(bounds[1]),
-                right: px(bounds[2]),
-                bottom: px(bounds[3]),
-            })
+            let bounds = self.canvas_kit_path.getBounds();
+            if bounds[0] == 0.0 && bounds[1] == 0.0 && bounds[2] == 0.0 && bounds[3] == 0.0 {
+                None
+            } else {
+                Some(Rect::Ltrb {
+                    left: px(bounds[0]),
+                    top: px(bounds[1]),
+                    right: px(bounds[2]),
+                    bottom: px(bounds[3]),
+                })
+            }
         }
     }
 

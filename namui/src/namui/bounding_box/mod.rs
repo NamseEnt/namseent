@@ -1,16 +1,19 @@
+mod draw_command;
+mod rendering_tree;
+
 use crate::*;
 
-pub fn bounding_box(rendering_tree: &RenderingTree) -> Option<Rect<Px>> {
-    todo!()
-    // let mut bounding_box = None;
+pub trait BoundingBox {
+    fn xy_in(&self, xy: Xy<Px>) -> bool;
+    fn bounding_box(&self) -> Option<Rect<Px>>;
+}
 
-    // rendering_tree.visit(&mut |node| {
-    //     if let Some(node_bounding_box) = node.get_bounding_box() {
-    //         bounding_box = bounding_box
-    //             .map(|bounding_box| bounding_box.union(node_bounding_box))
-    //             .or(Some(node_bounding_box));
-    //     }
-    // });
+impl BoundingBox for Path {
+    fn xy_in(&self, xy: Xy<Px>) -> bool {
+        crate::system::skia::path_contains_xy(self, None, xy)
+    }
 
-    // bounding_box
+    fn bounding_box(&self) -> Option<Rect<Px>> {
+        crate::system::skia::path_bounding_box(self, None)
+    }
 }
