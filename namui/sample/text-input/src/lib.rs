@@ -1,9 +1,9 @@
 use namui::prelude::*;
 
-pub fn main() {
-    let namui_context = namui::init();
+pub async fn main() {
+    let namui_context = namui::init().await;
 
-    namui::start(namui_context, || TextInputExample::new())
+    namui::start(namui_context, || TextInputExample::new()).await;
 }
 
 #[namui::component]
@@ -54,70 +54,69 @@ impl Component for TextInputExample {
             ],
         ];
 
-        let mut vec = vec![];
-        for x in 0..3 {
-            for y in 0..3 {
-                let key = format!("{}-{}", x, y);
-                vec.push((
-                    key,
-                    text_input::TextInput {
-                        instance: text_input_instances_3x3[x][y],
-                        rect: Rect::Xywh {
-                            x: (x as f32 * 300.0 + 100.0).px(),
-                            y: (y as f32 * 300.0 + 100.0).px(),
-                            width: px(200.0),
-                            height: px(200.0),
-                        },
-                        text_align: match x {
-                            x if x == 0 => TextAlign::Left,
-                            x if x == 1 => TextAlign::Center,
-                            x if x == 2 => TextAlign::Right,
-                            _ => unreachable!(),
-                        },
-                        text_baseline: match y {
-                            y if y == 0 => TextBaseline::Top,
-                            y if y == 1 => TextBaseline::Middle,
-                            y if y == 2 => TextBaseline::Bottom,
-                            _ => unreachable!(),
-                        },
-                        text: (*text_3x3)[x][y].clone(),
-                        font_type: namui::FontType {
-                            font_weight: namui::FontWeight::REGULAR,
-                            language: namui::Language::Ko,
-                            serif: false,
-                            size: int_px(20),
-                        },
-                        style: text_input::Style {
-                            rect: RectStyle {
-                                stroke: Some(RectStroke {
-                                    border_position: BorderPosition::Inside,
-                                    color: Color::BLACK,
-                                    width: px(1.0),
-                                }),
+        ctx.compose(|ctx| {
+            for x in 0..3 {
+                for y in 0..3 {
+                    let key = format!("{}-{}", x, y);
+                    ctx.add_with_key(
+                        key,
+                        text_input::TextInput {
+                            instance: text_input_instances_3x3[x][y],
+                            rect: Rect::Xywh {
+                                x: (x as f32 * 300.0 + 100.0).px(),
+                                y: (y as f32 * 300.0 + 100.0).px(),
+                                width: px(200.0),
+                                height: px(200.0),
+                            },
+                            text_align: match x {
+                                x if x == 0 => TextAlign::Left,
+                                x if x == 1 => TextAlign::Center,
+                                x if x == 2 => TextAlign::Right,
+                                _ => unreachable!(),
+                            },
+                            text_baseline: match y {
+                                y if y == 0 => TextBaseline::Top,
+                                y if y == 1 => TextBaseline::Middle,
+                                y if y == 2 => TextBaseline::Bottom,
+                                _ => unreachable!(),
+                            },
+                            text: (*text_3x3)[x][y].clone(),
+                            font: namui::Font {
+                                name: "NotoSansKR-Regular".to_string(),
+                                size: int_px(20),
+                            },
+                            style: text_input::Style {
+                                rect: RectStyle {
+                                    stroke: Some(RectStroke {
+                                        border_position: BorderPosition::Inside,
+                                        color: Color::BLACK,
+                                        width: px(1.0),
+                                    }),
+                                    ..Default::default()
+                                },
+                                text: namui::TextStyle {
+                                    color: namui::Color::BLACK,
+                                    ..Default::default()
+                                },
                                 ..Default::default()
                             },
-                            text: namui::TextStyle {
-                                color: namui::Color::BLACK,
-                                ..Default::default()
-                            },
-                            ..Default::default()
+                            on_event: boxed(move |event| match event {
+                                text_input::Event::TextUpdated { text } => {
+                                    let text = text.to_string();
+                                    set_text_3x3.mutate(move |text_3x3| {
+                                        text_3x3[x][y] = text;
+                                    });
+                                }
+                                _ => {}
+                            }),
+                            prevent_default_codes: vec![],
                         },
-                        on_event: boxed(move |event| match event {
-                            text_input::Event::TextUpdated { text } => {
-                                let text = text.to_string();
-                                set_text_3x3.mutate(move |text_3x3| {
-                                    text_3x3[x][y] = text;
-                                });
-                            }
-                            _ => {}
-                        }),
-                        prevent_default_codes: vec![],
-                    },
-                ));
+                    );
+                }
             }
-        }
+        });
 
-        ctx.return_(vec)
+        ctx.done()
     }
 
     // fn update(&mut self, event: &namui::Event) {

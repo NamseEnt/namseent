@@ -10,7 +10,7 @@ pub struct RenderCtx {
     pub(crate) memo_index: AtomicUsize,
     pub(crate) track_eq_index: AtomicUsize,
     pub(crate) updated_sigs: Mutex<HashSet<SigId>>,
-    tree_ctx: Arc<TreeContext>,
+    tree_ctx: TreeContext,
     children: Arc<Mutex<Vec<RenderingTree>>>,
     pub(crate) matrix: Mutex<Matrix3x3>,
     component_index: AtomicUsize,
@@ -27,7 +27,7 @@ impl<'a> RenderCtx {
     pub(crate) fn new(
         instance: Arc<ComponentInstance>,
         updated_sigs: HashSet<SigId>,
-        tree_ctx: Arc<TreeContext>,
+        tree_ctx: TreeContext,
         matrix: Matrix3x3,
     ) -> Self {
         Self {
@@ -93,25 +93,14 @@ impl<'a> RenderCtx {
         self.updated_sigs.lock().unwrap().insert(sig_id);
     }
 
-    pub fn web_event(&'a self, web_event: impl 'a + FnOnce(&crate::web::WebEvent)) {
-        if let RenderEvent::WebEvent { web_event: event } = get_render_event().as_ref() {
-            web_event(event);
+    pub fn on_raw_event(&'a self, on_raw_event: impl 'a + FnOnce(&crate::RawEvent)) {
+        if let Some(raw_event) = self.tree_ctx.raw_event.lock().unwrap().clone() {
+            on_raw_event(raw_event.as_ref());
         }
     }
 
     pub fn arc<T: 'a>(&'a self, value: T) -> Arc<T> {
         Arc::new(value)
-    }
-
-    // pub fn return_(&self, component: impl Component) -> RenderDone {
-    //     self.add("".to_string(), component);
-    //     self.return_internal()
-    // }
-
-    pub fn return_no(&self) -> RenderDone {
-        RenderDone {
-            rendering_tree: RenderingTree::Empty,
-        }
     }
 
     pub(crate) fn return_internal(&self) -> RenderDone {
@@ -185,6 +174,23 @@ impl<'a> RenderCtx {
         self.event_handling_disabled
             .store(false, std::sync::atomic::Ordering::SeqCst);
     }
+
+    pub(crate) fn get_channel_events_items_for(&self, sig_id: SigId) -> Vec<Item> {
+        let mut ret = vec![];
+        let mut channel_events = self.tree_ctx.channel_events.lock().unwrap();
+
+        let mut temp_channel_events = vec![];
+        std::mem::swap(&mut temp_channel_events, channel_events.as_mut());
+
+        let (equals, not_equals) = temp_channel_events
+            .into_iter()
+            .partition(|x| x.sig_id() == sig_id);
+
+        ret.extend(equals);
+        *channel_events = not_equals;
+
+        ret
+    }
 }
 
 impl RenderCtx {
@@ -218,7 +224,7 @@ impl RenderCtx {
 struct Renderer {
     instance: Arc<ComponentInstance>,
     updated_sigs: HashSet<SigId>,
-    tree_ctx: Arc<TreeContext>,
+    tree_ctx: TreeContext,
 }
 
 impl Renderer {
@@ -335,7 +341,7 @@ impl ComposeCtx {
             lazy,
         )
     }
-    pub fn clip(&mut self, path: crate::PathBuilder, clip_op: crate::ClipOp) -> Self {
+    pub fn clip(&mut self, path: crate::Path, clip_op: crate::ClipOp) -> Self {
         let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
         self.add_lazy(LazyRenderingTree::Clip {
             path,
@@ -447,7 +453,7 @@ enum LazyRenderingTree {
         lazy: Arc<Mutex<Option<LazyRenderingTree>>>,
     },
     Clip {
-        path: crate::PathBuilder,
+        path: crate::Path,
         clip_op: crate::ClipOp,
         lazy: Arc<Mutex<Option<LazyRenderingTree>>>,
     },

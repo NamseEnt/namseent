@@ -23,17 +23,17 @@ pub(crate) fn handle_state<'a, State: Send + Sync + Debug + 'static>(
         let state = init();
 
         update_or_push(&mut state_list, state_index, Box::new(state));
-    } else if let RenderEvent::ChannelEvents { channel_events } = get_render_event().as_ref() {
-        for item in channel_events.into_iter().filter(|x| x.sig_id() == sig_id) {
+    } else {
+        for item in ctx.get_channel_events_items_for(sig_id) {
             match item {
                 Item::SetStateItem(set_state) => match set_state {
                     SetStateItem::Set { sig_id, value } => {
-                        ctx.add_sig_updated(*sig_id);
+                        ctx.add_sig_updated(sig_id);
                         let value = value.lock().unwrap().take().unwrap();
                         update_or_push(&mut state_list, state_index, value);
                     }
                     SetStateItem::Mutate { sig_id, mutate } => {
-                        ctx.add_sig_updated(*sig_id);
+                        ctx.add_sig_updated(sig_id);
                         let mutate = mutate.lock().unwrap().take().unwrap();
                         let state = state_list.get_mut(sig_id.index).unwrap().as_mut();
                         mutate(state);

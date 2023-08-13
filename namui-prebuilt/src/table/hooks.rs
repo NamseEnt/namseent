@@ -254,7 +254,7 @@ fn slice_internal<'a, Item: ToKeyCell<'a>>(
                 let mut ctx = ctx.translate((xywh.x(), xywh.y()));
                 if need_clip {
                     ctx = ctx.clip(
-                        PathBuilder::new().add_rect(Rect::Xywh {
+                        Path::new().add_rect(Rect::Xywh {
                             x: px(0.0),
                             y: px(0.0),
                             width: xywh.width(),
@@ -374,7 +374,7 @@ pub fn fit<'a>(align: FitAlign, component: impl 'a + Component) -> TableCell<'a>
                 }
             } else {
                 let rendering_tree = ctx.ghost_render(component);
-                let bounding_box = rendering_tree.get_bounding_box();
+                let bounding_box = namui::bounding_box(&rendering_tree);
                 namui::log!("bounding_box: {bounding_box:#?}, rendering_tree: {rendering_tree:#?}");
                 if bounding_box.is_some() {
                     set_bounding_box.set(bounding_box);

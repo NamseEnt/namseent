@@ -1,3 +1,4 @@
+use crate::*;
 use crate::{
     cli::Target,
     services::{
@@ -7,7 +8,7 @@ use crate::{
 };
 use std::path::Path;
 
-pub fn build(manifest_path: &Path) -> Result<(), crate::Error> {
+pub fn build(manifest_path: &Path) -> Result<()> {
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     let release_path = project_root_path
         .join("target")

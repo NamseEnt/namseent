@@ -6,11 +6,11 @@ mod test;
 mod types;
 mod util;
 
+use anyhow::{anyhow, bail, Result};
 use clap::Parser;
 use cli::{Cli, Commands};
 use namui_user_config::set_user_config;
 use std::env::current_dir;
-use types::Error;
 use util::{get_current_target, print_namui_cfg, print_namui_target};
 
 #[tokio::main]
@@ -41,7 +41,7 @@ async fn main() {
         } => {
             let target = option_target.as_ref().unwrap_or(&current_target);
             let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
-            procedures::start(&target, &manifest_path)
+            procedures::start(&target, &manifest_path).await
         }
         Commands::Build {
             target: option_target,

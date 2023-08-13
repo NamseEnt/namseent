@@ -23,31 +23,25 @@ use std::{
     any::{Any, TypeId},
     collections::HashSet,
     fmt::Debug,
-    sync::{atomic::AtomicUsize, Arc, Mutex},
+    sync::{atomic::AtomicUsize, Arc, Mutex, OnceLock},
 };
 pub(crate) use tree::*;
 pub use value::*;
 
-fn update_or_push<T>(vector: &mut Vec<T>, index: usize, value: T) {
-    if let Some(prev) = vector.get_mut(index) {
-        *prev = value;
-    } else {
-        assert_eq!(vector.len(), index);
-        vector.insert(index, value);
-    }
+static TREE_CTX: OnceLock<TreeContext> = OnceLock::new();
+pub(crate) async fn start<C: Component>(root_component: impl Send + Sync + 'static + Fn() -> C) {
+    TREE_CTX.set(TreeContext::new(root_component)).unwrap();
+
+    TREE_CTX.get().unwrap().start().await;
+}
+
+pub(crate) fn on_raw_event(event: RawEvent) {
+    if let Some(ctx) = TREE_CTX.get() {
+        ctx.on_raw_event(event)
+    };
 }
 
 pub fn boxed<'a, T: 'a>(value: T) -> Box<T> {
-    Box::new(value)
-}
-
-// pub fn itered<'a, T: Component + 'a>(
-//     iter: impl Iterator<Item = (String, T)>,
-// ) -> Box<dyn 'a + Component> {
-//     Box::new(iter.into_iter().collect::<Vec<_>>())
-// }
-
-pub fn arc<'a, T: 'a>(value: T) -> Box<T> {
     Box::new(value)
 }
 
@@ -65,4 +59,5 @@ macro_rules! callback {
     };
 }
 
+use crate::RawEvent;
 pub use callback;

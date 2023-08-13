@@ -1,7 +1,6 @@
-use crate::Image;
 use futures::Future;
 use js_sys::{Array, ArrayBuffer, Object, Promise, Reflect, Uint8Array};
-use std::{pin::Pin, sync::Arc};
+use std::pin::Pin;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 use web_sys::{Blob, BlobPropertyBag};
 
@@ -133,38 +132,38 @@ pub async fn write_text(text: impl AsRef<str>) -> Result<(), ()> {
     }
 }
 
-pub async fn write_image(image: Arc<Image>) -> Result<(), ()> {
-    let blob = image.as_png_blob().await;
+// pub async fn write_image(image: Arc<Image>) -> Result<(), ()> {
+//     let blob = image.as_png_blob().await;
 
-    let clipboard_item_data = {
-        let object = js_sys::Object::new();
-        Reflect::set(&object, &"image/png".into(), &blob.into()).unwrap();
-        object
-    };
-    let clipboard_item = ClipboardItem_::new(clipboard_item_data);
-    let clipboard_items = {
-        let array = js_sys::Array::new();
-        array.push(&clipboard_item.into());
-        array
-    };
-    let promise = write_(&clipboard_items);
-    let result = wasm_bindgen_futures::JsFuture::from(promise).await;
-    match result {
-        Ok(_) => Ok(()),
-        Err(_) => Err(()),
-    }
-}
+//     let clipboard_item_data = {
+//         let object = js_sys::Object::new();
+//         Reflect::set(&object, &"image/png".into(), &blob.into()).unwrap();
+//         object
+//     };
+//     let clipboard_item = ClipboardItem_::new(clipboard_item_data);
+//     let clipboard_items = {
+//         let array = js_sys::Array::new();
+//         array.push(&clipboard_item.into());
+//         array
+//     };
+//     let promise = write_(&clipboard_items);
+//     let result = wasm_bindgen_futures::JsFuture::from(promise).await;
+//     match result {
+//         Ok(_) => Ok(()),
+//         Err(_) => Err(()),
+//     }
+// }
 
-pub async fn read_images() -> Result<Vec<Arc<Image>>, ()> {
-    let mut outputs = Vec::new();
+// pub async fn read_images() -> Result<Vec<Arc<Image>>, ()> {
+//     let mut outputs = Vec::new();
 
-    for blob in read_image_blobs().await?.into_iter() {
-        let image = crate::system::image::blob_to_image(blob).await;
-        outputs.push(image);
-    }
+//     for blob in read_image_blobs().await?.into_iter() {
+//         let image = crate::system::image::blob_to_image(blob).await;
+//         outputs.push(image);
+//     }
 
-    Ok(outputs)
-}
+//     Ok(outputs)
+// }
 
 pub async fn read_image_buffers() -> Result<Vec<Vec<u8>>, ()> {
     let mut outputs = Vec::new();

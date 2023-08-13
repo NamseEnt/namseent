@@ -3,11 +3,7 @@ mod draw_texts_divided_by_selection;
 mod instance;
 mod selection;
 
-use crate::{
-    namui::{self, *},
-    text::{get_text_widths, LineTexts},
-    web::SelectionDirection,
-};
+use crate::*;
 pub use instance::*;
 use selection::*;
 use std::{
@@ -15,7 +11,7 @@ use std::{
     ops::Range,
     sync::{
         atomic::{AtomicBool, Ordering},
-        OnceLock,
+        Arc, OnceLock,
     },
 };
 
@@ -26,7 +22,7 @@ pub struct TextInput<'a> {
     pub text: String,
     pub text_align: TextAlign,
     pub text_baseline: TextBaseline,
-    pub font_type: FontType,
+    pub font: Font,
     pub style: Style,
     pub prevent_default_codes: Vec<Code>,
     pub on_event: Box<dyn 'a + for<'b> Fn(Event<'b>)>,
@@ -85,100 +81,49 @@ impl Component for TextInput<'_> {
                 .get_or_init(Default::default)
                 .store(true, Ordering::Relaxed)
         });
+        let paint = get_text_paint(self.style.text.color);
 
-        ctx.effect("Update prevent default codes", || {
-            if !*is_focused {
-                return;
-            }
-            if prevent_default_codes.on_effect() {
-                web::execute_function_sync(
-                    "
-                    globalThis.textAreaKeydownPreventDefaultCodes = preventDefaultcodes;
-                    ",
-                )
-                .arg(
-                    "preventDefaultcodes",
-                    prevent_default_codes
-                        .iter()
-                        .map(ToString::to_string)
-                        .collect::<Vec<_>>(),
-                )
-                .run::<()>();
-            }
-        });
+        let paragraph = Paragraph::new(
+            &self.text,
+            system::font::group_glyph(&self.font, &paint),
+            self.text_param().max_width,
+        );
+
+        // ctx.effect("Update prevent default codes", || {
+        //     if !*is_focused {
+        //         return;
+        //     }
+        //     if prevent_default_codes.on_effect() {
+        //         web::execute_function_sync(
+        //             "
+        //             globalThis.textAreaKeydownPreventDefaultCodes = preventDefaultcodes;
+        //             ",
+        //         )
+        //         .arg(
+        //             "preventDefaultcodes",
+        //             prevent_default_codes
+        //                 .iter()
+        //                 .map(ToString::to_string)
+        //                 .collect::<Vec<_>>(),
+        //         )
+        //         .run::<()>();
+        //     }
+        // });
 
         // TODO: blur on unmount if focused
 
-        let get_selection_index_of_xy = |fonts: &Vec<Arc<Font>>,
-                                         line_texts: &LineTexts,
-                                         click_local_xy: Xy<Px>,
-                                         paint: Arc<Paint>|
-         -> usize {
-            let line_len = line_texts.line_len();
-            if line_len == 0 {
-                return 0;
-            }
-
-            let line_index = {
-                let line_height = self.line_height_px();
-
-                let top_y = click_local_xy.y
-                    + line_height
-                        * match self.text_baseline {
-                            TextBaseline::Top => 0.0,
-                            TextBaseline::Middle => line_len as f32 / 2.0,
-                            TextBaseline::Bottom => line_len as f32,
-                        };
-
-                let line_index = if top_y <= 0.px() {
-                    0
-                } else {
-                    (top_y / line_height).floor() as usize
-                };
-
-                let line_max_index = line_len - 1;
-                line_index.min(line_max_index)
-            };
-
-            let str_index_before_line = line_texts.char_index_before_line(line_index);
-
-            let line_text = line_texts.iter_str().nth(line_index).unwrap();
-
-            let glyph_widths = get_text_widths(&line_text, &fonts, paint);
-
-            let line_width = glyph_widths.iter().sum::<Px>();
-
-            let aligned_x = match self.text_align {
-                TextAlign::Left => click_local_xy.x,
-                TextAlign::Center => click_local_xy.x + line_width / 2.0,
-                TextAlign::Right => click_local_xy.x + line_width,
-            };
-
-            let mut left = px(0.0);
-            let index = glyph_widths
-                .iter()
-                .position(|width| {
-                    let center = left + width / 2.0;
-                    if aligned_x < center {
-                        return true;
-                    }
-                    left += *width;
-                    return false;
-                })
-                .unwrap_or(line_text.chars().count());
-
-            str_index_before_line + index
-        };
-
-        let get_one_click_selection = |fonts: &Vec<Arc<Font>>,
-                                       line_texts: &LineTexts,
+        let get_one_click_selection = |paragraph: &Paragraph,
                                        click_local_xy: Xy<Px>,
                                        is_dragging: bool,
-                                       last_selection: &Selection,
-                                       paint: Arc<Paint>|
+                                       last_selection: &Selection|
          -> Range<usize> {
-            let selection_index_of_xy =
-                get_selection_index_of_xy(fonts, line_texts, click_local_xy, paint);
+            let selection_index_of_xy = paragraph.selection_index_of_xy(
+                click_local_xy,
+                self.font.size,
+                self.style.text.line_height_percent,
+                self.text_baseline,
+                self.text_align,
+            );
 
             let start = match last_selection {
                 Selection::Range(range) => {
@@ -197,25 +142,18 @@ impl Component for TextInput<'_> {
         let get_selection_on_mouse_movement = |click_local_xy: Xy<Px>,
                                                is_dragging_by_mouse: bool|
          -> Selection {
-            let font = crate::font::get_font(self.font_type);
+            // let font = crate::font::get_font(self.font);
 
-            if font.is_none() {
-                return Selection::None;
-            };
-            let font = font.unwrap();
-            let fonts = crate::font::with_fallbacks(font);
+            // if font.is_none() {
+            //     return Selection::None;
+            // };
+            // let font = font.unwrap();
+            // let fonts = crate::font::with_fallbacks(font);
 
             let is_shift_key_pressed =
                 crate::keyboard::any_code_press([crate::Code::ShiftLeft, crate::Code::ShiftRight]);
 
-            let paint = get_text_paint(self.style.text.color).build();
-
-            let line_texts = LineTexts::new(
-                &self.text,
-                fonts.clone(),
-                paint.clone(),
-                Some(self.rect.width()),
-            );
+            let paint = get_text_paint(self.style.text.color);
 
             // const continouslyFastClickCount: number;
 
@@ -229,12 +167,10 @@ impl Component for TextInput<'_> {
             let is_dragging = is_shift_key_pressed || is_dragging_by_mouse;
 
             Selection::Range(get_one_click_selection(
-                &fonts,
-                &line_texts,
+                &paragraph,
                 click_local_xy,
                 is_dragging,
                 &atom.selection,
-                paint,
             ))
         };
 
@@ -266,20 +202,21 @@ impl Component for TextInput<'_> {
 
             let width = self.rect.width().as_f32();
 
-            web::execute_function_sync(
-                "
-        textArea.style.width = `${width}px`;
-        textArea.value = text;
-        textArea.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
-        textArea.focus();
-        ",
-            )
-            .arg("width", width)
-            .arg("text", &self.text)
-            .arg("selectionStart", selection_start)
-            .arg("selectionEnd", selection_end)
-            .arg("selectionDirection", selection_direction)
-            .run::<()>();
+            todo!()
+            //     web::execute_function_sync(
+            //         "
+            // textArea.style.width = `${width}px`;
+            // textArea.value = text;
+            // textArea.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
+            // textArea.focus();
+            // ",
+            //     )
+            //     .arg("width", width)
+            //     .arg("text", &self.text)
+            //     .arg("selectionStart", selection_start)
+            //     .arg("selectionEnd", selection_end)
+            //     .arg("selectionDirection", selection_direction)
+            //     .run::<()>();
         };
 
         let update_selection = |selection_direction: SelectionDirection,
@@ -299,21 +236,6 @@ impl Component for TextInput<'_> {
 
             TEXT_INPUT_ATOM.mutate(move |text_input_ctx| text_input_ctx.selection = selection);
         };
-
-        let Some(font) = namui::font::get_font(self.font_type) else {
-            return ctx.return_no();
-        };
-
-        let fonts = crate::font::with_fallbacks(font);
-
-        let paint = get_text_paint(self.style.text.color).build();
-
-        let line_texts = LineTexts::new(
-            &self.text,
-            fonts.clone(),
-            paint.clone(),
-            self.text_param().max_width,
-        );
 
         let selection = atom.get_selection_of_text_input(id);
 
@@ -418,7 +340,7 @@ impl Component for TextInput<'_> {
                         //     })
                         // });
 
-                        let get_selection_on_keyboard_down = |key: KeyInInterest| -> Selection {
+                        let get_selection_on_keyboard_down = |key: CaretKey| -> Selection {
                             let selection = get_input_element_selection(
                                 selection_direction,
                                 selection_start,
@@ -429,12 +351,8 @@ impl Component for TextInput<'_> {
                                 return Selection::None;
                             };
 
-                            let Some(line_texts) = self.get_line_texts() else {
-                                return Selection::None;
-                            };
-
                             let next_selection_end =
-                                get_caret_index_after_apply_key_movement(key, line_texts, &range);
+                                get_caret_index_after_apply_key_movement(key, &paragraph, &range);
 
                             let is_shift_key_pressed = crate::keyboard::any_code_press([
                                 crate::Code::ShiftLeft,
@@ -448,29 +366,28 @@ impl Component for TextInput<'_> {
                             };
 
                             fn get_caret_index_after_apply_key_movement(
-                                key: KeyInInterest,
-                                line_texts: LineTexts,
+                                key: CaretKey,
+                                paragraph: &Paragraph,
                                 selection: &Range<usize>,
                             ) -> usize {
-                                let multiline_caret =
-                                    line_texts.into_multiline_caret(selection.end);
+                                let caret = paragraph.caret(selection.end);
 
-                                let caret_after_move = multiline_caret.get_caret_on_key(key);
+                                let caret_after_move = caret.get_caret_on_key(key);
 
                                 let next_selection_end = caret_after_move.to_selection_index();
                                 next_selection_end
                             }
                         };
 
-                        let key_in_interest = match code {
-                            Code::ArrowUp => KeyInInterest::ArrowUpDown(ArrowUpDown::Up),
-                            Code::ArrowDown => KeyInInterest::ArrowUpDown(ArrowUpDown::Down),
-                            Code::Home => KeyInInterest::HomeEnd(HomeEnd::Home),
-                            Code::End => KeyInInterest::HomeEnd(HomeEnd::End),
+                        let caret_key = match code {
+                            Code::ArrowUp => CaretKey::ArrowUp,
+                            Code::ArrowDown => CaretKey::ArrowDown,
+                            Code::Home => CaretKey::Home,
+                            Code::End => CaretKey::End,
                             _ => return,
                         };
 
-                        let selection = get_selection_on_keyboard_down(key_in_interest);
+                        let selection = get_selection_on_keyboard_down(caret_key);
 
                         let Some(utf16_selection) = selection.as_utf16(&text) else {
                             return;
@@ -482,58 +399,41 @@ impl Component for TextInput<'_> {
                             "backward"
                         };
 
-                        web::execute_function_sync(
-                            "
-                                    textArea.setSelectionRange(
-                                        selectionStart,
-                                        selectionEnd,
-                                        selectionDirection,
-                                    )
-                                ",
-                        )
-                        .arg(
-                            "selectionStart",
-                            utf16_selection.start.min(utf16_selection.end) as u32,
-                        )
-                        .arg(
-                            "selectionEnd",
-                            utf16_selection.start.max(utf16_selection.end) as u32,
-                        )
-                        .arg("selectionDirection", selection_direction)
-                        .run::<()>();
+                        todo!()
+                        // web::execute_function_sync(
+                        //     "
+                        //             textArea.setSelectionRange(
+                        //                 selectionStart,
+                        //                 selectionEnd,
+                        //                 selectionDirection,
+                        //             )
+                        //         ",
+                        // )
+                        // .arg(
+                        //     "selectionStart",
+                        //     utf16_selection.start.min(utf16_selection.end) as u32,
+                        // )
+                        // .arg(
+                        //     "selectionEnd",
+                        //     utf16_selection.start.max(utf16_selection.end) as u32,
+                        // )
+                        // .arg("selectionDirection", selection_direction)
+                        // .run::<()>();
                     }
                     _ => {}
                 }
             }),
         );
 
-        ctx.component(self.draw_texts_divided_by_selection(
-            &self,
-            &fonts,
-            paint.clone(),
-            &line_texts,
-            &selection,
-        ));
+        ctx.component(self.draw_texts_divided_by_selection(&paragraph, &selection));
 
-        ctx.component(self.draw_caret(&self, &line_texts, &selection, paint.clone()));
+        ctx.component(self.draw_caret(&self, &paragraph, &selection));
 
         ctx.done()
     }
 }
 
 impl TextInput<'_> {
-    pub fn is_focused(&self) -> bool {
-        todo!()
-        // crate::system::text_input::is_focused(self.id)
-    }
-    pub fn focus(&self) {
-        todo!()
-        // crate::system::text_input::focus(self.id)
-    }
-    pub fn blur(&self) {
-        todo!()
-        // crate::system::text_input::blur()
-    }
     pub fn text_param(&self) -> TextParam {
         TextParam {
             text: self.text.clone(),
@@ -541,7 +441,7 @@ impl TextInput<'_> {
             y: self.text_y(),
             align: self.text_align,
             baseline: self.text_baseline,
-            font_type: self.font_type,
+            font: self.font.clone(),
             style: self.style.text.clone(),
             max_width: Some(self.rect.width() - self.style.padding.left - self.style.padding.right),
         }
@@ -562,19 +462,19 @@ impl TextInput<'_> {
         }
     }
     pub fn line_height_px(&self) -> Px {
-        self.font_type.size.into_px() * self.style.text.line_height_percent
+        self.font.size.into_px() * self.style.text.line_height_percent
     }
-    fn get_line_texts(&self) -> Option<LineTexts> {
-        let font = crate::font::get_font(self.font_type)?;
-        let fonts = crate::font::with_fallbacks(font);
-        let paint = get_text_paint(self.style.text.color).build();
-        Some(LineTexts::new(
-            &self.text,
-            fonts,
-            paint.clone(),
-            Some(self.rect.width()),
-        ))
-    }
+    // fn get_paragraph(&self) -> Option<Paragraph> {
+    //     let font = crate::font::get_font(self.font)?;
+    //     let fonts = crate::font::with_fallbacks(font);
+    //     let paint = get_text_paint(self.style.text.color).build();
+    //     Some(Paragraph::new(
+    //         &self.text,
+    //         fonts,
+    //         paint.clone(),
+    //         Some(self.rect.width()),
+    //     ))
+    // }
 }
 
 fn get_input_element_selection(
@@ -644,9 +544,4 @@ pub enum ArrowUpDown {
 pub enum HomeEnd {
     Home,
     End,
-}
-
-pub enum KeyInInterest {
-    ArrowUpDown(ArrowUpDown),
-    HomeEnd(HomeEnd),
 }

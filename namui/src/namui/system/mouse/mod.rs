@@ -1,11 +1,8 @@
-pub(crate) mod event;
+mod event;
 
 use self::event::set_up_event_handler;
 use super::*;
-use crate::{
-    namui::{render::MouseCursor, Xy},
-    *,
-};
+use crate::*;
 use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 use wasm_bindgen::{prelude::Closure, JsCast};
@@ -39,31 +36,13 @@ impl MouseSystem {
 }
 
 pub fn set_mouse_cursor(cursor: &MouseCursor) {
-    todo!()
-    // let element = document().body().unwrap();
-    // element
-    //     .style()
-    //     .set_property("cursor", &cursor.to_css_cursor_value())
-    //     .unwrap();
+    let element = document().body().unwrap();
+    element
+        .style()
+        .set_property("cursor", &cursor.to_css_cursor_value())
+        .unwrap();
 }
 
 pub fn position() -> Xy<Px> {
     MOUSE_SYSTEM.mouse_position.read().unwrap().clone()
-}
-
-impl MouseCursor {
-    pub fn to_css_cursor_value(&self) -> &str {
-        match self {
-            Self::Default => "default",
-            Self::TopBottomResize => "ns-resize",
-            Self::LeftRightResize => "ew-resize",
-            Self::LeftTopRightBottomResize => "nwse-resize",
-            Self::RightTopLeftBottomResize => "nesw-resize",
-            Self::Text => "text",
-            Self::Grab => "grab",
-            Self::Move => "move",
-            Self::Pointer => "pointer",
-            MouseCursor::Custom(_) => "none",
-        }
-    }
 }

@@ -1,5 +1,6 @@
 mod lexicon;
 mod token;
+use crate::*;
 
 use super::resource_collect_service::CollectOperation;
 use crate::util::get_cli_root_path;
@@ -23,7 +24,7 @@ struct Bundle {
 }
 
 impl NamuiBundleManifest {
-    pub fn parse(project_root_path: PathBuf) -> Result<Self, crate::Error> {
+    pub fn parse(project_root_path: PathBuf) -> Result<Self> {
         let project_bundle = parse_bundle(&project_root_path)?;
         let system_bundle = parse_bundle(&get_cli_root_path())?;
 
@@ -42,7 +43,7 @@ impl NamuiBundleManifest {
         let metadata_json = {
             let url_list: Vec<&PathBuf> = url_src_path_map.keys().collect();
             let bundle_metadata_string = serde_json::to_string(&url_list).map_err(|error| {
-                format!("serde_json error while creating bundle_metadata: {}", error)
+                anyhow!("serde_json error while creating bundle_metadata: {}", error)
             })?;
 
             bundle_metadata_string
@@ -56,7 +57,7 @@ impl NamuiBundleManifest {
         })
     }
 
-    fn query(&self, dest_root_path: &PathBuf) -> Result<HashMap<PathBuf, PathBuf>, crate::Error> {
+    fn query(&self, dest_root_path: &PathBuf) -> Result<HashMap<PathBuf, PathBuf>> {
         let project_bundle_query = self
             .project_bundle
             .query(&self.project_root_path, dest_root_path)?;
@@ -73,7 +74,7 @@ impl NamuiBundleManifest {
     pub fn get_collect_operations(
         &self,
         dest_root_path: &PathBuf,
-    ) -> Result<Vec<CollectOperation>, crate::Error> {
+    ) -> Result<Vec<CollectOperation>> {
         let ops: Vec<CollectOperation> = self
             .query(&dest_root_path)?
             .iter()
@@ -85,28 +86,28 @@ impl NamuiBundleManifest {
     pub fn metadata_json(&self) -> &str {
         &self.metadata_json
     }
-    pub fn get_src_path(&self, url: &PathBuf) -> Result<Option<PathBuf>, crate::Error> {
+    pub fn get_src_path(&self, url: &PathBuf) -> Result<Option<PathBuf>> {
         Ok(self
             .url_src_path_map
             .get(url)
             .and_then(|src_path| Some(src_path.clone())))
     }
 
-    pub fn create_bundle_metadata_file(&self, dest: &PathBuf) -> Result<(), crate::Error> {
+    pub fn create_bundle_metadata_file(&self, dest: &PathBuf) -> Result<()> {
         std::fs::create_dir_all(dest)?;
         std::fs::write(dest.join("bundle_metadata.json"), self.metadata_json())
-            .map_err(|error| format!("could not create bundle_metadata.json: {}", error).into())
+            .map_err(|error| anyhow!("could not create bundle_metadata.json: {}", error).into())
     }
 }
 
-fn parse_bundle(root_path: &PathBuf) -> Result<Bundle, crate::Error> {
+fn parse_bundle(root_path: &PathBuf) -> Result<Bundle> {
     let bundle_manifest_path = root_path.join(".namuibundle");
     let bundle_manifest_string = match bundle_manifest_path.exists() {
         true => std::fs::read(bundle_manifest_path)
-            .map_err(|error| format!("namui_bundle read error: {}", error))
+            .map_err(|error| anyhow!("namui_bundle read error: {}", error))
             .and_then(|file| {
                 String::from_utf8(file)
-                    .map_err(|error| format!("parse namui_bundle fail: {}", error))
+                    .map_err(|error| anyhow!("parse namui_bundle fail: {}", error))
             })?,
         false => String::new(),
     };
@@ -142,7 +143,7 @@ impl Bundle {
         &self,
         src_root_path: &PathBuf,
         dest_root_path: &PathBuf,
-    ) -> Result<HashMap<PathBuf, PathBuf>, crate::Error> {
+    ) -> Result<HashMap<PathBuf, PathBuf>> {
         let mut src_dest_path_map = HashMap::new();
 
         for include_operation in self.include.iter() {

@@ -188,7 +188,7 @@ fn slice_internal<'a>(
                 xywh.y(),
                 if need_clip {
                     namui::clip(
-                        PathBuilder::new().add_rect(Rect::Xywh {
+                        Path::new().add_rect(Rect::Xywh {
                             x: px(0.0),
                             y: px(0.0),
                             width: xywh.width(),
@@ -276,7 +276,7 @@ pub enum FitAlign {
     RightBottom,
 }
 pub fn fit<'a>(align: FitAlign, rendering_tree: RenderingTree) -> TableCell<'a> {
-    match rendering_tree.get_bounding_box() {
+    match namui::bounding_box(&rendering_tree) {
         Some(bounding_box) => TableCell {
             unit: Unit::Responsive(Box::new(move |direction| match direction {
                 Direction::Vertical => bounding_box.y() + bounding_box.height(),

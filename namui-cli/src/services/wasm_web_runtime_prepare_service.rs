@@ -1,6 +1,7 @@
 use crate::util::get_cli_root_path;
+use crate::*;
 
-pub fn build_browser_runtime() -> Result<(), crate::Error> {
+pub fn build_browser_runtime() -> Result<()> {
     install_deps()?;
 
     let mut cmd = std::process::Command::new("npm");
@@ -11,7 +12,7 @@ pub fn build_browser_runtime() -> Result<(), crate::Error> {
     let output = cmd.output().unwrap();
 
     if !output.status.success() {
-        return Err(format!(
+        return Err(anyhow!(
             "Failed to build browser runtime: {}",
             String::from_utf8_lossy(&output.stderr)
         )
@@ -21,7 +22,7 @@ pub fn build_browser_runtime() -> Result<(), crate::Error> {
     Ok(())
 }
 
-pub fn watch_browser_runtime() -> Result<(), crate::Error> {
+pub fn watch_browser_runtime() -> Result<()> {
     install_deps()?;
 
     let mut cmd = std::process::Command::new("npm");
@@ -33,7 +34,7 @@ pub fn watch_browser_runtime() -> Result<(), crate::Error> {
     Ok(())
 }
 
-fn install_deps() -> Result<(), crate::Error> {
+fn install_deps() -> Result<()> {
     let mut cmd = std::process::Command::new("npm");
     cmd.arg("i");
     cmd.current_dir(get_cli_root_path().join("webCode"));
@@ -41,7 +42,7 @@ fn install_deps() -> Result<(), crate::Error> {
     let output = cmd.output().unwrap();
 
     if !output.status.success() {
-        return Err(format!(
+        return Err(anyhow!(
             "Failed to install dependencies: {}",
             String::from_utf8_lossy(&output.stderr)
         )

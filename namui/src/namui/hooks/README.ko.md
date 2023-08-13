@@ -61,7 +61,7 @@ pub enum Event {
 }
 ```
 
-2. `enum InternalEvent` 를 애용해라.
+2. `enum RawEvent` 를 애용해라.
 
 `pub enum Event`와 마찬가지로, component 내부에서 사용하는 이벤트 핸들러들도 enum을 이용하면 쉽게 정리할 수 있습니다.
 
@@ -72,18 +72,18 @@ impl Component for MyComponent<'_> {
 
 
 
-            enum InternalEvent {
+            enum RawEvent {
                 Hello
             }
 
-            let on_internal_event = |event: InternalEvent| {
+            let on_raw_event = |event: RawEvent| {
                 match event {
                     ...
                 }
             };
 
             ctx.add(Button {
-                on_click: &|| on_internal_event(InternalEvent::Hello),
+                on_click: &|| on_raw_event(RawEvent::Hello),
             })
 
 

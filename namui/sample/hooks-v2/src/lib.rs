@@ -29,7 +29,7 @@ impl Component for MyComponent {
         });
 
         #[derive(Debug)]
-        enum InternalEvent {
+        enum RawEvent {
             OnClick,
             KeyUp { code: namui::Code },
         }
@@ -44,7 +44,7 @@ impl Component for MyComponent {
             ctx.add(
                 StringText { text }, // .attach_event(|builder| {
                                      // builder.on_key_up(ctx.event_with_param(|event: KeyboardEvent| {
-                                     //     Some(InternalEvent::KeyUp { code: event.code })
+                                     //     Some(RawEvent::KeyUp { code: event.code })
                                      // }));
                                      // })
             );

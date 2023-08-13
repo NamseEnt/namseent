@@ -1,22 +1,27 @@
-use super::InitResult;
+use super::{platform_utils::web::window, InitResult};
 use crate::*;
-use std::sync::{Mutex, OnceLock};
-
-// TODO: Make it as atom and return sig only to user
-static SCREEN_SIZE: OnceLock<Mutex<Wh<Px>>> = OnceLock::new();
+use wasm_bindgen::{prelude::Closure, JsCast};
 
 pub(super) async fn init() -> InitResult {
-    SCREEN_SIZE
-        .set(Mutex::new(web::initial_window_size()))
-        .unwrap();
+    let window = window();
 
+    window
+        .add_event_listener_with_callback(
+            "resize",
+            Closure::wrap(Box::new(move || {
+                crate::hooks::on_raw_event(RawEvent::ScreenResize { wh: size() });
+            }) as Box<dyn FnMut()>)
+            .into_js_value()
+            .unchecked_ref(),
+        )
+        .unwrap();
     Ok(())
 }
 
-pub fn size() -> crate::Wh<Px> {
-    SCREEN_SIZE.get().unwrap().lock().unwrap().clone()
-}
-
-pub(crate) fn resize(wh: Wh<Px>) {
-    *SCREEN_SIZE.get().unwrap().lock().unwrap() = wh;
+pub fn size() -> crate::Wh<IntPx> {
+    let window = window();
+    crate::Wh {
+        width: (window.inner_width().unwrap().as_f64().unwrap() as i32).int_px(),
+        height: (window.inner_height().unwrap().as_f64().unwrap() as i32).int_px(),
+    }
 }

@@ -3,13 +3,10 @@ use super::{
     wasm_watch_build_service::WasmWatchBuildService,
 };
 use crate::cli::Target;
+use crate::*;
 use std::path::Path;
 
-pub fn build(
-    manifest_path: &Path,
-    arch: Option<Arch>,
-    platform: Platform,
-) -> Result<(), crate::Error> {
+pub fn build(manifest_path: &Path, arch: Option<Arch>, platform: Platform) -> Result<()> {
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
 
     let target = match platform {

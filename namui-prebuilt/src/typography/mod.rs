@@ -16,10 +16,8 @@ pub fn center_text(
         y: wh.height / 2.0,
         align: TextAlign::Center,
         baseline: TextBaseline::Middle,
-        font_type: FontType {
-            font_weight: FontWeight::REGULAR,
-            language: Language::Ko,
-            serif: false,
+        font: Font {
+            name: "NotoSansKR-Regular".to_string(),
             size: font_size,
         },
         style: TextStyle {
@@ -37,10 +35,8 @@ pub fn center_text_full_height(wh: Wh<Px>, text: impl AsRef<str>, color: Color) 
         y: wh.height / 2.0,
         align: TextAlign::Center,
         baseline: TextBaseline::Middle,
-        font_type: FontType {
-            font_weight: FontWeight::REGULAR,
-            language: Language::Ko,
-            serif: false,
+        font: Font {
+            name: "NotoSansKR-Regular".to_string(),
             size: adjust_font_size(wh.height),
         },
         style: TextStyle {
@@ -63,10 +59,8 @@ pub fn text_fit(
         y: height / 2.0,
         align: TextAlign::Center,
         baseline: TextBaseline::Middle,
-        font_type: FontType {
-            font_weight: FontWeight::REGULAR,
-            language: Language::Ko,
-            serif: false,
+        font: Font {
+            name: "NotoSansKR-Regular".to_string(),
             size: adjust_font_size(height),
         },
         style: TextStyle {
@@ -76,7 +70,7 @@ pub fn text_fit(
         max_width: None,
     });
 
-    let width = match center_text.get_bounding_box() {
+    let width = match namui::bounding_box(&center_text) {
         Some(bounding_box) => bounding_box.width(),
         None => return RenderingTree::Empty,
     };

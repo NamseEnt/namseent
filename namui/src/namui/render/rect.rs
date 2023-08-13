@@ -109,15 +109,17 @@ pub fn rect(param: RectParam) -> RenderingTree {
     let mut draw_commands: Vec<DrawCommand> = vec![];
 
     if let Some(RectFill { color }) = param.style.fill {
-        let fill_paint = namui::PaintBuilder::new()
+        let fill_paint = namui::Paint::new()
             .set_color(color)
             .set_style(namui::PaintStyle::Fill)
             .set_anti_alias(true);
 
-        draw_commands.push(DrawCommand::Path(PathDrawCommand {
-            path_builder: rect_path.clone(),
-            paint_builder: fill_paint,
-        }));
+        draw_commands.push(DrawCommand::Path {
+            command: PathDrawCommand {
+                path: rect_path.clone(),
+                paint: fill_paint,
+            },
+        });
     };
 
     if let Some(RectStroke {
@@ -126,16 +128,18 @@ pub fn rect(param: RectParam) -> RenderingTree {
         ..
     }) = param.style.stroke
     {
-        let stroke_paint = namui::PaintBuilder::new()
+        let stroke_paint = namui::Paint::new()
             .set_color(color)
             .set_stroke_width(stroke_width)
             .set_style(namui::PaintStyle::Stroke)
             .set_anti_alias(true);
 
-        draw_commands.push(DrawCommand::Path(PathDrawCommand {
-            path_builder: rect_path.clone(),
-            paint_builder: stroke_paint,
-        }));
+        draw_commands.push(DrawCommand::Path {
+            command: PathDrawCommand {
+                path: rect_path.clone(),
+                paint: stroke_paint,
+            },
+        });
     };
 
     translate(
@@ -149,10 +153,10 @@ pub fn rect(param: RectParam) -> RenderingTree {
     )
 }
 
-fn get_rect_path(rect: Rect<Px>, round: Option<RectRound>) -> namui::PathBuilder {
+fn get_rect_path(rect: Rect<Px>, round: Option<RectRound>) -> namui::Path {
     match round {
-        Some(round) => namui::PathBuilder::new().add_rrect(rect, round.radius, round.radius),
-        None => namui::PathBuilder::new().add_rect(rect),
+        Some(round) => namui::Path::new().add_rrect(rect, round.radius, round.radius),
+        None => namui::Path::new().add_rect(rect),
     }
 }
 

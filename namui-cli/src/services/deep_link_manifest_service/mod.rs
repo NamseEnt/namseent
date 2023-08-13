@@ -1,3 +1,4 @@
+use crate::*;
 use std::{fs, path::PathBuf};
 
 pub struct DeepLinkManifest {
@@ -13,7 +14,7 @@ impl DeepLinkManifest {
         &self.deep_link_schemes
     }
 
-    pub fn try_load(project_root_path: &PathBuf) -> Result<Option<Self>, crate::Error> {
+    pub fn try_load(project_root_path: &PathBuf) -> Result<Option<Self>> {
         let namui_deep_link_manifest_path = project_root_path.join(".namuideeplink");
         match namui_deep_link_manifest_path.exists() {
             true => {

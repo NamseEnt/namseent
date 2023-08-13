@@ -6,10 +6,8 @@ impl NamuiContext {
     pub(crate) fn new() -> Self {
         Self {}
     }
-    pub fn start<C: Component>(self, component: impl Fn() -> C) {
+    pub async fn start<C: Component>(self, component: impl Send + Sync + Fn() -> C + 'static) {
         crate::hooks::channel::init();
-
-        let tree_ctx = crate::hooks::TreeContext::new();
-        tree_ctx.start(component);
+        crate::hooks::start(component).await;
     }
 }

@@ -4,24 +4,35 @@ use super::{
     rust_project_watch_service::RustProjectWatchService,
     wasm_bundle_web_server::WasmBundleWebServer,
 };
+use crate::*;
 use crate::{cli::Target, debug_println, util::print_build_result};
 use std::{path::PathBuf, sync::Arc};
+use tokio::try_join;
 
 pub struct WasmWatchBuildService {}
+
+pub enum BundleWebServerArgs {
+    Port {
+        port: u16,
+    },
+    WebServer {
+        web_server: Arc<WasmBundleWebServer>,
+    },
+}
 
 pub struct WatchAndBuildArgs<AfterFirstBuild>
 where
     AfterFirstBuild: FnOnce() + Send + 'static,
 {
     pub project_root_path: PathBuf,
-    pub port: u16,
+    pub bundle_web_server: BundleWebServerArgs,
     pub target: Target,
     pub after_first_build: Option<AfterFirstBuild>,
 }
 impl WasmWatchBuildService {
-    pub fn watch_and_build<AfterFirstBuild>(
+    pub async fn watch_and_build<AfterFirstBuild>(
         args: WatchAndBuildArgs<AfterFirstBuild>,
-    ) -> Result<(), crate::Error>
+    ) -> Result<()>
     where
         AfterFirstBuild: FnOnce() + Send + 'static,
     {
@@ -35,7 +46,13 @@ impl WasmWatchBuildService {
         })?;
 
         let rust_project_watch_service = Arc::new(RustProjectWatchService::new());
-        let wasm_bundle_web_server = WasmBundleWebServer::start(args.port, &build_dist_path);
+        let wasm_bundle_web_server = {
+            match args.bundle_web_server {
+                BundleWebServerArgs::Port { port } => WasmBundleWebServer::start(port),
+                BundleWebServerArgs::WebServer { web_server } => web_server,
+            }
+        };
+        wasm_bundle_web_server.add_static_dir("", &build_dist_path);
         let rust_build_service = Arc::new(RustBuildService::new());
 
         pub async fn cancel_and_start_build(
@@ -79,12 +96,12 @@ impl WasmWatchBuildService {
             }
         }
 
-        tokio::spawn({
+        let first_run = {
             let wasm_bundle_web_server = wasm_bundle_web_server.clone();
             let rust_build_service = rust_build_service.clone();
             let build_dist_path = build_dist_path.clone();
-            let project_root_path = project_root_path.clone();
             let runtime_target_dir = runtime_target_dir.clone();
+            let project_root_path = project_root_path.clone();
             async move {
                 cancel_and_start_build(
                     wasm_bundle_web_server.clone(),
@@ -98,13 +115,15 @@ impl WasmWatchBuildService {
                 if let Some(after_first_build) = args.after_first_build {
                     (after_first_build)();
                 }
+                Ok(())
             }
-        });
+        };
 
-        rust_project_watch_service.watch(&project_root_path.join("Cargo.toml"), {
+        let watch = rust_project_watch_service.watch(project_root_path.join("Cargo.toml"), {
             let wasm_bundle_web_server = wasm_bundle_web_server.clone();
             let rust_build_service = rust_build_service.clone();
             let build_dist_path = build_dist_path.clone();
+            let runtime_target_dir = runtime_target_dir.clone();
             move || {
                 tokio::spawn(cancel_and_start_build(
                     wasm_bundle_web_server.clone(),
@@ -115,10 +134,13 @@ impl WasmWatchBuildService {
                     args.target,
                 ));
             }
-        })
+        });
+        try_join!(first_run, watch)?;
+
+        Ok(())
     }
 
-    pub fn just_build(project_root_path: PathBuf, target: Target) -> Result<(), crate::Error> {
+    pub fn just_build(project_root_path: PathBuf, target: Target) -> Result<()> {
         let build_dist_path = project_root_path.join("pkg");
         let runtime_target_dir = project_root_path.join("target/namui");
         let rust_build_service = RustBuildService::new();
@@ -139,7 +161,7 @@ impl WasmWatchBuildService {
                 Ok(())
             }
             BuildResult::Canceled => unreachable!(),
-            BuildResult::Failed(error) => Err(error.into()),
+            BuildResult::Failed(error) => Err(anyhow!("{}", error)),
         }
     }
 }

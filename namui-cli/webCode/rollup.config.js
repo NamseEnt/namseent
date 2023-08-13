@@ -1,7 +1,6 @@
 import typescript from "@rollup/plugin-typescript";
 import resolve from "@rollup/plugin-node-resolve";
 import { babel } from "@rollup/plugin-babel";
-import commonjs from "@rollup/plugin-commonjs";
 import nodePolyfills from "rollup-plugin-polyfill-node";
 import copy from "rollup-plugin-copy";
 
@@ -18,10 +17,6 @@ const defaultConfig = {
         typescript({
             sourceMap: true,
             tsconfig: "./tsconfig.json",
-        }),
-        commonjs({
-            sourceMap: true,
-            esmExternals: true,
         }),
         resolve({
             browser: true,

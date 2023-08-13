@@ -2,12 +2,13 @@ use crate::cli::Target;
 use crate::services::deep_link_manifest_service::DeepLinkManifest;
 use crate::services::electron_dev_service::{start_electron_dev_service, CrossPlatform};
 use crate::services::wasm_watch_build_service::{WasmWatchBuildService, WatchAndBuildArgs};
+use crate::*;
 use std::path::Path;
 use wsl::is_wsl;
 
-pub fn start(manifest_path: &Path) -> Result<(), crate::Error> {
+pub async fn start(manifest_path: &Path) -> Result<()> {
     if !is_wsl() {
-        return Err(format!("linux to windows build is only supported on wsl for now").into());
+        return Err(anyhow!("linux to windows build is only supported on wsl for now").into());
     }
     const PORT: u16 = 8080;
 
@@ -19,7 +20,9 @@ pub fn start(manifest_path: &Path) -> Result<(), crate::Error> {
     };
     WasmWatchBuildService::watch_and_build(WatchAndBuildArgs {
         project_root_path: project_root_path.clone(),
-        port: PORT,
+        bundle_web_server: services::wasm_watch_build_service::BundleWebServerArgs::Port {
+            port: PORT,
+        },
         target: Target::WasmWindowsElectron,
         after_first_build: Some(move || {
             start_electron_dev_service(
@@ -31,4 +34,7 @@ pub fn start(manifest_path: &Path) -> Result<(), crate::Error> {
             .unwrap();
         }),
     })
+    .await?;
+
+    Ok(())
 }

@@ -1,3 +1,4 @@
+use crate::*;
 use crate::{cli::Target, debug_println, types::ErrorMessage};
 use cargo_metadata::{diagnostic::DiagnosticLevel, CompilerMessage, Message};
 use std::{
@@ -96,7 +97,7 @@ impl CancelableBuilder {
         let build_option = build_option.clone();
 
         let builder_thread_fn = {
-            move |builder: Arc<Self>| -> Result<BuildResult, crate::Error> {
+            move |builder: Arc<Self>| -> Result<BuildResult> {
                 let mut spawned_process = Self::spawn_build_process(&build_option)?;
 
                 let mut stdout = spawned_process.stdout.take().unwrap();
@@ -129,7 +130,7 @@ impl CancelableBuilder {
                                 .expect("fail to get stdout from thread");
 
                             if cargo_outputs.is_empty() {
-                                return Err(format!(
+                                return Err(anyhow!(
                                     "cargo build failed {stderr}",
                                     stderr = stderr_reading_thread.join().unwrap()
                                 )
@@ -138,7 +139,7 @@ impl CancelableBuilder {
                             match parse_cargo_build_result(cargo_outputs.as_bytes()) {
                                 Ok(result) => {
                                     if result.is_successful && !exit_status.success() {
-                                        return Err(format!(
+                                        return Err(anyhow!(
                                             "build process exited with code {exit_status}\nstderr: {stderr}",
                                             stderr = stderr_reading_thread.join().unwrap()
                                         ).into());
@@ -176,7 +177,7 @@ impl CancelableBuilder {
         (builder, result_receiver)
     }
 
-    fn spawn_build_process(build_option: &BuildOption) -> Result<Child, crate::Error> {
+    fn spawn_build_process(build_option: &BuildOption) -> Result<Child> {
         Ok(Command::new("wasm-pack")
             .args([
                 "build",
@@ -232,7 +233,7 @@ pub struct CargoBuildResult {
     pub is_successful: bool,
 }
 
-fn parse_cargo_build_result(stdout: &[u8]) -> Result<CargoBuildResult, crate::Error> {
+fn parse_cargo_build_result(stdout: &[u8]) -> Result<CargoBuildResult> {
     let mut warning_messages: Vec<ErrorMessage> = Vec::new();
     let mut error_messages: Vec<ErrorMessage> = Vec::new();
     let mut other_messages: Vec<ErrorMessage> = Vec::new();

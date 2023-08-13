@@ -1,66 +1,74 @@
 use super::*;
-use crate::{draw_rendering_tree, web::wait_web_event, Matrix3x3, RenderingTree};
+use crate::{Matrix3x3, RenderingTree};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub(crate) struct TreeContext {
-    render_event: Arc<Mutex<RenderEvent>>,
+    pub(crate) channel_events: Arc<Mutex<Vec<Item>>>,
+    pub(crate) raw_event: Arc<Mutex<Option<Arc<RawEvent>>>>,
+    call_root_render: Arc<dyn Fn(HashSet<SigId>) -> RenderingTree>,
 }
 
-#[derive(Debug)]
-struct ComponentRenderQueueItem {
-    component: Box<dyn Component>,
-    parent_component_id: usize,
-}
-unsafe impl Send for ComponentRenderQueueItem {}
-unsafe impl Sync for ComponentRenderQueueItem {}
+unsafe impl Send for TreeContext {}
+unsafe impl Sync for TreeContext {}
 
-const ROOT_COMPONENT_ID: usize = usize::MAX;
+impl Debug for TreeContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TreeContext")
+            .field("channel_events", &self.channel_events)
+            .field("raw_event", &self.raw_event)
+            .finish()
+    }
+}
 
 impl TreeContext {
-    pub(crate) fn new() -> Self {
-        Self {
-            render_event: Arc::new(Mutex::new(RenderEvent::Mount)),
-        }
+    pub(crate) fn new<C: Component>(
+        root_component: impl Send + Sync + 'static + Fn() -> C,
+    ) -> Self {
+        let root_instance = Arc::new(ComponentInstance::new(root_component().static_type_name()));
+        let mut ctx = Self {
+            channel_events: Default::default(),
+            raw_event: Default::default(),
+            call_root_render: Arc::new(|_| {
+                unreachable!();
+            }),
+        };
+
+        ctx.call_root_render = Arc::new({
+            let ctx = ctx.clone();
+            move |updated_sigs| {
+                ctx.render(
+                    root_component(),
+                    root_instance.clone(),
+                    updated_sigs,
+                    Matrix3x3::identity(),
+                )
+            }
+        });
+
+        ctx
     }
 
-    pub(crate) fn start<C: Component>(self, component: impl Fn() -> C) {
-        let this = Arc::new(self);
-        init_render_event(RenderEvent::Mount);
-        let root_instance = Arc::new(ComponentInstance::new(component().static_type_name()));
-        let mut updated_sigs = None;
+    pub(crate) async fn start(&self) {
+        let rendering_tree = (self.call_root_render)(Default::default());
+        crate::system::drawer::request_draw_rendering_tree(rendering_tree);
+    }
 
-        loop {
-            crate::system::futures::execute_async_tasks();
+    pub(crate) fn on_raw_event(&self, event: RawEvent) {
+        self.raw_event.lock().unwrap().replace(Arc::new(event));
 
-            let rendering_tree = this.render(
-                component(),
-                root_instance.clone(),
-                updated_sigs.take().unwrap_or_default(),
-                Matrix3x3::identity(),
-            );
-            draw_rendering_tree(&rendering_tree);
+        let mut channel_events = channel::drain();
 
-            // TODO: Maybe use web_event & channel event at once..?
+        let mut updated_sigs = Default::default();
+        handle_atom_events(&mut channel_events, &mut updated_sigs);
 
-            let mut channel_events = channel::drain();
-            if !channel_events.is_empty() {
-                crate::log!("channel_events: {:?}", channel_events);
-                updated_sigs = {
-                    let mut updated_sigs = Default::default();
-                    handle_atom_events(&mut channel_events, &mut updated_sigs);
-                    Some(updated_sigs)
-                };
-                set_render_event(RenderEvent::ChannelEvents { channel_events });
-                continue;
-            }
+        self.channel_events.lock().unwrap().extend(channel_events);
 
-            let web_event = wait_web_event();
-            set_render_event(RenderEvent::WebEvent { web_event });
-        }
+        let rendering_tree = (self.call_root_render)(updated_sigs);
+        crate::system::drawer::request_draw_rendering_tree(rendering_tree);
     }
 
     pub(crate) fn render(
-        self: &Arc<Self>,
+        &self,
         component: impl Component,
         instance: Arc<ComponentInstance>,
         updated_sigs: HashSet<SigId>,
@@ -73,7 +81,7 @@ impl TreeContext {
         render_done.rendering_tree
     }
     pub(crate) fn spawn_render_ctx(
-        self: &Arc<Self>,
+        &self,
         instance: Arc<ComponentInstance>,
         updated_sigs: HashSet<SigId>,
         matrix: Matrix3x3,

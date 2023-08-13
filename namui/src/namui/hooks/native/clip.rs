@@ -1,12 +1,12 @@
 use crate::*;
 
 pub fn clip<'a>(
-    path_builder: crate::PathBuilder,
+    path: crate::Path,
     clip_op: crate::ClipOp,
     component: impl Component + 'a,
 ) -> Clip<'a> {
     Clip {
-        path_builder,
+        path,
         clip_op,
         component: Box::new(component),
     }
@@ -14,7 +14,7 @@ pub fn clip<'a>(
 
 #[derive(Debug)]
 pub struct Clip<'a> {
-    path_builder: crate::PathBuilder,
+    path: crate::Path,
     clip_op: crate::ClipOp,
     component: Box<dyn Component + 'a>,
 }
@@ -25,7 +25,7 @@ impl Component for Clip<'_> {
         todo!()
         // let rendering_tree = ctx.ghost_render(self.component);
         // ctx.return_(crate::clip(
-        //     self.path_builder.clone(),
+        //     self.path.clone(),
         //     self.clip_op,
         //     rendering_tree,
         // ))

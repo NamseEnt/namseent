@@ -28,7 +28,7 @@ impl CellTrait for ImageCell {
             source: self.image_source.clone(),
             style: ImageStyle {
                 fit: ImageFit::Contain,
-                paint_builder: None,
+                paint: None,
             },
         })
     }

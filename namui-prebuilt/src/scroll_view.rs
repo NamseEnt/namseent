@@ -49,7 +49,7 @@ impl<C: Component> Component for ScrollView<C> {
 
         let Some(bounding_box) = *bounding_box else  {
             let content = ctx.ghost_render(content);
-            let bounding_box = content.get_bounding_box();
+            let bounding_box = namui::bounding_box(&content);
 
             if bounding_box.is_some()  {
                 set_bounding_box.set(bounding_box);
@@ -65,7 +65,7 @@ impl<C: Component> Component for ScrollView<C> {
 
         let inner = |ctx: &mut ComposeCtx| {
             ctx.clip(
-                namui::PathBuilder::new().add_rect(Rect::Xywh {
+                namui::Path::new().add_rect(Rect::Xywh {
                     x: bounding_box.x(),
                     y: bounding_box.y(),
                     width: bounding_box.width(),
@@ -191,7 +191,7 @@ impl<Func: FnOnce(&mut ComposeCtx)> Component for ScrollViewWithCtx<Func> {
         let Some(bounding_box) = *bounding_box else  {
             let content = ctx.ghost_render_with_ctx(content);
 
-            if let Some(bounding_box) = content.get_bounding_box() {
+            if let Some(bounding_box) = namui::bounding_box(&content) {
                 set_bounding_box.set(Some(bounding_box));
             };
             return ctx.done();
@@ -207,7 +207,7 @@ impl<Func: FnOnce(&mut ComposeCtx)> Component for ScrollViewWithCtx<Func> {
             content(
                 &mut ctx
                     .clip(
-                        namui::PathBuilder::new().add_rect(Rect::Xywh {
+                        namui::Path::new().add_rect(Rect::Xywh {
                             x: bounding_box.x(),
                             y: bounding_box.y(),
                             width: bounding_box.width(),

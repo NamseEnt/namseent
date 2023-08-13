@@ -6,11 +6,8 @@ use crate::simple_error_impl;
 pub use into_url::*;
 pub use reqwest::Method;
 pub use response::*;
-use serde_bytes::ByteBuf;
 pub use simple::*;
-use std::collections::HashMap;
 use url::*;
-use wasm_bindgen::prelude::wasm_bindgen;
 
 pub async fn fetch(
     url: impl IntoUrl,
@@ -20,44 +17,7 @@ pub async fn fetch(
     let url = resolve_relative_url(url)?;
 
     let builder = reqwest::Client::new().request(method, url);
-    let request = build(builder).build().unwrap();
-
-    let response: FetchResponse = crate::web::execute_async_function(
-        "
-    const response = await fetch(url, {
-        method,
-        headers,
-        body,
-    });
-
-    const arrayBuffer = await response.arrayBuffer();
-    return {
-        status: response.status,
-        headers: response.headers,
-        body: new Uint8Array(arrayBuffer),
-    };
-    ",
-    )
-    .arg("url", request.url().as_str())
-    .arg("method", request.method().as_str())
-    .arg(
-        "headers",
-        request
-            .headers()
-            .into_iter()
-            .map(|(key, value)| (key.to_string(), value.to_str().unwrap().to_string()))
-            .collect::<HashMap<String, String>>(),
-    )
-    .arg(
-        "body",
-        request
-            .body()
-            .map(|body| serde_bytes::Bytes::new(body.as_bytes().unwrap())),
-    )
-    .run()
-    .await;
-
-    Ok(Response::new(response))
+    Ok(Response::new(build(builder).send().await?))
 }
 
 pub async fn fetch_bytes(
@@ -97,12 +57,6 @@ pub async fn fetch_json<T: serde::de::DeserializeOwned>(
     fetch_serde(url, method, build, |slice| serde_json::from_slice(slice)).await
 }
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = ["globalThis"])]
-    fn getBaseUrl() -> String;
-}
-
 fn resolve_relative_url(url: impl IntoUrl) -> Result<Url, HttpError> {
     let url_string = url.as_str().to_string();
     let result = url.into_url();
@@ -111,7 +65,14 @@ fn resolve_relative_url(url: impl IntoUrl) -> Result<Url, HttpError> {
         Err(ParseError::RelativeUrlWithoutBase) => {
             #[cfg(target_arch = "wasm32")]
             fn get_base_url() -> Option<String> {
-                Some(getBaseUrl())
+                Some(
+                    web_sys::window()
+                        .unwrap()
+                        .document()
+                        .unwrap()
+                        .url()
+                        .unwrap(),
+                )
             }
             #[cfg(not(target_arch = "wasm32"))]
             fn get_base_url() -> Option<String> {

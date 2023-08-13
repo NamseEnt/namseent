@@ -56,7 +56,7 @@ impl CellTrait for TextCell {
                     text: self.text.clone(),
                     text_align: TextAlign::Center,
                     text_baseline: TextBaseline::Middle,
-                    font_type: FontType {
+                    font: Font {
                         serif: false,
                         size: font_size,
                         language: Language::Ko,
@@ -85,7 +85,7 @@ impl CellTrait for TextCell {
                 y: props.wh.height / 2.0,
                 align: TextAlign::Center,
                 baseline: TextBaseline::Middle,
-                font_type: FontType {
+                font: Font {
                     font_weight: FontWeight::REGULAR,
                     language: Language::Ko,
                     serif: false,

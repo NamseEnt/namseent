@@ -1,4 +1,5 @@
 use crate::util::get_electron_root_path;
+use crate::*;
 use std::{
     path::PathBuf,
     process::{Child, Command, Stdio},
@@ -14,7 +15,7 @@ pub fn start_electron_dev_service(
     cross_platform: CrossPlatform,
     project_root_path: &PathBuf,
     deep_link_schemes: &Vec<String>,
-) -> Result<Child, crate::Error> {
+) -> Result<Child> {
     let mut args = Vec::new();
     args.push("run".to_string());
     args.push(match cross_platform {
