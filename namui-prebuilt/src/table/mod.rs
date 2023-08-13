@@ -276,7 +276,7 @@ pub enum FitAlign {
     RightBottom,
 }
 pub fn fit<'a>(align: FitAlign, rendering_tree: RenderingTree) -> TableCell<'a> {
-    match namui::bounding_box(&rendering_tree) {
+    match rendering_tree.bounding_box() {
         Some(bounding_box) => TableCell {
             unit: Unit::Responsive(Box::new(move |direction| match direction {
                 Direction::Vertical => bounding_box.y() + bounding_box.height(),

@@ -61,7 +61,7 @@ pub fn text_button_fit<'a>(
 ) -> impl 'a + Component {
     let mouse_buttons = mouse_buttons.into_iter().collect::<Vec<_>>();
     let center_text = center_text_full_height(Wh::new(0.px(), height), text, text_color);
-    let width = match namui::bounding_box(&center_text) {
+    let width = match center_text.bounding_box() {
         Some(bounding_box) => bounding_box.width(),
         None => return None,
     };

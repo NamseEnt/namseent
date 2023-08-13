@@ -49,7 +49,7 @@ impl<C: Component> Component for ScrollView<C> {
 
         let Some(bounding_box) = *bounding_box else  {
             let content = ctx.ghost_render(content);
-            let bounding_box = namui::bounding_box(&content);
+            let bounding_box = content.bounding_box();
 
             if bounding_box.is_some()  {
                 set_bounding_box.set(bounding_box);
@@ -191,7 +191,7 @@ impl<Func: FnOnce(&mut ComposeCtx)> Component for ScrollViewWithCtx<Func> {
         let Some(bounding_box) = *bounding_box else  {
             let content = ctx.ghost_render_with_ctx(content);
 
-            if let Some(bounding_box) = namui::bounding_box(&content) {
+            if let Some(bounding_box) = content.bounding_box() {
                 set_bounding_box.set(Some(bounding_box));
             };
             return ctx.done();
