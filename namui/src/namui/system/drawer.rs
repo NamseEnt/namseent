@@ -17,6 +17,18 @@ extern "C" {
 }
 
 pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
+    static mut LAST_RENDERING_TREE: Option<RenderingTree> = None;
+
+    if let Some(last_rendering_tree) = unsafe { &mut LAST_RENDERING_TREE } {
+        if last_rendering_tree == &rendering_tree {
+            return;
+        }
+    }
+
+    unsafe {
+        LAST_RENDERING_TREE = Some(rendering_tree.clone());
+    }
+
     let draw_input = DrawInput { rendering_tree };
     let buffer = Uint8Array::from(draw_input.to_vec().as_ref()).buffer();
 
