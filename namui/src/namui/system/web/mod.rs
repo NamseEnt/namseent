@@ -3,7 +3,7 @@ use crate::*;
 use serde::de::DeserializeOwned;
 use wasm_bindgen::JsValue;
 
-pub(super) fn init() -> InitResult {
+pub(super) async fn init() -> InitResult {
     Ok(())
 }
 
