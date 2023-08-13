@@ -60,7 +60,7 @@ impl GroupGlyph for CkGroupGlyph {
     fn widths(&self, text: &str) -> Vec<Px> {
         self.groups(text)
             .into_iter()
-            .map(|group| group.width)
+            .flat_map(|group| group.glyphs.into_iter().map(|glyph| glyph.width))
             .collect()
     }
 

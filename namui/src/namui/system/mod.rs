@@ -14,6 +14,7 @@ pub mod network;
 mod platform_utils;
 pub mod screen;
 pub(crate) mod skia;
+pub(crate) mod text_input;
 pub mod time;
 pub(crate) mod typeface;
 
@@ -40,6 +41,7 @@ pub(crate) async fn init() -> InitResult {
         deep_link::init(),
         drag_and_drop::init(),
         drawer::init(),
+        text_input::init(),
     )?;
 
     try_join!(typeface::init(),)?;

@@ -75,8 +75,6 @@ impl CkImage {
             }
         };
 
-        crate::log!("wh: {:?}", image_info);
-
         CkImage {
             canvas_kit_image,
             image_info,

@@ -27,3 +27,7 @@ pub(crate) fn path_contains_xy(path: &Path, paint: Option<&Paint>, xy: Xy<Px>) -
 pub(crate) fn path_bounding_box(path: &Path, paint: Option<&Paint>) -> Option<Rect<Px>> {
     SKIA.get().unwrap().path_bounding_box(path, paint)
 }
+
+pub(crate) fn font_metrics(font: &Font) -> Option<FontMetrics> {
+    SKIA.get().unwrap().font_metrics(font)
+}

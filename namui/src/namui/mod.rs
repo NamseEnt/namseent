@@ -29,6 +29,8 @@ pub use system::*;
 pub use wasm_bindgen_futures::spawn_local;
 
 pub async fn init() -> NamuiContext {
+    namui_type::set_log(|x| log::log(x));
+
     let namui_context = NamuiContext::new();
 
     system::init()

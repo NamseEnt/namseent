@@ -18,6 +18,8 @@ static SKIA: OnceLock<Arc<dyn SkSkia + Send + Sync>> = OnceLock::new();
 
 #[wasm_bindgen]
 pub fn init(canvas: web_sys::HtmlCanvasElement) {
+    namui_type::set_log(|x| log::log(x));
+
     SKIA.set(init_skia(Some(&canvas)))
         .map_err(|_| anyhow!("Failed to init skia"))
         .unwrap();

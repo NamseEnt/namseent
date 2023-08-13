@@ -10,7 +10,6 @@ impl CkPaint {
         CK_PAINT_CACHE.get_or_create(paint, |paint| Self::new(paint))
     }
     fn new(paint: &Paint) -> Self {
-        crate::log!("new paint");
         let canvas_kit_paint = CanvasKitPaint::new();
         apply_paint_to_canvas_kit(&canvas_kit_paint, paint);
 

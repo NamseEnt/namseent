@@ -57,11 +57,6 @@ impl TextInputCtx {
     }
 }
 
-struct TextInputMouseEvent {
-    id: Uuid,
-    local_xy: Xy<Px>,
-}
-
 impl Component for TextInput<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let id = self.instance.id;
@@ -142,27 +137,8 @@ impl Component for TextInput<'_> {
         let get_selection_on_mouse_movement = |click_local_xy: Xy<Px>,
                                                is_dragging_by_mouse: bool|
          -> Selection {
-            // let font = crate::font::get_font(self.font);
-
-            // if font.is_none() {
-            //     return Selection::None;
-            // };
-            // let font = font.unwrap();
-            // let fonts = crate::font::with_fallbacks(font);
-
             let is_shift_key_pressed =
                 crate::keyboard::any_code_press([crate::Code::ShiftLeft, crate::Code::ShiftRight]);
-
-            let paint = get_text_paint(self.style.text.color);
-
-            // const continouslyFastClickCount: number;
-
-            // if (continouslyFastClickCount >= 3) {
-            //   return getMoreTripleClickSelection({ text });
-            // }
-            // if (continouslyFastClickCount === 2) {
-            //   return getDoubleClickSelection({ text, font, x: localX });
-            // }
 
             let is_dragging = is_shift_key_pressed || is_dragging_by_mouse;
 
@@ -183,40 +159,30 @@ impl Component for TextInput<'_> {
             let selection_direction = match &selection {
                 Selection::Range(range) => {
                     if range.start <= range.end {
-                        "forward"
+                        SelectionDirection::Forward
                     } else {
-                        "backward"
+                        SelectionDirection::Backward
                     }
                 }
-                Selection::None => "none",
+                Selection::None => SelectionDirection::None,
             };
 
-            // prev: let utf16_selection = selection.as_utf16(input_element.value());
             let utf16_selection = selection.as_utf16(&self.text);
             let selection_start = utf16_selection
                 .as_ref()
-                .map_or(0, |selection| selection.start.min(selection.end) as u32);
+                .map_or(0, |selection| selection.start.min(selection.end));
             let selection_end = utf16_selection
                 .as_ref()
-                .map_or(0, |selection| selection.start.max(selection.end) as u32);
+                .map_or(0, |selection| selection.start.max(selection.end));
 
-            let width = self.rect.width().as_f32();
-
-            todo!()
-            //     web::execute_function_sync(
-            //         "
-            // textArea.style.width = `${width}px`;
-            // textArea.value = text;
-            // textArea.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
-            // textArea.focus();
-            // ",
-            //     )
-            //     .arg("width", width)
-            //     .arg("text", &self.text)
-            //     .arg("selectionStart", selection_start)
-            //     .arg("selectionEnd", selection_end)
-            //     .arg("selectionDirection", selection_direction)
-            //     .run::<()>();
+            crate::system::text_input::set_width(self.rect.width());
+            crate::system::text_input::set_value(&self.text);
+            crate::system::text_input::set_selection_range(
+                selection_start,
+                selection_end,
+                selection_direction,
+            );
+            crate::system::text_input::focus();
         };
 
         let update_selection = |selection_direction: SelectionDirection,
@@ -394,31 +360,16 @@ impl Component for TextInput<'_> {
                         };
 
                         let selection_direction = if utf16_selection.start <= utf16_selection.end {
-                            "forward"
+                            SelectionDirection::Forward
                         } else {
-                            "backward"
+                            SelectionDirection::Backward
                         };
 
-                        todo!()
-                        // web::execute_function_sync(
-                        //     "
-                        //             textArea.setSelectionRange(
-                        //                 selectionStart,
-                        //                 selectionEnd,
-                        //                 selectionDirection,
-                        //             )
-                        //         ",
-                        // )
-                        // .arg(
-                        //     "selectionStart",
-                        //     utf16_selection.start.min(utf16_selection.end) as u32,
-                        // )
-                        // .arg(
-                        //     "selectionEnd",
-                        //     utf16_selection.start.max(utf16_selection.end) as u32,
-                        // )
-                        // .arg("selectionDirection", selection_direction)
-                        // .run::<()>();
+                        crate::system::text_input::set_selection_range(
+                            utf16_selection.start,
+                            utf16_selection.end,
+                            selection_direction,
+                        );
                     }
                     _ => {}
                 }

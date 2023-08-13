@@ -56,7 +56,7 @@ impl Visit for RenderingTree {
             }
             RenderingTree::Special(special) => {
                 if let ControlFlow::Break(_) = special
-                    .get_rendering_tree()
+                    .inner_rendering_tree_ref()
                     .try_visit_rln(callback, &next_ancestors)
                 {
                     return ControlFlow::Break(());

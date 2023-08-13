@@ -98,7 +98,7 @@ impl Draw for RenderingTree {
                     SpecialRenderingNode::MouseCursor(_) | SpecialRenderingNode::WithId(_) => {
                         draw_internal(
                             ctx,
-                            special.get_rendering_tree(),
+                            special.inner_rendering_tree(),
                             rendering_tree_draw_context,
                         );
                     }

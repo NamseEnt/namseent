@@ -24,7 +24,7 @@ pub(super) async fn init() -> InitResult {
 
 /// None when font is not found.
 pub fn font_metrics(font: &Font) -> Option<FontMetrics> {
-    todo!()
+    crate::system::skia::font_metrics(font)
 }
 
 pub fn group_glyph(font: &Font, paint: &Paint) -> Arc<dyn GroupGlyph> {

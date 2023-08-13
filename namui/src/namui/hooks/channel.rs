@@ -20,7 +20,6 @@ pub(crate) fn init() {
 }
 
 pub(crate) fn send(item: Item) {
-    crate::log!("send item: {:?}", item);
     CHANNEL.get().unwrap().lock().unwrap().push(item);
 }
 

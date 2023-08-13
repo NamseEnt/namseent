@@ -1,4 +1,5 @@
 use super::*;
+use std::fmt::Debug;
 
 #[derive(Debug)]
 pub enum RawEvent {
@@ -57,6 +58,7 @@ pub enum RawEvent {
     },
 }
 
+#[derive(Debug)]
 pub enum Event<'a> {
     MouseDown {
         event: MouseEvent<'a>,
@@ -147,6 +149,16 @@ pub struct MouseEvent<'a> {
     pub event_type: MouseEventType,
     pub(crate) is_stop_propagation: Arc<AtomicBool>,
 }
+impl Debug for MouseEvent<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MouseEvent")
+            .field("global_xy", &self.global_xy)
+            .field("pressing_buttons", &self.pressing_buttons)
+            .field("button", &self.button)
+            .field("event_type", &self.event_type)
+            .finish()
+    }
+}
 impl MouseEvent<'_> {
     pub fn stop_propagation(&self) {
         self.is_stop_propagation
@@ -165,6 +177,7 @@ pub enum MouseEventType {
     Up,
     Move,
 }
+#[derive(Debug)]
 pub struct WheelEvent {
     /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
     pub delta_xy: Xy<f32>,
@@ -177,6 +190,7 @@ impl WheelEvent {
             .store(true, std::sync::atomic::Ordering::Relaxed);
     }
 }
+#[derive(Debug)]
 pub struct KeyboardEvent {
     pub code: Code,
     pub pressing_codes: HashSet<Code>,

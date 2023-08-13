@@ -14,7 +14,6 @@ impl CkShader {
         CK_SHADER_MAP.get_or_create(shader, |shader| match shader {
             Shader::Image { src, dest_rect } => {
                 let ck_image = CkImage::get(src).unwrap();
-                crate::log!("new image shader");
                 // let matrix = canvas_kit().Matrix().scaled(
                 //     dest_rect.width().as_f32(),
                 //     dest_rect.height().as_f32(),
