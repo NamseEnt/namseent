@@ -36,10 +36,12 @@ impl ExecuteAsyncFunctionBuilder {
             }
             array
         };
-        let result = js_func
+        let promise: js_sys::Promise = js_func
             .apply(&wasm_bindgen::JsValue::NULL, &js_args)
-            .unwrap();
+            .unwrap()
+            .into();
 
+        let result = wasm_bindgen_futures::JsFuture::from(promise).await.unwrap();
         serde_wasm_bindgen::from_value(result).unwrap()
     }
 }
