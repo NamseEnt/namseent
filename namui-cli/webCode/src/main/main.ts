@@ -39,7 +39,9 @@ document.oncontextmenu = (event) => {
     event.preventDefault();
 };
 
-(globalThis as any).requestDraw = (buffer: ArrayBuffer) => {
+const gloalThisAny = globalThis as any;
+
+gloalThisAny.requestDraw = (buffer: Uint8Array) => {
     drawWorker.postMessage(
         {
             type: "requestDraw",
@@ -49,10 +51,7 @@ document.oncontextmenu = (event) => {
     );
 };
 
-(globalThis as any).loadTypeface = (
-    typefaceName: string,
-    buffer: ArrayBuffer,
-) => {
+gloalThisAny.loadTypeface = (typefaceName: string, buffer: Uint8Array) => {
     drawWorker.postMessage(
         {
             type: "loadTypeface",
@@ -60,6 +59,20 @@ document.oncontextmenu = (event) => {
             buffer,
         },
         [buffer],
+    );
+};
+
+gloalThisAny.loadImage = (
+    imageSource: Uint8Array,
+    imageBitmap: ImageBitmap,
+) => {
+    drawWorker.postMessage(
+        {
+            type: "loadImage",
+            imageSource,
+            imageBitmap,
+        },
+        [imageSource, imageBitmap],
     );
 };
 

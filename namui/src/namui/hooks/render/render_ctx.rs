@@ -81,7 +81,7 @@ impl<'a> RenderCtx {
         handle_track_eq(self, track_eq)
     }
 
-    pub fn effect(&'a self, title: &'static str, effect: impl FnOnce()) {
+    pub fn effect(&'a self, title: impl AsRef<str>, effect: impl FnOnce()) {
         handle_effect(self, title, effect)
     }
 

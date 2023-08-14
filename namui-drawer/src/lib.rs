@@ -42,6 +42,12 @@ pub fn load_typeface(typeface_name: &str, bytes: &[u8]) {
     SKIA.get().unwrap().load_typeface(typeface_name, bytes);
 }
 
+#[wasm_bindgen]
+pub fn load_image(image_source: Vec<u8>, image_bitmap: web_sys::ImageBitmap) {
+    let image_source: ImageSource = postcard::from_bytes(&image_source).unwrap();
+    SKIA.get().unwrap().load_image(&image_source, &image_bitmap);
+}
+
 #[macro_export]
 macro_rules! log {
     ($($arg:tt)*) => {{

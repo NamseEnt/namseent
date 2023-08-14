@@ -4,7 +4,7 @@ importScripts("./drawer/bundle.js");
 
 declare var wasm_bindgen: any;
 declare var CanvasKit: any;
-const { init, draw, load_typeface } = wasm_bindgen;
+const { init, draw, load_typeface, load_image } = wasm_bindgen;
 
 function createWaiter(): { waiter: Promise<void>; resolve: () => void } {
     let resolve: any;
@@ -26,7 +26,7 @@ const { waiter: initWaiter, resolve: finishInit } = createWaiter();
     finishInit();
 })();
 
-let lastRequestedDrawInput: ArrayBuffer;
+let lastRequestedDrawInput: Uint8Array;
 
 self.onmessage = async (event) => {
     await initWaiter;
@@ -41,7 +41,7 @@ self.onmessage = async (event) => {
             break;
         case "requestDraw":
             {
-                const { buffer } = event.data as { buffer: ArrayBuffer };
+                const { buffer } = event.data as { buffer: Uint8Array };
                 lastRequestedDrawInput = buffer;
             }
             break;
@@ -49,10 +49,19 @@ self.onmessage = async (event) => {
             {
                 const { typefaceName, buffer } = event.data as {
                     typefaceName: string;
-                    buffer: ArrayBuffer;
+                    buffer: Uint8Array;
                 };
                 console.log("loadTypeface", typefaceName);
                 load_typeface(typefaceName, new Uint8Array(buffer));
+            }
+            break;
+        case "loadImage":
+            {
+                const { imageSource, imageBitmap } = event.data as {
+                    imageSource: Uint8Array;
+                    imageBitmap: ImageBitmap;
+                };
+                load_image(imageSource, imageBitmap);
             }
             break;
     }
@@ -83,7 +92,7 @@ self.onmessage = async (event) => {
     });
 };
 
-let lastDrawnInput: ArrayBuffer;
+let lastDrawnInput: Uint8Array;
 let frameCount = 0;
 
 requestAnimationFrame(function onAnimationFrame() {
@@ -98,7 +107,7 @@ requestAnimationFrame(function onAnimationFrame() {
             return;
         }
 
-        draw(new Uint8Array(lastRequestedDrawInput));
+        draw(lastRequestedDrawInput);
         lastDrawnInput = lastRequestedDrawInput;
     } finally {
         requestAnimationFrame(onAnimationFrame);
