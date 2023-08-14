@@ -4,7 +4,6 @@ use crate::*;
 pub enum Shader {
     Image {
         src: ImageSource,
-        dest_rect: Rect<Px>,
     },
     Blend {
         blend_mode: BlendMode,

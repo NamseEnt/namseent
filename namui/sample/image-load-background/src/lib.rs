@@ -19,8 +19,8 @@ impl Component for App {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let size = namui::screen::size();
 
-        let jpg_length = 0; //14;
-        let png_length = 42;
+        let jpg_length = 14;
+        let png_length = 43;
         let jpgs = (0..jpg_length)
             .map(|index| Url::parse(&format!("bundle:resources/{index}.jpg")).unwrap());
         let pngs = (0..png_length)

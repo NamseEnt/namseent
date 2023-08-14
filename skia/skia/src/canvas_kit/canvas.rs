@@ -83,14 +83,20 @@ impl SkCanvas for CkCanvas {
         self.canvas_kit_canvas.scale(sx, sy);
     }
 
-    fn draw_image(&self, image_source: &ImageSource, rect: Rect<Px>, paint: &Option<Paint>) {
+    fn draw_image(
+        &self,
+        image_source: &ImageSource,
+        src_rect: Rect<Px>,
+        dest_rect: Rect<Px>,
+        paint: &Option<Paint>,
+    ) {
         let Some(image) = CkImage::get(image_source) else {
             return;
         };
 
         let mut paint = paint.clone().unwrap_or(Paint::new());
 
-        let image_shader = image.get_default_shader(rect);
+        let image_shader = image.get_default_shader();
 
         let next_shader = if let Some(super_shader) = &paint.shader {
             super_shader.blend(BlendMode::Plus, &image_shader)
@@ -100,26 +106,17 @@ impl SkCanvas for CkCanvas {
 
         paint = paint.set_shader(next_shader);
 
-        self.draw_path(&Path::new().add_rect(rect), &paint);
-        // let ck_paint = paint.as_ref().map(|paint| CkPaint::get(paint));
-        // self.canvas_kit_canvas.drawImageRectOptions(
-        //     image.canvas_kit(),
-        //     Ltrb {
-        //         left: 0.px(),
-        //         top: 0.px(),
-        //         right: image.size().width,
-        //         bottom: image.size().height,
-        //     }
-        //     .into_float32_array(),
-        //     rect.as_ltrb().into_float32_array(),
-        //     FilterMode::Linear.into(),
-        //     MipmapMode::Linear.into(),
-        //     None,
-        //     // if let Some(ck_paint) = ck_paint {
-        //     //     Some(ck_paint.canvas_kit())
-        //     // } else {
-        //     //     None
-        //     // },
-        // );
+        self.save();
+        self.transform(
+            Matrix3x3::from_translate(dest_rect.x().as_f32(), dest_rect.y().as_f32())
+                * Matrix3x3::from_scale(
+                    dest_rect.width() / src_rect.width(),
+                    dest_rect.height() / src_rect.height(),
+                ),
+        );
+
+        self.draw_path(&Path::new().add_rect(src_rect), &paint);
+
+        self.restore();
     }
 }

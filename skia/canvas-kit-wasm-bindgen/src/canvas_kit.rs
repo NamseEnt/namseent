@@ -138,9 +138,9 @@ impl CanvasKit {
         src_is_premul: Option<bool>,
     ) -> CanvasKitImage {
         let info = info.map(|info| info.into_js_object());
-        let image = self.MakeLazyImageFromTextureSource(src, info, src_is_premul);
-        image.makeCopyWithDefaultMipmaps()
-        // self.MakeLazyImageFromTextureSource(src, info, src_is_premul)
+        // let image = self.MakeLazyImageFromTextureSource(src, info, src_is_premul);
+        // image.makeCopyWithDefaultMipmaps() // Do we need this?
+        self.MakeLazyImageFromTextureSource(src, info, src_is_premul)
     }
 }
 

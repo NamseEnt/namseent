@@ -7,8 +7,7 @@ pub trait SkSkia {
     fn group_glyph(&self, font: &Font, paint: &Paint) -> Arc<dyn GroupGlyph>;
     fn font_metrics(&self, font: &Font) -> Option<FontMetrics>;
     fn load_typeface(&self, typeface_name: &str, bytes: &[u8]);
-    fn load_image(&self, image_source: &ImageSource, image_bitmap: ImageBitmap);
-    fn load_image2(&self, image_source: &ImageSource, bytes: &[u8]);
+    fn load_image(&self, image_source: &ImageSource, image_bitmap: &web_sys::ImageBitmap);
     fn image(&self, image_source: &ImageSource) -> Option<Image>;
     fn path_contains_xy(&self, path: &Path, paint: Option<&Paint>, xy: Xy<Px>) -> bool;
     fn path_bounding_box(&self, path: &Path, paint: Option<&Paint>) -> Option<Rect<Px>>;
@@ -24,7 +23,13 @@ pub trait SkCanvas {
     fn draw_text_blob(&self, glyph_ids: Vec<usize>, xy: Xy<Px>, font: &Font, paint: &Paint);
     fn draw_path(&self, path: &Path, paint: &Paint);
     fn draw_line(&self, from: Xy<Px>, to: Xy<Px>, paint: &Paint);
-    fn draw_image(&self, image_source: &ImageSource, rect: Rect<Px>, paint: &Option<Paint>);
+    fn draw_image(
+        &self,
+        image_source: &ImageSource,
+        src_rect: Rect<Px>,
+        dest_rect: Rect<Px>,
+        paint: &Option<Paint>,
+    );
     fn translate(&self, dx: Px, dy: Px);
     fn save(&self);
     fn clip_path(&self, path: &Path, clip_op: ClipOp, do_anti_alias: bool);

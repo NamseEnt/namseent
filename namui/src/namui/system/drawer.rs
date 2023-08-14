@@ -16,9 +16,21 @@ extern "C" {
     fn loadTypeface(typeface_name: &str, buffer: ArrayBuffer);
 }
 
-pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
-    static mut LAST_RENDERING_TREE: Option<RenderingTree> = None;
+static mut LAST_RENDERING_TREE: Option<RenderingTree> = None;
 
+#[wasm_bindgen]
+pub fn on_load_image() {
+    if let Some(last_rendering_tree) = unsafe { &mut LAST_RENDERING_TREE } {
+        let draw_input = DrawInput {
+            rendering_tree: last_rendering_tree.clone(),
+        };
+        let buffer = Uint8Array::from(draw_input.to_vec().as_ref()).buffer();
+
+        requestDraw(buffer);
+    }
+}
+
+pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
     if let Some(last_rendering_tree) = unsafe { &mut LAST_RENDERING_TREE } {
         if last_rendering_tree == &rendering_tree {
             return;

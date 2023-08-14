@@ -37,12 +37,8 @@ impl SkSkia for CkSkia {
         CkTypeface::load(typeface_name, bytes)
     }
 
-    fn load_image(&self, image_source: &ImageSource, image_bitmap: web_sys::ImageBitmap) {
+    fn load_image(&self, image_source: &ImageSource, image_bitmap: &web_sys::ImageBitmap) {
         CkImage::load(image_source, image_bitmap)
-    }
-
-    fn load_image2(&self, image_source: &ImageSource, bytes: &[u8]) {
-        CkImage::load2(image_source, bytes)
     }
 
     fn image(&self, image_source: &ImageSource) -> Option<Image> {

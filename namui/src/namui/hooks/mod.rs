@@ -1,6 +1,5 @@
 pub(crate) mod channel;
 mod component;
-mod event;
 mod instance;
 mod key;
 mod native;
@@ -11,7 +10,6 @@ mod value;
 
 pub(crate) use channel::*;
 pub use component::*;
-pub(crate) use event::*;
 pub use hooks_macro::*;
 pub(crate) use instance::*;
 use key::*;

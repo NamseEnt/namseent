@@ -84,7 +84,7 @@ extern "C" {
         ty: CanvasKitTileMode,
         fm: CanvasKitFilterMode,
         mm: CanvasKitMipmapMode,
-        localMatrix: &[f32],
+        localMatrix: Option<&[f32]>,
     ) -> CanvasKitShader;
 
     ///

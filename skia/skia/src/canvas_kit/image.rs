@@ -15,22 +15,12 @@ unsafe impl Sync for CkImage {}
 static IMAGE_MAP: StaticHashMap<ImageSource, CkImage> = StaticHashMap::new();
 
 impl CkImage {
-    pub(crate) fn load(image_source: &ImageSource, image_bitmap: ImageBitmap) {
+    pub(crate) fn load(image_source: &ImageSource, image_bitmap: &ImageBitmap) {
         IMAGE_MAP.insert(
             image_source.clone(),
             CkImage::new(
                 image_source.clone(),
-                canvas_kit().make_lazy_image_from_texture_source(&image_bitmap, None, None),
-            ),
-        );
-    }
-
-    pub(crate) fn load2(image_source: &ImageSource, bytes: &[u8]) {
-        IMAGE_MAP.insert(
-            image_source.clone(),
-            CkImage::new(
-                image_source.clone(),
-                canvas_kit().MakeImageFromEncoded(bytes).unwrap(),
+                canvas_kit().make_lazy_image_from_texture_source(image_bitmap, None, None),
             ),
         );
     }
@@ -88,27 +78,9 @@ impl CkImage {
             height: canvas_kit_image_info.height,
         }
     }
-    // pub fn make_shader(
-    //     &self,
-    //     tile_x: TileMode,
-    //     tile_y: TileMode,
-    //     filter: FilterMode,
-    //     mipmap: MipmapMode,
-    // ) -> Arc<CkShader> {
-    //     let shader = self.canvas_kit_image.makeShaderOptions(
-    //         tile_x.into(),
-    //         tile_y.into(),
-    //         filter.into(),
-    //         mipmap.into(),
-    //     );
-
-    //     Arc::new(CkShader::new(shader))
-    // }
-
-    pub(crate) fn get_default_shader(&self, dest_rect: Rect<Px>) -> Shader {
+    pub(crate) fn get_default_shader(&self) -> Shader {
         Shader::Image {
             src: self.src.clone(),
-            dest_rect,
         }
     }
 

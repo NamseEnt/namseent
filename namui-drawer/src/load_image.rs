@@ -1,4 +1,3 @@
-use js_sys::Uint8Array;
 use namui_type::*;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use wasm_bindgen_futures::spawn_local;
@@ -7,9 +6,14 @@ use web_sys::ImageBitmap;
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = ["globalThis"], catch)]
-    async fn loadImageBitmap(url: &str) -> Result<JsValue, JsValue>; // Result<ImageBitmap, String>
-    #[wasm_bindgen(js_namespace = ["globalThis"], catch)]
-    async fn loadImageBitmap2(url: &str) -> Result<JsValue, JsValue>; // Result<ImageBitmap, String>
+    async fn loadImageBitmap(
+        url: &str,
+    ) -> Result<
+        JsValue, // ImageBitmap
+        JsValue,
+    >;
+    #[wasm_bindgen(js_namespace = ["globalThis"])]
+    fn onLoadImage();
 }
 
 pub(crate) fn start_load_image(src: &ImageSource) {
@@ -26,25 +30,13 @@ pub(crate) fn start_load_image(src: &ImageSource) {
                 match loadImageBitmap(url.as_str()).await {
                     Ok(image_bitmap) => {
                         let image_bitmap: ImageBitmap = image_bitmap.into();
-                        crate::SKIA.get().unwrap().load_image(&src, image_bitmap);
+                        crate::SKIA.get().unwrap().load_image(&src, &image_bitmap);
+                        onLoadImage();
                     }
                     Err(_) => {
                         crate::log!("Failed to load image: {}", url);
                     }
                 };
-                // match loadImageBitmap2(url.as_str()).await {
-                //     Ok(bytes) => {
-                //         let bytes: Uint8Array = bytes.into();
-
-                //         crate::SKIA
-                //             .get()
-                //             .unwrap()
-                //             .load_image2(&src, &bytes.to_vec());
-                //     }
-                //     Err(_) => {
-                //         crate::log!("Failed to load image: {}", url);
-                //     }
-                // };
             }
         }
     });

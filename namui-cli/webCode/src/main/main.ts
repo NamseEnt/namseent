@@ -35,36 +35,6 @@ drawWorker.postMessage(
     [offscreen],
 );
 
-// runAsyncMessageLoop<AsyncMessageFromWorker>(drawWorker, async (message) => {
-//     switch (message.type) {
-//         case "imageBitmap": {
-//             const { imageBitmap } = message;
-
-//             bitmapRendererCtx.transferFromImageBitmap(imageBitmap);
-
-//             return {};
-//         }
-//     }
-// });
-
-// sendAsyncRequest(
-//     drawWorker,
-//     {
-//         type: "init",
-//         windowWidth: window.innerWidth,
-//         windowHeight: window.innerHeight,
-//     },
-//     [],
-// );
-
-// drawWorker.onerror = (e) => {
-//     console.error(e, "error on worker");
-// };
-
-// drawWorker.onmessageerror = (e) => {
-//     console.error(e, "message error from worker");
-// };
-
 document.oncontextmenu = (event) => {
     event.preventDefault();
 };
@@ -94,9 +64,18 @@ document.oncontextmenu = (event) => {
 };
 
 (async () => {
-    const [{ start }] = await Promise.all([
+    const [{ start, on_load_image }, _] = await Promise.all([
         wasm_bindgen("./bundle_bg.wasm"),
         initCanvasKit(),
     ]);
+
+    drawWorker.onmessage = (message) => {
+        switch (message.data.type) {
+            case "onLoadImage": {
+                on_load_image();
+            }
+        }
+    };
+
     await start();
 })();

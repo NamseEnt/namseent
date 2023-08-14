@@ -223,6 +223,8 @@ fn get_envs(build_option: &BuildOption) -> Vec<(&str, &str)> {
         envs.push(("NAMUI_CFG_WATCH_RELOAD", ""));
     }
 
+    envs.push(("-C", "target-feature=+simd128"));
+
     envs
 }
 
