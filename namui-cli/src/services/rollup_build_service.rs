@@ -1,6 +1,6 @@
-use crate::*;
-use crate::{cli::Target, debug_println, types::ErrorMessage};
-use cargo_metadata::{diagnostic::DiagnosticLevel, CompilerMessage, Message};
+use crate::types::ErrorMessage;
+use anyhow::{anyhow, Result};
+use itertools::Itertools;
 use std::{
     io::Read,
     path::PathBuf,
@@ -13,25 +13,24 @@ use std::{
     time::Duration,
 };
 
-pub struct RustBuildService {
+pub struct RollupBuildService {
     builder: Mutex<Option<Arc<CancelableBuilder>>>,
     is_build_just_started: AtomicBool,
 }
+
 pub enum BuildResult {
     Canceled,
-    Successful(CargoBuildResult),
-    Failed(String), // It's not failed if cargo build result has error messages.
+    Successful(RollupBuildResult),
+    Failed(String),
 }
 
 #[derive(Clone, Debug)]
 pub struct BuildOption {
-    pub dist_path: PathBuf,
-    pub project_root_path: PathBuf,
-    pub target: Target,
-    pub watch: bool,
+    pub rollup_project_root_path: PathBuf,
+    pub development: bool,
 }
 
-impl RustBuildService {
+impl RollupBuildService {
     pub(crate) fn new() -> Self {
         Self {
             builder: Mutex::new(None),
@@ -72,7 +71,6 @@ impl CancelableBuilder {
         }
 
         self.is_cancel_requested.store(true, Ordering::Relaxed);
-        debug_println!("build cancel requested");
 
         loop {
             thread::sleep(Duration::from_millis(100));
@@ -116,7 +114,6 @@ impl CancelableBuilder {
                     thread::sleep(Duration::from_millis(100));
 
                     if builder.is_cancel_requested.load(Ordering::Relaxed) {
-                        debug_println!("cancel requested received");
                         spawned_process.kill()?;
                         return Ok(BuildResult::Canceled);
                     }
@@ -124,25 +121,19 @@ impl CancelableBuilder {
                     match spawned_process.try_wait()? {
                         None => {}
                         Some(exit_status) => {
-                            let cargo_outputs = stdout_reading_thread
+                            let rollup_outputs = stdout_reading_thread
                                 .join()
                                 .expect("fail to get stdout from thread");
 
-                            if cargo_outputs.is_empty() {
+                            if !exit_status.success() {
                                 return Err(anyhow!(
-                                    "cargo build failed {stderr}",
+                                    "rollup build failed {stderr}",
                                     stderr = stderr_reading_thread.join().unwrap()
                                 )
                                 .into());
                             }
-                            match parse_cargo_build_result(cargo_outputs.as_bytes()) {
+                            match parse_rollup_build_result(rollup_outputs) {
                                 Ok(result) => {
-                                    if result.is_successful && !exit_status.success() {
-                                        return Err(anyhow!(
-                                            "build process exited with code {exit_status}\nstderr: {stderr}",
-                                            stderr = stderr_reading_thread.join().unwrap()
-                                        ).into());
-                                    }
                                     return Ok(BuildResult::Successful(result));
                                 }
                                 Err(_) => {
@@ -177,125 +168,112 @@ impl CancelableBuilder {
     }
 
     fn spawn_build_process(build_option: &BuildOption) -> Result<Child> {
-        Ok(Command::new("wasm-pack")
+        Ok(Command::new("npm")
             .args([
-                "build",
-                "--target",
-                "no-modules",
-                "--out-name",
-                "bundle",
-                "--dev",
-                "--out-dir",
-                build_option.dist_path.to_str().unwrap(),
-                build_option.project_root_path.to_str().unwrap(),
-                "--",
-                "--message-format",
-                "json",
+                "run",
+                match build_option.development {
+                    true => "build:dev",
+                    false => "build:prod",
+                },
             ])
-            .envs(get_envs(build_option))
+            .current_dir(build_option.rollup_project_root_path.clone())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()?)
     }
 }
 
-fn get_envs(build_option: &BuildOption) -> Vec<(&str, &str)> {
-    let mut envs = match build_option.target {
-        Target::WasmUnknownWeb => vec![
-            ("NAMUI_CFG_TARGET_OS", "unknown"),
-            ("NAMUI_CFG_TARGET_ENV", "web"),
-            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
-        ],
-        Target::WasmWindowsElectron => vec![
-            ("NAMUI_CFG_TARGET_OS", "windows"),
-            ("NAMUI_CFG_TARGET_ENV", "electron"),
-            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
-        ],
-        Target::WasmLinuxElectron => vec![
-            ("NAMUI_CFG_TARGET_OS", "linux"),
-            ("NAMUI_CFG_TARGET_ENV", "electron"),
-            ("NAMUI_CFG_TARGET_ARCH", "wasm"),
-        ],
-    };
-
-    if build_option.watch {
-        envs.push(("NAMUI_CFG_WATCH_RELOAD", ""));
-    }
-
-    envs.push(("-C", "target-feature=+simd128"));
-
-    envs
-}
-
-pub struct CargoBuildResult {
-    pub warning_messages: Vec<ErrorMessage>,
+pub struct RollupBuildResult {
     pub error_messages: Vec<ErrorMessage>,
-    pub other_messages: Vec<ErrorMessage>,
-    pub is_successful: bool,
 }
 
-fn parse_cargo_build_result(stdout: &[u8]) -> Result<CargoBuildResult> {
-    let mut warning_messages: Vec<ErrorMessage> = Vec::new();
-    let mut error_messages: Vec<ErrorMessage> = Vec::new();
-    let mut other_messages: Vec<ErrorMessage> = Vec::new();
-    let mut is_successful: bool = false;
+fn parse_rollup_build_result(stdout: String) -> Result<RollupBuildResult> {
+    const ROLLUP_BUILD_MESSAGE_PREFIX: &str = "//ROLLUP_BUILD_MESSAGE//:";
+    let mut error_messages = Vec::new();
 
-    let reader = std::io::BufReader::new(stdout);
-    for message in cargo_metadata::Message::parse_stream(reader) {
-        match message? {
-            Message::CompilerMessage(message) => match message.message.level {
-                DiagnosticLevel::Warning => {
-                    if let Ok(message) = convert_compiler_message_to_namui_error_message(&message) {
-                        warning_messages.push(message);
-                    }
-                }
-                DiagnosticLevel::Error => {
-                    if let Ok(message) = convert_compiler_message_to_namui_error_message(&message) {
-                        error_messages.push(message);
-                    }
-                }
-                _ => {
-                    if let Ok(message) = convert_compiler_message_to_namui_error_message(&message) {
-                        other_messages.push(message);
-                    }
-                }
-            },
-            Message::BuildFinished(finished) => {
-                is_successful = finished.success;
-            }
-            _ => (), // Unknown message
+    let lines = stdout.lines();
+    for line in lines
+        .filter_map(|line| match line.starts_with(ROLLUP_BUILD_MESSAGE_PREFIX) {
+            true => Some(line.trim_start_matches(ROLLUP_BUILD_MESSAGE_PREFIX)),
+            false => None,
+        })
+        .unique()
+    {
+        let error_message = serde_json::from_str::<RollupBuildMessage>(line)?;
+        match error_message.level {
+            RollupBuildMessageLevel::Warn => {}
+            _ => continue,
         }
+        let absolute_file = error_message
+            .loc
+            .as_ref()
+            .map(|loc| loc.file.clone().unwrap_or_default())
+            .unwrap_or_default();
+        let error_message = ErrorMessage {
+            relative_file: absolute_file.clone(),
+            absolute_file,
+            line: error_message.loc.as_ref().map_or(0, |loc| loc.line),
+            column: error_message.loc.as_ref().map_or(0, |loc| loc.column),
+            text: error_message.message,
+        };
+        error_messages.push(error_message);
     }
 
-    Ok(CargoBuildResult {
-        warning_messages,
-        error_messages,
-        other_messages,
-        is_successful,
-    })
+    Ok(RollupBuildResult { error_messages })
 }
 
-fn convert_compiler_message_to_namui_error_message(
-    message: &CompilerMessage,
-) -> Result<ErrorMessage, ()> {
-    let first_span = message.message.spans.get(0);
-    match first_span {
-        Some(span) => {
-            let relative_file = span.file_name.clone();
-            let mut absolute_file = message.target.src_path.clone();
-            absolute_file.pop();
-            absolute_file.pop();
-            absolute_file.push(&relative_file);
-            let absolute_file = String::from(absolute_file.to_string_lossy());
+#[allow(dead_code)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+struct RollupBuildMessage {
+    level: RollupBuildMessageLevel,
+    loc: Option<RollupBuildMessageLocation>,
+    message: String,
 
-            Ok(ErrorMessage {
-                relative_file,
-                absolute_file,
-                line: span.line_start,
-                column: span.column_start,
-                text: message.message.message.clone(),
-            })
-        }
-        None => Err(()),
-    }
+    #[serde(skip)]
+    binding: Option<String>,
+    #[serde(skip)]
+    cause: Option<()>,
+    #[serde(skip)]
+    code: Option<String>,
+    #[serde(skip)]
+    exporter: Option<String>,
+    #[serde(skip)]
+    frame: Option<String>,
+    #[serde(skip)]
+    hook: Option<String>,
+    #[serde(skip)]
+    id: Option<String>,
+    #[serde(skip)]
+    ids: Option<Vec<String>>,
+    #[serde(skip)]
+    meta: Option<()>,
+    #[serde(skip)]
+    names: Option<Vec<String>>,
+    #[serde(skip)]
+    plugin: Option<String>,
+    #[serde(skip, rename = "pluginCode")]
+    plugin_code: Option<()>,
+    #[serde(skip)]
+    pos: Option<i64>,
+    #[serde(skip)]
+    reexporter: Option<String>,
+    #[serde(skip)]
+    stack: Option<String>,
+    #[serde(skip)]
+    url: Option<String>,
+}
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+enum RollupBuildMessageLevel {
+    #[serde(rename = "warn")]
+    Warn,
+    #[serde(rename = "info")]
+    Info,
+    #[serde(rename = "debug")]
+    Debug,
+}
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+struct RollupBuildMessageLocation {
+    column: usize,
+    file: Option<String>,
+    line: usize,
 }

@@ -1,5 +1,5 @@
+use crate::debug_println;
 use crate::*;
-use crate::{debug_println, util::get_cli_root_path};
 use cargo_metadata::MetadataCommand;
 use notify::{Config, RecommendedWatcher, Watcher};
 use regex::Regex;
@@ -72,7 +72,6 @@ impl RustProjectWatchService {
     ) -> Result<()> {
         let local_path_in_repr = Regex::new(r"\(path\+file://([^\)]+)\)$").unwrap();
         let project_root_path = manifest_path.parent().unwrap();
-        let web_code_src_path = get_cli_root_path().join("webCode").join("src");
         let mut local_dependencies_root_paths = HashSet::new();
 
         let metadata = MetadataCommand::new()
@@ -102,7 +101,6 @@ impl RustProjectWatchService {
                     .iter()
                     .map(|watching_item| root_path.join(watching_item))
             })
-            .chain(std::iter::once(web_code_src_path))
             .collect::<HashSet<_>>();
 
         let unwatch_paths = watched_paths

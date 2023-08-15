@@ -1,4 +1,5 @@
 use crate::cli::Target;
+use crate::services::build_status_service::BuildStatusService;
 use crate::services::deep_link_manifest_service::DeepLinkManifest;
 use crate::services::electron_dev_service::{start_electron_dev_service, CrossPlatform};
 use crate::services::wasm_watch_build_service::{WasmWatchBuildService, WatchAndBuildArgs};
@@ -13,6 +14,7 @@ pub async fn start(manifest_path: &Path) -> Result<()> {
     const PORT: u16 = 8080;
 
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
+    let build_status_service = BuildStatusService::new();
 
     let deep_link_schemes = match DeepLinkManifest::try_load(&project_root_path)? {
         Some(namui_deep_link_manifest) => namui_deep_link_manifest.deep_link_schemes().clone(),
@@ -33,6 +35,7 @@ pub async fn start(manifest_path: &Path) -> Result<()> {
             )
             .unwrap();
         }),
+        build_status_service,
     })
     .await?;
 

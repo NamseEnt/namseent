@@ -2,7 +2,9 @@
   "name": "webcode",
   "scripts": {
     "build": "rollup -c --environment NAMUI_ENV:production",
-    "watch": "rollup -c -w --environment NAMUI_ENV:development"
+    "watch": "rollup -c -w --environment NAMUI_ENV:development",
+    "build:prod": "rollup -c --environment NAMUI_ENV:production",
+    "build:dev": "rollup -c --environment NAMUI_ENV:development"
   },
   "dependencies": {
     "@msgpack/msgpack": "^3.0.0-beta2",

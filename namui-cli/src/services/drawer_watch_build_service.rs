@@ -1,14 +1,15 @@
 use super::{
+    build_status_service::BuildStatusService,
     rust_build_service::{BuildOption, BuildResult, RustBuildService},
     rust_project_watch_service::RustProjectWatchService,
     wasm_bundle_web_server::WasmBundleWebServer,
 };
-use crate::{cli::Target, util::print_build_result};
+use crate::{cli::Target, services::build_status_service::BuildStatusCategory};
 use crate::{util::get_cli_root_path, *};
 use std::{path::PathBuf, sync::Arc};
 use tokio::try_join;
 
-pub struct DrawerBuildService {}
+pub struct DrawerWatchBuildService {}
 
 type AfterBuild = Option<Arc<dyn Fn() + Send + Sync + 'static>>;
 
@@ -16,8 +17,9 @@ pub struct WatchArgs {
     pub target: Target,
     pub after_build: AfterBuild,
     pub wasm_bundle_web_server: Arc<WasmBundleWebServer>,
+    pub build_status_service: Arc<BuildStatusService>,
 }
-impl DrawerBuildService {
+impl DrawerWatchBuildService {
     pub async fn spawn_watch(args: WatchArgs) -> Result<()> {
         let project_root_path = get_cli_root_path().join("../namui-drawer");
         let build_dist_path = project_root_path.join("pkg/drawer");
@@ -27,10 +29,13 @@ impl DrawerBuildService {
 
         let rust_project_watch_service = Arc::new(RustProjectWatchService::new());
         let rust_build_service = Arc::new(RustBuildService::new());
+        let build_status_service = args.build_status_service;
 
         try_join!(
             cancel_and_start_build(
+                args.wasm_bundle_web_server.clone(),
                 rust_build_service.clone(),
+                build_status_service.clone(),
                 build_dist_path.clone(),
                 project_root_path.clone(),
                 args.target,
@@ -43,7 +48,9 @@ impl DrawerBuildService {
                 let after_build = args.after_build.clone();
                 move || {
                     tokio::spawn(cancel_and_start_build(
+                        args.wasm_bundle_web_server.clone(),
                         rust_build_service.clone(),
+                        build_status_service.clone(),
                         build_dist_path.clone(),
                         project_root_path.clone(),
                         args.target,
@@ -56,13 +63,18 @@ impl DrawerBuildService {
         return Ok(());
 
         pub async fn cancel_and_start_build(
+            wasm_bundle_web_server: Arc<WasmBundleWebServer>,
             rust_build_service: Arc<RustBuildService>,
+            build_status_service: Arc<BuildStatusService>,
             build_dist_path: PathBuf,
             project_root_path: PathBuf,
             target: Target,
             after_build: AfterBuild,
         ) -> Result<()> {
             debug_println!("build fn run");
+            build_status_service
+                .build_started(BuildStatusCategory::Drawer)
+                .await;
             match rust_build_service.cancel_and_start_build(&BuildOption {
                 target,
                 dist_path: build_dist_path,
@@ -73,8 +85,26 @@ impl DrawerBuildService {
                     debug_println!("build canceled");
                 }
                 BuildResult::Successful(cargo_build_result) => {
-                    print_build_result(&cargo_build_result.error_messages, &vec![]);
                     after_build.as_ref().map(|f| f());
+
+                    build_status_service
+                        .build_finished(
+                            BuildStatusCategory::Drawer,
+                            cargo_build_result.error_messages,
+                            vec![],
+                        )
+                        .await;
+                    let error_messages = build_status_service.compile_error_messages().await;
+                    match error_messages.len() == 0 {
+                        true => {
+                            wasm_bundle_web_server.send_reload_signal().await;
+                        }
+                        false => {
+                            wasm_bundle_web_server
+                                .send_error_messages(error_messages)
+                                .await;
+                        }
+                    };
                 }
                 BuildResult::Failed(err) => {
                     eprintln!("failed to build: {}", err);

@@ -1,4 +1,4 @@
-use super::{bundle::NamuiBundleManifest, rust_build_service::CargoBuildResult};
+use super::bundle::NamuiBundleManifest;
 use crate::{
     debug_println,
     types::{ErrorMessage, WebsocketMessage},
@@ -129,52 +129,30 @@ impl WasmBundleWebServer {
         web_server
     }
 
-    pub async fn on_build_done(
+    pub async fn update_namui_bundle_manifest(
         &self,
-        result: &CargoBuildResult,
-        bundle_manifest: Option<NamuiBundleManifest>,
+        namui_bundle_manifest: Option<NamuiBundleManifest>,
     ) {
+        *self.namui_bundle_manifest.lock().unwrap() = namui_bundle_manifest;
+    }
+
+    pub async fn send_reload_signal(&self) {
+        let message = Message::text(serde_json::to_string(&WebsocketMessage::Reload {}).unwrap());
+        self.send_message(&message).await;
+    }
+
+    pub async fn send_error_messages(&self, error_messages: Vec<ErrorMessage>) {
         {
-            *self.namui_bundle_manifest.lock().unwrap() = bundle_manifest;
-        }
-        {
-            debug_println!("on_build_done: locking web_server.cached_error_messages...");
+            debug_println!("send_error_messages: locking web_server.cached_error_messages...");
             let mut cached_error_messages = self.cached_error_messages.write().await;
-            debug_println!("on_build_done: web_server.cached_error_messages locked");
-            *cached_error_messages = result.error_messages.clone();
+            debug_println!("send_error_messages: web_server.cached_error_messages locked");
+            *cached_error_messages = error_messages.clone();
         }
 
-        let messages = if result.is_successful {
-            [Message::text(
-                serde_json::to_string(&WebsocketMessage::Reload {}).unwrap(),
-            )]
-        } else {
-            [Message::text(
-                serde_json::to_string(&WebsocketMessage::Error {
-                    error_messages: result.error_messages.clone(),
-                })
-                .unwrap(),
-            )]
-        };
-
-        debug_println!("on_build_done: locking web_server.sockets...");
-        let mut sockets = { self.sockets.lock().unwrap().clone() };
-        debug_println!("on_build_done: web_server.sockets locked");
-
-        join_all(sockets.iter_mut().map(|(id, socket)| {
-            let messages = messages.clone();
-            async move {
-                debug_println!("send_error_messages: sending to {}...", id);
-                for message in &messages {
-                    if let Err(error) = socket.send(message.clone()).await {
-                        eprintln!("websocket send fail.\n  {:?}", error);
-                    } else {
-                        debug_println!("on_build_done: sended to {}", id);
-                    }
-                }
-            }
-        }))
-        .await;
+        let message = Message::text(
+            serde_json::to_string(&WebsocketMessage::Error { error_messages }).unwrap(),
+        );
+        self.send_message(&message).await;
     }
 
     pub async fn send_cached_error_messages(&self, socket: &mut UnboundedSender<Message>) {
@@ -192,6 +170,25 @@ impl WasmBundleWebServer {
         if let Err(error) = result {
             eprintln!("send_cached_error_messages fail.\n  {:?}", error);
         }
+    }
+
+    pub async fn send_message(&self, message: &Message) {
+        debug_println!("send_message: locking web_server.sockets...");
+        let mut sockets = { self.sockets.lock().unwrap().clone() };
+        debug_println!("send_message: web_server.sockets locked");
+
+        join_all(sockets.iter_mut().map(|(id, socket)| {
+            let message = message.clone();
+            async move {
+                debug_println!("send_error_messages: sending to {}...", id);
+                if let Err(error) = socket.send(message.clone()).await {
+                    eprintln!("websocket send fail.\n  {:?}", error);
+                } else {
+                    debug_println!("on_build_done: sended to {}", id);
+                }
+            }
+        }))
+        .await;
     }
 
     pub fn add_static_dir(&self, base_path: &str, path: &PathBuf) {

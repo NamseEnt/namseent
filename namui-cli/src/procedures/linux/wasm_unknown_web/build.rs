@@ -1,10 +1,9 @@
+use crate::services::build_status_service::BuildStatusService;
+use crate::services::wasm_web_runtime_watch_build_service::WasmWebRuntimeWatchBuildService;
 use crate::*;
 use crate::{
     cli::Target,
-    services::{
-        resource_collect_service, wasm_watch_build_service::WasmWatchBuildService,
-        wasm_web_runtime_prepare_service,
-    },
+    services::{resource_collect_service, wasm_watch_build_service::WasmWatchBuildService},
 };
 use std::path::Path;
 
@@ -15,8 +14,13 @@ pub fn build(manifest_path: &Path) -> Result<()> {
         .join("namui")
         .join("wasm_unknown_web");
 
-    wasm_web_runtime_prepare_service::build_browser_runtime()?;
-    WasmWatchBuildService::just_build(project_root_path.clone(), Target::WasmUnknownWeb)?;
+    let build_status_service = BuildStatusService::new();
+    WasmWebRuntimeWatchBuildService::just_build(build_status_service.clone())?;
+    WasmWatchBuildService::just_build(
+        build_status_service,
+        project_root_path.clone(),
+        Target::WasmUnknownWeb,
+    )?;
 
     let bundle_manifest =
         crate::services::bundle::NamuiBundleManifest::parse(project_root_path.clone())?;

@@ -1,4 +1,5 @@
 use super::{
+    build_status_service::BuildStatusService,
     electron_package_service::{Arch, ElectronPackageService, Platform},
     wasm_watch_build_service::WasmWatchBuildService,
 };
@@ -8,6 +9,7 @@ use std::path::Path;
 
 pub fn build(manifest_path: &Path, arch: Option<Arch>, platform: Platform) -> Result<()> {
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
+    let build_status_service = BuildStatusService::new();
 
     let target = match platform {
         Platform::Win32 => Target::WasmWindowsElectron,
@@ -25,7 +27,7 @@ pub fn build(manifest_path: &Path, arch: Option<Arch>, platform: Platform) -> Re
         arch = package_result.arch
     ));
 
-    WasmWatchBuildService::just_build(project_root_path.clone(), target)?;
+    WasmWatchBuildService::just_build(build_status_service, project_root_path.clone(), target)?;
 
     let namui_bundle_manifest =
         super::bundle::NamuiBundleManifest::parse(project_root_path.clone())?;

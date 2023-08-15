@@ -4,6 +4,8 @@ import { babel } from "@rollup/plugin-babel";
 import nodePolyfills from "rollup-plugin-polyfill-node";
 import copy from "rollup-plugin-copy";
 
+const ROLLUP_BUILD_MESSAGE_PREFIX = "//ROLLUP_BUILD_MESSAGE//:";
+
 /** @type {import('rollup').RollupOptions} */
 const defaultConfig = {
     output: {
@@ -34,6 +36,12 @@ const defaultConfig = {
             ],
         }),
     ],
+    onLog: (level, log, _defaultHandler) => {
+        const logWithLevel = { ...log, level };
+        console.log(
+            `${ROLLUP_BUILD_MESSAGE_PREFIX}${JSON.stringify(logWithLevel)}`,
+        );
+    },
 };
 
 const inputs = ["src/main/main.ts", "src/worker.ts"];
