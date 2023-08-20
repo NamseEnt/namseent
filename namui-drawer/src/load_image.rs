@@ -30,7 +30,12 @@ pub(crate) fn start_load_image(src: &ImageSource) {
                 match loadImageBitmap(url.as_str()).await {
                     Ok(image_bitmap) => {
                         let image_bitmap: ImageBitmap = image_bitmap.into();
-                        crate::SKIA.get().unwrap().load_image(&src, &image_bitmap);
+                        crate::SKIA
+                            .get()
+                            .unwrap()
+                            .read()
+                            .unwrap()
+                            .load_image(&src, &image_bitmap);
                         onLoadImage();
                     }
                     Err(_) => {

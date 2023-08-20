@@ -119,3 +119,11 @@ globalThisAny.encodeLoadedImageToPng = async (image: Uint8Array) => {
 
     await start();
 })();
+
+window.addEventListener("resize", () => {
+    drawWorker.postMessage({
+        type: "resize",
+        width: window.innerWidth,
+        height: window.innerHeight,
+    });
+});

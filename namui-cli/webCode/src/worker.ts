@@ -4,8 +4,14 @@ importScripts("./drawer/bundle.js");
 
 declare var wasm_bindgen: any;
 declare var CanvasKit: any;
-const { init, draw, load_typeface, load_image, encode_loaded_image_to_png } =
-    wasm_bindgen;
+const {
+    init,
+    draw,
+    load_typeface,
+    load_image,
+    encode_loaded_image_to_png,
+    refresh_surface,
+} = wasm_bindgen;
 
 function createWaiter(): { waiter: Promise<void>; resolve: () => void } {
     let resolve: any;
@@ -28,6 +34,7 @@ const { waiter: initWaiter, resolve: finishInit } = createWaiter();
 })();
 
 let lastRequestedDrawInput: Uint8Array;
+let offscreenCanvas: OffscreenCanvas;
 
 self.onmessage = async (event) => {
     await initWaiter;
@@ -35,9 +42,9 @@ self.onmessage = async (event) => {
     switch (event.data.type) {
         case "init":
             {
-                const { offscreen } = event.data;
+                offscreenCanvas = event.data.offscreen;
 
-                init(offscreen);
+                init(offscreenCanvas);
             }
             break;
         case "requestDraw":
@@ -80,6 +87,20 @@ self.onmessage = async (event) => {
                     },
                     [pngBytes],
                 );
+            }
+            break;
+        case "resize":
+            {
+                const { width, height } = event.data as {
+                    width: number;
+                    height: number;
+                };
+
+                if (offscreenCanvas) {
+                    offscreenCanvas.width = width;
+                    offscreenCanvas.height = height;
+                    refresh_surface(offscreenCanvas);
+                }
             }
             break;
     }
