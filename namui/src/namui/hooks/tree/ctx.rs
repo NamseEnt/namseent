@@ -55,6 +55,7 @@ impl TreeContext {
     pub(crate) fn on_raw_event(&self, event: RawEvent) {
         self.raw_event.lock().unwrap().replace(Arc::new(event));
         self.render_and_draw();
+        self.raw_event.lock().unwrap().take();
     }
 
     pub(crate) fn render_and_draw(&self) {

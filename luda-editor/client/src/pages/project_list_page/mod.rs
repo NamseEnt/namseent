@@ -171,7 +171,7 @@ impl Component for ProjectCell {
             [MouseButton::Left],
             move |event: MouseEvent| {
                 if event.button == Some(MouseButton::Left) {
-                    super::router::move_to(super::router::RoutePath::SequenceList { project_id });
+                    super::router::move_to(super::router::Route::SequenceListPage { project_id });
                 } else if event.button == Some(MouseButton::Right) {
                     // TODO
                     // namui::event::send(Event::CellRightClick {

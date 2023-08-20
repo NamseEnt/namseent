@@ -8,14 +8,13 @@ pub struct Router {
 
 impl Component for Router {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-        let (route, set_route) = ctx.state(|| Route::from(get_path_from_hash()));
+        let (route, set_route) = ctx.state(|| Route::from(get_hash()));
 
-        ctx.on_raw_event(move |web_event| match web_event {
-            RawEvent::HashChange { .. } => {
-                namui::log!("Hash change");
-                set_route.set(Route::from(get_path_from_hash()));
-            }
-            _ => {}
+        namui::web::event_listener_hash_change(move |event| {
+            crate::log!("hi");
+            let new_url = event.new_url();
+            let hash = new_url.split('#').nth(1).unwrap_or("");
+            set_route.set(Route::from(hash.to_string()));
         });
 
         let wh = self.wh;
@@ -49,57 +48,14 @@ pub enum Route {
     SequenceListPage { project_id: Uuid },
     SequenceEditPage { project_id: Uuid, sequence_id: Uuid },
 }
-impl From<RoutePath> for Route {
-    fn from(path: RoutePath) -> Self {
-        match path {
-            RoutePath::ProjectList => Self::ProjectListPage,
-            RoutePath::SequenceList { project_id } => Self::SequenceListPage { project_id },
-            RoutePath::SequenceEdit {
-                project_id,
-                sequence_id,
-            } => {
-                return Self::SequenceEditPage {
-                    project_id,
-                    sequence_id,
-                }
-            }
-        }
-    }
-}
-
-pub fn move_to(path: RoutePath) {
-    web::execute_function(
-        "
-        window.location.hash = hash;
-    ",
-    )
-    .arg("hash", &path.to_string())
-    .run::<()>();
-}
-
-fn get_path_from_hash() -> RoutePath {
-    let hash: String = web::execute_function(
-        "
-        return window.location.hash;
-    ",
-    )
-    .run();
-    let path = hash.trim_start_matches('#');
-    RoutePath::from(path.to_string())
-}
-
-#[derive(Clone)]
-pub enum RoutePath {
-    ProjectList,
-    SequenceList { project_id: Uuid },
-    SequenceEdit { project_id: Uuid, sequence_id: Uuid },
-}
-impl From<String> for RoutePath {
+impl From<String> for Route {
     fn from(mut path_string: String) -> Self {
+        path_string = path_string.trim_start_matches('#').to_string();
+
         if path_string.starts_with("/sequence_list") {
             let rest = path_string.split_off("/sequence_list".len());
             if let Ok(project_id) = Uuid::parse_str(rest.trim_matches('/')) {
-                return Self::SequenceList { project_id };
+                return Self::SequenceListPage { project_id };
             }
         }
 
@@ -114,7 +70,7 @@ impl From<String> for RoutePath {
                 if let (Ok(project_id), Ok(sequence_id)) =
                     (Uuid::parse_str(project_id), Uuid::parse_str(sequence_id))
                 {
-                    return Self::SequenceEdit {
+                    return Self::SequenceEditPage {
                         project_id,
                         sequence_id,
                     };
@@ -122,18 +78,37 @@ impl From<String> for RoutePath {
             }
         }
 
-        Self::ProjectList
+        Self::ProjectListPage
     }
 }
-impl ToString for RoutePath {
+impl ToString for Route {
     fn to_string(&self) -> String {
         match self {
-            Self::ProjectList => "/".to_string(),
-            Self::SequenceList { project_id } => format!("/sequence_list/{project_id}"),
-            Self::SequenceEdit {
+            Self::ProjectListPage => "/".to_string(),
+            Self::SequenceListPage { project_id } => format!("/sequence_list/{project_id}"),
+            Self::SequenceEditPage {
                 project_id,
                 sequence_id,
             } => format!("/sequence_edit/{project_id}/{sequence_id}"),
         }
     }
+}
+
+pub fn move_to(route: Route) {
+    web::execute_function(
+        "
+        window.location.hash = hash;
+    ",
+    )
+    .arg("hash", &route.to_string())
+    .run::<()>();
+}
+
+fn get_hash() -> String {
+    web::execute_function(
+        "
+        return window.location.hash;
+    ",
+    )
+    .run()
 }

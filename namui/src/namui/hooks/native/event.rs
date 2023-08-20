@@ -87,12 +87,6 @@ pub(crate) fn invoke_on_event(
                 },
             });
         }
-        RawEvent::HashChange { new_url, old_url } => {
-            on_event(Event::HashChange {
-                new_url: new_url.clone(),
-                old_url: old_url.clone(),
-            });
-        }
         &RawEvent::SelectionChange {
             selection_direction,
             selection_start,

@@ -15,10 +15,6 @@ pub enum RawEvent {
     Wheel {
         event: RawWheelEvent,
     },
-    HashChange {
-        new_url: String,
-        old_url: String,
-    },
     FileDrop {
         data_transfer: Option<web_sys::DataTransfer>,
         xy: Xy<Px>,
@@ -71,10 +67,6 @@ pub enum Event<'a> {
     },
     Wheel {
         event: WheelEvent,
-    },
-    HashChange {
-        new_url: String,
-        old_url: String,
     },
     DragAndDrop {
         data_transfer: Option<web_sys::DataTransfer>,

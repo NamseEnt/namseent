@@ -16,7 +16,7 @@ pub struct ComponentInstance {
     pub(crate) render_used_sigs: Mutex<Vec<SigId>>,
     pub(crate) track_eq_value_list: Mutex<Vec<Box<dyn Value>>>,
     pub(crate) is_first_render: AtomicBool,
-    children_instances: Mutex<HashMap<KeyVec, Arc<ComponentInstance>>>,
+    children_instances: Mutex<HashMap<(KeyVec, &'static str), Arc<ComponentInstance>>>,
 }
 
 impl Debug for ComponentInstance {
@@ -63,10 +63,12 @@ impl ComponentInstance {
     }
     pub(crate) fn get_or_create_child_instance(
         &self,
-        key: KeyVec,
+        key_vec: KeyVec,
         component_type_name: &'static str,
     ) -> Arc<ComponentInstance> {
         // TODO: Remove unused key's children instances
+
+        let key = (key_vec, component_type_name);
 
         self.children_instances
             .lock()
