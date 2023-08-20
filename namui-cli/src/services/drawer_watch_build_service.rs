@@ -95,15 +95,12 @@ impl DrawerWatchBuildService {
                         )
                         .await;
                     let error_messages = build_status_service.compile_error_messages().await;
-                    match error_messages.len() == 0 {
-                        true => {
-                            wasm_bundle_web_server.send_reload_signal().await;
-                        }
-                        false => {
-                            wasm_bundle_web_server
-                                .send_error_messages(error_messages)
-                                .await;
-                        }
+                    let no_error = error_messages.len() == 0;
+                    wasm_bundle_web_server
+                        .send_error_messages(error_messages)
+                        .await;
+                    if no_error {
+                        wasm_bundle_web_server.send_reload_signal().await;
                     };
                 }
                 BuildResult::Failed(err) => {
