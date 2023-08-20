@@ -1,35 +1,81 @@
 use namui::prelude::*;
 
-pub fn event_trap(content: RenderingTree) -> RenderingTree {
-    content.attach_event(move |builder| {
-        builder
-            .on_mouse_move_in(|event: MouseEvent| event.stop_propagation())
-            .on_mouse_move_out(|event: MouseEvent| event.stop_propagation())
-            .on_mouse_down_in(|event: MouseEvent| event.stop_propagation())
-            .on_mouse_down_out(|event: MouseEvent| event.stop_propagation())
-            .on_mouse_up_in(|event: MouseEvent| event.stop_propagation())
-            .on_mouse_up_out(|event: MouseEvent| event.stop_propagation())
-            .on_wheel(|event: WheelEvent| event.stop_propagation());
-        // below don't support stop_propagation
-        // .on_key_down(|event: KeyboardEvent| event.stop_propagation())
-        // .on_key_up(|event: KeyboardEvent| event.stop_propagation())
-    })
+#[component]
+pub struct EventTrap<C>
+where
+    C: Component + Sized,
+{
+    component: C,
+}
+impl<C> Component for EventTrap<C>
+where
+    C: Component + Sized,
+{
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self { component } = self;
+
+        ctx.component(component.attach_event(|event| {
+            match event {
+                Event::MouseDown { event } => {
+                    event.stop_propagation();
+                }
+                Event::MouseMove { event } => {
+                    event.stop_propagation();
+                }
+                Event::MouseUp { event } => {
+                    event.stop_propagation();
+                }
+                Event::Wheel { event } => {
+                    event.stop_propagation();
+                }
+                _ => {} // below don't support stop_propagation
+                        // .on_key_down(|event: KeyboardEvent| event.stop_propagation())
+                        // .on_key_up(|event: KeyboardEvent| event.stop_propagation())
+            }
+        }));
+        ctx.done()
+    }
 }
 
-pub fn event_trap_mouse(content: RenderingTree) -> RenderingTree {
-    content.attach_event(|builder| {
-        builder
-            .on_mouse_down_in(|event: MouseEvent| {
-                event.stop_propagation();
-            })
-            .on_mouse_move_in(|event: MouseEvent| {
-                event.stop_propagation();
-            })
-            .on_mouse_up_in(|event: MouseEvent| {
-                event.stop_propagation();
-            })
-            .on_wheel(|event: WheelEvent| {
-                event.stop_propagation();
-            });
-    })
+#[component]
+pub struct EventTrapMouse<C>
+where
+    C: Component + Sized,
+{
+    component: C,
+}
+impl<C> Component for EventTrapMouse<C>
+where
+    C: Component + Sized,
+{
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self { component } = self;
+
+        ctx.component(component.attach_event(|event| {
+            match event {
+                Event::MouseDown { event } => {
+                    if event.is_local_xy_in() {
+                        event.stop_propagation();
+                    }
+                }
+                Event::MouseMove { event } => {
+                    if event.is_local_xy_in() {
+                        event.stop_propagation();
+                    }
+                }
+                Event::MouseUp { event } => {
+                    if event.is_local_xy_in() {
+                        event.stop_propagation();
+                    }
+                }
+                Event::Wheel { event } => {
+                    event.stop_propagation();
+                }
+                _ => {} // below don't support stop_propagation
+                        // .on_key_down(|event: KeyboardEvent| event.stop_propagation())
+                        // .on_key_up(|event: KeyboardEvent| event.stop_propagation())
+            }
+        }));
+        ctx.done()
+    }
 }

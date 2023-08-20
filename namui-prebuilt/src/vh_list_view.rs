@@ -1,116 +1,188 @@
-// use crate::scroll_view;
-// use namui::prelude::*;
-// use std::sync::{Arc, Mutex};
+use crate::scroll_view::ScrollView;
+use namui::prelude::*;
+use std::fmt::Debug;
 
-// #[derive(Debug, Clone)]
-// pub struct VHListView {
-//     scroll_view: scroll_view::ScrollView,
-//     requested_scroll_y: Arc<Mutex<Option<Px>>>,
-// }
+#[component]
+pub struct AutoVHListView<'a, TItem, TIterator, TItems>
+where
+    TIterator: Iterator<Item = TItem>,
+    TItems: IntoIterator<Item = TItem, IntoIter = TIterator> + Debug,
+{
+    pub xy: Xy<Px>,
+    pub wh: Wh<Px>,
+    pub scroll_bar_width: Px,
+    pub items: TItems,
+    pub item_height: Box<dyn 'a + Fn(&TItem) -> Px>,
+    pub item_render: Box<dyn 'a + Fn(Wh<Px>, TItem, ComposeCtx)>,
+}
+impl<TItem, TIterator, TItems> Component for AutoVHListView<'_, TItem, TIterator, TItems>
+where
+    TItem: Debug,
+    TIterator: Iterator<Item = TItem>,
+    TItems: IntoIterator<Item = TItem, IntoIter = TIterator> + Debug,
+{
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self {
+            xy,
+            wh,
+            scroll_bar_width,
+            items,
+            item_height,
+            item_render,
+        } = self;
 
-// pub struct Props<TItem, TIterator, TItems, TItemHeight, TItemRender>
-// where
-//     TIterator: Iterator<Item = TItem>,
-//     TItems: IntoIterator<Item = TItem, IntoIter = TIterator>,
-//     TItemHeight: Fn(&TItem) -> Px,
-//     TItemRender: Fn(Wh<Px>, TItem) -> RenderingTree,
-// {
-//     pub xy: Xy<Px>,
-//     pub wh: Wh<Px>,
-//     pub scroll_bar_width: Px,
-//     pub items: TItems,
-//     pub item_height: TItemHeight,
-//     pub item_render: TItemRender,
-// }
+        let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
 
-// impl VHListView {
-//     pub fn new() -> Self {
-//         Self {
-//             scroll_view: scroll_view::ScrollView::new(),
-//             requested_scroll_y: Arc::new(Mutex::new(None)),
-//         }
-//     }
-//     /// This will scroll on next rendering stage.
-//     pub fn scroll_to(&mut self, scroll_y: Px) {
-//         *self.requested_scroll_y.lock().unwrap() = Some(scroll_y);
-//     }
-//     pub fn render<TItem, TIterator, TItems, TItemHeight, TItemRender>(
-//         &self,
-//         props: Props<TItem, TIterator, TItems, TItemHeight, TItemRender>,
-//     ) -> RenderingTree
-//     where
-//         TIterator: Iterator<Item = TItem>,
-//         TItems: IntoIterator<Item = TItem, IntoIter = TIterator>,
-//         TItemHeight: Fn(&TItem) -> Px,
-//         TItemRender: Fn(Wh<Px>, TItem) -> RenderingTree,
-//     {
-//         let items_iter = props.items.into_iter();
-//         let items = items_iter.collect::<Vec<_>>();
+        ctx.component(VHListView {
+            xy,
+            wh,
+            scroll_bar_width,
+            items,
+            item_height,
+            item_render,
+            scroll_y: *scroll_y,
+            set_scroll_y,
+        });
+        ctx.done()
+    }
+}
 
-//         if items.len() == 0 {
-//             return RenderingTree::Empty;
-//         }
+#[component]
+pub struct VHListView<'a, TItem, TIterator, TItems>
+where
+    TIterator: Iterator<Item = TItem>,
+    TItems: IntoIterator<Item = TItem, IntoIter = TIterator> + Debug,
+{
+    pub xy: Xy<Px>,
+    pub wh: Wh<Px>,
+    pub scroll_bar_width: Px,
+    pub items: TItems,
+    pub item_height: Box<dyn 'a + Fn(&TItem) -> Px>,
+    pub item_render: Box<dyn 'a + Fn(Wh<Px>, TItem, ComposeCtx)>,
+    pub scroll_y: Px,
+    pub set_scroll_y: SetState<Px>,
+}
+impl<TItem, TIterator, TItems> Component for VHListView<'_, TItem, TIterator, TItems>
+where
+    TItem: Debug,
+    TIterator: Iterator<Item = TItem>,
+    TItems: IntoIterator<Item = TItem, IntoIter = TIterator> + Debug,
+{
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self {
+            xy,
+            wh,
+            scroll_bar_width,
+            items,
+            item_height,
+            item_render,
+            scroll_y,
+            set_scroll_y,
+        } = self;
 
-//         let total_item_height = items.iter().map(|item| (props.item_height)(item)).sum();
+        let items_iter = items.into_iter();
+        let items = items_iter.collect::<Vec<_>>();
 
-//         let max_scroll_y = total_item_height - props.wh.height;
-//         let scroll_y = {
-//             let mut y_guard = self.requested_scroll_y.lock().unwrap();
-//             (if let Some(scroll_y) = y_guard.clone() {
-//                 namui::event::send(scroll_view::Event::Scrolled(self.scroll_view.id, scroll_y));
-//                 *y_guard = None;
-//                 scroll_y
-//             } else {
-//                 self.scroll_view.scroll_y
-//             })
-//             .min(max_scroll_y)
-//         };
+        ctx.compose(|ctx| {
+            if items.len() == 0 {
+                return;
+            }
 
-//         let rendered_items = {
-//             let mut rendered_items = vec![];
-//             let mut bottom = 0.px();
-//             for item in items {
-//                 let top = bottom;
-//                 let item_height = (props.item_height)(&item);
-//                 bottom = top + item_height;
+            let content = Content {
+                wh,
+                items,
+                item_height,
+                item_render,
+                scroll_y,
+            };
 
-//                 if bottom < scroll_y {
-//                     continue;
-//                 }
-//                 if top > scroll_y + props.wh.height {
-//                     break;
-//                 }
-//                 let wh = Wh::new(props.wh.width, item_height);
-//                 rendered_items.push(translate(0.px(), top, (props.item_render)(wh, item)));
-//             }
-//             rendered_items
-//         };
+            ctx.add(ScrollView {
+                xy,
+                scroll_bar_width,
+                height: wh.height,
+                content,
+                scroll_y,
+                set_scroll_y,
+            });
+        });
+        ctx.done()
+    }
+}
 
-//         let transparent_pillar = rect(RectParam {
-//             rect: Rect::Xywh {
-//                 x: px(0.0),
-//                 y: px(0.0),
-//                 width: props.wh.width,
-//                 height: total_item_height,
-//             },
-//             style: RectStyle {
-//                 fill: Some(RectFill {
-//                     color: Color::TRANSPARENT,
-//                 }),
-//                 ..Default::default()
-//             },
-//         });
+#[component]
+struct Content<'a, TItem, TIterator, TItems>
+where
+    TIterator: Iterator<Item = TItem>,
+    TItems: IntoIterator<Item = TItem, IntoIter = TIterator> + Debug,
+{
+    pub wh: Wh<Px>,
+    pub items: TItems,
+    pub item_height: Box<dyn 'a + Fn(&TItem) -> Px>,
+    pub item_render: Box<dyn 'a + Fn(Wh<Px>, TItem, ComposeCtx)>,
+    pub scroll_y: Px,
+}
+impl<TItem, TIterator, TItems> Component for Content<'_, TItem, TIterator, TItems>
+where
+    TIterator: Iterator<Item = TItem>,
+    TItems: IntoIterator<Item = TItem, IntoIter = TIterator> + Debug,
+{
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self {
+            items,
+            wh,
+            item_height,
+            item_render,
+            scroll_y,
+        } = self;
 
-//         let content = namui::render![transparent_pillar, namui::render(rendered_items),];
+        ctx.compose(|ctx| {
+            let items_iter = items.into_iter();
+            let items = items_iter.collect::<Vec<_>>();
 
-//         self.scroll_view.render(&scroll_view::Props {
-//             xy: props.xy,
-//             height: props.wh.height,
-//             scroll_bar_width: props.scroll_bar_width,
-//             content,
-//         })
-//     }
-// }
+            if items.len() == 0 {
+                return;
+            }
+
+            let total_item_height = items.iter().map(|item| (item_height)(item)).sum();
+            let max_scroll_y = total_item_height - wh.height;
+            let scroll_y = namui::math::num::clamp(scroll_y, px(0.0), px(0.0).max(max_scroll_y));
+
+            let mut bottom = 0.px();
+            for item in items {
+                let top = bottom;
+                let item_height = (item_height)(&item);
+                bottom = top + item_height;
+
+                if bottom < scroll_y {
+                    continue;
+                }
+                if top > scroll_y + wh.height {
+                    break;
+                }
+                let wh = Wh::new(wh.width, item_height);
+
+                (item_render)(wh, item, ctx.translate((0.px(), top)));
+            }
+
+            ctx.add(rect(RectParam {
+                rect: Rect::Xywh {
+                    x: px(0.0),
+                    y: px(0.0),
+                    width: wh.width,
+                    height: total_item_height,
+                },
+                style: RectStyle {
+                    fill: Some(RectFill {
+                        color: Color::TRANSPARENT,
+                    }),
+                    ..Default::default()
+                },
+            }));
+        });
+
+        ctx.done()
+    }
+}
 
 // #[allow(dead_code)]
 // fn test_props_passing() {
