@@ -10,6 +10,6 @@ pub use types::*;
 #[macro_export]
 macro_rules! log {
     ($($arg:tt)*) => {{
-        $crate::log::log(format!($($arg)*));
+        $crate::log(format!($($arg)*));
     }}
 }
