@@ -122,7 +122,8 @@ impl Entity for ShaderExample {
                         uniform float2 source_image_size;
                         uniform float2 dest_image_size;
                         uniform float2 image_left_top;
-                        uniform shader image;
+                        uniform shader src;
+                        uniform shader dst;
 
 
                         half4 main(float2 xy) {
@@ -193,12 +194,20 @@ impl Entity for ShaderExample {
                         MipmapMode::Linear,
                     );
 
+                    let image_shader = image.make_shader(
+                        TileMode::Decal,
+                        TileMode::Decal,
+                        FilterMode::Linear,
+                        MipmapMode::Linear,
+                    );
+
                     let shader = ShakeShader::new(
                         wh,
                         delta_x_center,
                         source_image_size,
                         dest_image_size,
                         image_left_top,
+                        image_shader,
                         image_shader,
                     );
                     let paint = PaintBuilder::new().set_shader(shader.make());
