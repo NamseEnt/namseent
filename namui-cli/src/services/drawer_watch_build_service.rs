@@ -75,12 +75,15 @@ impl DrawerWatchBuildService {
             build_status_service
                 .build_started(BuildStatusCategory::Drawer)
                 .await;
-            match rust_build_service.cancel_and_start_build(&BuildOption {
-                target,
-                dist_path: build_dist_path,
-                project_root_path: project_root_path.clone(),
-                watch: true,
-            }) {
+            match rust_build_service
+                .cancel_and_start_build(&BuildOption {
+                    target,
+                    dist_path: build_dist_path,
+                    project_root_path: project_root_path.clone(),
+                    watch: true,
+                })
+                .await
+            {
                 BuildResult::Canceled => {
                     debug_println!("build canceled");
                 }

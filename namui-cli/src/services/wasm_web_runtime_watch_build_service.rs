@@ -46,10 +46,13 @@ impl WasmWebRuntimeWatchBuildService {
             let cli_error_messages = install_deps()
                 .err()
                 .map_or(vec![], |error| vec![error.to_string()]);
-            match rollup_build_service.cancel_and_start_build(&BuildOption {
-                rollup_project_root_path,
-                development: true,
-            }) {
+            match rollup_build_service
+                .cancel_and_start_build(&BuildOption {
+                    rollup_project_root_path,
+                    development: true,
+                })
+                .await
+            {
                 rollup_build_service::BuildResult::Canceled => {
                     debug_println!("build canceled");
                 }
@@ -116,7 +119,7 @@ impl WasmWebRuntimeWatchBuildService {
         Ok(())
     }
 
-    pub fn just_build(build_status_service: Arc<BuildStatusService>) -> Result<()> {
+    pub async fn just_build(build_status_service: Arc<BuildStatusService>) -> Result<()> {
         let rollup_project_root_path = get_cli_root_path().join("webCode");
         let rollup_build_service = Arc::new(RollupBuildService::new());
 
@@ -126,10 +129,13 @@ impl WasmWebRuntimeWatchBuildService {
             .err()
             .map_or(vec![], |error| vec![error.to_string()]);
 
-        match rollup_build_service.cancel_and_start_build(&BuildOption {
-            rollup_project_root_path,
-            development: false,
-        }) {
+        match rollup_build_service
+            .cancel_and_start_build(&BuildOption {
+                rollup_project_root_path,
+                development: false,
+            })
+            .await
+        {
             BuildResult::Successful(rollup_build_result) => {
                 block_on(build_status_service.build_finished(
                     BuildStatusCategory::WebRuntime,

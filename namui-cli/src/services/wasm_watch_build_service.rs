@@ -74,12 +74,15 @@ impl WasmWatchBuildService {
             build_status_service
                 .build_started(BuildStatusCategory::Namui)
                 .await;
-            match rust_build_service.cancel_and_start_build(&BuildOption {
-                target,
-                dist_path: build_dist_path,
-                project_root_path: runtime_target_dir,
-                watch: true,
-            }) {
+            match rust_build_service
+                .cancel_and_start_build(&BuildOption {
+                    target,
+                    dist_path: build_dist_path,
+                    project_root_path: runtime_target_dir,
+                    watch: true,
+                })
+                .await
+            {
                 BuildResult::Canceled => {
                     debug_println!("build canceled");
                 }
@@ -169,7 +172,7 @@ impl WasmWatchBuildService {
         Ok(())
     }
 
-    pub fn just_build(
+    pub async fn just_build(
         build_status_service: Arc<BuildStatusService>,
         project_root_path: PathBuf,
         target: Target,
@@ -183,12 +186,15 @@ impl WasmWatchBuildService {
             project_path: project_root_path.clone(),
         })?;
 
-        match rust_build_service.cancel_and_start_build(&BuildOption {
-            target,
-            dist_path: build_dist_path,
-            project_root_path: runtime_target_dir,
-            watch: false,
-        }) {
+        match rust_build_service
+            .cancel_and_start_build(&BuildOption {
+                target,
+                dist_path: build_dist_path,
+                project_root_path: runtime_target_dir,
+                watch: false,
+            })
+            .await
+        {
             BuildResult::Successful(cargo_build_result) => {
                 block_on(build_status_service.build_finished(
                     BuildStatusCategory::WebRuntime,

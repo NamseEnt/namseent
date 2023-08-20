@@ -5,6 +5,7 @@ use super::{
 };
 use crate::cli::Target;
 use crate::*;
+use futures::executor::block_on;
 use std::path::Path;
 
 pub fn build(manifest_path: &Path, arch: Option<Arch>, platform: Platform) -> Result<()> {
@@ -27,7 +28,11 @@ pub fn build(manifest_path: &Path, arch: Option<Arch>, platform: Platform) -> Re
         arch = package_result.arch
     ));
 
-    WasmWatchBuildService::just_build(build_status_service, project_root_path.clone(), target)?;
+    block_on(WasmWatchBuildService::just_build(
+        build_status_service,
+        project_root_path.clone(),
+        target,
+    ))?;
 
     let namui_bundle_manifest =
         super::bundle::NamuiBundleManifest::parse(project_root_path.clone())?;

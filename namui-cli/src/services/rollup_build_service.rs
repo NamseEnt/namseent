@@ -18,6 +18,7 @@ pub struct RollupBuildService {
     is_build_just_started: AtomicBool,
 }
 
+#[derive(Debug)]
 pub enum BuildResult {
     Canceled,
     Successful(RollupBuildResult),
@@ -38,12 +39,12 @@ impl RollupBuildService {
         }
     }
 
-    pub(crate) fn cancel_and_start_build(&self, build_option: &BuildOption) -> BuildResult {
+    pub(crate) async fn cancel_and_start_build(&self, build_option: &BuildOption) -> BuildResult {
         if self.is_build_just_started.swap(true, Ordering::Relaxed) {
             return BuildResult::Canceled;
         }
 
-        let result_receiver = {
+        let mut result_receiver = {
             let mut builder_lock = self.builder.lock().unwrap();
             if let Some(builder) = builder_lock.take() {
                 builder.cancel();
@@ -55,7 +56,7 @@ impl RollupBuildService {
             result_receiver
         };
 
-        result_receiver.recv().unwrap()
+        result_receiver.recv().await.unwrap()
     }
 }
 
@@ -85,7 +86,7 @@ impl CancelableBuilder {
         build_option: &BuildOption,
     ) -> (
         Arc<CancelableBuilder>,
-        std::sync::mpsc::Receiver<BuildResult>,
+        tokio::sync::mpsc::Receiver<BuildResult>,
     ) {
         let builder = Arc::new(Self {
             is_cancel_requested: AtomicBool::new(false),
@@ -150,16 +151,16 @@ impl CancelableBuilder {
             }
         };
 
-        let (result_sender, result_receiver) = std::sync::mpsc::channel();
+        let (result_sender, result_receiver) = tokio::sync::mpsc::channel(1048576);
 
-        thread::spawn({
+        tokio::spawn({
             let builder = builder.clone();
-            move || {
+            async move {
                 let build_result = match builder_thread_fn(builder.clone()) {
                     Ok(result) => result,
                     Err(error) => BuildResult::Failed(error.to_string()),
                 };
-                result_sender.send(build_result).unwrap();
+                result_sender.send(build_result).await.unwrap();
                 builder.is_canceled.store(true, Ordering::Relaxed);
             }
         });
@@ -183,6 +184,7 @@ impl CancelableBuilder {
     }
 }
 
+#[derive(Debug)]
 pub struct RollupBuildResult {
     pub error_messages: Vec<ErrorMessage>,
 }
