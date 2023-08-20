@@ -42,7 +42,8 @@ document.oncontextmenu = (event) => {
 
 const globalThisAny = globalThis as any;
 
-globalThisAny.requestDraw = (buffer: Uint8Array) => {
+globalThisAny.requestDraw = (array: Uint8Array) => {
+    const buffer = array.buffer;
     drawWorker.postMessage(
         {
             type: "requestDraw",
@@ -52,12 +53,13 @@ globalThisAny.requestDraw = (buffer: Uint8Array) => {
     );
 };
 
-globalThisAny.loadTypeface = (typefaceName: string, buffer: Uint8Array) => {
+globalThisAny.loadTypeface = (typefaceName: string, array: Uint8Array) => {
+    const buffer = array.buffer;
     drawWorker.postMessage(
         {
             type: "loadTypeface",
             typefaceName,
-            buffer,
+            buffer: buffer,
         },
         [buffer],
     );
@@ -67,13 +69,14 @@ globalThisAny.loadImage = (
     imageSource: Uint8Array,
     imageBitmap: ImageBitmap,
 ) => {
+    const imageSourceBuffer = imageSource.buffer;
     drawWorker.postMessage(
         {
             type: "loadImage",
-            imageSource,
+            imageSource: imageSourceBuffer,
             imageBitmap,
         },
-        [imageSource, imageBitmap],
+        [imageSourceBuffer, imageBitmap],
     );
 };
 

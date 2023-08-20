@@ -42,15 +42,15 @@ self.onmessage = async (event) => {
             break;
         case "requestDraw":
             {
-                const { buffer } = event.data as { buffer: Uint8Array };
-                lastRequestedDrawInput = buffer;
+                const { buffer } = event.data as { buffer: ArrayBuffer };
+                lastRequestedDrawInput = new Uint8Array(buffer);
             }
             break;
         case "loadTypeface":
             {
                 const { typefaceName, buffer } = event.data as {
                     typefaceName: string;
-                    buffer: Uint8Array;
+                    buffer: ArrayBuffer;
                 };
                 console.log("loadTypeface", typefaceName);
                 load_typeface(typefaceName, new Uint8Array(buffer));
@@ -59,10 +59,10 @@ self.onmessage = async (event) => {
         case "loadImage":
             {
                 const { imageSource, imageBitmap } = event.data as {
-                    imageSource: Uint8Array;
+                    imageSource: ArrayBuffer;
                     imageBitmap: ImageBitmap;
                 };
-                load_image(imageSource, imageBitmap);
+                load_image(new Uint8Array(imageSource), imageBitmap);
             }
             break;
         case "encodeLoadedImageToPng":
