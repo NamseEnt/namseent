@@ -122,7 +122,7 @@ self.onmessage = async (event) => {
     }
     const blob = await response.blob();
 
-    const bitmap = await createImageBitmap(blob);
+    const bitmap = await createImageBitmap(blob, { premultiplyAlpha: "none" });
     return bitmap;
 };
 (globalThis as any).onLoadImage = () => {
