@@ -21,7 +21,7 @@ static RPC: late_init::LateInit<rpc::Rpc> = late_init::LateInit::<rpc::Rpc>::new
 pub async fn main() {
     let namui_context = namui::init().await;
 
-    namui_context.start(|| Init {});
+    namui_context.start(|| Init {}).await;
 }
 
 #[namui::component]
