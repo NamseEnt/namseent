@@ -32,11 +32,10 @@ impl namui::Component for Init {
         let (loaded, set_loaded) = ctx.state(|| false);
 
         ctx.effect("Init", || {
-            namui::log!("Init effect");
             spawn_local(async move {
-                namui::log!("Spawn local");
                 let search: String =
                     namui::web::execute_function("return document.location.search;").run();
+
                 let is_auth_callback = search.starts_with("?code=");
 
                 if is_auth_callback {

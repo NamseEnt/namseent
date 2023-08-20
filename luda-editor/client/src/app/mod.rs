@@ -20,12 +20,9 @@ impl Component for App {
         let (loading_state, set_loading_state) = ctx.state(|| LoadingState::Loading);
 
         ctx.effect("Try login", || {
-            namui::log!("before spawn_local");
             spawn_local(async move {
                 let result: Result<()> = async move {
-                    namui::log!("before login::get_session_id().await?;");
                     let session_id = login::get_session_id().await?;
-                    namui::log!("after login::get_session_id().await?;");
                     crate::RPC.set_session_id(session_id);
 
                     Ok(())
