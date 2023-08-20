@@ -49,13 +49,15 @@ impl TreeContext {
     }
 
     pub(crate) async fn start(&self) {
-        let rendering_tree = (self.call_root_render)(Default::default());
-        crate::system::drawer::request_draw_rendering_tree(rendering_tree);
+        self.render_and_draw();
     }
 
     pub(crate) fn on_raw_event(&self, event: RawEvent) {
         self.raw_event.lock().unwrap().replace(Arc::new(event));
+        self.render_and_draw();
+    }
 
+    pub(crate) fn render_and_draw(&self) {
         let mut channel_events = channel::drain();
 
         let mut updated_sigs = Default::default();

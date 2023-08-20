@@ -34,9 +34,11 @@ pub(crate) async fn start<C: Component>(root_component: impl Send + Sync + 'stat
 }
 
 pub(crate) fn on_raw_event(event: RawEvent) {
-    if let Some(ctx) = TREE_CTX.get() {
-        ctx.on_raw_event(event)
-    };
+    TREE_CTX.get().map(|ctx| ctx.on_raw_event(event));
+}
+
+pub(crate) fn render_and_draw() {
+    TREE_CTX.get().map(|ctx| ctx.render_and_draw());
 }
 
 pub fn boxed<'a, T: 'a>(value: T) -> Box<T> {
