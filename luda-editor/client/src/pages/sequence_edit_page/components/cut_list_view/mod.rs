@@ -13,7 +13,6 @@ pub struct CutListView<'a> {
     pub selected_cut_id: Option<Uuid>,
     pub is_focused: bool,
     pub cut_id_memos_map: &'a HashMap<Uuid, Vec<Memo>>,
-    // pub on_event: callback!('a, Event),
     pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
@@ -33,11 +32,9 @@ impl Component for CutListView<'_> {
             cut_id_memos_map,
             on_event,
         } = self;
-        let cuts = cuts.clone();
         let on_event = on_event.as_ref();
 
         let on_key_down = {
-            let cuts = cuts.clone();
             move |event: KeyboardEvent| {
                 if !is_focused {
                     return;
@@ -122,7 +119,7 @@ impl Component for CutListView<'_> {
                     (
                         cut.id.to_string(),
                         CutCell {
-                            wh,
+                            wh: item_wh,
                             index,
                             cut: cut.clone(),
                             memo_count: memos.map_or(0, |memos| memos.len()),

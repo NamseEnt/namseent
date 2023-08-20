@@ -59,7 +59,6 @@ self.onmessage = async (event) => {
                     typefaceName: string;
                     buffer: ArrayBuffer;
                 };
-                console.log("loadTypeface", typefaceName);
                 load_typeface(typefaceName, new Uint8Array(buffer));
             }
             break;
