@@ -23,9 +23,9 @@ impl ExecuteFunctionBuilder {
         let js_func = js_sys::Function::new_with_args(&self.args_names.join(","), &self.code);
 
         let js_args = {
-            let array = js_sys::Array::new_with_length(self.args.len() as u32);
-            for (index, arg) in self.args.into_iter().enumerate() {
-                array.set(index as u32, arg);
+            let array = js_sys::Array::new();
+            for arg in self.args {
+                array.push(&arg);
             }
             array
         };

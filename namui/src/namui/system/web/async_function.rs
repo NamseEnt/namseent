@@ -23,12 +23,13 @@ impl ExecuteAsyncFunctionBuilder {
         let js_func = js_sys::Function::new_with_args(&self.args_names.join(","), &self.code);
 
         let js_args = {
-            let array = js_sys::Array::new_with_length(self.args.len() as u32);
+            let array = js_sys::Array::new();
             for arg in self.args {
                 array.push(&arg);
             }
             array
         };
+
         let promise: js_sys::Promise = js_func
             .apply(&wasm_bindgen::JsValue::NULL, &js_args)
             .unwrap()
