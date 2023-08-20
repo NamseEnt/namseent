@@ -237,7 +237,7 @@ fn render_thumbnail<'a>(
                             source: ImageSource::Url(cg_part_image_url),
                             style: ImageStyle {
                                 fit: ImageFit::Contain,
-                                paint_builder: None,
+                                paint: None,
                             },
                         })
                     }),

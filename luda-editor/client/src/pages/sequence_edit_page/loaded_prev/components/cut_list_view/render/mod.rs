@@ -185,12 +185,12 @@ fn render_comment_badge(width: Px, memo_count: usize, color: Color) -> Rendering
         .line_to(0.05.px(), 0.05.px())
         .scale(width.as_f32(), width.as_f32());
 
-    let paint_builder = PaintBuilder::new()
+    let paint = PaintBuilder::new()
         .set_style(PaintStyle::Fill)
         .set_color(color);
 
     render([
-        path(path_builder, paint_builder),
+        path(path_builder, paint),
         text(TextParam {
             text: memo_count,
             x: width * 0.5,

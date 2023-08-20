@@ -1,7 +1,9 @@
 use super::*;
-use crate::{AsXyPx, Matrix3x3, RenderingTree};
+use crate::*;
 use namui_type::*;
 use std::sync::atomic::AtomicBool;
+
+type RawEventContainer = Arc<Mutex<Option<Arc<RawEvent>>>>;
 
 pub struct RenderCtx {
     pub(crate) instance: Arc<ComponentInstance>,
@@ -15,6 +17,7 @@ pub struct RenderCtx {
     pub(crate) matrix: Mutex<Matrix3x3>,
     component_index: AtomicUsize,
     event_handling_disabled: AtomicBool,
+    raw_event: RawEventContainer,
 }
 
 impl Drop for RenderCtx {
@@ -29,6 +32,7 @@ impl<'a> RenderCtx {
         updated_sigs: HashSet<SigId>,
         tree_ctx: TreeContext,
         matrix: Matrix3x3,
+        raw_event: RawEventContainer,
     ) -> Self {
         Self {
             instance,
@@ -42,15 +46,16 @@ impl<'a> RenderCtx {
             matrix: Mutex::new(matrix),
             component_index: Default::default(),
             event_handling_disabled: Default::default(),
+            raw_event,
         }
     }
 
     pub fn atom_init<T: Debug + Send + Sync + 'static>(
         &'a self,
         atom: &'static Atom<T>,
-        init: impl 'a + FnOnce() -> T,
+        atom_init: impl 'a + FnOnce() -> T,
     ) -> (Sig<'a, T>, SetState<T>) {
-        handle_atom_init(atom, init)
+        handle_atom_init(atom, atom_init)
     }
 
     pub fn atom<T: Debug + Send + Sync + 'static>(
@@ -62,9 +67,9 @@ impl<'a> RenderCtx {
 
     pub fn state<T: 'static + Debug + Send + Sync>(
         &'a self,
-        init: impl FnOnce() -> T,
+        init_state: impl FnOnce() -> T,
     ) -> (Sig<'a, T>, SetState<T>) {
-        handle_state(self, init)
+        handle_state(self, init_state)
     }
 
     pub fn memo<T: 'static + Debug + Send + Sync>(
@@ -94,7 +99,7 @@ impl<'a> RenderCtx {
     }
 
     pub fn on_raw_event(&'a self, on_raw_event: impl 'a + FnOnce(&crate::RawEvent)) {
-        if let Some(raw_event) = self.tree_ctx.raw_event.lock().unwrap().clone() {
+        if let Some(raw_event) = self.raw_event.lock().unwrap().clone() {
             on_raw_event(raw_event.as_ref());
         }
     }
@@ -209,6 +214,7 @@ impl RenderCtx {
                 self.matrix.lock().unwrap().clone(),
                 self.renderer(),
                 lazy.clone(),
+                self.raw_event.clone(),
             );
 
             compose(&mut compose_ctx);
@@ -260,19 +266,31 @@ pub struct ComposeCtx {
     children_index: usize,
     pre_key_vec: KeyVec,
     renderer: Renderer,
-    // set_on_drop: Arc<Mutex<Option<RenderingTree>>>,
-    children: Vec<Arc<Mutex<Option<LazyRenderingTree>>>>,
+    unlazy_children: Vec<RenderingTree>,
+    lazy_children: Vec<Arc<Mutex<Option<LazyRenderingTree>>>>,
     lazy: Arc<Mutex<Option<LazyRenderingTree>>>,
+    raw_event: RawEventContainer,
 }
 impl Drop for ComposeCtx {
     fn drop(&mut self) {
-        let mut children = vec![];
-        std::mem::swap(&mut self.children, &mut children);
+        let unlazy_children = std::mem::take(&mut self.unlazy_children);
+        let lazy_children = std::mem::take(&mut self.lazy_children);
+
+        let children = unlazy_children
+            .into_iter()
+            .map(|x| {
+                Arc::new(Mutex::new(Some(LazyRenderingTree::RenderingTree {
+                    rendering_tree: x,
+                })))
+            })
+            .chain(lazy_children.into_iter());
 
         self.lazy
             .lock()
             .unwrap()
-            .replace(LazyRenderingTree::Children { children });
+            .replace(LazyRenderingTree::Children {
+                children: children.collect(),
+            });
     }
 }
 impl ComposeCtx {
@@ -281,14 +299,17 @@ impl ComposeCtx {
         matrix: Matrix3x3,
         renderer: Renderer,
         lazy: Arc<Mutex<Option<LazyRenderingTree>>>,
+        raw_event: RawEventContainer,
     ) -> Self {
         ComposeCtx {
             matrix,
             children_index: Default::default(),
             pre_key_vec,
             renderer,
-            children: Default::default(),
+            unlazy_children: Default::default(),
+            lazy_children: Default::default(),
             lazy,
+            raw_event,
         }
     }
     fn next_children_index(&mut self) -> usize {
@@ -304,7 +325,7 @@ impl ComposeCtx {
     pub fn debug(&self) {}
 
     fn add_lazy(&mut self, lazy: LazyRenderingTree) {
-        self.children.push(Arc::new(Mutex::new(Some(lazy))));
+        self.lazy_children.push(Arc::new(Mutex::new(Some(lazy))));
     }
 }
 // Nesting
@@ -323,6 +344,7 @@ impl ComposeCtx {
             matrix,
             self.renderer.clone(),
             lazy,
+            self.raw_event.clone(),
         )
     }
     pub fn absolute(&mut self, xy: impl AsXyPx) -> Self {
@@ -339,6 +361,7 @@ impl ComposeCtx {
             matrix,
             self.renderer.clone(),
             lazy,
+            self.raw_event.clone(),
         )
     }
     pub fn clip(&mut self, path: crate::Path, clip_op: crate::ClipOp) -> Self {
@@ -356,6 +379,7 @@ impl ComposeCtx {
             self.matrix,
             self.renderer.clone(),
             lazy,
+            self.raw_event.clone(),
         )
     }
     pub fn on_top(&mut self) -> Self {
@@ -368,7 +392,28 @@ impl ComposeCtx {
             matrix,
             self.renderer.clone(),
             lazy,
+            self.raw_event.clone(),
         )
+    }
+    pub fn attach_event(&mut self, on_event: impl FnOnce(Event<'_>)) -> &mut Self {
+        if let Some(raw_event) = self.raw_event.lock().unwrap().clone() {
+            let rendering_tree = {
+                let rendering_trees: Vec<_> = std::mem::take(&mut self.lazy_children)
+                    .into_iter()
+                    .map(|x| x.lock().unwrap().take().unwrap().into_rendering_tree())
+                    .collect();
+                self.unlazy_children.extend(rendering_trees);
+                RenderingTree::Children(self.unlazy_children.clone())
+            };
+            invoke_on_event(
+                on_event,
+                &raw_event,
+                self.matrix.inverse().unwrap(),
+                &rendering_tree,
+            );
+        }
+
+        self
     }
 }
 impl ComposeCtx {
@@ -383,7 +428,7 @@ impl ComposeCtx {
         } else {
             self.next_child_key_vec()
         };
-        let mut ctx = self
+        let ctx = self
             .renderer
             .spawn_render_ctx(key_vec, component_type_name, self.matrix);
         ctx.disable_event_handling();
@@ -403,7 +448,7 @@ impl ComposeCtx {
 
     fn add_inner(&mut self, key_vec: KeyVec, component: impl Component) -> &mut Self {
         let rendering_tree = self.renderer.render(key_vec, component, self.matrix);
-        self.children.push(Arc::new(Mutex::new(Some(
+        self.lazy_children.push(Arc::new(Mutex::new(Some(
             LazyRenderingTree::RenderingTree { rendering_tree },
         ))));
         self
@@ -430,12 +475,17 @@ impl ComposeCtx {
     ) -> &mut Self {
         let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
         {
-            let mut child_compose_ctx =
-                ComposeCtx::new(key_vec, self.matrix, self.renderer.clone(), lazy.clone());
+            let mut child_compose_ctx = ComposeCtx::new(
+                key_vec,
+                self.matrix,
+                self.renderer.clone(),
+                lazy.clone(),
+                self.raw_event.clone(),
+            );
             compose(&mut child_compose_ctx);
         }
         let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
-        self.children.push(Arc::new(Mutex::new(Some(
+        self.lazy_children.push(Arc::new(Mutex::new(Some(
             LazyRenderingTree::RenderingTree { rendering_tree },
         ))));
 

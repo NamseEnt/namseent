@@ -76,10 +76,10 @@ impl Component for ContextMenu<'_> {
         let divider_height = 16.px();
         let mut next_y = 0.px();
 
-        let divider_path = PathBuilder::new()
+        let divider_path = Path::new()
             .move_to(0.px(), divider_height / 2)
             .line_to(cell_wh.width, divider_height / 2);
-        let divider_paint = PaintBuilder::new()
+        let divider_paint = Paint::new()
             .set_color(Color::grayscale_f01(0.5))
             .set_stroke_width(1.px())
             .set_style(PaintStyle::Stroke);

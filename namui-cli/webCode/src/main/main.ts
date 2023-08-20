@@ -1,6 +1,7 @@
 import { cacheGet, cacheSet } from "../cache";
 import { initHotReload } from "../hotReload";
 import { initCanvasKit } from "../canvasKit";
+import { getNextMessageId, onMessage, waitForMessage } from "./messageWaiting";
 
 declare global {
     const NAMUI_ENV: "production" | "development";
@@ -39,9 +40,9 @@ document.oncontextmenu = (event) => {
     event.preventDefault();
 };
 
-const gloalThisAny = globalThis as any;
+const globalThisAny = globalThis as any;
 
-gloalThisAny.requestDraw = (buffer: Uint8Array) => {
+globalThisAny.requestDraw = (buffer: Uint8Array) => {
     drawWorker.postMessage(
         {
             type: "requestDraw",
@@ -51,7 +52,7 @@ gloalThisAny.requestDraw = (buffer: Uint8Array) => {
     );
 };
 
-gloalThisAny.loadTypeface = (typefaceName: string, buffer: Uint8Array) => {
+globalThisAny.loadTypeface = (typefaceName: string, buffer: Uint8Array) => {
     drawWorker.postMessage(
         {
             type: "loadTypeface",
@@ -62,7 +63,7 @@ gloalThisAny.loadTypeface = (typefaceName: string, buffer: Uint8Array) => {
     );
 };
 
-gloalThisAny.loadImage = (
+globalThisAny.loadImage = (
     imageSource: Uint8Array,
     imageBitmap: ImageBitmap,
 ) => {
@@ -76,6 +77,22 @@ gloalThisAny.loadImage = (
     );
 };
 
+globalThisAny.encodeLoadedImageToPng = async (image: Uint8Array) => {
+    const id = getNextMessageId();
+    drawWorker.postMessage(
+        {
+            type: "encodeLoadedImageToPng",
+            image,
+            id,
+        },
+        [image],
+    );
+    const { pngBytes } = (await waitForMessage(id)) as {
+        pngBytes: Uint8Array;
+    };
+    return pngBytes;
+};
+
 (async () => {
     const [{ start, on_load_image }, _] = await Promise.all([
         wasm_bindgen("./bundle_bg.wasm"),
@@ -84,9 +101,16 @@ gloalThisAny.loadImage = (
 
     drawWorker.onmessage = (message) => {
         switch (message.data.type) {
-            case "onLoadImage": {
-                on_load_image();
-            }
+            case "onLoadImage":
+                {
+                    on_load_image();
+                }
+                break;
+            case "encodeLoadedImageToPng":
+                {
+                    onMessage(message.data);
+                }
+                break;
         }
     };
 

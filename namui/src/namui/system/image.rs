@@ -9,17 +9,24 @@ pub type Load<T> = Option<Result<T>>;
 
 impl RenderCtx {
     pub fn image<'a>(&'a self, url: &Url) -> Sig<'a, Load<Image>> {
-        let (load, set_load) = self.state(|| Load::None);
+        let url = self.track_eq(url);
+        let (url_load_tuple, set_load) = self.state(|| ((*url).clone(), Load::None));
 
         self.effect(&format!("Load image from {url}"), || {
-            let url = url.clone();
+            let url = (*url).clone();
+
             spawn_local(async move {
-                let image = load_image(&ImageSource::Url { url }).await;
-                set_load.set(Some(image));
+                let image = load_image(&ImageSource::Url { url: url.clone() }).await;
+                set_load.mutate(move |x| {
+                    if x.0 != url {
+                        return;
+                    }
+                    x.1 = Some(image);
+                });
             });
         });
 
-        load
+        url_load_tuple.map_1()
     }
 }
 

@@ -149,7 +149,7 @@ impl Component for AutoCompleteTextInput<'_> {
                 text: text.clone(),
                 text_align: TextAlign::Left,
                 text_baseline: TextBaseline::Top,
-                font_type: sequence_player::CUT_TEXT_FONT,
+                font: sequence_player::cut_text_font(),
                 style: text_input::Style {
                     text: sequence_player::cut_text_style(1.one_zero()),
                     rect: RectStyle {

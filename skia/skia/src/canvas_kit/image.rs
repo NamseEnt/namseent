@@ -87,6 +87,10 @@ impl CkImage {
     pub(crate) fn canvas_kit(&self) -> &CanvasKitImage {
         &self.canvas_kit_image
     }
+
+    pub(crate) fn encode_to_png(&self) -> Vec<u8> {
+        self.canvas_kit_image.encodeToBytes().to_vec()
+    }
 }
 
 impl SkImage for CkImage {

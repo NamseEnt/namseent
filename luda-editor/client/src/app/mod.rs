@@ -41,6 +41,7 @@ impl Component for App {
         });
 
         let wh = namui::screen::size();
+        let wh = Wh::new(wh.width.into_px(), wh.height.into_px());
 
         ctx.component(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK));
         ctx.compose(|ctx| match &*loading_state {

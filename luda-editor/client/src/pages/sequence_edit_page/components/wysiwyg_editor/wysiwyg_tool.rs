@@ -32,7 +32,7 @@ impl Component for WysiwygTool<'_> {
             image_dest_rect: graphic_dest_rect,
             dragging: dragging.clone(),
             container_wh: wh,
-            on_event: arc(|event| on_event(Event::Mover { event })),
+            on_event: Box::new(|event| on_event(Event::Mover { event })),
         });
 
         ctx.component(Resizer {
@@ -49,7 +49,7 @@ impl Component for WysiwygTool<'_> {
                 graphic.circumscribed(),
             ),
             graphic_index,
-            on_event: arc(|event| on_event(Event::Resizer { event })),
+            on_event: Box::new(|event| on_event(Event::Resizer { event })),
         });
 
         ctx.done()

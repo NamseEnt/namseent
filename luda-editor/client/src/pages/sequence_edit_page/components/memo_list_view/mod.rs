@@ -86,7 +86,7 @@ impl Component for MemoComponent<'_> {
         };
         let container_height = ctx
             .ghost_render(content)
-            .get_bounding_box()
+            .bounding_box()
             .map_or(0.px(), |bounding_box| bounding_box.height())
             + PADDING * 2.0;
 
@@ -138,11 +138,9 @@ impl Component for MemoContent<'_> {
             y: BUTTON_HEIGHT * 0.5,
             align: TextAlign::Left,
             baseline: TextBaseline::Middle,
-            font_type: FontType {
-                serif: false,
+            font: Font {
                 size: 16.int_px(),
-                language: Language::Ko,
-                font_weight: FontWeight::BOLD,
+                name: "NotoSansKR-Bold".to_string(),
             },
             style: TextStyle {
                 border: None,
@@ -173,7 +171,7 @@ impl Component for MemoContent<'_> {
             false => None,
         };
         let done_button_width = done_button
-            .and_then(|done_button| ctx.ghost_render(done_button).get_bounding_box())
+            .and_then(|done_button| ctx.ghost_render(done_button).bounding_box())
             .map_or(0.px(), |bounding_box| bounding_box.width());
 
         let content_text = text(TextParam {
@@ -182,11 +180,9 @@ impl Component for MemoContent<'_> {
             y: 0.px(),
             align: TextAlign::Left,
             baseline: TextBaseline::Top,
-            font_type: FontType {
-                serif: false,
+            font: Font {
                 size: 16.int_px(),
-                language: Language::Ko,
-                font_weight: FontWeight::REGULAR,
+                name: "NotoSansKR-Regular".to_string(),
             },
             style: TextStyle {
                 border: None,

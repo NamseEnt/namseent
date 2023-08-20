@@ -171,7 +171,7 @@ impl Component for CharacterEditor<'_> {
                                 cut_id,
                                 graphic_index,
                                 screen_cg: selected_screen_cg,
-                                on_event: arc(|event| match event {
+                                on_event: Box::new(|event| match event {
                                     part_picker::Event::MoveInCgFileThumbnail { global_xy, name } => {
                                         on_internal_event(InternalEvent::MoveInCgFileThumbnail {
                                             global_xy,

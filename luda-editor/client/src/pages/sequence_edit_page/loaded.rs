@@ -233,7 +233,7 @@ impl Component for LoadedSequenceEditorPage {
                     is_focused: *focused_component == Some(FocusableComponent::CutEditor),
                     project_id,
                     cg_files: &cg_files,
-                    on_event: arc(|event| {
+                    on_event: Box::new(|event| {
                         on_internal_event(InternalEvent::CutEditorEvent { event })
                     }),
                 });
@@ -259,7 +259,7 @@ impl Component for LoadedSequenceEditorPage {
                     wh,
                     sequence_id,
                     cut_id,
-                    on_event: arc(|event| {
+                    on_event: Box::new(|event| {
                         on_internal_event(InternalEvent::MemoEditorEvent { event })
                     }),
                 });

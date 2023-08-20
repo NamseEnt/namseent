@@ -182,7 +182,7 @@
 //                                 source: namui::ImageSource::Image(namui_image.clone()),
 //                                 style: ImageStyle {
 //                                     fit: ImageFit::Fill,
-//                                     paint_builder: None,
+//                                     paint: None,
 //                                 },
 //                             }),
 //                             ScreenGraphic::Cg(cg) => try_render(|| {

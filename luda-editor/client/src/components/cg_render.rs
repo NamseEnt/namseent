@@ -53,25 +53,22 @@ fn render_cg_part(
 }
 
 fn render_cg_variant(props: &CgRenderProps, variant: &rpc::data::CgPartVariant) -> RenderingTree {
-    try_render(|| {
-        let rect = Rect::Xywh {
-            x: props.rect.x() + props.rect.width() * variant.rect.x(),
-            y: props.rect.y() + props.rect.height() * variant.rect.y(),
-            width: props.rect.width() * variant.rect.width(),
-            height: props.rect.height() * variant.rect.height(),
-        };
+    let rect = Rect::Xywh {
+        x: props.rect.x() + props.rect.width() * variant.rect.x(),
+        y: props.rect.y() + props.rect.height() * variant.rect.y(),
+        width: props.rect.width() * variant.rect.width(),
+        height: props.rect.height() * variant.rect.height(),
+    };
 
-        let url = get_project_cg_part_variant_image_url(props.project_id, props.cg_id, variant.id)
-            .unwrap();
+    let url =
+        get_project_cg_part_variant_image_url(props.project_id, props.cg_id, variant.id).unwrap();
 
-        let image = namui::image::try_load_url(&url)?;
-        Some(namui::image(ImageParam {
-            rect,
-            source: ImageSource::Image(image),
-            style: ImageStyle {
-                fit: ImageFit::Fill,
-                paint_builder: None,
-            },
-        }))
+    namui::image(ImageParam {
+        rect,
+        source: ImageSource::Url { url },
+        style: ImageStyle {
+            fit: ImageFit::Fill,
+            paint: None,
+        },
     })
 }

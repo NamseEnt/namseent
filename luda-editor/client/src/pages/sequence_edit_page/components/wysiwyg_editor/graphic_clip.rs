@@ -46,17 +46,24 @@ impl Component for GraphicClip<'_> {
             ScreenGraphic::Image(image) => get_project_image_url(project_id, image.id).unwrap(),
             ScreenGraphic::Cg(cg) => get_project_cg_thumbnail_image_url(project_id, cg.id).unwrap(),
         };
-        let Some(namui_image) = namui::image::try_load_url(&url) else {
-            unimplemented!("use_render_nothing");
-            // return use_render_nothing();
+        let image = ctx.image(&url);
+        let image = match image.as_ref() {
+            Some(Ok(image)) => image,
+            Some(Err(error)) => {
+                namui::log!("Failed to load image: {:?}", error);
+                return ctx.done();
+            }
+            None => {
+                return ctx.done();
+            }
         };
-        let graphic_size = namui_image.size();
+        let graphic_wh = image.wh;
         let circumscribed = graphic.circumscribed();
 
         let screen_radius = wh.length() / 2;
-        let graphic_radius_px = graphic_size.length() / 2;
+        let graphic_radius_px = graphic_wh.length() / 2;
         let radius_px = screen_radius * circumscribed.radius;
-        let graphic_size_on_screen = graphic_size * (radius_px / graphic_radius_px);
+        let graphic_wh_on_screen = graphic_wh * (radius_px / graphic_radius_px);
 
         let center_xy = wh.as_xy() * circumscribed.center_xy;
 
@@ -64,20 +71,20 @@ impl Component for GraphicClip<'_> {
             match (is_editing_graphic, dragging.as_ref()) {
                 (true, Some(dragging)) => match dragging {
                     Dragging::Resizer { context } => {
-                        let circumscribed = context.resize(center_xy, graphic_size_on_screen, wh);
-                        calculate_graphic_rect_on_screen(graphic_size, wh, circumscribed)
+                        let circumscribed = context.resize(center_xy, graphic_wh_on_screen, wh);
+                        calculate_graphic_rect_on_screen(graphic_wh, wh, circumscribed)
                     }
                     // Dragging::Cropper => todo!(),
                     Dragging::Mover { context } => {
                         let circumscribed = context.move_circumscribed(circumscribed);
 
-                        calculate_graphic_rect_on_screen(graphic_size, wh, circumscribed)
+                        calculate_graphic_rect_on_screen(graphic_wh, wh, circumscribed)
                     }
                 },
                 _ => {
-                    let image_left_top_xy = center_xy - graphic_size_on_screen.as_xy() / 2.0;
+                    let image_left_top_xy = center_xy - graphic_wh_on_screen.as_xy() / 2.0;
 
-                    Rect::from_xy_wh(image_left_top_xy, graphic_size_on_screen)
+                    Rect::from_xy_wh(image_left_top_xy, graphic_wh_on_screen)
                 }
             }
         };
@@ -85,10 +92,10 @@ impl Component for GraphicClip<'_> {
         let graphic_rendering_tree = match &graphic {
             ScreenGraphic::Image(_image) => namui::image(ImageParam {
                 rect: graphic_rendering_rect,
-                source: namui::ImageSource::Image(namui_image.clone()),
+                source: image.src.clone(),
                 style: ImageStyle {
                     fit: ImageFit::Fill,
-                    paint_builder: None,
+                    paint: None,
                 },
             }),
             ScreenGraphic::Cg(cg) => try_render(|| {
@@ -118,7 +125,7 @@ impl Component for GraphicClip<'_> {
                             global_xy: event.global_xy,
                             cut_id,
                             graphic_index,
-                            graphic_wh: graphic_size,
+                            graphic_wh,
                             graphic,
                         });
                     }
@@ -126,7 +133,6 @@ impl Component for GraphicClip<'_> {
             }
             namui::Event::KeyDown { event } => {
                 if is_editing_graphic {
-                    let namui_image = namui_image.clone();
                     let graphic = graphic.clone();
                     namui::log!("key down: {:?}", event.code);
                     let graphic = graphic.clone();
@@ -136,9 +142,9 @@ impl Component for GraphicClip<'_> {
 
                     match graphic {
                         ScreenGraphic::Image(_) => {
-                            let namui_image = namui_image.clone();
+                            let image = image.clone();
                             spawn_local(async move {
-                                let result = namui::clipboard::write_image(namui_image).await;
+                                let result = namui::clipboard::write_image(&image).await;
                                 match result {
                                     Ok(_) => {
                                         namui::log!("Image copied to clipboard");
@@ -179,12 +185,12 @@ impl Component for GraphicClip<'_> {
             if is_editing_graphic {
                 ctx.add(WysiwygTool {
                     graphic_dest_rect: graphic_rendering_rect,
-                    original_graphic_size: graphic_size,
+                    original_graphic_size: graphic_wh,
                     graphic_index,
                     graphic: graphic.clone(),
                     dragging: dragging.clone(),
                     wh,
-                    on_event: arc(|event| on_event(Event::WysiwygTool(event))),
+                    on_event: Box::new(|event| on_event(Event::WysiwygTool(event))),
                 });
             }
         });

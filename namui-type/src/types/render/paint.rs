@@ -9,7 +9,7 @@ pub struct Paint {
     pub stroke_cap: Option<StrokeCap>,
     pub stroke_join: Option<StrokeJoin>,
     pub stroke_miter: Option<Px>,
-    // pub color_filter: Option<(Color, BlendMode)>,
+    pub color_filter: Option<ColorFilter>,
     pub blend_mode: Option<BlendMode>,
     pub shader: Option<Shader>,
 }
@@ -24,7 +24,7 @@ impl Paint {
             stroke_cap: None,
             stroke_join: None,
             stroke_miter: None,
-            // color_filter: None,
+            color_filter: None,
             blend_mode: None,
             shader: None,
         }
@@ -53,10 +53,10 @@ impl Paint {
         self.stroke_join = Some(join);
         self
     }
-    // pub fn set_color_filter(mut self, color: Color, blend_mode: BlendMode) -> Self {
-    //     self.color_filter = Some((color, blend_mode));
-    //     self
-    // }
+    pub fn set_color_filter(mut self, color_filter: ColorFilter) -> Self {
+        self.color_filter = Some(color_filter);
+        self
+    }
     pub fn set_blend_mode(mut self, blend_mode: BlendMode) -> Self {
         self.blend_mode = Some(blend_mode);
         self

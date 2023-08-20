@@ -20,11 +20,9 @@ impl Component for ToolTip {
             y: 0.px(),
             align: TextAlign::Left,
             baseline: TextBaseline::Top,
-            font_type: FontType {
+            font: Font {
                 size: 12.int_px(),
-                serif: false,
-                language: Language::Ko,
-                font_weight: FontWeight::REGULAR,
+                name: "NotoSansKR-Regular".to_string(),
             },
             style: TextStyle {
                 border: None,
@@ -45,7 +43,7 @@ impl Component for ToolTip {
             max_width: None,
         });
 
-        let Some(tooltip_bounding_box) = tooltip.get_bounding_box() else {
+        let Some(tooltip_bounding_box) = tooltip.bounding_box() else {
             return ctx.done();
         };
 

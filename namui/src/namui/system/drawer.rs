@@ -1,7 +1,7 @@
 use super::InitResult;
 use crate::*;
 use js_sys::Uint8Array;
-use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use web_sys::ImageBitmap;
 
 pub(super) async fn init() -> InitResult {
@@ -21,6 +21,14 @@ extern "C" {
         imageSource: Vec<u8>, // ImageSource
         imageBitmap: ImageBitmap,
     );
+
+    #[wasm_bindgen(catch)]
+    async fn encodeLoadedImageToPng(
+        image: Vec<u8>, // Image
+    ) -> Result<
+        JsValue, // Uint8Array
+        JsValue,
+    >;
 }
 
 static mut LAST_RENDERING_TREE: Option<RenderingTree> = None;
@@ -31,7 +39,7 @@ pub fn on_load_image() {
         let draw_input = DrawInput {
             rendering_tree: last_rendering_tree.clone(),
         };
-        let buffer = Uint8Array::from(draw_input.to_vec().as_ref());
+        let buffer = Uint8Array::from(draw_input.to_postcard_vec().as_ref());
 
         requestDraw(buffer);
     }
@@ -49,7 +57,7 @@ pub(crate) fn request_draw_rendering_tree(rendering_tree: RenderingTree) {
     }
 
     let draw_input = DrawInput { rendering_tree };
-    let buffer = Uint8Array::from(draw_input.to_vec().as_ref());
+    let buffer = Uint8Array::from(draw_input.to_postcard_vec().as_ref());
 
     requestDraw(buffer);
 }
@@ -62,4 +70,13 @@ pub(crate) fn load_typeface(typeface_name: &str, bytes: &[u8]) {
 pub(crate) fn load_image(image_source: &ImageSource, image_bitmap: ImageBitmap) {
     let image_source = postcard::to_allocvec(image_source).unwrap();
     loadImage(image_source, image_bitmap);
+}
+
+pub(crate) async fn encode_loaded_image_to_png(image: &Image) -> Vec<u8> {
+    let bytes: Uint8Array = encodeLoadedImageToPng(image.to_postcard_vec())
+        .await
+        .unwrap()
+        .into();
+
+    bytes.to_vec()
 }

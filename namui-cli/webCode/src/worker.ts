@@ -4,7 +4,8 @@ importScripts("./drawer/bundle.js");
 
 declare var wasm_bindgen: any;
 declare var CanvasKit: any;
-const { init, draw, load_typeface, load_image } = wasm_bindgen;
+const { init, draw, load_typeface, load_image, encode_loaded_image_to_png } =
+    wasm_bindgen;
 
 function createWaiter(): { waiter: Promise<void>; resolve: () => void } {
     let resolve: any;
@@ -62,6 +63,23 @@ self.onmessage = async (event) => {
                     imageBitmap: ImageBitmap;
                 };
                 load_image(imageSource, imageBitmap);
+            }
+            break;
+        case "encodeLoadedImageToPng":
+            {
+                const { id, image } = event.data as {
+                    id: number;
+                    image: Uint8Array;
+                };
+                const pngBytes = encode_loaded_image_to_png(image);
+                self.postMessage(
+                    {
+                        type: "encodeLoadedImageToPng",
+                        pngBytes,
+                        id,
+                    },
+                    [pngBytes],
+                );
             }
             break;
     }

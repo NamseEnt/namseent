@@ -44,10 +44,16 @@ impl SkSkia for CkSkia {
     fn image(&self, image_source: &ImageSource) -> Option<Image> {
         CkImage::get(image_source).map(|x| x.image())
     }
+
     fn path_contains_xy(&self, path: &Path, paint: Option<&Paint>, xy: Xy<Px>) -> bool {
         CkPath::get(path).contains(paint, xy)
     }
+
     fn path_bounding_box(&self, path: &Path, paint: Option<&Paint>) -> Option<Rect<Px>> {
         CkPath::get(path).bounding_box(paint)
+    }
+
+    fn encode_loaded_image_to_png(&self, image: &Image) -> Vec<u8> {
+        CkImage::get(&image.src).unwrap().encode_to_png()
     }
 }

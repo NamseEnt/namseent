@@ -79,13 +79,13 @@ impl Component for CutEditor<'_> {
             }
         };
 
-        let blur = arc(|| {
+        let blur = Box::new(|| {
             set_input_req_queue.mutate(|x| x.push_back(auto_complete_text_input::Request::Blur));
             text_input_instance.blur();
             set_selected_target.set(None);
         });
 
-        let move_cut_request = arc(|up_down: UpDown| {
+        let move_cut_request = Box::new(|up_down: UpDown| {
             if !is_focused {
                 return;
             }
@@ -203,7 +203,7 @@ impl Component for CutEditor<'_> {
                         y: wh.height / 2.0,
                         align: TextAlign::Left,
                         baseline: TextBaseline::Middle,
-                        font_type: sequence_player::CHARACTER_NAME_FONT,
+                        font: sequence_player::character_name_font(),
                         style: sequence_player::character_name_text_style(1.one_zero()),
                         max_width: Some(wh.width),
                     }));
@@ -234,7 +234,7 @@ impl Component for CutEditor<'_> {
                         text: line_text,
                         text_align: TextAlign::Left,
                         text_baseline: TextBaseline::Top,
-                        font_type: sequence_player::CUT_TEXT_FONT,
+                        font: sequence_player::cut_text_font(),
                         style: text_input::Style {
                             text: sequence_player::cut_text_style(1.one_zero()),
                             rect: RectStyle {
@@ -282,7 +282,7 @@ impl Component for CutEditor<'_> {
                         y: 0.px(),
                         align: TextAlign::Left,
                         baseline: TextBaseline::Top,
-                        font_type: sequence_player::CUT_TEXT_FONT,
+                        font: sequence_player::cut_text_font(),
                         style: sequence_player::cut_text_style(1.one_zero()),
                         max_width: Some(wh.width),
                     }));
@@ -305,7 +305,7 @@ impl Component for CutEditor<'_> {
                 project_id,
                 cut_id,
                 cg_files: cg_files.clone(),
-                on_click_character_edit: arc(|edit_target| {
+                on_click_character_edit: Box::new(|edit_target| {
                     on_event(Event2::ClickCharacterEdit { edit_target })
                 }),
             })
@@ -327,9 +327,12 @@ impl Component for CutEditor<'_> {
             match context_menu {
                 &ContextMenu::CutEditor { global_xy, cut_id } => {
                     ctx.add(
-                        use_context_menu(global_xy, arc(|| set_context_menu.set(None)))
-                            .add_button("Add Cg", arc(|| {}))
-                            .add_button("Add Memo", arc(|| on_event(Event2::AddMemo { cut_id })))
+                        use_context_menu(global_xy, Box::new(|| set_context_menu.set(None)))
+                            .add_button("Add Cg", Box::new(|| {}))
+                            .add_button(
+                                "Add Memo",
+                                Box::new(|| on_event(Event2::AddMemo { cut_id })),
+                            )
                             .build(),
                     );
                 }

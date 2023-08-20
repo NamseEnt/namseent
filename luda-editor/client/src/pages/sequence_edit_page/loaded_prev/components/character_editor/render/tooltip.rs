@@ -68,7 +68,7 @@ impl Tooltip {
             max_width: None,
         });
 
-        let tooltip_bounding_box = tooltip.get_bounding_box();
+        let tooltip_bounding_box = tooltip.bounding_box();
         if tooltip_bounding_box.is_none() {
             return RenderingTree::Empty;
         }

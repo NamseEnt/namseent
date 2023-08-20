@@ -84,12 +84,13 @@ impl Component for TextInput<'_> {
             self.text_param().max_width,
         );
 
+        // TODO
         // ctx.effect("Update prevent default codes", || {
         //     if !*is_focused {
         //         return;
         //     }
         //     if prevent_default_codes.on_effect() {
-        //         web::execute_function_sync(
+        //         web::execute_function(
         //             "
         //             globalThis.textAreaKeydownPreventDefaultCodes = preventDefaultcodes;
         //             ",

@@ -85,7 +85,7 @@ fn render_comment_badge(width: Px, memo_count: usize, color: Color) -> Rendering
         memo_count.to_string()
     };
 
-    let path_builder = PathBuilder::new()
+    let path_builder = Path::new()
         .move_to(0.05.px(), 0.05.px())
         .line_to(0.95.px(), 0.05.px())
         .line_to(0.95.px(), 0.7.px())
@@ -96,23 +96,19 @@ fn render_comment_badge(width: Px, memo_count: usize, color: Color) -> Rendering
         .line_to(0.05.px(), 0.05.px())
         .scale(width.as_f32(), width.as_f32());
 
-    let paint_builder = PaintBuilder::new()
-        .set_style(PaintStyle::Fill)
-        .set_color(color);
+    let paint = Paint::new().set_style(PaintStyle::Fill).set_color(color);
 
     render([
-        path(path_builder, paint_builder),
+        path(path_builder, paint),
         text(TextParam {
             text: memo_count,
             x: width * 0.5,
             y: width * 0.35,
             align: TextAlign::Center,
             baseline: TextBaseline::Middle,
-            font_type: FontType {
-                serif: false,
+            font: Font {
                 size: (width * 0.5).into(),
-                language: Language::Ko,
-                font_weight: FontWeight::BOLD,
+                name: "NotoSansKR-Bold".to_string(),
             },
             style: TextStyle {
                 border: None,

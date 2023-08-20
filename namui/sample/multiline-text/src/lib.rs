@@ -56,7 +56,7 @@ impl Component for MultilineTextExample {
                 paint.clone(),
             ));
             trees.push(namui::path(
-                Path::new().add_rect(text_rendering_tree.get_bounding_box().unwrap()),
+                Path::new().add_rect(text_rendering_tree.bounding_box().unwrap()),
                 paint.clone(),
             ));
             trees.push(text_rendering_tree);
@@ -111,7 +111,7 @@ impl Component for MultilineTextExample {
                     paint.clone(),
                 ));
                 trees.push(namui::path(
-                    Path::new().add_rect(text_rendering_tree.get_bounding_box().unwrap()),
+                    Path::new().add_rect(text_rendering_tree.bounding_box().unwrap()),
                     paint.clone(),
                 ));
                 trees.push(text_rendering_tree);
@@ -166,7 +166,7 @@ impl Component for MultilineTextExample {
                     paint.clone(),
                 ));
                 trees.push(namui::path(
-                    Path::new().add_rect(text_rendering_tree.get_bounding_box().unwrap()),
+                    Path::new().add_rect(text_rendering_tree.bounding_box().unwrap()),
                     paint.clone(),
                 ));
                 trees.push(text_rendering_tree);

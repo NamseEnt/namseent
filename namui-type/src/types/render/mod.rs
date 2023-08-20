@@ -22,12 +22,3 @@ pub use types::*;
 pub struct DrawInput {
     pub rendering_tree: RenderingTree,
 }
-
-impl DrawInput {
-    pub fn to_vec(&self) -> Vec<u8> {
-        postcard::to_allocvec(self).unwrap()
-    }
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        postcard::from_bytes(bytes).unwrap()
-    }
-}

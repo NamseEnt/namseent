@@ -3,7 +3,7 @@
 // impl RenderingTree {
 //     pub fn padding(self, padding: impl Padding) -> RenderingTree {
 //         let ltrb = padding.to_ltrb();
-//         let bounding_box = self.get_bounding_box();
+//         let bounding_box = self.bounding_box();
 //         render([
 //             rect(RectParam {
 //                 rect: match bounding_box {

@@ -22,6 +22,7 @@ impl Component for RenameModal<'_> {
         let on_rename_done = on_rename_done.clone();
 
         let screen_wh = namui::screen::size();
+        let screen_wh = Wh::new(screen_wh.width.into_px(), screen_wh.height.into_px());
         let modal_wh = screen_wh * 0.5;
         let modal_xy = ((screen_wh - modal_wh) * 0.5).as_xy();
         let text_input_rect_in_modal = Rect::Xywh {
@@ -76,11 +77,9 @@ impl Component for RenameModal<'_> {
                     text: sequence_name.to_string(),
                     text_align: TextAlign::Left,
                     text_baseline: TextBaseline::Top,
-                    font_type: FontType {
-                        serif: false,
+                    font: Font {
                         size: 12.int_px(),
-                        language: Language::Ko,
-                        font_weight: FontWeight::REGULAR,
+                        name: "NotoSansKR-Regular".to_string(),
                     },
                     style: text_input::Style {
                         rect: RectStyle {

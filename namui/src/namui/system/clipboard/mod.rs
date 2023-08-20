@@ -1,5 +1,7 @@
+use crate::*;
 use futures::Future;
-use js_sys::{Array, ArrayBuffer, Object, Promise, Reflect, Uint8Array};
+use js_sys::*;
+use namui_type::*;
 use std::pin::Pin;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 use web_sys::{Blob, BlobPropertyBag};
@@ -22,7 +24,7 @@ extern "C" {
     fn get_type_(this: &ClipboardItem_, type_: &str) -> Promise;
 }
 
-pub async fn write<MimeBytesPairs, Mime, Bytes>(data: MimeBytesPairs) -> Result<(), ()>
+pub async fn write<MimeBytesPairs, Mime, Bytes>(data: MimeBytesPairs) -> Result<()>
 where
     MimeBytesPairs: IntoIterator<Item = (Mime, Bytes)>,
     Mime: AsRef<str>,
@@ -61,17 +63,16 @@ where
     match result {
         Ok(_) => Ok(()),
         Err(error) => {
-            crate::log!("error: failed to write to clipboard {:#?}", error);
-            Err(())
+            bail!("error: failed to write to clipboard {:#?}", error)
         }
     }
 }
 
-pub async fn read() -> Result<Vec<impl ClipboardItem>, ()> {
+pub async fn read() -> Result<Vec<impl ClipboardItem>> {
     let promise = read_();
     let items: Array = wasm_bindgen_futures::JsFuture::from(promise)
         .await
-        .map_err(|_| ())?
+        .map_err(|_| anyhow!("Fail to read clipboard"))?
         .into();
     Ok(items
         .iter()
@@ -122,37 +123,48 @@ impl ClipboardItem for ClipboardItem_ {
     }
 }
 
-pub async fn write_text(text: impl AsRef<str>) -> Result<(), ()> {
+pub async fn write_text(text: impl AsRef<str>) -> Result<()> {
     let text = text.as_ref();
     let promise = writeText(text);
     let result = wasm_bindgen_futures::JsFuture::from(promise).await;
     match result {
         Ok(_) => Ok(()),
-        Err(_) => Err(()),
+        Err(_) => Err(anyhow!("error: failed to write text to clipboard")),
     }
 }
 
-// pub async fn write_image(image: Arc<Image>) -> Result<(), ()> {
-//     let blob = image.as_png_blob().await;
+pub async fn write_image(image: &Image) -> Result<()> {
+    let type_ = "image/png";
+    let png_bytes = crate::system::drawer::encode_loaded_image_to_png(&image).await;
+    let blob_parts = {
+        let array = js_sys::Array::new();
+        array.push(&Uint8Array::from(png_bytes.as_ref()).into());
+        array
+    };
 
-//     let clipboard_item_data = {
-//         let object = js_sys::Object::new();
-//         Reflect::set(&object, &"image/png".into(), &blob.into()).unwrap();
-//         object
-//     };
-//     let clipboard_item = ClipboardItem_::new(clipboard_item_data);
-//     let clipboard_items = {
-//         let array = js_sys::Array::new();
-//         array.push(&clipboard_item.into());
-//         array
-//     };
-//     let promise = write_(&clipboard_items);
-//     let result = wasm_bindgen_futures::JsFuture::from(promise).await;
-//     match result {
-//         Ok(_) => Ok(()),
-//         Err(_) => Err(()),
-//     }
-// }
+    let mut blob_options = web_sys::BlobPropertyBag::new();
+    blob_options.type_(type_);
+    let blob = web_sys::Blob::new_with_u8_array_sequence_and_options(&blob_parts, &blob_options)
+        .map_err(|_| anyhow!("error: failed to create blob"))?;
+
+    let clipboard_item_data = {
+        let object = js_sys::Object::new();
+        Reflect::set(&object, &type_.into(), &blob.into()).unwrap();
+        object
+    };
+    let clipboard_item = ClipboardItem_::new(clipboard_item_data);
+    let clipboard_items = {
+        let array = js_sys::Array::new();
+        array.push(&clipboard_item.into());
+        array
+    };
+    let promise = write_(&clipboard_items);
+    let result = wasm_bindgen_futures::JsFuture::from(promise).await;
+    match result {
+        Ok(_) => Ok(()),
+        Err(_) => Err(anyhow!("error: failed to write image to clipboard")),
+    }
+}
 
 // pub async fn read_images() -> Result<Vec<Arc<Image>>, ()> {
 //     let mut outputs = Vec::new();

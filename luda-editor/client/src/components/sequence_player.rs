@@ -4,22 +4,192 @@ use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::*;
 
-pub struct SequencePlayer {
-    sequence: Sequence,
-    project_shared_data: ProjectSharedData,
-    state: State,
-    cg_files: Option<Vec<CgFile>>,
-}
-
-pub struct Props {
+#[component]
+pub struct SequencePlayer<'a> {
     pub wh: Wh<Px>,
+    pub sequence: &'a Sequence,
+    pub project_shared_data: &'a ProjectSharedData,
+    /// NOTE: This `init_cut_index` is not setable after first render.
+    pub init_cut_index: usize,
+    pub cg_files: &'a Vec<CgFile>,
 }
 
-enum InternalEvent {
-    OnClickScreen,
-    GoToPrevCut,
-    GoToNextCut,
-    CgFilesLoaded(Vec<CgFile>),
+impl Component for SequencePlayer<'_> {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let (cut_index, set_cut_index) = ctx.state(|| self.init_cut_index);
+
+        #[derive(Debug)]
+        enum State {
+            ShowingCut {
+                cut_index: usize,
+            },
+            Transitioning {
+                from_cut_index: usize,
+                transition_progress: OneZero,
+                start_time: Time,
+            },
+        }
+        let (state, set_state) = ctx.state(|| State::ShowingCut {
+            cut_index: *cut_index,
+        });
+
+        if self.sequence.cuts.is_empty() {
+            return ctx.done();
+        }
+
+        let now = ctx.track_eq(&namui::now());
+
+        ctx.effect("Play transition", move || match *state {
+            State::ShowingCut { .. } => {}
+            State::Transitioning {
+                from_cut_index,
+                transition_progress,
+                start_time,
+            } => {
+                let transition_duration = 500.ms();
+
+                let delta_time = *now - start_time;
+
+                set_state.set(if delta_time > transition_duration {
+                    State::ShowingCut {
+                        cut_index: from_cut_index + 1,
+                    }
+                } else {
+                    State::Transitioning {
+                        from_cut_index,
+                        transition_progress: (delta_time / transition_duration).one_zero(),
+                        start_time,
+                    }
+                });
+            }
+        });
+
+        let go_to_next_cut = |do_transition: bool| {
+            if self.sequence.cuts.len() == 0 {
+                return;
+            }
+
+            match *state {
+                State::ShowingCut { cut_index } => {
+                    let next_cut_index = cut_index + 1;
+                    if next_cut_index >= self.sequence.cuts.len() {
+                        return;
+                    }
+
+                    set_state.set(if do_transition {
+                        State::Transitioning {
+                            from_cut_index: cut_index,
+                            transition_progress: 0.0.one_zero(),
+                            start_time: namui::now(),
+                        }
+                    } else {
+                        State::ShowingCut {
+                            cut_index: next_cut_index,
+                        }
+                    });
+                }
+                State::Transitioning { from_cut_index, .. } => {
+                    if !do_transition {
+                        set_state.set(State::ShowingCut {
+                            cut_index: from_cut_index + 1,
+                        });
+                    }
+                }
+            }
+        };
+
+        let go_to_prev_cut = || {
+            let prev_cut_index = match *state {
+                State::ShowingCut { cut_index } => {
+                    if cut_index == 0 {
+                        return;
+                    }
+                    cut_index - 1
+                }
+                State::Transitioning { from_cut_index, .. } => from_cut_index,
+            };
+            set_state.set(State::ShowingCut {
+                cut_index: prev_cut_index,
+            });
+        };
+
+        let inner_content_rect = get_inner_content_rect(self.wh);
+
+        ctx.compose(|ctx| {
+            ctx.translate(inner_content_rect.xy())
+                .compose(|ctx| match state.as_ref() {
+                    &State::ShowingCut { cut_index } => {
+                        let cut = self.sequence.cuts.get(cut_index).unwrap();
+                        render_graphics(
+                            ctx,
+                            self.project_shared_data.id(),
+                            inner_content_rect.wh(),
+                            cut,
+                            1.0.one_zero(),
+                            &self.cg_files,
+                        );
+                        ctx.add((
+                            render_text_box(inner_content_rect.wh()),
+                            render_text(
+                                &self.project_shared_data,
+                                inner_content_rect.wh(),
+                                cut,
+                                1.0.one_zero(),
+                            ),
+                            simple_rect(
+                                inner_content_rect.wh(),
+                                Color::TRANSPARENT,
+                                0.px(),
+                                Color::TRANSPARENT,
+                            )
+                            .attach_event(|event| match event {
+                                Event::MouseDown { event } => {
+                                    if event.is_local_xy_in() {
+                                        go_to_next_cut(true)
+                                    }
+                                }
+                                _ => {}
+                            }),
+                        ));
+                    }
+                    &State::Transitioning {
+                        from_cut_index,
+                        transition_progress,
+                        start_time: _start_time,
+                    } => {
+                        let from_cut = self.sequence.cuts.get(from_cut_index).unwrap();
+                        self.render_transitioning_image(
+                            ctx,
+                            inner_content_rect.wh(),
+                            from_cut_index,
+                            transition_progress,
+                            self.cg_files,
+                        );
+                        ctx.add((
+                            render_text_box(inner_content_rect.wh()),
+                            render_text(
+                                &self.project_shared_data,
+                                inner_content_rect.wh(),
+                                from_cut,
+                                1.0.one_zero() - transition_progress,
+                            ),
+                        ));
+                    }
+                })
+                .attach_event(|event| match event {
+                    Event::KeyDown { event } => {
+                        if event.code == Code::ArrowLeft {
+                            go_to_prev_cut()
+                        } else if event.code == Code::ArrowRight {
+                            go_to_next_cut(false)
+                        }
+                    }
+                    _ => {}
+                });
+        });
+
+        ctx.done()
+    }
 }
 
 enum State {
@@ -33,222 +203,31 @@ enum State {
     },
 }
 
-// impl SequencePlayer {
-//     pub fn new(
-//         sequence: Sequence,
-//         project_shared_data: ProjectSharedData,
-//         start_cut_index: usize,
-//         cg_files: Option<Vec<CgFile>>,
-//     ) -> Self {
-//         let project_id = project_shared_data.id();
-//         if cg_files.is_none() {
-//             spawn_local(async move {
-//                 let response = crate::RPC
-//                     .list_cg_files(rpc::list_cg_files::Request { project_id })
-//                     .await
-//                     .unwrap();
-//                 todo!()
-//                 // namui::event::send(InternalEvent::CgFilesLoaded(response.cg_files));
-//             });
-//         }
-//         Self {
-//             sequence,
-//             project_shared_data,
-//             state: State::ShowingCut {
-//                 cut_index: start_cut_index,
-//             },
-//             cg_files,
-//         }
-//     }
-//     pub fn render(&self, props: Props) -> RenderingTree {
-//         if self.sequence.cuts.is_empty() {
-//             return RenderingTree::Empty;
-//         }
-//         let Some(cg_files) = &self.cg_files else {
-//             return RenderingTree::Empty;
-//         };
+impl SequencePlayer<'_> {
+    fn render_transitioning_image(
+        &self,
+        ctx: &mut ComposeCtx,
+        wh: Wh<Px>,
+        from_cut_index: usize,
+        transition_progress: OneZero,
+        cg_files: &Vec<CgFile>,
+    ) {
+        let from_cut = self.sequence.cuts.get(from_cut_index).unwrap();
+        let to_cut = self.sequence.cuts.get(from_cut_index + 1).unwrap();
 
-//         let inner_content_rect = get_inner_content_rect(props.wh);
+        let project_id = self.project_shared_data.id();
 
-//         translate(
-//             inner_content_rect.x(),
-//             inner_content_rect.y(),
-//             match &self.state {
-//                 &State::ShowingCut { cut_index } => {
-//                     let cut = self.sequence.cuts.get(cut_index).unwrap();
-//                     render([
-//                         render_graphics(
-//                             self.project_shared_data.id(),
-//                             inner_content_rect.wh(),
-//                             cut,
-//                             1.0.one_zero(),
-//                             &cg_files,
-//                         ),
-//                         render_text_box(inner_content_rect.wh()),
-//                         render_text(
-//                             &self.project_shared_data,
-//                             inner_content_rect.wh(),
-//                             cut,
-//                             1.0.one_zero(),
-//                         ),
-//                         simple_rect(
-//                             inner_content_rect.wh(),
-//                             Color::TRANSPARENT,
-//                             0.px(),
-//                             Color::TRANSPARENT,
-//                         )
-//                         .attach_event(|builder| {
-//                             builder.on_mouse_down_in(|_| {
-//                                 todo!()
-//                                 // namui::event::send(InternalEvent::OnClickScreen);
-//                             });
-//                         }),
-//                     ])
-//                 }
-//                 &State::Transitioning {
-//                     from_cut_index,
-//                     transition_progress,
-//                     start_time: _start_time,
-//                 } => {
-//                     let from_cut = self.sequence.cuts.get(from_cut_index).unwrap();
-//                     render([
-//                         self.render_transitioning_image(
-//                             inner_content_rect.wh(),
-//                             from_cut_index,
-//                             transition_progress,
-//                             &cg_files,
-//                         ),
-//                         render_text_box(inner_content_rect.wh()),
-//                         render_text(
-//                             &self.project_shared_data,
-//                             inner_content_rect.wh(),
-//                             from_cut,
-//                             1.0.one_zero() - transition_progress,
-//                         ),
-//                     ])
-//                 }
-//             },
-//         )
-//         .attach_event(|builder| {
-//             builder.on_key_down(|event: KeyboardEvent| {
-//                 if event.code == Code::ArrowLeft {
-//                     todo!()
-//                     // namui::event::send(InternalEvent::GoToPrevCut);
-//                 } else if event.code == Code::ArrowRight {
-//                     todo!()
-//                     // namui::event::send(InternalEvent::GoToNextCut);
-//                 }
-//             });
-//         })
-//     }
-//     // pub fn update(&mut self, event: &namui::Event) {
-//     //     match &mut self.state {
-//     //         State::ShowingCut { .. } => {}
-//     //         State::Transitioning {
-//     //             from_cut_index,
-//     //             transition_progress,
-//     //             start_time,
-//     //         } => {
-//     //             let transition_duration = 500.ms();
+        if from_cut.screen_graphics == to_cut.screen_graphics {
+            render_graphics(ctx, project_id, wh, from_cut, 1.0.one_zero(), cg_files)
+        } else {
+            let from_opacity = 1.0.one_zero() - transition_progress;
+            let to_opacity = transition_progress;
 
-//     //             let delta_time = namui::now() - *start_time;
-//     //             if delta_time > transition_duration {
-//     //                 self.state = State::ShowingCut {
-//     //                     cut_index: *from_cut_index + 1,
-//     //                 };
-//     //             } else {
-//     //                 *transition_progress = (delta_time / transition_duration).one_zero();
-//     //             }
-//     //         }
-//     //     }
-
-//     //     event.is::<InternalEvent>(|event| match event {
-//     //         InternalEvent::OnClickScreen => {
-//     //             self.go_to_next_cut(true);
-//     //         }
-//     //         InternalEvent::GoToPrevCut => self.go_to_prev_cut(),
-//     //         InternalEvent::GoToNextCut => self.go_to_next_cut(false),
-//     //         InternalEvent::CgFilesLoaded(cg_files) => {
-//     //             self.cg_files = Some(cg_files.clone());
-//     //         }
-//     //     });
-//     // }
-
-//     fn go_to_next_cut(&mut self, do_transition: bool) {
-//         if self.sequence.cuts.len() == 0 {
-//             return;
-//         }
-
-//         match self.state {
-//             State::ShowingCut { cut_index } => {
-//                 let next_cut_index = cut_index + 1;
-//                 if next_cut_index >= self.sequence.cuts.len() {
-//                     return;
-//                 }
-
-//                 if do_transition {
-//                     self.state = State::Transitioning {
-//                         from_cut_index: cut_index,
-//                         transition_progress: 0.0.one_zero(),
-//                         start_time: namui::now(),
-//                     };
-//                 } else {
-//                     self.state = State::ShowingCut {
-//                         cut_index: next_cut_index,
-//                     };
-//                 }
-//             }
-//             State::Transitioning { from_cut_index, .. } => {
-//                 if !do_transition {
-//                     self.state = State::ShowingCut {
-//                         cut_index: from_cut_index + 1,
-//                     };
-//                 }
-//             }
-//         }
-//     }
-
-//     fn go_to_prev_cut(&mut self) {
-//         let prev_cut_index = match self.state {
-//             State::ShowingCut { cut_index } => {
-//                 if cut_index == 0 {
-//                     return;
-//                 }
-//                 cut_index - 1
-//             }
-//             State::Transitioning { from_cut_index, .. } => from_cut_index,
-//         };
-
-//         self.state = State::ShowingCut {
-//             cut_index: prev_cut_index,
-//         };
-//     }
-
-//     fn render_transitioning_image(
-//         &self,
-//         wh: Wh<Px>,
-//         from_cut_index: usize,
-//         transition_progress: OneZero,
-//         cg_files: &Vec<CgFile>,
-//     ) -> RenderingTree {
-//         let from_cut = self.sequence.cuts.get(from_cut_index).unwrap();
-//         let to_cut = self.sequence.cuts.get(from_cut_index + 1).unwrap();
-
-//         let project_id = self.project_shared_data.id();
-
-//         if from_cut.screen_graphics == to_cut.screen_graphics {
-//             render_graphics(project_id, wh, from_cut, 1.0.one_zero(), cg_files)
-//         } else {
-//             let from_opacity = 1.0.one_zero() - transition_progress;
-//             let to_opacity = transition_progress;
-
-//             render([
-//                 render_graphics(project_id, wh, from_cut, from_opacity, cg_files),
-//                 render_graphics(project_id, wh, to_cut, to_opacity, cg_files),
-//             ])
-//         }
-//     }
-// }
+            render_graphics(ctx, project_id, wh, from_cut, from_opacity, cg_files);
+            render_graphics(ctx, project_id, wh, to_cut, to_opacity, cg_files);
+        }
+    }
+}
 
 pub fn get_inner_content_rect(wh: Wh<Px>) -> Rect<Px> {
     let width_per_height = 4.0 / 3.0;
@@ -290,12 +269,19 @@ pub fn render_text_box(screen_wh: Wh<Px>) -> RenderingTree {
     ])(screen_wh)
 }
 
-pub const CHARACTER_NAME_FONT: FontType = FontType {
-    serif: false,
-    size: int_px(36),
-    language: Language::Ko,
-    font_weight: FontWeight::BOLD,
-};
+pub fn character_name_font() -> Font {
+    Font {
+        size: int_px(36),
+        name: "NotoSansKR-Bold".to_string(),
+    }
+}
+pub fn cut_text_font() -> Font {
+    Font {
+        size: int_px(24),
+        name: "NotoSansKR-Bold".to_string(),
+    }
+}
+
 pub fn character_name_text_style(opacity: OneZero) -> TextStyle {
     TextStyle {
         border: Some(TextStyleBorder {
@@ -312,12 +298,6 @@ pub fn character_name_text_style(opacity: OneZero) -> TextStyle {
     }
 }
 
-pub const CUT_TEXT_FONT: FontType = FontType {
-    serif: false,
-    size: int_px(24),
-    language: Language::Ko,
-    font_weight: FontWeight::BOLD,
-};
 pub fn cut_text_style(opacity: OneZero) -> TextStyle {
     TextStyle {
         border: Some(TextStyleBorder {
@@ -350,7 +330,7 @@ pub fn render_text(
                 y: wh.height / 2,
                 align: TextAlign::Left,
                 baseline: TextBaseline::Middle,
-                font_type: CHARACTER_NAME_FONT,
+                font: character_name_font(),
                 style: character_name_text_style(opacity),
                 max_width: Some(wh.width),
             })
@@ -362,7 +342,7 @@ pub fn render_text(
                 y: 0.px(),
                 align: TextAlign::Left,
                 baseline: TextBaseline::Top,
-                font_type: CUT_TEXT_FONT,
+                font: cut_text_font(),
                 style: cut_text_style(opacity),
                 max_width: Some(wh.width),
             })
@@ -434,72 +414,101 @@ pub fn calculate_graphic_rect_on_screen(
     Rect::from_xy_wh(xy, wh)
 }
 
-pub fn render_graphics(
+fn render_graphics(
+    ctx: &mut ComposeCtx,
     project_id: Uuid,
     wh: Wh<Px>,
     cut: &Cut,
     opacity: OneZero,
     cg_files: &Vec<CgFile>,
-) -> RenderingTree {
-    let paint_builder = namui::PaintBuilder::new().set_color_filter(
-        Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
-        BlendMode::DstIn,
-    );
-
-    let graphics = cut.screen_graphics.iter().map(|(_, screen_graphic)| {
-        render_graphic(
-            project_id,
-            wh,
-            screen_graphic,
-            Some(paint_builder.clone()),
-            cg_files,
-        )
+) {
+    let paint = namui::Paint::new().set_color_filter(ColorFilter {
+        color: Color::from_f01(1.0, 1.0, 1.0, opacity.as_f32()),
+        blend_mode: BlendMode::DstIn,
     });
-    render(graphics)
+
+    ctx.compose(|ctx| {
+        for (_, screen_graphic) in &cut.screen_graphics {
+            ctx.add(SequencePlayerGraphic {
+                project_id,
+                wh,
+                graphic: screen_graphic,
+                paint: Some(paint.clone()),
+                cg_files,
+            });
+        }
+    });
 }
 
-pub fn render_graphic(
+#[component]
+pub struct SequencePlayerGraphic<'a> {
     project_id: Uuid,
     wh: Wh<Px>,
-    graphic: &ScreenGraphic,
-    paint_builder: Option<PaintBuilder>,
-    cg_files: &Vec<CgFile>,
-) -> RenderingTree {
-    namui::try_render(|| match graphic {
-        ScreenGraphic::Image(screen_image) => {
-            let url = get_project_image_url(project_id, screen_image.id).unwrap();
-            let image = namui::image::try_load_url(&url)?;
+    graphic: &'a ScreenGraphic,
+    paint: Option<Paint>,
+    cg_files: &'a Vec<CgFile>,
+}
 
-            let rect =
-                calculate_graphic_rect_on_screen(image.size(), wh, screen_image.circumscribed);
+impl Component for SequencePlayerGraphic<'_> {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let graphic = ctx.track_eq(self.graphic);
+        let url = ctx.memo(|| match graphic.as_ref() {
+            ScreenGraphic::Image(screen_image) => {
+                get_project_image_url(self.project_id, screen_image.id).unwrap()
+            }
+            ScreenGraphic::Cg(screen_cg) => {
+                get_project_cg_thumbnail_image_url(self.project_id, screen_cg.id).unwrap()
+            }
+        });
+        let image = ctx.image(&url);
+        let Some(image) = image.as_ref() else {
+            return ctx.done();
+        };
 
-            Some(namui::image(ImageParam {
-                rect,
-                source: ImageSource::Image(image),
-                style: ImageStyle {
-                    fit: ImageFit::Fill,
-                    paint_builder,
-                },
-            }))
-        }
-        ScreenGraphic::Cg(screen_cg) => {
-            let url = get_project_cg_thumbnail_image_url(project_id, screen_cg.id).unwrap();
-            let image = namui::image::try_load_url(&url)?;
-            let outer_rect =
-                calculate_graphic_rect_on_screen(image.size(), wh, screen_cg.circumscribed);
+        let Ok(image) = image else {
+            namui::log!("Failed to load image: {:?}", url);
+            return ctx.done();
+        };
 
-            let cg_file = cg_files
-                .iter()
-                .find(|cg_file| cg_file.name == screen_cg.name)?;
-            Some(cg_render::render_cg(
-                cg_render::CgRenderProps {
-                    cg_id: screen_cg.id,
-                    project_id,
-                    rect: outer_rect,
-                },
-                screen_cg,
-                cg_file,
-            ))
-        }
-    })
+        ctx.component(match graphic.as_ref() {
+            ScreenGraphic::Image(screen_image) => {
+                let rect =
+                    calculate_graphic_rect_on_screen(image.wh, self.wh, screen_image.circumscribed);
+
+                namui::image(ImageParam {
+                    rect,
+                    source: ImageSource::Url {
+                        url: url.clone_inner(),
+                    },
+                    style: ImageStyle {
+                        fit: ImageFit::Fill,
+                        paint: self.paint,
+                    },
+                })
+            }
+            ScreenGraphic::Cg(screen_cg) => {
+                let outer_rect =
+                    calculate_graphic_rect_on_screen(image.wh, self.wh, screen_cg.circumscribed);
+
+                let cg_file = self
+                    .cg_files
+                    .iter()
+                    .find(|cg_file| cg_file.name == screen_cg.name);
+
+                match cg_file {
+                    Some(cg_file) => cg_render::render_cg(
+                        cg_render::CgRenderProps {
+                            cg_id: screen_cg.id,
+                            project_id: self.project_id,
+                            rect: outer_rect,
+                        },
+                        screen_cg,
+                        cg_file,
+                    ),
+                    None => RenderingTree::Empty,
+                }
+            }
+        })
+        .done()
+    }
 }

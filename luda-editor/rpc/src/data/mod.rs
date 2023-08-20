@@ -47,7 +47,7 @@ impl Character {
     }
 }
 
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct Sequence {
     pub id: Uuid,
     pub name: String,

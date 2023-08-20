@@ -341,3 +341,9 @@ pub enum ImageSource {
     // Image(Arc<Image>),
     // File(File),
 }
+
+#[type_derives(Copy)]
+pub struct ColorFilter {
+    pub color: Color,
+    pub blend_mode: BlendMode,
+}

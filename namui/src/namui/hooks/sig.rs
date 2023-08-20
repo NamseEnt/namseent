@@ -79,6 +79,13 @@ impl<'a, T> Sig<'a, T> {
         self.use_it();
         true
     }
+    pub fn clone_inner(&self) -> T
+    where
+        T: Clone,
+    {
+        self.use_it();
+        self.value.clone()
+    }
 }
 
 impl<T> std::ops::Deref for Sig<'_, T> {
@@ -94,5 +101,20 @@ impl<T> AsRef<T> for Sig<'_, T> {
     fn as_ref(&self) -> &T {
         self.use_it();
         self.value
+    }
+}
+
+impl<'a, T0, T1> Sig<'a, (T0, T1)> {
+    pub fn map_0(self) -> Sig<'a, T0> {
+        Sig {
+            id: self.id,
+            value: &self.value.0,
+        }
+    }
+    pub fn map_1(self) -> Sig<'a, T1> {
+        Sig {
+            id: self.id,
+            value: &self.value.1,
+        }
     }
 }

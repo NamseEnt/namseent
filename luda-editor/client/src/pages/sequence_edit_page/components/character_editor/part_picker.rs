@@ -256,10 +256,12 @@ fn render_thumbnail<'a>(
                     .map_or(RenderingTree::Empty, |cg_part_image_url| {
                         image(ImageParam {
                             rect: Rect::from_xy_wh(Xy::zero(), wh),
-                            source: ImageSource::Url(cg_part_image_url),
+                            source: ImageSource::Url {
+                                url: cg_part_image_url,
+                            },
                             style: ImageStyle {
                                 fit: ImageFit::Contain,
-                                paint_builder: None,
+                                paint: None,
                             },
                         })
                     }),

@@ -86,7 +86,13 @@ impl TreeContext {
         updated_sigs: HashSet<SigId>,
         matrix: Matrix3x3,
     ) -> RenderCtx {
-        RenderCtx::new(instance, updated_sigs, self.clone(), matrix)
+        RenderCtx::new(
+            instance,
+            updated_sigs,
+            self.clone(),
+            matrix,
+            self.raw_event.clone(),
+        )
     }
 }
 

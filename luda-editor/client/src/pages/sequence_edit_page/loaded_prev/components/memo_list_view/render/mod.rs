@@ -114,7 +114,7 @@ fn render_memo(width: Px, memo: &Memo, sequence_id: Uuid, user_id: Uuid) -> Rend
         translate(
             inner_width
                 - done_button
-                    .get_bounding_box()
+                    .bounding_box()
                     .map_or(0.px(), |bounding_box| bounding_box.width()),
             0.px(),
             done_button,
@@ -122,7 +122,7 @@ fn render_memo(width: Px, memo: &Memo, sequence_id: Uuid, user_id: Uuid) -> Rend
         translate(0.px(), BUTTON_HEIGHT + MARGIN, content_text),
     ]);
 
-    let container_height = content.get_bounding_box().unwrap().height() + PADDING * 2.0;
+    let container_height = content.bounding_box().unwrap().height() + PADDING * 2.0;
 
     let container = simple_rect(
         Wh::new(container_width, container_height),

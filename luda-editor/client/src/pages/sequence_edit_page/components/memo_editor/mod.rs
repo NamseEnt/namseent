@@ -35,6 +35,7 @@ impl Component for MemoEditor<'_> {
         const TITLE_HEIGHT: Px = px(48.0);
 
         let screen_wh = screen::size();
+        let screen_wh = Wh::new(screen_wh.width.into_px(), screen_wh.height.into_px());
 
         let background = {
             simple_rect(
@@ -146,11 +147,9 @@ impl Component for MemoEditor<'_> {
                         text: text.to_string(),
                         text_align: TextAlign::Left,
                         text_baseline: TextBaseline::Top,
-                        font_type: FontType {
-                            serif: false,
+                        font: Font {
                             size: 14.int_px(),
-                            language: Language::Ko,
-                            font_weight: FontWeight::REGULAR,
+                            name: "NotoSansKR-Regular".to_string(),
                         },
                         style: Style {
                             // TODO: Declare Ltrb with vector_types! macro

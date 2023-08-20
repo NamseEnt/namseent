@@ -170,7 +170,7 @@ impl Component for WysiwygEditor<'_> {
         ctx.component(background);
         ctx.compose(|ctx| {
             let mut ctx = ctx.clip(
-                PathBuilder::new().add_rect(Rect::from_xy_wh(Xy::zero(), wh)),
+                Path::new().add_rect(Rect::from_xy_wh(Xy::zero(), wh)),
                 ClipOp::Intersect,
             );
 

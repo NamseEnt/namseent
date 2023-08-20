@@ -10,11 +10,12 @@ impl Component for Router {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let (route, set_route) = ctx.state(|| Route::from(get_path_from_hash()));
 
-        ctx.web_event(move |web_event| {
-            if let namui::web::WebEvent::HashChange { .. } = web_event {
+        ctx.on_raw_event(move |web_event| match web_event {
+            RawEvent::HashChange { .. } => {
                 namui::log!("Hash change");
                 set_route.set(Route::from(get_path_from_hash()));
             }
+            _ => {}
         });
 
         let wh = self.wh;
@@ -67,7 +68,7 @@ impl From<RoutePath> for Route {
 }
 
 pub fn move_to(path: RoutePath) {
-    web::execute_function_sync(
+    web::execute_function(
         "
         window.location.hash = hash;
     ",
@@ -77,7 +78,7 @@ pub fn move_to(path: RoutePath) {
 }
 
 fn get_path_from_hash() -> RoutePath {
-    let hash: String = web::execute_function_sync(
+    let hash: String = web::execute_function(
         "
         return window.location.hash;
     ",

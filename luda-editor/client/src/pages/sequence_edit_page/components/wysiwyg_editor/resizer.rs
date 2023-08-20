@@ -40,18 +40,18 @@ impl Component for Resizer<'_> {
                 .into_iter()
                 .map(|handle| {
                     let handle_xy = handle.xy(rect);
-                    let path = namui::PathBuilder::new().add_oval(Rect::Ltrb {
+                    let path = namui::Path::new().add_oval(Rect::Ltrb {
                         left: handle_xy.x - HANDLE_RADIUS,
                         top: handle_xy.y - HANDLE_RADIUS,
                         right: handle_xy.x + HANDLE_RADIUS,
                         bottom: handle_xy.y + HANDLE_RADIUS,
                     });
 
-                    let fill_paint = namui::PaintBuilder::new()
+                    let fill_paint = namui::Paint::new()
                         .set_style(namui::PaintStyle::Fill)
                         .set_color(Color::WHITE);
 
-                    let stroke_paint = namui::PaintBuilder::new()
+                    let stroke_paint = namui::Paint::new()
                         .set_style(namui::PaintStyle::Stroke)
                         .set_color(Color::grayscale_f01(0.5))
                         .set_stroke_width(px(2.0))

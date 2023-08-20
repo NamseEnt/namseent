@@ -34,7 +34,7 @@ async fn is_session_id_valid(session_id: Uuid) -> Result<bool> {
 async fn request_github_auth_code() -> Result<String> {
     let client_id = CLIENT_ID.unwrap_or(DEV_CLIENT_ID);
 
-    let redirect_uri: String = namui::web::execute_function_sync(
+    let redirect_uri: String = namui::web::execute_function(
         "
     return window.location.href;",
     )

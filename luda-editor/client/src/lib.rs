@@ -18,8 +18,8 @@ static SETTING: late_init::LateInit<setting::Setting> =
     late_init::LateInit::<setting::Setting>::new();
 static RPC: late_init::LateInit<rpc::Rpc> = late_init::LateInit::<rpc::Rpc>::new();
 
-pub fn main() {
-    let namui_context = namui::init();
+pub async fn main() {
+    let namui_context = namui::init().await;
 
     namui_context.start(|| Init {});
 }
@@ -35,7 +35,8 @@ impl namui::Component for Init {
             namui::log!("Init effect");
             spawn_local(async move {
                 namui::log!("Spawn local");
-                let search = namui::web::location_search();
+                let search: String =
+                    namui::web::execute_function("return document.location.search;").run();
                 let is_auth_callback = search.starts_with("?code=");
 
                 if is_auth_callback {

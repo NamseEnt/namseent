@@ -49,7 +49,7 @@ fn render_thumbnail(cg_file: &CgFile, project_id: Uuid) -> TableCell {
                             source: ImageSource::Url(cg_thumbnail_image_url),
                             style: ImageStyle {
                                 fit: ImageFit::Contain,
-                                paint_builder: None,
+                                paint: None,
                             },
                         })
                     },

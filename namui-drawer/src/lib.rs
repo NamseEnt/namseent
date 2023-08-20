@@ -27,7 +27,7 @@ pub fn init(canvas: web_sys::HtmlCanvasElement) {
 
 #[wasm_bindgen]
 pub fn draw(bytes: &[u8]) {
-    let input = DrawInput::from_bytes(bytes);
+    let input = DrawInput::from_postcard_bytes(bytes);
     let rendering_tree = input.rendering_tree;
 
     let ctx = DrawContext::new(SKIA.get().unwrap().clone());
@@ -46,6 +46,12 @@ pub fn load_typeface(typeface_name: &str, bytes: &[u8]) {
 pub fn load_image(image_source: Vec<u8>, image_bitmap: web_sys::ImageBitmap) {
     let image_source: ImageSource = postcard::from_bytes(&image_source).unwrap();
     SKIA.get().unwrap().load_image(&image_source, &image_bitmap);
+}
+
+#[wasm_bindgen]
+pub fn encode_loaded_image_to_png(image: Vec<u8>) -> Vec<u8> {
+    let image = Image::from_postcard_bytes(&image);
+    SKIA.get().unwrap().encode_loaded_image_to_png(&image)
 }
 
 #[macro_export]
