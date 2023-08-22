@@ -149,21 +149,20 @@ impl<'a> RenderCtx {
         self.return_internal()
     }
 
-    pub fn ghost_render_with_ctx<Func: FnOnce(&mut ComposeCtx)>(
-        &self,
-        content: Func,
-    ) -> RenderingTree {
-        todo!()
+    pub fn ghost_compose(&self, compose: impl FnOnce(&mut ComposeCtx)) -> RenderingTree {
+        self.disable_event_handling();
+        let rendering_tree = self.compose_inner(compose);
+        self.enable_event_handling();
+        rendering_tree
     }
+
     pub(crate) fn add(&'a self, key: KeyVec, component: impl Component) {
         let rendering_tree = self.render_children(key, component);
         self.children.lock().unwrap().push(rendering_tree);
     }
+
     pub(crate) fn inverse_matrix(&self) -> Matrix3x3 {
         self.matrix.lock().unwrap().inverse().unwrap()
-    }
-    pub(crate) fn local_xy(&self, xy: Xy<Px>) -> Xy<Px> {
-        self.inverse_matrix().transform_xy(xy)
     }
 
     fn disable_event_handling(&self) {
@@ -196,9 +195,7 @@ impl<'a> RenderCtx {
 
         ret
     }
-}
 
-impl RenderCtx {
     pub fn component(&self, component: impl Component) -> &Self {
         self.add(
             KeyVec::new_child(self.get_next_component_index()),
@@ -207,6 +204,12 @@ impl RenderCtx {
         self
     }
     pub fn compose(&self, compose: impl FnOnce(&mut ComposeCtx)) -> &Self {
+        let rendering_tree = self.compose_inner(compose);
+        self.children.lock().unwrap().push(rendering_tree);
+
+        self
+    }
+    fn compose_inner(&self, compose: impl FnOnce(&mut ComposeCtx)) -> RenderingTree {
         let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
         {
             let mut compose_ctx = ComposeCtx::new(
@@ -220,9 +223,7 @@ impl RenderCtx {
             compose(&mut compose_ctx);
         }
         let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
-        self.children.lock().unwrap().push(rendering_tree);
-
-        self
+        rendering_tree
     }
 }
 
