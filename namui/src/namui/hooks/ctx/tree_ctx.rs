@@ -14,6 +14,8 @@ pub(crate) struct TreeContext {
     pub(crate) is_stop_event_propagation: Arc<AtomicBool>,
     #[derivative(Debug = "ignore")]
     call_root_render: Arc<dyn Fn(HashSet<SigId>) -> RenderingTree>,
+    #[derivative(Debug = "ignore")]
+    clear_unrendered_components: Arc<dyn Fn()>,
 }
 
 unsafe impl Send for TreeContext {}
@@ -27,14 +29,18 @@ impl TreeContext {
         let mut ctx = Self {
             channel_events: Default::default(),
             raw_event: Default::default(),
+            is_stop_event_propagation: Default::default(),
             call_root_render: Arc::new(|_| {
                 unreachable!();
             }),
-            is_stop_event_propagation: Default::default(),
+            clear_unrendered_components: Arc::new(|| {
+                unreachable!();
+            }),
         };
 
         ctx.call_root_render = Arc::new({
             let ctx = ctx.clone();
+            let root_instance = root_instance.clone();
             move |updated_sigs| {
                 ctx.render(
                     root_component(),
@@ -42,6 +48,12 @@ impl TreeContext {
                     updated_sigs,
                     Matrix3x3::identity(),
                 )
+            }
+        });
+        ctx.clear_unrendered_components = Arc::new({
+            let root_instance = root_instance.clone();
+            move || {
+                root_instance.clear_unrendered_chidlren();
             }
         });
 
@@ -71,6 +83,8 @@ impl TreeContext {
 
         let rendering_tree = (self.call_root_render)(updated_sigs);
         crate::system::drawer::request_draw_rendering_tree(rendering_tree);
+
+        (self.clear_unrendered_components)();
     }
 
     pub(crate) fn render(

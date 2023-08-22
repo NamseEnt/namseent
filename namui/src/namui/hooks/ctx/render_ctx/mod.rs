@@ -50,6 +50,7 @@ impl<'a> RenderCtx {
         matrix: Matrix3x3,
         raw_event: RawEventContainer,
     ) -> Self {
+        instance.before_render();
         Self {
             instance,
             state_index: Default::default(),

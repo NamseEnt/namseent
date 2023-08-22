@@ -69,7 +69,7 @@ impl Component for TextInput<'_> {
         ctx.effect("Set WebEvent first call", || {
             MOUSE_DOWN_FIRST_CALL
                 .get_or_init(Default::default)
-                .store(true, Ordering::Relaxed)
+                .store(true, Ordering::Relaxed);
         });
         let paint = get_text_paint(self.style.text.color);
 
@@ -79,7 +79,15 @@ impl Component for TextInput<'_> {
             self.text_param().max_width,
         );
 
-        // TODO: blur on unmount if focused
+        ctx.effect("Blur on umount if focused", || {
+            return move || {
+                set_atom.mutate(move |atom| {
+                    if atom.is_focused(id) {
+                        *atom = Default::default();
+                    }
+                })
+            };
+        });
 
         let get_one_click_selection = |paragraph: &Paragraph,
                                        click_local_xy: Xy<Px>,
