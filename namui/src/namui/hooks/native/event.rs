@@ -1,5 +1,6 @@
 use super::*;
 use crate::*;
+use web_sys::DataTransfer;
 
 pub(crate) fn attach_event<'a, C: 'a + Component>(
     component: C,
@@ -161,7 +162,14 @@ pub(crate) fn invoke_on_event(
                 is_composing,
             });
         }
-        RawEvent::FileDrop { data_transfer, xy } => todo!(),
+        &RawEvent::FileDrop {
+            ref data_transfer,
+            xy,
+        } => {
+            on_event(Event::DragAndDrop {
+                event: get_file_drop_event(inverse_matrix, &rendering_tree, data_transfer, xy),
+            });
+        }
     }
 }
 
@@ -180,6 +188,34 @@ fn get_mouse_event<'a>(
         pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
         button: raw_mouse_event.button,
         event_type: mouse_event_type,
+        is_stop_propagation: Default::default(), // TODO
+    }
+}
+
+fn get_file_drop_event<'a>(
+    inverse_matrix: Matrix3x3,
+    rendering_tree: &'a RenderingTree,
+    data_transfer: &Option<DataTransfer>,
+    global_xy: Xy<Px>,
+) -> FileDropEvent<'a> {
+    let files = data_transfer.as_ref().map_or(vec![], |data_transfer| {
+        let items = data_transfer.items();
+        let mut files = Vec::with_capacity(items.length() as usize);
+        for index in 0..items.length() {
+            let web_file = items.get(index).unwrap().get_as_file().unwrap().unwrap();
+            let file = File::new(web_file);
+            files.push(file);
+        }
+        files
+    });
+
+    FileDropEvent {
+        is_local_xy_in: Box::new(move || {
+            rendering_tree.xy_in(inverse_matrix.transform_xy(global_xy))
+        }),
+        local_xy: Box::new(move || inverse_matrix.transform_xy(global_xy)),
+        global_xy,
+        files,
         is_stop_propagation: Default::default(), // TODO
     }
 }

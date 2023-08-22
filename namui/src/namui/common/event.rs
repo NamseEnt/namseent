@@ -69,9 +69,7 @@ pub enum Event<'a> {
         event: WheelEvent,
     },
     DragAndDrop {
-        data_transfer: Option<web_sys::DataTransfer>,
-        x: usize,
-        y: usize,
+        event: FileDropEvent<'a>,
     },
     KeyDown {
         event: KeyboardEvent,
@@ -187,13 +185,32 @@ pub struct KeyboardEvent {
     pub code: Code,
     pub pressing_codes: HashSet<Code>,
 }
-pub struct FileDropEvent {
-    pub local_xy: Xy<Px>,
+
+pub struct FileDropEvent<'a> {
+    pub(crate) is_local_xy_in: Box<dyn 'a + Fn() -> bool>,
+    pub local_xy: Box<dyn 'a + Fn() -> Xy<Px>>,
     pub global_xy: Xy<Px>,
     pub files: Vec<File>,
     pub(crate) is_stop_propagation: Arc<AtomicBool>,
 }
-impl FileDropEvent {
+impl Debug for FileDropEvent<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FileDropEvent")
+            // .field("is_local_xy_in", &self.is_local_xy_in)
+            // .field("local_xy", &self.local_xy)
+            .field("global_xy", &self.global_xy)
+            .field("files", &self.files)
+            .field("is_stop_propagation", &self.is_stop_propagation)
+            .finish()
+    }
+}
+impl FileDropEvent<'_> {
+    pub fn local_xy(&self) -> Xy<Px> {
+        (self.local_xy)()
+    }
+    pub fn is_local_xy_in(&self) -> bool {
+        (self.is_local_xy_in)()
+    }
     pub fn stop_propagation(&self) {
         self.is_stop_propagation
             .store(true, std::sync::atomic::Ordering::Relaxed);

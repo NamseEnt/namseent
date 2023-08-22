@@ -1,7 +1,10 @@
 use super::*;
 use crate::{
     color,
-    pages::sequence_edit_page::{atom::SEQUENCE_ATOM, components::image_upload::create_image},
+    pages::sequence_edit_page::{
+        atom::{UpdateCgFile, CG_FILES_ATOM, SEQUENCE_ATOM},
+        components::{cg_upload::create_cg, image_upload::create_image},
+    },
 };
 use namui_prebuilt::*;
 use rpc::data::{CutUpdateAction, ScreenCg, ScreenGraphic, ScreenImage};
@@ -98,25 +101,31 @@ impl Component for BackgroundWithEvent<'_> {
                                 };
                             }
                         }
+                        namui::Event::DragAndDrop { event } => {
+                            if event.is_local_xy_in() {
+                                for file in event.files {
+                                    spawn_local(async move {
+                                        let content = file.content().await;
+                                        match file.name().ends_with(".psd") {
+                                            true => {
+                                                let psd_bytes = content.into();
+                                                let psd_name = file
+                                                    .name()
+                                                    .trim_end_matches(".psd")
+                                                    .to_string();
+                                                add_new_cg(project_id, cut_id, psd_name, psd_bytes);
+                                            }
+                                            false => {
+                                                let png_bytes = content.into();
+                                                add_new_image(project_id, cut_id, png_bytes);
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
                         _ => {}
                     };
-                    // .on_file_drop(move |event: FileDropEvent| {
-                    //     let file = event.files[0].clone();
-                    //     spawn_local(async move {
-                    //         let content = file.content().await;
-                    //         match file.name().ends_with(".psd") {
-                    //             true => on_event(Event::AddNewCg {
-                    //                 psd_bytes: content.into(),
-                    //                 psd_name: file.name().trim_end_matches(".psd").to_string(),
-                    //                 cut_id,
-                    //             }),
-                    //             false => on_event(Event::AddNewImage {
-                    //                 png_bytes: content.into(),
-                    //                 cut_id,
-                    //             }),
-                    //         }
-                    //     });
-                    // })
                 },
             ),
         );
@@ -139,13 +148,49 @@ fn add_new_image(project_id: Uuid, cut_id: Uuid, png_bytes: Vec<u8>) {
                     )
                 });
             }
-            Err(error) => {
+            Err(_error) => {
                 // namui::event::send(InternalEvent::Error(format!(
                 //     "create_image {}",
                 //     error.to_string()
                 // )));
             }
         };
+    });
+}
+
+fn add_new_cg(project_id: Uuid, cut_id: Uuid, psd_name: String, psd_bytes: Vec<u8>) {
+    spawn_local(async move {
+        match create_cg(project_id, psd_name, psd_bytes).await {
+            Ok(cg_file) => {
+                CG_FILES_ATOM.mutate({
+                    let cg_file = cg_file.clone();
+                    move |cg_files| {
+                        cg_files.update_file(cg_file);
+                    }
+                });
+
+                let graphic_index = uuid();
+
+                SEQUENCE_ATOM.mutate({
+                    let screen_cg = ScreenCg::new(&cg_file);
+                    move |sequence| {
+                        sequence.update_cut(
+                            cut_id,
+                            CutUpdateAction::PushScreenGraphic {
+                                graphic_index,
+                                screen_graphic: ScreenGraphic::Cg(screen_cg),
+                            },
+                        )
+                    }
+                });
+            }
+            Err(_error) => {
+                //     namui::event::send(InternalEvent::Error(format!(
+                //         "create_cg {}",
+                //         error.to_string()
+                //     )));
+            }
+        }
     });
 }
 
