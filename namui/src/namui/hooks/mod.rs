@@ -8,6 +8,7 @@ mod sig;
 mod tree;
 mod value;
 
+use crate::RawEvent;
 pub(crate) use channel::*;
 pub use component::*;
 pub use hooks_macro::*;
@@ -59,5 +60,4 @@ macro_rules! callback {
     };
 }
 
-use crate::RawEvent;
 pub use callback;

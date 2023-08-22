@@ -103,25 +103,31 @@ pub(super) async fn init() -> InitResult {
                 }
 
                 crate::hooks::on_raw_event(RawEvent::TextInputKeyDown {
-                    code,
-                    text: target.value(),
-                    selection_direction: {
-                        let js_selection_direction = target.selection_direction().unwrap();
-                        if let Some(js_selection_direction) = js_selection_direction {
-                            if js_selection_direction == "forward" {
-                                SelectionDirection::Forward
-                            } else if js_selection_direction == "backward" {
-                                SelectionDirection::Backward
+                    event: RawTextinputKeyDownEvent {
+                        code,
+                        text: target.value(),
+                        selection_direction: {
+                            let js_selection_direction = target.selection_direction().unwrap();
+                            if let Some(js_selection_direction) = js_selection_direction {
+                                if js_selection_direction == "forward" {
+                                    SelectionDirection::Forward
+                                } else if js_selection_direction == "backward" {
+                                    SelectionDirection::Backward
+                                } else {
+                                    SelectionDirection::None
+                                }
                             } else {
                                 SelectionDirection::None
                             }
-                        } else {
-                            SelectionDirection::None
-                        }
+                        },
+                        selection_start: target.selection_start().unwrap().unwrap_or_default()
+                            as usize,
+                        selection_end: target.selection_end().unwrap().unwrap_or_default() as usize,
+                        is_composing: event.is_composing(),
+                        prevent_default: Box::new(move || {
+                            event.prevent_default();
+                        }),
                     },
-                    selection_start: target.selection_start().unwrap().unwrap_or_default() as usize,
-                    selection_end: target.selection_end().unwrap().unwrap_or_default() as usize,
-                    is_composing: event.is_composing(),
                 })
             }) as Box<dyn FnMut(_)>)
             .into_js_value()

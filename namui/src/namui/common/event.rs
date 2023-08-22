@@ -1,4 +1,5 @@
 use super::*;
+use derivative::Derivative;
 use std::fmt::Debug;
 
 #[derive(Debug)]
@@ -45,16 +46,12 @@ pub enum RawEvent {
         selection_end: usize,
     },
     TextInputKeyDown {
-        code: Code,
-        text: String,
-        selection_direction: SelectionDirection,
-        selection_start: usize,
-        selection_end: usize,
-        is_composing: bool,
+        event: RawTextinputKeyDownEvent,
     },
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub enum Event<'a> {
     MouseDown {
         event: MouseEvent<'a>,
@@ -95,13 +92,41 @@ pub enum Event<'a> {
         selection_end: usize,
     },
     TextInputKeyDown {
-        code: Code,
-        text: String,
-        selection_direction: SelectionDirection,
-        selection_start: usize,
-        selection_end: usize,
-        is_composing: bool,
+        event: TextinputKeyDownEvent<'a>,
     },
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+
+pub struct RawTextinputKeyDownEvent {
+    pub code: Code,
+    pub text: String,
+    pub selection_direction: SelectionDirection,
+    pub selection_start: usize,
+    pub selection_end: usize,
+    pub is_composing: bool,
+    #[derivative(Debug = "ignore")]
+    pub(crate) prevent_default: Box<dyn Fn()>,
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+
+pub struct TextinputKeyDownEvent<'a> {
+    pub code: Code,
+    pub text: &'a str,
+    pub selection_direction: SelectionDirection,
+    pub selection_start: usize,
+    pub selection_end: usize,
+    pub is_composing: bool,
+    #[derivative(Debug = "ignore")]
+    pub(crate) prevent_default: &'a Box<dyn Fn()>,
+}
+impl TextinputKeyDownEvent<'_> {
+    pub fn prevent_default(&self) {
+        (self.prevent_default)();
+    }
 }
 
 #[derive(Debug)]

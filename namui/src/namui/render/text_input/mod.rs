@@ -67,7 +67,6 @@ impl Component for TextInput<'_> {
         });
 
         let is_focused = ctx.memo(|| atom.is_focused(id));
-        let prevent_default_codes = ctx.track_eq(&self.prevent_default_codes);
 
         static MOUSE_DOWN_FIRST_CALL: OnceLock<AtomicBool> = OnceLock::new();
 
@@ -222,158 +221,135 @@ impl Component for TextInput<'_> {
                     ..self.style.rect
                 },
             })
-            .attach_event(|event| {
-                match event {
-                    crate::Event::MouseDown { event } => {
-                        if !event.is_local_xy_in() {
-                            return;
-                        }
-
-                        let id = id.clone();
-                        set_atom.mutate(move |atom| {
-                            atom.focused_id = Some(id);
-                            atom.mouse_dragging = true;
-                        });
-
-                        update_focus_with_mouse_movement(event.local_xy(), false);
+            .attach_event(|event| match event {
+                crate::Event::MouseDown { event } => {
+                    if !event.is_local_xy_in() {
+                        return;
                     }
-                    crate::Event::MouseUp { .. } => {
-                        if *is_focused && atom.mouse_dragging {
-                            set_atom.mutate(|x| x.mouse_dragging = false);
-                        }
+
+                    let id = id.clone();
+                    set_atom.mutate(move |atom| {
+                        atom.focused_id = Some(id);
+                        atom.mouse_dragging = true;
+                    });
+
+                    update_focus_with_mouse_movement(event.local_xy(), false);
+                }
+                crate::Event::MouseUp { .. } => {
+                    if *is_focused && atom.mouse_dragging {
+                        set_atom.mutate(|x| x.mouse_dragging = false);
                     }
-                    crate::Event::MouseMove { event } => {
-                        if *is_focused && atom.mouse_dragging {
-                            update_focus_with_mouse_movement(event.local_xy(), true);
-                        }
+                }
+                crate::Event::MouseMove { event } => {
+                    if *is_focused && atom.mouse_dragging {
+                        update_focus_with_mouse_movement(event.local_xy(), true);
                     }
-                    crate::Event::SelectionChange {
-                        selection_direction,
-                        selection_start,
-                        selection_end,
-                        ref text,
-                    } => {
-                        if !*is_focused {
-                            return;
-                        };
+                }
+                crate::Event::SelectionChange {
+                    selection_direction,
+                    selection_start,
+                    selection_end,
+                    ref text,
+                } => {
+                    if !*is_focused {
+                        return;
+                    };
 
-                        update_selection(selection_direction, selection_start, selection_end, text);
+                    update_selection(selection_direction, selection_start, selection_end, text);
+                }
+                crate::Event::TextInputTextUpdated {
+                    ref text,
+                    selection_direction,
+                    selection_start,
+                    selection_end,
+                } => {
+                    if !*is_focused {
+                        return;
                     }
-                    crate::Event::TextInputTextUpdated {
-                        ref text,
-                        selection_direction,
-                        selection_start,
-                        selection_end,
-                    } => {
-                        if !*is_focused {
-                            return;
-                        }
 
-                        update_selection(selection_direction, selection_start, selection_end, text);
+                    update_selection(selection_direction, selection_start, selection_end, text);
 
-                        (self.on_event)(Event::TextUpdated {
-                            text: text.as_str(),
-                        });
+                    (self.on_event)(Event::TextUpdated {
+                        text: text.as_str(),
+                    });
+                }
+                crate::Event::TextInputKeyDown { event } => {
+                    if !*is_focused {
+                        return;
                     }
-                    crate::Event::TextInputKeyDown {
-                        code,
-                        ref text,
-                        selection_direction,
-                        selection_start,
-                        selection_end,
-                        is_composing,
-                    } => {
-                        if !*is_focused {
-                            return;
-                        }
 
-                        (self.on_event)(Event::KeyDown { code });
+                    (self.on_event)(Event::KeyDown { code: event.code });
 
-                        // self.event_handler.as_ref().map(|event_handler| {
-                        //     event_handler.on_key_down.as_ref().map(|on_key_down| {
-                        //         let is_prevented_default = Arc::new(AtomicBool::new(false));
+                    if self.prevent_default_codes.contains(&event.code) {
+                        event.prevent_default();
+                    }
 
-                        //         let key_down_event = KeyDownEvent {
-                        //             code,
-                        //             is_prevented_default: is_prevented_default.clone(),
-                        //             is_composing,
-                        //         };
-                        //         on_key_down.invoke(key_down_event);
-
-                        //         if is_prevented_default.load(Ordering::Relaxed) {
-                        //             todo!()
-                        //             // event.prevent_default();
-                        //         }
-                        //     })
-                        // });
-
-                        let get_selection_on_keyboard_down = |key: CaretKey| -> Selection {
-                            let selection = get_input_element_selection(
-                                selection_direction,
-                                selection_start,
-                                selection_end,
-                                &text,
-                            );
-                            let Selection::Range(range) = selection else {
+                    let get_selection_on_keyboard_down = |key: CaretKey| -> Selection {
+                        let selection = get_input_element_selection(
+                            event.selection_direction,
+                            event.selection_start,
+                            event.selection_end,
+                            &event.text,
+                        );
+                        let Selection::Range(range) = selection else {
                                 return Selection::None;
                             };
 
-                            let next_selection_end =
-                                get_caret_index_after_apply_key_movement(key, &paragraph, &range);
+                        let next_selection_end =
+                            get_caret_index_after_apply_key_movement(key, &paragraph, &range);
 
-                            let is_shift_key_pressed = crate::keyboard::any_code_press([
-                                crate::Code::ShiftLeft,
-                                crate::Code::ShiftRight,
-                            ]);
-                            let is_dragging = is_shift_key_pressed;
+                        let is_shift_key_pressed = crate::keyboard::any_code_press([
+                            crate::Code::ShiftLeft,
+                            crate::Code::ShiftRight,
+                        ]);
+                        let is_dragging = is_shift_key_pressed;
 
-                            return match is_dragging {
-                                true => Selection::Range(range.start..next_selection_end),
-                                false => Selection::Range(next_selection_end..next_selection_end),
-                            };
-
-                            fn get_caret_index_after_apply_key_movement(
-                                key: CaretKey,
-                                paragraph: &Paragraph,
-                                selection: &Range<usize>,
-                            ) -> usize {
-                                let caret = paragraph.caret(selection.end);
-
-                                let caret_after_move = caret.get_caret_on_key(key);
-
-                                let next_selection_end = caret_after_move.to_selection_index();
-                                next_selection_end
-                            }
+                        return match is_dragging {
+                            true => Selection::Range(range.start..next_selection_end),
+                            false => Selection::Range(next_selection_end..next_selection_end),
                         };
 
-                        let caret_key = match code {
-                            Code::ArrowUp => CaretKey::ArrowUp,
-                            Code::ArrowDown => CaretKey::ArrowDown,
-                            Code::Home => CaretKey::Home,
-                            Code::End => CaretKey::End,
-                            _ => return,
-                        };
+                        fn get_caret_index_after_apply_key_movement(
+                            key: CaretKey,
+                            paragraph: &Paragraph,
+                            selection: &Range<usize>,
+                        ) -> usize {
+                            let caret = paragraph.caret(selection.end);
 
-                        let selection = get_selection_on_keyboard_down(caret_key);
+                            let caret_after_move = caret.get_caret_on_key(key);
 
-                        let Some(utf16_selection) = selection.as_utf16(&text) else {
+                            let next_selection_end = caret_after_move.to_selection_index();
+                            next_selection_end
+                        }
+                    };
+
+                    let caret_key = match event.code {
+                        Code::ArrowUp => CaretKey::ArrowUp,
+                        Code::ArrowDown => CaretKey::ArrowDown,
+                        Code::Home => CaretKey::Home,
+                        Code::End => CaretKey::End,
+                        _ => return,
+                    };
+
+                    let selection = get_selection_on_keyboard_down(caret_key);
+
+                    let Some(utf16_selection) = selection.as_utf16(&event.text) else {
                             return;
                         };
 
-                        let selection_direction = if utf16_selection.start <= utf16_selection.end {
-                            SelectionDirection::Forward
-                        } else {
-                            SelectionDirection::Backward
-                        };
+                    let selection_direction = if utf16_selection.start <= utf16_selection.end {
+                        SelectionDirection::Forward
+                    } else {
+                        SelectionDirection::Backward
+                    };
 
-                        crate::system::text_input::set_selection_range(
-                            utf16_selection.start,
-                            utf16_selection.end,
-                            selection_direction,
-                        );
-                    }
-                    _ => {}
+                    crate::system::text_input::set_selection_range(
+                        utf16_selection.start,
+                        utf16_selection.end,
+                        selection_direction,
+                    );
                 }
+                _ => {}
             }),
         );
 

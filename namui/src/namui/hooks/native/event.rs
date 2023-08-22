@@ -145,21 +145,17 @@ pub(crate) fn invoke_on_event(
                 selection_end,
             });
         }
-        &RawEvent::TextInputKeyDown {
-            code,
-            ref text,
-            selection_direction,
-            selection_start,
-            selection_end,
-            is_composing,
-        } => {
+        RawEvent::TextInputKeyDown { event } => {
             on_event(Event::TextInputKeyDown {
-                code,
-                text: text.clone(),
-                selection_direction,
-                selection_start,
-                selection_end,
-                is_composing,
+                event: TextinputKeyDownEvent {
+                    code: event.code,
+                    text: &event.text,
+                    selection_direction: event.selection_direction,
+                    selection_start: event.selection_start,
+                    selection_end: event.selection_end,
+                    is_composing: event.is_composing,
+                    prevent_default: &event.prevent_default,
+                },
             });
         }
         &RawEvent::FileDrop {
