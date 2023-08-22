@@ -16,8 +16,10 @@ impl<T: Debug + Send + Sync + 'static> Atom<T> {
             value_index: OnceLock::new(),
         }
     }
-    pub fn init(&self, init: T) {
-        self.value_index.set(self.initing(|| init)()).unwrap();
+    pub fn init(&self, init: T) -> Result<()> {
+        self.value_index
+            .set(self.initing(|| init)())
+            .map_err(|_| anyhow!("Atom is already initialized"))
     }
     pub fn get_or_init(&self, init: impl FnOnce() -> T) -> &T {
         let value_index = self

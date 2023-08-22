@@ -1,3 +1,4 @@
+use super::*;
 use crate::*;
 
 #[derive(Clone, Copy, Debug)]
@@ -7,16 +8,28 @@ pub struct TextInputInstance {
 
 impl TextInputInstance {
     pub fn new(ctx: &RenderCtx) -> Self {
+        TEXT_INPUT_ATOM.get_or_init(Default::default);
         let id = ctx.memo(|| uuid());
 
         TextInputInstance { id: *id }
     }
 
     pub fn focus(&self) {
-        todo!()
+        let id = self.id;
+        TEXT_INPUT_ATOM.mutate(move |text_input| {
+            *text_input = TextInputCtx {
+                focused_id: Some(id),
+                ..Default::default()
+            };
+        });
     }
 
     pub fn blur(&self) {
-        todo!()
+        let id = self.id;
+        TEXT_INPUT_ATOM.mutate(move |text_input| {
+            if text_input.focused_id == Some(id) {
+                *text_input = Default::default();
+            }
+        });
     }
 }

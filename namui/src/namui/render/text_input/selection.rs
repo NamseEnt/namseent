@@ -8,6 +8,12 @@ pub enum Selection {
     Range(Range<usize>),
 }
 
+impl Default for Selection {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
 impl Selection {
     /// utf-16 code units.
     pub(crate) fn as_utf16(&self, text: impl AsRef<str>) -> Option<Range<usize>> {

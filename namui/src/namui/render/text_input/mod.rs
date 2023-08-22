@@ -36,7 +36,7 @@ pub enum Event<'a> {
     KeyDown { code: Code },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct TextInputCtx {
     pub focused_id: Option<Uuid>,
     pub mouse_dragging: bool,
@@ -60,11 +60,7 @@ impl TextInputCtx {
 impl Component for TextInput<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let id = self.instance.id;
-        let (atom, set_atom) = ctx.atom_init(&TEXT_INPUT_ATOM, || TextInputCtx {
-            focused_id: None,
-            mouse_dragging: false,
-            selection: Selection::None,
-        });
+        let (atom, set_atom) = ctx.atom_init(&TEXT_INPUT_ATOM, Default::default);
 
         let is_focused = ctx.memo(|| atom.is_focused(id));
 
@@ -82,28 +78,6 @@ impl Component for TextInput<'_> {
             system::font::group_glyph(&self.font, &paint),
             self.text_param().max_width,
         );
-
-        // TODO
-        // ctx.effect("Update prevent default codes", || {
-        //     if !*is_focused {
-        //         return;
-        //     }
-        //     if prevent_default_codes.on_effect() {
-        //         web::execute_function(
-        //             "
-        //             globalThis.textAreaKeydownPreventDefaultCodes = preventDefaultcodes;
-        //             ",
-        //         )
-        //         .arg(
-        //             "preventDefaultcodes",
-        //             prevent_default_codes
-        //                 .iter()
-        //                 .map(ToString::to_string)
-        //                 .collect::<Vec<_>>(),
-        //         )
-        //         .run::<()>();
-        //     }
-        // });
 
         // TODO: blur on unmount if focused
 
