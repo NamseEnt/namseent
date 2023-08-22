@@ -51,7 +51,7 @@ pub enum Event<'a> {
     },
 }
 
-trait EventExt {
+pub trait EventExt {
     fn stop_propagation(&self) {}
 }
 
@@ -113,18 +113,11 @@ pub enum MouseEventType {
 }
 #[derive(Debug)]
 pub struct WheelEvent {
-    pub(crate) is_stop_propagation: Arc<AtomicBool>,
     /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
     pub delta_xy: Xy<f32>,
     pub mouse_local_xy: Xy<Px>,
 }
 impl EventExt for WheelEvent {}
-impl WheelEvent {
-    pub fn stop_propagation(&self) {
-        self.is_stop_propagation
-            .store(true, std::sync::atomic::Ordering::Relaxed);
-    }
-}
 
 #[derive(Derivative)]
 #[derivative(Debug)]

@@ -84,7 +84,6 @@ pub(crate) fn invoke_on_event(
                 event: WheelEvent {
                     delta_xy: event.delta_xy,
                     mouse_local_xy: inverse_matrix.transform_xy(event.mouse_xy),
-                    is_stop_propagation: Default::default(), // TODO
                 },
             });
         }
