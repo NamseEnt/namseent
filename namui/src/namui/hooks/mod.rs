@@ -1,10 +1,11 @@
 pub(crate) mod channel;
 mod component;
 mod ctx;
+mod event;
 mod instance;
 mod key;
+mod macros;
 mod native;
-mod render;
 mod sig;
 mod value;
 
@@ -12,15 +13,15 @@ use crate::RawEvent;
 pub(crate) use channel::*;
 pub use component::*;
 pub use ctx::*;
+pub(crate) use event::*;
 pub use hooks_macro::*;
 pub(crate) use instance::*;
 use key::*;
+pub use macros::*;
 pub use native::*;
-pub use render::*;
-pub use render::*;
 pub use sig::*;
 use std::{
-    any::{Any, TypeId},
+    any::TypeId,
     fmt::Debug,
     sync::{atomic::AtomicUsize, Arc, Mutex, OnceLock},
 };
@@ -41,19 +42,6 @@ pub(crate) fn render_and_draw() {
     TREE_CTX.get().map(|ctx| ctx.render_and_draw());
 }
 
-pub fn boxed<'a, T: 'a>(value: T) -> Box<T> {
-    Box::new(value)
+pub(crate) fn stop_event_propagation() {
+    TREE_CTX.get().map(|ctx| ctx.stop_event_propagation());
 }
-
-/// callback!('a, A)
-#[macro_export]
-macro_rules! callback {
-    ($lifetime: lifetime, $param: ty) => {
-        Box<dyn $lifetime + FnOnce($param)>
-    };
-    ($lifetime: lifetime) => {
-        Box<dyn $lifetime + FnOnce()>
-    };
-}
-
-pub use callback;

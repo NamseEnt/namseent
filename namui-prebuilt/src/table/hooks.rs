@@ -264,7 +264,6 @@ fn slice_internal<'a, Item: ToKeyCell<'a>>(
                     );
                 }
                 render_fn(direction, xywh.wh(), &mut ctx);
-                ctx.debug();
             });
 
             advanced_pixel_size += pixel_size;

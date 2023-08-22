@@ -12,10 +12,7 @@ pub use event::*;
 pub use file::*;
 pub use open_external::*;
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashSet,
-    sync::{atomic::AtomicBool, Arc},
-};
+use std::collections::HashSet;
 
 pub fn render(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> RenderingTree {
     let vec: Vec<_> = rendering_trees.into_iter().collect();

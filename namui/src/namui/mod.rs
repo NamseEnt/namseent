@@ -60,3 +60,7 @@ macro_rules! log {
 pub fn now() -> Time {
     system::time::now()
 }
+
+pub fn boxed<'a, T: 'a>(value: T) -> Box<T> {
+    Box::new(value)
+}

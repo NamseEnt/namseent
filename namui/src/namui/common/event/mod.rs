@@ -52,7 +52,9 @@ pub enum Event<'a> {
 }
 
 pub trait EventExt {
-    fn stop_propagation(&self) {}
+    fn stop_propagation(&self) {
+        crate::hooks::stop_event_propagation();
+    }
 }
 
 #[derive(Derivative)]

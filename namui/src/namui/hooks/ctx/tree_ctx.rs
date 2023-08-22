@@ -1,29 +1,23 @@
 use super::*;
 use crate::*;
+use derivative::Derivative;
 use std::{
     collections::HashSet,
-    fmt::Debug,
-    sync::{Arc, Mutex},
+    sync::{atomic::AtomicBool, Arc, Mutex},
 };
 
-#[derive(Clone)]
+#[derive(Derivative, Clone)]
+#[derivative(Debug)]
 pub(crate) struct TreeContext {
     pub(crate) channel_events: Arc<Mutex<Vec<Item>>>,
     pub(crate) raw_event: Arc<Mutex<Option<Arc<RawEvent>>>>,
+    pub(crate) is_stop_event_propagation: Arc<AtomicBool>,
+    #[derivative(Debug = "ignore")]
     call_root_render: Arc<dyn Fn(HashSet<SigId>) -> RenderingTree>,
 }
 
 unsafe impl Send for TreeContext {}
 unsafe impl Sync for TreeContext {}
-
-impl Debug for TreeContext {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("TreeContext")
-            .field("channel_events", &self.channel_events)
-            .field("raw_event", &self.raw_event)
-            .finish()
-    }
-}
 
 impl TreeContext {
     pub(crate) fn new<C: Component>(
@@ -36,6 +30,7 @@ impl TreeContext {
             call_root_render: Arc::new(|_| {
                 unreachable!();
             }),
+            is_stop_event_propagation: Default::default(),
         };
 
         ctx.call_root_render = Arc::new({
@@ -64,6 +59,9 @@ impl TreeContext {
     }
 
     pub(crate) fn render_and_draw(&self) {
+        self.is_stop_event_propagation
+            .store(false, std::sync::atomic::Ordering::Relaxed);
+
         let mut channel_events = channel::drain();
 
         let mut updated_sigs = Default::default();
@@ -101,6 +99,11 @@ impl TreeContext {
             matrix,
             self.raw_event.clone(),
         )
+    }
+
+    pub(crate) fn stop_event_propagation(&self) {
+        self.is_stop_event_propagation
+            .store(true, std::sync::atomic::Ordering::Relaxed);
     }
 }
 

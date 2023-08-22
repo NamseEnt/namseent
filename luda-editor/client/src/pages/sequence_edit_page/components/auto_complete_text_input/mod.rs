@@ -23,10 +23,10 @@ pub enum Request {
     Blur,
 }
 
-pub enum Event {
+pub enum Event<'a> {
     TextChange { text: String },
     EditDone,
-    KeyDown { event: KeyboardEvent },
+    KeyDown { event: KeyboardEvent<'a> },
     ReqQueuePopFront,
 }
 

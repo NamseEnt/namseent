@@ -1,5 +1,5 @@
 use super::*;
-use std::sync::OnceLock;
+use std::{any::Any, sync::OnceLock};
 
 #[derive(Debug)]
 pub struct Atom<T: Debug + Send + Sync + 'static> {
