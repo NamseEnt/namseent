@@ -11,7 +11,7 @@ mod value;
 use crate::RawEvent;
 pub(crate) use channel::*;
 pub use component::*;
-pub(crate) use ctx::*;
+pub use ctx::*;
 pub use hooks_macro::*;
 pub(crate) use instance::*;
 use key::*;

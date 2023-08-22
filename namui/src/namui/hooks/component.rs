@@ -29,30 +29,12 @@ pub enum StaticTypeId {
     Tuple(Vec<StaticTypeId>),
 }
 pub trait StaticType {
-    // fn static_type_id(&self) -> StaticTypeId;
-    /// This would be not 'static
     fn static_type_name(&self) -> &'static str {
         std::any::type_name::<Self>()
     }
 }
 
-// impl<T: Component> StaticType for &T {
-//     // fn static_type_id(&self) -> StaticTypeId {
-//     //     (*self).static_type_id()
-//     // }
-// }
-
-// impl<T: Component> Component for &T {
-//     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-//         (*self).render(ctx)
-//     }
-// }
-
-impl StaticType for RenderingTree {
-    // fn static_type_id(&self) -> StaticTypeId {
-    //     StaticTypeId::Single(TypeId::of::<RenderingTree>())
-    // }
-}
+impl StaticType for RenderingTree {}
 
 impl Component for RenderingTree {
     fn render<'a>(self, _ctx: &'a RenderCtx) -> RenderDone {
@@ -62,58 +44,7 @@ impl Component for RenderingTree {
     }
 }
 
-// impl StaticType for &dyn Component {
-//     // fn static_type_id(&self) -> StaticTypeId {
-//     //     (*self).static_type_id()
-//     // }
-// }
-
-// impl Component for &dyn Component {
-//     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-//         (*self).render(ctx)
-//     }
-// }
-
-// impl<'a> StaticType for Arc<dyn 'a + Component> {
-//     // fn static_type_id(&self) -> StaticTypeId {
-//     //     self.as_ref().static_type_id()
-//     // }
-// }
-
-// impl<'b> Component for Arc<dyn 'b + Component> {
-//     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-//         self.as_ref().render(ctx)
-//     }
-// }
-
-// impl<'b> StaticType for Box<dyn 'b + Component> {}
-
-// impl<'b> Component for Box<dyn 'b + Component> {
-//     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-
-//     }
-// }
-
-// impl<T: StaticType> StaticType for Box<T> {
-//     // fn static_type_id(&self) -> StaticTypeId {
-//     //     self.as_ref().static_type_id()
-//     // }
-// }
-
-// impl<T: Component> Component for Box<T> {
-//     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-//         self.render(ctx)
-//         // if let Some(v) = self {
-//         //     v.render(ctx)
-//         // }
-//     }
-// }
-
-impl<T: StaticType> StaticType for Option<T> {
-    // fn static_type_id(&self) -> StaticTypeId {
-    //     self.as_ref().static_type_id()
-    // }
-}
+impl<T: StaticType> StaticType for Option<T> {}
 
 impl<T: Component> Component for Option<T> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
@@ -125,63 +56,6 @@ impl<T: Component> Component for Option<T> {
         .done()
     }
 }
-
-// pub struct RenderBox<'a> {
-//     render: Mutex<Option<Box<dyn 'a + FnOnce(&RenderCtx)>>>,
-// }
-// impl Debug for RenderBox<'_> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         f.debug_struct("RenderBox").finish()
-//     }
-// }
-// impl<'a> RenderBox<'a> {
-//     pub(crate) fn new(render: impl 'a + FnOnce(&RenderCtx)) -> Self {
-//         Self {
-//             render: Mutex::new(Some(Box::new(render))),
-//         }
-//     }
-// }
-
-// impl StaticType for RenderBox<'_> {
-//     // fn static_type_id(&self) -> StaticTypeId {
-//     //     self.as_ref().static_type_id()
-//     // }
-// }
-
-// impl Component for RenderBox<'_> {
-//     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-//         let mut render = self.render.lock().unwrap();
-//         let render = render.take().unwrap();
-//         render(ctx)
-//     }
-// }
-
-// TODO
-
-// impl<T: StaticType> StaticType for Option<T> {
-//     fn static_type_id(&self) -> StaticTypeId {
-//         StaticTypeId::Option(self.as_ref().map(|v| Box::new(v.static_type_id())))
-//     }
-// }
-// impl<T: Component> Component for Option<T> {
-//     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-//         if let Some(v) = self {
-//             v.render(ctx)
-//         } else {
-//             use_render_nothing()
-//         }
-//     }
-// }
-
-// impl<T: StaticType> StaticType for Vec<(String, T)> {}
-// impl<T: Component> Component for Vec<(String, T)> {
-//     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-//         for (k, v) in self {
-//             ctx.add(k.to_string(), v);
-//         }
-//         ctx.return_internal()
-//     }
-// }
 
 macro_rules! component_impl {
     (
