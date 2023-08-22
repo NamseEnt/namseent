@@ -180,7 +180,6 @@ fn get_mouse_event<'a>(
         pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
         button: raw_mouse_event.button,
         event_type: mouse_event_type,
-        is_stop_propagation: Default::default(), // TODO
         prevent_default: &raw_mouse_event.prevent_default,
     }
 }
@@ -209,6 +208,5 @@ fn get_file_drop_event<'a>(
         local_xy: Box::new(move || inverse_matrix.transform_xy(global_xy)),
         global_xy,
         files,
-        is_stop_propagation: Default::default(), // TODO
     }
 }

@@ -51,6 +51,10 @@ pub enum Event<'a> {
     },
 }
 
+trait EventExt {
+    fn stop_propagation(&self) {}
+}
+
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct TextinputKeyDownEvent<'a> {
@@ -63,6 +67,7 @@ pub struct TextinputKeyDownEvent<'a> {
     #[derivative(Debug = "ignore")]
     pub(crate) prevent_default: &'a Box<dyn Fn()>,
 }
+impl EventExt for TextinputKeyDownEvent<'_> {}
 impl TextinputKeyDownEvent<'_> {
     pub fn prevent_default(&self) {
         (self.prevent_default)();
@@ -85,15 +90,11 @@ pub struct MouseEvent<'a> {
     pub pressing_buttons: HashSet<MouseButton>,
     pub button: Option<MouseButton>,
     pub event_type: MouseEventType,
-    pub(crate) is_stop_propagation: Arc<AtomicBool>,
     #[derivative(Debug = "ignore")]
     pub(crate) prevent_default: &'a Box<dyn Fn()>,
 }
+impl EventExt for MouseEvent<'_> {}
 impl MouseEvent<'_> {
-    pub fn stop_propagation(&self) {
-        self.is_stop_propagation
-            .store(true, std::sync::atomic::Ordering::Relaxed);
-    }
     pub fn local_xy(&self) -> Xy<Px> {
         (self.local_xy)()
     }
@@ -112,11 +113,12 @@ pub enum MouseEventType {
 }
 #[derive(Debug)]
 pub struct WheelEvent {
+    pub(crate) is_stop_propagation: Arc<AtomicBool>,
     /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
     pub delta_xy: Xy<f32>,
     pub mouse_local_xy: Xy<Px>,
-    pub(crate) is_stop_propagation: Arc<AtomicBool>,
 }
+impl EventExt for WheelEvent {}
 impl WheelEvent {
     pub fn stop_propagation(&self) {
         self.is_stop_propagation
@@ -132,39 +134,29 @@ pub struct KeyboardEvent<'a> {
     #[derivative(Debug = "ignore")]
     pub(crate) prevent_default: &'a Box<dyn Fn()>,
 }
+impl EventExt for KeyboardEvent<'_> {}
 impl KeyboardEvent<'_> {
     pub fn prevent_default(&self) {
         (self.prevent_default)();
     }
 }
 
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct FileDropEvent<'a> {
+    #[derivative(Debug = "ignore")]
     pub(crate) is_local_xy_in: Box<dyn 'a + Fn() -> bool>,
+    #[derivative(Debug = "ignore")]
     pub local_xy: Box<dyn 'a + Fn() -> Xy<Px>>,
     pub global_xy: Xy<Px>,
     pub files: Vec<File>,
-    pub(crate) is_stop_propagation: Arc<AtomicBool>,
 }
-impl Debug for FileDropEvent<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("FileDropEvent")
-            // .field("is_local_xy_in", &self.is_local_xy_in)
-            // .field("local_xy", &self.local_xy)
-            .field("global_xy", &self.global_xy)
-            .field("files", &self.files)
-            .field("is_stop_propagation", &self.is_stop_propagation)
-            .finish()
-    }
-}
+impl EventExt for FileDropEvent<'_> {}
 impl FileDropEvent<'_> {
     pub fn local_xy(&self) -> Xy<Px> {
         (self.local_xy)()
     }
     pub fn is_local_xy_in(&self) -> bool {
         (self.is_local_xy_in)()
-    }
-    pub fn stop_propagation(&self) {
-        self.is_stop_propagation
-            .store(true, std::sync::atomic::Ordering::Relaxed);
     }
 }
