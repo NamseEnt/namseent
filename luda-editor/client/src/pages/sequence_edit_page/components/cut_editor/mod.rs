@@ -328,7 +328,16 @@ impl Component for CutEditor<'_> {
                 &ContextMenu::CutEditor { global_xy, cut_id } => {
                     ctx.add(
                         use_context_menu(global_xy, Box::new(|| set_context_menu.set(None)))
-                            .add_button("Add Cg", Box::new(|| {}))
+                            .add_button(
+                                "Add Cg",
+                                Box::new(|| {
+                                    on_event(Event2::ClickCharacterEdit {
+                                        edit_target: character_editor::EditTarget::NewCharacter {
+                                            cut_id,
+                                        },
+                                    })
+                                }),
+                            )
                             .add_button(
                                 "Add Memo",
                                 Box::new(|| on_event(Event2::AddMemo { cut_id })),
