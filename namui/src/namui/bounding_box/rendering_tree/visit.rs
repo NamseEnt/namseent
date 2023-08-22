@@ -6,16 +6,11 @@ pub struct VisitUtils<'a> {
     pub ancestors: &'a [&'a RenderingTree],
 }
 impl VisitUtils<'_> {
-    pub fn xy_in(&self, xy: Xy<Px>) -> bool {
-        Visit::xy_in(self.rendering_tree, xy, self.ancestors)
-    }
     pub fn to_local_xy(&self, xy: Xy<Px>) -> Xy<Px> {
         self.rendering_tree.to_local_xy(xy, self.ancestors)
     }
-    pub fn get_xy(&self) -> Xy<Px> {
-        self.rendering_tree.get_xy(self.ancestors)
-    }
-    pub fn with_ancestors(&self, mut func: impl FnMut(&[&RenderingTree])) {
+    #[cfg(test)]
+    fn with_ancestors(&self, mut func: impl FnMut(&[&RenderingTree])) {
         func(self.ancestors)
     }
 }
