@@ -101,25 +101,21 @@ pub(crate) fn invoke_on_event(
                 text: text.clone(),
             });
         }
-        &RawEvent::KeyDown {
-            code,
-            ref pressing_code_set,
-        } => {
+        RawEvent::KeyDown { event } => {
             on_event(Event::KeyDown {
                 event: KeyboardEvent {
-                    code,
-                    pressing_codes: pressing_code_set.clone(),
+                    code: event.code,
+                    pressing_codes: &event.pressing_codes,
+                    prevent_default: &event.prevent_default,
                 },
             });
         }
-        &RawEvent::KeyUp {
-            code,
-            ref pressing_code_set,
-        } => {
+        RawEvent::KeyUp { event } => {
             on_event(Event::KeyUp {
                 event: KeyboardEvent {
-                    code,
-                    pressing_codes: pressing_code_set.clone(),
+                    code: event.code,
+                    pressing_codes: &event.pressing_codes,
+                    prevent_default: &event.prevent_default,
                 },
             });
         }
@@ -185,6 +181,7 @@ fn get_mouse_event<'a>(
         button: raw_mouse_event.button,
         event_type: mouse_event_type,
         is_stop_propagation: Default::default(), // TODO
+        prevent_default: &raw_mouse_event.prevent_default,
     }
 }
 

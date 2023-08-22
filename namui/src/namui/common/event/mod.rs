@@ -1,54 +1,9 @@
+mod raw;
+
 use super::*;
 use derivative::Derivative;
+pub use raw::*;
 use std::fmt::Debug;
-
-#[derive(Debug)]
-pub enum RawEvent {
-    MouseDown {
-        event: RawMouseEvent,
-    },
-    MouseMove {
-        event: RawMouseEvent,
-    },
-    MouseUp {
-        event: RawMouseEvent,
-    },
-    Wheel {
-        event: RawWheelEvent,
-    },
-    FileDrop {
-        data_transfer: Option<web_sys::DataTransfer>,
-        xy: Xy<Px>,
-    },
-    SelectionChange {
-        selection_direction: SelectionDirection,
-        selection_start: usize,
-        selection_end: usize,
-        text: String,
-    },
-    KeyDown {
-        code: Code,
-        pressing_code_set: HashSet<Code>,
-    },
-    KeyUp {
-        code: Code,
-        pressing_code_set: HashSet<Code>,
-    },
-    Blur,
-    VisibilityChange,
-    ScreenResize {
-        wh: Wh<IntPx>,
-    },
-    TextInputTextUpdated {
-        text: String,
-        selection_direction: SelectionDirection,
-        selection_start: usize,
-        selection_end: usize,
-    },
-    TextInputKeyDown {
-        event: RawTextinputKeyDownEvent,
-    },
-}
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -69,10 +24,10 @@ pub enum Event<'a> {
         event: FileDropEvent<'a>,
     },
     KeyDown {
-        event: KeyboardEvent,
+        event: KeyboardEvent<'a>,
     },
     KeyUp {
-        event: KeyboardEvent,
+        event: KeyboardEvent<'a>,
     },
     Blur,
     VisibilityChange,
@@ -98,21 +53,6 @@ pub enum Event<'a> {
 
 #[derive(Derivative)]
 #[derivative(Debug)]
-
-pub struct RawTextinputKeyDownEvent {
-    pub code: Code,
-    pub text: String,
-    pub selection_direction: SelectionDirection,
-    pub selection_start: usize,
-    pub selection_end: usize,
-    pub is_composing: bool,
-    #[derivative(Debug = "ignore")]
-    pub(crate) prevent_default: Box<dyn Fn()>,
-}
-
-#[derive(Derivative)]
-#[derivative(Debug)]
-
 pub struct TextinputKeyDownEvent<'a> {
     pub code: Code,
     pub text: &'a str,
@@ -130,49 +70,24 @@ impl TextinputKeyDownEvent<'_> {
 }
 
 #[derive(Debug)]
-pub struct RawMouseEvent {
-    pub xy: Xy<Px>,
-    pub pressing_buttons: HashSet<MouseButton>,
-    pub button: Option<MouseButton>,
-}
-
-#[derive(Debug)]
-pub struct RawWheelEvent {
-    /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
-    pub delta_xy: Xy<f32>,
-    pub mouse_xy: Xy<Px>,
-}
-
-#[derive(Debug)]
-pub struct RawKeyboardEvent {
-    pub id: crate::Uuid,
-    pub code: Code,
-    pub pressing_codes: HashSet<Code>,
-}
-
-#[derive(Debug)]
 pub struct DeepLinkOpenedEvent {
     pub url: String,
 }
 
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct MouseEvent<'a> {
+    #[derivative(Debug = "ignore")]
     pub(crate) local_xy: Box<dyn 'a + Fn() -> Xy<Px>>,
+    #[derivative(Debug = "ignore")]
     pub(crate) is_local_xy_in: Box<dyn 'a + Fn() -> bool>,
     pub global_xy: Xy<Px>,
     pub pressing_buttons: HashSet<MouseButton>,
     pub button: Option<MouseButton>,
     pub event_type: MouseEventType,
     pub(crate) is_stop_propagation: Arc<AtomicBool>,
-}
-impl Debug for MouseEvent<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MouseEvent")
-            .field("global_xy", &self.global_xy)
-            .field("pressing_buttons", &self.pressing_buttons)
-            .field("button", &self.button)
-            .field("event_type", &self.event_type)
-            .finish()
-    }
+    #[derivative(Debug = "ignore")]
+    pub(crate) prevent_default: &'a Box<dyn Fn()>,
 }
 impl MouseEvent<'_> {
     pub fn stop_propagation(&self) {
@@ -184,6 +99,9 @@ impl MouseEvent<'_> {
     }
     pub fn is_local_xy_in(&self) -> bool {
         (self.is_local_xy_in)()
+    }
+    pub fn prevent_default(&self) {
+        (self.prevent_default)();
     }
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -205,10 +123,19 @@ impl WheelEvent {
             .store(true, std::sync::atomic::Ordering::Relaxed);
     }
 }
-#[derive(Debug)]
-pub struct KeyboardEvent {
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct KeyboardEvent<'a> {
     pub code: Code,
-    pub pressing_codes: HashSet<Code>,
+    pub pressing_codes: &'a HashSet<Code>,
+    #[derivative(Debug = "ignore")]
+    pub(crate) prevent_default: &'a Box<dyn Fn()>,
+}
+impl KeyboardEvent<'_> {
+    pub fn prevent_default(&self) {
+        (self.prevent_default)();
+    }
 }
 
 pub struct FileDropEvent<'a> {

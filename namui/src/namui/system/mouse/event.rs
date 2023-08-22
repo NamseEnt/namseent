@@ -20,6 +20,9 @@ pub(crate) fn set_up_event_handler() {
                         xy: mouse_position,
                         pressing_buttons: get_pressing_buttons(&event),
                         button: Some(button),
+                        prevent_default: Box::new(move || {
+                            event.prevent_default();
+                        }),
                     },
                 });
             }) as Box<dyn FnMut(_)>)
@@ -42,6 +45,9 @@ pub(crate) fn set_up_event_handler() {
                         xy: mouse_position,
                         pressing_buttons: get_pressing_buttons(&event),
                         button: Some(button),
+                        prevent_default: Box::new(move || {
+                            event.prevent_default();
+                        }),
                     },
                 });
             }) as Box<dyn FnMut(_)>)
@@ -64,6 +70,9 @@ pub(crate) fn set_up_event_handler() {
                         xy: mouse_position,
                         pressing_buttons: get_pressing_buttons(&event),
                         button: Some(button),
+                        prevent_default: Box::new(move || {
+                            event.prevent_default();
+                        }),
                     },
                 });
             }) as Box<dyn FnMut(_)>)

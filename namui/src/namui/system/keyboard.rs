@@ -60,8 +60,13 @@ impl KeyboardSystem {
                         }
 
                         crate::hooks::on_raw_event(RawEvent::KeyDown {
-                            code,
-                            pressing_code_set: pressing_code_set.read().unwrap().clone(),
+                            event: RawKeyboardEvent {
+                                code,
+                                pressing_codes: pressing_code_set.read().unwrap().clone(),
+                                prevent_default: Box::new(move || {
+                                    event.prevent_default();
+                                }),
+                            },
                         });
                     }
                 }) as Box<dyn FnMut(_)>)
@@ -84,8 +89,13 @@ impl KeyboardSystem {
                         };
 
                         crate::hooks::on_raw_event(RawEvent::KeyUp {
-                            code,
-                            pressing_code_set,
+                            event: RawKeyboardEvent {
+                                code,
+                                pressing_codes: pressing_code_set,
+                                prevent_default: Box::new(move || {
+                                    event.prevent_default();
+                                }),
+                            },
                         });
                     }
                 }) as Box<dyn FnMut(_)>)
