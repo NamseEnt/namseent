@@ -15,11 +15,6 @@ impl KeyVec {
         key_vec.chunks.push(KeyChunk::Child(key.into()));
         key_vec
     }
-    pub(crate) fn group(&self, key: impl Into<Key>) -> KeyVec {
-        let mut key_vec = self.clone();
-        key_vec.chunks.push(KeyChunk::Group(key.into()));
-        key_vec
-    }
     pub(crate) fn custom_key(&self, key: impl Into<Key>) -> KeyVec {
         let mut key_vec = self.clone();
         key_vec.chunks.push(KeyChunk::Custom(key.into()));
@@ -36,7 +31,6 @@ impl Debug for KeyVec {
 #[derive(Clone, Hash, PartialEq, Eq)]
 enum KeyChunk {
     Child(Key),
-    Group(Key),
     Custom(Key),
 }
 
@@ -44,7 +38,6 @@ impl Debug for KeyChunk {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             KeyChunk::Child(key) => write!(f, "Child->{:?}", key),
-            KeyChunk::Group(key) => write!(f, "Group->{:?}", key),
             KeyChunk::Custom(key) => write!(f, "Custom->{:?}", key),
         }
     }

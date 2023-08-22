@@ -3,8 +3,6 @@ mod codes;
 mod event;
 mod file;
 mod open_external;
-mod request_animation_frame;
-mod set_timeout;
 pub(crate) mod url;
 
 use crate::*;
@@ -13,9 +11,7 @@ pub use codes::*;
 pub use event::*;
 pub use file::*;
 pub use open_external::*;
-pub use request_animation_frame::*;
 use serde::{Deserialize, Serialize};
-pub use set_timeout::*;
 use std::{
     collections::HashSet,
     sync::{atomic::AtomicBool, Arc},
@@ -49,11 +45,6 @@ pub enum MouseButton {
     Left,
     Middle,
     Right,
-}
-
-pub(crate) enum DownUp {
-    Down,
-    Up,
 }
 
 pub trait AsXyPx {

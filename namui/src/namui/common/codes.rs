@@ -279,7 +279,6 @@ impl ToString for Code {
             Code::Insert => "Insert".to_string(),
             Code::Delete => "Delete".to_string(),
             Code::ContextMenu => "ContextMenu".to_string(),
-            _ => unreachable!("Unknown code: {:?}", self),
         }
     }
 }
