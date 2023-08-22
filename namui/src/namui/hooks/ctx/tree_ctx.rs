@@ -1,5 +1,10 @@
 use super::*;
-use crate::{Matrix3x3, RenderingTree};
+use crate::*;
+use std::{
+    collections::HashSet,
+    fmt::Debug,
+    sync::{Arc, Mutex},
+};
 
 #[derive(Clone)]
 pub(crate) struct TreeContext {

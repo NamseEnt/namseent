@@ -1,7 +1,17 @@
 use super::*;
-use crate::*;
+use crate::{
+    hooks::key::{Key, KeyVec},
+    *,
+};
 use namui_type::*;
-use std::sync::atomic::AtomicBool;
+use std::{
+    collections::HashSet,
+    fmt::Debug,
+    sync::{
+        atomic::{AtomicBool, AtomicUsize},
+        Arc, Mutex,
+    },
+};
 
 type RawEventContainer = Arc<Mutex<Option<Arc<RawEvent>>>>;
 

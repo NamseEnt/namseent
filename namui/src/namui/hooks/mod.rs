@@ -1,16 +1,17 @@
 pub(crate) mod channel;
 mod component;
+mod ctx;
 mod instance;
 mod key;
 mod native;
 mod render;
 mod sig;
-mod tree;
 mod value;
 
 use crate::RawEvent;
 pub(crate) use channel::*;
 pub use component::*;
+pub(crate) use ctx::*;
 pub use hooks_macro::*;
 pub(crate) use instance::*;
 use key::*;
@@ -20,11 +21,9 @@ pub use render::*;
 pub use sig::*;
 use std::{
     any::{Any, TypeId},
-    collections::HashSet,
     fmt::Debug,
     sync::{atomic::AtomicUsize, Arc, Mutex, OnceLock},
 };
-pub(crate) use tree::*;
 pub use value::*;
 
 static TREE_CTX: OnceLock<TreeContext> = OnceLock::new();
@@ -47,15 +46,12 @@ pub fn boxed<'a, T: 'a>(value: T) -> Box<T> {
 }
 
 /// callback!('a, A)
-/// -> &'a (dyn 'a + Fn(A))
 #[macro_export]
 macro_rules! callback {
     ($lifetime: lifetime, $param: ty) => {
-        // &$lifetime (dyn $lifetime + Fn($param))
         Box<dyn $lifetime + FnOnce($param)>
     };
     ($lifetime: lifetime) => {
-        // &$lifetime (dyn $lifetime + Fn())
         Box<dyn $lifetime + FnOnce()>
     };
 }
