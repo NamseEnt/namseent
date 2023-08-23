@@ -4,13 +4,6 @@ use std::any::Any;
 
 static CONTEXT_MENU_ATOM: Atom<Option<ContextMenuData>> = Atom::uninitialized_new();
 
-// 쓰는 쪽은 2가지를 한다.
-// 1. 어떻게 컨텍스트 메뉴를 보여줄 것인지 정하기
-// 2. 클릭이 되었을 때 무슨 행동을 할 것인지 정하기
-
-// app 쪽은 1가지 일만 한다.
-// 1. 컨텍스트 메뉴가 설정되면 보여주기
-
 static mut RECIPE: Option<Box<dyn Any + Send + Sync + 'static>> = None;
 static mut GLOBAL_XY: Option<Xy<Px>> = None;
 static mut CLICKED_BUTTON_INDEX: Option<usize> = None;
