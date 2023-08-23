@@ -123,6 +123,35 @@ impl Component for CutEditor<'_> {
             }
         });
 
+        ctx.compose(|ctx| {
+            let Some(context_menu) = context_menu.deref() else {
+                return;
+            };
+
+            match context_menu {
+                &ContextMenu::CutEditor { global_xy, cut_id } => {
+                    ctx.add(
+                        use_context_menu(global_xy, Box::new(|| set_context_menu.set(None)))
+                            .add_button(
+                                "Add Cg",
+                                Box::new(|| {
+                                    on_event(Event2::ClickCharacterEdit {
+                                        edit_target: character_editor::EditTarget::NewCharacter {
+                                            cut_id,
+                                        },
+                                    })
+                                }),
+                            )
+                            .add_button(
+                                "Add Memo",
+                                Box::new(|| on_event(Event2::AddMemo { cut_id })),
+                            )
+                            .build(),
+                    );
+                }
+            }
+        });
+
         ctx.component(BackgroundWithEvent {
             cut,
             wh,
@@ -317,35 +346,6 @@ impl Component for CutEditor<'_> {
                 character_name_side,
                 cut_text_side,
             );
-        });
-
-        ctx.compose(|ctx| {
-            let Some(context_menu) = context_menu.deref() else {
-                return;
-            };
-
-            match context_menu {
-                &ContextMenu::CutEditor { global_xy, cut_id } => {
-                    ctx.add(
-                        use_context_menu(global_xy, Box::new(|| set_context_menu.set(None)))
-                            .add_button(
-                                "Add Cg",
-                                Box::new(|| {
-                                    on_event(Event2::ClickCharacterEdit {
-                                        edit_target: character_editor::EditTarget::NewCharacter {
-                                            cut_id,
-                                        },
-                                    })
-                                }),
-                            )
-                            .add_button(
-                                "Add Memo",
-                                Box::new(|| on_event(Event2::AddMemo { cut_id })),
-                            )
-                            .build(),
-                    );
-                }
-            }
         });
 
         ctx.done()

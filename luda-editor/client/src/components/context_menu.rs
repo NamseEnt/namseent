@@ -1,6 +1,5 @@
 use namui::prelude::*;
 use namui_prebuilt::*;
-use std::sync::{Arc, Mutex};
 
 pub fn use_context_menu<'a>(global_xy: Xy<Px>, close: impl Fn() + 'a) -> ContextMenuBuilder<'a> {
     ContextMenuBuilder {
@@ -70,6 +69,11 @@ pub struct ContextMenu<'a> {
 
 impl Component for ContextMenu<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self {
+            global_xy,
+            items,
+            close,
+        } = self;
         let (mouse_over_item_idx, set_mouse_over_item_idx) = ctx.state(|| None);
         let cell_wh = Wh::new(160.px(), 24.px());
 
@@ -84,8 +88,7 @@ impl Component for ContextMenu<'_> {
             .set_stroke_width(1.px())
             .set_style(PaintStyle::Stroke);
 
-        let ys = self
-            .items
+        let ys = items
             .iter()
             .map(|item| {
                 let y = next_y;
@@ -99,10 +102,8 @@ impl Component for ContextMenu<'_> {
             })
             .collect::<Vec<_>>();
 
-        let close = Arc::new(Mutex::new(Some(self.close)));
-
         let menus = |ctx: &mut ComposeCtx| {
-            for ((index, item), y) in self.items.into_iter().enumerate().zip(ys) {
+            for ((index, item), y) in items.into_iter().enumerate().zip(ys) {
                 match item {
                     Item::Button { text, on_click } => {
                         let is_mouse_over = *mouse_over_item_idx == Some(index);
@@ -140,7 +141,7 @@ impl Component for ContextMenu<'_> {
                                         if let Some(MouseButton::Left) = event.button {
                                             event.stop_propagation();
                                             on_click();
-                                            close.lock().unwrap().take().unwrap()();
+                                            (close)();
                                         }
                                     }
                                 }
@@ -178,20 +179,27 @@ impl Component for ContextMenu<'_> {
             Color::TRANSPARENT,
             0.px(),
             Color::grayscale_f01(0.2),
-        );
+        )
+        .attach_event(|event| match event {
+            Event::MouseDown { event } => match event.is_local_xy_in() {
+                true => {
+                    if let Some(MouseButton::Left) = event.button {
+                        event.stop_propagation();
+                    }
+                }
+                false => {
+                    close();
+                }
+            },
+            _ => {}
+        });
 
-        let global_xy_within_screen = global_xy_within_screen(self.global_xy, context_menu_wh);
+        let global_xy_within_screen = global_xy_within_screen(global_xy, context_menu_wh);
 
         ctx.compose(|ctx| {
             ctx.on_top()
                 .absolute(global_xy_within_screen)
-                .add(background.attach_event(|event| {
-                    if let namui::Event::MouseDown { event } = event {
-                        if !event.is_local_xy_in() {
-                            set_mouse_over_item_idx.set(None);
-                        }
-                    }
-                }))
+                .add(background)
                 .compose(menus);
         });
 
