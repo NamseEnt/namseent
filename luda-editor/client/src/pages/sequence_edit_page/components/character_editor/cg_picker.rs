@@ -91,15 +91,15 @@ fn render_thumbnail<'a>(
                         move |event| match event {
                             namui::Event::MouseDown { event } => {
                                 if event.is_local_xy_in() {
-                                    on_event(Event::MoveInCgFileThumbnail {
-                                        global_xy: event.global_xy,
-                                        name: cg_file_name.clone(),
-                                    })
+                                    on_event(Event::ClickCgFileThumbnail { cg_id })
                                 }
                             }
                             namui::Event::MouseMove { event } => {
                                 if event.is_local_xy_in() {
-                                    on_event(Event::ClickCgFileThumbnail { cg_id })
+                                    on_event(Event::MoveInCgFileThumbnail {
+                                        global_xy: event.global_xy,
+                                        name: cg_file_name.clone(),
+                                    })
                                 }
                             }
                             _ => {}
