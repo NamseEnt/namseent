@@ -259,7 +259,6 @@ impl Component for LoadedSequenceEditorPage {
             }) = *editing_memo
             {
                 ctx.add(memo_editor::MemoEditor {
-                    wh,
                     sequence_id,
                     cut_id,
                     on_event: Box::new(|event| {

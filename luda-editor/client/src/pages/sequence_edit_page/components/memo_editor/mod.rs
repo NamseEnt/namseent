@@ -4,7 +4,6 @@ use namui_prebuilt::*;
 
 #[namui::component]
 pub struct MemoEditor<'a> {
-    pub wh: Wh<Px>,
     pub sequence_id: Uuid,
     pub cut_id: Uuid,
     pub on_event: Box<dyn 'a + Fn(Event)>,
@@ -21,8 +20,11 @@ pub enum Event {
 
 impl Component for MemoEditor<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        const MEMO_EDITOR_WH: Wh<Px> = Wh {
+            width: px(512.0),
+            height: px(256.0),
+        };
         let Self {
-            wh,
             sequence_id,
             cut_id,
             ref on_event,
@@ -59,61 +61,70 @@ impl Component for MemoEditor<'_> {
             })
         };
 
-        let container = simple_rect(wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND)
-            .attach_event(|event| match event {
-                namui::Event::MouseDown { event } => {
-                    if event.is_local_xy_in() {
-                        event.stop_propagation();
-                    }
+        let container = simple_rect(
+            MEMO_EDITOR_WH,
+            color::STROKE_NORMAL,
+            1.px(),
+            color::BACKGROUND,
+        )
+        .attach_event(|event| match event {
+            namui::Event::MouseDown { event } => {
+                if event.is_local_xy_in() {
+                    event.stop_propagation();
                 }
-                _ => {}
-            });
+            }
+            _ => {}
+        });
 
-        let close_button_cell = table::hooks::fit(
-            table::hooks::FitAlign::LeftTop,
-            button::text_button_fit(
-                wh.height,
-                "취소",
-                color::STROKE_NORMAL,
-                color::STROKE_NORMAL,
-                1.px(),
-                color::BACKGROUND,
-                PADDING,
-                [MouseButton::Left],
-                {
-                    let on_event = on_event.clone();
-                    move |_event| {
-                        on_event(Event::Close);
-                    }
-                },
-            ),
-            // .with_mouse_cursor(MouseCursor::Pointer),
-        );
+        let render_close_button = |height: Px| {
+            table::hooks::fit(
+                table::hooks::FitAlign::LeftTop,
+                button::text_button_fit(
+                    height,
+                    "취소",
+                    color::STROKE_NORMAL,
+                    color::STROKE_NORMAL,
+                    1.px(),
+                    color::BACKGROUND,
+                    PADDING,
+                    [MouseButton::Left],
+                    {
+                        let on_event = on_event.clone();
+                        move |_event| {
+                            on_event(Event::Close);
+                        }
+                    },
+                ),
+                // .with_mouse_cursor(MouseCursor::Pointer),
+            )
+        };
 
-        let save_button_cell = table::hooks::fit(
-            table::hooks::FitAlign::RightBottom,
-            button::text_button_fit(
-                wh.height,
-                "저장",
-                color::BACKGROUND,
-                color::STROKE_NORMAL,
-                1.px(),
-                color::STROKE_NORMAL,
-                PADDING,
-                [MouseButton::Left],
-                {
-                    let on_event = on_event.clone();
-                    |_event| {
-                        on_event(Event::SaveButtonClicked {
-                            sequence_id,
-                            cut_id,
-                            content: text.to_string(),
-                        });
-                    }
-                },
-            ),
-            // .with_mouse_cursor(MouseCursor::Pointer)
-        );
+        let render_save_button = |height: Px| {
+            table::hooks::fit(
+                table::hooks::FitAlign::RightBottom,
+                button::text_button_fit(
+                    height,
+                    "저장",
+                    color::BACKGROUND,
+                    color::STROKE_NORMAL,
+                    1.px(),
+                    color::STROKE_NORMAL,
+                    PADDING,
+                    [MouseButton::Left],
+                    {
+                        let on_event = on_event.clone();
+                        |_event| {
+                            on_event(Event::SaveButtonClicked {
+                                sequence_id,
+                                cut_id,
+                                content: text.to_string(),
+                            });
+                        }
+                    },
+                ),
+                // .with_mouse_cursor(MouseCursor::Pointer)
+            )
+        };
 
         let content = table::hooks::vertical([
             table::hooks::fixed(TITLE_HEIGHT, |wh, ctx| {
@@ -124,12 +135,12 @@ impl Component for MemoEditor<'_> {
                     Color::TRANSPARENT,
                 ));
 
-                table::hooks::padding(PADDING, {
+                table::hooks::padding(PADDING, |wh, ctx| {
                     table::hooks::horizontal([
-                        close_button_cell,
+                        render_close_button(wh.height),
                         table::hooks::ratio(1, |_, _| {}),
-                        save_button_cell,
-                    ])
+                        render_save_button(wh.height),
+                    ])(wh, ctx);
                 })(wh, ctx);
             }),
             table::hooks::ratio(1, |wh, ctx| {
@@ -187,14 +198,12 @@ impl Component for MemoEditor<'_> {
         ]);
 
         ctx.compose(|ctx| {
-            ctx.on_top()
-                .add(background)
-                .translate((
-                    (screen_wh.width - wh.width) / 2.0,
-                    (screen_wh.height - wh.height) / 2.0,
-                ))
-                .add(container);
-            content(wh, ctx);
+            let mut ctx = ctx.on_top().add(background).translate((
+                (screen_wh.width - MEMO_EDITOR_WH.width) / 2.0,
+                (screen_wh.height - MEMO_EDITOR_WH.height) / 2.0,
+            ));
+            ctx.add(container);
+            content(MEMO_EDITOR_WH, &mut ctx);
         })
         .done()
     }
