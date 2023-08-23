@@ -11,7 +11,7 @@ use super::character_editor;
 use crate::{
     components::{
         cg_render,
-        context_menu::use_context_menu,
+        context_menu::*,
         sequence_player::{calculate_graphic_rect_on_screen, calculate_graphic_wh_on_screen},
     },
     pages::sequence_edit_page::atom::SEQUENCE_ATOM,
@@ -36,7 +36,6 @@ pub struct WysiwygEditor<'a> {
 #[derive(Debug)]
 enum ContextMenu {
     WysiwygEditor {
-        global_xy: Xy<Px>,
         cut_id: Uuid,
         graphic_index: Uuid,
         graphic_wh: Wh<Px>,
@@ -56,7 +55,6 @@ impl Component for WysiwygEditor<'_> {
         } = self;
         let (dragging, set_dragging) = ctx.state(|| None);
         let (editing_image_index, set_editing_image_index) = ctx.state(|| None);
-        let (context_menu, set_context_menu) = ctx.state::<Option<ContextMenu>>(|| None);
 
         let background = simple_rect(wh, Color::WHITE, 1.px(), Color::TRANSPARENT).attach_event(
             |event: Event<'_>| {
@@ -157,13 +155,15 @@ impl Component for WysiwygEditor<'_> {
                 graphic_wh,
                 graphic,
             } => {
-                set_context_menu.set(Some(ContextMenu::WysiwygEditor {
+                open_context_menu(
                     global_xy,
-                    cut_id,
-                    graphic_index,
-                    graphic_wh,
-                    graphic,
-                }));
+                    ContextMenu::WysiwygEditor {
+                        cut_id,
+                        graphic_index,
+                        graphic_wh,
+                        graphic,
+                    },
+                );
             }
         });
 
@@ -191,111 +191,104 @@ impl Component for WysiwygEditor<'_> {
         });
 
         ctx.component(render_grid_guide(wh));
-        ctx.compose(|ctx| {
-            let Some(context_menu) = context_menu.deref() else {
-                return;
-            };
+        if_context_menu_for::<ContextMenu>(|context_menu, builder| {
             match context_menu {
                 &ContextMenu::WysiwygEditor {
-                    global_xy,
                     cut_id,
                     graphic_index,
                     graphic_wh,
                     ref graphic,
                 } => {
                     let image_width_per_height_ratio = graphic_wh.width / graphic_wh.height;
-                    ctx.add(
-                        use_context_menu(global_xy, Box::new(|| set_context_menu.set(None)))
-                            // TODO: This is not re-implemented yet. Should think about strategy about editing multiple cuts.
-                            // .and(|builder| {
-                            //     if graphic_index != 0 {
-                            //         return builder;
-                            //     }
-                            //     builder.add_button("Spread as background", {
-                            //         let graphic = graphic.clone();
-                            //         move || {
-                            //             let graphic = graphic.clone();
-                            //             namui::event::send(Event::UpdateSequenceGraphics {
-                            //                 callback: Box::new({
-                            //                     move |graphics| {
-                            //                         let graphic = graphic.clone();
-                            //                         if graphics.len() == 0 {
-                            //                             graphics.push(graphic);
-                            //                             return;
-                            //                         }
-                            //                         let first = graphics.first_mut().unwrap();
-                            //                         match (first, &graphic) {
-                            //                             (
-                            //                                 ScreenGraphic::Image(first),
-                            //                                 ScreenGraphic::Image(graphic),
-                            //                             ) => {
-                            //                                 if first.id == graphic.id {
-                            //                                     first.circumscribed =
-                            //                                         graphic.circumscribed;
-                            //                                     return;
-                            //                                 }
-                            //                             }
-                            //                             (
-                            //                                 ScreenGraphic::Cg(first),
-                            //                                 ScreenGraphic::Cg(graphic),
-                            //                             ) => {
-                            //                                 if first.cg_file_checksum
-                            //                                     == graphic.cg_file_checksum
-                            //                                 {
-                            //                                     first.circumscribed =
-                            //                                         graphic.circumscribed;
-                            //                                     return;
-                            //                                 }
-                            //                             }
-                            //                             _ => (),
-                            //                         }
-                            //                         graphics.insert(0, graphic);
-                            //                     }
-                            //                 }),
-                            //             });
-                            //         }
-                            //     })
-                            // })
-                            .add_button("Fit - contain", || {
-                                SEQUENCE_ATOM.mutate(move |sequence| {
-                                    sequence.update_cut(
-                                        cut_id,
-                                        CutUpdateAction::GraphicFitContain {
-                                            graphic_index,
-                                            image_width_per_height_ratio,
-                                        },
-                                    )
-                                });
-                            })
-                            .add_button("Fit - cover", || {
-                                SEQUENCE_ATOM.mutate(move |sequence| {
-                                    sequence.update_cut(
-                                        cut_id,
-                                        CutUpdateAction::GraphicFitCover {
-                                            graphic_index,
-                                            image_width_per_height_ratio,
-                                        },
-                                    )
-                                });
-                            })
-                            .and(|builder| {
-                                let ScreenGraphic::Cg(cg) = graphic else {
+                    builder
+                        .add_button("Fit - contain", || {
+                            SEQUENCE_ATOM.mutate(move |sequence| {
+                                sequence.update_cut(
+                                    cut_id,
+                                    CutUpdateAction::GraphicFitContain {
+                                        graphic_index,
+                                        image_width_per_height_ratio,
+                                    },
+                                )
+                            });
+                        })
+                        .add_button("Fit - cover", || {
+                            SEQUENCE_ATOM.mutate(move |sequence| {
+                                sequence.update_cut(
+                                    cut_id,
+                                    CutUpdateAction::GraphicFitCover {
+                                        graphic_index,
+                                        image_width_per_height_ratio,
+                                    },
+                                )
+                            });
+                        })
+                        .and(|builder| {
+                            let ScreenGraphic::Cg(cg) = graphic else {
                                     return builder;
                                 };
-                                let cg_id = cg.id;
+                            let cg_id = cg.id;
 
-                                builder.add_button("Edit character", move || {
-                                    on_click_character_edit(
-                                        character_editor::EditTarget::ExistingCharacterPart {
-                                            cut_id,
-                                            cg_id,
-                                            graphic_index,
-                                        },
-                                    );
-                                })
+                            builder.add_button("Edit character", move || {
+                                on_click_character_edit(
+                                    character_editor::EditTarget::ExistingCharacterPart {
+                                        cut_id,
+                                        cg_id,
+                                        graphic_index,
+                                    },
+                                );
                             })
-                            .build(),
-                    );
+                        })
+                    // TODO: This is not re-implemented yet. Should think about strategy about editing multiple cuts.
+                    // .and(|builder| {
+                    //     if graphic_index != 0 {
+                    //         return builder;
+                    //     }
+                    //     builder.add_button("Spread as background", {
+                    //         let graphic = graphic.clone();
+                    //         move || {
+                    //             let graphic = graphic.clone();
+                    //             namui::event::send(Event::UpdateSequenceGraphics {
+                    //                 callback: Box::new({
+                    //                     move |graphics| {
+                    //                         let graphic = graphic.clone();
+                    //                         if graphics.len() == 0 {
+                    //                             graphics.push(graphic);
+                    //                             return;
+                    //                         }
+                    //                         let first = graphics.first_mut().unwrap();
+                    //                         match (first, &graphic) {
+                    //                             (
+                    //                                 ScreenGraphic::Image(first),
+                    //                                 ScreenGraphic::Image(graphic),
+                    //                             ) => {
+                    //                                 if first.id == graphic.id {
+                    //                                     first.circumscribed =
+                    //                                         graphic.circumscribed;
+                    //                                     return;
+                    //                                 }
+                    //                             }
+                    //                             (
+                    //                                 ScreenGraphic::Cg(first),
+                    //                                 ScreenGraphic::Cg(graphic),
+                    //                             ) => {
+                    //                                 if first.cg_file_checksum
+                    //                                     == graphic.cg_file_checksum
+                    //                                 {
+                    //                                     first.circumscribed =
+                    //                                         graphic.circumscribed;
+                    //                                     return;
+                    //                                 }
+                    //                             }
+                    //                             _ => (),
+                    //                         }
+                    //                         graphics.insert(0, graphic);
+                    //                     }
+                    //                 }),
+                    //             });
+                    //         }
+                    //     })
+                    // })
                 }
             }
         });

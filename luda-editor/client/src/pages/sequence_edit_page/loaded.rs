@@ -1,6 +1,6 @@
 use super::{atom::*, components::*, sequence::SequenceWrapped};
 use crate::{
-    components::context_menu::use_context_menu,
+    components::context_menu::{if_context_menu_for, open_context_menu},
     pages::sequence_edit_page::components::character_editor::EditTarget,
 };
 use namui::prelude::*;
@@ -20,7 +20,7 @@ pub struct LoadedSequenceEditorPage {
 
 #[derive(Debug)]
 enum ContextMenu {
-    CutListView { global_xy: Xy<Px> },
+    CutListView,
 }
 
 impl Component for LoadedSequenceEditorPage {
@@ -43,8 +43,6 @@ impl Component for LoadedSequenceEditorPage {
             ctx.state::<Option<EditTarget>>(|| None);
         let (cut_id_memos_map, set_cut_id_memos_map) = ctx.state(|| cut_id_memos_map.clone());
         let (editing_memo, set_editing_memo) = ctx.state(|| None);
-
-        let (context_menu, set_context_menu) = ctx.state::<Option<ContextMenu>>(|| None);
 
         let selected_cut = selected_cut_id.and_then(|id| sequence.cuts.iter().find(|c| c.id == id));
         let project_id = project_shared_data.id();
@@ -76,7 +74,7 @@ impl Component for LoadedSequenceEditorPage {
                     set_focused_component.set(Some(FocusableComponent::CutListView));
                 }
                 cut_list_view::Event::OnRightClickEvent { global_xy } => {
-                    set_context_menu.set(Some(ContextMenu::CutListView { global_xy }));
+                    open_context_menu(global_xy, ContextMenu::CutListView);
                     set_focused_component.set(Some(FocusableComponent::CutListView));
                 }
             },
@@ -268,27 +266,15 @@ impl Component for LoadedSequenceEditorPage {
             }
         });
 
-        ctx.compose(|ctx| {
-            let Some(context_menu) = context_menu.as_ref() else {
-                return;
-            };
-
-            match context_menu {
-                &ContextMenu::CutListView { global_xy } => {
-                    ctx.add(
-                        use_context_menu(global_xy, &|| set_context_menu.set(None))
-                            .add_button("Add Cut", &|| {
-                                set_seqenece.mutate(|sequence| {
-                                    sequence.update(SequenceUpdateAction::InsertCut {
-                                        cut: Cut::new(uuid()),
-                                        after_cut_id: None,
-                                    })
-                                })
-                            })
-                            .build(),
-                    );
-                }
-            }
+        if_context_menu_for::<ContextMenu>(|context_menu, builder| {
+            builder.add_button("Add Cut", &|| {
+                set_seqenece.mutate(|sequence| {
+                    sequence.update(SequenceUpdateAction::InsertCut {
+                        cut: Cut::new(uuid()),
+                        after_cut_id: None,
+                    })
+                })
+            })
         });
 
         ctx.done()

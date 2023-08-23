@@ -1,27 +1,96 @@
 use namui::prelude::*;
 use namui_prebuilt::*;
+use std::any::Any;
 
-pub fn use_context_menu<'a>(global_xy: Xy<Px>, close: impl Fn() + 'a) -> ContextMenuBuilder<'a> {
-    ContextMenuBuilder {
-        global_xy,
-        items: Default::default(),
-        close: Box::new(close),
+static CONTEXT_MENU_ATOM: Atom<Option<ContextMenuData>> = Atom::uninitialized_new();
+
+// 쓰는 쪽은 2가지를 한다.
+// 1. 어떻게 컨텍스트 메뉴를 보여줄 것인지 정하기
+// 2. 클릭이 되었을 때 무슨 행동을 할 것인지 정하기
+
+// app 쪽은 1가지 일만 한다.
+// 1. 컨텍스트 메뉴가 설정되면 보여주기
+
+static mut RECIPE: Option<Box<dyn Any + Send + Sync + 'static>> = None;
+static mut GLOBAL_XY: Option<Xy<Px>> = None;
+static mut CLICKED_BUTTON_INDEX: Option<usize> = None;
+
+pub fn open_context_menu(global_xy: Xy<Px>, recipe: impl Any + Send + Sync + 'static) {
+    unsafe {
+        RECIPE.replace(Box::new(recipe));
+        GLOBAL_XY.replace(global_xy);
+    }
+}
+pub fn if_context_menu_for<T: 'static>(
+    on: impl FnOnce(&T, ContextMenuBuilder) -> ContextMenuBuilder,
+) {
+    unsafe {
+        if let Some(recipe) = RECIPE.as_ref() {
+            if let Some(recipe) = recipe.as_ref().downcast_ref::<T>() {
+                let clicked_button_index = CLICKED_BUTTON_INDEX.take();
+                let builder = on(recipe, ContextMenuBuilder::new(clicked_button_index));
+
+                let context_menu = builder.build(GLOBAL_XY.unwrap());
+
+                if CONTEXT_MENU_ATOM
+                    .get_or_init(Default::default)
+                    .as_ref()
+                    .is_some_and(|x| x == &context_menu)
+                {
+                    if clicked_button_index.is_some() {
+                        close_context_menu();
+                    }
+                } else {
+                    CONTEXT_MENU_ATOM.set(Some(context_menu));
+                }
+            }
+        }
     }
 }
 
-pub struct ContextMenuBuilder<'a> {
-    global_xy: Xy<Px>,
-    items: Vec<Item<'a>>,
-    // close: callback!('a),
-    close: Box<dyn Fn() + 'a>,
+fn close_context_menu() {
+    unsafe {
+        RECIPE.take();
+        GLOBAL_XY.take();
+    }
+    CONTEXT_MENU_ATOM.set(None);
 }
 
-impl<'a> ContextMenuBuilder<'a> {
-    pub fn add_button(mut self, text: impl AsRef<str>, on_click: impl Fn() + 'a) -> Self {
+fn on_click_context_menu_item(index: usize) {
+    unsafe {
+        CLICKED_BUTTON_INDEX.replace(index);
+    }
+}
+
+#[derive(Debug, PartialEq)]
+struct ContextMenuData {
+    global_xy: Xy<Px>,
+    items: Vec<Item>,
+}
+pub struct ContextMenuBuilder {
+    items: Vec<Item>,
+    clicked_button_index: Option<usize>,
+    button_index: usize,
+}
+
+impl ContextMenuBuilder {
+    fn new(clicked_button_index: Option<usize>) -> Self {
+        Self {
+            items: vec![],
+            clicked_button_index,
+            button_index: 0,
+        }
+    }
+    pub fn add_button(mut self, text: impl AsRef<str>, on_click: impl FnOnce()) -> Self {
+        if self.clicked_button_index == Some(self.button_index) {
+            on_click();
+        }
+
         self.items.push(Item::Button {
             text: text.as_ref().to_string(),
-            on_click: Box::new(on_click),
         });
+
+        self.button_index += 1;
         self
     }
     pub fn and<'then, Modifier>(self, then: Modifier) -> Self
@@ -30,51 +99,36 @@ impl<'a> ContextMenuBuilder<'a> {
     {
         then(self)
     }
-    pub fn build(self) -> ContextMenu<'a> {
-        ContextMenu {
-            global_xy: self.global_xy,
+    fn build(self, global_xy: Xy<Px>) -> ContextMenuData {
+        ContextMenuData {
+            global_xy,
             items: self.items,
-            close: self.close,
         }
     }
 }
 
-enum Item<'a> {
+#[derive(Debug, PartialEq)]
+enum Item {
     Button {
         text: String,
-        // on_click: callback!('a),
-        on_click: Box<dyn Fn() + 'a>,
     },
 
     #[allow(dead_code)]
     Divider,
 }
 
-impl std::fmt::Debug for Item<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Item::Button { text, .. } => f.debug_struct("Button").field("text", text).finish(),
-            Item::Divider => f.debug_struct("Divider").finish(),
-        }
-    }
-}
-
 #[namui::component]
-pub struct ContextMenu<'a> {
-    global_xy: Xy<Px>,
-    items: Vec<Item<'a>>,
-    // close: callback!('a),
-    close: Box<dyn Fn() + 'a>,
-}
+pub struct ContextMenu;
 
-impl Component for ContextMenu<'_> {
+impl Component for ContextMenu {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-        let Self {
-            global_xy,
-            items,
-            close,
-        } = self;
         let (mouse_over_item_idx, set_mouse_over_item_idx) = ctx.state(|| None);
+        let (atom, _) = ctx.atom_init(&CONTEXT_MENU_ATOM, Default::default);
+
+        let Some(atom) = atom.as_ref() else {
+            return ctx.done();
+        };
+
         let cell_wh = Wh::new(160.px(), 24.px());
 
         let divider_height = 16.px();
@@ -88,7 +142,8 @@ impl Component for ContextMenu<'_> {
             .set_stroke_width(1.px())
             .set_style(PaintStyle::Stroke);
 
-        let ys = items
+        let ys = atom
+            .items
             .iter()
             .map(|item| {
                 let y = next_y;
@@ -103,9 +158,9 @@ impl Component for ContextMenu<'_> {
             .collect::<Vec<_>>();
 
         let menus = |ctx: &mut ComposeCtx| {
-            for ((index, item), y) in items.into_iter().enumerate().zip(ys) {
+            for ((index, item), y) in atom.items.iter().enumerate().zip(ys) {
                 match item {
-                    Item::Button { text, on_click } => {
+                    Item::Button { text } => {
                         let is_mouse_over = *mouse_over_item_idx == Some(index);
                         let background = {
                             let fill_color = if is_mouse_over {
@@ -140,8 +195,7 @@ impl Component for ContextMenu<'_> {
                                     if event.is_local_xy_in() {
                                         if let Some(MouseButton::Left) = event.button {
                                             event.stop_propagation();
-                                            on_click();
-                                            (close)();
+                                            on_click_context_menu_item(index);
                                         }
                                     }
                                 }
@@ -188,13 +242,13 @@ impl Component for ContextMenu<'_> {
                     }
                 }
                 false => {
-                    close();
+                    close_context_menu();
                 }
             },
             _ => {}
         });
 
-        let global_xy_within_screen = global_xy_within_screen(global_xy, context_menu_wh);
+        let global_xy_within_screen = global_xy_within_screen(atom.global_xy, context_menu_wh);
 
         ctx.compose(|ctx| {
             ctx.on_top()

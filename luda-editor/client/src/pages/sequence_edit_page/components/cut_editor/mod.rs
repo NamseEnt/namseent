@@ -3,7 +3,7 @@ mod background_with_event;
 use super::*;
 use crate::{
     color,
-    components::{context_menu::use_context_menu, sequence_player},
+    components::{context_menu::*, sequence_player},
     pages::sequence_edit_page::atom::SEQUENCE_ATOM,
 };
 use background_with_event::*;
@@ -40,7 +40,7 @@ pub enum Event2 {
 
 #[derive(Debug)]
 enum ContextMenu {
-    CutEditor { global_xy: Xy<Px>, cut_id: Uuid },
+    CutEditor { cut_id: Uuid },
 }
 
 impl Component for CutEditor<'_> {
@@ -54,7 +54,6 @@ impl Component for CutEditor<'_> {
             cg_files,
             on_event,
         } = self;
-        let (context_menu, set_context_menu) = ctx.state::<Option<ContextMenu>>(|| None);
 
         let (selected_target, set_selected_target) = ctx.state::<Option<ClickTarget>>(|| None);
         let (input_req_queue, set_input_req_queue) = ctx.state(|| VecDeque::new());
@@ -119,37 +118,24 @@ impl Component for CutEditor<'_> {
                 blur();
             }
             InternalEvent::MouseRightButtonDown { global_xy, cut_id } => {
-                set_context_menu.set(Some(ContextMenu::CutEditor { global_xy, cut_id }));
+                open_context_menu(global_xy, ContextMenu::CutEditor { cut_id });
             }
         });
 
-        ctx.compose(|ctx| {
-            let Some(context_menu) = context_menu.deref() else {
-                return;
-            };
-
-            match context_menu {
-                &ContextMenu::CutEditor { global_xy, cut_id } => {
-                    ctx.add(
-                        use_context_menu(global_xy, Box::new(|| set_context_menu.set(None)))
-                            .add_button(
-                                "Add Cg",
-                                Box::new(|| {
-                                    on_event(Event2::ClickCharacterEdit {
-                                        edit_target: character_editor::EditTarget::NewCharacter {
-                                            cut_id,
-                                        },
-                                    })
-                                }),
-                            )
-                            .add_button(
-                                "Add Memo",
-                                Box::new(|| on_event(Event2::AddMemo { cut_id })),
-                            )
-                            .build(),
-                    );
-                }
-            }
+        if_context_menu_for::<ContextMenu>(|context_menu, builder| match context_menu {
+            &ContextMenu::CutEditor { cut_id } => builder
+                .add_button(
+                    "Add Cg",
+                    Box::new(|| {
+                        on_event(Event2::ClickCharacterEdit {
+                            edit_target: character_editor::EditTarget::NewCharacter { cut_id },
+                        })
+                    }),
+                )
+                .add_button(
+                    "Add Memo",
+                    Box::new(|| on_event(Event2::AddMemo { cut_id })),
+                ),
         });
 
         ctx.component(BackgroundWithEvent {

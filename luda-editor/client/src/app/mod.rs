@@ -1,6 +1,6 @@
 mod login;
 
-use crate::pages::router::Router;
+use crate::{components::context_menu::ContextMenu, pages::router::Router};
 use anyhow::Result;
 use namui::prelude::*;
 use namui_prebuilt::*;
@@ -40,6 +40,7 @@ impl Component for App {
         let wh = namui::screen::size();
         let wh = Wh::new(wh.width.into_px(), wh.height.into_px());
 
+        ctx.component(ContextMenu);
         ctx.component(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK));
         ctx.compose(|ctx| match &*loading_state {
             LoadingState::Loading => {
