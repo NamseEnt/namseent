@@ -11,7 +11,6 @@ impl Component for Router {
         let (route, set_route) = ctx.state(|| Route::from(get_hash()));
 
         namui::web::event_listener_hash_change(move |event| {
-            crate::log!("hi");
             let new_url = event.new_url();
             let hash = new_url.split('#').nth(1).unwrap_or("");
             set_route.set(Route::from(hash.to_string()));

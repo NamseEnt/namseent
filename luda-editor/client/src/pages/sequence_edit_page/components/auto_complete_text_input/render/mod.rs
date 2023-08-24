@@ -83,7 +83,6 @@ impl AutoCompleteTextInput {
                 if code != Code::Enter {
                     return;
                 }
-                namui::log!("on_enter_down");
 
                 if let Some(selected_suggestion) = &selected_suggestion {
                     (on_text_change)(selected_suggestion.clone());

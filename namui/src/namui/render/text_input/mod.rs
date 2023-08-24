@@ -25,12 +25,11 @@ pub struct TextInput<'a> {
     pub font: Font,
     pub style: Style,
     pub prevent_default_codes: Vec<Code>,
-    pub on_event: Box<dyn 'a + for<'b> Fn(Event<'b>)>,
+    pub on_event: &'a dyn Fn(Event),
 }
 
+#[derive(Debug)]
 pub enum Event<'a> {
-    Focus,
-    Blur,
     TextUpdated { text: &'a str },
     SelectionUpdated { selection: Selection },
     KeyDown { code: Code },

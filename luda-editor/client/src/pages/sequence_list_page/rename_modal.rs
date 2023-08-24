@@ -100,13 +100,11 @@ impl Component for RenameModal<'_> {
                         ..Default::default()
                     },
                     prevent_default_codes: vec![],
-                    on_event: Box::new(|event| match event {
-                        text_input::Event::Focus => todo!(),
-                        text_input::Event::Blur => todo!(),
+                    on_event: &|event| match event {
                         text_input::Event::TextUpdated { text } => {
                             set_sequence_name.set(text.to_string());
                         }
-                        text_input::Event::SelectionUpdated { selection } => todo!(),
+                        text_input::Event::SelectionUpdated { selection: _ } => {}
                         text_input::Event::KeyDown { code } => {
                             let on_rename_done = on_rename_done.clone();
                             let sequence_name = sequence_name.clone();
@@ -114,7 +112,7 @@ impl Component for RenameModal<'_> {
                                 on_rename_done(sequence_name);
                             }
                         }
-                    }),
+                    },
                 })
                 .add(namui_prebuilt::button::text_button(
                     enter_button_rect_in_modal,

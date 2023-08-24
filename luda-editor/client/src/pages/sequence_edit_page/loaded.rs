@@ -242,15 +242,6 @@ impl Component for LoadedSequenceEditorPage {
         };
 
         ctx.compose(|ctx| {
-            table::hooks::horizontal([
-                table::hooks::fixed(220.px(), cut_list_view_cell),
-                table::hooks::ratio(4, cut_editor_cell),
-                character_editor_cell,
-                memo_list_view_cell,
-            ])(wh, ctx)
-        });
-
-        ctx.compose(|ctx| {
             if let Some(SequenceIdCutId {
                 sequence_id,
                 cut_id,
@@ -266,15 +257,24 @@ impl Component for LoadedSequenceEditorPage {
             }
         });
 
-        if_context_menu_for::<ContextMenu>(|context_menu, builder| {
-            builder.add_button("Add Cut", &|| {
+        if_context_menu_for::<ContextMenu>(|context_menu, builder| match context_menu {
+            ContextMenu::CutListView => builder.add_button("Add Cut", &|| {
                 set_seqenece.mutate(|sequence| {
                     sequence.update(SequenceUpdateAction::InsertCut {
                         cut: Cut::new(uuid()),
                         after_cut_id: None,
                     })
                 })
-            })
+            }),
+        });
+
+        ctx.compose(|ctx| {
+            table::hooks::horizontal([
+                table::hooks::fixed(220.px(), cut_list_view_cell),
+                table::hooks::ratio(4, cut_editor_cell),
+                character_editor_cell,
+                memo_list_view_cell,
+            ])(wh, ctx)
         });
 
         ctx.done()

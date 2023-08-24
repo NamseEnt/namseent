@@ -55,6 +55,7 @@ pub struct RawMouseEvent {
     #[derivative(Debug = "ignore")]
     pub(crate) prevent_default: Box<dyn Fn()>,
 }
+impl EventExt for RawMouseEvent {}
 
 #[derive(Debug)]
 pub struct RawWheelEvent {
@@ -62,6 +63,7 @@ pub struct RawWheelEvent {
     pub delta_xy: Xy<f32>,
     pub mouse_xy: Xy<Px>,
 }
+impl EventExt for RawWheelEvent {}
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -71,6 +73,7 @@ pub struct RawKeyboardEvent {
     #[derivative(Debug = "ignore")]
     pub(crate) prevent_default: Box<dyn Fn()>,
 }
+impl EventExt for RawKeyboardEvent {}
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -85,3 +88,4 @@ pub struct RawTextinputKeyDownEvent {
     #[derivative(Debug = "ignore")]
     pub(crate) prevent_default: Box<dyn Fn()>,
 }
+impl EventExt for RawTextinputKeyDownEvent {}

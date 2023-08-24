@@ -228,16 +228,12 @@ impl Component for ContextMenu {
             Color::grayscale_f01(0.2),
         )
         .attach_event(|event| match event {
-            Event::MouseDown { event } => match event.is_local_xy_in() {
-                true => {
-                    if let Some(MouseButton::Left) = event.button {
-                        event.stop_propagation();
-                    }
-                }
-                false => {
+            Event::MouseDown { event } => {
+                if !event.is_local_xy_in() {
                     close_context_menu();
+                    event.stop_propagation();
                 }
-            },
+            }
             _ => {}
         });
 

@@ -39,27 +39,13 @@ impl Component for MemoEditor<'_> {
         let screen_wh = screen::size();
         let screen_wh = Wh::new(screen_wh.width.into_px(), screen_wh.height.into_px());
 
-        let background = {
-            simple_rect(
-                screen_wh,
-                Color::TRANSPARENT,
-                0.px(),
-                Color::grayscale_alpha_f01(0.0, 0.5),
-            )
-            .with_mouse_cursor(MouseCursor::Default)
-            .attach_event(|event| {
-                let on_event = on_event.clone();
-                match event {
-                    namui::Event::MouseDown { event } => {
-                        if event.is_local_xy_in() {
-                            event.stop_propagation();
-                            on_event(Event::Close);
-                        }
-                    }
-                    _ => {}
-                }
-            })
-        };
+        let background = simple_rect(
+            screen_wh,
+            Color::TRANSPARENT,
+            0.px(),
+            Color::grayscale_alpha_f01(0.0, 0.5),
+        )
+        .with_mouse_cursor(MouseCursor::Default);
 
         let container = simple_rect(
             MEMO_EDITOR_WH,
@@ -69,8 +55,9 @@ impl Component for MemoEditor<'_> {
         )
         .attach_event(|event| match event {
             namui::Event::MouseDown { event } => {
-                if event.is_local_xy_in() {
+                if !event.is_local_xy_in() {
                     event.stop_propagation();
+                    on_event(Event::Close);
                 }
             }
             _ => {}
@@ -186,12 +173,12 @@ impl Component for MemoEditor<'_> {
                             },
                         },
                         prevent_default_codes: vec![],
-                        on_event: Box::new(|event| match event {
+                        on_event: &|event| match event {
                             text_input::Event::TextUpdated { text } => {
                                 set_text.set(text.to_string())
                             }
                             _ => {}
-                        }),
+                        },
                     });
                 })(wh, ctx);
             }),
@@ -204,6 +191,7 @@ impl Component for MemoEditor<'_> {
             ));
             ctx.add(container);
             content(MEMO_EDITOR_WH, &mut ctx);
+            ctx.add(namui_prebuilt::event_trap::EventTrap);
         })
         .done()
     }

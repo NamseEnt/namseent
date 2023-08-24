@@ -127,7 +127,6 @@ impl<C: Component> Component for ScrollView<C> {
                         );
 
                         set_scroll_y.set(next_scroll_y);
-
                         event.stop_propagation();
                     }
                     _ => {}
@@ -269,7 +268,6 @@ impl<Func: FnOnce(&mut ComposeCtx)> Component for ScrollViewWithCtx<Func> {
                         );
 
                         set_scroll_y.set(next_scroll_y);
-
                         event.stop_propagation();
                     }
                     _ => {}

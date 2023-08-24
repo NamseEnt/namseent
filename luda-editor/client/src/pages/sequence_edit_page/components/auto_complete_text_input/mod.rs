@@ -130,7 +130,6 @@ impl Component for AutoCompleteTextInput<'_> {
                 if code != Code::Enter {
                     return;
                 }
-                namui::log!("on_enter_down");
 
                 if let Some(selected_suggestion) = &selected_suggestion {
                     on_event(Event::TextChange {
@@ -166,15 +165,12 @@ impl Component for AutoCompleteTextInput<'_> {
                     ..Default::default()
                 },
                 prevent_default_codes: vec![Code::Tab, Code::Enter, Code::ArrowUp, Code::ArrowDown],
-                on_event: Box::new(|event| match event {
-                    text_input::Event::Focus => todo!(),
-                    text_input::Event::Blur => todo!(),
+                on_event: &|event| match event {
                     text_input::Event::TextUpdated { text } => {
                         on_event(Event::TextChange {
                             text: text.to_string(),
                         });
                     }
-                    text_input::Event::SelectionUpdated { selection } => todo!(),
                     text_input::Event::KeyDown { code } => match code {
                         Code::Tab => {}
                         Code::Enter => {
@@ -185,7 +181,8 @@ impl Component for AutoCompleteTextInput<'_> {
                         }
                         _ => {}
                     },
-                }),
+                    text_input::Event::SelectionUpdated { selection: _ } => {}
+                },
             }
             .attach_event(|event| match event {
                 namui::Event::KeyDown { event } => {

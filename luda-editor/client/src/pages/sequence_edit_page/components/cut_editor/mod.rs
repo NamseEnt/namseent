@@ -266,9 +266,7 @@ impl Component for CutEditor<'_> {
                             ..Default::default()
                         },
                         prevent_default_codes: vec![Code::Tab],
-                        on_event: Box::new(|event| match event {
-                            text_input::Event::Focus => todo!(),
-                            text_input::Event::Blur => todo!(),
+                        on_event: &|event| match event {
                             text_input::Event::TextUpdated { text } => {
                                 let line = text.to_string();
                                 SEQUENCE_ATOM.mutate(move |sequence| {
@@ -276,7 +274,7 @@ impl Component for CutEditor<'_> {
                                         .update_cut(cut_id, CutUpdateAction::ChangeCutLine { line })
                                 });
                             }
-                            text_input::Event::SelectionUpdated { selection } => todo!(),
+                            text_input::Event::SelectionUpdated { selection: _ } => {}
                             text_input::Event::KeyDown { code } => {
                                 if code == Code::Tab {
                                     if namui::keyboard::shift_press() {
@@ -288,7 +286,7 @@ impl Component for CutEditor<'_> {
                                     on_internal_event(InternalEvent::EscapeKeyDown)
                                 }
                             }
-                        }),
+                        },
                     });
                 } else {
                     ctx.add(text(TextParam {
