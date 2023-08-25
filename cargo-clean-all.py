@@ -24,11 +24,10 @@ def run():
             continue
 
         print(f"cd {dir_path} && cargo clean")
-        # exit = os.system(
-        #     f"cd {dir_path} && cargo clean")
-        # if exit != 0:
-        #     print(f"\n\n-- fail cargo clean on {dir_path}\n\n")
-        #     return
+        exit = os.system(f"cd {dir_path} && cargo clean")
+        if exit != 0:
+            print(f"\n\n-- fail cargo clean on {dir_path}\n\n")
+            return
 
 
 run()
