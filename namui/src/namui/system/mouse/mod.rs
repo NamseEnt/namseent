@@ -4,6 +4,7 @@ use self::event::set_up_event_handler;
 use super::*;
 use crate::*;
 use std::collections::HashSet;
+use std::ops::ControlFlow;
 use std::sync::{Arc, RwLock};
 use wasm_bindgen::{prelude::Closure, JsCast};
 
@@ -35,7 +36,22 @@ impl MouseSystem {
     }
 }
 
-pub fn set_mouse_cursor(cursor: &MouseCursor) {
+pub(crate) fn update_mouse_cursor(rendering_tree: &RenderingTree) {
+    let mouse_position = position();
+    let mut cursor = MouseCursor::Default;
+
+    rendering_tree.visit_rln(|node, utils| {
+        if let RenderingTree::Special(special) = node {
+            if let SpecialRenderingNode::MouseCursor(mouse_cursor) = special {
+                if Visit::xy_in(node, mouse_position, utils.ancestors) {
+                    cursor = (*mouse_cursor.cursor).clone();
+                    return ControlFlow::Break(());
+                }
+            };
+        };
+        ControlFlow::Continue(())
+    });
+
     let element = document().body().unwrap();
     element
         .style()

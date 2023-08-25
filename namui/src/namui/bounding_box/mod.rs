@@ -2,6 +2,7 @@ mod draw_command;
 mod rendering_tree;
 
 use crate::*;
+pub(crate) use rendering_tree::Visit;
 
 pub trait BoundingBox {
     fn xy_in(&self, xy: Xy<Px>) -> bool;

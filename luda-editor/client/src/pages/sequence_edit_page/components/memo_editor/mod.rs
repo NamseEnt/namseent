@@ -81,8 +81,8 @@ impl Component for MemoEditor<'_> {
                             on_event(Event::Close);
                         }
                     },
-                ),
-                // .with_mouse_cursor(MouseCursor::Pointer),
+                )
+                .with_mouse_cursor(MouseCursor::Pointer),
             )
         };
 
@@ -108,8 +108,8 @@ impl Component for MemoEditor<'_> {
                             });
                         }
                     },
-                ),
-                // .with_mouse_cursor(MouseCursor::Pointer)
+                )
+                .with_mouse_cursor(MouseCursor::Pointer),
             )
         };
 

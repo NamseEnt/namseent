@@ -15,7 +15,7 @@ impl VisitUtils<'_> {
     }
 }
 
-pub(super) trait Visit {
+pub(crate) trait Visit {
     fn visit_rln<F>(&self, callback: F)
     where
         F: FnMut(&Self, VisitUtils) -> ControlFlow<()>;

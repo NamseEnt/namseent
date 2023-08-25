@@ -154,20 +154,22 @@ impl Component for MemoContent<'_> {
         });
 
         let done_button = match memo.user_id == user_id {
-            true => Some(text_button_fit(
-                BUTTON_HEIGHT,
-                "완료",
-                color::STROKE_NORMAL,
-                color::STROKE_NORMAL,
-                1.px(),
-                Color::TRANSPARENT,
-                PADDING,
-                [MouseButton::Left],
-                move |_| {
-                    on_event(Event::DoneClicked { cut_id, memo_id });
-                },
-            )),
-            // .with_mouse_cursor(MouseCursor::Pointer),
+            true => Some(
+                text_button_fit(
+                    BUTTON_HEIGHT,
+                    "완료",
+                    color::STROKE_NORMAL,
+                    color::STROKE_NORMAL,
+                    1.px(),
+                    Color::TRANSPARENT,
+                    PADDING,
+                    [MouseButton::Left],
+                    move |_| {
+                        on_event(Event::DoneClicked { cut_id, memo_id });
+                    },
+                )
+                .with_mouse_cursor(MouseCursor::Pointer),
+            ),
             false => None,
         };
         let done_button_width = done_button

@@ -206,7 +206,8 @@ impl Component for ContextMenu {
                                     }
                                 }
                                 _ => {}
-                            }),
+                            })
+                            .with_mouse_cursor(MouseCursor::Pointer),
                         );
                     }
                     Item::Divider => {

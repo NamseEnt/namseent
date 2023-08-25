@@ -82,6 +82,7 @@ impl TreeContext {
         self.channel_events.lock().unwrap().extend(channel_events);
 
         let rendering_tree = (self.call_root_render)(updated_sigs);
+        crate::system::mouse::update_mouse_cursor(&rendering_tree);
         crate::system::drawer::request_draw_rendering_tree(rendering_tree);
 
         (self.clear_unrendered_components)();
