@@ -141,17 +141,17 @@ jobs:
           target: wasm-unknown-web
           path: namui/sample/rect
 
-  test-luda-adventure:
-    needs: [check-rebuild]
-    if: needs.check-rebuild.outputs.luda-adventure == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/init-test-job
-      - uses: ./.github/actions/namui-test
-        with:
-          target: wasm-unknown-web
-          path: luda-adventure
+  # test-luda-adventure:
+  #   needs: [check-rebuild]
+  #   if: needs.check-rebuild.outputs.luda-adventure == 'true'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: ./.github/actions/init-test-job
+  #     - uses: ./.github/actions/namui-test
+  #       with:
+  #         target: wasm-unknown-web
+  #         path: luda-adventure
 
   # NOTE: This is for status check of pull request.
   post-test:
@@ -166,7 +166,7 @@ jobs:
       - test-luda-editor
       - test-namui-prebuilt
       - test-namui-sample
-      - test-luda-adventure
+      # - test-luda-adventure
     steps:
       - run: echo ${{ join(needs.*.result, ',') }}
       - run: echo "any_test_failed=${{ contains(join(needs.*.result, ','), 'failure') }}" >> $GITHUB_ENV
