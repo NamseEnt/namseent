@@ -7,6 +7,7 @@ pub(crate) fn invoke_on_event(
     raw_event: &RawEvent,
     inverse_matrix: Matrix3x3,
     rendering_tree: &RenderingTree,
+    global_xy_clip_in: impl ClipIn,
 ) {
     if tree_ctx
         .is_stop_event_propagation
@@ -17,14 +18,15 @@ pub(crate) fn invoke_on_event(
 
     match raw_event {
         RawEvent::MouseDown { event } => {
-            on_event(Event::MouseDown {
-                event: get_mouse_event(
-                    inverse_matrix,
-                    &rendering_tree,
-                    event,
-                    MouseEventType::Down,
-                ),
-            });
+            let event = get_mouse_event(
+                inverse_matrix,
+                &rendering_tree,
+                event,
+                MouseEventType::Down,
+                global_xy_clip_in,
+            );
+
+            on_event(Event::MouseDown { event });
         }
         RawEvent::MouseMove { event } => {
             on_event(Event::MouseMove {
@@ -33,12 +35,19 @@ pub(crate) fn invoke_on_event(
                     &rendering_tree,
                     event,
                     MouseEventType::Move,
+                    global_xy_clip_in,
                 ),
             });
         }
         RawEvent::MouseUp { event } => {
             on_event(Event::MouseUp {
-                event: get_mouse_event(inverse_matrix, &rendering_tree, event, MouseEventType::Up),
+                event: get_mouse_event(
+                    inverse_matrix,
+                    &rendering_tree,
+                    event,
+                    MouseEventType::Up,
+                    global_xy_clip_in,
+                ),
             });
         }
         RawEvent::Wheel { event } => {
@@ -47,10 +56,11 @@ pub(crate) fn invoke_on_event(
                     delta_xy: event.delta_xy,
                     local_xy: Box::new(move || inverse_matrix.transform_xy(event.mouse_xy)),
                     is_local_xy_in: Box::new(move || {
-                        BoundingBox::xy_in(
-                            rendering_tree,
-                            inverse_matrix.transform_xy(event.mouse_xy),
-                        )
+                        global_xy_clip_in.clip_in(event.mouse_xy)
+                            && BoundingBox::xy_in(
+                                rendering_tree,
+                                inverse_matrix.transform_xy(event.mouse_xy),
+                            )
                     }),
                 },
             });
@@ -126,7 +136,13 @@ pub(crate) fn invoke_on_event(
             xy,
         } => {
             on_event(Event::DragAndDrop {
-                event: get_file_drop_event(inverse_matrix, &rendering_tree, data_transfer, xy),
+                event: get_file_drop_event(
+                    inverse_matrix,
+                    &rendering_tree,
+                    data_transfer,
+                    xy,
+                    global_xy_clip_in,
+                ),
             });
         }
     }
@@ -137,14 +153,16 @@ fn get_mouse_event<'a>(
     rendering_tree: &'a RenderingTree,
     raw_mouse_event: &'a RawMouseEvent,
     mouse_event_type: MouseEventType,
+    global_xy_clip_in: impl ClipIn + 'a,
 ) -> MouseEvent<'a> {
     MouseEvent {
         local_xy: Box::new(move || inverse_matrix.transform_xy(raw_mouse_event.xy)),
         is_local_xy_in: Box::new(move || {
-            BoundingBox::xy_in(
-                rendering_tree,
-                inverse_matrix.transform_xy(raw_mouse_event.xy),
-            )
+            global_xy_clip_in.clip_in(raw_mouse_event.xy)
+                && BoundingBox::xy_in(
+                    rendering_tree,
+                    inverse_matrix.transform_xy(raw_mouse_event.xy),
+                )
         }),
         global_xy: raw_mouse_event.xy,
         pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
@@ -159,6 +177,7 @@ fn get_file_drop_event<'a>(
     rendering_tree: &'a RenderingTree,
     data_transfer: &Option<DataTransfer>,
     global_xy: Xy<Px>,
+    global_xy_clip_in: impl ClipIn + 'a,
 ) -> FileDropEvent<'a> {
     let files = data_transfer.as_ref().map_or(vec![], |data_transfer| {
         let items = data_transfer.items();
@@ -173,7 +192,8 @@ fn get_file_drop_event<'a>(
 
     FileDropEvent {
         is_local_xy_in: Box::new(move || {
-            BoundingBox::xy_in(rendering_tree, inverse_matrix.transform_xy(global_xy))
+            global_xy_clip_in.clip_in(global_xy)
+                && BoundingBox::xy_in(rendering_tree, inverse_matrix.transform_xy(global_xy))
         }),
         local_xy: Box::new(move || inverse_matrix.transform_xy(global_xy)),
         global_xy,

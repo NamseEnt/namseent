@@ -42,7 +42,11 @@ impl LazyRenderingTree {
                 lazy,
             } => {
                 let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();
-                crate::clip(path, clip_op, rendering_tree)
+                RenderingTree::Special(SpecialRenderingNode::Clip(ClipNode {
+                    path,
+                    clip_op,
+                    rendering_tree: Box::new(rendering_tree),
+                }))
             }
             LazyRenderingTree::OnTop { lazy } => {
                 let rendering_tree = lazy.lock().unwrap().take().unwrap().into_rendering_tree();

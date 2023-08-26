@@ -191,7 +191,7 @@
 //                                     .iter()
 //                                     .find(|cg_file| cg_file.name == cg.name)?;
 //                                 Some(cg_render::render_cg(
-//                                     cg_render::CgRenderProps {
+//                                     cg_render::CgRender {
 //                                         cg_id: cg.id,
 //                                         project_id: props.project_id,
 //                                         rect: graphic_rendering_rect,

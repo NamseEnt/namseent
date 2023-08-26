@@ -1,3 +1,4 @@
+mod clip_in;
 mod lazy_rendering_tree;
 mod nesting;
 
@@ -19,6 +20,7 @@ pub struct ComposeCtx {
     lazy_children: Vec<Arc<Mutex<Option<LazyRenderingTree>>>>,
     lazy: Arc<Mutex<Option<LazyRenderingTree>>>,
     raw_event: RawEventContainer,
+    clippings: Vec<Clipping>,
 }
 impl Drop for ComposeCtx {
     fn drop(&mut self) {
@@ -50,6 +52,7 @@ impl ComposeCtx {
         renderer: Renderer,
         lazy: Arc<Mutex<Option<LazyRenderingTree>>>,
         raw_event: RawEventContainer,
+        clippings: Vec<Clipping>,
     ) -> Self {
         ComposeCtx {
             tree_ctx,
@@ -61,6 +64,7 @@ impl ComposeCtx {
             lazy_children: Default::default(),
             lazy,
             raw_event,
+            clippings,
         }
     }
     fn next_children_index(&mut self) -> usize {
@@ -87,9 +91,12 @@ impl ComposeCtx {
         } else {
             self.next_child_key_vec()
         };
-        let ctx = self
-            .renderer
-            .spawn_render_ctx(key_vec, component_type_name, self.matrix);
+        let ctx = self.renderer.spawn_render_ctx(
+            key_vec,
+            component_type_name,
+            self.matrix,
+            self.clippings.clone(),
+        );
         ctx.disable_event_handling();
         let done = func(&ctx);
         done.rendering_tree
@@ -108,7 +115,9 @@ impl ComposeCtx {
     }
 
     fn add_inner(&mut self, key_vec: KeyVec, component: impl Component) {
-        let rendering_tree = self.renderer.render(key_vec, component, self.matrix);
+        let rendering_tree =
+            self.renderer
+                .render(key_vec, component, self.matrix, self.clippings.clone());
         self.lazy_children.push(Arc::new(Mutex::new(Some(
             LazyRenderingTree::RenderingTree { rendering_tree },
         ))));
@@ -142,6 +151,7 @@ impl ComposeCtx {
                 self.renderer.clone(),
                 lazy.clone(),
                 self.raw_event.clone(),
+                self.clippings.clone(),
             );
             compose(&mut child_compose_ctx);
         }
@@ -155,7 +165,9 @@ impl ComposeCtx {
 
     pub fn add_and_get_bounding_box(&mut self, component: impl Component) -> Option<Rect<Px>> {
         let key_vec = self.next_child_key_vec();
-        let rendering_tree = self.renderer.render(key_vec, component, self.matrix);
+        let rendering_tree =
+            self.renderer
+                .render(key_vec, component, self.matrix, self.clippings.clone());
 
         let bounding_box = rendering_tree.bounding_box();
 

@@ -64,6 +64,12 @@ impl From<String> for Key {
     }
 }
 
+impl<'a> From<&'a String> for Key {
+    fn from(value: &'a String) -> Self {
+        Key::String(value.clone())
+    }
+}
+
 impl<'a> From<&'a str> for Key {
     fn from(value: &'a str) -> Self {
         Key::String(value.to_string())

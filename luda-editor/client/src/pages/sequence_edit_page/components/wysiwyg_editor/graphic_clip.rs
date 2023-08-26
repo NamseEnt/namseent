@@ -13,7 +13,7 @@ pub struct GraphicClip<'a> {
     pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
-pub enum Event {
+pub enum Event<'a> {
     WysiwygTool(wysiwyg_tool::Event),
     SelectImage {
         graphic_index: Uuid,
@@ -23,7 +23,7 @@ pub enum Event {
         cut_id: Uuid,
         graphic_index: Uuid,
         graphic_wh: Wh<Px>,
-        graphic: ScreenGraphic,
+        graphic: &'a ScreenGraphic,
     },
 }
 
@@ -89,95 +89,95 @@ impl Component for GraphicClip<'_> {
             }
         };
 
-        let graphic_rendering_tree = match &graphic {
-            ScreenGraphic::Image(_image) => namui::image(ImageParam {
-                rect: graphic_rendering_rect,
-                source: image.src.clone(),
-                style: ImageStyle {
-                    fit: ImageFit::Fill,
-                    paint: None,
-                },
-            }),
-            ScreenGraphic::Cg(cg) => try_render(|| {
-                let cg_file = cg_files.iter().find(|cg_file| cg_file.name == cg.name)?;
-                Some(cg_render::render_cg(
-                    cg_render::CgRenderProps {
-                        cg_id: cg.id,
+        let graphic_rendering_tree = |ctx: &mut ComposeCtx| {
+            match &graphic {
+                ScreenGraphic::Image(_image) => ctx.add(namui::image(ImageParam {
+                    rect: graphic_rendering_rect,
+                    source: image.src.clone(),
+                    style: ImageStyle {
+                        fit: ImageFit::Fill,
+                        paint: None,
+                    },
+                })),
+                ScreenGraphic::Cg(cg) => {
+                    let Some(cg_file) = cg_files
+                        .iter()
+                        .find(|cg_file| cg_file.name == cg.name) else {
+                            return;
+                        };
+                    ctx.add(cg_render::CgRender {
                         project_id,
                         rect: graphic_rendering_rect,
-                    },
-                    cg,
-                    cg_file,
-                ))
-            }),
-        }
-        .attach_event(|event| match event {
-            namui::Event::MouseDown { event } => {
-                if event.is_local_xy_in() {
-                    let graphic = graphic.clone();
-                    let on_event = on_event.clone();
-                    let graphic = graphic.clone();
-                    event.stop_propagation();
-                    on_event(Event::SelectImage { graphic_index });
-
-                    if event.button == Some(MouseButton::Right) {
-                        on_event(Event::GraphicRightClick {
-                            global_xy: event.global_xy,
-                            cut_id,
-                            graphic_index,
-                            graphic_wh,
-                            graphic,
-                        });
-                    }
+                        screen_cg: cg,
+                        cg_file,
+                    })
                 }
             }
-            namui::Event::KeyDown { event } => {
-                if is_editing_graphic {
-                    let graphic = graphic.clone();
-                    namui::log!("key down: {:?}", event.code);
-                    let graphic = graphic.clone();
-                    if event.code != Code::KeyC || !namui::keyboard::ctrl_press() {
-                        return;
-                    }
+            .attach_event(|event| match event {
+                namui::Event::MouseDown { event } => {
+                    if event.is_local_xy_in() {
+                        event.stop_propagation();
+                        on_event(Event::SelectImage { graphic_index });
 
-                    match graphic {
-                        ScreenGraphic::Image(_) => {
-                            let image = image.clone();
-                            spawn_local(async move {
-                                let result = namui::clipboard::write_image(&image).await;
-                                match result {
-                                    Ok(_) => {
-                                        namui::log!("Image copied to clipboard");
-                                    }
-                                    Err(_) => {
-                                        namui::log!("Failed to copy image to clipboard");
-                                    }
-                                }
-                            })
-                        }
-                        ScreenGraphic::Cg(cg) => {
-                            let cg = cg.clone();
-                            spawn_local(async move {
-                                match clipboard::write([(
-                                    "web application/luda-editor-cg+json",
-                                    serde_json::to_string(&cg).unwrap(),
-                                )])
-                                .await
-                                {
-                                    Ok(_) => {
-                                        namui::log!("Cg copied to clipboard")
-                                    }
-                                    Err(_) => {
-                                        namui::log!("Failed to copy cg to clipboard")
-                                    }
-                                };
-                            })
+                        if event.button == Some(MouseButton::Right) {
+                            on_event(Event::GraphicRightClick {
+                                global_xy: event.global_xy,
+                                cut_id,
+                                graphic_index,
+                                graphic_wh,
+                                graphic,
+                            });
                         }
                     }
                 }
-            }
-            _ => {}
-        });
+                namui::Event::KeyDown { event } => {
+                    if is_editing_graphic {
+                        let graphic = graphic.clone();
+                        namui::log!("key down: {:?}", event.code);
+                        let graphic = graphic.clone();
+                        if event.code != Code::KeyC || !namui::keyboard::ctrl_press() {
+                            return;
+                        }
+
+                        match graphic {
+                            ScreenGraphic::Image(_) => {
+                                let image = image.clone();
+                                spawn_local(async move {
+                                    let result = namui::clipboard::write_image(&image).await;
+                                    match result {
+                                        Ok(_) => {
+                                            namui::log!("Image copied to clipboard");
+                                        }
+                                        Err(_) => {
+                                            namui::log!("Failed to copy image to clipboard");
+                                        }
+                                    }
+                                })
+                            }
+                            ScreenGraphic::Cg(cg) => {
+                                let cg = cg.clone();
+                                spawn_local(async move {
+                                    match clipboard::write([(
+                                        "web application/luda-editor-cg+json",
+                                        serde_json::to_string(&cg).unwrap(),
+                                    )])
+                                    .await
+                                    {
+                                        Ok(_) => {
+                                            namui::log!("Cg copied to clipboard")
+                                        }
+                                        Err(_) => {
+                                            namui::log!("Failed to copy cg to clipboard")
+                                        }
+                                    };
+                                })
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            });
+        };
 
         ctx.compose(|ctx| {
             if is_editing_graphic {
@@ -193,7 +193,7 @@ impl Component for GraphicClip<'_> {
             }
         });
 
-        ctx.component(graphic_rendering_tree);
+        ctx.compose(graphic_rendering_tree);
 
         ctx.done()
     }

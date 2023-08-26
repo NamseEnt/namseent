@@ -1,4 +1,5 @@
 pub(crate) mod channel;
+mod clipping;
 mod component;
 mod ctx;
 mod event;
@@ -11,6 +12,7 @@ mod value;
 
 use crate::RawEvent;
 pub(crate) use channel::*;
+pub(crate) use clipping::*;
 pub use component::*;
 pub use ctx::*;
 pub(crate) use event::*;

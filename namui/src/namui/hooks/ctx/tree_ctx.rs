@@ -47,6 +47,7 @@ impl TreeContext {
                     root_instance.clone(),
                     updated_sigs,
                     Matrix3x3::identity(),
+                    vec![],
                 )
             }
         });
@@ -94,8 +95,9 @@ impl TreeContext {
         instance: Arc<ComponentInstance>,
         updated_sigs: HashSet<SigId>,
         matrix: Matrix3x3,
+        clippings: Vec<Clipping>,
     ) -> RenderingTree {
-        let render_ctx = self.spawn_render_ctx(instance, updated_sigs, matrix);
+        let render_ctx = self.spawn_render_ctx(instance, updated_sigs, matrix, clippings);
 
         let render_done = Box::new(component).render(&render_ctx);
 
@@ -106,6 +108,7 @@ impl TreeContext {
         instance: Arc<ComponentInstance>,
         updated_sigs: HashSet<SigId>,
         matrix: Matrix3x3,
+        clippings: Vec<Clipping>,
     ) -> RenderCtx {
         RenderCtx::new(
             instance,
@@ -113,6 +116,7 @@ impl TreeContext {
             self.clone(),
             matrix,
             self.raw_event.clone(),
+            clippings,
         )
     }
 

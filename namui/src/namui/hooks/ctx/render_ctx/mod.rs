@@ -1,3 +1,4 @@
+mod clip_in;
 mod compose_ctx;
 mod method_impl;
 mod public;
@@ -34,6 +35,7 @@ pub struct RenderCtx {
     component_index: AtomicUsize,
     event_handling_disabled: AtomicBool,
     raw_event: RawEventContainer,
+    clippings: Vec<Clipping>,
 }
 
 impl Drop for RenderCtx {
@@ -49,6 +51,7 @@ impl<'a> RenderCtx {
         tree_ctx: TreeContext,
         matrix: Matrix3x3,
         raw_event: RawEventContainer,
+        clippings: Vec<Clipping>,
     ) -> Self {
         instance.before_render();
         Self {
@@ -64,6 +67,7 @@ impl<'a> RenderCtx {
             component_index: Default::default(),
             event_handling_disabled: Default::default(),
             raw_event,
+            clippings,
         }
     }
 
@@ -93,8 +97,12 @@ impl<'a> RenderCtx {
     }
 
     fn render_children(&self, key_vec: KeyVec, component: impl Component) -> RenderingTree {
-        self.renderer()
-            .render(key_vec, component, self.matrix.lock().unwrap().clone())
+        self.renderer().render(
+            key_vec,
+            component,
+            self.matrix.lock().unwrap().clone(),
+            self.clippings.clone(),
+        )
     }
 
     fn get_next_component_index(&self) -> usize {
@@ -152,6 +160,7 @@ impl<'a> RenderCtx {
                 self.renderer(),
                 lazy.clone(),
                 self.raw_event.clone(),
+                self.clippings.clone(),
             );
 
             compose(&mut compose_ctx);

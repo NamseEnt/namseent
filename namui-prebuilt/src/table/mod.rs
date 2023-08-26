@@ -187,16 +187,16 @@ fn slice_internal<'a>(
                 xywh.x(),
                 xywh.y(),
                 if need_clip {
-                    namui::clip(
-                        Path::new().add_rect(Rect::Xywh {
+                    RenderingTree::Special(SpecialRenderingNode::Clip(ClipNode {
+                        path: Path::new().add_rect(Rect::Xywh {
                             x: px(0.0),
                             y: px(0.0),
                             width: xywh.width(),
                             height: xywh.height(),
                         }),
-                        ClipOp::Intersect,
-                        render_fn(direction, xywh.wh()),
-                    )
+                        clip_op: ClipOp::Intersect,
+                        rendering_tree: Box::new(render_fn(direction, xywh.wh())),
+                    }))
                 } else {
                     render_fn(direction, xywh.wh())
                 },

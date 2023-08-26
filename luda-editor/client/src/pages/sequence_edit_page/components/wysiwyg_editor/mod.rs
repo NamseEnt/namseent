@@ -161,7 +161,7 @@ impl Component for WysiwygEditor<'_> {
                         cut_id,
                         graphic_index,
                         graphic_wh,
-                        graphic,
+                        graphic: graphic.clone(),
                     },
                 );
             }

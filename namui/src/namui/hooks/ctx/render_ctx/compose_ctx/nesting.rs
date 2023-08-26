@@ -18,6 +18,7 @@ impl ComposeCtx {
             self.renderer.clone(),
             lazy,
             self.raw_event.clone(),
+            self.clippings.clone(),
         )
     }
     pub fn absolute(&mut self, xy: impl AsXyPx) -> Self {
@@ -36,17 +37,23 @@ impl ComposeCtx {
             self.renderer.clone(),
             lazy,
             self.raw_event.clone(),
+            self.clippings.clone(),
         )
     }
     pub fn clip(&mut self, path: crate::Path, clip_op: crate::ClipOp) -> Self {
         let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
         self.add_lazy(LazyRenderingTree::Clip {
-            path,
+            path: path.clone(),
             clip_op,
             lazy: lazy.clone(),
         });
 
-        // TODO: Cliping
+        let clippings = {
+            let mut clippings = self.clippings.clone();
+            let path = path.transform(self.matrix);
+            clippings.push(Clipping { path, clip_op });
+            clippings
+        };
 
         ComposeCtx::new(
             self.tree_ctx.clone(),
@@ -55,6 +62,7 @@ impl ComposeCtx {
             self.renderer.clone(),
             lazy,
             self.raw_event.clone(),
+            clippings,
         )
     }
     pub fn on_top(&mut self) -> Self {
@@ -69,6 +77,7 @@ impl ComposeCtx {
             self.renderer.clone(),
             lazy,
             self.raw_event.clone(),
+            vec![],
         )
     }
     pub fn attach_event(&mut self, on_event: impl FnOnce(Event<'_>)) -> &mut Self {
@@ -87,6 +96,7 @@ impl ComposeCtx {
                 &raw_event,
                 self.matrix.inverse().unwrap(),
                 &rendering_tree,
+                &self.clippings,
             );
         }
 

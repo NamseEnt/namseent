@@ -470,12 +470,12 @@ impl Component for SequencePlayerGraphic<'_> {
             return ctx.done();
         };
 
-        ctx.component(match graphic.as_ref() {
+        ctx.compose(|ctx| match graphic.as_ref() {
             ScreenGraphic::Image(screen_image) => {
                 let rect =
                     calculate_graphic_rect_on_screen(image.wh, self.wh, screen_image.circumscribed);
 
-                namui::image(ImageParam {
+                ctx.add(namui::image(ImageParam {
                     rect,
                     source: ImageSource::Url {
                         url: url.clone_inner(),
@@ -484,7 +484,7 @@ impl Component for SequencePlayerGraphic<'_> {
                         fit: ImageFit::Fill,
                         paint: self.paint,
                     },
-                })
+                }));
             }
             ScreenGraphic::Cg(screen_cg) => {
                 let outer_rect =
@@ -496,17 +496,14 @@ impl Component for SequencePlayerGraphic<'_> {
                     .find(|cg_file| cg_file.name == screen_cg.name);
 
                 match cg_file {
-                    Some(cg_file) => cg_render::render_cg(
-                        cg_render::CgRenderProps {
-                            cg_id: screen_cg.id,
-                            project_id: self.project_id,
-                            rect: outer_rect,
-                        },
+                    Some(cg_file) => ctx.add(cg_render::CgRender {
+                        project_id: self.project_id,
+                        rect: outer_rect,
                         screen_cg,
                         cg_file,
-                    ),
-                    None => RenderingTree::Empty,
-                }
+                    }),
+                    None => ctx.add(RenderingTree::Empty),
+                };
             }
         })
         .done()
