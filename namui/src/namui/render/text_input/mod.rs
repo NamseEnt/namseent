@@ -186,6 +186,10 @@ impl Component for TextInput<'_> {
 
         let selection = atom.get_selection_of_text_input(id);
 
+        ctx.component(self.draw_caret(&self, &paragraph, &selection));
+
+        ctx.component(self.draw_texts_divided_by_selection(&paragraph, &selection));
+
         ctx.component(
             namui::rect(RectParam {
                 rect: self.rect,
@@ -333,10 +337,6 @@ impl Component for TextInput<'_> {
                 _ => {}
             }),
         );
-
-        ctx.component(self.draw_texts_divided_by_selection(&paragraph, &selection));
-
-        ctx.component(self.draw_caret(&self, &paragraph, &selection));
 
         ctx.done()
     }
