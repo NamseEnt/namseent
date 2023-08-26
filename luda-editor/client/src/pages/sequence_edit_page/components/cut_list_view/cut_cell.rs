@@ -99,7 +99,6 @@ fn render_comment_badge(width: Px, memo_count: usize, color: Color) -> Rendering
     let paint = Paint::new().set_style(PaintStyle::Fill).set_color(color);
 
     render([
-        path(path_builder, paint),
         text(TextParam {
             text: memo_count,
             x: width * 0.5,
@@ -120,5 +119,6 @@ fn render_comment_badge(width: Px, memo_count: usize, color: Color) -> Rendering
             },
             max_width: width.into(),
         }),
+        path(path_builder, paint),
     ])
 }

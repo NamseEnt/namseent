@@ -38,7 +38,8 @@ impl Draw for RenderingTree {
         ) {
             match rendering_tree {
                 RenderingTree::Children(children) => {
-                    for child in children.into_iter() {
+                    // NOTE: Children are drawn in reverse order. First(Left) child is drawn at the front.
+                    for child in children.into_iter().rev() {
                         draw_internal(ctx, child, rendering_tree_draw_context);
                     }
                 }

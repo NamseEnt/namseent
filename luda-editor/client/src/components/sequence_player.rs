@@ -129,13 +129,13 @@ impl Component for SequencePlayer<'_> {
                             &self.cg_files,
                         );
                         ctx.add((
-                            render_text_box(inner_content_rect.wh()),
                             render_text(
                                 &self.project_shared_data,
                                 inner_content_rect.wh(),
                                 cut,
                                 1.0.one_zero(),
                             ),
+                            render_text_box(inner_content_rect.wh()),
                             simple_rect(
                                 inner_content_rect.wh(),
                                 Color::TRANSPARENT,

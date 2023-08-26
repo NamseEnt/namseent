@@ -39,8 +39,8 @@ pub fn text_button<'a>(
             rect.x(),
             rect.y(),
             render([
-                simple_rect(rect.wh(), stroke_color, stroke_width, fill_color),
                 center_text_full_height(rect.wh(), text, text_color),
+                simple_rect(rect.wh(), stroke_color, stroke_width, fill_color),
             ]),
         ),
         mouse_buttons,
@@ -68,13 +68,57 @@ pub fn text_button_fit<'a>(
 
     Some(attach_text_button_event(
         render([
+            translate(width / 2 + side_padding, 0.px(), center_text),
             simple_rect(
                 Wh::new(width + side_padding * 2, height),
                 stroke_color,
                 stroke_width,
                 fill_color,
             ),
-            translate(width / 2 + side_padding, 0.px(), center_text),
+        ]),
+        mouse_buttons,
+        on_mouse_up_in,
+    ))
+}
+
+pub fn text_button_fit_align<'a>(
+    wh: Wh<Px>,
+    align: TextAlign,
+    text: &str,
+    text_color: Color,
+    stroke_color: Color,
+    stroke_width: Px,
+    fill_color: Color,
+    side_padding: Px,
+    mouse_buttons: impl IntoIterator<Item = MouseButton>,
+    on_mouse_up_in: impl 'a + FnOnce(MouseEvent),
+) -> impl 'a + Component {
+    let mouse_buttons = mouse_buttons.into_iter().collect::<Vec<_>>();
+    let center_text = center_text_full_height(Wh::new(0.px(), wh.height), text, text_color);
+    let center_text_width = match center_text.bounding_box() {
+        Some(bounding_box) => bounding_box.width(),
+        None => return None,
+    };
+    let center_text_x = (wh.width - center_text_width)
+        * match align {
+            TextAlign::Left => 0.0,
+            TextAlign::Center => 0.5,
+            TextAlign::Right => 1.0,
+        };
+
+    Some(attach_text_button_event(
+        render([
+            translate(center_text_x, 0.px(), center_text),
+            translate(
+                center_text_x - center_text_width / 2 - side_padding,
+                0.px(),
+                simple_rect(
+                    Wh::new(center_text_width + side_padding * 2, wh.height),
+                    stroke_color,
+                    stroke_width,
+                    fill_color,
+                ),
+            ),
         ]),
         mouse_buttons,
         on_mouse_up_in,
@@ -97,7 +141,6 @@ pub fn body_text_button<'a>(
             rect.x(),
             rect.y(),
             render([
-                simple_rect(rect.wh(), stroke_color, stroke_width, fill_color),
                 match text_align {
                     TextAlign::Left => {
                         crate::typography::body::left(rect.wh().height, text, text_color)
@@ -107,6 +150,7 @@ pub fn body_text_button<'a>(
                     }
                     TextAlign::Right => crate::typography::body::right(rect.wh(), text, text_color),
                 },
+                simple_rect(rect.wh(), stroke_color, stroke_width, fill_color),
             ]),
         ),
         mouse_buttons,

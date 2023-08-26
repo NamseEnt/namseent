@@ -49,11 +49,6 @@ impl Component for PartPicker<'_> {
         let cg_id = cg_file.id;
 
         let cg_select_button = table::hooks::horizontal_padding(INNER_PADDING, |wh, ctx| {
-            ctx.add(center_text_full_height(
-                wh,
-                "Change Cg",
-                color::STROKE_NORMAL,
-            ));
             ctx.add(
                 simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                     .with_mouse_cursor(MouseCursor::Pointer)
@@ -65,7 +60,12 @@ impl Component for PartPicker<'_> {
                         }
                         _ => {}
                     }),
-            );
+            )
+            .add(center_text_full_height(
+                wh,
+                "Change Cg",
+                color::STROKE_NORMAL,
+            ));
         });
 
         let cg_part_group_list = table::hooks::vertical(
@@ -177,8 +177,8 @@ fn render_title_bar(cg_part: &CgPart) -> TableCell {
     table::hooks::fixed(BUTTON_HEIGHT, {
         table::hooks::horizontal_padding(INNER_PADDING, |wh, ctx| {
             ctx.add(render([
-                simple_rect(wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND),
                 center_text_full_height(wh, cg_part.name.clone(), color::STROKE_NORMAL),
+                simple_rect(wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND),
             ]));
         })
     })
@@ -193,15 +193,6 @@ fn render_no_selection_button(
     table::hooks::fixed(
         THUMBNAIL_WH.width,
         table::hooks::padding(INNER_PADDING, move |wh, ctx| {
-            ctx.add(center_text(
-                wh,
-                "No Selection",
-                match no_selection {
-                    true => color::STROKE_SELECTED,
-                    false => color::STROKE_NORMAL,
-                },
-                12.int_px(),
-            ));
             ctx.add(
                 simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                     .with_mouse_cursor(MouseCursor::Pointer)
@@ -222,7 +213,16 @@ fn render_no_selection_button(
                         }
                         _ => {}
                     }),
-            );
+            )
+            .add(center_text(
+                wh,
+                "No Selection",
+                match no_selection {
+                    true => color::STROKE_SELECTED,
+                    false => color::STROKE_NORMAL,
+                },
+                12.int_px(),
+            ));
         }),
     )
 }
@@ -249,23 +249,6 @@ fn render_thumbnail<'a>(
     table::hooks::fixed(
         THUMBNAIL_WH.width,
         table::hooks::padding(INNER_PADDING, move |wh, ctx| {
-            ctx.add(render([
-                simple_rect(wh, Color::TRANSPARENT, 0.px(), color::BACKGROUND)
-                    .with_mouse_cursor(MouseCursor::Pointer),
-                get_project_cg_part_variant_image_url(project_id, cg_id, cg_part_variant.id)
-                    .map_or(RenderingTree::Empty, |cg_part_image_url| {
-                        image(ImageParam {
-                            rect: Rect::from_xy_wh(Xy::zero(), wh),
-                            source: ImageSource::Url {
-                                url: cg_part_image_url,
-                            },
-                            style: ImageStyle {
-                                fit: ImageFit::Contain,
-                                paint: None,
-                            },
-                        })
-                    }),
-            ]));
             ctx.add(
                 simple_rect(
                     wh,
@@ -327,7 +310,24 @@ fn render_thumbnail<'a>(
                     }
                     _ => {}
                 }),
-            );
+            )
+            .add(render([
+                get_project_cg_part_variant_image_url(project_id, cg_id, cg_part_variant.id)
+                    .map_or(RenderingTree::Empty, |cg_part_image_url| {
+                        image(ImageParam {
+                            rect: Rect::from_xy_wh(Xy::zero(), wh),
+                            source: ImageSource::Url {
+                                url: cg_part_image_url,
+                            },
+                            style: ImageStyle {
+                                fit: ImageFit::Contain,
+                                paint: None,
+                            },
+                        })
+                    }),
+                simple_rect(wh, Color::TRANSPARENT, 0.px(), color::BACKGROUND)
+                    .with_mouse_cursor(MouseCursor::Pointer),
+            ]));
         }),
     )
 }

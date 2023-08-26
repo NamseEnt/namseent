@@ -4,7 +4,6 @@ mod render;
 mod tool_tip;
 mod update;
 
-use std::ops::Deref;
 use self::{cg_picker::CgPicker, part_picker::PartPicker, tool_tip::ToolTip};
 use crate::{
     color,
@@ -13,6 +12,7 @@ use crate::{
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::{Cut, CutUpdateAction, ScreenCg, ScreenGraphic};
+use std::{ops::Deref, sync::atomic::AtomicBool};
 
 #[namui::component]
 pub struct CharacterEditor<'a> {
@@ -40,6 +40,7 @@ impl Component for CharacterEditor<'_> {
         } = self;
         let (tool_tip, set_tool_tip) = ctx.state::<Option<ToolTip>>(|| None);
         let (cg_file_list, _) = ctx.atom(&CG_FILES_ATOM);
+        let tool_tip_setted: AtomicBool = Default::default();
 
         enum InternalEvent {
             MoveInCgFileThumbnail { global_xy: Xy<Px>, text: String },
@@ -53,20 +54,28 @@ impl Component for CharacterEditor<'_> {
                     }
                 }
                 namui::Event::MouseMove { .. } => {
-                    if tool_tip.is_some() {
+                    if !tool_tip_setted.load(std::sync::atomic::Ordering::Relaxed)
+                        && tool_tip.is_some()
+                    {
                         set_tool_tip.set(None);
                     }
                 }
                 _ => {}
             });
 
-        ctx.component(background);
-
         let on_internal_event = |event: InternalEvent| match event {
             InternalEvent::MoveInCgFileThumbnail { global_xy, text } => {
+                tool_tip_setted.store(true, std::sync::atomic::Ordering::Relaxed);
                 set_tool_tip.set(Some(ToolTip { global_xy, text }))
             }
         };
+
+        ctx.compose(|ctx| {
+            let Some(tool_tip) = tool_tip.deref() else {
+                return;
+            };
+            ctx.add(tool_tip.clone());
+        });
 
         ctx.compose(|ctx| {
             match edit_target {
@@ -89,9 +98,9 @@ impl Component for CharacterEditor<'_> {
                                                 .find(|file| file.id == cg_id) else {
                                                     return;
                                                 };
-    
+
                                     let graphic_index: Uuid = Uuid::new_v4();
-    
+
                                     SEQUENCE_ATOM.mutate(move |sequence| {
                                         sequence.update_cut(
                                             cut_id,
@@ -121,7 +130,7 @@ impl Component for CharacterEditor<'_> {
                                                 .find(|file| file.id == cg_id) else {
                                                     return;
                                                 };
-    
+
                                     SEQUENCE_ATOM.mutate(move |sequence| {
                                         sequence.update_cut(
                                             cut_id,
@@ -161,7 +170,7 @@ impl Component for CharacterEditor<'_> {
                                 }
                             })
                     });
-    
+
                     match (selected_cg_file, selected_screen_graphic) {
                         (Some(selected_cg_file), Some(ScreenGraphic::Cg(selected_screen_cg))) => {
                             ctx.add(PartPicker {
@@ -172,12 +181,13 @@ impl Component for CharacterEditor<'_> {
                                 graphic_index,
                                 screen_cg: selected_screen_cg,
                                 on_event: Box::new(|event| match event {
-                                    part_picker::Event::MoveInCgFileThumbnail { global_xy, name } => {
-                                        on_internal_event(InternalEvent::MoveInCgFileThumbnail {
-                                            global_xy,
-                                            text: name,
-                                        })
-                                    }
+                                    part_picker::Event::MoveInCgFileThumbnail {
+                                        global_xy,
+                                        name,
+                                    } => on_internal_event(InternalEvent::MoveInCgFileThumbnail {
+                                        global_xy,
+                                        text: name,
+                                    }),
                                     part_picker::Event::CgChangeButtonClicked => {
                                         on_event(Event::CgChangeButtonClicked)
                                     }
@@ -186,23 +196,18 @@ impl Component for CharacterEditor<'_> {
                         }
                         _ => {
                             ctx.add(table::padding(8.px(), |wh| {
-                                let text =
-                                    "Selected resource not found. Close character picker and try again.";
+                                let text = "Selected resource not found. \
+                                    Close character picker and try again.";
                                 typography::body::center_top(wh.width, text, color::STROKE_NORMAL)
                             })(wh));
-                        },
+                        }
                     }
                 }
             };
         });
-        
 
-        ctx.compose(|ctx| {
-            let Some(tool_tip) = tool_tip.deref() else {
-                return;
-            };
-            ctx.add(tool_tip.clone());
-        });
+        ctx.component(background);
+
         ctx.done()
     }
 }

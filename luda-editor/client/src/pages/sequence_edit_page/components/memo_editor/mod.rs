@@ -185,12 +185,18 @@ impl Component for MemoEditor<'_> {
         ]);
 
         ctx.compose(|ctx| {
-            let mut ctx = ctx.on_top().add(background).translate((
-                (screen_wh.width - MEMO_EDITOR_WH.width) / 2.0,
-                (screen_wh.height - MEMO_EDITOR_WH.height) / 2.0,
-            ));
-            ctx.add(container);
-            content(MEMO_EDITOR_WH, &mut ctx);
+            let mut ctx = ctx.on_top();
+
+            {
+                let mut ctx = ctx.translate((
+                    (screen_wh.width - MEMO_EDITOR_WH.width) / 2.0,
+                    (screen_wh.height - MEMO_EDITOR_WH.height) / 2.0,
+                ));
+                content(MEMO_EDITOR_WH, &mut ctx);
+                ctx.add(container);
+            }
+
+            ctx.add(background);
             ctx.add(namui_prebuilt::event_trap::EventTrap);
         })
         .done()

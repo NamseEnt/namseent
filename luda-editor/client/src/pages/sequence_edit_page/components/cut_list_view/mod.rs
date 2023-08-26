@@ -84,27 +84,7 @@ impl Component for CutListView<'_> {
                 }
             }
         };
-        ctx.component(
-            render([simple_rect(
-                wh,
-                color::STROKE_NORMAL,
-                1.px(),
-                color::BACKGROUND,
-            )])
-            .attach_event(move |event| match event {
-                namui::Event::MouseDown { event } => {
-                    if event.is_local_xy_in() && event.button == Some(MouseButton::Right) {
-                        on_event(Event::OnRightClickEvent {
-                            global_xy: event.global_xy,
-                        });
-                    }
-                }
-                namui::Event::KeyDown { event } => {
-                    on_key_down(event);
-                }
-                _ => {}
-            }),
-        );
+
         let item_wh = Wh::new(wh.width, 128.px());
         ctx.component(list_view::ListView {
             xy: Xy::zero(),
@@ -133,6 +113,23 @@ impl Component for CutListView<'_> {
                 })
                 .collect(),
         });
+        ctx.component(
+            simple_rect(wh, color::STROKE_NORMAL, 1.px(), color::BACKGROUND).attach_event(
+                move |event| match event {
+                    namui::Event::MouseDown { event } => {
+                        if event.is_local_xy_in() && event.button == Some(MouseButton::Right) {
+                            on_event(Event::OnRightClickEvent {
+                                global_xy: event.global_xy,
+                            });
+                        }
+                    }
+                    namui::Event::KeyDown { event } => {
+                        on_key_down(event);
+                    }
+                    _ => {}
+                },
+            ),
+        );
         ctx.done()
     }
 }

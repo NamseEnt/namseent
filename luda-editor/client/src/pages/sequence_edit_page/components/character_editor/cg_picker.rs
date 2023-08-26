@@ -27,7 +27,7 @@ impl Component for CgPicker<'_> {
         let Self {
             wh,
             project_id,
-            ref on_event,
+            on_event,
         } = self;
         let (cg_file_list, _) = ctx.atom(&CG_FILES_ATOM);
 
@@ -44,7 +44,7 @@ impl Component for CgPicker<'_> {
                             |cg_files| {
                                 table::hooks::fixed(CHARACTER_THUMBNAIL_WH.height, {
                                     table::hooks::horizontal(cg_files.iter().map(|cg_file| {
-                                        render_thumbnail(cg_file, project_id, on_event.clone())
+                                        render_thumbnail(cg_file, project_id, on_event)
                                     }))
                                 })
                             },
@@ -65,23 +65,6 @@ fn render_thumbnail<'a>(
     table::hooks::fixed(CHARACTER_THUMBNAIL_WH.width, {
         table::hooks::padding(INNER_PADDING, move |wh, ctx| {
             ctx.add(
-                get_project_cg_thumbnail_image_url(project_id, cg_file.id).map_or(
-                    RenderingTree::Empty,
-                    |cg_thumbnail_image_url| {
-                        image(ImageParam {
-                            rect: Rect::from_xy_wh(Xy::zero(), wh),
-                            source: ImageSource::Url {
-                                url: cg_thumbnail_image_url,
-                            },
-                            style: ImageStyle {
-                                fit: ImageFit::Contain,
-                                paint: None,
-                            },
-                        })
-                    },
-                ),
-            )
-            .add(
                 simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                     .with_mouse_cursor(MouseCursor::Pointer)
                     // .with_tooltip(cg_file.name.clone())
@@ -105,6 +88,23 @@ fn render_thumbnail<'a>(
                             _ => {}
                         }
                     }),
+            )
+            .add(
+                get_project_cg_thumbnail_image_url(project_id, cg_file.id).map_or(
+                    RenderingTree::Empty,
+                    |cg_thumbnail_image_url| {
+                        image(ImageParam {
+                            rect: Rect::from_xy_wh(Xy::zero(), wh),
+                            source: ImageSource::Url {
+                                url: cg_thumbnail_image_url,
+                            },
+                            style: ImageStyle {
+                                fit: ImageFit::Contain,
+                                paint: None,
+                            },
+                        })
+                    },
+                ),
             );
         })
     })

@@ -1,7 +1,8 @@
 use crate::color;
 use namui::prelude::*;
+use namui_prebuilt::button::text_button_fit_align;
 use namui_prebuilt::scroll_view::{self};
-use namui_prebuilt::{button::text_button_fit, simple_rect, table};
+use namui_prebuilt::{simple_rect, table, transparent_rect};
 use rpc::data::Memo;
 
 #[namui::component]
@@ -9,7 +10,6 @@ pub struct MemoListView<'a> {
     pub wh: Wh<Px>,
     pub memos: Vec<Memo>,
     pub user_id: Uuid,
-    // pub on_done_clicked: &'a dyn Fn(CutIdMemoId),
     pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
@@ -23,16 +23,8 @@ impl Component for MemoListView<'_> {
             wh,
             ref memos,
             user_id,
-            // ref on_done_clicked,
             on_event,
         } = self;
-
-        ctx.component(simple_rect(
-            wh,
-            color::STROKE_NORMAL,
-            1.px(),
-            color::BACKGROUND,
-        ));
 
         ctx.component(scroll_view::AutoScrollViewWithCtx {
             xy: Xy::zero(),
@@ -52,6 +44,13 @@ impl Component for MemoListView<'_> {
                 }))(wh, ctx);
             },
         });
+
+        ctx.component(simple_rect(
+            wh,
+            color::STROKE_NORMAL,
+            1.px(),
+            color::BACKGROUND,
+        ));
         ctx.done()
     }
 }
@@ -67,7 +66,6 @@ impl Component for MemoComponent<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         const MARGIN: Px = px(8.0);
         const PADDING: Px = px(8.0);
-        const BUTTON_HEIGHT: Px = px(24.0);
 
         let Self {
             width,
@@ -78,31 +76,30 @@ impl Component for MemoComponent<'_> {
 
         let container_width = width - MARGIN * 2.0;
 
-        let content = MemoContent {
-            width,
-            memo,
-            user_id,
-            on_event,
-        };
-        let container_height = ctx
-            .ghost_render(content)
-            .bounding_box()
-            .map_or(0.px(), |bounding_box| bounding_box.height())
-            + PADDING * 2.0;
-
-        let container = simple_rect(
-            Wh::new(container_width, container_height),
-            color::STROKE_NORMAL,
-            1.px(),
-            color::BACKGROUND,
-        );
+        let mut container_height = None;
 
         ctx.compose(|ctx| {
             ctx.translate((MARGIN, MARGIN))
-                .add(container)
                 .compose(|ctx| {
-                    // ctx.translate((PADDING, PADDING)).add(content);
-                });
+                    ctx.translate((PADDING, PADDING)).compose(|ctx| {
+                        let bounding_box = ctx.add_and_get_bounding_box(MemoContent {
+                            width,
+                            memo,
+                            user_id,
+                            on_event,
+                        });
+                        container_height = Some(
+                            bounding_box.map_or(0.px(), |bounding_box| bounding_box.height())
+                                + PADDING * 2.0,
+                        );
+                    });
+                })
+                .add(simple_rect(
+                    Wh::new(container_width, container_height.unwrap()),
+                    color::STROKE_NORMAL,
+                    1.px(),
+                    color::BACKGROUND,
+                ));
         })
         .done()
     }
@@ -155,8 +152,9 @@ impl Component for MemoContent<'_> {
 
         let done_button = match memo.user_id == user_id {
             true => Some(
-                text_button_fit(
-                    BUTTON_HEIGHT,
+                text_button_fit_align(
+                    Wh::new(inner_width, BUTTON_HEIGHT),
+                    TextAlign::Right,
                     "완료",
                     color::STROKE_NORMAL,
                     color::STROKE_NORMAL,
@@ -172,9 +170,6 @@ impl Component for MemoContent<'_> {
             ),
             false => None,
         };
-        let done_button_width = done_button
-            .and_then(|done_button| ctx.ghost_render(done_button).bounding_box())
-            .map_or(0.px(), |bounding_box| bounding_box.width());
 
         let content_text = text(TextParam {
             text: memo.content.clone(),
@@ -198,15 +193,18 @@ impl Component for MemoContent<'_> {
         });
 
         ctx.compose(|ctx| {
-            // ctx.translate((MARGIN, MARGIN))
-            //     .add(user_name_label)
-            //     .translate((inner_width - done_button_width, 0.px()))
-            //     .add(done_button);
+            ctx.translate((MARGIN, MARGIN))
+                .add(user_name_label)
+                .add(done_button);
         })
         .compose(|ctx| {
-            ctx.translate((0.px(), BUTTON_HEIGHT + MARGIN))
+            ctx.translate((0.px(), BUTTON_HEIGHT + MARGIN * 3))
                 .add(content_text);
         })
+        .component(transparent_rect(Wh::new(
+            inner_width + MARGIN * 2,
+            BUTTON_HEIGHT + MARGIN * 4,
+        )))
         .done()
     }
 }

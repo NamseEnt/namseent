@@ -97,20 +97,21 @@ impl ComposeCtx {
 
     pub fn add(&mut self, component: impl Component) -> &mut Self {
         let key_vec = self.next_child_key_vec();
-        self.add_inner(key_vec, component)
+        self.add_inner(key_vec, component);
+        self
     }
 
     pub fn add_with_key(&mut self, key: impl Into<Key>, component: impl Component) -> &mut Self {
         let key_vec = self.pre_key_vec.custom_key(key);
-        self.add_inner(key_vec, component)
+        self.add_inner(key_vec, component);
+        self
     }
 
-    fn add_inner(&mut self, key_vec: KeyVec, component: impl Component) -> &mut Self {
+    fn add_inner(&mut self, key_vec: KeyVec, component: impl Component) {
         let rendering_tree = self.renderer.render(key_vec, component, self.matrix);
         self.lazy_children.push(Arc::new(Mutex::new(Some(
             LazyRenderingTree::RenderingTree { rendering_tree },
         ))));
-        self
     }
 
     pub fn compose(&mut self, compose: impl FnOnce(&mut ComposeCtx)) -> &mut Self {
@@ -150,5 +151,20 @@ impl ComposeCtx {
         ))));
 
         self
+    }
+
+    pub fn add_and_get_bounding_box(&mut self, component: impl Component) -> Option<Rect<Px>> {
+        let key_vec = self.next_child_key_vec();
+        let rendering_tree = self.renderer.render(key_vec, component, self.matrix);
+
+        let bounding_box = rendering_tree.bounding_box();
+
+        self.lazy_children.push(Arc::new(Mutex::new(Some(
+            LazyRenderingTree::RenderingTree {
+                rendering_tree: rendering_tree.clone(),
+            },
+        ))));
+
+        bounding_box
     }
 }

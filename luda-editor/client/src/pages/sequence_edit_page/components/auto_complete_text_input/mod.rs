@@ -194,6 +194,17 @@ impl Component for AutoCompleteTextInput<'_> {
         ctx.compose(|ctx| {
             let mut ctx = ctx.on_top().translate((0.px(), wh.height));
             let body_height = wh.height * suggestions.len();
+
+            ctx.add(simple_rect(
+                Wh {
+                    width: wh.width,
+                    height: body_height,
+                },
+                Color::BLACK,
+                1.px(),
+                Color::TRANSPARENT,
+            ));
+
             for (index, suggestion) in suggestions.into_iter().enumerate() {
                 let is_cursor_over = over_item_index == Some(index);
                 let background = simple_rect(
@@ -216,19 +227,10 @@ impl Component for AutoCompleteTextInput<'_> {
                     },
                 );
                 ctx.translate((0.px(), wh.height * index))
-                    .add(background)
                     .translate((LEFT_PADDING, 0.px()))
-                    .add(text);
+                    .add(text)
+                    .add(background);
             }
-            ctx.add(simple_rect(
-                Wh {
-                    width: wh.width,
-                    height: body_height,
-                },
-                Color::BLACK,
-                1.px(),
-                Color::TRANSPARENT,
-            ));
         });
 
         ctx.done()

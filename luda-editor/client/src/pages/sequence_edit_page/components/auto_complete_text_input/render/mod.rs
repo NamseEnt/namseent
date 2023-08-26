@@ -149,50 +149,53 @@ impl AutoCompleteTextInput {
                 0.px(),
                 props.wh.height,
                 namui::render(
-                    suggestions
-                        .into_iter()
-                        .enumerate()
-                        .map(|(index, suggestion)| {
-                            let is_cursor_over = over_item_index == Some(index);
-                            let background = simple_rect(
-                                props.wh,
-                                Color::WHITE,
-                                0.px(),
-                                if is_cursor_over {
-                                    Color::from_u8(0x5C, 0x5C, 255, 255)
-                                } else {
-                                    Color::WHITE
-                                },
-                            );
-                            let text = translate(
-                                LEFT_PADDING,
-                                0.px(),
-                                typography::body::left(
-                                    props.wh.height,
-                                    suggestion,
+                    [simple_rect(
+                        Wh {
+                            width: props.wh.width,
+                            height: body_height,
+                        },
+                        Color::BLACK,
+                        1.px(),
+                        Color::TRANSPARENT,
+                    )]
+                    .into_iter()
+                    .chain(
+                        suggestions
+                            .into_iter()
+                            .enumerate()
+                            .map(|(index, suggestion)| {
+                                let is_cursor_over = over_item_index == Some(index);
+                                let background = simple_rect(
+                                    props.wh,
+                                    Color::WHITE,
+                                    0.px(),
                                     if is_cursor_over {
-                                        Color::WHITE
+                                        Color::from_u8(0x5C, 0x5C, 255, 255)
                                     } else {
-                                        Color::BLACK
+                                        Color::WHITE
                                     },
-                                ),
-                            );
-                            translate(
-                                0.px(),
-                                props.wh.height * index,
-                                namui::render([background, text]),
-                            )
-                        })
-                        .into_iter()
-                        .chain([simple_rect(
-                            Wh {
-                                width: props.wh.width,
-                                height: body_height,
-                            },
-                            Color::BLACK,
-                            1.px(),
-                            Color::TRANSPARENT,
-                        )]),
+                                );
+                                let text = translate(
+                                    LEFT_PADDING,
+                                    0.px(),
+                                    typography::body::left(
+                                        props.wh.height,
+                                        suggestion,
+                                        if is_cursor_over {
+                                            Color::WHITE
+                                        } else {
+                                            Color::BLACK
+                                        },
+                                    ),
+                                );
+                                translate(
+                                    0.px(),
+                                    props.wh.height * index,
+                                    namui::render([text, background]),
+                                )
+                            })
+                            .into_iter(),
+                    ),
                 ),
             ))
         };

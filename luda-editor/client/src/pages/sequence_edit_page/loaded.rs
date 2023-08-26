@@ -241,6 +241,17 @@ impl Component for LoadedSequenceEditorPage {
             }
         };
 
+        if_context_menu_for::<ContextMenu>(|context_menu, builder| match context_menu {
+            ContextMenu::CutListView => builder.add_button("Add Cut", &|| {
+                set_seqenece.mutate(|sequence| {
+                    sequence.update(SequenceUpdateAction::InsertCut {
+                        cut: Cut::new(uuid()),
+                        after_cut_id: None,
+                    })
+                })
+            }),
+        });
+
         ctx.compose(|ctx| {
             if let Some(SequenceIdCutId {
                 sequence_id,
@@ -255,17 +266,6 @@ impl Component for LoadedSequenceEditorPage {
                     }),
                 });
             }
-        });
-
-        if_context_menu_for::<ContextMenu>(|context_menu, builder| match context_menu {
-            ContextMenu::CutListView => builder.add_button("Add Cut", &|| {
-                set_seqenece.mutate(|sequence| {
-                    sequence.update(SequenceUpdateAction::InsertCut {
-                        cut: Cut::new(uuid()),
-                        after_cut_id: None,
-                    })
-                })
-            }),
         });
 
         ctx.compose(|ctx| {

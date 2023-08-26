@@ -53,7 +53,6 @@ pub struct TextParam {
 
 pub fn text(param: TextParam) -> RenderingTree {
     crate::render([
-        draw_background(&param, &param.font),
         RenderingTree::Node(RenderingData {
             draw_calls: vec![DrawCall {
                 commands: vec![
@@ -67,6 +66,7 @@ pub fn text(param: TextParam) -> RenderingTree {
             }],
             ..Default::default()
         }),
+        draw_background(&param, &param.font),
     ])
 }
 // type TextHandleParam = TextParam & {

@@ -175,12 +175,12 @@ impl Component for ContextMenu {
                                 0.px(),
                                 y,
                                 render([
-                                    background,
                                     typography::body::left(
                                         cell_wh.height,
                                         format!("  {}", text),
                                         text_color,
                                     ),
+                                    background,
                                 ]),
                             )
                             .attach_event(|event| match event {
@@ -243,8 +243,8 @@ impl Component for ContextMenu {
         ctx.compose(|ctx| {
             ctx.on_top()
                 .absolute(global_xy_within_screen)
-                .add(background)
-                .compose(menus);
+                .compose(menus)
+                .add(background);
         });
 
         ctx.done()

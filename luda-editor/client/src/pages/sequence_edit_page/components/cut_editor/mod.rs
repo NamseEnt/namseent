@@ -138,22 +138,6 @@ impl Component for CutEditor<'_> {
                 ),
         });
 
-        ctx.component(BackgroundWithEvent {
-            cut,
-            wh,
-            is_selecting_target: selected_target.is_some(),
-            prev_cut_id,
-            next_cut_id,
-            on_event: Box::new(|event| match event {
-                background_with_event::Event::MoveCutRequest { up_down } => {
-                    move_cut_request(up_down)
-                }
-                _ => {}
-            }),
-            on_internal_event: on_internal_event.clone(),
-            project_id,
-        });
-
         let character_name_side = |wh, ctx: &mut ComposeCtx| {
             ctx.add((transparent_rect(wh).attach_event(|event| match event {
                 namui::Event::MouseDown { event } => {
@@ -306,30 +290,45 @@ impl Component for CutEditor<'_> {
         ctx.compose(|ctx| {
             let mut ctx = ctx.translate(content_rect.xy());
 
-            ctx.add(simple_rect(
-                content_rect.wh(),
-                color::STROKE_NORMAL,
-                1.px(),
-                color::BACKGROUND,
-            ))
-            .add(wysiwyg_editor::WysiwygEditor {
-                wh: content_rect.wh(),
-                screen_graphics: cut.screen_graphics.clone(),
-                project_id,
-                cut_id,
-                cg_files: cg_files.clone(),
-                on_click_character_edit: Box::new(|edit_target| {
-                    on_event(Event2::ClickCharacterEdit { edit_target })
-                }),
-            })
-            .add(sequence_player::render_text_box(content_rect.wh()));
-
             sequence_player::render_over_text_hooks(
                 &mut ctx,
                 content_rect.wh(),
                 character_name_side,
                 cut_text_side,
             );
+
+            ctx.add(sequence_player::render_text_box(content_rect.wh()))
+                .add(wysiwyg_editor::WysiwygEditor {
+                    wh: content_rect.wh(),
+                    screen_graphics: cut.screen_graphics.clone(),
+                    project_id,
+                    cut_id,
+                    cg_files: cg_files.clone(),
+                    on_click_character_edit: Box::new(|edit_target| {
+                        on_event(Event2::ClickCharacterEdit { edit_target })
+                    }),
+                })
+                .add(simple_rect(
+                    content_rect.wh(),
+                    color::STROKE_NORMAL,
+                    1.px(),
+                    color::BACKGROUND,
+                ));
+        });
+
+        ctx.component(BackgroundWithEvent {
+            cut,
+            wh,
+            is_selecting_target: selected_target.is_some(),
+            prev_cut_id,
+            next_cut_id,
+            on_event: Box::new(|event| match event {
+                background_with_event::Event::MoveCutRequest { up_down } => {
+                    move_cut_request(up_down)
+                }
+            }),
+            on_internal_event: on_internal_event.clone(),
+            project_id,
         });
 
         ctx.done()

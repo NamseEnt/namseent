@@ -41,7 +41,6 @@ impl Component for App {
         let wh = Wh::new(wh.width.into_px(), wh.height.into_px());
 
         ctx.component(ContextMenu);
-        ctx.component(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK));
         ctx.compose(|ctx| match &*loading_state {
             LoadingState::Loading => {
                 ctx.add(typography::body::center(wh, "Logging in...", Color::WHITE));
@@ -53,6 +52,7 @@ impl Component for App {
                 ctx.add(typography::body::center(wh, &error, Color::WHITE));
             }
         });
+        ctx.component(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK));
 
         ctx.done()
     }

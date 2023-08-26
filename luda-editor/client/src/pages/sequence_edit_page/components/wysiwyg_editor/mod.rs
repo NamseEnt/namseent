@@ -167,7 +167,6 @@ impl Component for WysiwygEditor<'_> {
             }
         });
 
-        ctx.component(background);
         ctx.compose(|ctx| {
             let mut ctx = ctx.clip(
                 Path::new().add_rect(Rect::from_xy_wh(Xy::zero(), wh)),
@@ -292,6 +291,7 @@ impl Component for WysiwygEditor<'_> {
                 }
             }
         });
+        ctx.component(background);
 
         ctx.done()
     }
