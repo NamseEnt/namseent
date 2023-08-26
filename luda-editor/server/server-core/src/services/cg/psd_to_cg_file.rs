@@ -3,7 +3,6 @@ use super::{
     parse_psd_to_inter_cg_parts::InterCgVariant,
     *,
 };
-use libwebp_sys::WebPEncodeLosslessRGBA;
 use namui_type::*;
 use rayon::prelude::*;
 use rpc::data::*;
@@ -24,6 +23,8 @@ pub(crate) fn psd_to_webps_and_cg_file(
     psd_bytes: &[u8],
     filename: &str,
 ) -> Result<PsdParsingResult, psd::PsdError> {
+    let mut start = Instant::now();
+
     let psd = psd::Psd::from_bytes(psd_bytes)?;
 
     let inter_cg_parts = parse_psd_to_inter_cg_parts::parse_psd_to_inter_cg_parts(&psd);
@@ -134,18 +135,14 @@ fn merge_images(
 }
 
 fn encode_rgba_webp(input_image: &[u8], width: u32, height: u32) -> Vec<u8> {
-    unsafe {
-        let mut out_buf = std::ptr::null_mut();
-        let stride = width as i32 * 4;
-        let len = WebPEncodeLosslessRGBA(
-            input_image.as_ptr(),
-            width as i32,
-            height as i32,
-            stride,
-            &mut out_buf,
-        );
-        std::slice::from_raw_parts(out_buf, len as usize).into()
-    }
+    let mut out_buf = vec![];
+
+    let encoder = image::codecs::webp::WebPEncoder::new(&mut out_buf);
+    encoder
+        .encode(input_image, width, height, image::ColorType::Rgba8)
+        .unwrap();
+
+    out_buf
 }
 
 fn inter_cg_variant_to_cg_variant_and_image_buffer(
@@ -209,7 +206,7 @@ fn inter_cg_variant_to_cg_variant_and_image_buffer(
         VariantImageBuffer {
             variant_id: id,
             image_buffer,
-            xy: Xy::new(x.px(), y.px()),
+            xy: Xy::new((x as f32).px(), (y as f32).px()),
         },
     )
 }

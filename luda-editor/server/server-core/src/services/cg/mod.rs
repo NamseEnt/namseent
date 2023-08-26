@@ -9,6 +9,7 @@ use self::{
 };
 use crate::{services::cg::documents::CgDocumentGet, session::SessionDocument};
 use futures::FutureExt;
+use std::time::Instant;
 
 #[derive(Debug)]
 pub struct CgService {}

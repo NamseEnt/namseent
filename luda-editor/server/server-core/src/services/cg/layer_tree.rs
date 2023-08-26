@@ -1,4 +1,5 @@
 use image::Rgba;
+use rayon::prelude::*;
 use std::collections::VecDeque;
 
 pub enum LayerTree<'psd> {
@@ -72,7 +73,7 @@ impl LayerTree<'_> {
     fn get_image_buffer(
         &self,
         psd: &psd::Psd,
-    ) -> (i32, i32, image::ImageBuffer<image::Rgba<u8>, Vec<u8>>) {
+    ) -> (u32, u32, image::ImageBuffer<image::Rgba<u8>, Vec<u8>>) {
         match self {
             LayerTree::Group { children, .. } => {
                 let group_render_result = render_layer_tree(psd, children, false);
@@ -83,34 +84,33 @@ impl LayerTree<'_> {
                 )
             }
             LayerTree::Layer { item } => {
-                let image_buffer = {
-                    let whole_layer_image_buffer =
-                        image::ImageBuffer::<image::Rgba<u8>, Vec<u8>>::from_vec(
-                            psd.width() as u32,
-                            psd.height() as u32,
-                            item.rgba(),
-                        )
-                        .expect("Failed to create image buffer");
-                    let mut cropped_layer_image_buffer =
-                        image::ImageBuffer::<image::Rgba<u8>, Vec<u8>>::new(
-                            item.width() as u32,
-                            item.height() as u32,
-                        );
-                    let cropped_x = item.layer_left();
-                    let cropped_y = item.layer_top();
-                    for y in cropped_y..cropped_y + item.height() as i32 {
-                        for x in cropped_x..cropped_x + item.width() as i32 {
-                            let cropped_pixel = get_pixel(&whole_layer_image_buffer, x, y);
-                            cropped_layer_image_buffer.put_pixel(
-                                (x - cropped_x) as u32,
-                                (y - cropped_y) as u32,
-                                cropped_pixel,
-                            );
-                        }
-                    }
-                    cropped_layer_image_buffer
-                };
-                (item.layer_left(), item.layer_top(), image_buffer)
+                let whole_layer_image_buffer =
+                    image::ImageBuffer::<image::Rgba<u8>, Vec<u8>>::from_vec(
+                        psd.width() as u32,
+                        psd.height() as u32,
+                        item.rgba(),
+                    )
+                    .expect("Failed to create image buffer");
+
+                let left = item.layer_left();
+                let top = item.layer_top();
+                let right = left + item.width() as i32;
+                let bottom = top + item.height() as i32;
+
+                let left_inside_psd = left.clamp(0, psd.width() as i32) as u32;
+                let top_inside_psd = top.clamp(0, psd.height() as i32) as u32;
+                let right_inside_psd = (right.max(0) as u32).min(psd.width());
+                let bottom_inside_psd = (bottom.max(0) as u32).min(psd.height());
+
+                let x = left_inside_psd;
+                let y = top_inside_psd;
+                let width = (right_inside_psd - left_inside_psd).min(item.width() as u32);
+                let height = (bottom_inside_psd - top_inside_psd).min(item.height() as u32);
+
+                let cropped =
+                    image::imageops::crop_imm(&whole_layer_image_buffer, x, y, width, height);
+
+                (x, y, cropped.to_image())
             }
         }
     }
@@ -170,8 +170,8 @@ pub fn make_tree<'psd>(psd: &'psd psd::Psd) -> anyhow::Result<Vec<LayerTree<'psd
 }
 
 pub(crate) struct RenderResult {
-    pub(crate) x: i32,
-    pub(crate) y: i32,
+    pub(crate) x: u32,
+    pub(crate) y: u32,
     pub(crate) image_buffer: image::ImageBuffer<image::Rgba<u8>, Vec<u8>>,
 }
 pub(crate) fn render_layer_tree<'psd>(
@@ -179,12 +179,22 @@ pub(crate) fn render_layer_tree<'psd>(
     layer_tree: &Vec<LayerTree<'psd>>,
     force_visible: bool,
 ) -> RenderResult {
+    let mut image_buffers = layer_tree
+        .par_iter()
+        .rev()
+        .map(|layer_tree| layer_tree.get_image_buffer(psd))
+        .collect::<Vec<_>>()
+        .into_iter();
+
     let mut layer_tree_iter = layer_tree.iter().rev().peekable();
-    let mut bottom: Option<(i32, i32, image::ImageBuffer<Rgba<u8>, Vec<u8>>)> = None;
+    let mut bottom: Option<(u32, u32, image::ImageBuffer<Rgba<u8>, Vec<u8>>)> = None;
+
     while let Some(upper_layer_tree) = layer_tree_iter.next() {
         assert!(upper_layer_tree.is_clipping());
+
         let (mut upper_x, mut upper_y, upper_blend_mode, mut upper_image_buffer) = {
-            let (x, y, mut image_buffer) = upper_layer_tree.get_image_buffer(psd);
+            let (x, y, mut image_buffer) = image_buffers.next().unwrap();
+
             apply_alpha(
                 &mut image_buffer,
                 upper_layer_tree.calculate_alpha(force_visible),
@@ -192,24 +202,24 @@ pub(crate) fn render_layer_tree<'psd>(
             (x, y, upper_layer_tree.blend_mode(), image_buffer)
         };
 
-        'blend_clipping_layers_into_upper_layer: while let Some(clipping_layer_tree) =
-            layer_tree_iter.peek()
-        {
+        while let Some(clipping_layer_tree) = layer_tree_iter.peek() {
             if clipping_layer_tree.is_clipping() {
-                break 'blend_clipping_layers_into_upper_layer;
+                break;
             }
 
             let (clipping_x, clipping_y, clipping_image_buffer) = {
-                let (x, y, image_buffer) = clipping_layer_tree.get_image_buffer(psd);
+                let (x, y, image_buffer) = image_buffers.next().unwrap();
                 let RenderResult {
                     x,
                     y,
                     mut image_buffer,
                 } = clip_buffer(x, y, &image_buffer, upper_x, upper_y, &upper_image_buffer);
+
                 apply_alpha(
                     &mut image_buffer,
                     clipping_layer_tree.calculate_alpha(false),
                 );
+
                 (x, y, image_buffer)
             };
 
@@ -268,126 +278,133 @@ pub(crate) fn render_layer_tree<'psd>(
 }
 
 fn clip_buffer(
-    source_x: i32,
-    source_y: i32,
+    source_x: u32,
+    source_y: u32,
     source_image_buffer: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>,
-    destination_x: i32,
-    destination_y: i32,
+    destination_x: u32,
+    destination_y: u32,
     destination_image_buffer: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>,
 ) -> RenderResult {
     let source_rect = namui_type::Rect::Xywh {
         x: source_x,
         y: source_y,
-        width: source_image_buffer.width() as i32,
-        height: source_image_buffer.height() as i32,
+        width: source_image_buffer.width(),
+        height: source_image_buffer.height(),
     };
     let destination_rect = namui_type::Rect::Xywh {
         x: destination_x,
         y: destination_y,
-        width: destination_image_buffer.width() as i32,
-        height: destination_image_buffer.height() as i32,
+        width: destination_image_buffer.width(),
+        height: destination_image_buffer.height(),
     };
     let clipped_rect = source_rect.intersect(destination_rect).unwrap_or_default();
-    let mut clipped_image_buffer = image::ImageBuffer::<image::Rgba<u8>, Vec<u8>>::new(
+
+    let vec = (clipped_rect.y()..clipped_rect.y() + clipped_rect.height())
+        .into_par_iter()
+        .flat_map(|y| {
+            (clipped_rect.x()..clipped_rect.x() + clipped_rect.width())
+                .flat_map(move |x| {
+                    let source_pixel = source_image_buffer.get_pixel(x - source_x, y - source_y);
+                    let destination_alpha = destination_image_buffer
+                        .get_pixel(x - destination_x, y - destination_y)
+                        .0[3] as f32
+                        / 255.0;
+                    [
+                        source_pixel.0[0],
+                        source_pixel.0[1],
+                        source_pixel.0[2],
+                        (source_pixel.0[3] as f32 * destination_alpha) as u8,
+                    ]
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<u8>>();
+
+    let image_buffer = image::ImageBuffer::<image::Rgba<u8>, Vec<u8>>::from_vec(
         clipped_rect.width() as u32,
         clipped_rect.height() as u32,
-    );
-    for y in clipped_rect.y()..clipped_rect.y() + clipped_rect.height() {
-        for x in clipped_rect.x()..clipped_rect.x() + clipped_rect.width() {
-            let mut source_pixel = get_pixel(source_image_buffer, x - source_x, y - source_y);
-            let destination_alpha = get_pixel(
-                destination_image_buffer,
-                x - destination_x,
-                y - destination_y,
-            )
-            .0[3] as f32
-                / 255.0;
-            source_pixel.0[3] = (source_pixel.0[3] as f32 * destination_alpha) as u8;
-            clipped_image_buffer.put_pixel(
-                (x - clipped_rect.x()) as u32,
-                (y - clipped_rect.y()) as u32,
-                source_pixel,
-            )
-        }
-    }
+        vec,
+    )
+    .unwrap();
+
     RenderResult {
         x: clipped_rect.x(),
         y: clipped_rect.y(),
-        image_buffer: clipped_image_buffer,
+        image_buffer,
     }
 }
 
 fn blend_buffer(
-    source_x: i32,
-    source_y: i32,
+    source_x: u32,
+    source_y: u32,
     source_image_buffer: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>,
-    destination_x: i32,
-    destination_y: i32,
+    destination_x: u32,
+    destination_y: u32,
     destination_image_buffer: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>,
     blend_mode: psd::BlendMode,
 ) -> RenderResult {
     let source_rect = namui_type::Rect::Xywh {
         x: source_x,
         y: source_y,
-        width: source_image_buffer.width() as i32,
-        height: source_image_buffer.height() as i32,
+        width: source_image_buffer.width(),
+        height: source_image_buffer.height(),
     };
     let destination_rect = namui_type::Rect::Xywh {
         x: destination_x,
         y: destination_y,
-        width: destination_image_buffer.width() as i32,
-        height: destination_image_buffer.height() as i32,
+        width: destination_image_buffer.width(),
+        height: destination_image_buffer.height(),
     };
     let blended_rect = source_rect.get_minimum_rectangle_containing(destination_rect);
-    let mut blended_image_buffer = image::ImageBuffer::<image::Rgba<u8>, Vec<u8>>::new(
+    let blend_function = blend_function(blend_mode);
+
+    let vec = (blended_rect.y()..blended_rect.y() + blended_rect.height())
+        .into_par_iter()
+        .flat_map(|y| {
+            (blended_rect.x()..blended_rect.x() + blended_rect.width())
+                .flat_map(move |x| {
+                    let default = Rgba([0, 0, 0, 0]);
+
+                    let source_pixel = source_image_buffer
+                        .get_pixel_checked(x - source_x, y - source_y)
+                        .unwrap_or(&default);
+                    let destination_pixel = destination_image_buffer
+                        .get_pixel_checked(x - destination_x, y - destination_y)
+                        .unwrap_or(&default);
+
+                    blend_pixel(source_pixel, destination_pixel, blend_function).0
+                })
+                .collect::<Vec<u8>>()
+        })
+        .collect::<Vec<u8>>();
+
+    let image_buffer = image::ImageBuffer::<image::Rgba<u8>, Vec<u8>>::from_vec(
         blended_rect.width() as u32,
         blended_rect.height() as u32,
-    );
-    let blend_function = blend_function(blend_mode);
-    for y in blended_rect.y()..blended_rect.y() + blended_rect.height() {
-        for x in blended_rect.x()..blended_rect.x() + blended_rect.width() {
-            let source_pixel = get_pixel(source_image_buffer, x - source_x, y - source_y);
-            let destination_pixel = get_pixel(
-                destination_image_buffer,
-                x - destination_x,
-                y - destination_y,
-            );
-            let blended_pixel = blend_pixel(source_pixel, destination_pixel, blend_function);
-            blended_image_buffer.put_pixel(
-                (x - blended_rect.x()) as u32,
-                (y - blended_rect.y()) as u32,
-                blended_pixel,
-            );
-        }
-    }
+        vec,
+    )
+    .unwrap();
+
     RenderResult {
         x: blended_rect.x(),
         y: blended_rect.y(),
-        image_buffer: blended_image_buffer,
-    }
-}
-
-pub(crate) fn get_pixel(
-    image_buffer: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>,
-    x: i32,
-    y: i32,
-) -> Rgba<u8> {
-    if x < 0 || y < 0 || x >= image_buffer.width() as i32 || y >= image_buffer.height() as i32 {
-        Rgba([0, 0, 0, 0])
-    } else {
-        image_buffer.get_pixel(x as u32, y as u32).clone()
+        image_buffer,
     }
 }
 
 fn apply_alpha(image_buffer: &mut image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, alpha: f32) {
-    for pixel in image_buffer.pixels_mut() {
-        pixel.0[3] = (pixel.0[3] as f32 * alpha) as u8;
-    }
+    image_buffer
+        .as_flat_samples_mut()
+        .samples
+        .par_chunks_mut(4)
+        .for_each(|pixel| {
+            pixel[3] = (pixel[3] as f32 * alpha) as u8;
+        });
 }
 
 fn blend_pixel(
-    source_pixel: Rgba<u8>,
-    destination_pixel: Rgba<u8>,
+    source_pixel: &Rgba<u8>,
+    destination_pixel: &Rgba<u8>,
     blend_function: BlendFunction,
 ) -> Rgba<u8> {
     fn alpha_blend(
