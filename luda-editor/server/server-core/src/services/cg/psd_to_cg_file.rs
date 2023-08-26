@@ -23,8 +23,6 @@ pub(crate) fn psd_to_webps_and_cg_file(
     psd_bytes: &[u8],
     filename: &str,
 ) -> Result<PsdParsingResult, psd::PsdError> {
-    let mut start = Instant::now();
-
     let psd = psd::Psd::from_bytes(psd_bytes)?;
 
     let inter_cg_parts = parse_psd_to_inter_cg_parts::parse_psd_to_inter_cg_parts(&psd);
