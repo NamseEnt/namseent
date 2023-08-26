@@ -196,6 +196,14 @@ impl Component for CutEditor<'_> {
                             }
                         }),
                         req_queue: input_req_queue.deref().clone(),
+                    })
+                    .attach_event(|event| match event {
+                        namui::Event::MouseDown { event } => {
+                            if !event.is_local_xy_in() {
+                                blur();
+                            }
+                        }
+                        _ => {}
                     });
                 } else {
                     ctx.add(text(TextParam {
@@ -273,6 +281,14 @@ impl Component for CutEditor<'_> {
                                 }
                             }
                         },
+                    })
+                    .attach_event(|event| match event {
+                        namui::Event::MouseDown { event } => {
+                            if !event.is_local_xy_in() {
+                                blur();
+                            }
+                        }
+                        _ => {}
                     });
                 } else {
                     ctx.add(text(TextParam {
