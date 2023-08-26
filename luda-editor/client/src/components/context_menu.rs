@@ -230,9 +230,9 @@ impl Component for ContextMenu {
         )
         .attach_event(|event| match event {
             Event::MouseDown { event } => {
+                event.stop_propagation();
                 if !event.is_local_xy_in() {
                     close_context_menu();
-                    event.stop_propagation();
                 }
             }
             _ => {}
