@@ -36,6 +36,7 @@ pub enum Event2 {
     AddMemo {
         cut_id: Uuid,
     },
+    Focus,
 }
 
 #[derive(Debug)]
@@ -65,7 +66,8 @@ impl Component for CutEditor<'_> {
         let prev_cut_id = prev_cut_id(&cuts, cut_id);
         let next_cut_id = next_cut_id(&cuts, cut_id);
 
-        let focus = &move |target: ClickTarget| {
+        let focus = &|target: ClickTarget| {
+            on_event(Event2::Focus);
             set_selected_target.set(Some(target));
             match target {
                 ClickTarget::CharacterName => {

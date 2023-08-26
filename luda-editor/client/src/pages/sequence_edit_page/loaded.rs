@@ -88,6 +88,9 @@ impl Component for LoadedSequenceEditorPage {
                 cut_editor::Event2::ClickCharacterEdit { edit_target } => {
                     set_character_editor_target.set(Some(edit_target));
                 }
+                cut_editor::Event2::Focus => {
+                    set_focused_component.set(Some(FocusableComponent::CutEditor))
+                }
                 _ => {}
             },
             InternalEvent::CharacterEdtiorEvent { event } => match event {
