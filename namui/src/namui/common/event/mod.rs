@@ -18,7 +18,7 @@ pub enum Event<'a> {
         event: MouseEvent<'a>,
     },
     Wheel {
-        event: WheelEvent,
+        event: WheelEvent<'a>,
     },
     DragAndDrop {
         event: FileDropEvent<'a>,
@@ -113,13 +113,25 @@ pub enum MouseEventType {
     Up,
     Move,
 }
-#[derive(Debug)]
-pub struct WheelEvent {
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct WheelEvent<'a> {
     /// NOTE: https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
     pub delta_xy: Xy<f32>,
-    pub mouse_local_xy: Xy<Px>,
+    #[derivative(Debug = "ignore")]
+    pub(crate) is_local_xy_in: Box<dyn 'a + Fn() -> bool>,
+    #[derivative(Debug = "ignore")]
+    pub(crate) local_xy: Box<dyn 'a + Fn() -> Xy<Px>>,
 }
-impl EventExt for WheelEvent {}
+impl EventExt for WheelEvent<'_> {}
+impl WheelEvent<'_> {
+    pub fn local_xy(&self) -> Xy<Px> {
+        (self.local_xy)()
+    }
+    pub fn is_local_xy_in(&self) -> bool {
+        (self.is_local_xy_in)()
+    }
+}
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -142,7 +154,7 @@ pub struct FileDropEvent<'a> {
     #[derivative(Debug = "ignore")]
     pub(crate) is_local_xy_in: Box<dyn 'a + Fn() -> bool>,
     #[derivative(Debug = "ignore")]
-    pub local_xy: Box<dyn 'a + Fn() -> Xy<Px>>,
+    pub(crate) local_xy: Box<dyn 'a + Fn() -> Xy<Px>>,
     pub global_xy: Xy<Px>,
     pub files: Vec<File>,
 }

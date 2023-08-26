@@ -45,7 +45,13 @@ pub(crate) fn invoke_on_event(
             on_event(Event::Wheel {
                 event: WheelEvent {
                     delta_xy: event.delta_xy,
-                    mouse_local_xy: inverse_matrix.transform_xy(event.mouse_xy),
+                    local_xy: Box::new(move || inverse_matrix.transform_xy(event.mouse_xy)),
+                    is_local_xy_in: Box::new(move || {
+                        BoundingBox::xy_in(
+                            rendering_tree,
+                            inverse_matrix.transform_xy(event.mouse_xy),
+                        )
+                    }),
                 },
             });
         }
