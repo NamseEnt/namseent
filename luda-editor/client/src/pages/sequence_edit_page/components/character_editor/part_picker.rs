@@ -194,25 +194,36 @@ fn render_no_selection_button(
         THUMBNAIL_WH.width,
         table::hooks::padding(INNER_PADDING, move |wh, ctx| {
             ctx.add(
-                simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
-                    .with_mouse_cursor(MouseCursor::Pointer)
-                    .attach_event(move |event| match event {
-                        namui::Event::MouseDown { event } => {
-                            if event.is_local_xy_in() {
-                                let cg_part_name = cg_part.name.clone();
-                                SEQUENCE_ATOM.mutate(move |sequence| {
-                                    sequence.update_cut(
-                                        cut_id,
-                                        CutUpdateAction::UnselectCgPart {
-                                            graphic_index,
-                                            cg_part_name: cg_part_name.clone(),
-                                        },
-                                    )
-                                });
-                            }
+                simple_rect(
+                    wh,
+                    match no_selection {
+                        true => color::STROKE_SELECTED,
+                        false => color::STROKE_NORMAL,
+                    },
+                    match no_selection {
+                        true => 3.px(),
+                        false => 1.px(),
+                    },
+                    Color::TRANSPARENT,
+                )
+                .with_mouse_cursor(MouseCursor::Pointer)
+                .attach_event(move |event| match event {
+                    namui::Event::MouseDown { event } => {
+                        if event.is_local_xy_in() {
+                            let cg_part_name = cg_part.name.clone();
+                            SEQUENCE_ATOM.mutate(move |sequence| {
+                                sequence.update_cut(
+                                    cut_id,
+                                    CutUpdateAction::UnselectCgPart {
+                                        graphic_index,
+                                        cg_part_name: cg_part_name.clone(),
+                                    },
+                                )
+                            });
                         }
-                        _ => {}
-                    }),
+                    }
+                    _ => {}
+                }),
             )
             .add(center_text(
                 wh,
@@ -256,7 +267,10 @@ fn render_thumbnail<'a>(
                         true => color::STROKE_SELECTED,
                         false => color::STROKE_NORMAL,
                     },
-                    1.px(),
+                    match variant_selected {
+                        true => 3.px(),
+                        false => 1.px(),
+                    },
                     Color::TRANSPARENT,
                 )
                 .attach_event(|event| match event {
