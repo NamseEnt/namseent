@@ -9,7 +9,7 @@ pub struct CgRenderProps {
 }
 
 pub fn render_cg(props: CgRenderProps, screen_cg: &ScreenCg, cg_file: &CgFile) -> RenderingTree {
-    render(screen_cg.parts.iter().rev().map(|screen_part| {
+    render(screen_cg.parts.iter().map(|screen_part| {
         try_render(|| {
             let cg_part = cg_file
                 .parts
