@@ -80,7 +80,7 @@ macro_rules! component_impl {
             impl<$($T: Component),*> Component for ($($T,)*) {
                 fn render(self, ctx: &RenderCtx) -> RenderDone {
                     $(ctx.component(self.$i);)*
-                    ctx.return_internal()
+                    ctx.done()
                 }
             }
         )*
