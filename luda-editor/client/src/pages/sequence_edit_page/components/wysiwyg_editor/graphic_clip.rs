@@ -179,8 +179,6 @@ impl Component for GraphicClip<'_> {
             _ => {}
         });
 
-        ctx.component(graphic_rendering_tree);
-
         ctx.compose(|ctx| {
             if is_editing_graphic {
                 ctx.add(WysiwygTool {
@@ -194,6 +192,8 @@ impl Component for GraphicClip<'_> {
                 });
             }
         });
+
+        ctx.component(graphic_rendering_tree);
 
         ctx.done()
     }

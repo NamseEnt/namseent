@@ -28,13 +28,6 @@ impl Component for WysiwygTool<'_> {
             ref on_event,
         } = self;
 
-        ctx.component(Mover {
-            image_dest_rect: graphic_dest_rect,
-            dragging: dragging.clone(),
-            container_wh: wh,
-            on_event: Box::new(|event| on_event(Event::Mover { event })),
-        });
-
         ctx.component(Resizer {
             rect: graphic_dest_rect,
             dragging_context: if let Some(Dragging::Resizer { context }) = self.dragging.as_ref() {
@@ -50,6 +43,13 @@ impl Component for WysiwygTool<'_> {
             ),
             graphic_index,
             on_event: Box::new(|event| on_event(Event::Resizer { event })),
+        });
+
+        ctx.component(Mover {
+            image_dest_rect: graphic_dest_rect,
+            dragging: dragging.clone(),
+            container_wh: wh,
+            on_event: Box::new(|event| on_event(Event::Mover { event })),
         });
 
         ctx.done()
