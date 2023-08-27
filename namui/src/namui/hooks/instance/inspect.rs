@@ -86,9 +86,9 @@ impl ComponentInstance {
         self.children_instances
             .lock()
             .unwrap()
-            .iter()
+            .values()
             .enumerate()
-            .for_each(|(index, (_, child))| {
+            .for_each(|(index, child)| {
                 child.internal_inspect(&element, style_element, {
                     let mut children_indexes = children_indexes.clone();
                     children_indexes.push(index);

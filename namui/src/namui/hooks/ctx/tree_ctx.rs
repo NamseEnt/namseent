@@ -88,9 +88,9 @@ impl TreeContext {
         crate::system::mouse::update_mouse_cursor(&rendering_tree);
         crate::system::drawer::request_draw_rendering_tree(rendering_tree);
 
-        self.root_instance.inspect();
-
         (self.clear_unrendered_components)();
+
+        self.root_instance.inspect();
     }
 
     pub(crate) fn render(
