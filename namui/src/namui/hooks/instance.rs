@@ -115,8 +115,11 @@ impl ComponentInstance {
         children.retain(|_, child| {
             child
                 .is_rendered_on_this_tick
-                .load(std::sync::atomic::Ordering::SeqCst)
+                .swap(false, std::sync::atomic::Ordering::SeqCst)
         });
+        children
+            .values()
+            .for_each(|child| child.clear_unrendered_chidlren());
     }
 }
 
