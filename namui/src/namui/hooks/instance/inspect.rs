@@ -27,7 +27,13 @@ impl ComponentInstance {
                 inspect_root
             });
 
-        style_element.set_inner_html("");
+        style_element.set_inner_html(
+            "
+            inspect {
+                pointer-events:none;
+            }
+        ",
+        );
         inspect_root.set_inner_html("");
 
         self.internal_inspect(&inspect_root, &style_element, vec![0]);
