@@ -12,6 +12,7 @@ pub(crate) struct TreeContext {
     pub(crate) channel_events: Arc<Mutex<Vec<Item>>>,
     pub(crate) raw_event: Arc<Mutex<Option<Arc<RawEvent>>>>,
     pub(crate) is_stop_event_propagation: Arc<AtomicBool>,
+    root_instance: Arc<ComponentInstance>,
     #[derivative(Debug = "ignore")]
     call_root_render: Arc<dyn Fn(HashSet<SigId>) -> RenderingTree>,
     #[derivative(Debug = "ignore")]
@@ -30,6 +31,7 @@ impl TreeContext {
             channel_events: Default::default(),
             raw_event: Default::default(),
             is_stop_event_propagation: Default::default(),
+            root_instance: root_instance.clone(),
             call_root_render: Arc::new(|_| {
                 unreachable!();
             }),
@@ -85,6 +87,8 @@ impl TreeContext {
         let rendering_tree = (self.call_root_render)(updated_sigs);
         crate::system::mouse::update_mouse_cursor(&rendering_tree);
         crate::system::drawer::request_draw_rendering_tree(rendering_tree);
+
+        self.root_instance.inspect();
 
         (self.clear_unrendered_components)();
     }

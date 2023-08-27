@@ -79,15 +79,6 @@ impl<'a> RenderCtx {
         self.updated_sigs.lock().unwrap().insert(sig_id);
     }
 
-    pub(crate) fn return_internal(&self) -> RenderDone {
-        let mut vec = vec![];
-        std::mem::swap(self.children.lock().unwrap().as_mut(), &mut vec);
-
-        RenderDone {
-            rendering_tree: crate::render(vec),
-        }
-    }
-
     fn renderer(&self) -> Renderer {
         Renderer {
             instance: self.instance.clone(),

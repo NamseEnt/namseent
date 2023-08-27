@@ -62,7 +62,15 @@ impl<'a> RenderCtx {
     }
 
     pub fn done(&self) -> RenderDone {
-        self.return_internal()
+        let vec: Vec<RenderingTree> = std::mem::take(self.children.lock().unwrap().as_mut());
+        let rendering_tree = crate::render(vec);
+
+        let bounding_box = rendering_tree
+            .bounding_box()
+            .map(|bounding_box| self.matrix.lock().unwrap().transform_rect(bounding_box));
+        *self.instance.debug_bounding_box.lock().unwrap() = bounding_box;
+
+        RenderDone { rendering_tree }
     }
 
     pub fn ghost_compose(&self, compose: impl FnOnce(&mut ComposeCtx)) -> RenderingTree {
@@ -71,7 +79,11 @@ impl<'a> RenderCtx {
         self.enable_event_handling();
         rendering_tree
     }
+    #[track_caller]
     pub fn component(&self, component: impl Component) -> &Self {
+        let caller = std::panic::Location::caller();
+        let type_name = component.static_type_name();
+        crate::log!("{type_name} - {caller}");
         self.add(
             KeyVec::new_child(self.get_next_component_index()),
             component,
