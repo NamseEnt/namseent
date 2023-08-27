@@ -3,108 +3,105 @@ use super::*;
 pub(crate) fn set_up_event_handler() {
     prevent_context_menu_open();
 
-    let canvas_element = canvas_element();
+    let body = document().body().unwrap();
 
-    canvas_element
-        .add_event_listener_with_callback(
-            "mousedown",
-            Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
-                event.prevent_default(); // NOTE: Text input needs this to prevent selection updates.
-                update_mouse_position(&event);
+    body.add_event_listener_with_callback(
+        "mousedown",
+        Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
+            event.prevent_default(); // NOTE: Text input needs this to prevent selection updates.
 
-                let button = get_button(&event);
-                let mouse_position = { MOUSE_SYSTEM.mouse_position.read().unwrap().clone() };
+            update_mouse_position(&event);
 
-                crate::hooks::on_raw_event(RawEvent::MouseDown {
-                    event: RawMouseEvent {
-                        xy: mouse_position,
-                        pressing_buttons: get_pressing_buttons(&event),
-                        button: Some(button),
-                        prevent_default: Box::new(move || {
-                            event.prevent_default();
-                        }),
+            let button = get_button(&event);
+            let mouse_position = { MOUSE_SYSTEM.mouse_position.read().unwrap().clone() };
+
+            crate::hooks::on_raw_event(RawEvent::MouseDown {
+                event: RawMouseEvent {
+                    xy: mouse_position,
+                    pressing_buttons: get_pressing_buttons(&event),
+                    button: Some(button),
+                    prevent_default: Box::new(move || {
+                        event.prevent_default();
+                    }),
+                },
+            });
+        }) as Box<dyn FnMut(_)>)
+        .into_js_value()
+        .unchecked_ref(),
+    )
+    .unwrap();
+
+    body.add_event_listener_with_callback(
+        "mousemove",
+        Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
+            update_mouse_position(&event);
+
+            let button = get_button(&event);
+            let mouse_position = { MOUSE_SYSTEM.mouse_position.read().unwrap().clone() };
+
+            crate::hooks::on_raw_event(RawEvent::MouseMove {
+                event: RawMouseEvent {
+                    xy: mouse_position,
+                    pressing_buttons: get_pressing_buttons(&event),
+                    button: Some(button),
+                    prevent_default: Box::new(move || {
+                        event.prevent_default();
+                    }),
+                },
+            });
+        }) as Box<dyn FnMut(_)>)
+        .into_js_value()
+        .unchecked_ref(),
+    )
+    .unwrap();
+
+    body.add_event_listener_with_callback(
+        "mouseup",
+        Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
+            update_mouse_position(&event);
+
+            let button = get_button(&event);
+            let mouse_position = { MOUSE_SYSTEM.mouse_position.read().unwrap().clone() };
+
+            crate::hooks::on_raw_event(RawEvent::MouseUp {
+                event: RawMouseEvent {
+                    xy: mouse_position,
+                    pressing_buttons: get_pressing_buttons(&event),
+                    button: Some(button),
+                    prevent_default: Box::new(move || {
+                        event.prevent_default();
+                    }),
+                },
+            });
+        }) as Box<dyn FnMut(_)>)
+        .into_js_value()
+        .unchecked_ref(),
+    )
+    .unwrap();
+
+    body.add_event_listener_with_callback_and_add_event_listener_options(
+        "wheel",
+        Closure::wrap(Box::new(move |event: web_sys::WheelEvent| {
+            update_mouse_position(&event);
+            if event.ctrl_key() {
+                event.prevent_default()
+            }
+            let mouse_position = { MOUSE_SYSTEM.mouse_position.read().unwrap().clone() };
+            crate::hooks::on_raw_event(RawEvent::Wheel {
+                event: RawWheelEvent {
+                    delta_xy: Xy {
+                        x: event.delta_x() as f32,
+                        y: event.delta_y() as f32,
                     },
-                });
-            }) as Box<dyn FnMut(_)>)
-            .into_js_value()
-            .unchecked_ref(),
-        )
-        .unwrap();
-
-    canvas_element
-        .add_event_listener_with_callback(
-            "mousemove",
-            Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
-                update_mouse_position(&event);
-
-                let button = get_button(&event);
-                let mouse_position = { MOUSE_SYSTEM.mouse_position.read().unwrap().clone() };
-
-                crate::hooks::on_raw_event(RawEvent::MouseMove {
-                    event: RawMouseEvent {
-                        xy: mouse_position,
-                        pressing_buttons: get_pressing_buttons(&event),
-                        button: Some(button),
-                        prevent_default: Box::new(move || {
-                            event.prevent_default();
-                        }),
-                    },
-                });
-            }) as Box<dyn FnMut(_)>)
-            .into_js_value()
-            .unchecked_ref(),
-        )
-        .unwrap();
-
-    canvas_element
-        .add_event_listener_with_callback(
-            "mouseup",
-            Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
-                update_mouse_position(&event);
-
-                let button = get_button(&event);
-                let mouse_position = { MOUSE_SYSTEM.mouse_position.read().unwrap().clone() };
-
-                crate::hooks::on_raw_event(RawEvent::MouseUp {
-                    event: RawMouseEvent {
-                        xy: mouse_position,
-                        pressing_buttons: get_pressing_buttons(&event),
-                        button: Some(button),
-                        prevent_default: Box::new(move || {
-                            event.prevent_default();
-                        }),
-                    },
-                });
-            }) as Box<dyn FnMut(_)>)
-            .into_js_value()
-            .unchecked_ref(),
-        )
-        .unwrap();
-
-    canvas_element
-        .add_event_listener_with_callback_and_add_event_listener_options(
-            "wheel",
-            Closure::wrap(Box::new(move |event: web_sys::WheelEvent| {
-                update_mouse_position(&event);
-                if event.ctrl_key() {
-                    event.prevent_default()
-                }
-                let mouse_position = { MOUSE_SYSTEM.mouse_position.read().unwrap().clone() };
-                crate::hooks::on_raw_event(RawEvent::Wheel {
-                    event: RawWheelEvent {
-                        delta_xy: Xy {
-                            x: event.delta_x() as f32,
-                            y: event.delta_y() as f32,
-                        },
-                        mouse_xy: mouse_position,
-                    },
-                });
-            }) as Box<dyn FnMut(_)>)
-            .into_js_value()
-            .unchecked_ref(),
-            web_sys::AddEventListenerOptions::new().passive(false),
-        )
-        .unwrap();
+                    mouse_xy: mouse_position,
+                },
+            });
+        }) as Box<dyn FnMut(_)>)
+        .into_js_value()
+        .unchecked_ref(),
+        web_sys::AddEventListenerOptions::new().passive(false),
+    )
+    .unwrap();
 }
 
 fn update_mouse_position(event: &web_sys::MouseEvent) {

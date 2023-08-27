@@ -27,13 +27,7 @@ impl ComponentInstance {
                 inspect_root
             });
 
-        style_element.set_inner_html(
-            "
-            inspect {
-                pointer-events:none;
-            }
-        ",
-        );
+        style_element.set_inner_html("");
         inspect_root.set_inner_html("");
 
         self.internal_inspect(&inspect_root, &style_element, vec![0]);
@@ -67,7 +61,6 @@ impl ComponentInstance {
                 "{inner_html}\n\
                 inspect > {nth_children} {{
                     position: fixed;
-                    border: 1px solid red;
                     left: {left};
                     top: {top};
                     width: {width};
