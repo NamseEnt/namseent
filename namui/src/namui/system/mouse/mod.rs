@@ -4,12 +4,12 @@ use self::event::set_up_event_handler;
 use super::*;
 use crate::*;
 use std::collections::HashSet;
-use std::ops::ControlFlow;
 use std::sync::{Arc, RwLock};
 use wasm_bindgen::{prelude::Closure, JsCast};
 
 struct MouseSystem {
     mouse_position: Arc<RwLock<Xy<Px>>>,
+    mouse_cursor: Arc<RwLock<String>>,
 }
 
 lazy_static::lazy_static! {
@@ -28,35 +28,25 @@ impl MouseSystem {
             x: px(0.0),
             y: px(0.0),
         }));
+        let mouse_cursor = Arc::new(RwLock::new("default".to_string()));
         let mouse = Self {
-            mouse_position: mouse_position.clone(),
+            mouse_position,
+            mouse_cursor,
         };
 
         mouse
     }
 }
 
-pub(crate) fn update_mouse_cursor(rendering_tree: &RenderingTree) {
-    let mouse_position = position();
-    let mut cursor = MouseCursor::Default;
-
-    rendering_tree.visit_rln(|node, utils| {
-        if let RenderingTree::Special(special) = node {
-            if let SpecialRenderingNode::MouseCursor(mouse_cursor) = special {
-                if Visit::xy_in(node, mouse_position, utils.ancestors) {
-                    cursor = (*mouse_cursor.cursor).clone();
-                    return ControlFlow::Break(());
-                }
-            };
-        };
-        ControlFlow::Continue(())
-    });
-
+pub fn set_mouse_cursor(cursor: &MouseCursor) {
+    let cursor = cursor.to_css_cursor_value();
+    let cursor_changed = { MOUSE_SYSTEM.mouse_cursor.read().unwrap().ne(cursor) };
+    if !cursor_changed {
+        return;
+    }
     let element = document().body().unwrap();
-    element
-        .style()
-        .set_property("cursor", &cursor.to_css_cursor_value())
-        .unwrap();
+    element.style().set_property("cursor", cursor).unwrap();
+    *MOUSE_SYSTEM.mouse_cursor.write().unwrap() = cursor.to_string();
 }
 
 pub fn position() -> Xy<Px> {

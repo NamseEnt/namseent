@@ -2,7 +2,6 @@ mod visit;
 
 use super::*;
 use std::borrow::Borrow;
-pub(crate) use visit::Visit;
 
 impl BoundingBox for RenderingTree {
     fn xy_in(&self, xy: Xy<Px>) -> bool {

@@ -159,10 +159,7 @@ fn get_mouse_event<'a>(
         local_xy: Box::new(move || inverse_matrix.transform_xy(raw_mouse_event.xy)),
         is_local_xy_in: Box::new(move || {
             global_xy_clip_in.clip_in(raw_mouse_event.xy)
-                && BoundingBox::xy_in(
-                    rendering_tree,
-                    inverse_matrix.transform_xy(raw_mouse_event.xy),
-                )
+                && rendering_tree.xy_in(inverse_matrix.transform_xy(raw_mouse_event.xy))
         }),
         global_xy: raw_mouse_event.xy,
         pressing_buttons: raw_mouse_event.pressing_buttons.clone(),
@@ -193,7 +190,7 @@ fn get_file_drop_event<'a>(
     FileDropEvent {
         is_local_xy_in: Box::new(move || {
             global_xy_clip_in.clip_in(global_xy)
-                && BoundingBox::xy_in(rendering_tree, inverse_matrix.transform_xy(global_xy))
+                && rendering_tree.xy_in(inverse_matrix.transform_xy(global_xy))
         }),
         local_xy: Box::new(move || inverse_matrix.transform_xy(global_xy)),
         global_xy,

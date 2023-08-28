@@ -325,7 +325,11 @@ fn render_thumbnail<'a>(
                     _ => {}
                 }),
             )
-            .add(render([
+            .add(
+                simple_rect(wh, Color::TRANSPARENT, 0.px(), color::BACKGROUND)
+                    .with_mouse_cursor(MouseCursor::Pointer),
+            )
+            .add(
                 get_project_cg_part_variant_image_url(project_id, cg_id, cg_part_variant.id)
                     .map_or(RenderingTree::Empty, |cg_part_image_url| {
                         image(ImageParam {
@@ -339,9 +343,7 @@ fn render_thumbnail<'a>(
                             },
                         })
                     }),
-                simple_rect(wh, Color::TRANSPARENT, 0.px(), color::BACKGROUND)
-                    .with_mouse_cursor(MouseCursor::Pointer),
-            ]));
+            );
         }),
     )
 }

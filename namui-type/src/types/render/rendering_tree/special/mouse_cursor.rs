@@ -36,11 +36,11 @@ pub struct MouseCursorNode {
     pub cursor: Box<MouseCursor>,
 }
 
-impl RenderingTree {
-    pub fn with_mouse_cursor(self, cursor: MouseCursor) -> RenderingTree {
-        RenderingTree::Special(SpecialRenderingNode::MouseCursor(MouseCursorNode {
-            rendering_tree: Box::new(self),
-            cursor: Box::new(cursor),
-        }))
-    }
-}
+// impl RenderingTree {
+//     pub fn with_mouse_cursor(self, cursor: MouseCursor) -> RenderingTree {
+//         RenderingTree::Special(SpecialRenderingNode::MouseCursor(MouseCursorNode {
+//             rendering_tree: Box::new(self),
+//             cursor: Box::new(cursor),
+//         }))
+//     }
+// }

@@ -12,6 +12,7 @@ pub(crate) struct TreeContext {
     pub(crate) channel_events: Arc<Mutex<Vec<Item>>>,
     pub(crate) raw_event: Arc<Mutex<Option<Arc<RawEvent>>>>,
     pub(crate) is_stop_event_propagation: Arc<AtomicBool>,
+    pub(crate) is_cursor_determined: Arc<AtomicBool>,
     #[derivative(Debug = "ignore")]
     call_root_render: Arc<dyn Fn(HashSet<SigId>) -> RenderingTree>,
     #[derivative(Debug = "ignore")]
@@ -30,6 +31,7 @@ impl TreeContext {
             channel_events: Default::default(),
             raw_event: Default::default(),
             is_stop_event_propagation: Default::default(),
+            is_cursor_determined: Default::default(),
             call_root_render: Arc::new(|_| {
                 unreachable!();
             }),
@@ -74,6 +76,8 @@ impl TreeContext {
     pub(crate) fn render_and_draw(&self) {
         self.is_stop_event_propagation
             .store(false, std::sync::atomic::Ordering::Relaxed);
+        self.is_cursor_determined
+            .store(false, std::sync::atomic::Ordering::Relaxed);
 
         let mut channel_events = channel::drain();
 
@@ -83,8 +87,14 @@ impl TreeContext {
         self.channel_events.lock().unwrap().extend(channel_events);
 
         let rendering_tree = (self.call_root_render)(updated_sigs);
-        crate::system::mouse::update_mouse_cursor(&rendering_tree);
         crate::system::drawer::request_draw_rendering_tree(rendering_tree);
+
+        if !self
+            .is_cursor_determined
+            .load(std::sync::atomic::Ordering::Relaxed)
+        {
+            system::mouse::set_mouse_cursor(&MouseCursor::Default);
+        }
 
         (self.clear_unrendered_components)();
     }

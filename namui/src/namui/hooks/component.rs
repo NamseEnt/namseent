@@ -20,11 +20,11 @@ pub trait Component: StaticType + Debug {
     {
         native::attach_event(self, on_event)
     }
-    fn with_mouse_cursor<'a>(self, mouse_cursor: MouseCursor) -> WithMouseCursor<Self>
+    fn with_mouse_cursor<'a>(self, cursor: MouseCursor) -> WithMouseCursor<Self>
     where
         Self: 'a + Sized,
     {
-        native::with_mouse_cursor(self, mouse_cursor)
+        native::with_mouse_cursor(self, cursor)
     }
 }
 
