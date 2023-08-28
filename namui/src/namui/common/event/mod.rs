@@ -41,7 +41,7 @@ pub enum Event<'a> {
         text: String,
     },
     TextInputTextUpdated {
-        text: String,
+        text: &'a str,
         selection_direction: SelectionDirection,
         selection_start: usize,
         selection_end: usize,

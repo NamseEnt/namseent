@@ -14,10 +14,8 @@ pub struct BackgroundWithEvent<'a> {
     pub cut: &'a Cut,
     pub wh: Wh<Px>,
     pub is_selecting_target: bool,
-    pub prev_cut_id: Option<Uuid>,
-    pub next_cut_id: Option<Uuid>,
     pub(super) on_event: Box<dyn 'a + Fn(Event)>,
-    pub(super) on_internal_event: callback!('a, InternalEvent),
+    pub(super) on_internal_event: &'a dyn Fn(InternalEvent),
     pub project_id: Uuid,
 }
 
@@ -31,8 +29,6 @@ impl Component for BackgroundWithEvent<'_> {
             cut,
             wh,
             is_selecting_target,
-            prev_cut_id,
-            next_cut_id,
             on_event,
             on_internal_event,
             project_id,

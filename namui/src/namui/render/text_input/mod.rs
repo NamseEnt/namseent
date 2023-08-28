@@ -11,7 +11,7 @@ use std::{
     ops::Range,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, OnceLock,
+        Arc,
     },
 };
 
@@ -32,24 +32,39 @@ pub struct TextInput<'a> {
 pub enum Event<'a> {
     TextUpdated { text: &'a str },
     SelectionUpdated { selection: Selection },
-    KeyDown { code: Code },
+    KeyDown { event: TextinputKeyDownEvent<'a> },
 }
 
 #[derive(Debug, Default)]
 struct TextInputCtx {
-    pub focused_id: Option<Uuid>,
+    pub focus_request: Option<FocusRequest>,
     pub mouse_dragging: bool,
     pub selection: Selection,
+}
+
+#[derive(Debug)]
+struct FocusRequest {
+    id: Uuid,
+    focus_by: FocusBy,
+}
+
+#[derive(Debug)]
+enum FocusBy {
+    Api,
+    Mouse,
 }
 
 static TEXT_INPUT_ATOM: crate::Atom<TextInputCtx> = crate::Atom::uninitialized_new();
 
 impl TextInputCtx {
+    fn focused_id(&self) -> Option<Uuid> {
+        self.focus_request.as_ref().map(|request| request.id)
+    }
     fn is_focused(&self, id: Uuid) -> bool {
-        self.focused_id.is_some_and(|focused_id| focused_id == id)
+        self.focused_id().is_some_and(|focused_id| focused_id == id)
     }
     fn get_selection_of_text_input(&self, id: Uuid) -> Selection {
-        if self.focused_id.is_some_and(|focused_id| focused_id == id) {
+        if self.focused_id().is_some_and(|focused_id| focused_id == id) {
             return self.selection.clone();
         }
         Selection::None
@@ -60,16 +75,8 @@ impl Component for TextInput<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let id = self.instance.id;
         let (atom, set_atom) = ctx.atom_init(&TEXT_INPUT_ATOM, Default::default);
+        let is_focused = ctx.track_eq(&atom.is_focused(id));
 
-        let is_focused = ctx.memo(|| atom.is_focused(id));
-
-        static MOUSE_DOWN_FIRST_CALL: OnceLock<AtomicBool> = OnceLock::new();
-
-        ctx.effect("Set WebEvent first call", || {
-            MOUSE_DOWN_FIRST_CALL
-                .get_or_init(Default::default)
-                .store(true, Ordering::Relaxed);
-        });
         let paint = get_text_paint(self.style.text.color);
 
         let paragraph = Paragraph::new(
@@ -77,16 +84,6 @@ impl Component for TextInput<'_> {
             system::font::group_glyph(&self.font, &paint),
             self.text_param().max_width,
         );
-
-        ctx.effect("Blur on umount if focused", || {
-            return move || {
-                set_atom.mutate(move |atom| {
-                    if atom.is_focused(id) {
-                        *atom = Default::default();
-                    }
-                })
-            };
-        });
 
         let get_one_click_selection = |paragraph: &Paragraph,
                                        click_local_xy: Xy<Px>,
@@ -131,6 +128,24 @@ impl Component for TextInput<'_> {
             ))
         };
 
+        let update_selection = |selection_direction: SelectionDirection,
+                                selection_start: usize,
+                                selection_end: usize,
+                                text: &str| {
+            let selection = get_input_element_selection(
+                selection_direction,
+                selection_start,
+                selection_end,
+                text,
+            )
+            .map(|range| {
+                let chars_count = self.text.chars().count();
+                range.start.min(chars_count)..range.end.min(chars_count)
+            });
+
+            TEXT_INPUT_ATOM.mutate(move |text_input_ctx| text_input_ctx.selection = selection);
+        };
+
         let update_focus_with_mouse_movement = |local_mouse_xy: Xy<Px>, is_mouse_move: bool| {
             let local_text_xy = local_mouse_xy - Xy::new(self.text_x(), self.text_y());
 
@@ -166,23 +181,35 @@ impl Component for TextInput<'_> {
             crate::system::text_input::focus();
         };
 
-        let update_selection = |selection_direction: SelectionDirection,
-                                selection_start: usize,
-                                selection_end: usize,
-                                text: &str| {
-            let selection = get_input_element_selection(
-                selection_direction,
-                selection_start,
-                selection_end,
-                text,
-            )
-            .map(|range| {
-                let chars_count = self.text.chars().count();
-                range.start.min(chars_count)..range.end.min(chars_count)
-            });
+        let focus_by = atom.focus_request.as_ref().map(|request| &request.focus_by);
 
-            TEXT_INPUT_ATOM.mutate(move |text_input_ctx| text_input_ctx.selection = selection);
-        };
+        ctx.effect("Update text on focus", || {
+            if *is_focused {
+                match focus_by.unwrap() {
+                    FocusBy::Api => {
+                        crate::system::text_input::set_width(self.rect.width());
+                        crate::system::text_input::set_value(&self.text);
+                        crate::system::text_input::set_selection_range(
+                            self.text.chars().count(),
+                            self.text.chars().count(),
+                            SelectionDirection::None,
+                        );
+                        crate::system::text_input::focus();
+                    }
+                    FocusBy::Mouse { .. } => {}
+                }
+            }
+        });
+
+        ctx.effect("Blur on umount if focused", || {
+            return move || {
+                set_atom.mutate(move |atom| {
+                    if atom.is_focused(id) {
+                        *atom = Default::default();
+                    }
+                })
+            };
+        });
 
         let selection = atom.get_selection_of_text_input(id);
 
@@ -212,13 +239,15 @@ impl Component for TextInput<'_> {
                         return;
                     }
 
-                    let id = id.clone();
                     set_atom.mutate(move |atom| {
-                        atom.focused_id = Some(id);
+                        atom.focus_request = Some(FocusRequest {
+                            id,
+                            focus_by: FocusBy::Mouse,
+                        });
                         atom.mouse_dragging = true;
                     });
 
-                    update_focus_with_mouse_movement(event.local_xy(), false);
+                    update_focus_with_mouse_movement(event.local_xy(), false)
                 }
                 crate::Event::MouseUp { .. } => {
                     if *is_focused && atom.mouse_dragging {
@@ -243,7 +272,7 @@ impl Component for TextInput<'_> {
                     update_selection(selection_direction, selection_start, selection_end, text);
                 }
                 crate::Event::TextInputTextUpdated {
-                    ref text,
+                    text,
                     selection_direction,
                     selection_start,
                     selection_end,
@@ -254,16 +283,12 @@ impl Component for TextInput<'_> {
 
                     update_selection(selection_direction, selection_start, selection_end, text);
 
-                    (self.on_event)(Event::TextUpdated {
-                        text: text.as_str(),
-                    });
+                    (self.on_event)(Event::TextUpdated { text });
                 }
                 crate::Event::TextInputKeyDown { event } => {
                     if !*is_focused {
                         return;
                     }
-
-                    (self.on_event)(Event::KeyDown { code: event.code });
 
                     if self.prevent_default_codes.contains(&event.code) {
                         event.prevent_default();
@@ -277,8 +302,8 @@ impl Component for TextInput<'_> {
                             &event.text,
                         );
                         let Selection::Range(range) = selection else {
-                                return Selection::None;
-                            };
+                            return Selection::None;
+                        };
 
                         let next_selection_end =
                             get_caret_index_after_apply_key_movement(key, &paragraph, &range);
@@ -308,31 +333,37 @@ impl Component for TextInput<'_> {
                         }
                     };
 
-                    let caret_key = match event.code {
-                        Code::ArrowUp => CaretKey::ArrowUp,
-                        Code::ArrowDown => CaretKey::ArrowDown,
-                        Code::Home => CaretKey::Home,
-                        Code::End => CaretKey::End,
-                        _ => return,
-                    };
+                    let update_selection = || {
+                        let caret_key = match event.code {
+                            Code::ArrowUp => CaretKey::ArrowUp,
+                            Code::ArrowDown => CaretKey::ArrowDown,
+                            Code::Home => CaretKey::Home,
+                            Code::End => CaretKey::End,
+                            _ => return,
+                        };
 
-                    let selection = get_selection_on_keyboard_down(caret_key);
+                        let selection = get_selection_on_keyboard_down(caret_key);
 
-                    let Some(utf16_selection) = selection.as_utf16(&event.text) else {
+                        let Some(utf16_selection) = selection.as_utf16(&event.text) else {
                             return;
                         };
 
-                    let selection_direction = if utf16_selection.start <= utf16_selection.end {
-                        SelectionDirection::Forward
-                    } else {
-                        SelectionDirection::Backward
+                        let selection_direction = if utf16_selection.start <= utf16_selection.end {
+                            SelectionDirection::Forward
+                        } else {
+                            SelectionDirection::Backward
+                        };
+
+                        crate::system::text_input::set_selection_range(
+                            utf16_selection.start,
+                            utf16_selection.end,
+                            selection_direction,
+                        );
                     };
 
-                    crate::system::text_input::set_selection_range(
-                        utf16_selection.start,
-                        utf16_selection.end,
-                        selection_direction,
-                    );
+                    update_selection();
+
+                    (self.on_event)(Event::KeyDown { event });
                 }
                 _ => {}
             }),

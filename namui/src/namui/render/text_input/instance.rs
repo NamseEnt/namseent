@@ -18,7 +18,10 @@ impl TextInputInstance {
         let id = self.id;
         TEXT_INPUT_ATOM.mutate(move |text_input| {
             *text_input = TextInputCtx {
-                focused_id: Some(id),
+                focus_request: Some(FocusRequest {
+                    id,
+                    focus_by: FocusBy::Api,
+                }),
                 ..Default::default()
             };
         });
@@ -27,9 +30,13 @@ impl TextInputInstance {
     pub fn blur(&self) {
         let id = self.id;
         TEXT_INPUT_ATOM.mutate(move |text_input| {
-            if text_input.focused_id == Some(id) {
+            if text_input.focused_id() == Some(id) {
                 *text_input = Default::default();
             }
         });
+    }
+
+    pub fn focused(&self) -> bool {
+        TEXT_INPUT_ATOM.get().is_focused(self.id)
     }
 }

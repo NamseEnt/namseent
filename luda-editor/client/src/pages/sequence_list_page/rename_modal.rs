@@ -105,10 +105,10 @@ impl Component for RenameModal<'_> {
                             set_sequence_name.set(text.to_string());
                         }
                         text_input::Event::SelectionUpdated { selection: _ } => {}
-                        text_input::Event::KeyDown { code } => {
+                        text_input::Event::KeyDown { event } => {
                             let on_rename_done = on_rename_done.clone();
                             let sequence_name = sequence_name.clone();
-                            if code == Code::Enter {
+                            if event.code == Code::Enter {
                                 on_rename_done(sequence_name);
                             }
                         }

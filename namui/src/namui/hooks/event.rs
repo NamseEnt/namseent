@@ -112,7 +112,7 @@ pub(crate) fn invoke_on_event(
             selection_end,
         } => {
             on_event(Event::TextInputTextUpdated {
-                text: text.clone(),
+                text: text.as_str(),
                 selection_direction,
                 selection_start,
                 selection_end,

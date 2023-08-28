@@ -50,7 +50,7 @@ impl Component for LoadedSequenceEditorPage {
 
         enum InternalEvent {
             CutListViewEvent { event: cut_list_view::Event },
-            CutEditorEvent { event: cut_editor::Event2 },
+            CutEditorEvent { event: cut_editor::Event },
             CharacterEdtiorEvent { event: character_editor::Event },
             MemoListViewEvent { event: memo_list_view::Event },
             MemoEditorEvent { event: memo_editor::Event },
@@ -62,7 +62,6 @@ impl Component for LoadedSequenceEditorPage {
                     assert_eq!(*selected_cut_id, Some(cut_id));
 
                     set_focused_component.set(Some(FocusableComponent::CutEditor));
-                    todo!("self.cut_editor.focus_character_name();")
                 }
                 cut_list_view::Event::OnMoveToNextCutByKeyboard { next_cut_id } => {
                     assert_eq!(*focused_component, Some(FocusableComponent::CutListView));
@@ -79,16 +78,16 @@ impl Component for LoadedSequenceEditorPage {
                 }
             },
             InternalEvent::CutEditorEvent { event } => match event {
-                cut_editor::Event2::AddMemo { cut_id } => {
+                cut_editor::Event::AddMemo { cut_id } => {
                     set_editing_memo.set(Some(SequenceIdCutId {
                         sequence_id,
                         cut_id,
                     }))
                 }
-                cut_editor::Event2::ClickCharacterEdit { edit_target } => {
+                cut_editor::Event::ClickCharacterEdit { edit_target } => {
                     set_character_editor_target.set(Some(edit_target));
                 }
-                cut_editor::Event2::Focus => {
+                cut_editor::Event::Focus => {
                     set_focused_component.set(Some(FocusableComponent::CutEditor))
                 }
                 _ => {}

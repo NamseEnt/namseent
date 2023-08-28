@@ -1,68 +1,38 @@
 mod decomposed_string;
-// mod render;
-// mod update;
 
-use crate::{color, components::sequence_player};
+use crate::components::sequence_player;
 use decomposed_string::DecomposedString;
 use namui::prelude::*;
 use namui_prebuilt::*;
-use std::{collections::VecDeque, fmt::Debug};
 
 #[namui::component]
 pub struct AutoCompleteTextInput<'a> {
+    pub text_input_instance: TextInputInstance,
     pub wh: Wh<Px>,
     pub text: String,
     pub candidates: Sig<'a, Vec<std::string::String>>,
-    pub on_event: Box<dyn 'a + Fn(Event)>,
-    pub req_queue: VecDeque<Request>,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum Request {
-    Focus,
-    Blur,
-}
-
-pub enum Event<'a> {
-    TextChange { text: String },
-    EditDone,
-    KeyDown { event: KeyboardEvent<'a> },
-    ReqQueuePopFront,
+    pub on_event: &'a dyn Fn(text_input::Event),
+    pub style: text_input::Style,
 }
 
 impl Component for AutoCompleteTextInput<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let Self {
+            text_input_instance,
             wh,
-            ref text,
-            ref candidates,
-            ref on_event,
-            req_queue,
+            text,
+            candidates,
+            on_event,
+            style,
         } = self;
-        let on_event = on_event.clone();
 
         let (over_item_text, set_over_item_text) = ctx.state::<Option<String>>(|| None);
-        let text_input_instance = namui::text_input::TextInputInstance::new(ctx);
-
-        ctx.effect("handle req_queue", || {
-            if let Some(req) = req_queue.front() {
-                match req {
-                    Request::Focus => {
-                        text_input_instance.focus();
-                    }
-                    Request::Blur => {
-                        text_input_instance.blur();
-                    }
-                }
-                on_event(Event::ReqQueuePopFront);
-            }
-        });
 
         const LEFT_PADDING: Px = px(10.0);
 
         let suggestions = candidates
             .iter()
-            .filter(|candidate| DecomposedString::parse(candidate).starts_with(text))
+            .filter(|candidate| DecomposedString::parse(candidate).starts_with(&text))
             .map(|candidate| candidate.to_string())
             .take(MAX_SUGGESTIONS)
             .collect::<Vec<_>>();
@@ -122,76 +92,52 @@ impl Component for AutoCompleteTextInput<'_> {
             }
         };
 
-        let on_enter_down = {
-            let selected_suggestion = over_item_index.map(|index| suggestions[index].clone());
-            let on_event = on_event.clone();
-
-            move |code: Code| {
-                if code != Code::Enter {
-                    return;
+        ctx.component(namui::TextInput {
+            instance: text_input_instance,
+            rect: wh.to_rect(),
+            text: text.clone(),
+            text_align: TextAlign::Left,
+            text_baseline: TextBaseline::Top,
+            font: sequence_player::cut_text_font(),
+            style,
+            prevent_default_codes: vec![Code::Tab, Code::Enter, Code::ArrowUp, Code::ArrowDown],
+            on_event: &|event| match event {
+                text_input::Event::TextUpdated { text } => {
+                    on_event(text_input::Event::TextUpdated { text });
                 }
+                text_input::Event::KeyDown { event } => {
+                    if !event.is_composing {
+                        match event.code {
+                            Code::Enter => {
+                                let selected_suggestion =
+                                    over_item_index.map(|index| &suggestions[index]);
 
-                if let Some(selected_suggestion) = &selected_suggestion {
-                    on_event(Event::TextChange {
-                        text: selected_suggestion.clone(),
-                    });
-                }
-
-                on_event(Event::EditDone)
-            }
-        };
-
-        ctx.component(
-            namui::TextInput {
-                instance: text_input_instance,
-                rect: wh.to_rect(),
-                text: text.clone(),
-                text_align: TextAlign::Left,
-                text_baseline: TextBaseline::Top,
-                font: sequence_player::cut_text_font(),
-                style: text_input::Style {
-                    text: sequence_player::cut_text_style(1.one_zero()),
-                    rect: RectStyle {
-                        stroke: Some(RectStroke {
-                            color: color::STROKE_FOCUS,
-                            width: 2.px(),
-                            border_position: BorderPosition::Middle,
-                        }),
-                        fill: Some(RectFill {
-                            color: color::BACKGROUND,
-                        }),
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-                prevent_default_codes: vec![Code::Tab, Code::Enter, Code::ArrowUp, Code::ArrowDown],
-                on_event: &|event| match event {
-                    text_input::Event::TextUpdated { text } => {
-                        on_event(Event::TextChange {
-                            text: text.to_string(),
-                        });
+                                if let Some(selected_suggestion) = selected_suggestion {
+                                    on_event(text_input::Event::TextUpdated {
+                                        text: selected_suggestion.as_str(),
+                                    });
+                                }
+                            }
+                            Code::ArrowUp | Code::ArrowDown => {
+                                on_arrow_up_down_key(event.code);
+                            }
+                            _ => {}
+                        }
                     }
-                    text_input::Event::KeyDown { code } => match code {
-                        Code::Tab => {}
-                        Code::Enter => {
-                            on_enter_down(code);
-                        }
-                        Code::ArrowUp | Code::ArrowDown => {
-                            on_arrow_up_down_key(code);
-                        }
-                        _ => {}
-                    },
-                    text_input::Event::SelectionUpdated { selection: _ } => {}
-                },
-            }
-            .attach_event(|event| match event {
-                namui::Event::KeyDown { event } => {
-                    on_event(Event::KeyDown { event });
+
+                    on_event(text_input::Event::KeyDown { event });
                 }
-                _ => {}
-            }),
-        );
+                text_input::Event::SelectionUpdated { selection } => {
+                    on_event(text_input::Event::SelectionUpdated { selection });
+                }
+            },
+        });
+
         ctx.compose(|ctx| {
+            if !text_input_instance.focused() {
+                return;
+            }
+
             let mut ctx = ctx.on_top().translate((0.px(), wh.height));
             let body_height = wh.height * suggestions.len();
 
@@ -237,35 +183,4 @@ impl Component for AutoCompleteTextInput<'_> {
     }
 }
 
-// pub struct Props<
-//     OnTextChange: Fn(String) + 'static,
-//     OnEditDone: Fn() + 'static,
-//     OnKeyDown: Fn(&KeyDownEvent) + 'static,
-// > {}
-
-// enum InternalEvent {
-//     ArrowUpDown { next_index: Option<usize> },
-//     UpdateItemIndex { over_item_index: Option<usize> },
-// }
-
 const MAX_SUGGESTIONS: usize = 4;
-
-// impl AutoCompleteTextInput {
-//     pub fn new() -> Self {
-//         Self {
-//             text_input: TextInput::new(),
-//             over_item_index: None,
-//         }
-//     }
-//     pub fn focus(&mut self) {
-//         text_input.focus();
-//     }
-
-//     pub(crate) fn text_input_id(&self) -> Uuid {
-//         text_input.get_id()
-//     }
-
-//     pub(crate) fn blur(&self) {
-//         text_input.blur();
-//     }
-// }
