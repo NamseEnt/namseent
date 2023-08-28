@@ -1,8 +1,6 @@
 mod cg_picker;
 mod part_picker;
-mod render;
 mod tool_tip;
-mod update;
 
 use self::{cg_picker::CgPicker, part_picker::PartPicker, tool_tip::ToolTip};
 use crate::{
@@ -93,11 +91,11 @@ impl Component for CharacterEditor<'_> {
                             cg_picker::Event::ClickCgFileThumbnail { cg_id } => match edit_target {
                                 EditTarget::NewCharacter { cut_id } => {
                                     let cg_files = CG_FILES_ATOM.get();
-                                    let Some(cg_file) = cg_files
-                                                .iter()
-                                                .find(|file| file.id == cg_id) else {
-                                                    return;
-                                                };
+                                    let Some(cg_file) =
+                                        cg_files.iter().find(|file| file.id == cg_id)
+                                    else {
+                                        return;
+                                    };
 
                                     let graphic_index: Uuid = Uuid::new_v4();
 
@@ -125,11 +123,11 @@ impl Component for CharacterEditor<'_> {
                                     graphic_index,
                                 } => {
                                     let cg_files = CG_FILES_ATOM.get();
-                                    let Some(cg_file) = cg_files
-                                                .iter()
-                                                .find(|file| file.id == cg_id) else {
-                                                    return;
-                                                };
+                                    let Some(cg_file) =
+                                        cg_files.iter().find(|file| file.id == cg_id)
+                                    else {
+                                        return;
+                                    };
 
                                     SEQUENCE_ATOM.mutate(move |sequence| {
                                         sequence.update_cut(
