@@ -4,9 +4,12 @@ import os
 from platform import uname
 
 ignored_projects = list(
-    filter(
-        lambda line: not line.startswith("#"),
-        open(".ignored_projects", "r").readlines(),
+    map(
+        lambda line: line.strip(),
+        filter(
+            lambda line: not line.startswith("#"),
+            open(".ignored_projects", "r").readlines(),
+        )
     )
 )
 
