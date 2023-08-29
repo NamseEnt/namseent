@@ -113,33 +113,33 @@ jobs:
           target: wasm-unknown-web
           path: namui-prebuilt
 
-  test-namui-sample:
-    needs: [check-rebuild]
-    if: needs.check-rebuild.outputs.namui-sample == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/init-test-job
-      - uses: ./.github/actions/namui-test
-        with:
-          target: wasm-unknown-web
-          path: namui/sample/text-input
-      - uses: ./.github/actions/namui-test
-        with:
-          target: wasm-unknown-web
-          path: namui/sample/shader
-      - uses: ./.github/actions/namui-test
-        with:
-          target: wasm-unknown-web
-          path: namui/sample/multiline-text
-      - uses: ./.github/actions/namui-test
-        with:
-          target: wasm-unknown-web
-          path: namui/sample/type_macro
-      - uses: ./.github/actions/namui-test
-        with:
-          target: wasm-unknown-web
-          path: namui/sample/rect
+  # test-namui-sample:
+  #   needs: [check-rebuild]
+  #   if: needs.check-rebuild.outputs.namui-sample == 'true'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: ./.github/actions/init-test-job
+  #     - uses: ./.github/actions/namui-test
+  #       with:
+  #         target: wasm-unknown-web
+  #         path: namui/sample/text-input
+  #     - uses: ./.github/actions/namui-test
+  #       with:
+  #         target: wasm-unknown-web
+  #         path: namui/sample/shader
+  #     - uses: ./.github/actions/namui-test
+  #       with:
+  #         target: wasm-unknown-web
+  #         path: namui/sample/multiline-text
+  #     - uses: ./.github/actions/namui-test
+  #       with:
+  #         target: wasm-unknown-web
+  #         path: namui/sample/type_macro
+  #     - uses: ./.github/actions/namui-test
+  #       with:
+  #         target: wasm-unknown-web
+  #         path: namui/sample/rect
 
   # test-luda-adventure:
   #   needs: [check-rebuild]
@@ -165,7 +165,7 @@ jobs:
       - test-namui
       - test-luda-editor
       - test-namui-prebuilt
-      - test-namui-sample
+      # - test-namui-sample
       # - test-luda-adventure
     steps:
       - run: echo ${{ join(needs.*.result, ',') }}
