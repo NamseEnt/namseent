@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM docker.io/rust:1.70-alpine
+FROM docker.io/rust:1-alpine
 
 ENV CARGO_HOME=/usr/local/cargo
 ENV RUSTFLAGS="-D warnings"
@@ -13,7 +13,7 @@ RUN apk add --no-cache \
     perl \
     make
 
-RUN cargo install --version 0.11.1 wasm-pack
+RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
 RUN rustup target add wasm32-unknown-unknown
 
