@@ -39,7 +39,9 @@ impl Component for CutListView<'_> {
                 if !is_focused {
                     return;
                 }
-                let Some (selected_cut_id) = selected_cut_id else { return ; } ;
+                let Some(selected_cut_id) = selected_cut_id else {
+                    return;
+                };
                 if event.code == Code::Enter {
                     on_event(Event::OnPressEnterOnCut {
                         cut_id: selected_cut_id,

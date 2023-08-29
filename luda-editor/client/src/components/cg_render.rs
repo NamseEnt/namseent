@@ -47,7 +47,8 @@ impl Component for CgRender<'_> {
                     let Some(variant) = cg_part
                         .variants
                         .iter()
-                        .find(|variant| &variant.name == variant_name) else {
+                        .find(|variant| &variant.name == variant_name)
+                    else {
                         return;
                     };
 
@@ -71,7 +72,8 @@ impl Component for CgRender<'_> {
                         .cg_file
                         .parts
                         .iter()
-                        .find(|part| part.name == screen_part.name()) else {
+                        .find(|part| part.name == screen_part.name())
+                    else {
                         continue;
                     };
 

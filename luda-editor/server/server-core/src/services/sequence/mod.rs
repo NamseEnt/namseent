@@ -474,7 +474,7 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
         Box<dyn 'a + std::future::Future<Output = rpc::delete_sequence::Result> + Send>,
     > {
         Box::pin(async move {
-            let Some(session) = session else  {
+            let Some(session) = session else {
                 return Err(rpc::delete_sequence::Error::Unauthorized);
             };
 

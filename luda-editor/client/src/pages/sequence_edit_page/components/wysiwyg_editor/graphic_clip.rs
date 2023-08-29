@@ -100,11 +100,10 @@ impl Component for GraphicClip<'_> {
                     },
                 })),
                 ScreenGraphic::Cg(cg) => {
-                    let Some(cg_file) = cg_files
-                        .iter()
-                        .find(|cg_file| cg_file.name == cg.name) else {
-                            return;
-                        };
+                    let Some(cg_file) = cg_files.iter().find(|cg_file| cg_file.name == cg.name)
+                    else {
+                        return;
+                    };
                     ctx.add(cg_render::CgRender {
                         project_id,
                         rect: graphic_rendering_rect,

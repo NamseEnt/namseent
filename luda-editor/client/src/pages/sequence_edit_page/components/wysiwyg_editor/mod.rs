@@ -224,8 +224,8 @@ impl Component for WysiwygEditor<'_> {
                         })
                         .and(|builder| {
                             let ScreenGraphic::Cg(cg) = graphic else {
-                                    return builder;
-                                };
+                                return builder;
+                            };
                             let cg_id = cg.id;
 
                             builder.add_button("Edit character", move || {

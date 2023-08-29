@@ -100,7 +100,7 @@ impl<Func: FnOnce(&mut ComposeCtx)> Component for ScrollViewWithCtx<Func> {
         } = self;
         let (bounding_box, set_bounding_box) = ctx.state(|| None);
 
-        let Some(bounding_box) = *bounding_box else  {
+        let Some(bounding_box) = *bounding_box else {
             let content = ctx.ghost_compose(content);
 
             if let Some(bounding_box) = content.bounding_box() {
