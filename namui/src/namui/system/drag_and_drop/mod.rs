@@ -1,5 +1,5 @@
 use super::InitResult;
-use crate::{File, NamuiEvent};
+use crate::*;
 use namui_type::*;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::window;
@@ -29,29 +29,10 @@ pub(super) async fn init() -> InitResult {
             "drop",
             Closure::wrap(Box::new(move |event: web_sys::DragEvent| {
                 event.prevent_default();
-                let Some(data_transfer) = event.data_transfer() else {
-                    return;
-                };
-
-                let items = data_transfer.items();
-
-                if items.length() == 0 {
-                    return;
-                }
-
-                let mut files = Vec::with_capacity(items.length() as usize);
-                for index in 0..items.length() {
-                    let web_file = items.get(index).unwrap().get_as_file().unwrap().unwrap();
-                    let file = File::new(web_file);
-                    files.push(file);
-                }
-
-                let file_drop_event = RawFileDropEvent {
-                    files,
-                    global_xy: Xy::new(event.client_x().px(), event.client_y().px()),
-                };
-
-                crate::event::send(NamuiEvent::FileDrop(file_drop_event));
+                crate::hooks::on_raw_event(RawEvent::FileDrop {
+                    xy: Xy::new(event.client_x().px(), event.client_y().px()),
+                    data_transfer: event.data_transfer(),
+                });
             }) as Box<dyn FnMut(_)>)
             .into_js_value()
             .unchecked_ref(),

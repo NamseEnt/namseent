@@ -1,3 +1,5 @@
+pub mod hooks;
+
 use namui::prelude::*;
 
 pub struct TableCell<'a> {
@@ -185,16 +187,16 @@ fn slice_internal<'a>(
                 xywh.x(),
                 xywh.y(),
                 if need_clip {
-                    namui::clip(
-                        PathBuilder::new().add_rect(Rect::Xywh {
+                    RenderingTree::Special(SpecialRenderingNode::Clip(ClipNode {
+                        path: Path::new().add_rect(Rect::Xywh {
                             x: px(0.0),
                             y: px(0.0),
                             width: xywh.width(),
                             height: xywh.height(),
                         }),
-                        ClipOp::Intersect,
-                        render_fn(direction, xywh.wh()),
-                    )
+                        clip_op: ClipOp::Intersect,
+                        rendering_tree: Box::new(render_fn(direction, xywh.wh())),
+                    }))
                 } else {
                     render_fn(direction, xywh.wh())
                 },
@@ -203,7 +205,7 @@ fn slice_internal<'a>(
             rendering_tree_list.push(rendering_tree);
             advanced_pixel_size += pixel_size;
         }
-        RenderingTree::Children(rendering_tree_list)
+        render(rendering_tree_list)
     }
 }
 
@@ -274,7 +276,7 @@ pub enum FitAlign {
     RightBottom,
 }
 pub fn fit<'a>(align: FitAlign, rendering_tree: RenderingTree) -> TableCell<'a> {
-    match rendering_tree.get_bounding_box() {
+    match rendering_tree.bounding_box() {
         Some(bounding_box) => TableCell {
             unit: Unit::Responsive(Box::new(move |direction| match direction {
                 Direction::Vertical => bounding_box.y() + bounding_box.height(),

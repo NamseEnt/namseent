@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 
+#[derive(Debug, Default, PartialEq)]
 pub struct History<const N: usize, Item: Clone> {
     undo_queue: VecDeque<Item>,
     item: Item,

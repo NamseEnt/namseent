@@ -1,13 +1,16 @@
 mod app;
-mod atom;
 mod color;
 mod components;
 mod late_init;
 mod pages;
 mod setting;
-mod share_preview;
 mod storage;
-mod viewer;
+
+// TODO
+// mod share_preview;
+// mod viewer;
+
+use namui::prelude::*;
 
 #[cfg(test)]
 #[cfg(target_family = "wasm")]
@@ -18,42 +21,65 @@ static SETTING: late_init::LateInit<setting::Setting> =
 static RPC: late_init::LateInit<rpc::Rpc> = late_init::LateInit::<rpc::Rpc>::new();
 
 pub async fn main() {
-    let search = web_sys::window().unwrap().location().search().unwrap();
-    let is_auth_callback = search.starts_with("?code=");
-    if is_auth_callback {
-        return;
-    }
-
     let namui_context = namui::init().await;
 
-    let setting = {
-        match namui::file::bundle::read("setting.json").await {
-            Ok(buffer) => serde_json::from_slice::<setting::Setting>(buffer.as_ref())
-                .expect("Failed to parse setting.json"),
-            Err(error) => {
-                if let namui::file::bundle::ReadError::FileNotFound(_) = error {
-                    setting::Setting::default()
-                } else {
-                    panic!("fail to read setting.json, {}", error);
+    namui_context.start(|| Init {}).await;
+}
+
+#[namui::component]
+struct Init {}
+
+impl namui::Component for Init {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let (loaded, set_loaded) = ctx.state(|| false);
+
+        ctx.effect("Init", || {
+            spawn_local(async move {
+                let search: String =
+                    namui::web::execute_function("return document.location.search;").run();
+
+                let is_auth_callback = search.starts_with("?code=");
+
+                if is_auth_callback {
+                    return;
                 }
-            }
-        }
-    };
 
-    SETTING.init(setting);
-    RPC.init(rpc::Rpc::new(SETTING.rpc_endpoint.clone()));
+                let setting = {
+                    match namui::file::bundle::read("setting.json").await {
+                        Ok(buffer) => serde_json::from_slice::<setting::Setting>(buffer.as_ref())
+                            .expect("Failed to parse setting.json"),
+                        Err(error) => {
+                            if let namui::file::bundle::ReadError::FileNotFound(_) = error {
+                                setting::Setting::default()
+                            } else {
+                                panic!("fail to read setting.json, {}", error);
+                            }
+                        }
+                    }
+                };
 
-    let share_preview = share_preview::SharePreview::from_search(&search);
+                SETTING.init(setting);
+                RPC.init(rpc::Rpc::new(SETTING.rpc_endpoint.clone()));
 
-    match share_preview {
-        Some(share_preview) => {
-            namui::start(
-                namui_context,
-                &mut viewer::Viewer::new(share_preview.sequence_id, share_preview.index),
-                &(),
-            )
-            .await
-        }
-        None => namui::start(namui_context, &mut app::App::new(), &()).await,
+                // TODO
+                // let share_preview = share_preview::SharePreview::from_search(&search);
+                // match share_preview {
+                //     Some(share_preview) => {
+                //         todo!()
+                //         // namui::start(
+                //         //     namui_context,
+                //         //     &mut viewer::Viewer::new(share_preview.sequence_id, share_preview.index),
+                //         //     &(),
+                //         // )
+                //     }
+                //     None => namui_context.start(&app::App),
+                // }
+
+                set_loaded.set(true)
+            })
+        });
+
+        ctx.component(loaded.then(|| app::App {}));
+        ctx.done()
     }
 }

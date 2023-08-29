@@ -1,6 +1,6 @@
-use url::Url;
+use crate::*;
 
-pub(crate) async fn url_to_bytes(url: &Url) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+pub(crate) async fn url_to_bytes(url: &Url) -> Result<Vec<u8>> {
     match url.scheme() {
         "http" | "https" => crate::network::http::get_bytes(url.as_str())
             .await
@@ -10,6 +10,6 @@ pub(crate) async fn url_to_bytes(url: &Url) -> Result<Vec<u8>, Box<dyn std::erro
             .await
             .map_err(|error| error.into())
             .map(|bytes| bytes.as_ref().to_vec()),
-        _ => Err(format!("unknown scheme: {}", url.scheme()).into()),
+        _ => bail!("unknown scheme: {}", url.scheme()),
     }
 }

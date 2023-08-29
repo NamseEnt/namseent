@@ -1,36 +1,28 @@
 use namui::prelude::*;
-use namui_prebuilt::*;
+use namui_prebuilt::simple_rect;
 
-#[derive(Debug, Clone)]
-pub struct RenameModal {
-    sequence_id: namui::Uuid,
-    sequence_name: String,
-    text_input: TextInput,
+#[namui::component]
+pub struct RenameModal<'a> {
+    pub init_sequence_name: String,
+    pub on_rename_done: &'a (dyn 'a + Fn(String)),
+    pub close_modal: &'a (dyn 'a + Fn()),
 }
-pub enum Event {
-    RenameDone {
-        sequence_id: namui::Uuid,
-        sequence_name: String,
-    },
-}
-impl RenameModal {
-    #[allow(dead_code)]
-    pub fn new(sequence_id: namui::Uuid, sequence_name: String) -> Self {
-        Self {
-            sequence_id,
-            text_input: TextInput::new(),
-            sequence_name,
-        }
-    }
-    pub fn update(&mut self, event: &namui::Event) {
-        if let Some(text_input::Event::TextUpdated { id, text, .. }) = event.downcast_ref() {
-            if self.text_input.get_id().eq(id) {
-                self.sequence_name = text.clone();
-            }
-        }
-    }
-    pub fn render(&self) -> namui::RenderingTree {
+
+impl Component for RenameModal<'_> {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self {
+            init_sequence_name,
+            on_rename_done,
+            close_modal,
+        } = self;
+        let (sequence_name, set_sequence_name) = ctx.state(|| init_sequence_name.clone());
+        let text_input_instance = namui::text_input::TextInputInstance::new(ctx);
+
+        let close_modal = close_modal.clone();
+        let on_rename_done = on_rename_done.clone();
+
         let screen_wh = namui::screen::size();
+        let screen_wh = Wh::new(screen_wh.width.into_px(), screen_wh.height.into_px());
         let modal_wh = screen_wh * 0.5;
         let modal_xy = ((screen_wh - modal_wh) * 0.5).as_xy();
         let text_input_rect_in_modal = Rect::Xywh {
@@ -45,91 +37,101 @@ impl RenameModal {
             width: 40.px(),
             height: 20.px(),
         };
-        let sequence_id = self.sequence_id;
-        let sequence_name = self.sequence_name.clone();
 
-        absolute(
-            0.px(),
-            0.px(),
-            render([
-                simple_rect(
-                    screen_wh,
-                    Color::TRANSPARENT,
-                    0.px(),
-                    Color::from_f01(0.8, 0.8, 0.8, 0.8),
-                ),
-                translate(
-                    modal_xy.x,
-                    modal_xy.y,
-                    render([
-                        simple_rect(modal_wh, Color::WHITE, 1.px(), Color::grayscale_f01(0.5)),
-                        namui_prebuilt::typography::body::center(
-                            Wh::new(modal_wh.width, modal_wh.height / 3.0),
-                            "Rename Sequence",
-                            Color::WHITE,
-                        ),
-                        self.text_input.render(text_input::Props {
-                            rect: text_input_rect_in_modal,
-                            text: self.sequence_name.clone(),
-                            text_align: TextAlign::Left,
-                            text_baseline: TextBaseline::Top,
-                            font_type: FontType {
-                                serif: false,
-                                size: 12.int_px(),
-                                language: Language::Ko,
-                                font_weight: FontWeight::REGULAR,
-                            },
-                            style: text_input::Style {
-                                rect: RectStyle {
-                                    stroke: Some(RectStroke {
-                                        color: Color::BLACK,
-                                        width: 1.px(),
-                                        border_position: BorderPosition::Outside,
-                                    }),
-                                    fill: Some(RectFill {
-                                        color: Color::WHITE,
-                                    }),
-                                    ..Default::default()
-                                },
-                                text: TextStyle {
-                                    color: Color::BLACK,
-                                    ..Default::default()
-                                },
-                                ..Default::default()
-                            },
-                            event_handler: Some(text_input::EventHandler::new().on_key_down(
-                                move |event: KeyDownEvent| {
-                                    if event.code == Code::Enter {
-                                        namui::event::send(Event::RenameDone {
-                                            sequence_id,
-                                            sequence_name: sequence_name.clone(),
-                                        });
-                                    }
-                                },
-                            )),
-                        }),
-                        namui_prebuilt::button::text_button(
-                            enter_button_rect_in_modal,
-                            "Save",
-                            Color::WHITE,
-                            Color::WHITE,
-                            1.px(),
-                            Color::BLACK,
-                            [MouseButton::Left],
-                            {
-                                let sequence_id = self.sequence_id;
-                                let sequence_name = self.sequence_name.clone();
-                                move |_| {
-                                    namui::event::send(Event::RenameDone {
-                                        sequence_id,
-                                        sequence_name: sequence_name.clone(),
-                                    });
-                                }
-                            },
-                        ),
-                    ]),
-                ),
-            ]),
-        )
+        let sequence_name = sequence_name.to_string();
+        ctx.compose(|ctx| {
+            ctx.absolute((0.px(), 0.px()))
+                .add(
+                    simple_rect(
+                        screen_wh,
+                        Color::TRANSPARENT,
+                        0.px(),
+                        Color::from_f01(0.8, 0.8, 0.8, 0.8),
+                    )
+                    .attach_event(|event| match event {
+                        Event::MouseDown { event } => {
+                            if !event.is_local_xy_in() {
+                                close_modal();
+                            }
+                            event.stop_propagation();
+                        }
+                        Event::MouseUp { event } => event.stop_propagation(),
+                        _ => {}
+                    }),
+                )
+                .translate((modal_xy.x, modal_xy.y))
+                .add(simple_rect(
+                    modal_wh,
+                    Color::WHITE,
+                    1.px(),
+                    Color::grayscale_f01(0.5),
+                ))
+                .add(namui_prebuilt::typography::body::center(
+                    Wh::new(modal_wh.width, modal_wh.height / 3.0),
+                    "Rename Sequence",
+                    Color::WHITE,
+                ))
+                .add(TextInput {
+                    instance: text_input_instance,
+                    rect: text_input_rect_in_modal,
+                    text: sequence_name.to_string(),
+                    text_align: TextAlign::Left,
+                    text_baseline: TextBaseline::Top,
+                    font: Font {
+                        size: 12.int_px(),
+                        name: "NotoSansKR-Regular".to_string(),
+                    },
+                    style: text_input::Style {
+                        rect: RectStyle {
+                            stroke: Some(RectStroke {
+                                color: Color::BLACK,
+                                width: 1.px(),
+                                border_position: BorderPosition::Outside,
+                            }),
+                            fill: Some(RectFill {
+                                color: Color::WHITE,
+                            }),
+                            ..Default::default()
+                        },
+                        text: TextStyle {
+                            color: Color::BLACK,
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    prevent_default_codes: vec![],
+                    on_event: &|event| match event {
+                        text_input::Event::TextUpdated { text } => {
+                            set_sequence_name.set(text.to_string());
+                        }
+                        text_input::Event::SelectionUpdated { selection: _ } => {}
+                        text_input::Event::KeyDown { event } => {
+                            let on_rename_done = on_rename_done.clone();
+                            let sequence_name = sequence_name.clone();
+                            if event.code == Code::Enter {
+                                on_rename_done(sequence_name);
+                            }
+                        }
+                    },
+                })
+                .add(namui_prebuilt::button::text_button(
+                    enter_button_rect_in_modal,
+                    "Save",
+                    Color::WHITE,
+                    Color::WHITE,
+                    1.px(),
+                    Color::BLACK,
+                    [MouseButton::Left],
+                    {
+                        let on_rename_done = on_rename_done.clone();
+                        let sequence_name = sequence_name.clone();
+
+                        move |_| {
+                            on_rename_done(sequence_name);
+                        }
+                    },
+                ));
+        });
+        ctx.done()
     }
 }

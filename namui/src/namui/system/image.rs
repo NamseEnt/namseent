@@ -1,108 +1,58 @@
 use super::*;
-use crate::{time::delay, url::url_to_bytes, File, Image};
-use dashmap::DashMap;
-use namui_type::Time;
-use std::{
-    collections::HashSet,
-    sync::{Arc, Mutex},
-};
-use url::Url;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::spawn_local;
-
-struct ImageSystem {
-    image_url_map: DashMap<Url, Arc<Image>>,
-    image_file_map: DashMap<File, Arc<Image>>,
-    image_requested_set: Mutex<HashSet<Url>>,
-}
-
-lazy_static::lazy_static! {
-    static ref IMAGE_SYSTEM: Arc<ImageSystem> = Arc::new(ImageSystem::new());
-}
+use crate::{url::url_to_bytes, *};
 
 pub(super) async fn init() -> InitResult {
-    lazy_static::initialize(&IMAGE_SYSTEM);
     Ok(())
 }
 
-impl ImageSystem {
-    fn new() -> Self {
-        Self {
-            image_url_map: DashMap::new(),
-            image_file_map: DashMap::new(),
-            image_requested_set: Mutex::new(HashSet::new()),
-        }
-    }
-}
-pub fn try_load_url(url: &Url) -> Option<Arc<Image>> {
-    if let Some(image) = IMAGE_SYSTEM.image_url_map.get(url) {
-        return Some(image.clone());
-    };
+pub type Load<T> = Option<Result<T>>;
 
-    {
-        let mut image_requested_set = IMAGE_SYSTEM.image_requested_set.lock().unwrap();
+impl RenderCtx {
+    pub fn image<'a>(&'a self, url: &Url) -> Sig<'a, Load<Image>> {
+        let url = self.track_eq(url);
+        let (url_load_tuple, set_load) = self.state(|| ((*url).clone(), Load::None));
 
-        if image_requested_set.contains(url) {
-            return None;
-        }
-        image_requested_set.insert(url.clone());
-    }
+        self.effect(&format!("Load image from {url}"), || {
+            let url = (*url).clone();
 
-    start_load_url(url);
-    None
-}
-fn start_load_url(url: &Url) {
-    let url = url.clone();
-    spawn_local(async move {
-        let read_url_result = url_to_bytes(&url).await;
+            spawn_local(async move {
+                let image = load_image(&ImageSource::Url { url: url.clone() }).await;
+                set_load.mutate(move |x| {
+                    if x.0 != url {
+                        return;
+                    }
+                    x.1 = Some(image);
+                });
+            });
+        });
 
-        match read_url_result {
-            Ok(data) => match new_image_from_u8(&data).await {
-                Ok(image) => {
-                    IMAGE_SYSTEM.image_url_map.insert(url, image);
-                }
-                Err(error) => {
-                    crate::log!(
-                        "failed to MakeImageFromEncoded: {error}, {}, {:?}",
-                        url,
-                        data
-                    );
-                }
-            },
-            Err(error) => {
-                crate::log!(
-                    "ImageSystem::start_load: failed to load image: {}, {}",
-                    url,
-                    error,
-                );
-            }
-        }
-    });
-}
-pub async fn load_url(url: &Url) -> Arc<Image> {
-    const OBSERVATION_INTERVAL: Time = Time::Ms(8.);
-
-    loop {
-        if let Some(image) = try_load_url(url) {
-            return image.clone();
-        };
-
-        delay(OBSERVATION_INTERVAL).await;
+        url_load_tuple.map_1()
     }
 }
 
-#[wasm_bindgen]
-extern "C" {
-    pub type ImageBitmap;
+pub async fn load_image(image_source: &ImageSource) -> Result<Image> {
+    match image_source {
+        ImageSource::Url { url } => {
+            let bytes = url_to_bytes(&url).await?;
 
-    #[wasm_bindgen(js_namespace = globalThis, js_name = createImageBitmap)]
-    async fn create_image_bitmap_with_option(image: JsValue, options: JsValue) -> JsValue;
+            let image_bitmap = image_bitmap_from_u8(&bytes).await?;
+
+            let wh = Wh::new(
+                (image_bitmap.width() as f32).px(),
+                (image_bitmap.height() as f32).px(),
+            );
+
+            system::drawer::load_image(image_source, image_bitmap);
+
+            Ok(Image {
+                src: image_source.clone(),
+                wh,
+            })
+        }
+    }
 }
 
-unsafe impl Sync for ImageBitmap {}
-unsafe impl Send for ImageBitmap {}
-
-pub async fn new_image_from_u8(data: &[u8]) -> Result<Arc<Image>, Box<dyn std::error::Error>> {
+async fn image_bitmap_from_u8(data: &[u8]) -> Result<web_sys::ImageBitmap> {
     let u8_array = js_sys::Uint8Array::from(data);
 
     let u8_array_sequence = {
@@ -112,49 +62,13 @@ pub async fn new_image_from_u8(data: &[u8]) -> Result<Arc<Image>, Box<dyn std::e
     };
     let blob = web_sys::Blob::new_with_u8_array_sequence(&u8_array_sequence.into()).unwrap();
 
-    let image = blob_to_image(blob).await;
-
-    Ok(image)
-}
-
-pub(crate) async fn blob_to_image(blob: web_sys::Blob) -> Arc<Image> {
-    let option = {
-        let option = js_sys::Object::new();
-        js_sys::Reflect::set(&option, &"premultiplyAlpha".into(), &"none".into()).unwrap();
-        option
-    };
-    let image_bitmap: ImageBitmap = create_image_bitmap_with_option(blob.into(), option.into())
-        .await
-        .into();
-
-    let image = Image::from_image_bitmap(image_bitmap);
-
-    Arc::new(image)
-}
-
-pub(crate) fn try_load_file(file: &File) -> Option<Arc<Image>> {
-    if let Some(image) = IMAGE_SYSTEM.image_file_map.get(file) {
-        return Some(image.clone());
-    };
-
-    start_load_file(file.clone());
-    None
-}
-
-fn start_load_file(file: File) {
-    spawn_local(async move {
-        let content = file.content().await;
-        match new_image_from_u8(&content).await {
-            Ok(image) => {
-                IMAGE_SYSTEM.image_file_map.insert(file, image);
-            }
-            Err(error) => {
-                crate::log!(
-                    "failed to new_image_from_u8 for file: {error}, {:?}, {:?}",
-                    file,
-                    content
-                );
-            }
-        };
-    });
+    Ok(wasm_bindgen_futures::JsFuture::from(
+        web_sys::window()
+            .unwrap()
+            .create_image_bitmap_with_blob(&blob)
+            .unwrap(),
+    )
+    .await
+    .unwrap()
+    .into())
 }

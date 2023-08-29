@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::*;
 use cargo_metadata::MetadataCommand;
 use regex::Regex;
 use std::{
@@ -9,7 +9,7 @@ use std::{
     str::FromStr,
 };
 
-pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
+pub fn test(manifest_path: &PathBuf) -> Result<()> {
     let source_root_directory_to_bind =
         find_source_root_directory_to_bind_to_podman(manifest_path)?;
     let source_bind_path = PathBuf::from_str("/namui-test")?;
@@ -96,7 +96,7 @@ pub fn test(manifest_path: &PathBuf) -> Result<(), crate::Error> {
     let result = Command::new("podman").args(args).status()?;
 
     if !result.success() {
-        return Err(format!("test failed").into());
+        return Err(anyhow!("test failed").into());
     }
     Ok(())
 }
@@ -184,15 +184,13 @@ mod tests {
     }
 }
 
-fn find_source_root_directory_to_bind_to_podman(
-    manifest_path: &PathBuf,
-) -> Result<PathBuf, crate::Error> {
+fn find_source_root_directory_to_bind_to_podman(manifest_path: &PathBuf) -> Result<PathBuf> {
     let manifest_paths = get_all_path_dependencies_recursively(manifest_path)?;
 
     let source_root_directory = get_common_path(manifest_paths.iter());
 
     source_root_directory.ok_or_else(|| {
-        format!(
+        anyhow!(
             "No common path found between {}",
             manifest_paths
                 .iter()
@@ -200,13 +198,10 @@ fn find_source_root_directory_to_bind_to_podman(
                 .collect::<Vec<_>>()
                 .join(", ")
         )
-        .into()
     })
 }
 
-fn get_all_path_dependencies_recursively(
-    manifest_path: &PathBuf,
-) -> Result<HashSet<PathBuf>, crate::Error> {
+fn get_all_path_dependencies_recursively(manifest_path: &PathBuf) -> Result<HashSet<PathBuf>> {
     let mut searching_manifest_paths = vec![manifest_path.clone()];
 
     let mut manifest_paths: HashSet<PathBuf> = HashSet::new();
@@ -256,9 +251,7 @@ fn get_common_path_of_two(path_a: &Path, path_b: &Path) -> Option<PathBuf> {
         .map(|ancestor| ancestor.to_path_buf())
 }
 
-fn get_path_dependency_manifest_paths(
-    manifest_path: &PathBuf,
-) -> Result<Vec<PathBuf>, crate::Error> {
+fn get_path_dependency_manifest_paths(manifest_path: &PathBuf) -> Result<Vec<PathBuf>> {
     let path_dependency_regex = Regex::new(r"\(path\+file://([^\)]+)\)$").unwrap();
 
     let metadata = MetadataCommand::new()

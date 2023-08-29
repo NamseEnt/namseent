@@ -32,7 +32,6 @@ const EXPECTED_RESERVED: [u8; 6] = [0; 6];
 /// | 2      | The color mode of the file. Supported values are: Bitmap = 0; Grayscale = 1; Indexed = 2; RGB = 3; CMYK = 4; Multichannel = 7; Duotone = 8; Lab = 9. |
 #[derive(Debug)]
 pub struct FileHeaderSection {
-    pub(crate) version: PsdVersion,
     pub(crate) channel_count: ChannelCount,
     pub(crate) width: PsdWidth,
     pub(crate) height: PsdHeight,
@@ -127,7 +126,6 @@ impl FileHeaderSection {
             .ok_or(FileHeaderSectionError::InvalidColorMode { color_mode })?;
 
         let file_header_section = FileHeaderSection {
-            version: PsdVersion::One,
             channel_count,
             width,
             height,
@@ -137,17 +135,6 @@ impl FileHeaderSection {
 
         Ok(file_header_section)
     }
-}
-
-/// # [Adobe Docs](https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/)
-///
-/// Version: always equal to 1. Do not try to read the file if the version does not match this value. (**PSB** version is 2.)
-///
-/// via: https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/
-#[derive(Debug)]
-pub enum PsdVersion {
-    /// Regular PSD (Not a PSB)
-    One,
 }
 
 /// # [Adobe Docs](https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/)

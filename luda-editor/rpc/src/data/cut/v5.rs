@@ -3,7 +3,7 @@ use crate::data::ScreenGraphic;
 use crate::Uuid;
 
 #[migration::version(5)]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Cut {
     pub id: Uuid,
 

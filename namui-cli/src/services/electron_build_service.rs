@@ -1,16 +1,16 @@
 use super::{
+    build_status_service::BuildStatusService,
     electron_package_service::{Arch, ElectronPackageService, Platform},
     wasm_watch_build_service::WasmWatchBuildService,
 };
-use crate::{cli::Target, util::overwrite_hot_reload_script_with_empty_file};
+use crate::cli::Target;
+use crate::*;
+use futures::executor::block_on;
 use std::path::Path;
 
-pub fn build(
-    manifest_path: &Path,
-    arch: Option<Arch>,
-    platform: Platform,
-) -> Result<(), crate::Error> {
+pub fn build(manifest_path: &Path, arch: Option<Arch>, platform: Platform) -> Result<()> {
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
+    let build_status_service = BuildStatusService::new();
 
     let target = match platform {
         Platform::Win32 => Target::WasmWindowsElectron,
@@ -28,7 +28,11 @@ pub fn build(
         arch = package_result.arch
     ));
 
-    WasmWatchBuildService::just_build(project_root_path.clone(), target)?;
+    block_on(WasmWatchBuildService::just_build(
+        build_status_service,
+        project_root_path.clone(),
+        target,
+    ))?;
 
     let namui_bundle_manifest =
         super::bundle::NamuiBundleManifest::parse(project_root_path.clone())?;
@@ -40,8 +44,6 @@ pub fn build(
         namui_bundle_manifest,
         Some(&package_result.output_path.into()),
     )?;
-
-    overwrite_hot_reload_script_with_empty_file(&release_path)?;
 
     Ok(())
 }

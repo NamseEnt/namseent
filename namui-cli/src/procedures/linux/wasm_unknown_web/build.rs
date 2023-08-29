@@ -1,18 +1,29 @@
+use crate::services::build_status_service::BuildStatusService;
+use crate::services::wasm_web_runtime_watch_build_service::WasmWebRuntimeWatchBuildService;
+use crate::*;
 use crate::{
     cli::Target,
     services::{resource_collect_service, wasm_watch_build_service::WasmWatchBuildService},
-    util::overwrite_hot_reload_script_with_empty_file,
 };
+use futures::executor::block_on;
 use std::path::Path;
 
-pub fn build(manifest_path: &Path) -> Result<(), crate::Error> {
+pub fn build(manifest_path: &Path) -> Result<()> {
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     let release_path = project_root_path
         .join("target")
         .join("namui")
         .join("wasm_unknown_web");
 
-    WasmWatchBuildService::just_build(project_root_path.clone(), Target::WasmUnknownWeb)?;
+    let build_status_service = BuildStatusService::new();
+    block_on(WasmWebRuntimeWatchBuildService::just_build(
+        build_status_service.clone(),
+    ))?;
+    block_on(WasmWatchBuildService::just_build(
+        build_status_service,
+        project_root_path.clone(),
+        Target::WasmUnknownWeb,
+    ))?;
 
     let bundle_manifest =
         crate::services::bundle::NamuiBundleManifest::parse(project_root_path.clone())?;
@@ -24,8 +35,6 @@ pub fn build(manifest_path: &Path) -> Result<(), crate::Error> {
         bundle_manifest,
         None,
     )?;
-
-    overwrite_hot_reload_script_with_empty_file(&release_path)?;
 
     Ok(())
 }

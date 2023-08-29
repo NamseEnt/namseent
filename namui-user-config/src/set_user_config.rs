@@ -1,10 +1,11 @@
-use crate::{get_user_config_path, NamuiCfgMap, NamuiUserConfig, Target};
+use crate::*;
+use anyhow::*;
 use std::{
     fs::{self, create_dir_all},
     path::PathBuf,
 };
 
-pub fn set_user_config(target: &Target) -> Result<(), Box<dyn std::error::Error>> {
+pub fn set_user_config(target: &Target) -> Result<()> {
     let user_config_path = get_user_config_path()?;
     ensure_user_config_dir(&user_config_path)?;
     let cfg_map: NamuiCfgMap = match target {
@@ -35,7 +36,7 @@ pub fn set_user_config(target: &Target) -> Result<(), Box<dyn std::error::Error>
     fs::write(
         &user_config_path,
         &serde_json::to_string_pretty(&namui_user_config)
-            .map_err(|error| format!("namui user config stringify error: {}", error))?,
+            .map_err(|error| anyhow!("namui user config stringify error: {}", error))?,
     )?;
     Ok(())
 }

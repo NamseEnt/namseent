@@ -3,9 +3,10 @@ use namui::prelude::*;
 pub async fn main() {
     let namui_context = namui::init().await;
 
-    namui::start(namui_context, &mut App::new(), &()).await
+    namui::start(namui_context, || App::new()).await
 }
 
+#[component]
 struct App {}
 
 impl App {
@@ -14,19 +15,12 @@ impl App {
     }
 }
 
-impl Entity for App {
-    type Props = ();
-
-    fn render(&self, _props: &Self::Props) -> RenderingTree {
+impl Component for App {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let size = namui::screen::size();
-        let now = namui::now();
-
-        if now < 5.sec() {
-            return RenderingTree::Empty;
-        }
 
         let jpg_length = 14;
-        let png_length = 42;
+        let png_length = 43;
         let jpgs = (0..jpg_length)
             .map(|index| Url::parse(&format!("bundle:resources/{index}.jpg")).unwrap());
         let pngs = (0..png_length)
@@ -36,34 +30,37 @@ impl Entity for App {
 
         let x_index_length = 6;
         let y_index_length = (image_urls.len() as f32 / x_index_length as f32).ceil() as usize;
-        let image_width = size.width / x_index_length as f32;
-        let image_height = size.height / y_index_length as f32;
+        let image_width = size.width.into_px() / x_index_length as f32;
+        let image_height = size.height.into_px() / y_index_length as f32;
 
-        let mut images = vec![];
-        for x in 0..x_index_length {
-            for y in 0..y_index_length {
-                if let Some(image_url) = image_urls.get(x + y * 6) {
-                    let image = namui::image(ImageParam {
-                        rect: Rect::Xywh {
-                            x: image_width * x,
-                            y: image_height * y,
-                            width: image_width,
-                            height: image_height,
-                        },
-                        source: ImageSource::Url(image_url.clone()),
-                        style: ImageStyle {
-                            fit: ImageFit::Contain,
-                            paint_builder: None,
-                        },
-                    });
-
-                    images.push(image);
+        ctx.compose(|ctx| {
+            for x in 0..x_index_length {
+                for y in 0..y_index_length {
+                    if let Some(image_url) = image_urls.get(x + y * 6) {
+                        let key = format!("{}-{}", x, y);
+                        ctx.add_with_key(
+                            key,
+                            namui::image(ImageParam {
+                                rect: Rect::Xywh {
+                                    x: image_width * x,
+                                    y: image_height * y,
+                                    width: image_width,
+                                    height: image_height,
+                                },
+                                source: ImageSource::Url {
+                                    url: image_url.clone(),
+                                },
+                                style: ImageStyle {
+                                    fit: ImageFit::Contain,
+                                    paint: None,
+                                },
+                            }),
+                        );
+                    }
                 }
             }
-        }
+        });
 
-        render(images)
+        ctx.done()
     }
-
-    fn update(&mut self, _event: &namui::Event) {}
 }

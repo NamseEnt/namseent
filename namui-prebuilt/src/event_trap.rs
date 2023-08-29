@@ -1,35 +1,23 @@
 use namui::prelude::*;
 
-pub fn event_trap(content: RenderingTree) -> RenderingTree {
-    content.attach_event(move |builder| {
-        builder
-            .on_mouse_move_in(|event: MouseEvent| event.stop_propagation())
-            .on_mouse_move_out(|event: MouseEvent| event.stop_propagation())
-            .on_mouse_down_in(|event: MouseEvent| event.stop_propagation())
-            .on_mouse_down_out(|event: MouseEvent| event.stop_propagation())
-            .on_mouse_up_in(|event: MouseEvent| event.stop_propagation())
-            .on_mouse_up_out(|event: MouseEvent| event.stop_propagation())
-            .on_wheel(|event: WheelEvent| event.stop_propagation());
-        // below don't support stop_propagation
-        // .on_key_down(|event: KeyboardEvent| event.stop_propagation())
-        // .on_key_up(|event: KeyboardEvent| event.stop_propagation())
-    })
-}
+#[component]
+pub struct EventTrap;
 
-pub fn event_trap_mouse(content: RenderingTree) -> RenderingTree {
-    content.attach_event(|builder| {
-        builder
-            .on_mouse_down_in(|event: MouseEvent| {
-                event.stop_propagation();
-            })
-            .on_mouse_move_in(|event: MouseEvent| {
-                event.stop_propagation();
-            })
-            .on_mouse_up_in(|event: MouseEvent| {
-                event.stop_propagation();
-            })
-            .on_wheel(|event: WheelEvent| {
-                event.stop_propagation();
-            });
-    })
+impl Component for EventTrap {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        ctx.on_raw_event(|event| {
+            let event_ext: &dyn EventExt = match event {
+                RawEvent::MouseDown { event } => event,
+                RawEvent::MouseMove { event } => event,
+                RawEvent::MouseUp { event } => event,
+                RawEvent::Wheel { event } => event,
+                RawEvent::KeyDown { event } => event,
+                RawEvent::KeyUp { event } => event,
+                RawEvent::TextInputKeyDown { event } => event,
+                _ => return,
+            };
+            event_ext.stop_propagation();
+        });
+        ctx.done()
+    }
 }

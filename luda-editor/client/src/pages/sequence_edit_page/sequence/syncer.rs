@@ -15,9 +15,16 @@ pub enum SyncReq {
     Undo,
     Redo,
 }
+#[derive(Debug)]
 pub struct Syncer {
     tx: UnboundedSender<SyncReq>,
 }
+impl PartialEq for Syncer {
+    fn eq(&self, _other: &Self) -> bool {
+        false
+    }
+}
+
 impl Syncer {
     pub fn new(sequence_id: Uuid) -> Syncer {
         let (tx, rx) = unbounded_channel();
@@ -25,7 +32,7 @@ impl Syncer {
         Syncer { tx }
     }
 
-    pub fn send(&mut self, req: SyncReq) {
+    pub fn send(&self, req: SyncReq) {
         self.tx.send(req).unwrap();
     }
 }

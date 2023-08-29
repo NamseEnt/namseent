@@ -1,187 +1,131 @@
-mod context_menu;
 mod rename_modal;
 
-use super::router::Router;
+use self::rename_modal::RenameModal;
+use crate::components::context_menu::{if_context_menu_for, open_context_menu};
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::list_project_sequences::SequenceNameAndId;
 
-#[derive(Debug, Clone)]
+#[namui::component]
 pub struct SequenceListPage {
-    project_id: namui::Uuid,
-    list_view: list_view::ListView,
-    context_menu: Option<context_menu::ContextMenu>,
-    rename_modal: Option<rename_modal::RenameModal>,
-    is_loading: bool,
-    sequence_list: Vec<SequenceNameAndId>,
-    error_message: Option<String>,
-}
-
-pub struct Props {
     pub wh: Wh<Px>,
+    pub project_id: namui::Uuid,
 }
 
-enum Event {
-    AddButtonClicked,
-    CellRightClick {
-        click_global_xy: Xy<Px>,
-        sequence_id: namui::Uuid,
-    },
-    ContextMenuOutsideClicked,
-    SequenceListLoaded(Vec<SequenceNameAndId>),
-    Error(String),
+#[derive(Debug)]
+enum ContextMenu {
+    SequenceCell { sequence_id: Uuid },
 }
 
-impl SequenceListPage {
-    pub fn new(project_id: namui::Uuid) -> Self {
-        start_fetch_list(project_id);
-        Self {
-            project_id,
-            list_view: list_view::ListView::new(),
-            context_menu: None,
-            rename_modal: None,
-            is_loading: true,
-            sequence_list: vec![],
-            error_message: None,
-        }
-    }
-    pub fn update(&mut self, event: &namui::Event) {
-        event
-            .is::<Event>(|event| match event {
-                Event::AddButtonClicked => {
-                    let project_id = self.project_id;
-                    spawn_local(async move {
-                        let result = crate::RPC
-                            .create_sequence(rpc::create_sequence::Request {
-                                name: "new sequence".to_string(),
-                                project_id,
-                            })
-                            .await;
-                        match result {
-                            Ok(_) => {
-                                start_fetch_list(project_id);
-                            }
-                            Err(error) => {
-                                namui::event::send(Event::Error(error.to_string()));
-                            }
-                        }
-                    })
-                }
-                &Event::CellRightClick {
-                    click_global_xy,
-                    sequence_id,
-                } => {
-                    self.context_menu =
-                        Some(context_menu::ContextMenu::new(click_global_xy, sequence_id));
-                }
-                Event::ContextMenuOutsideClicked => {
-                    self.context_menu = None;
-                }
-                Event::SequenceListLoaded(sequence_list) => {
-                    self.sequence_list = sequence_list.clone();
-                    self.is_loading = false;
-                }
-                Event::Error(error_message) => {
-                    self.error_message = Some(error_message.clone());
-                }
-            })
-            .is::<context_menu::Event>(|event| match event {
-                &context_menu::Event::DeleteButtonClicked { sequence_id } => {
-                    self.context_menu = None;
+impl Component for SequenceListPage {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self { wh, project_id } = self;
+        let (error_message, set_error_message) = ctx.state::<Option<String>>(|| None);
+        let (is_loading, set_is_loading) = ctx.state(|| true);
+        let (sequence_list, set_sequence_list) = ctx.state::<Vec<SequenceNameAndId>>(|| vec![]);
+        let (rename_modal, set_rename_modal) = ctx.state(|| None);
 
-                    let project_id = self.project_id;
-
-                    spawn_local(async move {
-                        match crate::RPC
-                            .delete_sequence(rpc::delete_sequence::Request { sequence_id })
-                            .await
-                        {
-                            Ok(_) => {
-                                start_fetch_list(project_id);
-                            }
-                            Err(error) => {
-                                namui::event::send(Event::Error(error.to_string()));
-                            }
-                        }
-                    });
-                }
-                &context_menu::Event::RenameButtonClicked { sequence_id } => {
-                    self.context_menu = None;
-
-                    let sequence_name =
-                        self.sequence_list.iter().find_map(|sequence_name_and_id| {
-                            if sequence_name_and_id.id == sequence_id {
-                                Some(sequence_name_and_id.name.clone())
-                            } else {
-                                None
-                            }
-                        });
-
-                    match sequence_name {
-                        Some(sequence_name) => {
-                            self.rename_modal =
-                                Some(rename_modal::RenameModal::new(sequence_id, sequence_name))
-                        }
-                        None => {
-                            namui::log!("sequence not found for id {sequence_id}");
-                        }
+        let start_fetch_list = move || {
+            set_is_loading.set(true);
+            spawn_local(async move {
+                match crate::RPC
+                    .list_project_sequences(rpc::list_project_sequences::Request { project_id })
+                    .await
+                {
+                    Ok(response) => {
+                        set_sequence_list.set(response.sequence_name_and_ids);
+                    }
+                    Err(error) => {
+                        set_error_message.set(Some(error.to_string()));
                     }
                 }
+                set_is_loading.set(false);
             })
-            .is::<rename_modal::Event>(|event| match event {
-                &rename_modal::Event::RenameDone {
-                    sequence_id,
-                    ref sequence_name,
-                } => {
-                    self.rename_modal = None;
+        };
 
-                    let project_id = self.project_id;
-                    let new_name = sequence_name.clone();
-
-                    spawn_local(async move {
-                        match crate::RPC
-                            .update_sequence(rpc::update_sequence::Request {
-                                sequence_id,
-                                action: rpc::data::SequenceUpdateAction::RenameSequence {
-                                    name: new_name,
-                                },
-                            })
-                            .await
-                        {
-                            Ok(_) => {
-                                start_fetch_list(project_id);
-                            }
-                            Err(error) => {
-                                namui::event::send(Event::Error(error.to_string()));
-                            }
-                        }
-                    });
+        let on_add_button_click = move || {
+            set_is_loading.set(true);
+            spawn_local(async move {
+                let result = crate::RPC
+                    .create_sequence(rpc::create_sequence::Request {
+                        name: "new sequence".to_string(),
+                        project_id,
+                    })
+                    .await;
+                match result {
+                    Ok(_) => {
+                        start_fetch_list();
+                    }
+                    Err(error) => {
+                        set_error_message.set(Some(error.to_string()));
+                    }
                 }
-            });
+                set_is_loading.set(false);
+            })
+        };
 
-        self.context_menu
-            .as_mut()
-            .map(|context_menu| context_menu.update(event));
-        self.rename_modal
-            .as_mut()
-            .map(|rename_modal| rename_modal.update(event));
-    }
-    pub fn render(&self, props: Props) -> namui::RenderingTree {
-        if let Some(error_message) = &self.error_message {
-            return typography::body::center(props.wh, error_message, Color::RED);
-        }
-        if self.is_loading {
-            return typography::body::center(props.wh, "loading...", Color::WHITE);
+        ctx.effect("Fetch list on mount", || {
+            start_fetch_list();
+        });
+
+        enum InternalEvent {
+            OnRenameDone { sequence_id: Uuid, new_name: String },
+            CloseRenameModal,
         }
 
-        render([
-            table::horizontal([
-                table::ratio(1.0, |_wh| RenderingTree::Empty),
-                table::ratio(
+        let on_internal_event = move |event: InternalEvent| match event {
+            InternalEvent::OnRenameDone {
+                sequence_id,
+                new_name,
+            } => {
+                set_rename_modal.set(None);
+
+                set_is_loading.set(true);
+                spawn_local(async move {
+                    match crate::RPC
+                        .update_sequence(rpc::update_sequence::Request {
+                            sequence_id,
+                            action: rpc::data::SequenceUpdateAction::RenameSequence {
+                                name: new_name.clone(),
+                            },
+                        })
+                        .await
+                    {
+                        Ok(_) => {
+                            start_fetch_list();
+                        }
+                        Err(error) => {
+                            set_error_message.set(Some(error.to_string()));
+                        }
+                    }
+                    set_is_loading.set(false);
+                });
+            }
+            InternalEvent::CloseRenameModal => {
+                set_rename_modal.set(None);
+            }
+        };
+
+        if let Some(error_message) = &*error_message {
+            return ctx
+                .component(typography::body::center(wh, error_message, Color::RED))
+                .done();
+        }
+
+        if *is_loading {
+            return ctx
+                .component(typography::body::center(wh, "loading...123", Color::WHITE))
+                .done();
+        }
+
+        ctx.compose(|ctx| {
+            table::hooks::horizontal([
+                table::hooks::ratio(1.0, |_wh, _ctx| {}),
+                table::hooks::ratio(
                     2.0,
-                    table::vertical([
-                        table::fixed(40.px(), |wh| {
-                            namui_prebuilt::button::text_button(
+                    table::hooks::vertical([
+                        table::hooks::fixed(40.px(), |wh, ctx| {
+                            ctx.add(namui_prebuilt::button::text_button(
                                 Rect::from_xy_wh(Xy::single(0.px()), wh),
                                 "[+] Add Sequence",
                                 Color::WHITE,
@@ -189,62 +133,118 @@ impl SequenceListPage {
                                 1.px(),
                                 Color::BLACK,
                                 [MouseButton::Left],
-                                |_| namui::event::send(Event::AddButtonClicked),
-                            )
+                                move |_| on_add_button_click(),
+                            ));
                         }),
-                        table::ratio(1.0, |wh| {
-                            self.list_view.render(list_view::Props {
+                        table::hooks::ratio(1.0, |wh, ctx| {
+                            let item_wh = Wh::new(wh.width, 40.px());
+
+                            ctx.add(list_view::ListView {
                                 xy: Xy::single(0.px()),
                                 height: wh.height,
                                 scroll_bar_width: 10.px(),
-                                item_wh: Wh::new(wh.width, 40.px()),
-                                items: self.sequence_list.iter(),
-                                item_render: |wh, sequence| self.render_sequence_cell(wh, sequence),
-                            })
+                                item_wh,
+                                items: sequence_list
+                                    .iter()
+                                    .map(|sequence| {
+                                        (
+                                            sequence.name.clone(),
+                                            SequenceCell {
+                                                wh: item_wh,
+                                                project_id,
+                                                sequence: sequence.clone(),
+                                                on_right_click: Box::new({
+                                                    let sequence_id = sequence.id;
+                                                    move |mouse_event| {
+                                                        open_context_menu(
+                                                            mouse_event.global_xy,
+                                                            ContextMenu::SequenceCell {
+                                                                sequence_id,
+                                                            },
+                                                        )
+                                                    }
+                                                }),
+                                            },
+                                        )
+                                    })
+                                    .collect(),
+                            });
                         }),
                     ]),
                 ),
-                table::ratio(1.0, |_wh| RenderingTree::Empty),
-            ])(props.wh),
-            self.context_menu
-                .as_ref()
-                .map_or(RenderingTree::Empty, |context_menu| {
-                    context_menu.render().attach_event(|builder| {
-                        builder
-                            .on_mouse_down_in(|event: MouseEvent| event.stop_propagation())
-                            .on_mouse_down_out(|event: MouseEvent| {
-                                namui::event::send(Event::ContextMenuOutsideClicked);
-                                event.stop_propagation()
-                            })
-                            .on_mouse_up_in(|event: MouseEvent| event.stop_propagation())
-                            .on_mouse_up_out(|event: MouseEvent| event.stop_propagation());
-                    })
-                }),
-            self.rename_modal
-                .as_ref()
-                .map_or(RenderingTree::Empty, |rename_modal| {
-                    rename_modal.render().attach_event(|builder| {
-                        builder
-                            .on_mouse_down_in(|event: MouseEvent| event.stop_propagation())
-                            .on_mouse_down_out(|event: MouseEvent| {
-                                namui::event::send(Event::ContextMenuOutsideClicked);
-                                event.stop_propagation()
-                            })
-                            .on_mouse_up_in(|event: MouseEvent| event.stop_propagation())
-                            .on_mouse_up_out(|event: MouseEvent| event.stop_propagation());
-                    })
-                }),
-        ])
-    }
+                table::hooks::ratio(1.0, |_wh, _ctx| {}),
+            ])(wh, ctx)
+        });
 
-    fn render_sequence_cell(
-        &self,
-        wh: Wh<Px>,
-        sequence: &SequenceNameAndId,
-    ) -> namui::RenderingTree {
+        if_context_menu_for::<ContextMenu>(|context_menu, builder| match context_menu {
+            &ContextMenu::SequenceCell { sequence_id } => builder
+                .add_button("Delete", move || {
+                    spawn_local(async move {
+                        match crate::RPC
+                            .delete_sequence(rpc::delete_sequence::Request { sequence_id })
+                            .await
+                        {
+                            Ok(_) => {
+                                start_fetch_list();
+                            }
+                            Err(error) => {
+                                set_error_message.set(Some(error.to_string()));
+                            }
+                        }
+                    });
+                })
+                .add_button("Rename", move || {
+                    let sequence_name = sequence_list
+                        .iter()
+                        .find(|x| x.id == sequence_id)
+                        .map(|x| x.name.clone());
+
+                    if let Some(sequence_name) = sequence_name {
+                        set_rename_modal.set(Some((sequence_id, sequence_name)));
+                    }
+                }),
+        });
+
+        ctx.compose(|ctx| {
+            if let Some((sequence_id, ref initial_sequence_name)) = *rename_modal {
+                namui::log!("render rename modal");
+                ctx.add(RenameModal {
+                    init_sequence_name: initial_sequence_name.clone(),
+                    on_rename_done: &|new_name| {
+                        on_internal_event(InternalEvent::OnRenameDone {
+                            sequence_id,
+                            new_name,
+                        })
+                    },
+                    close_modal: &|| on_internal_event(InternalEvent::CloseRenameModal),
+                });
+            }
+        });
+
+        ctx.done()
+    }
+}
+
+#[namui::component]
+pub struct SequenceCell<'a> {
+    wh: Wh<Px>,
+    project_id: Uuid,
+    sequence: SequenceNameAndId,
+    // on_right_click: callback!('a, MouseEvent),
+    on_right_click: Box<dyn Fn(MouseEvent) + 'a>,
+}
+
+impl Component for SequenceCell<'_> {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self {
+            wh,
+            project_id,
+            sequence,
+            on_right_click,
+        } = self;
         let sequence_id = sequence.id;
-        let project_id = self.project_id;
-        namui_prebuilt::button::text_button(
+
+        ctx.component(namui_prebuilt::button::text_button(
             Rect::from_xy_wh(Xy::single(0.px()), wh),
             sequence.name.as_str(),
             Color::WHITE,
@@ -254,33 +254,15 @@ impl SequenceListPage {
             [MouseButton::Left, MouseButton::Right],
             move |event: MouseEvent| {
                 if event.button == Some(MouseButton::Left) {
-                    Router::move_to(super::router::RoutePath::SequenceEdit {
+                    super::router::move_to(super::router::Route::SequenceEditPage {
                         project_id,
                         sequence_id,
                     });
                 } else if event.button == Some(MouseButton::Right) {
-                    namui::event::send(Event::CellRightClick {
-                        click_global_xy: event.global_xy,
-                        sequence_id,
-                    });
+                    on_right_click(event);
                 }
             },
-        )
+        ))
+        .done()
     }
-}
-
-fn start_fetch_list(project_id: Uuid) {
-    spawn_local(async move {
-        match crate::RPC
-            .list_project_sequences(rpc::list_project_sequences::Request { project_id })
-            .await
-        {
-            Ok(response) => {
-                namui::event::send(Event::SequenceListLoaded(response.sequence_name_and_ids));
-            }
-            Err(error) => {
-                namui::event::send(Event::Error(error.to_string()));
-            }
-        }
-    })
 }

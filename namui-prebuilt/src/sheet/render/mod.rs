@@ -83,13 +83,12 @@ impl Sheet {
                                             })
                                         }
                                         if let Some(on_mouse_down) = on_mouse_down.as_ref() {
-                                            on_mouse_down.invoke(event)
+                                            on_mouse_down(event)
                                         }
                                     });
                                 }),
                                 clip(
-                                    PathBuilder::new()
-                                        .add_rect(Rect::from_xy_wh(Xy::zero(), cell_wh)),
+                                    Path::new().add_rect(Rect::from_xy_wh(Xy::zero(), cell_wh)),
                                     ClipOp::Intersect,
                                     cell.inner.render(cell::Props {
                                         wh: cell_wh,
@@ -148,9 +147,8 @@ impl Sheet {
                                         left + stroke_width / 2 - 1.px(),
                                         top - 1.px(),
                                         path(
-                                            PathBuilder::new()
-                                                .line_to(0.px(), cell_wh.height + 2.px()),
-                                            PaintBuilder::new()
+                                            Path::new().line_to(0.px(), cell_wh.height + 2.px()),
+                                            Paint::new()
                                                 .set_color(stroke_color)
                                                 .set_style(PaintStyle::Stroke)
                                                 .set_stroke_width(stroke_width)
@@ -168,9 +166,8 @@ impl Sheet {
                                         right - stroke_width / 2 + 1.px(),
                                         top - 1.px(),
                                         path(
-                                            PathBuilder::new()
-                                                .line_to(0.px(), cell_wh.height + 2.px()),
-                                            PaintBuilder::new()
+                                            Path::new().line_to(0.px(), cell_wh.height + 2.px()),
+                                            Paint::new()
                                                 .set_color(stroke_color)
                                                 .set_style(PaintStyle::Stroke)
                                                 .set_stroke_width(stroke_width)
@@ -188,9 +185,8 @@ impl Sheet {
                                         left - 1.px(),
                                         top + stroke_width / 2 - 1.px(),
                                         path(
-                                            PathBuilder::new()
-                                                .line_to(cell_wh.width + 2.px(), 0.px()),
-                                            PaintBuilder::new()
+                                            Path::new().line_to(cell_wh.width + 2.px(), 0.px()),
+                                            Paint::new()
                                                 .set_color(stroke_color)
                                                 .set_style(PaintStyle::Stroke)
                                                 .set_stroke_width(stroke_width)
@@ -208,9 +204,8 @@ impl Sheet {
                                         left - 1.px(),
                                         top + cell_wh.height - stroke_width / 2 + 1.px(),
                                         path(
-                                            PathBuilder::new()
-                                                .line_to(cell_wh.width + 2.px(), 0.px()),
-                                            PaintBuilder::new()
+                                            Path::new().line_to(cell_wh.width + 2.px(), 0.px()),
+                                            Paint::new()
                                                 .set_color(stroke_color)
                                                 .set_style(PaintStyle::Stroke)
                                                 .set_stroke_width(stroke_width)
@@ -246,7 +241,7 @@ impl Sheet {
                             .iter()
                             .all(|code| event.pressing_codes.contains(code))
                         {
-                            on_paste.invoke(clip_board[0][0].clone())
+                            on_paste(clip_board[0][0].clone())
                         }
                     }
                 }

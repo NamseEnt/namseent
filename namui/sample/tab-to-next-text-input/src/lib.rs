@@ -42,7 +42,7 @@ impl Entity for TabToNextTextInputExample {
                 text_align: TextAlign::Left,
                 text_baseline: TextBaseline::Top,
                 text: text.clone(),
-                font_type: namui::FontType {
+                font: namui::Font {
                     font_weight: namui::FontWeight::REGULAR,
                     language: namui::Language::Ko,
                     serif: false,

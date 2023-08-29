@@ -43,7 +43,7 @@ impl Parse for ClosureInput {
             Punctuated::parse_terminated(input)?;
 
         let Some(last_macro_param_pair) = macro_params.pop() else {
-            return Err(syn::Error::new(input.span(), "expected closure"))
+            return Err(syn::Error::new(input.span(), "expected closure"));
         };
 
         let rust_closure =

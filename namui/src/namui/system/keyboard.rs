@@ -1,5 +1,5 @@
 use super::InitResult;
-use crate::{namui::render::DownUp, Code};
+use crate::*;
 use std::{
     collections::HashSet,
     str::FromStr,
@@ -59,16 +59,15 @@ impl KeyboardSystem {
                             event.prevent_default();
                         }
 
-                        let rendering_tree = crate::system::render::last_rendering_tree();
-
-                        rendering_tree.call_keyboard_event(
-                            &crate::RawKeyboardEvent {
-                                id: crate::uuid(),
+                        crate::hooks::on_raw_event(RawEvent::KeyDown {
+                            event: RawKeyboardEvent {
                                 code,
                                 pressing_codes: pressing_code_set.read().unwrap().clone(),
+                                prevent_default: Box::new(move || {
+                                    event.prevent_default();
+                                }),
                             },
-                            DownUp::Down,
-                        );
+                        });
                     }
                 }) as Box<dyn FnMut(_)>)
                 .into_js_value()
@@ -83,19 +82,21 @@ impl KeyboardSystem {
                     let pressing_code_set = pressing_code_set.clone();
                     move |event: web_sys::KeyboardEvent| {
                         let code = Code::from_str(&event.code()).unwrap();
-                        let mut pressing_code_set = pressing_code_set.write().unwrap();
-                        pressing_code_set.remove(&code);
+                        let pressing_code_set = {
+                            let mut pressing_code_set = pressing_code_set.write().unwrap();
+                            pressing_code_set.remove(&code);
+                            pressing_code_set.clone()
+                        };
 
-                        let rendering_tree = crate::system::render::last_rendering_tree();
-
-                        rendering_tree.call_keyboard_event(
-                            &crate::RawKeyboardEvent {
-                                id: crate::uuid(),
+                        crate::hooks::on_raw_event(RawEvent::KeyUp {
+                            event: RawKeyboardEvent {
                                 code,
-                                pressing_codes: pressing_code_set.clone(),
+                                pressing_codes: pressing_code_set,
+                                prevent_default: Box::new(move || {
+                                    event.prevent_default();
+                                }),
                             },
-                            DownUp::Up,
-                        );
+                        });
                     }
                 }) as Box<dyn FnMut(_)>)
                 .into_js_value()

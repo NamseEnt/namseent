@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ErrorMessage {
     #[serde(rename = "relativeFile")]
     pub relative_file: String,
@@ -23,5 +23,3 @@ pub enum WebsocketMessage {
         error_messages: Vec<ErrorMessage>,
     },
 }
-
-pub type Error = Box<dyn std::error::Error>;

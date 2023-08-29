@@ -1,14 +1,13 @@
+use crate::debug_println;
+use crate::*;
 use cargo_metadata::MetadataCommand;
-use notify::{DebouncedEvent, PollWatcher, Watcher};
+use notify::{Config, RecommendedWatcher, Watcher};
 use regex::Regex;
 use std::{
     collections::HashSet,
     path::{Path, PathBuf},
     str::FromStr,
-    time::Duration,
 };
-
-use crate::debug_println;
 
 pub struct RustProjectWatchService {}
 
@@ -19,36 +18,41 @@ impl RustProjectWatchService {
         Self {}
     }
 
-    pub(crate) fn watch(
+    pub(crate) async fn watch(
         &self,
-        manifest_path: &Path,
-        callback: impl Fn(),
-    ) -> Result<(), crate::Error> {
+        manifest_path: PathBuf,
+        callback: impl 'static + Fn() + Send + Sync,
+    ) -> Result<()> {
         let mut watching_paths = HashSet::new();
 
-        let (watcher_sender, watcher_receiver) = std::sync::mpsc::channel::<_>();
-        let mut watcher = PollWatcher::new(watcher_sender, Duration::from_millis(100))?;
+        let (watcher_sender, mut watcher_receiver) = tokio::sync::mpsc::unbounded_channel();
+        let mut watcher = RecommendedWatcher::new(
+            move |res| {
+                watcher_sender.send(res).unwrap();
+            },
+            Config::default(),
+        )?;
 
         loop {
             RustProjectWatchService::update_watching_paths(
-                manifest_path,
+                manifest_path.as_path(),
                 &mut watching_paths,
                 &mut watcher,
-            )?;
+            )
+            .unwrap();
 
-            let event = watcher_receiver.recv()?;
+            let event = watcher_receiver.recv().await.unwrap().unwrap();
             debug_println!("watch event");
-            match event {
-                DebouncedEvent::Create(_)
-                | DebouncedEvent::Remove(_)
-                | DebouncedEvent::Rename(_, _)
-                | DebouncedEvent::Write(_) => {
+            match event.kind {
+                notify::EventKind::Create(_)
+                | notify::EventKind::Modify(_)
+                | notify::EventKind::Remove(_) => {
                     'flush: loop {
                         match watcher_receiver.try_recv() {
                             Ok(_) => (),
                             Err(error) => match error {
-                                std::sync::mpsc::TryRecvError::Empty => break 'flush,
-                                std::sync::mpsc::TryRecvError::Disconnected => {
+                                tokio::sync::mpsc::error::TryRecvError::Empty => break 'flush,
+                                tokio::sync::mpsc::error::TryRecvError::Disconnected => {
                                     panic!("watcher closed {:?}", error)
                                 }
                             },
@@ -56,7 +60,7 @@ impl RustProjectWatchService {
                     }
                     callback();
                 }
-                _ => (),
+                _ => {}
             };
         }
     }
@@ -65,7 +69,7 @@ impl RustProjectWatchService {
         manifest_path: &Path,
         watching_paths: &mut HashSet<PathBuf>,
         watcher: &mut impl Watcher,
-    ) -> Result<(), crate::Error> {
+    ) -> Result<()> {
         let local_path_in_repr = Regex::new(r"\(path\+file://([^\)]+)\)$").unwrap();
         let project_root_path = manifest_path.parent().unwrap();
         let mut local_dependencies_root_paths = HashSet::new();
@@ -115,8 +119,10 @@ impl RustProjectWatchService {
 
         for path in new_watch_paths {
             debug_println!("update_paths: watching {:?}", path);
-            watcher.watch(path, notify::RecursiveMode::Recursive)?;
-            watching_paths.insert(path.clone());
+            if path.exists() {
+                watcher.watch(path, notify::RecursiveMode::Recursive)?;
+                watching_paths.insert(path.clone());
+            }
         }
 
         Ok(())

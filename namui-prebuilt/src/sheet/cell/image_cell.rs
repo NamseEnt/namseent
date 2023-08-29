@@ -28,7 +28,7 @@ impl CellTrait for ImageCell {
             source: self.image_source.clone(),
             style: ImageStyle {
                 fit: ImageFit::Contain,
-                paint_builder: None,
+                paint: None,
             },
         })
     }
@@ -41,7 +41,7 @@ impl CellTrait for ImageCell {
         ClipboardItem::Image(self.image_source.clone())
     }
 
-    fn on_paste(&self) -> Option<ClosurePtr<ClipboardItem, ()>> {
+    fn on_paste(&self) -> Option<Closure<dyn Fn(ClipboardItem)>> {
         None
     }
 }

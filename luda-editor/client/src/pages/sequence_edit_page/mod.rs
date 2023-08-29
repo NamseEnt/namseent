@@ -1,94 +1,94 @@
-mod cg_files_atom;
+mod atom;
+mod components;
 mod loaded;
 mod sequence;
-mod sequence_atom;
 
-use futures::try_join;
+use ::futures::try_join;
 use loaded::LoadedSequenceEditorPage;
 use namui::prelude::*;
 use namui_prebuilt::*;
 use rpc::data::{CgFile, Memo, ProjectSharedData, Sequence};
 use std::collections::HashMap;
 
-pub enum SequenceEditPage {
-    Loading { error: Option<String> },
-    Loaded(LoadedSequenceEditorPage),
-}
-
-enum Event {
-    ErrorOnLoading(String),
-    DataLoaded {
-        sequence: Sequence,
-        project_shared_data: ProjectSharedData,
-        cut_id_memo_map: HashMap<Uuid, Vec<Memo>>,
-        user_id: Uuid,
-        cg_files: Vec<CgFile>,
-    },
-}
-pub struct Props {
+#[namui::component]
+pub struct SequenceEditPage {
     pub wh: Wh<Px>,
+    pub project_id: Uuid,
+    pub sequence_id: Uuid,
 }
 
-impl SequenceEditPage {
-    pub fn new(project_id: namui::Uuid, sequence_id: namui::Uuid) -> Self {
-        load_data(project_id, sequence_id);
-        Self::Loading { error: None }
+impl Component for SequenceEditPage {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+        let Self {
+            wh,
+            project_id,
+            sequence_id,
+        } = self;
+        let (data, set_data) = ctx.state::<Option<Result<LoadData, String>>>(|| None);
+
+        ctx.effect("Load data", || {
+            spawn_local(async move {
+                match load_data(project_id, sequence_id).await {
+                    Ok(data) => set_data.set(Some(Ok(data))),
+                    Err(error) => {
+                        set_data.set(Some(Err(error)));
+                    }
+                }
+            })
+        });
+
+        ctx.compose(|ctx| {
+            match data.as_ref() {
+                Some(result) => match result {
+                    Ok(data) => ctx.add(LoadedSequenceEditorPage {
+                        cut_id_memos_map: data.cut_id_memos_map.clone(),
+                        project_shared_data: data.project_shared_data.clone(),
+                        sequence: data.sequence.clone(),
+                        user_id: data.user_id,
+                        wh,
+                        cg_files: data.cg_files.clone(),
+                    }),
+                    Err(err) => ctx.add(typography::body::center(
+                        wh,
+                        &format!("Error: {}", err),
+                        Color::WHITE,
+                    )),
+                },
+                None => ctx.add(typography::body::center(wh, "loading...", Color::WHITE)),
+            };
+        })
+        .done()
     }
-    pub fn update(&mut self, event: &namui::Event) {
-        event.is::<Event>(|event| match event {
-            Event::DataLoaded {
-                project_shared_data,
+}
+
+#[derive(Debug)]
+struct LoadData {
+    sequence: Sequence,
+    project_shared_data: ProjectSharedData,
+    cut_id_memos_map: HashMap<Uuid, Vec<Memo>>,
+    user_id: Uuid,
+    cg_files: Vec<CgFile>,
+}
+async fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) -> Result<LoadData, String> {
+    let result = try_join!(
+        load_sequence_and_project_shared_data(sequence_id),
+        load_memos(sequence_id),
+        get_user_id(),
+        get_cg_files(project_id)
+    );
+    return match result {
+        Ok(((sequence, project_shared_data), cut_id_memos_map, user_id, cg_files)) => {
+            Ok(LoadData {
                 sequence,
-                cut_id_memo_map,
+                project_shared_data,
+                cut_id_memos_map,
                 user_id,
                 cg_files,
-            } => match self {
-                SequenceEditPage::Loading { .. } => {
-                    *self = SequenceEditPage::Loaded(LoadedSequenceEditorPage::new(
-                        project_shared_data.clone(),
-                        sequence.clone(),
-                        cut_id_memo_map.clone(),
-                        *user_id,
-                        cg_files.clone(),
-                    ));
-                }
-                SequenceEditPage::Loaded(_) => unreachable!(),
-            },
-            Event::ErrorOnLoading(error) => match self {
-                SequenceEditPage::Loading {
-                    error: page_error, ..
-                } => {
-                    *page_error = Some(error.clone());
-                }
-                SequenceEditPage::Loaded(_) => unreachable!(),
-            },
-        });
-        match self {
-            SequenceEditPage::Loading { error: _ } => {}
-            SequenceEditPage::Loaded(loaded) => loaded.update(event),
+            })
         }
-    }
-    pub fn render(&self, props: Props) -> RenderingTree {
-        match self {
-            SequenceEditPage::Loading { error, .. } => match error {
-                Some(error) => typography::body::center(props.wh, error, Color::RED),
-                None => typography::body::center(props.wh, "loading...", Color::WHITE),
-            },
-            SequenceEditPage::Loaded(loaded_sequence_editor_page) => {
-                loaded_sequence_editor_page.render(loaded::Props { wh: props.wh })
-            }
-        }
-    }
-}
+        Err(error) => Err(error.to_string()),
+    };
 
-#[derive(serde::Serialize, serde::Deserialize)]
-struct SequenceLocalCache {
-    update_v2: Vec<u8>,
-    e_tag: String,
-    server_state_vector: Vec<u8>,
-}
-
-fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) {
     async fn load_sequence_and_project_shared_data(
         sequence_id: namui::Uuid,
     ) -> Result<(Sequence, ProjectSharedData), Box<dyn std::error::Error>> {
@@ -109,7 +109,7 @@ fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) {
         let response = crate::RPC
             .list_sequence_memos(rpc::list_sequence_memos::Request { sequence_id })
             .await?;
-        let cut_id_memo_map =
+        let cut_id_memos_map =
             response
                 .memos
                 .into_iter()
@@ -122,7 +122,7 @@ fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) {
                     };
                     acc
                 });
-        Ok(cut_id_memo_map)
+        Ok(cut_id_memos_map)
     }
     async fn get_user_id() -> Result<Uuid, Box<dyn std::error::Error>> {
         let response = crate::RPC.get_user_id(rpc::get_user_id::Request {}).await?;
@@ -136,26 +136,4 @@ fn load_data(project_id: namui::Uuid, sequence_id: namui::Uuid) {
             .await?;
         Ok(response.cg_files)
     }
-    spawn_local(async move {
-        let result = try_join!(
-            load_sequence_and_project_shared_data(sequence_id),
-            load_memos(sequence_id),
-            get_user_id(),
-            get_cg_files(project_id)
-        );
-        match result {
-            Ok(((sequence, project_shared_data), cut_id_memo_map, user_id, cg_files)) => {
-                namui::event::send(Event::DataLoaded {
-                    sequence,
-                    project_shared_data,
-                    cut_id_memo_map,
-                    user_id,
-                    cg_files,
-                });
-            }
-            Err(error) => {
-                namui::event::send(Event::ErrorOnLoading(error.to_string()));
-            }
-        }
-    })
 }

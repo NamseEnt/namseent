@@ -1,23 +1,16 @@
 use namui::prelude::*;
 
-pub async fn main() {
-    let namui_context = namui::init().await;
+pub fn main() {
+    let namui_context = namui::init();
 
-    namui::start(namui_context, &mut MultilineTextExample::new(), &()).await
+    namui::start(namui_context, &mut MultilineTextExample {})
 }
 
+#[namui::component]
 struct MultilineTextExample {}
 
-impl MultilineTextExample {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Entity for MultilineTextExample {
-    type Props = ();
-
-    fn render(&self, _props: &Self::Props) -> RenderingTree {
+impl Component for MultilineTextExample {
+    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let wh = namui::screen::size();
         let mut trees = vec![];
 
@@ -35,7 +28,7 @@ impl Entity for MultilineTextExample {
                     2 => TextBaseline::Bottom,
                     _ => unreachable!(),
                 },
-                font_type: FontType {
+                font: Font {
                     size: 20.int_px(),
                     serif: false,
                     language: Language::Ko,
@@ -47,24 +40,24 @@ impl Entity for MultilineTextExample {
                 },
                 max_width: None,
             });
-            let paint_builder = PaintBuilder::new()
+            let paint = Paint::new()
                 .set_color(Color::RED)
                 .set_style(PaintStyle::Stroke);
             trees.push(namui::path(
-                PathBuilder::new()
+                Path::new()
                     .move_to(x - 100.px(), y)
                     .line_to(x + 100.px(), y),
-                paint_builder.clone(),
+                paint.clone(),
             ));
             trees.push(namui::path(
-                PathBuilder::new()
+                Path::new()
                     .move_to(x, y - 100.px())
                     .line_to(x, y + 100.px()),
-                paint_builder.clone(),
+                paint.clone(),
             ));
             trees.push(namui::path(
-                PathBuilder::new().add_rect(text_rendering_tree.get_bounding_box().unwrap()),
-                paint_builder.clone(),
+                Path::new().add_rect(text_rendering_tree.bounding_box().unwrap()),
+                paint.clone(),
             ));
             trees.push(text_rendering_tree);
         }
@@ -90,7 +83,7 @@ impl Entity for MultilineTextExample {
                         2 => TextBaseline::Bottom,
                         _ => unreachable!(),
                     },
-                    font_type: FontType {
+                    font: Font {
                         size: 20.int_px(),
                         serif: false,
                         language: Language::Ko,
@@ -102,24 +95,24 @@ impl Entity for MultilineTextExample {
                     },
                     max_width: None,
                 });
-                let paint_builder = PaintBuilder::new()
+                let paint = Paint::new()
                     .set_color(Color::RED)
                     .set_style(PaintStyle::Stroke);
                 trees.push(namui::path(
-                    PathBuilder::new()
+                    Path::new()
                         .move_to(x - 100.px(), y)
                         .line_to(x + 100.px(), y),
-                    paint_builder.clone(),
+                    paint.clone(),
                 ));
                 trees.push(namui::path(
-                    PathBuilder::new()
+                    Path::new()
                         .move_to(x, y - 100.px())
                         .line_to(x, y + 100.px()),
-                    paint_builder.clone(),
+                    paint.clone(),
                 ));
                 trees.push(namui::path(
-                    PathBuilder::new().add_rect(text_rendering_tree.get_bounding_box().unwrap()),
-                    paint_builder.clone(),
+                    Path::new().add_rect(text_rendering_tree.bounding_box().unwrap()),
+                    paint.clone(),
                 ));
                 trees.push(text_rendering_tree);
             }
@@ -145,7 +138,7 @@ impl Entity for MultilineTextExample {
                         2 => TextBaseline::Bottom,
                         _ => unreachable!(),
                     },
-                    font_type: FontType {
+                    font: Font {
                         size: 20.int_px(),
                         serif: false,
                         language: Language::Ko,
@@ -157,31 +150,29 @@ impl Entity for MultilineTextExample {
                     },
                     max_width: Some(278.px()),
                 });
-                let paint_builder = PaintBuilder::new()
+                let paint = Paint::new()
                     .set_color(Color::RED)
                     .set_style(PaintStyle::Stroke);
                 trees.push(namui::path(
-                    PathBuilder::new()
+                    Path::new()
                         .move_to(x - 100.px(), y)
                         .line_to(x + 100.px(), y),
-                    paint_builder.clone(),
+                    paint.clone(),
                 ));
                 trees.push(namui::path(
-                    PathBuilder::new()
+                    Path::new()
                         .move_to(x, y - 100.px())
                         .line_to(x, y + 100.px()),
-                    paint_builder.clone(),
+                    paint.clone(),
                 ));
                 trees.push(namui::path(
-                    PathBuilder::new().add_rect(text_rendering_tree.get_bounding_box().unwrap()),
-                    paint_builder.clone(),
+                    Path::new().add_rect(text_rendering_tree.bounding_box().unwrap()),
+                    paint.clone(),
                 ));
                 trees.push(text_rendering_tree);
             }
         }
 
-        render(trees)
+        ctx.add(render(trees));
     }
-
-    fn update(&mut self, _event: &namui::Event) {}
 }

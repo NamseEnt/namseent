@@ -1,3 +1,16 @@
 # Write down the cargo manifest dir to ignore
 luda-adventure
 luda-adventure/ecs-macro
+# TODO: namui samples
+namui/sample/audio
+namui/sample/hooks-v2
+namui/sample/hooks
+namui/sample/multiline-text
+namui/sample/rect
+namui/sample/shader
+namui/sample/tab-to-next-text-input
+namui/sample/text-input
+namui/sample/type_macro
+# TODO: quick
+quick
+quick/sample/tui

@@ -1,4 +1,4 @@
-use super::{bundle::NamuiBundleManifest, rust_build_service::CargoBuildResult};
+use super::bundle::NamuiBundleManifest;
 use crate::{
     debug_println,
     types::{ErrorMessage, WebsocketMessage},
@@ -12,7 +12,7 @@ use futures::{
 use std::{
     collections::HashMap,
     io,
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc, Mutex,
@@ -34,16 +34,18 @@ pub struct WasmBundleWebServer {
     sockets: Arc<Mutex<HashMap<u64, UnboundedSender<Message>>>>,
     cached_error_messages: RwLock<Vec<ErrorMessage>>,
     namui_bundle_manifest: Arc<Mutex<Option<NamuiBundleManifest>>>,
+    static_dirs: Arc<Mutex<Vec<(String, PathBuf)>>>,
 }
 
 static SOCKET_ID: AtomicU64 = AtomicU64::new(0);
 
 impl WasmBundleWebServer {
-    pub(crate) fn start(port: u16, wasm_bundle_dir_path: &Path) -> Arc<Self> {
+    pub(crate) fn start(port: u16) -> Arc<Self> {
         let web_server = Arc::new(WasmBundleWebServer {
             sockets: Arc::new(Mutex::new(HashMap::new())),
             cached_error_messages: RwLock::new(Vec::new()),
             namui_bundle_manifest: Arc::new(Mutex::new(None)),
+            static_dirs: Default::default(),
         });
 
         let redirect_to_index_html =
@@ -106,15 +108,14 @@ impl WasmBundleWebServer {
                 })
             });
 
-        let wasm_bundle_static = warp::get().and(warp::fs::dir(wasm_bundle_dir_path.to_path_buf()));
         let serve_static = warp::get().and(warp::fs::dir(PathBuf::from(get_static_dir())));
         let bundle_metadata_static =
             create_bundle_metadata_static(web_server.namui_bundle_manifest.clone());
         let bundle_static = create_bundle_static(web_server.namui_bundle_manifest.clone());
 
         let routes = redirect_to_index_html
-            .or(wasm_bundle_static)
             .or(serve_static)
+            .or(create_static_dirs(web_server.static_dirs.clone()))
             .or(bundle_metadata_static)
             .or(bundle_static)
             .or(handle_websocket)
@@ -125,52 +126,30 @@ impl WasmBundleWebServer {
         web_server
     }
 
-    pub async fn on_build_done(
+    pub async fn update_namui_bundle_manifest(
         &self,
-        result: &CargoBuildResult,
-        bundle_manifest: Option<NamuiBundleManifest>,
+        namui_bundle_manifest: Option<NamuiBundleManifest>,
     ) {
+        *self.namui_bundle_manifest.lock().unwrap() = namui_bundle_manifest;
+    }
+
+    pub async fn send_reload_signal(&self) {
+        let message = Message::text(serde_json::to_string(&WebsocketMessage::Reload {}).unwrap());
+        self.send_message(&message).await;
+    }
+
+    pub async fn send_error_messages(&self, error_messages: Vec<ErrorMessage>) {
         {
-            *self.namui_bundle_manifest.lock().unwrap() = bundle_manifest;
-        }
-        {
-            debug_println!("on_build_done: locking web_server.cached_error_messages...");
+            debug_println!("send_error_messages: locking web_server.cached_error_messages...");
             let mut cached_error_messages = self.cached_error_messages.write().await;
-            debug_println!("on_build_done: web_server.cached_error_messages locked");
-            *cached_error_messages = result.error_messages.clone();
+            debug_println!("send_error_messages: web_server.cached_error_messages locked");
+            *cached_error_messages = error_messages.clone();
         }
 
-        let messages = if result.is_successful {
-            [Message::text(
-                serde_json::to_string(&WebsocketMessage::Reload {}).unwrap(),
-            )]
-        } else {
-            [Message::text(
-                serde_json::to_string(&WebsocketMessage::Error {
-                    error_messages: result.error_messages.clone(),
-                })
-                .unwrap(),
-            )]
-        };
-
-        debug_println!("on_build_done: locking web_server.sockets...");
-        let mut sockets = { self.sockets.lock().unwrap().clone() };
-        debug_println!("on_build_done: web_server.sockets locked");
-
-        join_all(sockets.iter_mut().map(|(id, socket)| {
-            let messages = messages.clone();
-            async move {
-                debug_println!("send_error_messages: sending to {}...", id);
-                for message in &messages {
-                    if let Err(error) = socket.send(message.clone()).await {
-                        eprintln!("websocket send fail.\n  {:?}", error);
-                    } else {
-                        debug_println!("on_build_done: sended to {}", id);
-                    }
-                }
-            }
-        }))
-        .await;
+        let message = Message::text(
+            serde_json::to_string(&WebsocketMessage::Error { error_messages }).unwrap(),
+        );
+        self.send_message(&message).await;
     }
 
     pub async fn send_cached_error_messages(&self, socket: &mut UnboundedSender<Message>) {
@@ -188,6 +167,32 @@ impl WasmBundleWebServer {
         if let Err(error) = result {
             eprintln!("send_cached_error_messages fail.\n  {:?}", error);
         }
+    }
+
+    pub async fn send_message(&self, message: &Message) {
+        debug_println!("send_message: locking web_server.sockets...");
+        let mut sockets = { self.sockets.lock().unwrap().clone() };
+        debug_println!("send_message: web_server.sockets locked");
+
+        join_all(sockets.iter_mut().map(|(id, socket)| {
+            let message = message.clone();
+            async move {
+                debug_println!("send_error_messages: sending to {}...", id);
+                if let Err(error) = socket.send(message.clone()).await {
+                    eprintln!("websocket send fail.\n  {:?}", error);
+                } else {
+                    debug_println!("on_build_done: sended to {}", id);
+                }
+            }
+        }))
+        .await;
+    }
+
+    pub fn add_static_dir(&self, base_path: &str, path: &PathBuf) {
+        self.static_dirs
+            .lock()
+            .unwrap()
+            .push((base_path.to_string(), path.clone()));
     }
 }
 
@@ -263,11 +268,51 @@ fn create_bundle_static(
     bundle_static
 }
 
+fn create_static_dirs(
+    static_dirs: Arc<Mutex<Vec<(String, PathBuf)>>>,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::get()
+        .and(warp::path::tail())
+        .and_then(move |tail: Tail| {
+            let static_dirs = static_dirs.clone();
+
+            async move {
+                let url = {
+                    let tail = decode(tail.as_str());
+                    if tail.is_err() {
+                        return Err(reject::reject());
+                    } else {
+                        tail.unwrap().into_owned()
+                    }
+                };
+
+                let static_dirs = { static_dirs.lock().unwrap().clone() };
+                for (base, path) in static_dirs {
+                    if url.starts_with(&base) {
+                        let url = url.strip_prefix(&base).unwrap();
+                        let src_path = path.join(&url);
+                        if tokio::fs::metadata(&src_path).await.is_ok() {
+                            return file_response(&src_path).await;
+                        }
+                    }
+                }
+
+                Err(reject::not_found())
+            }
+        })
+}
+
 async fn file_response(src_path: &PathBuf) -> Result<reply::Response, warp::Rejection> {
     match tokio::fs::File::open(src_path).await {
         Ok(file) => {
             let frame_reader = FramedRead::new(file, BytesCodec::new());
-            let response = reply::Response::new(Body::wrap_stream(frame_reader));
+            let mut response = reply::Response::new(Body::wrap_stream(frame_reader));
+
+            let mime = mime_guess::from_path(src_path).first_or_octet_stream();
+            response
+                .headers_mut()
+                .insert(CONTENT_TYPE, HeaderValue::from_str(mime.as_ref()).unwrap());
+
             Ok(response)
         }
         Err(error) => match error.kind() {

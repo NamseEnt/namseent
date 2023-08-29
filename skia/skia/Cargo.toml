@@ -1,0 +1,15 @@
+[package]
+name = "namui-skia"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+canvas-kit-wasm-bindgen = { path = "../canvas-kit-wasm-bindgen" }
+js-sys = "0.3.64"
+namui-type = { path = "../../namui-type" }
+serde = { version = "1.0.183", features = ["derive"] }
+wasm-bindgen = "0.2.87"
+web-sys = { version = "0.3.64", features = ["ImageBitmap"] }

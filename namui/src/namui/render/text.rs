@@ -1,5 +1,4 @@
-use crate::{font::with_fallbacks, text::*, *};
-use std::sync::Arc;
+use crate::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct TextStyleBorder {
@@ -24,7 +23,7 @@ pub struct TextStyle {
     pub color: Color,
     pub background: Option<TextStyleBackground>,
     pub line_height_percent: Percent,
-    pub underline: Option<PaintBuilder>,
+    pub underline: Option<Paint>,
 }
 
 impl Default for TextStyle {
@@ -47,56 +46,28 @@ pub struct TextParam {
     pub y: Px,
     pub align: TextAlign,
     pub baseline: TextBaseline,
-    pub font_type: FontType,
+    pub font: Font,
     pub style: TextStyle,
     pub max_width: Option<Px>,
 }
 
 pub fn text(param: TextParam) -> RenderingTree {
-    let font = namui::font::get_font(param.font_type);
-    match font {
-        None => {
-            crate::log!(
-                "Font not found: {}",
-                serde_json::to_string(&param.font_type).unwrap()
-            );
-            RenderingTree::Empty
-        }
-        Some(font) => {
-            crate::render![
-                draw_background(&param, font.clone()),
-                namui::RenderingData {
-                    draw_calls: vec![namui::DrawCall {
-                        commands: vec![
-                            // draw_shadow(),
-                            draw_border(&param, font.clone()),
-                            Some(draw_text(&param, font.clone())),
-                        ]
-                        .into_iter()
-                        .filter_map(|command| command)
-                        .collect(),
-                    }],
-                    ..Default::default()
-                }
-            ]
-        }
-    }
-
-    //   return [
-    //     drawBackground(textHandleParam),
-    //     {
-    //       drawCalls: [
-    //         {
-    //           commands: [
-    //             drawShadow(textHandleParam),
-    //             drawText(textHandleParam),
-    //             drawBorder(textHandleParam),
-    //           ].filter((x): x is TextDrawCommand => !!x),
-    //         },
-    //       ],
-    //     },
-    //   ];
-    // }
+    crate::render([
+        RenderingTree::Node(RenderingData {
+            draw_calls: vec![DrawCall {
+                commands: vec![
+                    // draw_shadow(),
+                    draw_border(&param, &param.font),
+                    Some(draw_text(&param, &param.font)),
+                ]
+                .into_iter()
+                .filter_map(|command| command)
+                .collect(),
+            }],
+            ..Default::default()
+        }),
+        draw_background(&param, &param.font),
+    ])
 }
 // type TextHandleParam = TextParam & {
 //   font: Font;
@@ -129,53 +100,59 @@ pub fn text(param: TextParam) -> RenderingTree {
 //     baseline,
 //   });
 // }
-pub(crate) fn get_text_paint(color: Color) -> PaintBuilder {
-    namui::PaintBuilder::new()
+pub(crate) fn get_text_paint(color: Color) -> Paint {
+    namui::Paint::new()
         .set_color(color)
         .set_style(namui::PaintStyle::Fill)
         .set_anti_alias(true)
 }
-fn draw_text(param: &TextParam, font: Arc<Font>) -> DrawCommand {
+fn draw_text(param: &TextParam, font: &Font) -> DrawCommand {
     let text_paint = get_text_paint(param.style.color);
 
-    DrawCommand::Text(TextDrawCommand {
-        text: param.text.clone(),
-        font,
-        x: param.x,
-        y: param.y,
-        paint_builder: text_paint,
-        align: param.align,
-        baseline: param.baseline,
-        max_width: param.max_width,
-        line_height_percent: param.style.line_height_percent,
-        underline: param.style.underline.clone(),
-    })
+    DrawCommand::Text {
+        command: {
+            TextDrawCommand {
+                text: param.text.clone(),
+                font: font.clone(),
+                x: param.x,
+                y: param.y,
+                paint: text_paint,
+                align: param.align,
+                baseline: param.baseline,
+                max_width: param.max_width,
+                line_height_percent: param.style.line_height_percent,
+                underline: param.style.underline.clone(),
+            }
+        },
+    }
 }
-fn draw_border(param: &TextParam, font: Arc<Font>) -> Option<DrawCommand> {
+fn draw_border(param: &TextParam, font: &Font) -> Option<DrawCommand> {
     let border = param.style.border?;
 
-    let border_paint = namui::PaintBuilder::new()
+    let border_paint = namui::Paint::new()
         .set_color(border.color)
         .set_style(namui::PaintStyle::Stroke)
         .set_stroke_width(border.width)
         .set_stroke_join(namui::StrokeJoin::Miter)
         .set_anti_alias(true);
 
-    Some(DrawCommand::Text(TextDrawCommand {
-        text: param.text.clone(),
-        font,
-        x: param.x,
-        y: param.y,
-        paint_builder: border_paint,
-        align: param.align,
-        baseline: param.baseline,
-        max_width: param.max_width,
-        line_height_percent: param.style.line_height_percent,
-        underline: None,
-    }))
+    Some(DrawCommand::Text {
+        command: TextDrawCommand {
+            text: param.text.clone(),
+            font: font.clone(),
+            x: param.x,
+            y: param.y,
+            paint: border_paint,
+            align: param.align,
+            baseline: param.baseline,
+            max_width: param.max_width,
+            line_height_percent: param.style.line_height_percent,
+            underline: None,
+        },
+    })
 }
 
-fn draw_background(param: &TextParam, font: Arc<Font>) -> RenderingTree {
+fn draw_background(param: &TextParam, font: &Font) -> RenderingTree {
     let style = &param.style;
 
     let background = &style.background;
@@ -184,11 +161,14 @@ fn draw_background(param: &TextParam, font: Arc<Font>) -> RenderingTree {
     };
     let background = background.as_ref().unwrap();
 
-    let font_metrics = font.metrics;
-    let fonts = with_fallbacks(font);
+    let paint = get_text_paint(param.style.color);
 
-    let text_paint = get_text_paint(param.style.color).build();
-    let width = get_text_width_with_fonts(&fonts, &param.text, text_paint);
+    let Some(font_metrics) = system::font::font_metrics(font) else {
+        crate::log!("Font metrics not found for font: {:?}", font);
+        return RenderingTree::Empty;
+    };
+
+    let width = system::font::group_glyph(font, &paint).width(&param.text);
 
     let height = param.line_height_px();
     let bottom_of_baseline = get_bottom_of_baseline(param.baseline, font_metrics);
@@ -220,6 +200,6 @@ fn draw_background(param: &TextParam, font: Arc<Font>) -> RenderingTree {
 
 impl TextParam {
     pub fn line_height_px(&self) -> Px {
-        self.font_type.size.into_px() * self.style.line_height_percent
+        self.font.size.into_px() * self.style.line_height_percent
     }
 }

@@ -15,7 +15,6 @@ mod image_resource;
 
 struct ImageResourcesBlock {
     resource_id: i16,
-    name: String,
     data_range: Range<usize>,
 }
 
@@ -85,7 +84,6 @@ impl ImageResourcesSection {
         }
 
         let resource_id = cursor.read_i16();
-        let name = cursor.read_pascal_string();
 
         let data_len = cursor.read_u32();
         let pos = cursor.position() as usize;
@@ -99,7 +97,6 @@ impl ImageResourcesSection {
 
         Ok(ImageResourcesBlock {
             resource_id,
-            name,
             data_range,
         })
     }
@@ -534,12 +531,12 @@ impl DescriptorStructure {
 
     fn read_fields(
         cursor: &mut PsdCursor,
-        sub_list: bool,
+        _sub_list: bool,
     ) -> Result<HashMap<String, DescriptorField>, ImageResourcesDescriptorError> {
         let count = cursor.read_u32();
         let mut m = HashMap::with_capacity(count as usize);
 
-        for n in 0..count {
+        for _n in 0..count {
             let key = DescriptorStructure::read_key_length(cursor);
             let key = String::from_utf8_lossy(key).into_owned();
 
@@ -551,12 +548,12 @@ impl DescriptorStructure {
 
     fn read_list(
         cursor: &mut PsdCursor,
-        sub_list: bool,
+        _sub_list: bool,
     ) -> Result<Vec<DescriptorField>, ImageResourcesDescriptorError> {
         let count = cursor.read_u32();
         let mut vec = Vec::with_capacity(count as usize);
 
-        for n in 0..count {
+        for _n in 0..count {
             let field = DescriptorStructure::read_descriptor_field(cursor)?;
             vec.push(field);
         }
@@ -633,7 +630,7 @@ impl DescriptorStructure {
         let count = cursor.read_u32();
         let mut vec = Vec::with_capacity(count as usize);
 
-        for n in 0..count {
+        for _n in 0..count {
             DescriptorStructure::read_key_length(cursor);
 
             let mut os_type = [0; 4];

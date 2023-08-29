@@ -1,3 +1,4 @@
+use crate::*;
 use crate::{cli::Target, debug_println, types::ErrorMessage};
 use cargo_metadata::{diagnostic::DiagnosticLevel, CompilerMessage, Message};
 use std::{
@@ -16,6 +17,7 @@ pub struct RustBuildService {
     builder: Mutex<Option<Arc<CancelableBuilder>>>,
     is_build_just_started: AtomicBool,
 }
+#[derive(Debug)]
 pub enum BuildResult {
     Canceled,
     Successful(CargoBuildResult),
@@ -38,25 +40,24 @@ impl RustBuildService {
         }
     }
 
-    pub(crate) fn cancel_and_start_build(&self, build_option: &BuildOption) -> BuildResult {
+    pub(crate) async fn cancel_and_start_build(&self, build_option: &BuildOption) -> BuildResult {
         if self.is_build_just_started.swap(true, Ordering::Relaxed) {
             return BuildResult::Canceled;
         }
 
-        let result_receiver = {
+        let mut result_receiver = {
             let mut builder_lock = self.builder.lock().unwrap();
             if let Some(builder) = builder_lock.take() {
                 builder.cancel();
             }
 
             self.is_build_just_started.store(false, Ordering::Relaxed);
-            println!("starting build");
             let (builder, result_receiver) = CancelableBuilder::start(build_option);
             *builder_lock = Some(builder);
             result_receiver
         };
 
-        result_receiver.recv().unwrap()
+        result_receiver.recv().await.unwrap()
     }
 }
 
@@ -87,7 +88,7 @@ impl CancelableBuilder {
         build_option: &BuildOption,
     ) -> (
         Arc<CancelableBuilder>,
-        std::sync::mpsc::Receiver<BuildResult>,
+        tokio::sync::mpsc::Receiver<BuildResult>,
     ) {
         let builder = Arc::new(Self {
             is_cancel_requested: AtomicBool::new(false),
@@ -96,7 +97,7 @@ impl CancelableBuilder {
         let build_option = build_option.clone();
 
         let builder_thread_fn = {
-            move |builder: Arc<Self>| -> Result<BuildResult, crate::Error> {
+            move |builder: Arc<Self>| -> Result<BuildResult> {
                 let mut spawned_process = Self::spawn_build_process(&build_option)?;
 
                 let mut stdout = spawned_process.stdout.take().unwrap();
@@ -129,7 +130,7 @@ impl CancelableBuilder {
                                 .expect("fail to get stdout from thread");
 
                             if cargo_outputs.is_empty() {
-                                return Err(format!(
+                                return Err(anyhow!(
                                     "cargo build failed {stderr}",
                                     stderr = stderr_reading_thread.join().unwrap()
                                 )
@@ -138,7 +139,7 @@ impl CancelableBuilder {
                             match parse_cargo_build_result(cargo_outputs.as_bytes()) {
                                 Ok(result) => {
                                     if result.is_successful && !exit_status.success() {
-                                        return Err(format!(
+                                        return Err(anyhow!(
                                             "build process exited with code {exit_status}\nstderr: {stderr}",
                                             stderr = stderr_reading_thread.join().unwrap()
                                         ).into());
@@ -159,16 +160,16 @@ impl CancelableBuilder {
             }
         };
 
-        let (result_sender, result_receiver) = std::sync::mpsc::channel();
+        let (result_sender, result_receiver) = tokio::sync::mpsc::channel(1048576);
 
-        thread::spawn({
+        tokio::spawn({
             let builder = builder.clone();
-            move || {
+            async move {
                 let build_result = match builder_thread_fn(builder.clone()) {
                     Ok(result) => result,
                     Err(error) => BuildResult::Failed(error.to_string()),
                 };
-                result_sender.send(build_result).unwrap();
+                result_sender.send(build_result).await.unwrap();
                 builder.is_canceled.store(true, Ordering::Relaxed);
             }
         });
@@ -176,12 +177,12 @@ impl CancelableBuilder {
         (builder, result_receiver)
     }
 
-    fn spawn_build_process(build_option: &BuildOption) -> Result<Child, crate::Error> {
+    fn spawn_build_process(build_option: &BuildOption) -> Result<Child> {
         Ok(Command::new("wasm-pack")
             .args([
                 "build",
                 "--target",
-                "web",
+                "no-modules",
                 "--out-name",
                 "bundle",
                 "--dev",
@@ -222,9 +223,13 @@ fn get_envs(build_option: &BuildOption) -> Vec<(&str, &str)> {
         envs.push(("NAMUI_CFG_WATCH_RELOAD", ""));
     }
 
+    // NOTE: This may break build when user's platform doesn't support simd128.
+    envs.push(("-C", "target-feature=+simd128"));
+
     envs
 }
 
+#[derive(Debug)]
 pub struct CargoBuildResult {
     pub warning_messages: Vec<ErrorMessage>,
     pub error_messages: Vec<ErrorMessage>,
@@ -232,7 +237,7 @@ pub struct CargoBuildResult {
     pub is_successful: bool,
 }
 
-fn parse_cargo_build_result(stdout: &[u8]) -> Result<CargoBuildResult, crate::Error> {
+fn parse_cargo_build_result(stdout: &[u8]) -> Result<CargoBuildResult> {
     let mut warning_messages: Vec<ErrorMessage> = Vec::new();
     let mut error_messages: Vec<ErrorMessage> = Vec::new();
     let mut other_messages: Vec<ErrorMessage> = Vec::new();

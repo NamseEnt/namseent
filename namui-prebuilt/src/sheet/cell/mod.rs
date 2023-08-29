@@ -15,7 +15,7 @@ pub trait CellTrait {
     fn render(&self, props: Props) -> RenderingTree;
     fn borders(&self) -> &Borders;
     fn copy(&self) -> ClipboardItem;
-    fn on_paste(&self) -> Option<ClosurePtr<ClipboardItem, ()>>;
+    fn on_paste(&self) -> Option<Closure<dyn Fn(ClipboardItem)>>;
 }
 
 pub struct Props<'a> {
@@ -28,7 +28,7 @@ pub struct Props<'a> {
 
 pub struct Cell {
     pub(crate) inner: Box<dyn CellTrait>,
-    pub(crate) on_mouse_down: Option<ClosurePtr<MouseEvent, ()>>,
+    pub(crate) on_mouse_down: Option<Closure<dyn Fn(MouseEvent)>>,
 }
 
 impl Cell {
@@ -38,8 +38,8 @@ impl Cell {
             on_mouse_down: None,
         }
     }
-    pub fn on_mouse_down(mut self, on_mouse_down: impl Into<ClosurePtr<MouseEvent, ()>>) -> Self {
-        self.on_mouse_down = Some(on_mouse_down.into());
+    pub fn on_mouse_down(mut self, on_mouse_down: Closure<dyn Fn(MouseEvent)>) -> Self {
+        self.on_mouse_down = Some(on_mouse_down);
         self
     }
 }
