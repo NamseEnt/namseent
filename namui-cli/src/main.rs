@@ -50,7 +50,7 @@ async fn main() {
         } => {
             let target = option_target.as_ref().unwrap_or(&current_target);
             let manifest_path = option_manifest_path.as_ref().unwrap_or(&manifest_path);
-            procedures::build(&target, &manifest_path, arch.into())
+            procedures::build(&target, &manifest_path, arch.into()).await
         }
     };
 

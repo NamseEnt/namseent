@@ -9,7 +9,6 @@ use crate::{
     services::build_status_service::{BuildStatusCategory, BuildStatusService},
     *,
 };
-use futures::executor::block_on;
 use std::{path::PathBuf, sync::Arc};
 use tokio::try_join;
 
@@ -196,11 +195,13 @@ impl WasmWatchBuildService {
             .await
         {
             BuildResult::Successful(cargo_build_result) => {
-                block_on(build_status_service.build_finished(
-                    BuildStatusCategory::WebRuntime,
-                    cargo_build_result.error_messages,
-                    vec![],
-                ));
+                build_status_service
+                    .build_finished(
+                        BuildStatusCategory::WebRuntime,
+                        cargo_build_result.error_messages,
+                        vec![],
+                    )
+                    .await;
                 Ok(())
             }
             BuildResult::Canceled => unreachable!(),

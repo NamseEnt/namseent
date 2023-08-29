@@ -5,6 +5,6 @@ use crate::services::{
 use crate::*;
 use std::path::Path;
 
-pub fn build(manifest_path: &Path, arch: Option<Arch>) -> Result<()> {
-    electron_build_service::build(manifest_path, arch, Platform::Linux)
+pub async fn build(manifest_path: &Path, arch: Option<Arch>) -> Result<()> {
+    electron_build_service::build(manifest_path, arch, Platform::Linux).await
 }
