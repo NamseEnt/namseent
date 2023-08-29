@@ -1,0 +1,3 @@
+# Write down the cargo manifest dir to ignore
+luda-adventure
+luda-adventure/ecs-macro

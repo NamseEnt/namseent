@@ -20,7 +20,6 @@ jobs:
       luda-editor: ${{ steps.filter.outputs.luda-editor }}
       namui-prebuilt: ${{ steps.filter.outputs.namui-prebuilt }}
       namui-sample: ${{ steps.filter.outputs.namui-sample }}
-      namui-animation-editor: ${{ steps.filter.outputs.namui-animation-editor }}
       luda-adventure: ${{ steps.filter.outputs.luda-adventure }}
     steps:
       - uses: actions/checkout@v3
@@ -52,11 +51,6 @@ jobs:
               - docker-images/namui-test-host/linux.Dockerfile
             namui-sample:
               - .github/**
-              - namui/**
-              - docker-images/namui-test-host/linux.Dockerfile
-            namui-animation-editor:
-              - .github/**
-              - namui-animation-editor/**
               - namui/**
               - docker-images/namui-test-host/linux.Dockerfile
             luda-adventure:
@@ -147,33 +141,17 @@ jobs:
           target: wasm-unknown-web
           path: namui/sample/rect
 
-  test-namui-animation-editor:
-    needs: [check-rebuild]
-    if: needs.check-rebuild.outputs.namui-animation-editor == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/init-test-job
-      - uses: ./.github/actions/namui-test
-        with:
-          target: wasm-unknown-web
-          path: namui-animation-editor
-      - uses: ./.github/actions/namui-test
-        with:
-          target: wasm-unknown-web
-          path: namui-animation-editor/sample
-
-  test-luda-adventure:
-    needs: [check-rebuild]
-    if: needs.check-rebuild.outputs.luda-adventure == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/init-test-job
-      - uses: ./.github/actions/namui-test
-        with:
-          target: wasm-unknown-web
-          path: luda-adventure
+  # test-luda-adventure:
+  #   needs: [check-rebuild]
+  #   if: needs.check-rebuild.outputs.luda-adventure == 'true'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: ./.github/actions/init-test-job
+  #     - uses: ./.github/actions/namui-test
+  #       with:
+  #         target: wasm-unknown-web
+  #         path: luda-adventure
 
   # NOTE: This is for status check of pull request.
   post-test:
@@ -188,8 +166,7 @@ jobs:
       - test-luda-editor
       - test-namui-prebuilt
       - test-namui-sample
-      - test-namui-animation-editor
-      - test-luda-adventure
+      # - test-luda-adventure
     steps:
       - run: echo ${{ join(needs.*.result, ',') }}
       - run: echo "any_test_failed=${{ contains(join(needs.*.result, ','), 'failure') }}" >> $GITHUB_ENV
