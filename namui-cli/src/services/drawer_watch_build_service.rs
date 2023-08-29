@@ -21,11 +21,8 @@ pub struct WatchArgs {
 }
 impl DrawerWatchBuildService {
     pub async fn spawn_watch(args: WatchArgs) -> Result<()> {
-        let project_root_path = get_cli_root_path().join("../namui-drawer");
-        let build_dist_path = project_root_path.join("pkg/drawer");
-
         args.wasm_bundle_web_server
-            .add_static_dir("drawer/", &build_dist_path);
+            .add_static_dir("drawer/", &build_dist_path());
 
         let rust_project_watch_service = Arc::new(RustProjectWatchService::new());
         let rust_build_service = Arc::new(RustBuildService::new());
@@ -36,23 +33,21 @@ impl DrawerWatchBuildService {
                 args.wasm_bundle_web_server.clone(),
                 rust_build_service.clone(),
                 build_status_service.clone(),
-                build_dist_path.clone(),
-                project_root_path.clone(),
+                build_dist_path(),
+                project_root_path(),
                 args.target,
                 args.after_build.clone(),
             ),
-            rust_project_watch_service.watch(project_root_path.join("Cargo.toml"), {
+            rust_project_watch_service.watch(project_root_path().join("Cargo.toml"), {
                 let rust_build_service = rust_build_service.clone();
-                let build_dist_path = build_dist_path.clone();
-                let project_root_path = project_root_path.clone();
                 let after_build = args.after_build.clone();
                 move || {
                     tokio::spawn(cancel_and_start_build(
                         args.wasm_bundle_web_server.clone(),
                         rust_build_service.clone(),
                         build_status_service.clone(),
-                        build_dist_path.clone(),
-                        project_root_path.clone(),
+                        build_dist_path(),
+                        project_root_path(),
                         args.target,
                         after_build.clone(),
                     ));
@@ -115,4 +110,45 @@ impl DrawerWatchBuildService {
             Ok(())
         }
     }
+
+    pub async fn just_build(
+        target: Target,
+        build_status_service: Arc<BuildStatusService>,
+    ) -> Result<()> {
+        build_status_service
+            .build_started(BuildStatusCategory::Drawer)
+            .await;
+
+        let rust_build_service = Arc::new(RustBuildService::new());
+
+        match rust_build_service
+            .cancel_and_start_build(&BuildOption {
+                target,
+                dist_path: build_dist_path(),
+                project_root_path: project_root_path(),
+                watch: false,
+            })
+            .await
+        {
+            BuildResult::Successful(cargo_build_result) => {
+                build_status_service
+                    .build_finished(
+                        BuildStatusCategory::Drawer,
+                        cargo_build_result.error_messages,
+                        vec![],
+                    )
+                    .await;
+                Ok(())
+            }
+            BuildResult::Canceled => unreachable!(),
+            BuildResult::Failed(error) => Err(anyhow!("{}", error)),
+        }
+    }
+}
+
+pub fn project_root_path() -> PathBuf {
+    get_cli_root_path().join("../namui-drawer")
+}
+pub fn build_dist_path() -> PathBuf {
+    project_root_path().join("pkg/drawer")
 }
