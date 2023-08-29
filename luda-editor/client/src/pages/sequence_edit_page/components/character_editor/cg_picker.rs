@@ -67,7 +67,6 @@ fn render_thumbnail<'a>(
             ctx.add(
                 simple_rect(wh, color::STROKE_NORMAL, 1.px(), Color::TRANSPARENT)
                     .with_mouse_cursor(MouseCursor::Pointer)
-                    // .with_tooltip(cg_file.name.clone())
                     .attach_event({
                         let cg_id = cg_file.id;
                         let cg_file_name = cg_file.name.clone();

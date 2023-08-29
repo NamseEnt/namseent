@@ -53,22 +53,3 @@ pub trait ImageLoader<Image> {
         on_loaded: Box<dyn FnOnce(ImageBitmap) -> Image>,
     ) -> Option<Image>;
 }
-
-/*
-
-Main: 이미지의 크기를 알고 싶어.
-이미지를 가리키는 오브젝트를 얻고 싶어.
-픽셀 정보는 몰라도 돼.
-메인에서 아는 이미지는 Drawer에 로딩되어있어야해.
-
-Drawer: 이미지의 모든 것을 알아야 한다.
-
-            메인                    Drawer
-로딩         Drawer에 전달           풀로딩
-로딩여부     알아야함                알수밖에
-이미지 크기  알아야함                알수밖에
-
-
-사용자는 이미지를 src로 쓰거나, 이미지 바이트를 직접 들고 있거나, 이미지를 로딩해달라고 요청해서 사이즈 정도 알고 잇는 정도.
-
-*/

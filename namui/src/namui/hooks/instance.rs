@@ -88,8 +88,6 @@ impl ComponentInstance {
         key_vec: KeyVec,
         component_type_name: &'static str,
     ) -> Arc<ComponentInstance> {
-        // TODO: Remove unused key's children instances
-
         let key = (key_vec, component_type_name);
 
         self.children_instances

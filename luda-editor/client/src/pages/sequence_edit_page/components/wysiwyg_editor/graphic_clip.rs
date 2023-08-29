@@ -74,7 +74,6 @@ impl Component for GraphicClip<'_> {
                         let circumscribed = context.resize(center_xy, graphic_wh_on_screen, wh);
                         calculate_graphic_rect_on_screen(graphic_wh, wh, circumscribed)
                     }
-                    // Dragging::Cropper => todo!(),
                     Dragging::Mover { context } => {
                         let circumscribed = context.move_circumscribed(circumscribed);
 

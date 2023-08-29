@@ -32,7 +32,7 @@ pub struct TextInput<'a> {
 pub enum Event<'a> {
     TextUpdated { text: &'a str },
     SelectionUpdated { selection: Selection },
-    KeyDown { event: TextinputKeyDownEvent<'a> },
+    KeyDown { event: TextInputKeyDownEvent<'a> },
 }
 
 #[derive(Debug, Default)]
@@ -404,17 +404,6 @@ impl TextInput<'_> {
     pub fn line_height_px(&self) -> Px {
         self.font.size.into_px() * self.style.text.line_height_percent
     }
-    // fn get_paragraph(&self) -> Option<Paragraph> {
-    //     let font = crate::font::get_font(self.font)?;
-    //     let fonts = crate::font::with_fallbacks(font);
-    //     let paint = get_text_paint(self.style.text.color).build();
-    //     Some(Paragraph::new(
-    //         &self.text,
-    //         fonts,
-    //         paint.clone(),
-    //         Some(self.rect.width()),
-    //     ))
-    // }
 }
 
 fn get_input_element_selection(

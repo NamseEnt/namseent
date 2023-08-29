@@ -1,4 +1,3 @@
-pub mod closure;
 mod codes;
 mod event;
 mod file;
@@ -6,7 +5,6 @@ mod open_external;
 pub(crate) mod url;
 
 use crate::*;
-pub use closure::*;
 pub use codes::*;
 pub use event::*;
 pub use file::*;

@@ -25,10 +25,6 @@ impl SkSkia for CkSkia {
         CkGroupGlyph::get(font, paint)
     }
 
-    // fn image_info(&self, image_source: &ImageSource) -> Option<ImageInfo> {
-    //     // CkImage::get(image_source).map(|x| x.info())
-    // }
-
     fn font_metrics(&self, font: &Font) -> Option<FontMetrics> {
         CkFont::get(font).map(|x| x.metrics)
     }

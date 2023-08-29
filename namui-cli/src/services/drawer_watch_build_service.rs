@@ -115,29 +115,4 @@ impl DrawerWatchBuildService {
             Ok(())
         }
     }
-
-    // pub fn just_build(project_root_path: PathBuf, target: Target) -> Result<()> {
-    //     let build_dist_path = project_root_path.join("pkg");
-    //     let runtime_target_dir = project_root_path.join("target/namui");
-    //     let rust_build_service = RustBuildService::new();
-
-    //     runtime_project::wasm::generate_runtime_project(GenerateRuntimeProjectArgs {
-    //         target_dir: runtime_target_dir.clone(),
-    //         project_path: project_root_path.clone(),
-    //     })?;
-
-    //     match rust_build_service.cancel_and_start_build(&BuildOption {
-    //         target,
-    //         dist_path: build_dist_path,
-    //         project_root_path: runtime_target_dir,
-    //         watch: false,
-    //     }) {
-    //         BuildResult::Successful(cargo_build_result) => {
-    //             print_build_result(&cargo_build_result.error_messages, &vec![]);
-    //             Ok(())
-    //         }
-    //         BuildResult::Canceled => unreachable!(),
-    //         BuildResult::Failed(error) => Err(error.into()),
-    //     }
-    // }
 }

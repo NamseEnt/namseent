@@ -119,10 +119,7 @@ impl WasmBundleWebServer {
             .or(bundle_metadata_static)
             .or(bundle_static)
             .or(handle_websocket)
-            .map(|reply| warp::reply::with_header(reply, "cache-control", "no-cache"))
-            .map(|reply| {
-                warp::reply::with_header(reply, "Origin-Trial", "AjskG7XjAzhXrbO5iSypw0OSMflgB2aEgoT9BuzVaQngLsZbHPNipBOjM5tTKu6K+S0lotXG8JBfV/1QUGK2iA8AAABgeyJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjgwODAiLCJmZWF0dXJlIjoiVW5yZXN0cmljdGVkU2hhcmVkQXJyYXlCdWZmZXIiLCJleHBpcnkiOjE3MDk4NTU5OTl9")
-            });
+            .map(|reply| warp::reply::with_header(reply, "cache-control", "no-cache"));
 
         let _ = tokio::spawn(warp::serve(routes).run(([0, 0, 0, 0], port)));
 

@@ -145,10 +145,7 @@ fn add_new_image(project_id: Uuid, cut_id: Uuid, png_bytes: Vec<u8>) {
                 });
             }
             Err(_error) => {
-                // namui::event::send(InternalEvent::Error(format!(
-                //     "create_image {}",
-                //     error.to_string()
-                // )));
+                todo!();
             }
         };
     });
@@ -181,10 +178,7 @@ fn add_new_cg(project_id: Uuid, cut_id: Uuid, psd_name: String, psd_bytes: Vec<u
                 });
             }
             Err(_error) => {
-                //     namui::event::send(InternalEvent::Error(format!(
-                //         "create_cg {}",
-                //         error.to_string()
-                //     )));
+                todo!();
             }
         }
     });

@@ -1,6 +1,5 @@
 use super::*;
 
-// Nesting
 impl ComposeCtx {
     pub fn translate(&mut self, xy: impl AsXyPx) -> Self {
         let xy = xy.as_xy_px();

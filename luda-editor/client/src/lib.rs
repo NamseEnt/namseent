@@ -1,14 +1,16 @@
-use namui::prelude::*;
-
 mod app;
 mod color;
 mod components;
 mod late_init;
 mod pages;
 mod setting;
-// mod share_preview;
 mod storage;
+
+// TODO
+// mod share_preview;
 // mod viewer;
+
+use namui::prelude::*;
 
 #[cfg(test)]
 #[cfg(target_family = "wasm")]
@@ -59,8 +61,8 @@ impl namui::Component for Init {
                 SETTING.init(setting);
                 RPC.init(rpc::Rpc::new(SETTING.rpc_endpoint.clone()));
 
+                // TODO
                 // let share_preview = share_preview::SharePreview::from_search(&search);
-
                 // match share_preview {
                 //     Some(share_preview) => {
                 //         todo!()

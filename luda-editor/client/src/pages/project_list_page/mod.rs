@@ -3,7 +3,7 @@ use namui_prebuilt::*;
 use rpc::list_editable_projects::EditableProject;
 
 #[namui::component]
-pub struct ProjectListPage2 {
+pub struct ProjectListPage {
     pub wh: Wh<Px>,
 }
 

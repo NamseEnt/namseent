@@ -47,7 +47,7 @@ pub enum Event<'a> {
         selection_end: usize,
     },
     TextInputKeyDown {
-        event: TextinputKeyDownEvent<'a>,
+        event: TextInputKeyDownEvent<'a>,
     },
 }
 
@@ -59,7 +59,7 @@ pub trait EventExt {
 
 #[derive(Derivative)]
 #[derivative(Debug)]
-pub struct TextinputKeyDownEvent<'a> {
+pub struct TextInputKeyDownEvent<'a> {
     pub code: Code,
     pub text: &'a str,
     pub selection_direction: SelectionDirection,
@@ -69,8 +69,8 @@ pub struct TextinputKeyDownEvent<'a> {
     #[derivative(Debug = "ignore")]
     pub(crate) prevent_default: &'a Box<dyn Fn()>,
 }
-impl EventExt for TextinputKeyDownEvent<'_> {}
-impl TextinputKeyDownEvent<'_> {
+impl EventExt for TextInputKeyDownEvent<'_> {}
+impl TextInputKeyDownEvent<'_> {
     pub fn prevent_default(&self) {
         (self.prevent_default)();
     }

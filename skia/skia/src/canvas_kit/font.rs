@@ -4,9 +4,7 @@ use std::sync::Arc;
 type GlyphIds = Vec<usize>;
 
 pub struct CkFont {
-    // pub(crate) id: String,
     pub(crate) canvas_kit_font: CanvasKitFont,
-    // pub(crate) size: IntPx,
     pub(crate) metrics: FontMetrics,
     glyph_ids_caches: SerdeLruCache<String, GlyphIds>,
     glyph_widths_caches: SerdeLruCache<(GlyphIds, Paint), Vec<Px>>,
@@ -110,32 +108,3 @@ impl CkFont {
             .to_vec()
     }
 }
-
-// impl Drop for CkFont {
-//     fn drop(&mut self) {
-//         self.canvas_kit_font.delete();
-//     }
-// }
-
-// impl std::fmt::Debug for CkFont {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         f.debug_struct("Font")
-//             .field("id", &self.id)
-//             .field("size", &self.size)
-//             .finish()
-//     }
-// }
-
-// impl std::hash::Hash for CkFont {
-//     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-//         self.id.hash(state);
-//     }
-// }
-
-// impl PartialEq for CkFont {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.id == other.id
-//     }
-// }
-
-// impl Eq for CkFont {}

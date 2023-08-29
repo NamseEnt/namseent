@@ -210,28 +210,6 @@ impl Component for CharacterEditor<'_> {
     }
 }
 
-// pub enum Event {
-//     MouseDownOutsideCharacterEditor,
-//     OpenCharacterEditor { target: EditTarget },
-// }
-
-// enum InternalEvent {
-//     OpenTool_tip {
-//         global_xy: Xy<Px>,
-//         text: String,
-//     },
-//     CloseTool_tip,
-//     CgChangeButtonClicked,
-//     CgThumbnailClicked {
-//         cg_id: Uuid,
-//     },
-//     FocusCg {
-//         cut_id: Uuid,
-//         cg_id: Uuid,
-//         graphic_index: Uuid,
-//     },
-// }
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum EditTarget {
     NewCharacter {

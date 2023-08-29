@@ -120,7 +120,7 @@ pub(crate) fn invoke_on_event(
         }
         RawEvent::TextInputKeyDown { event } => {
             on_event(Event::TextInputKeyDown {
-                event: TextinputKeyDownEvent {
+                event: TextInputKeyDownEvent {
                     code: event.code,
                     text: &event.text,
                     selection_direction: event.selection_direction,
