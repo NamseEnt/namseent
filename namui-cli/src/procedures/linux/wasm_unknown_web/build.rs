@@ -5,10 +5,9 @@ use crate::{
     cli::Target,
     services::{resource_collect_service, wasm_watch_build_service::WasmWatchBuildService},
 };
-use futures::executor::block_on;
 use std::path::Path;
 
-pub fn build(manifest_path: &Path) -> Result<()> {
+pub async fn build(manifest_path: &Path) -> Result<()> {
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     let release_path = project_root_path
         .join("target")
@@ -16,14 +15,13 @@ pub fn build(manifest_path: &Path) -> Result<()> {
         .join("wasm_unknown_web");
 
     let build_status_service = BuildStatusService::new();
-    block_on(WasmWebRuntimeWatchBuildService::just_build(
-        build_status_service.clone(),
-    ))?;
-    block_on(WasmWatchBuildService::just_build(
+    WasmWebRuntimeWatchBuildService::just_build(build_status_service.clone()).await?;
+    WasmWatchBuildService::just_build(
         build_status_service,
         project_root_path.clone(),
         Target::WasmUnknownWeb,
-    ))?;
+    )
+    .await?;
 
     let bundle_manifest =
         crate::services::bundle::NamuiBundleManifest::parse(project_root_path.clone())?;

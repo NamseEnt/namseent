@@ -7,7 +7,6 @@ use crate::services::rollup_build_service;
 use crate::services::rollup_build_service::{BuildOption, RollupBuildService};
 use crate::util::get_cli_root_path;
 use crate::*;
-use futures::executor::block_on;
 use futures::try_join;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -123,7 +122,9 @@ impl WasmWebRuntimeWatchBuildService {
         let rollup_project_root_path = get_cli_root_path().join("webCode");
         let rollup_build_service = Arc::new(RollupBuildService::new());
 
-        block_on(build_status_service.build_started(BuildStatusCategory::WebRuntime));
+        build_status_service
+            .build_started(BuildStatusCategory::WebRuntime)
+            .await;
 
         let cli_error_messages = install_deps()
             .err()
@@ -137,11 +138,13 @@ impl WasmWebRuntimeWatchBuildService {
             .await
         {
             BuildResult::Successful(rollup_build_result) => {
-                block_on(build_status_service.build_finished(
-                    BuildStatusCategory::WebRuntime,
-                    rollup_build_result.error_messages,
-                    cli_error_messages,
-                ));
+                build_status_service
+                    .build_finished(
+                        BuildStatusCategory::WebRuntime,
+                        rollup_build_result.error_messages,
+                        cli_error_messages,
+                    )
+                    .await;
                 Ok(())
             }
             BuildResult::Canceled => unreachable!(),
