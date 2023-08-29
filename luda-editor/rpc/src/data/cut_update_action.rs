@@ -157,7 +157,7 @@ impl CutUpdateAction {
                     Xy::new(width, height).length()
                 };
 
-                let mut circumscribed = graphic.circumscribed_mut();
+                let circumscribed = graphic.circumscribed_mut();
                 circumscribed.center_xy = Xy::single(50.percent());
                 circumscribed.radius = Percent::from(radius);
             }),
@@ -176,7 +176,7 @@ impl CutUpdateAction {
                     Xy::new(width, height).length()
                 };
 
-                let mut circumscribed = graphic.circumscribed_mut();
+                let circumscribed = graphic.circumscribed_mut();
                 circumscribed.center_xy = Xy::single(50.percent());
                 circumscribed.radius = Percent::from(radius);
             }),

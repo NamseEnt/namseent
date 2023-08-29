@@ -96,7 +96,7 @@ impl Draw for RenderingTree {
                             .on_top_node_matrix_tuples
                             .push((on_top.clone(), matrix));
                     }
-                    SpecialRenderingNode::MouseCursor(_) | SpecialRenderingNode::WithId(_) => {
+                    SpecialRenderingNode::WithId(_) => {
                         draw_internal(
                             ctx,
                             special.inner_rendering_tree(),

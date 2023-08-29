@@ -7,7 +7,7 @@ pub struct ProjectListPage {
     pub wh: Wh<Px>,
 }
 
-impl Component for ProjectListPage2 {
+impl Component for ProjectListPage {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
         let Self { wh } = self;
         let (error_message, set_error_message) = ctx.state::<Option<String>>(|| None);

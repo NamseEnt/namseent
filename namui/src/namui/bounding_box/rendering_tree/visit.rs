@@ -91,7 +91,6 @@ impl Visit for RenderingTree {
                         result_xy = transform.matrix.inverse().unwrap().transform_xy(result_xy);
                     }
                     SpecialRenderingNode::Clip(_)
-                    | SpecialRenderingNode::MouseCursor(_)
                     | SpecialRenderingNode::WithId(_)
                     | SpecialRenderingNode::OnTop(_) => {}
                 },
@@ -150,7 +149,6 @@ impl Visit for RenderingTree {
                         xy = transform.matrix.transform_xy(xy);
                     }
                     SpecialRenderingNode::Clip(_)
-                    | SpecialRenderingNode::MouseCursor(_)
                     | SpecialRenderingNode::WithId(_)
                     | SpecialRenderingNode::OnTop(_) => {}
                 }

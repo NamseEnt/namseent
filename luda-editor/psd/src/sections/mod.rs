@@ -14,7 +14,6 @@ pub mod layer_and_mask_information_section;
 #[derive(Debug)]
 pub struct MajorSections<'a> {
     pub(crate) file_header: &'a [u8],
-    pub(crate) color_mode_data: &'a [u8],
     pub(crate) image_resources: &'a [u8],
     pub(crate) layer_and_mask: &'a [u8],
     pub(crate) image_data: &'a [u8],
@@ -76,7 +75,7 @@ impl<'a> MajorSections<'a> {
         let file_header = &bytes[0..FILE_HEADER_SECTION_LEN];
         cursor.read(FILE_HEADER_SECTION_LEN as u32);
 
-        let (color_start, color_end) = read_major_section_start_end(&mut cursor);
+        let (_color_start, _color_end) = read_major_section_start_end(&mut cursor);
         let (img_res_start, img_res_end) = read_major_section_start_end(&mut cursor);
         let (layer_mask_start, layer_mask_end) = read_major_section_start_end(&mut cursor);
 
@@ -85,7 +84,6 @@ impl<'a> MajorSections<'a> {
 
         Ok(MajorSections {
             file_header,
-            color_mode_data: &bytes[color_start..color_end],
             image_resources: &bytes[img_res_start..img_res_end],
             layer_and_mask: &bytes[layer_mask_start..layer_mask_end],
             image_data,
@@ -290,23 +288,6 @@ impl<'a> PsdCursor<'a> {
         } else {
             &[] as &[u8]
         }
-    }
-
-    /// Reads 'Pascal string'
-    ///
-    /// Pascal string is UTF-8 string, padded to make the size even
-    /// (a null name consists of two bytes of 0)
-    pub fn read_pascal_string(&mut self) -> String {
-        let len = self.read_u8();
-        let data = self.read(len as u32);
-        let result = String::from_utf8_lossy(data).into_owned();
-
-        if len % 2 == 0 {
-            // If the total length is odd, read an extra null byte
-            self.read_u8();
-        }
-
-        result
     }
 }
 

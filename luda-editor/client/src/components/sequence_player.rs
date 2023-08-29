@@ -16,7 +16,7 @@ pub struct SequencePlayer<'a> {
 
 impl Component for SequencePlayer<'_> {
     fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
-        let (cut_index, set_cut_index) = ctx.state(|| self.init_cut_index);
+        let (cut_index, _) = ctx.state(|| self.init_cut_index);
 
         #[derive(Debug)]
         enum State {
@@ -43,7 +43,7 @@ impl Component for SequencePlayer<'_> {
             State::ShowingCut { .. } => {}
             State::Transitioning {
                 from_cut_index,
-                transition_progress,
+                transition_progress: _,
                 start_time,
             } => {
                 let transition_duration = 500.ms();
@@ -190,17 +190,6 @@ impl Component for SequencePlayer<'_> {
 
         ctx.done()
     }
-}
-
-enum State {
-    ShowingCut {
-        cut_index: usize,
-    },
-    Transitioning {
-        from_cut_index: usize,
-        transition_progress: OneZero,
-        start_time: Time,
-    },
 }
 
 impl SequencePlayer<'_> {

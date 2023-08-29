@@ -20,7 +20,7 @@ impl Component for Router {
 
         ctx.compose(|ctx| match *route {
             Route::ProjectListPage => {
-                ctx.add(project_list_page::ProjectListPage2 { wh });
+                ctx.add(project_list_page::ProjectListPage { wh });
             }
             Route::SequenceListPage { project_id } => {
                 ctx.add(sequence_list_page::SequenceListPage { wh, project_id });
