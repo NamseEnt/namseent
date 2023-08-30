@@ -1,7 +1,7 @@
 mod login;
-pub mod notifications;
+pub mod notification;
 
-use self::notifications::NotificationRoot;
+use self::notification::NotificationRoot;
 use crate::{components::context_menu::ContextMenu, pages::router::Router};
 use anyhow::Result;
 use namui::prelude::*;

@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    app::notifications::{push_notification, remove_notification, Notification},
+    app::notification::{push_notification, remove_notification, Notification},
     color,
     pages::sequence_edit_page::{
         atom::{UpdateCgFile, CG_FILES_ATOM, SEQUENCE_ATOM},
