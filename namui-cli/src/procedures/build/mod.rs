@@ -2,7 +2,7 @@ use crate::*;
 use crate::{cli::Target, services::electron_package_service};
 use std::path::PathBuf;
 
-pub fn build(
+pub async fn build(
     target: &Target,
     manifest_path: &PathBuf,
     arch: Option<electron_package_service::Arch>,
@@ -12,11 +12,13 @@ pub fn build(
     if cfg!(target_os = "linux") {
         use super::linux;
         match target {
-            Target::WasmUnknownWeb => linux::wasm_unknown_web::build(&manifest_path),
+            Target::WasmUnknownWeb => linux::wasm_unknown_web::build(&manifest_path).await,
             Target::WasmWindowsElectron => {
-                linux::wasm_windows_electron::build(&manifest_path, arch)
+                linux::wasm_windows_electron::build(&manifest_path, arch).await
             }
-            Target::WasmLinuxElectron => linux::wasm_linux_electron::build(&manifest_path, arch),
+            Target::WasmLinuxElectron => {
+                linux::wasm_linux_electron::build(&manifest_path, arch).await
+            }
         }
     } else {
         Result::Err(anyhow!("{} is unsupported os", std::env::consts::OS).into())
