@@ -1,5 +1,6 @@
 use super::*;
 use crate::{
+    app::notification::{push_notification, remove_notification, Notification},
     color,
     pages::sequence_edit_page::{
         atom::{UpdateCgFile, CG_FILES_ATOM, SEQUENCE_ATOM},
@@ -24,7 +25,7 @@ pub(super) enum Event {
 }
 
 impl Component for BackgroundWithEvent<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             cut,
             wh,
@@ -132,6 +133,9 @@ impl Component for BackgroundWithEvent<'_> {
 
 fn add_new_image(project_id: Uuid, cut_id: Uuid, png_bytes: Vec<u8>) {
     spawn_local(async move {
+        let notification_id = push_notification(
+            Notification::info("Uploading image...".to_string()).set_loading(true),
+        );
         match create_image(project_id, png_bytes).await {
             Ok(image_id) => {
                 SEQUENCE_ATOM.mutate(move |sequence| {
@@ -144,15 +148,21 @@ fn add_new_image(project_id: Uuid, cut_id: Uuid, png_bytes: Vec<u8>) {
                     )
                 });
             }
-            Err(_error) => {
-                todo!();
+            Err(error) => {
+                push_notification(Notification::error(format!(
+                    "Failed to upload image: {error}"
+                )));
             }
         };
+        remove_notification(notification_id);
     });
 }
 
 fn add_new_cg(project_id: Uuid, cut_id: Uuid, psd_name: String, psd_bytes: Vec<u8>) {
     spawn_local(async move {
+        let notification_id = push_notification(
+            Notification::info(format!("Uploading CG {psd_name}...")).set_loading(true),
+        );
         match create_cg(project_id, psd_name, psd_bytes).await {
             Ok(cg_file) => {
                 CG_FILES_ATOM.mutate({
@@ -177,10 +187,11 @@ fn add_new_cg(project_id: Uuid, cut_id: Uuid, psd_name: String, psd_bytes: Vec<u
                     }
                 });
             }
-            Err(_error) => {
-                todo!();
+            Err(error) => {
+                push_notification(Notification::error(format!("Failed to upload CG: {error}")));
             }
         }
+        remove_notification(notification_id);
     });
 }
 
