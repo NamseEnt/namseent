@@ -25,7 +25,7 @@ pub(super) enum Event {
 }
 
 impl Component for BackgroundWithEvent<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             cut,
             wh,
@@ -148,8 +148,10 @@ fn add_new_image(project_id: Uuid, cut_id: Uuid, png_bytes: Vec<u8>) {
                     )
                 });
             }
-            Err(_error) => {
-                todo!();
+            Err(error) => {
+                push_notification(Notification::error(format!(
+                    "Failed to upload image: {error}"
+                )));
             }
         };
         remove_notification(notification_id);
@@ -185,8 +187,8 @@ fn add_new_cg(project_id: Uuid, cut_id: Uuid, psd_name: String, psd_bytes: Vec<u
                     }
                 });
             }
-            Err(_error) => {
-                todo!();
+            Err(error) => {
+                push_notification(Notification::error(format!("Failed to upload CG: {error}")));
             }
         }
         remove_notification(notification_id);

@@ -1,5 +1,9 @@
 use namui::prelude::*;
-use namui_prebuilt::{simple_rect, table, typography::text_fit};
+use namui_prebuilt::{
+    simple_rect,
+    table::{self, hooks::padding},
+    typography::text_fit,
+};
 use std::ops::Deref;
 
 static NOTIFICATIONS_ATOM: Atom<Vec<Notification>> = Atom::uninitialized_new();
@@ -56,6 +60,25 @@ impl Component for NotificationRoot {
                                         PADDING,
                                     ));
                                 }),
+                                table::hooks::fixed(wh.height, |wh, ctx| {
+                                    if !notification.loading {
+                                        ctx.add(
+                                            CloseButton {
+                                                wh,
+                                                color: notification.level.text_color(),
+                                            }
+                                            .attach_event(|event| {
+                                                if let Event::MouseDown { event } = event {
+                                                    if event.is_local_xy_in() {
+                                                        event.stop_propagation();
+                                                        remove_notification(notification.id);
+                                                    }
+                                                }
+                                            })
+                                            .with_mouse_cursor(MouseCursor::Pointer),
+                                        );
+                                    }
+                                }),
                             ])(wh, ctx);
                             ctx.add(simple_rect(
                                 wh,
@@ -96,21 +119,27 @@ impl Notification {
     pub fn info(message: String) -> Self {
         Self::new(NotificationLevel::Info, message)
     }
+    pub fn error(message: String) -> Self {
+        Self::new(NotificationLevel::Error, message)
+    }
 }
 
 #[derive(Debug)]
 enum NotificationLevel {
     Info,
+    Error,
 }
 impl NotificationLevel {
     fn text_color(&self) -> Color {
         match self {
-            Self::Info => Color::WHITE,
+            NotificationLevel::Info => Color::WHITE,
+            NotificationLevel::Error => Color::WHITE,
         }
     }
     fn background_color(&self) -> Color {
         match self {
-            Self::Info => Color::from_u8(68, 170, 238, 255),
+            NotificationLevel::Info => Color::from_u8(68, 170, 238, 255),
+            NotificationLevel::Error => Color::from_u8(255, 51, 102, 255),
         }
     }
 }
@@ -139,6 +168,40 @@ impl Component for LoadingIndicator {
             .set_color(color);
         ctx.compose(|ctx| {
             ctx.translate(xy).add(namui::path(path, paint));
+        });
+
+        ctx.done()
+    }
+}
+
+#[component]
+struct CloseButton {
+    wh: Wh<Px>,
+    color: Color,
+}
+impl Component for CloseButton {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
+        let Self { wh, color } = self;
+        ctx.compose(|ctx| {
+            padding(wh.height / 6.0, |wh, ctx| {
+                let path = Path::new()
+                    .move_to(0.px(), 0.px())
+                    .line_to(wh.width, wh.height)
+                    .move_to(wh.width, 0.px())
+                    .line_to(0.px(), wh.height);
+                let paint = Paint::new()
+                    .set_style(PaintStyle::Stroke)
+                    .set_stroke_width(wh.height / 8.0)
+                    .set_color(color);
+
+                ctx.add(namui::path(path, paint));
+                ctx.add(simple_rect(
+                    wh,
+                    Color::TRANSPARENT,
+                    0.px(),
+                    Color::TRANSPARENT,
+                ));
+            })(wh, ctx);
         });
 
         ctx.done()
