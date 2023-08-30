@@ -366,7 +366,8 @@ impl Component for TextInput<'_> {
                     (self.on_event)(Event::KeyDown { event });
                 }
                 _ => {}
-            }),
+            })
+            .with_mouse_cursor(MouseCursor::Text),
         );
 
         ctx.done()
