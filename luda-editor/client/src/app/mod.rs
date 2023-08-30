@@ -1,5 +1,7 @@
 mod login;
+pub mod notifications;
 
+use self::notifications::NotificationRoot;
 use crate::{components::context_menu::ContextMenu, pages::router::Router};
 use anyhow::Result;
 use namui::prelude::*;
@@ -16,7 +18,7 @@ enum LoadingState {
 }
 
 impl Component for App {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let (loading_state, set_loading_state) = ctx.state(|| LoadingState::Loading);
 
         ctx.effect("Try login", || {
@@ -41,6 +43,7 @@ impl Component for App {
         let wh = Wh::new(wh.width.into_px(), wh.height.into_px());
 
         ctx.component(ContextMenu);
+        ctx.component(NotificationRoot { wh });
         ctx.compose(|ctx| match &*loading_state {
             LoadingState::Loading => {
                 ctx.add(typography::body::center(wh, "Logging in...", Color::WHITE));
@@ -49,7 +52,7 @@ impl Component for App {
                 ctx.add(Router { wh });
             }
             LoadingState::Error(error) => {
-                ctx.add(typography::body::center(wh, &error, Color::WHITE));
+                ctx.add(typography::body::center(wh, error, Color::WHITE));
             }
         });
         ctx.component(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::BLACK));

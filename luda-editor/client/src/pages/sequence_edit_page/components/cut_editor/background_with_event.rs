@@ -1,5 +1,6 @@
 use super::*;
 use crate::{
+    app::notifications::{push_notification, remove_notification, Notification},
     color,
     pages::sequence_edit_page::{
         atom::{UpdateCgFile, CG_FILES_ATOM, SEQUENCE_ATOM},
@@ -132,6 +133,9 @@ impl Component for BackgroundWithEvent<'_> {
 
 fn add_new_image(project_id: Uuid, cut_id: Uuid, png_bytes: Vec<u8>) {
     spawn_local(async move {
+        let notification_id = push_notification(
+            Notification::info("Uploading image...".to_string()).set_loading(true),
+        );
         match create_image(project_id, png_bytes).await {
             Ok(image_id) => {
                 SEQUENCE_ATOM.mutate(move |sequence| {
@@ -148,11 +152,15 @@ fn add_new_image(project_id: Uuid, cut_id: Uuid, png_bytes: Vec<u8>) {
                 todo!();
             }
         };
+        remove_notification(notification_id);
     });
 }
 
 fn add_new_cg(project_id: Uuid, cut_id: Uuid, psd_name: String, psd_bytes: Vec<u8>) {
     spawn_local(async move {
+        let notification_id = push_notification(
+            Notification::info(format!("Uploading CG {psd_name}...")).set_loading(true),
+        );
         match create_cg(project_id, psd_name, psd_bytes).await {
             Ok(cg_file) => {
                 CG_FILES_ATOM.mutate({
@@ -181,6 +189,7 @@ fn add_new_cg(project_id: Uuid, cut_id: Uuid, psd_name: String, psd_bytes: Vec<u
                 todo!();
             }
         }
+        remove_notification(notification_id);
     });
 }
 
