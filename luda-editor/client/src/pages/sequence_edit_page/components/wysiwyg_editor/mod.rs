@@ -238,6 +238,14 @@ impl Component for WysiwygEditor<'_> {
                                 );
                             })
                         })
+                        .add_button("Delete", || {
+                            SEQUENCE_ATOM.mutate(move |sequence| {
+                                sequence.update_cut(
+                                    cut_id,
+                                    CutUpdateAction::DeleteGraphic { graphic_index },
+                                )
+                            });
+                        })
                     // TODO: This is not re-implemented yet. Should think about strategy about editing multiple cuts.
                     // .and(|builder| {
                     //     if graphic_index != 0 {
