@@ -57,7 +57,7 @@ impl WasmWatchBuildService {
             }
         };
         let build_status_service = args.build_status_service;
-        wasm_bundle_web_server.add_static_dir("", &build_dist_path);
+        wasm_bundle_web_server.add_static_dir("", build_dist_path.clone());
         let rust_build_service = Arc::new(RustBuildService::new());
 
         pub async fn cancel_and_start_build(
@@ -73,6 +73,7 @@ impl WasmWatchBuildService {
             build_status_service
                 .build_started(BuildStatusCategory::Namui)
                 .await;
+            wasm_bundle_web_server.send_build_start_signal().await;
             match rust_build_service
                 .cancel_and_start_build(&BuildOption {
                     target,
@@ -107,7 +108,7 @@ impl WasmWatchBuildService {
                         )
                         .await;
                     let error_messages = build_status_service.compile_error_messages().await;
-                    let no_error = error_messages.len() == 0;
+                    let no_error = error_messages.is_empty();
                     wasm_bundle_web_server
                         .send_error_messages(error_messages)
                         .await;
