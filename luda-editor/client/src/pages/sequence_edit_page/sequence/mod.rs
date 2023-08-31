@@ -60,6 +60,11 @@ impl SequenceWrapped {
                 rpc::data::SequenceUpdateAction::RenameSequence { name } => {
                     sequence.name = name;
                 }
+                rpc::data::SequenceUpdateAction::DeleteCut { cut_id } => {
+                    if let Some(position) = sequence.cuts.iter().position(|cut| cut.id == cut_id) {
+                        sequence.cuts.swap_remove(position);
+                    }
+                }
             }
 
             self.syncer.send(SyncReq::UpdateSequence {

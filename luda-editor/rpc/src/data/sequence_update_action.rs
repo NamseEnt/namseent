@@ -10,4 +10,7 @@ pub enum SequenceUpdateAction {
     RenameSequence {
         name: String,
     },
+    DeleteCut {
+        cut_id: Uuid,
+    },
 }
