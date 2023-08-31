@@ -133,6 +133,11 @@ impl WasmBundleWebServer {
         *self.namui_bundle_manifest.lock().unwrap() = namui_bundle_manifest;
     }
 
+    pub async fn send_build_start_signal(&self) {
+        let message = Message::text(serde_json::to_string(&WebsocketMessage::BuildStart).unwrap());
+        self.send_message(&message).await;
+    }
+
     pub async fn send_reload_signal(&self) {
         let message = Message::text(serde_json::to_string(&WebsocketMessage::Reload {}).unwrap());
         self.send_message(&message).await;

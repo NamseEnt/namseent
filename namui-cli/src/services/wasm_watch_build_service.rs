@@ -73,6 +73,7 @@ impl WasmWatchBuildService {
             build_status_service
                 .build_started(BuildStatusCategory::Namui)
                 .await;
+            wasm_bundle_web_server.send_build_start_signal().await;
             match rust_build_service
                 .cancel_and_start_build(&BuildOption {
                     target,

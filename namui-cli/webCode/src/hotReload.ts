@@ -1,4 +1,8 @@
 const errorMessagesElement = createElement();
+const buildSplashElement = createElement();
+buildSplashElement.innerText =
+    "Building... after build done, it will be reloaded.";
+buildSplashElement.style.fontSize = "2rem";
 
 export function initHotReload() {
     createWebSocket();
@@ -69,6 +73,14 @@ function displayErrorMessages(errorMessages: ErrorMessage[]) {
     );
 }
 
+function openBuildSplash() {
+    buildSplashElement.style.display = "block";
+}
+
+function closeBuildSplash() {
+    buildSplashElement.style.display = "none";
+}
+
 function createWebSocket() {
     const websocket = new WebSocket(`ws://${location.host}/hotReload`);
     websocket.onopen = () => console.log("connected");
@@ -80,12 +92,18 @@ function createWebSocket() {
         const namuiMessage = JSON.parse(message.data);
         switch (namuiMessage.type) {
             case "error": {
+                closeBuildSplash();
                 displayErrorMessages(namuiMessage.errorMessages);
                 break;
             }
 
             case "reload": {
                 location.reload();
+                break;
+            }
+
+            case "buildStart": {
+                openBuildSplash();
                 break;
             }
         }

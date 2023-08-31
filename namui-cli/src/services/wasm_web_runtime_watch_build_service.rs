@@ -41,6 +41,7 @@ impl WasmWebRuntimeWatchBuildService {
             build_status_service
                 .build_started(BuildStatusCategory::WebRuntime)
                 .await;
+            wasm_bundle_web_server.send_build_start_signal().await;
 
             let cli_error_messages = install_deps()
                 .err()

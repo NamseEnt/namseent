@@ -14,6 +14,9 @@ pub struct ErrorMessage {
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum WebsocketMessage {
+    #[serde(rename = "buildStart")]
+    BuildStart,
+
     #[serde(rename = "reload")]
     Reload,
 
