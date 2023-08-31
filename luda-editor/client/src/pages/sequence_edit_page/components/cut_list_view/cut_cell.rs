@@ -46,13 +46,8 @@ impl Component for CutCell<'_> {
 
         ctx.component(transparent_rect(wh).attach_event(|event| {
             if let namui::Event::MouseDown { event } = event {
-                if event.is_local_xy_in() {
-                    if event.button == Some(MouseButton::Left) {
-                        on_click(cut_id);
-                    } else if event.button == Some(MouseButton::Right) {
-                        open_context_menu(event.global_xy, ContextMenu::CutCell { cut_id });
-                        event.stop_propagation();
-                    }
+                if event.is_local_xy_in() && event.button == Some(MouseButton::Left) {
+                    on_click(cut_id);
                 }
             }
         }));
@@ -84,7 +79,20 @@ impl Component for CutCell<'_> {
                             stroke_color,
                             if is_selected { 2.px() } else { 1.px() },
                             Color::BLACK,
-                        ));
+                        ))
+                        .attach_event(|event| {
+                            if let namui::Event::MouseDown { event } = event {
+                                if event.is_local_xy_in()
+                                    && event.button == Some(MouseButton::Right)
+                                {
+                                    open_context_menu(
+                                        event.global_xy,
+                                        ContextMenu::CutCell { cut_id },
+                                    );
+                                    event.stop_propagation();
+                                }
+                            }
+                        });
                     }),
                     table::hooks::fixed(8.px(), |_wh, _ctx| {}),
                 ]),
