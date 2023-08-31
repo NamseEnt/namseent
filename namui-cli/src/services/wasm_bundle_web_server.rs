@@ -63,7 +63,7 @@ impl WasmBundleWebServer {
                         debug_println!("handle_websocket(open): locking web_server.sockets...");
                         let mut sockets = web_server.sockets.lock().unwrap();
                         debug_println!("handle_websocket(open): web_server.sockets locked");
-                        (*sockets).insert(id.clone(), sender.clone());
+                        (*sockets).insert(id, sender.clone());
                         debug_println!(
                             "handle_websocket(open): {} added to web_server.sockets",
                             id
@@ -88,12 +88,7 @@ impl WasmBundleWebServer {
                         }
                     });
 
-                    loop {
-                        match rx.next().await {
-                            Some(_) => (),
-                            None => break,
-                        }
-                    }
+                    while let Some(_next) = rx.next().await {}
 
                     {
                         debug_println!("handle_websocket(close): locking web_server.sockets...");
@@ -108,7 +103,7 @@ impl WasmBundleWebServer {
                 })
             });
 
-        let serve_static = warp::get().and(warp::fs::dir(PathBuf::from(get_static_dir())));
+        let serve_static = warp::get().and(warp::fs::dir(get_static_dir()));
         let bundle_metadata_static =
             create_bundle_metadata_static(web_server.namui_bundle_manifest.clone());
         let bundle_static = create_bundle_static(web_server.namui_bundle_manifest.clone());
@@ -121,7 +116,7 @@ impl WasmBundleWebServer {
             .or(handle_websocket)
             .map(|reply| warp::reply::with_header(reply, "cache-control", "no-cache"));
 
-        let _ = tokio::spawn(warp::serve(routes).run(([0, 0, 0, 0], port)));
+        tokio::spawn(warp::serve(routes).run(([0, 0, 0, 0], port)));
 
         web_server
     }
@@ -193,11 +188,11 @@ impl WasmBundleWebServer {
         .await;
     }
 
-    pub fn add_static_dir(&self, base_path: &str, path: &PathBuf) {
+    pub fn add_static_dir(&self, base_path: &str, path: PathBuf) {
         self.static_dirs
             .lock()
             .unwrap()
-            .push((base_path.to_string(), path.clone()));
+            .push((base_path.to_string(), path));
     }
 }
 
@@ -208,7 +203,7 @@ fn get_static_dir() -> PathBuf {
 fn create_bundle_metadata_static(
     namui_bundle_manifest: Arc<Mutex<Option<NamuiBundleManifest>>>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    let bundle_metadata_static = warp::get()
+    warp::get()
         .and(warp::path("bundle_metadata.json"))
         .and_then(move || {
             let namui_bundle_manifest = namui_bundle_manifest.clone();
@@ -222,14 +217,13 @@ fn create_bundle_metadata_static(
                 }
             };
             async move { result }
-        });
-    bundle_metadata_static
+        })
 }
 
 fn create_bundle_static(
     namui_bundle_manifest: Arc<Mutex<Option<NamuiBundleManifest>>>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    let bundle_static = warp::get()
+    warp::get()
         .and(warp::path("bundle"))
         .and(warp::path::tail())
         .and_then(move |tail: Tail| {
@@ -237,11 +231,10 @@ fn create_bundle_static(
             let src_path = (|| {
                 let url = {
                     let tail = decode(tail.as_str());
-                    if tail.is_err() {
-                        return Err(reject::reject());
+                    if let Ok(tail) = tail {
+                        PathBuf::from(&tail.into_owned())
                     } else {
-                        let tail = tail.unwrap().into_owned();
-                        PathBuf::from(&tail)
+                        return Err(reject::reject());
                     }
                 };
 
@@ -269,8 +262,7 @@ fn create_bundle_static(
                     Err(err) => Err(err),
                 }
             }
-        });
-    bundle_static
+        })
 }
 
 fn create_static_dirs(
@@ -284,10 +276,10 @@ fn create_static_dirs(
             async move {
                 let url = {
                     let tail = decode(tail.as_str());
-                    if tail.is_err() {
-                        return Err(reject::reject());
+                    if let Ok(tail) = tail {
+                        tail.into_owned()
                     } else {
-                        tail.unwrap().into_owned()
+                        return Err(reject::reject());
                     }
                 };
 
@@ -295,7 +287,7 @@ fn create_static_dirs(
                 for (base, path) in static_dirs {
                     if url.starts_with(&base) {
                         let url = url.strip_prefix(&base).unwrap();
-                        let src_path = path.join(&url);
+                        let src_path = path.join(url);
                         if tokio::fs::metadata(&src_path).await.is_ok() {
                             return file_response(&src_path).await;
                         }

@@ -22,7 +22,7 @@ pub struct WatchArgs {
 impl DrawerWatchBuildService {
     pub async fn spawn_watch(args: WatchArgs) -> Result<()> {
         args.wasm_bundle_web_server
-            .add_static_dir("drawer/", &build_dist_path());
+            .add_static_dir("drawer/", build_dist_path());
 
         let rust_project_watch_service = Arc::new(RustProjectWatchService::new());
         let rust_build_service = Arc::new(RustBuildService::new());
@@ -84,7 +84,9 @@ impl DrawerWatchBuildService {
                     debug_println!("build canceled");
                 }
                 BuildResult::Successful(cargo_build_result) => {
-                    after_build.as_ref().map(|f| f());
+                    if let Some(f) = after_build.as_ref() {
+                        f()
+                    }
 
                     build_status_service
                         .build_finished(
@@ -94,7 +96,7 @@ impl DrawerWatchBuildService {
                         )
                         .await;
                     let error_messages = build_status_service.compile_error_messages().await;
-                    let no_error = error_messages.len() == 0;
+                    let no_error = error_messages.is_empty();
                     wasm_bundle_web_server
                         .send_error_messages(error_messages)
                         .await;

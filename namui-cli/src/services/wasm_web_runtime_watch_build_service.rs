@@ -65,7 +65,7 @@ impl WasmWebRuntimeWatchBuildService {
                         )
                         .await;
                     let error_messages = build_status_service.compile_error_messages().await;
-                    let no_error = error_messages.len() == 0;
+                    let no_error = error_messages.is_empty();
                     wasm_bundle_web_server
                         .send_error_messages(error_messages)
                         .await;
@@ -165,8 +165,7 @@ fn install_deps() -> Result<()> {
         return Err(anyhow!(
             "Failed to install dependencies: {}",
             String::from_utf8_lossy(&output.stderr)
-        )
-        .into());
+        ));
     }
 
     Ok(())
