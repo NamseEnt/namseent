@@ -44,7 +44,7 @@ enum ContextMenu {
 }
 
 impl Component for WysiwygEditor<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             wh,
             cut_id,
@@ -58,15 +58,12 @@ impl Component for WysiwygEditor<'_> {
 
         let background = simple_rect(wh, Color::WHITE, 1.px(), Color::TRANSPARENT).attach_event(
             |event: Event<'_>| {
-                let dragging = dragging.clone();
                 let screen_graphics = screen_graphics.clone();
                 let editing_image_index = *editing_image_index;
                 match event {
                     Event::MouseDown { event } => {
-                        if event.is_local_xy_in() {
-                            if event.button == Some(MouseButton::Left) {
-                                set_editing_image_index.set(None);
-                            }
+                        if event.is_local_xy_in() && event.button == Some(MouseButton::Left) {
+                            set_editing_image_index.set(None);
                         }
                     }
                     Event::MouseMove { event } => {
@@ -173,7 +170,7 @@ impl Component for WysiwygEditor<'_> {
                 ClipOp::Intersect,
             );
 
-            for (graphic_index, screen_graphic) in screen_graphics.into_iter() {
+            for (graphic_index, screen_graphic) in screen_graphics.iter() {
                 let graphic_clip_on_event = graphic_clip_on_event.clone();
                 ctx.add(graphic_clip::GraphicClip {
                     cut_id,
@@ -237,6 +234,14 @@ impl Component for WysiwygEditor<'_> {
                                     },
                                 );
                             })
+                        })
+                        .add_button("Delete", || {
+                            SEQUENCE_ATOM.mutate(move |sequence| {
+                                sequence.update_cut(
+                                    cut_id,
+                                    CutUpdateAction::DeleteGraphic { graphic_index },
+                                )
+                            });
                         })
                     // TODO: This is not re-implemented yet. Should think about strategy about editing multiple cuts.
                     // .and(|builder| {
