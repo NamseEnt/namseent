@@ -13,6 +13,11 @@ impl SequenceService {
         SequenceService {}
     }
 }
+impl Default for SequenceService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl rpc::SequenceService<SessionDocument> for SequenceService {
     fn list_project_sequences<'a>(
@@ -368,7 +373,7 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
 
             let cut = sequence_document
                 .cut_mut(cut_id)
-                .ok_or_else(|| rpc::update_sequence_cut::Error::CutNotFound)?;
+                .ok_or(rpc::update_sequence_cut::Error::CutNotFound)?;
             let cut_index = cut.index;
 
             let mut cut_document = SequenceCutDocumentGet {
