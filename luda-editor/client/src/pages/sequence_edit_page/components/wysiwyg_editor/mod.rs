@@ -172,17 +172,20 @@ impl Component for WysiwygEditor<'_> {
 
             for (graphic_index, screen_graphic) in screen_graphics.iter() {
                 let graphic_clip_on_event = graphic_clip_on_event.clone();
-                ctx.add(graphic_clip::GraphicClip {
-                    cut_id,
-                    graphic_index: *graphic_index,
-                    graphic: screen_graphic.clone(),
-                    is_editing_graphic: editing_image_index.as_ref() == &Some(*graphic_index),
-                    project_id,
-                    wh,
-                    dragging: dragging.deref().clone(),
-                    cg_files: cg_files.clone(),
-                    on_event: graphic_clip_on_event,
-                });
+                ctx.add_with_key(
+                    graphic_index,
+                    graphic_clip::GraphicClip {
+                        cut_id,
+                        graphic_index: *graphic_index,
+                        graphic: screen_graphic.clone(),
+                        is_editing_graphic: editing_image_index.as_ref() == &Some(*graphic_index),
+                        project_id,
+                        wh,
+                        dragging: dragging.deref().clone(),
+                        cg_files: cg_files.clone(),
+                        on_event: graphic_clip_on_event,
+                    },
+                );
             }
         });
 

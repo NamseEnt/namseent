@@ -1,3 +1,4 @@
+use namui_type::Uuid;
 use std::fmt::Debug;
 
 #[derive(Clone, Hash, PartialEq, Eq)]
@@ -47,6 +48,7 @@ impl Debug for KeyChunk {
 pub enum Key {
     Usize(usize),
     String(String),
+    Uuid(Uuid),
 }
 
 impl Debug for Key {
@@ -54,6 +56,7 @@ impl Debug for Key {
         match self {
             Key::Usize(value) => write!(f, "Usize({})", value),
             Key::String(value) => write!(f, "String({})", value),
+            Key::Uuid(value) => write!(f, "Uuid({})", value),
         }
     }
 }
@@ -79,5 +82,17 @@ impl<'a> From<&'a str> for Key {
 impl From<usize> for Key {
     fn from(value: usize) -> Self {
         Key::Usize(value)
+    }
+}
+
+impl From<Uuid> for Key {
+    fn from(value: Uuid) -> Self {
+        Key::Uuid(value)
+    }
+}
+
+impl From<&Uuid> for Key {
+    fn from(value: &Uuid) -> Self {
+        Key::Uuid(*value)
     }
 }
