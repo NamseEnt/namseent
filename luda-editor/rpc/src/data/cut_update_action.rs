@@ -192,7 +192,7 @@ impl CutUpdateAction {
                     .iter()
                     .position(|(index, _)| *index == graphic_index)
                 {
-                    cut.screen_graphics.swap_remove(position);
+                    cut.screen_graphics.remove(position);
                 }
             }
         }
