@@ -293,6 +293,16 @@ impl rpc::SequenceService<SessionDocument> for SequenceService {
                     sequence_document.name = name;
                     transact
                 }
+                rpc::data::SequenceUpdateAction::DeleteCut { cut_id } => {
+                    let cut_position = sequence_document
+                        .cuts
+                        .iter()
+                        .position(|cut| cut.cut_id == cut_id)
+                        .ok_or(rpc::update_sequence::Error::CutNotFound)?;
+
+                    sequence_document.cuts.remove(cut_position);
+                    transact
+                }
             }
             .put_item(sequence_document)
             .send()
