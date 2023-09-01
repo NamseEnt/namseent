@@ -1,5 +1,10 @@
 use super::*;
-use crate::*;
+use crate::{
+    components::context_menu::{if_context_menu_for, open_context_menu},
+    pages::sequence_edit_page::atom::SEQUENCE_ATOM,
+    *,
+};
+use rpc::data::SequenceUpdateAction;
 
 #[namui::component]
 pub struct CutCell<'a> {
@@ -12,8 +17,12 @@ pub struct CutCell<'a> {
     pub on_click: callback!('a, Uuid),
 }
 
+enum ContextMenu {
+    CutCell { cut_id: Uuid },
+}
+
 impl Component for CutCell<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             wh,
             index,
@@ -27,13 +36,20 @@ impl Component for CutCell<'_> {
         let stroke_color = color::stroke_color(is_selected, is_focused);
         let cut_id = cut.id;
 
-        ctx.component(transparent_rect(wh).attach_event(|event| match event {
-            namui::Event::MouseDown { event } => {
+        if_context_menu_for::<ContextMenu>(|context_menu, builder| match context_menu {
+            &ContextMenu::CutCell { cut_id } => builder.add_button("Delete Cut", || {
+                SEQUENCE_ATOM.mutate(move |sequence| {
+                    sequence.update(SequenceUpdateAction::DeleteCut { cut_id })
+                });
+            }),
+        });
+
+        ctx.component(transparent_rect(wh).attach_event(|event| {
+            if let namui::Event::MouseDown { event } = event {
                 if event.is_local_xy_in() && event.button == Some(MouseButton::Left) {
                     on_click(cut_id);
                 }
             }
-            _ => {}
         }));
 
         ctx.compose(|ctx| {
@@ -63,7 +79,20 @@ impl Component for CutCell<'_> {
                             stroke_color,
                             if is_selected { 2.px() } else { 1.px() },
                             Color::BLACK,
-                        ));
+                        ))
+                        .attach_event(|event| {
+                            if let namui::Event::MouseDown { event } = event {
+                                if event.is_local_xy_in()
+                                    && event.button == Some(MouseButton::Right)
+                                {
+                                    open_context_menu(
+                                        event.global_xy,
+                                        ContextMenu::CutCell { cut_id },
+                                    );
+                                    event.stop_propagation();
+                                }
+                            }
+                        });
                     }),
                     table::hooks::fixed(8.px(), |_wh, _ctx| {}),
                 ]),
