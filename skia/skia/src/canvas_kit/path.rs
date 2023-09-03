@@ -10,7 +10,7 @@ pub(crate) struct CkPath {
 impl CkPath {
     pub(crate) fn get(path: &Path) -> Arc<Self> {
         static CACHE: SerdeLruCache<Path, CkPath> = SerdeLruCache::new();
-        CACHE.get_or_create(path, |path| CkPath::new(path))
+        CACHE.get_or_create(path, CkPath::new)
     }
     pub fn new(path: &Path) -> Self {
         let canvas_kit_path = CanvasKitPath::new();

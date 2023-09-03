@@ -41,10 +41,7 @@ pub struct Sig<'a, T: ?Sized> {
 
 impl<T: ?Sized> Clone for Sig<'_, T> {
     fn clone(&self) -> Self {
-        Self {
-            id: self.id,
-            value: self.value,
-        }
+        *self
     }
 }
 

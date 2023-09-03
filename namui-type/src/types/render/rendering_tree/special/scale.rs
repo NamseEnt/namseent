@@ -16,6 +16,6 @@ pub fn scale(x: f32, y: f32, rendering_tree: RenderingTree) -> RenderingTree {
 }
 impl ScaleNode {
     pub fn get_matrix(&self) -> Matrix3x3 {
-        Matrix3x3::new(self.x, 0.0, 0.0, 0.0, self.y, 0.0, 0.0, 0.0, 1.0)
+        Matrix3x3::from_scale(self.x, self.y)
     }
 }

@@ -13,7 +13,7 @@ pub(crate) fn set_up_event_handler() {
                 update_mouse_position(&event);
 
                 let button = get_button(&event);
-                let mouse_position = { MOUSE_SYSTEM.mouse_position.read().unwrap().clone() };
+                let mouse_position = { *MOUSE_SYSTEM.mouse_position.read().unwrap() };
 
                 crate::hooks::on_raw_event(RawEvent::MouseDown {
                     event: RawMouseEvent {
@@ -38,7 +38,7 @@ pub(crate) fn set_up_event_handler() {
                 update_mouse_position(&event);
 
                 let button = get_button(&event);
-                let mouse_position = { MOUSE_SYSTEM.mouse_position.read().unwrap().clone() };
+                let mouse_position = { *MOUSE_SYSTEM.mouse_position.read().unwrap() };
 
                 crate::hooks::on_raw_event(RawEvent::MouseMove {
                     event: RawMouseEvent {
@@ -63,7 +63,7 @@ pub(crate) fn set_up_event_handler() {
                 update_mouse_position(&event);
 
                 let button = get_button(&event);
-                let mouse_position = { MOUSE_SYSTEM.mouse_position.read().unwrap().clone() };
+                let mouse_position = { *MOUSE_SYSTEM.mouse_position.read().unwrap() };
 
                 crate::hooks::on_raw_event(RawEvent::MouseUp {
                     event: RawMouseEvent {
@@ -89,7 +89,7 @@ pub(crate) fn set_up_event_handler() {
                 if event.ctrl_key() {
                     event.prevent_default()
                 }
-                let mouse_position = { MOUSE_SYSTEM.mouse_position.read().unwrap().clone() };
+                let mouse_position = { *MOUSE_SYSTEM.mouse_position.read().unwrap() };
                 crate::hooks::on_raw_event(RawEvent::Wheel {
                     event: RawWheelEvent {
                         delta_xy: Xy {
@@ -146,7 +146,7 @@ fn get_button(mouse_event: &web_sys::MouseEvent) -> crate::MouseButton {
 
     MOUSE_BUTTON_CONVERTING_TUPLES
         .iter()
-        .find_map(|(value, button)| (mouse_event_button == *value).then(|| *button))
+        .find_map(|(value, button)| (mouse_event_button == *value).then_some(*button))
         .unwrap()
 }
 

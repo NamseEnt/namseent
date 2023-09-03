@@ -15,7 +15,7 @@ pub struct WithMouseCursor<C: Component> {
 }
 impl<C: Component> StaticType for WithMouseCursor<C> {}
 impl<C: Component> Component for WithMouseCursor<C> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { component, cursor } = self;
         ctx.component(component);
         let done = ctx.done();
@@ -41,6 +41,6 @@ impl<C: Component> Component for WithMouseCursor<C> {
             system::mouse::set_mouse_cursor(&cursor);
         }
 
-        return done;
+        done
     }
 }

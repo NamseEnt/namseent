@@ -1,14 +1,15 @@
-static mut LOG: Option<Box<dyn Fn(&str)>> = None;
+type LogFn = Box<dyn Fn(&str)>;
+static mut LOG_FN: Option<LogFn> = None;
 
 pub fn set_log(log: impl Fn(&str) + 'static) {
     unsafe {
-        LOG = Some(Box::new(log));
+        LOG_FN = Some(Box::new(log));
     }
 }
 
 pub fn log(content: impl AsRef<str>) {
     unsafe {
-        if let Some(log) = &LOG {
+        if let Some(log) = &LOG_FN {
             log(content.as_ref());
         }
     }

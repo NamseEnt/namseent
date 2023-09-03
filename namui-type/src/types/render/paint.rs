@@ -1,6 +1,6 @@
 use crate::*;
 
-#[type_derives()]
+#[type_derives(Default)]
 pub struct Paint {
     pub color: Option<Color>,
     pub paint_style: Option<PaintStyle>,

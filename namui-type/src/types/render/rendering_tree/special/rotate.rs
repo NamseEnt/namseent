@@ -16,15 +16,9 @@ pub fn rotate(angle: Angle, rendering_tree: RenderingTree) -> RenderingTree {
 
 impl RotateNode {
     pub fn get_matrix(&self) -> Matrix3x3 {
-        let sin = self.angle.sin();
-        let cos = self.angle.cos();
-
-        Matrix3x3::new(cos, -sin, 0.0, sin, cos, 0.0, 0.0, 0.0, 1.0)
+        Matrix3x3::from_rotate(self.angle)
     }
     pub fn get_counter_wise_matrix(&self) -> Matrix3x3 {
-        let sin = self.angle.sin();
-        let cos = self.angle.cos();
-
-        Matrix3x3::new(cos, sin, 0.0, -sin, cos, 0.0, 0.0, 0.0, 1.0)
+        Matrix3x3::from_rotate(-self.angle)
     }
 }

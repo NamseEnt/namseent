@@ -30,10 +30,9 @@ impl BoundingBox for RenderingTree {
             ) -> Option<Rect<Px>> {
                 rendering_trees
                     .into_iter()
-                    .map(|child| {
-                        get_bounding_box_with_matrix(child.borrow(), &matrix, bounding_box_context)
+                    .filter_map(|child| {
+                        get_bounding_box_with_matrix(child.borrow(), matrix, bounding_box_context)
                     })
-                    .filter_map(|bounding_box| bounding_box)
                     .reduce(|acc, bounding_box| {
                         Rect::get_minimum_rectangle_containing(&acc, bounding_box)
                     })
@@ -67,7 +66,7 @@ impl BoundingBox for RenderingTree {
                     SpecialRenderingNode::Clip(clip) => {
                         get_bounding_box_with_matrix_of_rendering_trees(
                             [clip.rendering_tree.borrow()],
-                            &matrix,
+                            matrix,
                             bounding_box_context,
                         )
                         .and_then(|bounding_box| {
@@ -174,7 +173,7 @@ impl BoundingBox for RenderingTree {
                     SpecialRenderingNode::OnTop(on_top) => {
                         let bounding_box = get_bounding_box_with_matrix_of_rendering_trees(
                             [on_top.rendering_tree.borrow()],
-                            &matrix,
+                            matrix,
                             bounding_box_context,
                         );
                         bounding_box_context
@@ -185,7 +184,7 @@ impl BoundingBox for RenderingTree {
                     SpecialRenderingNode::WithId(_) => {
                         get_bounding_box_with_matrix_of_rendering_trees(
                             [special.inner_rendering_tree_ref()],
-                            &matrix,
+                            matrix,
                             bounding_box_context,
                         )
                     }
@@ -198,14 +197,14 @@ impl BoundingBox for RenderingTree {
             bounding_boxes_on_top: vec![],
         };
         let bounding_box =
-            get_bounding_box_with_matrix(&self, &Matrix3x3::identity(), &mut bounding_box_context);
+            get_bounding_box_with_matrix(self, &Matrix3x3::identity(), &mut bounding_box_context);
 
         let bounding_box = bounding_box_context
             .bounding_boxes_on_top
             .into_iter()
-            .filter_map(|x| x)
+            .flatten()
             .fold(bounding_box, |acc, bounding_box| {
-                acc.and_then(|acc| Some(Rect::get_minimum_rectangle_containing(&acc, bounding_box)))
+                acc.map(|acc| Rect::get_minimum_rectangle_containing(&acc, bounding_box))
             });
 
         if let Some(bounding_box) = bounding_box {

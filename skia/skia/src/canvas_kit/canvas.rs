@@ -13,7 +13,7 @@ impl CkCanvas {
 
 impl SkCanvas for CkCanvas {
     fn clear(&self, color: Color) {
-        self.canvas_kit_canvas.clear(&color.into_float32_array());
+        self.canvas_kit_canvas.clear(&color.as_float32_array());
     }
     fn draw_text_blob(&self, glyph_ids: Vec<usize>, xy: Xy<Px>, font: &Font, paint: &Paint) {
         let Some(text_blob) = CkTextBlob::from_glyph_ids(glyph_ids, font) else {
@@ -21,7 +21,7 @@ impl SkCanvas for CkCanvas {
         };
 
         self.canvas_kit_canvas.drawTextBlob(
-            &text_blob.canvas_kit(),
+            text_blob.canvas_kit(),
             xy.x.into(),
             xy.y.into(),
             CkPaint::get(paint).canvas_kit(),
@@ -61,11 +61,11 @@ impl SkCanvas for CkCanvas {
     #[allow(dead_code)]
     fn get_matrix(&self) -> Matrix3x3 {
         let total_matrix = self.canvas_kit_canvas.getTotalMatrix();
-        return Matrix3x3::from_slice([
+        Matrix3x3::from_slice([
             [total_matrix[0], total_matrix[1], total_matrix[2]],
             [total_matrix[3], total_matrix[4], total_matrix[5]],
             [total_matrix[6], total_matrix[7], total_matrix[8]],
-        ]);
+        ])
     }
     fn set_matrix(&self, matrix: Matrix3x3) {
         let current_matrix = self.canvas_kit_canvas.getTotalMatrix();

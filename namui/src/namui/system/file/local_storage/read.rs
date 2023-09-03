@@ -24,7 +24,7 @@ pub async fn read(path_like: impl PathLike) -> Result<Vec<u8>, ReadError> {
         Some(file_name) => file_name.to_string_lossy().to_string(),
         None => return Err(ReadError::InvalidFileName(format!("{file_path:?}"))),
     };
-    let parent_directory_path = match file_path.parent().as_deref() {
+    let parent_directory_path = match file_path.parent() {
         Some(path) => path.to_path_buf(),
         None => PathBuf::new(),
     };

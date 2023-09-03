@@ -67,7 +67,7 @@ pub struct TextInputKeyDownEvent<'a> {
     pub selection_end: usize,
     pub is_composing: bool,
     #[derivative(Debug = "ignore")]
-    pub(crate) prevent_default: &'a Box<dyn Fn()>,
+    pub(crate) prevent_default: &'a dyn Fn(),
 }
 impl EventExt for TextInputKeyDownEvent<'_> {}
 impl TextInputKeyDownEvent<'_> {
@@ -93,7 +93,7 @@ pub struct MouseEvent<'a> {
     pub button: Option<MouseButton>,
     pub event_type: MouseEventType,
     #[derivative(Debug = "ignore")]
-    pub(crate) prevent_default: &'a Box<dyn Fn()>,
+    pub(crate) prevent_default: &'a dyn Fn(),
 }
 impl EventExt for MouseEvent<'_> {}
 impl MouseEvent<'_> {
@@ -139,7 +139,7 @@ pub struct KeyboardEvent<'a> {
     pub code: Code,
     pub pressing_codes: &'a HashSet<Code>,
     #[derivative(Debug = "ignore")]
-    pub(crate) prevent_default: &'a Box<dyn Fn()>,
+    pub(crate) prevent_default: &'a dyn Fn(),
 }
 impl EventExt for KeyboardEvent<'_> {}
 impl KeyboardEvent<'_> {

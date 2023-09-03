@@ -1,8 +1,8 @@
 use super::*;
 
 impl ComposeCtx {
-    pub fn translate(&mut self, xy: impl AsXyPx) -> Self {
-        let xy = xy.as_xy_px();
+    pub fn translate(&mut self, xy: impl IntoXyPx) -> Self {
+        let xy = xy.into_xy_px();
         let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
         self.add_lazy(LazyRenderingTree::Translate {
             xy,
@@ -20,8 +20,8 @@ impl ComposeCtx {
             self.clippings.clone(),
         )
     }
-    pub fn absolute(&mut self, xy: impl AsXyPx) -> Self {
-        let xy = xy.as_xy_px();
+    pub fn absolute(&mut self, xy: impl IntoXyPx) -> Self {
+        let xy = xy.into_xy_px();
         let lazy: Arc<Mutex<Option<LazyRenderingTree>>> = Default::default();
         self.add_lazy(LazyRenderingTree::Absolute {
             xy,

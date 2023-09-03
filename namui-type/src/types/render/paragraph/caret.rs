@@ -7,33 +7,34 @@ pub struct Caret<'a> {
     pub paragraph: &'a Paragraph,
 }
 
-pub(crate) fn get_caret<'a>(selection_index: usize, paragraph: &'a Paragraph) -> Caret<'a> {
+pub(crate) fn get_caret(selection_index: usize, paragraph: &Paragraph) -> Caret<'_> {
     let mut line_index = 0;
     let mut left_index = selection_index;
 
     for line in paragraph.iter_lines() {
-        if left_index < line.chars.len() {
-            return Caret {
-                line_index,
-                caret_index_in_line: left_index,
-                paragraph,
-            };
-        } else if left_index == line.chars.len() {
-            match line.new_line_by {
+        match left_index.cmp(&line.chars.len()) {
+            std::cmp::Ordering::Less => {
+                return Caret {
+                    line_index,
+                    caret_index_in_line: left_index,
+                    paragraph,
+                }
+            }
+            std::cmp::Ordering::Equal => match line.new_line_by {
                 Some(new_line_by) => match new_line_by {
                     NewLineBy::Wrap => {
                         return Caret {
                             line_index: line_index + 1,
                             caret_index_in_line: 0,
                             paragraph,
-                        };
+                        }
                     }
                     NewLineBy::LineFeed => {
                         return Caret {
                             line_index,
                             caret_index_in_line: left_index,
                             paragraph,
-                        };
+                        }
                     }
                 },
                 None => {
@@ -41,14 +42,15 @@ pub(crate) fn get_caret<'a>(selection_index: usize, paragraph: &'a Paragraph) ->
                         line_index,
                         caret_index_in_line: left_index,
                         paragraph,
-                    };
+                    }
                 }
-            }
-        } else {
-            left_index -= line.chars.len();
-            line_index += 1;
-            if let Some(NewLineBy::LineFeed) = line.new_line_by {
-                left_index -= 1;
+            },
+            std::cmp::Ordering::Greater => {
+                left_index -= line.chars.len();
+                line_index += 1;
+                if let Some(NewLineBy::LineFeed) = line.new_line_by {
+                    left_index -= 1;
+                }
             }
         }
     }

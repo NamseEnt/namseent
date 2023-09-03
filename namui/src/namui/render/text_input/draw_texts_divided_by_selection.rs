@@ -61,10 +61,12 @@ impl TextInput<'_> {
                 let selected_lines = if is_single_line {
                     let y = y_of_line(left_caret.line_index);
                     self.render_single_line(
-                        &paragraph.iter_chars().nth(left_caret.line_index).unwrap(),
                         y,
-                        left_caret.caret_index_in_line,
-                        right_caret.caret_index_in_line,
+                        CaretDevidedStrings::new(
+                            paragraph.iter_chars().nth(left_caret.line_index).unwrap(),
+                            left_caret.caret_index_in_line,
+                            right_caret.caret_index_in_line,
+                        ),
                         render_only_selection_background,
                         false,
                         paragraph,
@@ -80,10 +82,12 @@ impl TextInput<'_> {
                             paragraph.iter_chars().nth(left_caret.line_index).unwrap();
 
                         self.render_single_line(
-                            &first_line_with_newline,
                             y,
-                            left_caret.caret_index_in_line,
-                            first_line_with_newline.len(),
+                            CaretDevidedStrings::new(
+                                first_line_with_newline,
+                                left_caret.caret_index_in_line,
+                                first_line_with_newline.len(),
+                            ),
                             render_only_selection_background,
                             true,
                             paragraph,
@@ -96,10 +100,8 @@ impl TextInput<'_> {
                         let line_with_newline = paragraph.iter_chars().nth(line_index).unwrap();
 
                         self.render_single_line(
-                            &line_with_newline,
                             y,
-                            0,
-                            line_with_newline.len(),
+                            CaretDevidedStrings::new(line_with_newline, 0, line_with_newline.len()),
                             render_only_selection_background,
                             true,
                             paragraph,
@@ -117,10 +119,8 @@ impl TextInput<'_> {
                             .unwrap_or(&default);
 
                         self.render_single_line(
-                            &text,
                             y,
-                            0,
-                            right_caret.caret_index_in_line,
+                            CaretDevidedStrings::new(text, 0, right_caret.caret_index_in_line),
                             render_only_selection_background,
                             false,
                             paragraph,
@@ -161,25 +161,16 @@ impl TextInput<'_> {
 
     fn render_single_line(
         &self,
-        chars: &Vec<char>,
         y: Px,
-        left_caret_index: usize,
-        right_caret_index: usize,
+        caret_devided_strings: CaretDevidedStrings,
         render_only_selection_background: bool,
         with_newline_background: bool,
         paragraph: &Paragraph,
     ) -> RenderingTree {
-        let (left_text_string, selected_text_string, right_text_string) = (
-            &chars[..left_caret_index].iter().collect::<String>(),
-            &chars[left_caret_index..right_caret_index]
-                .iter()
-                .collect::<String>(),
-            &chars[right_caret_index..].iter().collect::<String>(),
-        );
         let (left_text_left, selected_text_left, right_text_left) = self.get_text_lefts(
-            left_text_string,
-            selected_text_string,
-            right_text_string,
+            &caret_devided_strings.left,
+            &caret_devided_strings.selected,
+            &caret_devided_strings.right,
             paragraph,
         );
 
@@ -192,7 +183,7 @@ impl TextInput<'_> {
                 TextBaseline::Bottom => line_height,
             };
 
-            let mut width = paragraph.group_glyph.width(&selected_text_string);
+            let mut width = paragraph.group_glyph.width(&caret_devided_strings.selected);
             if with_newline_background {
                 width += paragraph.group_glyph.width(" ");
             };
@@ -216,7 +207,7 @@ impl TextInput<'_> {
             let left_text_text_param = namui::TextParam {
                 x: left_text_left,
                 y,
-                text: left_text_string.to_string(),
+                text: caret_devided_strings.left,
                 align: crate::TextAlign::Left,
                 ..self.text_param()
             };
@@ -224,7 +215,7 @@ impl TextInput<'_> {
             let selected_text_text_param = namui::TextParam {
                 x: selected_text_left,
                 y,
-                text: selected_text_string.to_string(),
+                text: caret_devided_strings.selected,
                 style: namui::TextStyle {
                     color: namui::Color::WHITE,
                     background: Some(TextStyleBackground {
@@ -239,7 +230,7 @@ impl TextInput<'_> {
             let right_text_text_param = namui::TextParam {
                 x: right_text_left,
                 y,
-                text: right_text_string.to_string(),
+                text: caret_devided_strings.right,
                 align: crate::TextAlign::Left,
                 ..self.text_param()
             };
@@ -285,6 +276,30 @@ impl TextInput<'_> {
                 result.1 - total_width,
                 result.2 - total_width,
             ),
+        }
+    }
+}
+
+struct CaretDevidedStrings {
+    left: String,
+    selected: String,
+    right: String,
+}
+
+impl CaretDevidedStrings {
+    fn new(chars: &[char], left_caret_index: usize, right_caret_index: usize) -> Self {
+        let (left_text_string, selected_text_string, right_text_string) = (
+            chars[..left_caret_index].iter().collect::<String>(),
+            chars[left_caret_index..right_caret_index]
+                .iter()
+                .collect::<String>(),
+            chars[right_caret_index..].iter().collect::<String>(),
+        );
+
+        Self {
+            left: left_text_string,
+            selected: selected_text_string,
+            right: right_text_string,
         }
     }
 }

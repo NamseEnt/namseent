@@ -87,7 +87,7 @@ impl Color {
             ((hash >> 16) & 0xff) as u8,
             ((hash >> 8) & 0xff) as u8,
             if is_random_alpha {
-                ((hash >> 0) & 0xff) as u8
+                (hash & 0xff) as u8
             } else {
                 255
             },
@@ -99,7 +99,7 @@ impl Color {
             saturation,
             lightness,
             alpha,
-        } = self.into_hsl01();
+        } = self.as_hsl01();
 
         Self::from_hsl01(Hsl01 {
             hue,
@@ -109,7 +109,7 @@ impl Color {
         })
     }
 
-    fn into_hsl01(&self) -> Hsl01 {
+    fn as_hsl01(&self) -> Hsl01 {
         let r = self.r as f32 / 255.0;
         let g = self.g as f32 / 255.0;
         let b = self.b as f32 / 255.0;

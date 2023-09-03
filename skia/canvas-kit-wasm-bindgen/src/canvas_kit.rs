@@ -137,19 +137,19 @@ impl CanvasKit {
         info: Option<ImageInfo>,
         src_is_premul: Option<bool>,
     ) -> CanvasKitImage {
-        let info = info.map(|info| info.into_js_object());
+        let info = info.map(|info| info.as_js_object());
         // let image = self.MakeLazyImageFromTextureSource(src, info, src_is_premul);
         // image.makeCopyWithDefaultMipmaps() // Do we need this?
         self.MakeLazyImageFromTextureSource(src, info, src_is_premul)
     }
 }
 
-pub(crate) trait IntoJsObject {
-    fn into_js_object(&self) -> js_sys::Object;
+pub(crate) trait AsJsObject {
+    fn as_js_object(&self) -> js_sys::Object;
 }
 
-impl IntoJsObject for ImageInfo {
-    fn into_js_object(&self) -> js_sys::Object {
+impl AsJsObject for ImageInfo {
+    fn as_js_object(&self) -> js_sys::Object {
         let obj = js_sys::Object::new();
 
         js_sys::Reflect::set(

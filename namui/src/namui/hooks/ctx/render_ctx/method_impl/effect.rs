@@ -1,6 +1,8 @@
 use super::*;
 use std::sync::MutexGuard;
 
+pub(crate) type CleanUpFnOnce = Option<Box<dyn FnOnce()>>;
+
 pub(crate) fn handle_effect<CleanUp: EffectCleanUp>(
     ctx: &RenderCtx,
     title: impl AsRef<str>,
@@ -40,7 +42,7 @@ pub(crate) fn handle_effect<CleanUp: EffectCleanUp>(
 }
 
 fn call_prev_clean_up(
-    effect_clean_up_list: &mut MutexGuard<'_, Vec<Option<Box<dyn FnOnce()>>>>,
+    effect_clean_up_list: &mut MutexGuard<'_, Vec<CleanUpFnOnce>>,
     effect_index: usize,
 ) {
     let clean_up = effect_clean_up_list.get_mut(effect_index);
@@ -53,7 +55,7 @@ fn call_prev_clean_up(
 }
 
 fn save_clean_up(
-    effect_clean_up_list: &mut MutexGuard<'_, Vec<Option<Box<dyn FnOnce()>>>>,
+    effect_clean_up_list: &mut MutexGuard<'_, Vec<CleanUpFnOnce>>,
     effect_index: usize,
     clean_up: impl EffectCleanUp,
 ) {
@@ -69,15 +71,15 @@ fn save_clean_up(
 }
 
 pub trait EffectCleanUp {
-    fn to_fn_once(self) -> Option<Box<dyn FnOnce()>>;
+    fn to_fn_once(self) -> CleanUpFnOnce;
 }
 impl EffectCleanUp for () {
-    fn to_fn_once(self) -> Option<Box<dyn FnOnce()>> {
+    fn to_fn_once(self) -> CleanUpFnOnce {
         None
     }
 }
 impl<T: 'static + FnOnce()> EffectCleanUp for T {
-    fn to_fn_once(self) -> Option<Box<dyn FnOnce()>> {
+    fn to_fn_once(self) -> CleanUpFnOnce {
         Some(Box::new(self))
     }
 }

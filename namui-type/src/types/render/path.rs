@@ -1,6 +1,6 @@
 use crate::*;
 
-#[type_derives()]
+#[type_derives(Default)]
 pub struct Path {
     commands: Vec<PathCommand>,
 }

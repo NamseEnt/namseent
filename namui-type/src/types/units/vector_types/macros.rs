@@ -7,7 +7,7 @@ macro_rules! vector_types {
     ($type_name: ident, {
         $($field_ident:ident),* $(,)?
     }) => {
-        use crate::*;
+        use $crate::*;
 
         #[type_derives(Copy)]
         pub struct $type_name<T> {

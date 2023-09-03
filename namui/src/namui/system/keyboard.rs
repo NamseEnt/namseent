@@ -115,7 +115,7 @@ impl KeyboardSystem {
         ["blur", "visibilitychange"].iter().for_each(|event_name| {
             document
                 .add_event_listener_with_callback(
-                    *event_name,
+                    event_name,
                     reset_pressing_code_set_closure.unchecked_ref(),
                 )
                 .unwrap();

@@ -44,11 +44,11 @@ pub use typeface::*;
 pub use typeface_factory::*;
 use wasm_bindgen::prelude::*;
 
-pub trait IntoFloat32Array {
-    fn into_float32_array(&self) -> Float32Array;
+pub trait AsFloat32Array {
+    fn as_float32_array(&self) -> Float32Array;
 }
-impl IntoFloat32Array for Color {
-    fn into_float32_array(&self) -> Float32Array {
+impl AsFloat32Array for Color {
+    fn as_float32_array(&self) -> Float32Array {
         let array = Float32Array::new_with_length(4);
         array.set_index(0, (self.r as f32) / 255.0);
         array.set_index(1, (self.g as f32) / 255.0);
@@ -58,8 +58,8 @@ impl IntoFloat32Array for Color {
         array
     }
 }
-impl IntoFloat32Array for Ltrb<Px> {
-    fn into_float32_array(&self) -> Float32Array {
+impl AsFloat32Array for Ltrb<Px> {
+    fn as_float32_array(&self) -> Float32Array {
         let array = Float32Array::new_with_length(4);
         array.set_index(0, self.left.as_f32());
         array.set_index(1, self.top.as_f32());

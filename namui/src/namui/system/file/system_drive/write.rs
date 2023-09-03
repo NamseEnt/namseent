@@ -16,9 +16,9 @@ pub async fn write(path_like: impl types::PathLike, content: Vec<u8>) -> Result<
         .map_err(|error| error.into())
 }
 
-impl Into<WriteError> for electron::WriteVecU8Error {
-    fn into(self) -> WriteError {
-        match self {
+impl From<electron::WriteVecU8Error> for WriteError {
+    fn from(val: electron::WriteVecU8Error) -> Self {
+        match val {
             electron::WriteVecU8Error::Other(message) => WriteError::Other(message),
             electron::WriteVecU8Error::DirNotFound(message) => WriteError::DirNotFound(message),
         }

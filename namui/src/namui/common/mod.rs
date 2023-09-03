@@ -42,17 +42,17 @@ pub enum MouseButton {
     Right,
 }
 
-pub trait AsXyPx {
-    fn as_xy_px(self) -> Xy<Px>;
+pub trait IntoXyPx {
+    fn into_xy_px(self) -> Xy<Px>;
 }
-impl AsXyPx for (Px, Px) {
-    fn as_xy_px(self) -> Xy<Px> {
+impl IntoXyPx for (Px, Px) {
+    fn into_xy_px(self) -> Xy<Px> {
         Xy::new(self.0, self.1)
     }
 }
-impl AsXyPx for Xy<Px> {
-    fn as_xy_px(self) -> Xy<Px> {
-        self.clone()
+impl IntoXyPx for Xy<Px> {
+    fn into_xy_px(self) -> Xy<Px> {
+        self
     }
 }
 

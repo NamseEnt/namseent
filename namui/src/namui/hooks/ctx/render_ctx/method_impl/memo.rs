@@ -1,9 +1,9 @@
 use super::*;
 
-pub(crate) fn handle_memo<'a, T: 'static + Debug + Send + Sync>(
-    ctx: &'a RenderCtx,
+pub(crate) fn handle_memo<T: 'static + Debug + Send + Sync>(
+    ctx: &RenderCtx,
     memo: impl FnOnce() -> T,
-) -> Sig<'a, T> {
+) -> Sig<'_, T> {
     let instance = ctx.instance.as_ref();
     let mut memo_value_list = instance.memo_value_list.lock().unwrap();
     let mut memo_used_sigs_list = instance.memo_used_sigs_list.lock().unwrap();

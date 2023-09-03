@@ -14,17 +14,13 @@ pub struct RenderingData {
 }
 
 #[type_derives]
+#[derive(Default)]
 pub enum RenderingTree {
     Node(RenderingData),
     Children(Vec<RenderingTree>),
     Special(SpecialRenderingNode),
+    #[default]
     Empty,
-}
-
-impl Default for RenderingTree {
-    fn default() -> Self {
-        RenderingTree::Empty
-    }
 }
 
 unsafe impl Send for RenderingTree {}
@@ -49,24 +45,24 @@ impl RenderingTree {
         vec.into_iter()
     }
 
-    pub fn into_iter(self) -> impl Iterator<Item = RenderingTree> {
-        let mut vec = vec![];
-        match self {
-            RenderingTree::Children(children) => {
-                vec.extend(children.into_iter());
-            }
-            RenderingTree::Node(_) | RenderingTree::Special(_) => vec.push(self),
-            RenderingTree::Empty => {}
-        };
-
-        vec.into_iter()
-    }
-
     pub fn to_bytes(&self) -> Vec<u8> {
         postcard::to_allocvec(self).unwrap()
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Self {
         postcard::from_bytes(bytes).unwrap()
+    }
+}
+
+impl std::iter::IntoIterator for RenderingTree {
+    type Item = RenderingTree;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            RenderingTree::Children(children) => children.into_iter(),
+            RenderingTree::Node(_) | RenderingTree::Special(_) => vec![self].into_iter(),
+            RenderingTree::Empty => vec![].into_iter(),
+        }
     }
 }

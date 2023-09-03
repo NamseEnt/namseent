@@ -20,13 +20,13 @@ impl BundleDirReader {
     }
 
     pub(super) async fn init(&self) -> Result<(), BundleDirReaderInitError> {
-        Ok(load_bundle_metadata().await.and_then(|bundle_metadata| {
+        Ok(load_bundle_metadata().await.map(|bundle_metadata| {
             let path_dirent_list_map = make_path_dirent_list_map(&bundle_metadata);
             self.path_dirent_list_map.clear();
             for (path, dirent_list) in path_dirent_list_map {
                 self.path_dirent_list_map.insert(path, dirent_list);
             }
-            Ok(())
+            
         })?)
     }
 

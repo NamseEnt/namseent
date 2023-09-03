@@ -26,7 +26,7 @@ pub async fn fetch_bytes(
     build: impl FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder,
 ) -> Result<impl AsRef<[u8]>, HttpError> {
     let response = fetch(url, method, build).await?;
-    Ok(response.error_for_400599().await?.bytes().await?)
+    response.error_for_400599().await?.bytes().await
 }
 
 pub async fn fetch_serde<T, TDeserializeError, TDeserialize>(
@@ -40,13 +40,11 @@ where
     TDeserializeError: serde::de::Error,
     TDeserialize: FnOnce(&[u8]) -> Result<T, TDeserializeError>,
 {
-    Ok(
-        deserialize(fetch_bytes(url, method, build).await?.as_ref()).map_err(|error| {
+    deserialize(fetch_bytes(url, method, build).await?.as_ref()).map_err(|error| {
             HttpError::Deserialize {
                 message: error.to_string(),
             }
-        })?,
-    )
+        })
 }
 
 pub async fn fetch_json<T: serde::de::DeserializeOwned>(
@@ -115,7 +113,7 @@ impl From<reqwest::Error> for HttpError {
             }
             #[cfg(target_arch = "wasm32")]
             fn is_connect(_: &reqwest::Error) -> bool {
-                return false;
+                false
             }
             is_connect(&error)
         };

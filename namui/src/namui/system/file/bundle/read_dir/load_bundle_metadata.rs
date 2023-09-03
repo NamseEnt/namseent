@@ -29,9 +29,9 @@ pub async fn load_bundle_metadata() -> Result<Vec<PathBuf>, LoadBundleMetadataEr
         .map_err(|error| LoadBundleMetadataError::ParseError(error.to_string()))
 }
 
-impl Into<LoadBundleMetadataError> for electron::ReadVecU8Error {
-    fn into(self) -> LoadBundleMetadataError {
-        match self {
+impl From<electron::ReadVecU8Error> for LoadBundleMetadataError {
+    fn from(val: electron::ReadVecU8Error) -> Self {
+        match val {
             electron::ReadVecU8Error::FileNotFound(message) => {
                 LoadBundleMetadataError::FileNotFound(message)
             }
