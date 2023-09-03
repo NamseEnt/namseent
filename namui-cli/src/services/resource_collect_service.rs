@@ -1,3 +1,4 @@
+use super::drawer_watch_build_service;
 use super::{bundle::NamuiBundleManifest, deep_link_manifest_service::DeepLinkManifest};
 use crate::*;
 use crate::{cli::Target, debug_println, util::get_cli_root_path};
@@ -67,9 +68,9 @@ fn collect_rust_build(
     project_path: &PathBuf,
     target: Target,
 ) -> Result<()> {
-    let build_dist_path = project_path.join("pkg");
     match target {
         Target::WasmUnknownWeb | Target::WasmWindowsElectron | Target::WasmLinuxElectron => {
+            let build_dist_path = project_path.join("pkg");
             ops.push(CollectOperation::new(
                 &build_dist_path.join("bundle.js"),
                 &PathBuf::from(""),
@@ -77,6 +78,16 @@ fn collect_rust_build(
             ops.push(CollectOperation::new(
                 &build_dist_path.join("bundle_bg.wasm"),
                 &PathBuf::from(""),
+            ));
+
+            let drawer_dist_path = drawer_watch_build_service::project_root_path().join("pkg");
+            ops.push(CollectOperation::new(
+                &drawer_dist_path.join("drawer/bundle.js"),
+                &PathBuf::from("drawer"),
+            ));
+            ops.push(CollectOperation::new(
+                &drawer_dist_path.join("drawer/bundle_bg.wasm"),
+                &PathBuf::from("drawer"),
             ));
         }
     }
