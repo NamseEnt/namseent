@@ -328,7 +328,6 @@ impl Component for TextInput<'_> {
 
                             let caret_after_move = caret.get_caret_on_key(key);
 
-                            
                             caret_after_move.to_selection_index()
                         }
                     };

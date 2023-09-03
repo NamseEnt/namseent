@@ -26,7 +26,6 @@ impl BundleDirReader {
             for (path, dirent_list) in path_dirent_list_map {
                 self.path_dirent_list_map.insert(path, dirent_list);
             }
-            
         })?)
     }
 

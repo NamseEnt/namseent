@@ -29,7 +29,6 @@ impl MouseSystem {
             y: px(0.0),
         }));
         let mouse_cursor = Arc::new(RwLock::new("default".to_string()));
-        
 
         Self {
             mouse_position,

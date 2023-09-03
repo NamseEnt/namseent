@@ -41,10 +41,10 @@ where
     TDeserialize: FnOnce(&[u8]) -> Result<T, TDeserializeError>,
 {
     deserialize(fetch_bytes(url, method, build).await?.as_ref()).map_err(|error| {
-            HttpError::Deserialize {
-                message: error.to_string(),
-            }
-        })
+        HttpError::Deserialize {
+            message: error.to_string(),
+        }
+    })
 }
 
 pub async fn fetch_json<T: serde::de::DeserializeOwned>(
