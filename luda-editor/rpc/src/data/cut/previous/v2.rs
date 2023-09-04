@@ -23,7 +23,7 @@ impl Cut {
             screen_images: previous.screen_images.map(|image| {
                 image.map(|image| ScreenImage {
                     id: image.id,
-                    circumscribed: image.circumscribed.clone(),
+                    circumscribed: image.circumscribed,
                 })
             }),
         }
@@ -44,7 +44,7 @@ impl Cut {
             id,
             line: self.line.clone(),
             character_name: self.character_name.clone(),
-            screen_images: self.screen_images.clone(),
+            screen_images: self.screen_images,
         }
     }
 }

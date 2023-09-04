@@ -24,7 +24,7 @@ impl Cut {
                 .filter_map(|image| {
                     image.map(|image| ScreenImage {
                         id: image.id,
-                        circumscribed: image.circumscribed.clone(),
+                        circumscribed: image.circumscribed,
                     })
                 })
                 .collect(),

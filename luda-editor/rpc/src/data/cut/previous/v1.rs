@@ -22,7 +22,7 @@ impl Cut {
             character_id: previous.character_id,
             screen_images: previous
                 .screen_image_ids
-                .map(|image_id| image_id.map(|image_id| ScreenImage::new(image_id))),
+                .map(|image_id| image_id.map(ScreenImage::new)),
         }
     }
     pub fn new(id: Uuid) -> Self {
@@ -41,7 +41,7 @@ impl Cut {
             id,
             line: self.line.clone(),
             character_id: self.character_id,
-            screen_images: self.screen_images.clone(),
+            screen_images: self.screen_images,
         }
     }
 }
@@ -67,7 +67,7 @@ mod tests {
         let expected = std::iter::empty::<u8>()
             // id (24 bytes): uuid length (8 bytes) + uuid (16 bytes)
             .chain([16, 0, 0, 0, 0, 0, 0, 0]) // uuid length (8 bytes)
-            .chain(id.as_bytes().clone()) // uuid (16 bytes)
+            .chain(*id.as_bytes()) // uuid (16 bytes)
             // line (8 bytes): string length (8 bytes) + string (0 bytes)
             .chain([0, 0, 0, 0, 0, 0, 0, 0]) // string length (8 bytes)
             // character_id (1 bytes): none (1 byte)
@@ -85,7 +85,7 @@ mod tests {
         let bytes = std::iter::empty::<u8>()
             // id (24 bytes): uuid length (8 bytes) + uuid (16 bytes)
             .chain([16, 0, 0, 0, 0, 0, 0, 0]) // uuid length (8 bytes)
-            .chain(id.as_bytes().clone()) // uuid (16 bytes)
+            .chain(*id.as_bytes()) // uuid (16 bytes)
             // line (8 bytes): string length (8 bytes) + string (0 bytes)
             .chain([0, 0, 0, 0, 0, 0, 0, 0]) // string length (8 bytes)
             // character_id (1 bytes): none (1 byte)
@@ -109,7 +109,7 @@ mod tests {
         let bytes = std::iter::empty::<u8>()
             // id (24 bytes): uuid length (8 bytes) + uuid (16 bytes)
             .chain([16, 0, 0, 0, 0, 0, 0, 0]) // uuid length (8 bytes)
-            .chain(id.as_bytes().clone()) // uuid (16 bytes)
+            .chain(*id.as_bytes()) // uuid (16 bytes)
             // line (8 bytes): string length (8 bytes) + string (0 bytes)
             .chain([0, 0, 0, 0, 0, 0, 0, 0]) // string length (8 bytes)
             // character_id (1 bytes): none (1 byte)
