@@ -4,7 +4,7 @@ use namui::prelude::*;
 pub struct EventTrap;
 
 impl Component for EventTrap {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         ctx.on_raw_event(|event| {
             let event_ext: &dyn EventExt = match event {
                 RawEvent::MouseDown { event } => event,

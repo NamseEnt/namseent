@@ -11,7 +11,7 @@ pub struct ListView<C: Component> {
 }
 
 impl<C: Component> Component for ListView<C> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             xy,
             height,
@@ -48,7 +48,7 @@ struct ListViewInner<C: Component> {
 }
 
 impl<C: Component> Component for ListViewInner<C> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             height,
             item_wh,

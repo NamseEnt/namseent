@@ -21,7 +21,7 @@ where
     TIterator: Iterator<Item = TItem>,
     TItems: IntoIterator<Item = TItem, IntoIter = TIterator> + Debug,
 {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             xy,
             wh,
@@ -68,7 +68,7 @@ where
     TIterator: Iterator<Item = TItem>,
     TItems: IntoIterator<Item = TItem, IntoIter = TIterator> + Debug,
 {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             xy,
             wh,
@@ -84,7 +84,7 @@ where
         let items = items_iter.collect::<Vec<_>>();
 
         ctx.compose(|ctx| {
-            if items.len() == 0 {
+            if items.is_empty() {
                 return;
             }
 
@@ -126,7 +126,7 @@ where
     TIterator: Iterator<Item = TItem>,
     TItems: IntoIterator<Item = TItem, IntoIter = TIterator> + Debug,
 {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             items,
             wh,
@@ -139,7 +139,7 @@ where
             let items_iter = items.into_iter();
             let items = items_iter.collect::<Vec<_>>();
 
-            if items.len() == 0 {
+            if items.is_empty() {
                 return;
             }
 

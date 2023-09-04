@@ -22,7 +22,6 @@ pub fn simple_rect(
             fill: Some(RectFill { color: fill_color }),
             ..Default::default()
         },
-        ..Default::default()
     })
 }
 

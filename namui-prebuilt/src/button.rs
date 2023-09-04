@@ -8,8 +8,8 @@ fn attach_text_button_event<'a>(
 ) -> impl 'a + Component {
     let mouse_buttons = mouse_buttons.into_iter().collect::<Vec<_>>();
 
-    button.attach_event(move |event| match event {
-        Event::MouseUp { event } => {
+    button.attach_event(move |event| {
+        if let Event::MouseUp { event } = event {
             if !event.is_local_xy_in() {
                 return;
             }
@@ -20,10 +20,10 @@ fn attach_text_button_event<'a>(
                 on_mouse_up_in(event);
             }
         }
-        _ => {}
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn text_button<'a>(
     rect: Rect<Px>,
     text: &str,
@@ -48,6 +48,7 @@ pub fn text_button<'a>(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn text_button_fit<'a>(
     height: Px,
     text: &str,
@@ -81,6 +82,7 @@ pub fn text_button_fit<'a>(
     ))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn text_button_fit_align<'a>(
     wh: Wh<Px>,
     align: TextAlign,
@@ -125,6 +127,7 @@ pub fn text_button_fit_align<'a>(
     ))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn body_text_button<'a>(
     rect: Rect<Px>,
     text: &str,
