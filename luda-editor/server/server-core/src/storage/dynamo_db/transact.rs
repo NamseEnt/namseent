@@ -71,7 +71,7 @@ impl<TCancelError: std::error::Error + Send> Transact<TCancelError> {
             .send()
             .await;
         if let Err(error) = result {
-            eprintln!("error on transact: {:#?}", error);
+            eprintln!("error on transact: {:?}", error);
             return Err(TransactError::Unknown(error.to_string()));
         }
         Ok(())

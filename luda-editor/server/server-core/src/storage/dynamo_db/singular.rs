@@ -31,7 +31,7 @@ impl DynamoDb {
             .await;
 
         if let Err(error) = result {
-            eprintln!("error on get_item_internal: {:#?}", error);
+            eprintln!("error on get_item_internal: {:?}", error);
             return Err(GetItemInternalError::Unknown(error.to_string()));
         }
         let item = result.unwrap().item;
