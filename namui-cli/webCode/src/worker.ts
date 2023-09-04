@@ -35,6 +35,12 @@ const { waiter: initWaiter, resolve: finishInit } = createWaiter();
 
 let lastRequestedDrawInput: Uint8Array;
 let offscreenCanvas: OffscreenCanvas;
+let screenResizeRequest:
+    | undefined
+    | {
+          width: number;
+          height: number;
+      };
 
 self.onmessage = async (event) => {
     await initWaiter;
@@ -95,11 +101,7 @@ self.onmessage = async (event) => {
                     height: number;
                 };
 
-                if (offscreenCanvas) {
-                    offscreenCanvas.width = width;
-                    offscreenCanvas.height = height;
-                    refresh_surface(offscreenCanvas);
-                }
+                screenResizeRequest = { width, height };
             }
             break;
     }
@@ -141,8 +143,16 @@ requestAnimationFrame(function onAnimationFrame() {
 
         frameCount++;
 
-        if (lastRequestedDrawInput === lastDrawnInput) {
+        if (lastRequestedDrawInput === lastDrawnInput && !screenResizeRequest) {
             return;
+        }
+
+        if (screenResizeRequest && offscreenCanvas) {
+            const { width, height } = screenResizeRequest;
+            offscreenCanvas.width = width;
+            offscreenCanvas.height = height;
+            refresh_surface(offscreenCanvas);
+            screenResizeRequest = undefined;
         }
 
         draw(lastRequestedDrawInput);
