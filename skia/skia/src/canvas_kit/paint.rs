@@ -35,7 +35,7 @@ fn apply_paint_to_canvas_kit(canvas_kit_paint: &CanvasKitPaint, paint: &Paint) {
         ref shader,
     } = paint;
     if let Some(color) = color {
-        canvas_kit_paint.setColor(&color.as_float32_array());
+        canvas_kit_paint.setColor(&color.to_float32_array());
     }
     if let Some(style) = paint_style {
         canvas_kit_paint.setStyle(style.into());

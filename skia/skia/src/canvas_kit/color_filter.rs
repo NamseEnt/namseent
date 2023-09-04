@@ -12,7 +12,7 @@ impl CkColorFilter {
 
         CACHE.get_or_create(&color_filter, |color_filter| CkColorFilter {
             canvas_kit_color_filter: {
-                let color_array = color_filter.color.as_float32_array();
+                let color_array = color_filter.color.to_float32_array();
                 canvas_kit()
                     .ColorFilter()
                     .MakeBlend(&color_array, color_filter.blend_mode.into())

@@ -137,7 +137,7 @@ impl CanvasKit {
         info: Option<ImageInfo>,
         src_is_premul: Option<bool>,
     ) -> CanvasKitImage {
-        let info = info.map(|info| info.as_js_object());
+        let info = info.map(|info| info.to_js_object());
         // let image = self.MakeLazyImageFromTextureSource(src, info, src_is_premul);
         // image.makeCopyWithDefaultMipmaps() // Do we need this?
         self.MakeLazyImageFromTextureSource(src, info, src_is_premul)
@@ -152,18 +152,18 @@ impl CanvasKit {
         self.MakeWebGLCanvasSurface(
             canvas,
             color_space.map(|x| x.into()),
-            opts.map(|opts| opts.into_js_object()),
+            opts.map(|opts| opts.to_js_object()),
         )
         .expect("Failed to create WebGLCanvasSurface")
     }
 }
 
-pub(crate) trait AsJsObject {
-    fn as_js_object(&self) -> js_sys::Object;
+pub(crate) trait ToJsObject {
+    fn to_js_object(&self) -> js_sys::Object;
 }
 
-impl AsJsObject for ImageInfo {
-    fn as_js_object(&self) -> js_sys::Object {
+impl ToJsObject for ImageInfo {
+    fn to_js_object(&self) -> js_sys::Object {
         let obj = js_sys::Object::new();
 
         js_sys::Reflect::set(
@@ -204,8 +204,8 @@ impl AsJsObject for ImageInfo {
 pub struct WebGLOptions {
     pub preserve_drawing_buffer: Option<bool>,
 }
-impl IntoJsObject for WebGLOptions {
-    fn into_js_object(&self) -> js_sys::Object {
+impl ToJsObject for WebGLOptions {
+    fn to_js_object(&self) -> js_sys::Object {
         let obj = js_sys::Object::new();
 
         if let Some(preserve_drawing_buffer) = self.preserve_drawing_buffer {

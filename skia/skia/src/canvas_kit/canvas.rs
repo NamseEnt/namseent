@@ -13,7 +13,7 @@ impl CkCanvas {
 
 impl SkCanvas for CkCanvas {
     fn clear(&self, color: Color) {
-        self.canvas_kit_canvas.clear(&color.as_float32_array());
+        self.canvas_kit_canvas.clear(&color.to_float32_array());
     }
     fn draw_text_blob(&self, glyph_ids: Vec<usize>, xy: Xy<Px>, font: &Font, paint: &Paint) {
         let Some(text_blob) = CkTextBlob::from_glyph_ids(glyph_ids, font) else {
