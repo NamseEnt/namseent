@@ -143,12 +143,12 @@ fn calculate_contain_fit_dest_rect(image_size: Wh<Px>, command_rect: Rect<Px>) -
 
     let k = command_rect.height() / image_size.height;
     let delta_x = (command_rect.width() - image_size.width * k) / 2.0;
-    return Rect::Xywh {
+    Rect::Xywh {
         x: command_rect.x() + delta_x,
         y: command_rect.y(),
         width: image_size.width * k,
         height: command_rect.height(),
-    };
+    }
 }
 
 fn calculate_cover_fit_src_rect(image_size: Wh<Px>, command_rect: Rect<Px>) -> Rect<Px> {
@@ -174,10 +174,10 @@ fn calculate_cover_fit_src_rect(image_size: Wh<Px>, command_rect: Rect<Px>) -> R
 
     let k = command_rect.width() / image_size.width;
     let delta_y = (image_size.height * k - command_rect.height()) / (2.0 * k);
-    return Rect::Xywh {
+    Rect::Xywh {
         x: 0.px(),
         y: delta_y,
         width: image_size.width,
         height: image_size.height - delta_y * 2.0,
-    };
+    }
 }

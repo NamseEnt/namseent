@@ -21,7 +21,7 @@ pub async fn delete(path_like: impl PathLike) -> Result<(), DeleteError> {
         Some(file_name) => file_name.to_string_lossy().to_string(),
         None => return Err(DeleteError::InvalidFileName(format!("{file_path:?}"))),
     };
-    let parent_directory_path = match file_path.parent().as_deref() {
+    let parent_directory_path = match file_path.parent() {
         Some(path) => path.to_path_buf(),
         None => PathBuf::new(),
     };

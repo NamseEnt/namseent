@@ -37,13 +37,19 @@ pub(crate) async fn start<C: Component>(root_component: impl Send + Sync + 'stat
 }
 
 pub(crate) fn on_raw_event(event: RawEvent) {
-    TREE_CTX.get().map(|ctx| ctx.on_raw_event(event));
+    if let Some(ctx) = TREE_CTX.get() {
+        ctx.on_raw_event(event)
+    }
 }
 
 pub(crate) fn render_and_draw() {
-    TREE_CTX.get().map(|ctx| ctx.render_and_draw());
+    if let Some(ctx) = TREE_CTX.get() {
+        ctx.render_and_draw()
+    }
 }
 
 pub(crate) fn stop_event_propagation() {
-    TREE_CTX.get().map(|ctx| ctx.stop_event_propagation());
+    if let Some(ctx) = TREE_CTX.get() {
+        ctx.stop_event_propagation()
+    }
 }

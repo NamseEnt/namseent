@@ -4,8 +4,9 @@ use std::{any::Any, sync::OnceLock};
 #[derive(Debug)]
 pub struct Atom<T: Debug + Send + Sync + 'static> {
     _t: std::marker::PhantomData<T>,
-    value_index: OnceLock<Arc<Mutex<(Box<dyn Value>, usize)>>>,
+    value_index: OnceLock<Arc<Mutex<ValueIndex>>>,
 }
+type ValueIndex = (Box<dyn Value>, usize);
 
 static ATOMS: OnceLock<Mutex<Vec<&'static Atom<()>>>> = OnceLock::new();
 
@@ -28,14 +29,14 @@ impl<T: Debug + Send + Sync + 'static> Atom<T> {
             .lock()
             .unwrap();
 
-        self.value_to_ref(&value_index.0)
+        self.value_to_ref(value_index.0.as_ref())
     }
     fn initing<'a>(
         &'a self,
         init: impl FnOnce() -> T + 'a,
     ) -> impl FnOnce() -> Arc<Mutex<(Box<dyn Value>, usize)>> + 'a {
         || {
-            let mut atoms = ATOMS.get_or_init(|| Default::default()).lock().unwrap();
+            let mut atoms = ATOMS.get_or_init(Default::default).lock().unwrap();
 
             atoms.push(self.as_no_generic());
 
@@ -46,7 +47,7 @@ impl<T: Debug + Send + Sync + 'static> Atom<T> {
     }
     pub fn get(&self) -> &T {
         let value_index = self.value_index.get().unwrap().lock().unwrap();
-        self.value_to_ref(&value_index.0)
+        self.value_to_ref(value_index.0.as_ref())
     }
     pub fn set(&self, value: T) {
         channel::send(channel::Item::SetStateItem(SetStateItem::Set {
@@ -65,8 +66,9 @@ impl<T: Debug + Send + Sync + 'static> Atom<T> {
         }));
     }
 
-    fn value_to_ref(&self, value: &Box<dyn Value>) -> &T {
-        let value: &T = value.as_ref().as_any().downcast_ref().unwrap();
+    /// NOTE: strip box for parameter `value`!!
+    fn value_to_ref(&self, value: &dyn Value) -> &T {
+        let value: &T = value.as_any().downcast_ref().unwrap();
         let value: &T = unsafe { std::mem::transmute(value) };
         value
     }
@@ -113,10 +115,7 @@ pub(crate) fn set_atom_value(index: usize, value: Box<dyn Value>) {
         .0 = value;
 }
 
-pub(crate) fn mutate_atom_value(
-    index: usize,
-    mutate: Box<dyn FnOnce(&mut dyn Value) + Send + Sync>,
-) {
+pub(crate) fn mutate_atom_value(index: usize, mutate: MutateFnOnce) {
     let atoms = ATOMS.get().unwrap().lock().unwrap();
     let mut value_index = atoms[index].value_index.get().unwrap().lock().unwrap();
     let value = value_index.0.as_mut();

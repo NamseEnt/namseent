@@ -11,10 +11,12 @@ pub(crate) fn attach_event<'a, C: 'a + Component>(
     }
 }
 
+type OnEvent<'a> = Box<dyn 'a + FnOnce(Event)>;
 pub struct AttachEvent<'a, C: Component> {
     component: C,
-    on_event: Mutex<Option<Box<dyn 'a + FnOnce(Event)>>>,
+    on_event: Mutex<Option<OnEvent<'a>>>,
 }
+
 impl<'a, C: 'a + Component> StaticType for AttachEvent<'a, C> {}
 impl<'a, C: 'a + Component> Debug for AttachEvent<'a, C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -24,7 +26,7 @@ impl<'a, C: 'a + Component> Debug for AttachEvent<'a, C> {
     }
 }
 impl<'b, C: 'b + Component> Component for AttachEvent<'b, C> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         ctx.component(self.component);
         let done = ctx.done();
 
@@ -44,6 +46,6 @@ impl<'b, C: 'b + Component> Component for AttachEvent<'b, C> {
             );
         });
 
-        return done;
+        done
     }
 }

@@ -40,7 +40,7 @@ impl GroupGlyph for CkGroupGlyph {
 
         let glyphs = glyph_ids
             .into_iter()
-            .zip(glyph_widths.into_iter())
+            .zip(glyph_widths)
             .map(|(id, width)| Glyph { id, width })
             .collect::<Vec<_>>();
 

@@ -59,7 +59,7 @@ impl<Key: serde::Serialize, Value, const CAPACITY: usize> SerdeLruCache<Key, Val
         let mut map = map.lock().unwrap();
         let hash_key = SerdeHash::new(key);
 
-        map.get(&hash_key).map(|value| value.clone())
+        map.get(&hash_key).cloned()
     }
 
     pub fn put(&self, key: &Key, value: Value) {

@@ -62,9 +62,9 @@ macro_rules! canvas_kit_enum {
         }
 
 
-        impl Into<$canvas_enum_name> for $enum_name {
-            fn into(self) -> $canvas_enum_name {
-                match self {
+        impl From<$enum_name> for $canvas_enum_name {
+            fn from(value: $enum_name) -> Self {
+                match value {
                     $(
                         $enum_name::$enum_item => canvas_kit().$enum_name().$canvas_kit_enum_item(),
                     )*
@@ -75,7 +75,7 @@ macro_rules! canvas_kit_enum {
 }
 
 pub(crate) trait IntoCanvasKitEnum {
-    fn into_canvas_kit_enum(&self) -> EmbindEnumEntity;
+    fn as_canvas_kit_enum(&self) -> EmbindEnumEntity;
 }
 
 canvas_kit_enum!(

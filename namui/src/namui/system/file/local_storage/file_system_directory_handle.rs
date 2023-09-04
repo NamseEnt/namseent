@@ -73,7 +73,7 @@ impl FileSystemDirectoryHandle {
         options: GetHandleOption,
     ) -> Result<FileSystemDirectoryHandle, JsValue> {
         let mut cursor = self.clone();
-        for directory_name in path_like.path().into_iter() {
+        for directory_name in path_like.path().iter() {
             if directory_name == "/" {
                 continue;
             }

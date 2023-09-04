@@ -47,7 +47,7 @@ impl CkFont {
 impl CkFont {
     pub(crate) fn glyph_ids(&self, text: impl AsRef<str>) -> GlyphIds {
         let text = text.as_ref().to_string();
-        if text.len() == 0 {
+        if text.is_empty() {
             return vec![];
         }
 

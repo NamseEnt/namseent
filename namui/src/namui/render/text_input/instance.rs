@@ -9,7 +9,7 @@ pub struct TextInputInstance {
 impl TextInputInstance {
     pub fn new(ctx: &RenderCtx) -> Self {
         TEXT_INPUT_ATOM.get_or_init(Default::default);
-        let id = ctx.memo(|| uuid());
+        let id = ctx.memo(uuid);
 
         TextInputInstance { id: *id }
     }

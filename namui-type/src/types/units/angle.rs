@@ -99,8 +99,8 @@ impl PartialEq for Angle {
 impl PartialOrd for Angle {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match (self, other) {
-            (Angle::Radian(a), Angle::Radian(b)) => a.partial_cmp(&b),
-            (Angle::Degree(a), Angle::Degree(b)) => a.partial_cmp(&b),
+            (Angle::Radian(a), Angle::Radian(b)) => a.partial_cmp(b),
+            (Angle::Degree(a), Angle::Degree(b)) => a.partial_cmp(b),
             (Angle::Radian(a), Angle::Degree(b)) => a.partial_cmp(&b.to_radians()),
             (Angle::Degree(a), Angle::Radian(b)) => a.partial_cmp(&b.to_degrees()),
         }

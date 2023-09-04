@@ -7,7 +7,7 @@ pub struct RenderDone {
 }
 
 pub trait Component: StaticType + Debug {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone;
+    fn render(self, ctx: &RenderCtx) -> RenderDone;
     fn arc<'a>(self) -> Arc<dyn 'a + Component>
     where
         Self: Sized + 'a,
@@ -43,7 +43,7 @@ pub trait StaticType {
 impl StaticType for RenderingTree {}
 
 impl Component for RenderingTree {
-    fn render<'a>(self, _ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, _ctx: &RenderCtx) -> RenderDone {
         RenderDone {
             rendering_tree: self,
         }
@@ -53,7 +53,7 @@ impl Component for RenderingTree {
 impl<T: StaticType> StaticType for Option<T> {}
 
 impl<T: Component> Component for Option<T> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         ctx.compose(|ctx| {
             if let Some(v) = self {
                 ctx.add(v);
@@ -78,7 +78,7 @@ macro_rules! component_impl {
                 }
             }
             impl<$($T: Component),*> Component for ($($T,)*) {
-                fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+                fn render(self, ctx: &RenderCtx) -> RenderDone {
                     $(ctx.component(self.$i);)*
                     ctx.return_internal()
                 }

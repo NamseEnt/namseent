@@ -45,6 +45,8 @@ pub enum RawEvent {
         text: String,
     },
 }
+unsafe impl Send for RawEvent {}
+unsafe impl Sync for RawEvent {}
 
 #[derive(Derivative)]
 #[derivative(Debug)]

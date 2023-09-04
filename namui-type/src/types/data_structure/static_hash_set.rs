@@ -16,21 +16,21 @@ impl<Key: Hash + Eq + PartialEq> StaticHashSet<Key> {
     }
     pub fn contains(&self, key: &Key) -> bool {
         self.map
-            .get_or_init(|| Default::default())
+            .get_or_init(Default::default)
             .lock()
             .unwrap()
             .contains(key)
     }
     pub fn insert(&self, key: Key) -> bool {
         self.map
-            .get_or_init(|| Default::default())
+            .get_or_init(Default::default)
             .lock()
             .unwrap()
             .insert(key)
     }
     pub fn remove(&self, key: &Key) -> bool {
         self.map
-            .get_or_init(|| Default::default())
+            .get_or_init(Default::default)
             .lock()
             .unwrap()
             .remove(key)

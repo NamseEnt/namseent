@@ -11,7 +11,7 @@ unsafe impl Sync for CkSkia {}
 impl CkSkia {
     pub(crate) fn new(canvas_element: Option<&HtmlCanvasElement>) -> CkSkia {
         Self {
-            surface: canvas_element.map(|x| CkSurface::new(x)),
+            surface: canvas_element.map(CkSurface::new),
         }
     }
 }

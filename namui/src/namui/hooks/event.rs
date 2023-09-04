@@ -20,7 +20,7 @@ pub(crate) fn invoke_on_event(
         RawEvent::MouseDown { event } => {
             let event = get_mouse_event(
                 inverse_matrix,
-                &rendering_tree,
+                rendering_tree,
                 event,
                 MouseEventType::Down,
                 global_xy_clip_in,
@@ -32,7 +32,7 @@ pub(crate) fn invoke_on_event(
             on_event(Event::MouseMove {
                 event: get_mouse_event(
                     inverse_matrix,
-                    &rendering_tree,
+                    rendering_tree,
                     event,
                     MouseEventType::Move,
                     global_xy_clip_in,
@@ -43,7 +43,7 @@ pub(crate) fn invoke_on_event(
             on_event(Event::MouseUp {
                 event: get_mouse_event(
                     inverse_matrix,
-                    &rendering_tree,
+                    rendering_tree,
                     event,
                     MouseEventType::Up,
                     global_xy_clip_in,
@@ -138,7 +138,7 @@ pub(crate) fn invoke_on_event(
             on_event(Event::DragAndDrop {
                 event: get_file_drop_event(
                     inverse_matrix,
-                    &rendering_tree,
+                    rendering_tree,
                     data_transfer,
                     xy,
                     global_xy_clip_in,

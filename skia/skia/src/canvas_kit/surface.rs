@@ -11,9 +11,7 @@ unsafe impl Sync for CkSurface {}
 
 impl CkSurface {
     pub(crate) fn new(canvas_element: &HtmlCanvasElement) -> CkSurface {
-        let canvas_kit_surface = canvas_kit()
-            .MakeWebGLCanvasSurface(&canvas_element)
-            .unwrap();
+        let canvas_kit_surface = canvas_kit().make_web_glcanvas_surface(canvas_element, None, None);
 
         let canvas = canvas_kit_surface.getCanvas();
         CkSurface {

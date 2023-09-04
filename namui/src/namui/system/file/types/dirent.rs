@@ -22,17 +22,11 @@ impl Dirent {
         }
     }
     pub fn is_dir(&self) -> bool {
-        match self {
-            Dirent::Directory(_) => true,
-            _ => false,
-        }
+        matches!(self, Dirent::Directory(_))
     }
 
     pub fn is_file(&self) -> bool {
-        match self {
-            Dirent::File(_) => true,
-            _ => false,
-        }
+        matches!(self, Dirent::File(_))
     }
 
     pub fn kind(&self) -> DirentKind {

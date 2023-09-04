@@ -10,7 +10,7 @@ pub struct ComponentInstance {
     pub(crate) component_type_name: &'static str,
     pub(crate) state_list: Mutex<Vec<Box<dyn Value>>>,
     pub(crate) effect_used_sigs_list: Mutex<Vec<Vec<SigId>>>,
-    pub(crate) effect_clean_up_list: Mutex<Vec<Option<Box<dyn FnOnce()>>>>,
+    pub(crate) effect_clean_up_list: Mutex<Vec<CleanUpFnOnce>>,
     pub(crate) memo_value_list: Mutex<Vec<Box<dyn Value>>>,
     pub(crate) memo_used_sigs_list: Mutex<Vec<Vec<SigId>>>,
     pub(crate) render_used_sigs: Mutex<Vec<SigId>>,
@@ -19,6 +19,9 @@ pub struct ComponentInstance {
     is_rendered_on_this_tick: AtomicBool,
     children_instances: Mutex<HashMap<(KeyVec, &'static str), Arc<ComponentInstance>>>,
 }
+
+unsafe impl Send for ComponentInstance {}
+unsafe impl Sync for ComponentInstance {}
 
 impl Debug for ComponentInstance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

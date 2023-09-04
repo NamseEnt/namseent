@@ -1,4 +1,4 @@
-use super::bundle::{self, BundleDirReaderInitError};
+use super::bundle::{self, read_dir::BundleDirReaderInitError};
 use crate::namui::system::InitResult;
 use std::{
     error::Error,

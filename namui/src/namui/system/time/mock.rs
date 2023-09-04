@@ -9,7 +9,7 @@ lazy_static::lazy_static! {
 }
 
 pub fn now() -> Time {
-    NOW.lock().unwrap().clone()
+    *NOW.lock().unwrap()
 }
 
 pub fn set_now(now: Time) {

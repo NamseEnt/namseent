@@ -7,7 +7,7 @@ pub(crate) struct CkPaint {
 impl CkPaint {
     pub(crate) fn get(paint: &Paint) -> Arc<Self> {
         static CK_PAINT_CACHE: SerdeLruCache<Paint, CkPaint> = SerdeLruCache::new();
-        CK_PAINT_CACHE.get_or_create(paint, |paint| Self::new(paint))
+        CK_PAINT_CACHE.get_or_create(paint, Self::new)
     }
     fn new(paint: &Paint) -> Self {
         let canvas_kit_paint = CanvasKitPaint::new();
@@ -35,7 +35,7 @@ fn apply_paint_to_canvas_kit(canvas_kit_paint: &CanvasKitPaint, paint: &Paint) {
         ref shader,
     } = paint;
     if let Some(color) = color {
-        canvas_kit_paint.setColor(&color.into_float32_array());
+        canvas_kit_paint.setColor(&color.to_float32_array());
     }
     if let Some(style) = paint_style {
         canvas_kit_paint.setStyle(style.into());
@@ -57,14 +57,14 @@ fn apply_paint_to_canvas_kit(canvas_kit_paint: &CanvasKitPaint, paint: &Paint) {
     }
     if let Some(color_filter) = color_filter {
         let ck_color_filter = CkColorFilter::get(color_filter);
-        canvas_kit_paint.setColorFilter(&ck_color_filter.canvas_kit());
+        canvas_kit_paint.setColorFilter(ck_color_filter.canvas_kit());
     }
     if let Some(blend_mode) = blend_mode {
         canvas_kit_paint.setBlendMode(blend_mode.into());
     }
     if let Some(shader) = shader {
         let ck_shader = CkShader::get(shader);
-        canvas_kit_paint.setShader(Some(&ck_shader.canvas_kit()));
+        canvas_kit_paint.setShader(Some(ck_shader.canvas_kit()));
     }
 }
 

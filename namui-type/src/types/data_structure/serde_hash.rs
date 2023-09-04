@@ -9,7 +9,7 @@ pub struct SerdeHash<T: serde::Serialize> {
 }
 
 impl<T: serde::Serialize> SerdeHash<T> {
-    pub fn new<'a>(value: &'a T) -> Self {
+    pub fn new(value: &T) -> Self {
         let vec = postcard::to_stdvec(&value).unwrap();
         let mut hasher = DefaultHasher::new();
         hasher.write(&vec);

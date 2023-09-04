@@ -2,7 +2,7 @@ use crate::*;
 
 impl Draw for TextDrawCommand {
     fn draw(self, ctx: &DrawContext) {
-        if self.text.len() == 0 {
+        if self.text.is_empty() {
             return;
         }
 
@@ -48,7 +48,7 @@ impl Draw for TextDrawCommand {
                         ctx.canvas().draw_line(
                             Xy::new(x, bottom + 2.px()),
                             Xy::new(x + width, bottom + 2.px()),
-                            &underline_paint,
+                            underline_paint,
                         );
                     }
 

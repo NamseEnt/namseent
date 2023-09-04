@@ -42,9 +42,9 @@ pub async fn read_json<T: serde::de::DeserializeOwned>(
     serde_json::from_slice(bytes.as_ref()).map_err(|error| ReadError::Other(error.to_string()))
 }
 
-impl Into<ReadError> for electron::ReadVecU8Error {
-    fn into(self) -> ReadError {
-        match self {
+impl From<electron::ReadVecU8Error> for ReadError {
+    fn from(val: electron::ReadVecU8Error) -> Self {
+        match val {
             electron::ReadVecU8Error::FileNotFound(message) => ReadError::FileNotFound(message),
             electron::ReadVecU8Error::Other(message) => ReadError::Other(message),
         }
