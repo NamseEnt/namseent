@@ -19,7 +19,7 @@ pub enum Event {
 }
 
 impl Component for MemoEditor<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         const MEMO_EDITOR_WH: Wh<Px> = Wh {
             width: px(512.0),
             height: px(256.0),
@@ -53,14 +53,13 @@ impl Component for MemoEditor<'_> {
             1.px(),
             color::BACKGROUND,
         )
-        .attach_event(|event| match event {
-            namui::Event::MouseDown { event } => {
+        .attach_event(|event| {
+            if let namui::Event::MouseDown { event } = event {
                 if !event.is_local_xy_in() {
                     event.stop_propagation();
                     on_event(Event::Close);
                 }
             }
-            _ => {}
         });
 
         let render_close_button = |height: Px| {
@@ -173,11 +172,10 @@ impl Component for MemoEditor<'_> {
                             },
                         },
                         prevent_default_codes: vec![],
-                        on_event: &|event| match event {
-                            text_input::Event::TextUpdated { text } => {
+                        on_event: &|event| {
+                            if let text_input::Event::TextUpdated { text } = event {
                                 set_text.set(text.to_string())
                             }
-                            _ => {}
                         },
                     });
                 })(wh, ctx);

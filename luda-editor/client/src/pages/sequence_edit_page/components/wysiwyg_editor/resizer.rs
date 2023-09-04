@@ -22,7 +22,7 @@ pub enum Event {
 }
 
 impl Component for Resizer<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             rect,
             dragging_context,
@@ -95,23 +95,21 @@ impl Component for Resizer<'_> {
                                 _ => {}
                             }
                         }
-                        None => match event {
-                            namui::Event::MouseDown { event } => {
-                                if event.is_local_xy_in() {
-                                    if event.button == Some(MouseButton::Left) {
-                                        event.stop_propagation();
-                                        on_event(Event::OnUpdateDraggingContext {
-                                            context: Some(ResizerDraggingContext {
-                                                handle,
-                                                start_global_xy: event.global_xy,
-                                                end_global_xy: event.global_xy,
-                                            }),
-                                        });
-                                    }
+                        None => {
+                            if let namui::Event::MouseDown { event } = event {
+                                if event.is_local_xy_in() && event.button == Some(MouseButton::Left)
+                                {
+                                    event.stop_propagation();
+                                    on_event(Event::OnUpdateDraggingContext {
+                                        context: Some(ResizerDraggingContext {
+                                            handle,
+                                            start_global_xy: event.global_xy,
+                                            end_global_xy: event.global_xy,
+                                        }),
+                                    });
                                 }
                             }
-                            _ => {}
-                        },
+                        }
                     })
                 })
                 .for_each(|handle| {
@@ -244,7 +242,7 @@ fn resize_by_center(
     let projected_length = candidates
         .iter()
         .filter_map(|candidate| candidate.map(|xy| (xy - center_xy).length()))
-        .max_by(|a, b| a.partial_cmp(&b).unwrap())
+        .max_by(|a, b| a.partial_cmp(b).unwrap())
         .unwrap();
 
     let radius = match handle {

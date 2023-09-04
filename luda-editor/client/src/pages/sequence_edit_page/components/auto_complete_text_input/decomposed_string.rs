@@ -14,7 +14,7 @@ impl DecomposedString {
             unicode_normalization::char::decompose_canonical(char, |alphabet| {
                 hangul_full_decompose(alphabet)
                     .into_iter()
-                    .filter_map(|alphabet| alphabet)
+                    .flatten()
                     .for_each(|alphabet| {
                         alphabets.push(alphabet);
                     });

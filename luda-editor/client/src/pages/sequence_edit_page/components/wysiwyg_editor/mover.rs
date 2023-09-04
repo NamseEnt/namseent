@@ -18,7 +18,7 @@ pub enum Event {
 }
 
 impl Component for Mover<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             image_dest_rect,
             ref dragging,
@@ -47,20 +47,17 @@ impl Component for Mover<'_> {
                             namui::MouseCursor::Pointer
                         }
                     })
-                    .attach_event(|event| match event {
-                        namui::Event::MouseDown { event } => {
-                            if event.is_local_xy_in() {
-                                if event.button == Some(MouseButton::Left) {
-                                    event.stop_propagation();
-                                    on_event(Event::MoveStart {
-                                        start_global_xy: event.global_xy,
-                                        end_global_xy: event.global_xy,
-                                        container_wh,
-                                    });
-                                }
+                    .attach_event(|event| {
+                        if let namui::Event::MouseDown { event } = event {
+                            if event.is_local_xy_in() && event.button == Some(MouseButton::Left) {
+                                event.stop_propagation();
+                                on_event(Event::MoveStart {
+                                    start_global_xy: event.global_xy,
+                                    end_global_xy: event.global_xy,
+                                    container_wh,
+                                });
                             }
                         }
-                        _ => {}
                     }),
                 );
         });

@@ -24,7 +24,7 @@ enum ContextMenu {
 }
 
 impl Component for LoadedSequenceEditorPage {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             project_shared_data,
             cut_id_memos_map,
@@ -48,6 +48,7 @@ impl Component for LoadedSequenceEditorPage {
         let project_id = project_shared_data.id();
         let sequence_id = sequence.id;
 
+        #[allow(clippy::enum_variant_names)]
         enum InternalEvent {
             CutListViewEvent { event: cut_list_view::Event },
             CutEditorEvent { event: cut_editor::Event },
@@ -244,7 +245,7 @@ impl Component for LoadedSequenceEditorPage {
         };
 
         if_context_menu_for::<ContextMenu>(|context_menu, builder| match context_menu {
-            ContextMenu::CutListView => builder.add_button("Add Cut", &|| {
+            ContextMenu::CutListView => builder.add_button("Add Cut", || {
                 set_seqenece.mutate(|sequence| {
                     sequence.update(SequenceUpdateAction::InsertCut {
                         cut: Cut::new(uuid()),

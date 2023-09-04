@@ -8,11 +8,12 @@ pub struct ProjectListPage {
 }
 
 impl Component for ProjectListPage {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { wh } = self;
         let (error_message, set_error_message) = ctx.state::<Option<String>>(|| None);
         let (is_loading, set_is_loading) = ctx.state(|| true);
-        let (project_list, set_project_list) = ctx.state::<Vec<EditableProject>>(|| vec![]);
+        let (project_list, set_project_list) =
+            ctx.state::<Vec<EditableProject>>(std::vec::Vec::new);
 
         let start_fetch_list = move || {
             set_is_loading.set(true);
@@ -158,7 +159,7 @@ pub struct ProjectCell {
 }
 
 impl Component for ProjectCell {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let project_id = self.project.id;
 
         ctx.component(namui_prebuilt::button::text_button(

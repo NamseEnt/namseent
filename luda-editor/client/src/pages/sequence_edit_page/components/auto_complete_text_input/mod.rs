@@ -16,7 +16,7 @@ pub struct AutoCompleteTextInput<'a> {
 }
 
 impl Component for AutoCompleteTextInput<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             text_input_instance,
             wh,

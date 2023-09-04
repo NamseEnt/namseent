@@ -18,11 +18,12 @@ enum ContextMenu {
 }
 
 impl Component for SequenceListPage {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self { wh, project_id } = self;
         let (error_message, set_error_message) = ctx.state::<Option<String>>(|| None);
         let (is_loading, set_is_loading) = ctx.state(|| true);
-        let (sequence_list, set_sequence_list) = ctx.state::<Vec<SequenceNameAndId>>(|| vec![]);
+        let (sequence_list, set_sequence_list) =
+            ctx.state::<Vec<SequenceNameAndId>>(std::vec::Vec::new);
         let (rename_modal, set_rename_modal) = ctx.state(|| None);
 
         let start_fetch_list = move || {
@@ -235,7 +236,7 @@ pub struct SequenceCell<'a> {
 }
 
 impl Component for SequenceCell<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             wh,
             project_id,

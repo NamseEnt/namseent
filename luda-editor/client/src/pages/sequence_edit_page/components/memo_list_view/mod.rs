@@ -18,7 +18,7 @@ pub enum Event {
 }
 
 impl Component for MemoListView<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             wh,
             ref memos,
@@ -38,7 +38,7 @@ impl Component for MemoListView<'_> {
                             width: wh.width,
                             memo,
                             user_id,
-                            on_event: Box::new(|event| on_event(event)),
+                            on_event: Box::new(&on_event),
                         },
                     )
                 }))(wh, ctx);
@@ -63,7 +63,7 @@ struct MemoComponent<'a> {
     on_event: callback!('a, Event),
 }
 impl Component for MemoComponent<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         const MARGIN: Px = px(8.0);
         const PADDING: Px = px(8.0);
 
@@ -113,7 +113,7 @@ struct MemoContent<'a> {
     on_event: callback!('a, Event),
 }
 impl Component for MemoContent<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         const MARGIN: Px = px(8.0);
         const PADDING: Px = px(8.0);
         const BUTTON_HEIGHT: Px = px(24.0);

@@ -7,7 +7,7 @@ pub struct Router {
 }
 
 impl Component for Router {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let (route, set_route) = ctx.state(|| Route::from(get_hash()));
 
         namui::web::event_listener_hash_change(move |event| {
@@ -41,6 +41,7 @@ impl Component for Router {
     }
 }
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug)]
 pub enum Route {
     ProjectListPage,
@@ -99,7 +100,7 @@ pub fn move_to(route: Route) {
         window.location.hash = hash;
     ",
     )
-    .arg("hash", &route.to_string())
+    .arg("hash", route.to_string())
     .run::<()>();
 }
 

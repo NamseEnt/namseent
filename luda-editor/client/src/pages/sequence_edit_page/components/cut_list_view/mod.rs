@@ -16,6 +16,7 @@ pub struct CutListView<'a> {
     pub on_event: Box<dyn 'a + Fn(Event)>,
 }
 
+#[allow(clippy::enum_variant_names)]
 pub enum Event {
     OnPressEnterOnCut { cut_id: Uuid },
     OnMoveToNextCutByKeyboard { next_cut_id: Uuid },
@@ -23,7 +24,7 @@ pub enum Event {
     OnRightClickEvent { global_xy: Xy<Px> },
 }
 impl Component for CutListView<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             wh,
             cuts,
