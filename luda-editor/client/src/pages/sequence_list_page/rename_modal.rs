@@ -9,7 +9,7 @@ pub struct RenameModal<'a> {
 }
 
 impl Component for RenameModal<'_> {
-    fn render<'a>(self, ctx: &'a RenderCtx) -> RenderDone {
+    fn render(self, ctx: &RenderCtx) -> RenderDone {
         let Self {
             init_sequence_name,
             on_rename_done,
@@ -40,36 +40,24 @@ impl Component for RenameModal<'_> {
 
         let sequence_name = sequence_name.to_string();
         ctx.compose(|ctx| {
-            ctx.absolute((0.px(), 0.px()))
-                .add(
-                    simple_rect(
-                        screen_wh,
-                        Color::TRANSPARENT,
-                        0.px(),
-                        Color::from_f01(0.8, 0.8, 0.8, 0.8),
-                    )
-                    .attach_event(|event| match event {
-                        Event::MouseDown { event } => {
-                            if !event.is_local_xy_in() {
-                                close_modal();
-                            }
-                            event.stop_propagation();
-                        }
-                        Event::MouseUp { event } => event.stop_propagation(),
-                        _ => {}
-                    }),
-                )
-                .translate((modal_xy.x, modal_xy.y))
-                .add(simple_rect(
-                    modal_wh,
+            let mut ctx = ctx.absolute((0.px(), 0.px()));
+            ctx.translate((modal_xy.x, modal_xy.y))
+                .add(namui_prebuilt::button::text_button(
+                    enter_button_rect_in_modal,
+                    "Save",
+                    Color::WHITE,
                     Color::WHITE,
                     1.px(),
-                    Color::grayscale_f01(0.5),
-                ))
-                .add(namui_prebuilt::typography::body::center(
-                    Wh::new(modal_wh.width, modal_wh.height / 3.0),
-                    "Rename Sequence",
-                    Color::WHITE,
+                    Color::BLACK,
+                    [MouseButton::Left],
+                    {
+                        let on_rename_done = on_rename_done.clone();
+                        let sequence_name = sequence_name.clone();
+
+                        move |_| {
+                            on_rename_done(sequence_name);
+                        }
+                    },
                 ))
                 .add(TextInput {
                     instance: text_input_instance,
@@ -114,23 +102,36 @@ impl Component for RenameModal<'_> {
                         }
                     },
                 })
-                .add(namui_prebuilt::button::text_button(
-                    enter_button_rect_in_modal,
-                    "Save",
+                .add(namui_prebuilt::typography::body::center(
+                    Wh::new(modal_wh.width, modal_wh.height / 3.0),
+                    "Rename Sequence",
                     Color::WHITE,
+                ))
+                .add(simple_rect(
+                    modal_wh,
                     Color::WHITE,
                     1.px(),
-                    Color::BLACK,
-                    [MouseButton::Left],
-                    {
-                        let on_rename_done = on_rename_done.clone();
-                        let sequence_name = sequence_name.clone();
-
-                        move |_| {
-                            on_rename_done(sequence_name);
-                        }
-                    },
+                    Color::grayscale_f01(0.5),
                 ));
+
+            ctx.add(
+                simple_rect(
+                    screen_wh,
+                    Color::TRANSPARENT,
+                    0.px(),
+                    Color::from_f01(0.8, 0.8, 0.8, 0.8),
+                )
+                .attach_event(|event| match event {
+                    Event::MouseDown { event } => {
+                        if !event.is_local_xy_in() {
+                            close_modal();
+                        }
+                        event.stop_propagation();
+                    }
+                    Event::MouseUp { event } => event.stop_propagation(),
+                    _ => {}
+                }),
+            );
         });
         ctx.done()
     }
