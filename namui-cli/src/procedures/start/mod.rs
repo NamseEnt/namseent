@@ -15,6 +15,6 @@ pub async fn start(target: &Target, manifest_path: &PathBuf) -> Result<()> {
             Target::WasmLinuxElectron => linux::wasm_linux_electron::start(&manifest_path).await,
         }
     } else {
-        Result::Err(anyhow!("{} is unsupported os", std::env::consts::OS).into())
+        Result::Err(anyhow!("{} is unsupported os", std::env::consts::OS))
     }
 }

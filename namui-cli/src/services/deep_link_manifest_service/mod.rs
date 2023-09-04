@@ -1,5 +1,8 @@
 use crate::*;
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 pub struct DeepLinkManifest {
     path: PathBuf,
@@ -14,7 +17,7 @@ impl DeepLinkManifest {
         &self.deep_link_schemes
     }
 
-    pub fn try_load(project_root_path: &PathBuf) -> Result<Option<Self>> {
+    pub fn try_load(project_root_path: &Path) -> Result<Option<Self>> {
         let namui_deep_link_manifest_path = project_root_path.join(".namuideeplink");
         match namui_deep_link_manifest_path.exists() {
             true => {
@@ -38,7 +41,7 @@ fn parse_namui_deep_link_manifest(namui_deep_link_manifest_string: &str) -> Vec<
     let mut deep_link_schemes = Vec::new();
     for line in namui_deep_link_manifest_string.lines() {
         let trimmed_line = line.trim();
-        if trimmed_line.len() == 0 || trimmed_line.starts_with("#") {
+        if trimmed_line.is_empty() || trimmed_line.starts_with('#') {
             continue;
         }
         deep_link_schemes.push(trimmed_line.to_string());

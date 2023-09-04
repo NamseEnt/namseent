@@ -9,7 +9,9 @@ use wsl::is_wsl;
 
 pub async fn start(manifest_path: &Path) -> Result<()> {
     if !is_wsl() {
-        return Err(anyhow!("linux to windows build is only supported on wsl for now").into());
+        return Err(anyhow!(
+            "linux to windows build is only supported on wsl for now"
+        ));
     }
     const PORT: u16 = 8080;
 

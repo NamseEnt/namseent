@@ -88,7 +88,7 @@ impl BuildStatusService {
     }
     async fn on_state_change(&self) {
         let building_categories = self.building_categories().await;
-        match building_categories.len() == 0 {
+        match building_categories.is_empty() {
             true => print_build_result(
                 &self.compile_error_messages().await,
                 &self.cli_error_messages().await,

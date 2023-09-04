@@ -12,7 +12,7 @@ fn test_electron() {
     let is_test_successful = test_output
         .status
         .code()
-        .and_then(|code| Some(code == 0))
+        .map(|code| code == 0)
         .unwrap_or(false);
     if is_test_successful {
         return;

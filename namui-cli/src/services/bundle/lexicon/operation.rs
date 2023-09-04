@@ -15,10 +15,10 @@ impl IncludeOperation {
         }
     }
     pub fn join_dest_path_under_dest_root_path(
-        self: &Self,
-        dest_root_path: &PathBuf,
+        &self,
+        dest_root_path: &std::path::Path,
     ) -> Result<PathBuf> {
-        let mut target_dest_path = dest_root_path.clone();
+        let mut target_dest_path = dest_root_path.to_path_buf();
         for element in &self.dest_path.elements {
             match element {
                 PathElement::FileOrDir {
@@ -28,8 +28,7 @@ impl IncludeOperation {
                 PathElement::DoubleAsterisk => {
                     return Err(anyhow!(
                         "join_dest_path_under_dest_root_path: No wildcard allowed to dest_path"
-                    )
-                    .into())
+                    ))
                 }
                 PathElement::CurrentDirectory => continue,
                 PathElement::ParentDirectory => {
@@ -41,7 +40,7 @@ impl IncludeOperation {
     }
 
     pub fn visit<F>(
-        self: &Self,
+        &self,
         target_src_path: &PathBuf,
         target_dest_path: &PathBuf,
         src_path_depth: usize,
@@ -61,7 +60,7 @@ impl IncludeOperation {
                     regex,
                 } => {
                     visit_just_under_directory(target_src_path, &mut |dirent| {
-                        if !regex.is_match(&dirent.file_name().to_str().unwrap()) {
+                        if !regex.is_match(dirent.file_name().to_str().unwrap()) {
                             return Ok(());
                         }
                         let target_dest_path =
@@ -145,7 +144,7 @@ impl ExcludeOperation {
     }
 
     pub fn visit<F>(
-        self: &Self,
+        &self,
         target_src_path: &PathBuf,
         src_path_depth: usize,
         op: &mut F,
@@ -163,7 +162,7 @@ impl ExcludeOperation {
                     regex,
                 } => {
                     visit_just_under_directory(target_src_path, &mut |dirent| {
-                        if !regex.is_match(&dirent.file_name().to_str().unwrap()) {
+                        if !regex.is_match(dirent.file_name().to_str().unwrap()) {
                             return Ok(());
                         }
                         self.visit(&dirent.path(), src_path_depth + 1, op)

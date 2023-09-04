@@ -41,6 +41,7 @@ pub enum Commands {
     },
 }
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, ValueEnum)]
 pub enum Target {
     #[value(rename_all = "kebab-case")]
@@ -70,9 +71,9 @@ impl From<namui_user_config::Target> for Target {
         }
     }
 }
-impl Into<namui_user_config::Target> for Target {
-    fn into(self) -> namui_user_config::Target {
-        match self {
+impl From<Target> for namui_user_config::Target {
+    fn from(val: Target) -> Self {
+        match val {
             Target::WasmUnknownWeb => namui_user_config::Target::WasmUnknownWeb,
             Target::WasmWindowsElectron => namui_user_config::Target::WasmWindowsElectron,
             Target::WasmLinuxElectron => namui_user_config::Target::WasmLinuxElectron,
